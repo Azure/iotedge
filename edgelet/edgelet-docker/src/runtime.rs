@@ -7,14 +7,15 @@ use std::str;
 use std::sync::Arc;
 use std::time::Duration;
 
-use failure::Fail;
+// use failure::{Fail, ResultExt};
 use futures::prelude::*;
 use futures::{stream, Stream, StreamExt};
 use lazy_static::lazy_static;
 use log::{debug, info, Level};
 use tokio::sync::Mutex;
 
-use docker::models::{ContainerCreateBody, Ipam}; // TODO: Move to settings crate?
+use docker::apis::{DockerApi, DockerApiClient};
+use docker::models::{ContainerCreateBody, Ipam};
 use edgelet_core::{
     LogOptions, MakeModuleRuntime, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState,
     ProvisioningInfo, RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo,
@@ -26,8 +27,7 @@ use edgelet_settings::{
 };
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
 
-use crate::client::DockerClient;
-use crate::error::{Error, ErrorKind, Result};
+// use crate::error::{Error, ErrorKind, Result};
 use crate::module::{runtime_state, DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
 use crate::notary;
 
@@ -37,6 +37,8 @@ use std::mem;
 use std::process;
 use std::time::{SystemTime, UNIX_EPOCH};
 use sysinfo::{DiskExt, ProcessExt, ProcessorExt, System, SystemExt};
+
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 const OWNER_LABEL_KEY: &str = "net.azure-devices.edge.owner";
 const OWNER_LABEL_VALUE: &str = "Microsoft.Azure.Devices.Edge.Agent";
@@ -52,7 +54,7 @@ lazy_static! {
 
 #[derive(Clone)]
 pub struct DockerModuleRuntime {
-    client: DockerClient,
+    client: DockerApiClient,
     system_resources: Arc<Mutex<System>>,
     notary_registries: BTreeMap<String, PathBuf>,
     notary_lock: Arc<Mutex<BTreeMap<String, String>>>,
@@ -214,31 +216,25 @@ impl ModuleRegistry for DockerModuleRuntime {
         } else {
             info!("Pulling image via tag {}...", image);
         }
-        let image_options = bollard::image::CreateImageOptions {
-            from_image: image.clone(),
-            ..Default::default()
+
+        let creds = match config.auth() {
+            Some(a) => {
+                let json = serde_json::to_string(&a).with_context(|_| {
+                    ErrorKind::RegistryOperation(RegistryOperation::PullImage(image.clone()))
+                })?;
+                base64::encode_config(&json, base64::URL_SAFE)
+            }
+            None => String::new(),
         };
 
-        let docker_credentials = config.auth().map(|c| bollard::auth::DockerCredentials {
-            username: c.username().map(ToOwned::to_owned),
-            password: c.password().map(ToOwned::to_owned),
-            email: c.email().map(ToOwned::to_owned),
-            serveraddress: c.serveraddress().map(ToOwned::to_owned),
-            ..Default::default()
-        });
-
         self.client
-            .docker
-            .create_image(Some(image_options), None, docker_credentials) // call image create api
-            .collect::<Vec<std::result::Result<_, _>>>() // collect async stream into Vec<Result>
+            .image_create(&image, "", "", "", "", &creds, "")
             .await
-            .into_iter()
-            .collect::<std::result::Result<Vec<_>, _>>() // collect Vec<Result> into Result<Vec>
-            .map_err(|e| {
-                log_failure(Level::Warn, &e);
-                Error::from(ErrorKind::RegistryOperation(RegistryOperation::PullImage(
-                    image.clone(),
-                )))
+            .map_err(|err| {
+                Error::from_docker_error(
+                    err,
+                    ErrorKind::RegistryOperation(RegistryOperation::PullImage(image)),
+                )
             })?;
 
         info!("Successfully pulled image {}", image);
@@ -255,8 +251,7 @@ impl ModuleRegistry for DockerModuleRuntime {
         }
 
         self.client
-            .docker
-            .remove_image(name, None, None)
+            .remove_image(name, false, false)
             .await
             .map_err(|e| {
                 let err = e.context(ErrorKind::RegistryOperation(
@@ -412,44 +407,33 @@ impl ModuleRuntime for DockerModuleRuntime {
             info!("Creating image via tag {}...", image);
         }
 
-        let merged_env =
-            DockerModuleRuntime::merge_env(module.config().create_options().env(), module.env());
-        let mut labels: HashMap<&str, &str> = module
-            .config()
-            .create_options()
+        debug!("Creating container {} with image {}", module.name(), image);
+        let create_options = module.config().clone_create_options();
+        let merged_env = DockerModuleRuntime::merge_env(create_options.env(), module.env());
+
+        let mut labels = create_options
             .labels()
-            .map_or_else(HashMap::new, |old_labels| {
-                let mut new_labels = HashMap::with_capacity(old_labels.len() + 2);
-
-                for (key, value) in old_labels {
-                    new_labels.insert(key.as_str(), value.as_str());
-                }
-
-                new_labels
-            });
-        labels.insert(OWNER_LABEL_KEY, OWNER_LABEL_VALUE);
-        labels.insert(ORIGINAL_IMAGE_LABEL_KEY, module.config().image());
+            .cloned()
+            .unwrap_or_else(BTreeMap::new);
+        labels.insert(OWNER_LABEL_KEY.to_string(), OWNER_LABEL_VALUE.to_string());
+        labels.insert(
+            ORIGINAL_IMAGE_LABEL_KEY.to_string(),
+            module.config().image().to_string(),
+        );
 
         debug!("Creating container {} with image {}", module.name(), image);
-        let config = bollard::container::Config::<&str> {
-            image: Some(&image),
-            labels: Some(labels),
-            env: Some(merged_env.iter().map(AsRef::as_ref).collect()),
-            ..Default::default()
-        };
-        let options = Some(bollard::container::CreateContainerOptions {
-            name: module.name(),
-        });
 
-        self.client
-            .docker
-            .create_container(options, config)
-            .await
-            .map_err(|_| {
-                ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
-                    module.name().to_string(),
-                ))
-            })?;
+        let create_options = create_options
+            .with_image(image)
+            .with_env(merged_env)
+            .with_labels(labels);
+
+        // Here we don't add the container to the iot edge docker network as the edge-agent is expected to do that.
+        // It contains the logic to add a container to the iot edge network only if a network is not already specified.
+        client
+            .container_api()
+            .container_create(create_options, module.name())
+            .await;
 
         Ok(())
     }

@@ -12,6 +12,8 @@ use hyper::{Body, Client, Uri};
 use super::configuration::Configuration;
 use super::ApiError;
 
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+
 #[derive(Clone)]
 pub struct DockerApiClient {
     client: Arc<Client<Connector, Body>>,
@@ -31,7 +33,7 @@ impl DockerApiClient {
         method: hyper::http::Method,
         uri: Uri,
         body: Option<&TRequest>,
-    ) -> Result<TResponse, Box<dyn Error>>
+    ) -> Result<TResponse>
     where
         TRequest: serde::Serialize,
         TResponse: serde::de::DeserializeOwned,
@@ -46,7 +48,7 @@ impl DockerApiClient {
         uri: Uri,
         mut headers: Vec<(String, String)>,
         body: Option<&TRequest>,
-    ) -> Result<TResponse, Box<dyn Error>>
+    ) -> Result<TResponse>
     where
         TRequest: serde::Serialize,
         TResponse: serde::de::DeserializeOwned,
@@ -75,7 +77,7 @@ impl DockerApiClient {
 
 #[async_trait::async_trait]
 pub trait DockerApi {
-    async fn system_info(&self) -> Result<crate::models::SystemInfo, Box<dyn Error>>;
+    async fn system_info(&self) -> Result<crate::models::SystemInfo>;
 
     async fn image_create(
         &self,
@@ -86,28 +88,28 @@ pub trait DockerApi {
         input_image: &str,
         x_registry_auth: &str,
         platform: &str,
-    ) -> Result<(), Box<dyn Error>>;
+    ) -> Result<()>;
 
     async fn image_delete(
         &self,
         name: &str,
         force: bool,
         noprune: bool,
-    ) -> Result<Vec<crate::models::ImageDeleteResponseItem>, Box<dyn Error>>;
+    ) -> Result<Vec<crate::models::ImageDeleteResponseItem>>;
 
     async fn container_create(
         &self,
         body: crate::models::ContainerCreateBody,
         name: &str,
-    ) -> Result<crate::models::InlineResponse201, Box<dyn Error>>;
+    ) -> Result<crate::models::InlineResponse201>;
 
-    async fn container_delete(
+    async fn container_delete(&self, id: &str, v: bool, force: bool, link: bool) -> Result<()>;
+
+    async fn container_inspect(
         &self,
         id: &str,
-        v: bool,
-        force: bool,
-        link: bool,
-    ) -> Result<(), Box<dyn Error>>;
+        size: bool,
+    ) -> Result<crate::models::InlineResponse200>;
 
     async fn container_list(
         &self,
@@ -115,21 +117,17 @@ pub trait DockerApi {
         limit: i32,
         size: bool,
         filters: &str,
-    ) -> Result<Vec<crate::models::ContainerSummary>, Box<dyn Error>>;
+    ) -> Result<Vec<crate::models::ContainerSummary>>;
 
-    async fn container_restart(&self, id: &str, t: Option<i32>) -> Result<(), Box<dyn Error>>;
-    async fn container_start(&self, id: &str, detach_keys: &str) -> Result<(), Box<dyn Error>>;
-    async fn container_stats(
-        &self,
-        id: &str,
-        stream: bool,
-    ) -> Result<serde_json::Value, Box<dyn Error>>;
-    async fn container_stop(&self, id: &str, t: Option<i32>) -> Result<(), Box<dyn Error>>;
+    async fn container_restart(&self, id: &str, t: Option<i32>) -> Result<()>;
+    async fn container_start(&self, id: &str, detach_keys: &str) -> Result<()>;
+    async fn container_stats(&self, id: &str, stream: bool) -> Result<serde_json::Value>;
+    async fn container_stop(&self, id: &str, t: Option<i32>) -> Result<()>;
     async fn container_top(
         &self,
         id: &str,
         ps_args: &str,
-    ) -> Result<crate::models::InlineResponse2001, Box<dyn Error>>;
+    ) -> Result<crate::models::InlineResponse2001>;
 
     async fn container_logs(
         &self,
@@ -141,12 +139,12 @@ pub trait DockerApi {
         until: Option<i32>,
         timestamps: bool,
         tail: &str,
-    ) -> Result<hyper::Body, Box<dyn Error>>;
+    ) -> Result<hyper::Body>;
 }
 
 #[async_trait::async_trait]
 impl DockerApi for DockerApiClient {
-    async fn system_info(&self) -> Result<crate::models::SystemInfo, Box<dyn Error>> {
+    async fn system_info(&self) -> Result<crate::models::SystemInfo> {
         let method = hyper::Method::GET;
         let uri_str = format!("/info");
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
@@ -163,7 +161,7 @@ impl DockerApi for DockerApiClient {
         input_image: &str,
         x_registry_auth: &str,
         platform: &str,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> Result<()> {
         let method = hyper::Method::POST;
 
         let query = ::url::form_urlencoded::Serializer::new(String::new())
@@ -190,7 +188,7 @@ impl DockerApi for DockerApiClient {
         name: &str,
         force: bool,
         noprune: bool,
-    ) -> Result<Vec<crate::models::ImageDeleteResponseItem>, Box<dyn Error>> {
+    ) -> Result<Vec<crate::models::ImageDeleteResponseItem>> {
         let method = hyper::Method::DELETE;
 
         let query = ::url::form_urlencoded::Serializer::new(String::new())
@@ -212,7 +210,7 @@ impl DockerApi for DockerApiClient {
         &self,
         body: crate::models::ContainerCreateBody,
         name: &str,
-    ) -> Result<crate::models::InlineResponse201, Box<dyn Error>> {
+    ) -> Result<crate::models::InlineResponse201> {
         let method = hyper::Method::POST;
 
         let query = ::url::form_urlencoded::Serializer::new(String::new())
@@ -229,13 +227,7 @@ impl DockerApi for DockerApiClient {
         Ok(result)
     }
 
-    async fn container_delete(
-        &self,
-        id: &str,
-        v: bool,
-        force: bool,
-        link: bool,
-    ) -> Result<(), Box<dyn Error>> {
+    async fn container_delete(&self, id: &str, v: bool, force: bool, link: bool) -> Result<()> {
         let method = hyper::Method::DELETE;
 
         let query = ::url::form_urlencoded::Serializer::new(String::new())
@@ -249,7 +241,7 @@ impl DockerApi for DockerApiClient {
         self.request(method, uri, None::<&()>).await
     }
 
-    async fn container_restart(&self, id: &str, t: Option<i32>) -> Result<(), Box<dyn Error>> {
+    async fn container_restart(&self, id: &str, t: Option<i32>) -> Result<()> {
         let method = hyper::Method::POST;
 
         let query = t.map_or(std::borrow::Cow::Borrowed(""), |t| {
@@ -269,13 +261,34 @@ impl DockerApi for DockerApiClient {
         Ok(())
     }
 
+    async fn container_inspect(
+        &self,
+        id: &str,
+        size: bool,
+    ) -> Result<crate::models::InlineResponse200> {
+        let method = hyper::Method::GET;
+
+        let query = ::url::form_urlencoded::Serializer::new(String::new())
+            .append_pair("size", &size.to_string())
+            .finish();
+        let uri_str = format!("/containers/{id}/json?{}", query, id = id);
+        let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
+
+        let result = self
+            .request(method, uri, None::<&()>)
+            .await
+            .map_err(ApiError::with_context("Could not inspect container."))?;
+
+        Ok(result)
+    }
+
     async fn container_list(
         &self,
         all: bool,
         limit: i32,
         size: bool,
         filters: &str,
-    ) -> Result<Vec<crate::models::ContainerSummary>, Box<dyn Error>> {
+    ) -> Result<Vec<crate::models::ContainerSummary>> {
         let method = hyper::Method::GET;
 
         let query = ::url::form_urlencoded::Serializer::new(String::new())
@@ -295,7 +308,7 @@ impl DockerApi for DockerApiClient {
         Ok(result)
     }
 
-    async fn container_start(&self, id: &str, detach_keys: &str) -> Result<(), Box<dyn Error>> {
+    async fn container_start(&self, id: &str, detach_keys: &str) -> Result<()> {
         let method = hyper::Method::POST;
 
         let query = ::url::form_urlencoded::Serializer::new(String::new())
@@ -311,11 +324,7 @@ impl DockerApi for DockerApiClient {
         Ok(())
     }
 
-    async fn container_stats(
-        &self,
-        id: &str,
-        stream: bool,
-    ) -> Result<serde_json::Value, Box<dyn Error>> {
+    async fn container_stats(&self, id: &str, stream: bool) -> Result<serde_json::Value> {
         let method = hyper::Method::GET;
 
         let query = ::url::form_urlencoded::Serializer::new(String::new())
@@ -332,7 +341,7 @@ impl DockerApi for DockerApiClient {
         Ok(result)
     }
 
-    async fn container_stop(&self, id: &str, t: Option<i32>) -> Result<(), Box<dyn Error>> {
+    async fn container_stop(&self, id: &str, t: Option<i32>) -> Result<()> {
         let method = hyper::Method::POST;
 
         let query = t.map_or(std::borrow::Cow::Borrowed(""), |t| {
@@ -356,7 +365,7 @@ impl DockerApi for DockerApiClient {
         &self,
         id: &str,
         ps_args: &str,
-    ) -> Result<crate::models::InlineResponse2001, Box<dyn Error>> {
+    ) -> Result<crate::models::InlineResponse2001> {
         let method = hyper::Method::GET;
 
         let query = ::url::form_urlencoded::Serializer::new(String::new())
@@ -385,7 +394,7 @@ impl DockerApi for DockerApiClient {
         until: Option<i32>,
         timestamps: bool,
         tail: &str,
-    ) -> Result<hyper::Body, Box<dyn Error>> {
+    ) -> Result<hyper::Body> {
         let method = hyper::Method::GET;
 
         let query = {

@@ -12,14 +12,14 @@ where
     C: fmt::Display + fmt::Debug,
     E: fmt::Display + fmt::Debug,
 {
-    fn add_context(context: C, error: E) -> Self {
+    pub fn add_context(context: C, error: E) -> Self {
         ApiError {
             context,
             underlying: Some(error),
         }
     }
 
-    fn with_context(context: C) -> impl FnOnce(E) -> Self {
+    pub fn with_context(context: C) -> impl FnOnce(E) -> Self {
         |error: E| Self::add_context(context, error)
     }
 }
@@ -28,7 +28,7 @@ impl<C> ApiError<C, String>
 where
     C: fmt::Display + fmt::Debug,
 {
-    fn with_message(message: C) -> Self {
+    pub fn with_message(message: C) -> Self {
         Self {
             context: message,
             underlying: None,
