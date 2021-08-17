@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using Xunit;
 
     [Unit]
-    public class ClientProviderTest : IClassFixture<WorkloadFixture>
+    public class ClientProviderTest
     {
         const string IotHubHostName = "iothub.test";
         const string DeviceId = "device1";
@@ -29,9 +29,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         readonly string authKey = Convert.ToBase64String("key".ToBytes());
         readonly Uri serverUrl;
 
-        public ClientProviderTest(WorkloadFixture workloadFixture)
+        WorkloadFixture workloadFixture;
+
+        public ClientProviderTest()
         {
-            this.serverUrl = new Uri(workloadFixture.ServiceUrl);
+            this.workloadFixture = new WorkloadFixture();
+            this.serverUrl = new Uri(this.workloadFixture.ServiceUrl);
         }
 
         [Fact]

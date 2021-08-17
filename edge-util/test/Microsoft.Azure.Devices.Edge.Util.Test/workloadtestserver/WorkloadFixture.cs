@@ -12,6 +12,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common.WorkloadTestServer
         public readonly string ServiceUrl = ServiceHost.Instance.Url;
         const int DefaultPort = 50003;
 
+        ServiceHost serviceHost;
+
         #region IDisposable Support
 
         // Don't dispose the Server, in case another test thread is using it.
@@ -21,12 +23,17 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common.WorkloadTestServer
 
         #endregion
 
+        public WorkloadFixture()
+        {
+            this.serviceHost = new ServiceHost();
+        }
+
         class ServiceHost
         {
             readonly Task webHostTask;
             readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
 
-            ServiceHost()
+            public ServiceHost()
             {
                 this.webHostTask = CreateHostBuilder(new string[0], DefaultPort).Build().RunAsync(this.cancellationTokenSource.Token);
                 this.Url = $"http://localhost:{DefaultPort}";
