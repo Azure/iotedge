@@ -62,7 +62,7 @@ where
         Ok(res)
     }
 
-    type PostBody = super::ModuleSpec;
+    type PostBody = edgelet_http::ModuleSpec;
     async fn post(self, body: Option<Self::PostBody>) -> http_common::server::RouteResponse {
         edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
@@ -73,8 +73,9 @@ where
             }
         };
 
-        let details = super::to_module_details(&body, edgelet_core::ModuleStatus::Stopped);
-        let module: super::DockerSpec = body
+        let details =
+            edgelet_http::ModuleDetails::from_spec(&body, edgelet_core::ModuleStatus::Stopped);
+        let module: edgelet_http::DockerSpec = body
             .try_into()
             .map_err(|err| edgelet_http::error::server_error(err))?;
 
