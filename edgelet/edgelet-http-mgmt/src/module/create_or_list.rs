@@ -1,9 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::convert::TryInto;
-
-use edgelet_core::ModuleRegistry;
-
 pub(crate) struct Route<M>
 where
     M: edgelet_core::ModuleRuntime + Send + Sync,
@@ -75,35 +71,10 @@ where
 
         let details =
             edgelet_http::ModuleDetails::from_spec(&body, edgelet_core::ModuleStatus::Stopped);
-        let module: edgelet_http::DockerSpec = body
-            .try_into()
-            .map_err(|err| edgelet_http::error::server_error(err))?;
 
         let runtime = self.runtime.lock().await;
 
-        match module.image_pull_policy() {
-            edgelet_settings::module::ImagePullPolicy::OnCreate => {
-                runtime
-                    .registry()
-                    .pull(module.config())
-                    .await
-                    .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
-
-                log::debug!("Successfully pulled new image for module {}", module.name());
-            }
-            edgelet_settings::module::ImagePullPolicy::Never => {
-                log::debug!(
-                    "Skipped pulling image for module {} as per pull policy",
-                    module.name()
-                )
-            }
-        }
-
-        runtime
-            .create(module)
-            .await
-            .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
-
+        super::create_module(&*runtime, body).await?;
         let res = http_common::server::response::json(hyper::StatusCode::CREATED, &details);
 
         Ok(res)

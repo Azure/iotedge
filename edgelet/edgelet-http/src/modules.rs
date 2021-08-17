@@ -2,7 +2,7 @@
 
 pub type DockerSpec = edgelet_settings::ModuleSpec<edgelet_settings::DockerConfig>;
 
-#[derive(serde::Deserialize)]
+#[derive(Clone, serde::Deserialize)]
 pub struct ModuleSpec {
     name: String,
     r#type: String,
