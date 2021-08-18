@@ -23,6 +23,14 @@ popd
 
 pushd "${EDGELET_ROOT}"
 
+# Cargo vendored dependencies should be downloaded by the AzureCLI task. Extract them now.
+echo "set cargo home location"
+mkdir ${BUILD_REPOSITORY_LOCALPATH}/cargo-home
+export CARGO_HOME=${BUILD_REPOSITORY_LOCALPATH}/cargo-home
+echo "Vendoring Rust dependencies"
+cargo vendor
+
+
 # Configure Cargo to use vendored the deps
 mkdir .cargo
 cat > .cargo/config << EOF
