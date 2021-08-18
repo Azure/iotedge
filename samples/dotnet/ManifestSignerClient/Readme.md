@@ -17,7 +17,7 @@ Manifest Signer client gives a signed deployment JSON file as an end output.
 OpenSSL is needed to generate the certificate. Please follow the instructions [here](https://github.com/Azure/iotedge/blob/master/edgelet/doc/devguide.md#windows-1).
 Manifest signer client needs a root Certificate Authority and a signer cert. To achieve that Certificate Generator scripts will be used. There are two folders in the CertificateGenerator folder. One for Windows and other for Linux.
 
-Under Windows and Linux, there are two scripts with the naming for RSA and EDCDsa.
+Under Windows and Linux, there are two scripts with the naming for RSA and ECDsa.
 1. Windows :`Gen_RootCA_with_Signer_ECDsa.bat` and `Gen_RootCA_with_Signer_RSA.bat`
 2. Linux : `Gen_RootCA_with_Signer_ECDsa.sh` and `Gen_RootCA_with_Signer_RSA.sh`
 
@@ -27,7 +27,7 @@ Set of choices in DSA algorithms
 3. Next choice is the different SHA algorithm. For RSA and ECDsa, there are three choices of SHA algorithm to choose from  SHA256, SHA384, SHA512. Recommendation is to use larger keys for root CA and smaller keys for signer certs. Edit the parameter `ROOT_SHA_ALGORITHM` and `SIGNER_SHA_ALGORITHM`. Default value is `SHA256`
 3. The file names of the root CA, root private key, signer cert, signer private key are also editable in the script. 
 
-Once the variables are set in the scrip, run the script  and the following files will be generated as a result.
+Once the variables are set in the script, run the script and the following files will be generated as a result.
 
 1. `root_ca_private_<algo>_key.pem` - private root key
 2. `root_ca_public_<algo>_cert.pem` - public root key / root CA
@@ -57,4 +57,8 @@ Manifest Signer client has  `launchSettings.json` under `Properties` folder and 
 Once the `launchSettings.json` file is configured, the solution can be built and run using `dotnet build` and `dotnet run`. If all the inputs are configured properly, then signed deployment JSON will be generated. 
 
 ### Step 4. Configure the IoT edge daemon to enable Manifest Signing
-TBD
+The root CA of the device as mentioned in `MANIFEST_TRUST_DEVICE_ROOT_CA_PATH` must be configured in the IoT edge Daemon to enable Manifest Signing.
+
+In the `certd.toml`, under `preloaded_certs`, the mapping of the Manifest Trust Bundke and file path of the root CA must be configured as shown in [sample](https://github.com/Azure/iotedge/blob/master/edgelet/iotedge/test-files/config/manifest-trust-bundle/certd.toml#L11)
+
+Once configured in IoT edge daemon, the device is now capable of verifying the signed manifest contents. Once a signed deployment manifest is deployed and the signature verification is successful, then the modules are deployed. If the signature fails, then the modules are not deployed. This way we only deploy the verified twin data and thereby offer data integrity of deployment manifest JSON.
