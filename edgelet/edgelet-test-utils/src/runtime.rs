@@ -1,28 +1,33 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#[derive(Clone, Default, serde::Serialize)]
-pub struct Config {}
-
 #[derive(Clone)]
 pub struct Module {
     pub name: String,
     pub type_: String,
-    pub config: Config,
+    pub config: edgelet_settings::DockerConfig,
 }
 
 impl Default for Module {
     fn default() -> Self {
+        let config = edgelet_settings::DockerConfig::new(
+            "testImage".to_string(),
+            docker::models::ContainerCreateBody::new(),
+            Some("testDigest".to_string()),
+            None,
+        )
+        .unwrap();
+
         Module {
             name: "testModule".to_string(),
             type_: "test".to_string(),
-            config: Config::default(),
+            config,
         }
     }
 }
 
 #[async_trait::async_trait]
 impl edgelet_core::Module for Module {
-    type Config = Config;
+    type Config = edgelet_settings::DockerConfig;
     type Error = std::io::Error;
 
     fn name(&self) -> &str {
@@ -48,7 +53,7 @@ pub struct ModuleRegistry {}
 
 #[async_trait::async_trait]
 impl edgelet_core::ModuleRegistry for ModuleRegistry {
-    type Config = Config;
+    type Config = edgelet_settings::DockerConfig;
     type Error = std::io::Error;
 
     // The fuctions below aren't used in tests.
@@ -85,7 +90,7 @@ impl Default for Runtime {
 impl edgelet_core::ModuleRuntime for Runtime {
     type Error = std::io::Error;
 
-    type Config = Config;
+    type Config = edgelet_settings::DockerConfig;
     type Module = Module;
     type ModuleRegistry = ModuleRegistry;
 
