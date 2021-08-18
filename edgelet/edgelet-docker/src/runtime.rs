@@ -12,7 +12,7 @@ use url::Url;
 use failure::{Fail, ResultExt};
 use futures::prelude::*;
 use futures::{stream, Stream, StreamExt};
-use lazy_static::lazy_static;
+use lazy_static::{__Deref, lazy_static};
 use log::{debug, info, Level};
 use tokio::sync::Mutex;
 
@@ -336,7 +336,8 @@ async fn create_network_if_missing(settings: &Settings, client: &DockerApiClient
     })?;
 
     if existing_iotedge_networks.is_empty() {
-        let mut network_config = NetworkConfig::new(network_id.to_string()).with_enable_i_pv6(enable_i_pv6);
+        let mut network_config =
+            NetworkConfig::new(network_id.to_string()).with_enable_i_pv6(enable_i_pv6);
 
         if let Some(ipam_config) = ipam {
             network_config.set_IPAM(ipam_config);
@@ -416,7 +417,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         }
 
         debug!("Creating container {} with image {}", module.name(), image);
-        let create_options = module.config().clone_create_options();
+        let create_options = module.config().create_options().clone();
         let merged_env = DockerModuleRuntime::merge_env(create_options.env(), module.env());
 
         let mut labels = create_options
@@ -438,10 +439,17 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         // Here we don't add the container to the iot edge docker network as the edge-agent is expected to do that.
         // It contains the logic to add a container to the iot edge network only if a network is not already specified.
-        client
-            .container_api()
+        self.client
             .container_create(create_options, module.name())
-            .await;
+            .await
+            .map_err(|e| {
+                Error::from_docker_error(
+                    e,
+                    ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
+                        module.name().to_string(),
+                    )),
+                )
+            })?;
 
         Ok(())
     }
@@ -456,8 +464,7 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         let response = self
             .client
-            .docker
-            .inspect_container(id, None)
+            .container_inspect(id, false)
             .await
             .map_err(|_| {
                 Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(
@@ -465,33 +472,22 @@ impl ModuleRuntime for DockerModuleRuntime {
                 )))
             })?;
 
-        let config = if let Some(config) = response.config {
-            config
-        } else {
-            return Err(Error::from(ErrorKind::RuntimeOperation(
-                RuntimeOperation::GetModule(id.to_owned()),
-            )));
-        };
+        let name: String = response
+            .name()
+            .ok_or_else(|| {
+                ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.to_string()))
+            })?
+            .to_owned();
+        let config = DockerConfig::new(name.clone(), ContainerCreateBody::new(), None, None)
+            .map_err(|_| {
+                ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.to_string()))
+            })?;
+        let module = DockerModule::new(self.client.clone(), name, config).with_context(|_| {
+            ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.to_string()))
+        })?;
+        let state = runtime_state(response.id(), response.state());
 
-        let create_options = ContainerCreateBody::new()
-            .with_labels(config.labels.unwrap_or_default().into_iter().collect());
-
-        let config =
-            DockerConfig::new(config.image.unwrap_or_default(), create_options, None, None)
-                .map_err(|_| {
-                    ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.to_owned()))
-                })?;
-        let config = config.with_image_hash(response.image.unwrap_or_default());
-
-        let name = response
-            .name
-            .map_or(id.to_owned(), |s| (&s[1..]).to_owned());
-
-        let module = DockerModule::new(self.client.clone(), name, config)?;
-
-        let runtime_state = runtime_state(response.id, response.state.as_ref());
-
-        Ok((module, runtime_state))
+        Ok((module, state))
     }
 
     async fn start(&self, id: &str) -> Result<()> {
@@ -502,15 +498,14 @@ impl ModuleRuntime for DockerModuleRuntime {
         })
         .map_err(Error::from)?;
 
-        self.client
-            .docker
-            .start_container::<&str>(id, None)
-            .await
-            .map_err(|_| {
-                Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
-                    id.to_owned(),
-                )))
-            })
+        self.client.container_start(id, "").await.map_err(|e| {
+            let err = Error::from_docker_error(
+                e,
+                ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id.to_owned())),
+            );
+            log_failure(Level::Warn, &err);
+            err
+        })
     }
 
     async fn stop(&self, id: &str, wait_before_kill: Option<Duration>) -> Result<()> {
@@ -521,18 +516,22 @@ impl ModuleRuntime for DockerModuleRuntime {
         })
         .map_err(Error::from)?;
 
-        let options = wait_before_kill.map(|s| bollard::container::StopContainerOptions {
-            t: s.as_secs() as i64,
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        let wait_timeout = wait_before_kill.map(|s| match s.as_secs() {
+            s if s > i32::max_value() as u64 => i32::max_value(),
+            s => s as i32,
         });
 
         self.client
-            .docker
-            .stop_container(id, options)
+            .container_stop(id, wait_timeout)
             .await
-            .map_err(|_| {
-                Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(
-                    id.to_owned(),
-                )))
+            .map_err(|e| {
+                let err = Error::from_docker_error(
+                    e,
+                    ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(id.to_owned())),
+                );
+                log_failure(Level::Warn, &err);
+                err
             })
     }
 
@@ -543,15 +542,14 @@ impl ModuleRuntime for DockerModuleRuntime {
         })
         .map_err(Error::from)?;
 
-        self.client
-            .docker
-            .restart_container(id, None)
-            .await
-            .map_err(|_| {
-                Error::from(ErrorKind::RuntimeOperation(
-                    RuntimeOperation::RestartModule(id.to_owned()),
-                ))
-            })
+        self.client.container_restart(id, None).await.map_err(|e| {
+            let err = Error::from_docker_error(
+                e,
+                ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(id.to_owned())),
+            );
+            log_failure(Level::Warn, &err);
+            err
+        })
     }
 
     async fn remove(&self, id: &str) -> Result<()> {
@@ -562,19 +560,19 @@ impl ModuleRuntime for DockerModuleRuntime {
         })
         .map_err(Error::from)?;
 
-        let options = bollard::container::RemoveContainerOptions {
-            force: true,
-            ..Default::default()
-        };
-
         self.client
-            .docker
-            .remove_container(id, Some(options))
+            .container_delete(
+                &id, /* remove volumes */ false, /* force */ true,
+                /* remove link */ false,
+            )
             .await
-            .map_err(|_| {
-                Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::RemoveModule(
-                    id.to_owned(),
-                )))
+            .map_err(|e| {
+                let err = Error::from_docker_error(
+                    e,
+                    ErrorKind::RuntimeOperation(RuntimeOperation::RemoveModule(id.to_owned())),
+                );
+                log_failure(Level::Warn, &err);
+                err
             })
     }
 
@@ -589,28 +587,42 @@ impl ModuleRuntime for DockerModuleRuntime {
             always_reprovision_on_startup: false,
         };
 
-        let info =
-            self.client.docker.info().await.map_err(|_| {
-                Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))
-            })?;
+        let system_info = self.client.system_info().await.map_err(|e| {
+            Error::from_docker_error(e, ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))
+        })?;
 
         let system_info = CoreSystemInfo {
-            os_type: info.os_type.unwrap_or_else(|| String::from("Unknown")),
-            architecture: info.architecture.unwrap_or_else(|| String::from("Unknown")),
+            os_type: system_info
+                .os_type()
+                .unwrap_or(&String::from("Unknown"))
+                .to_string(),
+            architecture: system_info
+                .architecture()
+                .unwrap_or(&String::from("Unknown"))
+                .to_string(),
             version: edgelet_core::version_with_source_version(),
             provisioning,
-            cpus: info.ncpu.unwrap_or_default() as i32,
+            cpus: system_info.NCPU().unwrap_or_default(),
             virtualized: match edgelet_core::is_virtualized_env() {
                 Ok(Some(true)) => "yes",
                 Ok(Some(false)) => "no",
                 Ok(None) | Err(_) => "unknown",
             }
-            .to_owned(),
-            kernel_version: info.kernel_version.unwrap_or_default(),
-            operating_system: info.operating_system.unwrap_or_default(),
-            server_version: info.server_version.unwrap_or_default(),
+            .to_string(),
+            kernel_version: system_info
+                .kernel_version()
+                .map(std::string::ToString::to_string)
+                .unwrap_or_default(),
+            operating_system: system_info
+                .operating_system()
+                .map(std::string::ToString::to_string)
+                .unwrap_or_default(),
+            server_version: system_info
+                .server_version()
+                .map(std::string::ToString::to_string)
+                .unwrap_or_default(),
         };
-
+        info!("Successfully queried system info");
         Ok(system_info)
     }
 
@@ -669,27 +681,18 @@ impl ModuleRuntime for DockerModuleRuntime {
         // Note a for_each loop is used for simplicity with async operations
         // While a stream could be used for parallel operations, it isn't necessary here
         let modules = self.list().await?;
-        let mut docker_stats: Vec<bollard::container::Stats> = Vec::with_capacity(modules.len());
+        let mut docker_stats: Vec<serde_json::Value> = Vec::with_capacity(modules.len());
         for module in modules {
-            let options = bollard::container::StatsOptions {
-                stream: false,
-                one_shot: false,
-            };
-
             let stats = self
                 .client
-                .docker
-                .stats(module.name(), Some(options))
-                .into_future()
-                .await;
-
-            let stats = if let (Some(Ok(s)), _) = stats {
-                s
-            } else {
-                return Err(Error::from(ErrorKind::RuntimeOperation(
-                    RuntimeOperation::SystemInfo,
-                )));
-            };
+                .container_stats(module.name(), false)
+                .await
+                .map_err(|e| {
+                    Error::from_docker_error(
+                        e,
+                        ErrorKind::RuntimeOperation(RuntimeOperation::SystemResources),
+                    )
+                })?;
 
             docker_stats.push(stats);
         }
@@ -713,47 +716,65 @@ impl ModuleRuntime for DockerModuleRuntime {
     async fn list(&self) -> Result<Vec<Self::Module>> {
         debug!("Listing modules...");
 
-        let mut filters: HashMap<&str, Vec<&str>> = HashMap::new();
-        filters.insert("label", LABELS.to_vec());
-        let options = bollard::container::ListContainersOptions {
-            all: true,
-            limit: None,
-            size: false,
-            filters,
-        };
+        let mut filters = HashMap::new();
+        filters.insert("label", LABELS.deref());
+        let filters = serde_json::to_string(&filters)
+            .context(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules))
+            .map_err(Error::from)?;
 
         let containers = self
             .client
-            .docker
-            .list_containers(Some(options))
+            .container_list(
+                true,  /*all*/
+                0,     /*limit*/
+                false, /*size*/
+                &filters,
+            )
             .await
-            .map_err(|_| Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules)))?;
+            .map_err(|e| {
+                Error::from_docker_error(
+                    e,
+                    ErrorKind::RuntimeOperation(RuntimeOperation::ListModules),
+                )
+            })?;
 
-        containers
-            .into_iter()
-            .map(|container| {
-                let name = container
-                    .names
-                    .unwrap_or_default()
-                    .get(0)
-                    .map_or("Unknown", |s| &s[1..])
-                    .to_string();
-
-                let config = DockerConfig::new(
-                    container.image.unwrap_or_default(),
-                    ContainerCreateBody::new()
-                        .with_labels(container.labels.unwrap_or_default().into_iter().collect()),
+        let result = containers
+            .iter()
+            .flat_map(|container| {
+                DockerConfig::new(
+                    container.image().to_string(),
+                    ContainerCreateBody::new().with_labels(
+                        container
+                            .labels()
+                            .iter()
+                            .map(|(k, v)| (k.to_string(), v.to_string()))
+                            .collect(),
+                    ),
                     None,
                     None,
                 )
-                .map_err(|_| {
-                    Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules))
-                })?;
-                let config = config.with_image_hash(container.image_id.unwrap_or_default());
-
-                DockerModule::new(self.client.clone(), name, config)
+                .map(|config| {
+                    (
+                        container,
+                        config.with_image_hash(container.image_id().clone()),
+                    )
+                })
             })
-            .collect::<Result<Vec<DockerModule>>>()
+            .flat_map(|(container, config)| {
+                DockerModule::new(
+                    self.client.clone(),
+                    container
+                        .names()
+                        .iter()
+                        .next()
+                        .map_or("Unknown", |s| &s[1..])
+                        .to_string(),
+                    config,
+                )
+            })
+            .collect();
+
+        Ok(result)
     }
 
     async fn list_with_details(&self) -> Result<Vec<(Self::Module, ModuleRuntimeState)>> {
