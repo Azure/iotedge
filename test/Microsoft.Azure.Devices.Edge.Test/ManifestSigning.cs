@@ -85,10 +85,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Context.Current.NestedEdge,
                 inputManifestSettings);
 
-            this.sensor = deployment.Modules[SensorName];
+            /*this.sensor = deployment.Modules[SensorName];
             this.startTime = deployment.StartTime;
 
-            await this.sensor.WaitForEventsReceivedAsync(this.startTime, this.TestToken);
+            await this.sensor.WaitForEventsReceivedAsync(this.startTime, this.TestToken);*/
         }
 
         /*[Category("ManifestSigning")]
