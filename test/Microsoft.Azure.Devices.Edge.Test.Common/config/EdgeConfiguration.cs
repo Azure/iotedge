@@ -103,10 +103,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             return module;
         }
 
-        public Task DeployAsync(IotHub iotHub, CancellationToken token) => Profiler.Run(
+        /* public Task DeployAsync(IotHub iotHub, CancellationToken token) => Profiler.Run(
             () => iotHub.DeployDeviceConfigurationAsync(this.deviceId, this.config, token),
             "Deployed edge configuration to device with modules:\n    {Modules}",
-            string.Join("\n    ", this.moduleImages));
+            string.Join("\n    ", this.moduleImages));*/
+
+        public Task DeployAsync(IotHub iotHub, CancellationToken token) => Profiler.Run(
+            () => iotHub.DeployDeviceConfigurationAsync(this.deviceId, this.config, token),
+            "Deployed this edge configuration to device with modules:\n    {Config}",
+            string.Join("\n    ", this.config));
 
         public Task VerifyAsync(IotHub iotHub, CancellationToken token)
         {
