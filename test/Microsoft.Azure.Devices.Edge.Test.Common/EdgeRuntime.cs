@@ -72,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string edgeConfig = string.Empty;
             string dotnetCmdText = string.Empty;
             int exitcode;
-            string outputStr = string.Empty; 
+            string outputStr = string.Empty;
 
             if (enableManifestSigning.HasValue)
             {
@@ -98,6 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 // Convert signed config to EdgeConfiguration
                 edgeConfiguration = (EdgeConfiguration)JsonConvert.DeserializeObject(signedConfig);
             }
+
             await edgeConfiguration.DeployAsyncWithPrints(outputStr, this.iotHub, token);
             EdgeModule[] modules = edgeConfiguration.ModuleNames
                 .Select(id => new EdgeModule(id, this.DeviceId, this.iotHub))
