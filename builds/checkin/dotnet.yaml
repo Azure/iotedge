@@ -49,12 +49,17 @@ jobs:
         displayName: Test
         inputs:
           filePath: scripts/linux/runTests.sh
-          arguments: '"--filter Category=Unit&Category!=GetLogsTests"'
+          arguments: '"--filter Category=Unit&Category!=GetLogsTests&Category!=Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test.ClientProviderTest"'
       - task: Bash@3
         displayName: Run GetLogsTests Tests
         inputs:
           filePath: scripts/linux/runTests.sh
           arguments: '"--filter Category=GetLogsTests"'
+      - task: Bash@3
+        displayName: Run ClientProvider Tests
+        inputs:
+          filePath: scripts/linux/runTests.sh
+          arguments: '"--filter Category=Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test.ClientProviderTest"'
       - task: PublishTestResults@2
         displayName: Publish Test Results
         inputs:
