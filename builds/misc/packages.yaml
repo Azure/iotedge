@@ -123,13 +123,6 @@ jobs:
           echo "PACKAGE_OS=$(os)"
           echo "##vso[task.setvariable variable=MARINER_RELEASE;]$(release)"
         displayName: Set Version
-      - task: AzureKeyVault@1
-        displayName: Get secrets
-        inputs:
-          azureSubscription: $(az.subscription)
-          keyVaultName: $(kv.name)
-          secretsFilter: >-
-            marineriotedge-key
       - script: edgelet/build/linux/package-mariner.sh
         displayName: Create libiothsm and iotedged packages
       - task: CopyFiles@2

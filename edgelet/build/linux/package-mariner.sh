@@ -23,12 +23,12 @@ popd
 
 pushd "${EDGELET_ROOT}"
 
-# Cargo vendored dependencies should be downloaded by the AzureCLI task. Extract them now.
+# Cargo vendored dependencies are being downloaded now to be cached for mariner iotedge build.
 echo "set cargo home location"
 mkdir ${BUILD_REPOSITORY_LOCALPATH}/cargo-home
 export CARGO_HOME=${BUILD_REPOSITORY_LOCALPATH}/cargo-home
 echo "Vendoring Rust dependencies"
-cargo vendor
+cargo vendor vendor
 
 
 # Configure Cargo to use vendored the deps
