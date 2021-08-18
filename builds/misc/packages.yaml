@@ -132,7 +132,7 @@ jobs:
             marineriotedge-key
       - script: |
             pushd edgelet
-            sudo cargo vendor
+            sudo cargo vendor || true
             popd
         displayName: Create the vendors directory
       - script: edgelet/build/linux/package-mariner.sh
