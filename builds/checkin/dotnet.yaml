@@ -32,6 +32,9 @@ jobs:
     pool:
       vmImage: ubuntu-18.04
     steps:
+      - script: |
+         dotnet nuget locals all --clear
+        displayName: Clear nuget cache
       - template: ../templates/install-dotnet3.yaml
       - task: Bash@3
         displayName: Install Prerequisites
@@ -114,7 +117,7 @@ jobs:
           testAssemblyVer2: |
             target\*Test.dll
           testFiltercriteria: Category=Unit&Category!=GetLogsTests
-          runInParallel: true
+          runInParallel: false
           runTestsInIsolation: true
           codeCoverageEnabled: true
           runSettingsFile: CodeCoverage.runsettings
@@ -126,7 +129,7 @@ jobs:
           testAssemblyVer2: |
             target\*Test.dll
           testFiltercriteria: Category=GetLogsTests
-          runInParallel: true
+          runInParallel: false
           runTestsInIsolation: true
           codeCoverageEnabled: true
           runSettingsFile: CodeCoverage.runsettings
