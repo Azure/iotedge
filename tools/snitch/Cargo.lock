@@ -536,7 +536,7 @@ dependencies = [
  "tokio-named-pipe",
  "tokio-tls",
  "tokio-uds",
- "tokio-uds-windows 0.1.0 (git+https://github.com/Azure/tokio-uds-windows.git)",
+ "tokio-uds-windows",
  "typed-headers",
  "url",
  "winapi 0.3.7",
@@ -1023,7 +1023,7 @@ dependencies = [
  "mio-uds-windows",
  "tokio",
  "tokio-io",
- "tokio-uds-windows 0.1.0 (git+https://github.com/Azure/tokio-uds-windows.git)",
+ "tokio-uds-windows",
 ]
 
 [[package]]
@@ -2053,7 +2053,7 @@ dependencies = [
  "tar",
  "tokio",
  "tokio-uds",
- "tokio-uds-windows 0.1.0 (git+https://github.com/Azure/tokio-uds-windows.git?branch=master)",
+ "tokio-uds-windows",
  "url",
  "url_serde",
 ]
@@ -2408,21 +2408,6 @@ dependencies = [
  "mio",
  "mio-uds",
  "tokio-codec",
- "tokio-io",
- "tokio-reactor",
-]
-
-[[package]]
-name = "tokio-uds-windows"
-version = "0.1.0"
-source = "git+https://github.com/Azure/tokio-uds-windows.git?branch=master#b689a914dbaa905f359f89200c01fed7a6c8df3f"
-dependencies = [
- "bytes",
- "futures",
- "iovec",
- "log",
- "mio",
- "mio-uds-windows",
  "tokio-io",
  "tokio-reactor",
 ]
