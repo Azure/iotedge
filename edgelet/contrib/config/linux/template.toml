@@ -32,32 +32,29 @@
 # Manifest Trust bundle cert
 # ==============================================================================
 #
-# If you have want to enable Manifest Signing, Manifest Trust Bundle Root CA
+# If you have want to enable Manifest Signing, Manifest Trust Bundle Root CA 
 # certificate is required.
 # uncomment the next line and set the value to a file URI for
 # the path of the file.
 #
 # manifest_trust_bundle_cert = "file:///var/secrets/manifest-trust-bundle.pem"
 
-# ==============================================================================
-# Cloud Timeout and Retry Behavior
-# ==============================================================================
-#
-# These settings control the timeout and retries for cloud operations, such as
-# communication with DPS during provisioning or IoT Hub for module identity creation.
-#
-# cloud_timeout_sec is the deadline (in seconds) for a network request (such as
-# an HTTP request) to the aforementioned cloud services. A response from the cloud
-# must be received before this deadline, or the request will fail as timed out.
-#
-# cloud_retries controls how many times a request may be retried should it fail.
-# The client will always send at least one attempt, so its value will be the number
-# of retries after the first attempt should that fail (i.e. cloud_retries = 2
-# means that the client will make a total of 3 attempts).
-#
-# cloud_timeout_sec = 10
-# cloud_retries = 0
 
+# ==============================================================================
+# Elevated Docker Permissions Flag
+# ==============================================================================
+#
+# Some docker capabilities capabilities can be used to gain root access. 
+# By default, the --privileged flag and all capabilities listed in the CapAdd
+# field of the docker HostConfig are allowed.
+#
+# In a future release, this will be disabled by default and the flag will be required 
+# run as privileged.
+#
+# If no modules require privileged or additional capabilities, uncomment the following
+# line to improve the security of the device.
+#
+# allow_elevated_docker_permissions = false
 
 # ==============================================================================
 # Provisioning
