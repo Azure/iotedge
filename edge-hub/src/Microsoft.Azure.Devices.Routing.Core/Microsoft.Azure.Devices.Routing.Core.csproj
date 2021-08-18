@@ -87,6 +87,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />
+    <ProjectReference Include="..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util.Metrics\Microsoft.Azure.Devices.Edge.Util.Metrics.csproj" />
   </ItemGroup>
 
   <ItemGroup>
