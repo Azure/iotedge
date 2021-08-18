@@ -1,4 +1,4 @@
-# Base image runs systemd, allows us to install/run aziot-edged in a container for testing
+﻿# Base image runs systemd, allows us to install/run aziot-edged in a container for testing
 FROM solita/ubuntu-systemd:bionic
 
 # Install dependencies
