@@ -1,4 +1,4 @@
-ARG base_tag=3.1.15-nanoserver-1809
+﻿ARG base_tag=3.1.18-nanoserver-1809
 FROM mcr.microsoft.com/dotnet/runtime:${base_tag}
 
 ENV MODULE_NAME "Relayer.dll"

@@ -5,16 +5,16 @@ resources:
   pipelines:
   - pipeline: images
     source: 'Azure-IoT-Edge-Core Build Images'
+    branch: 'release/1.1'
     trigger:
       branches:
-      - master
-      - release/*
+      - release/1.1
   - pipeline: packages
     source: 'Azure-IoT-Edge-Core Edgelet Packages'
+    branch: 'release/1.1'
     trigger:
       branches:
-      - master
-      - release/*
+      - release/1.1
 
 variables:
   # A 'minimal' pipeline only runs one end-to-end test (TempSensor). This is useful for platforms or

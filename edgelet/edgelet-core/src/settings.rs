@@ -7,7 +7,7 @@ use std::str::FromStr;
 
 use regex::Regex;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
-use url::Url;
+use url::{ParseError, Url};
 
 use crate::crypto::MemoryKey;
 use crate::error::{Error, ErrorKind};
@@ -486,8 +486,26 @@ pub struct Listen {
 }
 
 impl Listen {
-    pub fn workload_uri(&self) -> &Url {
+    pub fn legacy_workload_uri(&self) -> &Url {
         &self.workload_uri
+    }
+
+    pub fn workload_mnt_uri(home_dir: &str) -> String {
+        #[cfg(windows)]
+        let url = "unix:///".to_string() + home_dir + "/mnt";
+        #[cfg(unix)]
+        let url = "unix://".to_string() + home_dir + "/mnt";
+
+        url
+    }
+
+    pub fn workload_uri(home_dir: &str, module_id: &str) -> Result<Url, ParseError> {
+        #[cfg(windows)]
+        let url = Url::parse(&("unix:///".to_string() + home_dir + "/mnt/" + module_id + "/sock"))?;
+        #[cfg(unix)]
+        let url = Url::parse(&("unix://".to_string() + home_dir + "/mnt/" + module_id + ".sock"))?;
+
+        Ok(url)
     }
 
     pub fn management_uri(&self) -> &Url {

@@ -2,6 +2,7 @@ use std::marker::PhantomData;
 use std::path::Path;
 use std::time::Duration;
 
+use edgelet_core::ModuleAction;
 use edgelet_core::{
     AuthId, Authenticator, Certificates, Connect, DiskInfo, GetTrustBundle, Listen, LogOptions,
     MakeModuleRuntime, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
@@ -12,6 +13,7 @@ use failure::Fail;
 use futures::future::{self, FutureResult};
 use futures::prelude::*;
 use futures::stream;
+use futures::sync::mpsc::UnboundedSender;
 use futures::IntoFuture;
 use hyper::{Body, Request};
 
@@ -307,6 +309,7 @@ where
         settings: Self::Settings,
         _: Self::ProvisioningResult,
         _: impl GetTrustBundle,
+        _create_socket_channel: UnboundedSender<ModuleAction>,
     ) -> Self::Future {
         future::ok(TestRuntime {
             module: None,

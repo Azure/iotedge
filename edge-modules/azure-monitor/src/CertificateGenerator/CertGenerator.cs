@@ -134,7 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.Certificategenerator
             return Convert.ToBase64String(hKey.ComputeHash(Encoding.UTF8.GetBytes(rawsignature)));
         }
 
-        public static void RegisterWithOms(X509Certificate2 cert, string AgentGuid, string logAnalyticsWorkspaceId, string logAnalyticsWorkspaceKey, string logAnalyticsWorkspaceDomain)
+        public static void RegisterWithOms(X509Certificate2 cert, string AgentGuid, string logAnalyticsWorkspaceId, string logAnalyticsWorkspaceKey, string logAnalyticsWorkspaceDomainPrefixOms)
         {
 
             string rawCert = Convert.ToBase64String(cert.GetRawCertData()); //base64 binary
@@ -168,7 +168,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.Certificategenerator
 
             var client = new HttpClient(clientHandler);
 
-            string url = "https://" + logAnalyticsWorkspaceId + ".oms." + logAnalyticsWorkspaceDomain + "/AgentService.svc/AgentTopologyRequest";
+            string url = "https://" + logAnalyticsWorkspaceId + logAnalyticsWorkspaceDomainPrefixOms + Settings.Current.AzureDomain + "/AgentService.svc/AgentTopologyRequest";
 
             Console.WriteLine("OMS endpoint Url : {0}", url);
 
@@ -198,7 +198,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.Certificategenerator
             }
         }
 
-        public static void RegisterWithOmsWithBasicRetryAsync(X509Certificate2 cert, string AgentGuid, string logAnalyticsWorkspaceId, string logAnalyticsWorkspaceKey, string logAnalyticsWorkspaceDomain)
+        public static void RegisterWithOmsWithBasicRetryAsync(X509Certificate2 cert, string AgentGuid, string logAnalyticsWorkspaceId, string logAnalyticsWorkspaceKey, string logAnalyticsWorkspaceDomainPrefixOms)
         {
             int currentRetry = 0;
 
@@ -207,7 +207,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.Certificategenerator
                 try
                 {
                     RegisterWithOms(
-                       cert, AgentGuid, logAnalyticsWorkspaceId, logAnalyticsWorkspaceKey, logAnalyticsWorkspaceDomain);
+                       cert, AgentGuid, logAnalyticsWorkspaceId, logAnalyticsWorkspaceKey, logAnalyticsWorkspaceDomainPrefixOms);
 
                     // Return or break.
                     break;
@@ -236,7 +236,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.Certificategenerator
             }
         }
 
-        public static (X509Certificate2 tempCert, (string, byte[]), string) RegisterAgentWithOMS(string logAnalyticsWorkspaceId, string logAnalyticsWorkspaceKey, string logAnalyticsWorkspaceDomain)
+        public static (X509Certificate2 tempCert, (string, byte[]), string) RegisterAgentWithOMS(string logAnalyticsWorkspaceId, string logAnalyticsWorkspaceKey, string logAnalyticsWorkspaceDomainPrefixOms)
         {
             X509Certificate2 agentCert = null;
             string certString;
@@ -268,7 +268,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.Certificategenerator
                 RegisterWithOmsWithBasicRetryAsync(agentCert, agentGuid,
                     logAnalyticsWorkspaceId,
                     logAnalyticsWorkspaceKey,
-                    logAnalyticsWorkspaceDomain);
+                    logAnalyticsWorkspaceDomainPrefixOms);
             }
             catch (Exception ex)
             {

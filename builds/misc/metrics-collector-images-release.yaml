@@ -18,9 +18,17 @@ jobs:
       - template: ../templates/install-dotnet2.yaml
       - template: ../templates/install-dotnet3.yaml
 
-      - bash: |
-            docker login '$(registry.address)' --username '$(registry.user)' --password '$(registry.password)'
-        displayName: 'Docker Login'
+      # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
+      - task: Docker@2
+        displayName: Docker login edgebuilds
+        inputs:
+          command: login
+          containerRegistry: iotedge-edgebuilds-acr
+      - task: Docker@2
+        displayName: Docker login edgerelease
+        inputs:
+          command: login
+          containerRegistry: iotedge-release-acr
 
       - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
         name: build
@@ -54,8 +62,17 @@ jobs:
       - template: ../templates/install-dotnet2.yaml
       - template: ../templates/install-dotnet3.yaml
 
-      - script: echo $(registry.password)|docker login "$(registry.address)" -u "$(registry.user)" --password-stdin
-        displayName: Docker Login
+      # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
+      - task: Docker@2
+        displayName: Docker login edgebuilds
+        inputs:
+          command: login
+          containerRegistry: iotedge-edgebuilds-acr
+      - task: Docker@2
+        displayName: Docker login edgerelease
+        inputs:
+          command: login
+          containerRegistry: iotedge-release-acr
 
       - powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration:"$(Build.Configuration)" -PublishTests:$False -UpdateVersion
         name: build
@@ -83,5 +100,16 @@ jobs:
       - MetricsCollector_Linux
       - MetricsCollector_Windows
     steps:
-    - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(version) -t $(System.DefaultWorkingDirectory)/edge-modules/azure-monitor/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+    # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
+    - task: Docker@2
+      displayName: Docker login edgebuilds
+      inputs:
+        command: login
+        containerRegistry: iotedge-edgebuilds-acr
+    - task: Docker@2
+      displayName: Docker login edgerelease
+      inputs:
+        command: login
+        containerRegistry: iotedge-release-acr
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(version) -t $(System.DefaultWorkingDirectory)/edge-modules/azure-monitor/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
       displayName: 'Publish Metrics Collector Manifest'

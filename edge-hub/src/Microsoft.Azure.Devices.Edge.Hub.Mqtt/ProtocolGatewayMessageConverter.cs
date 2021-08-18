@@ -93,6 +93,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 }
             }
 
+            if (message.SystemProperties.TryGetValue(SystemProperties.RpConnectionDeviceIdInternal, out string rpDeviceId))
+            {
+                properties[SystemProperties.OutgoingSystemPropertiesMap[SystemProperties.RpConnectionDeviceIdInternal]] = rpDeviceId;
+            }
+
+            if (message.SystemProperties.TryGetValue(SystemProperties.RpConnectionModuleIdInternal, out string rpModuleId))
+            {
+                properties[SystemProperties.OutgoingSystemPropertiesMap[SystemProperties.RpConnectionModuleIdInternal]] = rpModuleId;
+            }
+
             if (!this.addressConvertor.TryBuildProtocolAddressFromEdgeHubMessage(uriTemplateKey, message, properties, out string address))
             {
                 throw new InvalidOperationException("Could not derive destination address using message system properties");

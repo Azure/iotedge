@@ -10,8 +10,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
         public static readonly string MetricUploadDataType = "INSIGHTS_METRICS_BLOB";
         public static readonly string IoTUploadMessageIdentifier = "origin-iotedge-metrics-collector";
         public static readonly int UploadMaxRetries = 3;
-        public const string DefaultLogAnalyticsWorkspaceDomain = "opinsights.azure.com";
-
+        public const string DefaultLogAnalyticsWorkspaceDomainPrefixOds = ".ods.opinsights.";
+        public const string DefaultLogAnalyticsWorkspaceDomainPrefixOms = ".oms.opinsights.";
         public const string ProductInfo = "IoTEdgeMetricsCollectorModule";
     }
 }

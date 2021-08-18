@@ -23,12 +23,17 @@ jobs:
             clean: true
             fetchDepth: 100
         
-          - task: Bash@3
-            displayName: Log into Registries
+          # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
+          - task: Docker@2
+            displayName: Docker login edgebuilds
             inputs:
-              targetType: Inline
-              script: |
-                docker login $(registry.address) --username $(registry.user) --password $(registry.password)
+              command: login
+              containerRegistry: iotedge-edgebuilds-acr
+          - task: Docker@2
+            displayName: Docker login edgerelease
+            inputs:
+              command: login
+              containerRegistry: iotedge-release-acr
         
           - task: Bash@3
             displayName: 'Publish Metrics Collector - Linux amd64'
@@ -67,8 +72,17 @@ jobs:
             clean: true
             fetchDepth: 100
 
-          - script: echo $(registry.password)|docker login "$(registry.address)" -u "$(registry.user)" --password-stdin
-            displayName: Docker Login
+          # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
+          - task: Docker@2
+            displayName: Docker login edgebuilds
+            inputs:
+              command: login
+              containerRegistry: iotedge-edgebuilds-acr
+          - task: Docker@2
+            displayName: Docker login edgerelease
+            inputs:
+              command: login
+              containerRegistry: iotedge-release-acr
 
           - task: PowerShell@2
             displayName: "Publish Metrics Collector - Windows amd64"
@@ -96,12 +110,21 @@ jobs:
             clean: true
             fetchDepth: 100
 
-          - script: echo $(registry.password)|docker login "$(registry.address)" -u "$(registry.user)" --password-stdin
-            displayName: Docker Login
+          # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
+          - task: Docker@2
+            displayName: Docker login edgebuilds
+            inputs:
+              command: login
+              containerRegistry: iotedge-edgebuilds-acr
+          - task: Docker@2
+            displayName: Docker login edgerelease
+            inputs:
+              command: login
+              containerRegistry: iotedge-release-acr
 
           - task: Bash@3
             displayName: 'Publish Metrics Collector Manifest'
             inputs:
               targetType: filePath
               filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/buildManifest.sh'
-              arguments: '-r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(version) -t $(System.DefaultWorkingDirectory)/edge-modules/azure-monitor/docker/manifest.yaml.template -n $(to.registry.namespace) --tags "$(tags)"'
+              arguments: '-r $(registry.address) -v $(version) -t $(System.DefaultWorkingDirectory)/edge-modules/azure-monitor/docker/manifest.yaml.template -n $(to.registry.namespace) --tags "$(tags)"'

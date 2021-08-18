@@ -96,7 +96,12 @@ pub fn configure_test(address: &str) -> (Run, u16) {
     let tls_params = TlsAcceptorParams::new(&manager, Protocol::Tls12);
 
     let server = Http::new()
-        .bind_url(Url::parse(address).unwrap(), router, Some(tls_params))
+        .bind_url(
+            Url::parse(address).unwrap(),
+            router,
+            Some(tls_params),
+            0o666,
+        )
         .unwrap();
     let port = server.port().expect("HTTP server must have port");
     (server.run(), port)

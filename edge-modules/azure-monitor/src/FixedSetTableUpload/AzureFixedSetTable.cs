@@ -60,8 +60,9 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
             try
             {
                 // Lazily generate and register certificate.
-                if (cert == null) {
-                    (X509Certificate2 tempCert, (string certString, byte[] certBuf), string keyString) = CertGenerator.RegisterAgentWithOMS(workspaceId, sharedKey, Constants.DefaultLogAnalyticsWorkspaceDomain);
+                if (cert == null)
+                {
+                    (X509Certificate2 tempCert, (string certString, byte[] certBuf), string keyString) = CertGenerator.RegisterAgentWithOMS(workspaceId, sharedKey, Constants.DefaultLogAnalyticsWorkspaceDomainPrefixOms);
                     cert = tempCert;
                 }
                 using (var handler = new HttpClientHandler())
@@ -71,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
                     handler.PreAuthenticate = true;
                     handler.ClientCertificateOptions = ClientCertificateOption.Manual;
 
-                    Uri requestUri = new Uri("https://" + workspaceId + ".ods." + Constants.DefaultLogAnalyticsWorkspaceDomain + "/OperationalData.svc/PostJsonDataItems");
+                    Uri requestUri = new Uri("https://" + workspaceId + Constants.DefaultLogAnalyticsWorkspaceDomainPrefixOds + Settings.Current.AzureDomain + "/OperationalData.svc/PostJsonDataItems");
 
                     using (HttpClient client = new HttpClient(handler))
                     {
@@ -86,19 +87,21 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
                         // optionally compress content before sending
                         int contentLength;
                         HttpContent contentMsg;
-                        if (Settings.Current.CompressForUpload) {
+                        if (Settings.Current.CompressForUpload)
+                        {
                             byte[] withHeader = ZlibDeflate(Encoding.UTF8.GetBytes(content));
                             contentLength = withHeader.Length;
 
                             contentMsg = new ByteArrayContent(withHeader);
                             contentMsg.Headers.Add("Content-Encoding", "deflate");
                         }
-                        else {
+                        else
+                        {
                             contentMsg = new StringContent(content, Encoding.UTF8);
                             contentLength = ASCIIEncoding.Unicode.GetByteCount(content);
                         }
 
-                        if (contentLength > 1024 * 1024 )
+                        if (contentLength > 1024 * 1024)
                         {
                             LoggerUtil.Writer.LogDebug(
                                 "HTTP post content greater than 1mb" + " " +
@@ -114,10 +117,12 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
                             response.ReasonPhrase + " " +
                             responseMsg);
 
-                        if ((int)response.StatusCode != 200) {
+                        if ((int)response.StatusCode != 200)
+                        {
                             failurecount += 1;
 
-                            if (DateTime.Now - lastFailureReportedTime > TimeSpan.FromMinutes(1)) {
+                            if (DateTime.Now - lastFailureReportedTime > TimeSpan.FromMinutes(1))
+                            {
                                 LoggerUtil.Writer.LogDebug(
                                     "abnormal HTTP response code - " +
                                     "responsecode: " + ((int)response.StatusCode).ToString() + " " +
@@ -132,7 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
                             // Regen the cert on next run just to be safe.
                             cert = null;
                         }
-                        return ((int) response.StatusCode) == 200;
+                        return ((int)response.StatusCode) == 200;
                     }
                 }
             }
@@ -163,10 +168,10 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
             using (var memoryStream = new MemoryStream())
             using (DeflaterOutputStream outStream = new DeflaterOutputStream(memoryStream, deflater))
             {
-				outStream.IsStreamOwner = false;
-				outStream.Write(input, 0, input.Length);
-				outStream.Flush();
-				outStream.Finish();
+                outStream.IsStreamOwner = false;
+                outStream.Write(input, 0, input.Length);
+                outStream.Flush();
+                outStream.Finish();
                 return memoryStream.ToArray();
             }
         }
@@ -178,7 +183,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
         /// </summary>
         private static X509Certificate2 ReadX509CertWithKey(byte[] certBuffer, string keyString)
         {
-            try {
+            try
+            {
                 RSACryptoServiceProvider parsedKey;
                 X509Certificate2 cert;
 
@@ -191,7 +197,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
 
                 // parse the private key
                 PemReader pr = new PemReader(new StringReader(keyString));
-                AsymmetricCipherKeyPair KeyPair = (AsymmetricCipherKeyPair) pr.ReadObject();
+                AsymmetricCipherKeyPair KeyPair = (AsymmetricCipherKeyPair)pr.ReadObject();
                 RSAParameters rsaParams = DotNetUtilities.ToRSAParameters((RsaPrivateCrtKeyParameters)KeyPair.Private);
 
                 parsedKey = new RSACryptoServiceProvider();
@@ -202,7 +208,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
                 cert = cert.CopyWithPrivateKey(parsedKey);
                 return cert;
             }
-            catch (Exception e) {
+            catch (Exception e)
+            {
                 // log an error and exit. Modules are restarted automatically so it makes more sense to crash and restart than recover from this.
                 LoggerUtil.Writer.LogCritical(e.ToString());
                 Environment.Exit(1);

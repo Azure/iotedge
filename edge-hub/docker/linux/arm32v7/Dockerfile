@@ -1,4 +1,4 @@
-ARG base_tag=1.0.5.11-linux-arm32v7
+ARG base_tag=1.0.5.13-linux-arm32v7
 FROM azureiotedge/azureiotedge-hub-base:${base_tag}
 
 ARG EXE_DIR=.
