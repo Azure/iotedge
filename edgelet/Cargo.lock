@@ -547,7 +547,6 @@ dependencies = [
  "futures 0.3.16",
  "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
  "hyper",
- "lazy_static",
  "libc",
  "log",
  "maplit",

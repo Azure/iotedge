@@ -1,24 +1,25 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::collections::{BTreeMap, HashMap};
+use std::convert::TryInto;
 use std::path::{Path, PathBuf};
-use std::str;
 use std::sync::Arc;
-use std::time::Duration;
-use url::Url;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::{mem, process, str};
 
 use failure::ResultExt;
 use futures::{stream, StreamExt};
-use lazy_static::{__Deref, lazy_static};
 use log::{debug, info, Level};
+use sysinfo::{DiskExt, ProcessExt, ProcessorExt, System, SystemExt};
 use tokio::sync::Mutex;
+use url::Url;
 
 use docker::apis::{DockerApi, DockerApiClient};
 use docker::models::{ContainerCreateBody, InlineResponse2001, Ipam, NetworkConfig};
 use edgelet_core::{
-    LogOptions, MakeModuleRuntime, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState,
-    ProvisioningInfo, RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo,
-    SystemResources,
+    DiskInfo, LogOptions, MakeModuleRuntime, Module, ModuleRegistry, ModuleRuntime,
+    ModuleRuntimeState, ProvisioningInfo, RegistryOperation, RuntimeOperation,
+    SystemInfo as CoreSystemInfo, SystemResources,
 };
 use edgelet_settings::{
     ContentTrust, DockerConfig, Ipam as CoreIpam, MobyNetwork, ModuleSpec, RuntimeSettings,
@@ -30,26 +31,12 @@ use crate::error::{Error, ErrorKind, Result};
 use crate::module::{runtime_state, DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
 use crate::notary;
 
-use edgelet_core::DiskInfo;
-use std::convert::TryInto;
-use std::mem;
-use std::process;
-use std::time::{SystemTime, UNIX_EPOCH};
-use sysinfo::{DiskExt, ProcessExt, ProcessorExt, System, SystemExt};
-
 type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
 const OWNER_LABEL_KEY: &str = "net.azure-devices.edge.owner";
 const OWNER_LABEL_VALUE: &str = "Microsoft.Azure.Devices.Edge.Agent";
 const ORIGINAL_IMAGE_LABEL_KEY: &str = "net.azure-devices.edge.original-image";
-
-lazy_static! {
-    static ref LABELS: Vec<&'static str> = {
-        let mut labels = vec![];
-        labels.push("net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent");
-        labels
-    };
-}
+const LABELS: &[&str] = &["net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent"];
 
 #[derive(Clone)]
 pub struct DockerModuleRuntime {
@@ -713,7 +700,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         debug!("Listing modules...");
 
         let mut filters = HashMap::new();
-        filters.insert("label", LABELS.deref());
+        filters.insert("label", LABELS);
         let filters = serde_json::to_string(&filters)
             .context(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules))
             .map_err(Error::from)?;
