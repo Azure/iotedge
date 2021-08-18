@@ -9,23 +9,25 @@ use std::{mem, process, str};
 
 use failure::ResultExt;
 use futures::{stream, StreamExt};
+use hyper::{Body, Client, Uri};
 use log::{debug, info, Level};
 use sysinfo::{DiskExt, ProcessExt, ProcessorExt, System, SystemExt};
 use tokio::sync::Mutex;
 use url::Url;
 
-use docker::apis::{DockerApi, DockerApiClient};
+use docker::apis::{Configuration, DockerApi, DockerApiClient};
 use docker::models::{ContainerCreateBody, InlineResponse2001, Ipam, NetworkConfig};
 use edgelet_core::{
     DiskInfo, LogOptions, MakeModuleRuntime, Module, ModuleRegistry, ModuleRuntime,
     ModuleRuntimeState, ProvisioningInfo, RegistryOperation, RuntimeOperation,
-    SystemInfo as CoreSystemInfo, SystemResources,
+    SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
 };
 use edgelet_settings::{
     ContentTrust, DockerConfig, Ipam as CoreIpam, MobyNetwork, ModuleSpec, RuntimeSettings,
     Settings,
 };
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
+use http_common::Connector;
 
 use crate::error::{Error, ErrorKind, Result};
 use crate::module::{runtime_state, DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
@@ -284,29 +286,35 @@ impl MakeModuleRuntime for DockerModuleRuntime {
 }
 
 async fn init_client(docker_url: &Url) -> Result<DockerApiClient> {
-    // // build the hyper client
-    // let client =
-    //     Client::builder().build(UrlConnector::new(docker_url).context(ErrorKind::Initialization)?);
+    // build the hyper client
+    let client: Client<_, Body> = Client::builder().build(
+        Connector::new(docker_url)
+            .map_err(|e| Error::from(ErrorKind::Initialization(e.to_string())))?,
+    );
 
-    // // extract base path - the bit that comes after the scheme
-    // let base_path = docker_url
-    //     .to_base_path()
-    //     .context(ErrorKind::Initialization)?;
-    // let mut configuration = Configuration::new(client);
-    // configuration.base_path = base_path
-    //     .to_str()
-    //     .ok_or(ErrorKind::Initialization)?
-    //     .to_string();
+    // extract base path - the bit that comes after the scheme
+    let base_path = docker_url
+        .to_base_path()
+        .context(ErrorKind::Initialization("".to_owned()))?
+        .to_str()
+        .ok_or(ErrorKind::Initialization("".to_owned()))?
+        .to_string();
+    let uri_composer = Box::new(|base_path: &str, path: &str| {
+        let result = Uri::builder()
+            .authority(base_path)
+            .path_and_query(path.to_string())
+            .build()?;
 
-    // let scheme = docker_url.scheme().to_string();
-    // configuration.uri_composer = Box::new(move |base_path, path| {
-    //     Ok(UrlConnector::build_hyper_uri(&scheme, base_path, path)
-    //         .context(ErrorKind::Initialization)?)
-    // });
+        Ok(result)
+    });
 
-    // Ok(DockerClient::new(APIClient::new(configuration)))
+    let configuration = Configuration {
+        base_path,
+        uri_composer,
+        ..Default::default()
+    };
 
-    unimplemented!();
+    Ok(DockerApiClient::new(client).with_configuration(configuration))
 }
 
 async fn create_network_if_missing(settings: &Settings, client: &DockerApiClient) -> Result<()> {

@@ -58,5 +58,6 @@ where
 }
 
 mod client;
+mod configuration;
 pub use self::client::{DockerApi, DockerApiClient};
-pub mod configuration;
+pub use self::configuration::Configuration;

@@ -6,7 +6,7 @@ use futures::{Future, Stream};
 use serde_json;
 use typed_headers::{self, mime, HeaderMapExt};
 
-use http_common::{request, Connector};
+use http_common::{request_with_headers, Connector};
 use hyper::{Body, Client, Uri};
 
 use super::configuration::Configuration;
@@ -21,11 +21,16 @@ pub struct DockerApiClient {
 }
 
 impl DockerApiClient {
-    pub fn new(client: Arc<Client<Connector, Body>>) -> Self {
+    pub fn new(client: Client<Connector, Body>) -> Self {
         Self {
-            client,
-            configuration: Arc::new(Configuration::new()),
+            client: Arc::new(client),
+            configuration: Arc::new(Configuration::default()),
         }
+    }
+
+    pub fn with_configuration(mut self, configuration: Configuration) -> Self {
+        self.configuration = Arc::new(configuration);
+        self
     }
 
     async fn request<TRequest, TResponse>(
@@ -63,7 +68,7 @@ impl DockerApiClient {
             None
         };
 
-        let response = request(
+        let response = request_with_headers(
             &self.client,
             method,
             uri,

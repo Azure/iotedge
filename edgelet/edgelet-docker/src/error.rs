@@ -33,8 +33,8 @@ pub enum ErrorKind {
     #[fail(display = "{}", _0)]
     FormattedDockerRuntime(String),
 
-    #[fail(display = "Could not initialize module runtime")]
-    Initialization,
+    #[fail(display = "Could not initialize module runtime - {}", _0)]
+    Initialization(String),
 
     #[fail(display = "Could not initialize Notary configuration: {}", _0)]
     InitializeNotary(String),
@@ -98,7 +98,9 @@ impl Error {
     }
 
     pub fn from_docker_error(err: Box<dyn std::error::Error>, context: ErrorKind) -> Self {
-        Error::from(ErrorKind::DockerRuntime(err.to_string())).context(context).into()
+        Error::from(ErrorKind::DockerRuntime(err.to_string()))
+            .context(context)
+            .into()
     }
 }
 

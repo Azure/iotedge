@@ -544,7 +544,7 @@ dependencies = [
  "edgelet-utils",
  "failure",
  "futures 0.3.16",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "http-common 0.1.0 (git+https://github.com/lfitchett/iot-identity-service.git?branch=modify_request)",
  "hyper",
  "libc",
  "log",
@@ -1042,7 +1042,7 @@ dependencies = [
 [[package]]
 name = "http-common"
 version = "0.1.0"
-source = "git+https://github.com/lfitchett/iot-identity-service.git?branch=modify_request#f583cf8cb25ea3d2dce6bba44a4330cbd4fc7241"
+source = "git+https://github.com/lfitchett/iot-identity-service.git?branch=modify_request#ecce5c22cf8172f4bb6289df1af5bbff142e99e4"
 dependencies = [
  "async-trait",
  "base64 0.13.0",
