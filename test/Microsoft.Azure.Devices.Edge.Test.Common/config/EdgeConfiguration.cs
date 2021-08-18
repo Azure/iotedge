@@ -108,10 +108,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             "Deployed edge configuration to device with modules:\n    {Modules}",
             string.Join("\n    ", this.moduleImages));
 
-        public Task DeployAsyncWithPrints(string config, IotHub iotHub, CancellationToken token) => Profiler.Run(
+        public Task DeployAsyncWithPrints(string output, IotHub iotHub, CancellationToken token) => Profiler.Run(
             () => iotHub.DeployDeviceConfigurationAsync(this.deviceId, this.config, token),
-            "Deployed this edge configuration to device with modules:\n    {Config}",
-            config);
+            "Output str :\n    {output}",
+            output);
 
         public Task VerifyAsync(IotHub iotHub, CancellationToken token)
         {

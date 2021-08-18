@@ -69,30 +69,36 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             DateTime deployTime = DateTime.Now;
             EdgeConfiguration edgeConfiguration = builder.Build();
             string signedConfig = string.Empty;
+            string edgeConfig = string.Empty;
+            string dotnetCmdText = string.Empty;
+            int exitcode;
+            string outputStr = string.Empty; 
 
             if (enableManifestSigning.HasValue)
             {
                 // Wrtie the current config into a file
                 string deploymentPath = enableManifestSigning.OrDefault().ManifestSigningDeploymentPath.OrDefault();
                 File.WriteAllText(deploymentPath, edgeConfiguration.ToString());
+                edgeConfig = edgeConfiguration.ToString();
 
                 // start dotnet run ManifestSignerClient.exe process
-                string dotnetCmdText = "run " + enableManifestSigning.OrDefault().ManifestSignerClientBinPath.OrDefault();
+                dotnetCmdText = "run " + enableManifestSigning.OrDefault().ManifestSignerClientBinPath.OrDefault();
                 var dotnetProcess = System.Diagnostics.Process.Start("dotnet", dotnetCmdText);
+                exitcode = dotnetProcess.ExitCode;
                 dotnetProcess.WaitForExit();
 
                 // Read the signed deployment file back
                 string signedDeploymentPath = enableManifestSigning.OrDefault().ManifestSigningSignedDeploymentPath.OrDefault();
                 signedConfig = File.ReadAllText(signedDeploymentPath);
+                outputStr = "edge config value = " + edgeConfig + "\n dotnet commnad = " + dotnetCmdText + "\n exit code = " + exitcode + "\n signed config = " + signedConfig;
             }
 
             if (!string.IsNullOrEmpty(signedConfig))
             {
                 // Convert signed config to EdgeConfiguration
                 edgeConfiguration = (EdgeConfiguration)JsonConvert.DeserializeObject(signedConfig);
-                signedConfig = "shhh";
             }
-            await edgeConfiguration.DeployAsyncWithPrints(signedConfig, this.iotHub, token);
+            await edgeConfiguration.DeployAsyncWithPrints(outputStr, this.iotHub, token);
             EdgeModule[] modules = edgeConfiguration.ModuleNames
                 .Select(id => new EdgeModule(id, this.DeviceId, this.iotHub))
                 .ToArray();
