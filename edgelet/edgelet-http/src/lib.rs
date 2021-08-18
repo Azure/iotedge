@@ -19,6 +19,9 @@ pub use auth::auth_caller;
 // Common types shared between management and workload APIs.
 pub use modules::{ListModulesResponse, ModuleConfig, ModuleDetails};
 
+// HTTP bodies that represent Docker module specs.
+pub use modules::{DockerSpec, ModuleSpec};
+
 pub use version::ApiVersion;
 
 /// Search a query string for the provided key.

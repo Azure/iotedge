@@ -26,6 +26,7 @@ pub(crate) struct EncryptRequest {
 }
 
 #[derive(Debug, serde::Serialize)]
+#[cfg_attr(test, derive(serde::Deserialize))]
 pub(crate) struct EncryptResponse {
     ciphertext: String,
 }
@@ -112,4 +113,90 @@ where
     }
 
     type PutBody = serde::de::IgnoredAny;
+}
+
+#[cfg(test)]
+mod tests {
+    use http_common::server::Route;
+
+    use edgelet_test_utils::{test_route_err, test_route_ok};
+
+    const TEST_PATH: &str = "/modules/testModule/genid/1/encrypt";
+
+    #[test]
+    fn parse_uri() {
+        // Valid URI
+        let route = test_route_ok!(TEST_PATH);
+        assert_eq!("testModule", &route.module_id);
+        assert_eq!("1", &route.gen_id);
+        assert_eq!(nix::unistd::getpid().as_raw(), route.pid);
+
+        // Missing module ID
+        test_route_err!("/modules//genid/1/encrypt");
+
+        // Missing generation ID
+        test_route_err!("/modules/testModule/genid//encrypt");
+
+        // Extra character at beginning of URI
+        test_route_err!(&format!("a{}", TEST_PATH));
+
+        // Extra character at end of URI
+        test_route_err!(&format!("{}a", TEST_PATH));
+    }
+
+    #[tokio::test]
+    async fn auth() {
+        async fn post(
+            route: super::Route<edgelet_test_utils::runtime::Runtime>,
+        ) -> http_common::server::RouteResponse {
+            let body = super::EncryptRequest {
+                plaintext: base64::encode("plaintext"),
+                iv: base64::encode("iv"),
+            };
+
+            route.post(Some(body)).await
+        }
+
+        edgelet_test_utils::test_auth_caller!(TEST_PATH, "testModule", post);
+    }
+
+    #[tokio::test]
+    async fn encoding() {
+        // Body is required
+        let route = test_route_ok!(TEST_PATH);
+        let response = route.post(None).await.unwrap_err();
+        assert_eq!(hyper::StatusCode::BAD_REQUEST, response.status_code);
+
+        // plaintext must be base64-encoded
+        let body = super::EncryptRequest {
+            plaintext: "~".to_string(),
+            iv: base64::encode("~"),
+        };
+
+        let route = test_route_ok!(TEST_PATH);
+        let response = route.post(Some(body)).await.unwrap_err();
+        assert_eq!(hyper::StatusCode::BAD_REQUEST, response.status_code);
+
+        // iv must be base64-encoded
+        let body = super::EncryptRequest {
+            plaintext: base64::encode("~"),
+            iv: "~".to_string(),
+        };
+
+        let route = test_route_ok!(TEST_PATH);
+        let response = route.post(Some(body)).await.unwrap_err();
+        assert_eq!(hyper::StatusCode::BAD_REQUEST, response.status_code);
+
+        // Response ciphertext is base64-encoded
+        let body = super::EncryptRequest {
+            plaintext: base64::encode("~"),
+            iv: base64::encode("~"),
+        };
+
+        let route = test_route_ok!(TEST_PATH);
+        let response = route.post(Some(body)).await.unwrap();
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let response: super::EncryptResponse = serde_json::from_slice(&body).unwrap();
+        base64::decode(response.ciphertext).unwrap();
+    }
 }

@@ -13,7 +13,7 @@ where
 #[async_trait::async_trait]
 impl<M> http_common::server::Route for Route<M>
 where
-    M: edgelet_core::ModuleRuntime + Send + Sync,
+    M: edgelet_core::ModuleRuntime<Config = edgelet_settings::DockerConfig> + Send + Sync,
 {
     type ApiVersion = edgelet_http::ApiVersion;
     fn api_version() -> &'static dyn http_common::DynRangeBounds<Self::ApiVersion> {
@@ -79,8 +79,8 @@ where
 
     type PostBody = serde::de::IgnoredAny;
 
-    type PutBody = serde::de::IgnoredAny;
-    async fn put(self, _body: Self::PutBody) -> http_common::server::RouteResponse {
+    type PutBody = edgelet_http::ModuleSpec;
+    async fn put(self, body: Self::PutBody) -> http_common::server::RouteResponse {
         edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
         let start = if let Some(start) = &self.start {
@@ -90,6 +90,56 @@ where
             false
         };
 
-        todo!()
+        let runtime = self.runtime.lock().await;
+
+        runtime
+            .remove(&self.module)
+            .await
+            .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
+
+        super::create_module(&*runtime, body.clone()).await?;
+
+        let details = if start {
+            match runtime.start(&self.module).await {
+                Ok(()) => log::info!("Successfully started module {}", self.module),
+                Err(err) => log::warn!("Failed to start module {}: {}", self.module, err),
+            }
+
+            edgelet_http::ModuleDetails::from_spec(&body, edgelet_core::ModuleStatus::Running)
+        } else {
+            edgelet_http::ModuleDetails::from_spec(&body, edgelet_core::ModuleStatus::Stopped)
+        };
+
+        let res = http_common::server::response::json(hyper::StatusCode::CREATED, &details);
+
+        Ok(res)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use edgelet_test_utils::{test_route_err, test_route_ok};
+
+    const TEST_PATH: &str = "/modules/testModule";
+
+    #[test]
+    fn parse_uri() {
+        // Valid URI
+        let route = test_route_ok!(TEST_PATH);
+        assert_eq!("testModule", &route.module);
+        assert_eq!(nix::unistd::getpid().as_raw(), route.pid);
+        assert!(route.start.is_none());
+
+        // Valid URI with query parameter
+        let route = test_route_ok!(TEST_PATH, ("start", "true"));
+        assert_eq!("testModule", &route.module);
+        assert_eq!(nix::unistd::getpid().as_raw(), route.pid);
+        assert_eq!("true", route.start.unwrap());
+
+        // Extra character at beginning of URI
+        test_route_err!(&format!("a{}", TEST_PATH));
+
+        // Extra character at end of URI
+        test_route_err!(&format!("{}/", TEST_PATH));
     }
 }

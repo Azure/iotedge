@@ -130,3 +130,48 @@ fn server_cert_extensions(
 
     Ok(csr_extensions)
 }
+
+#[cfg(test)]
+mod tests {
+    use http_common::server::Route;
+
+    use edgelet_test_utils::{test_route_err, test_route_ok};
+
+    const TEST_PATH: &str = "/modules/testModule/genid/1/certificate/server";
+
+    #[test]
+    fn parse_uri() {
+        // Valid URI
+        let route = test_route_ok!(TEST_PATH);
+        assert_eq!("testModule", &route.module_id);
+        assert_eq!("1", &route.gen_id);
+        assert_eq!(nix::unistd::getpid().as_raw(), route.pid);
+
+        // Missing module ID
+        test_route_err!("/modules//genid/1/certificate/server");
+
+        // Missing generation ID
+        test_route_err!("/modules/testModule/genid//certificate/server");
+
+        // Extra character at beginning of URI
+        test_route_err!(&format!("a{}", TEST_PATH));
+
+        // Extra character at end of URI
+        test_route_err!(&format!("{}a", TEST_PATH));
+    }
+
+    #[tokio::test]
+    async fn auth() {
+        async fn post(
+            route: super::Route<edgelet_test_utils::runtime::Runtime>,
+        ) -> http_common::server::RouteResponse {
+            let body = super::ServerCertificateRequest {
+                common_name: "testModule".to_string(),
+            };
+
+            route.post(Some(body)).await
+        }
+
+        edgelet_test_utils::test_auth_caller!(TEST_PATH, "testModule", post);
+    }
+}

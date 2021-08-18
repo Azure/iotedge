@@ -16,9 +16,13 @@ where
 }
 
 #[derive(Debug, serde::Serialize)]
+#[cfg_attr(test, derive(serde::Deserialize))]
 pub(crate) struct TrustBundleResponse {
     certificate: String,
 }
+
+const TRUST_BUNDLE_PATH: &str = "/trust-bundle";
+const MANIFEST_TRUST_BUNDLE_PATH: &str = "/manifest-trust-bundle";
 
 #[async_trait::async_trait]
 impl<M> http_common::server::Route for Route<M>
@@ -38,8 +42,8 @@ where
         _extensions: &http::Extensions,
     ) -> Option<Self> {
         let trust_bundle = match path {
-            "/trust-bundle" => service.config.trust_bundle.clone(),
-            "/manifest-trust-bundle" => service.config.manifest_trust_bundle.clone(),
+            TRUST_BUNDLE_PATH => service.config.trust_bundle.clone(),
+            MANIFEST_TRUST_BUNDLE_PATH => service.config.manifest_trust_bundle.clone(),
             _ => return None,
         };
 
@@ -74,4 +78,62 @@ where
     type PostBody = serde::de::IgnoredAny;
 
     type PutBody = serde::de::IgnoredAny;
+}
+
+#[cfg(test)]
+mod tests {
+    use http_common::server::Route;
+
+    use edgelet_test_utils::{test_route_err, test_route_ok};
+
+    #[test]
+    fn parse_uri() {
+        // Valid URIs
+        test_route_ok!(super::TRUST_BUNDLE_PATH);
+        test_route_ok!(super::MANIFEST_TRUST_BUNDLE_PATH);
+
+        // Extra character at beginning of URI
+        test_route_err!(&format!("a{}", super::TRUST_BUNDLE_PATH));
+        test_route_err!(&format!("a{}", super::MANIFEST_TRUST_BUNDLE_PATH));
+
+        // Extra character at end of URI
+        test_route_err!(&format!("{}a", super::TRUST_BUNDLE_PATH));
+        test_route_err!(&format!("a{}", super::MANIFEST_TRUST_BUNDLE_PATH));
+    }
+
+    #[tokio::test]
+    async fn select_trust_bundle() {
+        let mut certs = std::collections::BTreeMap::new();
+        certs.insert(
+            "test-trust-bundle".to_string(),
+            "TRUST_BUNDLE".as_bytes().to_owned(),
+        );
+        certs.insert(
+            "test-manifest-trust-bundle".to_string(),
+            "MANIFEST_TRUST_BUNDLE".as_bytes().to_owned(),
+        );
+
+        // Check that path /trust-bundle selects the default trust bundle,
+        // and path /manifest-trust-bundle selects the manifest trust bundle.
+        let paths = vec![
+            (super::TRUST_BUNDLE_PATH, "TRUST_BUNDLE"),
+            (super::MANIFEST_TRUST_BUNDLE_PATH, "MANIFEST_TRUST_BUNDLE"),
+        ];
+
+        for (path, expected) in paths {
+            let route = test_route_ok!(path);
+
+            {
+                let mut client = route.client.lock().await;
+                client.certs =
+                    futures_util::lock::Mutex::new(std::cell::RefCell::new(certs.clone()));
+            }
+
+            let response = route.get().await.unwrap();
+            let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+            let trust_bundle: super::TrustBundleResponse = serde_json::from_slice(&body).unwrap();
+
+            assert_eq!(expected, trust_bundle.certificate);
+        }
+    }
 }

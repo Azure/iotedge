@@ -7,13 +7,18 @@ pub(crate) mod server;
 use aziot_cert_client_async::Client as CertClient;
 #[cfg(not(test))]
 use aziot_key_client_async::Client as KeyClient;
+#[cfg(not(test))]
+use aziot_key_openssl_engine as KeyEngine;
 
 #[cfg(test)]
 use edgelet_test_utils::clients::CertClient;
 #[cfg(test)]
 use edgelet_test_utils::clients::KeyClient;
+#[cfg(test)]
+use edgelet_test_utils::clients::KeyEngine;
 
 #[derive(Debug, serde::Serialize)]
+#[cfg_attr(test, derive(serde::Deserialize))]
 #[serde(tag = "type")]
 pub(crate) enum PrivateKey {
     #[serde(rename = "key")]
@@ -21,6 +26,7 @@ pub(crate) enum PrivateKey {
 }
 
 #[derive(Debug, serde::Serialize)]
+#[cfg_attr(test, derive(serde::Deserialize))]
 pub(crate) struct CertificateResponse {
     #[serde(rename = "privateKey")]
     private_key: PrivateKey,
@@ -177,7 +183,7 @@ impl CertApi {
         let key_handle =
             std::ffi::CString::new(key_handle.0.clone()).expect("key handle contained null");
 
-        let mut engine = aziot_key_openssl_engine::load(key_client)
+        let mut engine = KeyEngine::load(key_client)
             .map_err(|_| edgelet_http::error::server_error("failed to load openssl key engine"))?;
 
         let private_key = engine
@@ -337,4 +343,151 @@ fn edge_ca_extensions(
     csr_extensions.push(basic_constraints)?;
 
     Ok(csr_extensions)
+}
+
+#[cfg(test)]
+mod tests {
+    fn test_api() -> super::CertApi {
+        // Tests won't actually connect to keyd, so just put any URL in the key connector.
+        let key_connector = url::Url::parse("unix:///tmp/test.sock").unwrap();
+        let key_connector = http_common::Connector::new(&key_connector).unwrap();
+
+        let key_client = edgelet_test_utils::clients::KeyClient::default();
+        let key_client = std::sync::Arc::new(futures_util::lock::Mutex::new(key_client));
+
+        let cert_client = edgelet_test_utils::clients::CertClient::default();
+        let cert_client = std::sync::Arc::new(futures_util::lock::Mutex::new(cert_client));
+
+        super::CertApi {
+            key_connector,
+            key_client,
+            cert_client,
+
+            device_id: "test-device".to_string(),
+            edge_ca_cert: "test-device-cert".to_string(),
+            edge_ca_key: "test-device-key".to_string(),
+        }
+    }
+
+    #[tokio::test]
+    async fn edge_ca_renew() {
+        // Test data. Tuples contain a test certificate and whether the test should expect
+        // the cert to be renewed.
+        let test_certs = vec![
+            // Expired certificate.
+            (
+                edgelet_test_utils::test_certificate(
+                    "testCertificate",
+                    Some(|cert| {
+                        let expired = openssl::asn1::Asn1Time::from_unix(1).unwrap();
+                        cert.set_not_after(&expired).unwrap();
+                    }),
+                ),
+                true,
+            ),
+            // Certificate that is near expiry.
+            (
+                edgelet_test_utils::test_certificate(
+                    "testCertificate",
+                    Some(|cert| {
+                        let now = std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .unwrap();
+
+                        // Certs within 5 mins of expiration should renew, so set an expiration
+                        // time 2 mins from now.
+                        let expiry_time = now.as_secs() + 120;
+                        let expiry_time: i64 =
+                            std::convert::TryInto::try_into(expiry_time).unwrap();
+
+                        let expiry_time = openssl::asn1::Asn1Time::from_unix(expiry_time).unwrap();
+                        cert.set_not_after(&expiry_time).unwrap();
+                    }),
+                ),
+                true,
+            ),
+            // Certificate that is not near expiry.
+            (
+                edgelet_test_utils::test_certificate("testCertificate", None),
+                false,
+            ),
+        ];
+
+        for ((cert, _), should_renew) in test_certs {
+            let api = test_api();
+            let cert = cert.to_pem().unwrap();
+
+            // Place test certificate in cert client.
+            {
+                let cert_client = api.cert_client.lock().await;
+                cert_client
+                    .create_cert(&api.edge_ca_cert, &cert, None)
+                    .await
+                    .unwrap();
+            }
+
+            let key_handle = aziot_key_common::KeyHandle(api.edge_ca_key.clone());
+            api.check_edge_ca(&key_handle).await.unwrap();
+
+            let new_cert = {
+                let cert_client = api.cert_client.lock().await;
+                cert_client.get_cert(&api.edge_ca_cert).await.unwrap()
+            };
+
+            // If the cert should have been renewed, check that the new cert is different.
+            // If the cert shouldn't have been renewed, check that it is unchanged.
+            if should_renew {
+                assert_ne!(new_cert, cert);
+            } else {
+                assert_eq!(new_cert, cert);
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn issue_cert() {
+        let api = test_api();
+
+        let (_, issuer_key) = {
+            let cert_client = api.cert_client.lock().await;
+            (cert_client.issuer.clone(), cert_client.issuer_key.clone())
+        };
+
+        // It doesn't matter what extensions we use for this test, so just use the edge CA extensions.
+        let extensions = super::edge_ca_extensions().unwrap();
+
+        let response = api
+            .issue_cert(
+                "testCertificate".to_string(),
+                "testCertificate".to_string(),
+                // This test won't check these fields, so it doesn't matter what's passed here.
+                vec![],
+                extensions,
+            )
+            .await
+            .unwrap();
+
+        // Parse response
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let response: super::CertificateResponse = serde_json::from_slice(&body).unwrap();
+
+        let cert = openssl::x509::X509::from_pem(response.certificate.as_bytes()).unwrap();
+        let private_key = match response.private_key {
+            super::PrivateKey::Key { bytes } => {
+                openssl::pkey::PKey::private_key_from_pem(bytes.as_bytes()).unwrap()
+            }
+        };
+        let expiration = chrono::DateTime::parse_from_rfc3339(&response.expiration).unwrap();
+
+        // Check that expiration is in the future.
+        assert!(expiration > chrono::offset::Utc::now());
+
+        // Check that private key in response matches certificate.
+        let public_key = private_key.public_key_to_pem().unwrap();
+        let cert_public_key = cert.public_key().unwrap().public_key_to_pem().unwrap();
+        assert_eq!(cert_public_key, public_key);
+
+        // Check certificate is signed by issuer key.
+        assert!(cert.verify(&issuer_key).unwrap());
+    }
 }

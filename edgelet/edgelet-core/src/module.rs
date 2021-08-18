@@ -363,10 +363,10 @@ pub trait MakeModuleRuntime {
 #[async_trait::async_trait]
 pub trait ModuleRuntime: Sized {
     type Error: Fail;
-    
+
     type Config: Clone + Send + serde::Serialize;
     type Module: Module<Config = Self::Config> + Send;
-    type ModuleRegistry: ModuleRegistry<Config = Self::Config, Error = Self::Error>;
+    type ModuleRegistry: ModuleRegistry<Config = Self::Config, Error = Self::Error> + Send + Sync;
 
     async fn create(&self, module: ModuleSpec<Self::Config>) -> Result<(), Self::Error>;
     async fn get(&self, id: &str) -> Result<(Self::Module, ModuleRuntimeState), Self::Error>;
@@ -468,12 +468,13 @@ impl fmt::Display for RuntimeOperation {
 
 #[cfg(test)]
 mod tests {
-    use super::{BTreeMap, Default, ImagePullPolicy, ModuleSpec};
-
+    use std::collections::BTreeMap;
     use std::str::FromStr;
     use std::string::ToString;
 
-    use crate::error::ErrorKind;
+    use edgelet_settings::module::ImagePullPolicy;
+
+    use super::ModuleSpec;
     use crate::module::ModuleStatus;
 
     fn get_inputs() -> Vec<(&'static str, ModuleStatus)> {
@@ -504,84 +505,52 @@ mod tests {
     #[test]
     fn module_config_empty_name_fails() {
         let name = "".to_string();
-        match ModuleSpec::new(
+        ModuleSpec::new(
             name.clone(),
             "docker".to_string(),
             10_i32,
             BTreeMap::new(),
             ImagePullPolicy::default(),
-        ) {
-            Ok(_) => panic!("Expected error"),
-            Err(err) => {
-                if let ErrorKind::InvalidModuleName(s) = err.kind() {
-                    assert_eq!(s, &name);
-                } else {
-                    panic!("Expected `InvalidModuleName` but got {:?}", err);
-                }
-            }
-        }
+        )
+        .unwrap_err();
     }
 
     #[test]
     fn module_config_white_space_name_fails() {
         let name = "    ".to_string();
-        match ModuleSpec::new(
+        ModuleSpec::new(
             name.clone(),
             "docker".to_string(),
             10_i32,
             BTreeMap::new(),
             ImagePullPolicy::default(),
-        ) {
-            Ok(_) => panic!("Expected error"),
-            Err(err) => {
-                if let ErrorKind::InvalidModuleName(s) = err.kind() {
-                    assert_eq!(s, &name);
-                } else {
-                    panic!("Expected `InvalidModuleName` but got {:?}", err);
-                }
-            }
-        }
+        )
+        .unwrap_err();
     }
 
     #[test]
     fn module_config_empty_type_fails() {
         let type_ = "    ".to_string();
-        match ModuleSpec::new(
+        ModuleSpec::new(
             "m1".to_string(),
             type_.clone(),
             10_i32,
             BTreeMap::new(),
             ImagePullPolicy::default(),
-        ) {
-            Ok(_) => panic!("Expected error"),
-            Err(err) => {
-                if let ErrorKind::InvalidModuleType(s) = err.kind() {
-                    assert_eq!(s, &type_);
-                } else {
-                    panic!("Expected `InvalidModuleType` but got {:?}", err);
-                }
-            }
-        }
+        )
+        .unwrap_err();
     }
 
     #[test]
     fn module_config_white_space_type_fails() {
         let type_ = "    ".to_string();
-        match ModuleSpec::new(
+        ModuleSpec::new(
             "m1".to_string(),
             type_.clone(),
             10_i32,
             BTreeMap::new(),
             ImagePullPolicy::default(),
-        ) {
-            Ok(_) => panic!("Expected error"),
-            Err(err) => {
-                if let ErrorKind::InvalidModuleType(s) = err.kind() {
-                    assert_eq!(s, &type_);
-                } else {
-                    panic!("Expected `InvalidModuleType` but got {:?}", err);
-                }
-            }
-        }
+        )
+        .unwrap_err();
     }
 }

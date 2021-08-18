@@ -9,13 +9,16 @@ edition = "2018"
 async-trait = "0.1"
 bytes = "1"
 futures = "0.3"
+futures-util = "0.3"
 http = "0.2"
 hyper = "0.14"
 nix = "0.22"
+openssl = "0.10"
 serde = "1"
 
 edgelet-core = { path = "../edgelet-core" }
 edgelet-settings = { path = "../edgelet-settings" }
 
+aziot-key-client = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 aziot-key-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }

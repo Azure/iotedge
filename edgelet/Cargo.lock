@@ -509,7 +509,6 @@ dependencies = [
  "chrono",
  "consistenttime",
  "edgelet-settings",
- "edgelet-utils",
  "failure",
  "futures 0.3.16",
  "hmac",
@@ -570,6 +569,7 @@ dependencies = [
  "chrono",
  "edgelet-core",
  "edgelet-docker",
+ "edgelet-settings",
  "edgelet-test-utils",
  "futures-util",
  "http 0.2.4",
@@ -579,6 +579,7 @@ dependencies = [
  "percent-encoding 2.1.0",
  "serde",
  "serde_json",
+ "tokio 1.9.0",
 ]
 
 [[package]]
@@ -636,6 +637,7 @@ dependencies = [
  "hyper",
  "libc",
  "log",
+ "nix 0.22.0",
  "openssl",
  "percent-encoding 2.1.0",
  "regex",
@@ -664,14 +666,17 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "aziot-identity-common",
+ "aziot-key-client",
  "aziot-key-common",
  "bytes 1.0.1",
  "edgelet-core",
  "edgelet-settings",
  "futures 0.3.16",
+ "futures-util",
  "http 0.2.4",
  "hyper",
  "nix 0.22.0",
+ "openssl",
  "serde",
 ]
 

@@ -77,18 +77,21 @@ mod tests {
         assert_eq!(nix::unistd::getpid().as_raw(), route.pid);
 
         // Extra character at beginning of URI
-        test_route_err!("a/device/reprovision");
+        test_route_err!(&format!("a{}", super::PATH));
 
         // Extra character at end of URI
-        test_route_err!("/device/reprovisiona");
+        test_route_err!(&format!("{}a", super::PATH));
     }
 
     #[tokio::test]
     async fn auth() {
-        let route = edgelet_test_utils::test_route_ok!(super::PATH);
+        async fn post(
+            route: super::Route<edgelet_test_utils::runtime::Runtime>,
+        ) -> http_common::server::RouteResponse {
+            route.post(None).await
+        }
 
-        // Check that this route requires auth.
-        edgelet_test_utils::test_auth_required!(route, { route.post(None) });
+        edgelet_test_utils::test_auth_agent!(super::PATH, post);
     }
 
     #[tokio::test]

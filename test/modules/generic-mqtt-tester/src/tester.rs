@@ -129,7 +129,7 @@ impl MessageTester {
             .publish_handle()
             .map_err(MessageTesterError::PublishHandle)?;
 
-        let message_handler = message_handler(&settings, publish_handle.clone());
+        let message_handler = message_handler(&settings, publish_handle.clone())?;
 
         let mut message_channel = None;
         let mut message_channel_shutdown = None;
@@ -293,22 +293,40 @@ impl MessageTester {
 fn message_handler(
     settings: &Settings,
     publish_handle: PublishHandle,
-) -> Option<Box<dyn MessageHandler + Send>> {
-    let tracking_id = settings.tracking_id();
-    let relay_topic = settings.relay_topic();
-    let module_name = settings.module_name();
-    let test_result_coordinator_url = settings.trc_url();
-    let reporting_client = TrcClient::new(test_result_coordinator_url);
-
+) -> Result<Option<Box<dyn MessageHandler + Send>>, MessageTesterError> {
     match settings.test_scenario() {
-        TestScenario::InitiateAndReceiveRelayed | TestScenario::Receive => Some(Box::new(
-            ReportResultMessageHandler::new(reporting_client, tracking_id, &module_name),
-        )),
-        TestScenario::Relay => Some(Box::new(RelayingMessageHandler::new(
-            publish_handle,
-            relay_topic,
-        ))),
-        TestScenario::Initiate => None,
+        TestScenario::InitiateAndReceiveRelayed | TestScenario::Receive => {
+            let test_result_coordinator_url = settings.trc_url();
+            let reporting_client = TrcClient::new(test_result_coordinator_url);
+
+            // If there is a batch id to compare against, we are in
+            // `InitiateAndReceiveRelayed` mode. Messages should have
+            // originated from the same module so we should validate that.
+            //
+            // If there is no batch id then we are in a more basic `Receive`
+            // mode. Messages originated from a different module so we
+            // cannot validate batch id.
+            let batch_id = settings.batch_id();
+            let tracking_id = settings
+                .tracking_id()
+                .ok_or(MessageTesterError::MissingTrackingId)?;
+            let module_name = settings.module_name();
+            Ok(Some(Box::new(ReportResultMessageHandler::new(
+                reporting_client,
+                tracking_id,
+                &module_name,
+                batch_id,
+            ))))
+        }
+        TestScenario::Relay => {
+            let relay_topic = settings.relay_topic();
+            Ok(Some(Box::new(RelayingMessageHandler::new(
+                publish_handle,
+                relay_topic,
+                settings.message_frequency(),
+            ))))
+        }
+        TestScenario::Initiate => Ok(None),
     }
 }
 
