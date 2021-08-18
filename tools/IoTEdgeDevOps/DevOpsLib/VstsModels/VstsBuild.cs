@@ -21,6 +21,9 @@ namespace DevOpsLib.VstsModels
         [JsonProperty("sourceBranch")]
         public string SourceBranch { get; set; }
 
+        [JsonProperty("sourceVersion")]
+        public string SourceVersion { get; set; }
+
         [JsonProperty("_links.sourceVersionDisplayUri.href")]
         public Uri SourceVersionDisplayUri { get; set; }
 
@@ -52,6 +55,7 @@ namespace DevOpsLib.VstsModels
             new VstsBuild
             {
                 BuildId = string.Empty,
+                SourceVersion = string.Empty,
                 DefinitionId = buildDefinitionId,
                 BuildNumber = string.Empty,
                 SourceBranch = sourceBranch,

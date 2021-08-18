@@ -36,7 +36,10 @@ namespace VstsPipelineSync
             var buildManagement = new BuildManagement(devOpsAccessSetting);
             var releaseManagement = new ReleaseManagement(devOpsAccessSetting);
             var bugWiqlManagement = new BugWiqlManagement(devOpsAccessSetting);
-            var bugManagement = new BugManagement(devOpsAccessSetting);
+
+            var userManagement = new UserManagement(devOpsAccessSetting);
+            var commitManagement = new CommitManagement();
+            var bugManagement = new BugManagement(devOpsAccessSetting, commitManagement, userManagement);
 
             while (!ct.IsCancellationRequested)
             {
@@ -316,6 +319,7 @@ namespace VstsPipelineSync
             cmd.Parameters.Add(new SqlParameter("@DefinitionId", build.DefinitionId));
             cmd.Parameters.Add(new SqlParameter("@DefinitionName", build.DefinitionId.DisplayName()));
             cmd.Parameters.Add(new SqlParameter("@SourceBranch", build.SourceBranch));
+            cmd.Parameters.Add(new SqlParameter("@SourceVersion", build.SourceVersion));
             cmd.Parameters.Add(new SqlParameter("@SourceVersionDisplayUri", build.SourceVersionDisplayUri.AbsoluteUri));
             cmd.Parameters.Add(new SqlParameter("@WebUri", build.WebUri.AbsoluteUri));
             cmd.Parameters.Add(new SqlParameter("@Status", build.Status.ToString()));
