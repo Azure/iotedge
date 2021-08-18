@@ -95,10 +95,6 @@ impl edgelet_core::ModuleRuntime for Runtime {
     type Module = Module;
     type ModuleRegistry = ModuleRegistry;
 
-    type Chunk = bytes::Bytes;
-    type Logs =
-        std::pin::Pin<Box<dyn futures::Stream<Item = Result<Self::Chunk, Self::Error>> + Send>>;
-
     async fn create(
         &self,
         module: edgelet_settings::ModuleSpec<Self::Config>,
@@ -151,7 +147,11 @@ impl edgelet_core::ModuleRuntime for Runtime {
         todo!()
     }
 
-    async fn logs(&self, id: &str, options: &edgelet_core::LogOptions) -> Self::Logs {
+    async fn logs(
+        &self,
+        id: &str,
+        options: &edgelet_core::LogOptions,
+    ) -> Result<hyper::Body, Self::Error> {
         todo!()
     }
 

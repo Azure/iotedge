@@ -9,7 +9,6 @@ use std::time::Duration;
 
 use chrono::prelude::*;
 use failure::{Fail, ResultExt};
-use futures::Stream;
 use serde::{Deserialize, Serialize};
 
 use edgelet_settings::module::Settings as ModuleSpec;
@@ -364,14 +363,10 @@ pub trait MakeModuleRuntime {
 #[async_trait::async_trait]
 pub trait ModuleRuntime: Sized {
     type Error: Fail;
-
+    
     type Config: Clone + Send + serde::Serialize;
     type Module: Module<Config = Self::Config> + Send;
     type ModuleRegistry: ModuleRegistry<Config = Self::Config, Error = Self::Error>;
-    type Chunk: AsRef<[u8]> + Into<bytes::Bytes> + 'static;
-
-    // TODO: Remove failure and fix this error type.
-    type Logs: Stream<Item = Result<Self::Chunk, std::io::Error>> + Send + 'static;
 
     async fn create(&self, module: ModuleSpec<Self::Config>) -> Result<(), Self::Error>;
     async fn get(&self, id: &str) -> Result<(Self::Module, ModuleRuntimeState), Self::Error>;
@@ -385,7 +380,7 @@ pub trait ModuleRuntime: Sized {
     async fn list_with_details(
         &self,
     ) -> Result<Vec<(Self::Module, ModuleRuntimeState)>, Self::Error>;
-    async fn logs(&self, id: &str, options: &LogOptions) -> Self::Logs;
+    async fn logs(&self, id: &str, options: &LogOptions) -> Result<hyper::Body, Self::Error>;
     async fn remove_all(&self) -> Result<(), Self::Error>;
     async fn stop_all(&self, wait_before_kill: Option<Duration>) -> Result<(), Self::Error>;
     async fn module_top(&self, id: &str) -> Result<Vec<i32>, Self::Error>;
@@ -444,7 +439,7 @@ pub enum RuntimeOperation {
     StopModule(String),
     SystemInfo,
     SystemResources,
-    TopModule(String, String),
+    TopModule(String),
 }
 
 impl fmt::Display for RuntimeOperation {
@@ -464,8 +459,8 @@ impl fmt::Display for RuntimeOperation {
             RuntimeOperation::StopModule(name) => write!(f, "Could not stop module {}", name),
             RuntimeOperation::SystemInfo => write!(f, "Could not query system info"),
             RuntimeOperation::SystemResources => write!(f, "Could not query system resources"),
-            RuntimeOperation::TopModule(name, reason) => {
-                write!(f, "Could not top module {}.\n{}", name, reason)
+            RuntimeOperation::TopModule(name) => {
+                write!(f, "Could not top module {}.", name)
             }
         }
     }

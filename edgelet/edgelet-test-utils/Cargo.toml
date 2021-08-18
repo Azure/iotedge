@@ -10,6 +10,7 @@ async-trait = "0.1"
 bytes = "1"
 futures = "0.3"
 http = "0.2"
+hyper = "0.14"
 nix = "0.22"
 serde = "1"
 

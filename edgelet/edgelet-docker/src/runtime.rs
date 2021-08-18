@@ -1,23 +1,20 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use hyper::Client;
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
-use std::pin::Pin;
 use std::str;
 use std::sync::Arc;
 use std::time::Duration;
 use url::Url;
 
-use failure::{Fail, ResultExt};
-use futures::prelude::*;
-use futures::{stream, Stream, StreamExt};
+use failure::ResultExt;
+use futures::{stream, StreamExt};
 use lazy_static::{__Deref, lazy_static};
 use log::{debug, info, Level};
 use tokio::sync::Mutex;
 
 use docker::apis::{DockerApi, DockerApiClient};
-use docker::models::{ContainerCreateBody, HostConfig, InlineResponse200, Ipam, NetworkConfig};
+use docker::models::{ContainerCreateBody, InlineResponse2001, Ipam, NetworkConfig};
 use edgelet_core::{
     LogOptions, MakeModuleRuntime, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState,
     ProvisioningInfo, RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo,
@@ -39,6 +36,8 @@ use std::mem;
 use std::process;
 use std::time::{SystemTime, UNIX_EPOCH};
 use sysinfo::{DiskExt, ProcessExt, ProcessorExt, System, SystemExt};
+
+type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
 const OWNER_LABEL_KEY: &str = "net.azure-devices.edge.owner";
 const OWNER_LABEL_VALUE: &str = "Microsoft.Azure.Devices.Edge.Agent";
@@ -233,7 +232,7 @@ impl ModuleRegistry for DockerModuleRuntime {
             .map_err(|err| {
                 Error::from_docker_error(
                     err,
-                    ErrorKind::RegistryOperation(RegistryOperation::PullImage(image)),
+                    ErrorKind::RegistryOperation(RegistryOperation::PullImage(image.clone())),
                 )
             })?;
 
@@ -394,9 +393,6 @@ impl ModuleRuntime for DockerModuleRuntime {
     type Config = DockerConfig;
     type Module = DockerModule;
     type ModuleRegistry = Self;
-    type Chunk = bytes::Bytes;
-    type Logs =
-        Pin<Box<dyn Stream<Item = std::result::Result<Self::Chunk, std::io::Error>> + Send>>;
 
     async fn create(&self, module: ModuleSpec<Self::Config>) -> Result<()> {
         info!("Creating module {}...", module.name());
@@ -789,27 +785,29 @@ impl ModuleRuntime for DockerModuleRuntime {
         Ok(result)
     }
 
-    async fn logs(&self, id: &str, options: &LogOptions) -> Self::Logs {
+    async fn logs(&self, id: &str, options: &LogOptions) -> Result<hyper::Body> {
         info!("Getting logs for module {}...", id);
 
-        let options = bollard::container::LogsOptions {
-            follow: options.follow(),
-            tail: options.tail().to_string(),
-            timestamps: options.timestamps(),
-            since: options.since() as i64,
-            until: options.until().unwrap_or(0) as i64,
-            stdout: true,
-            stderr: true,
-        };
-
-        let result = self
-            .client
-            .docker
-            .logs(id, Some(options))
-            .map_ok(bollard::container::LogOutput::into_bytes)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e));
-
-        Box::pin(result)
+        self.client
+            .container_logs(
+                id,
+                options.follow(),
+                true,
+                true,
+                options.since(),
+                options.until(),
+                options.timestamps(),
+                &options.tail().to_string(),
+            )
+            .await
+            .map_err(|e| {
+                let err = Error::from_docker_error(
+                    e,
+                    ErrorKind::RuntimeOperation(RuntimeOperation::GetModuleLogs(id.to_owned())),
+                );
+                log_failure(Level::Warn, &err);
+                err
+            })
     }
 
     fn registry(&self) -> &Self::ModuleRegistry {
@@ -839,45 +837,61 @@ impl ModuleRuntime for DockerModuleRuntime {
     }
 
     async fn module_top(&self, id: &str) -> Result<Vec<i32>> {
-        let error = |msg: &str| {
-            Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(
-                id.to_owned(),
-                msg.to_owned(),
-            )))
-        };
+        let top_response = self.client.container_top(id, "").await.map_err(|e| {
+            let err = Error::from_docker_error(
+                e,
+                ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id.to_owned())),
+            );
+            log_failure(Level::Warn, &err);
+            err
+        })?;
 
-        let top_response = self
-            .client
-            .docker
-            .top_processes::<&str>(id, None)
-            .await
-            .map_err(|e| error(&e.to_string()))?;
-
-        let pids: Vec<i32> = if let Some(titles) = &top_response.titles {
-            let pid_index: usize = titles
-                .iter()
-                .position(|s| s.as_str() == "PID")
-                .ok_or_else(|| error("Expected Title 'PID'"))?;
-
-            if let Some(processes) = &top_response.processes {
-                processes
-                    .iter()
-                    .map(|process| {
-                        let str_pid = process
-                            .get(pid_index)
-                            .ok_or_else(|| error("PID index empty"))?;
-                        str_pid.parse::<i32>().map_err(|e| error(&e.to_string()))
-                    })
-                    .collect::<Result<Vec<i32>>>()?
-            } else {
-                return Err(error("Expected 'Processes' field"));
-            }
-        } else {
-            return Err(error("Expected 'Title' field"));
-        };
+        let pids = parse_top_response::<Deserializer>(&top_response).with_context(|_| {
+            ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id.to_owned()))
+        })?;
 
         Ok(pids)
     }
+}
+
+fn parse_top_response<'de, D>(resp: &InlineResponse2001) -> std::result::Result<Vec<i32>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let titles = resp
+        .titles()
+        .ok_or_else(|| serde::de::Error::missing_field("Titles"))?;
+    let pid_index = titles
+        .iter()
+        .position(|ref s| s.as_str() == "PID")
+        .ok_or_else(|| {
+            serde::de::Error::invalid_value(
+                serde::de::Unexpected::Seq,
+                &"array including the column title 'PID'",
+            )
+        })?;
+    let processes = resp
+        .processes()
+        .ok_or_else(|| serde::de::Error::missing_field("Processes"))?;
+    let pids: std::result::Result<_, _> = processes
+        .iter()
+        .map(|ref p| {
+            let val = p.get(pid_index).ok_or_else(|| {
+                serde::de::Error::invalid_length(
+                    p.len(),
+                    &&*format!("at least {} columns", pid_index + 1),
+                )
+            })?;
+            let pid = val.parse::<i32>().map_err(|_| {
+                serde::de::Error::invalid_value(
+                    serde::de::Unexpected::Str(val),
+                    &"a process ID number",
+                )
+            })?;
+            Ok(pid)
+        })
+        .collect();
+    Ok(pids?)
 }
 
 // #[cfg(test)]
