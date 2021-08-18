@@ -130,7 +130,6 @@ jobs:
           keyVaultName: $(kv.name)
           secretsFilter: >-
             marineriotedge-key
-        displayName: Create the vendors directory
       - script: edgelet/build/linux/package-mariner.sh
         displayName: Create libiothsm and iotedged packages
       - task: CopyFiles@2
