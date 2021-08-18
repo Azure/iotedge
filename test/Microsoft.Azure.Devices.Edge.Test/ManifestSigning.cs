@@ -89,34 +89,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
             this.startTime = deployment.StartTime;
 
             await this.sensor.WaitForEventsReceivedAsync(this.startTime, this.TestToken);
-
-            await this.sensor.UpdateDesiredPropertiesAsync(
-                new
-                {
-                    properties = new
-                    {
-                        desired = new
-                        {
-                            SendData = true,
-                            SendInterval = 10
-                        }
-                    }
-                },
-                this.TestToken);
-
-            await this.sensor.WaitForReportedPropertyUpdatesAsync(
-                new
-                {
-                    properties = new
-                    {
-                        reported = new
-                        {
-                            SendData = true,
-                            SendInterval = 10
-                        }
-                    }
-                },
-                this.TestToken);
         }
 
         /*[Category("ManifestSigning")]
