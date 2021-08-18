@@ -881,447 +881,79 @@ where
     Ok(pids?)
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::{
-//         authenticate, future, list_with_details, parse_get_response, AuthId, Authenticator,
-//         BTreeMap, Body, CoreSystemInfo, Deserializer, DockerModuleRuntime, DockerModuleTop,
-//         Duration, Error, ErrorKind, Future, InlineResponse200, LogOptions, MakeModuleRuntime,
-//         Module, ModuleId, ModuleRuntime, ModuleRuntimeState, ModuleSpec, Pid, Request, Stream,
-//         SystemResources,
-//     };
-
-//     use std::path::Path;
-
-//     use futures::stream::Empty;
-
-//     use edgelet_core::{
-//         settings::AutoReprovisioningMode, Connect, Endpoints, Listen, ModuleRegistry, ModuleTop,
-//         RuntimeSettings, WatchdogSettings,
-//     };
-
-//     #[test]
-//     fn merge_env_empty() {
-//         let cur_env = Some(&[][..]);
-//         let new_env = BTreeMap::new();
-//         assert_eq!(0, DockerModuleRuntime::merge_env(cur_env, &new_env).len());
-//     }
-
-//     #[test]
-//     fn merge_env_new_empty() {
-//         let cur_env = Some(vec!["k1=v1".to_string(), "k2=v2".to_string()]);
-//         let new_env = BTreeMap::new();
-//         let mut merged_env =
-//             DockerModuleRuntime::merge_env(cur_env.as_ref().map(AsRef::as_ref), &new_env);
-//         merged_env.sort();
-//         assert_eq!(vec!["k1=v1", "k2=v2"], merged_env);
-//     }
-
-//     #[test]
-//     fn merge_env_extend_new() {
-//         let cur_env = Some(vec!["k1=v1".to_string(), "k2=v2".to_string()]);
-//         let mut new_env = BTreeMap::new();
-//         new_env.insert("k3".to_string(), "v3".to_string());
-//         let mut merged_env =
-//             DockerModuleRuntime::merge_env(cur_env.as_ref().map(AsRef::as_ref), &new_env);
-//         merged_env.sort();
-//         assert_eq!(vec!["k1=v1", "k2=v2", "k3=v3"], merged_env);
-//     }
-
-//     #[test]
-//     fn merge_env_extend_replace_new() {
-//         let cur_env = Some(vec!["k1=v1".to_string(), "k2=v2".to_string()]);
-//         let mut new_env = BTreeMap::new();
-//         new_env.insert("k2".to_string(), "v02".to_string());
-//         new_env.insert("k3".to_string(), "v3".to_string());
-//         let mut merged_env =
-//             DockerModuleRuntime::merge_env(cur_env.as_ref().map(AsRef::as_ref), &new_env);
-//         merged_env.sort();
-//         assert_eq!(vec!["k1=v1", "k2=v2", "k3=v3"], merged_env);
-//     }
-
-//     #[test]
-//     fn list_with_details_filters_out_deleted_containers() {
-//         let runtime = prepare_module_runtime_with_known_modules();
-
-//         assert_eq!(
-//             runtime.list_with_details().collect().wait().unwrap(),
-//             vec![
-//                 (
-//                     runtime.modules[0].clone(),
-//                     ModuleRuntimeState::default().with_pid(Some(1000))
-//                 ),
-//                 (
-//                     runtime.modules[3].clone(),
-//                     ModuleRuntimeState::default().with_pid(Some(4000))
-//                 ),
-//             ]
-//         );
-//     }
-
-//     #[test]
-//     fn authenticate_returns_none_when_no_pid_provided() {
-//         let runtime = prepare_module_runtime_with_known_modules();
-//         let req = Request::default();
-
-//         let auth_id = runtime.authenticate(&req).wait().unwrap();
-
-//         assert_eq!(AuthId::None, auth_id);
-//     }
-
-//     #[test]
-//     fn authenticate_returns_none_when_unknown_pid_provided() {
-//         let runtime = prepare_module_runtime_with_known_modules();
-//         let mut req = Request::default();
-//         req.extensions_mut().insert(Pid::Value(1));
-
-//         let auth_id = runtime.authenticate(&req).wait().unwrap();
-
-//         assert_eq!(AuthId::None, auth_id);
-//     }
-
-//     #[test]
-//     fn authenticate_returns_none_when_expected_module_not_exist_anymore_with_top() {
-//         let runtime = prepare_module_runtime_with_known_modules();
-//         let mut req = Request::default();
-//         req.extensions_mut().insert(Pid::Value(2000));
-//         req.extensions_mut().insert(ModuleId::from("b"));
-
-//         let auth_id = runtime.authenticate(&req).wait().unwrap();
-
-//         assert_eq!(AuthId::None, auth_id);
-//     }
-
-//     #[test]
-//     fn authenticate_returns_none_when_expected_module_not_found() {
-//         let runtime = prepare_module_runtime_with_known_modules();
-//         let mut req = Request::default();
-//         req.extensions_mut().insert(Pid::Value(1000));
-//         req.extensions_mut().insert(ModuleId::from("x"));
-
-//         let auth_id = runtime.authenticate(&req).wait().unwrap();
-
-//         assert_eq!(AuthId::None, auth_id);
-//     }
-
-//     #[test]
-//     fn authenticate_returns_any_when_any_provided() {
-//         let runtime = prepare_module_runtime_with_known_modules();
-//         let mut req = Request::default();
-//         req.extensions_mut().insert(Pid::Any);
-
-//         let auth_id = runtime.authenticate(&req).wait().unwrap();
-
-//         assert_eq!(AuthId::Any, auth_id);
-//     }
-
-//     #[test]
-//     fn authenticate_returns_any_when_module_pid_provided() {
-//         let runtime = prepare_module_runtime_with_known_modules();
-//         let mut req = Request::default();
-//         req.extensions_mut().insert(Pid::Value(1000));
-//         req.extensions_mut().insert(ModuleId::from("a"));
-
-//         let auth_id = runtime.authenticate(&req).wait().unwrap();
-
-//         assert_eq!(AuthId::Value("a".into()), auth_id);
-//     }
-
-//     #[test]
-//     fn authenticate_returns_any_when_any_pid_of_module_provided() {
-//         let runtime = prepare_module_runtime_with_known_modules();
-//         let mut req = Request::default();
-//         req.extensions_mut().insert(Pid::Value(4001));
-//         req.extensions_mut().insert(ModuleId::from("d"));
-
-//         let auth_id = runtime.authenticate(&req).wait().unwrap();
-
-//         assert_eq!(AuthId::Value("d".into()), auth_id);
-//     }
-
-//     fn prepare_module_runtime_with_known_modules() -> TestModuleList {
-//         TestModuleList {
-//             modules: vec![
-//                 TestModule {
-//                     name: "a".to_string(),
-//                     runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
-//                     process_ids: vec![1000],
-//                 },
-//                 TestModule {
-//                     name: "b".to_string(),
-//                     runtime_state_behavior: TestModuleRuntimeStateBehavior::NotFound,
-//                     process_ids: vec![2000, 2001],
-//                 },
-//                 TestModule {
-//                     name: "c".to_string(),
-//                     runtime_state_behavior: TestModuleRuntimeStateBehavior::NotFound,
-//                     process_ids: vec![3000],
-//                 },
-//                 TestModule {
-//                     name: "d".to_string(),
-//                     runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
-//                     process_ids: vec![4000, 4001],
-//                 },
-//             ],
-//         }
-//     }
-
-//     #[test]
-//     fn parse_get_response_returns_the_name() {
-//         let response = InlineResponse200::new().with_name("hello".to_string());
-//         let name = parse_get_response::<Deserializer>(&response);
-//         assert!(name.is_ok());
-//         assert_eq!("hello".to_string(), name.unwrap());
-//     }
-
-//     #[test]
-//     fn parse_get_response_returns_error_when_name_is_missing() {
-//         let response = InlineResponse200::new();
-//         let name = parse_get_response::<Deserializer>(&response);
-//         assert!(name.is_err());
-//         assert_eq!("missing field `Name`", format!("{}", name.unwrap_err()));
-//     }
-
-//     #[derive(Clone)]
-//     struct TestConfig;
-
-//     struct TestSettings;
-
-//     impl RuntimeSettings for TestSettings {
-//         type Config = TestConfig;
-
-//         fn agent(&self) -> &ModuleSpec {
-//             unimplemented!()
-//         }
-
-//         fn agent_mut(&mut self) -> &mut ModuleSpec {
-//             unimplemented!()
-//         }
-
-//         fn hostname(&self) -> &str {
-//             unimplemented!()
-//         }
-
-//         fn connect(&self) -> &Connect {
-//             unimplemented!()
-//         }
-
-//         fn listen(&self) -> &Listen {
-//             unimplemented!()
-//         }
-
-//         fn homedir(&self) -> &Path {
-//             unimplemented!()
-//         }
-
-//         fn watchdog(&self) -> &WatchdogSettings {
-//             unimplemented!()
-//         }
-
-//         fn endpoints(&self) -> &Endpoints {
-//             unimplemented!()
-//         }
-
-//         fn edge_ca_cert(&self) -> Option<&str> {
-//             unimplemented!()
-//         }
-
-//         fn edge_ca_key(&self) -> Option<&str> {
-//             unimplemented!()
-//         }
-
-//         fn trust_bundle_cert(&self) -> Option<&str> {
-//             unimplemented!()
-//         }
-
-//         fn manifest_trust_bundle_cert(&self) -> Option<&str> {
-//             unimplemented!()
-//         }
-
-//         fn auto_reprovisioning_mode(&self) -> &AutoReprovisioningMode {
-//             unimplemented!()
-//         }
-//     }
-
-//     #[derive(Clone, Copy, Debug, PartialEq)]
-//     enum TestModuleRuntimeStateBehavior {
-//         Default,
-//         NotFound,
-//     }
-
-//     #[derive(Clone, Debug, PartialEq)]
-//     struct TestModule {
-//         name: String,
-//         runtime_state_behavior: TestModuleRuntimeStateBehavior,
-//         process_ids: Vec<i32>,
-//     }
-
-//     impl Module for TestModule {
-//         type Config = TestConfig;
-//         type Error = Error;
-//         type RuntimeStateFuture = FutureResult<ModuleRuntimeState, Self::Error>;
-
-//         fn name(&self) -> &str {
-//             &self.name
-//         }
-
-//         fn type_(&self) -> &str {
-//             ""
-//         }
-
-//         fn config(&self) -> &Self::Config {
-//             &TestConfig
-//         }
-
-//         fn runtime_state(&self) -> Self::RuntimeStateFuture {
-//             match self.runtime_state_behavior {
-//                 TestModuleRuntimeStateBehavior::Default => {
-//                     let top_pid = self.process_ids.first().cloned();
-//                     future::ok(ModuleRuntimeState::default().with_pid(top_pid))
-//                 }
-//                 TestModuleRuntimeStateBehavior::NotFound => {
-//                     future::err(ErrorKind::NotFound(String::new()).into())
-//                 }
-//             }
-//         }
-//     }
-
-//     #[derive(Clone)]
-//     struct TestModuleList {
-//         modules: Vec<TestModule>,
-//     }
-
-//     impl ModuleRegistry for TestModuleList {
-//         type Error = Error;
-//         type PullFuture = FutureResult<(), Self::Error>;
-//         type RemoveFuture = FutureResult<(), Self::Error>;
-//         type Config = TestConfig;
-
-//         fn pull(&self, _config: &Self::Config) -> Self::PullFuture {
-//             unimplemented!()
-//         }
-
-//         fn remove(&self, _name: &str) -> Self::RemoveFuture {
-//             unimplemented!()
-//         }
-//     }
-
-//     impl DockerModuleTop for TestModule {
-//         type Error = Error;
-//         type ModuleTopFuture = FutureResult<ModuleTop, Self::Error>;
-
-//         fn top(&self) -> Self::ModuleTopFuture {
-//             match self.runtime_state_behavior {
-//                 TestModuleRuntimeStateBehavior::Default => {
-//                     future::ok(ModuleTop::new(self.name.clone(), self.process_ids.clone()))
-//                 }
-//                 TestModuleRuntimeStateBehavior::NotFound => {
-//                     future::err(ErrorKind::NotFound(String::new()).into())
-//                 }
-//             }
-//         }
-//     }
-
-//     impl MakeModuleRuntime for TestModuleList {
-//         type Config = TestConfig;
-//         type ModuleRuntime = Self;
-//         type Settings = TestSettings;
-//         type Error = Error;
-//         type Future = FutureResult<Self, Self::Error>;
-
-//         fn make_runtime(_settings: Self::Settings) -> Self::Future {
-//             unimplemented!()
-//         }
-//     }
-
-//     impl ModuleRuntime for TestModuleList {
-//         type Error = Error;
-//         type Config = TestConfig;
-//         type Module = TestModule;
-//         type ModuleRegistry = Self;
-//         type Chunk = String;
-//         type Logs = Empty<Self::Chunk, Self::Error>;
-
-//         type CreateFuture = FutureResult<(), Self::Error>;
-//         type GetFuture = FutureResult<(Self::Module, ModuleRuntimeState), Self::Error>;
-//         type ListFuture = FutureResult<Vec<Self::Module>, Self::Error>;
-//         type ListWithDetailsStream =
-//             Box<dyn Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
-//         type LogsFuture = FutureResult<Self::Logs, Self::Error>;
-//         type RemoveFuture = FutureResult<(), Self::Error>;
-//         type RestartFuture = FutureResult<(), Self::Error>;
-//         type StartFuture = FutureResult<(), Self::Error>;
-//         type StopFuture = FutureResult<(), Self::Error>;
-//         type SystemInfoFuture = FutureResult<CoreSystemInfo, Self::Error>;
-//         type SystemResourcesFuture =
-//             Box<dyn Future<Item = SystemResources, Error = Self::Error> + Send>;
-//         type RemoveAllFuture = FutureResult<(), Self::Error>;
-//         type StopAllFuture = FutureResult<(), Self::Error>;
-
-//         fn create(&self, _module: ModuleSpec) -> Self::CreateFuture {
-//             unimplemented!()
-//         }
-
-//         fn get(&self, _id: &str) -> Self::GetFuture {
-//             unimplemented!()
-//         }
-
-//         fn start(&self, _id: &str) -> Self::StartFuture {
-//             unimplemented!()
-//         }
-
-//         fn stop(&self, _id: &str, _wait_before_kill: Option<Duration>) -> Self::StopFuture {
-//             unimplemented!()
-//         }
-
-//         fn restart(&self, _id: &str) -> Self::RestartFuture {
-//             unimplemented!()
-//         }
-
-//         fn remove(&self, _id: &str) -> Self::RemoveFuture {
-//             unimplemented!()
-//         }
-
-//         fn system_info(&self) -> Self::SystemInfoFuture {
-//             unimplemented!()
-//         }
-
-//         fn system_resources(&self) -> Self::SystemResourcesFuture {
-//             unimplemented!()
-//         }
-
-//         fn list(&self) -> Self::ListFuture {
-//             future::ok(self.modules.clone())
-//         }
-
-//         fn list_with_details(&self) -> Self::ListWithDetailsStream {
-//             list_with_details(self)
-//         }
-
-//         fn logs(&self, _id: &str, _options: &LogOptions) -> Self::LogsFuture {
-//             unimplemented!()
-//         }
-
-//         fn registry(&self) -> &Self::ModuleRegistry {
-//             self
-//         }
-
-//         fn remove_all(&self) -> Self::RemoveAllFuture {
-//             unimplemented!()
-//         }
-
-//         fn stop_all(&self, _wait_before_kill: Option<Duration>) -> Self::StopAllFuture {
-//             unimplemented!()
-//         }
-//     }
-
-//     impl Authenticator for TestModuleList {
-//         type Error = Error;
-//         type Request = Request<Body>;
-//         type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = Self::Error> + Send>;
-
-//         fn authenticate(&self, req: &Self::Request) -> Self::AuthenticateFuture {
-//             authenticate(self, req)
-//         }
-//     }
-// }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_top_response_returns_pid_array() {
+        let response = InlineResponse2001::new()
+            .with_titles(vec!["PID".to_string()])
+            .with_processes(vec![vec!["123".to_string()]]);
+
+        let pids = parse_top_response::<Deserializer>(&response);
+
+        assert_eq!(vec![123], pids.unwrap());
+    }
+
+    #[test]
+    fn parse_top_response_returns_error_when_titles_is_missing() {
+        let response = InlineResponse2001::new().with_processes(vec![vec!["123".to_string()]]);
+
+        let pids = parse_top_response::<Deserializer>(&response);
+
+        assert_eq!("missing field `Titles`", format!("{}", pids.unwrap_err()));
+    }
+
+    #[test]
+    fn parse_top_response_returns_error_when_pid_title_is_missing() {
+        let response = InlineResponse2001::new().with_titles(vec!["Command".to_string()]);
+
+        let pids = parse_top_response::<Deserializer>(&response);
+
+        assert_eq!(
+            "invalid value: sequence, expected array including the column title 'PID'",
+            format!("{}", pids.unwrap_err())
+        );
+    }
+
+    #[test]
+    fn parse_top_response_returns_error_when_processes_is_missing() {
+        let response = InlineResponse2001::new().with_titles(vec!["PID".to_string()]);
+
+        let pids = parse_top_response::<Deserializer>(&response);
+
+        assert_eq!(
+            "missing field `Processes`",
+            format!("{}", pids.unwrap_err())
+        );
+    }
+
+    #[test]
+    fn parse_top_response_returns_error_when_process_pid_is_missing() {
+        let response = InlineResponse2001::new()
+            .with_titles(vec!["Command".to_string(), "PID".to_string()])
+            .with_processes(vec![vec!["sh".to_string()]]);
+
+        let pids = parse_top_response::<Deserializer>(&response);
+
+        assert_eq!(
+            "invalid length 1, expected at least 2 columns",
+            format!("{}", pids.unwrap_err())
+        );
+    }
+
+    #[test]
+    fn parse_top_response_returns_error_when_process_pid_is_not_i32() {
+        let response = InlineResponse2001::new()
+            .with_titles(vec!["PID".to_string()])
+            .with_processes(vec![vec!["xyz".to_string()]]);
+
+        let pids = parse_top_response::<Deserializer>(&response);
+
+        assert_eq!(
+            "invalid value: string \"xyz\", expected a process ID number",
+            format!("{}", pids.unwrap_err())
+        );
+    }
+}
