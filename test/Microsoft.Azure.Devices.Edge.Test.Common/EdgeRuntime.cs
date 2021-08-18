@@ -91,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 // Convert signed config to EdgeConfiguration
                 edgeConfiguration = (EdgeConfiguration)JsonConvert.DeserializeObject(signedConfig);
             }
-
+            signedConfig = "shhh";
             await edgeConfiguration.DeployAsyncWithPrints(signedConfig, this.iotHub, token);
             EdgeModule[] modules = edgeConfiguration.ModuleNames
                 .Select(id => new EdgeModule(id, this.DeviceId, this.iotHub))
