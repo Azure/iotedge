@@ -87,7 +87,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 dotnetProcess.WaitForExit();
                 exitcode = dotnetProcess.ExitCode;
 
-
                 // Read the signed deployment file back
                 string signedDeploymentPath = enableManifestSigning.OrDefault().ManifestSigningSignedDeploymentPath.OrDefault();
                 signedConfig = File.ReadAllText(signedDeploymentPath);
