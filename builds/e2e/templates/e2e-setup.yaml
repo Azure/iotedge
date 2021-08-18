@@ -21,26 +21,6 @@ steps:
       TestRootCaKey,
       TestRootCaPassword,
       TestBlobStoreSas
-
-- pwsh: |
-    $imageBuildId = $(resources.pipeline.images.runID)
-    $packageBuildId = $(resources.pipeline.packages.runID)
-    if ('$(az.pipeline.images.buildId)')
-    {
-      Write-Output '>> User supplied az.pipeline.images.buildId=$(az.pipeline.images.buildId)'
-      $imageBuildId = '$(az.pipeline.images.buildId)'
-    }
-    if ('$(az.pipeline.packages.buildId)')
-    {
-      Write-Output '>> User supplied az.pipeline.packages.buildId=$(az.pipeline.packages.buildId)'
-      $packageBuildId = '$(az.pipeline.packages.buildId)'
-    }
-    Write-Output "##vso[task.setvariable variable=imageBuildId]$imageBuildId"
-    Write-Output "##vso[task.setvariable variable=packageBuildId]$packageBuildId"
-    Write-Output ">> Package Build ID=$packageBuildId"
-    Write-Output ">> Image Build ID=$imageBuildId"
-  displayName: Override artifacts with user-supplied args
-
 - task: DownloadBuildArtifacts@0
   displayName: Get Docker image info
   inputs:
@@ -48,7 +28,7 @@ steps:
     project: $(resources.pipeline.images.projectID)
     pipeline: $(resources.pipeline.images.pipelineName)
     buildVersionToDownload: specific
-    buildId: $(imageBuildId)
+    buildId: $(resources.pipeline.images.runID)
     downloadType: single
     artifactName: $(az.pipeline.images.artifacts)
     allowPartiallySucceededBuilds: true
@@ -91,7 +71,6 @@ steps:
 - pwsh: |
     $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
     dotnet build $testDir
-
     $binDir = Convert-Path "$testDir/bin/Debug/netcoreapp3.1"
     Write-Output "##vso[task.setvariable variable=binDir]$binDir"
   displayName: Build tests
@@ -101,7 +80,6 @@ steps:
       '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'
     $imageId = ($imageId -split '=')[1]
     $imageTag = "$imageId-$(os)-$(arch)"
-
     if ('$(nestededge)' -eq 'true')
     {
       $nestededge = "true"
@@ -119,7 +97,6 @@ steps:
       $rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
       $rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
     }
-
     if ('$(customEdgeAgent.image)')
     {
       $edgeAgentImage = "$(customEdgeAgent.image)"; 
@@ -127,7 +104,6 @@ steps:
     {
       $edgeAgentImage = "$imagePrefix-agent:$imageTag";
     }
-
     if ('$(customEdgeHub.image)')
     {
       $edgeHubImage = "$(customEdgeHub.image)";
@@ -135,10 +111,8 @@ steps:
     {
       $edgeHubImage = "$imagePrefix-hub:$imageTag";
     }
-
     echo "Edge agent image: $edgeAgentImage"
     echo "Edge hub image: $edgeHubImage"
-
     $context = @{
       nestededge = "$nestededge";
       dpsIdScope = '$(dps.idScope)';
@@ -172,13 +146,11 @@ steps:
       logFile = Join-Path '$(binDir)' 'testoutput.log';
       verbose = '$(verbose)'
     }
-
     if ('$(nestededge)' -eq 'true')
     {
       $context['hostname'] = '$(deviceName)'
       $context['parentHostname'] = '$(parentName)'
       $context['parentDeviceId'] = '$(parentDeviceId)'
-
       if ('$(test_type)' -eq 'nestededge_isa95')
       {
         $context['deviceId'] = '$(Lvl3DeviceId)'
@@ -186,7 +158,6 @@ steps:
         $context['isa95Tag'] = 'true'
       }
     }
-
     if ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
     {
       $context['optimizeForPerformance'] = 'false'
@@ -194,12 +165,10 @@ steps:
       $context['teardownTimeoutMinutes'] = 10
       $context['testTimeoutMinutes'] = 10
     }
-
     if ($env:AGENT_PROXYURL)
     {
       $context['testRunnerProxy'] = $env:AGENT_PROXYURL
       $context['edgeProxy'] = $env:AGENT_PROXYURL
     }
-
     $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
   displayName: Create test arguments file (context.json)
