@@ -29,8 +29,7 @@ docker = {path = "../docker-rs"}
 edgelet-core = {path = "../edgelet-core"}
 edgelet-settings = {path = "../edgelet-settings", features = ["settings-docker"]}
 edgelet-utils = {path = "../edgelet-utils"}
-# http-common = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
-http-common = { git = "https://github.com/lfitchett/iot-identity-service.git", branch = "modify_request", features = ["tokio1"] }
+http-common = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
 libc = "0.2.66"
 
 [dev_dependencies]

@@ -3,7 +3,7 @@
 use std::io::Write;
 
 use failure::Fail;
-use futures::StreamExt;
+use futures::TryStreamExt;
 
 use edgelet_core::{LogOptions, Module, ModuleRuntime};
 
@@ -40,24 +40,20 @@ pub async fn write_logs(
     writer: &mut (impl Write + Send),
 ) -> Result<(), Error> {
     // Collect Logs
-    let logs = runtime.logs(module_name, options).await;
-
-    // Write all logs
-    let write = logs.map(|part| {
-        let part = part.map_err(|err| {
-            println!("Warning: error gathering logs: {}", err);
-
-            std::io::Error::new(std::io::ErrorKind::Other, err.to_string())
-        })?;
-
-        writer.write_all(part.as_ref())
-    });
-
-    // Extract errors
-    write
-        .collect::<Vec<_>>()
+    let mut logs = runtime
+        .logs(module_name, options)
         .await
-        .into_iter()
-        .collect::<Result<(), std::io::Error>>()
-        .map_err(|err| Error::from(err.context(ErrorKind::Write)))
+        .map_err(|err| Error::from(err.context(ErrorKind::Write)))?;
+
+    while let Some(bytes) = logs
+        .try_next()
+        .await
+        .map_err(|err| Error::from(err.context(ErrorKind::Write)))?
+    {
+        writer
+            .write_all(&bytes)
+            .map_err(|err| Error::from(err.context(ErrorKind::Write)))?;
+    }
+
+    Ok(())
 }

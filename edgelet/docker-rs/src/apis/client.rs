@@ -51,7 +51,7 @@ impl DockerApiClient {
         &self,
         method: hyper::http::Method,
         uri: Uri,
-        mut headers: Vec<(String, String)>,
+        mut headers: Vec<(&str, &str)>,
         body: Option<&TRequest>,
     ) -> Result<TResponse>
     where
@@ -59,7 +59,7 @@ impl DockerApiClient {
         TResponse: serde::de::DeserializeOwned,
     {
         if let Some(user_agent) = self.configuration.user_agent.as_ref() {
-            headers.push((hyper::header::USER_AGENT.to_string(), user_agent.clone()))
+            headers.push((hyper::header::USER_AGENT.as_str(), &user_agent))
         }
 
         let headers = if !headers.is_empty() {
@@ -186,7 +186,7 @@ impl DockerApi for DockerApiClient {
         let uri_str = format!("/images/create?{}", query);
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
 
-        let headers = vec![("X-Registry-Auth".to_owned(), x_registry_auth.to_owned())];
+        let headers = vec![("X-Registry-Auth", x_registry_auth)];
 
         self.request_with_headers(method, uri, headers, Some(&input_image))
             .await
