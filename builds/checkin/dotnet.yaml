@@ -106,7 +106,7 @@ jobs:
         displayName: Build
         inputs:
           command: build
-          arguments: '-o target'
+          arguments: '-o target --configuration Debug'
       - task: VSTest@2
         displayName: Run unit tests with code coverage
         inputs:
