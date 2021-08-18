@@ -360,11 +360,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public void AddChild(ServiceIdentityTreeNode childNode)
             {
-                if (!this.Identity.IsEdgeDevice)
-                {
-                    throw new ArgumentException($"{this.Identity.Id} is not an Edge device, only Edge devices can have children");
-                }
-
                 this.children.Add(childNode);
                 childNode.Parent = Option.Some(this);
                 childNode.UpdateAuthChainFromParent(this, this.currentDepth + 1);
