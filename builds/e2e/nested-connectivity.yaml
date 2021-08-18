@@ -2,15 +2,11 @@ trigger: none
 pr: none
 
 # Nested E2E and Nested Connectivity share test agents.
-# Thus the schedules are offset by 6 hours.
-# This will ensure that enough agents are avaiable to service all tests. 
+# Thus the schedules between these pipelines are offset by 6 hours.
+# This will ensure that enough agents are avaiable to service all tests.
+# 
+# Test schedule the same between master and release/1.2, but offset 12 hours.
 schedules:
-- cron: "0 0 * * *"
-  displayName: Daily midnight build
-  branches:
-    include:
-    - release/1.2
-  always: true
 - cron: "0 12 * * *"
   displayName: Daily noon build
   branches:
