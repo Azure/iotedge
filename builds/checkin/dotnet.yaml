@@ -32,9 +32,6 @@ jobs:
     pool:
       vmImage: ubuntu-18.04
     steps:
-      - script: |
-         dotnet nuget locals all --clear
-        displayName: Clear nuget cache
       - template: ../templates/install-dotnet3.yaml
       - task: Bash@3
         displayName: Install Prerequisites
