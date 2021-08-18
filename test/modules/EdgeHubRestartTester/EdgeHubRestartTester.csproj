@@ -5,7 +5,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
-    <Configurations>Debug;Release;CodeCoverage;CheckInBuild</Configurations>
+    <Configurations>Debug;Release;CodeCoverage</Configurations>
     <HighEntropyVA>true</HighEntropyVA>
   </PropertyGroup>
 

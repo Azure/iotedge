@@ -5,7 +5,7 @@
   <PropertyGroup>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
     <NoWarn>3021</NoWarn>
-    <Configurations>Debug;Release;CheckInBuild</Configurations>
+    <Configurations>Debug;Release</Configurations>
     <HighEntropyVA>true</HighEntropyVA>
   </PropertyGroup>
 

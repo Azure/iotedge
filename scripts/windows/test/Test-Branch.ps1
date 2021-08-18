@@ -63,7 +63,7 @@ if (Test-Path $DOTNET_PATH -PathType Leaf) {
 }
 
 if (-not $BuildConfig) {
-    $BuildConfig = "CheckInBuild"
+    $BuildConfig = "Debug"
 }
 
 <#

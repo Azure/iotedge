@@ -3,7 +3,7 @@
   <Import Project="..\..\netcoreappVersion.props" />
 
   <PropertyGroup>
-    <Configurations>Debug;Release;CheckInBuild</Configurations>
+    <Configurations>Debug;Release</Configurations>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
   </PropertyGroup>
 

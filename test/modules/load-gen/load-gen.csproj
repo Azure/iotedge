@@ -6,7 +6,7 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>load_gen</RootNamespace>
     <LangVersion>latest</LangVersion>
-    <Configurations>Debug;Release;CheckInBuild</Configurations>
+    <Configurations>Debug;Release</Configurations>
     <HighEntropyVA>true</HighEntropyVA>
   </PropertyGroup>
 

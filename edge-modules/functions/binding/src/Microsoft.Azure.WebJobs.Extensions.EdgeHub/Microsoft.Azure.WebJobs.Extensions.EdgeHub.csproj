@@ -10,7 +10,7 @@
   <PropertyGroup>
     <AssemblyName>Microsoft.Azure.WebJobs.Extensions.EdgeHub</AssemblyName>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
-    <Configurations>Debug;Release;CheckInBuild</Configurations>
+    <Configurations>Debug;Release</Configurations>
     <HighEntropyVA>true</HighEntropyVA>
   </PropertyGroup>
 

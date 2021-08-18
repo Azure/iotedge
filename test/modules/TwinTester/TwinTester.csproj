@@ -6,7 +6,7 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>TwinTester</RootNamespace>
     <LangVersion>latest</LangVersion>
-    <Configurations>Debug;Release;CheckInBuild</Configurations>
+    <Configurations>Debug;Release</Configurations>
   </PropertyGroup>
 
   <ItemGroup>
