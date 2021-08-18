@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string SensorName = "tempSensor";
         const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
         string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
-        EdgeModule sensor;
+        // EdgeModule sensor;
         DateTime startTime;
 
         public async void SetConfigToEdgeDaemon(Option<string> rootCaPath, CancellationToken token)
@@ -84,11 +84,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 this.TestToken,
                 Context.Current.NestedEdge,
                 inputManifestSettings);
-
-            /*this.sensor = deployment.Modules[SensorName];
-            this.startTime = deployment.StartTime;
-
-            await this.sensor.WaitForEventsReceivedAsync(this.startTime, this.TestToken);*/
         }
 
         /*[Category("ManifestSigning")]
