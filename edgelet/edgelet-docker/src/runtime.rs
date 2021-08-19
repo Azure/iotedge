@@ -93,7 +93,7 @@ impl DockerModuleRuntime {
                 })?;
 
                 let config_path =
-                    notary::notary_init(&home_dir, &registry_server_hostname, &cert_buf).map_err(
+                    notary::notary_init(&home_dir, registry_server_hostname, &cert_buf).map_err(
                         |_| ErrorKind::NotaryRootCAReadError("Notary init error".to_owned()),
                     )?;
                 notary_registries.insert(registry_server_hostname.clone(), config_path);
@@ -182,7 +182,7 @@ impl DockerModuleRuntime {
         let gun: Arc<str> = gun.into();
         let tag = image_with_tag_parts.next().unwrap_or("latest").to_owned();
 
-        Some((notary_auth, gun, tag, config_path.to_path_buf()))
+        Some((notary_auth, gun, tag, config_path.clone()))
     }
 }
 
@@ -265,7 +265,7 @@ impl MakeModuleRuntime for DockerModuleRuntime {
     async fn make_runtime(settings: &Settings) -> Result<Self::ModuleRuntime> {
         info!("Initializing module runtime...");
 
-        let client = init_client(settings.moby_runtime().uri()).await?;
+        let client = init_client(settings.moby_runtime().uri())?;
         let notary_registries = Self::get_notary_registries(settings).await?;
         create_network_if_missing(settings, &client).await?;
 
@@ -285,7 +285,7 @@ impl MakeModuleRuntime for DockerModuleRuntime {
     }
 }
 
-async fn init_client(docker_url: &Url) -> Result<DockerApiClient> {
+fn init_client(docker_url: &Url) -> Result<DockerApiClient> {
     // build the hyper client
     let client: Client<_, Body> = Client::builder().build(
         Connector::new(docker_url)
@@ -297,7 +297,7 @@ async fn init_client(docker_url: &Url) -> Result<DockerApiClient> {
         .to_base_path()
         .context(ErrorKind::Initialization("".to_owned()))?
         .to_str()
-        .ok_or(ErrorKind::Initialization("".to_owned()))?
+        .ok_or_else(|| ErrorKind::Initialization("".to_owned()))?
         .to_string();
     let uri_composer = Box::new(|base_path: &str, path: &str| {
         let result = Uri::builder()
@@ -553,7 +553,7 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         self.client
             .container_delete(
-                &id, /* remove volumes */ false, /* force */ true,
+                id, /* remove volumes */ false, /* force */ true,
                 /* remove link */ false,
             )
             .await
@@ -858,7 +858,7 @@ where
         .ok_or_else(|| serde::de::Error::missing_field("Titles"))?;
     let pid_index = titles
         .iter()
-        .position(|ref s| s.as_str() == "PID")
+        .position(|s| s.as_str() == "PID")
         .ok_or_else(|| {
             serde::de::Error::invalid_value(
                 serde::de::Unexpected::Seq,
@@ -870,7 +870,7 @@ where
         .ok_or_else(|| serde::de::Error::missing_field("Processes"))?;
     let pids: std::result::Result<_, _> = processes
         .iter()
-        .map(|ref p| {
+        .map(|p| {
             let val = p.get(pid_index).ok_or_else(|| {
                 serde::de::Error::invalid_length(
                     p.len(),
@@ -886,7 +886,8 @@ where
             Ok(pid)
         })
         .collect();
-    Ok(pids?)
+
+    pids
 }
 
 #[cfg(test)]

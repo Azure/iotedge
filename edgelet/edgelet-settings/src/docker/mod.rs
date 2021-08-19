@@ -29,7 +29,7 @@ impl Settings {
         let config_directory_path = std::path::Path::new(&config_directory_path);
 
         let mut settings: Settings =
-            config_common::read_config(&config_path, Some(&config_directory_path))?;
+            config_common::read_config(config_path, Some(config_directory_path))?;
 
         init::agent_spec(&mut settings);
 

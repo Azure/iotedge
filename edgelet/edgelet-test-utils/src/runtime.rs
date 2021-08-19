@@ -162,8 +162,8 @@ impl edgelet_core::ModuleRuntime for Runtime {
 
     async fn logs(
         &self,
-        id: &str,
-        options: &edgelet_core::LogOptions,
+        _id: &str,
+        _options: &edgelet_core::LogOptions,
     ) -> Result<hyper::Body, Self::Error> {
         unimplemented!()
     }

@@ -107,9 +107,9 @@ impl Module for DockerModule {
             .client
             .container_inspect(&self.name, false)
             .await
-            .map_err(|err| {
+            .map_err(|e| {
                 Error::from_docker_error(
-                    err,
+                    e,
                     ErrorKind::ModuleOperation(ModuleOperation::RuntimeState),
                 )
             })?;

@@ -97,6 +97,7 @@ impl Error {
         self.inner.get_context()
     }
 
+    #[allow(clippy::needless_pass_by_value)]
     pub fn from_docker_error(err: Box<dyn std::error::Error>, context: ErrorKind) -> Self {
         Error::from(ErrorKind::DockerRuntime(err.to_string()))
             .context(context)

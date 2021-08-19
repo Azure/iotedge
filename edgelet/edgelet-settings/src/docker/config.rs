@@ -101,7 +101,7 @@ impl DockerConfig {
             if let Some(rest) = serveraddress.strip_prefix(UPSTREAM_PARENT_KEYWORD) {
                 let url = rest.to_string();
                 if let Some(auth) = &mut self.auth {
-                    auth.set_serveraddress(format!("{}{}", parent_hostname, url))
+                    auth.set_serveraddress(format!("{}{}", parent_hostname, url));
                 }
             }
         }
