@@ -1,6 +1,8 @@
 ﻿ARG base_tag=3.1.18-alpine3.13
-FROM mcr.microsoft.com/dotnet/runtime:${base_tag}
+# base dockerfile is located at \edge-util\docker\linux\amd64
+FROM azureiotedge/azureiotedge-runtime-base:1.2-linux-amd64 as builder
 
+FROM mcr.microsoft.com/dotnet/aspnet:${base_tag}
 ARG EXE_DIR=.
 
 ENV MODULE_NAME "MetricsValidator.dll"
