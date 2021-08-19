@@ -86,6 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 // start dotnet run ManifestSignerClient process
                 dotnetCmdText = "run " + enableManifestSigning.OrDefault().ManifestSignerClientBinPath.OrDefault();
                 var dotnetProcess = System.Diagnostics.Process.Start("dotnet", dotnetCmdText);
+                dotnetProcess.StartInfo.RedirectStandardOutput = true;
                 dotnetProcess.WaitForExit();
                 dotnetStdOutput = dotnetProcess.StandardOutput;
                 dotnetStdErr = dotnetProcess.StandardError;
