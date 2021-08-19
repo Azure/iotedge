@@ -62,7 +62,8 @@ pub fn runtime_state(
                 "removing" | "dead" | "exited" => status_from_exit_code(state.exit_code()),
                 "running" => Some(ModuleStatus::Running),
                 _ => Some(ModuleStatus::Unknown),
-            }).unwrap_or(ModuleStatus::Unknown);
+            })
+            .unwrap_or(ModuleStatus::Unknown);
         ModuleRuntimeState::default()
             .with_status(status)
             .with_exit_code(state.exit_code())

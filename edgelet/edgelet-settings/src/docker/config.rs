@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DockerConfig {
     image: String,
