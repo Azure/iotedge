@@ -12,6 +12,7 @@ where
 {
     shutdown_senders: HashMap<String, tokio::sync::oneshot::Sender<()>>,
     legacy_workload_uri: url::Url,
+    legacy_workload_systemd_socket_name: String,
     home_dir: std::path::PathBuf,
     service: edgelet_http_workload::Service<M>,
 }
@@ -33,6 +34,7 @@ where
         let module_runtime = runtime.clone();
 
         let legacy_workload_uri = settings.listen().legacy_workload_uri().clone();
+        let legacy_workload_systemd_socket_name = Listen::get_workload_systemd_socket_name();
 
         let service = edgelet_http_workload::Service::new(settings, runtime.clone(), device_info)
             .map_err(|err| EdgedError::from_err("Invalid service endpoint", err))?;
@@ -42,6 +44,7 @@ where
         let workload_manager = WorkloadManager {
             shutdown_senders,
             legacy_workload_uri,
+            legacy_workload_systemd_socket_name,
             home_dir,
             service,
         };
@@ -61,18 +64,18 @@ where
         workload_uri: url::Url,
         signal_socket_created: Option<tokio::sync::oneshot::Sender<()>>,
         module_id: &str,
+        socket_name: Option<String>,
     ) -> Result<(), EdgedError> {
         let (shutdown_sender, shutdown_receiver) = tokio::sync::oneshot::channel();
 
         self.shutdown_senders
             .insert(module_id.to_string(), shutdown_sender);
 
-        log::info!("uri {}", workload_uri); //TO REMOVE
         let connector = http_common::Connector::new(&workload_uri)
             .map_err(|err| EdgedError::from_err("Invalid workload API URL", err))?;
 
         let mut incoming = connector
-            .incoming()
+            .incoming(socket_name)
             .await
             .map_err(|err| EdgedError::from_err("Failed to listen on workload socket", err))?;
 
@@ -108,7 +111,7 @@ where
         log::info!("String new listener for module {}", module_id);
         let workload_uri = self.get_listener_uri(module_id)?;
 
-        self.spawn_listener(workload_uri, signal_socket_created, module_id)
+        self.spawn_listener(workload_uri, signal_socket_created, module_id, None)
             .await?;
 
         Ok(())
@@ -176,9 +179,15 @@ where
         .await
         .map_err(|err| EdgedError::from_err("Could not list modules", err))?;
 
+    let socket_name = workload_manager.legacy_workload_systemd_socket_name.clone();
     // Spawn a listener for module that are still running and uses old listen socket
     workload_manager
-        .spawn_listener(workload_manager.legacy_workload_uri.clone(), None, "")
+        .spawn_listener(
+            workload_manager.legacy_workload_uri.clone(),
+            None,
+            "",
+            Some(socket_name),
+        )
         .await?;
 
     for module in module_list {
