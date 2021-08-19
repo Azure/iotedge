@@ -288,7 +288,7 @@ where
 
         settings
             .agent_mut()
-            .parent_hostname_resolve_image(&provisioning_result.gateway_host_name);
+            .parent_hostname_resolve(&provisioning_result.gateway_host_name);
 
         let cfg = WorkloadData::new(
             provisioning_result.hub_name,
