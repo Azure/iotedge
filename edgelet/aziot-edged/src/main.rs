@@ -74,11 +74,14 @@ async fn run() -> Result<(), EdgedError> {
     // begin to fail. Resilient modules should be able to deal with this, but we'll
     // restart all modules to ensure a clean start.
     log::info!("Stopping all modules...");
-    runtime
+    if let Err(err) = runtime
         .stop_all(Some(std::time::Duration::from_secs(30)))
         .await
-        .map_err(|err| EdgedError::from_err("Failed to stop modules on startup", err))?;
-    log::info!("All modules stopped");
+    {
+        log::warn!("Failed to stop modules on startup: {}", err);
+    } else {
+        log::info!("All modules stopped");
+    }
 
     provision::update_device_cache(&cache_dir, &device_info, &runtime).await?;
 

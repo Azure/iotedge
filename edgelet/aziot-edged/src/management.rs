@@ -15,7 +15,7 @@ where
         + Sync
         + 'static,
 {
-    let socket = settings.listen().workload_uri();
+    let socket = settings.listen().management_uri();
 
     let connector = http_common::Connector::new(&socket)
         .map_err(|err| EdgedError::from_err("Invalid management API URL", err))?;
