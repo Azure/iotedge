@@ -123,24 +123,6 @@ jobs:
           echo "PACKAGE_OS=$(os)"
           echo "##vso[task.setvariable variable=MARINER_RELEASE;]$(release)"
         displayName: Set Version
-      - task: AzureKeyVault@1
-        displayName: Get secrets
-        inputs:
-          azureSubscription: $(az.subscription)
-          keyVaultName: $(kv.name)
-          secretsFilter: >-
-            marineriotedge-key
-      - task: AzureCLI@2
-        displayName: Download from Azure Blob Storage
-        inputs:
-          azureSubscription: $(az.subscription)
-          scriptType: bash
-          scriptLocation: inlineScript
-          inlineScript: |
-            az --version
-            mkdir -p "builds/mariner/SPECS/rust/SOURCES/"
-            az storage blob download --account-name "marineriotedge" --container-name "iotedge-build-pipeline" --file "builds/mariner/SPECS/rust/SOURCES/rust-1.47.0-x86_64-unknown-linux-gnu.tar.gz" --name "rust-1.47.0-x86_64-unknown-linux-gnu.tar.gz" --account-key "$(marineriotedge-key)"
-            az storage blob download --account-name "marineriotedge" --container-name "iotedge-build-pipeline" --file "edgelet/azure-iotedge-cargo-vendor.zip" --name "azure-iotedge-cargo-vendor.zip" --account-key "$(marineriotedge-key)"
       - script: edgelet/build/linux/package-mariner.sh
         displayName: Create libiothsm and iotedged packages
       - task: CopyFiles@2
