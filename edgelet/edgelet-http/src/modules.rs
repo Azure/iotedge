@@ -186,7 +186,49 @@ impl std::convert::From<edgelet_core::ModuleRuntimeState> for ModuleStatus {
 
 #[cfg(test)]
 mod tests {
+    use std::convert::TryInto;
+
     use edgelet_core::{Module, ModuleRuntimeState};
+
+    #[test]
+    fn into_docker_spec() {
+        let module_spec = super::ModuleSpec {
+            name: "testModule".to_string(),
+            r#type: "test".to_string(),
+            config: super::ModuleConfig {
+                settings: serde_json::json!({
+                    "image": "testImage",
+                    "imageHash": "testHash",
+                    "digest": "testDigest",
+                }),
+                env: Some(vec![super::EnvVar {
+                    key: "testKey".to_string(),
+                    value: "testValue".to_string(),
+                }]),
+            },
+            image_pull_policy: None,
+        };
+
+        let docker_spec: super::DockerSpec = module_spec.clone().try_into().unwrap();
+        let expected_env: std::collections::BTreeMap<String, String> =
+            [("testKey".to_string(), "testValue".to_string())]
+                .iter()
+                .cloned()
+                .collect();
+
+        assert_eq!(module_spec.name, docker_spec.name());
+        assert_eq!(module_spec.r#type, docker_spec.r#type());
+        assert_eq!(
+            edgelet_settings::module::ImagePullPolicy::default(),
+            docker_spec.image_pull_policy()
+        );
+        assert_eq!(expected_env, docker_spec.env().clone());
+
+        let docker_config = docker_spec.config();
+        assert_eq!("testImage", docker_config.image());
+        assert_eq!(Some("testHash"), docker_config.image_hash());
+        assert_eq!(Some("testDigest"), docker_config.digest());
+    }
 
     #[test]
     fn into_module_status() {
