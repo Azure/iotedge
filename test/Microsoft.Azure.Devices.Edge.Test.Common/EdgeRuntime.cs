@@ -94,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 // Read the signed deployment file back
                 string signedDeploymentPath = enableManifestSigning.OrDefault().ManifestSigningSignedDeploymentPath.OrDefault();
                 signedConfig = File.ReadAllText(signedDeploymentPath);
-                outputStr = "edge config value = " + edgeConfig + "\n dotnet commnad = " + dotnetCmdText + "\n exit code = " + exitcode + "\n signed config = " + signedConfig;
+                outputStr = "edge config value = " + edgeConfig + "\n deployment path = " + deploymentPath + "\n dotnet commnad = " + dotnetCmdText + "\n exit code = " + exitcode + "\n signed config = " + signedConfig;
                 // outputStr += "dotnetStdOutput = " + dotnetStdOutput.ToString() + "dotnetStdErr = " + dotnetStdErr.ToString();
             }
 
