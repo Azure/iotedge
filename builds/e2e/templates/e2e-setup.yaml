@@ -42,7 +42,7 @@ steps:
     project: $(resources.pipeline.packages.projectID)
     pipeline: $(resources.pipeline.packages.pipelineName)
     buildVersionToDownload: specific
-    buildId: $(packageBuildId)
+    buildId: $(resources.pipeline.packages.runID)
     downloadType: single
     artifactName: $(artifactName)
     allowPartiallySucceededBuilds: true
