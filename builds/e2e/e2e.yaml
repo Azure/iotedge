@@ -60,6 +60,13 @@ jobs:
       name: $(pool.linux.name)
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
+    pool:
+      name: Azure-IoT-Edge-Core
+      demands:
+        - agent-group -equals Bear
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+        - run-long-haul -equals true
 
     variables:
       os: linux
