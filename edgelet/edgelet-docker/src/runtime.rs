@@ -7,11 +7,12 @@ use std::str;
 use std::sync::Arc;
 use std::time::Duration;
 
+use edgelet_core::module::ModuleAction;
 use failure::Fail;
 use futures::prelude::*;
 use futures::{stream, Stream, StreamExt};
 use lazy_static::lazy_static;
-use log::{debug, info, Level};
+use log::{debug, error, info, Level};
 use tokio::sync::Mutex;
 
 use docker::models::{ContainerCreateBody, Ipam}; // TODO: Move to settings crate?
@@ -25,6 +26,7 @@ use edgelet_settings::{
     Settings,
 };
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
+use tokio::sync::mpsc::UnboundedSender;
 
 use crate::client::DockerClient;
 use crate::error::{Error, ErrorKind, Result};
@@ -56,6 +58,7 @@ pub struct DockerModuleRuntime {
     system_resources: Arc<Mutex<System>>,
     notary_registries: BTreeMap<String, PathBuf>,
     notary_lock: Arc<Mutex<BTreeMap<String, String>>>,
+    create_socket_channel: UnboundedSender<ModuleAction>,
 }
 
 impl DockerModuleRuntime {
@@ -278,7 +281,10 @@ impl MakeModuleRuntime for DockerModuleRuntime {
     type ModuleRuntime = Self;
     type Error = Error;
 
-    async fn make_runtime(settings: &Settings) -> Result<Self::ModuleRuntime> {
+    async fn make_runtime(
+        settings: &Settings,
+        create_socket_channel: UnboundedSender<ModuleAction>,
+    ) -> Result<Self::ModuleRuntime> {
         info!("Initializing module runtime...");
 
         let client = DockerClient::new(settings.moby_runtime().uri())
@@ -302,6 +308,7 @@ impl MakeModuleRuntime for DockerModuleRuntime {
             system_resources: Arc::new(Mutex::new(system_resources)),
             notary_registries,
             notary_lock: Arc::new(Mutex::new(BTreeMap::new())),
+            create_socket_channel,
         };
 
         Ok(runtime)
@@ -510,6 +517,27 @@ impl ModuleRuntime for DockerModuleRuntime {
         })
         .map_err(Error::from)?;
 
+        let (sender, receiver) = tokio::sync::oneshot::channel::<()>();
+
+        self.create_socket_channel
+            .send(ModuleAction::Start(id.to_string(), sender))
+            .map_err(|_| {
+                error!("Could not notify worload manager, start of module: {}", id);
+                Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
+                    id.to_string(),
+                )))
+            })?;
+
+        receiver.await.map_err(|_| {
+            error!(
+                "Could wait on worload manager response, start of module: {}",
+                id
+            );
+            Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
+                id.to_owned(),
+            )))
+        })?;
+
         self.client
             .docker
             .start_container::<&str>(id, None)
@@ -532,6 +560,15 @@ impl ModuleRuntime for DockerModuleRuntime {
         let options = wait_before_kill.map(|s| bollard::container::StopContainerOptions {
             t: s.as_secs() as i64,
         });
+
+        self.create_socket_channel
+            .send(ModuleAction::Stop(id.to_string()))
+            .map_err(|_| {
+                error!("Could not notify worload manager, stop of module: {}", id);
+                Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(
+                    id.to_string(),
+                )))
+            })?;
 
         self.client
             .docker

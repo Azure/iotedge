@@ -7,14 +7,14 @@ mod error;
 mod management;
 mod provision;
 mod watchdog;
-mod workload;
+mod workload_manager;
 
 use std::sync::atomic;
 
-use edgelet_core::{MakeModuleRuntime, ModuleRuntime};
+use edgelet_core::{module::ModuleAction, MakeModuleRuntime, ModuleRuntime};
 use edgelet_settings::RuntimeSettings;
 
-use crate::error::Error as EdgedError;
+use crate::{error::Error as EdgedError, workload_manager::WorkloadManager};
 
 #[tokio::main]
 async fn main() {
@@ -55,6 +55,7 @@ async fn run() -> Result<(), EdgedError> {
     })?;
 
     let identity_client = provision::identity_client(&settings)?;
+
     let device_info = provision::get_device_info(
         &identity_client,
         settings.auto_reprovisioning_mode(),
@@ -62,9 +63,33 @@ async fn run() -> Result<(), EdgedError> {
     )
     .await?;
 
-    let runtime = edgelet_docker::DockerModuleRuntime::make_runtime(&settings)
-        .await
-        .map_err(|err| EdgedError::from_err("Failed to initialize module runtime", err))?;
+    let (create_socket_channel_snd, create_socket_channel_rcv) =
+        tokio::sync::mpsc::unbounded_channel::<ModuleAction>();
+
+    let runtime = edgelet_docker::DockerModuleRuntime::make_runtime(
+        &settings,
+        create_socket_channel_snd.clone(),
+    )
+    .await
+    .map_err(|err| EdgedError::from_err("Failed to initialize module runtime", err))?;
+
+    let (shutdown_tx, shutdown_rx) =
+        tokio::sync::mpsc::unbounded_channel::<edgelet_core::ShutdownReason>();
+
+    // Keep track of running tasks to determine when all server tasks have shut down.
+    // Workload and management API each have one task, so start with 2 tasks total.
+    let tasks = atomic::AtomicUsize::new(2);
+    let tasks = std::sync::Arc::new(tasks);
+
+    // Worload manager needs to start before modules can be stopped.
+    let (workload_manager, workload_shutdown) = WorkloadManager::start(
+        &settings,
+        runtime.clone(),
+        &device_info,
+        tasks.clone(),
+        create_socket_channel_snd,
+    )
+    .await?;
 
     // Normally, aziot-edged will stop all modules when it shuts down. But if it crashed,
     // modules will continue to run. On Linux systems where aziot-edged is responsible for
@@ -89,14 +114,6 @@ async fn run() -> Result<(), EdgedError> {
     // appropriate hostname.
     let settings = settings.agent_upstream_resolve(&device_info.gateway_host);
 
-    let (shutdown_tx, shutdown_rx) =
-        tokio::sync::mpsc::unbounded_channel::<edgelet_core::ShutdownReason>();
-
-    // Keep track of running tasks to determine when all server tasks have shut down.
-    // Workload and management API each have one task, so start with 2 tasks total.
-    let tasks = atomic::AtomicUsize::new(2);
-    let tasks = std::sync::Arc::new(tasks);
-
     // Start management and workload sockets.
     let management_shutdown = management::start(
         &settings,
@@ -105,8 +122,10 @@ async fn run() -> Result<(), EdgedError> {
         tasks.clone(),
     )
     .await?;
-    let workload_shutdown =
-        workload::start(&settings, runtime.clone(), &device_info, tasks.clone()).await?;
+
+    workload_manager::server(workload_manager, runtime.clone(), create_socket_channel_rcv)
+        .await
+        .map_err(|err| EdgedError::from_err("Could not start server", err))?;
 
     // Set the signal handler to listen for CTRL+C (SIGINT).
     let sigint_sender = shutdown_tx.clone();

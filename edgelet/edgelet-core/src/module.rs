@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 
 use edgelet_settings::module::Settings as ModuleSpec;
 use edgelet_settings::RuntimeSettings;
+use tokio::sync::mpsc::UnboundedSender;
 
 use crate::error::{Error, ErrorKind, Result as EdgeletResult};
 
@@ -24,6 +25,11 @@ pub enum ModuleStatus {
     Running,
     Stopped,
     Failed,
+}
+pub enum ModuleAction {
+    Start(String, tokio::sync::oneshot::Sender<()>),
+    Stop(String),
+    Remove(String),
 }
 
 impl FromStr for ModuleStatus {
@@ -358,7 +364,10 @@ pub trait MakeModuleRuntime {
     type ModuleRuntime: ModuleRuntime<Config = Self::Config>;
     type Error: Fail;
 
-    async fn make_runtime(settings: &Self::Settings) -> Result<Self::ModuleRuntime, Self::Error>;
+    async fn make_runtime(
+        settings: &Self::Settings,
+        create_socket_channel: UnboundedSender<ModuleAction>,
+    ) -> Result<Self::ModuleRuntime, Self::Error>;
 }
 
 #[async_trait::async_trait]
