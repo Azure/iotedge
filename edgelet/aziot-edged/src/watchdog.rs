@@ -68,22 +68,21 @@ async fn watchdog(
     log::info!("Watchdog checking Edge runtime status");
     let agent_name = settings.agent().name();
 
-    match runtime.get(agent_name).await {
+    let start = match runtime.get(agent_name).await {
         Ok((_, agent_status)) => {
             let agent_status = agent_status.status();
 
             if let edgelet_core::ModuleStatus::Running = agent_status {
                 log::info!("Edge runtime is running");
+
+                false
             } else {
                 log::info!(
                     "Edge runtime status is {}; starting runtime now...",
                     agent_status
                 );
 
-                runtime
-                    .start(agent_name)
-                    .await
-                    .map_err(|err| EdgedError::from_err("Failed to start Edge runtime", err))?;
+                true
             }
         }
 
@@ -116,11 +115,19 @@ async fn watchdog(
                 .await
                 .map_err(|err| EdgedError::from_err("Failed to create Edge runtime module", err))?;
 
-            runtime
-                .start(agent_name)
-                .await
-                .map_err(|err| EdgedError::from_err("Failed to start Edge runtime", err))?;
+            log::info!("Created Edge runtime module {}", agent_name);
+
+            true
         }
+    };
+
+    if start {
+        runtime
+            .start(agent_name)
+            .await
+            .map_err(|err| EdgedError::from_err("Failed to start Edge runtime", err))?;
+
+        log::info!("Started Edge runtime module {}", agent_name);
     }
 
     Ok(())
