@@ -57,10 +57,6 @@ jobs:
     displayName: Ubuntu 18.04 with iotedge-moby
 
     pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
-    pool:
       name: Azure-IoT-Edge-Core
       demands:
         - agent-group -equals Bear
