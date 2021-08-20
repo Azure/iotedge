@@ -8,7 +8,7 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 BUILD_REPOSITORY_LOCALPATH="$(realpath "${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}")"
 EDGELET_ROOT="${BUILD_REPOSITORY_LOCALPATH}/edgelet"
 MARINER_BUILD_ROOT="${BUILD_REPOSITORY_LOCALPATH}/builds/mariner"
-MARINER_RELEASE = "dev-1.0"
+MARINER_RELEASE="1.0-dev"
 
 # Get version from this file, but omit strings like "~dev" which are illegal in Mariner RPM versions.
 VERSION="$(cat "$EDGELET_ROOT/version.txt" | sed 's/~.*//')"
