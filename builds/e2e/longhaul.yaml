@@ -49,6 +49,7 @@ jobs:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
         - run-long-haul -equals true
+        - eflow -equals Null
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu18.04-amd64'
     steps:
@@ -148,6 +149,7 @@ jobs:
         - Agent.OSArchitecture -equals ARM
         - agent-osbits -equals 32
         - run-long-haul -equals true
+        - eflow -equals Null
     variables:
       edgelet.artifact.name: 'iotedged-debian9-arm32v7'
     steps:
@@ -247,6 +249,7 @@ jobs:
         - Agent.OSArchitecture -equals ARM
         - agent-osbits -equals 64
         - run-long-haul -equals true
+        - eflow -equals Null
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu18.04-aarch64'
     steps:
