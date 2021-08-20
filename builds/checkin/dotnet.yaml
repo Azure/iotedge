@@ -12,7 +12,9 @@ jobs:
 ################################################################################
     displayName: Check pipeline preconditions (changes ARE NOT in either edgelet, docs, or mqtt folder)
     pool:
-      vmImage: ubuntu-18.04
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
     steps:
       - bash: |
           git log -m -1 --name-only --first-parent --pretty="" | egrep -i -v '^(edgelet|doc|mqtt)'
@@ -30,9 +32,10 @@ jobs:
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
-      vmImage: ubuntu-18.04
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
     steps:
-      - template: ../templates/install-dotnet3.yaml
       - task: Bash@3
         displayName: Install Prerequisites
         inputs:
@@ -66,9 +69,10 @@ jobs:
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
-      vmImage: "vs2017-win2016"
+      name: $(pool.windows.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
     steps:
-      - template: ../templates/install-dotnet3.yaml
       - task: PowerShell@2
         displayName: Build
         inputs:
@@ -100,7 +104,9 @@ jobs:
     variables:
       coverage.goal: 60
     pool:
-      vmImage: windows-2019
+      name: $(pool.windows.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
     steps:
       - task: DotNetCoreCLI@2
         displayName: Build
