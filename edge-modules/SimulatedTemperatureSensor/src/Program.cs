@@ -16,6 +16,7 @@ namespace SimulatedTemperatureSensor
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
     using ExponentialBackoff = Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.ExponentialBackoff;
+    using TransportType = Microsoft.Azure.Devices.Client.TransportType;
 
     class Program
     {

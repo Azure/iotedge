@@ -74,7 +74,7 @@ Write-Host "Running tests in all test projects with filter '$Filter' and $BuildC
 $testProjectRunSerially = @( "Microsoft.Azure.Devices.Edge.Agent.Docker.Test.dll" )
 $testProjectDllsRunSerially = @()
 $testProjectsDlls = ""
-foreach ($testDll in (Get-ChildItem $BuildBinariesDirectory -Include $SUFFIX -Recurse)) {
+foreach ($testDll in (Get-ChildItem "$BuildBinariesDirectory\*" -Include $SUFFIX)) {
     Write-Host "Found test project:$testDll"
     
 	if (($testProjectRunSerially | ?{ $testDll.FullName.EndsWith("\$_") }) -ne $null)
