@@ -377,9 +377,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
         internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateResponse(ServerCertificateResponse response) =>
             ParseCertificateAndKey(response.Certificate, response.PrivateKey);
 
-        internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateAndKey(string certificateWithChain, string privateKey)
+        public static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateAndKey(string certificateWithChain, string privateKey)
         {
-            Console.WriteLine($"ANCAN response \n {certificateWithChain} \n {privateKey}");
             IEnumerable<string> pemCerts = ParsePemCerts(certificateWithChain);
 
             if (pemCerts.FirstOrDefault() == null)
@@ -402,6 +401,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             {
                 if (certObject is X509Certificate x509Cert)
                 {
+                    Console.WriteLine($"ANCAN chain add");
                     chain.Add(new X509CertificateEntry(x509Cert));
                 }
 
@@ -437,15 +437,16 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 store.Save(p12File, new char[] { }, new SecureRandom());
 
                 var certArray = p12File.ToArray();
-                var cert = new X509Certificate2(certArray, string.Empty, X509KeyStorageFlags.Exportable);
+
+                X509Certificate2 cert = null;
+
+                cert = new X509Certificate2(certArray, string.Empty, X509KeyStorageFlags.EphemeralKeySet);
 
                 Console.WriteLine($"ANCAN certArray {certArray.Length}");
 
                 try
                 {
-                    // var certToImport = new X509Certificate2(certArray, string.Empty, X509KeyStorageFlags.Exportable);
                     Console.WriteLine($"ANCAN PrivateKey {cert.PrivateKey}");
-                    Console.WriteLine($"ANCAN export {cert.Export(X509ContentType.Pkcs12, string.Empty)}");
                 }
                 catch (Exception e)
                 {
