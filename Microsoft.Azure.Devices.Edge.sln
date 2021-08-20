@@ -231,6 +231,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeX509AuthDownstreamDevic
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NumberLogger", "test\modules\NumberLogger\NumberLogger.csproj", "{B0151FFD-85C4-42B9-81CC-9193BADFE9F8}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "edge-util", "edge-util", "{4EE5D86E-5FC8-40DF-9ACD-6046894FA9C2}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{274805E4-674A-419A-A30D-314241C16BCD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Util.Metrics", "edge-util\src\Microsoft.Azure.Devices.Edge.Util.Metrics\Microsoft.Azure.Devices.Edge.Util.Metrics.csproj", "{67E2BE95-CE65-4531-8F14-E77C28DF1B80}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		CheckInBuild|Any CPU = CheckInBuild|Any CPU
@@ -684,6 +690,12 @@ Global
 		{B0151FFD-85C4-42B9-81CC-9193BADFE9F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B0151FFD-85C4-42B9-81CC-9193BADFE9F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B0151FFD-85C4-42B9-81CC-9193BADFE9F8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{67E2BE95-CE65-4531-8F14-E77C28DF1B80}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
+		{67E2BE95-CE65-4531-8F14-E77C28DF1B80}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
+		{67E2BE95-CE65-4531-8F14-E77C28DF1B80}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{67E2BE95-CE65-4531-8F14-E77C28DF1B80}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{67E2BE95-CE65-4531-8F14-E77C28DF1B80}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{67E2BE95-CE65-4531-8F14-E77C28DF1B80}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -776,6 +788,8 @@ Global
 		{7546DB89-643A-477F-AEE3-FA05BDCE4ACD} = {A6D8677F-DB76-459E-B6DE-110AFCEF7F08}
 		{9E809F78-0EFF-4860-94D1-8D0EF1A9C1F1} = {A6D8677F-DB76-459E-B6DE-110AFCEF7F08}
 		{B0151FFD-85C4-42B9-81CC-9193BADFE9F8} = {F921339B-32F9-4BF3-B364-2DB01FA2F1A1}
+		{274805E4-674A-419A-A30D-314241C16BCD} = {4EE5D86E-5FC8-40DF-9ACD-6046894FA9C2}
+		{67E2BE95-CE65-4531-8F14-E77C28DF1B80} = {274805E4-674A-419A-A30D-314241C16BCD}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D71830F5-3AF5-46B4-8A9E-1DCE4F2253AC}
