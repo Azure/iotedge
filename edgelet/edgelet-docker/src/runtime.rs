@@ -300,10 +300,10 @@ fn init_client(docker_url: &Url) -> Result<DockerApiClient> {
         .ok_or_else(|| ErrorKind::Initialization("".to_owned()))?
         .to_string();
     let uri_composer = Box::new(|base_path: &str, path: &str| {
-        let result = Uri::builder()
-            .authority(base_path)
-            .path_and_query(path.to_string())
-            .build()?;
+        // https://docs.rs/hyperlocal/0.6.0/src/hyperlocal/lib.rs.html#59
+        let host = hex::encode(base_path.as_bytes());
+        let host_str = format!("unix://{}:0{}", host, path);
+        let result: Uri = host_str.parse()?;
 
         Ok(result)
     });
