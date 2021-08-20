@@ -33,7 +33,7 @@ steps:
       }
       else
       {
-        sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "FullyQualifiedName=Microsoft.Azure.Devices.Edge.Test.Provisioning"
+        sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "FullyQualifiedName=Microsoft.Azure.Devices.Edge.Test.Provisioning.DpsSymmetricKey"
       }
     }
   displayName: Run tests
