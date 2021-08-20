@@ -676,6 +676,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "test-case",
+ "tokio 1.9.0",
  "tokio-util",
  "url 2.2.2",
 ]
