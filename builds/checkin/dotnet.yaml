@@ -137,12 +137,6 @@ jobs:
           codeCoverageEnabled: true
           runSettingsFile: CodeCoverage.runsettings
           publishRunAttachments: true
-      - task: PublishTestResults@2
-        displayName: Publish code coverage
-        inputs:
-          testRunner: VSTest
-          testResultsFiles: '$(Agent.TempDirectory)/TestResults/*.trx'
-        condition: succeededOrFailed()
       - task: BuildQualityChecks@8
         displayName: 'Check build quality'
         inputs:
