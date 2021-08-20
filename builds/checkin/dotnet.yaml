@@ -143,7 +143,7 @@ jobs:
           testRunner: VSTest
           testResultsFiles: '$(Agent.TempDirectory)/TestResults/*.trx'
         condition: succeededOrFailed()
-      - task: mspremier.BuildQualityChecks.QualityChecks-task.BuildQualityChecks@7
+      - task: mspremier.BuildQualityChecks.QualityChecks-task.BuildQualityChecks@8
         displayName: 'Check build quality'
         inputs:
           checkCoverage: true
