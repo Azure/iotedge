@@ -31,7 +31,7 @@ BuildRequires: make
 BuildRequires: cmake
 BuildRequires: openssl-devel
 BuildRequires: pkg-config
-BuildRequires:  rust >= 1.50.0
+BuildRequires:  rust >= 1.47.0
 # Required for %{_unitdir} to be defined, as described in https://fedoraproject.org/wiki/Packaging:Systemd
 BuildRequires: systemd
 
