@@ -101,6 +101,14 @@ fn agent_labels(settings: &mut crate::docker::Settings) {
         "{}".to_string(),
     );
     labels.insert("net.azure-devices.edge.env".to_string(), "{}".to_string());
+    labels.insert(
+        "net.azure-devices.edge.original-image".to_string(),
+        settings.agent().config().image().to_string(),
+    );
+    labels.insert(
+        "net.azure-devices.edge.owner".to_string(),
+        "Microsoft.Azure.Devices.Edge.Agent".to_string(),
+    );
 
     let create_options = create_options.with_labels(labels);
 
