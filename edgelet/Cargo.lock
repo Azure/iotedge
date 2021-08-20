@@ -102,6 +102,7 @@ dependencies = [
  "clap",
  "edgelet-core",
  "edgelet-docker",
+ "edgelet-http",
  "edgelet-http-mgmt",
  "edgelet-http-workload",
  "edgelet-settings",

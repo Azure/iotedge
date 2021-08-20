@@ -140,8 +140,14 @@ async fn run() -> Result<(), EdgedError> {
     });
 
     // Run aziot-edged until the shutdown signal is received. This also runs the watchdog periodically.
-    let shutdown_reason =
-        watchdog::run_until_shutdown(settings, runtime, &identity_client, shutdown_rx).await?;
+    let shutdown_reason = watchdog::run_until_shutdown(
+        settings,
+        &device_info,
+        runtime,
+        &identity_client,
+        shutdown_rx,
+    )
+    .await?;
 
     log::info!("Stopping management API...");
     management_shutdown
