@@ -137,10 +137,3 @@ jobs:
           codeCoverageEnabled: true
           runSettingsFile: CodeCoverage.runsettings
           publishRunAttachments: true
-      - task: BuildQualityChecks@8
-        displayName: 'Check build quality'
-        inputs:
-          checkCoverage: true
-          coverageFailOption: fixed
-          coverageType: lines
-          coverageThreshold: $(coverage.goal)
