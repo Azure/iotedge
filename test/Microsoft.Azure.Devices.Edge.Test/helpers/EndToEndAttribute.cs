@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit
+namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 {
     using System;
     using global::NUnit.Framework;
