@@ -115,3 +115,18 @@ jobs:
           arguments: '--filter "Category=Unit&Category!=GetLogsTests" --collect "Code coverage"'
           publishTestResults: true
           noCache: true
+      - task: DotNetCoreCLI@2
+        displayName: Run GetLogsTests unit tests with code coverage
+        inputs:
+          command: test
+          projects: 'edge-agent/test/Microsoft.Azure.Devices.Edge.Agent.Core.Test'
+          arguments: '--filter "Category=GetLogsTests" --collect "Code coverage"'
+          publishTestResults: true
+          noCache: true
+      - task: BuildQualityChecks@8
+        displayName: 'Check build quality'
+        inputs:
+          checkCoverage: true
+          coverageFailOption: fixed
+          coverageType: blocks
+          coverageThreshold: $(coverage.goal)
