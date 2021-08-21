@@ -102,7 +102,7 @@ jobs:
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     variables:
-      coverage.goal: 60
+      coverage.goal: 70
     pool:
       name: $(pool.windows.name)
       demands:
