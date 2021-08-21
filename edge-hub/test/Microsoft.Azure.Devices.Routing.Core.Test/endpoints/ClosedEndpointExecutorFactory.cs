@@ -5,7 +5,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
     using System.Diagnostics.CodeAnalysis;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
-    using NUnit.Framework;
 
     /// <summary>
     /// Returns closed executors using the underlying factory
