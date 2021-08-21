@@ -111,7 +111,6 @@ steps:
     $manifestSignerClientDir = '$(Build.SourcesDirectory)/samples/dotnet/ManifestSignerClient'
     dotnet build $manifestSignerClientDir
     $manifestSignerClientBinDir = Convert-Path "$manifestSignerClientDir/bin/Debug/netcoreapp3.1"
-    dir $manifestSignerClientBinDir
     Write-Output "##vso[task.setvariable variable=manifestSignerClientDir]$manifestSignerClientDir"
     Write-Output "##vso[task.setvariable variable=manifestSignerClientBinDir]$manifestSignerClientBinDir"
     $manifestSigningTestDir = '$(System.ArtifactsDirectory)/manifest_signing'
@@ -185,7 +184,7 @@ steps:
       $testManifestSigningSignerKeyPath = Convert-Path "$(manifestSigningCertDir)/signer_key.key";
       $testManifestSigningDeploymentPath = Convert-Path "$(manifestSigningDeploymentDir)/deployment.json";
       $testManifestSigningSignedDeploymentPath = Convert-Path "$(manifestSigningDeploymentDir)/signed_deployment.json";
-      $testManifestSignerClientBinPath = Convert-Path "$manifestSignerClientDir";
+      $testManifestSignerClientBinPath = Convert-Path "$(manifestSignerClientDir)/ManifestSignerClient.csproj";
       $testManifestSigningLaunchSettingsPath = Convert-Path "$(manifestSignerClientBinDir)/Properties/launchSettings.json";
 
       $testManifestSigningDefaultLaunchSettings = @{
