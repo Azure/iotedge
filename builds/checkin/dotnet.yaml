@@ -109,35 +109,20 @@ jobs:
         - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
     steps:
       - task: DotNetCoreCLI@2
-        displayName: Build
-        inputs:
-          command: build
-          arguments: '-o target'
-          noCache: true
-      - task: VSTest@2
         displayName: Run unit tests with code coverage
         inputs:
-          testSelector: testAssemblies
-          testAssemblyVer2: |
-            target\*Test.dll
-          testFiltercriteria: 'Category=Unit&Category!=GetLogsTests'
-          runInParallel: true
-          runTestsInIsolation: true
-          codeCoverageEnabled: true
-          runSettingsFile: CodeCoverage.runsettings
-          publishRunAttachments: true
-      - task: VSTest@2
+          command: test
+          arguments: '--filter "Category=Unit&Category!=GetLogsTests" --collect "Code coverage"'
+          publishTestResults: true
+          noCache: true
+      - task: DotNetCoreCLI@2
         displayName: Run GetLogsTests unit tests with code coverage
         inputs:
-          testSelector: testAssemblies
-          testAssemblyVer2: |
-            target\*Test.dll
-          testFiltercriteria: Category=GetLogsTests
-          runInParallel: true
-          runTestsInIsolation: true
-          codeCoverageEnabled: true
-          runSettingsFile: CodeCoverage.runsettings
-          publishRunAttachments: true
+          command: test
+          projects: 'edge-agent/test/Microsoft.Azure.Devices.Edge.Agent.Core.Test'
+          arguments: '--filter "Category=GetLogsTests" --collect "Code coverage"'
+          publishTestResults: true
+          noCache: true
         condition: succeededOrFailed()
       - task: BuildQualityChecks@8
         displayName: 'Check build quality'
