@@ -123,6 +123,7 @@ jobs:
           arguments: '--filter "Category=GetLogsTests" --collect "Code coverage"'
           publishTestResults: true
           noCache: true
+        condition: succeededOrFailed()
       - task: BuildQualityChecks@8
         displayName: 'Check build quality'
         inputs:
@@ -130,3 +131,4 @@ jobs:
           coverageFailOption: fixed
           coverageType: blocks
           coverageThreshold: $(coverage.goal)
+        condition: succeededOrFailed()
