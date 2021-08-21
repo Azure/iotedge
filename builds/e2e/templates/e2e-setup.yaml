@@ -198,7 +198,7 @@ steps:
               MANIFEST_TRUST_INTERMEDIATE_CA_PATH = "$testManifestSigningIntermediateCaPath";
               MANIFEST_TRUST_SIGNER_PRIVATE_KEY_PATH = "$testManifestSigningSignerKeyPath";
               MANIFEST_TRUST_SIGNER_CERT_PATH = "$testManifestSigningSignerCertPath";
-              DSA_ALGORITHM = $env:ALGORITHM  
+              DSA_ALGORITHM = "ES256";
             }
           }
         }
