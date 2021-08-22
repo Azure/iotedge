@@ -104,9 +104,9 @@ jobs:
     variables:
       coverage.goal: 70
     pool:
-      name: $(pool.windows.name)
+      name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
     steps:
       - task: DotNetCoreCLI@2
         displayName: Run unit tests with code coverage
