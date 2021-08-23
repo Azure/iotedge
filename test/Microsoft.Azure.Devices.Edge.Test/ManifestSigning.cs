@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         // EdgeModule sensor;
         DateTime startTime;
 
-        public async void SetConfigToEdgeDaemon(Option<string> rootCaPath, CancellationToken token)
+        public async Task SetConfigToEdgeDaemon(Option<string> rootCaPath, CancellationToken token)
         {
             if (Context.Current.EnableManifestSigning)
             {
@@ -67,17 +67,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         [Category("ManifestSigning")]
         [Test]
-        public void TestIfSignedDeploymentIsSuccessful()
-        {
-            // this.SetConfigToEdgeDaemon(Context.Current.ManifestSigningGoodRootCaPath, this.TestToken);
-            this.SetLaunchSettingsWithRootCa(Context.Current.ManifestSigningDefaultLaunchSettings, Context.Current.ManifestSigningGoodRootCaPath);
-        }
-
-        /*[Category("ManifestSigning")]
-        [Test]
         public async Task TestIfSignedDeploymentIsSuccessful()
         {
-            this.SetConfigToEdgeDaemon(Context.Current.ManifestSigningGoodRootCaPath, this.TestToken);
+            await this.SetConfigToEdgeDaemon(Context.Current.ManifestSigningGoodRootCaPath, this.TestToken);
 
             this.SetLaunchSettingsWithRootCa(Context.Current.ManifestSigningDefaultLaunchSettings, Context.Current.ManifestSigningGoodRootCaPath);
 
@@ -92,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 this.TestToken,
                 Context.Current.NestedEdge,
                 inputManifestSettings);
-        }*/
+        }
 
         /*[Category("ManifestSigning")]
         [Test]
