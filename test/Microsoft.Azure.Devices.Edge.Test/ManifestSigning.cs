@@ -69,7 +69,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public void TestIfSignedDeploymentIsSuccessful()
         {
-            this.SetConfigToEdgeDaemon(Context.Current.ManifestSigningGoodRootCaPath, this.TestToken);
+            // this.SetConfigToEdgeDaemon(Context.Current.ManifestSigningGoodRootCaPath, this.TestToken);
+            this.SetLaunchSettingsWithRootCa(Context.Current.ManifestSigningDefaultLaunchSettings, Context.Current.ManifestSigningGoodRootCaPath);
         }
 
         /*[Category("ManifestSigning")]
