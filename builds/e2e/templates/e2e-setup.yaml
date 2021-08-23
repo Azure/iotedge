@@ -28,27 +28,6 @@ steps:
       TestManifestSigningSignerAlgorithm,
       TestManifestSigningBadRootCa
 
-- pwsh: |
-    $imageBuildId = $(resources.pipeline.images.runID)
-    $packageBuildId = $(resources.pipeline.packages.runID)
-    if ('$(az.pipeline.images.buildId)')
-    {
-      Write-Output '>> User supplied az.pipeline.images.buildId=$(az.pipeline.images.buildId)'
-      $imageBuildId = '$(az.pipeline.images.buildId)'
-    }
-    if ('$(az.pipeline.packages.buildId)')
-    {
-      Write-Output '>> User supplied az.pipeline.packages.buildId=$(az.pipeline.packages.buildId)'
-      $packageBuildId = '$(az.pipeline.packages.buildId)'
-    }
-
-    Write-Output "##vso[task.setvariable variable=imageBuildId]$imageBuildId"
-    Write-Output "##vso[task.setvariable variable=packageBuildId]$packageBuildId"
-
-    Write-Output ">> Package Build ID=$packageBuildId"
-    Write-Output ">> Image Build ID=$imageBuildId"
-  displayName: Override artifacts with user-supplied args
-
 - task: DownloadBuildArtifacts@0
   displayName: Get Docker image info
   inputs:
@@ -56,7 +35,7 @@ steps:
     project: $(resources.pipeline.images.projectID)
     pipeline: $(resources.pipeline.images.pipelineName)
     buildVersionToDownload: specific
-    buildId: $(imageBuildId)
+    buildId: $(resources.pipeline.images.runID)
     downloadType: single
     artifactName: $(az.pipeline.images.artifacts)
     allowPartiallySucceededBuilds: true
@@ -69,7 +48,7 @@ steps:
     project: $(resources.pipeline.packages.projectID)
     pipeline: $(resources.pipeline.packages.pipelineName)
     buildVersionToDownload: specific
-    buildId: $(packageBuildId)
+    buildId: $(resources.pipeline.packages.runID)
     downloadType: single
     artifactName: $(artifactName)
     allowPartiallySucceededBuilds: true
@@ -288,7 +267,6 @@ steps:
 
     $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
     Get-Content -Path '$(binDir)/context.json'
-  displayName: Create test arguments file (context.json)
-
-  env:
-    ALGORITHM: $(TestManifestSigningSignerAlgorithm)
+    displayName: Create test arguments file (context.json)
+    env:
+      ALGORITHM: $(TestManifestSigningSignerAlgorithm)
