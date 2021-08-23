@@ -15,7 +15,6 @@ nix = "0.22"
 openssl = "0.10"
 serde = "1"
 
-docker = { path = "../docker-rs" }
 edgelet-core = { path = "../edgelet-core" }
 edgelet-settings = { path = "../edgelet-settings" }
 

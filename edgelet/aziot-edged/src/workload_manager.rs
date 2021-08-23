@@ -254,7 +254,10 @@ where
                     "Could not notify back runtime, stop listener for module {}",
                     edgelet_core::Module::name(&module)
                 );
-                EdgedError::from_err("Could not notify back runtime, stop listener", ErrorKind::WorkloadManager)
+                EdgedError::from_err(
+                    "Could not notify back runtime, stop listener",
+                    ErrorKind::WorkloadManager,
+                )
             })?;
     }
 

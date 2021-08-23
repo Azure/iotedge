@@ -825,7 +825,6 @@ dependencies = [
  "aziot-key-client",
  "aziot-key-common",
  "bytes 1.0.1",
- "docker",
  "edgelet-core",
  "edgelet-settings",
  "futures 0.3.16",

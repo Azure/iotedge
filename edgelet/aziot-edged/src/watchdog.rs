@@ -203,7 +203,7 @@ fn agent_env(
 
         path.push("mnt");
 
-        let path = path.to_str().expect("invalid path").to_string();
+        let path = path.to_str().expect("invalid path");
 
         format!("unix://{}", path)
     };

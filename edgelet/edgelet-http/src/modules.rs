@@ -1,7 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-pub type DockerSpec = edgelet_settings::ModuleSpec<edgelet_settings::DockerConfig>;
-
 #[derive(Clone, serde::Deserialize)]
 pub struct ModuleSpec {
     name: String,
@@ -74,12 +72,14 @@ impl ModuleSpec {
     pub fn name(&self) -> &str {
         &self.name
     }
-}
 
-impl std::convert::TryInto<DockerSpec> for ModuleSpec {
-    type Error = String;
-
-    fn try_into(self) -> Result<DockerSpec, Self::Error> {
+    pub fn to_runtime_spec<M>(
+        self,
+    ) -> Result<edgelet_settings::ModuleSpec<<M as edgelet_core::ModuleRuntime>::Config>, String>
+    where
+        M: edgelet_core::ModuleRuntime,
+        <M as edgelet_core::ModuleRuntime>::Config: serde::de::DeserializeOwned,
+    {
         let mut env = std::collections::BTreeMap::new();
 
         if let Some(vars) = self.config.env {
@@ -90,9 +90,8 @@ impl std::convert::TryInto<DockerSpec> for ModuleSpec {
             }
         }
 
-        let config: edgelet_settings::DockerConfig =
-            serde_json::from_value(self.config.settings)
-                .map_err(|err| format!("invalid Docker config: {}", err))?;
+        let config = serde_json::from_value(self.config.settings)
+            .map_err(|err| format!("invalid Docker config: {}", err))?;
 
         let image_pull_policy = match self.image_pull_policy {
             Some(policy) => std::str::FromStr::from_str(&policy)
@@ -186,12 +185,10 @@ impl std::convert::From<edgelet_core::ModuleRuntimeState> for ModuleStatus {
 
 #[cfg(test)]
 mod tests {
-    use std::convert::TryInto;
-
     use edgelet_core::{Module, ModuleRuntimeState};
 
     #[test]
-    fn into_docker_spec() {
+    fn into_runtime_spec() {
         let module_spec = super::ModuleSpec {
             name: "testModule".to_string(),
             r#type: "test".to_string(),
@@ -209,25 +206,29 @@ mod tests {
             image_pull_policy: None,
         };
 
-        let docker_spec: super::DockerSpec = module_spec.clone().try_into().unwrap();
+        let runtime_spec: edgelet_settings::ModuleSpec<edgelet_settings::DockerConfig> =
+            module_spec
+                .clone()
+                .to_runtime_spec::<edgelet_docker::DockerModuleRuntime>()
+                .unwrap();
         let expected_env: std::collections::BTreeMap<String, String> =
             [("testKey".to_string(), "testValue".to_string())]
                 .iter()
                 .cloned()
                 .collect();
 
-        assert_eq!(module_spec.name, docker_spec.name());
-        assert_eq!(module_spec.r#type, docker_spec.r#type());
+        assert_eq!(module_spec.name, runtime_spec.name());
+        assert_eq!(module_spec.r#type, runtime_spec.r#type());
         assert_eq!(
             edgelet_settings::module::ImagePullPolicy::default(),
-            docker_spec.image_pull_policy()
+            runtime_spec.image_pull_policy()
         );
-        assert_eq!(expected_env, docker_spec.env().clone());
+        assert_eq!(expected_env, runtime_spec.env().clone());
 
-        let docker_config = docker_spec.config();
-        assert_eq!("testImage", docker_config.image());
-        assert_eq!(Some("testHash"), docker_config.image_hash());
-        assert_eq!(Some("testDigest"), docker_config.digest());
+        let runtime_config = runtime_spec.config();
+        assert_eq!("testImage", runtime_config.image());
+        assert_eq!(Some("testHash"), runtime_config.image_hash());
+        assert_eq!(Some("testDigest"), runtime_config.digest());
     }
 
     #[test]

@@ -2,9 +2,11 @@
 
 use crate::RuntimeSettings;
 
-pub(crate) fn agent_spec(settings: &mut crate::docker::Settings) {
+pub(crate) fn agent_spec(
+    settings: &mut crate::docker::Settings,
+) -> Result<(), Box<dyn std::error::Error>> {
     // Set vol mounts for workload and management sockets.
-    agent_vol_mount(settings);
+    agent_vol_mount(settings)?;
 
     // Set environment variables that are specific to Moby/Docker.
     agent_env(settings);
@@ -14,9 +16,13 @@ pub(crate) fn agent_spec(settings: &mut crate::docker::Settings) {
 
     // Set labels for Edge Agent.
     agent_labels(settings);
+
+    Ok(())
 }
 
-fn agent_vol_mount(settings: &mut crate::docker::Settings) {
+fn agent_vol_mount(
+    settings: &mut crate::docker::Settings,
+) -> Result<(), Box<dyn std::error::Error>> {
     let create_options = settings.agent().config().create_options().clone();
     let host_config = create_options
         .host_config()
@@ -24,16 +30,33 @@ fn agent_vol_mount(settings: &mut crate::docker::Settings) {
         .unwrap_or_else(docker::models::HostConfig::new);
     let mut binds = host_config.binds().map_or_else(Vec::new, ToOwned::to_owned);
 
-    // If the url is a domain socket URL, then vol mount it into the container.
-    for uri in &[
-        settings.connect().management_uri(),
-        settings.connect().workload_uri(),
-    ] {
-        if uri.scheme() == "unix" {
-            let path = std::path::Path::new(uri.path()).to_path_buf();
-            let path = path.to_string_lossy();
+    let mgmt_uri = settings.connect().management_uri();
 
-            let bind = format!("{}:{}", path, path);
+    let workload_connect_uri = settings.connect().workload_uri();
+
+    let workload_listen_uri = {
+        let mut path = settings.homedir().canonicalize()?;
+
+        path.push("mnt");
+        path.push(format!("{}.sock", settings.agent().name()));
+
+        let path = path.to_str().ok_or("invalid workload socket path")?;
+        url::Url::parse(&format!("unix://{}", path)).expect("workload uri should be valid")
+    };
+
+    // If the url is a domain socket URL, then vol mount it into the container.
+    for (connect_uri, listen_uri) in &[
+        (mgmt_uri, mgmt_uri),
+        (workload_connect_uri, &workload_listen_uri),
+    ] {
+        if connect_uri.scheme() == "unix" {
+            let connect_path = std::path::Path::new(connect_uri.path()).to_path_buf();
+            let connect_path = connect_path.to_string_lossy();
+
+            let listen_path = std::path::Path::new(listen_uri.path()).to_path_buf();
+            let listen_path = listen_path.to_string_lossy();
+
+            let bind = format!("{}:{}", listen_path, connect_path);
             if !binds.contains(&bind) {
                 binds.push(bind);
             }
@@ -49,6 +72,8 @@ fn agent_vol_mount(settings: &mut crate::docker::Settings) {
             .config_mut()
             .set_create_options(create_options);
     }
+
+    Ok(())
 }
 
 fn agent_env(settings: &mut crate::docker::Settings) {

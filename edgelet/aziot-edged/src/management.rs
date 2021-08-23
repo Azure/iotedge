@@ -9,11 +9,8 @@ pub(crate) async fn start<M>(
     tasks: std::sync::Arc<std::sync::atomic::AtomicUsize>,
 ) -> Result<tokio::sync::oneshot::Sender<()>, EdgedError>
 where
-    M: edgelet_core::ModuleRuntime<Config = edgelet_settings::DockerConfig>
-        + Clone
-        + Send
-        + Sync
-        + 'static,
+    M: edgelet_core::ModuleRuntime + Clone + Send + Sync + 'static,
+    <M as edgelet_core::ModuleRuntime>::Config: serde::de::DeserializeOwned + Sync,
 {
     let socket = settings.listen().management_uri();
 

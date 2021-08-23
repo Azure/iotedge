@@ -1,7 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::convert::TryInto;
-
 pub(crate) struct Route<M>
 where
     M: edgelet_core::ModuleRuntime + Send + Sync,
@@ -14,7 +12,8 @@ where
 #[async_trait::async_trait]
 impl<M> http_common::server::Route for Route<M>
 where
-    M: edgelet_core::ModuleRuntime<Config = edgelet_settings::DockerConfig> + Send + Sync,
+    M: edgelet_core::ModuleRuntime + Send + Sync,
+    <M as edgelet_core::ModuleRuntime>::Config: serde::de::DeserializeOwned + Sync,
 {
     type ApiVersion = edgelet_http::ApiVersion;
     fn api_version() -> &'static dyn http_common::DynRangeBounds<Self::ApiVersion> {
@@ -70,8 +69,8 @@ where
 
         let runtime = self.runtime.lock().await;
 
-        let module: edgelet_http::DockerSpec = body
-            .try_into()
+        let module = body
+            .to_runtime_spec::<M>()
             .map_err(|err| edgelet_http::error::server_error(err))?;
 
         super::pull_image(&*runtime, &module).await?;

@@ -31,7 +31,7 @@ impl Settings {
         let mut settings: Settings =
             config_common::read_config(&config_path, Some(&config_directory_path))?;
 
-        init::agent_spec(&mut settings);
+        init::agent_spec(&mut settings)?;
 
         Ok(settings)
     }
