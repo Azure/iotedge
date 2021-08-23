@@ -89,8 +89,8 @@
                             "TRACKING_ID": {
                                 "value": "<TrackingId>"
                             },
-                            "INITIATE_TOPIC": {
-                                "value": "initiate/2"
+                            "TOPIC_SUFFIX": {
+                                "value": "2"
                             },
                             "TRC_URL": {
                                 "value": "<TrcUrl>"
@@ -116,8 +116,8 @@
                             "TRACKING_ID": {
                                 "value": "<TrackingId>"
                             },
-                            "INITIATE_TOPIC": {
-                                "value": "initiate/1"
+                            "TOPIC_SUFFIX": {
+                                "value": "1"
                             },
                             "TRC_URL": {
                                 "value": "<TrcUrl>"
