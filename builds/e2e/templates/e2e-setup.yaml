@@ -205,8 +205,9 @@ steps:
       };
 
       $testManifestSigningDefaultLaunchSettings = $testManifestSigningDefaultLaunchSettings | ConvertTo-Json -Depth 3 
-      # $testManifestSigningDefaultLaunchSettings | ConvertTo-Json -Depth 3 | Out-File -Encoding Utf8 "$testManifestSigningLaunchSettingsPath"
-      # Get-Content -Path "$testManifestSigningLaunchSettingsPath"
+      ##$testManifestSigningDefaultLaunchSettings | ConvertTo-Json -Depth 3 | Out-File -Encoding Utf8 "$testManifestSigningLaunchSettingsPath"
+      $testManifestSigningDefaultLaunchSettings | Out-File -Encoding Utf8 "$testManifestSigningLaunchSettingsPath"
+      Get-Content -Path "$testManifestSigningLaunchSettingsPath"
 
     }
 
