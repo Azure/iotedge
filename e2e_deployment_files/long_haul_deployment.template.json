@@ -384,36 +384,6 @@
               "image": "<Container_Registry>/microsoft/azureiotedge-module-restarter:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"Memory\":\"41000000\",\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
             }
-          },
-          "metricsCollector": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "LogAnalyticsWorkspaceId": {
-                "value": "<LogAnalyticsWorkspaceId>"
-              },
-              "LogAnalyticsSharedKey": {
-                "value": "<LogAnalyticsSharedKey>"
-              },
-              "LogAnalyticsLogType": {
-                "value": "testMetricsV2"
-              },
-              "MetricsEndpointsCSV": {
-                "value": "<MetricsCollector.MetricsEndpointsCSV>"
-              },
-              "ScrapeFrequencyInSecs": {
-                "value": "<MetricsCollector.ScrapeFrequencyInSecs>"
-              },
-              "UploadTarget": {
-                "value": "<MetricsCollector.UploadTarget>"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-test-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Memory\":\"55000000\",\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
-            }
           }
         }
       }
