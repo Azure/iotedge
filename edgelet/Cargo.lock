@@ -1050,7 +1050,7 @@ dependencies = [
 [[package]]
 name = "http-common"
 version = "0.1.0"
-source = "git+https://github.com/lfitchett/iot-identity-service?branch=modify_request#6c72483bfeb14adb661e8c6910e564c92af929b7"
+source = "git+https://github.com/lfitchett/iot-identity-service?branch=modify_request#b888975ae59892342746bf1d305c3fa377effd05"
 dependencies = [
  "async-trait",
  "base64 0.13.0",
