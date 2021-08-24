@@ -108,7 +108,7 @@ namespace SimulatedTemperatureSensor
 
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
-            Console.WriteLine("SimulatedTemperatureSensor Main() finished.");
+            Console.WriteLine("SimulatedTemperatureSensor Main() finished executing.");
             return 0;
         }
 
