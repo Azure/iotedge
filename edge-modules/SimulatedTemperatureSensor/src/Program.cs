@@ -220,6 +220,11 @@ namespace SimulatedTemperatureSensor
 
                     string dataBuffer = JsonConvert.SerializeObject(tempData);
                     var eventMessage = new Message(Encoding.UTF8.GetBytes(dataBuffer));
+                    
+                    // Set message body type and content encoding 
+                    eventMessage.contentEncoding = "utf-8";
+                    eventMessage.contentType = "application/json";
+                    
                     eventMessage.Properties.Add("sequenceNumber", count.ToString());
                     eventMessage.Properties.Add("batchId", BatchId.ToString());
                     Console.WriteLine($"\t{DateTime.Now.ToLocalTime()}> Sending message: {count}, Body: [{dataBuffer}]");
