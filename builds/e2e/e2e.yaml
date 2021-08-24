@@ -61,7 +61,6 @@ jobs:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
         - true -equals false
 
     variables:
@@ -81,7 +80,6 @@ jobs:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
         - true -equals false
 
     variables:
@@ -102,7 +100,6 @@ jobs:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
         - true -equals false
 
     variables:
@@ -122,7 +119,6 @@ jobs:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
         - true -equals false
 
     variables:
@@ -143,7 +139,6 @@ jobs:
     pool:
       name: $(pool.windows.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-winserver-2019dc-test
         - true -equals false
 
     variables:
@@ -184,7 +179,6 @@ jobs:
     pool:
       name: $(pool.windows.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-win10-entn2019-test
         - true -equals false
 
     variables:
