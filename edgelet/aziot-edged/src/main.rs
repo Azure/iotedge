@@ -40,7 +40,6 @@ async fn main() {
 }
 
 async fn run() -> Result<(), EdgedError> {
-    log::error!("{}", 1); //TO REMOVE
     let settings =
         edgelet_settings::docker::Settings::new().map_err(|err| EdgedError::settings_err(err))?;
 
