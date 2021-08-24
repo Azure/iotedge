@@ -37,6 +37,7 @@ jobs:
     pool:
       name: $(pool.custom.name)
       demands: rpi3-e2e-tests
+        - true -equals false
 
     variables:
       os: linux
@@ -60,6 +61,7 @@ jobs:
       name: $(pool.linux.name)
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
+        - true -equals false
 
     variables:
       os: linux
@@ -79,6 +81,7 @@ jobs:
       name: $(pool.linux.name)
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+        - true -equals false
 
     variables:
       os: linux
@@ -99,6 +102,7 @@ jobs:
       name: $(pool.linux.name)
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
+        - true -equals false
 
     variables:
       os: linux
@@ -118,6 +122,7 @@ jobs:
       name: $(pool.linux.name)
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+        - true -equals false
 
     variables:
       os: linux
@@ -138,6 +143,7 @@ jobs:
       name: $(pool.windows.name)
       demands:
         - ImageOverride -equals agent-aziotedge-winserver-2019dc-test
+        - true -equals false
 
     variables:
       os: windows
@@ -178,6 +184,7 @@ jobs:
       name: $(pool.windows.name)
       demands:
         - ImageOverride -equals agent-aziotedge-win10-entn2019-test
+        - true -equals false
 
     variables:
       os: windows
@@ -222,6 +229,7 @@ jobs:
         - Agent.OSArchitecture -equals X64
         - run-new-e2e-tests -equals true
         - centos -equals 7
+        - true -equals false
 
     variables:
       os: linux
