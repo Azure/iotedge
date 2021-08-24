@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -53,6 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         public void SetLaunchSettingsWithRootCa(Option<string> defaultLaunchSettings, Option<string> rootCaPath)
         {
+            // get the default launch settings and update with the root CA required for the test
             if (defaultLaunchSettings.HasValue && rootCaPath.HasValue)
             {
                 string defaultLaunchSettingsString = defaultLaunchSettings.OrDefault();
@@ -62,6 +64,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 {
                     defaultJsonObject["profiles"]["ManifestSignerClient"]["environmentVariables"]["MANIFEST_TRUST_DEVICE_ROOT_CA_PATH"] = rootCaPath.OrDefault();
                 }
+
+                // Wrtie the modified launch settings to the file
+                File.WriteAllText(Context.Current.ManifestSigningLaunchSettingsPath.OrDefault(), defaultJsonObject.ToString());
             }
         }
 
