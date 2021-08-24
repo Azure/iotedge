@@ -6,7 +6,7 @@ use futures::{Future, Stream};
 use serde_json;
 use typed_headers::{self, mime, HeaderMapExt};
 
-use http_common::{request_with_headers, Connector};
+use http_common::{request_with_headers, request_with_headers_no_content, Connector};
 use hyper::{Body, Client, Uri};
 
 use super::configuration::Configuration;
@@ -37,35 +37,19 @@ impl DockerApiClient {
         &self,
         method: hyper::http::Method,
         uri: Uri,
+        headers: Option<Vec<(&str, &str)>>,
         body: Option<&TRequest>,
     ) -> Result<TResponse>
     where
         TRequest: serde::Serialize,
         TResponse: serde::de::DeserializeOwned,
     {
-        self.request_with_headers(method, uri, Vec::new(), body)
-            .await
-    }
-
-    async fn request_with_headers<TRequest, TResponse>(
-        &self,
-        method: hyper::http::Method,
-        uri: Uri,
-        mut headers: Vec<(&str, &str)>,
-        body: Option<&TRequest>,
-    ) -> Result<TResponse>
-    where
-        TRequest: serde::Serialize,
-        TResponse: serde::de::DeserializeOwned,
-    {
-        if let Some(user_agent) = self.configuration.user_agent.as_ref() {
-            headers.push((hyper::header::USER_AGENT.as_str(), &user_agent))
-        }
-
-        let headers = if !headers.is_empty() {
+        let headers = if let Some(user_agent) = self.configuration.user_agent.as_ref() {
+            let mut headers = headers.unwrap_or_else(Vec::new);
+            headers.push((hyper::header::USER_AGENT.as_str(), &user_agent));
             Some(headers)
         } else {
-            None
+            headers
         };
 
         let response = request_with_headers(
@@ -77,6 +61,36 @@ impl DockerApiClient {
         )
         .await?;
         Ok(response)
+    }
+
+    async fn request_no_content<TRequest>(
+        &self,
+        method: hyper::http::Method,
+        uri: Uri,
+        headers: Option<Vec<(&str, &str)>>,
+        body: Option<&TRequest>,
+    ) -> Result<()>
+    where
+        TRequest: serde::Serialize,
+    {
+        let headers = if let Some(user_agent) = self.configuration.user_agent.as_ref() {
+            let mut headers = headers.unwrap_or_else(Vec::new);
+            headers.push((hyper::header::USER_AGENT.as_str(), &user_agent));
+            Some(headers)
+        } else {
+            headers
+        };
+
+        request_with_headers_no_content(
+            &self.client,
+            method,
+            uri,
+            headers.as_ref().map(|h| -> &[_] { &*h }), // Convert Option<Vec> in to Option<&[]>
+            body,
+        )
+        .await?;
+
+        Ok(())
     }
 }
 
@@ -161,7 +175,7 @@ impl DockerApi for DockerApiClient {
         let uri_str = format!("/info");
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
 
-        self.request(method, uri, None::<&()>).await
+        self.request(method, uri, None, None::<&()>).await
     }
 
     async fn image_create(
@@ -188,7 +202,7 @@ impl DockerApi for DockerApiClient {
 
         let headers = vec![("X-Registry-Auth", x_registry_auth)];
 
-        self.request_with_headers(method, uri, headers, Some(&input_image))
+        self.request_no_content(method, uri, Some(headers), Some(&input_image))
             .await
             .map_err(ApiError::with_context("Could not create image."))?;
 
@@ -211,7 +225,7 @@ impl DockerApi for DockerApiClient {
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
 
         let result = self
-            .request(method, uri, None::<&()>)
+            .request(method, uri, None, None::<&()>)
             .await
             .map_err(ApiError::with_context("Could not delete image."))?;
 
@@ -232,7 +246,7 @@ impl DockerApi for DockerApiClient {
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
 
         let result = self
-            .request(method, uri, Some(&body))
+            .request(method, uri, None, Some(&body))
             .await
             .map_err(ApiError::with_context("Could not create container."))?;
 
@@ -250,7 +264,8 @@ impl DockerApi for DockerApiClient {
         let uri_str = format!("/containers/{id}?{}", query, id = id);
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
 
-        self.request(method, uri, None::<&()>).await
+        self.request_no_content(method, uri, None, None::<&()>)
+            .await
     }
 
     async fn container_restart(&self, id: &str, t: Option<i32>) -> Result<()> {
@@ -266,7 +281,7 @@ impl DockerApi for DockerApiClient {
         let uri_str = format!("/containers/{id}/restart?{}", query, id = id);
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
 
-        self.request(method, uri, None::<&()>)
+        self.request_no_content(method, uri, None, None::<&()>)
             .await
             .map_err(ApiError::with_context("Could not delete container."))?;
 
@@ -287,7 +302,7 @@ impl DockerApi for DockerApiClient {
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
 
         let result = self
-            .request(method, uri, None::<&()>)
+            .request(method, uri, None, None::<&()>)
             .await
             .map_err(ApiError::with_context("Could not inspect container."))?;
 
@@ -313,7 +328,7 @@ impl DockerApi for DockerApiClient {
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
 
         let result = self
-            .request(method, uri, None::<&()>)
+            .request(method, uri, None, None::<&()>)
             .await
             .map_err(ApiError::with_context("Could not list containers."))?;
 
@@ -329,7 +344,7 @@ impl DockerApi for DockerApiClient {
         let uri_str = format!("/containers/{id}/start?{}", query, id = id);
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
 
-        self.request(method, uri, None::<&()>)
+        self.request_no_content(method, uri, None, None::<&()>)
             .await
             .map_err(ApiError::with_context("Could not start container."))?;
 
@@ -346,7 +361,7 @@ impl DockerApi for DockerApiClient {
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
 
         let result = self
-            .request(method, uri, None::<&()>)
+            .request(method, uri, None, None::<&()>)
             .await
             .map_err(ApiError::with_context("Could not collect container stats."))?;
 
@@ -366,7 +381,7 @@ impl DockerApi for DockerApiClient {
         let uri_str = format!("/containers/{id}/stop?{}", query, id = id);
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
 
-        self.request(method, uri, None::<&()>)
+        self.request_no_content(method, uri, None, None::<&()>)
             .await
             .map_err(ApiError::with_context("Could not stop container."))?;
 
@@ -387,7 +402,7 @@ impl DockerApi for DockerApiClient {
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
 
         let result =
-            self.request(method, uri, None::<&()>)
+            self.request(method, uri, None, None::<&()>)
                 .await
                 .map_err(ApiError::with_context(
                     "Could not list container processes.",
@@ -463,7 +478,7 @@ impl DockerApi for DockerApiClient {
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
 
         let result = self
-            .request(method, uri, Some(&network_config))
+            .request(method, uri, None, Some(&network_config))
             .await
             .map_err(ApiError::with_context("Could not create network."))?;
 
@@ -480,7 +495,7 @@ impl DockerApi for DockerApiClient {
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
 
         let result = self
-            .request(method, uri, None::<&()>)
+            .request(method, uri, None, None::<&()>)
             .await
             .map_err(ApiError::with_context("Could not list networks."))?;
 
