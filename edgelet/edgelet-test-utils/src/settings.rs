@@ -10,7 +10,7 @@ pub struct Settings {
 }
 
 impl edgelet_settings::RuntimeSettings for Settings {
-    type ModuleConfig = edgelet_settings::DockerConfig;
+    type ModuleConfig = crate::runtime::Config;
 
     fn edge_ca_cert(&self) -> Option<&str> {
         self.edge_ca_cert.as_deref()

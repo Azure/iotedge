@@ -24,6 +24,7 @@ serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
 sha2 = "0.9"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "sync", "time"] }
 tokio-util = { version = "0.6", features = ["codec"] }
 url = { version = "2", features = ["serde"] }
 

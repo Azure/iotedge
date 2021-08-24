@@ -1,299 +1,268 @@
-use std::{
-    collections::HashMap,
-    fs,
-    path::PathBuf,
-    sync::{Arc, Mutex},
-};
+use std::collections::HashMap;
 
-use failure::{Fail, ResultExt};
-use futures::{
-    sync::{mpsc::UnboundedReceiver, oneshot, oneshot::Sender},
-    Future, Stream,
-};
-use hyper::{server::conn::Http, Body, Request};
-use log::{error, info, warn, Level};
-use serde::{de::DeserializeOwned, Serialize};
-use url::Url;
+use edgelet_core::{module::ModuleAction, ErrorKind, UrlExt};
+use edgelet_settings::uri::Listen;
 
-use aziot_key_client::Client;
-use cert_client::CertificateClient;
-use edgelet_core::{
-    Authenticator, Listen, MakeModuleRuntime, Module, ModuleAction, ModuleRuntime,
-    ModuleRuntimeErrorReason, RuntimeSettings, UrlExt, WorkloadConfig,
-};
-use edgelet_http::{logging::LoggingService, ConcurrencyThrottling, HyperExt};
-use edgelet_http_workload::WorkloadService;
-use edgelet_utils::log_failure;
-use identity_client::IdentityClient;
+use crate::error::Error as EdgedError;
 
-use crate::error::{Error, ErrorKind, InitializeErrorReason};
-
-const SOCKET_DEFAULT_PERMISSION: u32 = 0o666;
-const MAX_CONCURRENCY: ConcurrencyThrottling = ConcurrencyThrottling::Limited(10);
-
-pub struct WorkloadManager<M, W>
+pub(crate) struct WorkloadManager<M>
 where
-    M: ModuleRuntime + 'static + Authenticator<Request = Request<Body>> + Clone + Send + Sync,
-    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
+    M: edgelet_core::ModuleRuntime + Clone + Send + Sync + 'static,
+    M::Config: serde::Serialize,
 {
-    module_runtime: M,
-    shutdown_senders: HashMap<String, oneshot::Sender<()>>,
-    legacy_workload_uri: Url,
-    home_dir: PathBuf,
-    key_client: Arc<Client>,
-    cert_client: Arc<Mutex<CertificateClient>>,
-    identity_client: Arc<Mutex<IdentityClient>>,
-    config: W,
+    shutdown_senders: HashMap<String, tokio::sync::oneshot::Sender<()>>,
+    legacy_workload_uri: url::Url,
+    home_dir: std::path::PathBuf,
+    service: edgelet_http_workload::Service<M>,
 }
 
-impl<M, W> WorkloadManager<M, W>
+impl<M> WorkloadManager<M>
 where
-    W: WorkloadConfig + Clone + Send + Sync + 'static,
-    M: ModuleRuntime + 'static + Authenticator<Request = Request<Body>> + Clone + Send + Sync,
-    <<M as Authenticator>::AuthenticateFuture as Future>::Error: Fail,
-    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
-    <<M as ModuleRuntime>::Module as Module>::Config: Clone + DeserializeOwned + Serialize,
-    <M as ModuleRuntime>::Logs: Into<Body>,
+    M: edgelet_core::ModuleRuntime + Clone + Send + Sync + 'static,
+    M::Config: serde::Serialize,
 {
-    pub fn start_manager<F>(
-        settings: &F::Settings,
-        runtime: &M,
-        config: W,
-        tokio_runtime: &mut tokio::runtime::Runtime,
-        create_socket_channel_rcv: UnboundedReceiver<ModuleAction>,
-    ) -> Result<(), Error>
-    where
-        F: MakeModuleRuntime + 'static,
-    {
-        let shutdown_senders: HashMap<String, oneshot::Sender<()>> = HashMap::new();
+    pub(crate) async fn start(
+        settings: &impl edgelet_settings::RuntimeSettings,
+        runtime: M,
+        device_info: &aziot_identity_common::AzureIoTSpec,
+        tasks: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+        create_socket_channel_snd: tokio::sync::mpsc::UnboundedSender<ModuleAction>,
+    ) -> Result<(WorkloadManager<M>, tokio::sync::oneshot::Sender<()>), EdgedError> {
+        let shutdown_senders: HashMap<String, tokio::sync::oneshot::Sender<()>> = HashMap::new();
+        let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
+        let module_runtime = runtime.clone();
 
         let legacy_workload_uri = settings.listen().legacy_workload_uri().clone();
-        let keyd_url = settings.endpoints().aziot_keyd_url().clone();
-        let certd_url = settings.endpoints().aziot_certd_url().clone();
-        let identityd_url = settings.endpoints().aziot_identityd_url().clone();
+
+        let service = edgelet_http_workload::Service::new(settings, runtime.clone(), device_info)
+            .map_err(|err| EdgedError::from_err("Invalid service endpoint", err))?;
 
         let home_dir = settings.homedir().to_path_buf();
 
-        let key_connector = http_common::Connector::new(&keyd_url).expect("Connector");
-        let key_client = Arc::new(aziot_key_client::Client::new(
-            aziot_key_common_http::ApiVersion::V2020_09_01,
-            key_connector,
-        ));
-
-        let cert_client = Arc::new(Mutex::new(cert_client::CertificateClient::new(
-            aziot_cert_common_http::ApiVersion::V2020_09_01,
-            &certd_url,
-        )));
-        let identity_client = Arc::new(Mutex::new(identity_client::IdentityClient::new(
-            aziot_identity_common_http::ApiVersion::V2020_09_01,
-            &identityd_url,
-        )));
-
-        let module_runtime = runtime.clone();
-
         let workload_manager = WorkloadManager {
-            module_runtime,
             shutdown_senders,
             legacy_workload_uri,
             home_dir,
-            key_client,
-            cert_client,
-            identity_client,
-            config,
+            service,
         };
 
-        let module_list: Vec<<M as ModuleRuntime>::Module> =
-            tokio_runtime.block_on(runtime.list()).map_err(|err| {
-                err.context(ErrorKind::Initialize(
-                    InitializeErrorReason::WorkloadService,
-                ))
-            })?;
+        tokio::spawn(stop(
+            create_socket_channel_snd,
+            module_runtime,
+            shutdown_rx,
+            tasks,
+        ));
 
-        tokio_runtime.block_on(futures::future::lazy(move || {
-            server(workload_manager, &module_list, create_socket_channel_rcv)
-                .map_err(|err| Error::from(err.context(ErrorKind::WorkloadService)))
-        }))?;
-
-        Ok(())
+        Ok((workload_manager, shutdown_tx))
     }
 
-    fn spawn_listener(
+    async fn spawn_listener(
         &mut self,
-        workload_uri: Url,
-        signal_socket_created: Option<Sender<()>>,
+        workload_uri: url::Url,
+        signal_socket_created: Option<tokio::sync::oneshot::Sender<()>>,
         module_id: &str,
-        concurrency: ConcurrencyThrottling,
-    ) -> Result<(), Error> {
-        let label = "work".to_string();
-
-        let (shutdown_sender, shutdown_receiver) = oneshot::channel();
+    ) -> Result<(), EdgedError> {
+        let (shutdown_sender, shutdown_receiver) = tokio::sync::oneshot::channel();
 
         self.shutdown_senders
             .insert(module_id.to_string(), shutdown_sender);
 
-        let future = WorkloadService::new(
-            &self.module_runtime,
-            self.identity_client.clone(),
-            self.cert_client.clone(),
-            self.key_client.clone(),
-            self.config.clone(),
-        )
-        .then(move |service| -> Result<_, Error> {
-            let service = service.context(ErrorKind::Initialize(
-                InitializeErrorReason::WorkloadService,
-            ))?;
-            let service = LoggingService::new(label, service);
+        log::info!("uri {}", workload_uri); //TO REMOVE
+        let connector = http_common::Connector::new(&workload_uri)
+            .map_err(|err| EdgedError::from_err("Invalid workload API URL", err))?;
 
-            let run = Http::new()
-                .bind_url(workload_uri.clone(), service, SOCKET_DEFAULT_PERMISSION)
-                .map_err(|err| {
-                    err.context(ErrorKind::Initialize(
-                        InitializeErrorReason::WorkloadService,
-                    ))
-                })?;
+        let mut incoming = connector
+            .incoming()
+            .await
+            .map_err(|err| EdgedError::from_err("Failed to listen on workload socket", err))?;
 
-            // Send signal back to module runtime that socket and folder are created.
-            if let Some(signal_socket_created) = signal_socket_created {
-                signal_socket_created
-                    .send(())
-                    .map_err(|()| ErrorKind::Initialize(InitializeErrorReason::WorkloadService))?;
+        // Send signal back to module runtime that socket and folder are created.
+        if let Some(signal_socket_created) = signal_socket_created {
+            signal_socket_created.send(()).map_err(|()| {
+                EdgedError::from_err(
+                    "Could not send socket created signal to module runtime",
+                    ErrorKind::WorkloadManager,
+                )
+            })?;
+        }
+
+        let service = self.service.clone();
+        tokio::spawn(async move {
+            log::info!("Starting workload API...");
+
+            if let Err(err) = incoming.serve(service, shutdown_receiver).await {
+                log::error!("Failed to start workload API: {}", err);
             }
 
-            let run = run
-                .run_until(shutdown_receiver.map_err(|_| ()), concurrency)
-                .map_err(|err| Error::from(err.context(ErrorKind::WorkloadService)));
-            info!(
-                "Listening on {} with 1 thread for workload API.",
-                workload_uri
-            );
-            Ok(run)
-        })
-        .flatten()
-        .map_err(|_| ());
-
-        tokio::spawn(future);
+            log::info!("Workload API stopped");
+        });
 
         Ok(())
     }
 
-    fn get_listener_uri(&self, module_id: &str) -> Result<Url, Error> {
-        let uri = if let Some(home_dir) = self.home_dir.to_str() {
-            Listen::workload_uri(home_dir, module_id).map_err(|err| {
-                log_failure(Level::Error, &err);
-                Error::from(err.context(ErrorKind::WorkloadManager))
-            })
-        } else {
-            error!("No home dir found");
-            Err(Error::from(ErrorKind::WorkloadManager))
-        }?;
-
-        Ok(uri)
-    }
-
-    fn start(
+    async fn start_listener(
         &mut self,
         module_id: &str,
-        signal_socket_created: Option<Sender<()>>,
-    ) -> Result<(), Error> {
-        info!("String new listener for module {}", module_id);
+        signal_socket_created: Option<tokio::sync::oneshot::Sender<()>>,
+    ) -> Result<(), EdgedError> {
+        log::info!("String new listener for module {}", module_id);
         let workload_uri = self.get_listener_uri(module_id)?;
 
-        self.spawn_listener(
-            workload_uri,
-            signal_socket_created,
-            module_id,
-            MAX_CONCURRENCY,
-        )
+        self.spawn_listener(workload_uri, signal_socket_created, module_id)
+            .await?;
+
+        Ok(())
     }
 
-    fn stop(&mut self, module_id: &str) -> Result<(), Error> {
-        info!("Stopping listener for module {}", module_id);
+    fn stop_listener(&mut self, module_id: &str) -> Result<(), EdgedError> {
+        log::info!("Stopping listener for module {}", module_id);
 
         let shutdown_sender = self.shutdown_senders.remove(module_id);
 
         if let Some(shutdown_sender) = shutdown_sender {
-            if shutdown_sender.send(()).is_err() {
-                warn!("Received message that a module stopped, but was unable to close the socket server");
-                Err(Error::from(ErrorKind::WorkloadManager))
-            } else {
-                Ok(())
-            }
+            // When edged boots up, it clean all modules. At this moment, no socket could listening so it could legitimatly return an error.
+            shutdown_sender.send(()).ok();
+            Ok(())
         } else {
-            warn!("Couldn't find a matching module Id in the list of shutdown channels");
-            Err(Error::from(ErrorKind::WorkloadManager))
+            return Err(EdgedError::from_err(
+                "Couldn't find a matching module Id in the list of shutdown channels",
+                ErrorKind::WorkloadManager,
+            ));
         }
     }
 
-    fn remove(&mut self, module_id: &str) -> Result<(), Error> {
-        info!("Removing listener for module {}", module_id);
+    fn remove_listener(&mut self, module_id: &str) -> Result<(), EdgedError> {
+        log::info!("Removing listener for module {}", module_id);
 
         // If the container is removed, also remove the socket file to limit the leaking of socket file
         let workload_uri = self.get_listener_uri(module_id)?;
 
-        let path = workload_uri.to_uds_file_path().map_err(|_| {
-            warn!("Could not convert uri {} to path", workload_uri);
-            ErrorKind::WorkloadManager
-        })?;
+        let path = workload_uri
+            .to_uds_file_path()
+            .map_err(|err| EdgedError::from_err("Could not convert uri to path", err))?;
 
-        fs::remove_file(path).with_context(|_| {
-            warn!("Could not remove socket with uri {}", workload_uri);
-            ErrorKind::WorkloadManager
-        })?;
+        std::fs::remove_file(path)
+            .map_err(|err| EdgedError::from_err("Could not remove socket", err))?;
 
         Ok(())
     }
+
+    fn get_listener_uri(&self, module_id: &str) -> Result<url::Url, EdgedError> {
+        let uri = if let Some(home_dir) = self.home_dir.to_str() {
+            Listen::workload_uri(home_dir, module_id)
+                .map_err(|err| EdgedError::from_err("Could not get workload uri", err))
+        } else {
+            Err(EdgedError::from_err(
+                "No home dir found",
+                ErrorKind::WorkloadManager,
+            ))
+        }?;
+
+        Ok(uri)
+    }
 }
 
-fn server<M, W>(
-    mut workload_manager: WorkloadManager<M, W>,
-    module_list: &[<M as ModuleRuntime>::Module],
-    create_socket_channel_rcv: UnboundedReceiver<ModuleAction>,
-) -> Result<(), Error>
+pub(crate) async fn server<M>(
+    mut workload_manager: WorkloadManager<M>,
+    runtime: M,
+    mut create_socket_channel_rcv: tokio::sync::mpsc::UnboundedReceiver<ModuleAction>,
+) -> Result<(), EdgedError>
 where
-    W: WorkloadConfig + Clone + Send + Sync + 'static,
-    M: ModuleRuntime + 'static + Authenticator<Request = Request<Body>> + Clone + Send + Sync,
-    <<M as Authenticator>::AuthenticateFuture as Future>::Error: Fail,
-    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
-    <<M as ModuleRuntime>::Module as Module>::Config: Clone + DeserializeOwned + Serialize,
-    <M as ModuleRuntime>::Logs: Into<Body>,
+    M: edgelet_core::ModuleRuntime + Clone + Send + Sync + 'static,
+    M::Config: serde::Serialize,
 {
-    // Spawn a listener for module that are still running and uses old listen socket
-    // Several modules can listen on this socket, so we don't put any limit to the concurrency
-    workload_manager.spawn_listener(
-        workload_manager.legacy_workload_uri.clone(),
-        None,
-        "",
-        ConcurrencyThrottling::NoLimit,
-    )?;
+    let module_list = runtime
+        .list()
+        .await
+        .map_err(|err| EdgedError::from_err("Could not list modules", err))?;
 
-    // Spawn listeners for all module that are still running
-    module_list
-        .iter()
-        .try_for_each(|m: &<M as ModuleRuntime>::Module| -> Result<(), Error> {
-            workload_manager
-                .start(m.name(), None)
-                .map_err(|err| Error::from(err.context(ErrorKind::WorkloadService)))
-        })?;
+    // Spawn a listener for module that are still running and uses old listen socket
+    workload_manager
+        .spawn_listener(workload_manager.legacy_workload_uri.clone(), None, "")
+        .await?;
+
+    for module in module_list {
+        if let Err(err) = workload_manager
+            .start_listener(edgelet_core::Module::name(&module), None)
+            .await
+        {
+            log::error!(
+                "Could not start listener for module {}, error {}",
+                edgelet_core::Module::name(&module),
+                err
+            );
+        }
+    }
 
     // Ignore error, we don't want the server to close on error.
-    let server = create_socket_channel_rcv.for_each(move |module_id| match module_id {
-        ModuleAction::Start(module_id, sender) => {
-            workload_manager
-                .start(&module_id, Some(sender))
-                .unwrap_or(());
-            Ok(())
-        }
-        ModuleAction::Stop(module_id) => {
-            workload_manager.stop(&module_id).unwrap_or(());
-            Ok(())
-        }
-        ModuleAction::Remove(module_id) => {
-            workload_manager.remove(&module_id).unwrap_or(());
-            Ok(())
+    tokio::spawn(async move {
+        loop {
+            if let Some(module_id) = create_socket_channel_rcv.recv().await {
+                match module_id {
+                    ModuleAction::Start(module_id, sender) => {
+                        if let Err(err) = workload_manager
+                            .start_listener(&module_id, Some(sender))
+                            .await
+                        {
+                            log::info!("Failed to start module {}, error {}", module_id, err);
+                        }
+                    }
+                    ModuleAction::Stop(module_id) => {
+                        if let Err(err) = workload_manager.stop_listener(&module_id) {
+                            log::info!("Failed to stop module {}, error {}", module_id, err);
+                        }
+                    }
+                    ModuleAction::Remove(module_id) => {
+                        if let Err(err) = workload_manager.remove_listener(&module_id) {
+                            log::info!("Failed to remove module {}, error {}", module_id, err);
+                        }
+                    }
+                }
+            }
         }
     });
 
-    tokio::spawn(server);
+    Ok(())
+}
+
+async fn stop<M>(
+    create_socket_channel_snd: tokio::sync::mpsc::UnboundedSender<ModuleAction>,
+    runtime: M,
+    shutdown_rx: tokio::sync::oneshot::Receiver<()>,
+    tasks: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+) -> Result<(), EdgedError>
+where
+    M: edgelet_core::ModuleRuntime + Clone + Send + Sync + 'static,
+    M::Config: serde::Serialize,
+{
+    if let Err(err) = shutdown_rx.await {
+        return  Err(EdgedError::from_err("Could wait on the stop signal, workload manager will continue but not shutdown properly", err));
+    }
+
+    let module_list = runtime
+        .list()
+        .await
+        .map_err(|err| EdgedError::from_err("Could not list modules", err))?;
+
+    for module in module_list {
+        create_socket_channel_snd
+            .send(ModuleAction::Stop(
+                edgelet_core::Module::name(&module).to_string(),
+            ))
+            .map_err(|_| {
+                log::info!(
+                    "Could not notify back runtime, stop listener for module {}",
+                    edgelet_core::Module::name(&module)
+                );
+                EdgedError::from_err(
+                    "Could not notify back runtime, stop listener",
+                    ErrorKind::WorkloadManager,
+                )
+            })?;
+    }
+
+    tasks.fetch_sub(1, std::sync::atomic::Ordering::AcqRel);
+    log::info!("Workload Manager stopped");
 
     Ok(())
 }

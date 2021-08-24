@@ -16,7 +16,6 @@ serde = "1"
 serde_json = "1"
 
 edgelet-core = { path = "../edgelet-core" }
-edgelet-docker = { path = "../edgelet-docker" }
 edgelet-settings = { path = "../edgelet-settings" }
 
 http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
@@ -24,4 +23,5 @@ http-common = { git = "https://github.com/Azure/iot-identity-service", branch = 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros"] }
 
+edgelet-docker = { path = "../edgelet-docker" }
 edgelet-test-utils = { path = "../edgelet-test-utils" }

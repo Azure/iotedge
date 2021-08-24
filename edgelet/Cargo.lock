@@ -102,6 +102,7 @@ dependencies = [
  "clap",
  "edgelet-core",
  "edgelet-docker",
+ "edgelet-http",
  "edgelet-http-mgmt",
  "edgelet-http-workload",
  "edgelet-settings",
@@ -523,6 +524,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "test-case",
+ "tokio 1.9.0",
  "tokio-util",
  "url 2.2.2",
 ]
@@ -670,7 +672,6 @@ dependencies = [
  "aziot-key-client",
  "aziot-key-common",
  "bytes 1.0.1",
- "docker",
  "edgelet-core",
  "edgelet-settings",
  "futures 0.3.16",
