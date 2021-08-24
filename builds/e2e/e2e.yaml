@@ -36,7 +36,8 @@ jobs:
 
     pool:
       name: $(pool.custom.name)
-      demands: rpi3-e2e-tests
+      demands: 
+        - rpi3-e2e-tests -equals false
         - true -equals false
 
     variables:
