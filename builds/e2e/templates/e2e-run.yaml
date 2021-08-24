@@ -33,7 +33,7 @@ steps:
       }
       else
       {
-        sudo --preserve-env dotnet test $testFile --no-build --logger 'trx'
+        sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --testcasefilter:"FullyQualifiedName!~TempFilterFunc"
       }
     }
   displayName: Run tests
