@@ -53,9 +53,9 @@ jobs:
       edgelet.artifact.name: 'iotedged-ubuntu18.04-amd64'
     steps:
       - checkout: self
-          clean: true
-          fetchDepth: 100
-          submodules: recursive
+        clean: true
+        fetchDepth: 100
+        submodules: recursive
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault: EdgeBuildkv'
         inputs:
