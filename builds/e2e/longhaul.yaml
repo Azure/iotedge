@@ -67,7 +67,6 @@ jobs:
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu18.04-amd64'
     steps:
-      - checkout: self
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault: EdgeBuildkv'
         inputs:
@@ -166,7 +165,10 @@ jobs:
     variables:
       edgelet.artifact.name: 'iotedged-debian9-arm32v7'
     steps:
-      - checkout: none
+      - checkout: self
+        clean: true
+        fetchDepth: 100
+        submodules: recursive
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault: EdgeBuildkv'
         inputs:
