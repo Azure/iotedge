@@ -124,6 +124,9 @@ const EDGE_SETTINGS_SUBDIR: &str = "cache";
 /// This is the name of the settings backup file
 const EDGE_PROVISIONING_STATE_FILENAME: &str = "provisioning_state";
 
+/// If any additional product info is defined
+const PRODUCT_INFO_KEY: &str = "IOTEDGE_PRODUCT_INFO";
+
 // This is the name of the directory that contains the module folder
 // with worlkload sockets inside, on the host
 const WORKLOAD_LISTEN_MNT_URI: &str = "IOTEDGE_WORKLOADLISTEN_MNTURI";
@@ -630,6 +633,16 @@ where
     S: RuntimeSettings,
 {
     let mut env = BTreeMap::new();
+
+    if let Some(product_info) = std::env::var_os(PRODUCT_INFO_KEY) {
+        let product_info = match product_info.into_string() {
+            Ok(f)  => f,
+            _ => "".to_string()
+		};
+
+        env.insert(PRODUCT_INFO_KEY.to_string(), product_info);
+	}
+
     env.insert(HOSTNAME_KEY.to_string(), hostname.to_string());
     env.insert(
         EDGEDEVICE_HOSTNAME_KEY.to_string(),

@@ -142,6 +142,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
                 parentEdgeHostname.ForEach(value => envVars.Add(new EnvVar(Constants.ParentEdgeHostnameVariableName, value)));
             }
 
+            if (identity.ModuleId.Equals(Constants.EdgeAgentModuleIdentityName))
+            {
+                var productInfo = configSource.Configuration.GetValue<string>(Constants.EdgeletProductInfoVariableName);
+                if (!string.IsNullOrEmpty(productInfo))
+                {
+                    if (!envVars.Exists(e => e.Key == Constants.EdgeletProductInfoVariableName))
+                    {
+                        envVars.Add(new EnvVar(Constants.EdgeletProductInfoVariableName, productInfo));
+                    }
+                }
+            }
+
             if (!string.IsNullOrWhiteSpace(identity.DeviceId))
             {
                 envVars.Add(new EnvVar(Constants.DeviceIdVariableName, identity.DeviceId));
