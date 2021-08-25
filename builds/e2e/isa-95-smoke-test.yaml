@@ -153,6 +153,8 @@ stages:
       nestededge: true
       proxyAddress: $(otProxy)
       test_type: nestededge_isa95      
+      minimal: false
+      verbose: false
     pool:
      name: $(pool.name)
      demands:
