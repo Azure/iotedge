@@ -1069,4 +1069,61 @@ mod tests {
             format!("{}", pids.unwrap_err())
         );
     }
+
+    #[test]
+    fn unset_privileged_works() {
+        let mut create_options =
+            ContainerCreateBody::new().with_host_config(HostConfig::new().with_privileged(true));
+
+        // Doesn't remove privileged
+        unset_privileged(true, &mut create_options);
+        assert!(create_options.host_config().unwrap().privileged().unwrap());
+
+        // Removes privileged
+        unset_privileged(false, &mut create_options);
+        assert!(!create_options.host_config().unwrap().privileged().unwrap());
+
+        create_options.set_host_config(
+            HostConfig::new().with_cap_add(vec!["CAP1".to_owned(), "CAP2".to_owned()]),
+        );
+
+        // Doesn't remove caps
+        unset_privileged(true, &mut create_options);
+        assert_eq!(
+            create_options.host_config().unwrap().cap_add(),
+            &vec!["CAP1".to_owned(), "CAP2".to_owned()]
+        );
+
+        // Removes caps
+        unset_privileged(false, &mut create_options);
+        assert!(create_options.host_config().unwrap().cap_add().is_empty());
+    }
+
+    #[test]
+    fn drop_unsafe_privileges_works() {
+        let mut create_options = ContainerCreateBody::new().with_host_config(HostConfig::new());
+
+        // Do nothing if privileged is allowed
+        drop_unsafe_privileges(true, &mut create_options);
+        assert_eq!(
+            create_options.host_config().unwrap().cap_drop(),
+            &Vec::<String>::new()
+        );
+
+        // Drops privileges by if privileged is false
+        drop_unsafe_privileges(false, &mut create_options);
+        assert_eq!(
+            create_options.host_config().unwrap().cap_drop(),
+            &vec!["CAP_CHOWN".to_owned(), "CAP_SETUID".to_owned()]
+        );
+
+        // Doesn't drop caps if specified
+        create_options
+            .set_host_config(HostConfig::new().with_cap_add(vec!["CAP_CHOWN".to_owned()]));
+        drop_unsafe_privileges(false, &mut create_options);
+        assert_eq!(
+            create_options.host_config().unwrap().cap_drop(),
+            &vec!["CAP_SETUID".to_owned()]
+        );
+    }
 }
