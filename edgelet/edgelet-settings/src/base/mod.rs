@@ -66,6 +66,7 @@ pub struct Settings<ModuleConfig> {
     #[cfg_attr(not(debug_assertions), serde(skip_deserializing))]
     endpoints: aziot::Endpoints,
 
+    #[serde(default)]
     allow_elevated_docker_permissions: bool,
 }
 
