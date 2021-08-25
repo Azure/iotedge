@@ -56,6 +56,7 @@ where
         let module = percent_encoding::percent_decode_str(module)
             .decode_utf8()
             .ok()?;
+        let module = module.trim_start_matches('/');
 
         let action = &captures["action"];
         let action = percent_encoding::percent_decode_str(action)
@@ -65,7 +66,7 @@ where
 
         Some(Route {
             runtime: service.runtime.clone(),
-            module: module.into_owned(),
+            module: module.to_owned(),
             action,
         })
     }
