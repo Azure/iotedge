@@ -9,7 +9,7 @@ use std::{mem, process, str};
 
 use edgelet_core::module::ModuleAction;
 use failure::ResultExt;
-use futures::{stream, Stream, StreamExt};
+use futures::{stream, StreamExt};
 use hyper::{Body, Client, Uri};
 use log::{debug, error, info, Level};
 use sysinfo::{DiskExt, ProcessExt, ProcessorExt, System, SystemExt};
@@ -81,29 +81,28 @@ impl DockerModuleRuntime {
             .and_then(ContentTrust::ca_certs)
         {
             debug!("Notary Content Trust is enabled");
-            // let home_dir: Arc<Path> = settings.homedir().into();
-            // let certd_url = settings.endpoints().aziot_certd_url().clone();
-            // let cert_client = aziot_cert_client_async::Client::new(
-            //     aziot_cert_common_http::ApiVersion::V2020_09_01,
-            //     http_common::Connector::new(&certd_url)
-            //         .map_err(|_| Error::from(ErrorKind::Docker))?, // TODO: Error Fix
-            // );
+            let home_dir: Arc<Path> = settings.homedir().into();
+            let certd_url = settings.endpoints().aziot_certd_url().clone();
+            let cert_client = aziot_cert_client_async::Client::new(
+                aziot_cert_common_http::ApiVersion::V2020_09_01,
+                http_common::Connector::new(&certd_url)
+                    .map_err(|_| Error::from(ErrorKind::Docker))?, // TODO: Error Fix
+            );
 
-            // let mut notary_registries = BTreeMap::new();
-            // for (registry_server_hostname, cert_id) in content_trust_map {
-            //     let cert_buf = cert_client.get_cert(cert_id).await.map_err(|_| {
-            //         ErrorKind::NotaryRootCAReadError("Notary root CA read error".to_owned())
-            //     })?;
+            let mut notary_registries = BTreeMap::new();
+            for (registry_server_hostname, cert_id) in content_trust_map {
+                let cert_buf = cert_client.get_cert(cert_id).await.map_err(|_| {
+                    ErrorKind::NotaryRootCAReadError("Notary root CA read error".to_owned())
+                })?;
 
-            //     let config_path =
-            //         notary::notary_init(&home_dir, registry_server_hostname, &cert_buf).map_err(
-            //             |_| ErrorKind::NotaryRootCAReadError("Notary init error".to_owned()),
-            //         )?;
-            //     notary_registries.insert(registry_server_hostname.clone(), config_path);
-            // }
+                let config_path =
+                    notary::notary_init(&home_dir, registry_server_hostname, &cert_buf).map_err(
+                        |_| ErrorKind::NotaryRootCAReadError("Notary init error".to_owned()),
+                    )?;
+                notary_registries.insert(registry_server_hostname.clone(), config_path);
+            }
 
-            // Ok(notary_registries)
-            Ok(BTreeMap::new())
+            Ok(notary_registries)
         } else {
             debug!("Notary Content Trust is disabled");
             Ok(BTreeMap::new())

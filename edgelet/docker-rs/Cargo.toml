@@ -18,6 +18,5 @@ serde_yaml = "0.8"
 typed-headers = "0.1"
 url = "1.5"
 
-# http-common = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
-http-common = {git = "https://github.com/lfitchett/iot-identity-service", branch = "modify_request", features=["tokio1"]}
+http-common = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
 
