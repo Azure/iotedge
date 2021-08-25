@@ -114,7 +114,7 @@ function get_leafdevice_artifact_file() {
 
 function get_long_haul_deployment_artifact_file() {
     local path
-    path="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/long_haul_deployment.template.json"
+    path="$SOURCES_DIR/e2e_deployment_files/long_haul_deployment.template.json"
 
     echo "$path"
 }
@@ -435,6 +435,9 @@ function process_args() {
         elif [ $saveNextArg -eq 44 ]; then
             RUNTIME_LOG_LEVEL="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 45 ]; then
+            SOURCES_DIR="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -482,6 +485,7 @@ function process_args() {
                 '-testInfo' ) saveNextArg=42;;
                 '-testStartDelay' ) saveNextArg=43;;
                 '-runtimeLogLevel' ) saveNextArg=44;;
+                '-sourcesDir' ) saveNextArg=45;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac

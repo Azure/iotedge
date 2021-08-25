@@ -64,8 +64,8 @@ steps:
         testInfo="$testInfo,TestName=longhaul (single-node)"
         
         . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
-        chmod +x $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/runE2ETest.sh
-        sudo $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/runE2ETest.sh \
+        chmod +x $(Build.SourcesDirectory)/scripts/linux/runE2ETest.sh
+        sudo $(Build.SourcesDirectory)/scripts/linux/runE2ETest.sh \
           -testDir "$(Agent.HomeDirectory)/.." \
           -releaseLabel "${{ parameters['release.label'] }}" \
           -artifactImageBuildNumber "$BuildNumber" \
@@ -95,5 +95,6 @@ steps:
           -testInfo "$testInfo" \
           -testStartDelay "${{ parameters['test.startDelay'] }}" \
           -runtimeLogLevel "${{ parameters['test.runtimeLogLevel'] }}" \
+          -sourcesDir "$(Build.SourcesDirectory)" \
           -cleanAll
       workingDirectory: "$(Agent.HomeDirectory)/.."
