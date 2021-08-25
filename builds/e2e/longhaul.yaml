@@ -1,6 +1,21 @@
 trigger: none
 pr: none
 
+resources:
+  pipelines:
+  - pipeline: images
+    source: 'Azure-IoT-Edge-Core Build Images'
+    branch: 'release/1.1'
+    trigger:
+      branches:
+      - release/1.1
+  - pipeline: packages
+    source: 'Azure-IoT-Edge-Core Edgelet Packages'
+    branch: 'release/1.1'
+    trigger:
+      branches:
+      - release/1.1
+
 variables:
   NugetSecurityAnalysisWarningLevel: warn
   images.artifact.name.linux: 'core-linux'
