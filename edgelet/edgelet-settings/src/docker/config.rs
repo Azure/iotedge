@@ -103,7 +103,6 @@ impl DockerConfig {
         self.allow_elevated_docker_permissions
     }
 
-
     pub fn parent_hostname_resolve(&mut self, parent_hostname: &str) {
         const UPSTREAM_PARENT_KEYWORD: &str = "$upstream";
 
