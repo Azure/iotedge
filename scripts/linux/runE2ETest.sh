@@ -1110,6 +1110,7 @@ function usage() {
     echo ' -testInfo                                      Contains comma delimiter test information, e.g. build number and id, source branches of build, edgelet and images.' 
     echo ' -testStartDelay                                Tests start after delay for applicable modules'
     echo ' -runtimeLogLevel                               Value of RuntimeLogLevel envivronment variable for EdgeAgent in Long Haul and Stress tests [Default: debug] (EdgeHub RuntimeLogLevel is set implicitly set to be the same with edgeAgent)'
+    echo ' -sourcesDir                                     '
     exit 1;
 }
 
