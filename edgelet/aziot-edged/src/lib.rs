@@ -637,7 +637,7 @@ where
     if let Some(product_info) = std::env::var_os(PRODUCT_INFO_KEY) {
         let product_info = match product_info.into_string() {
             Ok(f) => f,
-            _ => "".to_string(),
+            Err(_) => "".to_string(),
         };
 
         env.insert(PRODUCT_INFO_KEY.to_string(), product_info);
