@@ -66,7 +66,10 @@ where
         let logs = {
             let runtime = self.runtime.lock().await;
 
-            runtime.logs(&self.module, &log_options).await
+            runtime
+                .logs(&self.module, &log_options)
+                .await
+                .map_err(|err| edgelet_http::error::server_error(err.to_string()))?
         };
 
         let res = http_common::server::response::chunked(hyper::StatusCode::OK, logs, "text/plain");

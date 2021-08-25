@@ -65,4 +65,8 @@ impl edgelet_settings::RuntimeSettings for Settings {
     fn endpoints(&self) -> &edgelet_settings::aziot::Endpoints {
         unimplemented!()
     }
+
+    fn allow_elevated_docker_permissions(&self) -> bool {
+        unimplemented!()
+    }
 }

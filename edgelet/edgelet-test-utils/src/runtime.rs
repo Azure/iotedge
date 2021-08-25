@@ -89,10 +89,6 @@ impl edgelet_core::ModuleRuntime for Runtime {
     type Module = Module;
     type ModuleRegistry = ModuleRegistry;
 
-    type Chunk = bytes::Bytes;
-    type Logs =
-        std::pin::Pin<Box<dyn futures::Stream<Item = Result<Self::Chunk, Self::Error>> + Send>>;
-
     async fn module_top(&self, id: &str) -> Result<Vec<i32>, Self::Error> {
         if id == "runtimeError" {
             Err(crate::test_error())
@@ -165,7 +161,11 @@ impl edgelet_core::ModuleRuntime for Runtime {
         unimplemented!()
     }
 
-    async fn logs(&self, _id: &str, _options: &edgelet_core::LogOptions) -> Self::Logs {
+    async fn logs(
+        &self,
+        _id: &str,
+        _options: &edgelet_core::LogOptions,
+    ) -> Result<hyper::Body, Self::Error> {
         unimplemented!()
     }
 

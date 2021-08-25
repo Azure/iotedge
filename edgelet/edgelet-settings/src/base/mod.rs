@@ -29,6 +29,8 @@ pub trait RuntimeSettings {
     fn watchdog(&self) -> &watchdog::Settings;
 
     fn endpoints(&self) -> &aziot::Endpoints;
+
+    fn allow_elevated_docker_permissions(&self) -> bool;
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -63,6 +65,8 @@ pub struct Settings<ModuleConfig> {
     #[serde(default, skip_serializing)]
     #[cfg_attr(not(debug_assertions), serde(skip_deserializing))]
     endpoints: aziot::Endpoints,
+
+    allow_elevated_docker_permissions: bool,
 }
 
 impl<T: Clone> RuntimeSettings for Settings<T> {
@@ -118,5 +122,9 @@ impl<T: Clone> RuntimeSettings for Settings<T> {
 
     fn endpoints(&self) -> &aziot::Endpoints {
         &self.endpoints
+    }
+
+    fn allow_elevated_docker_permissions(&self) -> bool {
+        self.allow_elevated_docker_permissions
     }
 }

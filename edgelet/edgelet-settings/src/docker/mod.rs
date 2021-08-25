@@ -9,9 +9,9 @@ pub mod runtime;
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct Settings {
     #[serde(flatten)]
-    base: crate::base::Settings<config::DockerConfig>,
+    pub base: crate::base::Settings<config::DockerConfig>,
 
-    moby_runtime: runtime::MobyRuntime,
+    pub moby_runtime: runtime::MobyRuntime,
 }
 
 impl Settings {
@@ -29,7 +29,7 @@ impl Settings {
         let config_directory_path = std::path::Path::new(&config_directory_path);
 
         let mut settings: Settings =
-            config_common::read_config(&config_path, Some(&config_directory_path))?;
+            config_common::read_config(config_path, Some(config_directory_path))?;
 
         init::agent_spec(&mut settings)?;
 
@@ -102,6 +102,10 @@ impl crate::RuntimeSettings for Settings {
 
     fn endpoints(&self) -> &crate::aziot::Endpoints {
         self.base.endpoints()
+    }
+
+    fn allow_elevated_docker_permissions(&self) -> bool {
+        self.base.allow_elevated_docker_permissions()
     }
 }
 
