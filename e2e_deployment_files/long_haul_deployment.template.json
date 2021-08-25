@@ -32,7 +32,14 @@
               "image": "<Container_Registry>/microsoft/azureiotedge-hub:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"Memory\":\"141000000\",\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"615m\",\"max-file\":\"2\"}},\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
             },
-            "env": {},
+            "env": {
+              "amqpSettings_enabled": {
+                "value": "true"
+              },
+              "mqttSettings_enabled": {
+                "value": "false"
+              }
+            },
             "status": "running",
             "restartPolicy": "always"
           }
@@ -56,24 +63,6 @@
               "createOptions": "{\"HostConfig\":{\"Memory\":\"41000000\",\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
             }
           },
-          "loadGen2": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "messageFrequency": {
-                "value": "<LoadGen.MessageFrequency>"
-              },
-              "transportType": {
-                "value": "mqtt"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Memory\":\"41000000\",\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
-            }
-          },
           "twinTester1": {
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
@@ -84,39 +73,6 @@
             "env": {
               "TransportType": {
                 "value": "amqp"
-              },
-              "ServiceClientConnectionString": {
-                "value": "<ServiceClientConnectionString>"
-              },
-              "TwinUpdateSize": {
-                "value": "<TwinUpdateSize>"
-              },
-              "TwinUpdateFrequency": {
-                "value": "<TwinUpdateFrequency>"
-              },
-              "TwinUpdateFailureThreshold": {
-                "value": "<TwinUpdateFailureThreshold>"
-              },
-              "EdgeHubRestartFailureTolerance": {
-                "value": "<EdgeHubRestartFailureTolerance>"
-              },
-              "testStartDelay": {
-                "value": "<TestStartDelay>"
-              }
-            },
-            "status": "running",
-            "restartPolicy": "always"
-          },
-          "twinTester2": {
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Memory\":\"61000000\",\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
-            },
-            "type": "docker",
-            "version": "1.0",
-            "env": {
-              "TransportType": {
-                "value": "mqtt"
               },
               "ServiceClientConnectionString": {
                 "value": "<ServiceClientConnectionString>"
@@ -169,42 +125,6 @@
               },
               "ClientTransportType": {
                 "value": "Amqp_Tcp_Only"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-temperature-filter:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Memory\":\"41000000\",\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
-            }
-          },
-          "tempSensor2": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-simulated-temperature-sensor:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Memory\":\"41000000\",\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
-            },
-            "env": {
-              "MessageCount": {
-                "value": "-1"
-              },
-              "ClientTransportType": {
-                "value": "Mqtt_Tcp_Only"
-              }
-            }
-          },
-          "tempFilter2": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "TemperatureThreshold": {
-                "value": "19"
-              },
-              "ClientTransportType": {
-                "value": "Mqtt_Tcp_Only"
               }
             },
             "settings": {
@@ -276,48 +196,6 @@
             "env": {
               "ClientTransportType": {
                 "value": "Amqp_Tcp_Only"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Memory\":\"41000000\",\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
-            }
-          },
-          "DirectMethodSender2": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "ReportingEndpointUrl": {
-                "value": "http://analyzer:15000"
-              },
-              "InvocationSource": {
-                "value": "Cloud"
-              },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<ServiceClientConnectionString>"
-              },
-              "TargetModuleId": {
-                "value": "DirectMethodReceiver2"
-              },
-              "testStartDelay": {
-                "value": "<TestStartDelay>"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Memory\":\"41000000\",\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
-            }
-          },
-          "DirectMethodReceiver2": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "ClientTransportType": {
-                "value": "Mqtt_Tcp_Only"
               }
             },
             "settings": {
