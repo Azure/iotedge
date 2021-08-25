@@ -34,6 +34,10 @@ parameters:
   test.runtimeLogLevel: ''
 
 steps:
+  - checkout: self
+      clean: true
+      fetchDepth: 100
+      submodules: recursive
   - task: CopyFiles@2
     displayName: 'Copy Edgelet Artifact'
     inputs:
