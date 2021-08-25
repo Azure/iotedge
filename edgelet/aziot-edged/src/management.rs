@@ -1,5 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use edgelet_settings::uri::Listen;
+
 use crate::error::Error as EdgedError;
 
 pub(crate) async fn start<M>(
@@ -24,8 +26,9 @@ where
     )
     .map_err(|err| EdgedError::from_err("Invalid Identity Service URL", err))?;
 
+    let socket_name = Listen::get_management_systemd_socket_name();
     let mut incoming = connector
-        .incoming()
+        .incoming(Some(socket_name))
         .await
         .map_err(|err| EdgedError::from_err("Failed to listen on management socket", err))?;
 
