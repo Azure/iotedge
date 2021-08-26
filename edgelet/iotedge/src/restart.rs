@@ -4,12 +4,10 @@ use std::io::Write;
 use std::sync::{Arc, Mutex};
 
 use failure::{Fail, ResultExt};
-use futures::Future;
 
-use edgelet_core::ModuleRuntime;
+use docker::DockerApi;
 
 use crate::error::{Error, ErrorKind};
-use crate::Command;
 
 pub struct Restart<M, W> {
     id: String,
@@ -27,25 +25,20 @@ impl<M, W> Restart<M, W> {
     }
 }
 
-impl<M, W> Command for Restart<M, W>
+impl<M, W> Restart<M, W>
 where
-    M: 'static + ModuleRuntime + Clone,
+    M: 'static + DockerApi + Clone,
     W: 'static + Write + Send,
 {
-    type Future = Box<dyn Future<Item = (), Error = Error> + Send>;
-
-    fn execute(self) -> Self::Future {
-        let id = self.id.clone();
+    pub async fn execute(&self) -> Result<(), Error> {
         let write = self.output.clone();
-        let result = self
-            .runtime
-            .restart(&id)
-            .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))
-            .and_then(move |_| {
-                let mut w = write.lock().unwrap();
-                writeln!(w, "{}", id).context(ErrorKind::WriteToStdout)?;
-                Ok(())
-            });
-        Box::new(result)
+        self.runtime
+            .container_restart(&self.id, None)
+            .await
+            .map_err(|err| Error::from(ErrorKind::Docker(err.to_string())))?;
+
+        let mut w = write.lock().unwrap();
+        writeln!(w, "{}", self.id).context(ErrorKind::WriteToStdout)?;
+        Ok(())
     }
 }

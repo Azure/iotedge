@@ -19,4 +19,4 @@ mod runtime;
 
 pub use error::{Error, ErrorKind};
 pub use module::{DockerModule, MODULE_TYPE};
-pub use runtime::DockerModuleRuntime;
+pub use runtime::{DockerModuleRuntime, init_client};

@@ -14,9 +14,10 @@ use failure::{Fail, ResultExt};
 use url::Url;
 
 use edgelet_core::{parse_since, LogOptions, LogTail};
+use edgelet_docker::init_client;
 // use support_bundle::OutputLocation;
 
-use iotedge::{Check, Error, ErrorKind, OutputFormat, System};
+use iotedge::{Check, Error, ErrorKind, OutputFormat, Restart, System};
 
 // use iotedge::{
 //     Check, Command, Error, ErrorKind, List, Logs, OutputFormat, Restart, SupportBundleCommand,
@@ -386,20 +387,18 @@ async fn run() -> Result<(), Error> {
         .subcommand(SubCommand::with_name("version").about("Show the version information"))
         .get_matches();
 
-    // let runtime = || -> Result<_, Error> {
-    //     let url = matches.value_of("host").map_or_else(
-    //         || Err(Error::from(ErrorKind::MissingHostParameter)),
-    //         |h| {
-    //             Url::parse(h)
-    //                 .context(ErrorKind::BadHostParameter)
-    //                 .map_err(Error::from)
-    //         },
-    //     )?;
-    //     let runtime = ModuleClient::new(&url).context(ErrorKind::ModuleRuntime)?;
-    //     Ok(runtime)
-    // };
-
-    // let mut tokio_runtime = tokio::runtime::Runtime::new().context(ErrorKind::InitializeTokio)?;
+    let runtime = || -> Result<_, Error> {
+        let url = matches.value_of("host").map_or_else(
+            || Err(Error::from(ErrorKind::MissingHostParameter)),
+            |h| {
+                Url::parse(h)
+                    .context(ErrorKind::BadHostParameter)
+                    .map_err(Error::from)
+            },
+        )?;
+        let runtime = init_client(&url).context(ErrorKind::ModuleRuntime)?;
+        Ok(runtime)
+    };
 
     match matches.subcommand() {
         ("check", Some(args)) => {
@@ -447,7 +446,7 @@ async fn run() -> Result<(), Error> {
                     .expect("arg has a default value");
                 let config_file = std::path::Path::new(config_file);
 
-                // let () = iotedge::config::apply::execute(config_file).map_err(ErrorKind::Config)?;
+                let () = iotedge::config::apply::execute(config_file).map_err(ErrorKind::Config)?;
                 Ok(())
             }
             ("import", Some(args)) => {
@@ -463,8 +462,8 @@ async fn run() -> Result<(), Error> {
 
                 let force = args.is_present("force");
 
-                // let () = iotedge::config::import::execute(old_config_file, new_config_file, force)
-                //     .map_err(ErrorKind::Config)?;
+                let () = iotedge::config::import::execute(old_config_file, new_config_file, force)
+                    .map_err(ErrorKind::Config)?;
                 Ok(())
             }
             ("mp", Some(args)) => {
@@ -480,8 +479,8 @@ async fn run() -> Result<(), Error> {
 
                 let force = args.is_present("force");
 
-                // let () = iotedge::config::mp::execute(connection_string, out_config_file, force)
-                //     .map_err(ErrorKind::Config)?;
+                let () = iotedge::config::mp::execute(connection_string, out_config_file, force)
+                    .map_err(ErrorKind::Config)?;
                 Ok(())
             }
             (command, _) => {
@@ -490,14 +489,15 @@ async fn run() -> Result<(), Error> {
             }
         },
         ("list", _) => Ok(()), //tokio_runtime.block_on(List::new(runtime()?, io::stdout()).execute()),
-        ("restart", Some(args)) => Ok(()), //tokio_runtime.block_on(
-        //     Restart::new(
-        //         args.value_of("MODULE").unwrap().to_string(),
-        //         runtime()?,
-        //         io::stdout(),
-        //     )
-        //     .execute(),
-        // ),
+        ("restart", Some(args)) => {
+            Restart::new(
+                args.value_of("MODULE").unwrap().to_string(),
+                runtime()?,
+                io::stdout(),
+            )
+            .execute()
+            .await
+        }
         ("logs", Some(args)) => {
             // let id = args.value_of("MODULE").unwrap().to_string();
             // let follow = args.is_present("follow");

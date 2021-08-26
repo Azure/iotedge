@@ -54,8 +54,8 @@ pub enum ErrorKind {
     #[fail(display = "Unable to bundle iotedge check")]
     BundleCheck,
 
-    #[fail(display = "Unable to call docker inspect")]
-    Docker,
+    #[fail(display = "Unable to call docker {}", _0)]
+    Docker(String),
 
     #[fail(display = "Error communicating with 'aziotctl' binary")]
     Aziot,
