@@ -51,7 +51,10 @@ where
         _query: &[(std::borrow::Cow<'_, str>, std::borrow::Cow<'_, str>)],
         extensions: &http::Extensions,
     ) -> Option<Self> {
-        if path != PATH {
+        // A bug in certain versions of edgeAgent causes it to make requests to "/identities/" instead
+        // of "/identities". To maintain compatibility with these versions of edgeAgent, this API will
+        // allow both endpoints.
+        if path != PATH && path != "/identities/" {
             return None;
         }
 
