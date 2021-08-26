@@ -16,7 +16,7 @@ use url::Url;
 use edgelet_core::{parse_since, LogOptions, LogTail};
 // use support_bundle::OutputLocation;
 
-use iotedge::{Error, ErrorKind};
+use iotedge::{Check, Error, ErrorKind, OutputFormat};
 
 // use iotedge::{
 //     Check, Command, Error, ErrorKind, List, Logs, OutputFormat, Restart, SupportBundleCommand,
@@ -403,45 +403,43 @@ async fn run() -> Result<(), Error> {
 
     match matches.subcommand() {
         ("check", Some(args)) => {
-            // let mut check = Check::new(
-            //     args.value_of_os("container-engine-config-file")
-            //         .expect("arg has a default value")
-            //         .to_os_string()
-            //         .into(),
-            //     args.value_of("diagnostics-image-name")
-            //         .expect("arg has a default value")
-            //         .to_string(),
-            //     args.values_of("dont-run")
-            //         .into_iter()
-            //         .flatten()
-            //         .map(ToOwned::to_owned)
-            //         .collect(),
-            //     args.value_of("expected-aziot-edged-version")
-            //         .map(ToOwned::to_owned),
-            //     args.value_of("expected-aziot-version")
-            //         .map(ToOwned::to_owned),
-            //     args.value_of_os("aziot-edged")
-            //         .expect("arg has a default value")
-            //         .to_os_string()
-            //         .into(),
-            //     args.value_of("output")
-            //         .map(|arg| match arg {
-            //             "json" => OutputFormat::Json,
-            //             "text" => OutputFormat::Text,
-            //             _ => unreachable!(),
-            //         })
-            //         .expect("arg has a default value"),
-            //     args.is_present("verbose"),
-            //     args.is_present("warnings-as-errors"),
-            //     aziot_bin.into(),
-            //     args.value_of("iothub-hostname").map(ToOwned::to_owned),
-            //     args.value_of("proxy-uri").map(ToOwned::to_owned),
-            // );
-            // check.execute(&mut tokio_runtime)
-
-            Ok(())
+            let mut check = Check::new(
+                args.value_of_os("container-engine-config-file")
+                    .expect("arg has a default value")
+                    .to_os_string()
+                    .into(),
+                args.value_of("diagnostics-image-name")
+                    .expect("arg has a default value")
+                    .to_string(),
+                args.values_of("dont-run")
+                    .into_iter()
+                    .flatten()
+                    .map(ToOwned::to_owned)
+                    .collect(),
+                args.value_of("expected-aziot-edged-version")
+                    .map(ToOwned::to_owned),
+                args.value_of("expected-aziot-version")
+                    .map(ToOwned::to_owned),
+                args.value_of_os("aziot-edged")
+                    .expect("arg has a default value")
+                    .to_os_string()
+                    .into(),
+                args.value_of("output")
+                    .map(|arg| match arg {
+                        "json" => OutputFormat::Json,
+                        "text" => OutputFormat::Text,
+                        _ => unreachable!(),
+                    })
+                    .expect("arg has a default value"),
+                args.is_present("verbose"),
+                args.is_present("warnings-as-errors"),
+                aziot_bin.into(),
+                args.value_of("iothub-hostname").map(ToOwned::to_owned),
+                args.value_of("proxy-uri").map(ToOwned::to_owned),
+            );
+            check.execute().await
         }
-        ("check-list", Some(_)) => Ok(()), //Check::print_list(aziot_bin),
+        ("check-list", Some(_)) => Check::print_list(aziot_bin),
         ("config", Some(args)) => match args.subcommand() {
             ("apply", Some(args)) => {
                 // let config_file = args

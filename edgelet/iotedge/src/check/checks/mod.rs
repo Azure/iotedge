@@ -73,33 +73,32 @@ where
 
 // built-in checks, as opposed to those that are deferred to `aziot check`
 pub(crate) fn built_in_checks() -> [(&'static str, Vec<Box<dyn Checker>>); 2] {
-    [("", vec![]), ("", vec![])]
     /* Note: keep ordering consistent. Later tests may depend on earlier tests. */
-    // [
-    //     (
-    //         "Configuration checks",
-    //         vec![
-    //             Box::new(WellFormedConfig::default()),
-    //             Box::new(UpToDateConfig::default()),
-    //             Box::new(ContainerEngineInstalled::default()),
-    //             Box::new(ParentHostname::default()),
-    //             Box::new(ContainerResolveParentHostname::default()),
-    //             Box::new(ConnectManagementUri::default()),
-    //             Box::new(AziotEdgedVersion::default()),
-    //             Box::new(ContainerLocalTime::default()),
-    //             Box::new(ContainerEngineDns::default()),
-    //             Box::new(ContainerEngineIPv6::default()),
-    //             Box::new(ContainerEngineIsMoby::default()),
-    //             Box::new(ContainerEngineLogrotate::default()),
-    //             Box::new(EdgeAgentStorageMounted::default()),
-    //             Box::new(EdgeHubStorageMounted::default()),
-    //             Box::new(CheckAgentImage::default()),
-    //         ],
-    //     ),
-    //     ("Connectivity checks", {
-    //         let mut tests: Vec<Box<dyn Checker>> = Vec::new();
-    //         tests.extend(get_host_container_upstream_tests());
-    //         tests
-    //     }),
-    // ]
+    [
+        (
+            "Configuration checks",
+            vec![
+                // Box::new(WellFormedConfig::default()),
+                // Box::new(UpToDateConfig::default()),
+                // Box::new(ContainerEngineInstalled::default()),
+                // Box::new(ParentHostname::default()),
+                // Box::new(ContainerResolveParentHostname::default()),
+                // Box::new(ConnectManagementUri::default()),
+                Box::new(AziotEdgedVersion::default()),
+                // Box::new(ContainerLocalTime::default()),
+                // Box::new(ContainerEngineDns::default()),
+                // Box::new(ContainerEngineIPv6::default()),
+                // Box::new(ContainerEngineIsMoby::default()),
+                // Box::new(ContainerEngineLogrotate::default()),
+                // Box::new(EdgeAgentStorageMounted::default()),
+                // Box::new(EdgeHubStorageMounted::default()),
+                // Box::new(CheckAgentImage::default()),
+            ],
+        ),
+        ("Connectivity checks", {
+            let mut tests: Vec<Box<dyn Checker>> = Vec::new();
+            // tests.extend(get_host_container_upstream_tests());
+            tests
+        }),
+    ]
 }

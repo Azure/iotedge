@@ -204,7 +204,7 @@ impl Check {
         }
     }
 
-    pub async fn execute(&mut self, runtime: &mut tokio::runtime::Runtime) -> Result<(), Error> {
+    pub async fn execute(&mut self) -> Result<(), Error> {
         // heterogeneous type representing the output of a check, regardless of
         // whether or not it is built-in, or parsed from `aziot check`
         #[derive(Debug)]
