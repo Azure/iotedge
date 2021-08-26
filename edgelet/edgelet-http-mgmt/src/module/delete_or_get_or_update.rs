@@ -36,6 +36,7 @@ where
         let module = percent_encoding::percent_decode_str(module)
             .decode_utf8()
             .ok()?;
+        let module = module.trim_start_matches('/');
 
         let start = edgelet_http::find_query("start", query);
 
@@ -47,7 +48,7 @@ where
         Some(Route {
             runtime: service.runtime.clone(),
             pid,
-            module: module.into_owned(),
+            module: module.to_owned(),
             start,
         })
     }
