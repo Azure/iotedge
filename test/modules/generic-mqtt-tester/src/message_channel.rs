@@ -118,7 +118,6 @@ impl MessageHandler for RelayingMessageHandler {
             received_publication.topic_name, sequence_number,
         );
 
-
         let relay_topic = received_publication
             .topic_name
             .replace(INITIATE_TOPIC_PREFIX, RELAY_TOPIC_PREFIX);
