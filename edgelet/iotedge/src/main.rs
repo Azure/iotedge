@@ -17,7 +17,7 @@ use edgelet_core::{parse_since, LogOptions, LogTail};
 use edgelet_docker::init_client;
 // use support_bundle::OutputLocation;
 
-use iotedge::{Check, Error, ErrorKind, OutputFormat, Restart, System};
+use iotedge::{Check, Error, ErrorKind, OutputFormat, Restart, System, Version};
 
 // use iotedge::{
 //     Check, Command, Error, ErrorKind, List, Logs, OutputFormat, Restart, SupportBundleCommand,
@@ -596,7 +596,13 @@ async fn run() -> Result<(), Error> {
 
             Ok(())
         }
-        ("version", _) => Ok(()), //tokio_runtime.block_on(Version::new().execute()),
-        (command, _) => Ok(()), //tokio_runtime.block_on(Unknown::new(command.to_string()).execute()),
+        ("version", _) => {
+            Version::print_version();
+            Ok(())
+        }
+        (command, _) => {
+            eprintln!("unknown command: {}", command);
+            Ok(())
+        }
     }
 }

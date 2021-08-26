@@ -27,8 +27,7 @@ mod error;
 mod restart;
 // mod support_bundle;
 mod system;
-// mod unknown;
-// mod version;
+mod version;
 
 pub use crate::check::{Check, OutputFormat};
 pub use crate::error::{Error, ErrorKind, FetchLatestVersionsReason};
@@ -37,8 +36,7 @@ pub use crate::error::{Error, ErrorKind, FetchLatestVersionsReason};
 pub use crate::restart::Restart;
 // pub use crate::support_bundle::SupportBundleCommand;
 pub use crate::system::System;
-// pub use crate::unknown::Unknown;
-// pub use crate::version::Version;
+pub use crate::version::Version;
 
 #[derive(Debug, Deserialize)]
 pub struct LatestVersions {
