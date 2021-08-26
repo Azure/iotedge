@@ -81,7 +81,7 @@ async fn run() -> Result<(), EdgedError> {
     let tasks = atomic::AtomicUsize::new(2);
     let tasks = std::sync::Arc::new(tasks);
 
-    // Worload manager needs to start before modules can be stopped.
+    // Workload manager needs to start before modules can be stopped.
     let (workload_manager, workload_shutdown) = WorkloadManager::start(
         &settings,
         runtime.clone(),
