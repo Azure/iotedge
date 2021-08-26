@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use failure::Fail;
 use failure::{self, ResultExt};
 
-use edgelet_docker::Settings;
+use edgelet_settings::{RuntimeSettings, Settings};
 
 use aziotctl_common::{
     CheckOutputSerializable, CheckOutputSerializableStreaming, CheckResultSerializable,
@@ -24,8 +24,8 @@ use self::stdout::Stdout;
 
 mod upstream_protocol_port;
 
-mod checker;
-use checker::Checker;
+mod shared;
+use shared::{CheckResult, Checker};
 
 mod checks;
 
@@ -56,33 +56,6 @@ pub struct Check {
 pub enum OutputFormat {
     Json,
     Text,
-}
-
-/// The various ways a check can resolve.
-///
-/// Check functions return `Result<CheckResult, failure::Error>` where `Err` represents the check failed.
-#[derive(Debug)]
-pub enum CheckResult {
-    /// Check succeeded.
-    Ok,
-
-    /// Check failed with a warning.
-    Warning(failure::Error),
-
-    /// Check is not applicable and was ignored. Should be treated as success.
-    Ignored,
-
-    /// Check was skipped because of errors from some previous checks. Should be treated as an error.
-    Skipped,
-
-    /// Check as skipped due to a reason. Should be treated as success.
-    SkippedDueTo(String),
-
-    /// Check failed, and further checks should be performed.
-    Failed(failure::Error),
-
-    /// Check failed, and further checks should not be performed.
-    Fatal(failure::Error),
 }
 
 impl Check {
@@ -171,8 +144,8 @@ impl Check {
                     checks
                         .iter()
                         .map(|c| CheckerMetaSerializable {
-                            id: c.id().into(),
-                            description: c.description().into(),
+                            id: c.meta().id.into(),
+                            description: c.meta().description.into(),
                         })
                         .collect::<Vec<_>>(),
                 )
@@ -231,7 +204,7 @@ impl Check {
         }
     }
 
-    pub fn execute(&mut self, runtime: &mut tokio::runtime::Runtime) -> Result<(), Error> {
+    pub async fn execute(&mut self, runtime: &mut tokio::runtime::Runtime) -> Result<(), Error> {
         // heterogeneous type representing the output of a check, regardless of
         // whether or not it is built-in, or parsed from `aziot check`
         #[derive(Debug)]
@@ -572,17 +545,17 @@ impl Check {
             self.output_section(&section_name);
 
             for check in section_checks {
-                let check_result = if self.dont_run.contains(check.id()) {
+                let check_result = if self.dont_run.contains(check.meta().id) {
                     CheckResult::Ignored
                 } else {
-                    check.execute(self, runtime)
+                    check.execute(self).await
                 };
 
                 let check_output = CheckOutput {
-                    id: check.id().into(),
-                    description: check.description().into(),
+                    id: check.meta().id.into(),
+                    description: check.meta().description.into(),
                     result: check_result,
-                    additional_info: check.get_json(),
+                    additional_info: serde_json::to_value(check).unwrap(),
                 };
 
                 if output_check(check_output, self.verbose, self.warnings_as_errors)? {
@@ -668,7 +641,7 @@ fn get_proxy_uri(arg: Option<String>) -> Option<String> {
     // Proxy_address wasn't passed in on the command line. Pull it from the aziot-edged settings
     // for Edge Agent's environment variables.
     if let Ok(settings) = Settings::new() {
-        if let Some(agent_proxy_uri) = settings.base.agent.env().get("https_proxy") {
+        if let Some(agent_proxy_uri) = settings.base.agent().env().get("https_proxy") {
             return Some(agent_proxy_uri.clone());
         }
     }

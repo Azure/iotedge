@@ -19,7 +19,7 @@
 use futures::Future;
 use serde_derive::Deserialize;
 
-// mod check;
+mod check;
 // pub mod config;
 mod error;
 // mod list;

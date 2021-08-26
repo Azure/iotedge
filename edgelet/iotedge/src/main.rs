@@ -23,8 +23,9 @@ use iotedge::{Error, ErrorKind};
 //     System, Unknown, Version,
 // };
 
-fn main() {
-    if let Err(ref error) = run() {
+#[tokio::main]
+async fn main() {
+    if let Err(ref error) = run().await {
         let fail: &dyn Fail = error;
 
         eprintln!("{}", error.to_string());
@@ -40,7 +41,7 @@ fn main() {
 }
 
 #[allow(clippy::too_many_lines)]
-fn run() -> Result<(), Error> {
+async fn run() -> Result<(), Error> {
     let aziot_bin = option_env!("AZIOT_BIN").unwrap_or("aziotctl");
 
     let default_mgmt_uri = option_env!("IOTEDGE_CONNECT_MANAGEMENT_URI")

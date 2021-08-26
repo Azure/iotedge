@@ -7,6 +7,7 @@ The iotedge tool is used to manage the IoT Edge runtime.
 """
 edition = "2018"
 [dependencies]
+async-trait = "0.1"
 atty = "0.2"
 base64 = "0.9"
 bytes = "0.4"
@@ -14,6 +15,7 @@ chrono = { version = "0.4.7", features = ["serde"] }
 chrono-humanize = "0.0.11"
 clap = "2.31"
 config = { version = "0.9", default-features = false }
+erased-serde = "0.3.12"
 failure = "0.1"
 futures = "0.1"
 hyper = "0.12"
@@ -51,6 +53,7 @@ edgelet-core = { path = "../edgelet-core" }
 edgelet-docker = { path = "../edgelet-docker" }
 edgelet-http = { path = "../edgelet-http" }
 edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
+edgelet-settings = {path = "../edgelet-settings", features = ["settings-docker"]}
 edgelet-utils = { path = "../edgelet-utils" }
 # identity-client = { path = "../identity-client" }
 management = { path = "../management" }
