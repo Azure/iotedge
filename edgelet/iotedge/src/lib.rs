@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(rust_2018_idioms, warnings)]
-#![deny(clippy::all, clippy::pedantic)]
+// #![deny(rust_2018_idioms, warnings)]
+// #![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::default_trait_access,
     clippy::let_and_return,
@@ -19,26 +19,26 @@
 use futures::Future;
 use serde_derive::Deserialize;
 
-mod check;
-pub mod config;
+// mod check;
+// pub mod config;
 mod error;
-mod list;
-mod logs;
-mod restart;
-mod support_bundle;
-mod system;
-mod unknown;
-mod version;
+// mod list;
+// mod logs;
+// mod restart;
+// mod support_bundle;
+// mod system;
+// mod unknown;
+// mod version;
 
-pub use crate::check::{Check, OutputFormat};
+// pub use crate::check::{Check, OutputFormat};
 pub use crate::error::{Error, ErrorKind, FetchLatestVersionsReason};
-pub use crate::list::List;
-pub use crate::logs::Logs;
-pub use crate::restart::Restart;
-pub use crate::support_bundle::SupportBundleCommand;
-pub use crate::system::System;
-pub use crate::unknown::Unknown;
-pub use crate::version::Version;
+// pub use crate::list::List;
+// pub use crate::logs::Logs;
+// pub use crate::restart::Restart;
+// pub use crate::support_bundle::SupportBundleCommand;
+// pub use crate::system::System;
+// pub use crate::unknown::Unknown;
+// pub use crate::version::Version;
 
 pub trait Command {
     type Future: Future<Item = ()> + Send;

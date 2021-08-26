@@ -31,7 +31,7 @@ serde_json = "1.0"
 serde_yaml = "0.8"
 tabwriter = "1.0"
 termcolor = "0.3"
-tokio = "0.1"
+tokio = {version = "1", features = ["process", "macros"]}
 toml = "0.5"
 typed-headers = "0.1.1"
 url = "2"
@@ -52,7 +52,7 @@ edgelet-docker = { path = "../edgelet-docker" }
 edgelet-http = { path = "../edgelet-http" }
 edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
 edgelet-utils = { path = "../edgelet-utils" }
-identity-client = { path = "../identity-client" }
+# identity-client = { path = "../identity-client" }
 management = { path = "../management" }
 support-bundle = { path = "../support-bundle" }
 

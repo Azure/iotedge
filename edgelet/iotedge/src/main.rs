@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(rust_2018_idioms, warnings)]
-#![deny(clippy::all, clippy::pedantic)]
+// #![deny(rust_2018_idioms, warnings)]
+// #![deny(clippy::all, clippy::pedantic)]
 #![allow(clippy::let_unit_value, clippy::similar_names)]
 
 use std::ffi::OsStr;
@@ -14,13 +14,14 @@ use failure::{Fail, ResultExt};
 use url::Url;
 
 use edgelet_core::{parse_since, LogOptions, LogTail};
-use edgelet_http_mgmt::ModuleClient;
-use support_bundle::OutputLocation;
+// use support_bundle::OutputLocation;
 
-use iotedge::{
-    Check, Command, Error, ErrorKind, List, Logs, OutputFormat, Restart, SupportBundleCommand,
-    System, Unknown, Version,
-};
+use iotedge::{Error, ErrorKind};
+
+// use iotedge::{
+//     Check, Command, Error, ErrorKind, List, Logs, OutputFormat, Restart, SupportBundleCommand,
+//     System, Unknown, Version,
+// };
 
 fn main() {
     if let Err(ref error) = run() {
@@ -56,7 +57,7 @@ fn run() -> Result<(), Error> {
     );
 
     let matches = App::new(crate_name!())
-        .version(edgelet_core::version_with_source_version())
+        .version(&*edgelet_core::version_with_source_version())
         .about(crate_description!())
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .arg(
@@ -384,68 +385,70 @@ fn run() -> Result<(), Error> {
         .subcommand(SubCommand::with_name("version").about("Show the version information"))
         .get_matches();
 
-    let runtime = || -> Result<_, Error> {
-        let url = matches.value_of("host").map_or_else(
-            || Err(Error::from(ErrorKind::MissingHostParameter)),
-            |h| {
-                Url::parse(h)
-                    .context(ErrorKind::BadHostParameter)
-                    .map_err(Error::from)
-            },
-        )?;
-        let runtime = ModuleClient::new(&url).context(ErrorKind::ModuleRuntime)?;
-        Ok(runtime)
-    };
+    // let runtime = || -> Result<_, Error> {
+    //     let url = matches.value_of("host").map_or_else(
+    //         || Err(Error::from(ErrorKind::MissingHostParameter)),
+    //         |h| {
+    //             Url::parse(h)
+    //                 .context(ErrorKind::BadHostParameter)
+    //                 .map_err(Error::from)
+    //         },
+    //     )?;
+    //     let runtime = ModuleClient::new(&url).context(ErrorKind::ModuleRuntime)?;
+    //     Ok(runtime)
+    // };
 
-    let mut tokio_runtime = tokio::runtime::Runtime::new().context(ErrorKind::InitializeTokio)?;
+    // let mut tokio_runtime = tokio::runtime::Runtime::new().context(ErrorKind::InitializeTokio)?;
 
     match matches.subcommand() {
         ("check", Some(args)) => {
-            let mut check = Check::new(
-                args.value_of_os("container-engine-config-file")
-                    .expect("arg has a default value")
-                    .to_os_string()
-                    .into(),
-                args.value_of("diagnostics-image-name")
-                    .expect("arg has a default value")
-                    .to_string(),
-                args.values_of("dont-run")
-                    .into_iter()
-                    .flatten()
-                    .map(ToOwned::to_owned)
-                    .collect(),
-                args.value_of("expected-aziot-edged-version")
-                    .map(ToOwned::to_owned),
-                args.value_of("expected-aziot-version")
-                    .map(ToOwned::to_owned),
-                args.value_of_os("aziot-edged")
-                    .expect("arg has a default value")
-                    .to_os_string()
-                    .into(),
-                args.value_of("output")
-                    .map(|arg| match arg {
-                        "json" => OutputFormat::Json,
-                        "text" => OutputFormat::Text,
-                        _ => unreachable!(),
-                    })
-                    .expect("arg has a default value"),
-                args.is_present("verbose"),
-                args.is_present("warnings-as-errors"),
-                aziot_bin.into(),
-                args.value_of("iothub-hostname").map(ToOwned::to_owned),
-                args.value_of("proxy-uri").map(ToOwned::to_owned),
-            );
-            check.execute(&mut tokio_runtime)
+            // let mut check = Check::new(
+            //     args.value_of_os("container-engine-config-file")
+            //         .expect("arg has a default value")
+            //         .to_os_string()
+            //         .into(),
+            //     args.value_of("diagnostics-image-name")
+            //         .expect("arg has a default value")
+            //         .to_string(),
+            //     args.values_of("dont-run")
+            //         .into_iter()
+            //         .flatten()
+            //         .map(ToOwned::to_owned)
+            //         .collect(),
+            //     args.value_of("expected-aziot-edged-version")
+            //         .map(ToOwned::to_owned),
+            //     args.value_of("expected-aziot-version")
+            //         .map(ToOwned::to_owned),
+            //     args.value_of_os("aziot-edged")
+            //         .expect("arg has a default value")
+            //         .to_os_string()
+            //         .into(),
+            //     args.value_of("output")
+            //         .map(|arg| match arg {
+            //             "json" => OutputFormat::Json,
+            //             "text" => OutputFormat::Text,
+            //             _ => unreachable!(),
+            //         })
+            //         .expect("arg has a default value"),
+            //     args.is_present("verbose"),
+            //     args.is_present("warnings-as-errors"),
+            //     aziot_bin.into(),
+            //     args.value_of("iothub-hostname").map(ToOwned::to_owned),
+            //     args.value_of("proxy-uri").map(ToOwned::to_owned),
+            // );
+            // check.execute(&mut tokio_runtime)
+
+            Ok(())
         }
-        ("check-list", Some(_)) => Check::print_list(aziot_bin),
+        ("check-list", Some(_)) => Ok(()), //Check::print_list(aziot_bin),
         ("config", Some(args)) => match args.subcommand() {
             ("apply", Some(args)) => {
-                let config_file = args
-                    .value_of_os("config-file")
-                    .expect("arg has a default value");
-                let config_file = std::path::Path::new(config_file);
+                // let config_file = args
+                //     .value_of_os("config-file")
+                //     .expect("arg has a default value");
+                // let config_file = std::path::Path::new(config_file);
 
-                let () = iotedge::config::apply::execute(config_file).map_err(ErrorKind::Config)?;
+                // let () = iotedge::config::apply::execute(config_file).map_err(ErrorKind::Config)?;
                 Ok(())
             }
             ("import", Some(args)) => {
@@ -461,8 +464,8 @@ fn run() -> Result<(), Error> {
 
                 let force = args.is_present("force");
 
-                let () = iotedge::config::import::execute(old_config_file, new_config_file, force)
-                    .map_err(ErrorKind::Config)?;
+                // let () = iotedge::config::import::execute(old_config_file, new_config_file, force)
+                //     .map_err(ErrorKind::Config)?;
                 Ok(())
             }
             ("mp", Some(args)) => {
@@ -478,8 +481,8 @@ fn run() -> Result<(), Error> {
 
                 let force = args.is_present("force");
 
-                let () = iotedge::config::mp::execute(connection_string, out_config_file, force)
-                    .map_err(ErrorKind::Config)?;
+                // let () = iotedge::config::mp::execute(connection_string, out_config_file, force)
+                //     .map_err(ErrorKind::Config)?;
                 Ok(())
             }
             (command, _) => {
@@ -487,62 +490,66 @@ fn run() -> Result<(), Error> {
                 std::process::exit(1);
             }
         },
-        ("list", _) => tokio_runtime.block_on(List::new(runtime()?, io::stdout()).execute()),
-        ("restart", Some(args)) => tokio_runtime.block_on(
-            Restart::new(
-                args.value_of("MODULE").unwrap().to_string(),
-                runtime()?,
-                io::stdout(),
-            )
-            .execute(),
-        ),
+        ("list", _) => Ok(()), //tokio_runtime.block_on(List::new(runtime()?, io::stdout()).execute()),
+        ("restart", Some(args)) => Ok(()), //tokio_runtime.block_on(
+        //     Restart::new(
+        //         args.value_of("MODULE").unwrap().to_string(),
+        //         runtime()?,
+        //         io::stdout(),
+        //     )
+        //     .execute(),
+        // ),
         ("logs", Some(args)) => {
-            let id = args.value_of("MODULE").unwrap().to_string();
-            let follow = args.is_present("follow");
-            let tail = args
-                .value_of("tail")
-                .map(str::parse)
-                .transpose()
-                .map_err(|err: edgelet_core::Error| {
-                    Error::from(err.context(ErrorKind::BadTailParameter))
-                })?
-                .expect("arg has a default value");
-            let since = args
-                .value_of("since")
-                .map(|s| parse_since(s))
-                .transpose()
-                .context(ErrorKind::BadSinceParameter)?
-                .expect("arg has a default value");
-            let mut options = LogOptions::new()
-                .with_follow(follow)
-                .with_tail(tail)
-                .with_since(since);
-            if let Some(until) = args
-                .value_of("until")
-                .map(|s| parse_since(s))
-                .transpose()
-                .context(ErrorKind::BadSinceParameter)?
-            {
-                options = options.with_until(until);
-            }
-            tokio_runtime.block_on(Logs::new(id, options, runtime()?).execute())
+            // let id = args.value_of("MODULE").unwrap().to_string();
+            // let follow = args.is_present("follow");
+            // let tail = args
+            //     .value_of("tail")
+            //     .map(str::parse)
+            //     .transpose()
+            //     .map_err(|err: edgelet_core::Error| {
+            //         Error::from(err.context(ErrorKind::BadTailParameter))
+            //     })?
+            //     .expect("arg has a default value");
+            // let since = args
+            //     .value_of("since")
+            //     .map(|s| parse_since(s))
+            //     .transpose()
+            //     .context(ErrorKind::BadSinceParameter)?
+            //     .expect("arg has a default value");
+            // let mut options = LogOptions::new()
+            //     .with_follow(follow)
+            //     .with_tail(tail)
+            //     .with_since(since);
+            // if let Some(until) = args
+            //     .value_of("until")
+            //     .map(|s| parse_since(s))
+            //     .transpose()
+            //     .context(ErrorKind::BadSinceParameter)?
+            // {
+            //     options = options.with_until(until);
+            // }
+            // tokio_runtime.block_on(Logs::new(id, options, runtime()?).execute())
+
+            Ok(())
         }
         ("system", Some(args)) => match args.subcommand() {
             ("logs", Some(args)) => {
-                let jctl_args: Vec<&OsStr> = args
-                    .values_of_os("args")
-                    .map_or_else(Vec::new, std::iter::Iterator::collect);
+                // let jctl_args: Vec<&OsStr> = args
+                //     .values_of_os("args")
+                //     .map_or_else(Vec::new, std::iter::Iterator::collect);
 
-                System::get_system_logs(&jctl_args)
+                // System::get_system_logs(&jctl_args)
+
+                Ok(())
             }
-            ("restart", Some(_args)) => System::system_restart(),
-            ("stop", Some(_args)) => System::system_stop(),
-            ("status", Some(_args)) => System::get_system_status(),
-            ("set-log-level", Some(args)) => System::set_log_level(
-                log::Level::from_str(args.value_of("log_level").expect("Value is required"))
-                    .expect("Value is restricted to parsable fields"),
-            ),
-            ("reprovision", Some(_args)) => System::reprovision(&mut tokio_runtime),
+            ("restart", Some(_args)) => Ok(()), // System::system_restart(),
+            ("stop", Some(_args)) => Ok(()),    //System::system_stop(),
+            ("status", Some(_args)) => Ok(()),  //System::get_system_status(),
+            ("set-log-level", Some(args)) => Ok(()), // System::set_log_level(
+            //     log::Level::from_str(args.value_of("log_level").expect("Value is required"))
+            //         .expect("Value is restricted to parsable fields"),
+            // ),
+            ("reprovision", Some(_args)) => Ok(()), // System::reprovision(&mut tokio_runtime),
 
             (command, _) => {
                 eprintln!("Unknown system subcommand {:?}", command);
@@ -550,47 +557,49 @@ fn run() -> Result<(), Error> {
             }
         },
         ("support-bundle", Some(args)) => {
-            let location = args.value_of_os("output").expect("arg has a default value");
-            let since = args
-                .value_of("since")
-                .map(|s| parse_since(s))
-                .transpose()
-                .context(ErrorKind::BadSinceParameter)?
-                .expect("arg has a default value");
-            let mut options = LogOptions::new()
-                .with_follow(false)
-                .with_tail(LogTail::All)
-                .with_since(since);
-            if let Some(until) = args
-                .value_of("until")
-                .map(|s| parse_since(s))
-                .transpose()
-                .context(ErrorKind::BadSinceParameter)?
-            {
-                options = options.with_until(until);
-            }
-            let include_ms_only = args.is_present("include-edge-runtime-only");
-            let verbose = !args.is_present("quiet");
-            let iothub_hostname = args.value_of("iothub-hostname").map(ToOwned::to_owned);
-            let output_location = if location == "-" {
-                OutputLocation::Memory
-            } else {
-                OutputLocation::File(location.to_owned())
-            };
+            // let location = args.value_of_os("output").expect("arg has a default value");
+            // let since = args
+            //     .value_of("since")
+            //     .map(|s| parse_since(s))
+            //     .transpose()
+            //     .context(ErrorKind::BadSinceParameter)?
+            //     .expect("arg has a default value");
+            // let mut options = LogOptions::new()
+            //     .with_follow(false)
+            //     .with_tail(LogTail::All)
+            //     .with_since(since);
+            // if let Some(until) = args
+            //     .value_of("until")
+            //     .map(|s| parse_since(s))
+            //     .transpose()
+            //     .context(ErrorKind::BadSinceParameter)?
+            // {
+            //     options = options.with_until(until);
+            // }
+            // let include_ms_only = args.is_present("include-edge-runtime-only");
+            // let verbose = !args.is_present("quiet");
+            // let iothub_hostname = args.value_of("iothub-hostname").map(ToOwned::to_owned);
+            // let output_location = if location == "-" {
+            //     OutputLocation::Memory
+            // } else {
+            //     OutputLocation::File(location.to_owned())
+            // };
 
-            tokio_runtime.block_on(
-                SupportBundleCommand::new(
-                    options,
-                    include_ms_only,
-                    verbose,
-                    iothub_hostname,
-                    output_location,
-                    runtime()?,
-                )
-                .execute(),
-            )
+            // tokio_runtime.block_on(
+            //     SupportBundleCommand::new(
+            //         options,
+            //         include_ms_only,
+            //         verbose,
+            //         iothub_hostname,
+            //         output_location,
+            //         runtime()?,
+            //     )
+            //     .execute(),
+            // )
+
+            Ok(())
         }
-        ("version", _) => tokio_runtime.block_on(Version::new().execute()),
-        (command, _) => tokio_runtime.block_on(Unknown::new(command.to_string()).execute()),
+        ("version", _) => Ok(()), //tokio_runtime.block_on(Version::new().execute()),
+        (command, _) => Ok(()), //tokio_runtime.block_on(Unknown::new(command.to_string()).execute()),
     }
 }
