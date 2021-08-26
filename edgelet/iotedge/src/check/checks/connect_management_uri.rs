@@ -3,9 +3,10 @@ use std::ffi::{OsStr, OsString};
 
 use failure::{self, Context, ResultExt};
 
-use edgelet_core::{self, RuntimeSettings, UrlExt};
+use edgelet_core::{self, UrlExt};
+use edgelet_settings::RuntimeSettings;
 
-use crate::check::{checker::Checker, Check, CheckResult};
+use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct ConnectManagementUri {
@@ -13,19 +14,18 @@ pub(crate) struct ConnectManagementUri {
     listen_management_uri: Option<String>,
 }
 
+#[async_trait::async_trait]
 impl Checker for ConnectManagementUri {
-    fn id(&self) -> &'static str {
-        "connect-management-uri"
+    fn meta(&self) -> CheckerMeta {
+        CheckerMeta {
+            id: "connect-management-uri",
+            description: "configuration has correct URIs for daemon mgmt endpoint",
+        }
     }
-    fn description(&self) -> &'static str {
-        "configuration has correct URIs for daemon mgmt endpoint"
-    }
-    fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
+
+    async fn execute(&mut self, check: &mut Check) -> CheckResult {
         self.inner_execute(check)
             .unwrap_or_else(CheckResult::Failed)
-    }
-    fn get_json(&self) -> serde_json::Value {
-        serde_json::to_value(self).unwrap()
     }
 }
 
