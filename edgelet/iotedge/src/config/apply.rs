@@ -202,7 +202,7 @@ fn execute_inner(
     certd_config.principal.push(aziot_certd_config::Principal {
         uid: iotedge_uid.as_raw(),
         certs: vec![
-            edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned(),
+            edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned(),
             "aziot-edged/module/*".to_owned(),
         ],
     });
@@ -219,7 +219,7 @@ fn execute_inner(
     keyd_config.principal.push(aziot_keyd_config::Principal {
         uid: iotedge_uid.as_raw(),
         keys: vec![
-            edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned(),
+            edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned(),
             "iotedge_master_encryption_id".to_owned(),
         ],
     });
@@ -247,7 +247,7 @@ fn execute_inner(
         }
     };
 
-    let mut trust_bundle_certs = vec![edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()];
+    let mut trust_bundle_certs = vec![edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()];
 
     let edge_ca = edge_ca.unwrap_or(super_config::EdgeCa::Quickstart {
         auto_generated_edge_ca_expiry_days: 90,
@@ -265,7 +265,7 @@ fn execute_inner(
                 common_config::super_config::CertIssuanceMethod::Est { url, auth } => {
                     let mut aziotcs_principal = aziot_keyd_config::Principal {
                         uid: aziotcs_uid.as_raw(),
-                        keys: vec![edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()],
+                        keys: vec![edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()],
                     };
 
                     let mut keys = std::collections::BTreeMap::default();
@@ -275,7 +275,7 @@ fn execute_inner(
                         &mut certd_config.preloaded_certs,
                         &mut keys,
                         &mut aziotcs_principal,
-                        edgelet_core::AZIOT_EDGED_CA_ALIAS,
+                        edgelet_settings::AZIOT_EDGED_CA_ALIAS,
                     );
 
                     keyd_config.principal.push(aziotcs_principal);
@@ -288,7 +288,7 @@ fn execute_inner(
                     );
 
                     certd_config.cert_issuance.certs.insert(
-                        edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned(),
+                        edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned(),
                         aziot_certd_config::CertIssuanceOptions {
                             method: aziot_certd_config::CertIssuanceMethod::Est { url, auth },
                             common_name,
@@ -297,13 +297,13 @@ fn execute_inner(
                     );
 
                     (
-                        Some(edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()),
-                        Some(edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                        Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                        Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
                     )
                 }
                 common_config::super_config::CertIssuanceMethod::LocalCa => {
                     certd_config.cert_issuance.certs.insert(
-                        edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned(),
+                        edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned(),
                         aziot_certd_config::CertIssuanceOptions {
                             method: aziot_certd_config::CertIssuanceMethod::LocalCa,
                             common_name,
@@ -313,12 +313,12 @@ fn execute_inner(
 
                     keyd_config.principal.push(aziot_keyd_config::Principal {
                         uid: aziotcs_uid.as_raw(),
-                        keys: vec![edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()],
+                        keys: vec![edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()],
                     });
 
                     (
-                        Some(edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()),
-                        Some(edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                        Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                        Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
                     )
                 }
                 common_config::super_config::CertIssuanceMethod::SelfSigned => {
@@ -332,26 +332,26 @@ fn execute_inner(
                     );
 
                     (
-                        Some(edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()),
-                        Some(edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                        Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                        Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
                     )
                 }
             }
         }
         super_config::EdgeCa::Preloaded { cert, pk } => {
             keyd_config.preloaded_keys.insert(
-                edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned(),
+                edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned(),
                 pk.to_string(),
             );
 
             certd_config.preloaded_certs.insert(
-                edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned(),
+                edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned(),
                 aziot_certd_config::PreloadedCert::Uri(cert),
             );
 
             (
-                Some(edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()),
-                Some(edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
             )
         }
         super_config::EdgeCa::Quickstart {
@@ -382,25 +382,25 @@ fn execute_inner(
     }
 
     certd_config.preloaded_certs.insert(
-        edgelet_core::TRUST_BUNDLE_ALIAS.to_owned(),
+        edgelet_settings::TRUST_BUNDLE_ALIAS.to_owned(),
         aziot_certd_config::PreloadedCert::Ids(trust_bundle_certs),
     );
 
     let manifest_trust_bundle_cert = manifest_trust_bundle_cert.map(|manifest_trust_bundle_cert| {
         certd_config.preloaded_certs.insert(
-            edgelet_core::MANIFEST_TRUST_BUNDLE_ALIAS.to_owned(),
+            edgelet_settings::MANIFEST_TRUST_BUNDLE_ALIAS.to_owned(),
             aziot_certd_config::PreloadedCert::Uri(manifest_trust_bundle_cert),
         );
-        edgelet_core::MANIFEST_TRUST_BUNDLE_ALIAS.to_owned()
+        edgelet_settings::MANIFEST_TRUST_BUNDLE_ALIAS.to_owned()
     });
 
-    let edged_config = edgelet_docker::Settings {
-        base: edgelet_core::Settings {
+    let edged_config = edgelet_settings::Settings {
+        base: edgelet_settings::base::Settings {
             hostname: identityd_config.hostname.clone(),
 
             edge_ca_cert,
             edge_ca_key,
-            trust_bundle_cert: Some(edgelet_core::TRUST_BUNDLE_ALIAS.to_owned()),
+            trust_bundle_cert: Some(edgelet_settings::TRUST_BUNDLE_ALIAS.to_owned()),
             manifest_trust_bundle_cert,
 
             auto_reprovisioning_mode,
@@ -426,7 +426,7 @@ fn execute_inner(
                 content_trust,
             } = moby_runtime;
 
-            edgelet_docker::MobyRuntime {
+            edgelet_settings::MobyRuntime {
                 uri,
                 network,
                 content_trust: content_trust
@@ -434,7 +434,7 @@ fn execute_inner(
                         |content_trust| -> Result<_, std::borrow::Cow<'static, str>> {
                             let super_config::ContentTrust { ca_certs } = content_trust;
 
-                            Ok(edgelet_docker::ContentTrust {
+                            Ok(edgelet_settings::ContentTrust {
                                 ca_certs: ca_certs
                                     .map(|ca_certs| -> Result<_, std::borrow::Cow<'static, str>> {
                                         let mut new_ca_certs: std::collections::BTreeMap<_, _> =
@@ -526,7 +526,7 @@ fn set_quickstart_ca(
     common_name: Option<String>,
 ) {
     certd_config.cert_issuance.certs.insert(
-        edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned(),
+        edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned(),
         aziot_certd_config::CertIssuanceOptions {
             method: aziot_certd_config::CertIssuanceMethod::SelfSigned,
             common_name,
@@ -536,7 +536,7 @@ fn set_quickstart_ca(
 
     keyd_config.principal.push(aziot_keyd_config::Principal {
         uid: aziotcs_uid.as_raw(),
-        keys: vec![edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()],
+        keys: vec![edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()],
     });
 }
 

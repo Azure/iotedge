@@ -116,6 +116,7 @@ mod tests {
     use super::Settings;
     use crate::docker::network;
     use crate::RuntimeSettings;
+    use crate::DEFAULT_NETWORKID;
 
     // Prevents multiple tests from modifying environment variables concurrently.
     lazy_static::lazy_static! {
@@ -210,7 +211,7 @@ mod tests {
         );
 
         let network = moby_runtime.network();
-        assert_eq!(network.name(), "azure-iot-edge");
+        assert_eq!(network.name(), DEFAULT_NETWORKID);
         match network {
             network::MobyNetwork::Network(moby_network) => {
                 assert_eq!(moby_network.ipv6().unwrap(), true);
@@ -248,7 +249,7 @@ mod tests {
             .unwrap()
             .endpoints_config()
             .unwrap()
-            .contains_key("azure-iot-edge"));
+            .contains_key(DEFAULT_NETWORKID));
     }
 
     #[test]

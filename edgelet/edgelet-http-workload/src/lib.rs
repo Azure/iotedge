@@ -159,21 +159,21 @@ impl WorkloadConfig {
     ) -> Self {
         let trust_bundle = settings
             .trust_bundle_cert()
-            .unwrap_or("aziot-edged-trust-bundle")
+            .unwrap_or(edgelet_settings::TRUST_BUNDLE_ALIAS)
             .to_string();
 
         let manifest_trust_bundle = settings
             .manifest_trust_bundle_cert()
-            .unwrap_or("aziot-edged-manifest-trust-bundle")
+            .unwrap_or(edgelet_settings::MANIFEST_TRUST_BUNDLE_ALIAS)
             .to_string();
 
         let edge_ca_cert = settings
             .edge_ca_cert()
-            .unwrap_or("aziot-edged-ca")
+            .unwrap_or(edgelet_settings::AZIOT_EDGED_CA_ALIAS)
             .to_string();
         let edge_ca_key = settings
             .edge_ca_key()
-            .unwrap_or("aziot-edged-ca")
+            .unwrap_or(edgelet_settings::AZIOT_EDGED_CA_ALIAS)
             .to_string();
 
         WorkloadConfig {
@@ -211,11 +211,11 @@ mod tests {
                 hub_name: device_info.hub_name,
                 device_id: device_info.device_id.0,
 
-                trust_bundle: "aziot-edged-trust-bundle".to_string(),
-                manifest_trust_bundle: "aziot-edged-manifest-trust-bundle".to_string(),
+                trust_bundle: edgelet_settings::TRUST_BUNDLE_ALIAS.to_string(),
+                manifest_trust_bundle: edgelet_settings::MANIFEST_TRUST_BUNDLE_ALIAS.to_string(),
 
-                edge_ca_cert: "aziot-edged-ca".to_string(),
-                edge_ca_key: "aziot-edged-ca".to_string(),
+                edge_ca_cert: edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_string(),
+                edge_ca_key: edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_string(),
             },
             config
         );

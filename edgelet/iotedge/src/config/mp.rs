@@ -37,7 +37,7 @@ To reconfigure IoT Edge, run:
 
         trust_bundle_cert: None,
 
-        auto_reprovisioning_mode: edgelet_core::settings::AutoReprovisioningMode::OnErrorOnly,
+        auto_reprovisioning_mode:  edgelet_settings::base::aziot::AutoReprovisioningMode::OnErrorOnly,
 
         imported_master_encryption_key: None,
 

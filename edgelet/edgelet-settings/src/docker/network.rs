@@ -12,7 +12,7 @@ impl MobyNetwork {
         match self {
             MobyNetwork::Name(name) => {
                 if name.is_empty() {
-                    "azure-iot-edge"
+                    crate::DEFAULT_NETWORKID
                 } else {
                     name
                 }
@@ -24,13 +24,13 @@ impl MobyNetwork {
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct Network {
-    name: String,
+    pub name: String,
 
     #[serde(rename = "ipv6", skip_serializing_if = "Option::is_none")]
-    ipv6: Option<bool>,
+    pub ipv6: Option<bool>,
 
     #[serde(rename = "ipam", skip_serializing_if = "Option::is_none")]
-    ipam: Option<Ipam>,
+    pub ipam: Option<Ipam>,
 }
 
 impl Network {
@@ -73,7 +73,7 @@ impl Network {
 #[derive(Clone, Debug, Default, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct Ipam {
     #[serde(rename = "config", skip_serializing_if = "Option::is_none")]
-    config: Option<Vec<IpamConfig>>,
+    pub config: Option<Vec<IpamConfig>>,
 }
 
 impl Ipam {
@@ -90,13 +90,13 @@ impl Ipam {
 #[derive(Clone, Debug, Default, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct IpamConfig {
     #[serde(rename = "gateway", skip_serializing_if = "Option::is_none")]
-    gateway: Option<String>,
+    pub gateway: Option<String>,
 
     #[serde(rename = "subnet", skip_serializing_if = "Option::is_none")]
-    subnet: Option<String>,
+    pub subnet: Option<String>,
 
     #[serde(rename = "ip_range", skip_serializing_if = "Option::is_none")]
-    ip_range: Option<String>,
+    pub ip_range: Option<String>,
 }
 
 impl IpamConfig {
@@ -177,7 +177,7 @@ mod tests {
         let moby_2 = "network-1";
         let moby_network_config = MobyNetwork::Network(Network::new(moby_2.to_string()));
 
-        assert_eq!("azure-iot-edge", moby_network_with_no_name.name());
+        assert_eq!(crate::DEFAULT_NETWORKID, moby_network_with_no_name.name());
         assert_eq!(moby_1, moby_network_with_name.name());
         assert_eq!(moby_2, moby_network_config.name());
     }
