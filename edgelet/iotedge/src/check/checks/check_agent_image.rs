@@ -47,10 +47,10 @@ impl CheckAgentImage {
             return Ok(CheckResult::Skipped);
         };
 
-        // TODO: resolve parent hostname
-        // settings
-        //     .agent_mut()
-        //     .parent_hostname_resolve(upstream_hostname);
+        settings
+            .agent_mut()
+            .config_mut()
+            .parent_hostname_resolve(upstream_hostname);
 
         let agent_image = settings.agent().config().image().to_string();
 
