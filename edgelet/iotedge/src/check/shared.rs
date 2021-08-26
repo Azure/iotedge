@@ -12,7 +12,7 @@ pub struct CheckerMeta {
 pub trait Checker: erased_serde::Serialize {
     fn meta(&self) -> CheckerMeta;
 
-    async fn execute(&mut self, shared: &Check) -> CheckResult;
+    async fn execute(&mut self, shared: &mut Check) -> CheckResult;
 }
 
 erased_serde::serialize_trait_object!(Checker);

@@ -25,7 +25,7 @@ use self::stdout::Stdout;
 mod upstream_protocol_port;
 
 mod shared;
-use shared::{CheckResult, Checker};
+use shared::{CheckResult, Checker, CheckerMeta};
 
 mod checks;
 
