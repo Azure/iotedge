@@ -7,8 +7,14 @@ pr: none
 # 
 # Test schedule the same between master and release/1.2, but offset 12 hours.
 schedules:
+- cron: "0 6 * * *"
+  displayName: Daily build master
+  branches:
+    include:
+    - master
+  always: true
 - cron: "0 18 * * *"
-  displayName: Daily evening build
+  displayName: Daily build release/1.2
   branches:
     include:
     - release/1.2
