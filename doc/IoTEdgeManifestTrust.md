@@ -17,4 +17,4 @@ Configure the IoT Edge Daemon to enable Notary Content Trust as shown in step 4 
 Configure the IoT Edge Daemon to enable ManifestS Signing as shown in step 4 of [this](https://github.com/Azure/iotedge/blob/master/samples/dotnet/ManifestSignerClient/Readme.md) document.
 
 ### 4. Deploy the Deployment JSON
-Once all the configurations are in place, deploy the signed deployment JSON from step 2 using Azure CLI tools. Example [here](https://docs.microsoft.com/en-us/cli/azure/iot/edge/deployment?view=azure-cli-latest). Now the modules status can be viewed by following the reminder of the quick start guide from this (link)[https://docs.microsoft.com/en-us/azure/iot-edge/quickstart-linux?view=iotedge-2020-11#view-generated-data]
+Once all the configurations are in place, deploy the signed deployment JSON from step 2 using Azure CLI tools. Example [here](https://docs.microsoft.com/en-us/cli/azure/iot/edge/deployment?view=azure-cli-latest). Now the modules status can be viewed by following the reminder of the quick start guide from this [link](https://docs.microsoft.com/en-us/azure/iot-edge/quickstart-linux?view=iotedge-2020-11#view-generated-data)
