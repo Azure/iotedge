@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
     public class CreateOrUpdateCommand : ICommand
@@ -18,6 +19,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
         readonly ModuleSpec moduleSpec;
         readonly Lazy<string> id;
         readonly Operation operation;
+
+        static readonly ILogger Log = Logger.Factory.CreateLogger<CreateOrUpdateCommand>();
 
         CreateOrUpdateCommand(IModuleManager moduleManager, ModuleSpec moduleSpec, Operation operation)
         {
@@ -142,16 +145,36 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
                 parentEdgeHostname.ForEach(value => envVars.Add(new EnvVar(Constants.ParentEdgeHostnameVariableName, value)));
             }
 
+            Log.LogInformation("### About to check PROD_INFO env variable");
+
             if (identity.ModuleId.Equals(Constants.EdgeAgentModuleIdentityName))
             {
+                Log.LogInformation("### Module name matched, so checking if PROD_INFO is defined");
+
                 var productInfo = configSource.Configuration.GetValue<string>(Constants.EdgeletProductInfoVariableName);
                 if (!string.IsNullOrEmpty(productInfo))
                 {
+                    Log.LogInformation($"### PROD_INFO is defined in the environment, so putting there");
+
                     if (!envVars.Exists(e => e.Key == Constants.EdgeletProductInfoVariableName))
                     {
+                        Log.LogInformation($"### Adding PROD_INFO");
+
                         envVars.Add(new EnvVar(Constants.EdgeletProductInfoVariableName, productInfo));
                     }
+                    else
+                    {
+                        Log.LogInformation($"### NOT adding PROD_INFO, because it is added already");
+                    }
                 }
+                else
+                {
+                    Log.LogInformation($"### PROD_INFO is NOT defined in the environment");
+                }
+            }
+            else
+            {
+                Log.LogInformation($"### Module name did not matched, so PROD_INFO will not be put there ({identity.ModuleId})");
             }
 
             if (!string.IsNullOrWhiteSpace(identity.DeviceId))
