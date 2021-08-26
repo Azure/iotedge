@@ -1,25 +1,24 @@
-use edgelet_core::RuntimeSettings;
+use edgelet_settings::RuntimeSettings;
 use failure::{Context, ResultExt};
 use regex::Regex;
 
-use crate::check::{checker::Checker, Check, CheckResult};
+use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct CheckAgentImage {}
 
+#[async_trait::async_trait]
 impl Checker for CheckAgentImage {
-    fn id(&self) -> &'static str {
-        "check-agent-image"
+    fn meta(&self) -> CheckerMeta {
+        CheckerMeta {
+            id: "check-agent-image",
+            description: "Agent image is valid and can be pulled from upstream",
+        }
     }
-    fn description(&self) -> &'static str {
-        "Agent image is valid and can be pulled from upstream"
-    }
-    fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
+
+    async fn execute(&mut self, check: &mut Check) -> CheckResult {
         self.inner_execute(check)
             .unwrap_or_else(CheckResult::Failed)
-    }
-    fn get_json(&self) -> serde_json::Value {
-        serde_json::to_value(self).unwrap()
     }
 }
 
@@ -48,9 +47,10 @@ impl CheckAgentImage {
             return Ok(CheckResult::Skipped);
         };
 
-        settings
-            .agent_mut()
-            .parent_hostname_resolve(upstream_hostname);
+        // TODO: resolve parent hostname
+        // settings
+        //     .agent_mut()
+        //     .parent_hostname_resolve(upstream_hostname);
 
         let agent_image = settings.agent().config().image().to_string();
 
