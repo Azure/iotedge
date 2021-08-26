@@ -26,7 +26,7 @@ mod error;
 // mod logs;
 // mod restart;
 // mod support_bundle;
-// mod system;
+mod system;
 // mod unknown;
 // mod version;
 
@@ -36,7 +36,7 @@ pub use crate::error::{Error, ErrorKind, FetchLatestVersionsReason};
 // pub use crate::logs::Logs;
 // pub use crate::restart::Restart;
 // pub use crate::support_bundle::SupportBundleCommand;
-// pub use crate::system::System;
+pub use crate::system::System;
 // pub use crate::unknown::Unknown;
 // pub use crate::version::Version;
 

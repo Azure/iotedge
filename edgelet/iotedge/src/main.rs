@@ -16,7 +16,7 @@ use url::Url;
 use edgelet_core::{parse_since, LogOptions, LogTail};
 // use support_bundle::OutputLocation;
 
-use iotedge::{Check, Error, ErrorKind, OutputFormat};
+use iotedge::{Check, Error, ErrorKind, OutputFormat, System};
 
 // use iotedge::{
 //     Check, Command, Error, ErrorKind, List, Logs, OutputFormat, Restart, SupportBundleCommand,
@@ -442,10 +442,10 @@ async fn run() -> Result<(), Error> {
         ("check-list", Some(_)) => Check::print_list(aziot_bin).await,
         ("config", Some(args)) => match args.subcommand() {
             ("apply", Some(args)) => {
-                // let config_file = args
-                //     .value_of_os("config-file")
-                //     .expect("arg has a default value");
-                // let config_file = std::path::Path::new(config_file);
+                let config_file = args
+                    .value_of_os("config-file")
+                    .expect("arg has a default value");
+                let config_file = std::path::Path::new(config_file);
 
                 // let () = iotedge::config::apply::execute(config_file).map_err(ErrorKind::Config)?;
                 Ok(())
@@ -533,22 +533,20 @@ async fn run() -> Result<(), Error> {
         }
         ("system", Some(args)) => match args.subcommand() {
             ("logs", Some(args)) => {
-                // let jctl_args: Vec<&OsStr> = args
-                //     .values_of_os("args")
-                //     .map_or_else(Vec::new, std::iter::Iterator::collect);
+                let jctl_args: Vec<&OsStr> = args
+                    .values_of_os("args")
+                    .map_or_else(Vec::new, std::iter::Iterator::collect);
 
-                // System::get_system_logs(&jctl_args)
-
-                Ok(())
+                System::get_system_logs(&jctl_args)
             }
-            ("restart", Some(_args)) => Ok(()), // System::system_restart(),
-            ("stop", Some(_args)) => Ok(()),    //System::system_stop(),
-            ("status", Some(_args)) => Ok(()),  //System::get_system_status(),
-            ("set-log-level", Some(args)) => Ok(()), // System::set_log_level(
-            //     log::Level::from_str(args.value_of("log_level").expect("Value is required"))
-            //         .expect("Value is restricted to parsable fields"),
-            // ),
-            ("reprovision", Some(_args)) => Ok(()), // System::reprovision(&mut tokio_runtime),
+            ("restart", Some(_args)) => System::system_restart(),
+            ("stop", Some(_args)) => System::system_stop(),
+            ("status", Some(_args)) => System::get_system_status(),
+            ("set-log-level", Some(args)) => System::set_log_level(
+                log::Level::from_str(args.value_of("log_level").expect("Value is required"))
+                    .expect("Value is restricted to parsable fields"),
+            ),
+            ("reprovision", Some(_args)) => System::reprovision().await,
 
             (command, _) => {
                 eprintln!("Unknown system subcommand {:?}", command);
