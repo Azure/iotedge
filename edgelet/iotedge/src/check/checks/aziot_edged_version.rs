@@ -1,5 +1,3 @@
-use std::process::Command;
-
 use failure::{self, Context, Fail, ResultExt};
 use futures::{future, Future, Stream};
 use regex::Regex;
@@ -131,12 +129,13 @@ impl Checker for AziotEdgedVersion {
             };
 
         self.inner_execute(check, latest_versions)
+            .await
             .unwrap_or_else(CheckResult::Failed)
     }
 }
 
 impl AziotEdgedVersion {
-    fn inner_execute(
+    async fn inner_execute(
         &mut self,
         check: &mut Check,
         latest_versions: Result<crate::LatestVersions, Option<Error>>,
@@ -150,11 +149,12 @@ impl AziotEdgedVersion {
         };
         self.expected_version = Some(latest_versions.aziot_edge.to_owned());
 
-        let mut process = Command::new(&check.aziot_edged);
+        let mut process = tokio::process::Command::new(&check.aziot_edged);
         process.arg("--version");
 
         let output = process
             .output()
+            .await
             .context("Could not spawn aziot-edged process")?;
         if !output.status.success() {
             return Err(Context::new(format!(

@@ -96,15 +96,16 @@ impl Check {
         }
     }
 
-    pub fn print_list(aziot_bin: &str) -> Result<(), Error> {
+    pub async fn print_list(aziot_bin: &str) -> Result<(), Error> {
         let mut all_checks: Vec<(String, Vec<CheckerMetaSerializable>)> = Vec::new();
 
         // get all the aziot checks by shelling-out to aziot
         {
-            let aziot_check_out = std::process::Command::new(aziot_bin)
+            let aziot_check_out = tokio::process::Command::new(aziot_bin)
                 .arg("check-list")
                 .arg("--output=json")
-                .output();
+                .output()
+                .await;
 
             match aziot_check_out {
                 Ok(out) => {
@@ -447,6 +448,7 @@ impl Check {
                 }
             }
 
+            // TODO: Tokio Command
             let mut aziot_check = std::process::Command::new(&self.aziot_bin);
             aziot_check
                 .arg("check")

@@ -439,7 +439,7 @@ async fn run() -> Result<(), Error> {
             );
             check.execute().await
         }
-        ("check-list", Some(_)) => Check::print_list(aziot_bin),
+        ("check-list", Some(_)) => Check::print_list(aziot_bin).await,
         ("config", Some(args)) => match args.subcommand() {
             ("apply", Some(args)) => {
                 // let config_file = args

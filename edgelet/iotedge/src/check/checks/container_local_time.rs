@@ -21,12 +21,13 @@ impl Checker for ContainerLocalTime {
 
     async fn execute(&mut self, check: &mut Check) -> CheckResult {
         self.inner_execute(check)
+            .await
             .unwrap_or_else(CheckResult::Failed)
     }
 }
 
 impl ContainerLocalTime {
-    fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    async fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
         let docker_host_arg = if let Some(docker_host_arg) = &check.docker_host_arg {
             docker_host_arg
         } else {
@@ -56,6 +57,7 @@ impl ContainerLocalTime {
                 "local-time",
             ],
         )
+        .await
         .map_err(|(_, err)| err)
         .context("Could not query local time inside container")?;
 

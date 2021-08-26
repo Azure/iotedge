@@ -18,13 +18,14 @@ impl Checker for CheckAgentImage {
 
     async fn execute(&mut self, check: &mut Check) -> CheckResult {
         self.inner_execute(check)
+            .await
             .unwrap_or_else(CheckResult::Failed)
     }
 }
 
 impl CheckAgentImage {
     #[allow(clippy::unused_self)]
-    fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    async fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
         let settings = if let Some(settings) = &mut check.settings {
             settings
         } else {
@@ -91,11 +92,13 @@ impl CheckAgentImage {
                     username,
                 ],
             )
+            .await
             .map_err(|(_, err)| err)
             .context(format!("Failed to login to {}", server_address))?;
         }
 
         super::docker(docker_host_arg, vec!["pull", &agent_image])
+            .await
             .map_err(|(_, err)| err)
             .context("Failed to get edge Agent image")?;
 

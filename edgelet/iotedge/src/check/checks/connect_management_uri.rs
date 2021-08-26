@@ -25,12 +25,13 @@ impl Checker for ConnectManagementUri {
 
     async fn execute(&mut self, check: &mut Check) -> CheckResult {
         self.inner_execute(check)
+            .await
             .unwrap_or_else(CheckResult::Failed)
     }
 }
 
 impl ConnectManagementUri {
-    fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    async fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
         let settings = if let Some(settings) = &check.settings {
             settings
         } else {
@@ -109,7 +110,7 @@ impl ConnectManagementUri {
             Cow::Owned(OsString::from(connect_management_uri.to_string())),
         ]);
 
-        match super::docker(docker_host_arg, args) {
+        match super::docker(docker_host_arg, args).await {
             Ok(_) => Ok(CheckResult::Ok),
             Err((Some(stderr), err)) => Err(err.context(stderr).into()),
             Err((None, err)) => Err(err.context("Could not spawn docker process").into()),

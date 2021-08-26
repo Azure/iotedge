@@ -30,6 +30,7 @@ impl Checker for EdgeAgentStorageMounted {
             &mut self.storage_directory,
             &mut self.container_directories,
         )
+        .await
         .unwrap_or_else(CheckResult::Failed)
     }
 }
@@ -57,16 +58,17 @@ impl Checker for EdgeHubStorageMounted {
             &mut self.storage_directory,
             &mut self.container_directories,
         )
+        .await
         .unwrap_or_else(CheckResult::Failed)
     }
 }
 
-fn storage_mounted_from_host(
-    check: &mut Check,
+async fn storage_mounted_from_host<'a>(
+    check: &'a mut Check,
     container_name: &'static str,
     storage_directory_name: &'static str,
-    storage_directory_out: &mut Option<PathBuf>,
-    container_directories_out: &mut Option<Vec<PathBuf>>,
+    storage_directory_out: &'a mut Option<PathBuf>,
+    container_directories_out: &'a mut Option<Vec<PathBuf>>,
 ) -> Result<CheckResult, failure::Error> {
     lazy_static::lazy_static! {
         static ref STORAGE_FOLDER_ENV_VAR_KEY_REGEX: Regex =
@@ -80,7 +82,7 @@ fn storage_mounted_from_host(
         return Ok(CheckResult::Skipped);
     };
 
-    let inspect_result = inspect_container(docker_host_arg, container_name)?;
+    let inspect_result = inspect_container(docker_host_arg, container_name).await?;
 
     let temp_dir = inspect_result
         .config()
@@ -136,11 +138,12 @@ fn storage_mounted_from_host(
     Ok(CheckResult::Ok)
 }
 
-fn inspect_container(
+async fn inspect_container(
     docker_host_arg: &str,
     name: &str,
 ) -> Result<docker::models::InlineResponse200, failure::Error> {
     Ok(super::docker(docker_host_arg, &["inspect", name])
+        .await
         .map_err(|(_, err)| err)
         .and_then(|output| {
             let (inspect_result,): (docker::models::InlineResponse200,) =

@@ -18,12 +18,13 @@ impl Checker for ContainerEngineInstalled {
 
     async fn execute(&mut self, check: &mut Check) -> CheckResult {
         self.inner_execute(check)
+            .await
             .unwrap_or_else(CheckResult::Failed)
     }
 }
 
 impl ContainerEngineInstalled {
-    fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    async fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
         let settings = if let Some(settings) = &check.settings {
             settings
         } else {
@@ -53,7 +54,8 @@ impl ContainerEngineInstalled {
         let output = super::docker(
             &docker_host_arg,
             &["version", "--format", "{{.Server.Version}}"],
-        );
+        )
+        .await;
         let output = match output {
             Ok(output) => output,
             Err((message, err)) => {
