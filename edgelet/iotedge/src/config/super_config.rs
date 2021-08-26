@@ -104,7 +104,9 @@ impl Default for MobyRuntime {
             uri: DEFAULT_URI
                 .parse()
                 .expect("hard-coded url::Url must parse successfully"),
-            network: edgelet_settings::MobyNetwork::Name(edgelet_settings::DEFAULT_NETWORKID.to_owned()),
+            network: edgelet_settings::MobyNetwork::Name(
+                edgelet_settings::DEFAULT_NETWORKID.to_owned(),
+            ),
             content_trust: None,
         }
     }
