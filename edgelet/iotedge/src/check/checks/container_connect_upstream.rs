@@ -1,9 +1,9 @@
-use edgelet_core::RuntimeSettings;
+use edgelet_settings::RuntimeSettings;
 
 use serde::Deserialize;
 
 use crate::check::{
-    checker::Checker, upstream_protocol_port::UpstreamProtocolPort, Check, CheckResult,
+    upstream_protocol_port::UpstreamProtocolPort, Check, CheckResult, Checker, CheckerMeta,
 };
 
 pub(crate) fn get_host_container_upstream_tests() -> Vec<Box<dyn Checker>> {
@@ -65,20 +65,20 @@ pub(crate) struct ContainerConnectUpstream {
     use_container_runtime_network: bool,
 }
 
+#[async_trait::async_trait]
 impl Checker for ContainerConnectUpstream {
-    fn id(&self) -> &'static str {
-        self.id
+    fn meta(&self) -> CheckerMeta {
+        CheckerMeta {
+            id: self.id,
+            description: self.description,
+        }
     }
-    fn description(&self) -> &'static str {
-        self.description
-    }
-    fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
+
+    async fn execute(&mut self, check: &mut Check) -> CheckResult {
         self.inner_execute(check)
     }
-    fn get_json(&self) -> serde_json::Value {
-        serde_json::to_value(self).unwrap()
-    }
 }
+
 impl ContainerConnectUpstream {
     fn inner_execute(&mut self, check: &mut Check) -> CheckResult {
         let settings = if let Some(settings) = &check.settings {
