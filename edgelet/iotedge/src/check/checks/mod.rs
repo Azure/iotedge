@@ -10,7 +10,7 @@ mod container_engine_logrotate;
 mod container_local_time;
 mod container_resolve_parent_hostname;
 mod parent_hostname;
-// mod storage_mounted_from_host;
+mod storage_mounted_from_host;
 mod up_to_date_config;
 mod well_formed_config;
 
@@ -26,7 +26,7 @@ pub(crate) use self::container_engine_logrotate::ContainerEngineLogrotate;
 pub(crate) use self::container_local_time::ContainerLocalTime;
 pub(crate) use self::container_resolve_parent_hostname::ContainerResolveParentHostname;
 pub(crate) use self::parent_hostname::ParentHostname;
-// pub(crate) use self::storage_mounted_from_host::{EdgeAgentStorageMounted, EdgeHubStorageMounted};
+pub(crate) use self::storage_mounted_from_host::{EdgeAgentStorageMounted, EdgeHubStorageMounted};
 pub(crate) use self::up_to_date_config::UpToDateConfig;
 pub(crate) use self::well_formed_config::WellFormedConfig;
 
@@ -90,8 +90,8 @@ pub(crate) fn built_in_checks() -> [(&'static str, Vec<Box<dyn Checker>>); 2] {
                 Box::new(ContainerEngineIPv6::default()),
                 Box::new(ContainerEngineIsMoby::default()),
                 Box::new(ContainerEngineLogrotate::default()),
-                // Box::new(EdgeAgentStorageMounted::default()),
-                // Box::new(EdgeHubStorageMounted::default()),
+                Box::new(EdgeAgentStorageMounted::default()),
+                Box::new(EdgeHubStorageMounted::default()),
                 Box::new(CheckAgentImage::default()),
             ],
         ),

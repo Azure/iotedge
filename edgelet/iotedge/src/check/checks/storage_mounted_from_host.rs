@@ -13,14 +13,16 @@ pub(crate) struct EdgeAgentStorageMounted {
     container_directories: Option<Vec<PathBuf>>,
 }
 
+#[async_trait::async_trait]
 impl Checker for EdgeAgentStorageMounted {
-    fn id(&self) -> &'static str {
-        "edge-agent-storage-mounted-from-host"
+    fn meta(&self) -> CheckerMeta {
+        CheckerMeta {
+            id: "edge-agent-storage-mounted-from-host",
+            description: "production readiness: Edge Agent's storage directory is persisted on the host filesystem",
+        }
     }
-    fn description(&self) -> &'static str {
-        "production readiness: Edge Agent's storage directory is persisted on the host filesystem"
-    }
-    fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
+
+    async fn execute(&mut self, check: &mut Check) -> CheckResult {
         storage_mounted_from_host(
             check,
             "edgeAgent",
@@ -29,9 +31,6 @@ impl Checker for EdgeAgentStorageMounted {
             &mut self.container_directories,
         )
         .unwrap_or_else(CheckResult::Failed)
-    }
-    fn get_json(&self) -> serde_json::Value {
-        serde_json::to_value(self).unwrap()
     }
 }
 
@@ -41,14 +40,16 @@ pub struct EdgeHubStorageMounted {
     container_directories: Option<Vec<PathBuf>>,
 }
 
+#[async_trait::async_trait]
 impl Checker for EdgeHubStorageMounted {
-    fn id(&self) -> &'static str {
-        "edge-hub-storage-mounted-from-host"
+    fn meta(&self) -> CheckerMeta {
+        CheckerMeta {
+            id: "edge-hub-storage-mounted-from-host",
+            description: "production readiness: Edge Hub's storage directory is persisted on the host filesystem",
+        }
     }
-    fn description(&self) -> &'static str {
-        "production readiness: Edge Hub's storage directory is persisted on the host filesystem"
-    }
-    fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
+
+    async fn execute(&mut self, check: &mut Check) -> CheckResult {
         storage_mounted_from_host(
             check,
             "edgeHub",
@@ -57,9 +58,6 @@ impl Checker for EdgeHubStorageMounted {
             &mut self.container_directories,
         )
         .unwrap_or_else(CheckResult::Failed)
-    }
-    fn get_json(&self) -> serde_json::Value {
-        serde_json::to_value(self).unwrap()
     }
 }
 
