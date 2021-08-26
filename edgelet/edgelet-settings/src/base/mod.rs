@@ -66,8 +66,13 @@ pub struct Settings<ModuleConfig> {
     #[cfg_attr(not(debug_assertions), serde(skip_deserializing))]
     endpoints: aziot::Endpoints,
 
-    #[serde(default)]
+    #[serde(default = "default_allow_elevated_docker_permissions")]
     allow_elevated_docker_permissions: bool,
+}
+
+pub(crate) fn default_allow_elevated_docker_permissions() -> bool {
+    // For now, we will allow elevated docker permissions by default. This will change in a future version.
+    true
 }
 
 impl<T: Clone> RuntimeSettings for Settings<T> {

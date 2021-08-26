@@ -17,13 +17,8 @@ pub struct DockerConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     auth: Option<docker::models::AuthConfig>,
 
-    #[serde(default = "true_func")]
+    #[serde(default = "crate::base::default_allow_elevated_docker_permissions")]
     allow_elevated_docker_permissions: bool,
-}
-
-// Serde default requires a function: https://github.com/serde-rs/serde/issues/1030
-fn true_func() -> bool {
-    true
 }
 
 impl DockerConfig {
