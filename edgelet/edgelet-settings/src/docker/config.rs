@@ -130,12 +130,20 @@ mod tests {
 
     #[test]
     fn empty_image_fails() {
-        DockerConfig::new("".to_string(), ContainerCreateBody::new(), None, None).unwrap_err();
+        DockerConfig::new("".to_string(), ContainerCreateBody::new(), None, None, true)
+            .unwrap_err();
     }
 
     #[test]
     fn white_space_image_fails() {
-        DockerConfig::new("    ".to_string(), ContainerCreateBody::new(), None, None).unwrap_err();
+        DockerConfig::new(
+            "    ".to_string(),
+            ContainerCreateBody::new(),
+            None,
+            None,
+            true,
+        )
+        .unwrap_err();
     }
 
     #[test]
@@ -154,7 +162,7 @@ mod tests {
             .with_host_config(HostConfig::new().with_port_bindings(port_bindings))
             .with_labels(labels);
 
-        let config = DockerConfig::new("ubuntu".to_string(), create_options, None, None)
+        let config = DockerConfig::new("ubuntu".to_string(), create_options, None, None, true)
             .unwrap()
             .with_image_hash("42".to_string());
         let actual_json = serde_json::to_string(&config).unwrap();
@@ -175,7 +183,8 @@ mod tests {
                         ]
                     }
                 }
-            }
+            },
+            "allowElevatedDockerPermissions": true
         });
         assert_eq!(
             serde_json::from_str::<serde_json::Value>(&actual_json).unwrap(),
@@ -209,6 +218,7 @@ mod tests {
             create_options,
             None,
             Some(auth_config),
+            true,
         )
         .unwrap();
         let actual_json = serde_json::to_string(&config).unwrap();
@@ -233,7 +243,8 @@ mod tests {
                 "username": "username",
                 "password": "password",
                 "serveraddress": "repo.azurecr.io"
-            }
+            },
+            "allowElevatedDockerPermissions": true
         });
         assert_eq!(
             serde_json::from_str::<serde_json::Value>(&actual_json).unwrap(),
