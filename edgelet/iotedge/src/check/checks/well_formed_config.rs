@@ -4,7 +4,7 @@ use failure::{self, Fail};
 
 use edgelet_docker::{Settings, CONFIG_FILE_DEFAULT, UPSTREAM_PARENT_KEYWORD};
 
-use crate::check::{checker::Checker, Check, CheckResult};
+use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct WellFormedConfig {}

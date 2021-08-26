@@ -1,25 +1,24 @@
 use std::{net::IpAddr, str::FromStr};
 
-use crate::check::{checker::Checker, Check, CheckResult};
-use edgelet_core::RuntimeSettings;
+use crate::check::{Check, CheckResult, Checker, CheckerMeta};
+use edgelet_settings::RuntimeSettings;
 use failure::ResultExt;
 
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct ContainerResolveParentHostname {}
 
+#[async_trait::async_trait]
 impl Checker for ContainerResolveParentHostname {
-    fn id(&self) -> &'static str {
-        "container-resolve-parent-hostname"
+    fn meta(&self) -> CheckerMeta {
+        CheckerMeta {
+            id: "container-resolve-parent-hostname",
+            description: "parent hostname is resolvable from inside container",
+        }
     }
-    fn description(&self) -> &'static str {
-        "parent hostname is resolvable from inside container"
-    }
-    fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
+
+    async fn execute(&mut self, check: &mut Check) -> CheckResult {
         self.inner_execute(check)
             .unwrap_or_else(CheckResult::Failed)
-    }
-    fn get_json(&self) -> serde_json::Value {
-        serde_json::to_value(self).unwrap()
     }
 }
 

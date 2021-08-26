@@ -2,7 +2,7 @@ use std::{net::IpAddr, str::FromStr};
 
 use failure::{self, Context};
 
-use crate::check::{checker::Checker, Check, CheckResult};
+use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct ParentHostname {

@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use failure::{self, Context, ResultExt};
 use regex::Regex;
 
-use crate::check::{checker::Checker, Check, CheckResult};
+use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct EdgeAgentStorageMounted {

@@ -1,25 +1,24 @@
 use failure::Context;
 
-use crate::check::{checker::Checker, Check, CheckResult};
+use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct ContainerEngineInstalled {
     docker_host_arg: Option<String>,
     docker_server_version: Option<String>,
 }
 
+#[async_trait::async_trait]
 impl Checker for ContainerEngineInstalled {
-    fn id(&self) -> &'static str {
-        "container-engine-uri"
+    fn meta(&self) -> CheckerMeta {
+        CheckerMeta {
+            id: "container-engine-uri",
+            description: "container engine is installed and functional",
+        }
     }
-    fn description(&self) -> &'static str {
-        "container engine is installed and functional"
-    }
-    fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
+
+    async fn execute(&mut self, check: &mut Check) -> CheckResult {
         self.inner_execute(check)
             .unwrap_or_else(CheckResult::Failed)
-    }
-    fn get_json(&self) -> serde_json::Value {
-        serde_json::to_value(self).unwrap()
     }
 }
 

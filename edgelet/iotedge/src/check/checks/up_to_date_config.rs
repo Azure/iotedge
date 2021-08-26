@@ -2,7 +2,7 @@ use failure::{self, Context};
 
 use aziotctl_common::check_last_modified::{check_last_modified, LastModifiedError};
 
-use crate::check::{checker::Checker, Check, CheckResult};
+use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct UpToDateConfig {}
