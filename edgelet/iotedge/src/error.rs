@@ -62,6 +62,9 @@ pub enum ErrorKind {
 
     #[fail(display = "Error running system command")]
     System,
+
+    #[fail(display = "Error running check: {}", _0)]
+    Check(String),
 }
 
 impl Fail for Error {

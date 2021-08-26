@@ -14,6 +14,8 @@ pub struct Settings {
     pub moby_runtime: runtime::MobyRuntime,
 }
 
+pub const CONFIG_FILE_DEFAULT: &str = "/etc/aziot/edged/config.toml";
+
 impl Settings {
     /// Load the aziot-edged configuration.
     ///

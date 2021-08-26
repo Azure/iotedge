@@ -19,8 +19,8 @@ pub use base::{aziot, module, uri, watchdog};
 pub mod docker;
 #[cfg(feature = "settings-docker")]
 pub use crate::docker::{
-    config::DockerConfig,
+    config::{DockerConfig, UPSTREAM_PARENT_KEYWORD},
     network::{Ipam, MobyNetwork},
     runtime::ContentTrust,
-    Settings,
+    Settings, CONFIG_FILE_DEFAULT,
 };
