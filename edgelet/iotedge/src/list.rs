@@ -1,13 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::fmt::Display;
 use std::io::Write;
 use std::sync::{Arc, Mutex};
 
 use chrono::{Duration, Utc};
 use chrono_humanize::{Accuracy, HumanTime, Tense};
 use failure::{Fail, ResultExt};
-use futures::{Future, Stream};
 use tabwriter::TabWriter;
 
 use edgelet_core::{Module, ModuleRuntime, ModuleRuntimeState, ModuleStatus};

@@ -14,7 +14,6 @@ use failure::{Fail, ResultExt};
 use url::Url;
 
 use edgelet_core::{parse_since, LogOptions, LogTail};
-use edgelet_docker::init_client;
 use support_bundle::OutputLocation;
 
 use iotedge::{

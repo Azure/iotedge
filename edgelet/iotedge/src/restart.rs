@@ -3,7 +3,7 @@
 use std::io::Write;
 use std::sync::{Arc, Mutex};
 
-use failure::{Fail, ResultExt};
+use failure::ResultExt;
 
 use edgelet_core::ModuleRuntime;
 

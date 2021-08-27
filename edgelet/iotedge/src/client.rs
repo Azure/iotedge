@@ -73,19 +73,19 @@ impl ModuleRuntime for MgmtClient {
         self.request(&path).await
     }
 
-    async fn create(&self, module: ModuleSpec<Self::Config>) -> Result<()> {
+    async fn create(&self, _module: ModuleSpec<Self::Config>) -> Result<()> {
         unimplemented!()
     }
-    async fn get(&self, id: &str) -> Result<(Self::Module, ModuleRuntimeState)> {
+    async fn get(&self, _id: &str) -> Result<(Self::Module, ModuleRuntimeState)> {
         unimplemented!()
     }
-    async fn start(&self, id: &str) -> Result<()> {
+    async fn start(&self, _id: &str) -> Result<()> {
         unimplemented!()
     }
-    async fn stop(&self, id: &str, wait_before_kill: Option<Duration>) -> Result<()> {
+    async fn stop(&self, _id: &str, _wait_before_kill: Option<Duration>) -> Result<()> {
         unimplemented!()
     }
-    async fn remove(&self, id: &str) -> Result<()> {
+    async fn remove(&self, _id: &str) -> Result<()> {
         unimplemented!()
     }
     async fn system_info(&self) -> Result<SystemInfo> {
@@ -100,16 +100,16 @@ impl ModuleRuntime for MgmtClient {
     async fn list_with_details(&self) -> Result<Vec<(Self::Module, ModuleRuntimeState)>> {
         unimplemented!()
     }
-    async fn logs(&self, id: &str, options: &LogOptions) -> Result<hyper::Body> {
+    async fn logs(&self, _id: &str, _options: &LogOptions) -> Result<hyper::Body> {
         unimplemented!()
     }
     async fn remove_all(&self) -> Result<()> {
         unimplemented!()
     }
-    async fn stop_all(&self, wait_before_kill: Option<Duration>) -> Result<()> {
+    async fn stop_all(&self, _wait_before_kill: Option<Duration>) -> Result<()> {
         unimplemented!()
     }
-    async fn module_top(&self, id: &str) -> Result<Vec<i32>> {
+    async fn module_top(&self, _id: &str) -> Result<Vec<i32>> {
         unimplemented!()
     }
 

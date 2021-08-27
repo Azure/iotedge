@@ -1,12 +1,11 @@
 use failure::{self, Context, Fail, ResultExt};
-use futures::{future, Future, Stream};
 use regex::Regex;
 
 // use edgelet_http::client::ClientImpl;
 // use edgelet_http::MaybeProxyClient;
 
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
-use crate::error::{Error, ErrorKind, FetchLatestVersionsReason};
+use crate::error::Error;
 
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct AziotEdgedVersion {

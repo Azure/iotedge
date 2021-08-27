@@ -4,7 +4,6 @@ use std::io::{copy, stdout};
 use std::path::PathBuf;
 
 use failure::Fail;
-use futures::Future;
 
 use edgelet_core::{LogOptions, ModuleRuntime};
 use support_bundle::{make_bundle, OutputLocation};
@@ -46,7 +45,7 @@ where
         println!("Making support bundle");
 
         let output_location = self.output_location.clone();
-        let (mut bundle, size) = make_bundle(
+        let (mut bundle, _size) = make_bundle(
             self.output_location,
             self.log_options,
             self.include_ms_only,

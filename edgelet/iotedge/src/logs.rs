@@ -2,8 +2,6 @@
 
 use std::io::stdout;
 
-use futures::prelude::*;
-
 use edgelet_core::{LogOptions, ModuleRuntime};
 use support_bundle::write_logs;
 
@@ -31,7 +29,7 @@ where
 {
     pub async fn execute(self) -> Result<(), Error> {
         let id = self.id.clone();
-        let result = write_logs(&self.runtime, &id, &self.options, &mut stdout())
+        write_logs(&self.runtime, &id, &self.options, &mut stdout())
             .await
             .map_err(|_| Error::from(ErrorKind::ModuleRuntime))?;
 

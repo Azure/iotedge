@@ -16,7 +16,6 @@
     clippy::use_self
 )]
 
-use futures::Future;
 use serde_derive::Deserialize;
 
 mod check;
