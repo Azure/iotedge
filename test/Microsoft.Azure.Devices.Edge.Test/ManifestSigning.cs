@@ -62,11 +62,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 JObject defaultJsonObject = JObject.Parse(defaultLaunchSettingsString);
                 if (defaultJsonObject["profiles"]["ManifestSignerClient"]["environmentVariables"] != null)
                 {
+                    Console.WriteLine("Updated Root CA location");
                     defaultJsonObject["profiles"]["ManifestSignerClient"]["environmentVariables"]["MANIFEST_TRUST_DEVICE_ROOT_CA_PATH"] = rootCaPath.OrDefault();
                 }
 
                 // Wrtie the modified launch settings to the file
                 File.WriteAllText(Context.Current.ManifestSigningLaunchSettingsPath.OrDefault(), defaultJsonObject.ToString());
+                string newLauchSettingsContents = File.ReadAllText(Context.Current.ManifestSigningLaunchSettingsPath.OrDefault());
+                Console.WriteLine("new Default Launch Settings from SetLaunchSettingsWithRootCa ", newLauchSettingsContents);
             }
         }
 
@@ -74,6 +77,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task TestIfSignedDeploymentIsSuccessful()
         {
+            Console.WriteLine("Value of Launch Settings", Context.Current.ManifestSigningDefaultLaunchSettings.OrDefault());
+            Console.WriteLine("Root CA path ", Context.Current.ManifestSigningGoodRootCaPath.OrDefault());
             this.SetLaunchSettingsWithRootCa(Context.Current.ManifestSigningDefaultLaunchSettings, Context.Current.ManifestSigningGoodRootCaPath);
 
             // this.SetConfigToEdgeDaemon(Context.Current.ManifestSigningGoodRootCaPath, this.TestToken);
