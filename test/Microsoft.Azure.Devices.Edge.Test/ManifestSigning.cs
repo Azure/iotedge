@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             if (defaultLaunchSettings.HasValue && rootCaPath.HasValue)
             {
                 string defaultLaunchSettingsString = defaultLaunchSettings.OrDefault();
-                Console.WriteLine(defaultLaunchSettingsString);
+                Console.WriteLine("Default Launch Settings from SetLaunchSettingsWithRootCa ", defaultLaunchSettingsString);
                 JObject defaultJsonObject = JObject.Parse(defaultLaunchSettingsString);
                 if (defaultJsonObject["profiles"]["ManifestSignerClient"]["environmentVariables"] != null)
                 {
