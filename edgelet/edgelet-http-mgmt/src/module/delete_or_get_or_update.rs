@@ -98,7 +98,7 @@ where
         runtime
             .stop(&self.module, None)
             .await
-            .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;        
+            .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
 
         // Then remove the module.
         runtime

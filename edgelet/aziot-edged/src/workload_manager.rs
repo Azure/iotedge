@@ -119,7 +119,7 @@ where
         Ok(())
     }
 
-    fn stop_listener(&mut self, module_id: &str) -> Result<(), EdgedError> {
+    fn stop_listener(&mut self, module_id: &str) {
         log::info!("Stopping listener for module {}", module_id);
 
         let shutdown_sender = self.shutdown_senders.remove(module_id);
@@ -127,12 +127,6 @@ where
         if let Some(shutdown_sender) = shutdown_sender {
             // When edged boots up, it clean all modules. At this moment, no socket could listening so it could legitimatly return an error.
             shutdown_sender.send(()).ok();
-            Ok(())
-        } else {
-            return Err(EdgedError::from_err(
-                "Couldn't find a matching module Id in the list of shutdown channels",
-                ErrorKind::WorkloadManager,
-            ));
         }
     }
 
@@ -218,11 +212,7 @@ where
                             log::info!("Failed to start module {}, error {}", module_id, err);
                         }
                     }
-                    ModuleAction::Stop(module_id) => {
-                        if let Err(err) = workload_manager.stop_listener(&module_id) {
-                            log::info!("Failed to stop module {}, error {}", module_id, err);
-                        }
-                    }
+                    ModuleAction::Stop(module_id) => workload_manager.stop_listener(&module_id),
                     ModuleAction::Remove(module_id) => {
                         if let Err(err) = workload_manager.remove_listener(&module_id) {
                             log::info!("Failed to remove module {}, error {}", module_id, err);
