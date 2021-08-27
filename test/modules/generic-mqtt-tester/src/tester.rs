@@ -23,7 +23,7 @@ use crate::{
     },
     message_initiator::MessageInitiator,
     settings::{Settings, TestScenario},
-    ExitedWork, MessageTesterError, ShutdownHandle,
+    ExitedWork, MessageTesterError, ShutdownHandle, INITIATE_TOPIC_PREFIX,
 };
 
 const EDGEHUB_CONTAINER_ADDRESS: &str = "edgeHub:8883";
@@ -109,7 +109,7 @@ impl MessageTesterShutdownHandle {
 /// - Reports the result to the Test Result Coordinator test module.
 ///
 /// 4: `Relay` mode
-/// - Receives messages on initiate topic and relays it back to on relay topic.
+/// - Receives messages on any initiate topic and relays them back on the appropriate relay topic.
 pub struct MessageTester {
     settings: Settings,
     client: Client<ClientIoSource>,
@@ -270,14 +270,21 @@ impl MessageTester {
         match settings.test_scenario() {
             TestScenario::InitiateAndReceiveRelayed => client_sub_handle
                 .subscribe(SubscribeTo {
-                    topic_filter: settings.relay_topic(),
+                    topic_filter: settings.relay_topic()?,
                     qos: QoS::AtLeastOnce,
                 })
                 .await
                 .map_err(MessageTesterError::UpdateSubscription)?,
-            TestScenario::Relay | TestScenario::Receive => client_sub_handle
+            TestScenario::Relay => client_sub_handle
                 .subscribe(SubscribeTo {
-                    topic_filter: settings.initiate_topic(),
+                    topic_filter: INITIATE_TOPIC_PREFIX.to_string() + "/+",
+                    qos: QoS::AtLeastOnce,
+                })
+                .await
+                .map_err(MessageTesterError::UpdateSubscription)?,
+            TestScenario::Receive => client_sub_handle
+                .subscribe(SubscribeTo {
+                    topic_filter: settings.initiate_topic()?,
                     qos: QoS::AtLeastOnce,
                 })
                 .await
@@ -318,14 +325,7 @@ fn message_handler(
                 batch_id,
             ))))
         }
-        TestScenario::Relay => {
-            let relay_topic = settings.relay_topic();
-            Ok(Some(Box::new(RelayingMessageHandler::new(
-                publish_handle,
-                relay_topic,
-                settings.message_frequency(),
-            ))))
-        }
+        TestScenario::Relay => Ok(Some(Box::new(RelayingMessageHandler::new(publish_handle)))),
         TestScenario::Initiate => Ok(None),
     }
 }
