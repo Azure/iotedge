@@ -642,6 +642,17 @@ impl ModuleRuntime for DockerModuleRuntime {
                 err
             })?;
 
+        // Stop the task listening on the socket, just in case the container was not stopped before
+        self.create_socket_channel
+            .send(ModuleAction::Stop(id.to_string()))
+            .map_err(|_| {
+                error!("Could not notify workload manager, stop of module: {}", id);
+                Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(
+                    id.to_string(),
+                )))
+            })?;
+
+        // Remove the socket to avoid having socket files polluting the home folder.
         self.create_socket_channel
             .send(ModuleAction::Remove(id.to_string()))
             .map_err(|_| {
