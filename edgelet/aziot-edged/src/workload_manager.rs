@@ -5,6 +5,8 @@ use edgelet_settings::uri::Listen;
 
 use crate::error::Error as EdgedError;
 
+const SOCKET_DEFAULT_PERMISSION: u32 = 0o666;
+
 pub(crate) struct WorkloadManager<M>
 where
     M: edgelet_core::ModuleRuntime + Clone + Send + Sync + 'static,
@@ -75,7 +77,7 @@ where
             .map_err(|err| EdgedError::from_err("Invalid workload API URL", err))?;
 
         let mut incoming = connector
-            .incoming(socket_name)
+            .incoming(SOCKET_DEFAULT_PERMISSION, socket_name)
             .await
             .map_err(|err| EdgedError::from_err("Failed to listen on workload socket", err))?;
 
@@ -108,7 +110,7 @@ where
         module_id: &str,
         signal_socket_created: Option<tokio::sync::oneshot::Sender<()>>,
     ) -> Result<(), EdgedError> {
-        log::info!("String new listener for module {}", module_id);
+        log::info!("Starting new listener for module {}", module_id);
         let workload_uri = self.get_listener_uri(module_id)?;
 
         self.spawn_listener(workload_uri, signal_socket_created, module_id, None)

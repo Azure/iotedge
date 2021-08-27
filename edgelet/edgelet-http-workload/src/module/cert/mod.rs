@@ -95,7 +95,7 @@ impl CertApi {
             certificate: cert,
             expiration,
         };
-        let response = http_common::server::response::json(hyper::StatusCode::OK, &response);
+        let response = http_common::server::response::json(hyper::StatusCode::CREATED, &response);
 
         Ok(response)
     }

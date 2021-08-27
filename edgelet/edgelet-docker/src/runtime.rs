@@ -481,20 +481,44 @@ impl ModuleRuntime for DockerModuleRuntime {
                 )))
             })?;
 
-        let name: String = response
-            .name()
-            .ok_or_else(|| {
-                ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.to_string()))
-            })?
-            .to_owned();
-        let config = DockerConfig::new(
-            name.clone(),
-            ContainerCreateBody::new(),
+        let name = response.name().ok_or_else(|| {
+            ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.to_string()))
+        })?;
+        let name = name.trim_start_matches('/').to_owned();
+
+        let mut create_options = ContainerCreateBody::new();
+        let mut image = name.clone();
+
+        if let Some(config) = response.config() {
+            if let Some(labels) = config.labels() {
+                // Conversion of HashMap to BTreeMap.
+                let mut btree_labels = std::collections::BTreeMap::new();
+
+                for (key, value) in labels {
+                    btree_labels.insert(key.clone(), value.clone());
+
+                    if key == "net.azure-devices.edge.original-image" {
+                        image = value.clone();
+                    }
+                }
+
+                create_options.set_labels(btree_labels);
+            }
+        }
+
+        let mut config = DockerConfig::new(
+            image,
+            create_options,
             None,
             None,
             self.allow_elevated_docker_permissions,
         )
         .map_err(|_| ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.to_string())))?;
+
+        if let Some(image_hash) = response.image() {
+            config = config.with_image_hash(image_hash.to_string());
+        }
+
         let module = DockerModule::new(self.client.clone(), name, config).with_context(|_| {
             ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.to_string()))
         })?;
@@ -516,7 +540,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         self.create_socket_channel
             .send(ModuleAction::Start(id.to_string(), sender))
             .map_err(|_| {
-                error!("Could not notify worload manager, start of module: {}", id);
+                error!("Could not notify workload manager, start of module: {}", id);
                 Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
                     id.to_string(),
                 )))
@@ -524,7 +548,7 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         receiver.await.map_err(|_| {
             error!(
-                "Could wait on worload manager response, start of module: {}",
+                "Could wait on workload manager response, start of module: {}",
                 id
             );
             Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
@@ -559,7 +583,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         self.create_socket_channel
             .send(ModuleAction::Stop(id.to_string()))
             .map_err(|_| {
-                error!("Could not notify worload manager, stop of module: {}", id);
+                error!("Could not notify workload manager, stop of module: {}", id);
                 Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(
                     id.to_string(),
                 )))
@@ -616,6 +640,18 @@ impl ModuleRuntime for DockerModuleRuntime {
                 );
                 log_failure(Level::Warn, &err);
                 err
+            })?;
+
+        self.create_socket_channel
+            .send(ModuleAction::Remove(id.to_string()))
+            .map_err(|_| {
+                error!(
+                    "Could not notify workload manager, remove of module: {}",
+                    id
+                );
+                Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(
+                    id.to_string(),
+                )))
             })
     }
 
