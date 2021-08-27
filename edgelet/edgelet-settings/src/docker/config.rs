@@ -17,7 +17,10 @@ pub struct DockerConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     auth: Option<docker::models::AuthConfig>,
 
-    #[serde(default = "crate::base::default_allow_elevated_docker_permissions")]
+    #[serde(
+        default = "crate::base::default_allow_elevated_docker_permissions",
+        skip_serializing
+    )]
     allow_elevated_docker_permissions: bool,
 }
 
