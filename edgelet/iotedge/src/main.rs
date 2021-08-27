@@ -17,7 +17,7 @@ use edgelet_core::{parse_since, LogOptions, LogTail};
 use edgelet_docker::init_client;
 // use support_bundle::OutputLocation;
 
-use iotedge::{Check, Error, ErrorKind, OutputFormat, Restart, System, Version};
+use iotedge::{Check, Error, ErrorKind, MgmtClient, OutputFormat, Restart, System, Version};
 
 // use iotedge::{
 //     Check, Command, Error, ErrorKind, List, Logs, OutputFormat, Restart, SupportBundleCommand,
@@ -396,8 +396,7 @@ async fn run() -> Result<(), Error> {
                     .map_err(Error::from)
             },
         )?;
-        let runtime = init_client(&url).context(ErrorKind::ModuleRuntime)?;
-        Ok(runtime)
+        MgmtClient::new(&url)
     };
 
     match matches.subcommand() {

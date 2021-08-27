@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 
 use failure::{Fail, ResultExt};
 
-use docker::DockerApi;
+use edgelet_core::ModuleRuntime;
 
 use crate::error::{Error, ErrorKind};
 
@@ -25,17 +25,15 @@ impl<M, W> Restart<M, W> {
     }
 }
 
-impl<M, W> Restart<M, W>
+impl<M, W, E> Restart<M, W>
 where
-    M: 'static + DockerApi + Clone,
-    W: 'static + Write + Send,
+    M: ModuleRuntime<Error = E>,
+    Error: From<E>,
+    W: Write + Send,
 {
     pub async fn execute(&self) -> Result<(), Error> {
         let write = self.output.clone();
-        self.runtime
-            .container_restart(&self.id, None)
-            .await
-            .map_err(|err| Error::from(ErrorKind::Docker(err.to_string())))?;
+        self.runtime.restart(&self.id).await?;
 
         let mut w = write.lock().unwrap();
         writeln!(w, "{}", self.id).context(ErrorKind::WriteToStdout)?;

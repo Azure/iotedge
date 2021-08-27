@@ -19,6 +19,7 @@ config = {version = "0.11", default-features = false}
 erased-serde = "0.3.12"
 failure = "0.1"
 futures = "0.1"
+hex = "0.3"
 hyper = "0.14"
 hyper-proxy = "0.5.1"
 hyper-tls = "0.3"

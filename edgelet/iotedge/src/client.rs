@@ -1,35 +1,77 @@
+use failure::ResultExt;
+use hyper::{Body, Client, Uri};
+use std::time::Duration;
+use url::Url;
+
 use edgelet_core::{
     LogOptions, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, SystemInfo,
-    SystemResources,
+    SystemResources, UrlExt,
 };
 use edgelet_settings::module::Settings as ModuleSpec;
-use std::time::Duration;
+use http_common::{request_with_headers, request_with_headers_no_content, Connector};
 
-use crate::Error;
+use crate::{Error, ErrorKind};
 type Result<T> = std::result::Result<T, Error>;
 
-struct MgmtClient {}
-
-impl MgmtClient {
-    fn new() -> Self {
-        Self {}
-    }
-}
-
 #[derive(serde::Serialize, Clone)]
-struct NullConfig {}
+pub struct NullConfig {}
 
-struct ApiModule {
+pub struct MgmtModule {
     name: String,
     type_: String,
+}
+
+pub struct MgmtClient {
+    client: Client<Connector, Body>,
+    host: String,
+}
+
+impl MgmtClient {
+    pub fn new(url: &Url) -> Result<Self> {
+        let client: Client<_, Body> = Client::builder()
+            .build(Connector::new(url).map_err(|e| Error::from(ErrorKind::Misc(e.to_string())))?);
+
+        let base_path = url
+            .to_base_path()
+            .context(ErrorKind::ModuleRuntime)?
+            .to_str()
+            .ok_or(ErrorKind::ModuleRuntime)?
+            .to_string();
+        let host = hex::encode(base_path.as_bytes());
+
+        Ok(Self { client, host })
+    }
+
+    async fn request(&self, path: &str) -> Result<()> {
+        let host_str = format!("unix://{}:0{}", self.host, path);
+        let uri: std::result::Result<Uri, _> = host_str.parse();
+        let uri = uri.context(ErrorKind::ModuleRuntime)?;
+
+        request_with_headers_no_content(
+            &self.client,
+            hyper::http::Method::GET,
+            uri,
+            None,
+            None::<&()>,
+        )
+        .await
+        .context(ErrorKind::ModuleRuntime)?;
+
+        Ok(())
+    }
 }
 
 #[async_trait::async_trait]
 impl ModuleRuntime for MgmtClient {
     type Error = Error;
     type Config = NullConfig;
-    type Module = ApiModule;
+    type Module = MgmtModule;
     type ModuleRegistry = Self;
+
+    async fn restart(&self, id: &str) -> Result<()> {
+        let path = format!("/modules/{}/restart", id);
+        self.request(&path).await
+    }
 
     async fn create(&self, module: ModuleSpec<Self::Config>) -> Result<()> {
         unimplemented!()
@@ -41,9 +83,6 @@ impl ModuleRuntime for MgmtClient {
         unimplemented!()
     }
     async fn stop(&self, id: &str, wait_before_kill: Option<Duration>) -> Result<()> {
-        unimplemented!()
-    }
-    async fn restart(&self, id: &str) -> Result<()> {
         unimplemented!()
     }
     async fn remove(&self, id: &str) -> Result<()> {
@@ -80,7 +119,7 @@ impl ModuleRuntime for MgmtClient {
 }
 
 #[async_trait::async_trait]
-impl Module for ApiModule {
+impl Module for MgmtModule {
     type Config = NullConfig;
     type Error = Error;
 

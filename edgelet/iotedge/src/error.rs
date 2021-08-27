@@ -65,6 +65,9 @@ pub enum ErrorKind {
 
     #[fail(display = "Error running check: {}", _0)]
     Check(String),
+
+    #[fail(display = "{}", _0)]
+    Misc(String),
 }
 
 impl Fail for Error {

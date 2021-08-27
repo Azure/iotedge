@@ -38,6 +38,7 @@ pub use crate::restart::Restart;
 // pub use crate::support_bundle::SupportBundleCommand;
 pub use crate::system::System;
 pub use crate::version::Version;
+pub use crate::client::MgmtClient;
 
 #[derive(Debug, Deserialize)]
 pub struct LatestVersions {

@@ -1509,6 +1509,7 @@ dependencies = [
  "erased-serde",
  "failure",
  "futures 0.1.31",
+ "hex 0.3.2",
  "http-common",
  "hyper 0.14.12",
  "hyper-proxy 0.5.1",
