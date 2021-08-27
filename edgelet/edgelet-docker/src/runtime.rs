@@ -640,6 +640,18 @@ impl ModuleRuntime for DockerModuleRuntime {
                 );
                 log_failure(Level::Warn, &err);
                 err
+            })?;
+
+        self.create_socket_channel
+            .send(ModuleAction::Remove(id.to_string()))
+            .map_err(|_| {
+                error!(
+                    "Could not notify workload manager, remove of module: {}",
+                    id
+                );
+                Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(
+                    id.to_string(),
+                )))
             })
     }
 
