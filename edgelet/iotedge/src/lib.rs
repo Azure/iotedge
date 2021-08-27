@@ -26,6 +26,7 @@ mod error;
 // mod logs;
 mod restart;
 // mod support_bundle;
+mod client;
 mod system;
 mod version;
 
