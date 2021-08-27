@@ -13,7 +13,7 @@ where
 #[async_trait::async_trait]
 impl<M> http_common::server::Route for Route<M>
 where
-    M: edgelet_core::ModuleRuntime + Send + Sync,
+    M: edgelet_core::ModuleRuntime + Send + Sync + 'static,
     <M as edgelet_core::ModuleRuntime>::Config: serde::de::DeserializeOwned + Sync,
 {
     type ApiVersion = edgelet_http::ApiVersion;
@@ -92,9 +92,44 @@ where
             false
         };
 
+        // A special case is needed when restarting edgeAgent. Since edgeAgent is the module that
+        // calls the management socket, we cannot restart it from this task because restarting
+        // edgeAgent terminates its connection to the management socket and cancels this task.
+        if self.module == "edgeAgent" {
+            // Build a successful response.
+            let details = if start {
+                edgelet_http::ModuleDetails::from_spec(&body, edgelet_core::ModuleStatus::Running)
+            } else {
+                edgelet_http::ModuleDetails::from_spec(&body, edgelet_core::ModuleStatus::Stopped)
+            };
+
+            let res = http_common::server::response::json(hyper::StatusCode::CREATED, &details);
+
+            // Assign the work to restart edgeAgent to a new task and return the successful response.
+            // It doesn't matter if restarting edgeAgent fails because the aziot-edged watchdog will
+            // retry on failure.
+            tokio::spawn(async move { self.update_module(body, start).await });
+
+            Ok(res)
+        } else {
+            self.update_module(body, start).await
+        }
+    }
+}
+
+impl<M> Route<M>
+where
+    M: edgelet_core::ModuleRuntime + Send + Sync,
+    <M as edgelet_core::ModuleRuntime>::Config: serde::de::DeserializeOwned + Sync,
+{
+    async fn update_module(
+        self,
+        body: edgelet_http::ModuleSpec,
+        start: bool,
+    ) -> http_common::server::RouteResponse {
         let runtime = self.runtime.lock().await;
 
-        // Stop module first so connections are closed gracefully
+        // Stop module first so connections are closed gracefully...
         runtime
             .stop(&self.module, None)
             .await
