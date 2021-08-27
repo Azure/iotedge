@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task TestIfSignedDeploymentIsSuccessful()
         {
-            Console.WriteLine("Value of Launch Settings", Context.Current.ManifestSigningDefaultLaunchSettings.OrDefault());
+            Console.WriteLine("Value of Launch Settings", Context.Current.ManifestSigningDefaultLaunchSettings.OrDefault().ToString());
             Console.WriteLine("Root CA path ", Context.Current.ManifestSigningGoodRootCaPath.OrDefault());
             this.SetLaunchSettingsWithRootCa(Context.Current.ManifestSigningDefaultLaunchSettings, Context.Current.ManifestSigningGoodRootCaPath);
 
