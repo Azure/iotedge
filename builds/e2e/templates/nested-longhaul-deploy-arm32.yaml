@@ -1,11 +1,13 @@
 parameters:
   upstream.protocol: ''
   testInfo.testName: ''
+  test.trackingId: ''
 
 jobs:
   - job:  Deploy_Longhaul_Linux_Arm32_${{ parameters['upstream.protocol'] }}
     displayName: Set up and run longhaul tests on Linux Arm32 for ${{ parameters['upstream.protocol'] }}
-    dependsOn: SetupVM_level4_${{ parameters['upstream.protocol'] }}
+    dependsOn:
+      - SetupVM_level4_${{ parameters['upstream.protocol'] }}
     condition: and(succeeded(), eq(variables['run.linux.arm32v7.moby'], 'true'))
     pool:
       name: $(pool.name)
@@ -14,7 +16,7 @@ jobs:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals ARM
         - agent-osbits -equals 32
-        - status -equals unlocked  
+        - status -equals unlocked_$(Build.BuildId)_L3_${{ parameters['upstream.protocol'] }}
     variables:
       parentName: $[ dependencies.SetupVM_level4_${{ parameters['upstream.protocol'] }}.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level4_${{ parameters['upstream.protocol'] }}.outputs['createIdentity.parentDeviceId'] ] 
@@ -26,7 +28,6 @@ jobs:
       nestededge: true
     steps:   
       - template: nested-get-secrets.yaml     
-      - template: lock-test-agent.yaml     
       - template: nested-get-root-ca.yaml 
       - template: nested-longhaul-deploy.yaml
         parameters:
@@ -64,3 +65,4 @@ jobs:
           quickstart.package.name: '$(quickstart.package.name)'
           testInfo.testName: "${{ parameters['testInfo.testName'] }}"
           upstream.protocol: "${{ parameters['upstream.protocol'] }}"
+          test.trackingId: "${{ parameters['test.trackingId'] }}"

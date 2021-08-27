@@ -21,5 +21,6 @@ namespace DevOpsLib
         StressTestEnv1 = 66357,
         StressTestEnv2 = 96102,
         StressTestEnv3 = 96103,
+        NestedISA95 = 167652,
     }
 }

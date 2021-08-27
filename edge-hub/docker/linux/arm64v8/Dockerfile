@@ -1,4 +1,4 @@
-ARG base_tag=1.0.6.12-linux-arm64v8
+ARG base_tag=1.0.6.13-linux-arm64v8
 FROM azureiotedge/azureiotedge-hub-base:${base_tag}
 
 ADD ./watchdog/aarch64-unknown-linux-gnu/release/watchdog /usr/local/bin/watchdog
