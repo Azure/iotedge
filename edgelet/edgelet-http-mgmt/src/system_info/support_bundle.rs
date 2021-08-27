@@ -65,7 +65,7 @@ where
             false
         };
 
-        let (mut support_bundle, bundle_size) = {
+        let (support_bundle, bundle_size) = {
             let runtime = self.runtime.lock().await;
 
             support_bundle::make_bundle(
@@ -83,12 +83,10 @@ where
         let bundle_size: usize = std::convert::TryFrom::try_from(bundle_size)
             .map_err(|_| edgelet_http::error::server_error("invalid size for support bundle"))?;
 
-        let mut buf: Vec<u8> = Vec::with_capacity(bundle_size);
-        support_bundle.read_to_end(&mut buf).map_err(|err| {
-            edgelet_http::error::server_error(format!("failed to create support bundle: {}", err))
-        })?;
+        let support_bundle = ReadStream(support_bundle);
 
-        let res = http_common::server::response::zip(hyper::StatusCode::OK, bundle_size, buf);
+        let res =
+            http_common::server::response::zip(hyper::StatusCode::OK, bundle_size, support_bundle);
         Ok(res)
     }
 
@@ -119,6 +117,31 @@ where
         }
 
         Ok(log_options)
+    }
+}
+
+struct ReadStream(Box<dyn Read + Send>);
+
+impl futures_util::stream::Stream for ReadStream {
+    type Item = Result<Vec<u8>, std::io::Error>;
+
+    fn poll_next(
+        mut self: std::pin::Pin<&mut Self>,
+        _cx: &mut futures_util::task::Context<'_>,
+    ) -> futures_util::task::Poll<Option<Self::Item>> {
+        let mut buf: Vec<u8> = vec![0; 1024];
+
+        let bytes_read = self.as_mut().0.read(&mut buf)?;
+
+        let res = if bytes_read > 0 {
+            buf.resize(bytes_read, 0);
+
+            Some(Ok(buf))
+        } else {
+            None
+        };
+
+        futures_util::task::Poll::Ready(res)
     }
 }
 
