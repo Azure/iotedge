@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             if (defaultLaunchSettings.HasValue && rootCaPath.HasValue)
             {
                 string defaultLaunchSettingsString = defaultLaunchSettings.OrDefault();
-                Console.WriteLine("Default Launch Settings from SetLaunchSettingsWithRootCa ", defaultLaunchSettingsString);
+                Console.WriteLine($"Default Launch Settings:  {defaultLaunchSettingsString}");
                 JObject defaultJsonObject = JObject.Parse(defaultLaunchSettingsString);
                 if (defaultJsonObject["profiles"]["ManifestSignerClient"]["environmentVariables"] != null)
                 {
@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 // Wrtie the modified launch settings to the file
                 File.WriteAllText(Context.Current.ManifestSigningLaunchSettingsPath.OrDefault(), defaultJsonObject.ToString());
                 string newLauchSettingsContents = File.ReadAllText(Context.Current.ManifestSigningLaunchSettingsPath.OrDefault());
-                Console.WriteLine("new Default Launch Settings from SetLaunchSettingsWithRootCa ", newLauchSettingsContents);
+                Console.WriteLine($"new Default Launch Settings from SetLaunchSettingsWithRootCa: {newLauchSettingsContents} ");
             }
         }
 
@@ -77,8 +77,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task TestIfSignedDeploymentIsSuccessful()
         {
-            Console.WriteLine("Value of Launch Settings", Context.Current.ManifestSigningDefaultLaunchSettings.OrDefault().ToString());
-            Console.WriteLine("Root CA path ", Context.Current.ManifestSigningGoodRootCaPath.OrDefault());
+            Console.WriteLine($"Value of Launch Settings: {Context.Current.ManifestSigningDefaultLaunchSettings.OrDefault().ToString()}");
+            Console.WriteLine($"Root CA path: {Context.Current.ManifestSigningGoodRootCaPath.OrDefault()}");
             this.SetLaunchSettingsWithRootCa(Context.Current.ManifestSigningDefaultLaunchSettings, Context.Current.ManifestSigningGoodRootCaPath);
 
             // this.SetConfigToEdgeDaemon(Context.Current.ManifestSigningGoodRootCaPath, this.TestToken);
