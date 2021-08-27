@@ -15,13 +15,7 @@
 * Update Prometheus versions to 4.2.0 [842c8c3](https://github.com/Azure/iotedge/commit/842c8c3d56e7ebc77aefd25a40bc38ffa96ba118)
 
 
-## Kubernetes
-### Bug Fixes
-* Update to latest k8s client to address vulnerabilities in dependencies [49f1d45](https://github.com/Azure/iotedge/commit/49f1d4588235b5a1b3f8fd2cd3e54ddc79e06f18)
-* Update package dependency for security vulnerabilities [e7c900d](https://github.com/Azure/iotedge/commit/e7c900deb4573c7cf51e1c62c59971224e7999cd), [c347dba](https://github.com/Azure/iotedge/commit/c347dbae914d081b1994bb5da2db2efe645b5d99)
-
-
-## Temperature Filter Function
+## Azure Functions Module Sample
 ### Bug Fixes
 * Update Azure Functions packages [58cfa2b](https://github.com/Azure/iotedge/commit/58cfa2b8cea5811ff3f1a61441fd001ee6b25d69)
 * Update base images for a security patch [0998c04](https://github.com/Azure/iotedge/commit/0998c04f9ce71fbe9ea56bd7453316fae42ec2e9)
