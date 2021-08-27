@@ -94,6 +94,13 @@ where
 
         let runtime = self.runtime.lock().await;
 
+        // Stop module first so connections are closed gracefully
+        runtime
+            .stop(&self.module, None)
+            .await
+            .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;        
+
+        // Then remove the module.
         runtime
             .remove(&self.module)
             .await
