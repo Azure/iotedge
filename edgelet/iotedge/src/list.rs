@@ -13,7 +13,6 @@ use tabwriter::TabWriter;
 use edgelet_core::{Module, ModuleRuntime, ModuleRuntimeState, ModuleStatus};
 
 use crate::error::{Error, ErrorKind};
-use crate::Command;
 
 pub struct List<M, W> {
     runtime: M,
@@ -33,43 +32,37 @@ where
     }
 }
 
-impl<M, W> Command for List<M, W>
+impl<M, W> List<M, W>
 where
-    M: 'static + ModuleRuntime + Clone,
-    M::Module: Clone,
-    M::Config: Display,
-    W: 'static + Write + Send,
+    M: ModuleRuntime,
+    W: Write,
 {
-    type Future = Box<dyn Future<Item = (), Error = Error> + Send>;
-
-    fn execute(self) -> Self::Future {
+    pub async fn execute(self) -> Result<(), Error> {
         let write = self.output.clone();
-        let result = self
+        let mut result = self
             .runtime
             .list_with_details()
-            .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))
-            .collect()
-            .and_then(move |mut result| {
-                result.sort_by(|(mod1, _), (mod2, _)| mod1.name().cmp(mod2.name()));
+            .await
+            .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))?;
 
-                let mut w = write.lock().unwrap();
-                writeln!(w, "NAME\tSTATUS\tDESCRIPTION\tCONFIG")
-                    .context(ErrorKind::WriteToStdout)?;
-                for (module, state) in result {
-                    writeln!(
-                        w,
-                        "{}\t{}\t{}\t{}",
-                        module.name(),
-                        state.status(),
-                        humanize_state(&state),
-                        module.config(),
-                    )
-                    .context(ErrorKind::WriteToStdout)?;
-                }
-                w.flush().context(ErrorKind::WriteToStdout)?;
-                Ok(())
-            });
-        Box::new(result)
+        result.sort_by(|(mod1, _), (mod2, _)| mod1.name().cmp(mod2.name()));
+
+        let mut w = write.lock().unwrap();
+        writeln!(w, "NAME\tSTATUS\tDESCRIPTION\tCONFIG").context(ErrorKind::WriteToStdout)?;
+        for (module, state) in result {
+            writeln!(
+                w,
+                "{}\t{}\t{}\n{}",
+                module.name(),
+                state.status(),
+                humanize_state(&state),
+                "TODO: Get Config"
+            )
+            .context(ErrorKind::WriteToStdout)?;
+        }
+        w.flush().context(ErrorKind::WriteToStdout)?;
+
+        Ok(())
     }
 }
 

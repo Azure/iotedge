@@ -15,14 +15,12 @@ use url::Url;
 
 use edgelet_core::{parse_since, LogOptions, LogTail};
 use edgelet_docker::init_client;
-// use support_bundle::OutputLocation;
+use support_bundle::OutputLocation;
 
-use iotedge::{Check, Error, ErrorKind, MgmtClient, OutputFormat, Restart, System, Version};
-
-// use iotedge::{
-//     Check, Command, Error, ErrorKind, List, Logs, OutputFormat, Restart, SupportBundleCommand,
-//     System, Unknown, Version,
-// };
+use iotedge::{
+    Check, Error, ErrorKind, List, Logs, MgmtClient, OutputFormat, Restart, SupportBundleCommand,
+    System, Version,
+};
 
 #[tokio::main]
 async fn main() {
@@ -487,7 +485,7 @@ async fn run() -> Result<(), Error> {
                 std::process::exit(1);
             }
         },
-        ("list", _) => Ok(()), //tokio_runtime.block_on(List::new(runtime()?, io::stdout()).execute()),
+        ("list", _) => List::new(runtime()?, io::stdout()).execute().await,
         ("restart", Some(args)) => {
             Restart::new(
                 args.value_of("MODULE").unwrap().to_string(),
@@ -498,37 +496,36 @@ async fn run() -> Result<(), Error> {
             .await
         }
         ("logs", Some(args)) => {
-            // let id = args.value_of("MODULE").unwrap().to_string();
-            // let follow = args.is_present("follow");
-            // let tail = args
-            //     .value_of("tail")
-            //     .map(str::parse)
-            //     .transpose()
-            //     .map_err(|err: edgelet_core::Error| {
-            //         Error::from(err.context(ErrorKind::BadTailParameter))
-            //     })?
-            //     .expect("arg has a default value");
-            // let since = args
-            //     .value_of("since")
-            //     .map(|s| parse_since(s))
-            //     .transpose()
-            //     .context(ErrorKind::BadSinceParameter)?
-            //     .expect("arg has a default value");
-            // let mut options = LogOptions::new()
-            //     .with_follow(follow)
-            //     .with_tail(tail)
-            //     .with_since(since);
-            // if let Some(until) = args
-            //     .value_of("until")
-            //     .map(|s| parse_since(s))
-            //     .transpose()
-            //     .context(ErrorKind::BadSinceParameter)?
-            // {
-            //     options = options.with_until(until);
-            // }
-            // tokio_runtime.block_on(Logs::new(id, options, runtime()?).execute())
+            let id = args.value_of("MODULE").unwrap().to_string();
+            let follow = args.is_present("follow");
+            let tail = args
+                .value_of("tail")
+                .map(str::parse)
+                .transpose()
+                .map_err(|err: edgelet_core::Error| {
+                    Error::from(err.context(ErrorKind::BadTailParameter))
+                })?
+                .expect("arg has a default value");
+            let since = args
+                .value_of("since")
+                .map(|s| parse_since(s))
+                .transpose()
+                .context(ErrorKind::BadSinceParameter)?
+                .expect("arg has a default value");
+            let mut options = LogOptions::new()
+                .with_follow(follow)
+                .with_tail(tail)
+                .with_since(since);
+            if let Some(until) = args
+                .value_of("until")
+                .map(|s| parse_since(s))
+                .transpose()
+                .context(ErrorKind::BadSinceParameter)?
+            {
+                options = options.with_until(until);
+            }
 
-            Ok(())
+            Logs::new(id, options, runtime()?).execute().await
         }
         ("system", Some(args)) => match args.subcommand() {
             ("logs", Some(args)) => {
@@ -553,47 +550,44 @@ async fn run() -> Result<(), Error> {
             }
         },
         ("support-bundle", Some(args)) => {
-            // let location = args.value_of_os("output").expect("arg has a default value");
-            // let since = args
-            //     .value_of("since")
-            //     .map(|s| parse_since(s))
-            //     .transpose()
-            //     .context(ErrorKind::BadSinceParameter)?
-            //     .expect("arg has a default value");
-            // let mut options = LogOptions::new()
-            //     .with_follow(false)
-            //     .with_tail(LogTail::All)
-            //     .with_since(since);
-            // if let Some(until) = args
-            //     .value_of("until")
-            //     .map(|s| parse_since(s))
-            //     .transpose()
-            //     .context(ErrorKind::BadSinceParameter)?
-            // {
-            //     options = options.with_until(until);
-            // }
-            // let include_ms_only = args.is_present("include-edge-runtime-only");
-            // let verbose = !args.is_present("quiet");
-            // let iothub_hostname = args.value_of("iothub-hostname").map(ToOwned::to_owned);
-            // let output_location = if location == "-" {
-            //     OutputLocation::Memory
-            // } else {
-            //     OutputLocation::File(location.to_owned())
-            // };
+            let location = args.value_of_os("output").expect("arg has a default value");
+            let since = args
+                .value_of("since")
+                .map(|s| parse_since(s))
+                .transpose()
+                .context(ErrorKind::BadSinceParameter)?
+                .expect("arg has a default value");
+            let mut options = LogOptions::new()
+                .with_follow(false)
+                .with_tail(LogTail::All)
+                .with_since(since);
+            if let Some(until) = args
+                .value_of("until")
+                .map(|s| parse_since(s))
+                .transpose()
+                .context(ErrorKind::BadSinceParameter)?
+            {
+                options = options.with_until(until);
+            }
+            let include_ms_only = args.is_present("include-edge-runtime-only");
+            let verbose = !args.is_present("quiet");
+            let iothub_hostname = args.value_of("iothub-hostname").map(ToOwned::to_owned);
+            let output_location = if location == "-" {
+                OutputLocation::Memory
+            } else {
+                OutputLocation::File(location.to_owned())
+            };
 
-            // tokio_runtime.block_on(
-            //     SupportBundleCommand::new(
-            //         options,
-            //         include_ms_only,
-            //         verbose,
-            //         iothub_hostname,
-            //         output_location,
-            //         runtime()?,
-            //     )
-            //     .execute(),
-            // )
-
-            Ok(())
+            SupportBundleCommand::new(
+                options,
+                include_ms_only,
+                verbose,
+                iothub_hostname,
+                output_location,
+                runtime()?,
+            )
+            .execute()
+            .await
         }
         ("version", _) => {
             Version::print_version();

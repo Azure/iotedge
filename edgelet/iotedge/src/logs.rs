@@ -5,10 +5,9 @@ use std::io::stdout;
 use futures::prelude::*;
 
 use edgelet_core::{LogOptions, ModuleRuntime};
-use support_bundle::pull_logs;
+use support_bundle::write_logs;
 
 use crate::error::{Error, ErrorKind};
-use crate::Command;
 
 pub struct Logs<M> {
     id: String,
@@ -26,17 +25,16 @@ impl<M> Logs<M> {
     }
 }
 
-impl<M> Command for Logs<M>
+impl<M> Logs<M>
 where
-    M: 'static + ModuleRuntime + Clone,
+    M: ModuleRuntime,
 {
-    type Future = Box<dyn Future<Item = (), Error = Error> + Send>;
-
-    fn execute(self) -> Self::Future {
+    pub async fn execute(self) -> Result<(), Error> {
         let id = self.id.clone();
-        let result = pull_logs(&self.runtime, &id, &self.options, stdout())
-            .map_err(|_| Error::from(ErrorKind::ModuleRuntime))
-            .map(drop);
-        Box::new(result)
+        let result = write_logs(&self.runtime, &id, &self.options, &mut stdout())
+            .await
+            .map_err(|_| Error::from(ErrorKind::ModuleRuntime))?;
+
+        Ok(())
     }
 }
