@@ -30,6 +30,7 @@
 ## iotedged
 ### Bug Fixes
 * Fix Rust security vulnerabilities [31b488f](https://github.com/Azure/iotedge/commit/31b488f33acbb3eeac6cdf86422b1c2785f3b92c), [8bd4fff](https://github.com/Azure/iotedge/commit/8bd4fffbb0eb5c2f2291fda4263d6c6b693571e0)
+* Organize Unix and Workload socket on containers. [b7a6d10](https://github.com/Azure/iotedge/commit/b7a6d10721943012ecde657ac677cf356f5139e1)
 
 
 # 1.1.4 (2021-07-05)
