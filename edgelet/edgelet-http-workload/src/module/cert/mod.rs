@@ -397,7 +397,7 @@ mod tests {
                         // Certs within 5 mins of expiration should renew, so set an expiration
                         // time 2 mins from now.
                         let expiry_time = now.as_secs() + 120;
-                        let expiry_time: i64 =
+                        let expiry_time: libc::time_t =
                             std::convert::TryInto::try_into(expiry_time).unwrap();
 
                         let expiry_time = openssl::asn1::Asn1Time::from_unix(expiry_time).unwrap();
