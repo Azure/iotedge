@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-//use std::fmt::{self, Display};
 use std::io;
-
 use thiserror::Error as ThisError;
 use hyper::Error as HyperError;
 use serde_json;
@@ -10,8 +8,6 @@ use chrono::ParseError;
 use edgelet_client::Error as ClientError;
 use edgelet_client::WorkloadError;
 
-//use edgelet_http::Error as EdgeletHttpError;
-//use workload::apis::Error as WorkloadError;
 
 
 #[derive(Debug, ThisError)]

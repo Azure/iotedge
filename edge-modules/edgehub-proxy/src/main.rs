@@ -12,15 +12,16 @@ use edgehub_proxy::error::Error;
 use edgehub_proxy::logging;
 use edgelet_client::workload;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     logging::init();
-    if let Err(e) = run() {
+    if let Err(e) = run().await {
         logging::log_error(&e);
         process::exit(1);
     }
 }
 
-fn run() -> Result<(), Error> {
+async fn run() -> Result<(), Error> {
     let matches = App::new(crate_name!())
         .version(crate_version!())
         .about(crate_description!())
@@ -124,8 +125,6 @@ fn run() -> Result<(), Error> {
         )
         .get_matches();
 
-    let mut tokio_runtime = tokio::runtime::Builder::new_current_thread()
-        .build()?;
 
     let url = matches
         .value_of("host")
@@ -152,10 +151,9 @@ fn run() -> Result<(), Error> {
         info!("Retrieving server certificate with common name \"{}\" and expiration \"{}\" from {}...", common_name, expiration, url);
 
 
-        let request =
-            client.create_server_cert(module, gen, common_name, expiration_utc);
+        let response =
+            client.create_server_cert(module, gen, common_name, expiration_utc).await?;
 
-        let response = tokio_runtime.block_on(request)?;
         info!("Retrieved server certificate.");
 
         if let Some(crt_path) = args.value_of("crt file") {
@@ -194,20 +192,3 @@ fn run() -> Result<(), Error> {
     }
     Ok(())
 }
-
-/*
-fn client(url: &Url) -> Result<WorkloadClient, Error> {
-    let client = workload(url);
-    /*
-    let mut configuration = Configuration::new(hyper_client);
-    configuration.base_path = base_path.to_string();
-
-    
-    configuration.uri_composer = Box::new(move |base_path, path| {
-        Ok(UrlConnector::build_hyper_uri(&scheme, base_path, path)?)
-    });
-    let client = APIClient::new(configuration);
-    */
-    Ok(client)
-}
-*/
