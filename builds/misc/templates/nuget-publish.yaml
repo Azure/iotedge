@@ -15,8 +15,8 @@ jobs:
       vmImage: ubuntu-18.04
     steps: 
       # use dotnet 3 as primary install for build
-      - template: ../templates/install-dotnet3.yaml
-      - template: ../templates/dotnet3-globaljson.yaml
+      - template: ../../templates/install-dotnet3.yaml
+      - template: ../../templates/dotnet3-globaljson.yaml
       - task: ShellScript@2
         displayName: "Build Azure-IoT-Edge-Core"
         inputs: 
@@ -24,9 +24,9 @@ jobs:
           scriptPath: scripts/linux/buildBranch.sh
 
       # Dotnet 2 needed for codesign
-      - template: ../templates/install-dotnet2.yaml
+      - template: ../../templates/install-dotnet2.yaml
       # switch to dotnet 2 as primary install for code sign
-      - template: ../templates/dotnet2-globaljson.yaml
+      - template: ../../templates/dotnet2-globaljson.yaml
       - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
         displayName: "Functions Binding Code Sign"
         inputs: 
