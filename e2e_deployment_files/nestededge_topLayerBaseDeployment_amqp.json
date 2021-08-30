@@ -99,6 +99,9 @@
               },
               "DOCKER_REQUEST_ROUTE_ADDRESS": {
                 "value": "dockerContainerRegistry:5000"
+              },
+              "NGINX_DEFAULT_TLS": {
+                "value": "TLSv1.2"
               }
             }
           }
