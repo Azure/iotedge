@@ -1,0 +1,126 @@
+name: $(version)
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
+jobs:
+################################################################################
+  - job: linux_dotnet_projects
+################################################################################
+    # This job is run on a hosted linux agent, which needs dotnet 2 and 3 installed as a manual step. 
+    # The code sign steps will fail unless we explicitly say to use dotnet 2 before.
+    # This means we have to toggle back and forth between primary dotnet installations for the sign and build.
+    # TODO: Investigate why we have to toggle primary installs on linux, when we didn't have to do this on windows (now removed).
+    timeoutInMinutes: 180
+    displayName: LinuxDotnet
+    pool: 
+      vmImage: ubuntu-18.04
+    steps: 
+      # use dotnet 3 as primary install for build
+      - template: ../templates/install-dotnet3.yaml
+      - template: ../templates/dotnet3-globaljson.yaml
+      - task: ShellScript@2
+        displayName: "Build Azure-IoT-Edge-Core"
+        inputs: 
+          args: "-c Release"
+          scriptPath: scripts/linux/buildBranch.sh
+
+      # Dotnet 2 needed for codesign
+      - template: ../templates/install-dotnet2.yaml
+      # switch to dotnet 2 as primary install for code sign
+      - template: ../templates/dotnet2-globaljson.yaml
+      - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+        displayName: "Functions Binding Code Sign"
+        inputs: 
+          ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+          FolderPath: '$(Build.BinariesDirectory)/publish/Microsoft.Azure.WebJobs.Extensions.EdgeHub'
+          Pattern: Microsoft.Azure.WebJobs.Extensions*.dll
+          tlsVersion: 'TLS 1.2'
+          SessionTimeout: 20
+          MaxConcurrency: 50
+          MaxRetryAttempts: 5
+          inlineOperation: |
+          [
+              {
+                  "keyCode": "CP-230012",
+                  "operationSetCode": "SigntoolSign",
+                  "parameters": [
+                  {
+                      "parameterName": "OpusName",
+                      "parameterValue": "Microsoft"
+                  },
+                  {
+                      "parameterName": "OpusInfo",
+                      "parameterValue": "http://www.microsoft.com"
+                  },
+                  {
+                      "parameterName": "Append",
+                      "parameterValue": "/as"
+                  },
+                  {
+                      "parameterName": "FileDigest",
+                      "parameterValue": "/fd \"SHA256\""
+                  },
+                  {
+                      "parameterName": "PageHash",
+                      "parameterValue": "/NPH"
+                  },
+                  {
+                      "parameterName": "TimeStamp",
+                      "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
+                  }
+                  ],
+                  "toolName": "sign",
+                  "toolVersion": "1.0"
+              },
+              {
+                  "keyCode": "CP-230012",
+                  "operationSetCode": "SigntoolVerify",
+                  "parameters": [
+                  {
+                      "parameterName": "VerifyAll",
+                      "parameterValue": "/all"
+                  }
+                  ],
+                  "toolName": "sign",
+                  "toolVersion": "1.0"
+              }
+          ]
+
+      - task: DotNetCoreCLI@2
+        displayName: 'Functions Binding nuget package'
+        inputs:
+          command: pack
+          packagesToPack: '**/Microsoft.Azure.WebJobs.Extensions.EdgeHub.csproj'
+          packDirectory: '$(Build.BinariesDirectory)/publish/'
+          nobuild: true
+          versioningScheme: byEnvVar
+          versionEnvVar: version
+          buildProperties: 'OutDir=$(Build.BinariesDirectory)/publish/Microsoft.Azure.WebJobs.Extensions.EdgeHub'
+
+      - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+        displayName: 'Functions Binding nuget package Sign'
+        inputs:
+          ConnectedServiceName: 'Azure IoT Edge Code Sign 2'
+          FolderPath: '$(Build.BinariesDirectory)/publish'
+          Pattern: 'Microsoft.Azure.WebJobs.Extensions*.nupkg'
+          signConfigType: inlineSignParams
+          tlsVersion: 'TLS 1.2'
+          SessionTimeout: 20
+          MaxConcurrency: 50
+          MaxRetryAttempts: 5
+          inlineOperation: |
+          [
+              {
+                  "keyCode": "CP-401405",
+                  "operationSetCode": "NuGetSign",
+                  "parameters": [],
+                  "toolName": "sign",
+                  "toolVersion": "1.0"
+              },
+              {
+                  "keyCode": "CP-401405",
+                  "operationSetCode": "NuGetVerify",
+                  "parameters": [],
+                  "toolName": "sign",
+                  "toolVersion": "1.0"
+              }
+          ]
