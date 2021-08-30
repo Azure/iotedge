@@ -9,7 +9,6 @@ use std::{mem, process, str};
 
 use edgelet_core::module::ModuleAction;
 use failure::ResultExt;
-use futures::{stream, StreamExt};
 use hyper::{Body, Client, Uri};
 use log::{debug, error, info, warn, Level};
 use sysinfo::{DiskExt, ProcessExt, ProcessorExt, System, SystemExt};
@@ -909,23 +908,35 @@ impl ModuleRuntime for DockerModuleRuntime {
     }
 
     async fn remove_all(&self) -> Result<()> {
-        stream::iter(self.list().await?)
-            .then(|module| async move { ModuleRuntime::remove(self, module.name()).await })
-            .collect::<Vec<Result<_>>>()
-            .await
-            .into_iter()
-            .collect::<Result<Vec<_>>>()?;
+        let modules = self.list().await?;
+        let mut remove = vec![];
+
+        for module in &modules {
+            remove.push(ModuleRuntime::remove(self, module.name()));
+        }
+
+        for result in futures::future::join_all(remove).await {
+            if let Err(err) = result {
+                log::warn!("Failed to remove module: {}", err)
+            }
+        }
 
         Ok(())
     }
 
     async fn stop_all(&self, wait_before_kill: Option<Duration>) -> Result<()> {
-        stream::iter(self.list().await?)
-            .then(|module| async move { self.stop(module.name(), wait_before_kill).await })
-            .collect::<Vec<Result<_>>>()
-            .await
-            .into_iter()
-            .collect::<Result<Vec<_>>>()?;
+        let modules = self.list().await?;
+        let mut stop = vec![];
+
+        for module in &modules {
+            stop.push(self.stop(module.name(), wait_before_kill));
+        }
+
+        for result in futures::future::join_all(stop).await {
+            if let Err(err) = result {
+                log::warn!("Failed to stop module: {}", err)
+            }
+        }
 
         Ok(())
     }
