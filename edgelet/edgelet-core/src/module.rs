@@ -515,7 +515,7 @@ mod tests {
     fn module_config_empty_name_fails() {
         let name = "".to_string();
         ModuleSpec::new(
-            name.clone(),
+            name,
             "docker".to_string(),
             10_i32,
             BTreeMap::new(),
@@ -528,7 +528,7 @@ mod tests {
     fn module_config_white_space_name_fails() {
         let name = "    ".to_string();
         ModuleSpec::new(
-            name.clone(),
+            name,
             "docker".to_string(),
             10_i32,
             BTreeMap::new(),
@@ -542,7 +542,7 @@ mod tests {
         let type_ = "    ".to_string();
         ModuleSpec::new(
             "m1".to_string(),
-            type_.clone(),
+            type_,
             10_i32,
             BTreeMap::new(),
             ImagePullPolicy::default(),
@@ -555,7 +555,7 @@ mod tests {
         let type_ = "    ".to_string();
         ModuleSpec::new(
             "m1".to_string(),
-            type_.clone(),
+            type_,
             10_i32,
             BTreeMap::new(),
             ImagePullPolicy::default(),

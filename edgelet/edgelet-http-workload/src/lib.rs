@@ -232,11 +232,12 @@ mod tests {
             auth: None,
         };
 
-        let mut settings = edgelet_test_utils::Settings::default();
-        settings.edge_ca_cert = Some("test-ca-cert".to_string());
-        settings.edge_ca_key = Some("test-ca-key".to_string());
-        settings.trust_bundle = Some("test-trust-bundle".to_string());
-        settings.manifest_trust_bundle = Some("test-manifest-trust-bundle".to_string());
+        let settings = edgelet_test_utils::Settings {
+            edge_ca_cert: Some("test-ca-cert".to_string()),
+            edge_ca_key: Some("test-ca-key".to_string()),
+            trust_bundle: Some("test-trust-bundle".to_string()),
+            manifest_trust_bundle: Some("test-manifest-trust-bundle".to_string()),
+        };
 
         // Check that values from settings are used when provided.
         let config = super::WorkloadConfig::new(&settings, &device_info);

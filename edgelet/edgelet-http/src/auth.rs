@@ -40,6 +40,7 @@ pub async fn auth_caller(
 }
 
 #[cfg(test)]
+#[allow(clippy::semicolon_if_nothing_returned)]
 mod tests {
     use super::{auth_agent, auth_caller};
 

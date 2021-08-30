@@ -101,10 +101,10 @@ mod tests {
 
     #[test]
     fn parse_default() {
-        let _ = parse_since("asdfasdf").unwrap_err();
+        parse_since("asdfasdf").unwrap_err();
     }
 
     fn assert_near(a: i32, b: i32, tol: i32) {
-        assert!((a - b).abs() < tol)
+        assert!((a - b).abs() < tol);
     }
 }

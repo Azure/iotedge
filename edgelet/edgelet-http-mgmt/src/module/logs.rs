@@ -148,6 +148,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::bool_assert_comparison)]
     fn parse_query_bools() {
         let uri = "/modules/testModule/logs";
 
@@ -261,10 +262,10 @@ mod tests {
         );
         let log_options = route.log_options().unwrap();
 
-        assert_eq!(true, log_options.follow());
+        assert!(log_options.follow());
         assert_eq!(&edgelet_core::LogTail::Num(100), log_options.tail());
         assert_eq!(5, log_options.since());
         assert_eq!(Some(10), log_options.until());
-        assert_eq!(true, log_options.timestamps());
+        assert!(log_options.timestamps());
     }
 }

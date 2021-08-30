@@ -200,6 +200,6 @@ mod tests {
         assert_eq!(
             actual,
             Err(format!("Unsupported TLS protocol version: {}", value))
-        )
+        );
     }
 }

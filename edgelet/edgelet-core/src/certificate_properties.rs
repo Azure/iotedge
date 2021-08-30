@@ -110,7 +110,7 @@ mod tests {
         assert_eq!(&CertificateType::Client, c.certificate_type());
         assert_eq!("alias", c.alias());
         assert_eq!(&CertificateIssuer::DefaultCa, c.issuer());
-        assert_eq!(true, c.dns_san_entries().is_none());
+        assert!(c.dns_san_entries().is_none());
     }
 
     #[test]
