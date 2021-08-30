@@ -90,14 +90,14 @@ pub const UNIX_SCHEME: &str = "unix";
 #[derive(Debug, PartialEq)]
 pub enum ShutdownReason {
     Reprovision,
-    SigInt,
+    Signal,
 }
 
 impl std::fmt::Display for ShutdownReason {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ShutdownReason::Reprovision => f.write_str("Edge daemon will reprovision and restart"),
-            ShutdownReason::SigInt => f.write_str("Received SIGINT; shutting down"),
+            ShutdownReason::Signal => f.write_str("Received signal; shutting down"),
         }
     }
 }
