@@ -1,87 +1,59 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::fmt::{self, Display};
+//use std::fmt::{self, Display};
 use std::io;
 
-use thiserror::Error;
+use thiserror::Error as ThisError;
 use hyper::Error as HyperError;
 use serde_json;
-use url::ParseError;
+use chrono::ParseError;
+use edgelet_client::Error as ClientError;
+use edgelet_client::WorkloadError;
 
 //use edgelet_http::Error as EdgeletHttpError;
-use workload::apis::Error as WorkloadError;
+//use workload::apis::Error as WorkloadError;
 
 
-#[derive(Error, Debug)]
+#[derive(Debug, ThisError)]
 pub enum Error {
-    #[error("Client error")]
-    Client(WorkloadError<serde_json::Value>),
     #[error("Error connecting to endpoint")]
     Http,
     #[error("Hyper error")]
-    Hyper,
+    Hyper(
+        #[from]
+        #[source]
+        HyperError,
+      ),
     #[error("An IO error occurred.")]
-    Io,
-    #[error("Url parse error")]
-    Parse,
+    Io(
+        #[from]
+        #[source]
+        io::Error,
+      ),
+    #[error("Chrono date parse error")]
+    Parse(
+        #[from]
+        #[source]
+        ParseError,
+      ),
     #[error("Serde error")]
-    Serde,
+    Serde(
+        #[from]
+        #[source]
+        serde_json::Error,
+      ),
+    #[error("client error")]
+    Client(
+        #[from]
+        #[source]
+        ClientError,
+      ),
+    #[error("Workload api error")]
+    Workload(
+        #[from]
+        #[source]
+        WorkloadError,
+      ),
 }
 
 
-
-impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Self {
-        Error { inner }
-    }
-}
-
-impl From<io::Error> for Error {
-    fn from(error: io::Error) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Io),
-        }
-    }
-}
-
-impl From<EdgeletHttpError> for Error {
-    fn from(error: EdgeletHttpError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Http),
-        }
-    }
-}
-
-impl From<HyperError> for Error {
-    fn from(error: HyperError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Hyper),
-        }
-    }
-}
-
-impl From<ParseError> for Error {
-    fn from(error: ParseError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Parse),
-        }
-    }
-}
-
-impl From<serde_json::Error> for Error {
-    fn from(error: serde_json::Error) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Serde),
-        }
-    }
-}
-
-impl From<WorkloadError<serde_json::Value>> for Error {
-    fn from(error: WorkloadError<serde_json::Value>) -> Self {
-        match error {
-            WorkloadError::Hyper(h) => From::from(h),
-            WorkloadError::Serde(s) => From::from(s),
-            WorkloadError::Api(_) => From::from(ErrorKind::Client(error)),
-        }
-    }
-}

@@ -13,10 +13,11 @@ log = "0.4"
 serde_json = "1.0"
 tokio = { version = "1", features = ["full"] }
 url = "1.7"
-
+chrono = "0.4"
 
 edgelet-utils = { path = "../../edgelet/edgelet-utils" }
-workload = { path = "../../edgelet/workload" }
+edgelet-http-workload = { path = "../../edgelet/edgelet-http-workload" }
+edgelet-client = { path = "../../mqtt/edgelet-client" }
 http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main", features = ["tokio1"] }
 
 [profile.release]
