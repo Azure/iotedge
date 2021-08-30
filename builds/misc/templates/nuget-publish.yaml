@@ -38,52 +38,52 @@ jobs:
           MaxConcurrency: 50
           MaxRetryAttempts: 5
           inlineOperation: |
-          [
-              {
-                  "keyCode": "CP-230012",
-                  "operationSetCode": "SigntoolSign",
-                  "parameters": [
-                  {
-                      "parameterName": "OpusName",
-                      "parameterValue": "Microsoft"
-                  },
-                  {
-                      "parameterName": "OpusInfo",
-                      "parameterValue": "http://www.microsoft.com"
-                  },
-                  {
-                      "parameterName": "Append",
-                      "parameterValue": "/as"
-                  },
-                  {
-                      "parameterName": "FileDigest",
-                      "parameterValue": "/fd \"SHA256\""
-                  },
-                  {
-                      "parameterName": "PageHash",
-                      "parameterValue": "/NPH"
-                  },
-                  {
-                      "parameterName": "TimeStamp",
-                      "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
-                  }
-                  ],
-                  "toolName": "sign",
-                  "toolVersion": "1.0"
-              },
-              {
-                  "keyCode": "CP-230012",
-                  "operationSetCode": "SigntoolVerify",
-                  "parameters": [
-                  {
-                      "parameterName": "VerifyAll",
-                      "parameterValue": "/all"
-                  }
-                  ],
-                  "toolName": "sign",
-                  "toolVersion": "1.0"
-              }
-          ]
+            [
+                {
+                    "keyCode": "CP-230012",
+                    "operationSetCode": "SigntoolSign",
+                    "parameters": [
+                    {
+                        "parameterName": "OpusName",
+                        "parameterValue": "Microsoft"
+                    },
+                    {
+                        "parameterName": "OpusInfo",
+                        "parameterValue": "http://www.microsoft.com"
+                    },
+                    {
+                        "parameterName": "Append",
+                        "parameterValue": "/as"
+                    },
+                    {
+                        "parameterName": "FileDigest",
+                        "parameterValue": "/fd \"SHA256\""
+                    },
+                    {
+                        "parameterName": "PageHash",
+                        "parameterValue": "/NPH"
+                    },
+                    {
+                        "parameterName": "TimeStamp",
+                        "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
+                    }
+                    ],
+                    "toolName": "sign",
+                    "toolVersion": "1.0"
+                },
+                {
+                    "keyCode": "CP-230012",
+                    "operationSetCode": "SigntoolVerify",
+                    "parameters": [
+                    {
+                        "parameterName": "VerifyAll",
+                        "parameterValue": "/all"
+                    }
+                    ],
+                    "toolName": "sign",
+                    "toolVersion": "1.0"
+                }
+            ]
 
       - task: DotNetCoreCLI@2
         displayName: 'Functions Binding nuget package'
@@ -108,19 +108,19 @@ jobs:
           MaxConcurrency: 50
           MaxRetryAttempts: 5
           inlineOperation: |
-          [
-              {
-                  "keyCode": "CP-401405",
-                  "operationSetCode": "NuGetSign",
-                  "parameters": [],
-                  "toolName": "sign",
-                  "toolVersion": "1.0"
-              },
-              {
-                  "keyCode": "CP-401405",
-                  "operationSetCode": "NuGetVerify",
-                  "parameters": [],
-                  "toolName": "sign",
-                  "toolVersion": "1.0"
-              }
-          ]
+            [
+                {
+                    "keyCode": "CP-401405",
+                    "operationSetCode": "NuGetSign",
+                    "parameters": [],
+                    "toolName": "sign",
+                    "toolVersion": "1.0"
+                },
+                {
+                    "keyCode": "CP-401405",
+                    "operationSetCode": "NuGetVerify",
+                    "parameters": [],
+                    "toolName": "sign",
+                    "toolVersion": "1.0"
+                }
+            ]
