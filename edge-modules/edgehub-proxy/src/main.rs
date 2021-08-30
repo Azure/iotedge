@@ -1,4 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
+
+
 use std::fs;
 use std::process;
 
@@ -128,25 +130,24 @@ async fn run() -> Result<(), Error> {
 
     let url = matches
         .value_of("host")
-        .expect("no value for required HOST");
+        .ok_or(Error::MissingVal("HOST"))?;
     let client = workload(url)?;
-
 
     let module = matches
         .value_of("moduleid")
-        .expect("no value for required MODULEID");
+        .ok_or(Error::MissingVal("MODULEID"))?;
     let gen = matches
         .value_of("genid")
-        .expect("no value for required GENID");
+        .ok_or(Error::MissingVal("GENID"))?;
 
     if let ("cert-server", Some(args)) = matches.subcommand() {
         let common_name = args
             .value_of("common name")
-            .expect("no value for required COMMON_NAME");
+            .ok_or(Error::MissingVal("COMMON_NAME"))?;
         let expiration = DateTime::parse_from_rfc3339(
             args
                 .value_of("expiration")
-                .expect("no value for required EXPIRATION"))?;
+                .ok_or(Error::MissingVal("EXPIRATION"))?)?;
         let expiration_utc = expiration.with_timezone(&Utc);
         info!("Retrieving server certificate with common name \"{}\" and expiration \"{}\" from {}...", common_name, expiration, url);
 

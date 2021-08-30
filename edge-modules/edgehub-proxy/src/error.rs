@@ -12,8 +12,9 @@ use edgelet_client::WorkloadError;
 
 #[derive(Debug, ThisError)]
 pub enum Error {
-    #[error("Error connecting to endpoint")]
-    Http,
+
+    #[error("no value for required '{0}'")]
+    MissingVal(&'static str),
     #[error("Hyper error")]
     Hyper(
         #[from]
@@ -38,7 +39,7 @@ pub enum Error {
         #[source]
         serde_json::Error,
       ),
-    #[error("client error")]
+    #[error("Edgelet client error")]
     Client(
         #[from]
         #[source]
@@ -51,5 +52,4 @@ pub enum Error {
         WorkloadError,
       ),
 }
-
 
