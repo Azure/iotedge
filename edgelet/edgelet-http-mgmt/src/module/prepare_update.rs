@@ -61,7 +61,7 @@ where
             }
         };
 
-        if body.name() != &self.module {
+        if body.name() != self.module {
             return Err(edgelet_http::error::bad_request(
                 "module name in spec does not match URI",
             ));
@@ -71,7 +71,7 @@ where
 
         let module = body
             .to_runtime_spec::<M>()
-            .map_err(|err| edgelet_http::error::server_error(err))?;
+            .map_err(edgelet_http::error::server_error)?;
 
         super::pull_image(&*runtime, &module).await?;
 

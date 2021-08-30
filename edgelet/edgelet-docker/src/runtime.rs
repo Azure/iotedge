@@ -917,7 +917,7 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         for result in futures::future::join_all(remove).await {
             if let Err(err) = result {
-                log::warn!("Failed to remove module: {}", err)
+                log::warn!("Failed to remove module: {}", err);
             }
         }
 
@@ -934,7 +934,7 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         for result in futures::future::join_all(stop).await {
             if let Err(err) = result {
-                log::warn!("Failed to stop module: {}", err)
+                log::warn!("Failed to stop module: {}", err);
             }
         }
 

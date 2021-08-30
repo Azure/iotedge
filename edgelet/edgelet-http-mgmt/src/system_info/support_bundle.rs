@@ -103,14 +103,14 @@ where
         let mut log_options = edgelet_core::LogOptions::new();
 
         if let Some(since) = &self.since {
-            let since = edgelet_core::parse_since(&since)
+            let since = edgelet_core::parse_since(since)
                 .map_err(|_| edgelet_http::error::bad_request("invalid parameter: since"))?;
 
             log_options = log_options.with_since(since);
         }
 
         if let Some(until) = &self.until {
-            let until = edgelet_core::parse_since(&until)
+            let until = edgelet_core::parse_since(until)
                 .map_err(|_| edgelet_http::error::bad_request("invalid parameter: until"))?;
 
             log_options = log_options.with_until(until);

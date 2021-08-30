@@ -137,7 +137,7 @@ where
     );
     let mut inspect = Command::new("docker");
 
-    inspect.args(&["network", "inspect", &network_name, "-v"]);
+    inspect.args(&["network", "inspect", network_name, "-v"]);
     let inspect = inspect.output().await;
 
     let (file_name, output) = if let Ok(result) = inspect {

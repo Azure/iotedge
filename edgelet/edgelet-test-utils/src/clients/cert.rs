@@ -39,7 +39,7 @@ impl CertClient {
         // The real cert client would connect to certd and create the cert.
         // This test client just issues certs locally if an issuer is provided.
         // Otherwise, it just places the provided data into the map of certs.
-        let cert = if let None = issuer {
+        let cert = if issuer.is_none() {
             data.to_owned()
         } else {
             self.issue_cert(data)

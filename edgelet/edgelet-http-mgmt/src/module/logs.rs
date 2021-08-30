@@ -89,35 +89,35 @@ where
         let mut log_options = edgelet_core::LogOptions::new();
 
         if let Some(follow) = &self.follow {
-            let follow = std::str::FromStr::from_str(&follow)
+            let follow = std::str::FromStr::from_str(follow)
                 .map_err(|_| edgelet_http::error::bad_request("invalid parameter: follow"))?;
 
             log_options = log_options.with_follow(follow);
         }
 
         if let Some(tail) = &self.tail {
-            let tail = std::str::FromStr::from_str(&tail)
+            let tail = std::str::FromStr::from_str(tail)
                 .map_err(|_| edgelet_http::error::bad_request("invalid parameter: tail"))?;
 
             log_options = log_options.with_tail(tail);
         }
 
         if let Some(since) = &self.since {
-            let since = edgelet_core::parse_since(&since)
+            let since = edgelet_core::parse_since(since)
                 .map_err(|_| edgelet_http::error::bad_request("invalid parameter: since"))?;
 
             log_options = log_options.with_since(since);
         }
 
         if let Some(until) = &self.until {
-            let until = edgelet_core::parse_since(&until)
+            let until = edgelet_core::parse_since(until)
                 .map_err(|_| edgelet_http::error::bad_request("invalid parameter: until"))?;
 
             log_options = log_options.with_until(until);
         }
 
         if let Some(timestamps) = &self.timestamps {
-            let timestamps = std::str::FromStr::from_str(&timestamps)
+            let timestamps = std::str::FromStr::from_str(timestamps)
                 .map_err(|_| edgelet_http::error::bad_request("invalid parameter: timestamps"))?;
 
             log_options = log_options.with_timestamps(timestamps);

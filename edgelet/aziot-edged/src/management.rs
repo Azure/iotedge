@@ -18,11 +18,11 @@ where
 {
     let socket = settings.listen().management_uri();
 
-    let connector = http_common::Connector::new(&socket)
+    let connector = http_common::Connector::new(socket)
         .map_err(|err| EdgedError::from_err("Invalid management API URL", err))?;
 
     let service = edgelet_http_mgmt::Service::new(
-        &settings.endpoints().aziot_identityd_url(),
+        settings.endpoints().aziot_identityd_url(),
         runtime,
         sender,
     )

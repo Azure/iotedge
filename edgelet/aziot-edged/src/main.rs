@@ -39,6 +39,7 @@ async fn main() {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 async fn run() -> Result<(), EdgedError> {
     let settings =
         edgelet_settings::docker::Settings::new().map_err(|err| EdgedError::settings_err(err))?;

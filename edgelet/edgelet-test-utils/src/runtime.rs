@@ -95,12 +95,10 @@ impl edgelet_core::ModuleRuntime for Runtime {
         } else {
             let pids = if let Some(pids) = self.module_auth.get(id) {
                 pids.clone()
+            } else if let Some(default) = self.module_auth.get("default") {
+                default.clone()
             } else {
-                if let Some(default) = self.module_auth.get("default") {
-                    default.clone()
-                } else {
-                    Vec::new()
-                }
+                Vec::new()
             };
 
             Ok(pids)

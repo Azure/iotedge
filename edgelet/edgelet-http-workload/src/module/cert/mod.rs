@@ -314,7 +314,7 @@ async fn should_renew(
             let current_time =
                 openssl::asn1::Asn1Time::days_from_now(0).expect("current time must be valid");
 
-            let diff = current_time.diff(&cert.not_after()).map_err(|_| {
+            let diff = current_time.diff(cert.not_after()).map_err(|_| {
                 edgelet_http::error::server_error("failed to determine edge ca expiration time")
             })?;
             let diff = i64::from(diff.secs) + i64::from(diff.days) * 86400;
