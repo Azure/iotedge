@@ -1,5 +1,15 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+#[derive(Clone, serde::Deserialize)]
+pub struct ModuleSpec {
+    name: String,
+    r#type: String,
+    config: ModuleConfig,
+
+    #[serde(rename = "imagePullPolicy", skip_serializing_if = "Option::is_none")]
+    image_pull_policy: Option<String>,
+}
+
 #[derive(Debug, serde::Serialize)]
 #[allow(clippy::module_name_repetitions)]
 pub struct ListModulesResponse {
@@ -15,7 +25,7 @@ pub struct ModuleDetails {
     status: ModuleStatus,
 }
 
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct ModuleConfig {
     settings: serde_json::Value,
 
@@ -23,7 +33,7 @@ pub struct ModuleConfig {
     env: Option<Vec<EnvVar>>,
 }
 
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 struct EnvVar {
     key: String,
     value: String,
@@ -58,6 +68,41 @@ struct RuntimeStatus {
     description: Option<String>,
 }
 
+impl ModuleSpec {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn to_runtime_spec<M>(
+        self,
+    ) -> Result<edgelet_settings::ModuleSpec<<M as edgelet_core::ModuleRuntime>::Config>, String>
+    where
+        M: edgelet_core::ModuleRuntime,
+        <M as edgelet_core::ModuleRuntime>::Config: serde::de::DeserializeOwned,
+    {
+        let mut env = std::collections::BTreeMap::new();
+
+        if let Some(vars) = self.config.env {
+            for var in vars {
+                if env.insert(var.key.clone(), var.value).is_some() {
+                    return Err(format!("duplicate env var key: {}", var.key));
+                }
+            }
+        }
+
+        let config = serde_json::from_value(self.config.settings)
+            .map_err(|err| format!("invalid Docker config: {}", err))?;
+
+        let image_pull_policy = match self.image_pull_policy {
+            Some(policy) => std::str::FromStr::from_str(&policy)
+                .map_err(|_| "invalid imagePullPolicy".to_string())?,
+            None => edgelet_settings::module::ImagePullPolicy::default(),
+        };
+
+        edgelet_settings::ModuleSpec::new(self.name, self.r#type, config, env, image_pull_policy)
+    }
+}
+
 impl<M> std::convert::From<Vec<(M, edgelet_core::ModuleRuntimeState)>> for ListModulesResponse
 where
     M: edgelet_core::Module,
@@ -71,6 +116,26 @@ where
         }
 
         ListModulesResponse { modules: response }
+    }
+}
+
+impl ModuleDetails {
+    pub fn from_spec(spec: &ModuleSpec, status: edgelet_core::ModuleStatus) -> Self {
+        ModuleDetails {
+            id: "id".to_string(),
+            name: spec.name.clone(),
+            r#type: spec.r#type.clone(),
+            config: spec.config.clone(),
+
+            status: ModuleStatus {
+                start_time: None,
+                exit_status: None,
+                runtime_status: RuntimeStatus {
+                    status: status.to_string(),
+                    description: None,
+                },
+            },
+        }
     }
 }
 
@@ -121,6 +186,50 @@ impl std::convert::From<edgelet_core::ModuleRuntimeState> for ModuleStatus {
 #[cfg(test)]
 mod tests {
     use edgelet_core::{Module, ModuleRuntimeState};
+
+    #[test]
+    fn into_runtime_spec() {
+        let module_spec = super::ModuleSpec {
+            name: "testModule".to_string(),
+            r#type: "test".to_string(),
+            config: super::ModuleConfig {
+                settings: serde_json::json!({
+                    "image": "testImage",
+                    "imageHash": "testHash",
+                    "digest": "testDigest",
+                }),
+                env: Some(vec![super::EnvVar {
+                    key: "testKey".to_string(),
+                    value: "testValue".to_string(),
+                }]),
+            },
+            image_pull_policy: None,
+        };
+
+        let runtime_spec: edgelet_settings::ModuleSpec<edgelet_settings::DockerConfig> =
+            module_spec
+                .clone()
+                .to_runtime_spec::<edgelet_docker::DockerModuleRuntime>()
+                .unwrap();
+        let expected_env: std::collections::BTreeMap<String, String> =
+            [("testKey".to_string(), "testValue".to_string())]
+                .iter()
+                .cloned()
+                .collect();
+
+        assert_eq!(module_spec.name, runtime_spec.name());
+        assert_eq!(module_spec.r#type, runtime_spec.r#type());
+        assert_eq!(
+            edgelet_settings::module::ImagePullPolicy::default(),
+            runtime_spec.image_pull_policy()
+        );
+        assert_eq!(expected_env, runtime_spec.env().clone());
+
+        let runtime_config = runtime_spec.config();
+        assert_eq!("testImage", runtime_config.image());
+        assert_eq!(Some("testHash"), runtime_config.image_hash());
+        assert_eq!(Some("testDigest"), runtime_config.digest());
+    }
 
     #[test]
     fn into_module_status() {

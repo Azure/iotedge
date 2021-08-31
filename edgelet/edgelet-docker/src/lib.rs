@@ -11,7 +11,7 @@
     clippy::use_self
 )]
 
-mod client;
+// mod client;
 mod error;
 mod module;
 mod notary;

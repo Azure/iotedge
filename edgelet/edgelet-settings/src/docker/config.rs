@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DockerConfig {
     image: String,
@@ -16,6 +16,12 @@ pub struct DockerConfig {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     auth: Option<docker::models::AuthConfig>,
+
+    #[serde(
+        default = "crate::base::default_allow_elevated_docker_permissions",
+        skip_serializing
+    )]
+    allow_elevated_docker_permissions: bool,
 }
 
 impl DockerConfig {
@@ -24,6 +30,7 @@ impl DockerConfig {
         create_options: docker::models::ContainerCreateBody,
         digest: Option<String>,
         auth: Option<docker::models::AuthConfig>,
+        allow_elevated_docker_permissions: bool,
     ) -> Result<Self, String> {
         if image.trim().is_empty() {
             return Err("image cannot be empty".to_string());
@@ -35,6 +42,7 @@ impl DockerConfig {
             create_options,
             digest,
             auth,
+            allow_elevated_docker_permissions,
         })
     }
 
@@ -58,6 +66,10 @@ impl DockerConfig {
 
     pub fn create_options(&self) -> &docker::models::ContainerCreateBody {
         &self.create_options
+    }
+
+    pub fn create_options_mut(&mut self) -> &mut docker::models::ContainerCreateBody {
+        &mut self.create_options
     }
 
     pub fn with_create_options(
@@ -85,6 +97,10 @@ impl DockerConfig {
         self
     }
 
+    pub fn allow_elevated_docker_permissions(&self) -> bool {
+        self.allow_elevated_docker_permissions
+    }
+
     pub fn parent_hostname_resolve(&mut self, parent_hostname: &str) {
         const UPSTREAM_PARENT_KEYWORD: &str = "$upstream";
 
@@ -101,7 +117,7 @@ impl DockerConfig {
             if let Some(rest) = serveraddress.strip_prefix(UPSTREAM_PARENT_KEYWORD) {
                 let url = rest.to_string();
                 if let Some(auth) = &mut self.auth {
-                    auth.set_serveraddress(format!("{}{}", parent_hostname, url))
+                    auth.set_serveraddress(format!("{}{}", parent_hostname, url));
                 }
             }
         }
@@ -117,12 +133,20 @@ mod tests {
 
     #[test]
     fn empty_image_fails() {
-        DockerConfig::new("".to_string(), ContainerCreateBody::new(), None, None).unwrap_err();
+        DockerConfig::new("".to_string(), ContainerCreateBody::new(), None, None, true)
+            .unwrap_err();
     }
 
     #[test]
     fn white_space_image_fails() {
-        DockerConfig::new("    ".to_string(), ContainerCreateBody::new(), None, None).unwrap_err();
+        DockerConfig::new(
+            "    ".to_string(),
+            ContainerCreateBody::new(),
+            None,
+            None,
+            true,
+        )
+        .unwrap_err();
     }
 
     #[test]
@@ -141,7 +165,7 @@ mod tests {
             .with_host_config(HostConfig::new().with_port_bindings(port_bindings))
             .with_labels(labels);
 
-        let config = DockerConfig::new("ubuntu".to_string(), create_options, None, None)
+        let config = DockerConfig::new("ubuntu".to_string(), create_options, None, None, true)
             .unwrap()
             .with_image_hash("42".to_string());
         let actual_json = serde_json::to_string(&config).unwrap();
@@ -196,6 +220,7 @@ mod tests {
             create_options,
             None,
             Some(auth_config),
+            true,
         )
         .unwrap();
         let actual_json = serde_json::to_string(&config).unwrap();

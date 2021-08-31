@@ -27,9 +27,12 @@ pub(crate) struct CreateIdentityRequest {
 }
 
 #[derive(Debug, serde::Serialize)]
+#[cfg_attr(test, derive(serde::Deserialize))]
 pub(crate) struct ListIdentitiesResponse {
     identities: Vec<crate::identity::Identity>,
 }
+
+const PATH: &str = "/identities";
 
 #[async_trait::async_trait]
 impl<M> http_common::server::Route for Route<M>
@@ -48,7 +51,10 @@ where
         _query: &[(std::borrow::Cow<'_, str>, std::borrow::Cow<'_, str>)],
         extensions: &http::Extensions,
     ) -> Option<Self> {
-        if path != "/identities" {
+        // A bug in certain versions of edgeAgent causes it to make requests to "/identities/" instead
+        // of "/identities". To maintain compatibility with these versions of edgeAgent, this API will
+        // allow both endpoints.
+        if path != PATH && path != "/identities/" {
             return None;
         }
 
@@ -67,8 +73,6 @@ where
     type DeleteBody = serde::de::IgnoredAny;
 
     async fn get(self) -> http_common::server::RouteResponse {
-        edgelet_http::auth_agent(self.pid, &self.runtime).await?;
-
         let client = self.client.lock().await;
 
         let mut identities = vec![];
@@ -121,4 +125,79 @@ where
     }
 
     type PutBody = serde::de::IgnoredAny;
+}
+
+#[cfg(test)]
+mod tests {
+    use http_common::server::Route;
+
+    use edgelet_test_utils::{test_route_err, test_route_ok};
+
+    #[test]
+    fn parse_uri() {
+        // Valid URI
+        let route = test_route_ok!(super::PATH);
+        assert_eq!(nix::unistd::getpid().as_raw(), route.pid);
+
+        // Extra character at beginning of URI
+        test_route_err!(&format!("a{}", super::PATH));
+
+        // Extra character at end of URI
+        test_route_err!(&format!("{}a", super::PATH));
+    }
+
+    #[tokio::test]
+    async fn auth() {
+        async fn post(
+            route: super::Route<edgelet_test_utils::runtime::Runtime>,
+        ) -> http_common::server::RouteResponse {
+            let body = super::CreateIdentityRequest {
+                module_id: "testModule".to_string(),
+                managed_by: crate::identity::default_managed_by(),
+            };
+
+            route.post(Some(body)).await
+        }
+
+        edgelet_test_utils::test_auth_agent!(super::PATH, post);
+    }
+
+    #[tokio::test]
+    async fn create_get_identities() {
+        let mut expected_identities = vec![];
+
+        // The Identity Client needs to be persisted across API calls.
+        let client = edgelet_test_utils::clients::IdentityClient::default();
+        let client = std::sync::Arc::new(futures_util::lock::Mutex::new(client));
+
+        // Create identities
+        for module in &["testModule1", "testModule2", "testModule3"] {
+            let mut route = test_route_ok!(super::PATH);
+            route.client = client.clone();
+
+            let body = super::CreateIdentityRequest {
+                module_id: module.to_string(),
+                managed_by: crate::identity::default_managed_by(),
+            };
+
+            let response = route.post(Some(body)).await.unwrap();
+            let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+            let response: crate::identity::Identity = serde_json::from_slice(&body).unwrap();
+
+            expected_identities.push(response);
+        }
+
+        // Get identities
+        let mut route = test_route_ok!(super::PATH);
+        route.client = client.clone();
+
+        let response = route.get().await.unwrap();
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let response: super::ListIdentitiesResponse = serde_json::from_slice(&body).unwrap();
+
+        // Check that identities response contains the expected identities
+        for identity in expected_identities {
+            assert!(response.identities.contains(&identity));
+        }
+    }
 }

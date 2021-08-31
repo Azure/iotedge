@@ -9,13 +9,21 @@ pub struct IdentityClient {
     pub update_identity_ok: bool,
     pub delete_identity_ok: bool,
 
-    pub identities: std::collections::BTreeMap<String, Identity>,
+    // Because the signatures of this test client must match the real client, the test client's
+    // functions cannot use `mut self` as a parameter.
+    //
+    // The test client may need to mutate this map of identities, so the workaround is to place it in
+    // a RefCell and use replace_with.
+    pub identities:
+        futures_util::lock::Mutex<std::cell::RefCell<std::collections::BTreeMap<String, Identity>>>,
 }
 
 impl Default for IdentityClient {
     fn default() -> Self {
         let mut identities = std::collections::BTreeMap::new();
         identities.insert("testModule".to_string(), test_identity("testModule"));
+
+        let identities = futures_util::lock::Mutex::new(std::cell::RefCell::new(identities));
 
         IdentityClient {
             create_identity_ok: true,
@@ -31,21 +39,21 @@ impl Default for IdentityClient {
 
 impl IdentityClient {
     pub async fn create_module_identity(
-        &mut self,
+        &self,
         module_name: &str,
     ) -> Result<Identity, std::io::Error> {
         if self.get_identity_ok {
             let identity = test_identity(module_name);
 
-            if let Some(_) = self
-                .identities
-                .insert(module_name.to_string(), identity.clone())
-            {
-                // Identity already exists.
-                Err(crate::test_error())
-            } else {
-                Ok(identity)
-            }
+            let identities = self.identities.lock().await;
+
+            identities.replace_with(|identities| {
+                identities.insert(module_name.to_string(), identity.clone());
+
+                identities.to_owned()
+            });
+
+            Ok(identity)
         } else {
             Err(crate::test_error())
         }
@@ -53,13 +61,19 @@ impl IdentityClient {
 
     pub async fn get_identities(&self) -> Result<Vec<Identity>, std::io::Error> {
         if self.get_identities_ok {
-            let mut identities = vec![];
+            let identities = {
+                let identities = self.identities.lock().await;
 
-            for (_, identity) in &self.identities {
-                identities.push(identity.clone())
+                identities.replace_with(|identities| identities.clone())
+            };
+
+            let mut identities_list = vec![];
+
+            for (_, identity) in identities {
+                identities_list.push(identity.clone())
             }
 
-            Ok(identities)
+            Ok(identities_list)
         } else {
             Err(crate::test_error())
         }
@@ -67,7 +81,13 @@ impl IdentityClient {
 
     pub async fn get_identity(&self, module_name: &str) -> Result<Identity, std::io::Error> {
         if self.get_identity_ok {
-            match self.identities.get(module_name) {
+            let identities = {
+                let identities = self.identities.lock().await;
+
+                identities.replace_with(|identities| identities.clone())
+            };
+
+            match identities.get(module_name) {
                 Some(identity) => Ok(identity.clone()),
                 None => Err(crate::test_error()),
             }
@@ -89,9 +109,15 @@ impl IdentityClient {
         }
     }
 
-    pub async fn delete_identity(&mut self, module_name: &str) -> Result<(), std::io::Error> {
+    pub async fn delete_identity(&self, module_name: &str) -> Result<(), std::io::Error> {
         if self.delete_identity_ok {
-            self.identities.remove(module_name);
+            let identities = self.identities.lock().await;
+
+            identities.replace_with(|identities| {
+                identities.remove(module_name);
+
+                identities.clone()
+            });
 
             Ok(())
         } else {

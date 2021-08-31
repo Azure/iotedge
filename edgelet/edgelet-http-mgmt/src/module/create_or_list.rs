@@ -8,10 +8,13 @@ where
     pid: libc::pid_t,
 }
 
+const PATH: &str = "/modules";
+
 #[async_trait::async_trait]
 impl<M> http_common::server::Route for Route<M>
 where
     M: edgelet_core::ModuleRuntime + Send + Sync,
+    <M as edgelet_core::ModuleRuntime>::Config: serde::de::DeserializeOwned + Sync,
 {
     type ApiVersion = edgelet_http::ApiVersion;
     fn api_version() -> &'static dyn http_common::DynRangeBounds<Self::ApiVersion> {
@@ -25,7 +28,7 @@ where
         _query: &[(std::borrow::Cow<'_, str>, std::borrow::Cow<'_, str>)],
         extensions: &http::Extensions,
     ) -> Option<Self> {
-        if path != "/modules" {
+        if path != PATH {
             return None;
         }
 
@@ -56,7 +59,7 @@ where
         Ok(res)
     }
 
-    type PostBody = ();
+    type PostBody = edgelet_http::ModuleSpec;
     async fn post(self, body: Option<Self::PostBody>) -> http_common::server::RouteResponse {
         edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
@@ -67,10 +70,34 @@ where
             }
         };
 
+        let details =
+            edgelet_http::ModuleDetails::from_spec(&body, edgelet_core::ModuleStatus::Stopped);
+
         let runtime = self.runtime.lock().await;
 
-        todo!()
+        super::create_module(&*runtime, body).await?;
+        let res = http_common::server::response::json(hyper::StatusCode::CREATED, &details);
+
+        Ok(res)
     }
 
     type PutBody = serde::de::IgnoredAny;
+}
+
+#[cfg(test)]
+mod tests {
+    use edgelet_test_utils::{test_route_err, test_route_ok};
+
+    #[test]
+    fn parse_uri() {
+        // Valid URI
+        let route = test_route_ok!(super::PATH);
+        assert_eq!(nix::unistd::getpid().as_raw(), route.pid);
+
+        // Extra character at beginning of URI
+        test_route_err!(&format!("a{}", super::PATH));
+
+        // Extra character at end of URI
+        test_route_err!(&format!("{}a", super::PATH));
+    }
 }

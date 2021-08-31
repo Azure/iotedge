@@ -33,6 +33,7 @@ parameters:
   testResultCoordinator.storageAccountConnectionString: ''
   quickstart.package.name: ''
   upstream.protocol: ''
+  test.trackingId: ''
 
 steps:
   - checkout: self
@@ -180,10 +181,10 @@ steps:
             -testRuntimeLogLevel "${{ parameters['test.runtimeLogLevel'] }}" \
             -testInfo "$testInfo" \
             -twinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" \
-            -twinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" \
             -desiredModulesToRestartCSV "${{ parameters['longHaul.desiredModulesToRestartCSV'] }}" \
             -sendReportFrequency "${{ parameters['longHaul.sendReportFrequency'] }}" \
             -upstreamProtocol "${{ parameters['upstream.protocol'] }}" \
+            -trackingId "${{ parameters['test.trackingId'] }}" \
             -waitForTestComplete \
             -cleanAll
       workingDirectory: "$(Agent.HomeDirectory)/.."

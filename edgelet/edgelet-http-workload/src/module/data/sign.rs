@@ -230,12 +230,21 @@ mod tests {
             },
         });
 
-        let mut client = edgelet_test_utils::clients::IdentityClient::default();
-        client.identities.remove("testModule");
-        assert!(client
-            .identities
-            .insert("testModule".to_string(), identity)
-            .is_none());
+        let client = edgelet_test_utils::clients::IdentityClient::default();
+
+        {
+            let identities = client.identities.lock().await;
+
+            identities.replace_with(|identities| {
+                identities.remove("testModule");
+
+                assert!(identities
+                    .insert("testModule".to_string(), identity)
+                    .is_none());
+
+                identities.to_owned()
+            });
+        }
         let client = std::sync::Arc::new(futures_util::lock::Mutex::new(client));
 
         let response = super::get_module_key(client, "testModule")
@@ -247,20 +256,27 @@ mod tests {
         );
 
         // Identity missing auth: fail
-        let mut client = edgelet_test_utils::clients::IdentityClient::default();
+        let client = edgelet_test_utils::clients::IdentityClient::default();
 
-        let mut identity = match client.identities.remove("testModule").unwrap() {
-            aziot_identity_common::Identity::Aziot(identity) => identity,
-            _ => panic!(),
-        };
+        {
+            let identities = client.identities.lock().await;
 
-        identity.auth = None;
-        let identity = aziot_identity_common::Identity::Aziot(identity);
+            identities.replace_with(|identities| {
+                let mut identity = match identities.remove("testModule").unwrap() {
+                    aziot_identity_common::Identity::Aziot(identity) => identity,
+                    _ => panic!(),
+                };
 
-        assert!(client
-            .identities
-            .insert("testModule".to_string(), identity)
-            .is_none());
+                identity.auth = None;
+                let identity = aziot_identity_common::Identity::Aziot(identity);
+
+                assert!(identities
+                    .insert("testModule".to_string(), identity)
+                    .is_none());
+
+                identities.to_owned()
+            });
+        }
         let client = std::sync::Arc::new(futures_util::lock::Mutex::new(client));
 
         let response = super::get_module_key(client, "testModule")
@@ -272,23 +288,30 @@ mod tests {
         );
 
         // Identity missing key: fail
-        let mut client = edgelet_test_utils::clients::IdentityClient::default();
+        let client = edgelet_test_utils::clients::IdentityClient::default();
 
-        let mut identity = match client.identities.remove("testModule").unwrap() {
-            aziot_identity_common::Identity::Aziot(identity) => identity,
-            _ => panic!(),
-        };
+        {
+            let identities = client.identities.lock().await;
 
-        let mut auth = identity.auth.clone().unwrap();
-        auth.key_handle = None;
-        identity.auth = Some(auth);
+            identities.replace_with(|identities| {
+                let mut identity = match identities.remove("testModule").unwrap() {
+                    aziot_identity_common::Identity::Aziot(identity) => identity,
+                    _ => panic!(),
+                };
 
-        let identity = aziot_identity_common::Identity::Aziot(identity);
+                let mut auth = identity.auth.clone().unwrap();
+                auth.key_handle = None;
+                identity.auth = Some(auth);
 
-        assert!(client
-            .identities
-            .insert("testModule".to_string(), identity)
-            .is_none());
+                let identity = aziot_identity_common::Identity::Aziot(identity);
+
+                assert!(identities
+                    .insert("testModule".to_string(), identity)
+                    .is_none());
+
+                identities.to_owned()
+            });
+        }
         let client = std::sync::Arc::new(futures_util::lock::Mutex::new(client));
 
         let response = super::get_module_key(client, "testModule")

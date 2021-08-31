@@ -8,7 +8,7 @@ pub(crate) fn identity_client(
     settings: &impl edgelet_settings::RuntimeSettings,
 ) -> Result<aziot_identity_client_async::Client, EdgedError> {
     let identity_connector =
-        http_common::Connector::new(&settings.endpoints().aziot_identityd_url())
+        http_common::Connector::new(settings.endpoints().aziot_identityd_url())
             .map_err(|err| EdgedError::from_err("Invalid Identity Service URL", err))?;
 
     let identity_client = aziot_identity_client_async::Client::new(
@@ -27,7 +27,7 @@ pub(crate) async fn get_device_info(
     if let edgelet_settings::aziot::AutoReprovisioningMode::AlwaysOnStartup =
         auto_reprovisioning_mode
     {
-        reprovision(&identity_client, cache_dir)
+        reprovision(identity_client, cache_dir)
             .await
             .map_err(|err| EdgedError::from_err("Reprovision on startup failed: {}", err))?;
     }
@@ -58,7 +58,7 @@ pub(crate) async fn get_device_info(
                 // Reprovision device since device identity is not available.
                 log::info!("Requesting device reprovision");
 
-                if let Err(err) = reprovision(&identity_client, cache_dir).await {
+                if let Err(err) = reprovision(identity_client, cache_dir).await {
                     log::warn!("Failed to reprovision: {}", err);
                 }
 

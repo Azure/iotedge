@@ -42,7 +42,9 @@ instance_number | A Guid representing the current runtime. On restart, all metri
 | `edgehub_connected_clients`                              	  | 															 												| Current number of clients connected to edgeHub        					| gauge |                                                            
 | `edgehub_client_connect_success_total`                      | `id` (Device/Module ID)<br>																					| Total number of times each client successfully connected to edgeHub   | counter |                                                              
 | `edgehub_client_disconnect_total`                      	  | `id` (Device/Module ID)<br>																					| Total number of times each client disconnected from edgeHub   		| counter |
-
+| `edgehub_manifest_integrity_flag` | `signing_with_ca_enabled` (true/false)<br>`signing_with_integrity_enabled` (true/false) | The value is 1 if manifest integrity is present or 0 if not present, tags indicate which integrity components are present. | Gauge |
+| `edgehub_twin_signature_check_count` | `result` (Success/Failure)<br>`algorithm` | The number of twin signature checks, `result` is "Success" or "Failure". | Counter |
+| `edgehub_twin_signature_check_seconds` |   | The amount of time it took to verify twin signature. | Summary |
 
 ### EdgeAgent
 | Name                                                        | Dimensions                                                                                                                                                                           | Description                                                                                                                                                                                              | Type    |
@@ -69,6 +71,9 @@ instance_number | A Guid representing the current runtime. On restart, all metri
 | `edgeAgent_total_network_out_bytes` | `module_name` | The amount of bytes sent to network | Gauge |
 | `edgeAgent_total_disk_read_bytes` | `module_name` | The amount of bytes read from the disk | Gauge |
 | `edgeAgent_total_disk_write_bytes` | `module_name` | The amount of bytes written to disk | Gauge |
+| `edgeAgent_manifest_integrity_flag` | `signing_with_ca_enabled` (true/false)<br>`signing_with_integrity_enabled` (true/false) | The value is 1 if manifest integrity is present or 0 if not present, tags indicate which integrity components are present. | Gauge |
+| `edgeAgent_twin_signature_check_count` | `result` (Success/Failure)<br>`algorithm`| The number of twin signature checks, `result` is "Success" or "Failure". | Counter |
+| `edgeAgent_twin_signaturs_check_seconds` |  | The amount of time it took to verify twin signature. | Summary |
 |||
 | `edgeAgent_metadata` | `edge_agent_version`, `experimental_features`, `host_information` | General metadata about the device. The value is always 0, information is encoded in the tags. Note `experimental_features` and `host_information` are json objects. `host_information` looks like ```{"OperatingSystemType": "linux", "Architecture": "x86_64", "Version": "1.0.10~dev20200803.4", "Provisioning": {"Type": "dps.tpm", "DynamicReprovisioning": false, "AlwaysReprovisionOnStartup": true}, "ServerVersion": "19.03.6", "KernelVersion": "5.0.0-25-generic", "OperatingSystem": "Ubuntu 18.04.4 LTS", "NumCpus": 6, "Virtualized": "yes"}```. Note `ServerVersion` is the Docker version and `Version` is the IoT Edge Security Daemon version. | Gauge |
 

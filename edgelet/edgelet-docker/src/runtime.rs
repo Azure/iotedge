@@ -1,61 +1,54 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::collections::{BTreeMap, HashMap};
+use std::convert::TryInto;
 use std::path::{Path, PathBuf};
-use std::pin::Pin;
-use std::str;
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::{mem, process, str};
 
-use failure::Fail;
-use futures::prelude::*;
-use futures::{stream, Stream, StreamExt};
-use lazy_static::lazy_static;
-use log::{debug, info, Level};
+use edgelet_core::module::ModuleAction;
+use failure::ResultExt;
+use hyper::{Body, Client, Uri};
+use log::{debug, error, info, warn, Level};
+use sysinfo::{DiskExt, ProcessExt, ProcessorExt, System, SystemExt};
 use tokio::sync::Mutex;
+use url::Url;
 
-use docker::models::{ContainerCreateBody, Ipam}; // TODO: Move to settings crate?
+use docker::apis::{Configuration, DockerApi, DockerApiClient};
+use docker::models::{ContainerCreateBody, HostConfig, InlineResponse2001, Ipam, NetworkConfig};
 use edgelet_core::{
-    LogOptions, MakeModuleRuntime, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState,
-    ProvisioningInfo, RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo,
-    SystemResources,
+    DiskInfo, LogOptions, MakeModuleRuntime, Module, ModuleRegistry, ModuleRuntime,
+    ModuleRuntimeState, ProvisioningInfo, RegistryOperation, RuntimeOperation,
+    SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
 };
 use edgelet_settings::{
     ContentTrust, DockerConfig, Ipam as CoreIpam, MobyNetwork, ModuleSpec, RuntimeSettings,
     Settings,
 };
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
+use http_common::Connector;
+use tokio::sync::mpsc::UnboundedSender;
 
-use crate::client::DockerClient;
 use crate::error::{Error, ErrorKind, Result};
 use crate::module::{runtime_state, DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
 use crate::notary;
 
-use edgelet_core::DiskInfo;
-use std::convert::TryInto;
-use std::mem;
-use std::process;
-use std::time::{SystemTime, UNIX_EPOCH};
-use sysinfo::{DiskExt, ProcessExt, ProcessorExt, System, SystemExt};
+type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
 const OWNER_LABEL_KEY: &str = "net.azure-devices.edge.owner";
 const OWNER_LABEL_VALUE: &str = "Microsoft.Azure.Devices.Edge.Agent";
 const ORIGINAL_IMAGE_LABEL_KEY: &str = "net.azure-devices.edge.original-image";
-
-lazy_static! {
-    static ref LABELS: Vec<&'static str> = {
-        let mut labels = vec![];
-        labels.push("net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent");
-        labels
-    };
-}
+const LABELS: &[&str] = &["net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent"];
 
 #[derive(Clone)]
 pub struct DockerModuleRuntime {
-    client: DockerClient,
+    client: DockerApiClient,
     system_resources: Arc<Mutex<System>>,
     notary_registries: BTreeMap<String, PathBuf>,
     notary_lock: Arc<Mutex<BTreeMap<String, String>>>,
+    create_socket_channel: UnboundedSender<ModuleAction>,
+    allow_elevated_docker_permissions: bool,
 }
 
 impl DockerModuleRuntime {
@@ -103,7 +96,7 @@ impl DockerModuleRuntime {
                 })?;
 
                 let config_path =
-                    notary::notary_init(&home_dir, &registry_server_hostname, &cert_buf).map_err(
+                    notary::notary_init(&home_dir, registry_server_hostname, &cert_buf).map_err(
                         |_| ErrorKind::NotaryRootCAReadError("Notary init error".to_owned()),
                     )?;
                 notary_registries.insert(registry_server_hostname.clone(), config_path);
@@ -192,7 +185,7 @@ impl DockerModuleRuntime {
         let gun: Arc<str> = gun.into();
         let tag = image_with_tag_parts.next().unwrap_or("latest").to_owned();
 
-        Some((notary_auth, gun, tag, config_path.to_path_buf()))
+        Some((notary_auth, gun, tag, config_path.clone()))
     }
 }
 
@@ -214,31 +207,25 @@ impl ModuleRegistry for DockerModuleRuntime {
         } else {
             info!("Pulling image via tag {}...", image);
         }
-        let image_options = bollard::image::CreateImageOptions {
-            from_image: image.clone(),
-            ..Default::default()
+
+        let creds = match config.auth() {
+            Some(a) => {
+                let json = serde_json::to_string(&a).with_context(|_| {
+                    ErrorKind::RegistryOperation(RegistryOperation::PullImage(image.clone()))
+                })?;
+                base64::encode_config(&json, base64::URL_SAFE)
+            }
+            None => String::new(),
         };
 
-        let docker_credentials = config.auth().map(|c| bollard::auth::DockerCredentials {
-            username: c.username().map(ToOwned::to_owned),
-            password: c.password().map(ToOwned::to_owned),
-            email: c.email().map(ToOwned::to_owned),
-            serveraddress: c.serveraddress().map(ToOwned::to_owned),
-            ..Default::default()
-        });
-
         self.client
-            .docker
-            .create_image(Some(image_options), None, docker_credentials) // call image create api
-            .collect::<Vec<std::result::Result<_, _>>>() // collect async stream into Vec<Result>
+            .image_create(&image, "", "", "", "", &creds, "")
             .await
-            .into_iter()
-            .collect::<std::result::Result<Vec<_>, _>>() // collect Vec<Result> into Result<Vec>
-            .map_err(|e| {
-                log_failure(Level::Warn, &e);
-                Error::from(ErrorKind::RegistryOperation(RegistryOperation::PullImage(
-                    image.clone(),
-                )))
+            .map_err(|err| {
+                Error::from_docker_error(
+                    err,
+                    ErrorKind::RegistryOperation(RegistryOperation::PullImage(image.clone())),
+                )
             })?;
 
         info!("Successfully pulled image {}", image);
@@ -255,13 +242,13 @@ impl ModuleRegistry for DockerModuleRuntime {
         }
 
         self.client
-            .docker
-            .remove_image(name, None, None)
+            .image_delete(name, false, false)
             .await
             .map_err(|e| {
-                let err = e.context(ErrorKind::RegistryOperation(
-                    RegistryOperation::RemoveImage(name.to_owned()),
-                ));
+                let err = Error::from_docker_error(
+                    e,
+                    ErrorKind::RegistryOperation(RegistryOperation::RemoveImage(name.to_string())),
+                );
                 log_failure(Level::Warn, &err);
                 err
             })?;
@@ -278,18 +265,14 @@ impl MakeModuleRuntime for DockerModuleRuntime {
     type ModuleRuntime = Self;
     type Error = Error;
 
-    async fn make_runtime(settings: &Settings) -> Result<Self::ModuleRuntime> {
+    async fn make_runtime(
+        settings: &Settings,
+        create_socket_channel: UnboundedSender<ModuleAction>,
+    ) -> Result<Self::ModuleRuntime> {
         info!("Initializing module runtime...");
 
-        let client = DockerClient::new(settings.moby_runtime().uri())
-            .map_err(|_| {
-                // log_failure(Level::Warn, &e);
-                Error::from(ErrorKind::Docker)
-            })
-            .await?;
-
+        let client = init_client(settings.moby_runtime().uri())?;
         let notary_registries = Self::get_notary_registries(settings).await?;
-
         create_network_if_missing(settings, &client).await?;
 
         // to avoid excessive FD usage, we will not allow sysinfo to keep files open.
@@ -302,49 +285,72 @@ impl MakeModuleRuntime for DockerModuleRuntime {
             system_resources: Arc::new(Mutex::new(system_resources)),
             notary_registries,
             notary_lock: Arc::new(Mutex::new(BTreeMap::new())),
+            create_socket_channel,
+            allow_elevated_docker_permissions: settings.allow_elevated_docker_permissions(),
         };
 
         Ok(runtime)
     }
 }
 
-async fn create_network_if_missing(settings: &Settings, client: &DockerClient) -> Result<()> {
-    let (enable_ipv6, ipam) = get_ipv6_settings(settings.moby_runtime().network());
+fn init_client(docker_url: &Url) -> Result<DockerApiClient> {
+    // build the hyper client
+    let client: Client<_, Body> = Client::builder().build(
+        Connector::new(docker_url)
+            .map_err(|e| Error::from(ErrorKind::Initialization(e.to_string())))?,
+    );
+
+    // extract base path - the bit that comes after the scheme
+    let base_path = docker_url
+        .to_base_path()
+        .context(ErrorKind::Initialization("".to_owned()))?
+        .to_str()
+        .ok_or_else(|| ErrorKind::Initialization("".to_owned()))?
+        .to_string();
+    let uri_composer = Box::new(|base_path: &str, path: &str| {
+        // https://docs.rs/hyperlocal/0.6.0/src/hyperlocal/lib.rs.html#59
+        let host = hex::encode(base_path.as_bytes());
+        let host_str = format!("unix://{}:0{}", host, path);
+        let result: Uri = host_str.parse()?;
+
+        Ok(result)
+    });
+
+    let configuration = Configuration {
+        base_path,
+        uri_composer,
+        ..Default::default()
+    };
+
+    Ok(DockerApiClient::new(client).with_configuration(configuration))
+}
+
+async fn create_network_if_missing(settings: &Settings, client: &DockerApiClient) -> Result<()> {
+    let (enable_i_pv6, ipam) = get_ipv6_settings(settings.moby_runtime().network());
     let network_id = settings.moby_runtime().network().name();
     info!("Using runtime network id {}", network_id);
 
-    let mut list_networks_filters = HashMap::new();
-    list_networks_filters.insert("name", vec![network_id]);
-
-    let list_options = Some(bollard::network::ListNetworksOptions {
-        filters: list_networks_filters,
-    });
-
-    let existing_iotedge_networks = client
-        .docker
-        .list_networks(list_options)
-        .await
-        .map_err(|_| Error::from(ErrorKind::Docker))?;
+    let filter = format!(r#"{{"name":{{"{}":true}}}}"#, network_id);
+    let existing_iotedge_networks = client.network_list(&filter).await.map_err(|err| {
+        let e = Error::from_docker_error(err, ErrorKind::RuntimeOperation(RuntimeOperation::Init));
+        log_failure(Level::Warn, &e);
+        e
+    })?;
 
     if existing_iotedge_networks.is_empty() {
-        let ipam = ipam.map_or_else(Default::default, |ipam| bollard::models::Ipam {
-            config: ipam.config,
-            driver: ipam.driver,
-            options: ipam.options,
-        });
+        let mut network_config =
+            NetworkConfig::new(network_id.to_string()).with_enable_i_pv6(enable_i_pv6);
 
-        let config = bollard::network::CreateNetworkOptions {
-            name: network_id,
-            enable_ipv6,
-            ipam,
-            ..Default::default()
+        if let Some(ipam_config) = ipam {
+            network_config.set_IPAM(ipam_config);
         };
 
-        client
-            .docker
-            .create_network(config)
-            .await
-            .map_err(|_| Error::from(ErrorKind::Docker))?;
+        client.network_create(network_config).await.map_err(|err| {
+            let e =
+                Error::from_docker_error(err, ErrorKind::RuntimeOperation(RuntimeOperation::Init));
+            log_failure(Level::Warn, &e);
+            e
+        })?;
     }
 
     Ok(())
@@ -390,11 +396,8 @@ impl ModuleRuntime for DockerModuleRuntime {
     type Config = DockerConfig;
     type Module = DockerModule;
     type ModuleRegistry = Self;
-    type Chunk = bytes::Bytes;
-    type Logs =
-        Pin<Box<dyn Stream<Item = std::result::Result<Self::Chunk, std::io::Error>> + Send>>;
 
-    async fn create(&self, module: ModuleSpec<Self::Config>) -> Result<()> {
+    async fn create(&self, mut module: ModuleSpec<Self::Config>) -> Result<()> {
         info!("Creating module {}...", module.name());
 
         // we only want "docker" modules
@@ -404,6 +407,15 @@ impl ModuleRuntime for DockerModuleRuntime {
             )));
         }
 
+        unset_privileged(
+            self.allow_elevated_docker_permissions,
+            &mut module.config_mut().create_options_mut(),
+        );
+        drop_unsafe_privileges(
+            self.allow_elevated_docker_permissions,
+            &mut module.config_mut().create_options_mut(),
+        );
+
         let (image, is_content_trust_enabled) =
             self.check_for_notary_image(module.config()).await?;
         if is_content_trust_enabled {
@@ -412,43 +424,39 @@ impl ModuleRuntime for DockerModuleRuntime {
             info!("Creating image via tag {}...", image);
         }
 
-        let merged_env =
-            DockerModuleRuntime::merge_env(module.config().create_options().env(), module.env());
-        let mut labels: HashMap<&str, &str> = module
-            .config()
-            .create_options()
+        debug!("Creating container {} with image {}", module.name(), image);
+        let create_options = module.config().create_options().clone();
+        let merged_env = DockerModuleRuntime::merge_env(create_options.env(), module.env());
+
+        let mut labels = create_options
             .labels()
-            .map_or_else(HashMap::new, |old_labels| {
-                let mut new_labels = HashMap::with_capacity(old_labels.len() + 2);
-
-                for (key, value) in old_labels {
-                    new_labels.insert(key.as_str(), value.as_str());
-                }
-
-                new_labels
-            });
-        labels.insert(OWNER_LABEL_KEY, OWNER_LABEL_VALUE);
-        labels.insert(ORIGINAL_IMAGE_LABEL_KEY, module.config().image());
+            .cloned()
+            .unwrap_or_else(BTreeMap::new);
+        labels.insert(OWNER_LABEL_KEY.to_string(), OWNER_LABEL_VALUE.to_string());
+        labels.insert(
+            ORIGINAL_IMAGE_LABEL_KEY.to_string(),
+            module.config().image().to_string(),
+        );
 
         debug!("Creating container {} with image {}", module.name(), image);
-        let config = bollard::container::Config::<&str> {
-            image: Some(&image),
-            labels: Some(labels),
-            env: Some(merged_env.iter().map(AsRef::as_ref).collect()),
-            ..Default::default()
-        };
-        let options = Some(bollard::container::CreateContainerOptions {
-            name: module.name(),
-        });
 
+        let create_options = create_options
+            .with_image(image)
+            .with_env(merged_env)
+            .with_labels(labels);
+
+        // Here we don't add the container to the iot edge docker network as the edge-agent is expected to do that.
+        // It contains the logic to add a container to the iot edge network only if a network is not already specified.
         self.client
-            .docker
-            .create_container(options, config)
+            .container_create(create_options, module.name())
             .await
-            .map_err(|_| {
-                ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
-                    module.name().to_string(),
-                ))
+            .map_err(|e| {
+                Error::from_docker_error(
+                    e,
+                    ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
+                        module.name().to_string(),
+                    )),
+                )
             })?;
 
         Ok(())
@@ -464,8 +472,7 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         let response = self
             .client
-            .docker
-            .inspect_container(id, None)
+            .container_inspect(id, false)
             .await
             .map_err(|_| {
                 Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(
@@ -473,33 +480,50 @@ impl ModuleRuntime for DockerModuleRuntime {
                 )))
             })?;
 
-        let config = if let Some(config) = response.config {
-            config
-        } else {
-            return Err(Error::from(ErrorKind::RuntimeOperation(
-                RuntimeOperation::GetModule(id.to_owned()),
-            )));
-        };
+        let name = response.name().ok_or_else(|| {
+            ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.to_string()))
+        })?;
+        let name = name.trim_start_matches('/').to_owned();
 
-        let create_options = ContainerCreateBody::new()
-            .with_labels(config.labels.unwrap_or_default().into_iter().collect());
+        let mut create_options = ContainerCreateBody::new();
+        let mut image = name.clone();
 
-        let config =
-            DockerConfig::new(config.image.unwrap_or_default(), create_options, None, None)
-                .map_err(|_| {
-                    ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.to_owned()))
-                })?;
-        let config = config.with_image_hash(response.image.unwrap_or_default());
+        if let Some(config) = response.config() {
+            if let Some(labels) = config.labels() {
+                // Conversion of HashMap to BTreeMap.
+                let mut btree_labels = std::collections::BTreeMap::new();
 
-        let name = response
-            .name
-            .map_or(id.to_owned(), |s| (&s[1..]).to_owned());
+                for (key, value) in labels {
+                    btree_labels.insert(key.clone(), value.clone());
 
-        let module = DockerModule::new(self.client.clone(), name, config)?;
+                    if key == "net.azure-devices.edge.original-image" {
+                        image = value.clone();
+                    }
+                }
 
-        let runtime_state = runtime_state(response.id, response.state.as_ref());
+                create_options.set_labels(btree_labels);
+            }
+        }
 
-        Ok((module, runtime_state))
+        let mut config = DockerConfig::new(
+            image,
+            create_options,
+            None,
+            None,
+            self.allow_elevated_docker_permissions,
+        )
+        .map_err(|_| ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.to_string())))?;
+
+        if let Some(image_hash) = response.image() {
+            config = config.with_image_hash(image_hash.to_string());
+        }
+
+        let module = DockerModule::new(self.client.clone(), name, config).with_context(|_| {
+            ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.to_string()))
+        })?;
+        let state = runtime_state(response.id(), response.state());
+
+        Ok((module, state))
     }
 
     async fn start(&self, id: &str) -> Result<()> {
@@ -510,15 +534,35 @@ impl ModuleRuntime for DockerModuleRuntime {
         })
         .map_err(Error::from)?;
 
-        self.client
-            .docker
-            .start_container::<&str>(id, None)
-            .await
+        let (sender, receiver) = tokio::sync::oneshot::channel::<()>();
+
+        self.create_socket_channel
+            .send(ModuleAction::Start(id.to_string(), sender))
             .map_err(|_| {
+                error!("Could not notify workload manager, start of module: {}", id);
                 Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
-                    id.to_owned(),
+                    id.to_string(),
                 )))
-            })
+            })?;
+
+        receiver.await.map_err(|_| {
+            error!(
+                "Could wait on workload manager response, start of module: {}",
+                id
+            );
+            Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
+                id.to_owned(),
+            )))
+        })?;
+
+        self.client.container_start(id, "").await.map_err(|e| {
+            let err = Error::from_docker_error(
+                e,
+                ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id.to_owned())),
+            );
+            log_failure(Level::Warn, &err);
+            err
+        })
     }
 
     async fn stop(&self, id: &str, wait_before_kill: Option<Duration>) -> Result<()> {
@@ -529,18 +573,31 @@ impl ModuleRuntime for DockerModuleRuntime {
         })
         .map_err(Error::from)?;
 
-        let options = wait_before_kill.map(|s| bollard::container::StopContainerOptions {
-            t: s.as_secs() as i64,
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        let wait_timeout = wait_before_kill.map(|s| match s.as_secs() {
+            s if s > i32::max_value() as u64 => i32::max_value(),
+            s => s as i32,
         });
 
-        self.client
-            .docker
-            .stop_container(id, options)
-            .await
+        self.create_socket_channel
+            .send(ModuleAction::Stop(id.to_string()))
             .map_err(|_| {
-                Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(
-                    id.to_owned(),
+                error!("Could not notify workload manager, stop of module: {}", id);
+                Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(
+                    id.to_string(),
                 )))
+            })?;
+
+        self.client
+            .container_stop(id, wait_timeout)
+            .await
+            .map_err(|e| {
+                let err = Error::from_docker_error(
+                    e,
+                    ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(id.to_owned())),
+                );
+                log_failure(Level::Warn, &err);
+                err
             })
     }
 
@@ -551,15 +608,14 @@ impl ModuleRuntime for DockerModuleRuntime {
         })
         .map_err(Error::from)?;
 
-        self.client
-            .docker
-            .restart_container(id, None)
-            .await
-            .map_err(|_| {
-                Error::from(ErrorKind::RuntimeOperation(
-                    RuntimeOperation::RestartModule(id.to_owned()),
-                ))
-            })
+        self.client.container_restart(id, None).await.map_err(|e| {
+            let err = Error::from_docker_error(
+                e,
+                ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(id.to_owned())),
+            );
+            log_failure(Level::Warn, &err);
+            err
+        })
     }
 
     async fn remove(&self, id: &str) -> Result<()> {
@@ -570,18 +626,41 @@ impl ModuleRuntime for DockerModuleRuntime {
         })
         .map_err(Error::from)?;
 
-        let options = bollard::container::RemoveContainerOptions {
-            force: true,
-            ..Default::default()
-        };
-
         self.client
-            .docker
-            .remove_container(id, Some(options))
+            .container_delete(
+                id, /* remove volumes */ false, /* force */ true,
+                /* remove link */ false,
+            )
             .await
+            .map_err(|e| {
+                let err = Error::from_docker_error(
+                    e,
+                    ErrorKind::RuntimeOperation(RuntimeOperation::RemoveModule(id.to_owned())),
+                );
+                log_failure(Level::Warn, &err);
+                err
+            })?;
+
+        // Stop the task listening on the socket, just in case the container was not stopped before
+        self.create_socket_channel
+            .send(ModuleAction::Stop(id.to_string()))
             .map_err(|_| {
-                Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::RemoveModule(
-                    id.to_owned(),
+                error!("Could not notify workload manager, stop of module: {}", id);
+                Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(
+                    id.to_string(),
+                )))
+            })?;
+
+        // Remove the socket to avoid having socket files polluting the home folder.
+        self.create_socket_channel
+            .send(ModuleAction::Remove(id.to_string()))
+            .map_err(|_| {
+                error!(
+                    "Could not notify workload manager, remove of module: {}",
+                    id
+                );
+                Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(
+                    id.to_string(),
                 )))
             })
     }
@@ -597,28 +676,42 @@ impl ModuleRuntime for DockerModuleRuntime {
             always_reprovision_on_startup: false,
         };
 
-        let info =
-            self.client.docker.info().await.map_err(|_| {
-                Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))
-            })?;
+        let system_info = self.client.system_info().await.map_err(|e| {
+            Error::from_docker_error(e, ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))
+        })?;
 
         let system_info = CoreSystemInfo {
-            os_type: info.os_type.unwrap_or_else(|| String::from("Unknown")),
-            architecture: info.architecture.unwrap_or_else(|| String::from("Unknown")),
+            os_type: system_info
+                .os_type()
+                .unwrap_or(&String::from("Unknown"))
+                .to_string(),
+            architecture: system_info
+                .architecture()
+                .unwrap_or(&String::from("Unknown"))
+                .to_string(),
             version: edgelet_core::version_with_source_version(),
             provisioning,
-            cpus: info.ncpu.unwrap_or_default() as i32,
+            cpus: system_info.NCPU().unwrap_or_default(),
             virtualized: match edgelet_core::is_virtualized_env() {
                 Ok(Some(true)) => "yes",
                 Ok(Some(false)) => "no",
                 Ok(None) | Err(_) => "unknown",
             }
-            .to_owned(),
-            kernel_version: info.kernel_version.unwrap_or_default(),
-            operating_system: info.operating_system.unwrap_or_default(),
-            server_version: info.server_version.unwrap_or_default(),
+            .to_string(),
+            kernel_version: system_info
+                .kernel_version()
+                .map(std::string::ToString::to_string)
+                .unwrap_or_default(),
+            operating_system: system_info
+                .operating_system()
+                .map(std::string::ToString::to_string)
+                .unwrap_or_default(),
+            server_version: system_info
+                .server_version()
+                .map(std::string::ToString::to_string)
+                .unwrap_or_default(),
         };
-
+        info!("Successfully queried system info");
         Ok(system_info)
     }
 
@@ -637,11 +730,11 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         // Get system resources
         let mut system_resources = self.system_resources.as_ref().lock().await;
-        system_resources.refresh_system();
+        system_resources.refresh_all();
+
         let start_time = process::id()
             .try_into()
             .map(|id| {
-                system_resources.refresh_process(id);
                 system_resources
                     .get_process(id)
                     .map(|p| p.start_time())
@@ -658,7 +751,6 @@ impl ModuleRuntime for DockerModuleRuntime {
         let total_memory = system_resources.get_total_memory() * 1000;
         let used_memory = system_resources.get_used_memory() * 1000;
 
-        system_resources.refresh_disks();
         let disks = system_resources
             .get_disks()
             .iter()
@@ -677,27 +769,18 @@ impl ModuleRuntime for DockerModuleRuntime {
         // Note a for_each loop is used for simplicity with async operations
         // While a stream could be used for parallel operations, it isn't necessary here
         let modules = self.list().await?;
-        let mut docker_stats: Vec<bollard::container::Stats> = Vec::with_capacity(modules.len());
+        let mut docker_stats: Vec<serde_json::Value> = Vec::with_capacity(modules.len());
         for module in modules {
-            let options = bollard::container::StatsOptions {
-                stream: false,
-                one_shot: false,
-            };
-
             let stats = self
                 .client
-                .docker
-                .stats(module.name(), Some(options))
-                .into_future()
-                .await;
-
-            let stats = if let (Some(Ok(s)), _) = stats {
-                s
-            } else {
-                return Err(Error::from(ErrorKind::RuntimeOperation(
-                    RuntimeOperation::SystemInfo,
-                )));
-            };
+                .container_stats(module.name(), false)
+                .await
+                .map_err(|e| {
+                    Error::from_docker_error(
+                        e,
+                        ErrorKind::RuntimeOperation(RuntimeOperation::SystemResources),
+                    )
+                })?;
 
             docker_stats.push(stats);
         }
@@ -721,47 +804,66 @@ impl ModuleRuntime for DockerModuleRuntime {
     async fn list(&self) -> Result<Vec<Self::Module>> {
         debug!("Listing modules...");
 
-        let mut filters: HashMap<&str, Vec<&str>> = HashMap::new();
-        filters.insert("label", LABELS.to_vec());
-        let options = bollard::container::ListContainersOptions {
-            all: true,
-            limit: None,
-            size: false,
-            filters,
-        };
+        let mut filters = HashMap::new();
+        filters.insert("label", LABELS);
+        let filters = serde_json::to_string(&filters)
+            .context(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules))
+            .map_err(Error::from)?;
 
         let containers = self
             .client
-            .docker
-            .list_containers(Some(options))
+            .container_list(
+                true,  /*all*/
+                0,     /*limit*/
+                false, /*size*/
+                &filters,
+            )
             .await
-            .map_err(|_| Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules)))?;
-
-        containers
-            .into_iter()
-            .map(|container| {
-                let name = container
-                    .names
-                    .unwrap_or_default()
-                    .get(0)
-                    .map_or("Unknown", |s| &s[1..])
-                    .to_string();
-
-                let config = DockerConfig::new(
-                    container.image.unwrap_or_default(),
-                    ContainerCreateBody::new()
-                        .with_labels(container.labels.unwrap_or_default().into_iter().collect()),
-                    None,
-                    None,
+            .map_err(|e| {
+                Error::from_docker_error(
+                    e,
+                    ErrorKind::RuntimeOperation(RuntimeOperation::ListModules),
                 )
-                .map_err(|_| {
-                    Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules))
-                })?;
-                let config = config.with_image_hash(container.image_id.unwrap_or_default());
+            })?;
 
-                DockerModule::new(self.client.clone(), name, config)
+        let result = containers
+            .iter()
+            .flat_map(|container| {
+                DockerConfig::new(
+                    container.image().to_string(),
+                    ContainerCreateBody::new().with_labels(
+                        container
+                            .labels()
+                            .iter()
+                            .map(|(k, v)| (k.to_string(), v.to_string()))
+                            .collect(),
+                    ),
+                    None,
+                    None,
+                    self.allow_elevated_docker_permissions,
+                )
+                .map(|config| {
+                    (
+                        container,
+                        config.with_image_hash(container.image_id().clone()),
+                    )
+                })
             })
-            .collect::<Result<Vec<DockerModule>>>()
+            .flat_map(|(container, config)| {
+                DockerModule::new(
+                    self.client.clone(),
+                    container
+                        .names()
+                        .iter()
+                        .next()
+                        .map_or("Unknown", |s| &s[1..])
+                        .to_string(),
+                    config,
+                )
+            })
+            .collect();
+
+        Ok(result)
     }
 
     async fn list_with_details(&self) -> Result<Vec<(Self::Module, ModuleRuntimeState)>> {
@@ -776,27 +878,29 @@ impl ModuleRuntime for DockerModuleRuntime {
         Ok(result)
     }
 
-    async fn logs(&self, id: &str, options: &LogOptions) -> Self::Logs {
+    async fn logs(&self, id: &str, options: &LogOptions) -> Result<hyper::Body> {
         info!("Getting logs for module {}...", id);
 
-        let options = bollard::container::LogsOptions {
-            follow: options.follow(),
-            tail: options.tail().to_string(),
-            timestamps: options.timestamps(),
-            since: options.since() as i64,
-            until: options.until().unwrap_or(0) as i64,
-            stdout: true,
-            stderr: true,
-        };
-
-        let result = self
-            .client
-            .docker
-            .logs(id, Some(options))
-            .map_ok(bollard::container::LogOutput::into_bytes)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e));
-
-        Box::pin(result)
+        self.client
+            .container_logs(
+                id,
+                options.follow(),
+                true,
+                true,
+                options.since(),
+                options.until(),
+                options.timestamps(),
+                &options.tail().to_string(),
+            )
+            .await
+            .map_err(|e| {
+                let err = Error::from_docker_error(
+                    e,
+                    ErrorKind::RuntimeOperation(RuntimeOperation::GetModuleLogs(id.to_owned())),
+                );
+                log_failure(Level::Warn, &err);
+                err
+            })
     }
 
     fn registry(&self) -> &Self::ModuleRegistry {
@@ -804,510 +908,275 @@ impl ModuleRuntime for DockerModuleRuntime {
     }
 
     async fn remove_all(&self) -> Result<()> {
-        stream::iter(self.list().await?)
-            .then(|module| async move { ModuleRuntime::remove(self, module.name()).await })
-            .collect::<Vec<Result<_>>>()
-            .await
-            .into_iter()
-            .collect::<Result<Vec<_>>>()?;
+        let modules = self.list().await?;
+        let mut remove = vec![];
+
+        for module in &modules {
+            remove.push(ModuleRuntime::remove(self, module.name()));
+        }
+
+        for result in futures::future::join_all(remove).await {
+            if let Err(err) = result {
+                log::warn!("Failed to remove module: {}", err);
+            }
+        }
 
         Ok(())
     }
 
     async fn stop_all(&self, wait_before_kill: Option<Duration>) -> Result<()> {
-        stream::iter(self.list().await?)
-            .then(|module| async move { self.stop(module.name(), wait_before_kill).await })
-            .collect::<Vec<Result<_>>>()
-            .await
-            .into_iter()
-            .collect::<Result<Vec<_>>>()?;
+        let modules = self.list().await?;
+        let mut stop = vec![];
+
+        for module in &modules {
+            stop.push(self.stop(module.name(), wait_before_kill));
+        }
+
+        for result in futures::future::join_all(stop).await {
+            if let Err(err) = result {
+                log::warn!("Failed to stop module: {}", err);
+            }
+        }
 
         Ok(())
     }
 
     async fn module_top(&self, id: &str) -> Result<Vec<i32>> {
-        let error = |msg: &str| {
-            Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(
-                id.to_owned(),
-                msg.to_owned(),
-            )))
-        };
+        let top_response = self.client.container_top(id, "").await.map_err(|e| {
+            let err = Error::from_docker_error(
+                e,
+                ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id.to_owned())),
+            );
+            log_failure(Level::Warn, &err);
+            err
+        })?;
 
-        let top_response = self
-            .client
-            .docker
-            .top_processes::<&str>(id, None)
-            .await
-            .map_err(|e| error(&e.to_string()))?;
-
-        let pids: Vec<i32> = if let Some(titles) = &top_response.titles {
-            let pid_index: usize = titles
-                .iter()
-                .position(|s| s.as_str() == "PID")
-                .ok_or_else(|| error("Expected Title 'PID'"))?;
-
-            if let Some(processes) = &top_response.processes {
-                processes
-                    .iter()
-                    .map(|process| {
-                        let str_pid = process
-                            .get(pid_index)
-                            .ok_or_else(|| error("PID index empty"))?;
-                        str_pid.parse::<i32>().map_err(|e| error(&e.to_string()))
-                    })
-                    .collect::<Result<Vec<i32>>>()?
-            } else {
-                return Err(error("Expected 'Processes' field"));
-            }
-        } else {
-            return Err(error("Expected 'Title' field"));
-        };
+        let pids = parse_top_response::<Deserializer>(&top_response).with_context(|_| {
+            ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id.to_owned()))
+        })?;
 
         Ok(pids)
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::{
-//         authenticate, future, list_with_details, parse_get_response, AuthId, Authenticator,
-//         BTreeMap, Body, CoreSystemInfo, Deserializer, DockerModuleRuntime, DockerModuleTop,
-//         Duration, Error, ErrorKind, Future, InlineResponse200, LogOptions, MakeModuleRuntime,
-//         Module, ModuleId, ModuleRuntime, ModuleRuntimeState, ModuleSpec, Pid, Request, Stream,
-//         SystemResources,
-//     };
-
-//     use std::path::Path;
-
-//     use futures::stream::Empty;
-
-//     use edgelet_core::{
-//         settings::AutoReprovisioningMode, Connect, Endpoints, Listen, ModuleRegistry, ModuleTop,
-//         RuntimeSettings, WatchdogSettings,
-//     };
-
-//     #[test]
-//     fn merge_env_empty() {
-//         let cur_env = Some(&[][..]);
-//         let new_env = BTreeMap::new();
-//         assert_eq!(0, DockerModuleRuntime::merge_env(cur_env, &new_env).len());
-//     }
-
-//     #[test]
-//     fn merge_env_new_empty() {
-//         let cur_env = Some(vec!["k1=v1".to_string(), "k2=v2".to_string()]);
-//         let new_env = BTreeMap::new();
-//         let mut merged_env =
-//             DockerModuleRuntime::merge_env(cur_env.as_ref().map(AsRef::as_ref), &new_env);
-//         merged_env.sort();
-//         assert_eq!(vec!["k1=v1", "k2=v2"], merged_env);
-//     }
-
-//     #[test]
-//     fn merge_env_extend_new() {
-//         let cur_env = Some(vec!["k1=v1".to_string(), "k2=v2".to_string()]);
-//         let mut new_env = BTreeMap::new();
-//         new_env.insert("k3".to_string(), "v3".to_string());
-//         let mut merged_env =
-//             DockerModuleRuntime::merge_env(cur_env.as_ref().map(AsRef::as_ref), &new_env);
-//         merged_env.sort();
-//         assert_eq!(vec!["k1=v1", "k2=v2", "k3=v3"], merged_env);
-//     }
-
-//     #[test]
-//     fn merge_env_extend_replace_new() {
-//         let cur_env = Some(vec!["k1=v1".to_string(), "k2=v2".to_string()]);
-//         let mut new_env = BTreeMap::new();
-//         new_env.insert("k2".to_string(), "v02".to_string());
-//         new_env.insert("k3".to_string(), "v3".to_string());
-//         let mut merged_env =
-//             DockerModuleRuntime::merge_env(cur_env.as_ref().map(AsRef::as_ref), &new_env);
-//         merged_env.sort();
-//         assert_eq!(vec!["k1=v1", "k2=v2", "k3=v3"], merged_env);
-//     }
-
-//     #[test]
-//     fn list_with_details_filters_out_deleted_containers() {
-//         let runtime = prepare_module_runtime_with_known_modules();
-
-//         assert_eq!(
-//             runtime.list_with_details().collect().wait().unwrap(),
-//             vec![
-//                 (
-//                     runtime.modules[0].clone(),
-//                     ModuleRuntimeState::default().with_pid(Some(1000))
-//                 ),
-//                 (
-//                     runtime.modules[3].clone(),
-//                     ModuleRuntimeState::default().with_pid(Some(4000))
-//                 ),
-//             ]
-//         );
-//     }
-
-//     #[test]
-//     fn authenticate_returns_none_when_no_pid_provided() {
-//         let runtime = prepare_module_runtime_with_known_modules();
-//         let req = Request::default();
-
-//         let auth_id = runtime.authenticate(&req).wait().unwrap();
-
-//         assert_eq!(AuthId::None, auth_id);
-//     }
-
-//     #[test]
-//     fn authenticate_returns_none_when_unknown_pid_provided() {
-//         let runtime = prepare_module_runtime_with_known_modules();
-//         let mut req = Request::default();
-//         req.extensions_mut().insert(Pid::Value(1));
-
-//         let auth_id = runtime.authenticate(&req).wait().unwrap();
-
-//         assert_eq!(AuthId::None, auth_id);
-//     }
-
-//     #[test]
-//     fn authenticate_returns_none_when_expected_module_not_exist_anymore_with_top() {
-//         let runtime = prepare_module_runtime_with_known_modules();
-//         let mut req = Request::default();
-//         req.extensions_mut().insert(Pid::Value(2000));
-//         req.extensions_mut().insert(ModuleId::from("b"));
-
-//         let auth_id = runtime.authenticate(&req).wait().unwrap();
-
-//         assert_eq!(AuthId::None, auth_id);
-//     }
-
-//     #[test]
-//     fn authenticate_returns_none_when_expected_module_not_found() {
-//         let runtime = prepare_module_runtime_with_known_modules();
-//         let mut req = Request::default();
-//         req.extensions_mut().insert(Pid::Value(1000));
-//         req.extensions_mut().insert(ModuleId::from("x"));
-
-//         let auth_id = runtime.authenticate(&req).wait().unwrap();
-
-//         assert_eq!(AuthId::None, auth_id);
-//     }
-
-//     #[test]
-//     fn authenticate_returns_any_when_any_provided() {
-//         let runtime = prepare_module_runtime_with_known_modules();
-//         let mut req = Request::default();
-//         req.extensions_mut().insert(Pid::Any);
-
-//         let auth_id = runtime.authenticate(&req).wait().unwrap();
-
-//         assert_eq!(AuthId::Any, auth_id);
-//     }
-
-//     #[test]
-//     fn authenticate_returns_any_when_module_pid_provided() {
-//         let runtime = prepare_module_runtime_with_known_modules();
-//         let mut req = Request::default();
-//         req.extensions_mut().insert(Pid::Value(1000));
-//         req.extensions_mut().insert(ModuleId::from("a"));
-
-//         let auth_id = runtime.authenticate(&req).wait().unwrap();
-
-//         assert_eq!(AuthId::Value("a".into()), auth_id);
-//     }
-
-//     #[test]
-//     fn authenticate_returns_any_when_any_pid_of_module_provided() {
-//         let runtime = prepare_module_runtime_with_known_modules();
-//         let mut req = Request::default();
-//         req.extensions_mut().insert(Pid::Value(4001));
-//         req.extensions_mut().insert(ModuleId::from("d"));
-
-//         let auth_id = runtime.authenticate(&req).wait().unwrap();
-
-//         assert_eq!(AuthId::Value("d".into()), auth_id);
-//     }
-
-//     fn prepare_module_runtime_with_known_modules() -> TestModuleList {
-//         TestModuleList {
-//             modules: vec![
-//                 TestModule {
-//                     name: "a".to_string(),
-//                     runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
-//                     process_ids: vec![1000],
-//                 },
-//                 TestModule {
-//                     name: "b".to_string(),
-//                     runtime_state_behavior: TestModuleRuntimeStateBehavior::NotFound,
-//                     process_ids: vec![2000, 2001],
-//                 },
-//                 TestModule {
-//                     name: "c".to_string(),
-//                     runtime_state_behavior: TestModuleRuntimeStateBehavior::NotFound,
-//                     process_ids: vec![3000],
-//                 },
-//                 TestModule {
-//                     name: "d".to_string(),
-//                     runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
-//                     process_ids: vec![4000, 4001],
-//                 },
-//             ],
-//         }
-//     }
-
-//     #[test]
-//     fn parse_get_response_returns_the_name() {
-//         let response = InlineResponse200::new().with_name("hello".to_string());
-//         let name = parse_get_response::<Deserializer>(&response);
-//         assert!(name.is_ok());
-//         assert_eq!("hello".to_string(), name.unwrap());
-//     }
-
-//     #[test]
-//     fn parse_get_response_returns_error_when_name_is_missing() {
-//         let response = InlineResponse200::new();
-//         let name = parse_get_response::<Deserializer>(&response);
-//         assert!(name.is_err());
-//         assert_eq!("missing field `Name`", format!("{}", name.unwrap_err()));
-//     }
-
-//     #[derive(Clone)]
-//     struct TestConfig;
-
-//     struct TestSettings;
-
-//     impl RuntimeSettings for TestSettings {
-//         type Config = TestConfig;
-
-//         fn agent(&self) -> &ModuleSpec {
-//             unimplemented!()
-//         }
-
-//         fn agent_mut(&mut self) -> &mut ModuleSpec {
-//             unimplemented!()
-//         }
-
-//         fn hostname(&self) -> &str {
-//             unimplemented!()
-//         }
-
-//         fn connect(&self) -> &Connect {
-//             unimplemented!()
-//         }
-
-//         fn listen(&self) -> &Listen {
-//             unimplemented!()
-//         }
-
-//         fn homedir(&self) -> &Path {
-//             unimplemented!()
-//         }
-
-//         fn watchdog(&self) -> &WatchdogSettings {
-//             unimplemented!()
-//         }
-
-//         fn endpoints(&self) -> &Endpoints {
-//             unimplemented!()
-//         }
-
-//         fn edge_ca_cert(&self) -> Option<&str> {
-//             unimplemented!()
-//         }
-
-//         fn edge_ca_key(&self) -> Option<&str> {
-//             unimplemented!()
-//         }
-
-//         fn trust_bundle_cert(&self) -> Option<&str> {
-//             unimplemented!()
-//         }
-
-//         fn manifest_trust_bundle_cert(&self) -> Option<&str> {
-//             unimplemented!()
-//         }
-
-//         fn auto_reprovisioning_mode(&self) -> &AutoReprovisioningMode {
-//             unimplemented!()
-//         }
-//     }
-
-//     #[derive(Clone, Copy, Debug, PartialEq)]
-//     enum TestModuleRuntimeStateBehavior {
-//         Default,
-//         NotFound,
-//     }
-
-//     #[derive(Clone, Debug, PartialEq)]
-//     struct TestModule {
-//         name: String,
-//         runtime_state_behavior: TestModuleRuntimeStateBehavior,
-//         process_ids: Vec<i32>,
-//     }
-
-//     impl Module for TestModule {
-//         type Config = TestConfig;
-//         type Error = Error;
-//         type RuntimeStateFuture = FutureResult<ModuleRuntimeState, Self::Error>;
-
-//         fn name(&self) -> &str {
-//             &self.name
-//         }
-
-//         fn type_(&self) -> &str {
-//             ""
-//         }
-
-//         fn config(&self) -> &Self::Config {
-//             &TestConfig
-//         }
-
-//         fn runtime_state(&self) -> Self::RuntimeStateFuture {
-//             match self.runtime_state_behavior {
-//                 TestModuleRuntimeStateBehavior::Default => {
-//                     let top_pid = self.process_ids.first().cloned();
-//                     future::ok(ModuleRuntimeState::default().with_pid(top_pid))
-//                 }
-//                 TestModuleRuntimeStateBehavior::NotFound => {
-//                     future::err(ErrorKind::NotFound(String::new()).into())
-//                 }
-//             }
-//         }
-//     }
-
-//     #[derive(Clone)]
-//     struct TestModuleList {
-//         modules: Vec<TestModule>,
-//     }
-
-//     impl ModuleRegistry for TestModuleList {
-//         type Error = Error;
-//         type PullFuture = FutureResult<(), Self::Error>;
-//         type RemoveFuture = FutureResult<(), Self::Error>;
-//         type Config = TestConfig;
-
-//         fn pull(&self, _config: &Self::Config) -> Self::PullFuture {
-//             unimplemented!()
-//         }
-
-//         fn remove(&self, _name: &str) -> Self::RemoveFuture {
-//             unimplemented!()
-//         }
-//     }
-
-//     impl DockerModuleTop for TestModule {
-//         type Error = Error;
-//         type ModuleTopFuture = FutureResult<ModuleTop, Self::Error>;
-
-//         fn top(&self) -> Self::ModuleTopFuture {
-//             match self.runtime_state_behavior {
-//                 TestModuleRuntimeStateBehavior::Default => {
-//                     future::ok(ModuleTop::new(self.name.clone(), self.process_ids.clone()))
-//                 }
-//                 TestModuleRuntimeStateBehavior::NotFound => {
-//                     future::err(ErrorKind::NotFound(String::new()).into())
-//                 }
-//             }
-//         }
-//     }
-
-//     impl MakeModuleRuntime for TestModuleList {
-//         type Config = TestConfig;
-//         type ModuleRuntime = Self;
-//         type Settings = TestSettings;
-//         type Error = Error;
-//         type Future = FutureResult<Self, Self::Error>;
-
-//         fn make_runtime(_settings: Self::Settings) -> Self::Future {
-//             unimplemented!()
-//         }
-//     }
-
-//     impl ModuleRuntime for TestModuleList {
-//         type Error = Error;
-//         type Config = TestConfig;
-//         type Module = TestModule;
-//         type ModuleRegistry = Self;
-//         type Chunk = String;
-//         type Logs = Empty<Self::Chunk, Self::Error>;
-
-//         type CreateFuture = FutureResult<(), Self::Error>;
-//         type GetFuture = FutureResult<(Self::Module, ModuleRuntimeState), Self::Error>;
-//         type ListFuture = FutureResult<Vec<Self::Module>, Self::Error>;
-//         type ListWithDetailsStream =
-//             Box<dyn Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
-//         type LogsFuture = FutureResult<Self::Logs, Self::Error>;
-//         type RemoveFuture = FutureResult<(), Self::Error>;
-//         type RestartFuture = FutureResult<(), Self::Error>;
-//         type StartFuture = FutureResult<(), Self::Error>;
-//         type StopFuture = FutureResult<(), Self::Error>;
-//         type SystemInfoFuture = FutureResult<CoreSystemInfo, Self::Error>;
-//         type SystemResourcesFuture =
-//             Box<dyn Future<Item = SystemResources, Error = Self::Error> + Send>;
-//         type RemoveAllFuture = FutureResult<(), Self::Error>;
-//         type StopAllFuture = FutureResult<(), Self::Error>;
-
-//         fn create(&self, _module: ModuleSpec) -> Self::CreateFuture {
-//             unimplemented!()
-//         }
-
-//         fn get(&self, _id: &str) -> Self::GetFuture {
-//             unimplemented!()
-//         }
-
-//         fn start(&self, _id: &str) -> Self::StartFuture {
-//             unimplemented!()
-//         }
-
-//         fn stop(&self, _id: &str, _wait_before_kill: Option<Duration>) -> Self::StopFuture {
-//             unimplemented!()
-//         }
-
-//         fn restart(&self, _id: &str) -> Self::RestartFuture {
-//             unimplemented!()
-//         }
-
-//         fn remove(&self, _id: &str) -> Self::RemoveFuture {
-//             unimplemented!()
-//         }
-
-//         fn system_info(&self) -> Self::SystemInfoFuture {
-//             unimplemented!()
-//         }
-
-//         fn system_resources(&self) -> Self::SystemResourcesFuture {
-//             unimplemented!()
-//         }
-
-//         fn list(&self) -> Self::ListFuture {
-//             future::ok(self.modules.clone())
-//         }
-
-//         fn list_with_details(&self) -> Self::ListWithDetailsStream {
-//             list_with_details(self)
-//         }
-
-//         fn logs(&self, _id: &str, _options: &LogOptions) -> Self::LogsFuture {
-//             unimplemented!()
-//         }
-
-//         fn registry(&self) -> &Self::ModuleRegistry {
-//             self
-//         }
-
-//         fn remove_all(&self) -> Self::RemoveAllFuture {
-//             unimplemented!()
-//         }
-
-//         fn stop_all(&self, _wait_before_kill: Option<Duration>) -> Self::StopAllFuture {
-//             unimplemented!()
-//         }
-//     }
-
-//     impl Authenticator for TestModuleList {
-//         type Error = Error;
-//         type Request = Request<Body>;
-//         type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = Self::Error> + Send>;
-
-//         fn authenticate(&self, req: &Self::Request) -> Self::AuthenticateFuture {
-//             authenticate(self, req)
-//         }
-//     }
-// }
+fn parse_top_response<'de, D>(resp: &InlineResponse2001) -> std::result::Result<Vec<i32>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let titles = resp
+        .titles()
+        .ok_or_else(|| serde::de::Error::missing_field("Titles"))?;
+    let pid_index = titles
+        .iter()
+        .position(|s| s.as_str() == "PID")
+        .ok_or_else(|| {
+            serde::de::Error::invalid_value(
+                serde::de::Unexpected::Seq,
+                &"array including the column title 'PID'",
+            )
+        })?;
+    let processes = resp
+        .processes()
+        .ok_or_else(|| serde::de::Error::missing_field("Processes"))?;
+    let pids: std::result::Result<_, _> = processes
+        .iter()
+        .map(|p| {
+            let val = p.get(pid_index).ok_or_else(|| {
+                serde::de::Error::invalid_length(
+                    p.len(),
+                    &&*format!("at least {} columns", pid_index + 1),
+                )
+            })?;
+            let pid = val.parse::<i32>().map_err(|_| {
+                serde::de::Error::invalid_value(
+                    serde::de::Unexpected::Str(val),
+                    &"a process ID number",
+                )
+            })?;
+            Ok(pid)
+        })
+        .collect();
+
+    pids
+}
+
+// Disallow adding privileged and other capabilities if allow_elevated_docker_permissions is false
+fn unset_privileged(
+    allow_elevated_docker_permissions: bool,
+    create_options: &mut ContainerCreateBody,
+) {
+    if allow_elevated_docker_permissions {
+        return;
+    }
+    if let Some(config) = create_options.host_config() {
+        if config.privileged() == Some(&true) || config.cap_add().map_or(0, Vec::len) != 0 {
+            warn!("Privileged capabilities are disallowed on this device. Privileged capabilities can be used to gain root access. If a module needs to run as privileged, and you are aware of the consequences, set `allow_elevated_docker_permissions` to `true` in the config.toml and restart the service.");
+            let mut config = config.clone();
+
+            config.set_privileged(false);
+            config.reset_cap_add();
+
+            create_options.set_host_config(config);
+        }
+    }
+}
+
+fn drop_unsafe_privileges(
+    allow_elevated_docker_permissions: bool,
+    create_options: &mut ContainerCreateBody,
+) {
+    // Don't change default behavior unless privileged containers are disallowed
+    if allow_elevated_docker_permissions {
+        return;
+    }
+
+    // These capabilities are provided by default and can be used to gain root access:
+    // https://labs.f-secure.com/blog/helping-root-out-of-the-container/
+    // They must be explicitly enabled
+    let mut caps_to_drop = vec!["CAP_CHOWN".to_owned(), "CAP_SETUID".to_owned()];
+
+    // The suggested `Option::map_or_else` requires cloning `caps_to_drop`.
+    #[allow(clippy::option_if_let_else)]
+    let host_config = if let Some(config) = create_options.host_config() {
+        // Don't drop caps that the user added explicitly
+        if let Some(cap_add) = config.cap_add() {
+            caps_to_drop.retain(|cap_drop| !cap_add.contains(cap_drop));
+        }
+        // Add customer specified cap_drops
+        if let Some(cap_drop) = config.cap_drop() {
+            caps_to_drop.extend_from_slice(cap_drop);
+        }
+
+        config.clone().with_cap_drop(caps_to_drop)
+    } else {
+        HostConfig::new().with_cap_drop(caps_to_drop)
+    };
+
+    create_options.set_host_config(host_config);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_top_response_returns_pid_array() {
+        let response = InlineResponse2001::new()
+            .with_titles(vec!["PID".to_string()])
+            .with_processes(vec![vec!["123".to_string()]]);
+
+        let pids = parse_top_response::<Deserializer>(&response);
+
+        assert_eq!(vec![123], pids.unwrap());
+    }
+
+    #[test]
+    fn parse_top_response_returns_error_when_titles_is_missing() {
+        let response = InlineResponse2001::new().with_processes(vec![vec!["123".to_string()]]);
+
+        let pids = parse_top_response::<Deserializer>(&response);
+
+        assert_eq!("missing field `Titles`", format!("{}", pids.unwrap_err()));
+    }
+
+    #[test]
+    fn parse_top_response_returns_error_when_pid_title_is_missing() {
+        let response = InlineResponse2001::new().with_titles(vec!["Command".to_string()]);
+
+        let pids = parse_top_response::<Deserializer>(&response);
+
+        assert_eq!(
+            "invalid value: sequence, expected array including the column title 'PID'",
+            format!("{}", pids.unwrap_err())
+        );
+    }
+
+    #[test]
+    fn parse_top_response_returns_error_when_processes_is_missing() {
+        let response = InlineResponse2001::new().with_titles(vec!["PID".to_string()]);
+
+        let pids = parse_top_response::<Deserializer>(&response);
+
+        assert_eq!(
+            "missing field `Processes`",
+            format!("{}", pids.unwrap_err())
+        );
+    }
+
+    #[test]
+    fn parse_top_response_returns_error_when_process_pid_is_missing() {
+        let response = InlineResponse2001::new()
+            .with_titles(vec!["Command".to_string(), "PID".to_string()])
+            .with_processes(vec![vec!["sh".to_string()]]);
+
+        let pids = parse_top_response::<Deserializer>(&response);
+
+        assert_eq!(
+            "invalid length 1, expected at least 2 columns",
+            format!("{}", pids.unwrap_err())
+        );
+    }
+
+    #[test]
+    fn parse_top_response_returns_error_when_process_pid_is_not_i32() {
+        let response = InlineResponse2001::new()
+            .with_titles(vec!["PID".to_string()])
+            .with_processes(vec![vec!["xyz".to_string()]]);
+
+        let pids = parse_top_response::<Deserializer>(&response);
+
+        assert_eq!(
+            "invalid value: string \"xyz\", expected a process ID number",
+            format!("{}", pids.unwrap_err())
+        );
+    }
+
+    #[test]
+    fn unset_privileged_works() {
+        let mut create_options =
+            ContainerCreateBody::new().with_host_config(HostConfig::new().with_privileged(true));
+
+        // Doesn't remove privileged
+        unset_privileged(true, &mut create_options);
+        assert!(create_options.host_config().unwrap().privileged().unwrap());
+        // Removes privileged
+        unset_privileged(false, &mut create_options);
+        assert!(!create_options.host_config().unwrap().privileged().unwrap());
+        create_options.set_host_config(
+            HostConfig::new().with_cap_add(vec!["CAP1".to_owned(), "CAP2".to_owned()]),
+        );
+
+        // Doesn't remove caps
+        unset_privileged(true, &mut create_options);
+        assert_eq!(
+            create_options.host_config().unwrap().cap_add(),
+            Some(&vec!["CAP1".to_owned(), "CAP2".to_owned()])
+        );
+
+        // Removes caps
+        unset_privileged(false, &mut create_options);
+        assert_eq!(create_options.host_config().unwrap().cap_add(), None);
+    }
+
+    #[test]
+    fn drop_unsafe_privileges_works() {
+        let mut create_options = ContainerCreateBody::new().with_host_config(HostConfig::new());
+        // Do nothing if privileged is allowed
+        drop_unsafe_privileges(true, &mut create_options);
+        assert_eq!(create_options.host_config().unwrap().cap_drop(), None);
+        // Drops privileges by if privileged is false
+        drop_unsafe_privileges(false, &mut create_options);
+        assert_eq!(
+            create_options.host_config().unwrap().cap_drop(),
+            Some(&vec!["CAP_CHOWN".to_owned(), "CAP_SETUID".to_owned()])
+        );
+        // Doesn't drop caps if specified
+        create_options
+            .set_host_config(HostConfig::new().with_cap_add(vec!["CAP_CHOWN".to_owned()]));
+        drop_unsafe_privileges(false, &mut create_options);
+        assert_eq!(
+            create_options.host_config().unwrap().cap_drop(),
+            Some(&vec!["CAP_SETUID".to_owned()])
+        );
+    }
+}

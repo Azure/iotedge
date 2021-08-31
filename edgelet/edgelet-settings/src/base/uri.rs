@@ -36,14 +36,29 @@ impl Default for Connect {
 pub struct Listen {
     workload_uri: url::Url,
     management_uri: url::Url,
-
     #[serde(default)]
     min_tls_version: MinTlsVersion,
 }
 
 impl Listen {
-    pub fn workload_uri(&self) -> &url::Url {
+    pub fn legacy_workload_uri(&self) -> &url::Url {
         &self.workload_uri
+    }
+
+    pub fn workload_mnt_uri(home_dir: &str) -> String {
+        "unix://".to_string() + home_dir + "/mnt"
+    }
+
+    pub fn workload_uri(home_dir: &str, module_id: &str) -> Result<url::Url, url::ParseError> {
+        url::Url::parse(&("unix://".to_string() + home_dir + "/mnt/" + module_id + ".sock"))
+    }
+
+    pub fn get_workload_systemd_socket_name() -> String {
+        "aziot-edged.workload.socket".to_string()
+    }
+
+    pub fn get_management_systemd_socket_name() -> String {
+        "aziot-edged.mgmt.socket".to_string()
     }
 
     pub fn management_uri(&self) -> &url::Url {
@@ -185,6 +200,6 @@ mod tests {
         assert_eq!(
             actual,
             Err(format!("Unsupported TLS protocol version: {}", value))
-        )
+        );
     }
 }

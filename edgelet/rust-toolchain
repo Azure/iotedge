@@ -1,3 +1,1 @@
-[toolchain]
-channel = "stable"
-components = ["clippy", "rustfmt"]
+1.54

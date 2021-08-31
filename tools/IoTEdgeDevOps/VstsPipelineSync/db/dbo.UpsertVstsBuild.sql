@@ -1,24 +1,29 @@
 ﻿CREATE PROCEDURE [dbo].[UpsertVstsBuild]
+	@BuildId varchar(20),
 	@BuildNumber varchar(20),
 	@DefinitionId int,
 	@DefinitionName varchar(100),
 	@SourceBranch varchar(100),
+	@SourceVersion varchar(100),
 	@SourceVersionDisplayUri varchar(500),
 	@WebUri varchar(500),
 	@Status varchar(20),
 	@Result varchar(20),
 	@QueueTime datetime2,
 	@StartTime datetime2,
-	@FinishTime datetime2
+	@FinishTime datetime2,
+	@WasScheduled varchar(20)
 AS
 	DECLARE @now datetime2;
 	SET @now = SYSDATETIME();
 
-	IF EXISTS (SELECT 1 FROM dbo.VstsBuild WHERE BuildNumber = @BuildNumber AND DefinitionId = @DefinitionId)
+	IF EXISTS (SELECT 1 FROM dbo.VstsBuild WHERE BuildId = @BuildId)
 	BEGIN
 		UPDATE dbo.VstsBuild
-		SET DefinitionName = @DefinitionName,
+		SET BuildId = @BuildId,
+		    DefinitionName = @DefinitionName,
 		    SourceBranch = @SourceBranch,
+		    SourceVersion = @SourceVersion,
 			SourceVersionDisplayUri = @SourceVersionDisplayUri,
 			WebUri = @WebUri,
 			[Status] = @Status,
@@ -26,12 +31,12 @@ AS
 			QueueTime = @QueueTime,
 			StartTime = @StartTime,
 			FinishTime = @FinishTIme,
+			WasScheduled = @WasScheduled,
 			UpdatedAt = @now
-		WHERE BuildNumber = @BuildNumber
-		AND DefinitionId = @DefinitionId
+		WHERE BuildId = @BuildId
 	END
 	ELSE
 	BEGIN
-		INSERT INTO dbo.VstsBuild(BuildNumber, DefinitionId, DefinitionName, SourceBranch, SourceVersionDisplayUri, WebUri, [Status], Result, QueueTime, StartTime, FinishTime, InsertedAt, UpdatedAt)
-		VALUES (@BuildNumber, @DefinitionId, @DefinitionName, @SourceBranch, @SourceVersionDisplayUri, @WebUri, @Status, @Result, @QueueTime, @StartTime, @FinishTime, @now, @now)
+		INSERT INTO dbo.VstsBuild(BuildId, BuildNumber, DefinitionId, DefinitionName, SourceBranch, SourceVersion, SourceVersionDisplayUri, WebUri, [Status], Result, QueueTime, StartTime, FinishTime, WasScheduled, InsertedAt, UpdatedAt)
+		VALUES (@BuildId, @BuildNumber, @DefinitionId, @DefinitionName, @SourceBranch, @SourceVersion, @SourceVersionDisplayUri, @WebUri, @Status, @Result, @QueueTime, @StartTime, @FinishTime, @WasScheduled, @now, @now)
 	END

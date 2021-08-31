@@ -18,6 +18,7 @@ use edgelet_test_utils::clients::KeyClient;
 use edgelet_test_utils::clients::KeyEngine;
 
 #[derive(Debug, serde::Serialize)]
+#[cfg_attr(test, derive(serde::Deserialize))]
 #[serde(tag = "type")]
 pub(crate) enum PrivateKey {
     #[serde(rename = "key")]
@@ -25,6 +26,7 @@ pub(crate) enum PrivateKey {
 }
 
 #[derive(Debug, serde::Serialize)]
+#[cfg_attr(test, derive(serde::Deserialize))]
 pub(crate) struct CertificateResponse {
     #[serde(rename = "privateKey")]
     private_key: PrivateKey,
@@ -93,7 +95,7 @@ impl CertApi {
             certificate: cert,
             expiration,
         };
-        let response = http_common::server::response::json(hyper::StatusCode::OK, &response);
+        let response = http_common::server::response::json(hyper::StatusCode::CREATED, &response);
 
         Ok(response)
     }
@@ -312,7 +314,7 @@ async fn should_renew(
             let current_time =
                 openssl::asn1::Asn1Time::days_from_now(0).expect("current time must be valid");
 
-            let diff = current_time.diff(&cert.not_after()).map_err(|_| {
+            let diff = current_time.diff(cert.not_after()).map_err(|_| {
                 edgelet_http::error::server_error("failed to determine edge ca expiration time")
             })?;
             let diff = i64::from(diff.secs) + i64::from(diff.days) * 86400;
@@ -345,41 +347,6 @@ fn edge_ca_extensions(
 
 #[cfg(test)]
 mod tests {
-    /// Generates a self-signed cert for testing.
-    ///
-    /// The `customize` parameter is an optional function that can be used to
-    /// override the test defaults before the certificate is signed.
-    fn test_certificate(
-        customize: Option<fn(&mut openssl::x509::X509Builder)>,
-    ) -> openssl::x509::X509 {
-        let mut name = openssl::x509::X509Name::builder().unwrap();
-        name.append_entry_by_text("CN", "testCertificate").unwrap();
-        let name = name.build();
-
-        let (private_key, public_key) = super::new_keys().unwrap();
-
-        let mut cert = openssl::x509::X509::builder().unwrap();
-
-        cert.set_subject_name(&name).unwrap();
-        cert.set_issuer_name(&name).unwrap();
-        cert.set_pubkey(&public_key).unwrap();
-
-        let not_before = openssl::asn1::Asn1Time::from_unix(0).unwrap();
-        let not_after = openssl::asn1::Asn1Time::days_from_now(30).unwrap();
-
-        cert.set_not_before(&not_before).unwrap();
-        cert.set_not_after(&not_after).unwrap();
-
-        if let Some(customize) = customize {
-            customize(&mut cert);
-        }
-
-        cert.sign(&private_key, openssl::hash::MessageDigest::sha256())
-            .unwrap();
-
-        cert.build()
-    }
-
     fn test_api() -> super::CertApi {
         // Tests won't actually connect to keyd, so just put any URL in the key connector.
         let key_connector = url::Url::parse("unix:///tmp/test.sock").unwrap();
@@ -409,34 +376,44 @@ mod tests {
         let test_certs = vec![
             // Expired certificate.
             (
-                test_certificate(Some(|cert| {
-                    let expired = openssl::asn1::Asn1Time::from_unix(1).unwrap();
-                    cert.set_not_after(&expired).unwrap();
-                })),
+                edgelet_test_utils::test_certificate(
+                    "testCertificate",
+                    Some(|cert| {
+                        let expired = openssl::asn1::Asn1Time::from_unix(1).unwrap();
+                        cert.set_not_after(&expired).unwrap();
+                    }),
+                ),
                 true,
             ),
             // Certificate that is near expiry.
             (
-                test_certificate(Some(|cert| {
-                    let now = std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .unwrap();
+                edgelet_test_utils::test_certificate(
+                    "testCertificate",
+                    Some(|cert| {
+                        let now = std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .unwrap();
 
-                    // Certs within 5 mins of expiration should renew, so set an expiration
-                    // time 2 mins from now.
-                    let expiry_time = now.as_secs() + 120;
-                    let expiry_time: i64 = std::convert::TryInto::try_into(expiry_time).unwrap();
+                        // Certs within 5 mins of expiration should renew, so set an expiration
+                        // time 2 mins from now.
+                        let expiry_time = now.as_secs() + 120;
+                        let expiry_time: libc::time_t =
+                            std::convert::TryInto::try_into(expiry_time).unwrap();
 
-                    let expiry_time = openssl::asn1::Asn1Time::from_unix(expiry_time).unwrap();
-                    cert.set_not_after(&expiry_time).unwrap();
-                })),
+                        let expiry_time = openssl::asn1::Asn1Time::from_unix(expiry_time).unwrap();
+                        cert.set_not_after(&expiry_time).unwrap();
+                    }),
+                ),
                 true,
             ),
             // Certificate that is not near expiry.
-            (test_certificate(None), false),
+            (
+                edgelet_test_utils::test_certificate("testCertificate", None),
+                false,
+            ),
         ];
 
-        for (cert, should_renew) in test_certs {
+        for ((cert, _), should_renew) in test_certs {
             let api = test_api();
             let cert = cert.to_pem().unwrap();
 
@@ -465,5 +442,52 @@ mod tests {
                 assert_eq!(new_cert, cert);
             }
         }
+    }
+
+    #[tokio::test]
+    async fn issue_cert() {
+        let api = test_api();
+
+        let (_, issuer_key) = {
+            let cert_client = api.cert_client.lock().await;
+            (cert_client.issuer.clone(), cert_client.issuer_key.clone())
+        };
+
+        // It doesn't matter what extensions we use for this test, so just use the edge CA extensions.
+        let extensions = super::edge_ca_extensions().unwrap();
+
+        let response = api
+            .issue_cert(
+                "testCertificate".to_string(),
+                "testCertificate".to_string(),
+                // This test won't check these fields, so it doesn't matter what's passed here.
+                vec![],
+                extensions,
+            )
+            .await
+            .unwrap();
+
+        // Parse response
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let response: super::CertificateResponse = serde_json::from_slice(&body).unwrap();
+
+        let cert = openssl::x509::X509::from_pem(response.certificate.as_bytes()).unwrap();
+        let private_key = match response.private_key {
+            super::PrivateKey::Key { bytes } => {
+                openssl::pkey::PKey::private_key_from_pem(bytes.as_bytes()).unwrap()
+            }
+        };
+        let expiration = chrono::DateTime::parse_from_rfc3339(&response.expiration).unwrap();
+
+        // Check that expiration is in the future.
+        assert!(expiration > chrono::offset::Utc::now());
+
+        // Check that private key in response matches certificate.
+        let public_key = private_key.public_key_to_pem().unwrap();
+        let cert_public_key = cert.public_key().unwrap().public_key_to_pem().unwrap();
+        assert_eq!(cert_public_key, public_key);
+
+        // Check certificate is signed by issuer key.
+        assert!(cert.verify(&issuer_key).unwrap());
     }
 }

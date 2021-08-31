@@ -81,9 +81,13 @@ content-type: application/json
 ### Request
 ```
 GET /systeminfo/resources?api-version={version}
+    &since={time}
+    &until={time}
+    &iothub_hostname={string}
+    &edge_runtime_only={bool}
 ```
 
-`version` must be at least `2020-07-07s`.
+`version` must be at least `2020-07-07`.
 
 ### Response
 ```

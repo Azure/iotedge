@@ -322,6 +322,7 @@ where
 }
 
 #[cfg(test)]
+#[allow(clippy::semicolon_if_nothing_returned)]
 mod tests {
     use crate::error::{Error, ErrorKind};
 
@@ -344,7 +345,7 @@ mod tests {
 
             match err.kind() {
                 ErrorKind::$expected(..) => (),
-                _ => panic!(format!("Unexpected error encountered {:#?}", err)),
+                _ => panic!("Unexpected error encountered {:#?}", err),
             }
         };
 
@@ -354,7 +355,7 @@ mod tests {
 
             match err.kind() {
                 ErrorKind::$expected(..) => (),
-                _ => panic!(format!("Unexpected error encountered {:#?}", err)),
+                _ => panic!("Unexpected error encountered {:#?}", err),
             }
         };
     }

@@ -9,11 +9,11 @@ use std::time::Duration;
 
 use chrono::prelude::*;
 use failure::{Fail, ResultExt};
-use futures::Stream;
 use serde::{Deserialize, Serialize};
 
 use edgelet_settings::module::Settings as ModuleSpec;
 use edgelet_settings::RuntimeSettings;
+use tokio::sync::mpsc::UnboundedSender;
 
 use crate::error::{Error, ErrorKind, Result as EdgeletResult};
 
@@ -24,6 +24,11 @@ pub enum ModuleStatus {
     Running,
     Stopped,
     Failed,
+}
+pub enum ModuleAction {
+    Start(String, tokio::sync::oneshot::Sender<()>),
+    Stop(String),
+    Remove(String),
 }
 
 impl FromStr for ModuleStatus {
@@ -54,7 +59,7 @@ pub struct ModuleRuntimeState {
     started_at: Option<DateTime<Utc>>,
     finished_at: Option<DateTime<Utc>>,
     image_id: Option<String>,
-    pid: Option<i64>,
+    pid: Option<i32>,
 }
 
 impl Default for ModuleRuntimeState {
@@ -126,11 +131,11 @@ impl ModuleRuntimeState {
         self
     }
 
-    pub fn pid(&self) -> Option<i64> {
+    pub fn pid(&self) -> Option<i32> {
         self.pid
     }
 
-    pub fn with_pid(mut self, pid: Option<i64>) -> Self {
+    pub fn with_pid(mut self, pid: Option<i32>) -> Self {
         self.pid = pid;
         self
     }
@@ -358,7 +363,10 @@ pub trait MakeModuleRuntime {
     type ModuleRuntime: ModuleRuntime<Config = Self::Config>;
     type Error: Fail;
 
-    async fn make_runtime(settings: &Self::Settings) -> Result<Self::ModuleRuntime, Self::Error>;
+    async fn make_runtime(
+        settings: &Self::Settings,
+        create_socket_channel: UnboundedSender<ModuleAction>,
+    ) -> Result<Self::ModuleRuntime, Self::Error>;
 }
 
 #[async_trait::async_trait]
@@ -367,11 +375,7 @@ pub trait ModuleRuntime: Sized {
 
     type Config: Clone + Send + serde::Serialize;
     type Module: Module<Config = Self::Config> + Send;
-    type ModuleRegistry: ModuleRegistry<Config = Self::Config, Error = Self::Error>;
-    type Chunk: AsRef<[u8]> + Into<bytes::Bytes> + 'static;
-
-    // TODO: Remove failure and fix this error type.
-    type Logs: Stream<Item = Result<Self::Chunk, std::io::Error>> + Send + 'static;
+    type ModuleRegistry: ModuleRegistry<Config = Self::Config, Error = Self::Error> + Send + Sync;
 
     async fn create(&self, module: ModuleSpec<Self::Config>) -> Result<(), Self::Error>;
     async fn get(&self, id: &str) -> Result<(Self::Module, ModuleRuntimeState), Self::Error>;
@@ -385,7 +389,7 @@ pub trait ModuleRuntime: Sized {
     async fn list_with_details(
         &self,
     ) -> Result<Vec<(Self::Module, ModuleRuntimeState)>, Self::Error>;
-    async fn logs(&self, id: &str, options: &LogOptions) -> Self::Logs;
+    async fn logs(&self, id: &str, options: &LogOptions) -> Result<hyper::Body, Self::Error>;
     async fn remove_all(&self) -> Result<(), Self::Error>;
     async fn stop_all(&self, wait_before_kill: Option<Duration>) -> Result<(), Self::Error>;
     async fn module_top(&self, id: &str) -> Result<Vec<i32>, Self::Error>;
@@ -444,7 +448,7 @@ pub enum RuntimeOperation {
     StopModule(String),
     SystemInfo,
     SystemResources,
-    TopModule(String, String),
+    TopModule(String),
 }
 
 impl fmt::Display for RuntimeOperation {
@@ -464,8 +468,8 @@ impl fmt::Display for RuntimeOperation {
             RuntimeOperation::StopModule(name) => write!(f, "Could not stop module {}", name),
             RuntimeOperation::SystemInfo => write!(f, "Could not query system info"),
             RuntimeOperation::SystemResources => write!(f, "Could not query system resources"),
-            RuntimeOperation::TopModule(name, reason) => {
-                write!(f, "Could not top module {}.\n{}", name, reason)
+            RuntimeOperation::TopModule(name) => {
+                write!(f, "Could not top module {}.", name)
             }
         }
     }
@@ -473,12 +477,13 @@ impl fmt::Display for RuntimeOperation {
 
 #[cfg(test)]
 mod tests {
-    use super::{BTreeMap, Default, ImagePullPolicy, ModuleSpec};
-
+    use std::collections::BTreeMap;
     use std::str::FromStr;
     use std::string::ToString;
 
-    use crate::error::ErrorKind;
+    use edgelet_settings::module::ImagePullPolicy;
+
+    use super::ModuleSpec;
     use crate::module::ModuleStatus;
 
     fn get_inputs() -> Vec<(&'static str, ModuleStatus)> {
@@ -509,84 +514,52 @@ mod tests {
     #[test]
     fn module_config_empty_name_fails() {
         let name = "".to_string();
-        match ModuleSpec::new(
-            name.clone(),
+        ModuleSpec::new(
+            name,
             "docker".to_string(),
             10_i32,
             BTreeMap::new(),
             ImagePullPolicy::default(),
-        ) {
-            Ok(_) => panic!("Expected error"),
-            Err(err) => {
-                if let ErrorKind::InvalidModuleName(s) = err.kind() {
-                    assert_eq!(s, &name);
-                } else {
-                    panic!("Expected `InvalidModuleName` but got {:?}", err);
-                }
-            }
-        }
+        )
+        .unwrap_err();
     }
 
     #[test]
     fn module_config_white_space_name_fails() {
         let name = "    ".to_string();
-        match ModuleSpec::new(
-            name.clone(),
+        ModuleSpec::new(
+            name,
             "docker".to_string(),
             10_i32,
             BTreeMap::new(),
             ImagePullPolicy::default(),
-        ) {
-            Ok(_) => panic!("Expected error"),
-            Err(err) => {
-                if let ErrorKind::InvalidModuleName(s) = err.kind() {
-                    assert_eq!(s, &name);
-                } else {
-                    panic!("Expected `InvalidModuleName` but got {:?}", err);
-                }
-            }
-        }
+        )
+        .unwrap_err();
     }
 
     #[test]
     fn module_config_empty_type_fails() {
         let type_ = "    ".to_string();
-        match ModuleSpec::new(
+        ModuleSpec::new(
             "m1".to_string(),
-            type_.clone(),
+            type_,
             10_i32,
             BTreeMap::new(),
             ImagePullPolicy::default(),
-        ) {
-            Ok(_) => panic!("Expected error"),
-            Err(err) => {
-                if let ErrorKind::InvalidModuleType(s) = err.kind() {
-                    assert_eq!(s, &type_);
-                } else {
-                    panic!("Expected `InvalidModuleType` but got {:?}", err);
-                }
-            }
-        }
+        )
+        .unwrap_err();
     }
 
     #[test]
     fn module_config_white_space_type_fails() {
         let type_ = "    ".to_string();
-        match ModuleSpec::new(
+        ModuleSpec::new(
             "m1".to_string(),
-            type_.clone(),
+            type_,
             10_i32,
             BTreeMap::new(),
             ImagePullPolicy::default(),
-        ) {
-            Ok(_) => panic!("Expected error"),
-            Err(err) => {
-                if let ErrorKind::InvalidModuleType(s) = err.kind() {
-                    assert_eq!(s, &type_);
-                } else {
-                    panic!("Expected `InvalidModuleType` but got {:?}", err);
-                }
-            }
-        }
+        )
+        .unwrap_err();
     }
 }

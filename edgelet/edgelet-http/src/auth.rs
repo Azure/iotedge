@@ -14,6 +14,8 @@ pub async fn auth_caller(
     pid: libc::pid_t,
     runtime: &std::sync::Arc<futures_util::lock::Mutex<impl edgelet_core::ModuleRuntime>>,
 ) -> Result<(), http_common::server::Error> {
+    let module_name = module_name.trim_start_matches('$');
+
     let module_pids = {
         let runtime = runtime.lock().await;
 
@@ -38,6 +40,7 @@ pub async fn auth_caller(
 }
 
 #[cfg(test)]
+#[allow(clippy::semicolon_if_nothing_returned)]
 mod tests {
     use super::{auth_agent, auth_caller};
 

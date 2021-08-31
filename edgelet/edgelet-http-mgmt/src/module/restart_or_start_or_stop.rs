@@ -9,6 +9,7 @@ where
     action: Action,
 }
 
+#[cfg_attr(test, derive(Debug, PartialEq))]
 enum Action {
     Restart,
     Start,
@@ -55,6 +56,7 @@ where
         let module = percent_encoding::percent_decode_str(module)
             .decode_utf8()
             .ok()?;
+        let module = module.trim_start_matches('/');
 
         let action = &captures["action"];
         let action = percent_encoding::percent_decode_str(action)
@@ -64,7 +66,7 @@ where
 
         Some(Route {
             runtime: service.runtime.clone(),
-            module: module.into_owned(),
+            module: module.to_owned(),
             action,
         })
     }
@@ -86,4 +88,33 @@ where
     }
 
     type PutBody = serde::de::IgnoredAny;
+}
+
+#[cfg(test)]
+mod tests {
+    use edgelet_test_utils::{test_route_err, test_route_ok};
+
+    #[test]
+    fn parse_uri() {
+        // Valid URI: restart
+        let route = test_route_ok!("/modules/testModule/restart");
+        assert_eq!("testModule", &route.module);
+        assert_eq!(super::Action::Restart, route.action);
+
+        // Valid URI: start
+        let route = test_route_ok!("/modules/testModule/start");
+        assert_eq!("testModule", &route.module);
+        assert_eq!(super::Action::Start, route.action);
+
+        // Valid URI: stop
+        let route = test_route_ok!("/modules/testModule/stop");
+        assert_eq!("testModule", &route.module);
+        assert_eq!(super::Action::Stop, route.action);
+
+        // Invalid action
+        test_route_err!("/modules/testModule/invalid");
+
+        // Missing module name
+        test_route_err!("/modules//restart");
+    }
 }

@@ -13,7 +13,7 @@ POST /modules/{module-id}/certificate/identity?api-version={version}
 
 ### Response
 ```
-200 OK
+201 CREATED
 
 content-type: application/json
 ```
@@ -54,7 +54,7 @@ content-type: application/json
 
 ### Response
 ```
-200 OK
+201 CREATED
 
 content-type: application/json
 ```

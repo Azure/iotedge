@@ -7,14 +7,14 @@ mod error;
 mod management;
 mod provision;
 mod watchdog;
-mod workload;
+mod workload_manager;
 
 use std::sync::atomic;
 
-use edgelet_core::{MakeModuleRuntime, ModuleRuntime};
+use edgelet_core::{module::ModuleAction, MakeModuleRuntime, ModuleRuntime};
 use edgelet_settings::RuntimeSettings;
 
-use crate::error::Error as EdgedError;
+use crate::{error::Error as EdgedError, workload_manager::WorkloadManager};
 
 #[tokio::main]
 async fn main() {
@@ -39,6 +39,7 @@ async fn main() {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 async fn run() -> Result<(), EdgedError> {
     let settings =
         edgelet_settings::docker::Settings::new().map_err(|err| EdgedError::settings_err(err))?;
@@ -55,6 +56,7 @@ async fn run() -> Result<(), EdgedError> {
     })?;
 
     let identity_client = provision::identity_client(&settings)?;
+
     let device_info = provision::get_device_info(
         &identity_client,
         settings.auto_reprovisioning_mode(),
@@ -62,29 +64,15 @@ async fn run() -> Result<(), EdgedError> {
     )
     .await?;
 
-    let runtime = edgelet_docker::DockerModuleRuntime::make_runtime(&settings)
-        .await
-        .map_err(|err| EdgedError::from_err("Failed to initialize module runtime", err))?;
+    let (create_socket_channel_snd, create_socket_channel_rcv) =
+        tokio::sync::mpsc::unbounded_channel::<ModuleAction>();
 
-    // Normally, aziot-edged will stop all modules when it shuts down. But if it crashed,
-    // modules will continue to run. On Linux systems where aziot-edged is responsible for
-    // creating/binding the socket (e.g., CentOS 7.5, which uses systemd but does not
-    // support systemd socket activation), modules will be left holding stale file
-    // descriptors for the workload and management APIs and calls on these APIs will
-    // begin to fail. Resilient modules should be able to deal with this, but we'll
-    // restart all modules to ensure a clean start.
-    log::info!("Stopping all modules...");
-    runtime
-        .stop_all(Some(std::time::Duration::from_secs(30)))
-        .await
-        .map_err(|err| EdgedError::from_err("Failed to stop modules on startup", err))?;
-    log::info!("All modules stopped");
-
-    provision::update_device_cache(&cache_dir, &device_info, &runtime).await?;
-
-    // Resolve the parent hostname used to pull Edge Agent. This translates '$upstream' into the
-    // appropriate hostname.
-    let settings = settings.agent_upstream_resolve(&device_info.gateway_host);
+    let runtime = edgelet_docker::DockerModuleRuntime::make_runtime(
+        &settings,
+        create_socket_channel_snd.clone(),
+    )
+    .await
+    .map_err(|err| EdgedError::from_err("Failed to initialize module runtime", err))?;
 
     let (shutdown_tx, shutdown_rx) =
         tokio::sync::mpsc::unbounded_channel::<edgelet_core::ShutdownReason>();
@@ -94,6 +82,39 @@ async fn run() -> Result<(), EdgedError> {
     let tasks = atomic::AtomicUsize::new(2);
     let tasks = std::sync::Arc::new(tasks);
 
+    // Workload manager needs to start before modules can be stopped.
+    let (workload_manager, workload_shutdown) = WorkloadManager::start(
+        &settings,
+        runtime.clone(),
+        &device_info,
+        tasks.clone(),
+        create_socket_channel_snd,
+    )
+    .await?;
+
+    // Normally, aziot-edged will stop all modules when it shuts down. But if it crashed,
+    // modules will continue to run. On Linux systems where aziot-edged is responsible for
+    // creating/binding the socket (e.g., CentOS 7.5, which uses systemd but does not
+    // support systemd socket activation), modules will be left holding stale file
+    // descriptors for the workload and management APIs and calls on these APIs will
+    // begin to fail. Resilient modules should be able to deal with this, but we'll
+    // restart all modules to ensure a clean start.
+    log::info!("Stopping all modules...");
+    if let Err(err) = runtime
+        .stop_all(Some(std::time::Duration::from_secs(30)))
+        .await
+    {
+        log::warn!("Failed to stop modules on startup: {}", err);
+    } else {
+        log::info!("All modules stopped");
+    }
+
+    provision::update_device_cache(&cache_dir, &device_info, &runtime).await?;
+
+    // Resolve the parent hostname used to pull Edge Agent. This translates '$upstream' into the
+    // appropriate hostname.
+    let settings = settings.agent_upstream_resolve(&device_info.gateway_host);
+
     // Start management and workload sockets.
     let management_shutdown = management::start(
         &settings,
@@ -102,24 +123,23 @@ async fn run() -> Result<(), EdgedError> {
         tasks.clone(),
     )
     .await?;
-    let workload_shutdown =
-        workload::start(&settings, runtime.clone(), &device_info, tasks.clone()).await?;
 
-    // Set the signal handler to listen for CTRL+C (SIGINT).
-    let sigint_sender = shutdown_tx.clone();
-    tokio::spawn(async move {
-        tokio::signal::ctrl_c()
-            .await
-            .expect("cannot fail to set signal handler");
+    workload_manager::server(workload_manager, runtime.clone(), create_socket_channel_rcv)
+        .await
+        .map_err(|err| EdgedError::from_err("Could not start server", err))?;
 
-        // Failure to send the shutdown signal means that the mpsc queue is closed.
-        // Ignore this Result, as the process will be shutting down anyways.
-        let _ = sigint_sender.send(edgelet_core::ShutdownReason::SigInt);
-    });
+    // Set signal handlers for SIGTERM and SIGINT.
+    set_signal_handlers(shutdown_tx);
 
     // Run aziot-edged until the shutdown signal is received. This also runs the watchdog periodically.
-    let shutdown_reason =
-        watchdog::run_until_shutdown(settings, runtime, &identity_client, shutdown_rx).await?;
+    let shutdown_reason = watchdog::run_until_shutdown(
+        settings,
+        &device_info,
+        runtime,
+        &identity_client,
+        shutdown_rx,
+    )
+    .await?;
 
     log::info!("Stopping management API...");
     management_shutdown
@@ -161,4 +181,35 @@ async fn run() -> Result<(), EdgedError> {
     }
 
     Ok(())
+}
+
+fn set_signal_handlers(
+    shutdown_tx: tokio::sync::mpsc::UnboundedSender<edgelet_core::ShutdownReason>,
+) {
+    // Set the signal handler to listen for CTRL+C (SIGINT).
+    let sigint_sender = shutdown_tx.clone();
+
+    tokio::spawn(async move {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("cannot fail to set signal handler");
+
+        // Failure to send the shutdown signal means that the mpsc queue is closed.
+        // Ignore this Result, as the process will be shutting down anyways.
+        let _ = sigint_sender.send(edgelet_core::ShutdownReason::Signal);
+    });
+
+    // Set the signal handler to listen for systemctl stop (SIGTERM).
+    let mut sigterm_stream =
+        tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            .expect("cannot fail to set signal handler");
+    let sigterm_sender = shutdown_tx;
+
+    tokio::spawn(async move {
+        sigterm_stream.recv().await;
+
+        // Failure to send the shutdown signal means that the mpsc queue is closed.
+        // Ignore this Result, as the process will be shutting down anyways.
+        let _ = sigterm_sender.send(edgelet_core::ShutdownReason::Signal);
+    });
 }

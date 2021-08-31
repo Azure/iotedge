@@ -12,6 +12,7 @@ where
 {
     client: std::sync::Arc<futures_util::lock::Mutex<CertClient>>,
     trust_bundle: String,
+    optional: bool,
     _runtime: std::marker::PhantomData<M>,
 }
 
@@ -41,15 +42,17 @@ where
         _query: &[(std::borrow::Cow<'_, str>, std::borrow::Cow<'_, str>)],
         _extensions: &http::Extensions,
     ) -> Option<Self> {
-        let trust_bundle = match path {
-            TRUST_BUNDLE_PATH => service.config.trust_bundle.clone(),
-            MANIFEST_TRUST_BUNDLE_PATH => service.config.manifest_trust_bundle.clone(),
+        // The default trust bundle is required, but the manifest trust bundle is optional.
+        let (trust_bundle, optional) = match path {
+            TRUST_BUNDLE_PATH => (service.config.trust_bundle.clone(), false),
+            MANIFEST_TRUST_BUNDLE_PATH => (service.config.manifest_trust_bundle.clone(), true),
             _ => return None,
         };
 
         Some(Route {
             client: service.cert_client.clone(),
             trust_bundle,
+            optional,
             _runtime: std::marker::PhantomData,
         })
     }
@@ -61,13 +64,24 @@ where
 
         let certificate = client.get_cert(&self.trust_bundle).await.map_err(|_| {
             edgelet_http::error::not_found(format!("certificate {} not found", self.trust_bundle))
-        })?;
+        });
 
-        let certificate = std::str::from_utf8(&certificate)
-            .map_err(|err| {
-                edgelet_http::error::server_error(format!("could not parse certificate: {}", err))
-            })?
-            .to_string();
+        let certificate = match (certificate, self.optional) {
+            (Ok(certificate), _) => std::str::from_utf8(&certificate)
+                .map_err(|err| {
+                    edgelet_http::error::server_error(format!(
+                        "could not parse certificate: {}",
+                        err
+                    ))
+                })?
+                .to_string(),
+
+            (Err(_), true) => String::new(),
+
+            (Err(err), false) => {
+                return Err(err);
+            }
+        };
 
         let res = TrustBundleResponse { certificate };
         let res = http_common::server::response::json(hyper::StatusCode::OK, &res);
@@ -89,8 +103,13 @@ mod tests {
     #[test]
     fn parse_uri() {
         // Valid URIs
-        test_route_ok!(super::TRUST_BUNDLE_PATH);
-        test_route_ok!(super::MANIFEST_TRUST_BUNDLE_PATH);
+        let route = test_route_ok!(super::TRUST_BUNDLE_PATH);
+        assert_eq!("test-trust-bundle", route.trust_bundle);
+        assert!(!route.optional);
+
+        let route = test_route_ok!(super::MANIFEST_TRUST_BUNDLE_PATH);
+        assert_eq!("test-manifest-trust-bundle", route.trust_bundle);
+        assert!(route.optional);
 
         // Extra character at beginning of URI
         test_route_err!(&format!("a{}", super::TRUST_BUNDLE_PATH));
@@ -135,5 +154,19 @@ mod tests {
 
             assert_eq!(expected, trust_bundle.certificate);
         }
+    }
+
+    #[tokio::test]
+    async fn optional_trust_bundle() {
+        // Required trust bundle: fail if cert doesn't exist.
+        let route = test_route_ok!(super::TRUST_BUNDLE_PATH);
+        route.get().await.unwrap_err();
+
+        // Optional trust bundle: return empty string if cert doesn't exist.
+        let route = test_route_ok!(super::MANIFEST_TRUST_BUNDLE_PATH);
+        let response = route.get().await.unwrap();
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let trust_bundle: super::TrustBundleResponse = serde_json::from_slice(&body).unwrap();
+        assert_eq!(String::new(), trust_bundle.certificate);
     }
 }
