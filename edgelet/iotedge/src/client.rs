@@ -43,9 +43,7 @@ impl MgmtClient {
     }
 
     async fn request(&self, path: &str) -> Result<()> {
-        let host_str = format!("unix://{}:0{}", self.host, path);
-        let uri: std::result::Result<Uri, _> = host_str.parse();
-        let uri = uri.context(ErrorKind::ModuleRuntime)?;
+        let uri = self.get_uri(path)?;
 
         request_with_headers_no_content(
             &self.client,
@@ -59,6 +57,14 @@ impl MgmtClient {
 
         Ok(())
     }
+
+    fn get_uri(&self, path: &str) -> Result<Uri> {
+        let host_str = format!("unix://{}:0{}", self.host, path);
+        let uri: std::result::Result<Uri, _> = host_str.parse();
+        let uri = uri.context(ErrorKind::ModuleRuntime)?;
+
+        Ok(uri)
+    }
 }
 
 #[async_trait::async_trait]
@@ -71,6 +77,44 @@ impl ModuleRuntime for MgmtClient {
     async fn restart(&self, id: &str) -> Result<()> {
         let path = format!("/modules/{}/restart", id);
         self.request(&path).await
+    }
+
+    async fn logs(&self, id: &str, options: &LogOptions) -> Result<hyper::Body> {
+        let uri = {
+            let mut query = ::url::form_urlencoded::Serializer::new(String::new());
+            query
+                .append_pair("follow", &options.follow().to_string())
+                .append_pair("tail", &options.tail().to_string())
+                .append_pair("timestamps", &options.timestamps().to_string())
+                .append_pair("since", &options.since().to_string());
+            if let Some(until) = options.until() {
+                query.append_pair("until", &until.to_string());
+            }
+            let query = query.finish();
+            let path = format!("/modules/{}/restart?{}", id, query);
+            self.get_uri(&path)?
+        };
+
+        let req = hyper::Request::builder()
+            .method(hyper::Method::GET)
+            .uri(uri)
+            .body(hyper::Body::empty())
+            .expect("could not build hyper::Request");
+        let resp = self
+            .client
+            .request(req)
+            .await
+            .context(ErrorKind::ModuleRuntime)?;
+
+        let (hyper::http::response::Parts { status, .. }, body) = resp.into_parts();
+        if status.is_success() {
+            Ok(body)
+        } else {
+            Err(Error::from(ErrorKind::Misc(format!(
+                "Bad status code when calling logs: {}",
+                status
+            ))))
+        }
     }
 
     async fn create(&self, _module: ModuleSpec<Self::Config>) -> Result<()> {
@@ -98,9 +142,6 @@ impl ModuleRuntime for MgmtClient {
         unimplemented!()
     }
     async fn list_with_details(&self) -> Result<Vec<(Self::Module, ModuleRuntimeState)>> {
-        unimplemented!()
-    }
-    async fn logs(&self, _id: &str, _options: &LogOptions) -> Result<hyper::Body> {
         unimplemented!()
     }
     async fn remove_all(&self) -> Result<()> {
