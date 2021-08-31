@@ -105,11 +105,11 @@ mod tests {
         // Valid URIs
         let route = test_route_ok!(super::TRUST_BUNDLE_PATH);
         assert_eq!("test-trust-bundle", route.trust_bundle);
-        assert_eq!(false, route.optional);
+        assert!(!route.optional);
 
         let route = test_route_ok!(super::MANIFEST_TRUST_BUNDLE_PATH);
         assert_eq!("test-manifest-trust-bundle", route.trust_bundle);
-        assert_eq!(true, route.optional);
+        assert!(route.optional);
 
         // Extra character at beginning of URI
         test_route_err!(&format!("a{}", super::TRUST_BUNDLE_PATH));

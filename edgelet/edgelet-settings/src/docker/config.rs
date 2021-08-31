@@ -185,8 +185,7 @@ mod tests {
                         ]
                     }
                 }
-            },
-            "allowElevatedDockerPermissions": true
+            }
         });
         assert_eq!(
             serde_json::from_str::<serde_json::Value>(&actual_json).unwrap(),
@@ -245,8 +244,7 @@ mod tests {
                 "username": "username",
                 "password": "password",
                 "serveraddress": "repo.azurecr.io"
-            },
-            "allowElevatedDockerPermissions": true
+            }
         });
         assert_eq!(
             serde_json::from_str::<serde_json::Value>(&actual_json).unwrap(),

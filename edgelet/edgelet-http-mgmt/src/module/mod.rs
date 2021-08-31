@@ -19,7 +19,7 @@ where
 {
     let module = module
         .to_runtime_spec::<M>()
-        .map_err(|err| edgelet_http::error::server_error(err))?;
+        .map_err(edgelet_http::error::server_error)?;
 
     pull_image(runtime, &module).await?;
 

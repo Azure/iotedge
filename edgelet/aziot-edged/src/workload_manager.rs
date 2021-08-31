@@ -38,7 +38,7 @@ where
         let legacy_workload_uri = settings.listen().legacy_workload_uri().clone();
         let legacy_workload_systemd_socket_name = Listen::get_workload_systemd_socket_name();
 
-        let service = edgelet_http_workload::Service::new(settings, runtime.clone(), device_info)
+        let service = edgelet_http_workload::Service::new(settings, runtime, device_info)
             .map_err(|err| EdgedError::from_err("Invalid service endpoint", err))?;
 
         let home_dir = settings.homedir().to_path_buf();
@@ -119,7 +119,7 @@ where
         Ok(())
     }
 
-    fn stop_listener(&mut self, module_id: &str) -> Result<(), EdgedError> {
+    fn stop_listener(&mut self, module_id: &str) {
         log::info!("Stopping listener for module {}", module_id);
 
         let shutdown_sender = self.shutdown_senders.remove(module_id);
@@ -127,12 +127,6 @@ where
         if let Some(shutdown_sender) = shutdown_sender {
             // When edged boots up, it clean all modules. At this moment, no socket could listening so it could legitimatly return an error.
             shutdown_sender.send(()).ok();
-            Ok(())
-        } else {
-            return Err(EdgedError::from_err(
-                "Couldn't find a matching module Id in the list of shutdown channels",
-                ErrorKind::WorkloadManager,
-            ));
         }
     }
 
@@ -153,15 +147,18 @@ where
     }
 
     fn get_listener_uri(&self, module_id: &str) -> Result<url::Url, EdgedError> {
-        let uri = if let Some(home_dir) = self.home_dir.to_str() {
-            Listen::workload_uri(home_dir, module_id)
-                .map_err(|err| EdgedError::from_err("Could not get workload uri", err))
-        } else {
-            Err(EdgedError::from_err(
-                "No home dir found",
-                ErrorKind::WorkloadManager,
-            ))
-        }?;
+        let uri = self.home_dir.to_str().map_or_else(
+            || {
+                Err(EdgedError::from_err(
+                    "No home dir found",
+                    ErrorKind::WorkloadManager,
+                ))
+            },
+            |home_dir| {
+                Listen::workload_uri(home_dir, module_id)
+                    .map_err(|err| EdgedError::from_err("Could not get workload uri", err))
+            },
+        )?;
 
         Ok(uri)
     }
@@ -218,11 +215,7 @@ where
                             log::info!("Failed to start module {}, error {}", module_id, err);
                         }
                     }
-                    ModuleAction::Stop(module_id) => {
-                        if let Err(err) = workload_manager.stop_listener(&module_id) {
-                            log::info!("Failed to stop module {}, error {}", module_id, err);
-                        }
-                    }
+                    ModuleAction::Stop(module_id) => workload_manager.stop_listener(&module_id),
                     ModuleAction::Remove(module_id) => {
                         if let Err(err) = workload_manager.remove_listener(&module_id) {
                             log::info!("Failed to remove module {}, error {}", module_id, err);

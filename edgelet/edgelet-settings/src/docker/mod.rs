@@ -214,7 +214,7 @@ mod tests {
         assert_eq!(network.name(), DEFAULT_NETWORKID);
         match network {
             network::MobyNetwork::Network(moby_network) => {
-                assert_eq!(moby_network.ipv6().unwrap(), true);
+                assert!(moby_network.ipv6().unwrap());
                 let ipam_spec = moby_network.ipam().expect("Expected IPAM specification.");
                 let ipam_config = ipam_spec.config().expect("Expected IPAM configuration.");
                 let ipam_1 = network::IpamConfig::default()
@@ -227,9 +227,9 @@ mod tests {
                     .with_subnet("2001:4898:e0:3b1:1::/80".to_string());
                 let expected_ipam_config: Vec<network::IpamConfig> = vec![ipam_1, ipam_2];
 
-                ipam_config.iter().for_each(|ipam_config| {
+                for ipam_config in ipam_config.iter() {
                     assert!(expected_ipam_config.contains(ipam_config));
-                });
+                }
             }
             network::MobyNetwork::Name(_name) => panic!("Unexpected network configuration."),
         };

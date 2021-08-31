@@ -39,6 +39,7 @@ async fn main() {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 async fn run() -> Result<(), EdgedError> {
     let settings =
         edgelet_settings::docker::Settings::new().map_err(|err| EdgedError::settings_err(err))?;
@@ -127,17 +128,8 @@ async fn run() -> Result<(), EdgedError> {
         .await
         .map_err(|err| EdgedError::from_err("Could not start server", err))?;
 
-    // Set the signal handler to listen for CTRL+C (SIGINT).
-    let sigint_sender = shutdown_tx.clone();
-    tokio::spawn(async move {
-        tokio::signal::ctrl_c()
-            .await
-            .expect("cannot fail to set signal handler");
-
-        // Failure to send the shutdown signal means that the mpsc queue is closed.
-        // Ignore this Result, as the process will be shutting down anyways.
-        let _ = sigint_sender.send(edgelet_core::ShutdownReason::SigInt);
-    });
+    // Set signal handlers for SIGTERM and SIGINT.
+    set_signal_handlers(shutdown_tx);
 
     // Run aziot-edged until the shutdown signal is received. This also runs the watchdog periodically.
     let shutdown_reason = watchdog::run_until_shutdown(
@@ -189,4 +181,35 @@ async fn run() -> Result<(), EdgedError> {
     }
 
     Ok(())
+}
+
+fn set_signal_handlers(
+    shutdown_tx: tokio::sync::mpsc::UnboundedSender<edgelet_core::ShutdownReason>,
+) {
+    // Set the signal handler to listen for CTRL+C (SIGINT).
+    let sigint_sender = shutdown_tx.clone();
+
+    tokio::spawn(async move {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("cannot fail to set signal handler");
+
+        // Failure to send the shutdown signal means that the mpsc queue is closed.
+        // Ignore this Result, as the process will be shutting down anyways.
+        let _ = sigint_sender.send(edgelet_core::ShutdownReason::Signal);
+    });
+
+    // Set the signal handler to listen for systemctl stop (SIGTERM).
+    let mut sigterm_stream =
+        tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            .expect("cannot fail to set signal handler");
+    let sigterm_sender = shutdown_tx;
+
+    tokio::spawn(async move {
+        sigterm_stream.recv().await;
+
+        // Failure to send the shutdown signal means that the mpsc queue is closed.
+        // Ignore this Result, as the process will be shutting down anyways.
+        let _ = sigterm_sender.send(edgelet_core::ShutdownReason::Signal);
+    });
 }

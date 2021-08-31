@@ -29,7 +29,7 @@ macro_rules! test_route {
             http_common::server::Route::from_uri(
                 &crate::Service::new(edgelet_test_utils::runtime::Runtime::default()),
                 $path,
-                &vec![],
+                &Vec::new(),
                 &edgelet_test_utils::route::extensions(),
             );
 

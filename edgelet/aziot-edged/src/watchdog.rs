@@ -32,7 +32,7 @@ pub(crate) async fn run_until_shutdown(
 
         match futures_util::future::select(watchdog_next, shutdown_loop).await {
             futures_util::future::Either::Left((_, shutdown)) => {
-                if let Err(err) = watchdog(&settings, device_info, &runtime, &identity_client).await
+                if let Err(err) = watchdog(&settings, device_info, &runtime, identity_client).await
                 {
                     log::warn!("Error in watchdog: {}", err);
 
@@ -78,57 +78,50 @@ async fn watchdog(
     log::info!("Watchdog checking Edge runtime status");
     let agent_name = settings.agent().name();
 
-    let start = match runtime.get(agent_name).await {
-        Ok((_, agent_status)) => {
-            let agent_status = agent_status.status();
+    let start = if let Ok((_, agent_status)) = runtime.get(agent_name).await {
+        let agent_status = agent_status.status();
 
-            if let edgelet_core::ModuleStatus::Running = agent_status {
-                log::info!("Edge runtime is running");
+        if let edgelet_core::ModuleStatus::Running = agent_status {
+            log::info!("Edge runtime is running");
 
-                false
-            } else {
-                log::info!(
-                    "Edge runtime status is {}; starting runtime now...",
-                    agent_status
-                );
-
-                true
-            }
-        }
-
-        Err(_) => {
+            false
+        } else {
             log::info!(
-                "Creating and starting Edge runtime module {}...",
-                agent_name
+                "Edge runtime status is {}; starting runtime now...",
+                agent_status
             );
-
-            let mut agent_spec = settings.agent().clone();
-
-            let gen_id = agent_gen_id(identity_client).await?;
-            let mut env = agent_env(gen_id, settings, device_info);
-            agent_spec.env_mut().append(&mut env);
-
-            if let edgelet_settings::module::ImagePullPolicy::OnCreate =
-                agent_spec.image_pull_policy()
-            {
-                runtime
-                    .registry()
-                    .pull(agent_spec.config())
-                    .await
-                    .map_err(|err| {
-                        EdgedError::from_err("Failed to pull Edge runtime module", err)
-                    })?;
-            }
-
-            runtime
-                .create(agent_spec)
-                .await
-                .map_err(|err| EdgedError::from_err("Failed to create Edge runtime module", err))?;
-
-            log::info!("Created Edge runtime module {}", agent_name);
 
             true
         }
+    } else {
+        log::info!(
+            "Creating and starting Edge runtime module {}...",
+            agent_name
+        );
+
+        let mut agent_spec = settings.agent().clone();
+
+        let gen_id = agent_gen_id(identity_client).await?;
+        let mut env = agent_env(gen_id, settings, device_info);
+        agent_spec.env_mut().append(&mut env);
+
+        if let edgelet_settings::module::ImagePullPolicy::OnCreate = agent_spec.image_pull_policy()
+        {
+            runtime
+                .registry()
+                .pull(agent_spec.config())
+                .await
+                .map_err(|err| EdgedError::from_err("Failed to pull Edge runtime module", err))?;
+        }
+
+        runtime
+            .create(agent_spec)
+            .await
+            .map_err(|err| EdgedError::from_err("Failed to create Edge runtime module", err))?;
+
+        log::info!("Created Edge runtime module {}", agent_name);
+
+        true
     };
 
     if start {
@@ -152,11 +145,10 @@ async fn agent_gen_id(
         .map_err(|err| EdgedError::from_err("Failed to update $edgeAgent identity", err))?;
 
     if let aziot_identity_common::Identity::Aziot(identity) = identity {
-        if let Some(gen_id) = identity.gen_id {
-            Ok(gen_id.0)
-        } else {
-            Err(EdgedError::new("$edgeAgent identity missing generation ID"))
-        }
+        identity.gen_id.map_or_else(
+            || Err(EdgedError::new("$edgeAgent identity missing generation ID")),
+            |gen_id| Ok(gen_id.0),
+        )
     } else {
         Err(EdgedError::new("Invalid identity type for $edgeAgent"))
     }
