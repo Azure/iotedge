@@ -448,7 +448,6 @@ impl Check {
                 }
             }
 
-            // TODO: Tokio Command
             let mut aziot_check = std::process::Command::new(&self.aziot_bin);
             aziot_check
                 .arg("check")
