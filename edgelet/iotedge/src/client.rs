@@ -214,8 +214,9 @@ impl ModuleRegistry for MgmtClient {
 
 impl MgmtModule {
     pub fn new(details: ModuleDetails) -> Self {
-        let image = if let Ok(docker_config) =
-            serde_json::from_value::<edgelet_settings::DockerConfig>(details.config.settings.clone())
+        let image = if let Ok(docker_config) = serde_json::from_value::<
+            edgelet_settings::DockerConfig,
+        >(details.config.settings.clone())
         {
             docker_config.image().to_owned()
         } else {

@@ -17,7 +17,7 @@ pub use auth::auth_agent;
 pub use auth::auth_caller;
 
 // Common types shared between management and workload APIs.
-pub use modules::{ListModulesResponse, ModuleConfig, ModuleDetails};
+pub use modules::{ListModulesResponse, ModuleConfig, ModuleDetails, ModuleStatus};
 
 // HTTP bodies that represent module specs.
 pub use modules::ModuleSpec;

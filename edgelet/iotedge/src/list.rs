@@ -1,14 +1,16 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::io::Write;
+use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 
-use chrono::{Duration, Utc};
+use chrono::{DateTime, Duration, TimeZone, Utc};
 use chrono_humanize::{Accuracy, HumanTime, Tense};
 use failure::{Fail, ResultExt};
 use tabwriter::TabWriter;
 
-use edgelet_core::{Module, ModuleRuntime, ModuleRuntimeState, ModuleStatus};
+use edgelet_core::{Module, ModuleRuntime, ModuleStatus as ModuleStatusEnum};
+use edgelet_http::ModuleStatus;
 
 use crate::error::{Error, ErrorKind};
 use crate::MgmtModule;
@@ -54,12 +56,7 @@ where
                 "{}\t{}\t{}\n{}",
                 module.details.name,
                 module.details.status.runtime_status.status,
-                module
-                    .details
-                    .status
-                    .runtime_status
-                    .description
-                    .unwrap_or_default(),
+                humanize_status(&module.details.status),
                 module.image
             )
             .context(ErrorKind::WriteToStdout)?;
@@ -70,8 +67,51 @@ where
     }
 }
 
-fn time_string(ht: &HumanTime, tense: Tense) -> String {
-    if *ht <= HumanTime::from(Duration::seconds(20)) {
+fn humanize_status(status: &ModuleStatus) -> String {
+    let status_enum = ModuleStatusEnum::from_str(&status.runtime_status.status)
+        .unwrap_or(ModuleStatusEnum::Unknown);
+    match status_enum {
+        ModuleStatusEnum::Unknown => "Unknown".to_string(),
+        ModuleStatusEnum::Stopped => {
+            if let Some(exit_status) = &status.exit_status {
+                if let Ok(time) = DateTime::parse_from_rfc3339(&exit_status.exit_time) {
+                    return format!("Stopped {}", format_time(time, Tense::Past));
+                }
+            }
+
+            "Stopped".to_string()
+        }
+        ModuleStatusEnum::Failed => {
+            if let Some(exit_status) = &status.exit_status {
+                if let Ok(time) = DateTime::parse_from_rfc3339(&exit_status.exit_time) {
+                    return format!(
+                        "Failed ({}) {}",
+                        exit_status.status_code,
+                        format_time(time, Tense::Past)
+                    );
+                }
+            }
+
+            "Failed".to_string()
+        }
+        ModuleStatusEnum::Running => {
+            if let Some(start_time) = &status.start_time {
+                if let Ok(time) = DateTime::parse_from_rfc3339(&start_time) {
+                    format!("Up {}", format_time(time, Tense::Present));
+                }
+            }
+
+            "Up".to_string()
+        }
+    }
+}
+
+fn format_time<Tz>(time: DateTime<Tz>, tense: Tense) -> String
+where
+    Tz: TimeZone,
+{
+    let ht = HumanTime::from(Utc::now().signed_duration_since(time));
+    if ht <= HumanTime::from(Duration::seconds(20)) {
         ht.to_text_en(Accuracy::Precise, tense)
     } else {
         ht.to_text_en(Accuracy::Rough, tense)

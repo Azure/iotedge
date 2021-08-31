@@ -56,8 +56,8 @@ pub struct ModuleStatus {
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "camelCase")]
 pub struct ExitStatus {
-    exit_time: String,
-    status_code: String,
+    pub exit_time: String,
+    pub status_code: String,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
