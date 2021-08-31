@@ -1517,7 +1517,6 @@ dependencies = [
  "lazy_static",
  "libc",
  "log",
- "management",
  "native-tls",
  "nix 0.18.0",
  "openssl",
@@ -1637,22 +1636,6 @@ source = "git+https://github.com/Azure/iot-identity-service?branch=main#5e0ec256
 dependencies = [
  "env_logger",
  "log",
-]
-
-[[package]]
-name = "management"
-version = "0.1.0"
-dependencies = [
- "base64 0.9.3",
- "failure",
- "futures 0.1.31",
- "hyper 0.12.36",
- "serde",
- "serde_derive",
- "serde_json",
- "serde_yaml",
- "typed-headers",
- "url 1.7.2",
 ]
 
 [[package]]

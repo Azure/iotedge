@@ -61,7 +61,6 @@ edgelet-http-mgmt = {path = "../edgelet-http-mgmt"}
 edgelet-settings = {path = "../edgelet-settings", features = ["settings-docker"]}
 edgelet-utils = {path = "../edgelet-utils"}
 http-common = {git = "https://github.com/Azure/iot-identity-service", features = ["tokio1"], branch = "main"}
-management = {path = "../management"}
 support-bundle = {path = "../support-bundle"}
 
 [dev-dependencies]

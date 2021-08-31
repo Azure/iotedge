@@ -10,6 +10,11 @@ members = [
     "edgelet-settings",
     "edgelet-utils",
     "iotedge",
-    "management",
     "support-bundle",
 ]
+
+[profile.dev]
+panic = 'abort'
+
+[profile.release]
+panic = 'abort'
