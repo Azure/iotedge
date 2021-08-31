@@ -125,8 +125,17 @@ jobs:
                 }
             ]
 
+      - task: CopyFiles@2
+        displayName: Artifact Staging
+        inputs:
+          SourceFolder: '$(Build.BinariesDirectory)/publish/'
+          Contents: |
+            *.md
+            *.nupkg
+          TargetFolder: '$(Build.artifactstagingdirectory)'
+
       - task: PublishBuildArtifacts@1
         displayName: Publish Artifacts
         inputs:
-          PathtoPublish: '$(Build.BinariesDirectory)/publish/'
+          PathtoPublish: '$(Build.artifactstagingdirectory)'
           ArtifactName: 'Microsoft.Azure.WebJobs.Extensions.$(version).nupkg'
