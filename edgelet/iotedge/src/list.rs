@@ -53,7 +53,7 @@ where
         for (module, _state) in result {
             writeln!(
                 w,
-                "{}\t{}\t{}\n{}",
+                "{}\t{}\t{}\t{}",
                 module.details.name,
                 module.details.status.runtime_status.status,
                 humanize_status(&module.details.status),
