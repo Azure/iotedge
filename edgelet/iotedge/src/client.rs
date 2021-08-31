@@ -1,24 +1,28 @@
+use std::time::Duration;
+
 use failure::ResultExt;
 use hyper::{Body, Client, Uri};
-use std::time::Duration;
 use url::Url;
 
 use edgelet_core::{
     LogOptions, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, SystemInfo,
     SystemResources, UrlExt,
 };
+use edgelet_http::{ListModulesResponse, ModuleDetails};
 use edgelet_settings::module::Settings as ModuleSpec;
 use http_common::{request_with_headers, request_with_headers_no_content, Connector};
 
 use crate::{Error, ErrorKind};
 type Result<T> = std::result::Result<T, Error>;
 
+const API_VERSION: &'static str = "2020-07-07";
+
 #[derive(serde::Serialize, Clone)]
-pub struct NullConfig {}
+pub struct MgmtConfig {}
 
 pub struct MgmtModule {
-    name: String,
-    type_: String,
+    pub details: ModuleDetails,
+    pub image: String,
 }
 
 pub struct MgmtClient {
@@ -42,22 +46,6 @@ impl MgmtClient {
         Ok(Self { client, host })
     }
 
-    async fn request(&self, path: &str) -> Result<()> {
-        let uri = self.get_uri(path)?;
-
-        request_with_headers_no_content(
-            &self.client,
-            hyper::http::Method::GET,
-            uri,
-            None,
-            None::<&()>,
-        )
-        .await
-        .context(ErrorKind::ModuleRuntime)?;
-
-        Ok(())
-    }
-
     fn get_uri(&self, path: &str) -> Result<Uri> {
         let host_str = format!("unix://{}:0{}", self.host, path);
         let uri: std::result::Result<Uri, _> = host_str.parse();
@@ -70,19 +58,53 @@ impl MgmtClient {
 #[async_trait::async_trait]
 impl ModuleRuntime for MgmtClient {
     type Error = Error;
-    type Config = NullConfig;
+    type Config = MgmtConfig;
     type Module = MgmtModule;
     type ModuleRegistry = Self;
 
     async fn restart(&self, id: &str) -> Result<()> {
-        let path = format!("/modules/{}/restart", id);
-        self.request(&path).await
+        let path = format!("/modules/{}/restart?api-version={}", id, API_VERSION);
+        let uri = self.get_uri(&path)?;
+        request_with_headers_no_content(
+            &self.client,
+            hyper::http::Method::POST,
+            uri,
+            None,
+            None::<&()>,
+        )
+        .await
+        .context(ErrorKind::ModuleRuntime)?;
+
+        Ok(())
+    }
+
+    async fn list_with_details(&self) -> Result<Vec<(Self::Module, ModuleRuntimeState)>> {
+        let path = format!("/modules?api-version={}", API_VERSION);
+        let uri = self.get_uri(&path)?;
+        let response: ListModulesResponse = request_with_headers(
+            &self.client,
+            hyper::http::Method::GET,
+            uri,
+            None,
+            None::<&()>,
+        )
+        .await
+        .context(ErrorKind::ModuleRuntime)?;
+
+        let modules = response
+            .modules
+            .into_iter()
+            .map(|details| (MgmtModule::new(details), ModuleRuntimeState::default()))
+            .collect();
+
+        Ok(modules)
     }
 
     async fn logs(&self, id: &str, options: &LogOptions) -> Result<hyper::Body> {
         let uri = {
             let mut query = ::url::form_urlencoded::Serializer::new(String::new());
             query
+                .append_pair("api-version", API_VERSION)
                 .append_pair("follow", &options.follow().to_string())
                 .append_pair("tail", &options.tail().to_string())
                 .append_pair("timestamps", &options.timestamps().to_string())
@@ -91,7 +113,7 @@ impl ModuleRuntime for MgmtClient {
                 query.append_pair("until", &until.to_string());
             }
             let query = query.finish();
-            let path = format!("/modules/{}/restart?{}", id, query);
+            let path = format!("/modules/{}/logs?{}", id, query);
             self.get_uri(&path)?
         };
 
@@ -141,9 +163,6 @@ impl ModuleRuntime for MgmtClient {
     async fn list(&self) -> Result<Vec<Self::Module>> {
         unimplemented!()
     }
-    async fn list_with_details(&self) -> Result<Vec<(Self::Module, ModuleRuntimeState)>> {
-        unimplemented!()
-    }
     async fn remove_all(&self) -> Result<()> {
         unimplemented!()
     }
@@ -161,28 +180,28 @@ impl ModuleRuntime for MgmtClient {
 
 #[async_trait::async_trait]
 impl Module for MgmtModule {
-    type Config = NullConfig;
+    type Config = MgmtConfig;
     type Error = Error;
 
     fn name(&self) -> &str {
-        &self.name
+        &self.details.name
     }
     fn type_(&self) -> &str {
-        &self.type_
+        &self.details.r#type
     }
     fn config(&self) -> &Self::Config {
-        &NullConfig {}
+        &MgmtConfig {}
     }
 
     async fn runtime_state(&self) -> Result<ModuleRuntimeState> {
-        unimplemented!()
+        unimplemented!();
     }
 }
 
 #[async_trait::async_trait]
 impl ModuleRegistry for MgmtClient {
     type Error = Error;
-    type Config = NullConfig;
+    type Config = MgmtConfig;
 
     async fn pull(&self, _config: &Self::Config) -> Result<()> {
         Ok(())
@@ -190,5 +209,19 @@ impl ModuleRegistry for MgmtClient {
 
     async fn remove(&self, _name: &str) -> Result<()> {
         Ok(())
+    }
+}
+
+impl MgmtModule {
+    pub fn new(details: ModuleDetails) -> Self {
+        let image = if let Ok(docker_config) =
+            serde_json::from_value::<edgelet_settings::DockerConfig>(details.config.settings.clone())
+        {
+            docker_config.image().to_owned()
+        } else {
+            "".to_owned()
+        };
+
+        Self { details, image }
     }
 }

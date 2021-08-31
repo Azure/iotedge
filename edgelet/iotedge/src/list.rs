@@ -11,6 +11,7 @@ use tabwriter::TabWriter;
 use edgelet_core::{Module, ModuleRuntime, ModuleRuntimeState, ModuleStatus};
 
 use crate::error::{Error, ErrorKind};
+use crate::MgmtModule;
 
 pub struct List<M, W> {
     runtime: M,
@@ -32,7 +33,7 @@ where
 
 impl<M, W> List<M, W>
 where
-    M: ModuleRuntime,
+    M: ModuleRuntime<Module = MgmtModule>,
     W: Write,
 {
     pub async fn execute(self) -> Result<(), Error> {
@@ -46,57 +47,26 @@ where
         result.sort_by(|(mod1, _), (mod2, _)| mod1.name().cmp(mod2.name()));
 
         let mut w = write.lock().unwrap();
-        writeln!(w, "NAME\tSTATUS\tDESCRIPTION\tCONFIG").context(ErrorKind::WriteToStdout)?;
-        for (module, state) in result {
+        writeln!(w, "NAME\tSTATUS\tDESCRIPTION\tImage").context(ErrorKind::WriteToStdout)?;
+        for (module, _state) in result {
             writeln!(
                 w,
                 "{}\t{}\t{}\n{}",
-                module.name(),
-                state.status(),
-                humanize_state(&state),
-                "TODO: Get Config"
+                module.details.name,
+                module.details.status.runtime_status.status,
+                module
+                    .details
+                    .status
+                    .runtime_status
+                    .description
+                    .unwrap_or_default(),
+                module.image
             )
             .context(ErrorKind::WriteToStdout)?;
         }
         w.flush().context(ErrorKind::WriteToStdout)?;
 
         Ok(())
-    }
-}
-
-fn humanize_state(state: &ModuleRuntimeState) -> String {
-    match *state.status() {
-        ModuleStatus::Unknown => "Unknown".to_string(),
-        ModuleStatus::Stopped => state.finished_at().map_or_else(
-            || "Stopped".to_string(),
-            |time| {
-                format!(
-                    "Stopped {}",
-                    time_string(&HumanTime::from(Utc::now() - *time), Tense::Past)
-                )
-            },
-        ),
-        ModuleStatus::Failed => state
-            .finished_at()
-            .and_then(|time| {
-                state.exit_code().map(|code| {
-                    format!(
-                        "Failed ({}) {}",
-                        code,
-                        time_string(&HumanTime::from(Utc::now() - *time), Tense::Past)
-                    )
-                })
-            })
-            .unwrap_or_else(|| "Failed".to_string()),
-        ModuleStatus::Running => state.started_at().map_or_else(
-            || "Up".to_string(),
-            |time| {
-                format!(
-                    "Up {}",
-                    time_string(&HumanTime::from(Utc::now() - *time), Tense::Present)
-                )
-            },
-        ),
     }
 }
 

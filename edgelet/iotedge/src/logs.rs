@@ -2,6 +2,8 @@
 
 use std::io::stdout;
 
+use failure::ResultExt;
+
 use edgelet_core::{LogOptions, ModuleRuntime};
 use support_bundle::write_logs;
 
@@ -31,7 +33,7 @@ where
         let id = self.id.clone();
         write_logs(&self.runtime, &id, &self.options, &mut stdout())
             .await
-            .map_err(|_| Error::from(ErrorKind::ModuleRuntime))?;
+            .context(ErrorKind::ModuleRuntime)?;
 
         Ok(())
     }

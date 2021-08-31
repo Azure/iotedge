@@ -10,62 +10,62 @@ pub struct ModuleSpec {
     image_pull_policy: Option<String>,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[allow(clippy::module_name_repetitions)]
 pub struct ListModulesResponse {
-    modules: Vec<ModuleDetails>,
+    pub modules: Vec<ModuleDetails>,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ModuleDetails {
-    id: String,
-    name: String,
-    r#type: String,
-    config: ModuleConfig,
-    status: ModuleStatus,
+    pub id: String,
+    pub name: String,
+    pub r#type: String,
+    pub config: ModuleConfig,
+    pub status: ModuleStatus,
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct ModuleConfig {
-    settings: serde_json::Value,
+    pub settings: serde_json::Value,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     env: Option<Vec<EnvVar>>,
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
-struct EnvVar {
+pub struct EnvVar {
     key: String,
     value: String,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "camelCase")]
-struct ModuleStatus {
+pub struct ModuleStatus {
     #[serde(skip_serializing_if = "Option::is_none")]
-    start_time: Option<String>,
+    pub start_time: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    exit_status: Option<ExitStatus>,
+    pub exit_status: Option<ExitStatus>,
 
-    runtime_status: RuntimeStatus,
+    pub runtime_status: RuntimeStatus,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "camelCase")]
-struct ExitStatus {
+pub struct ExitStatus {
     exit_time: String,
     status_code: String,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-struct RuntimeStatus {
-    status: String,
+pub struct RuntimeStatus {
+    pub status: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    description: Option<String>,
+    pub description: Option<String>,
 }
 
 impl ModuleSpec {
