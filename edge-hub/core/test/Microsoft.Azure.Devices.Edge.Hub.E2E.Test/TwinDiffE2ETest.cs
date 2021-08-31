@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     {
         const string DeviceNamePrefix = "E2E_twin_";
 
-        [Theory]
+        [Theory (Skip = "Flaky")]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
         public async Task AddPropertySuccess(ITransportSettings[] transportSettings)
         {
@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 });
         }
 
-        [Theory]
+        [Theory (Skip = "Flaky")]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
         public async Task OverwritePropertySuccess(ITransportSettings[] transportSettings)
         {
@@ -94,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 });
         }
 
-        [Theory]
+        [Theory (Skip = "Flaky")]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
         public async Task UnchangedPropertySuccess(ITransportSettings[] transportSettings)
         {
@@ -260,6 +260,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 });
         }
 
+        [Theory (Skip = "Flaky")]
         [Theory]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
         public async Task OverwriteValueWithObjectSuccess(ITransportSettings[] transportSettings)

@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             this.logger.Dispose();
         }
 
-        [Theory]
+        [Theory (Skip = "Flaky")]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
         public async Task InvokeMethodOnModuleTest(ITransportSettings[] transportSettings)
         {

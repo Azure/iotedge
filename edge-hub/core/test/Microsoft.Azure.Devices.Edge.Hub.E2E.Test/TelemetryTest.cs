@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             await Task.Delay(TimeSpan.FromSeconds(10));
         }
 
-        [Theory]
+        [Theory (Skip = "Flaky")]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
         async Task SendOneTelemetryMessageTest(ITransportSettings[] transportSettings)
         {
@@ -114,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             await Task.Delay(TimeSpan.FromSeconds(10));
         }
 
-        [Theory]
+        [Theory (Skip = "Flaky")]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
         async Task SendTelemetryMultipleInputsTest(ITransportSettings[] transportSettings)
         {
@@ -210,7 +210,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             await Task.Delay(TimeSpan.FromSeconds(10));
         }
 
-        [Theory]
+        [Theory (Skip = "Flaky")]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
         async Task SendTelemetryWithDelayedReceiverTest(ITransportSettings[] transportSettings)
         {
