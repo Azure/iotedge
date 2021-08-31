@@ -124,3 +124,10 @@ jobs:
                     "toolVersion": "1.0"
                 }
             ]
+
+      - task: PublishBuildArtifacts@1
+        displayName: Publish Artifacts
+        inputs:
+          PathtoPublish: '$(Build.BinariesDirectory)/publish/Microsoft.Azure.WebJobs.Extensions*.nupkg'
+          ArtifactName: 'Microsoft.Azure.WebJobs.Extensions.$(version).nupkg'
+        condition: succeededOrFailed()
