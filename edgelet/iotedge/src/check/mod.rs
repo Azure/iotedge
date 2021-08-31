@@ -677,15 +677,13 @@ mod tests {
     };
 
     lazy_static::lazy_static! {
-        static ref ENV_LOCK: std::sync::Mutex<()> = Default::default();
+        static ref ENV_LOCK: tokio::sync::Mutex<()> = Default::default();
     }
 
-    #[test]
-    fn config_file_checks_ok() {
-        let mut runtime = tokio::runtime::Runtime::new().unwrap();
-
+    #[tokio::test]
+    async fn config_file_checks_ok() {
         for filename in &["sample_settings.toml", "sample_settings.tg.filepaths.toml"] {
-            let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+            let _env_lock = ENV_LOCK.lock().await;
 
             std::env::set_var(
                 "AZIOT_EDGED_CONFIG",
@@ -712,7 +710,7 @@ mod tests {
                 None,
             );
 
-            match WellFormedConfig::default().execute(&mut check, &mut runtime) {
+            match WellFormedConfig::default().execute(&mut check).await {
                 CheckResult::Ok => (),
                 check_result => panic!("parsing {} returned {:?}", filename, check_result),
             }
@@ -720,7 +718,7 @@ mod tests {
             // Pretend it's Moby
             check.docker_server_version = Some("19.03.12+azure".to_owned());
 
-            match ContainerEngineIsMoby::default().execute(&mut check, &mut runtime) {
+            match ContainerEngineIsMoby::default().execute(&mut check).await {
                 CheckResult::Ok => (),
                 check_result => panic!(
                     "checking moby_runtime.uri in {} returned {:?}",
@@ -730,12 +728,10 @@ mod tests {
         }
     }
 
-    #[test]
-    fn config_file_checks_ok_old_moby() {
-        let mut runtime = tokio::runtime::Runtime::new().unwrap();
-
+    #[tokio::test]
+    async fn config_file_checks_ok_old_moby() {
         for filename in &["sample_settings.toml", "sample_settings.tg.filepaths.toml"] {
-            let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+            let _env_lock = ENV_LOCK.lock().await;
 
             std::env::set_var(
                 "AZIOT_EDGED_CONFIG",
@@ -762,7 +758,7 @@ mod tests {
                 None,
             );
 
-            match WellFormedConfig::default().execute(&mut check, &mut runtime) {
+            match WellFormedConfig::default().execute(&mut check).await {
                 CheckResult::Ok => (),
                 check_result => panic!("parsing {} returned {:?}", filename, check_result),
             }
@@ -770,7 +766,7 @@ mod tests {
             // Pretend it's Moby
             check.docker_server_version = Some("3.0.3".to_owned());
 
-            match ContainerEngineIsMoby::default().execute(&mut check, &mut runtime) {
+            match ContainerEngineIsMoby::default().execute(&mut check).await {
                 CheckResult::Ok => (),
                 check_result => panic!(
                     "checking moby_runtime.uri in {} returned {:?}",
@@ -780,13 +776,11 @@ mod tests {
         }
     }
 
-    #[test]
-    fn parse_settings_err() {
-        let mut runtime = tokio::runtime::Runtime::new().unwrap();
-
+    #[tokio::test]
+    async fn parse_settings_err() {
         let filename = "bad_sample_settings.toml";
 
-        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+        let _env_lock = ENV_LOCK.lock().await;
 
         std::env::set_var(
             "AZIOT_EDGED_CONFIG",
@@ -813,19 +807,17 @@ mod tests {
             None,
         );
 
-        match WellFormedConfig::default().execute(&mut check, &mut runtime) {
+        match WellFormedConfig::default().execute(&mut check).await {
             CheckResult::Failed(_) => (),
             check_result => panic!("parsing {} returned {:?}", filename, check_result),
         }
     }
 
-    #[test]
-    fn moby_runtime_uri_wants_moby_based_on_server_version() {
-        let mut runtime = tokio::runtime::Runtime::new().unwrap();
-
+    #[tokio::test]
+    async fn moby_runtime_uri_wants_moby_based_on_server_version() {
         let filename = "sample_settings.toml";
 
-        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+        let _env_lock = ENV_LOCK.lock().await;
 
         std::env::set_var(
             "AZIOT_EDGED_CONFIG",
@@ -852,7 +844,7 @@ mod tests {
             None,
         );
 
-        match WellFormedConfig::default().execute(&mut check, &mut runtime) {
+        match WellFormedConfig::default().execute(&mut check).await {
             CheckResult::Ok => (),
             check_result => panic!("parsing {} returned {:?}", filename, check_result),
         }
@@ -860,7 +852,7 @@ mod tests {
         // Pretend it's Docker
         check.docker_server_version = Some("19.03.12".to_owned());
 
-        match ContainerEngineIsMoby::default().execute(&mut check, &mut runtime) {
+        match ContainerEngineIsMoby::default().execute(&mut check).await {
             CheckResult::Warning(warning) => assert!(
                 warning.to_string().contains(
                     "Device is not using a production-supported container engine (moby-engine)."
@@ -877,10 +869,10 @@ mod tests {
         }
     }
 
-    #[test]
-    fn pickup_proxy_uri_from_the_right_place() {
+    #[tokio::test]
+    async fn pickup_proxy_uri_from_the_right_place() {
         // grab an env lock since we are going to be mucking with the environment.
-        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+        let _env_lock = ENV_LOCK.lock().await;
 
         // unset var to make sure we have a clean start
         std::env::remove_var("AZIOT_EDGED_CONFIG");
