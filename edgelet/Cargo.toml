@@ -10,6 +10,5 @@ members = [
     "edgelet-settings",
     "edgelet-utils",
     #"iotedge",
-    #"management",
     "support-bundle",
 ]
