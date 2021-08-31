@@ -52,6 +52,9 @@ pub struct Settings<ModuleConfig> {
 
     pub homedir: std::path::PathBuf,
 
+    #[serde(default = "default_allow_elevated_docker_permissions")]
+    pub allow_elevated_docker_permissions: bool,
+
     pub agent: module::Settings<ModuleConfig>,
     pub connect: uri::Connect,
     pub listen: uri::Listen,
@@ -65,9 +68,6 @@ pub struct Settings<ModuleConfig> {
     #[serde(default, skip_serializing)]
     #[cfg_attr(not(debug_assertions), serde(skip_deserializing))]
     pub endpoints: aziot::Endpoints,
-
-    #[serde(default = "default_allow_elevated_docker_permissions")]
-    pub allow_elevated_docker_permissions: bool,
 }
 
 pub(crate) fn default_allow_elevated_docker_permissions() -> bool {
