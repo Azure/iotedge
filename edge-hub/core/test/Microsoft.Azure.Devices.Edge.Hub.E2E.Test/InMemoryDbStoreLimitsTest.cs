@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         {
         }
 
-        [Fact (Skip = "Flaky")]
+        [Fact(Skip = "Flaky")]
         async Task InMemoryDbStoreLimitValidationTest() => await this.StoreLimitValidationTestAsync();
     }
 }

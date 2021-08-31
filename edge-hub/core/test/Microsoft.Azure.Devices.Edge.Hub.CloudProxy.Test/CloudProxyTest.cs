@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         static readonly int EventHubMessageReceivedRetry = 10;
         static readonly ILogger logger = Logger.Factory.CreateLogger(nameof(CloudProxyTest));
 
-        [Fact (Skip = "Flaky")]
+        [Fact(Skip = "Flaky")]
         [TestPriority(401)]
         public async Task SendMessageTest()
         {
@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             await CheckMessageInEventHub(sentMessagesByDevice, startTime);
         }
 
-        [Fact (Skip = "Flaky")]
+        [Fact(Skip = "Flaky")]
         [TestPriority(402)]
         public async Task SendMessageMultipleDevicesTest()
         {
