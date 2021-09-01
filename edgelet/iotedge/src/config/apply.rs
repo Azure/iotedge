@@ -648,8 +648,10 @@ mod tests {
                 "device ID key bytes do not match"
             );
             assert_eq!(
-                expected_preloaded_master_encryption_key_bytes.map(|b| toml::from_slice::<toml::Value>(&b)),
-                actual_preloaded_master_encryption_key_bytes.map(|b| toml::from_slice::<toml::Value>(&b)),
+                expected_preloaded_master_encryption_key_bytes
+                    .map(|b| toml::from_slice::<toml::Value>(&b)),
+                actual_preloaded_master_encryption_key_bytes
+                    .map(|b| toml::from_slice::<toml::Value>(&b)),
                 "imported master encryption key bytes do not match"
             );
         }
