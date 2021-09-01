@@ -618,38 +618,38 @@ mod tests {
             // Convert the file contents to bytes::Bytes before asserting, because bytes::Bytes's Debug format
             // prints human-readable strings instead of raw u8s.
             assert_eq!(
-                bytes::Bytes::from(expected_keyd_config),
-                bytes::Bytes::from(actual_keyd_config),
+                toml::from_slice::<toml::Value>(&expected_keyd_config).expect("Valid toml"),
+                toml::from_slice::<toml::Value>(&actual_keyd_config).expect("Valid toml"),
                 "keyd config does not match"
             );
             assert_eq!(
-                bytes::Bytes::from(expected_certd_config),
-                bytes::Bytes::from(actual_certd_config),
+                toml::from_slice::<toml::Value>(&expected_certd_config).expect("Valid toml"),
+                toml::from_slice::<toml::Value>(&actual_certd_config).expect("Valid toml"),
                 "certd config does not match"
             );
             assert_eq!(
-                bytes::Bytes::from(expected_identityd_config),
-                bytes::Bytes::from(actual_identityd_config),
+                toml::from_slice::<toml::Value>(&expected_identityd_config).expect("Valid toml"),
+                toml::from_slice::<toml::Value>(&actual_identityd_config).expect("Valid toml"),
                 "identityd config does not match"
             );
             assert_eq!(
-                bytes::Bytes::from(expected_tpmd_config),
-                bytes::Bytes::from(actual_tpmd_config),
+                toml::from_slice::<toml::Value>(&expected_tpmd_config).expect("Valid toml"),
+                toml::from_slice::<toml::Value>(&actual_tpmd_config).expect("Valid toml"),
                 "tpmd config does not match"
             );
             assert_eq!(
-                bytes::Bytes::from(expected_edged_config),
-                bytes::Bytes::from(actual_edged_config),
+                toml::from_slice::<toml::Value>(&expected_edged_config).expect("Valid toml"),
+                toml::from_slice::<toml::Value>(&actual_edged_config).expect("Valid toml"),
                 "edged config does not match"
             );
             assert_eq!(
-                expected_preloaded_device_id_pk_bytes.map(bytes::Bytes::from),
-                actual_preloaded_device_id_pk_bytes.map(bytes::Bytes::from),
+                expected_preloaded_device_id_pk_bytes.map(|b| toml::from_slice::<toml::Value>(&b)),
+                actual_preloaded_device_id_pk_bytes.map(|b| toml::from_slice::<toml::Value>(&b)),
                 "device ID key bytes do not match"
             );
             assert_eq!(
-                expected_preloaded_master_encryption_key_bytes.map(bytes::Bytes::from),
-                actual_preloaded_master_encryption_key_bytes.map(bytes::Bytes::from),
+                expected_preloaded_master_encryption_key_bytes.map(|b| toml::from_slice::<toml::Value>(&b)),
+                actual_preloaded_master_encryption_key_bytes.map(|b| toml::from_slice::<toml::Value>(&b)),
                 "imported master encryption key bytes do not match"
             );
         }
