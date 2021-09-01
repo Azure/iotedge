@@ -125,7 +125,7 @@ where
         let shutdown_sender = self.shutdown_senders.remove(module_id);
 
         if let Some(shutdown_sender) = shutdown_sender {
-            // When edged boots up, it clean all modules. At this moment, no socket could listening so it could legitimatly return an error.
+            // When edged boots up, it cleans all modules. At this moment, no socket could listening so it could legitimately return an error.
             let _ = shutdown_sender.send(());
         }
     }
