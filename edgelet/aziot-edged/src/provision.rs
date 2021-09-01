@@ -105,6 +105,8 @@ pub(crate) async fn update_device_cache(
         log::info!("Removed all modules");
 
         log::info!("Updating cached device information");
+        std::fs::create_dir_all(cache_dir)
+            .map_err(|err| EdgedError::from_err("Failed to create cache directory", err))?;
         std::fs::write(cache_path, current_device)
             .map_err(|err| EdgedError::from_err("Failed to save provisioning cache", err))?;
     }
