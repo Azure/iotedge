@@ -22,6 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public const string ModuleName = "metricsValidator";
 
         [Test]
+        [Category("FlakyOnArm")]
         public async Task ValidateMetrics()
         {
             CancellationToken token = this.TestToken;
