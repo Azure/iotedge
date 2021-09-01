@@ -14,8 +14,8 @@ pub struct Config {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub allow_elevated_docker_permissions: Option<bool>,
 
-    #[serde(default = "edgelet_core::settings::AutoReprovisioningMode::default")]
-    pub auto_reprovisioning_mode: edgelet_core::settings::AutoReprovisioningMode,
+    #[serde(default = "edgelet_settings::base::aziot::AutoReprovisioningMode::default")]
+    pub auto_reprovisioning_mode: edgelet_settings::base::aziot::AutoReprovisioningMode,
 
     /// This property only exists to be able to import IoT Edge 1.1 and earlier's master encryption key
     /// so that Edge modules that used the workload encrypt/decrypt API can continue to decrypt secrets
@@ -36,15 +36,15 @@ pub struct Config {
     pub aziot: aziotctl_common::config::super_config::Config,
 
     #[serde(default = "default_agent")]
-    pub agent: edgelet_core::ModuleSpec<edgelet_docker::DockerConfig>,
+    pub agent: edgelet_settings::ModuleSpec<edgelet_settings::DockerConfig>,
 
     #[serde(default)]
-    pub connect: edgelet_core::Connect,
+    pub connect: edgelet_settings::uri::Connect,
     #[serde(default)]
-    pub listen: edgelet_core::Listen,
+    pub listen: edgelet_settings::uri::Listen,
 
     #[serde(default)]
-    pub watchdog: edgelet_core::WatchdogSettings,
+    pub watchdog: edgelet_settings::watchdog::Settings,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub edge_ca: Option<EdgeCa>,
@@ -53,20 +53,23 @@ pub struct Config {
     pub moby_runtime: MobyRuntime,
 }
 
-pub fn default_agent() -> edgelet_core::ModuleSpec<edgelet_docker::DockerConfig> {
-    edgelet_core::ModuleSpec {
-        name: "edgeAgent".to_owned(),
-        type_: "docker".to_owned(),
-        image_pull_policy: Default::default(),
-        config: edgelet_docker::DockerConfig {
-            image: "mcr.microsoft.com/azureiotedge-agent:1.2".to_owned(),
-            image_id: None,
-            create_options: docker::models::ContainerCreateBody::new(),
-            digest: None,
-            auth: None,
-        },
-        env: Default::default(),
-    }
+pub fn default_agent() -> edgelet_settings::ModuleSpec<edgelet_settings::DockerConfig> {
+    edgelet_settings::ModuleSpec::new(
+        /* image */ "edgeAgent".to_owned(),
+        /* type */ "docker".to_owned(),
+        /* config */
+        edgelet_settings::DockerConfig::new(
+            /* image */ "mcr.microsoft.com/azureiotedge-agent:1.2".to_owned(),
+            /* create_options */ docker::models::ContainerCreateBody::new(),
+            /* digest */ None,
+            /* auth */ None,
+            /* allow_elevated_docker_permissions */ true,
+        )
+        .expect("image is never empty"),
+        /* env */ Default::default(),
+        /* image pull policy */ Default::default(),
+    )
+    .expect("name and type are never empty")
 }
 
 #[derive(Debug, serde_derive::Deserialize, serde_derive::Serialize)]
@@ -88,7 +91,7 @@ pub enum EdgeCa {
 #[derive(Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct MobyRuntime {
     pub uri: Url,
-    pub network: edgelet_core::MobyNetwork,
+    pub network: edgelet_settings::MobyNetwork,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub content_trust: Option<ContentTrust>,
 }
@@ -101,7 +104,9 @@ impl Default for MobyRuntime {
             uri: DEFAULT_URI
                 .parse()
                 .expect("hard-coded url::Url must parse successfully"),
-            network: edgelet_core::MobyNetwork::Name(edgelet_core::DEFAULT_NETWORKID.to_owned()),
+            network: edgelet_settings::MobyNetwork::Name(
+                edgelet_settings::DEFAULT_NETWORKID.to_owned(),
+            ),
             content_trust: None,
         }
     }

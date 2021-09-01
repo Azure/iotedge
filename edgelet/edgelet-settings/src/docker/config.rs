@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+pub const UPSTREAM_PARENT_KEYWORD: &str = "$upstream";
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -102,8 +103,6 @@ impl DockerConfig {
     }
 
     pub fn parent_hostname_resolve(&mut self, parent_hostname: &str) {
-        const UPSTREAM_PARENT_KEYWORD: &str = "$upstream";
-
         if let Some(rest) = self.image.strip_prefix(UPSTREAM_PARENT_KEYWORD) {
             self.image = format!("{}{}", parent_hostname, rest);
         }

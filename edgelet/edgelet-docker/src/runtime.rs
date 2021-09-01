@@ -293,7 +293,7 @@ impl MakeModuleRuntime for DockerModuleRuntime {
     }
 }
 
-fn init_client(docker_url: &Url) -> Result<DockerApiClient> {
+pub fn init_client(docker_url: &Url) -> Result<DockerApiClient> {
     // build the hyper client
     let client: Client<_, Body> = Client::builder().build(
         Connector::new(docker_url)

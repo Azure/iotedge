@@ -35,39 +35,39 @@ pub trait RuntimeSettings {
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct Settings<ModuleConfig> {
-    hostname: String,
+    pub hostname: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    edge_ca_cert: Option<String>,
+    pub edge_ca_cert: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    edge_ca_key: Option<String>,
+    pub edge_ca_key: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    trust_bundle_cert: Option<String>,
+    pub trust_bundle_cert: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    manifest_trust_bundle_cert: Option<String>,
+    pub manifest_trust_bundle_cert: Option<String>,
 
     #[serde(default)]
-    auto_reprovisioning_mode: aziot::AutoReprovisioningMode,
+    pub auto_reprovisioning_mode: aziot::AutoReprovisioningMode,
 
-    homedir: std::path::PathBuf,
+    pub homedir: std::path::PathBuf,
 
-    agent: module::Settings<ModuleConfig>,
-    connect: uri::Connect,
-    listen: uri::Listen,
+    #[serde(default = "default_allow_elevated_docker_permissions")]
+    pub allow_elevated_docker_permissions: bool,
+
+    pub agent: module::Settings<ModuleConfig>,
+    pub connect: uri::Connect,
+    pub listen: uri::Listen,
 
     #[serde(default)]
-    watchdog: watchdog::Settings,
+    pub watchdog: watchdog::Settings,
 
     /// Map of service names to endpoint URIs.
     ///
     /// Only configurable in debug builds for the sake of tests.
     #[serde(default, skip_serializing)]
     #[cfg_attr(not(debug_assertions), serde(skip_deserializing))]
-    endpoints: aziot::Endpoints,
-
-    #[serde(default = "default_allow_elevated_docker_permissions")]
-    allow_elevated_docker_permissions: bool,
+    pub endpoints: aziot::Endpoints,
 }
 
 pub(crate) fn default_allow_elevated_docker_permissions() -> bool {

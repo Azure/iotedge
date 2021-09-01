@@ -9,7 +9,7 @@ members = [
     "edgelet-http-workload",
     "edgelet-settings",
     "edgelet-utils",
-    #"iotedge",
+    "iotedge",
     "support-bundle",
 ]
 

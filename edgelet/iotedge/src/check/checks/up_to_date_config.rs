@@ -2,23 +2,22 @@ use failure::{self, Context};
 
 use aziotctl_common::check_last_modified::{check_last_modified, LastModifiedError};
 
-use crate::check::{checker::Checker, Check, CheckResult};
+use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct UpToDateConfig {}
 
+#[async_trait::async_trait]
 impl Checker for UpToDateConfig {
-    fn id(&self) -> &'static str {
-        "config-up-to-date"
+    fn meta(&self) -> CheckerMeta {
+        CheckerMeta {
+            id: "config-up-to-date",
+            description: "configuration up-to-date with config.toml",
+        }
     }
-    fn description(&self) -> &'static str {
-        "configuration up-to-date with config.toml"
-    }
-    fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
+
+    async fn execute(&mut self, check: &mut Check) -> CheckResult {
         Self::inner_execute(check).unwrap_or_else(CheckResult::Failed)
-    }
-    fn get_json(&self) -> serde_json::Value {
-        serde_json::to_value(self).unwrap()
     }
 }
 

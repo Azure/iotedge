@@ -2,26 +2,25 @@ use std::{net::IpAddr, str::FromStr};
 
 use failure::{self, Context};
 
-use crate::check::{checker::Checker, Check, CheckResult};
+use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct ParentHostname {
     config_parent_hostname: Option<String>,
 }
 
+#[async_trait::async_trait]
 impl Checker for ParentHostname {
-    fn id(&self) -> &'static str {
-        "parent_hostname"
+    fn meta(&self) -> CheckerMeta {
+        CheckerMeta {
+            id: "parent_hostname",
+            description: "configuration has correct parent_hostname",
+        }
     }
-    fn description(&self) -> &'static str {
-        "configuration has correct parent_hostname"
-    }
-    fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
+
+    async fn execute(&mut self, check: &mut Check) -> CheckResult {
         self.inner_execute(check)
             .unwrap_or_else(CheckResult::Failed)
-    }
-    fn get_json(&self) -> serde_json::Value {
-        serde_json::to_value(self).unwrap()
     }
 }
 
@@ -37,7 +36,7 @@ impl ParentHostname {
 
         self.config_parent_hostname = Some(config_parent_hostname.to_owned());
 
-        if IpAddr::from_str(&config_parent_hostname).is_ok() {
+        if IpAddr::from_str(config_parent_hostname).is_ok() {
             //We can only check that it is a valid IP
             return Ok(CheckResult::Ok);
         }

@@ -5,7 +5,7 @@ use std::convert::TryInto;
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
 pub struct Settings {
     #[serde(default)]
-    max_retries: MaxRetries,
+    pub max_retries: MaxRetries,
 }
 
 impl Settings {

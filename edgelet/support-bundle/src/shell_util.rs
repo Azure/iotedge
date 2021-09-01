@@ -111,11 +111,11 @@ pub async fn get_docker_networks() -> Result<Vec<String>, Error> {
                 "Could not find network names: {}",
                 String::from_utf8_lossy(&result.stderr)
             );
-            "azure-iot-edge".to_owned()
+            edgelet_settings::DEFAULT_NETWORKID.to_owned()
         }
     } else {
         println!("Could not find network names: {}", inspect.err().unwrap());
-        "azure-iot-edge".to_owned()
+        edgelet_settings::DEFAULT_NETWORKID.to_owned()
     };
 
     let result = result.lines().map(String::from).collect();

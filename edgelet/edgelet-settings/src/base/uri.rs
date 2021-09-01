@@ -2,8 +2,8 @@
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct Connect {
-    workload_uri: url::Url,
-    management_uri: url::Url,
+    pub workload_uri: url::Url,
+    pub management_uri: url::Url,
 }
 
 impl Connect {
@@ -34,10 +34,10 @@ impl Default for Connect {
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct Listen {
-    workload_uri: url::Url,
-    management_uri: url::Url,
+    pub workload_uri: url::Url,
+    pub management_uri: url::Url,
     #[serde(default)]
-    min_tls_version: MinTlsVersion,
+    pub min_tls_version: MinTlsVersion,
 }
 
 impl Listen {

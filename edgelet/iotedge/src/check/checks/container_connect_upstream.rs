@@ -1,9 +1,9 @@
-use edgelet_core::RuntimeSettings;
+use edgelet_settings::RuntimeSettings;
 
 use serde::Deserialize;
 
 use crate::check::{
-    checker::Checker, upstream_protocol_port::UpstreamProtocolPort, Check, CheckResult,
+    upstream_protocol_port::UpstreamProtocolPort, Check, CheckResult, Checker, CheckerMeta,
 };
 
 pub(crate) fn get_host_container_upstream_tests() -> Vec<Box<dyn Checker>> {
@@ -65,22 +65,22 @@ pub(crate) struct ContainerConnectUpstream {
     use_container_runtime_network: bool,
 }
 
+#[async_trait::async_trait]
 impl Checker for ContainerConnectUpstream {
-    fn id(&self) -> &'static str {
-        self.id
+    fn meta(&self) -> CheckerMeta {
+        CheckerMeta {
+            id: self.id,
+            description: self.description,
+        }
     }
-    fn description(&self) -> &'static str {
-        self.description
-    }
-    fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
-        self.inner_execute(check)
-    }
-    fn get_json(&self) -> serde_json::Value {
-        serde_json::to_value(self).unwrap()
+
+    async fn execute(&mut self, check: &mut Check) -> CheckResult {
+        self.inner_execute(check).await
     }
 }
+
 impl ContainerConnectUpstream {
-    fn inner_execute(&mut self, check: &mut Check) -> CheckResult {
+    async fn inner_execute(&mut self, check: &mut Check) -> CheckResult {
         let settings = if let Some(settings) = &check.settings {
             settings
         } else {
@@ -118,14 +118,16 @@ impl ContainerConnectUpstream {
         self.upstream_hostname = Some(upstream_hostname.clone());
 
         let upstream_protocol =
-            get_env_from_container(docker_host_arg, "edgeAgent", "UpstreamProtocol").unwrap_or(
-                // We should default to AMQP with fallback to AMQPWS.
-                if self.upstream_port == UpstreamProtocolPort::Https {
-                    UpstreamProtocol::AmqpWs
-                } else {
-                    UpstreamProtocol::Amqp
-                },
-            );
+            get_env_from_container(docker_host_arg, "edgeAgent", "UpstreamProtocol")
+                .await
+                .unwrap_or(
+                    // We should default to AMQP with fallback to AMQPWS.
+                    if self.upstream_port == UpstreamProtocolPort::Https {
+                        UpstreamProtocol::AmqpWs
+                    } else {
+                        UpstreamProtocol::Amqp
+                    },
+                );
 
         let should_skip_instead = should_skip_instead(self.upstream_port, upstream_protocol);
 
@@ -176,7 +178,7 @@ impl ContainerConnectUpstream {
             return CheckResult::SkippedDueTo("not required in this configuration".into());
         }
 
-        if let Err((_, err)) = super::docker(docker_host_arg, args) {
+        if let Err((_, err)) = super::docker(docker_host_arg, args).await {
             let err = err
                 .context(format!(
                     "Container on the {} network could not connect to {}:{}",
@@ -222,7 +224,7 @@ enum UpstreamProtocol {
     MqttWs,
 }
 
-fn get_env_from_container(
+async fn get_env_from_container(
     docker_host_arg: &str,
     name: &str,
     env_var_name: &str,
@@ -230,6 +232,7 @@ fn get_env_from_container(
     let shell_var = to_shell_var(env_var_name);
     let command = format!("echo {}", shell_var);
     super::docker(docker_host_arg, &["exec", name, "/bin/sh", "-c", &command])
+        .await
         .map_err(|(_, err)| err)
         .and_then(|output| {
             let mut s = String::from_utf8(output)?;
