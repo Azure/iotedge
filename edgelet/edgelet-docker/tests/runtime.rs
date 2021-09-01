@@ -854,7 +854,7 @@ fn container_create_succeeds() {
             "uri": &format!("http://localhost:{}", port)
         }
     })));
-    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+    let (create_socket_channel_snd, create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
     let task = DockerModuleRuntime::make_runtime(
         settings,
@@ -911,6 +911,16 @@ fn container_create_succeeds() {
     });
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+
+    let simulate_workload_manager =
+        create_socket_channel_rcv.for_each(move |module_id: ModuleAction| match module_id {
+            ModuleAction::Start(_module_id, sender) => {
+                sender.send(()).unwrap();
+                Ok(())
+            }
+            ModuleAction::Stop(_module_id) | ModuleAction::Remove(_module_id) => Ok(()),
+        });
+    runtime.spawn(simulate_workload_manager);
     runtime.spawn(server);
     runtime.block_on(task).unwrap();
 }
@@ -943,7 +953,7 @@ fn container_start_succeeds() {
         }
     })));
 
-    let (create_socket_channel_snd, create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
     let task = DockerModuleRuntime::make_runtime(
         settings,
@@ -953,19 +963,8 @@ fn container_start_succeeds() {
     )
     .and_then(|runtime| runtime.start("m1"));
 
-    let simulate_workload_manager =
-        create_socket_channel_rcv.for_each(move |module_id: ModuleAction| match module_id {
-            ModuleAction::Start(_module_id, sender) => {
-                sender.send(()).unwrap();
-                Ok(())
-            }
-            ModuleAction::Stop(_module_id) | ModuleAction::Remove(_module_id) => Ok(()),
-        });
-
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
-    runtime.spawn(simulate_workload_manager);
-
     runtime.block_on(task).unwrap();
 }
 
