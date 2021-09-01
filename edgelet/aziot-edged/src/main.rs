@@ -124,9 +124,7 @@ async fn run() -> Result<(), EdgedError> {
     )
     .await?;
 
-    workload_manager::server(workload_manager, runtime.clone(), create_socket_channel_rcv)
-        .await
-        .map_err(|err| EdgedError::from_err("Could not start server", err))?;
+    workload_manager::server(workload_manager, runtime.clone(), create_socket_channel_rcv).await?;
 
     // Set signal handlers for SIGTERM and SIGINT.
     set_signal_handlers(shutdown_tx);
