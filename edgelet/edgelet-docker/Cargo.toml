@@ -21,7 +21,6 @@ serde_json = "1.0"
 sysinfo = "0.14.10"
 tokio = {version = "1", features = ["process", "macros"]}
 url = {version = "2", features = ["serde"]}
-url_serde = "0.2"
 
 aziot-cert-client-async = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
 aziot-cert-common-http = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}

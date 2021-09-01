@@ -22,18 +22,15 @@ futures = "0.1"
 hex = "0.3"
 hyper = "0.14"
 hyper-proxy = "0.5.1"
-hyper-tls = "0.3"
 lazy_static = "1"
 libc = "0.2"
 log = "0.4"
-native-tls = "0.2"
 nix = "0.18"
 openssl = "0.10"
 regex = "0.2"
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
-serde_yaml = "0.8"
 sysinfo = "0.14.10"
 tabwriter = "1.0"
 termcolor = "0.3"
@@ -55,9 +52,7 @@ aziotctl-common = {git = "https://github.com/Azure/iot-identity-service", branch
 config-common = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
 docker = {path = "../docker-rs"}
 edgelet-core = {path = "../edgelet-core"}
-edgelet-docker = {path = "../edgelet-docker"}
 edgelet-http = {path = "../edgelet-http"}
-edgelet-http-mgmt = {path = "../edgelet-http-mgmt"}
 edgelet-settings = {path = "../edgelet-settings", features = ["settings-docker"]}
 edgelet-utils = {path = "../edgelet-utils"}
 http-common = {git = "https://github.com/Azure/iot-identity-service", features = ["tokio1"], branch = "main"}
