@@ -28,23 +28,23 @@ pub fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>> {
         if nix::unistd::Uid::current().is_root() {
             let aziotks_user = nix::unistd::User::from_name("aziotks")
                 .map_err(|err| format!("could not query aziotks user information: {}", err))?
-                .ok_or_else(|| "could not query aziotks user information")?;
+                .ok_or("could not query aziotks user information")?;
 
             let aziotcs_user = nix::unistd::User::from_name("aziotcs")
                 .map_err(|err| format!("could not query aziotcs user information: {}", err))?
-                .ok_or_else(|| "could not query aziotcs user information")?;
+                .ok_or("could not query aziotcs user information")?;
 
             let aziotid_user = nix::unistd::User::from_name("aziotid")
                 .map_err(|err| format!("could not query aziotid user information: {}", err))?
-                .ok_or_else(|| "could not query aziotid user information")?;
+                .ok_or("could not query aziotid user information")?;
 
             let aziottpm_user = nix::unistd::User::from_name("aziottpm")
                 .map_err(|err| format!("could not query aziottpm user information: {}", err))?
-                .ok_or_else(|| "could not query aziottpm user information")?;
+                .ok_or("could not query aziottpm user information")?;
 
             let iotedge_user = nix::unistd::User::from_name("iotedge")
                 .map_err(|err| format!("could not query iotedge user information: {}", err))?
-                .ok_or_else(|| "could not query iotedge user information")?;
+                .ok_or("could not query iotedge user information")?;
 
             (
                 aziotks_user,
@@ -56,7 +56,7 @@ pub fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>> {
         } else if cfg!(debug_assertions) {
             let current_user = nix::unistd::User::from_uid(nix::unistd::Uid::current())
                 .map_err(|err| format!("could not query current user information: {}", err))?
-                .ok_or_else(|| ("could not query current user information"))?;
+                .ok_or("could not query current user information")?;
             (
                 current_user.clone(),
                 current_user.clone(),
@@ -446,7 +446,7 @@ fn execute_inner(
                                                 cert_id.clone(),
                                                 aziot_certd_config::PreloadedCert::Uri(cert_uri),
                                             );
-                                            new_ca_certs.insert(hostname.to_owned(), cert_id);
+                                            new_ca_certs.insert(hostname.clone(), cert_id);
                                         }
 
                                         Ok(new_ca_certs)
@@ -580,7 +580,7 @@ mod tests {
                             Ok(()) => (),
                             Err(err) if err.kind() == std::io::ErrorKind::NotFound => (),
                             Err(err) => {
-                                panic!("could not create temp master-encryption-key file: {}", err)
+                                panic!("could not create temp master-encryption-key file: {}", err);
                             }
                         }
                         Some(contents)
@@ -590,7 +590,7 @@ mod tests {
                             Ok(()) => (),
                             Err(err) if err.kind() == std::io::ErrorKind::NotFound => (),
                             Err(err) => {
-                                panic!("could not delete temp master-encryption-key file: {}", err)
+                                panic!("could not delete temp master-encryption-key file: {}", err);
                             }
                         }
                         None

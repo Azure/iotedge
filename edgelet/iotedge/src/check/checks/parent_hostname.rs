@@ -25,6 +25,7 @@ impl Checker for ParentHostname {
 }
 
 impl ParentHostname {
+    #[allow(clippy::unnecessary_wraps)]
     fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
         let config_parent_hostname =
             if let Some(config_parent_hostname) = check.parent_hostname.as_ref() {
@@ -34,7 +35,7 @@ impl ParentHostname {
                 return Ok(CheckResult::Ignored);
             };
 
-        self.config_parent_hostname = Some(config_parent_hostname.to_owned());
+        self.config_parent_hostname = Some(config_parent_hostname.clone());
 
         if IpAddr::from_str(config_parent_hostname).is_ok() {
             //We can only check that it is a valid IP

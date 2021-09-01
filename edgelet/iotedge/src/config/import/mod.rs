@@ -419,6 +419,9 @@ fn execute_inner(
                         auth,
                         true,
                     )?;
+
+                    // Clippy wants map_or here, but that's not possible without cloning.
+                    #[allow(clippy::option_if_let_else)]
                     if let Some(image_id) = image_id {
                         new_config.with_image_hash(image_id)
                     } else {
@@ -443,8 +446,8 @@ fn execute_inner(
                 workload_uri,
             } = connect;
             edgelet_settings::uri::Connect {
-                management_uri,
                 workload_uri,
+                management_uri,
             }
         },
         listen: {

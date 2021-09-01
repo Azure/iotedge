@@ -121,7 +121,7 @@ impl AziotEdgedVersion {
 
                 self.get_version(check).await?
             };
-        self.expected_version = Some(latest_versions.aziot_edge.to_owned());
+        self.expected_version = Some(latest_versions.aziot_edge.clone());
 
         let mut process = tokio::process::Command::new(&check.aziot_edged);
         process.arg("--version");

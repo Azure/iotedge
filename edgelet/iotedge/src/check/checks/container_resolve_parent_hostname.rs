@@ -73,7 +73,7 @@ impl ContainerResolveParentHostname {
             .for_each(|extra_hosts| {
                 extra_hosts
                     .iter()
-                    .for_each(|host| args.push(format!("--add-host={}", host)))
+                    .for_each(|host| args.push(format!("--add-host={}", host)));
             });
 
         args.extend(vec![

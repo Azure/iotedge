@@ -115,7 +115,7 @@ fn check_agent_image_version_nested(agent_image: &str) -> CheckResult {
     let re = Regex::new(r".*?/azureiotedge-agent:(?P<Major>\d+)\.(?P<Minor>\d+).*")
         .expect("hard-coded regex cannot fail to parse");
 
-    if let Some(caps) = re.captures(&agent_image) {
+    if let Some(caps) = re.captures(agent_image) {
         let major = caps
             .name("Major")
             .and_then(|version| version.as_str().parse::<u32>().ok());

@@ -48,7 +48,7 @@ impl System {
     pub fn get_system_logs(args: &[&OsStr]) -> Result<(), Error> {
         let services: Vec<&str> = SERVICE_DEFINITIONS.iter().map(|s| s.service).collect();
 
-        logs(&services, &args).map_err(|err| {
+        logs(&services, args).map_err(|err| {
             eprintln!("{:#?}", err);
             Error::from(ErrorKind::System)
         })

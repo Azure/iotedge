@@ -271,6 +271,7 @@ fn should_skip_instead(upp: UpstreamProtocolPort, up: UpstreamProtocol) -> bool 
 }
 
 #[cfg(test)]
+#[allow(clippy::bool_assert_comparison)]
 mod tests {
     use super::*;
 

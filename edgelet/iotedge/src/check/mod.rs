@@ -481,7 +481,7 @@ impl Check {
                         let val = val.context(ErrorKind::Aziot)?;
                         match val {
                             CheckOutputSerializableStreaming::Section { name } => {
-                                self.output_section(&format!("{} (aziot-identity-service)", name))
+                                self.output_section(&format!("{} (aziot-identity-service)", name));
                             }
                             CheckOutputSerializableStreaming::Check { meta, output } => {
                                 if output_check(
@@ -505,14 +505,14 @@ impl Check {
                                         .as_object()
                                         .and_then(|m| m.get("iothub_hostname"))
                                         .and_then(serde_json::Value::as_str)
-                                        .map(Into::into)
+                                        .map(Into::into);
                                 }
 
                                 self.parent_hostname = info
                                     .as_object()
                                     .and_then(|m| m.get("local_gateway_hostname"))
                                     .and_then(serde_json::Value::as_str)
-                                    .map(Into::into)
+                                    .map(Into::into);
                             }
                         }
                     }
@@ -543,7 +543,7 @@ impl Check {
 
         // run the built-in checks
         'outer: for (section_name, section_checks) in &mut checks::built_in_checks() {
-            self.output_section(&section_name);
+            self.output_section(section_name);
 
             for check in section_checks {
                 let check_result = if self.dont_run.contains(check.meta().id) {
@@ -870,6 +870,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[allow(clippy::semicolon_if_nothing_returned)]
     async fn pickup_proxy_uri_from_the_right_place() {
         // grab an env lock since we are going to be mucking with the environment.
         let _env_lock = ENV_LOCK.lock().await;

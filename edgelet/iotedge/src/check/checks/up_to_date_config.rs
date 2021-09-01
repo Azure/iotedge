@@ -22,6 +22,7 @@ impl Checker for UpToDateConfig {
 }
 
 impl UpToDateConfig {
+    #[allow(clippy::unnecessary_wraps)]
     fn inner_execute(_check: &mut Check) -> Result<CheckResult, failure::Error> {
         let check_result = match check_last_modified(&["edged"]) {
             Ok(()) => CheckResult::Ok,

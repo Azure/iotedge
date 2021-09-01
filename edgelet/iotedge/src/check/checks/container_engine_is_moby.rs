@@ -24,6 +24,7 @@ impl Checker for ContainerEngineIsMoby {
 }
 
 impl ContainerEngineIsMoby {
+    #[allow(clippy::unnecessary_wraps)]
     fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
         const MESSAGE: &str =
             "Device is not using a production-supported container engine (moby-engine).\n\
