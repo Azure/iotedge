@@ -735,9 +735,8 @@ mod tests {
             std::env::set_var(
                 "AZIOT_EDGED_CONFIG",
                 format!(
-                    "{}/../edgelet-docker/test/{}/{}",
+                    "{}/../edgelet-settings/test-files/{}",
                     env!("CARGO_MANIFEST_DIR"),
-                    "linux",
                     filename,
                 ),
             );
@@ -784,9 +783,8 @@ mod tests {
         std::env::set_var(
             "AZIOT_EDGED_CONFIG",
             format!(
-                "{}/../edgelet-docker/test/{}/{}",
+                "{}/../edgelet-settings/test-files/{}",
                 env!("CARGO_MANIFEST_DIR"),
-                "linux",
                 filename,
             ),
         );
@@ -821,9 +819,8 @@ mod tests {
         std::env::set_var(
             "AZIOT_EDGED_CONFIG",
             format!(
-                "{}/../edgelet-docker/test/{}/{}",
+                "{}/../edgelet-settings/test-files/{}",
                 env!("CARGO_MANIFEST_DIR"),
-                "linux",
                 filename,
             ),
         );
