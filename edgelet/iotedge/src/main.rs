@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-// #![deny(rust_2018_idioms, warnings)]
-// #![deny(clippy::all, clippy::pedantic)]
+#![deny(rust_2018_idioms, warnings)]
+#![deny(clippy::all, clippy::pedantic)]
 #![allow(clippy::let_unit_value, clippy::similar_names)]
 
 use std::ffi::OsStr;

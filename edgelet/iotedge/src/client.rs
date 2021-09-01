@@ -15,7 +15,7 @@ use http_common::{request_with_headers, request_with_headers_no_content, Connect
 use crate::{Error, ErrorKind};
 type Result<T> = std::result::Result<T, Error>;
 
-const API_VERSION: &'static str = "2020-07-07";
+const API_VERSION: &str = "2020-07-07";
 
 #[derive(serde::Serialize, Clone)]
 pub struct MgmtConfig {}

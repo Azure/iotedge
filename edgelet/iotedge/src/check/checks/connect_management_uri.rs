@@ -75,7 +75,7 @@ impl ConnectManagementUri {
         match (connect_management_uri.scheme(), listen_management_uri.scheme()) {
         ("http", "http") => (),
 
-        ("unix", "unix") | ("unix", "fd") => {
+        ("unix", "unix" | "fd") => {
             args.push(Cow::Borrowed(OsStr::new("-v")));
 
             let socket_path =
