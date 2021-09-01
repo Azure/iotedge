@@ -1,3 +1,9 @@
+# 1.1.6 (2021-09-06)
+## iotedged
+### Bug Fixes
+* Hotfix the container socket failure upon a module deployment on Windows [382cf77](https://github.com/Azure/iotedge/commit/382cf778bf061cf02ca893a68584e63eb6c6c878)
+
+
 # 1.1.5 (2021-08-27)
 ## Edge Agent
 ### Bug Fixes
