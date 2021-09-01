@@ -78,7 +78,7 @@ impl ModuleRuntime for MgmtClient {
         Ok(())
     }
 
-    async fn list_with_details(&self) -> Result<Vec<(Self::Module, ModuleRuntimeState)>> {
+    async fn list(&self) -> Result<Vec<Self::Module>> {
         let path = format!("/modules?api-version={}", API_VERSION);
         let uri = self.get_uri(&path)?;
         let response: ListModulesResponse = request_with_headers(
@@ -91,10 +91,16 @@ impl ModuleRuntime for MgmtClient {
         .await
         .context(ErrorKind::ModuleRuntime)?;
 
-        let modules = response
-            .modules
+        let modules = response.modules.into_iter().map(MgmtModule::new).collect();
+        Ok(modules)
+    }
+
+    async fn list_with_details(&self) -> Result<Vec<(Self::Module, ModuleRuntimeState)>> {
+        let modules = self
+            .list()
+            .await?
             .into_iter()
-            .map(|details| (MgmtModule::new(details), ModuleRuntimeState::default()))
+            .map(|module| (module, ModuleRuntimeState::default()))
             .collect();
 
         Ok(modules)
@@ -158,9 +164,6 @@ impl ModuleRuntime for MgmtClient {
         unimplemented!()
     }
     async fn system_resources(&self) -> Result<SystemResources> {
-        unimplemented!()
-    }
-    async fn list(&self) -> Result<Vec<Self::Module>> {
         unimplemented!()
     }
     async fn remove_all(&self) -> Result<()> {
