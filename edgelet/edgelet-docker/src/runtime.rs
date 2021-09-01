@@ -547,7 +547,7 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         receiver.await.map_err(|_| {
             error!(
-                "Could wait on workload manager response, start of module: {}",
+                "Could not wait on workload manager response, start of module: {}",
                 id
             );
             Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
