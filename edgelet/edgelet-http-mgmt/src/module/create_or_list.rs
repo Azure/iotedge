@@ -28,7 +28,10 @@ where
         _query: &[(std::borrow::Cow<'_, str>, std::borrow::Cow<'_, str>)],
         extensions: &http::Extensions,
     ) -> Option<Self> {
-        if path != PATH {
+        // A bug in certain versions of the diagnostics image causes it to make requests to "/modules/"
+        // instead of "/modules". To maintain compatibility with these versions of diagnostics, this API
+        // will allow both endpoints.
+        if path != PATH && path != "/modules/" {
             return None;
         }
 
