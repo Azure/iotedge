@@ -438,21 +438,22 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
                 var certArray = p12File.ToArray();
 
-                // X509Certificate2 cert = null;
+                X509Certificate2 cert = null;
 
-                var cert = new X509Certificate2Collection();
-                cert.Import(certArray);
+                cert = new X509Certificate2(certArray);
+
+                Console.WriteLine($"ANCAN certArray {certArray.Length}");
 
                 try
                 {
-                    Console.WriteLine($"ANCAN PrivateKey {cert[0].PrivateKey}");
+                    Console.WriteLine($"ANCAN PrivateKey {cert.PrivateKey}");
                 }
                 catch (Exception e)
                 {
                     Console.WriteLine(e + "\n" + e.StackTrace);
                 }
 
-                return (cert[0], certsChain);
+                return (cert, certsChain);
             }
         }
 
