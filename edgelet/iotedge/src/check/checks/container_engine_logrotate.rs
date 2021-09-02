@@ -2,26 +2,25 @@ use std::fs::File;
 
 use failure::{self, Context, ResultExt};
 
-use crate::check::{checker::Checker, Check, CheckResult};
+use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct ContainerEngineLogrotate {
     daemon_config: Option<DaemonConfig>,
 }
 
+#[async_trait::async_trait]
 impl Checker for ContainerEngineLogrotate {
-    fn id(&self) -> &'static str {
-        "container-engine-logrotate"
+    fn meta(&self) -> CheckerMeta {
+        CheckerMeta {
+            id: "container-engine-logrotate",
+            description: "production readiness: logs policy",
+        }
     }
-    fn description(&self) -> &'static str {
-        "production readiness: logs policy"
-    }
-    fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
+
+    async fn execute(&mut self, check: &mut Check) -> CheckResult {
         self.inner_execute(check)
             .unwrap_or_else(CheckResult::Failed)
-    }
-    fn get_json(&self) -> serde_json::Value {
-        serde_json::to_value(self).unwrap()
     }
 }
 

@@ -2,7 +2,7 @@ use std::fs::File;
 
 use failure::{self, Context, ResultExt};
 
-use crate::check::{checker::Checker, Check, CheckResult};
+use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct ContainerEngineDns {
@@ -10,19 +10,18 @@ pub(crate) struct ContainerEngineDns {
     dns: Option<Vec<String>>,
 }
 
+#[async_trait::async_trait]
 impl Checker for ContainerEngineDns {
-    fn id(&self) -> &'static str {
-        "container-engine-dns"
+    fn meta(&self) -> CheckerMeta {
+        CheckerMeta {
+            id: "container-engine-dns",
+            description: "DNS server",
+        }
     }
-    fn description(&self) -> &'static str {
-        "DNS server"
-    }
-    fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
+
+    async fn execute(&mut self, check: &mut Check) -> CheckResult {
         self.inner_execute(check)
             .unwrap_or_else(CheckResult::Failed)
-    }
-    fn get_json(&self) -> serde_json::Value {
-        serde_json::to_value(self).unwrap()
     }
 }
 

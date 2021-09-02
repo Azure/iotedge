@@ -1,6 +1,6 @@
 use failure::{self, Context, Fail};
 
-use crate::check::{checker::Checker, Check, CheckResult};
+use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct ContainerEngineIsMoby {
@@ -8,23 +8,23 @@ pub(crate) struct ContainerEngineIsMoby {
     moby_runtime_uri: Option<String>,
 }
 
+#[async_trait::async_trait]
 impl Checker for ContainerEngineIsMoby {
-    fn id(&self) -> &'static str {
-        "container-engine-is-moby"
+    fn meta(&self) -> CheckerMeta {
+        CheckerMeta {
+            id: "container-engine-is-moby",
+            description: "production readiness: container engine",
+        }
     }
-    fn description(&self) -> &'static str {
-        "production readiness: container engine"
-    }
-    fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
+
+    async fn execute(&mut self, check: &mut Check) -> CheckResult {
         self.inner_execute(check)
             .unwrap_or_else(CheckResult::Failed)
-    }
-    fn get_json(&self) -> serde_json::Value {
-        serde_json::to_value(self).unwrap()
     }
 }
 
 impl ContainerEngineIsMoby {
+    #[allow(clippy::unnecessary_wraps)]
     fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
         const MESSAGE: &str =
             "Device is not using a production-supported container engine (moby-engine).\n\
