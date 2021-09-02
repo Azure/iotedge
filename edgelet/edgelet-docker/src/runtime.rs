@@ -337,6 +337,24 @@ impl ModuleRuntime for DockerModuleRuntime {
             ))));
         }
 
+        let id = module.name().to_string();
+
+        let (sender, receiver): (Sender<()>, Receiver<()>) = oneshot::channel();
+
+        if let Err(err) = self
+            .create_socket_channel
+            .unbounded_send(ModuleAction::Start(id.clone(), sender))
+            .map_err(|_| {
+                Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(
+                    id.clone(),
+                )))
+            })
+        {
+            return Box::new(future::err(err));
+        }
+        let socket_signal = self.create_socket_channel.clone();
+        let module_name = id.clone();
+
         let result = module
             .config()
             .clone_create_options()
@@ -385,12 +403,27 @@ impl ModuleRuntime for DockerModuleRuntime {
                     Ok(())
                 }
                 Err(err) => {
+                    let module_name = module_name;
+                    let socket_signal = socket_signal;
+
+                    if socket_signal
+                        .unbounded_send(ModuleAction::Remove(module_name.clone()))
+                        .is_err()
+                    {
+                        error!("Could not remove socket {}", module_name);
+                    }
                     log_failure(Level::Warn, &err);
                     Err(err)
                 }
             });
 
-        Box::new(result)
+        Box::new(
+            receiver
+                .map_err(move |_| {
+                    Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id)))
+                })
+                .and_then(move |()| result),
+        )
     }
 
     fn get(&self, id: &str) -> Self::GetFuture {
@@ -451,44 +484,30 @@ impl ModuleRuntime for DockerModuleRuntime {
             return Box::new(future::err(Error::from(err)));
         }
 
-        let (sender, receiver): (Sender<()>, Receiver<()>) = oneshot::channel();
-
-        if let Err(err) = self
-            .create_socket_channel
-            .unbounded_send(ModuleAction::Start(id.clone(), sender))
-            .map_err(|_| {
-                Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(
-                    id.clone(),
-                )))
-            })
-        {
-            return Box::new(future::err(err));
-        }
-
-        let future = self.client.container_api().container_start(&id, "");
-
-        let id2 = id.clone();
-
+        let socket_signal = self.create_socket_channel.clone();
         Box::new(
-            receiver
-                .map_err(move |_| {
-                    Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id)))
-                })
-                .and_then(move |()| {
-                    future.then(move |result| match result {
-                        Ok(_) => {
-                            info!("Successfully started module {}", id2);
-                            Ok(())
+            self.client
+                .container_api()
+                .container_start(&id, "")
+                .then(move |result| match result {
+                    Ok(_) => {
+                        info!("Successfully started module {}", id);
+                        Ok(())
+                    }
+                    Err(err) => {
+                        let err = Error::from_docker_error(
+                            err,
+                            ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id.clone())),
+                        );
+                        if socket_signal
+                            .unbounded_send(ModuleAction::Remove(id.clone()))
+                            .is_err()
+                        {
+                            error!("Could not remove socket {}", id);
                         }
-                        Err(err) => {
-                            let err = Error::from_docker_error(
-                                err,
-                                ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id2)),
-                            );
-                            log_failure(Level::Warn, &err);
-                            Err(err)
-                        }
-                    })
+                        log_failure(Level::Warn, &err);
+                        Err(err)
+                    }
                 }),
         )
     }
