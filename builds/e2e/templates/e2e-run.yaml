@@ -11,7 +11,7 @@ steps:
     # Filter out unstable tests.
     $filter = 'Category!=Unstable'
 
-    if ('$(Agent.Name)'.Contains('centos'))
+    if ('$(artifactName)'.Contains('centos'))
     {
       $filter += '&Category=CentOsSafe'
     }
