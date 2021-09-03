@@ -88,6 +88,7 @@ steps:
     E2E_REGISTRIES__0__PASSWORD: $(TestContainerRegistryPassword)
     E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
     E2E_BLOB_STORE_SAS: $(TestBlobStoreSas)
+    no_proxy: 'localhost'
 
 - task: PublishTestResults@2
   displayName: Publish test results
