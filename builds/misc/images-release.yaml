@@ -405,9 +405,9 @@ jobs:
       - template: ../templates/install-dotnet3.yaml
       - task: JavaToolInstaller@0
         inputs:
-        versionSpec: '8'
-        jdkArchitectureOption: 'x64'
-        jdkSourceOption: 'PreInstalled'
+          versionSpec: '8'
+          jdkArchitectureOption: 'x64'
+          jdkSourceOption: 'PreInstalled'
       - powershell: "scripts/windows/build/Publish-Branch.ps1 -Configuration:\"$(configuration)\" -PublishTests:$False -UpdateVersion"
         displayName: "Build ($(configuration))"
         name: build
