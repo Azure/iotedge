@@ -89,7 +89,7 @@ jobs:
           testrun.network.runProfile: "Cellular3G"
           testrun.duration: "01:00:00"
     pool:
-      name: Azure-IoT-Edge-1ES-Hosted-Linux
+      name: $(pool.linux.name)
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
     variables:
