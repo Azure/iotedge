@@ -386,11 +386,9 @@ jobs:
 ################################################################################
     displayName: Windows
     pool:
-      name: Azure-IoT-Edge-Core
+      name: $(pool.windows.name)
       demands: 
-        - Build-Image -equals true
-        - win-rs5
-        - DotNetFramework
+       - ImageOverride -equals agent-aziotedge-win10-entn2019-test
     steps: 
       # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
       - task: Docker@2
