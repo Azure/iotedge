@@ -89,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 });
         }
 
-        public static async Task ValidateResultsAsync()
+        public static async Task<bool> IsResultValidAsync()
         {
             HttpClient client = new HttpClient();
             HttpResponseMessage response = await client.GetAsync(TestResultCoordinatorUrl);
@@ -109,7 +109,26 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 Log.Information("Test Result Coordinator response: {Response}", jsonstring);
             }
 
-            Assert.IsTrue(isPassed);
+            return isPassed;
+        }
+
+        public static async Task ValidateScenarioAsync(TimeSpan verificationTolerance)
+        {
+            DateTime end = DateTime.UtcNow + verificationTolerance;
+
+            bool scenarioPassed = false;
+            while (DateTime.UtcNow < end)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(5));
+
+                if (await TestResultCoordinatorUtil.IsResultValidAsync())
+                {
+                    scenarioPassed = true;
+                    break;
+                }
+            }
+
+            Assert.True(scenarioPassed);
         }
     }
 }

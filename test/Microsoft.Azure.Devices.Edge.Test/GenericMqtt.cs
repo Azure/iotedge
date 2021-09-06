@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string GenericMqttRelayerModuleName = "GenericMqttRelayer";
         const string GenericMqttTesterMaxMessages = "5";
         const string GenericMqttTesterTestStartDelay = "10s";
-        const int SecondsBeforeVerification = 45;
+        const int VerificationTolerance = 90;
 
         /// <summary>
         /// Scenario:
@@ -51,9 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Action<EdgeConfigBuilder> config = addMqttBrokerConfig + addNetworkControllerConfig + addTestResultCoordinatorConfig + addGenericMqttTesterConfig;
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(config, token, Context.Current.NestedEdge);
 
-            await Task.Delay(TimeSpan.FromSeconds(SecondsBeforeVerification));
-
-            await TestResultCoordinatorUtil.ValidateResultsAsync();
+            await TestResultCoordinatorUtil.ValidateScenarioAsync(TimeSpan.FromSeconds(VerificationTolerance));
         }
 
         private Action<EdgeConfigBuilder> BuildAddGenericMqttTesterConfig(string trackingId, string trcImage, string genericMqttTesterImage)
