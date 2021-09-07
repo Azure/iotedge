@@ -131,7 +131,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task TestUploadModuleLogs()
         {
-
             string moduleName = "NumberLogger";
             int count = 10;
             string sasUrl = Context.Current.BlobSasUrl.Expect(() => new InvalidOperationException("Missing Blob SAS url"));
