@@ -8,8 +8,8 @@ steps:
     $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
     $test_type = '${{ parameters.test_type }}'
 
-    # Filter out unstable tests.
-    $filter = 'Category!=Unstable'
+    # Filter out flaky tests.
+    $filter = 'Category!=Flaky'
 
     if ('$(Agent.Name)'.Contains('centos'))
     {
@@ -17,7 +17,7 @@ steps:
     }
     elseif ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
     {
-      $filter += '&Category!=UnstableOnArm'
+      $filter += '&Category!=FlakyOnArm'
     }
     
     if ($test_type -eq 'nestededge_mqtt')
@@ -26,6 +26,10 @@ steps:
       $filter += '&Category!=NestedEdgeAmqpOnly'
       $filter += '&Category!=LegacyMqttRequired'
     
+      $filter += '&Category!=FlakyOnNested'
+
+      # Below tests were disabled and marked for re-enable when a blocking item was resolved.
+      # When it was resolved the tests were never enabled. We need to re-enable these.
       $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
     }
     elseif ($test_type -eq 'nestededge_amqp')
@@ -33,6 +37,10 @@ steps:
       $filter += '&Category!=SingleNodeOnly'
       $filter += '&Category!=BrokerRequired'
 
+      $filter += '&Category!=FlakyOnNested'
+
+      # Below tests were disabled and marked for re-enable when a blocking item was resolved.
+      # When it was resolved the tests were never enabled. We need to re-enable these.
       $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
     }
     elseif ($test_type -eq 'nestededge_isa95')
