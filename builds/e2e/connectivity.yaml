@@ -144,7 +144,7 @@ jobs:
           buildType: specific
           project: $(vsts.project)
           pipeline: $(edgelet.package.build)
-          branchName: $(edgelet.package.branchName)
+          branchName: $(resources.pipeline.packages.sourceBranch)
           buildVersionToDownload: latestFromBranch
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
@@ -156,7 +156,7 @@ jobs:
           buildType: specific
           project: $(vsts.project)
           pipeline: $(images.build)
-          branchName: $(images.branchName)
+          branchName: $(resources.pipeline.images.sourceBranch)
           buildVersionToDownload: latestFromBranch
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.linux)
