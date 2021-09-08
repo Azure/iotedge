@@ -65,12 +65,15 @@
                         "restartPolicy": "always",
                         "startupOrder": 3,
                         "settings": {
-                            "image": "$upstream:443/microsoft/azureiotedge-api-proxy:<Build.BuildNumber>-linux-<Architecture>",
+                            "image": "$upstream:443/microsoft/azureiotedge-api-proxy:1.1",
                             "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\",\"compress\":\"true\"}}, \"PortBindings\": {\"443\/tcp\": [{\"HostPort\": \"443\"}]}}}"
                         },
                         "env": {
                             "NGINX_DEFAULT_PORT": {
                                 "value": "443"
+                            },
+                            "NGINX_DEFAULT_TLS": {
+                                "value": "TLSv1.2"
                             }
                         }
                     },
@@ -89,8 +92,8 @@
                             "TRACKING_ID": {
                                 "value": "<TrackingId>"
                             },
-                            "INITIATE_TOPIC": {
-                                "value": "initiate/2"
+                            "TOPIC_SUFFIX": {
+                                "value": "2"
                             },
                             "TRC_URL": {
                                 "value": "<TrcUrl>"
@@ -116,8 +119,8 @@
                             "TRACKING_ID": {
                                 "value": "<TrackingId>"
                             },
-                            "INITIATE_TOPIC": {
-                                "value": "initiate/1"
+                            "TOPIC_SUFFIX": {
+                                "value": "1"
                             },
                             "TRC_URL": {
                                 "value": "<TrcUrl>"

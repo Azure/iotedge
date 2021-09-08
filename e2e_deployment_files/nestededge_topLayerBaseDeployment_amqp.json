@@ -90,7 +90,7 @@
             "restartPolicy": "always",
             "startupOrder": 3,
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-api-proxy:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-api-proxy:1.1",
               "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\",\"compress\":\"true\"}}, \"PortBindings\": {\"443\/tcp\": [{\"HostPort\": \"443\"}]}}}"
             },
             "env": {
@@ -99,6 +99,9 @@
               },
               "DOCKER_REQUEST_ROUTE_ADDRESS": {
                 "value": "dockerContainerRegistry:5000"
+              },
+              "NGINX_DEFAULT_TLS": {
+                "value": "TLSv1.2"
               }
             }
           }

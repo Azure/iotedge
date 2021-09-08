@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Net;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading;
