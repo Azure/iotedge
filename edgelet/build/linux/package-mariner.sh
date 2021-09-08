@@ -18,8 +18,6 @@ echo "Edgelet version is ${VERSION}"
 pushd "${BUILD_REPOSITORY_LOCALPATH}"
 sed -i "s/@@VERSION@@/${VERSION}/g" builds/mariner/SPECS/azure-iotedge/azure-iotedge.signatures.json
 sed -i "s/@@VERSION@@/${VERSION}/g" builds/mariner/SPECS/azure-iotedge/azure-iotedge.spec
-sed -i "s/@@VERSION@@/${VERSION}/g" builds/mariner/SPECS/iot-identity-service/iot-identity-service.signatures.json
-sed -i "s/@@VERSION@@/${VERSION}/g" builds/mariner/SPECS/iot-identity-service/iot-identity-service.spec
 popd
 
 pushd "${EDGELET_ROOT}"
@@ -58,8 +56,6 @@ popd
 # Copy source tarball to expected locations
 mkdir -p "${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/SOURCES/"
 cp "${BUILD_REPOSITORY_LOCALPATH}/azure-iotedge-${VERSION}.tar.gz" "${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/SOURCES/"
-mkdir -p "${MARINER_BUILD_ROOT}/SPECS/iot-identity-service/SOURCES/"
-cp "${BUILD_REPOSITORY_LOCALPATH}/azure-iotedge-${VERSION}.tar.gz" "${MARINER_BUILD_ROOT}/SPECS/iot-identity-service/SOURCES/"
 
 # Download Mariner repo and build toolkit
 echo "Cloning the \"${MARINER_RELEASE}\" tag of the CBL-Mariner repo."
