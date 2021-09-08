@@ -18,7 +18,6 @@ URL:            https://github.com/azure/iotedge
 BuildRequires:  systemd
 BuildRequires:  rust >= 1.47.0
 Requires(pre):  shadow-utils
-Requires:       iot-identity-service >= 1.2.3
 
 #Source0:       https://github.com/Azure/iotedge/archive/%{version}.tar.gz
 Source0:        %{name}-%{version}.tar.gz
