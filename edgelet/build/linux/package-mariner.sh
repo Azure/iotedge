@@ -54,10 +54,6 @@ tar -czf azure-iotedge-${VERSION}.tar.gz --transform="s,^.*edgelet/,azure-iotedg
 popd
 
 # Update expected tarball hash
-TARBALL_HASH=$(sha256sum "${BUILD_REPOSITORY_LOCALPATH}/azure-iotedge-${VERSION}.tar.gz" | awk '{print $1}')
-echo "azure-iotedge-${VERSION}.tar.gz sha256 hash is ${TARBALL_HASH}"
-sed -i 's/\("azure-iotedge-[0-9.]\+.tar.gz": "\)\([a-fA-F0-9]\+\)/\1'${TARBALL_HASH}'/g' "${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/azure-iotedge.signatures.json"
-sed -i 's/\("azure-iotedge-[0-9.]\+.tar.gz": "\)\([a-fA-F0-9]\+\)/\1'${TARBALL_HASH}'/g' "${MARINER_BUILD_ROOT}/SPECS/iot-identity-service/iot-identity-service.signatures.json"
 
 # Copy source tarball to expected locations
 mkdir -p "${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/SOURCES/"
@@ -82,6 +78,6 @@ sudo tar xzf toolkit.tar.gz
 pushd toolkit
 
 # Build Mariner RPM packages
-sudo make build-packages PACKAGE_BUILD_LIST="azure-iotedge iot-identity-service" CONFIG_FILE= -j$(nproc)
+sudo make build-packages PACKAGE_BUILD_LIST="azure-iotedge iot-identity-service" SRPM_FILE_SIGNATURE_HANDLING=update CONFIG_FILE= -j$(nproc)
 popd
 popd
