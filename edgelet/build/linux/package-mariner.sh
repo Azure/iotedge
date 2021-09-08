@@ -26,6 +26,7 @@ pushd "${EDGELET_ROOT}"
 echo "set cargo home location"
 mkdir ${BUILD_REPOSITORY_LOCALPATH}/cargo-home
 export CARGO_HOME=${BUILD_REPOSITORY_LOCALPATH}/cargo-home
+
 echo "Vendoring Rust dependencies"
 cargo vendor vendor
 
