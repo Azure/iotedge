@@ -85,6 +85,8 @@ jobs:
         displayName: Set Version
       - script: edgelet/build/linux/package.sh
         displayName: Create iotedged packages
+      - script: edgelet/build/linux/package-mariner.sh
+        displayName: Create iotedged package for mariner
       - task: CopyFiles@2
         displayName: Copy iotedged Files to Artifact Staging
         inputs:

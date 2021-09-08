@@ -37,18 +37,6 @@ mkdir .cargo
 cat > .cargo/config << EOF
 [source.crates-io]
 replace-with = "vendored-sources"
-[source."https://github.com/Azure/hyperlocal-windows"]
-git = "https://github.com/Azure/hyperlocal-windows"
-branch = "master"
-replace-with = "vendored-sources"
-[source."https://github.com/Azure/mio-uds-windows.git"]
-git = "https://github.com/Azure/mio-uds-windows.git"
-branch = "master"
-replace-with = "vendored-sources"
-[source."https://github.com/Azure/tokio-uds-windows.git"]
-git = "https://github.com/Azure/tokio-uds-windows.git"
-branch = "master"
-replace-with = "vendored-sources"
 [source.vendored-sources]
 directory = "vendor"
 EOF

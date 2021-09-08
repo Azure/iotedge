@@ -7,7 +7,7 @@
 %define iotedge_confdir %{aziot_confdir}/edged
 
 Name:           azure-iotedge
-Version:        @@VERSION@@
+Version:        1.2.3
 Release:        3%{?dist}
 
 License:        MIT
@@ -18,7 +18,7 @@ URL:            https://github.com/azure/iotedge
 BuildRequires:  systemd
 BuildRequires:  rust >= 1.47.0
 Requires(pre):  shadow-utils
-Requires:       iot-identity-service >= @@VERSION@@
+Requires:       iot-identity-service >= 1.2.3
 
 #Source0:       https://github.com/Azure/iotedge/archive/%{version}.tar.gz
 Source0:        %{name}-%{version}.tar.gz

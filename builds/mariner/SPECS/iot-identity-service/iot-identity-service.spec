@@ -10,7 +10,7 @@
 
 
 Name: iot-identity-service
-Version: @@VERSION@@
+Version: 1.2.3
 Release: 2%{?dist}
 Summary: Azure IoT Identity Service and related services
 License: MIT
@@ -223,7 +223,7 @@ fi
 
 
 %changelog
-*   Thu Aug 19 2021 Joseph Knierman <joknierm@microsoft.com> @@VERSION@@-4
+*   Thu Aug 19 2021 Joseph Knierman <joknierm@microsoft.com> 1.2.3-4
 -   Update work on iotedge pipelines
 *   Wed May 05 2021 David Grob <grobdavid@microsoft.com> 1.2.0-3
 -   Update to version 1.2.0 and compress source files.
