@@ -99,7 +99,7 @@ impl RuntimeSettings for Settings {
     fn hostname(&self) -> &str {
         self.base.hostname()
     }
-    
+
     fn allow_elevated_docker_permissions(&self) -> bool {
         self.base.allow_elevated_docker_permissions()
     }

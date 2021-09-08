@@ -98,7 +98,7 @@ impl RuntimeSettings for TestSettings {
     fn hostname(&self) -> &str {
         unimplemented!()
     }
-    
+
     fn allow_elevated_docker_permissions(&self) -> bool {
         unimplemented!()
     }
