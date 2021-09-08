@@ -351,7 +351,6 @@ function Initialize-IoTEdge {
         throw
     }
 
-    New-Sockets $EdgeDataDirectory
     Set-SystemPath
 
     # config.yaml
@@ -1067,6 +1066,7 @@ function Setup-Environment {
                 $false
             }
             else {
+                New-Sockets $EdgeDataDirectory
                 $true
             }
         }
