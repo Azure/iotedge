@@ -23,9 +23,9 @@ popd
 pushd "${EDGELET_ROOT}"
 
 # Cargo vendored dependencies are being downloaded now to be cached for mariner iotedge build.
-echo "set cargo home location"
-mkdir ${BUILD_REPOSITORY_LOCALPATH}/cargo-home
-export CARGO_HOME=${BUILD_REPOSITORY_LOCALPATH}/cargo-home
+# echo "set cargo home location"
+# mkdir ${BUILD_REPOSITORY_LOCALPATH}/cargo-home
+# export CARGO_HOME=${BUILD_REPOSITORY_LOCALPATH}/cargo-home
 
 echo "Vendoring Rust dependencies"
 cargo vendor vendor
@@ -36,6 +36,12 @@ mkdir .cargo
 cat > .cargo/config << EOF
 [source.crates-io]
 replace-with = "vendored-sources"
+
+[source."https://github.com/Azure/iot-identity-service"]
+git = "https://github.com/Azure/iot-identity-service"
+branch = "release/1.2"
+replace-with = "vendored-sources"
+
 [source.vendored-sources]
 directory = "vendor"
 EOF
