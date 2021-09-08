@@ -12,7 +12,9 @@ jobs:
     displayName: Metrics Collector Linux Build
     timeoutInMinutes: 30
     pool:
-      vmImage: 'ubuntu-18.04'
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
     steps:
       - template: ../templates/install-dotnet2.yaml
       - template: ../templates/install-dotnet3.yaml
@@ -51,10 +53,9 @@ jobs:
     displayName: Metrics Collector Windows Build
     timeoutInMinutes: 30
     pool:
-      name: Azure-IoT-Edge-Core
+      name: $(pool.windows.name)
       demands:
-        - Build-Image -equals true
-        - win-rs5
+        - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
     workspace:
       clean: all
     steps:
@@ -94,7 +95,9 @@ jobs:
 ################################################################################
     displayName: Publish Manifest Images
     pool:
-      vmImage: 'ubuntu-18.04'
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby 
     dependsOn:
       - MetricsCollector_Linux
       - MetricsCollector_Windows
