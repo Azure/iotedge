@@ -55,7 +55,7 @@ popd # EDGELET_ROOT
 # Create source tarball, including cargo dependencies and license
 pushd "${BUILD_REPOSITORY_LOCALPATH}"
 echo "Creating source tarball azure-iotedge-${VERSION}.tar.gz"
-tar -czf azure-iotedge-${VERSION}.tar.gz --transform="s,^.*edgelet/,azure-iotedge-${VERSION}/edgelet/," "${EDGELET_ROOT}"
+tar -czf azure-iotedge-${VERSION}.tar.gz "${BUILD_REPOSITORY_LOCALPATH}"
 popd
 
 # Update expected tarball hash

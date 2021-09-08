@@ -18,6 +18,7 @@ URL:            https://github.com/azure/iotedge
 BuildRequires:  systemd
 BuildRequires:  rust >= 1.47.0
 Requires(pre):  shadow-utils
+Requires:       iot-identity-service >= 1.2.3
 
 #Source0:       https://github.com/Azure/iotedge/archive/%{version}.tar.gz
 Source0:        %{name}-%{version}.tar.gz
@@ -170,7 +171,7 @@ fi
 %doc %{_docdir}/%{name}/trademark
 
 %changelog
-*   Thu Aug 18 2021 Joseph Knierman <joknierm@microsoft.com> 1.2.0-3
+*   Thu Aug 18 2021 Joseph Knierman <joknierm@microsoft.com> 1.2.0-4
 -   Update to run on iotedge pipeline.
 *   Wed May 05 2021 David Grob <grobdavid@microsoft.com> 1.2.0-3
 -   Update to version 1.2.0 and compress source files.
