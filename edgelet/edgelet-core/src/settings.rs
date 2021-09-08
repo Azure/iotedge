@@ -748,7 +748,7 @@ pub struct Settings<T> {
     provisioning: Provisioning,
     agent: ModuleSpec<T>,
     hostname: String,
-    allow_elevated_docker_permissions: bool,
+    allow_elevated_docker_permissions: Option<bool>,
     connect: Connect,
     listen: Listen,
     homedir: PathBuf,
@@ -780,7 +780,7 @@ where
     }
 
     fn allow_elevated_docker_permissions(&self) -> bool {
-        self.allow_elevated_docker_permissions
+        self.allow_elevated_docker_permissions.unwrap_or(true)
     }
 
     fn connect(&self) -> &Connect {
