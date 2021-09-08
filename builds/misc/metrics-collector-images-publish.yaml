@@ -10,7 +10,9 @@ jobs:
 ################################################################################
     displayName: Publish Images Linux
     pool:
-      vmImage: ubuntu-18.04
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby    
     workspace:
       clean: all
     environment: 'Azure-IoT-Edge-Core Release Env'
@@ -56,10 +58,9 @@ jobs:
 ################################################################################
     displayName: Publish Images Windows
     pool:
-      name: Azure-IoT-Edge-Core
+      name: $(pool.windows.name)
       demands:
-      - Build-Image -equals true
-      - agent-os-name -equals WinPro_x64
+        - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
     workspace:
       clean: all
     environment: 'Azure-IoT-Edge-Core Release Env'
@@ -94,7 +95,9 @@ jobs:
 ################################################################################
     displayName: Publish Manifest
     pool:
-      vmImage: ubuntu-18.04
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby 
     workspace:
       clean: all
     environment: 'Azure-IoT-Edge-Core Release Env'
