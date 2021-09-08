@@ -85,8 +85,6 @@ jobs:
         displayName: Set Version
       - script: edgelet/build/linux/package.sh
         displayName: Create iotedged packages
-      - script: edgelet/build/linux/package-mariner.sh
-        displayName: Create iotedged package for mariner
       - task: CopyFiles@2
         displayName: Copy iotedged Files to Artifact Staging
         inputs:
@@ -95,6 +93,53 @@ jobs:
             *.deb
             *.rpm
           TargetFolder: '$(build.artifactstagingdirectory)'
+      - task: PublishBuildArtifacts@1
+        displayName: Publish Artifacts
+        inputs:
+          PathtoPublish: '$(build.artifactstagingdirectory)'
+          ArtifactName: 'iotedged-$(os)-$(arch)'
+        condition: succeededOrFailed()
+
+################################################################################
+  - job: mariner_linux
+################################################################################
+    displayName: Linux
+    pool:
+      vmImage: 'ubuntu-18.04'
+    strategy:
+      matrix:
+        CBL-Mariner1.0-amd64:
+          arch: amd64
+          os: mariner
+          release: tags/1.0-stable
+          target.iotedged: builds/mariner/out/RPMS/x86_64/
+    steps:
+      - bash: |
+          BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
+          VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"
+          echo "##vso[task.setvariable variable=VERSION;]$VERSION"
+          echo "PACKAGE_ARCH=$(arch)"
+          echo "PACKAGE_OS=$(os)"
+          echo "##vso[task.setvariable variable=MARINER_RELEASE;]$(release)"
+        displayName: Set Version
+      - script: edgelet/build/linux/package-mariner.sh
+        displayName: Create iotedged packages
+      - task: CopyFiles@2
+        displayName: Copy iotedged build logs to artifact staging
+        inputs:
+          SourceFolder: builds/mariner/build/logs/pkggen/rpmbuilding/
+          Contents: |
+            **/*.rpm.log
+          TargetFolder: '$(build.artifactstagingdirectory)'
+        condition: succeededOrFailed()
+      - task: CopyFiles@2
+        displayName: Copy iotedged Files to Artifact Staging
+        inputs:
+          SourceFolder: $(target.iotedged)
+          Contents: |
+            *.rpm
+          TargetFolder: '$(build.artifactstagingdirectory)'
+        condition: succeededOrFailed()
       - task: PublishBuildArtifacts@1
         displayName: Publish Artifacts
         inputs:
