@@ -74,6 +74,6 @@ sudo tar xzf toolkit.tar.gz
 pushd toolkit
 
 # Build Mariner RPM packages
-sudo make build-packages PACKAGE_BUILD_LIST="azure-iotedge iot-identity-service" SRPM_FILE_SIGNATURE_HANDLING=update CONFIG_FILE= -j$(nproc)
+sudo make build-packages PACKAGE_BUILD_LIST="azure-iotedge" SRPM_FILE_SIGNATURE_HANDLING=update CONFIG_FILE= -j$(nproc)
 popd
 popd
