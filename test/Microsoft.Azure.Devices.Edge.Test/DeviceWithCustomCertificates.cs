@@ -17,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     class DeviceWithCustomCertificates : CustomCertificatesFixture
     {
         [Test]
+        [Category("Flaky")]
         public async Task TransparentGateway(
             [Values] TestAuthenticationType testAuth,
             [Values(Protocol.Mqtt, Protocol.Amqp)] Protocol protocol)
@@ -75,6 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         [Test]
         [Category("NestedEdgeOnly")]
+        [Category("FlakyOnNested")]
         [Description("A test to verify a leaf device can be registered under grandparent device scope.")]
         public async Task GrandparentScopeDevice(
             [Values(
