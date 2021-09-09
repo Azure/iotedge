@@ -168,11 +168,51 @@ To run `iotedged` locally:
         ```powershell
         $env:IOTEDGE_HOMEDIR = Resolve-Path ~/iotedge
         New-Item -Type Directory -Force $env:IOTEDGE_HOMEDIR
+        Copy-Item Resolve-Path
         ```
 
-1. Create a `config.yaml`. It's okay to create this under the `IOTEDGE_HOMEDIR` directory.
+2. Copy the configy.yaml file to the `IOTEDGE_HOMEDIR` directory.
 
-1. Run the daemon with the `IOTEDGE_HOMEDIR` environment variable set and with the path to the `config.yaml`
+    - Linux / MacOS
+      ```sh
+      sudo cp edgelet/contrib/linux/config.yaml $IOTEDGE_HOMEDIR
+      ```
+
+    - Windows
+      ```powershell
+      Copy-Item .\edgelet\contrib\config\windows\config.yaml -Destination $env:IOTEDGE_HOMEDIR
+      ```
+
+3. Update the Device Connection String in `config.yaml` to take the device connection string from your iot hub. To Create a device in IoT Hub - Please see [Quickstart](https://docs.microsoft.com/en-us/azure/iot-edge/quickstart-linux?view=iotedge-2020-11)
+
+4. In Linux, Make sure $USER is added to docker group ( Make sure Moby-Engine is installed in your machine by following instructions [here](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-edge?view=iotedge-2020-11#install-a-container-engine))
+
+    Check if User is already part of the group
+    ```sh
+    grep docker /etc/group
+    ```
+
+    Add User to Docker Group
+
+    ```sh
+    sudo usermod -aG docker $USER
+    ```
+
+    Restart docker
+    ```sh
+    sudo systemctl restart docker
+    ```
+
+    Log Out and Log In or Restart Shell
+
+5. In Linux Create /var/lib/iotedge dir and chown the dir to the user
+   
+   ```sh
+   sudo mkdir -p /var/lib/iotedge
+   sudo chown $USER /var/lib/iotedge/
+   ```
+
+6. Run the daemon with the `IOTEDGE_HOMEDIR` environment variable set and with the path to the `config.yaml`
 
     ```sh
     cargo run -p iotedged -- -c /absolute/path/to/config.yaml
