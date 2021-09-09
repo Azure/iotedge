@@ -32,6 +32,7 @@
 * Introduce `allow_elevated_docker_permissions` flag ( [175603c](https://github.com/Azure/iotedge/commit/175603c634881e081979d507f94baf3c9f7f642f) )
 * RUSTSEC Security Update ( [24e4d27](https://github.com/Azure/iotedge/commit/24e4d272415de71e0ed75b41089e1471c35cc8c9), [b59a089](https://github.com/Azure/iotedge/commit/b59a089e6fa3fbf1d869e37e5e2a5113449b37e3), [5e2ba80](https://github.com/Azure/iotedge/commit/5e2ba80786402615bebff078b67eab63313ffc39), [790a8f9](https://github.com/Azure/iotedge/commit/790a8f99e7f24c86c4c491a6e0eb6d2c388b47ec), [c6d805b](https://github.com/Azure/iotedge/commit/c6d805b1753ba1a69bf05b2e4f0eda312545d347) )
 * $upstream support for container registry address ( [ebdb5be](https://github.com/Azure/iotedge/commit/ebdb5becf9a1c5f1fb2aa27794b6e69b0b754d52) )
+* Improve Workload Manager logging and cleanup ( [febd7a2](https://github.com/Azure/iotedge/commit/febd7a2d1467b891c0dea0edff00c90c6b320e0b) )
 
 
 # 1.2.3 (2021-06-30)
