@@ -20,7 +20,6 @@ schedules:
 variables:
   NugetSecurityAnalysisWarningLevel: warn
   images.artifact.name.linux: 'core-linux'
-  vsts.project: $(System.TeamProjectId)
 
 resources:
   pipelines:
@@ -142,8 +141,8 @@ jobs:
         displayName: 'Download Edgelet Artifacts'
         inputs:
           buildType: specific
-          project: $(vsts.project)
-          pipeline: $(edgelet.package.build)
+          project: $(resources.pipeline.packages.projectID)
+          pipeline: $(resources.pipeline.packages.pipelineName)
           branchName: $(resources.pipeline.packages.sourceBranch)
           buildVersionToDownload: latestFromBranch
           downloadPath: '$(Build.StagingDirectory)'
@@ -154,8 +153,8 @@ jobs:
         displayName: 'Download Images Artifacts'
         inputs:
           buildType: specific
-          project: $(vsts.project)
-          pipeline: $(images.build)
+          project: $(resources.pipeline.images.projectID)
+          pipeline: $(resources.pipeline.images.pipelineName)
           branchName: $(resources.pipeline.images.sourceBranch)
           buildVersionToDownload: latestFromBranch
           downloadPath: '$(Build.StagingDirectory)'
