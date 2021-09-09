@@ -1,0 +1,431 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"resource_prefix": {
+			"type": "string",
+			"defaultValue": "[concat('e2e-', uniqueString(resourceGroup().id), '-')]"
+		},
+		"runner_count": {
+			"type": "int",
+			"defaultValue": 1
+		},
+		"key_vault_access_objectid": {
+			"type": "string"
+		},
+		"proxy_vm_size": {
+			"defaultValue": "Standard_DS1_v2",
+			"type": "string"
+		},
+		"runner_vm_size": {
+			"defaultValue": "Standard_D2s_v3",
+			"type": "string"
+		},
+		"create_runner_public_ip": {
+			"defaultValue": "false",
+			"type": "bool"
+		},
+		"linux_vm_creation_template_uri": {
+			"defaultValue": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/proxy/create-linux-vm-template.json",
+			"type": "string"
+		},
+		"proxy_config_script_uri": {
+			"defaultValue": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/proxy/configure_proxy.sh",
+			"type": "string"
+		},
+		"runner_config_script_uri": {
+			"defaultValue": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/proxy/configure_runner.sh",
+			"type": "string"
+		},
+		"create_ssh_keys_script_uri": {
+			"defaultValue": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/proxy/create_ssh_keys.sh",
+			"type": "string"
+		}
+	},
+	"variables": {
+		"key_vault_name": "[concat(parameters('resource_prefix'), 'kv')]",
+		"contributor_id": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+		"keygen_identity_name": "[concat(parameters('resource_prefix'), 'uaid')]",
+		"keygen_script_name": "create_ssh_keys",
+		"role_definition_name": "[guid(variables('keygen_identity_name'), variables('contributor_id'))]",
+		"proxy_vm_name": "[concat(parameters('resource_prefix'), 'proxy-vm')]",
+		"proxy_nsg_name": "[concat(parameters('resource_prefix'), 'proxy-nsg')]",
+		"runner_prefix": "[concat(parameters('resource_prefix'), 'runner')]",
+		"runner_nsg_name": "[concat(parameters('resource_prefix'), 'runner-nsg')]",
+		"vnet_name": "[concat(parameters('resource_prefix'), 'vnet')]",
+		"vnet_address_prefix": "10.0.0.0/24",
+		"subnet_name": "default",
+		"username": "azureuser"
+	},
+	"resources": [{
+		"type": "Microsoft.KeyVault/vaults",
+		"name": "[variables('key_vault_name')]",
+		"apiVersion": "2019-09-01",
+		"location": "[resourceGroup().location]",
+		"properties": {
+			"sku": {
+				"family": "A",
+				"name": "standard"
+			},
+			"tenantId": "[subscription().tenantId]",
+			"accessPolicies": [
+				{
+					"tenantId": "[subscription().tenantId]",
+					"objectId": "[parameters('key_vault_access_objectid')]",
+					"permissions": {
+						"keys": [ "all" ],
+						"secrets": [ "all" ],
+						"certificates": [ "all" ]
+					}
+				}
+			],
+			"enabledForDeployment": false,
+			"enabledForDiskEncryption": false,
+			"enabledForTemplateDeployment": true
+		},
+		"dependsOn": []
+	}, {
+		"type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+		"name": "[variables('keygen_identity_name')]",
+		"apiVersion": "2018-11-30",
+		"location": "[resourceGroup().location]",
+		"dependsOn": []
+	}, {
+		"type": "Microsoft.Authorization/roleAssignments",
+		"name": "[variables('role_definition_name')]",
+		"apiVersion": "2020-04-01-preview",
+		"properties": {
+			"roleDefinitionId": "[variables('contributor_id')]",
+			"principalId": "[reference(variables('keygen_identity_name')).principalId]",
+			"principalType": "ServicePrincipal",
+			"scope": "[resourceGroup().id]"
+		},
+		"dependsOn": [
+			"[variables('keygen_identity_name')]"
+		]
+	}, {
+		"type": "Microsoft.Resources/deploymentScripts",
+		"name": "[variables('keygen_script_name')]",
+		"apiVersion": "2019-10-01-preview",
+		"location": "[resourceGroup().location]",
+		"identity": {
+			"type": "UserAssigned",
+			"userAssignedIdentities": {
+				"[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('keygen_identity_name'))]": {}
+			}
+		},
+		"kind": "AzureCLI",
+		"properties": {
+			"azCliVersion": "2.9.1",
+			"cleanupPreference": "OnSuccess",
+			"arguments": "[add(parameters('runner_count'), 1)]",
+			"primaryScriptUri": "[parameters('create_ssh_keys_script_uri')]",
+			"timeout": "PT30M",
+			"retentionInterval": "P1D"
+		},
+		"dependsOn": [
+			"[variables('role_definition_name')]"
+		]
+	}, {
+		"type": "Microsoft.Resources/deployments",
+		"name": "[concat('store_ssh_keys', copyIndex())]",
+		"apiVersion": "2020-06-01",
+		"copy": {
+			"name": "store_ssh_keys_copy",
+			"count": "[add(parameters('runner_count'), 1)]"
+		},
+		"properties": {
+			"mode": "Incremental",
+			"template": {
+				"$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+				"contentVersion": "1.0.0.0",
+				"resources": [
+					{
+						"type": "Microsoft.KeyVault/vaults/secrets",
+						"name": "[if(equals(copyIndex(), 0), concat(variables('key_vault_name'), '/', variables('proxy_vm_name'), '-ssh-private-key'), concat(variables('key_vault_name'), '/', variables('runner_prefix'), copyIndex(), '-ssh-private-key'))]",
+						"apiVersion": "2019-09-01",
+						"properties": {
+							"value": "[reference(variables('keygen_script_name')).outputs.keyinfo[copyIndex()].privateKey]"
+						}
+					}
+				]
+			}
+		},
+		"dependsOn": [
+			"[variables('key_vault_name')]",
+			"[variables('keygen_script_name')]"
+		]
+	}, {
+		"type": "Microsoft.Network/virtualNetworks",
+		"name": "[variables('vnet_name')]",
+		"apiVersion": "2020-05-01",
+		"location": "[resourceGroup().location]",
+		"properties": {
+			"addressSpace": {
+				"addressPrefixes": [
+					"[variables('vnet_address_prefix')]"
+				]
+			},
+			"subnets": [
+				{
+					"name": "[variables('subnet_name')]",
+					"properties": {
+						"addressPrefix": "[variables('vnet_address_prefix')]"
+					}
+				}
+			]
+		},
+		"dependsOn": []
+	}, {
+		"type": "Microsoft.Network/networkSecurityGroups",
+		"name": "[variables('proxy_nsg_name')]",
+		"apiVersion": "2020-05-01",
+		"location": "[resourceGroup().location]",
+		"scale": null,
+		"properties": {
+			"provisioningState": "Succeeded",
+			"securityRules": [{
+				"name": "AllowVnetInBound",
+				"properties": {
+					"provisioningState": "Succeeded",
+					"protocol": "*",
+					"sourceAddressPrefix": "VirtualNetwork",
+					"sourceAddressPrefixes": [],
+					"sourcePortRange": "*",
+					"destinationAddressPrefix": "VirtualNetwork",
+					"destinationAddressPrefixes": [],
+					"destinationPortRange": "*",
+					"direction": "Inbound",
+					"access": "Allow",
+					"priority": 300
+				}
+			}, {
+				"name": "DenyAllInBound",
+				"properties": {
+					"provisioningState": "Succeeded",
+					"description": "Deny all inbound traffic",
+					"protocol": "*",
+					"sourceAddressPrefix": "*",
+					"sourceAddressPrefixes": [],
+					"sourcePortRange": "*",
+					"destinationAddressPrefix": "*",
+					"destinationAddressPrefixes": [],
+					"destinationPortRange": "*",
+					"direction": "Inbound",
+					"access": "Deny",
+					"priority": 400
+				}
+			}, {
+				"name": "AllowVnetOutBound",
+				"properties": {
+					"provisioningState": "Succeeded",
+					"protocol": "*",
+					"sourceAddressPrefix": "VirtualNetwork",
+					"sourceAddressPrefixes": [],
+					"sourcePortRange": "*",
+					"destinationAddressPrefix": "VirtualNetwork",
+					"destinationAddressPrefixes": [],
+					"destinationPortRange": "*",
+					"direction": "Outbound",
+					"access": "Allow",
+					"priority": 500
+				}
+			}, {
+				"name": "AllowInternetOutBound",
+				"properties": {
+					"provisioningState": "Succeeded",
+					"protocol": "*",
+					"sourceAddressPrefix": "*",
+					"sourceAddressPrefixes": [],
+					"sourcePortRange": "*",
+					"destinationAddressPrefix": "Internet",
+					"destinationAddressPrefixes": [],
+					"destinationPortRange": "*",
+					"direction": "Outbound",
+					"access": "Allow",
+					"priority": 600
+				}
+			}, {
+				"name": "DenyAllOutBound",
+				"properties": {
+					"provisioningState": "Succeeded",
+					"protocol": "*",
+					"sourceAddressPrefix": "*",
+					"sourceAddressPrefixes": [],
+					"sourcePortRange": "*",
+					"destinationAddressPrefix": "*",
+					"destinationAddressPrefixes": [],
+					"destinationPortRange": "*",
+					"direction": "Outbound",
+					"access": "Deny",
+					"priority": 700
+				}
+			}],
+			"defaultSecurityRules": []
+		},
+		"dependsOn": []
+	}, {
+		"type": "Microsoft.Network/networkSecurityGroups",
+		"name": "[variables('runner_nsg_name')]",
+		"apiVersion": "2020-05-01",
+		"location": "[resourceGroup().location]",
+		"scale": null,
+		"properties": {
+			"provisioningState": "Succeeded",
+			"securityRules": [{
+				"name": "AllowVnetInBound",
+				"properties": {
+					"provisioningState": "Succeeded",
+					"protocol": "*",
+					"sourceAddressPrefix": "VirtualNetwork",
+					"sourceAddressPrefixes": [],
+					"sourcePortRange": "*",
+					"destinationAddressPrefix": "VirtualNetwork",
+					"destinationAddressPrefixes": [],
+					"destinationPortRange": "*",
+					"direction": "Inbound",
+					"access": "Allow",
+					"priority": 200
+				}
+			}, {
+				"name": "DenyAllInBound",
+				"properties": {
+					"provisioningState": "Succeeded",
+					"description": "Deny all inbound traffic",
+					"protocol": "*",
+					"sourceAddressPrefix": "*",
+					"sourceAddressPrefixes": [],
+					"sourcePortRange": "*",
+					"destinationAddressPrefix": "*",
+					"destinationAddressPrefixes": [],
+					"destinationPortRange": "*",
+					"direction": "Inbound",
+					"access": "Deny",
+					"priority": 300
+				}
+			}, {
+				"name": "AllowVnetOutBound",
+				"properties": {
+					"provisioningState": "Succeeded",
+					"protocol": "*",
+					"sourceAddressPrefix": "VirtualNetwork",
+					"sourceAddressPrefixes": [],
+					"sourcePortRange": "*",
+					"destinationAddressPrefix": "VirtualNetwork",
+					"destinationAddressPrefixes": [],
+					"destinationPortRange": "*",
+					"direction": "Outbound",
+					"access": "Allow",
+					"priority": 400
+				}
+			}, {
+				"name": "DenyAllOutBound",
+				"properties": {
+					"provisioningState": "Succeeded",
+					"protocol": "*",
+					"sourceAddressPrefix": "*",
+					"sourceAddressPrefixes": [],
+					"sourcePortRange": "*",
+					"destinationAddressPrefix": "*",
+					"destinationAddressPrefixes": [],
+					"destinationPortRange": "*",
+					"direction": "Outbound",
+					"access": "Deny",
+					"priority": 500
+				}
+			}],
+			"defaultSecurityRules": []
+		},
+		"dependsOn": []
+	}, {
+		"type": "Microsoft.Resources/deployments",
+		"name": "create_proxy_vm",
+		"apiVersion": "2020-06-01",
+		"properties": {
+			"mode": "Incremental",
+			"templateLink": {
+				"uri": "[parameters('linux_vm_creation_template_uri')]"
+			},
+			"parameters": {
+				"admin_user": {
+					"value": "[variables('username')]"
+				},
+				"extension_command": {
+					"value": "[concat('/bin/bash -c \"set -euo pipefail && curl ', parameters('proxy_config_script_uri'), ' | sudo bash -s -- ', variables('username'), ' ', reference(resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnet_name'), variables('subnet_name')), '2018-08-01').addressPrefix, '\"')]"
+				},
+				"nic_name": {
+					"value": "[concat(parameters('resource_prefix'), 'proxy-nic')]"
+				},
+				"nsg_id": {
+					"value": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('proxy_nsg_name'))]"
+				},
+				"ssh_public_key": {
+					"value": "[reference(variables('keygen_script_name')).outputs.keyinfo[0].publicKey]"
+				},
+				"vm_name": {
+					"value": "[variables('proxy_vm_name')]"
+				},
+				"vm_size": {
+					"value": "[parameters('proxy_vm_size')]"
+				},
+				"vnet_subnet_id": {
+					"value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnet_name'), variables('subnet_name'))]"
+				}
+			}
+		},
+		"dependsOn": [
+			"[variables('proxy_nsg_name')]",
+			"[variables('vnet_name')]",
+			"[variables('keygen_script_name')]"
+		]
+	}, {
+		"type": "Microsoft.Resources/deployments",
+		"name": "[concat('create_runner_vm', copyIndex(1))]",
+		"apiVersion": "2020-06-01",
+		"properties": {
+			"mode": "Incremental",
+			"templateLink": {
+				"uri": "[parameters('linux_vm_creation_template_uri')]"
+			},
+			"parameters": {
+				"admin_user": {
+					"value": "[variables('username')]"
+				},
+				"extension_command": {
+					"value": "[concat('/bin/bash -c \"set -euo pipefail && curl -x ', variables('proxy_vm_name'), ':3128 ', parameters('runner_config_script_uri'), ' | sudo bash -s -- ', variables('proxy_vm_name'), '\"')]"
+				},
+				"nic_name": {
+					"value": "[concat(variables('runner_prefix'), copyIndex(1), '-nic')]"
+				},
+				"nsg_id": {
+					"value": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('runner_nsg_name'))]"
+				},
+				"ssh_public_key": {
+					"value": "[reference(variables('keygen_script_name')).outputs.keyinfo[copyIndex(1)].publicKey]"
+				},
+				"vm_name": {
+					"value": "[concat(variables('runner_prefix'), copyIndex(1), '-vm')]"
+				},
+				"vm_size": {
+					"value": "[parameters('runner_vm_size')]"
+				},
+				"vnet_subnet_id": {
+					"value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnet_name'), variables('subnet_name'))]"
+				},
+				"ip_addr_name": {
+					"value": "[if(parameters('create_runner_public_ip'), concat(variables('runner_prefix'), copyIndex(1), '-ip'), '!')]"
+				}
+			}
+		},
+		"copy": {
+			"name": "runner_vm_copy",
+			"count": "[parameters('runner_count')]"
+		},
+		"dependsOn": [
+			"[variables('runner_nsg_name')]",
+			"[variables('vnet_name')]",
+			"[variables('keygen_script_name')]",
+			"create_proxy_vm"
+		]
+	}]
+}

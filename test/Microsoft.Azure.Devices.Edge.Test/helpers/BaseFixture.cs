@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 {
     using System;
@@ -15,17 +15,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         Profiler profiler;
         DateTime testStartTime;
 
-        protected CancellationToken TestToken
-        {
-            get
-            {
-                return this.cts.Token;
-            }
-        }
+        protected CancellationToken TestToken => this.cts.Token;
+
+        protected virtual Task BeforeTestTimerStarts() => Task.CompletedTask;
 
         [SetUp]
-        protected void BeforeEachTest()
+        protected async Task BeforeEachTestAsync()
         {
+            await this.BeforeTestTimerStarts();
             this.cts = new CancellationTokenSource(Context.Current.TestTimeout);
             this.testStartTime = DateTime.Now;
             this.profiler = Profiler.Start();
@@ -41,12 +38,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 {
                     this.cts.Dispose();
 
-                    if (TestContext.CurrentContext.Result.Outcome != ResultState.Ignored)
+                    if ((!Context.Current.ISA95Tag) && (TestContext.CurrentContext.Result.Outcome != ResultState.Ignored))
                     {
-                        using (var cts = new CancellationTokenSource(Context.Current.TeardownTimeout))
-                        {
-                            await NUnitLogs.CollectAsync(this.testStartTime, cts.Token);
-                        }
+                        using var cts = new CancellationTokenSource(Context.Current.TeardownTimeout);
+                        await NUnitLogs.CollectAsync(this.testStartTime, cts.Token);
                     }
                 },
                 "Completed test teardown");

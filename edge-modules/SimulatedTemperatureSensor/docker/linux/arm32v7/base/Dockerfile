@@ -1,5 +1,5 @@
-ARG base_tag=3.1.4-bionic-arm32v7
-FROM mcr.microsoft.com/dotnet/core/runtime:${base_tag}
+﻿ARG base_tag=3.1.18-bionic-arm32v7
+FROM mcr.microsoft.com/dotnet/runtime:${base_tag}
 
 # Add an unprivileged user account for running the module
 RUN useradd -ms /bin/bash moduleuser

@@ -1,0 +1,370 @@
+# ==============================================================================
+# Hostname
+# ==============================================================================
+#
+# Uncomment the next line to override the default hostname of this device.
+#
+# hostname = "my-device"
+
+
+# ==============================================================================
+# Parent hostname
+# ==============================================================================
+#
+# If this is a Nested Edge device, uncomment the next line to set the
+# parent hostname of this device.
+#
+# parent_hostname = "my-parent-device"
+
+
+# ==============================================================================
+# Trust bundle cert
+# ==============================================================================
+#
+# If you have any trusted CA certificates required for Edge module communication,
+# uncomment the next line and set the value to a file URI for
+# the path of the file.
+#
+# trust_bundle_cert = "file:///var/secrets/trust-bundle.pem"
+
+
+# ==============================================================================
+# Manifest Trust bundle cert
+# ==============================================================================
+#
+# If you have want to enable Manifest Signing, Manifest Trust Bundle Root CA 
+# certificate is required.
+# uncomment the next line and set the value to a file URI for
+# the path of the file.
+#
+# manifest_trust_bundle_cert = "file:///var/secrets/manifest-trust-bundle.pem"
+
+
+# ==============================================================================
+# Elevated Docker Permissions Flag
+# ==============================================================================
+#
+# Some docker capabilities capabilities can be used to gain root access. 
+# By default, the --privileged flag and all capabilities listed in the CapAdd
+# field of the docker HostConfig are allowed.
+#
+# In a future release, this will be disabled by default and the flag will be required 
+# run as privileged.
+#
+# If no modules require privileged or additional capabilities, uncomment the following
+# line to improve the security of the device.
+#
+# allow_elevated_docker_permissions = false
+
+# ==============================================================================
+# Provisioning
+# ==============================================================================
+
+
+# Optional auto reprovisioning mode
+# ------------------------------------
+
+# This property specifies the conditions under which the device attempts to
+# automatically reprovision with the cloud. It is ignored if the device has
+# been provisioned manually. One of the following values can be set:
+# Dynamic:          Reprovision when the device detects that it may have
+#                   been moved from one IoT Hub to another. This is the default.
+# AlwaysOnStartup:  Reprovision when the device is rebooted or a crash causes
+#                   the daemon(s) to restart.
+# OnErrorOnly:      Never trigger device reprovisioning automatically.
+#                   Device reprovisioning only occurs as fallback, if the device
+#                   is unable to connect to IoT Hub during identity provisioning
+#                   due to connectivity errors. This fallback behavior is implicit
+#                   in Dynamic and AlwaysOnStartup modes as well.
+#
+# auto_reprovisioning_mode = Dynamic
+#
+
+
+# Provisioning configuration
+# --------------------------
+
+# Uncomment one block and replace the stub values with yours.
+
+## Manual provisioning with connection string
+#
+# [provisioning]
+# source = "manual"
+# connection_string = "HostName=example.azure-devices.net;DeviceId=my-device;SharedAccessKey=YXppb3QtaWRlbnRpdHktc2VydmljZXxhemlvdC1pZGU="
+
+
+## Manual provisioning with symmetric key
+# [provisioning]
+# source = "manual"
+# iothub_hostname = "example.azure-devices.net"
+# device_id = "my-device"
+#
+# [provisioning.authentication]
+# method = "sas"
+#
+# device_id_pk = { value = "YXppb3QtaWRlbnRpdHktc2VydmljZXxhemlvdC1pZGU=" }     # inline key (base64), or...
+# device_id_pk = { uri = "file:///var/secrets/device-id.key" }                  # file URI, or...
+# device_id_pk = { uri = "pkcs11:slot-id=0;object=device%20id?pin-value=1234" } # PKCS#11 URI
+
+
+## Manual provisioning with X.509 certificate
+# [provisioning]
+# source = "manual"
+# iothub_hostname = "example.azure-devices.net"
+# device_id = "my-device"
+#
+# [provisioning.authentication]
+# method = "x509"
+#
+# identity_cert = "file:///var/secrets/device-id.pem"                # file URI, or...
+# identity_cert = { method = "est", common_name = "my-device" }      # dynamically issued via EST, or...
+# identity_cert = { method = "local_ca", common_name = "my-device" } # dynamically issued by a local CA
+#
+# identity_pk = "file:///var/secrets/device-id.key.pem"              # file URI, or...
+# identity_pk = "pkcs11:slot-id=0;object=device%20id?pin-value=1234" # PKCS#11 URI
+
+
+## DPS provisioning with symmetric key
+# [provisioning]
+# source = "dps"
+# global_endpoint = "https://global.azure-devices-provisioning.net"
+# id_scope = "0ab1234C5D6"
+#
+# [provisioning.attestation]
+# method = "symmetric_key"
+# registration_id = "my-device"
+#
+# symmetric_key = { value = "YXppb3QtaWRlbnRpdHktc2VydmljZXxhemlvdC1pZGVudGl0eS1zZXJ2aWNlfGF6aW90LWlkZW50aXR5LXNlcg==" } # inline key (base64), or...
+# symmetric_key = { uri = "file:///var/secrets/device-id.key" }                                                          # file URI, or...
+# symmetric_key = { uri = "pkcs11:slot-id=0;object=device%20id?pin-value=1234" }                                         # PKCS#11 URI
+
+
+## DPS provisioning with X.509 certificate
+# [provisioning]
+# source = "dps"
+# global_endpoint = "https://global.azure-devices-provisioning.net"
+# id_scope = "0ab1234C5D6"
+#
+# [provisioning.attestation]
+# method = "x509"
+# registration_id = "my-device"
+#
+# identity_cert = "file:///var/secrets/device-id.pem"                # file URI, or...
+# identity_cert = { method = "est", common_name = "my-device" }      # dynamically issued via EST, or...
+# identity_cert = { method = "local_ca", common_name = "my-device" } # dynamically issued by a local CA
+#
+# identity_pk = "file:///var/secrets/device-id.key.pem"              # file URI, or...
+# identity_pk = "pkcs11:slot-id=0;object=device%20id?pin-value=1234" # PKCS#11 URI
+
+
+## DPS provisioning with TPM
+# [provisioning]
+# source = "dps"
+# global_endpoint = "https://global.azure-devices-provisioning.net"
+# id_scope = "0ab1234C5D6"
+#
+# [provisioning.attestation]
+# method = "tpm"
+# registration_id = "my-device"
+
+
+# ==============================================================================
+# Cert issuance
+# ==============================================================================
+#
+# If you configured any dynamically issued certs above, uncomment the block
+# corresponding to the issuance method and replace the stub values with yours.
+
+
+# Cert issuance via EST
+# ---------------------
+
+# [cert_issuance.est]
+# trusted_certs = [
+#     "file:///var/secrets/est-id-ca.pem",
+# ]
+#
+# [cert_issuance.est.auth]
+# username = "estuser"
+# password = "estpwd"
+#
+# # EST ID cert already on device, or...
+# identity_cert = "file:///var/secrets/est-id.pem"
+#
+# identity_pk = "file:///var/secrets/est-id.key.pem"            # file URI, or...
+# identity_pk = "pkcs11:slot-id=0;object=est-id?pin-value=1234" # PKCS#11 URI
+#
+# # EST ID cert requested via EST bootstrap ID cert
+# bootstrap_identity_cert = "file:///var/secrets/est-bootstrap-id.pem"
+#
+# bootstrap_identity_pk = "file:///var/secrets/est-bootstrap-id.key.pem"            # file URI, or...
+# bootstrap_identity_pk = "pkcs11:slot-id=0;object=est-bootstrap-id?pin-value=1234" # PKCS#11 URI
+#
+# [cert_issuance.est.urls]
+# default = "https://example.org/.well-known/est"
+
+
+# Cert issuance via local CA
+# --------------------------
+
+# [cert_issuance.local_ca]
+# cert = "file:///var/secrets/local-ca.pem"
+#
+# pk = "file:///var/secrets/local-ca.key.pem"            # file URI, or...
+# pk = "pkcs11:slot-id=0;object=local-ca?pin-value=1234" # PKCS#11 URI
+
+
+# ==============================================================================
+# PKCS#11
+# ==============================================================================
+#
+# If you used any PKCS#11 URIs above, uncomment the next block and
+# replace the stub values with your PKCS#11 configuration.
+
+# [aziot_keys]
+# pkcs11_lib_path = "/usr/lib/libmypkcs11.so"
+# pkcs11_base_slot = "pkcs11:slot-id=0?pin-value=1234"
+
+
+# ==============================================================================
+# Default Edge Agent
+# ==============================================================================
+#
+# If you need to override the parameters of the default Edge Agent module,
+# uncomment this section and replace the values in this section with your own.
+#
+# Note that the agent.config.createOptions field is specified as
+# a TOML inline table. This format looks similar to JSON but it is not JSON.
+# See https://toml.io/en/v1.0.0#inline-table for documentation.
+
+# [agent]
+# name = "edgeAgent"
+# type = "docker"
+# imagePullPolicy = "..."   # "on-create" or "never". Defaults to "on-create"
+
+# [agent.config]
+# image = "mcr.microsoft.com/azureiotedge-agent:1.2"
+# createOptions = { HostConfig = { Binds = ["/iotedge/storage:/iotedge/storage"] } }
+
+# [agent.config.auth]
+# serveraddress = "example.azurecr.io"
+# username = "username"
+# password = "password"
+
+# [agent.env]
+# "RuntimeLogLevel" = "debug"
+# "UpstreamProtocol" = "AmqpWs"
+# "storageFolder" = "/iotedge/storage"
+
+
+# ==============================================================================
+# Daemon management and workload API endpoints
+# ==============================================================================
+#
+# If you need to override the management and workload API endpoints,
+# uncomment this section and replace the values in this section with your own.
+
+# [connect]
+# workload_uri = "@connect_workload_uri@"
+# management_uri = "@connect_management_uri@"
+#
+# [listen]
+# workload_uri = "@listen_workload_uri@"
+# management_uri = "@listen_management_uri@"
+
+
+# ==============================================================================
+# Edge Agent watchdog
+# ==============================================================================
+#
+# If you need to override the default Edge Agent watchdog settings,
+# uncomment this section and replace the values with your own.
+#
+# [watchdog]
+# max_retries = "infinite"   # the string "infinite" or a positive integer. Defaults to "infinite"
+
+
+# ==============================================================================
+# Edge CA certificate
+# ==============================================================================
+#
+# If you have your own Edge CA certificate that you want all module certificates
+# to be issued by, uncomment one of the sections below and replace the values with
+# your own.
+
+# Edge CA certificate loaded from a file:
+# ---------------------
+
+# [edge_ca]
+# cert = "file:///var/secrets/edge-ca.pem"                # file URI
+#
+# pk = "file:///var/secrets/edge-ca.key.pem"              # file URI, or...
+# pk = "pkcs11:slot-id=0;object=edge%20ca?pin-value=1234" # PKCS#11 URI
+
+# Edge CA certificate issued over EST:
+# ---------------------
+
+# [edge_ca]
+# method = "est"
+#
+# # Optional EST configuration for issuing the Edge CA certificate below.
+# # If not set, the defaults in [cert_issuance.est] will be used.
+#
+# common_name = "iotedged workload ca"
+# expiry_days = 90
+# url = "https://example.org/.well-known/est"
+#
+# username = "estuser"
+# password = "estpwd"
+#
+# # EST ID cert already on device, or...
+# identity_cert = "file:///var/secrets/est-id.pem"
+#
+# identity_pk = "file:///var/secrets/est-id.key.pem"            # file URI, or...
+# identity_pk = "pkcs11:slot-id=0;object=est-id?pin-value=1234" # PKCS#11 URI
+#
+# # EST ID cert requested via EST bootstrap ID cert
+# bootstrap_identity_cert = "file:///var/secrets/est-bootstrap-id.pem"
+#
+# bootstrap_identity_pk = "file:///var/secrets/est-bootstrap-id.key.pem"            # file URI, or...
+# bootstrap_identity_pk = "pkcs11:slot-id=0;object=est-bootstrap-id?pin-value=1234" # PKCS#11 URI
+
+# Edge CA certificate issued from a local CA certificate:
+# Requires [cert_issuance.local_ca] to be set.
+# ---------------------
+
+# [edge_ca]
+# method = "local_ca"
+#
+# # Optional configuration below.
+#
+# common_name = "iotedged workload ca"
+# expiry_days = 90
+
+# ==============================================================================
+# Edge CA certificate (Quickstart)
+# ==============================================================================
+#
+# If you do not have your own Edge CA certificate that you want all
+# module certificates to be issued by, you can uncomment this section and
+# set the number of days for the lifetime of the auto-generated
+# self-signed Edge CA certificate. Defaults to 90 days.
+#
+# SECURITY NOTE: this setting is NOT recommended for production usage. Please
+# configure your own Edge CA certificate in the Edge CA certificate section
+# above instead.
+#
+# [edge_ca]
+# auto_generated_edge_ca_expiry_days = 90
+
+
+# ==============================================================================
+# Moby runtime
+# ==============================================================================
+#
+# If you need to override the default Moby runtime configuration,
+# uncomment this section and replace the values in this section with your own.
+
+# [moby_runtime]
+# uri = "unix:///var/run/docker.sock"
+# network = "azure-iot-edge"

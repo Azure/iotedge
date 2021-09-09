@@ -1,22 +1,91 @@
+use std::collections::{HashMap, VecDeque};
+
+use chrono::{DateTime, Utc};
 use tokio::sync::mpsc::{self, Receiver, Sender};
 use tracing::{info, warn};
 
-use crate::persist::Persist;
-use crate::{BrokerState, Error};
+use mqtt3::proto::{Publication, Publish};
 
+use crate::{persist::Persist, ClientInfo, Error, Subscription};
+
+/// Used for persisting/loading broker state.
+#[derive(Clone, Default, Debug, PartialEq)]
+pub struct BrokerSnapshot {
+    retained: HashMap<String, Publication>,
+    sessions: Vec<SessionSnapshot>,
+}
+
+impl BrokerSnapshot {
+    pub fn new(retained: HashMap<String, Publication>, sessions: Vec<SessionSnapshot>) -> Self {
+        Self { retained, sessions }
+    }
+
+    pub fn into_parts(self) -> (HashMap<String, Publication>, Vec<SessionSnapshot>) {
+        (self.retained, self.sessions)
+    }
+}
+
+/// Used for persisting/loading session state.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SessionSnapshot {
+    client_info: ClientInfo,
+    subscriptions: HashMap<String, Subscription>,
+    waiting_to_be_sent: VecDeque<Publication>,
+    waiting_to_be_acked: VecDeque<Publish>,
+    last_active: DateTime<Utc>,
+}
+
+impl SessionSnapshot {
+    pub fn from_parts(
+        client_info: ClientInfo,
+        subscriptions: HashMap<String, Subscription>,
+        waiting_to_be_sent: VecDeque<Publication>,
+        waiting_to_be_acked: VecDeque<Publish>,
+        last_active: DateTime<Utc>,
+    ) -> Self {
+        Self {
+            client_info,
+            subscriptions,
+            waiting_to_be_sent,
+            waiting_to_be_acked,
+            last_active,
+        }
+    }
+
+    #[allow(clippy::type_complexity)]
+    pub fn into_parts(
+        self,
+    ) -> (
+        ClientInfo,
+        HashMap<String, Subscription>,
+        VecDeque<Publication>,
+        VecDeque<Publish>,
+        DateTime<Utc>,
+    ) {
+        (
+            self.client_info,
+            self.subscriptions,
+            self.waiting_to_be_sent,
+            self.waiting_to_be_acked,
+            self.last_active,
+        )
+    }
+}
+
+#[derive(Debug)]
 enum Event {
-    State(BrokerState),
+    State(BrokerSnapshot),
     Shutdown,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct StateSnapshotHandle(Sender<Event>);
 
 impl StateSnapshotHandle {
-    pub fn try_send(&mut self, state: BrokerState) -> Result<(), Error> {
+    pub fn try_send(&mut self, state: BrokerSnapshot) -> Result<(), Error> {
         self.0
             .try_send(Event::State(state))
-            .map_err(|_| Error::SendSnapshotMessage)?;
+            .map_err(|e| Error::SendSnapshotMessage(e.into()))?;
         Ok(())
     }
 }
@@ -29,7 +98,7 @@ impl ShutdownHandle {
         self.0
             .send(Event::Shutdown)
             .await
-            .map_err(|_| Error::SendSnapshotMessage)?;
+            .map_err(|e| Error::SendSnapshotMessage(e.into()))?;
         Ok(())
     }
 }
@@ -68,7 +137,7 @@ where
             match event {
                 Event::State(state) => {
                     if let Err(e) = self.persistor.store(state).await {
-                        warn!(message = "an error occurred persisting state snapshot.", error=%e);
+                        warn!(message = "an error occurred persisting state snapshot.", error = %e);
                     }
                 }
                 Event::Shutdown => {

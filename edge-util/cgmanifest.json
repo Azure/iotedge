@@ -1,0 +1,13 @@
+{
+    "Registrations": [ 
+        {
+            "Component": { 
+                "Type": "git", 
+                "git": { 
+                    "RepositoryUrl": "https://github.com/cyberphone/json-canonicalization/tree/master/dotnet/es6numberserializer", "CommitHash": "ed051aa347c5f308011d16b07c7da23045fea919" 
+                }
+            },
+            "DevelopmentDependency": true
+        }
+    ]
+}

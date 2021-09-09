@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                     IStoreProvider storeProvider = await c.Resolve<Task<IStoreProvider>>();
                     ISequentialStore<IEnumerable<Metric>> dataStore = await storeProvider.GetSequentialStore<IEnumerable<Metric>>("Metrics");
 
-                    return new MetricsStorage(dataStore) as IMetricsStorage;
+                    return new MetricsStorage(dataStore, this.diagnosticConfig.MaxUploadAge) as IMetricsStorage;
                 })
                 .As<Task<IMetricsStorage>>()
                 .SingleInstance();

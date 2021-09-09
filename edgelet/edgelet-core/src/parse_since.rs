@@ -2,6 +2,7 @@ use std::convert::TryInto;
 
 use chrono::{DateTime, Duration, Local};
 use failure::ResultExt;
+use humantime::parse_duration;
 
 use crate::error::{Error, ErrorKind};
 
@@ -11,7 +12,7 @@ pub fn parse_since(since: &str) -> Result<i32, Error> {
         Ok(temp.context(ErrorKind::ParseSince)?)
     } else if let Ok(epoch) = since.parse() {
         Ok(epoch)
-    } else if let Ok(duration) = parse_duration::parse(since) {
+    } else if let Ok(duration) = parse_duration(since) {
         let nano: Result<i64, _> = duration.as_nanos().try_into();
         let nano = nano.context(ErrorKind::ParseSince)?;
 
@@ -100,10 +101,10 @@ mod tests {
 
     #[test]
     fn parse_default() {
-        let _ = parse_since("asdfasdf").unwrap_err();
+        parse_since("asdfasdf").unwrap_err();
     }
 
     fn assert_near(a: i32, b: i32, tol: i32) {
-        assert!((a - b).abs() < tol)
+        assert!((a - b).abs() < tol);
     }
 }

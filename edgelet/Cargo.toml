@@ -1,34 +1,20 @@
 [workspace]
 members = [
+    "aziot-edged",
     "docker-rs",
-    "dps",
     "edgelet-core",
     "edgelet-docker",
-    "edgelet-hsm",
     "edgelet-http",
-    "edgelet-http-external-provisioning",
     "edgelet-http-mgmt",
     "edgelet-http-workload",
-    "edgelet-iothub",
-    "edgelet-kube",
-    "edgelet-test-utils",
+    "edgelet-settings",
     "edgelet-utils",
-    "external-provisioning",
-    "kube-client",
-    "hsm-rs",
-    "hsm-sys",
-    "hyper-named-pipe",
     "iotedge",
-    "iotedged",
-    "iotedged-eventlog-messages",
-    "iotedge-diagnostics",
-    "iotedge-proxy",
-    "iothubservice",
-    "management",
-    "mini-sntp",
-    "provisioning",
-    "signal-future",
-    "systemd",
-    "tokio-named-pipe",
-    "win-logger",
+    "support-bundle",
 ]
+
+[profile.dev]
+panic = 'abort'
+
+[profile.release]
+panic = 'abort'

@@ -1,5 +1,0 @@
-services:
-
-api:
-  entrypoint: "http://example:443"
-                                  

@@ -5,8 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     {
         string IotHubHostname { get; }
 
-        string GatewayHostname { get; }
-
         string DeviceId { get; }
 
         string ModuleId { get; }

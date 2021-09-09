@@ -1,15 +1,7 @@
-#![allow(clippy::let_unit_value)]
-
 mod common;
 
-#[test]
-fn server_generated_id_can_connect_and_idle() {
-    let mut runtime = tokio::runtime::Builder::new()
-        .basic_scheduler()
-        .enable_time()
-        .build()
-        .expect("couldn't initialize tokio runtime");
-
+#[tokio::test]
+async fn server_generated_id_can_connect_and_idle() {
     let (io_source, done) = common::IoSource::new(vec![
         vec![
             common::TestConnectionStep::Receives(mqtt3::proto::Packet::Connect(
@@ -85,31 +77,25 @@ fn server_generated_id_can_connect_and_idle() {
     );
 
     common::verify_client_events(
-        &mut runtime,
         client,
         vec![
             mqtt3::Event::NewConnection {
                 reset_session: true,
             },
+            mqtt3::Event::Disconnected(mqtt3::ConnectionError::ServerClosedConnection),
             mqtt3::Event::NewConnection {
                 reset_session: true,
             },
+            mqtt3::Event::Disconnected(mqtt3::ConnectionError::ServerClosedConnection),
         ],
     );
 
-    let () = runtime
-        .block_on(done)
+    done.await
         .expect("connection broken while there were still steps remaining on the server");
 }
 
-#[test]
-fn client_id_can_connect_and_idle() {
-    let mut runtime = tokio::runtime::Builder::new()
-        .basic_scheduler()
-        .enable_time()
-        .build()
-        .expect("couldn't initialize tokio runtime");
-
+#[tokio::test]
+async fn client_id_can_connect_and_idle() {
     let (io_source, done) = common::IoSource::new(vec![
         vec![
             common::TestConnectionStep::Receives(mqtt3::proto::Packet::Connect(
@@ -225,22 +211,23 @@ fn client_id_can_connect_and_idle() {
     );
 
     common::verify_client_events(
-        &mut runtime,
         client,
         vec![
             mqtt3::Event::NewConnection {
                 reset_session: true,
             },
+            mqtt3::Event::Disconnected(mqtt3::ConnectionError::ServerClosedConnection),
             mqtt3::Event::NewConnection {
                 reset_session: true,
             },
+            mqtt3::Event::Disconnected(mqtt3::ConnectionError::ServerClosedConnection),
             mqtt3::Event::NewConnection {
                 reset_session: false,
             },
+            mqtt3::Event::Disconnected(mqtt3::ConnectionError::ServerClosedConnection),
         ],
     );
 
-    let () = runtime
-        .block_on(done)
+    done.await
         .expect("connection broken while there were still steps remaining on the server");
 }

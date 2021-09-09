@@ -1,9 +1,9 @@
 use fail::FailScenario;
 
-use mqtt_broker::{BrokerState, FilePersistor, Persist, PersistError, VersionedFileFormat};
-use proptest::collection::vec;
-use proptest::prelude::*;
+use proptest::{collection::vec, prelude::*};
 use tempfile::TempDir;
+
+use mqtt_broker::{BrokerSnapshot, FilePersistor, Persist, PersistError, VersionedFileFormat};
 
 const FAILPOINTS: &[&str] = &[
     "consolidatestate.load.deserialize_from",
@@ -25,7 +25,7 @@ const FAILPOINTS: &[&str] = &[
 #[derive(Clone, Debug)]
 enum Op {
     Load,
-    Store(BrokerState),
+    Store(BrokerSnapshot),
     AddFailpoint(&'static str),
     RemoveFailpoint(&'static str),
 }
@@ -33,7 +33,7 @@ enum Op {
 fn arb_op() -> impl Strategy<Value = Op> {
     prop_oneof![
         Just(Op::Load),
-        Just(Op::Store(BrokerState::default())),
+        Just(Op::Store(BrokerSnapshot::default())),
         proptest::sample::select(FAILPOINTS).prop_map(|f| Op::AddFailpoint(f)),
         proptest::sample::select(FAILPOINTS).prop_map(|f| Op::RemoveFailpoint(f)),
     ]
@@ -53,7 +53,7 @@ async fn test_persistor(count: usize, ops: Vec<Op>) {
 
     // Make sure we've stored at least one state
     tear_down_failpoints();
-    persistor.store(BrokerState::default()).await.unwrap();
+    persistor.store(BrokerSnapshot::default()).await.unwrap();
 
     // process the operations
     for op in ops {
@@ -78,8 +78,7 @@ async fn test_persistor(count: usize, ops: Vec<Op>) {
 #[test]
 fn test_failpoints_smoketest() {
     let scenario = FailScenario::setup();
-    tokio::runtime::Builder::new()
-        .basic_scheduler()
+    tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
         .unwrap()
@@ -102,8 +101,7 @@ proptest! {
     #[test]
     fn test_failpoints(count in 0usize..10, ops in vec(arb_op(), 0..50)) {
         let scenario = FailScenario::setup();
-        tokio::runtime::Builder::new()
-            .basic_scheduler()
+        tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
             .unwrap()

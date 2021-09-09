@@ -14,17 +14,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public class OsPlatform
     {
-        public static readonly IOsPlatform Current = IsWindows() ? new Windows.OsPlatform() as IOsPlatform : new Linux.OsPlatform();
-
-        public static bool IsWindows() => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+        public static readonly IOsPlatform Current = new Linux.OsPlatform();
 
         public static bool Is64Bit() => RuntimeInformation.OSArchitecture == Architecture.X64 || RuntimeInformation.OSArchitecture == Architecture.Arm64;
 
-        protected CaCertificates GetEdgeQuickstartCertificates(string basePath) =>
+        public static bool IsArm() => RuntimeInformation.OSArchitecture == Architecture.Arm || RuntimeInformation.OSArchitecture == Architecture.Arm64;
+
+        public CaCertificates GetEdgeQuickstartCertificates(string deviceId) =>
             new CaCertificates(
-                    FixedPaths.QuickStartCaCert.Cert(basePath),
-                    FixedPaths.QuickStartCaCert.Key(basePath),
-                    FixedPaths.QuickStartCaCert.TrustCert(basePath));
+                    FixedPaths.QuickStartCaCert.Cert(deviceId),
+                    FixedPaths.QuickStartCaCert.Key(deviceId),
+                    FixedPaths.QuickStartCaCert.TrustCert(deviceId));
 
         protected async Task InstallRootCertificateAsync(
             string basePath,

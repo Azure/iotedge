@@ -1,16 +1,17 @@
-use std::collections::HashMap;
-use std::iter::FromIterator;
+use std::{collections::HashMap, net::SocketAddr};
 
 use bytes::Bytes;
+use chrono::Utc;
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
 };
 use tempfile::TempDir;
+use tokio::runtime::Runtime;
 
-use mqtt3::proto::{Publication, QoS};
+use mqtt3::proto::{PacketIdentifier, PacketIdentifierDupQoS, Publication, Publish, QoS};
 use mqtt_broker::{
-    BrokerState, ClientId, ConsolidatedStateFormat, FileFormat, FilePersistor, Persist,
-    PersistError, SessionState,
+    AuthId, BrokerSnapshot, ClientId, ClientInfo, FileFormat, FilePersistor, Persist, PersistError,
+    SessionSnapshot, VersionedFileFormat,
 };
 
 fn test_write<F>(
@@ -41,10 +42,13 @@ fn test_write<F>(
                 let tmp_dir = TempDir::new().unwrap();
                 let path = tmp_dir.path().to_owned();
                 let persistor = FilePersistor::new(path, format.clone());
+                let runtime = Runtime::new().unwrap();
 
-                (state, persistor, tmp_dir)
+                (state, persistor, runtime, tmp_dir)
             },
-            |(state, mut persistor, _tmp_dir)| persistor.store(state).expect("store"),
+            |(state, mut persistor, mut runtime, _tmp_dir)| {
+                runtime.block_on(persistor.store(state)).expect("store")
+            },
             BatchSize::SmallInput,
         );
     });
@@ -78,11 +82,15 @@ fn test_read<F>(
                 let tmp_dir = TempDir::new().unwrap();
                 let path = tmp_dir.path().to_owned();
                 let mut persistor = FilePersistor::new(path, format.clone());
-                persistor.store(state).expect("store");
 
-                (persistor, tmp_dir)
+                let mut runtime = Runtime::new().unwrap();
+                runtime.block_on(persistor.store(state)).expect("store");
+
+                (persistor, runtime, tmp_dir)
             },
-            |(mut persistor, _tmp_dir)| persistor.load().expect("load"),
+            |(mut persistor, mut runtime, _tmp_dir)| {
+                runtime.block_on(persistor.load()).expect("load")
+            },
             BatchSize::SmallInput,
         );
     });
@@ -93,37 +101,53 @@ fn make_fake_state(
     num_unique_messages: u32,
     num_shared_messages: u32,
     num_retained: u32,
-) -> BrokerState {
-    let retained = HashMap::from_iter((0..num_retained).map(|i| {
-        (
-            format!("Retained {}", i),
-            make_fake_publish(format!("Retained {}", i)),
-        )
-    }));
+) -> BrokerSnapshot {
+    let retained = (0..num_retained)
+        .map(|i| {
+            (
+                format!("Retained {}", i),
+                make_fake_publication(format!("Retained {}", i)),
+            )
+        })
+        .collect();
 
     let shared_messages: Vec<Publication> = (0..num_shared_messages)
-        .map(|_| make_fake_publish("Shared Topic".to_owned()))
+        .map(|_| make_fake_publication("Shared Topic".to_owned()))
         .collect();
 
     let sessions = (0..num_clients)
         .map(|i| {
             let waiting_to_be_sent = (0..num_unique_messages)
-                .map(|_| make_fake_publish(format!("Topic {}", i)))
+                .map(|_| make_fake_publication(format!("Topic {}", i)))
                 .chain(shared_messages.clone())
                 .collect();
 
-            SessionState::from_parts(
-                ClientId::from(format!("Session {}", i)),
+            let waiting_to_be_acked = (0..num_unique_messages)
+                .map(|i| make_fake_publish(i + 1, format!("Topic {}", i)))
+                .collect();
+
+            let id = format!("Session {}", i);
+            let client_id = ClientId::from(&id);
+            let auth_id = AuthId::from_identity(id);
+
+            SessionSnapshot::from_parts(
+                ClientInfo::new(client_id, peer_addr(), auth_id),
                 HashMap::new(),
                 waiting_to_be_sent,
+                waiting_to_be_acked,
+                Utc::now(),
             )
         })
         .collect();
 
-    BrokerState::new(retained, sessions)
+    BrokerSnapshot::new(retained, sessions)
 }
 
-fn make_fake_publish(topic_name: String) -> Publication {
+fn peer_addr() -> SocketAddr {
+    "127.0.0.1:12345".parse().unwrap()
+}
+
+fn make_fake_publication(topic_name: String) -> Publication {
     Publication {
         topic_name,
         retain: false,
@@ -132,8 +156,20 @@ fn make_fake_publish(topic_name: String) -> Publication {
     }
 }
 
+fn make_fake_publish(id: u32, topic_name: String) -> Publish {
+    Publish {
+        topic_name,
+        retain: false,
+        payload: make_random_payload(10),
+        packet_identifier_dup_qos: PacketIdentifierDupQoS::AtLeastOnce(
+            PacketIdentifier::new(id as u16).unwrap(),
+            false,
+        ),
+    }
+}
+
 fn make_random_payload(size: u32) -> Bytes {
-    Bytes::from_iter((0..size).map(|_| rand::random::<u8>()))
+    (0..size).map(|_| rand::random::<u8>()).collect()
 }
 
 fn write_state(c: &mut Criterion) {
@@ -145,7 +181,7 @@ fn write_state(c: &mut Criterion) {
             unique,
             shared,
             retained,
-            ConsolidatedStateFormat::default(),
+            VersionedFileFormat::default(),
         );
     }
     group.finish();
@@ -160,7 +196,7 @@ fn read_state(c: &mut Criterion) {
             unique,
             shared,
             retained,
-            ConsolidatedStateFormat::default(),
+            VersionedFileFormat::default(),
         );
     }
     group.finish();

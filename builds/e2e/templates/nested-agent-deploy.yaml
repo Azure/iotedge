@@ -1,0 +1,130 @@
+parameters:
+- name: skipInstall
+  type: boolean
+  default: false
+
+steps:  
+  - checkout: self
+    clean: true
+    fetchDepth: 100
+    submodules: recursive
+  - pwsh: |
+      $imageBuildId = $(resources.pipeline.images.runID)
+      $packageBuildId = $(resources.pipeline.packages.runID)
+
+      if ('$(az.pipeline.images.buildId)')
+      {
+        Write-Output '>> User supplied az.pipeline.images.buildId=$(az.pipeline.images.buildId)'
+        $imageBuildId = '$(az.pipeline.images.buildId)'
+      }
+
+      if ('$(az.pipeline.packages.buildId)')
+      {
+        Write-Output '>> User supplied az.pipeline.packages.buildId=$(az.pipeline.packages.buildId)'
+        $packageBuildId = '$(az.pipeline.packages.buildId)'
+      }
+
+      Write-Output "##vso[task.setvariable variable=imageBuildId]$imageBuildId"
+      Write-Output "##vso[task.setvariable variable=packageBuildId]$packageBuildId"
+
+      Write-Output ">> Package Build ID=$packageBuildId"
+      Write-Output ">> Image Build ID=$imageBuildId"
+    displayName: Override artifacts with user-supplied args   
+    condition: or(eq(variables['run.flag'], ''), eq(variables['run.flag'], 1))
+
+  - task: DownloadBuildArtifacts@0
+    displayName: 'Download Images Artifacts'
+    condition: or(eq(variables['run.flag'], ''), eq(variables['run.flag'], 1))
+    inputs:
+      buildType: specific
+      project: $(resources.pipeline.images.projectID)
+      pipeline: $(resources.pipeline.images.pipelineName)
+      buildVersionToDownload: specific
+      buildId: $(imageBuildId)
+      downloadPath: '$(Build.StagingDirectory)'
+      artifactName: $(az.pipeline.images.artifacts)
+      allowPartiallySucceededBuilds: true
+      ${{ if not(parameters.skipInstall) }}:
+        itemPattern: $(az.pipeline.images.artifacts)/artifactInfo.txt 
+      ${{ if parameters.skipInstall }}:
+        itemPattern: |
+         $(az.pipeline.images.artifacts)/$(quickstart.package.name)
+         $(az.pipeline.images.artifacts)/e2e_deployment_files/*
+         $(az.pipeline.images.artifacts)/scripts/linux/trcE2ETest.sh
+         $(az.pipeline.images.artifacts)/artifactInfo.txt
+         $(az.pipeline.images.artifacts)/scripts/local/test/DownloadIdentityService.ps1
+
+  - task: DownloadBuildArtifacts@0
+    displayName: 'Download Edgelet Artifacts'
+    condition: or(eq(variables['run.flag'], ''), eq(variables['run.flag'], 1))
+    inputs:
+      buildType: specific
+      project: $(resources.pipeline.packages.projectID)
+      pipeline: $(resources.pipeline.packages.pipelineName)
+      buildVersionToDownload: specific
+      buildId: $(packageBuildId)
+      downloadPath: '$(Build.StagingDirectory)'
+      allowPartiallySucceededBuilds: true
+      artifactName: $(artifactName)
+
+  - task: PowerShell@2
+    displayName: 'Download aziot-identity-service'
+    condition: or(eq(variables['run.flag'], ''), eq(variables['run.flag'], 1))
+    inputs:
+      filePath: $(Build.SourcesDirectory)/scripts/local/test/DownloadIdentityService.ps1
+      workingDirectory: $(Build.SourcesDirectory)
+    env:
+      GITHUB_TOKEN: $(GitHubAccessToken)
+      ARTIFACT_NAME: $(identityServiceArtifactName)
+      PACKAGE_FILTER: $(identityServicePackageFilter)
+      DOWNLOAD_PATH: $(Build.StagingDirectory) 
+      IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
+
+  - ${{ if not(parameters.skipInstall) }}:
+    - task: Bash@3     
+      displayName: 'Install artifacts'
+      name: InstallArtifacts
+      inputs:
+        targetType: inline
+        script: |
+          echo 'Stop IoT Edge services'
+          sudo systemctl stop aziot-edged.workload.socket aziot-edged.mgmt.socket || true
+          sudo systemctl stop iotedge.socket iotedge.mgmt.socket || true
+          sudo systemctl kill iotedge || true
+          sudo systemctl stop iotedge || true        
+          sudo systemctl stop aziot-keyd aziot-certd aziot-identityd aziot-edged || true
+          sudo dpkg --purge aziot-edge aziot-identity-service
+          echo;
+
+          echo 'Remove previous run config files'
+          sudo rm -rf /var/lib/aziot/
+          sudo rm -rf /var/lib/iotedge/
+          sudo rm -rf /etc/aziot/
+          sudo rm -rf /etc/systemd/system/aziot-*.service.d/
+          echo;
+
+          echo 'Restart docker'
+          sudo systemctl restart docker # needed due to https://github.com/moby/moby/issues/23302
+          echo;
+
+          echo "Install artifacts"            
+          iotedge_library=$( find $(Build.SourcesDirectory)/aziot-identity-service -type f -iname "$(identityServicePackageFilter)")
+    
+          ls "$(Build.StagingDirectory)"
+          ls "$(Build.StagingDirectory)/$(artifactName)"
+          declare -a pkg_list="$(Build.StagingDirectory)/$(artifactName)/*.deb"
+          iotedge_package="${pkg_list[*]}"
+
+          echo "  Install library"
+          sudo apt-get --yes --allow-downgrades --allow-unauthenticated install ${iotedge_library}
+          echo;
+
+          echo "  Install edgelet"
+          sudo apt-get --yes --allow-downgrades --allow-unauthenticated install ${iotedge_package}
+          echo;
+  - ${{ if not(parameters.skipInstall) }}:
+    - template: nested-deploy-config.yaml
+      parameters:
+        deploymentFile: $(deploymentFile)
+        deviceId: $(deviceId)
+        level: $(level)

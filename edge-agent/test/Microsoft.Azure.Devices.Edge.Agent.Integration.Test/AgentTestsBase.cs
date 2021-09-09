@@ -120,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
             IImmutableDictionary<string, IModuleIdentity> immutableIdentities = identities.ToImmutableDictionary();
             var moduleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
             moduleIdentityLifecycleManager.Setup(m => m.GetModuleIdentitiesAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>())).Returns(Task.FromResult(immutableIdentities));
-            var availabilityMetric = Mock.Of<IAvailabilityMetric>();
+            var availabilityMetric = Mock.Of<IDeploymentMetrics>();
 
             var store = Mock.Of<IEntityStore<string, ModuleState>>();
             HealthRestartPlanner restartPlanner = new HealthRestartPlanner(commandFactory, store, TimeSpan.FromSeconds(10), restartManager);

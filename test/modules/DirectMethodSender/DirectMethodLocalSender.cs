@@ -37,6 +37,7 @@ namespace DirectMethodSender
             // implicit OpenAsync()
             ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
                     transportType,
+                    new ClientOptions(),
                     transientErrorDetectionStrategy,
                     retryStrategy,
                     logger);

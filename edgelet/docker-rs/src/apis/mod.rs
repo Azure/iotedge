@@ -1,72 +1,63 @@
-use hyper;
-use serde;
-use serde_json;
+use std::error::Error;
+use std::fmt;
 
 #[derive(Debug)]
-pub enum Error<T> {
-    Api(ApiError<T>),
-    Hyper(hyper::Error),
-    Serde(serde_json::Error),
+pub struct ApiError<C, E> {
+    pub context: C,
+    pub underlying: Option<E>,
 }
 
-#[derive(Debug)]
-pub struct ApiError<T> {
-    pub code: hyper::StatusCode,
-    pub content: Option<T>,
-}
-
-impl<'de, T> From<(hyper::StatusCode, &'de [u8])> for Error<T>
+impl<C, E> ApiError<C, E>
 where
-    T: serde::Deserialize<'de>,
+    C: fmt::Display + fmt::Debug,
+    E: fmt::Display + fmt::Debug,
 {
-    fn from(e: (hyper::StatusCode, &'de [u8])) -> Self {
-        if e.1.len() == 0 {
-            return Error::Api(ApiError {
-                code: e.0,
-                content: None,
-            });
-        }
-        match serde_json::from_slice::<T>(e.1) {
-            Ok(t) => Error::Api(ApiError {
-                code: e.0,
-                content: Some(t),
-            }),
-            Err(e) => Error::from(e),
+    pub fn add_context(context: C, error: E) -> Self {
+        ApiError {
+            context,
+            underlying: Some(error),
         }
     }
-}
 
-impl<'de> From<(hyper::StatusCode, serde_json::Value)> for Error<serde_json::Value> {
-    fn from(e: (hyper::StatusCode, serde_json::Value)) -> Self {
-        Error::Api(ApiError {
-            code: e.0,
-            content: Some(e.1),
-        })
+    pub fn with_context(context: C) -> impl FnOnce(E) -> Self {
+        |error: E| Self::add_context(context, error)
     }
 }
 
-impl<T> From<hyper::Error> for Error<T> {
-    fn from(e: hyper::Error) -> Self {
-        return Error::Hyper(e);
+impl<C> ApiError<C, String>
+where
+    C: fmt::Display + fmt::Debug,
+{
+    pub fn with_message(message: C) -> Self {
+        Self {
+            context: message,
+            underlying: None,
+        }
     }
 }
 
-impl<T> From<serde_json::Error> for Error<T> {
-    fn from(e: serde_json::Error) -> Self {
-        return Error::Serde(e);
+impl<C, E> fmt::Display for ApiError<C, E>
+where
+    C: fmt::Display,
+    E: fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(underlying) = &self.underlying {
+            write!(f, "Error: {}\n{:?}", self.context, underlying)
+        } else {
+            write!(f, "Error: {}", self.context)
+        }
     }
 }
 
-mod container_api;
-pub use self::container_api::{ContainerApi, ContainerApiClient};
-mod image_api;
-pub use self::image_api::{ImageApi, ImageApiClient};
-mod network_api;
-pub use self::network_api::{NetworkApi, NetworkApiClient};
-mod system_api;
-pub use self::system_api::{SystemApi, SystemApiClient};
-mod volume_api;
-pub use self::volume_api::{VolumeApi, VolumeApiClient};
+impl<C, E> Error for ApiError<C, E>
+where
+    C: fmt::Debug + fmt::Display,
+    E: fmt::Debug + fmt::Display,
+{
+}
 
-pub mod client;
-pub mod configuration;
+mod client;
+mod configuration;
+pub use self::client::{DockerApi, DockerApiClient};
+pub use self::configuration::Configuration;

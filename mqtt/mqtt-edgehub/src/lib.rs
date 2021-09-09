@@ -1,6 +1,17 @@
-mod translation;
+#![deny(rust_2018_idioms, warnings)]
+#![deny(clippy::all, clippy::pedantic)]
+#![allow(
+    clippy::cognitive_complexity,
+    clippy::large_enum_variant,
+    clippy::similar_names,
+    clippy::module_name_repetitions,
+    clippy::use_self,
+    clippy::must_use_candidate,
+    clippy::missing_errors_doc
+)]
 
-pub use crate::translation::{
-    translate_incoming_publish, translate_incoming_subscribe, translate_incoming_unsubscribe,
-    translate_outgoing_publish,
-};
+pub mod auth;
+pub mod command;
+pub mod connection;
+pub mod settings;
+pub mod topic;

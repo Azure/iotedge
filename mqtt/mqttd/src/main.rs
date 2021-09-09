@@ -1,114 +1,28 @@
-use std::{convert::TryInto, env, io};
+#![type_length_limit = "1230974"]
+use std::{env, path::PathBuf};
 
+use anyhow::Result;
 use clap::{crate_description, crate_name, crate_version, App, Arg};
-use futures_util::pin_mut;
-use mqtt_broker::*;
-use tokio::time::{Duration, Instant};
-use tracing::{info, warn, Level};
-use tracing_subscriber::{fmt, EnvFilter};
 
-use mqttd::{shutdown, snapshot, Terminate};
+use mqttd::{app, tracing};
 
 #[tokio::main]
-async fn main() -> Result<(), Terminate> {
-    let subscriber = fmt::Subscriber::builder()
-        .with_ansi(atty::is(atty::Stream::Stderr))
-        .with_max_level(Level::TRACE)
-        .with_writer(io::stderr)
-        .with_env_filter(EnvFilter::from_default_env())
-        .finish();
-    let _ = tracing::subscriber::set_global_default(subscriber);
+async fn main() -> Result<()> {
+    tracing::init();
 
-    run().await?;
-    Ok(())
-}
-
-async fn run() -> Result<(), Error> {
-    let config = create_app()
+    let config_path = create_app()
         .get_matches()
         .value_of("config")
-        .map_or(BrokerConfig::new(), BrokerConfig::from_file)
-        .map_err(InitializeBrokerError::LoadConfiguration)?;
+        .map(PathBuf::from);
 
-    // Setup the shutdown handle
-    let shutdown = shutdown::shutdown();
-    pin_mut!(shutdown);
+    let mut app = app::new();
+    if let Some(config_path) = config_path {
+        app.setup(config_path)?;
+    }
 
-    // Setup the snapshotter
-    let mut persistor = FilePersistor::new(
-        env::current_dir().expect("can't get cwd").join("state"),
-        VersionedFileFormat::default(),
-    );
-    info!("Loading state...");
-    let state = persistor.load().await?.unwrap_or_else(BrokerState::default);
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .state(state)
-        .build();
-    info!("state loaded.");
-
-    let snapshotter = Snapshotter::new(persistor);
-    let snapshot_handle = snapshotter.snapshot_handle();
-    let mut shutdown_handle = snapshotter.shutdown_handle();
-    let join_handle = tokio::spawn(snapshotter.run());
-
-    // Tick the snapshotter
-    let tick = tick_snapshot(
-        Duration::from_secs(5 * 60),
-        broker.handle(),
-        snapshot_handle.clone(),
-    );
-    tokio::spawn(tick);
-
-    // Signal the snapshotter
-    let snapshot = snapshot::snapshot(broker.handle(), snapshot_handle.clone());
-    tokio::spawn(snapshot);
-
-    // Create configured transports
-    let transports = config
-        .transports()
-        .iter()
-        .map(|transport| transport.clone().try_into())
-        .collect::<Result<Vec<_>, _>>()?;
-
-    info!("Starting server...");
-    let state = Server::from_broker(broker)
-        .serve(transports, shutdown)
-        .await?;
-
-    // Stop snapshotting
-    shutdown_handle.shutdown().await?;
-    let mut persistor = join_handle.await?;
-    info!("state snapshotter shutdown.");
-
-    info!("persisting state before exiting...");
-    persistor.store(state).await?;
-    info!("state persisted.");
-    info!("exiting... goodbye");
+    app.run().await?;
 
     Ok(())
-}
-
-async fn tick_snapshot(
-    period: Duration,
-    mut broker_handle: BrokerHandle,
-    snapshot_handle: StateSnapshotHandle,
-) {
-    info!("Persisting state every {:?}", period);
-    let start = Instant::now() + period;
-    let mut interval = tokio::time::interval_at(start, period);
-    loop {
-        interval.tick().await;
-        if let Err(e) = broker_handle
-            .send(Message::System(SystemEvent::StateSnapshot(
-                snapshot_handle.clone(),
-            )))
-            .await
-        {
-            warn!(message = "failed to tick the snapshotter", error=%e);
-        }
-    }
 }
 
 fn create_app() -> App<'static, 'static> {

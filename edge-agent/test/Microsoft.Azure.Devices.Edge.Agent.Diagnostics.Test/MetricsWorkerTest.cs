@@ -7,9 +7,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Akka.Event;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util;
+    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
@@ -39,17 +41,105 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
 
             // all values are stored
-            testData = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", this.rand.NextDouble())).ToArray()).ToArray();
+            testData = this.PrometheusMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", this.rand.NextDouble())).ToArray()).ToArray();
             await worker.Scrape(CancellationToken.None);
             Assert.Equal(1, scraper.Invocations.Count);
             Assert.Equal(1, storage.Invocations.Count);
             Assert.Equal(testData.Select(d => (d.TimeGeneratedUtc, d.Name, d.Value)), storedValues.Select(d => (d.TimeGeneratedUtc, d.Name, d.Value)));
 
-            testData = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", this.rand.NextDouble())).ToArray()).ToArray();
+            testData = this.PrometheusMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", this.rand.NextDouble())).ToArray()).ToArray();
             await worker.Scrape(CancellationToken.None);
             Assert.Equal(2, scraper.Invocations.Count);
             Assert.Equal(2, storage.Invocations.Count);
             Assert.Equal(testData.Select(d => (d.TimeGeneratedUtc, d.Name, d.Value)), storedValues.Select(d => (d.TimeGeneratedUtc, d.Name, d.Value)));
+        }
+
+        [Fact]
+        public async Task TestTagHashing()
+        {
+            /* Setup mocks */
+            Metric[] testData = new Metric[0];
+            var scraper = new Mock<IMetricsScraper>();
+            scraper.Setup(s => s.ScrapeEndpointsAsync(CancellationToken.None)).ReturnsAsync(() => testData);
+
+            var storage = new Mock<IMetricsStorage>();
+            IEnumerable<Metric> storedValues = Enumerable.Empty<Metric>();
+            storage.Setup(s => s.StoreMetricsAsync(It.IsAny<IEnumerable<Metric>>())).Callback((Action<IEnumerable<Metric>>)(data => storedValues = data)).Returns(Task.CompletedTask);
+
+            var uploader = new Mock<IMetricsPublisher>();
+
+            MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
+
+            // test id hash
+            var tags = new Dictionary<string, string>
+            {
+                { "ms_telemetry", true.ToString() },
+                { "not_hashed", "1" },
+                { "id", "my_device1/my_module_1" },
+            };
+            testData = new Metric[] { new Metric(DateTime.UtcNow, "test_metric", 0, tags) };
+            await worker.Scrape(CancellationToken.None);
+
+            Assert.Contains(new KeyValuePair<string, string>("not_hashed", "1"), storedValues.Single().Tags);
+            Assert.Contains(new KeyValuePair<string, string>("id", "device/Ut4Ug5Wg2qMCvwtG08RIi0k10DkoNMqQ7AmTUKy/pMs="), storedValues.Single().Tags);
+
+            // test id not hash edgeAgent
+            tags = new Dictionary<string, string>
+            {
+                { "ms_telemetry", true.ToString() },
+                { "not_hashed", "1" },
+                { "id", "my_device1/$edgeAgent" },
+            };
+            testData = new Metric[] { new Metric(DateTime.UtcNow, "test_metric", 0, tags) };
+            await worker.Scrape(CancellationToken.None);
+
+            Assert.Contains(new KeyValuePair<string, string>("not_hashed", "1"), storedValues.Single().Tags);
+            Assert.Contains(new KeyValuePair<string, string>("id", "device/$edgeAgent"), storedValues.Single().Tags);
+
+            // test module_name hash
+            tags = new Dictionary<string, string>
+            {
+                { "ms_telemetry", true.ToString() },
+                { "not_hashed", "1" },
+                { "module_name", "my_module" },
+            };
+            testData = new Metric[] { new Metric(DateTime.UtcNow, "test_metric", 0, tags) };
+            await worker.Scrape(CancellationToken.None);
+
+            Assert.Contains(new KeyValuePair<string, string>("not_hashed", "1"), storedValues.Single().Tags);
+            Assert.Contains(new KeyValuePair<string, string>("module_name", "rPbHx4uTZz/x2x8rSxfPxL4egT61y7B1dlsSgWpHh6s="), storedValues.Single().Tags);
+
+            // test module name not hash edgeAgent
+            tags = new Dictionary<string, string>
+            {
+                { "ms_telemetry", true.ToString() },
+                { "not_hashed", "1" },
+                { "module_name", "$edgeAgent" },
+            };
+            testData = new Metric[] { new Metric(DateTime.UtcNow, "test_metric", 0, tags) };
+            await worker.Scrape(CancellationToken.None);
+
+            Assert.Contains(new KeyValuePair<string, string>("not_hashed", "1"), storedValues.Single().Tags);
+            Assert.Contains(new KeyValuePair<string, string>("module_name", "$edgeAgent"), storedValues.Single().Tags);
+
+            // test to from hash
+            tags = new Dictionary<string, string>
+            {
+                { "ms_telemetry", true.ToString() },
+                { "not_hashed", "1" },
+                { "to", "my_module_1" },
+                { "from", "my_module_2" },
+                { "to_route_input", "my_module_1" },
+                { "from_route_output", "my_module_2" },
+            };
+            testData = new Metric[] { new Metric(DateTime.UtcNow, "test_metric", 0, tags) };
+            await worker.Scrape(CancellationToken.None);
+
+            Assert.Contains(new KeyValuePair<string, string>("not_hashed", "1"), storedValues.Single().Tags);
+            Assert.Contains(new KeyValuePair<string, string>("to", "Ut4Ug5Wg2qMCvwtG08RIi0k10DkoNMqQ7AmTUKy/pMs="), storedValues.Single().Tags);
+            Assert.Contains(new KeyValuePair<string, string>("from", "t+TD1s4uqQrTHY7Xe/lJqasX1biQ9yK4ev5ZnScMcpk="), storedValues.Single().Tags);
+            Assert.Contains(new KeyValuePair<string, string>("to_route_input", "Ut4Ug5Wg2qMCvwtG08RIi0k10DkoNMqQ7AmTUKy/pMs="), storedValues.Single().Tags);
+            Assert.Contains(new KeyValuePair<string, string>("from_route_output", "t+TD1s4uqQrTHY7Xe/lJqasX1biQ9yK4ev5ZnScMcpk="), storedValues.Single().Tags);
         }
 
         [Fact]
@@ -156,7 +246,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             scraper.Setup(s => s.ScrapeEndpointsAsync(CancellationToken.None)).Returns(async () =>
             {
                 await scrapeTaskSource.Task;
-                return this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 1.0)).ToArray());
+                return this.PrometheusMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 1.0)).ToArray());
             });
 
             var storage = new Mock<IMetricsStorage>();
@@ -246,6 +336,83 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             Assert.Single(storage.Invocations.Where(i => i.Method.Name == "RemoveAllReturnedMetricsAsync"));
         }
 
+        [Fact]
+        public async Task TestUploadMaxAge()
+        {
+            /* Make fake data */
+            DateTime baseTime = DateTime.UtcNow;
+
+            // This will create 20 fake scrapes of 10 metrics each.
+            // Each has an offset equal to the hours since they were scraped.
+            IEnumerable<(long offset, IEnumerable<Metric> metrics)> fakeScrapes = Enumerable.Range(0, 20).Select(hoursAgo =>
+            {
+                DateTime scrapeTime = baseTime.AddHours(-1 * hoursAgo);
+                IEnumerable<Metric> data = Enumerable.Range(1, 10).Select(i => new Metric(scrapeTime, $"metric_{i}", 0, new Dictionary<string, string>()));
+
+                return ((long offset, IEnumerable<Metric> metrics))(hoursAgo, data);
+            }).ToArray();
+
+            /* Setup mocks */
+            var sequentialStoreMock = new Mock<ISequentialStore<IEnumerable<Metric>>>();
+
+            // mock retrieving data
+            sequentialStoreMock.Setup(s => s.GetBatch(It.IsAny<long>(), It.IsAny<int>(), It.IsAny<CancellationToken>())).ReturnsAsync(fakeScrapes);
+
+            // mock removing data
+            List<int> offsetsRemoved = new List<int>();
+            void GetOffsetToRemove(Func<long, IEnumerable<Metric>, Task<bool>> func)
+            {
+                // Note: .Result was used b/c moq `Callback` does not handle tasks.
+                IEnumerable<int> newOffsetsRemoved = AsyncEnumerable.Range(0, 100).WhereAwait(async i => await func(i, null)).ToListAsync().Result;
+
+                offsetsRemoved.AddRange(newOffsetsRemoved);
+            }
+
+            sequentialStoreMock.Setup(s => s.RemoveFirst(It.IsAny<Func<long, IEnumerable<Metric>, Task<bool>>>())).Callback((Action<Func<long, IEnumerable<Metric>, Task<bool>>>)GetOffsetToRemove).ReturnsAsync(false);
+
+            /* Test */
+            // No max age
+            var storageNoLimit = new MetricsStorage(sequentialStoreMock.Object, TimeSpan.FromDays(50));
+
+            // When metrics are returned, all 200 are there and none are removed from db.
+            var noLimitReturnedMetrics = (await storageNoLimit.GetAllMetricsAsync()).ToList();
+            Assert.Equal(200, noLimitReturnedMetrics.Count);
+            Assert.Empty(offsetsRemoved);
+
+            // all metrics are removed
+            await storageNoLimit.RemoveAllReturnedMetricsAsync();
+            TestUtilities.OrderlessCompare(Enumerable.Range(0, 20), offsetsRemoved);
+            offsetsRemoved.Clear();
+
+            // Only keep last 7 hours
+            var storageLast7Hours = new MetricsStorage(sequentialStoreMock.Object, TimeSpan.FromHours(7));
+
+            // When metrics are returned, all only last 7 scrapes of 10 are returned. Remaining 13 scrapes are deleted
+            var last7ReturnedMetrics = (await storageLast7Hours.GetAllMetricsAsync()).ToList();
+            Assert.Equal(70, last7ReturnedMetrics.Count);
+            TestUtilities.OrderlessCompare(Enumerable.Range(7, 13), offsetsRemoved);
+            offsetsRemoved.Clear();
+
+            // only returned metrics are removed
+            await storageLast7Hours.RemoveAllReturnedMetricsAsync();
+            TestUtilities.OrderlessCompare(Enumerable.Range(0, 7), offsetsRemoved);
+            offsetsRemoved.Clear();
+
+            // Only keep last 12 hours
+            var storageLast12Hours = new MetricsStorage(sequentialStoreMock.Object, TimeSpan.FromHours(12));
+
+            // When metrics are returned, all only last 12 scrapes of 10 are returned. Remaining 8 scrapes are deleted
+            var last12ReturnedMetrics = (await storageLast12Hours.GetAllMetricsAsync()).ToList();
+            Assert.Equal(120, last12ReturnedMetrics.Count);
+            TestUtilities.OrderlessCompare(Enumerable.Range(12, 8), offsetsRemoved);
+            offsetsRemoved.Clear();
+
+            // only returned metrics are removed
+            await storageLast12Hours.RemoveAllReturnedMetricsAsync();
+            TestUtilities.OrderlessCompare(Enumerable.Range(0, 12), offsetsRemoved);
+            offsetsRemoved.Clear();
+        }
+
         class FakeRetryStrategy : RetryStrategy
         {
             int maxRetries;
@@ -268,7 +435,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             }
         }
 
-        private IEnumerable<Metric> PrometheousMetrics(IEnumerable<(string name, double value)> modules)
+        private IEnumerable<Metric> PrometheusMetrics(IEnumerable<(string name, double value)> modules)
         {
             string dataPoints = string.Join("\n", modules.Select(module => $@"
 edgeagent_module_start_total{{iothub=""lefitche-hub-3.azure-devices.net"",edge_device=""device4"",instance_number=""1"",module_name=""{module.name}"",module_version=""1.0"",{MetricsConstants.MsTelemetry}=""True""}} {module.value}

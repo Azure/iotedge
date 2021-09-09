@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     {
         public static IEnumerable<object[]> GenerateAuthConfig()
         {
+            // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic user login information used in tests")]
             yield return new object[] { new AuthConfig { Username = "one", Password = "two", ServerAddress = "three" } };
         }
 

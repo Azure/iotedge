@@ -54,7 +54,8 @@ namespace CloudToDeviceMessageTester
                     ApiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion)),
                     ModuleGenerationId = Preconditions.CheckNonWhiteSpace(moduleGenerationId, nameof(moduleGenerationId)),
                     IotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostName, nameof(iotHubHostName)),
-                    TransportType = transportType
+                    TransportType = transportType,
+                    EdgeDeviceId = deviceId
                 };
             }
             else
@@ -140,6 +141,7 @@ namespace CloudToDeviceMessageTester
         public string ApiVersion;
         public string ModuleGenerationId;
         public string IotHubHostName;
+        public string EdgeDeviceId;
     }
 
     internal struct C2DTestSenderSettings

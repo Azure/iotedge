@@ -23,7 +23,7 @@ use serde_json::Value;
 //
 // To avoid having to do this for effectively the whole crate, instead we've just commented out the fields we don't use in our code.
 //
-// Note: We're using BTreeMap instead of HashMap because iotedged stores a hash of its local config (whose object representation uses this struct)
+// Note: We're using BTreeMap instead of HashMap because aziot-edged stores a hash of its local config (whose object representation uses this struct)
 // to detect changes. Since different HashMaps with the same keys aren't guaranteed to serialize in the same order (and thus won't compare equal),
 // we need to use another map type that can provide that guarantee.
 //
@@ -36,7 +36,7 @@ use serde_json::Value;
 // - Otherwise if it references another type under `crate::models::`, then ensure that that type also has a `#[serde(flatten)] BTreeMap` property
 //   and is commented out as much as possible. Also copy this devnote there for future readers.
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone, Default)]
 pub struct ContainerCreateBody {
     /// The hostname to use for the container, as a valid RFC 1123 hostname.
     #[serde(rename = "Hostname", skip_serializing_if = "Option::is_none")]

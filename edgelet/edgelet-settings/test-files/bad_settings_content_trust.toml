@@ -1,0 +1,22 @@
+hostname = "localhost"
+homedir = "/tmp"
+
+[agent]
+name = "edgeAgent"
+type = "docker"
+
+[agent.config]
+image = "microsoft/azureiotedge-agent:1.0"
+
+[connect]
+workload_uri = "http://localhost:8081"
+management_uri = "http://localhost:8080"
+
+[listen]
+workload_uri = "http://0.0.0.0:8081"
+management_uri = "http://0.0.0.0:8080"
+
+[moby_runtime]
+uri = "http://localhost:2375"
+network = "azure-iot-edge"
+content_trust = "content-trust-contoso2.azurecr.io"

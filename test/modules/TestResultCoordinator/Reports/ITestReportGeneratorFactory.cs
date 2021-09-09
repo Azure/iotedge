@@ -2,6 +2,7 @@
 namespace TestResultCoordinator.Reports
 {
     using System.Threading.Tasks;
+
     /// <summary>
     /// This is used to create an instance of test report generator based on given report-related parameters.
     /// </summary>

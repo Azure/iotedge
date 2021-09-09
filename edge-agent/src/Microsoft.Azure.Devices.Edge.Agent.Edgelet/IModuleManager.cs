@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models;
     using Microsoft.Azure.Devices.Edge.Util;
 
@@ -34,6 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         Task PrepareUpdateAsync(ModuleSpec moduleSpec);
 
-        Task<Stream> GetModuleLogs(string name, bool follow, Option<int> tail, Option<string> since, CancellationToken cancellationToken);
+        Task<Stream> GetModuleLogs(string name, bool follow, Option<int> tail, Option<string> since, Option<string> until, Option<bool> includeTimestamp, CancellationToken cancellationToken);
+
+        Task<Stream> GetSupportBundle(Option<string> since, Option<string> until, Option<string> iothubHostname, Option<bool> edgeRuntimeOnly, CancellationToken token);
     }
 }

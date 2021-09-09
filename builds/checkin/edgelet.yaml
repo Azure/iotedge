@@ -4,15 +4,14 @@ pr:
     include:
       - master
       - release/*
-      - iiot
-jobs:
 
+jobs:
 ################################################################################
   - job: check_run_pipeline
 ################################################################################
     displayName: Check pipeline preconditions (changes ARE in builds or edgelet)
     pool:
-      vmImage: "ubuntu-16.04"
+      vmImage: "ubuntu-18.04"
     steps:
       - bash: |
           git log -m -1 --name-only --first-parent --pretty="" | egrep -i '^(builds|edgelet)'
@@ -30,18 +29,16 @@ jobs:
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
-      vmImage: "ubuntu-16.04"
+      vmImage: "ubuntu-18.04"
     steps:
       - script: echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
         displayName: Set env variables
-      - bash: edgelet/build/linux/install.sh
+      - bash: scripts/linux/generic-rust/install.sh --project-root "edgelet"
         displayName: Install Rust
       - bash: edgelet/build/linux/check-submodules.sh
         displayName: Check submodules
-      - bash: edgelet/build/linux/build.sh
+      - bash: scripts/linux/generic-rust/build.sh --project-root "edgelet" --packages "iotedge;aziot-edged" --reduced-linker
         displayName: Build
-      - bash: edgelet/build/linux/build-k8s.sh
-        displayName: Build (runtime-kubernetes)
       - bash: edgelet/build/linux/test.sh
         displayName: Test
 
@@ -52,7 +49,7 @@ jobs:
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
-      vmImage: "ubuntu-16.04"
+      vmImage: "ubuntu-18.04"
     variables:
       IOTEDGE_HOMEDIR: /tmp
     steps:
@@ -63,7 +60,7 @@ jobs:
           VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"
           echo "##vso[task.setvariable variable=VERSION;]$VERSION"
         displayName: Set Version
-      - script: edgelet/build/linux/install.sh
+      - bash: scripts/linux/generic-rust/install.sh --project-root "edgelet"
         displayName: Install Rust
       - script: "cargo install --git https://github.com/arsing/cross.git --branch set-path"
         displayName: "Install cross (fork with docker fix)"
@@ -81,7 +78,7 @@ jobs:
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
-      vmImage: "ubuntu-16.04"
+      vmImage: "ubuntu-18.04"
     variables:
       IOTEDGE_HOMEDIR: /tmp
     steps:
@@ -92,7 +89,7 @@ jobs:
           VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"
           echo "##vso[task.setvariable variable=VERSION;]$VERSION"
         displayName: Set Version
-      - script: edgelet/build/linux/install.sh
+      - bash: scripts/linux/generic-rust/install.sh --project-root "edgelet"
         displayName: Install Rust
       - script: "cargo install --git https://github.com/arsing/cross.git --branch set-path"
         displayName: "Install cross (fork with docker fix)"
@@ -104,39 +101,19 @@ jobs:
         workingDirectory: $(Build.SourcesDirectory)/edgelet
 
 ################################################################################
-  - job: windows_amd64
-################################################################################
-    displayName: Windows amd64
-    dependsOn: check_run_pipeline
-    condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
-    pool:
-      vmImage: "vs2017-win2016"
-    steps:
-      - powershell: Write-Host ("##vso[task.setvariable variable=NO_VALGRIND;]true")
-        displayName: Set env variables
-      - powershell: edgelet/build/windows/install.ps1
-        displayName: Install Rust
-      - powershell: edgelet/build/windows/build.ps1
-        displayName: Build
-      - powershell: edgelet/build/windows/test.ps1
-        displayName: Test
-      - powershell: edgelet/build/windows/clippy.ps1
-        displayName: Clippy
-
-################################################################################
   - job: style_check
 ################################################################################
     displayName: Style Check
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
-      vmImage: "ubuntu-16.04"
+      vmImage: "ubuntu-18.04"
     steps:
       - script: echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
         displayName: Set env variables
-      - bash: edgelet/build/linux/install.sh
+      - bash: scripts/linux/generic-rust/install.sh --project-root "edgelet"
         displayName: Install Rust
-      - bash: edgelet/build/linux/format.sh
+      - bash: scripts/linux/generic-rust/format.sh --project-root "edgelet"
         displayName: Format Code
       - bash: edgelet/build/linux/clippy.sh
         displayName: Clippy
@@ -158,7 +135,7 @@ jobs:
 #       coverage.goal: 68
 #       rust.toolchain: nightly-2020-04-10
 #     pool:
-#       vmImage: "ubuntu-16.04"
+#       vmImage: "ubuntu-18.04"
 #     steps:
 #       - script: |
 #           echo "##vso[task.setvariable variable=NO_VALGRIND;]true"

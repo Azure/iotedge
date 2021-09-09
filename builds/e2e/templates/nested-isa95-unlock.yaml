@@ -1,0 +1,17 @@
+parameters:
+  agentName: ''
+  nsgName: ''
+
+steps: 
+  - task: Bash@3
+    condition: always()
+    displayName: 'Unlocking network of ${{ parameters.agentName }}'
+    inputs:
+      targetType: inline
+      script: |     
+        az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
+ 
+        az network nsg rule delete \
+        --resource-group $(ressourceGroup) \
+        --nsg-name ${{ parameters.nsgName }} \
+        --name "Lock_network"

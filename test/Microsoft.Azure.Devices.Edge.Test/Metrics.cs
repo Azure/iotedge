@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
@@ -19,29 +20,26 @@ namespace Microsoft.Azure.Devices.Edge.Test
     public class Metrics : SasManualProvisioningFixture
     {
         public const string ModuleName = "metricsValidator";
-        const string EdgeAgentBaseImage = "mcr.microsoft.com/azureiotedge-agent:1.0";
 
         [Test]
+        [Category("FlakyOnArm")]
         public async Task ValidateMetrics()
         {
             CancellationToken token = this.TestToken;
-            await this.Deploy(token);
+            await this.DeployAsync(token);
 
-            var result = await this.iotHub.InvokeMethodAsync(this.runtime.DeviceId, ModuleName, new CloudToDeviceMethod("ValidateMetrics", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)), token);
+            var agent = new EdgeAgent(this.runtime.DeviceId, this.IotHub);
+            await agent.PingAsync(token);
+
+            var result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ModuleName, new CloudToDeviceMethod("ValidateMetrics", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)), token);
             Assert.AreEqual(result.Status, (int)HttpStatusCode.OK);
 
             string body = result.GetPayloadAsJson();
             Report report = JsonConvert.DeserializeObject<Report>(body, new JsonSerializerSettings() { DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate });
-            Assert.Zero(report.Failed, body);
+            Assert.Zero(report.Failed, report.ToString());
         }
 
-        class Report
-        {
-            public int Succeeded { get; set; }
-            public int Failed { get; set; }
-        }
-
-        async Task Deploy(CancellationToken token)
+        async Task DeployAsync(CancellationToken token)
         {
             // First deploy everything needed for this test, including a temporary image that will be removed later to bump the "stopped" metric
             string metricsValidatorImage = Context.Current.MetricsValidatorImage.Expect(() => new InvalidOperationException("Missing Metrics Validator image"));
@@ -50,13 +48,67 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     {
                         builder.AddTemporaryModule();
                         builder.AddMetricsValidatorConfig(metricsValidatorImage);
-                    }, token);
+                    }, token,
+                Context.Current.NestedEdge);
 
             // Next remove the temporary image from the deployment
             await this.runtime.DeployConfigurationAsync(
                 builder => { builder.AddMetricsValidatorConfig(metricsValidatorImage); },
                 token,
-                stageSystemModules: false);
+                Context.Current.NestedEdge);
+        }
+
+        // Presents a more focused view by serializing only failures
+        public class Report
+        {
+            [JsonProperty]
+            public string Category;
+
+            [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+            public TimeSpan Duration = TimeSpan.Zero;
+
+            [JsonProperty]
+            public List<string> Successes = new List<string>();
+
+            [JsonProperty]
+            public Dictionary<string, string> Failures = new Dictionary<string, string>();
+
+            [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+            public List<Report> Subcategories = null;
+
+            [JsonProperty(Order = -2)]
+            public int Succeeded;
+
+            [JsonProperty(Order = -2)]
+            public int Failed;
+
+            public bool ShouldSerializeSuccesses() => false;
+            public bool ShouldSerializeFailures() => this.Failures.Any();
+            public bool ShouldSerializeSubcategories() => this.Failed != 0;
+
+            public override string ToString()
+            {
+                var settings = new JsonSerializerSettings()
+                {
+                    Converters = new List<JsonConverter>() { new Converter() },
+                    Formatting = Formatting.Indented
+                };
+
+                return JsonConvert.SerializeObject(this, settings);
+            }
+
+            // Skips subcategories that don't have failures
+            class Converter : JsonConverter
+            {
+                public override bool CanConvert(Type objectType) => objectType == typeof(List<Report>);
+                public override bool CanRead => false;
+
+                public override object ReadJson(JsonReader r, Type t, object o, JsonSerializer s) =>
+                    throw new NotImplementedException();
+
+                public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer) =>
+                    serializer.Serialize(writer, ((List<Report>)value).Where(c => c.Failed != 0).ToArray());
+            }
         }
     }
 
@@ -73,7 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             builder.AddModule(Metrics.ModuleName, image);
 
-            var edgeHub = builder.GetModule(ConfigModuleName.EdgeHub)
+            builder.GetModule(ConfigModuleName.EdgeHub)
                 .WithDesiredProperties(new Dictionary<string, object>
                 {
                     {

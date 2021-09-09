@@ -38,37 +38,42 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public async Task<EdgeDeployment> DeployConfigurationAsync(
             Action<EdgeConfigBuilder> addConfig,
             CancellationToken token,
-            bool stageSystemModules = true)
+            bool nestedEdge)
         {
+            (string, string)[] hubEnvVar = new (string, string)[] { ("RuntimeLogLevel", "debug"), ("SslProtocols", "tls1.2") };
+
+            if (nestedEdge == true)
+            {
+                hubEnvVar.Append(("DeviceScopeCacheRefreshDelaySecs", "0"));
+            }
+            else
+            {
+                hubEnvVar.Append(("NestedEdgeEnabled", "false"));
+            }
+
             var builder = new EdgeConfigBuilder(this.DeviceId);
             builder.AddRegistries(this.registries);
             builder.AddEdgeAgent(this.agentImage.OrDefault())
                 .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
                 .WithProxy(this.proxy);
             builder.AddEdgeHub(this.hubImage.OrDefault(), this.optimizeForPerformance)
-                .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
+                .WithEnvironment(hubEnvVar)
                 .WithProxy(this.proxy);
 
             addConfig(builder);
 
             DateTime deployTime = DateTime.Now;
-            var finalModules = new EdgeModule[] { };
-            IEnumerable<EdgeConfiguration> configs = builder.Build(stageSystemModules).ToArray();
-            foreach (EdgeConfiguration edgeConfiguration in configs)
-            {
-                await edgeConfiguration.DeployAsync(this.iotHub, token);
-                EdgeModule[] modules = edgeConfiguration.ModuleNames
-                    .Select(id => new EdgeModule(id, this.DeviceId, this.iotHub))
-                    .ToArray();
-                await EdgeModule.WaitForStatusAsync(modules, EdgeModuleStatus.Running, token);
-                await edgeConfiguration.VerifyAsync(this.iotHub, token);
-                finalModules = modules;
-            }
-
-            return new EdgeDeployment(deployTime, finalModules);
+            EdgeConfiguration edgeConfiguration = builder.Build();
+            await edgeConfiguration.DeployAsync(this.iotHub, token);
+            EdgeModule[] modules = edgeConfiguration.ModuleNames
+                .Select(id => new EdgeModule(id, this.DeviceId, this.iotHub))
+                .ToArray();
+            await EdgeModule.WaitForStatusAsync(modules, EdgeModuleStatus.Running, token);
+            await edgeConfiguration.VerifyAsync(this.iotHub, token);
+            return new EdgeDeployment(deployTime, modules);
         }
 
-        public Task<EdgeDeployment> DeployConfigurationAsync(CancellationToken token) =>
-            this.DeployConfigurationAsync(_ => { }, token);
+        public Task<EdgeDeployment> DeployConfigurationAsync(CancellationToken token, bool nestedEdge) =>
+            this.DeployConfigurationAsync(_ => { }, token, nestedEdge);
     }
 }

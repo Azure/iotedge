@@ -53,9 +53,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string EdgeletWorkloadUriVariableName = "IOTEDGE_WORKLOADURI";
 
+        public const string EdgeletWorkloadListenMntUriVariableName = "IOTEDGE_WORKLOADLISTEN_MNTURI";
+
         public const string IotHubHostnameVariableName = "IOTEDGE_IOTHUBHOSTNAME";
 
         public const string GatewayHostnameVariableName = "IOTEDGE_GATEWAYHOSTNAME";
+
+        public const string ParentEdgeHostnameVariableName = "IOTEDGE_PARENTHOSTNAME";
 
         public const string DeviceIdVariableName = "IOTEDGE_DEVICEID";
 
@@ -77,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string NetworkIdKey = "NetworkId";
 
-        public const string EdgeletClientApiVersion = "2019-11-05";
+        public const string EdgeletClientApiVersion = "2020-07-07";
 
         public const string EdgeletInitializationVectorFileName = "IOTEDGE_BACKUP_IV";
 
@@ -95,13 +99,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string StorageMaxTotalWalSize = "RocksDB_MaxTotalWalSize";
 
+        public const string StorageMaxOpenFiles = "RocksDB_MaxOpenFiles";
+
         public const string StorageLogLevel = "Storage_LogLevel";
 
-        public const string WorkloadApiVersion = "2019-01-30";
+        public const string WorkloadApiVersion = "2020-10-10";
 
         public const uint HighestPriority = 0;
 
-        public const uint DefaultPriority = uint.MaxValue;
+        public const uint DefaultStartupOrder = uint.MaxValue;
 
         public static class Labels
         {
@@ -113,6 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             public const string ConfigurationId = "net.azure-devices.edge.configurationId";
             public const string CreateOptions = "net.azure-devices.edge.create-options";
             public const string Env = "net.azure-devices.edge.env";
+            public const string OriginalImage = "net.azure-devices.edge.original-image";
         }
     }
 }

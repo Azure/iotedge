@@ -23,6 +23,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
 
         public Task<string> GetTrustBundleAsync() => this.inner.GetTrustBundleAsync();
 
+        public Task<string> GetManifestTrustBundleAsync() => this.inner.GetManifestTrustBundleAsync();
+
         public Task<string> EncryptAsync(string initializationVector, string plainText) => this.inner.EncryptAsync(initializationVector, plainText);
 
         public Task<string> DecryptAsync(string initializationVector, string encryptedText) => this.inner.DecryptAsync(initializationVector, encryptedText);
@@ -40,6 +42,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
             if (supportedVersion == ApiVersion.Version20190130)
             {
                 return new Version_2019_01_30.WorkloadClient(workloadUri, supportedVersion, moduleId, moduleGenerationId);
+            }
+
+            if (supportedVersion == ApiVersion.Version20201010)
+            {
+                return new Version_2020_10_10.WorkloadClient(workloadUri, supportedVersion, moduleId, moduleGenerationId);
             }
 
             return new Version_2018_06_28.WorkloadClient(workloadUri, supportedVersion, moduleId, moduleGenerationId);

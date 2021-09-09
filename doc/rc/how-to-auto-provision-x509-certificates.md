@@ -306,43 +306,21 @@ For more detailed information about installing IoT Edge on Windows, including pr
 
 If the runtime started successfully, you can go into your IoT Hub and start deploying IoT Edge modules to your device. Use the following commands on your device to verify that the runtime installed and started successfully.
 
-### Linux device
-
 Check the status of the IoT Edge service.
 
 ```cmd/sh
-systemctl status iotedge
+systemctl status aziot-edged
 ```
 
 Examine service logs.
 
 ```cmd/sh
-journalctl -u iotedge --no-pager --no-full
+journalctl -u aziot-edged --no-pager --no-full
 ```
 
 List running modules.
 
 ```cmd/sh
-iotedge list
-```
-
-### Windows device
-
-Check the status of the IoT Edge service.
-
-```powershell
-Get-Service iotedge
-```
-
-Examine service logs.
-
-```powershell
-. {Invoke-WebRequest -useb aka.ms/iotedge-win} | Invoke-Expression; Get-IoTEdgeLog
-```
-
-List running modules.
-
-```powershell
 iotedge list
 ```
 

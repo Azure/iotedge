@@ -30,9 +30,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         readonly AsyncLock reconcileLock = new AsyncLock();
         readonly ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde;
         readonly IEncryptionProvider encryptionProvider;
-        readonly IAvailabilityMetric availabilityMetric;
+        readonly IDeploymentMetrics deploymentMetrics;
         IEnvironment environment;
         DeploymentConfigInfo currentConfig;
+        DeploymentStatus status;
 
         public Agent(
             IConfigSource configSource,
@@ -45,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             DeploymentConfigInfo initialDeployedConfigInfo,
             ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde,
             IEncryptionProvider encryptionProvider,
-            IAvailabilityMetric availabilityMetric)
+            IDeploymentMetrics deploymentMetrics)
         {
             this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
             this.planner = Preconditions.CheckNotNull(planner, nameof(planner));
@@ -58,7 +59,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             this.deploymentConfigInfoSerde = Preconditions.CheckNotNull(deploymentConfigInfoSerde, nameof(deploymentConfigInfoSerde));
             this.environment = this.environmentProvider.Create(this.currentConfig.DeploymentConfig);
             this.encryptionProvider = Preconditions.CheckNotNull(encryptionProvider, nameof(encryptionProvider));
-            this.availabilityMetric = Preconditions.CheckNotNull(availabilityMetric, nameof(availabilityMetric));
+            this.deploymentMetrics = Preconditions.CheckNotNull(deploymentMetrics, nameof(deploymentMetrics));
+            this.status = DeploymentStatus.Unknown;
             Events.AgentCreated();
         }
 
@@ -72,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             IEntityStore<string, string> configStore,
             ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde,
             IEncryptionProvider encryptionProvider,
-            IAvailabilityMetric availabilityMetric)
+            IDeploymentMetrics deploymentMetrics)
         {
             Preconditions.CheckNotNull(deploymentConfigInfoSerde, nameof(deploymentConfigInfoSerde));
             Preconditions.CheckNotNull(configStore, nameof(configStore));
@@ -104,13 +106,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 deploymentConfigInfo.GetOrElse(DeploymentConfigInfo.Empty),
                 deploymentConfigInfoSerde,
                 encryptionProvider,
-                availabilityMetric);
+                deploymentMetrics);
             return agent;
         }
 
         public async Task ReconcileAsync(CancellationToken token)
         {
-            DeploymentStatus status = DeploymentStatus.Unknown;
             ModuleSet moduleSetToReport = null;
             using (await this.reconcileLock.LockAsync(token))
             {
@@ -127,12 +128,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                     DeploymentConfig deploymentConfig = deploymentConfigInfo.DeploymentConfig;
                     if (deploymentConfig.Equals(DeploymentConfig.Empty))
                     {
-                        status = DeploymentStatus.Success;
+                        this.status = DeploymentStatus.Success;
                     }
                     else
                     {
                         ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
-                        _ = Task.Run(() => this.availabilityMetric.ComputeAvailability(desiredModuleSet, current))
+                        _ = Task.Run(() => this.deploymentMetrics.ComputeAvailability(desiredModuleSet, current))
                             .ContinueWith(t => Events.UnknownFailure(t.Exception), TaskContinuationOptions.OnlyOnFaulted)
                             .ConfigureAwait(false);
 
@@ -145,17 +146,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
                         if (plan.IsEmpty)
                         {
-                            status = DeploymentStatus.Success;
+                            if (this.currentConfig.Version != deploymentConfigInfo.Version)
+                            {
+                                await this.UpdateCurrentConfig(deploymentConfigInfo);
+                            }
+
+                            this.status = DeploymentStatus.Success;
                         }
                         else
                         {
                             try
                             {
-                                bool result = await this.planRunner.ExecuteAsync(deploymentConfigInfo.Version, plan, token);
-                                await this.UpdateCurrentConfig(deploymentConfigInfo);
-                                if (result)
+                                using (this.deploymentMetrics.ReportDeploymentTime())
                                 {
-                                    status = DeploymentStatus.Success;
+                                    bool result = await this.planRunner.ExecuteAsync(deploymentConfigInfo.Version, plan, token);
+                                    await this.UpdateCurrentConfig(deploymentConfigInfo);
+                                    if (result)
+                                    {
+                                        this.status = DeploymentStatus.Success;
+                                    }
                                 }
                             }
                             catch (Exception ex) when (!ex.IsFatal())
@@ -172,28 +181,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                     switch (ex)
                     {
                         case ConfigEmptyException _:
-                            status = new DeploymentStatus(DeploymentStatusCode.ConfigEmptyError, ex.Message);
+                            this.status = new DeploymentStatus(DeploymentStatusCode.ConfigEmptyError, ex.Message);
                             Events.EmptyConfig(ex);
                             break;
 
                         case InvalidSchemaVersionException _:
-                            status = new DeploymentStatus(DeploymentStatusCode.InvalidSchemaVersion, ex.Message);
+                            this.status = new DeploymentStatus(DeploymentStatusCode.InvalidSchemaVersion, ex.Message);
                             Events.InvalidSchemaVersion(ex);
                             break;
 
                         case ConfigFormatException _:
-                            status = new DeploymentStatus(DeploymentStatusCode.ConfigFormatError, ex.Message);
+                            this.status = new DeploymentStatus(DeploymentStatusCode.ConfigFormatError, ex.Message);
                             Events.InvalidConfigFormat(ex);
                             break;
 
                         default:
-                            status = new DeploymentStatus(DeploymentStatusCode.Failed, ex.Message);
+                            this.status = new DeploymentStatus(DeploymentStatusCode.Failed, ex.Message);
                             Events.UnknownFailure(ex);
                             break;
                     }
                 }
 
-                await this.reporter.ReportAsync(token, moduleSetToReport, await this.environment.GetRuntimeInfoAsync(), this.currentConfig.Version, status);
+                await this.reporter.ReportAsync(token, moduleSetToReport, await this.environment.GetRuntimeInfoAsync(), this.currentConfig.Version, this.status);
                 Events.FinishedReconcile();
             }
         }

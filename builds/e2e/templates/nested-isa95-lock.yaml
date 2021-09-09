@@ -1,0 +1,37 @@
+parameters:
+  agentName: ''
+  lvl: ''
+
+steps: 
+  - task: Bash@3
+    name: isa95_lock_lvl${{ parameters.lvl }}
+    displayName: 'Locking network of ${{ parameters.agentName }}'
+    inputs:
+      targetType: inline
+      script: |     
+        az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
+
+        echo "Get Network Interface"
+        tmp=$(az vm nic list --resource-group $(ressourceGroup) --vm-name ${{ parameters.agentName }} --query '[].id' | jq -r '.[]')
+        network_interface=$(echo "$tmp" | sed -n 's/.*\/\(.*\)/\1/p')
+        echo "Network Interface: $network_interface"
+        echo "Get Network Security Group"
+        tmp=$(az network nic list-effective-nsg -g $(ressourceGroup)  -n $network_interface  --query 'value[0].networkSecurityGroup' | jq -r '.id')
+        nsgName=$(echo "$tmp" | sed -n 's/.*\/\(.*\)/\1/p')
+        echo "Network Security Group: $nsgName"
+
+        echo "lock VMs"
+        az network nsg rule create \
+          --resource-group $(ressourceGroup) \
+          --nsg-name $nsgName \
+          --name "Lock_network" \
+          --direction Outbound \
+          --protocol '*' \
+          --priority 250 \
+          --access deny \
+          --source-address-prefixes '*' \
+          --destination-address-prefixes '*' \
+          --destination-port-range '*' \
+          --output none
+
+        echo "##vso[task.setvariable variable=nsgName;isOutput=true]$nsgName"

@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
     {
         readonly Summary summary;
 
-        public MetricsHistogram(string name, string description, List<string> labelNames, List<string> defaultLabelValues)
+        public MetricsHistogram(string name, string description, List<string> labelNames, List<string> defaultLabelValues, TimeSpan maxAge)
             : base(labelNames, defaultLabelValues)
         {
             this.summary = Metrics.CreateSummary(
@@ -19,15 +19,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
                 {
                     Objectives = new[]
                     {
-                        new QuantileEpsilonPair(0.5, 0.05),
-                        new QuantileEpsilonPair(0.9, 0.05),
-                        new QuantileEpsilonPair(0.95, 0.01),
+                        new QuantileEpsilonPair(0.1, 0.01),
+                        new QuantileEpsilonPair(0.5, 0.01),
+                        new QuantileEpsilonPair(0.9, 0.01),
                         new QuantileEpsilonPair(0.99, 0.01),
-                        new QuantileEpsilonPair(0.999, 0.01),
-                        new QuantileEpsilonPair(0.9999, 0.01),
                     },
                     LabelNames = labelNames.ToArray(),
-                    MaxAge = TimeSpan.FromHours(1)
+                    MaxAge = maxAge,
                 });
         }
 

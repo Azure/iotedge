@@ -2,8 +2,15 @@ trigger:
   batch: true
   branches:
     include:
-      - iiot
+      - master
+  paths:
+    include:
+      - "mqtt/*"
+      - "builds/*"
 pr: none
+
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
 
 jobs:
 ################################################################################
@@ -11,7 +18,7 @@ jobs:
 ################################################################################
     displayName: Linux AMD64
     pool:
-      vmImage: 'ubuntu-latest'
+      vmImage: "ubuntu-latest"
 
     variables:
       os: linux
@@ -20,10 +27,19 @@ jobs:
 
     steps:
       - task: Docker@2
-        displayName: Docker Login
+        displayName: Docker login edgebuilds
         inputs:
           command: login
           containerRegistry: iotedge-edgebuilds-acr
+
+      - task: Bash@3
+        displayName: Build MQTT Broker - amd64
+        inputs:
+          filePath: scripts/linux/cross-platform-rust-build.sh
+          arguments: --os alpine --arch amd64 --build-path mqtt/mqttd --cargo-flags '--no-default-features --features="generic"'
+
+      - script: scripts/linux/consolidate-build-artifacts.sh --artifact-name 'mqttd'
+        displayName: Consolidate MQTT Broker artifacts
 
       - task: Docker@2
         displayName: Build amd64 image
@@ -32,12 +48,12 @@ jobs:
           command: buildAndPush
           containerRegistry: iotedge-edgebuilds-acr
           Dockerfile: mqtt/docker/$(os)/$(arch)/Dockerfile
-          buildContext: mqtt/.
-          tags: $(Build.BuildId)-$(os)-$(arch)
-      
-      - script: echo $(registry.address)/$(imageName):$(Build.BuildId)-$(os)-$(arch) > artifactInfo.txt
+          buildContext: mqtt/build-context
+          tags: $(Build.BuildNumber)-$(os)-$(arch)
+
+      - script: echo $(registry.address)/$(imageName):$(Build.BuildNumber)-$(os)-$(arch) > artifactInfo.txt
         displayName: Create image name
-      
+
       - publish: artifactInfo.txt
         artifact: image-$(arch)
         displayName: Publish image name
@@ -47,7 +63,7 @@ jobs:
 ################################################################################
     displayName: Linux ARM32
     pool:
-      vmImage: 'ubuntu-latest'
+      vmImage: "ubuntu-latest"
 
     variables:
       os: linux
@@ -56,10 +72,19 @@ jobs:
 
     steps:
       - task: Docker@2
-        displayName: Docker Login
+        displayName: Docker login edgebuilds
         inputs:
           command: login
           containerRegistry: iotedge-edgebuilds-acr
+
+      - task: Bash@3
+        displayName: Build MQTT Broker - arm32
+        inputs:
+          filePath: scripts/linux/cross-platform-rust-build.sh
+          arguments: --os ubuntu18.04 --arch arm32v7 --build-path mqtt/mqttd --cargo-flags '--no-default-features --features="generic"'
+
+      - script: scripts/linux/consolidate-build-artifacts.sh --artifact-name 'mqttd'
+        displayName: Consolidate MQTT Broker artifacts
 
       - task: Docker@2
         displayName: Build arm32v7 image
@@ -68,12 +93,12 @@ jobs:
           command: buildAndPush
           containerRegistry: iotedge-edgebuilds-acr
           Dockerfile: mqtt/docker/$(os)/$(arch)/Dockerfile
-          buildContext: mqtt/.
-          tags: $(Build.BuildId)-$(os)-$(arch)
+          buildContext: mqtt/build-context
+          tags: $(Build.BuildNumber)-$(os)-$(arch)
 
-      - script: echo $(registry.address)/$(imageName):$(Build.BuildId)-$(os)-$(arch) > artifactInfo.txt
+      - script: echo $(registry.address)/$(imageName):$(Build.BuildNumber)-$(os)-$(arch) > artifactInfo.txt
         displayName: Create image name
-      
+
       - publish: artifactInfo.txt
         artifact: image-$(arch)
         displayName: Publish image name

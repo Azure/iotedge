@@ -45,6 +45,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
 
         public abstract Task<string> GetTrustBundleAsync();
 
+        public abstract Task<string> GetManifestTrustBundleAsync();
+
         public abstract Task<string> EncryptAsync(string initializationVector, string plainText);
 
         public abstract Task<string> DecryptAsync(string initializationVector, string encryptedText);

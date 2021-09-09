@@ -3,6 +3,7 @@ namespace DirectMethodSender
 {
     using System;
     using System.Net;
+    using System.Net.Sockets;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Common.Exceptions;
@@ -54,8 +55,23 @@ namespace DirectMethodSender
             }
             catch (DeviceNotFoundException e)
             {
-                logger.LogInformation(e, $"Transient exception caught with count {this.directMethodCount}");
+                logger.LogInformation(e, $"DeviceNotFound exception caught with count {this.directMethodCount}");
                 return new Tuple<HttpStatusCode, ulong>(HttpStatusCode.NotFound, this.directMethodCount);
+            }
+            catch (SocketException e)
+            {
+                logger.LogInformation(e, $"Resource exception caught with count {this.directMethodCount}");
+                return new Tuple<HttpStatusCode, ulong>(HttpStatusCode.ServiceUnavailable, this.directMethodCount);
+            }
+            catch (UnauthorizedException e)
+            {
+                logger.LogInformation(e, $"Unauthorized exception caught with count {this.directMethodCount}");
+                return new Tuple<HttpStatusCode, ulong>(HttpStatusCode.Unauthorized, this.directMethodCount);
+            }
+            catch (Exception e) when (e is System.Net.Http.HttpRequestException || e is IotHubException || e is IotHubCommunicationException)
+            {
+                logger.LogInformation(e, $"Transient exception caught with count {this.directMethodCount}");
+                return new Tuple<HttpStatusCode, ulong>(HttpStatusCode.FailedDependency, this.directMethodCount);
             }
             catch (Exception e)
             {
@@ -64,6 +80,11 @@ namespace DirectMethodSender
             }
         }
 
+        // Retry is needed here because sometimes the test agents have transient
+        // network issues. Ideally, we would just send the report to the TRC and
+        // have it analyze whether it is a pass or fail. However the transient
+        // exceptions don't have status codes which adds complication. This retry
+        // approach is easier.
         async Task<int> InvokeDirectMethodWithRetryAsync(
             ILogger logger,
             string deviceId,

@@ -25,10 +25,10 @@
                 "value": "<UpstreamProtocol>"
               },
               "experimentalfeatures__enabled": {
-                  "value": "true"
+                "value": "true"
               },
               "experimentalfeatures__enableMetrics": {
-                  "value": "true"
+                "value": "true"
               },
               "ExperimentalFeatures__EnableUploadLogs": {
                 "value": "true"
@@ -43,17 +43,20 @@
             "type": "docker",
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-hub:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"ExposedPorts\": {\"9600/tcp\": {}}, \"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"443/tcp\": [{\"HostPort\": \"443\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}],\"9600/tcp\": [{\"HostPort\": \"9601\"}]}}}"
+              "createOptions": "{\"ExposedPorts\": {\"9600/tcp\": {}}, \"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}],\"9600/tcp\": [{\"HostPort\": \"9601\"}]}}}"
             },
             "env": {
-              "CollectMetrics": {
+              "experimentalfeatures__enabled": {
                 "value": "true"
               },
-              "experimentalfeatures__enabled": {
-                  "value": "true"
-              },
               "experimentalfeatures__enableMetrics": {
-                  "value": "true"
+                "value": "true"
+              },
+              "NestedEdgeEnabled": {
+                "value": "false"
+              },
+              "SslProtocols": {
+                "value": "tls1.2"
               }
             },
             "status": "running",
@@ -215,7 +218,7 @@
                 "value": "<TestResultCoordinator.ConsumerGroupId>"
               },
               "optimizeForPerformance": {
-                "value": "<TestResultCoordinator.OptimizeForPerformance>"
+                "value": "<OptimizeForPerformance>"
               },
               "logAnalyticsWorkspaceId": {
                 "value": "<LogAnalyticsWorkspaceId>"

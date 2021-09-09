@@ -23,6 +23,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         long GetHeadOffset(CancellationToken cancellationToken);
 
+        long GetTailOffset(CancellationToken cancellationToken);
+
         Task<long> Append(T item, CancellationToken cancellationToken);
 
         Task<bool> RemoveOffset(Func<long, T, Task<bool>> predicate, long offset, CancellationToken cancellationToken);
@@ -30,5 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         Task<bool> RemoveFirst(Func<long, T, Task<bool>> predicate, CancellationToken cancellationToken);
 
         Task<IEnumerable<(long, T)>> GetBatch(long startingOffset, int batchSize, CancellationToken cancellationToken);
+
+        Task<ulong> Count();
     }
 }

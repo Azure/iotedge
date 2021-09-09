@@ -1,0 +1,21 @@
+parameters:
+  iotHubName: ''
+  deviceId: ''
+  lvl: ''
+
+steps:  
+  - task: Bash@3
+    displayName: 'Clean identity  ${{ parameters.lvl }}'
+    condition: always()
+    inputs:
+      targetType: inline
+      script: |
+        deviceId="${{ parameters.deviceId }}"
+
+        if [ -z $deviceId ]; then
+          exit 0
+        fi
+
+        echo "Deleting ${{ parameters.deviceId }} iotedge in iothub: ${{ parameters.iotHubName }}, in subscription $(azure.subscription)"
+        az iot hub device-identity delete -n ${{ parameters.iotHubName }} -d ${{ parameters.deviceId }}    
+

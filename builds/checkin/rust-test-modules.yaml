@@ -1,0 +1,74 @@
+trigger: none
+pr:
+  branches:
+    include:
+      - master
+      - release/*
+
+jobs:
+  ################################################################################
+  - job: check_run_pipeline
+  ################################################################################
+    displayName: Check pipeline preconditions (changes ARE in builds or test modules)
+    pool:
+      vmImage: "ubuntu-18.04"
+    steps:
+      - checkout: self
+        submodules: false
+        fetchDepth: 3
+      - bash: |
+          git log -m -1 --name-only --first-parent --pretty="" | egrep -i '^(builds|test/modules/generic-mqtt-tester|test/rust-test-util|mqtt/mqtt-broker-tests-util)'
+          if [[ $? == 0 ]]; then
+            echo "Detected changes inside builds or rust test module folders"
+            echo "##vso[task.setvariable variable=RUN_PIPELINE;isOutput=true]TRUE"
+          fi
+        displayName: Check changes in sources
+        name: check_files
+
+  ################################################################################
+  - job: linux_amd64
+  ################################################################################
+    displayName: Linux amd64
+    dependsOn: check_run_pipeline
+    condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
+    pool:
+      vmImage: "ubuntu-18.04"
+    steps:
+      - checkout: self
+        submodules: false
+        fetchDepth: 3
+      - script: echo "##vso[task.setvariable variable=RUST_BACKTRACE;]1"
+        displayName: Set env variables
+      - bash: scripts/linux/generic-rust/install.sh --project-root "test/modules/generic-mqtt-tester"
+        displayName: Install Rust
+
+      - bash: scripts/linux/generic-rust/build.sh --project-root "test/modules/generic-mqtt-tester" --packages "Cargo.toml" --manifest-path
+        displayName: Build Generic Mqtt Tester Module     
+      - bash: scripts/linux/generic-rust/format.sh --project-root "test/modules/generic-mqtt-tester"
+        displayName: Format Code (Generic MQTT Tester)
+      - task: PublishTestResults@2
+        displayName: Publish test results (Generic MQTT Tester)
+        inputs:
+          testResultsFormat: "JUnit"
+          testResultsFiles: "**/test-results.xml"
+          failTaskOnFailedTests: true
+        condition: succeededOrFailed()        
+      - bash: scripts/linux/generic-rust/clippy.sh --project-root "test/modules/generic-mqtt-tester"
+        displayName: Clippy (Generic MQTT Tester)
+
+      - bash: >
+          scripts/linux/generic-rust/build.sh --project-root "test/modules/obsagent-client" 
+          --packages "Cargo.toml" --manifest-path --no-default-features --features prom
+        displayName: Build ObsAgent Client Module (Prometheus mode)
+      - bash: >
+          scripts/linux/generic-rust/build.sh --project-root "test/modules/obsagent-client" 
+          --packages "Cargo.toml" --manifest-path --no-default-features --features otel
+        displayName: Build ObsAgent Client Module (OpenTelemetry mode)        
+      - bash: >
+          scripts/linux/generic-rust/build.sh --project-root "test/modules/obsagent-client" 
+          --packages "Cargo.toml" --manifest-path --no-default-features --features "prom otel"
+        displayName: Build ObsAgent Client Module (Prom & OTel)
+      - bash: scripts/linux/generic-rust/format.sh --project-root "test/modules/obsagent-client"
+        displayName: Format Code (ObsAgent Client)
+      - bash: scripts/linux/generic-rust/clippy.sh --project-root "test/modules/obsagent-client"
+        displayName: Clippy (ObsAgent Client)

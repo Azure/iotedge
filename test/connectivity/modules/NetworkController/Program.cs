@@ -36,9 +36,10 @@ namespace NetworkController
                 {
                     await networkInterfaceName.ForEachAsync(async name =>
                     {
-                        var offline = new OfflineController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
-                        var satellite = new SatelliteController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
-                        var cellular = new CellularController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
+                        string hubHostname = GetHostnameForExternalTraffic();
+                        var offline = new OfflineController(name, hubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
+                        var satellite = new SatelliteController(name, hubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
+                        var cellular = new CellularController(name, hubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
                         controllers.AddRange(new List<INetworkController> { offline, satellite, cellular });
 
                         // Reset network status before start delay to ensure network status is in designed state before test starts.
@@ -92,7 +93,7 @@ namespace NetworkController
             // Setting GatewayHostname to empty, since the module will be talking directly to IoTHub, bypassing edge
             // NetworkController is on the host, so it should always have connection
             Environment.SetEnvironmentVariable("IOTEDGE_GATEWAYHOSTNAME", string.Empty);
-            ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(Settings.Current.TransportType, ModuleUtil.DefaultTimeoutErrorDetectionStrategy, ModuleUtil.DefaultTransientRetryStrategy);
+            ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(Settings.Current.TransportType, new ClientOptions(), ModuleUtil.DefaultTimeoutErrorDetectionStrategy, ModuleUtil.DefaultTransientRetryStrategy);
             await moduleClient.SetMethodHandlerAsync("toggleConnectivity", ToggleConnectivity, new Tuple<string, CancellationToken>(networkInterfaceName, token));
         }
 
@@ -111,10 +112,35 @@ namespace NetworkController
             INetworkStatusReporter reporter = new NetworkStatusReporter(Settings.Current.TestResultCoordinatorEndpoint, Settings.Current.ModuleId, Settings.Current.TrackingId);
             NetworkProfileSetting customNetworkProfileSetting = Settings.Current.NetworkRunProfile.ProfileSetting;
             customNetworkProfileSetting.PackageLoss = 100;
-            var controller = new OfflineController(networkInterfaceName, Settings.Current.IotHubHostname, customNetworkProfileSetting);
+            string hubHostname = GetHostnameForExternalTraffic();
+            var controller = new OfflineController(networkInterfaceName, hubHostname, customNetworkProfileSetting);
             NetworkControllerStatus networkControllerStatus = networkOnValue ? NetworkControllerStatus.Disabled : NetworkControllerStatus.Enabled;
             await SetNetworkControllerStatus(controller, networkControllerStatus, reporter, token);
             return new MethodResponse((int)HttpStatusCode.OK);
+        }
+
+        private static string GetHostnameForExternalTraffic()
+        {
+            string externalTrafficHostname = string.Empty;
+            string proxy = Environment.GetEnvironmentVariable("https_proxy");
+            if (!string.IsNullOrEmpty(proxy))
+            {
+                // Proxy hostname will in the format http://<hostname>:<port>
+                // Since we want just the hostname part we need to extract it
+                string hostnameWithPort = proxy.Split("://")[1];
+                externalTrafficHostname = hostnameWithPort.Split(":")[0];
+            }
+            else if (!string.IsNullOrEmpty(Settings.Current.ParentHostname))
+            {
+                externalTrafficHostname = Settings.Current.ParentHostname;
+            }
+            else
+            {
+                externalTrafficHostname = Settings.Current.IotHubHostname;
+            }
+
+            Log.LogInformation("Determined external traffic ip: {0}", externalTrafficHostname);
+            return externalTrafficHostname;
         }
 
         static async Task StartAsync(INetworkController controller, CancellationToken cancellationToken)

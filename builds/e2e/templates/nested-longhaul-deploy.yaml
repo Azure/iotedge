@@ -1,0 +1,198 @@
+parameters:
+  release.label: ''
+  test.buildNumber: ''
+  test.buildId: ''
+  test.startDelay: ''
+  test.deploymentFileName: ''
+  build.source.branch: ''
+  build.repo.path: ''
+  edgelet.source.branch: ''
+  images.source.branch: ''
+  edgelet.artifact.name: ''
+  images.artifact.name: ''
+  container.registry: ''
+  container.registry.username: ''
+  container.registry.password: ''
+  iotHub.connectionString: ''
+  eventHub.connectionString: ''
+  longHaul.desiredModulesToRestartCSV: ''
+  longHaul.restartIntervalInMins: ''
+  longHaul.sendReportFrequency: ''
+  analyzer.consumerGroupId: ''
+  logAnalytics.workspaceId: ''
+  logAnalytics.sharedKey: ''
+  logAnalytics.logType: ''
+  twinTester.twinUpdateSize: ''
+  metricsCollector.metricsEndpointsCSV: ''
+  metricsCollector.scrapeFrequencyInSecs: ''
+  metricsCollector.uploadTarget: ''
+  metricsCollector.hostPlatform: ''
+  test.runtimeLogLevel: ''
+  longHaul.parentHostname: ''
+  longHaul.parentEdgeDevice: ''
+  testResultCoordinator.storageAccountConnectionString: ''
+  quickstart.package.name: ''
+  upstream.protocol: ''
+  test.trackingId: ''
+
+steps:
+  - checkout: self
+    clean: true
+    fetchDepth: 100
+    submodules: recursive
+  - pwsh: |
+      $imageBuildId = $(resources.pipeline.images.runID)
+      $packageBuildId = $(resources.pipeline.packages.runID)
+
+      if ('$(az.pipeline.images.buildId)')
+      {
+        Write-Output '>> User supplied az.pipeline.images.buildId=$(az.pipeline.images.buildId)'
+        $imageBuildId = '$(az.pipeline.images.buildId)'
+      }
+
+      if ('$(az.pipeline.packages.buildId)')
+      {
+        Write-Output '>> User supplied az.pipeline.packages.buildId=$(az.pipeline.packages.buildId)'
+        $packageBuildId = '$(az.pipeline.packages.buildId)'
+      }
+
+      Write-Output "##vso[task.setvariable variable=imageBuildId]$imageBuildId"
+      Write-Output "##vso[task.setvariable variable=packageBuildId]$packageBuildId"
+
+      Write-Output ">> Package Build ID=$packageBuildId"
+      Write-Output ">> Image Build ID=$imageBuildId"
+    displayName: Override artifacts with user-supplied args     
+  - task: DownloadBuildArtifacts@0
+    displayName: 'Download Edgelet Artifacts'
+    inputs:
+      buildType: specific
+      project: $(resources.pipeline.packages.projectID)
+      pipeline: $(resources.pipeline.packages.pipelineName)
+      buildVersionToDownload: specific
+      buildId: $(packageBuildId)
+      downloadPath: '$(Build.StagingDirectory)'
+      artifactName: ${{ parameters['edgelet.artifact.name'] }}
+      allowPartiallySucceededBuilds: true
+  - task: DownloadBuildArtifacts@0
+    displayName: 'Download Images Artifacts'
+    inputs:
+      buildType: specific
+      project: $(resources.pipeline.images.projectID)
+      pipeline: $(resources.pipeline.images.pipelineName)
+      buildVersionToDownload: specific
+      buildId: $(imageBuildId)
+      downloadPath: '$(Build.StagingDirectory)'
+      artifactName: ${{ parameters['images.artifact.name'] }}
+      allowPartiallySucceededBuilds: true
+      itemPattern: |
+        ${{ parameters['images.artifact.name'] }}/$(quickstart.package.name)
+        ${{ parameters['images.artifact.name'] }}/e2e_deployment_files/${{ parameters['test.deploymentFileName'] }}
+        ${{ parameters['images.artifact.name'] }}/scripts/linux/trcE2ETest.sh
+        ${{ parameters['images.artifact.name'] }}/artifactInfo.txt
+        ${{ parameters['images.artifact.name'] }}/scripts/local/test/DownloadIdentityService.ps1
+        ${{ parameters['images.artifact.name'] }}/CACertificates/certGen.sh
+        ${{ parameters['images.artifact.name'] }}/CACertificates/openssl_root_ca.cnf
+  - task: PowerShell@2
+    displayName: 'Download aziot-identity-service'
+    inputs:
+      filePath: $(Build.StagingDirectory)/${{ parameters['images.artifact.name'] }}/scripts/local/test/DownloadIdentityService.ps1
+    env:
+      GITHUB_TOKEN: $(GitHubAccessToken)
+      ARTIFACT_NAME: $(identityServiceArtifactName)
+      PACKAGE_FILTER: $(identityServicePackageFilter)
+      DOWNLOAD_PATH: $(Build.StagingDirectory)
+      IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
+  - task: CopyFiles@2
+    displayName: 'Copy Edgelet Artifact'
+    inputs:
+      SourceFolder: "$(Build.StagingDirectory)/${{ parameters['edgelet.artifact.name'] }}"
+      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/"
+      CleanTargetFolder: true
+  - task: CopyFiles@2
+    displayName: 'Copy Images Artifact'
+    inputs:
+      SourceFolder: "$(Build.StagingDirectory)/${{ parameters['images.artifact.name'] }}"
+      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}"
+      CleanTargetFolder: true
+  - task: CopyFiles@2
+    displayName: 'Copy aziot-identity-service'
+    inputs:
+      SourceFolder: "$(Build.StagingDirectory)"
+      Contents: "$(identityServicePackageFilter)"
+      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/"
+  - task: Bash@3
+    displayName: 'Generate device certificates'
+    inputs:
+      targetType: inline
+      workingDirectory: "/certs"
+      script: |
+        sudo chmod -R 777 /certs
+        hostName=$(ip route get 8.8.8.8 | sed -n '/src/{s/.*src *\([^ ]*\).*/\1/p;q}')
+        echo "  Hostname IP: ${hostName}"
+        echo "Installing test certificate bundle"
+        ./certGen.sh create_edge_device_certificate "${hostName}"
+        
+        echo "##vso[task.setvariable variable=HostName]${hostName}"
+        echo "##vso[task.setvariable variable=TrustBundle]/certs/certs/azure-iot-test-only.root.ca.cert.pem"
+        echo "##vso[task.setvariable variable=DeviceCaCert]/certs/certs/iot-edge-device-${hostName}-full-chain.cert.pem"
+        echo "##vso[task.setvariable variable=DeviceCaKey]/certs/private/iot-edge-device-${hostName}.key.pem"
+  - task: Bash@3
+    displayName: 'Run Long Haul Deployment'
+    inputs:
+      targetType: inline
+      script: |
+        declare -a cnreg=( ${{ parameters['container.registry.credential'] }} )
+        . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
+        testName="LongHaul"
+        
+        testInfo="TestBuildNumber=${{ parameters['test.buildNumber'] }}"
+        testInfo="$testInfo,TestBuildId=${{ parameters['test.buildId'] }}"
+        testInfo="$testInfo,BuildSourceBranch=${{ parameters['build.source.branch'] }}"
+        testInfo="$testInfo,EdgeletSourceBranch=${{ parameters['edgelet.source.branch'] }}"
+        testInfo="$testInfo,ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
+        testInfo="$testInfo,HostPlatform=${{ parameters['metricsCollector.hostPlatform'] }}"
+        testInfo="$testInfo,TestName=${{ parameters['testInfo.testName'] }}"
+        testInfo="$testInfo,ClientProtocol=All"
+        
+        chmod +x ${{ parameters['build.repo.path'] }}/scripts/linux/trcE2ETest.sh
+        
+        sudo --preserve-env ${{ parameters['build.repo.path'] }}/scripts/linux/trcE2ETest.sh \
+            -testDir "$(Agent.HomeDirectory)/.." \
+            -releaseLabel "${{ parameters['release.label'] }}" \
+            -artifactImageBuildNumber "$BuildNumber" \
+            -testName "$testName" \
+            -testMode "$testName" \
+            -repoPath "${{ parameters['build.repo.path'] }}" \
+            -containerRegistry "${{ parameters['container.registry'] }}" \
+            -containerRegistryUsername "${{ parameters['container.registry.username'] }}" \
+            -containerRegistryPassword "${{ parameters['container.registry.password'] }}" \
+            -iotHubConnectionString "${{ parameters['iotHub.connectionString'] }}" \
+            -eventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" \
+            -testStartDelay "${{ parameters['test.startDelay'] }}" \
+            -restartIntervalInMins "${{ parameters['longHaul.restartIntervalInMins'] }}" \
+            -logAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" \
+            -logAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" \
+            -logAnalyticsLogType "${{ parameters['logAnalytics.logType'] }}" \
+            -metricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" \
+            -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
+            -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
+            -deploymentFileName "${{ parameters['test.deploymentFileName'] }}" \
+            -storageAccountConnectionString "${{ parameters['testResultCoordinator.storageAccountConnectionString'] }}" \
+            -testRuntimeLogLevel "${{ parameters['test.runtimeLogLevel'] }}" \
+            -testInfo "$testInfo" \
+            -twinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" \
+            -desiredModulesToRestartCSV "${{ parameters['longHaul.desiredModulesToRestartCSV'] }}" \
+            -sendReportFrequency "${{ parameters['longHaul.sendReportFrequency'] }}" \
+            -upstreamProtocol "${{ parameters['upstream.protocol'] }}" \
+            -trackingId "${{ parameters['test.trackingId'] }}" \
+            -waitForTestComplete \
+            -cleanAll
+      workingDirectory: "$(Agent.HomeDirectory)/.."
+    env:
+      E2E_nestedEdgeTest: true
+      E2E_trustedCaCerts: $(TrustBundle)
+      E2E_deviceCaCert: $(DeviceCaCert)
+      E2E_deviceCaPrivateKey: $(DeviceCaKey)
+      E2E_parentHostname: ${{ parameters['longHaul.parentHostname'] }}
+      E2E_parentEdgeDevice: ${{ parameters['longHaul.parentEdgeDevice'] }} 
+      E2E_hostname: $(Hostname)

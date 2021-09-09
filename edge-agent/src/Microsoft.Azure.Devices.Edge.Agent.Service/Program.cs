@@ -2,8 +2,10 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Service
 {
     using System;
+    using System.Collections;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Net;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading;
@@ -114,10 +116,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                     storageBackupPath = Option.Some(GetOrCreateDirectoryPath(configuration.GetValue<string>("BackupFolder"), EdgeAgentStorageBackupFolder));
                 }
 
+                backupConfigFilePath = GetFullBackupFilePath(storagePath, backupConfigFilePath);
+
                 edgeDeviceHostName = configuration.GetValue<string>(Constants.EdgeDeviceHostNameKey);
                 dockerLoggingDriver = configuration.GetValue<string>("DockerLoggingDriver");
                 dockerLoggingOptions = configuration.GetSection("DockerLoggingOptions").Get<Dictionary<string, string>>() ?? new Dictionary<string, string>();
                 dockerAuthConfig = configuration.GetSection("DockerRegistryAuth").Get<List<global::Docker.DotNet.Models.AuthConfig>>() ?? new List<global::Docker.DotNet.Models.AuthConfig>();
+
+                NestedEdgeParentUriParser parser = new NestedEdgeParentUriParser();
+                dockerAuthConfig = dockerAuthConfig.Select(c =>
+                {
+                    c.Password = parser.ParseURI(c.Password).GetOrElse(c.Password);
+                    return c;
+                })
+                .ToList();
+
                 configRefreshFrequencySecs = configuration.GetValue("ConfigRefreshFrequencySecs", 3600);
             }
             catch (Exception ex)
@@ -131,7 +144,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             {
                 var builder = new ContainerBuilder();
                 builder.RegisterModule(new LoggingModule(dockerLoggingDriver, dockerLoggingOptions));
-                string productInfo = versionInfo != VersionInfo.Empty ? $"{Constants.IoTEdgeAgentProductInfoIdentifier}/{versionInfo}" : Constants.IoTEdgeAgentProductInfoIdentifier;
+                string productInfo =
+                    versionInfo != VersionInfo.Empty ?
+                    $"{Constants.IoTEdgeAgentProductInfoIdentifier}/{versionInfo}" :
+                    Constants.IoTEdgeAgentProductInfoIdentifier;
                 Option<UpstreamProtocol> upstreamProtocol = configuration.GetValue<string>(Constants.UpstreamProtocolKey).ToUpstreamProtocol();
                 Option<IWebProxy> proxy = Proxy.Parse(configuration.GetValue<string>("https_proxy"), logger);
                 bool closeOnIdleTimeout = configuration.GetValue(Constants.CloseOnIdleTimeout, false);
@@ -139,10 +155,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 TimeSpan idleTimeout = TimeSpan.FromSeconds(idleTimeoutSecs);
                 experimentalFeatures = ExperimentalFeatures.Create(configuration.GetSection("experimentalFeatures"), logger);
                 Option<ulong> storageTotalMaxWalSize = GetConfigIfExists<ulong>(Constants.StorageMaxTotalWalSize, configuration, logger);
+                Option<int> storageMaxOpenFiles = GetConfigIfExists<int>(Constants.StorageMaxOpenFiles, configuration, logger);
                 Option<StorageLogLevel> storageLogLevel = GetConfigIfExists<StorageLogLevel>(Constants.StorageLogLevel, configuration, logger);
                 string iothubHostname;
                 string deviceId;
                 string apiVersion = "2018-06-28";
+                Option<X509Certificate2> manifestTrustBundle = Option.None<X509Certificate2>();
 
                 switch (mode.ToLowerInvariant())
                 {
@@ -152,7 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         IotHubConnectionStringBuilder connectionStringParser = IotHubConnectionStringBuilder.Create(deviceConnectionString);
                         deviceId = connectionStringParser.DeviceId;
                         iothubHostname = connectionStringParser.HostName;
-                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, enableNonPersistentStorageBackup, storageBackupPath, storageTotalMaxWalSize, storageLogLevel));
+                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, enableNonPersistentStorageBackup, storageBackupPath, storageTotalMaxWalSize, storageMaxOpenFiles, storageLogLevel));
                         builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, useServerHeartbeat, backupConfigFilePath));
                         break;
 
@@ -165,11 +183,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         string moduleGenerationId = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
                         apiVersion = configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
                         TimeSpan performanceMetricsUpdateFrequency = configuration.GetTimeSpan("PerformanceMetricsUpdateFrequency", TimeSpan.FromMinutes(5));
-                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), enableNonPersistentStorageBackup, storageBackupPath, storageTotalMaxWalSize, storageLogLevel));
-                        builder.RegisterModule(new EdgeletModule(iothubHostname, edgeDeviceHostName, deviceId, new Uri(managementUri), new Uri(workloadUri), apiVersion, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, performanceMetricsUpdateFrequency, useServerHeartbeat, backupConfigFilePath));
-
-                        IEnumerable<X509Certificate2> trustBundle = await CertificateHelper.GetTrustBundleFromEdgelet(new Uri(workloadUri), apiVersion, Constants.WorkloadApiVersion, moduleId, moduleGenerationId);
+                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), enableNonPersistentStorageBackup, storageBackupPath, storageTotalMaxWalSize, storageMaxOpenFiles, storageLogLevel));
+                        builder.RegisterModule(new EdgeletModule(iothubHostname, deviceId, new Uri(managementUri), new Uri(workloadUri), apiVersion, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, performanceMetricsUpdateFrequency, useServerHeartbeat, backupConfigFilePath));
+                        IEnumerable<X509Certificate2> trustBundle =
+                            await CertificateHelper.GetTrustBundleFromEdgelet(new Uri(workloadUri), apiVersion, Constants.WorkloadApiVersion, moduleId, moduleGenerationId);
                         CertificateHelper.InstallCertificates(trustBundle, logger);
+                        manifestTrustBundle = await CertificateHelper.GetManifestTrustBundleFromEdgelet(new Uri(workloadUri), apiVersion, Constants.WorkloadApiVersion, moduleId, moduleGenerationId);
 
                         break;
 
@@ -203,7 +222,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                             configuration.GetValue<string>(K8sConstants.EdgeK8sObjectOwnerUidKey));
                         bool runAsNonRoot = configuration.GetValue<bool>(K8sConstants.RunAsNonRootKey);
 
-                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), enableNonPersistentStorageBackup, storageBackupPath, storageTotalMaxWalSize, storageLogLevel));
+                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), enableNonPersistentStorageBackup, storageBackupPath, storageTotalMaxWalSize, storageMaxOpenFiles, storageLogLevel));
                         builder.RegisterModule(
                             new KubernetesModule(
                                 iothubHostname,
@@ -239,6 +258,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
                         IEnumerable<X509Certificate2> k8sTrustBundle = await CertificateHelper.GetTrustBundleFromEdgelet(new Uri(workloadUri), apiVersion, Constants.WorkloadApiVersion, moduleId, moduleGenerationId);
                         CertificateHelper.InstallCertificates(k8sTrustBundle, logger);
+
                         break;
 
                     default:
@@ -259,7 +279,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                                 TimeSpan.FromSeconds(configRefreshFrequencySecs),
                                 enableStreams,
                                 TimeSpan.FromSeconds(requestTimeoutSecs),
-                                experimentalFeatures));
+                                experimentalFeatures,
+                                manifestTrustBundle));
                         break;
 
                     case "local":
@@ -274,7 +295,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 metricsConfig = new MetricsConfig(configuration);
                 builder.RegisterModule(new MetricsModule(metricsConfig, iothubHostname, deviceId));
 
-                bool diagnosticsEnabled = configuration.GetValue("SendProductQualityTelemetry", false);
+                bool diagnosticsEnabled = configuration.GetValue("SendRuntimeQualityTelemetry", true);
                 diagnosticConfig = new DiagnosticConfig(diagnosticsEnabled, storagePath, configuration);
                 builder.RegisterModule(new DiagnosticsModule(diagnosticConfig));
 
@@ -311,6 +332,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             {
                 container.Resolve<IMetricsListener>().Start(logger);
                 container.Resolve<ISystemResourcesMetrics>().Start(logger);
+                await container.Resolve<MetadataMetrics>().Start(logger, versionInfo.ToString(true), Newtonsoft.Json.JsonConvert.SerializeObject(experimentalFeatures));
             }
 
             // Initialize metric uploading
@@ -375,7 +397,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
                 if (metricsConfig.Enabled && returnCode == 0)
                 {
-                    container.Resolve<IAvailabilityMetric>().IndicateCleanShutdown();
+                    container.Resolve<IDeploymentMetrics>().IndicateCleanShutdown();
                 }
 
                 completed.Set();
@@ -444,6 +466,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             logger.LogInformation($"Local config path: {localConfigPath}");
             return localConfigPath;
+        }
+
+        static string GetFullBackupFilePath(string storageFolder, string backupFilePath)
+        {
+            if (Path.IsPathRooted(backupFilePath))
+            {
+                return backupFilePath;
+            }
+
+            return Path.Join(storageFolder, backupFilePath);
         }
 
         static PortMapServiceType GetDefaultServiceType(IConfiguration configuration) =>

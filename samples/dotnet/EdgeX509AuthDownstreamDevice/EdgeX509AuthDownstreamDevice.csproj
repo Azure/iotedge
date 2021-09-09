@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="..\..\..\netcoreappVersion.props" />
 
@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.26.0" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.33.1-NestedEdge" />
     <PackageReference Include="Portable.BouncyCastle" Version="1.8.5" />
   </ItemGroup>
 

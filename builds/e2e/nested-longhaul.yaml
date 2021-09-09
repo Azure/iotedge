@@ -1,0 +1,108 @@
+trigger: none
+pr: none
+
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
+
+resources:
+  pipelines:
+  - pipeline: images
+    source: 'Azure-IoT-Edge-Core Build Images'
+    branch: master
+  - pipeline: packages
+    source: 'Azure-IoT-Edge-Core Edgelet Packages'
+    branch: master
+
+stages:
+- stage: SetupAgents 
+  jobs:
+  - template: templates/lock-test-agents.yaml
+    parameters:
+      upstream.protocol: 'amqp'
+  - template: templates/lock-test-agents.yaml
+    parameters:
+      upstream.protocol: 'mqtt'
+
+  # Get the ip address of the L3 agent. Needed for test modules on the middle level L4 agent.
+  - job: Get_L3_IP_mqtt
+    dependsOn:
+      - Lock_Nested_Agents_mqtt
+    displayName: Get ip address of L3 mqtt agent
+    timeoutInMinutes: 180
+    pool:
+     name: $(pool.name)
+     demands:
+       - agent-group -equals $(agent.group)
+       - Agent.OS -equals Linux
+       - Agent.OSArchitecture -equals X64
+       - status -equals unlocked_$(Build.BuildId)_L3_mqtt
+    steps:
+      - script: |
+          L3_IP_ADDRESS_MQTT=$(ip route get 8.8.8.8 | sed -n '/src/{s/.*src *\([^ ]*\).*/\1/p;q}')
+          echo "Ip adress of L3 agent: $L3_IP_ADDRESS_MQTT"
+          echo "##vso[task.setvariable variable=l3IpAddressMqtt;isOutput=true]${L3_IP_ADDRESS_MQTT}"
+        displayName: Get ip address of L3 mqtt agent
+        name: get_l3_ip_mqtt
+
+  - job: Generate_Tracking_Id
+    dependsOn:
+      - Lock_Nested_Agents_mqtt
+    displayName: Generate test tracking id
+    timeoutInMinutes: 180
+    pool:
+     name: $(pool.name)
+     demands:
+       - agent-group -equals $(agent.group)
+       - Agent.OS -equals Linux
+       - Agent.OSArchitecture -equals X64
+    steps:
+      - script: |
+          tracking_id=$(cat /proc/sys/kernel/random/uuid)
+          echo "Test tracking id: $tracking_id"
+          echo "##vso[task.setvariable variable=trackingId;isOutput=true]${tracking_id}"
+        displayName: Generate Tracking Id
+        name: generate_tracking_id
+
+- stage: RunNestedTests
+  dependsOn: SetupAgents
+  variables: 
+    l3IpAddressMqtt: $[ stageDependencies.SetupAgents.Get_L3_IP_mqtt.outputs['get_l3_ip_mqtt.l3IpAddressMqtt'] ]
+    trackingId: $[ stageDependencies.SetupAgents.Generate_Tracking_Id.outputs['generate_tracking_id.trackingId'] ]
+  jobs:
+  - template: templates/nested-parent-vm-setup.yaml
+    parameters:
+      upstream.protocol: amqp
+      test.l4DeploymentFileName: 'nestededge_middleLayerBaseDeployment_amqp.json'
+  - template: templates/nested-longhaul-deploy-amd64.yaml
+    parameters:
+      upstream.protocol: amqp
+      testInfo.testName: 'longhaul (nested-non-broker)'
+  - template: templates/nested-parent-vm-setup.yaml
+    parameters:
+      upstream.protocol: mqtt
+      test.l4DeploymentFileName: 'nestededge_middleLayer_long_haul_mqtt.json'
+      l3IpAddress: '$(l3IpAddressMqtt)'
+      test.trackingId: '$(trackingId)'
+  - template: templates/nested-longhaul-deploy-amd64.yaml
+    parameters:
+      upstream.protocol: mqtt
+      testInfo.testName: 'longhaul (nested-broker)'
+      test.trackingId: '$(trackingId)'
+
+- stage: Cleanup 
+  dependsOn:
+    - SetupAgents
+    - RunNestedTests
+  condition: eq(variables['test.pipeline'], 'true')
+  jobs:
+  - job:  Unlock_agents      
+    displayName: Unlock agents
+    pool:
+      name: $(pool.name)
+      demands:
+        - agent-group -equals $(agent.group)
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+    steps:
+      - template: templates/nested-get-secrets.yaml     
+      - template: templates/unlock-test-agents.yaml 

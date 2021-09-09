@@ -55,8 +55,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     };
                     // Logging options will be derived from these default logging options
                     var loggingConfig = new DockerLoggingConfig("json-file", dockerLoggingOptions);
-                    var config = new DockerConfig(Image, @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""8080/tcp"": [{""HostPort"": ""80""}]}}}", Option.None<NotaryContentTrust>());
-                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, ImagePullPolicy.OnCreate, Constants.DefaultPriority, null, EnvVars);
+                    var config = new DockerConfig(Image, @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""8080/tcp"": [{""HostPort"": ""80""}]}}}", Option.None<string>());
+                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, null, EnvVars);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
                         new Dictionary<string, string>
@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
                     var modules = new Dictionary<string, IModule> { [Name] = module };
                     var systemModules = new SystemModules(null, null);
-                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", string.Empty)), systemModules, modules));
+                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", string.Empty)), systemModules, modules, null));
                     var configSource = new Mock<IConfigSource>();
                     configSource.Setup(cs => cs.Configuration).Returns(configRoot);
                     configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
@@ -126,8 +126,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     await DockerHelper.Client.PullImageAsync(Image, cts.Token);
 
                     var loggingConfig = new DockerLoggingConfig("json-file");
-                    var config = new DockerConfig(Image, @"{""HostConfig"": {""PortBindings"": {""42/udp"": [{""HostPort"": ""42""}]}}}", Option.None<NotaryContentTrust>());
-                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, ImagePullPolicy.OnCreate, Constants.DefaultPriority, null, EnvVars);
+                    var config = new DockerConfig(Image, @"{""HostConfig"": {""PortBindings"": {""42/udp"": [{""HostPort"": ""42""}]}}}", Option.None<string>());
+                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, null, EnvVars);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
                         new Dictionary<string, string>
@@ -138,7 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     // Logging options will be derived from application level configuration
                     var modules = new Dictionary<string, IModule> { [Name] = module };
                     var systemModules = new SystemModules(null, null);
-                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", @"{""Type"":""json-file"",""Config"":{""max-size"":""100M""}}")), systemModules, modules));
+                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", @"{""Type"":""json-file"",""Config"":{""max-size"":""100M""}}")), systemModules, modules, null));
                     var configSource = new Mock<IConfigSource>();
                     configSource.Setup(cs => cs.Configuration).Returns(configRoot);
                     configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
@@ -206,7 +206,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     };
                     var loggingConfig = new DockerLoggingConfig("json-file", dockerLoggingOptions);
                     // Logging options will be derived from module options.
-                    var config = new DockerConfig(Image, @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""LogConfig"": {""Type"":""none""}, ""PortBindings"": {""8080/tcp"": [{""HostPort"": ""80""}],""443/tcp"": [{""HostPort"": ""11443""}]}}}", Option.None<NotaryContentTrust>());
+                    var config = new DockerConfig(Image, @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""LogConfig"": {""Type"":""none""}, ""PortBindings"": {""8080/tcp"": [{""HostPort"": ""80""}],""443/tcp"": [{""HostPort"": ""11443""}]}}}", Option.None<string>());
                     var configurationInfo = new ConfigurationInfo();
                     var module = new EdgeHubDockerModule("docker", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, config, ImagePullPolicy.Never, Constants.HighestPriority, configurationInfo, EnvVars);
 
@@ -221,7 +221,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                         }).Build();
                     var modules = new Dictionary<string, IModule> { [Name] = module };
                     var systemModules = new SystemModules(null, null);
-                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", string.Empty)), systemModules, modules));
+                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", string.Empty)), systemModules, modules, null));
                     var configSource = new Mock<IConfigSource>();
                     configSource.Setup(cs => cs.Configuration).Returns(configRoot);
                     configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
@@ -293,9 +293,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                         { "max-file", "1" }
                     };
                     var loggingConfig = new DockerLoggingConfig("json-file", dockerLoggingOptions);
-                    var config = new DockerConfig(Image, @"{""Env"": [""k1=v1"", ""k2=v2""]}", Option.None<NotaryContentTrust>());
+                    var config = new DockerConfig(Image, @"{""Env"": [""k1=v1"", ""k2=v2""]}", Option.None<string>());
                     var configurationInfo = new ConfigurationInfo("43");
-                    var module = new EdgeHubDockerModule("docker", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, config, ImagePullPolicy.OnCreate, Constants.DefaultPriority, configurationInfo, EnvVars);
+                    var module = new EdgeHubDockerModule("docker", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, config, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, configurationInfo, EnvVars);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
                         new Dictionary<string, string>
@@ -304,7 +304,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                         }).Build();
                     var modules = new Dictionary<string, IModule> { [Name] = module };
                     var systemModules = new SystemModules(null, null);
-                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", "Not a valid JSON")), systemModules, modules));
+                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", "Not a valid JSON")), systemModules, modules, null));
                     var configSource = new Mock<IConfigSource>();
                     configSource.Setup(cs => cs.Configuration).Returns(configRoot);
                     configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
@@ -391,7 +391,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                 "1.0",
                 runtimeInfo.Object,
                 systemModules,
-                ImmutableDictionary<string, IModule>.Empty);
+                ImmutableDictionary<string, IModule>.Empty,
+                null);
             var deploymentConfigInfo = new DeploymentConfigInfo(10, deploymentConfig);
             configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
                 .ReturnsAsync(deploymentConfigInfo);
@@ -408,7 +409,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy,
                     new DockerConfig("image1"),
                     ImagePullPolicy.OnCreate,
-                    Constants.DefaultPriority,
+                    Constants.DefaultStartupOrder,
                     new ConfigurationInfo("1234"),
                     EnvVars),
                 moduleIdentity.Object,
@@ -465,7 +466,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                 "1.0",
                 runtimeInfo.Object,
                 systemModules,
-                ImmutableDictionary<string, IModule>.Empty);
+                ImmutableDictionary<string, IModule>.Empty,
+                null);
             var deploymentConfigInfo = new DeploymentConfigInfo(10, deploymentConfig);
             configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
                 .ReturnsAsync(deploymentConfigInfo);
@@ -482,7 +484,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy,
                     new DockerConfig("image1"),
                     ImagePullPolicy.OnCreate,
-                    Constants.DefaultPriority,
+                    Constants.DefaultStartupOrder,
                     new ConfigurationInfo("1234"),
                     EnvVars),
                 moduleIdentity.Object,
@@ -684,8 +686,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     };
                     // Logging options will be derived from these default logging options
                     var loggingConfig = new DockerLoggingConfig("json-file", dockerLoggingOptions);
-                    var config = new DockerConfig(Image, @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""8080/tcp"": [{""HostPort"": ""80""}]}}}", Option.None<NotaryContentTrust>());
-                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, ImagePullPolicy.OnCreate, Constants.DefaultPriority, null, EnvVars);
+                    var config = new DockerConfig(Image, @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""8080/tcp"": [{""HostPort"": ""80""}]}}}", Option.None<string>());
+                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, null, EnvVars);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
                         new Dictionary<string, string>
@@ -697,7 +699,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
                     var modules = new Dictionary<string, IModule> { [Name] = module };
                     var systemModules = new SystemModules(null, null);
-                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", string.Empty)), systemModules, modules));
+                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", string.Empty)), systemModules, modules, null));
                     var configSource = new Mock<IConfigSource>();
                     configSource.Setup(cs => cs.Configuration).Returns(configRoot);
                     configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
@@ -754,7 +756,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             new TestConfig("EdgeAgentImage"),
             global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always,
             ImagePullPolicy.OnCreate,
-            Constants.DefaultPriority,
+            Constants.DefaultStartupOrder,
             new ConfigurationInfo(),
             EnvVars);
     }

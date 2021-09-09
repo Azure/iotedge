@@ -73,6 +73,44 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
         }
 
         [Fact]
+        public void TestVolMountEdgelet()
+        {
+            // Arrange
+            var runtimeInfo = new Mock<IRuntimeInfo<DockerRuntimeConfig>>();
+            runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
+
+            var module = new Mock<IModule<DockerConfig>>();
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest"));
+            module.SetupGet(m => m.Name).Returns(Constants.EdgeAgentModuleName);
+
+            var unixUris = new Dictionary<string, string>
+            {
+                { Constants.EdgeletWorkloadUriVariableName, "unix:///path/to/workload.sock" },
+                { Constants.EdgeletWorkloadListenMntUriVariableName, "unix:///path/to/homedir/mnt" },
+                { Constants.EdgeletManagementUriVariableName, "unix:///path/to/mgmt.sock" }
+            };
+
+            IConfigurationRoot configRoot = new ConfigurationBuilder()
+                .AddInMemoryCollection(unixUris).Build();
+            var configSource = Mock.Of<IConfigSource>(s => s.Configuration == configRoot);
+            ICombinedConfigProvider<CombinedDockerConfig> provider = new CombinedEdgeletConfigProvider(new[] { new AuthConfig() }, configSource);
+
+            // Act
+            CombinedDockerConfig config = provider.GetCombinedConfig(module.Object, runtimeInfo.Object);
+
+            // Assert
+            Assert.NotNull(config.CreateOptions);
+            Assert.NotNull(config.CreateOptions.HostConfig);
+            Assert.NotNull(config.CreateOptions.HostConfig.Binds);
+            Assert.Equal(2, config.CreateOptions.HostConfig.Binds.Count);
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                Assert.Equal("/path/to/homedir/mnt/edgeAgent.sock:/path/to/workload.sock", config.CreateOptions.HostConfig.Binds[0]);
+                Assert.Equal("/path/to/mgmt.sock:/path/to/mgmt.sock", config.CreateOptions.HostConfig.Binds[1]);
+            }
+        }
+
+        [Fact]
         public void TestNoVolMountForNonUds()
         {
             // Arrange
@@ -177,7 +215,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
 
             string hostNetworkCreateOptions = "{\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}},\"HostConfig\":{\"NetworkMode\":\"host\"}}";
             var module = new Mock<IModule<DockerConfig>>();
-            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", hostNetworkCreateOptions, Option.None<NotaryContentTrust>()));
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", hostNetworkCreateOptions, Option.None<string>()));
             module.SetupGet(m => m.Name).Returns("mod1");
 
             IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
@@ -214,7 +252,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
 
             string createOptions = "{\"HostConfig\":{\"Devices\":[],\"DeviceRequests\":[{\"Driver\":\"\",\"Count\":-1,\"DeviceIDs\":null,\"Capabilities\":[[\"gpu\"]],\"Options\":{}}]}}";
             var module = new Mock<IModule<DockerConfig>>();
-            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", createOptions, Option.None<NotaryContentTrust>()));
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", createOptions, Option.None<string>()));
             module.SetupGet(m => m.Name).Returns("mod1");
 
             IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
@@ -328,7 +366,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
             var runtimeInfo = Mock.Of<IRuntimeInfo<DockerRuntimeConfig>>(ri =>
                 ri.Config == new DockerRuntimeConfig("1.24", string.Empty));
 
-            var module = Mock.Of<IModule<DockerConfig>>(m => m.Config == new DockerConfig("some-image:latest", createOptions, Option.None<NotaryContentTrust>())
+            var module = Mock.Of<IModule<DockerConfig>>(m => m.Config == new DockerConfig("some-image:latest", createOptions, Option.None<string>())
                 && m.Name == Constants.EdgeAgentModuleName
                 && m.Env == dictEnv);
 

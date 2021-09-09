@@ -36,13 +36,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
 
         public string Id => this.id.Value;
 
+        public ModuleSpec ModuleSpec => this.moduleSpec;
+
         public static CreateOrUpdateCommand BuildCreate(
             IModuleManager moduleManager,
             IModule module,
             IModuleIdentity identity,
             IConfigSource configSource,
-            object settings) =>
-            Build(moduleManager, module, identity, configSource, settings, Operation.Create);
+            object settings,
+            string edgeDeviceHostname,
+            Option<string> parentEdgeHostname) =>
+            Build(moduleManager, module, identity, configSource, settings, Operation.Create, edgeDeviceHostname, parentEdgeHostname);
 
         public static CreateOrUpdateCommand BuildUpdate(
             IModuleManager moduleManager,
@@ -50,8 +54,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
             IModuleIdentity identity,
             IConfigSource configSource,
             object settings,
-            bool start) =>
-            Build(moduleManager, module, identity, configSource, settings, start ? Operation.UpdateAndStart : Operation.Update);
+            bool start,
+            string edgeDeviceHostname,
+            Option<string> parentEdgeHostname) =>
+            Build(moduleManager, module, identity, configSource, settings, start ? Operation.UpdateAndStart : Operation.Update, edgeDeviceHostname, parentEdgeHostname);
 
         public Task ExecuteAsync(CancellationToken token)
         {
@@ -90,7 +96,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
             return new ModuleSpec(module.Name, module.Type, module.ImagePullPolicy, settings, envVars);
         }
 
-        static IEnumerable<EnvVar> GetEnvVars(IDictionary<string, EnvVal> moduleEnvVars, IModuleIdentity identity, IConfigSource configSource)
+        static IEnumerable<EnvVar> GetEnvVars(
+            IDictionary<string, EnvVal> moduleEnvVars,
+            IModuleIdentity identity,
+            IConfigSource configSource,
+            string edgeDeviceHostname,
+            Option<string> parentEdgeHostname)
         {
             List<EnvVar> envVars = moduleEnvVars.Select(m => new EnvVar(m.Key, m.Value.Value)).ToList();
 
@@ -118,16 +129,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
                 envVars.Add(new EnvVar(Constants.IotHubHostnameVariableName, identity.IotHubHostname));
             }
 
-            if (!string.IsNullOrWhiteSpace(identity.GatewayHostname))
+            // In nested edge scenario, EdgeAgent and EdgeHub will use parent edge as upstream gateway,
+            // Other modules use current edge hub as upstream gateway and have parent edge hostname in environment variable.
+            if (identity.ModuleId.Equals(Constants.EdgeAgentModuleIdentityName) || identity.ModuleId.Equals(Constants.EdgeHubModuleIdentityName))
             {
-                if (identity.ModuleId.Equals(Constants.EdgeAgentModuleIdentityName) || identity.ModuleId.Equals(Constants.EdgeHubModuleIdentityName))
-                {
-                    envVars.Add(new EnvVar(Constants.EdgeDeviceHostNameKey, identity.GatewayHostname));
-                }
-                else if (!identity.ModuleId.Equals(Constants.EdgeHubModuleIdentityName))
-                {
-                    envVars.Add(new EnvVar(Constants.GatewayHostnameVariableName, identity.GatewayHostname));
-                }
+                envVars.Add(new EnvVar(Constants.EdgeDeviceHostNameKey, edgeDeviceHostname));
+                parentEdgeHostname.ForEach(value => envVars.Add(new EnvVar(Constants.GatewayHostnameVariableName, value)));
+            }
+            else
+            {
+                envVars.Add(new EnvVar(Constants.GatewayHostnameVariableName, edgeDeviceHostname));
+                parentEdgeHostname.ForEach(value => envVars.Add(new EnvVar(Constants.ParentEdgeHostnameVariableName, value)));
             }
 
             if (!string.IsNullOrWhiteSpace(identity.DeviceId))
@@ -168,6 +180,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
                     envVars.Add(new EnvVar(Constants.NetworkIdKey, networkId));
                 }
 
+                string workloadListenMnt = configSource.Configuration.GetValue<string>(Constants.EdgeletWorkloadListenMntUriVariableName);
+                if (!string.IsNullOrEmpty(workloadListenMnt))
+                {
+                    envVars.Add(new EnvVar(Constants.EdgeletWorkloadListenMntUriVariableName, workloadListenMnt));
+                }
+
                 envVars.Add(new EnvVar(Constants.ModeKey, Constants.IotedgedMode));
             }
 
@@ -187,15 +205,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
             IModuleIdentity identity,
             IConfigSource configSource,
             object settings,
-            Operation operation)
+            Operation operation,
+            string edgeDeviceHostname,
+            Option<string> parentEdgeHostname)
         {
             Preconditions.CheckNotNull(moduleManager, nameof(moduleManager));
             Preconditions.CheckNotNull(module, nameof(module));
             Preconditions.CheckNotNull(identity, nameof(identity));
             Preconditions.CheckNotNull(configSource, nameof(configSource));
             Preconditions.CheckNotNull(settings, nameof(settings));
+            Preconditions.CheckNonWhiteSpace(edgeDeviceHostname, nameof(edgeDeviceHostname));
 
-            IEnumerable<EnvVar> envVars = GetEnvVars(module.Env, identity, configSource);
+            IEnumerable<EnvVar> envVars = GetEnvVars(module.Env, identity, configSource, edgeDeviceHostname, parentEdgeHostname);
             ModuleSpec moduleSpec = BuildModuleSpec(module, envVars, settings);
             return new CreateOrUpdateCommand(moduleManager, moduleSpec, operation);
         }

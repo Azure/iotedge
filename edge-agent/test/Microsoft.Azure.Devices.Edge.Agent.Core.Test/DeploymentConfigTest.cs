@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -49,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new TestConfig("microsoft/edgeHub:1.0"),
             RestartPolicy.Always,
             ImagePullPolicy.OnCreate,
-            Constants.DefaultPriority,
+            Constants.DefaultStartupOrder,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -60,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new TestConfig("microsoft/edgeHub:1.0"),
             RestartPolicy.Always,
             ImagePullPolicy.OnCreate,
-            Constants.DefaultPriority,
+            Constants.DefaultStartupOrder,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -71,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new TestConfig("microsoft/edgeHub:2.0"),
             RestartPolicy.Always,
             ImagePullPolicy.OnCreate,
-            Constants.DefaultPriority,
+            Constants.DefaultStartupOrder,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -82,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new TestConfig("microsoft/edgeHub:1.0"),
             RestartPolicy.Always,
             ImagePullPolicy.OnCreate,
-            Constants.DefaultPriority,
+            Constants.DefaultStartupOrder,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -94,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new TestConfig("mod1:v0"),
             RestartPolicy.Always,
             ImagePullPolicy.OnCreate,
-            Constants.DefaultPriority,
+            Constants.DefaultStartupOrder,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -106,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new TestConfig("mod1:v0"),
             RestartPolicy.Always,
             ImagePullPolicy.OnCreate,
-            Constants.DefaultPriority,
+            Constants.DefaultStartupOrder,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -118,7 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new TestConfig("mod1:v2"),
             RestartPolicy.Always,
             ImagePullPolicy.OnCreate,
-            Constants.DefaultPriority,
+            Constants.DefaultStartupOrder,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -130,7 +131,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new TestConfig("mod1:v0"),
             RestartPolicy.Always,
             ImagePullPolicy.OnCreate,
-            Constants.DefaultPriority,
+            Constants.DefaultStartupOrder,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -142,7 +143,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new TestConfig("mod1:v0"),
             RestartPolicy.OnFailure,
             ImagePullPolicy.OnCreate,
-            Constants.DefaultPriority,
+            Constants.DefaultStartupOrder,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -154,7 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new TestConfig("mod1:v0"),
             RestartPolicy.Always,
             ImagePullPolicy.Never,
-            Constants.DefaultPriority,
+            Constants.DefaultStartupOrder,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -202,7 +203,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1,
                 ["mod2"] = TestModule2
-            });
+            },
+            null);
 
         static readonly DeploymentConfig Config1_1 = new DeploymentConfig(
             "1.0",
@@ -212,7 +214,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1_1,
                 ["mod2"] = TestModule2_1
-            });
+            },
+            null);
 
         static readonly DeploymentConfig Config2 = new DeploymentConfig(
             "2.0",
@@ -222,7 +225,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1,
                 ["mod2"] = TestModule2
-            });
+            },
+            null);
 
         static readonly DeploymentConfig Config3 = new DeploymentConfig(
             "1.0",
@@ -232,7 +236,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1,
                 ["mod2"] = TestModule2
-            });
+            },
+            null);
 
         static readonly DeploymentConfig Config4 = new DeploymentConfig(
             "1.0",
@@ -242,7 +247,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1,
                 ["mod2"] = TestModule2
-            });
+            },
+            null);
 
         static readonly DeploymentConfig Config5 = new DeploymentConfig(
             "1.0",
@@ -252,7 +258,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1,
                 ["mod2"] = TestModule2
-            });
+            },
+            null);
 
         static readonly DeploymentConfig Config6 = new DeploymentConfig(
             "1.0",
@@ -262,7 +269,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1,
                 ["mod2"] = TestModule2
-            });
+            },
+            null);
 
         static readonly DeploymentConfig Config7 = new DeploymentConfig(
             "1.0",
@@ -272,7 +280,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1,
                 ["mod2"] = TestModule2
-            });
+            },
+            null);
 
         static readonly DeploymentConfig Config8 = new DeploymentConfig(
             "1.0",
@@ -282,7 +291,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1_2,
                 ["mod2"] = TestModule2
-            });
+            },
+            null);
 
         static readonly DeploymentConfig Config9 = new DeploymentConfig(
             "1.0",
@@ -292,7 +302,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1_3,
                 ["mod2"] = TestModule2
-            });
+            },
+            null);
 
         static readonly DeploymentConfig Config10 = new DeploymentConfig(
             "1.0",
@@ -302,7 +313,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1_4,
                 ["mod2"] = TestModule2
-            });
+            },
+            null);
 
         static readonly DeploymentConfig Config11 = new DeploymentConfig(
             "1.0",
@@ -311,7 +323,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new Dictionary<string, IModule>
             {
                 ["mod1"] = TestModule1
-            });
+            },
+            null);
 
         static readonly DeploymentConfig Config12 = new DeploymentConfig(
             "1.0",
@@ -321,7 +334,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1,
                 ["mod2"] = TestModule2
-            });
+            },
+            null);
 
         static readonly DeploymentConfig Config13 = new DeploymentConfig(
             "1.0",
@@ -331,13 +345,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1,
                 ["mod2"] = TestModule2
-            });
+            },
+            null);
 
         static readonly DeploymentConfig Config14 = new DeploymentConfig(
             "1.0",
             new TestRuntimeInfo("docker"),
             new SystemModules(TestEdgeAgent1, TestEdgeHub1),
-            new Dictionary<string, IModule>());
+            new Dictionary<string, IModule>(),
+            null);
 
         static readonly DeploymentConfig Config15 = new DeploymentConfig(
             "1.1",
@@ -347,7 +363,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1_4,
                 ["mod2"] = TestModule2
-            });
+            },
+            null);
 
         static readonly DeploymentConfig Config16 = new DeploymentConfig(
             "1.0",
@@ -357,7 +374,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1_5,
                 ["mod2"] = TestModule2
-            });
+            },
+            null);
 
         static readonly DeploymentConfig Config17 = new DeploymentConfig(
             "1.0",
@@ -367,7 +385,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1_6,
                 ["mod2"] = TestModule2
-            });
+            },
+            null);
 
         public static IEnumerable<object[]> EqualityTestData()
         {
@@ -390,23 +409,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             yield return new object[] { Config1, Config17, false };
         }
 
-        [Fact]
-        public void BasicTest()
+        [Theory]
+        [MemberData(nameof(TwinIntegrityTestData))]
+        public void BasicTest(string[] signercert, string[] intermediatecacert, string signature, string algo)
         {
             var edgeAgentModule = Mock.Of<IEdgeAgentModule>(m => m.Name == "edgeAgent");
             var edgeHubModule = Mock.Of<IEdgeHubModule>(m => m.Name == "edgeHub");
             var systemModules = new SystemModules(edgeAgentModule, edgeHubModule);
 
-            var mod1 = new TestModule(null, string.Empty, "test", ModuleStatus.Running, new TestConfig("mod1"), RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo(), null);
-            var mod2 = new TestModule(null, string.Empty, "test", ModuleStatus.Running, new TestConfig("mod2"), RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo(), null);
+            var mod1 = new TestModule(null, string.Empty, "test", ModuleStatus.Running, new TestConfig("mod1"), RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, new ConfigurationInfo(), null);
+            var mod2 = new TestModule(null, string.Empty, "test", ModuleStatus.Running, new TestConfig("mod2"), RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, new ConfigurationInfo(), null);
 
             var modules = new Dictionary<string, IModule>
             {
                 ["mod1"] = mod1,
                 ["mod2"] = mod2
             };
-
-            var deploymentConfig = new DeploymentConfig("1.0", Mock.Of<IRuntimeInfo>(), systemModules, modules);
+            var deploymentConfig = new DeploymentConfig("1.0", Mock.Of<IRuntimeInfo>(), systemModules, modules, null);
+            ManifestIntegrity integrity = new ManifestIntegrity(new TwinHeader(signercert, intermediatecacert), new TwinSignature(signature, algo));
+            var deploymentConfigWithTwinIntegrity = new DeploymentConfig("1.0", Mock.Of<IRuntimeInfo>(), systemModules, modules, integrity);
 
             Assert.Equal("mod1", deploymentConfig.Modules["mod1"].Name);
             Assert.Equal("mod2", deploymentConfig.Modules["mod2"].Name);
@@ -418,6 +439,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             Assert.Equal(edgeAgentModule.Name, moduleSet.Modules["edgeAgent"].Name);
             Assert.Equal(modules["mod1"].Name, moduleSet.Modules["mod1"].Name);
             Assert.Equal(modules["mod2"].Name, moduleSet.Modules["mod2"].Name);
+            Assert.Equal(deploymentConfigWithTwinIntegrity.Integrity, Option.Some(integrity));
         }
 
         [Theory]
@@ -429,6 +451,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
             // Assert
             Assert.Equal(areEqual, result);
+        }
+
+        public static IEnumerable<object[]> TwinIntegrityTestData()
+        {
+            yield return new object[] { null, null, "bytes", "algo" };
+            yield return new object[] { new string[] { string.Empty, "signercert2" }, new string[] { string.Empty, "intermediatecacert1" }, "bytes", "algo" };
+            yield return new object[] { new string[] { "signercert1", string.Empty }, new string[] { "intermediatecacert1", string.Empty }, "bytes", "algo" };
+            yield return new object[] { new string[] { "signercert1", "signercert2" }, new string[] { "intermediatecacert1", "intermediatecacert2" }, "bytes", "algo" };
+            yield return new object[] { new string[] { "signercert1", "signercert2" }, new string[] { "intermediatecacert1", "intermediatecacert2" }, string.Empty, "algo" };
+            yield return new object[] { new string[] { "signercert1", "signercert2" }, new string[] { "intermediatecacert1", "intermediatecacert2" }, "bytes", string.Empty };
+            yield return new object[] { new string[] { "signercert1", "signercert2" }, new string[] { "intermediatecacert1", "intermediatecacert2" }, string.Empty, string.Empty };
         }
     }
 }

@@ -64,14 +64,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 case UpstreamProtocol.AmqpWs:
                     var amqpTransportSettings = receivedTransportSettings as AmqpTransportSettings;
                     Assert.NotNull(amqpTransportSettings);
-                    webProxy.ForEach(w => Assert.Equal(w, amqpTransportSettings.Proxy));
+
+                    if (up == UpstreamProtocol.AmqpWs)
+                    {
+                        webProxy.ForEach(w => Assert.Equal(w, amqpTransportSettings.Proxy));
+                    }
+
                     break;
 
                 case UpstreamProtocol.Mqtt:
                 case UpstreamProtocol.MqttWs:
                     var mqttTransportSettings = receivedTransportSettings as MqttTransportSettings;
                     Assert.NotNull(mqttTransportSettings);
-                    webProxy.ForEach(w => Assert.Equal(w, mqttTransportSettings.Proxy));
+
+                    if (up == UpstreamProtocol.MqttWs)
+                    {
+                        webProxy.ForEach(w => Assert.Equal(w, mqttTransportSettings.Proxy));
+                    }
+
                     break;
             }
 
@@ -155,14 +165,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 case UpstreamProtocol.AmqpWs:
                     var amqpTransportSettings = receivedTransportSettings as AmqpTransportSettings;
                     Assert.NotNull(amqpTransportSettings);
-                    webProxy.ForEach(w => Assert.Equal(w, amqpTransportSettings.Proxy));
+
+                    if (up == UpstreamProtocol.AmqpWs)
+                    {
+                        webProxy.ForEach(w => Assert.Equal(w, amqpTransportSettings.Proxy));
+                    }
+
                     break;
 
                 case UpstreamProtocol.Mqtt:
                 case UpstreamProtocol.MqttWs:
                     var mqttTransportSettings = receivedTransportSettings as MqttTransportSettings;
                     Assert.NotNull(mqttTransportSettings);
-                    webProxy.ForEach(w => Assert.Equal(w, mqttTransportSettings.Proxy));
+
+                    if (up == UpstreamProtocol.MqttWs)
+                    {
+                        webProxy.ForEach(w => Assert.Equal(w, mqttTransportSettings.Proxy));
+                    }
+
                     break;
             }
 

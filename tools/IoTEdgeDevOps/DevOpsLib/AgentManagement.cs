@@ -23,11 +23,11 @@ namespace DevOpsLib
 
         public async Task<IList<VstsAgent>> GetAgentsAsync(int poolId)
         {
-            string requestPath = string.Format(AgentListPathSegmentFormat, this.accessSetting.Organization, poolId);
+            string requestPath = string.Format(AgentListPathSegmentFormat, DevOpsAccessSetting.AzureOrganization, poolId);
             IFlurlRequest agentListRequest = DevOpsAccessSetting.BaseUrl
                 .AppendPathSegment(requestPath)
                 .SetQueryParam("api-version", "5.1")
-                .WithBasicAuth(string.Empty, this.accessSetting.PersonalAccessToken);
+                .WithBasicAuth(string.Empty, this.accessSetting.MsazurePAT);
 
             VstsAgentList agentList = await agentListRequest.GetJsonAsync<VstsAgentList>().ConfigureAwait(false);
 
@@ -43,12 +43,12 @@ namespace DevOpsLib
 
         async Task<VstsAgent> GetAgentAsync(int poolId, int agentId)
         {
-            string requestPath = string.Format(AgentPathSegmentFormat, this.accessSetting.Organization, poolId, agentId);
+            string requestPath = string.Format(AgentPathSegmentFormat, DevOpsAccessSetting.AzureOrganization, poolId, agentId);
             IFlurlRequest agentRequest = DevOpsAccessSetting.BaseUrl
                 .AppendPathSegment(requestPath)
                 .SetQueryParam("api-version", "5.1")
                 .SetQueryParam("includeCapabilities", "true")
-                .WithBasicAuth(string.Empty, this.accessSetting.PersonalAccessToken);
+                .WithBasicAuth(string.Empty, this.accessSetting.MsazurePAT);
 
             return await agentRequest.GetJsonAsync<VstsAgent>().ConfigureAwait(false);
         }

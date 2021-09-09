@@ -4,12 +4,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.DeviceManager;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Logs;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
@@ -34,6 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly bool enableStreams;
         readonly TimeSpan requestTimeout;
         readonly ExperimentalFeatures experimentalFeatures;
+        readonly Option<X509Certificate2> manifestTrustBundle;
 
         public TwinConfigSourceModule(
             string iotHubHostname,
@@ -43,7 +46,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             TimeSpan configRefreshFrequency,
             bool enableStreams,
             TimeSpan requestTimeout,
-            ExperimentalFeatures experimentalFeatures)
+            ExperimentalFeatures experimentalFeatures,
+            Option<X509Certificate2> manifestTrustBundle)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
@@ -53,13 +57,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.enableStreams = enableStreams;
             this.requestTimeout = requestTimeout;
             this.experimentalFeatures = experimentalFeatures;
+            this.manifestTrustBundle = manifestTrustBundle;
         }
 
         protected override void Load(ContainerBuilder builder)
         {
             // ILogsUploader
-            builder.Register(c => new AzureBlobLogsUploader(this.iotHubHostName, this.deviceId))
-                .As<ILogsUploader>()
+            builder.Register(c => new AzureBlobRequestsUploader(this.iotHubHostName, this.deviceId))
+                .As<IRequestsUploader>()
                 .SingleInstance();
 
             // Task<ILogsProvider>
@@ -87,38 +92,42 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<IRequestManager>()
                 .SingleInstance();
 
-            if (this.experimentalFeatures.EnableUploadLogs)
-            {
-                // Task<IRequestHandler> - LogsUploadRequestHandler
-                builder.Register(
-                        async c =>
-                        {
-                            var logsUploader = c.Resolve<ILogsUploader>();
-                            var runtimeInfoProviderTask = c.Resolve<Task<IRuntimeInfoProvider>>();
-                            var logsProviderTask = c.Resolve<Task<ILogsProvider>>();
-                            IRuntimeInfoProvider runtimeInfoProvider = await runtimeInfoProviderTask;
-                            ILogsProvider logsProvider = await logsProviderTask;
-                            return new LogsUploadRequestHandler(logsUploader, logsProvider, runtimeInfoProvider) as IRequestHandler;
-                        })
-                    .As<Task<IRequestHandler>>()
-                    .SingleInstance();
-            }
+            // Task<IRequestHandler> - LogsUploadRequestHandler
+            builder.Register(
+                    async c =>
+                    {
+                        var requestUploader = c.Resolve<IRequestsUploader>();
+                        var runtimeInfoProviderTask = c.Resolve<Task<IRuntimeInfoProvider>>();
+                        var logsProviderTask = c.Resolve<Task<ILogsProvider>>();
+                        IRuntimeInfoProvider runtimeInfoProvider = await runtimeInfoProviderTask;
+                        ILogsProvider logsProvider = await logsProviderTask;
+                        return new ModuleLogsUploadRequestHandler(requestUploader, logsProvider, runtimeInfoProvider) as IRequestHandler;
+                    })
+                .As<Task<IRequestHandler>>()
+                .SingleInstance();
 
-            if (this.experimentalFeatures.EnableGetLogs)
-            {
-                // Task<IRequestHandler> - LogsRequestHandler
-                builder.Register(
-                        async c =>
-                        {
-                            var runtimeInfoProviderTask = c.Resolve<Task<IRuntimeInfoProvider>>();
-                            var logsProviderTask = c.Resolve<Task<ILogsProvider>>();
-                            IRuntimeInfoProvider runtimeInfoProvider = await runtimeInfoProviderTask;
-                            ILogsProvider logsProvider = await logsProviderTask;
-                            return new LogsRequestHandler(logsProvider, runtimeInfoProvider) as IRequestHandler;
-                        })
-                    .As<Task<IRequestHandler>>()
-                    .SingleInstance();
-            }
+            // Task<IRequestHandler> - LogsRequestHandler
+            builder.Register(
+                    async c =>
+                    {
+                        var runtimeInfoProviderTask = c.Resolve<Task<IRuntimeInfoProvider>>();
+                        var logsProviderTask = c.Resolve<Task<ILogsProvider>>();
+                        IRuntimeInfoProvider runtimeInfoProvider = await runtimeInfoProviderTask;
+                        ILogsProvider logsProvider = await logsProviderTask;
+                        return new ModuleLogsRequestHandler(logsProvider, runtimeInfoProvider) as IRequestHandler;
+                    })
+                .As<Task<IRequestHandler>>()
+                .SingleInstance();
+
+            // Task<IRequestHandler> - SupportBundleRequestHandler
+            builder.Register(
+                    c =>
+                    {
+                        IRequestHandler handler = new SupportBundleRequestHandler(c.Resolve<IModuleManager>().GetSupportBundle, c.Resolve<IRequestsUploader>(), this.iotHubHostName);
+                        return Task.FromResult(handler);
+                    })
+                .As<Task<IRequestHandler>>()
+                .SingleInstance();
 
             // Task<IRequestHandler> - RestartRequestHandler
             builder.Register(
@@ -149,7 +158,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     var requestManager = c.Resolve<IRequestManager>();
                     var deviceManager = c.Resolve<IDeviceManager>();
                     bool enableSubscriptions = !this.experimentalFeatures.DisableCloudSubscriptions;
-                    IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientprovider, serde, requestManager, deviceManager, enableSubscriptions, this.configRefreshFrequency);
+                    var deploymentMetrics = c.Resolve<IDeploymentMetrics>();
+                    IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientprovider, serde, requestManager, deviceManager, enableSubscriptions, this.configRefreshFrequency, deploymentMetrics, this.manifestTrustBundle);
                     return edgeAgentConnection;
                 })
                 .As<IEdgeAgentConnection>()

@@ -1,33 +1,13 @@
-# -*- mode: dockerfile -*-
+# Use the same base image as prod edgehub images
+ARG base_tag=1.0.6.13-linux-arm32v7
+FROM azureiotedge/azureiotedge-hub-base:${base_tag}
 
-# You can override this `--build-arg BASE_IMAGE=...` to use different
-# version of Rust or OpenSSL.
-ARG BASE_IMAGE=messense/rust-musl-cross:armv7-musleabihf
+ADD ./armv7-unknown-linux-gnueabihf/release/mqttd /usr/local/bin/mqttd
 
-# Our first FROM statement declares the build environment.
-FROM ${BASE_IMAGE} AS builder
-
-# Add our source code.
-ADD . ./
-
-# Build our application.
-RUN cargo build -p mqttd --release && musl-strip /home/rust/src/target/armv7-unknown-linux-musleabihf/release/mqttd
-
-FROM busybox
-
-# Add an unprivileged user account for running mqttd	
-ARG MQTTDUSER_ID=1000
-
-RUN adduser -Du ${MQTTDUSER_ID} mqttduser
-
-ENV RUST_LOG=info
 EXPOSE 1883/tcp
 EXPOSE 8883/tcp
 
-COPY --from=builder \
-    /home/rust/src/target/armv7-unknown-linux-musleabihf/release/mqttd \
-    /usr/local/bin/
-
-USER mqttduser
+# Use an unprivileged user account from base image for running mqttd	
+USER edgehubuser
 
 ENTRYPOINT ["/usr/local/bin/mqttd"]

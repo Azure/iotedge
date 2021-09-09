@@ -2,12 +2,16 @@
 namespace DevOpsLib.VstsModels
 {
     using System;
+    using System.Collections.Generic;
     using Newtonsoft.Json;
 
     // Schema reference: https://docs.microsoft.com/en-us/rest/api/azure/devops/build/builds/get?view=azure-devops-rest-5.1
     [JsonConverter(typeof(JsonPathConverter))]
     public class VstsBuild : IEquatable<VstsBuild>
     {
+        [JsonProperty("id")]
+        public string BuildId { get; set; }
+
         [JsonProperty("definition.id")]
         public BuildDefinitionId DefinitionId { get; set; }
 
@@ -16,6 +20,9 @@ namespace DevOpsLib.VstsModels
 
         [JsonProperty("sourceBranch")]
         public string SourceBranch { get; set; }
+
+        [JsonProperty("sourceVersion")]
+        public string SourceVersion { get; set; }
 
         [JsonProperty("_links.sourceVersionDisplayUri.href")]
         public Uri SourceVersionDisplayUri { get; set; }
@@ -41,9 +48,14 @@ namespace DevOpsLib.VstsModels
         [JsonProperty("lastChangedDate")]
         public DateTime LastChangedDate { get; set; }
 
+        [JsonProperty("requestedBy")]
+        public Dictionary<string, object> RequestedBy { get; set; }
+
         public static VstsBuild CreateBuildWithNoResult(BuildDefinitionId buildDefinitionId, string sourceBranch) =>
             new VstsBuild
             {
+                BuildId = string.Empty,
+                SourceVersion = string.Empty,
                 DefinitionId = buildDefinitionId,
                 BuildNumber = string.Empty,
                 SourceBranch = sourceBranch,
@@ -55,11 +67,22 @@ namespace DevOpsLib.VstsModels
                 StartTime = DateTime.MinValue,
                 FinishTime = DateTime.MinValue,
                 LastChangedDate = DateTime.MinValue,
+                RequestedBy = new Dictionary<string, object>()
             };
 
         public bool HasResult()
         {
             return !string.IsNullOrEmpty(this.BuildNumber);
+        }
+
+        public bool WasScheduled()
+        {
+            if (this.RequestedBy["displayName"] != null && (string)this.RequestedBy["displayName"] == "Microsoft.VisualStudio.Services.TFS")
+            {
+                return true;
+            }
+
+            return false;
         }
 
         public bool Equals(VstsBuild other)
@@ -94,7 +117,7 @@ namespace DevOpsLib.VstsModels
                 return false;
             }
 
-            return this.Equals((VstsBuild) obj);
+            return this.Equals((VstsBuild)obj);
         }
 
         public override int GetHashCode() => this.BuildNumber.GetHashCode();

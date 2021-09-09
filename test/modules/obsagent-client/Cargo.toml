@@ -1,0 +1,29 @@
+[package]
+name = "obsagent-client"
+version = "0.1.0"
+authors = ["Azure IoT Edge Devs"]
+edition = "2018"
+description = "Test module that connects to the IoT Edge Observability Agent for benchmarking and testing purposes."
+
+[dependencies]
+anyhow = "1.0"
+cfg-if = "1.0"
+clap = "2"
+futures = "0.3"
+hyper = { version = "0.14", features = ["http1", "runtime", "server"], optional = true }
+opentelemetry = { version = "0.15", features = ["rt-tokio", "metrics", "serialize"], optional = true }
+opentelemetry-otlp = { version = "0.8", features = ["tonic", "metrics"], optional = true }
+prometheus = { version = "0.12", optional = true }
+rand = "0.8"
+serde_json = "1.0"
+signal-hook = "0.3"
+thiserror = "1.0"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+tracing = "0.1"
+tracing-futures = "0.2"
+tracing-subscriber = "0.2"
+
+[features]
+default = ["prom"]
+otel = ["opentelemetry", "opentelemetry-otlp"]
+prom = ["hyper", "prometheus"]

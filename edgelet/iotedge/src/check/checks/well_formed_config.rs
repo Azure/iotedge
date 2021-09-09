@@ -2,75 +2,73 @@ use std::fs::File;
 
 use failure::{self, Fail};
 
-use edgelet_docker::Settings;
+use edgelet_settings::{Settings, CONFIG_FILE_DEFAULT, UPSTREAM_PARENT_KEYWORD};
 
-use crate::check::{checker::Checker, Check, CheckResult};
+use crate::check::{Check, CheckResult, Checker, CheckerMeta};
+use crate::{Error, ErrorKind};
 
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct WellFormedConfig {}
 
+#[async_trait::async_trait]
 impl Checker for WellFormedConfig {
-    fn id(&self) -> &'static str {
-        "config-yaml-well-formed"
+    fn meta(&self) -> CheckerMeta {
+        CheckerMeta {
+            id: "aziot-edged-config-well-formed",
+            description: "aziot-edged configuration is well-formed",
+        }
     }
-    fn description(&self) -> &'static str {
-        "config.yaml is well-formed"
-    }
-    fn execute(&mut self, check: &mut Check) -> CheckResult {
+
+    async fn execute(&mut self, check: &mut Check) -> CheckResult {
         Self::inner_execute(check).unwrap_or_else(CheckResult::Failed)
-    }
-    fn get_json(&self) -> serde_json::Value {
-        serde_json::to_value(self).unwrap()
     }
 }
 
 impl WellFormedConfig {
     fn inner_execute(check: &mut Check) -> Result<CheckResult, failure::Error> {
-        let config_file = &check.config_file;
-
         // The config crate just returns a "file not found" error when it can't open the file for any reason,
         // even if the real error was a permissions issue.
         //
         // So we first try to open the file for reading ourselves.
-        if let Err(err) = File::open(config_file) {
+        //
+        // It's okay if the file doesn't exist.
+        if let Err(err) = File::open(CONFIG_FILE_DEFAULT) {
             if err.kind() == std::io::ErrorKind::PermissionDenied {
                 return Ok(CheckResult::Fatal(
-                    err.context(format!(
-                        "Could not open file {}. You might need to run this command as {}.",
-                        config_file.display(),
-                        if cfg!(windows) {
-                            "Administrator"
-                        } else {
-                            "root"
-                        },
-                    ))
+                    err.context("Could not open IoT Edge configuration. You might need to run this command as root.")
                     .into(),
                 ));
-            } else {
+            } else if err.kind() != std::io::ErrorKind::NotFound {
                 return Err(err
-                    .context(format!("Could not open file {}", config_file.display()))
+                    .context(format!("Could not open file {}", CONFIG_FILE_DEFAULT))
                     .into());
             }
         }
 
-        let settings = match Settings::new(config_file) {
+        let settings = match Settings::new() {
             Ok(settings) => settings,
             Err(err) => {
                 let message = if check.verbose {
-                    format!(
-                    "The IoT Edge daemon's configuration file {} is not well-formed.\n\
-                     Note: In case of syntax errors, the error may not be exactly at the reported line number and position.",
-                    config_file.display(),
-                )
+                    format!("\
+                        The IoT Edge configuration is not well-formed.\n\
+                        Note: In case of syntax errors, the error may not be exactly at the reported line number and position.\n\
+                        {}
+                    ", err)
                 } else {
-                    format!(
-                        "The IoT Edge daemon's configuration file {} is not well-formed.",
-                        config_file.display(),
-                    )
+                    "The IoT Edge daemon's configuration file is not well-formed.".to_string()
                 };
-                return Err(err.context(message).into());
+                return Err(Error::from(ErrorKind::Check(message)).into());
             }
         };
+
+        if let Some(parent_hostname) = check.parent_hostname.as_ref() {
+            if let Some(image_tail) = check
+                .diagnostics_image_name
+                .strip_prefix(UPSTREAM_PARENT_KEYWORD)
+            {
+                check.diagnostics_image_name = format!("{}{}", parent_hostname, image_tail);
+            }
+        }
 
         check.settings = Some(settings);
 

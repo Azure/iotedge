@@ -1,6 +1,6 @@
 use failure::{self, Context, Fail};
 
-use crate::check::{checker::Checker, Check, CheckResult};
+use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct ContainerEngineIsMoby {
@@ -8,23 +8,23 @@ pub(crate) struct ContainerEngineIsMoby {
     moby_runtime_uri: Option<String>,
 }
 
+#[async_trait::async_trait]
 impl Checker for ContainerEngineIsMoby {
-    fn id(&self) -> &'static str {
-        "container-engine-is-moby"
+    fn meta(&self) -> CheckerMeta {
+        CheckerMeta {
+            id: "container-engine-is-moby",
+            description: "production readiness: container engine",
+        }
     }
-    fn description(&self) -> &'static str {
-        "production readiness: container engine"
-    }
-    fn execute(&mut self, check: &mut Check) -> CheckResult {
+
+    async fn execute(&mut self, check: &mut Check) -> CheckResult {
         self.inner_execute(check)
             .unwrap_or_else(CheckResult::Failed)
-    }
-    fn get_json(&self) -> serde_json::Value {
-        serde_json::to_value(self).unwrap()
     }
 }
 
 impl ContainerEngineIsMoby {
+    #[allow(clippy::unnecessary_wraps)]
     fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
         const MESSAGE: &str =
             "Device is not using a production-supported container engine (moby-engine).\n\
@@ -37,22 +37,6 @@ impl ContainerEngineIsMoby {
             } else {
                 return Ok(CheckResult::Skipped);
             };
-
-        #[cfg(windows)]
-        {
-            let settings = if let Some(settings) = &check.settings {
-                settings
-            } else {
-                return Ok(CheckResult::Skipped);
-            };
-
-            let moby_runtime_uri = settings.moby_runtime().uri().to_string();
-            self.moby_runtime_uri = Some(moby_runtime_uri.clone());
-
-            if moby_runtime_uri != "npipe://./pipe/iotedge_moby_engine" {
-                return Ok(CheckResult::Warning(Context::new(MESSAGE).into()));
-            }
-        }
 
         let docker_server_major_version = docker_server_version
             .split('.')
@@ -72,9 +56,13 @@ impl ContainerEngineIsMoby {
             }
         };
 
-        // Moby does not identify itself in any unique way. Moby devs recommend assuming that anything less than version 10 is Moby,
-        // since it's currently 3.x and regular Docker is in the high 10s.
-        if docker_server_major_version >= 10 {
+        // Older releases of Moby do not identify themselves in any unique way. Moby devs recommended assuming that anything less than version 10 is Moby,
+        // since these old releases are v3.x and regular Docker is in the high 10s.
+        //
+        // Newer releases of Moby follow Docker CE versioning, but have a "+azure" suffix, eg "19.03.12+azure"
+        //
+        // Therefore Docker CE is anything with major version >= 10 but without a "+azure" suffix.
+        if docker_server_major_version >= 10 && !docker_server_version.ends_with("+azure") {
             return Ok(CheckResult::Warning(Context::new(MESSAGE).into()));
         }
 

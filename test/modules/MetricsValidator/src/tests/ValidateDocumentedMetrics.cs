@@ -36,17 +36,6 @@ namespace MetricsValidator.Tests
             var metrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
 
             var expected = this.GetExpectedMetrics();
-            if (RuntimeInformation.OSArchitecture == Architecture.Arm || RuntimeInformation.OSArchitecture == Architecture.Arm64)
-            {
-                // Docker doesn't return this on arm
-                expected.Remove("edgeAgent_created_pids_total");
-            }
-
-            if (OsPlatform.IsWindows())
-            {
-                // Docker doesn't return this on windows
-                expected.Remove("edgeAgent_created_pids_total");
-            }
 
             HashSet<string> unreturnedMetrics = new HashSet<string>(expected.Keys);
             if (expected.Count == 0)
@@ -73,6 +62,37 @@ namespace MetricsValidator.Tests
                     {
                         this.testReporter.Assert(metricId, false, "Metric is not documented.");
                     }
+                }
+            }
+
+            // The following metric should not be populated in a happy E2E path.
+            // We are going to make a list and remove them here to not consider them as a failure.
+            var skippingMetrics = new HashSet<string>
+            {
+                "edgeAgent_twin_signature_check_count",
+                "edgeAgent_twin_signaturs_check_seconds",
+                "edgeAgent_unsuccessful_iothub_syncs_total",
+                "edgehub_client_connect_failed_total",
+                "edgehub_messages_dropped_total",
+                "edgehub_messages_unack_total",
+                "edgehub_offline_count_total",
+                "edgehub_operation_retry_total",
+                "edgehub_twin_signature_check_count",
+                "edgehub_twin_signature_check_seconds",
+                "edgehub_client_disconnect_total"
+            };
+
+            if (!System.Environment.Is64BitOperatingSystem)
+            {
+                // This metric is not part of the scrape on ARM32 machine.
+                skippingMetrics.Add("edgeAgent_created_pids_total");
+            }
+
+            foreach (string skippingMetric in skippingMetrics)
+            {
+                if (unreturnedMetrics.Remove(skippingMetric))
+                {
+                    log.LogInformation($"\"{skippingMetric}\" was depopulated");
                 }
             }
 
@@ -106,11 +126,13 @@ namespace MetricsValidator.Tests
 
         async Task SeedMetrics(CancellationToken cancellationToken)
         {
+            string deviceId = Environment.GetEnvironmentVariable("IOTEDGE_DEVICEID");
+
             await this.moduleClient.SendEventAsync(new Message(Encoding.UTF8.GetBytes("Test message to seed metrics")), cancellationToken);
 
             const string methodName = "FakeDirectMethod";
             await this.moduleClient.SetMethodHandlerAsync(methodName, (_, __) => Task.FromResult(new MethodResponse(200)), null);
-            await this.moduleClient.InvokeMethodAsync(Environment.GetEnvironmentVariable("IOTEDGE_DEVICEID"), Environment.GetEnvironmentVariable("IOTEDGE_MODULEID"), new MethodRequest(methodName), cancellationToken);
+            await this.moduleClient.InvokeMethodAsync(deviceId, Environment.GetEnvironmentVariable("IOTEDGE_MODULEID"), new MethodRequest(methodName), cancellationToken);
 
             await this.moduleClient.UpdateReportedPropertiesAsync(new TwinCollection(), cancellationToken);
             await this.moduleClient.GetTwinAsync(cancellationToken);

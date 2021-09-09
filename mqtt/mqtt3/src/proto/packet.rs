@@ -144,8 +144,6 @@ impl std::fmt::Debug for Connect {
             .field("will", &self.will)
             .field("client_id", &self.client_id)
             .field("keep_alive", &self.keep_alive)
-            .field("protocol_name", &self.protocol_name)
-            .field("protocol_level", &self.protocol_level)
             .finish()
     }
 }
@@ -181,7 +179,7 @@ impl PacketMeta for Connect {
         let client_id = super::Utf8StringDecoder::default()
             .decode(&mut src)?
             .ok_or(super::DecodeError::IncompletePacket)?;
-        let client_id = if client_id == "" {
+        let client_id = if client_id.is_empty() {
             if connect_flags & 0x02 == 0 {
                 return Err(super::DecodeError::ConnectZeroLengthIdWithExistingSession);
             }
@@ -874,7 +872,7 @@ pub struct SubscribeTo {
 /// The level of reliability for a publication
 ///
 /// Ref: 4.3 Quality of Service levels and protocol flows
-#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde1", derive(Deserialize, Serialize))]
 pub enum QoS {
     AtMostOnce,
@@ -889,6 +887,12 @@ impl From<QoS> for u8 {
             QoS::AtLeastOnce => 0x01,
             QoS::ExactlyOnce => 0x02,
         }
+    }
+}
+
+impl std::fmt::Debug for QoS {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{}", u8::from(*self)))
     }
 }
 
@@ -910,6 +914,7 @@ impl From<SubAckQos> for u8 {
 }
 
 /// A message that can be published to the server
+//  but not yet assigned a packet identifier.
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde1", derive(Deserialize, Serialize))]
 pub struct Publication {
@@ -1025,11 +1030,10 @@ impl tokio_util::codec::Decoder for PacketCodec {
     }
 }
 
-impl tokio_util::codec::Encoder for PacketCodec {
-    type Item = Packet;
+impl tokio_util::codec::Encoder<Packet> for PacketCodec {
     type Error = super::EncodeError;
 
-    fn encode(&mut self, item: Self::Item, dst: &mut bytes::BytesMut) -> Result<(), Self::Error> {
+    fn encode(&mut self, item: Packet, dst: &mut bytes::BytesMut) -> Result<(), Self::Error> {
         dst.reserve(std::mem::size_of::<u8>() + 4 * std::mem::size_of::<u8>());
 
         match &item {

@@ -1,0 +1,45 @@
+steps: 
+  - task: Bash@3
+    displayName: 'Az login'
+    inputs:
+      targetType: inline
+      script: |     
+        az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId) 
+  - task: Bash@3
+    displayName: 'Create identity'
+    name: createIdentity
+    inputs:
+      targetType: inline
+      script: |
+        set -e
+
+        echo "Extracting hub name from connection string"
+        #extract full hub name
+        tmp=$(echo "$(IotHub-ConnStr)" | sed -n 's/HostName=\(.*\);SharedAccessKeyName.*/\1/p')
+        #remove the .azure-devices.net  from $tmp
+        iotHubName=$(echo $tmp | sed -n 's/\(.?*\)\..*/\1/p')
+        echo "Found Hub name: ${iotHubName}"
+
+        az account set --subscription $(azure.subscription)
+        deviceId="level_$(level)_$(Build.BuildId)$(upstreamProtocol)"
+
+        echo "Creating ${deviceId} iotedge in iothub: ${iotHubName}, in subscription $(azure.subscription)"
+        if [ "$LEVEL" = "5" ]; then
+            az iot hub device-identity create -n ${iotHubName} -d ${deviceId} --ee --output none
+        else
+            echo "Create device identity and relate it to the parent device Id: $(parentDeviceId)"
+            
+            az iot hub device-identity create -n ${iotHubName} -d ${deviceId} --ee --output none && \
+            az iot hub device-identity parent set --device-id ${deviceId} --hub-name ${iotHubName} --pd $(parentDeviceId)
+        fi
+        connectionString=$(az iot hub device-identity connection-string show -d ${deviceId} -n ${iotHubName} --query 'connectionString' -o tsv)
+
+        #set output variable to use later in the job
+        echo "##vso[task.setvariable variable=deviceId]${deviceId}"
+        echo "##vso[task.setvariable variable=iotHubName]${iotHubName}"
+        echo "##vso[task.setvariable variable=connectionString]${connectionString}"
+
+        #set output variable outside job
+        echo "##vso[task.setvariable variable=connectionString;isOutput=true]${connectionString}"
+        echo "##vso[task.setvariable variable=parentDeviceId;isOutput=true]${deviceId}"
+        echo "##vso[task.setvariable variable=iotHubName;isOutput=true]${iotHubName}"

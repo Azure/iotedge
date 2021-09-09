@@ -1,0 +1,11 @@
+steps:
+  - task: Bash@3
+    displayName: 'Get Device Name'
+    inputs:
+      targetType: inline
+      script: |
+        device_name=$(ip route get 8.8.8.8 | sed -n '/src/{s/.*src *\([^ ]*\).*/\1/p;q}')
+        eval device_name=${device_name}
+        echo "  Hostname FQDN: ${device_name}" 
+        echo "##vso[task.setvariable variable=deviceName]${device_name}"
+

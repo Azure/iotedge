@@ -26,7 +26,7 @@ of values that these KV pairs can take.
 | ----------:|:----------:|:---------------------------- |
 | platform   | string     | "Windows", "Linux"           |
 | osName     | string     | "Windows", "Ubuntu", "CentOS"|
-| osVersion  | string     | "10.0.15063", "16.04"        |
+| osVersion  | string     | "10.0.15063", "18.04"        |
 
 >### Edge Hub
 
@@ -57,7 +57,7 @@ The following is a cumulative JSON representation of the data using sample data:
         "platform": "Linux",
         "os": {
             "name": "Ubuntu",
-            "version: "16.04"
+            "version: "18.04"
         }
     }
 }

@@ -1,0 +1,40 @@
+@startuml api proxy mode design
+
+
+[edgeDaemon]
+[edgeHub]
+
+
+package "API proxy module" {
+
+package "File system2" {
+[nginx_default_config.conf]
+[nginx_config.conf]
+}
+
+package "Controller process" {
+[Certificate Monitor] -up-> [edgeDaemon] : Workload API: get Trusted root,\n private key and cert (1b)
+
+[edgeHub] -[#blue]down-> [Nginx config Monitor]: Notify when a new\n twin is available(1a)
+[Nginx config Monitor] -[#blue]down-> [Nginx controller]:Request nginx restart (4a)
+[Certificate Monitor] -down-> [Nginx controller]:Request nginx restart (3b)
+
+[Nginx config Monitor]--[#blue]down->[nginx_default_config.conf]: (2a)
+[Nginx config Monitor]--[#blue]down->[nginx_config.conf]: (3a)
+
+note right of [Nginx controller]:Restart nginx if\n down or requested
+}
+
+package "File system" {
+[Certificate Monitor] -left->[certificates]: save certs (2b)
+}
+
+
+[Nginx controller]-down->[nginx process]
+[certificates] -down->[nginx process]: (4b) 
+[nginx_config.conf] -[#blue]down->[nginx process]: (5a) 
+}
+
+
+
+@enduml

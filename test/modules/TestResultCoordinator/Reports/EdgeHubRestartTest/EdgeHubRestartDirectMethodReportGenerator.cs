@@ -27,8 +27,8 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             string senderSource,
             string receiverSource,
             TestReportType testReportType,
-            ITestResultCollection<TestOperationResult> senderTestResults,
-            ITestResultCollection<TestOperationResult> receiverTestResults)
+            IAsyncEnumerator<TestOperationResult> senderTestResults,
+            IAsyncEnumerator<TestOperationResult> receiverTestResults)
         {
             this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
             this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
@@ -50,9 +50,9 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
         internal TestReportType TestReportType { get; }
 
-        internal ITestResultCollection<TestOperationResult> SenderTestResults { get; }
+        internal IAsyncEnumerator<TestOperationResult> SenderTestResults { get; }
 
-        internal ITestResultCollection<TestOperationResult> ReceiverTestResults { get; }
+        internal IAsyncEnumerator<TestOperationResult> ReceiverTestResults { get; }
 
         public async Task<ITestResultReport> CreateReportAsync()
         {

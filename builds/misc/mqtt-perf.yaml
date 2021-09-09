@@ -16,12 +16,13 @@
 
 trigger: none
 pr: none
+
 schedules:
   - cron: "0 6 * * *"
     displayName: Pacific Time (UTC-7) Nightly Build
     branches:
       include:
-      - iiot
+      - master
     always: true
 
 # github repo for our fork of mqtt-benchmark tool.
@@ -37,6 +38,7 @@ resources:
 
 variables:
   benchmarkToolPath: $(Agent.WorkFolder)/mqtt-benchmark
+  NugetSecurityAnalysisWarningLevel: warn
 
 stages:
 ################################################################################	
@@ -50,6 +52,7 @@ stages:
     clientDop: 4 # the number of max threads that can execute mqtt-benchmark tool code simultaneously
 
   pool: $(pool.name)
+  condition: always() # run stage even if previous failed
   jobs:
     - template: templates/mqtt-perf-setup.yaml
     - template: templates/mqtt-perf-run.yaml
@@ -65,6 +68,7 @@ stages:
     clientDop: 4 # the number of max threads that can execute mqtt-benchmark tool code simultaneously
 
   pool: $(pool.name)
+  condition: always() # run stage even if previous failed
   jobs:
     - template: templates/mqtt-perf-setup.yaml
     - template: templates/mqtt-perf-run.yaml
@@ -80,6 +84,7 @@ stages:
     clientDop: 4 # the number of max threads that can execute mqtt-benchmark tool code simultaneously
 
   pool: $(pool.name)
+  condition: always() # run stage even if previous failed
   jobs:
     - template: templates/mqtt-perf-setup.yaml
     - template: templates/mqtt-perf-run.yaml

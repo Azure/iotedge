@@ -193,18 +193,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
                         ms.PrivateWorkingSet.ForEach(mem => this.usedMemory.Set(mem, tags));
                     }
                 });
-                module.PidsStats.ForEach(ps => ps.Current.ForEach(current => this.createdPids.Set(current, tags)));
+
+                var tagsNoMsTelemetry = new string[] { name, false.ToString() };
+                module.PidsStats.ForEach(ps => ps.Current.ForEach(current => this.createdPids.Set(current, tagsNoMsTelemetry)));
 
                 module.Networks.ForEach(network =>
                 {
-                    this.networkIn.Set(network.Sum(n => n.Value.RxBytes.OrDefault()), tags);
-                    this.networkOut.Set(network.Sum(n => n.Value.TxBytes.OrDefault()), tags);
+                    this.networkIn.Set(network.Sum(n => n.Value.RxBytes.OrDefault()), tagsNoMsTelemetry);
+                    this.networkOut.Set(network.Sum(n => n.Value.TxBytes.OrDefault()), tagsNoMsTelemetry);
                 });
 
                 module.BlockIoStats.ForEach(disk =>
                 {
-                    this.diskRead.Set(disk.Sum(io => io.Value.Where(d => d.Op.Exists(op => op == "Read")).Sum(d => d.Value.OrDefault())), tags);
-                    this.diskWrite.Set(disk.Sum(io => io.Value.Where(d => d.Op.Exists(op => op == "Write")).Sum(d => d.Value.OrDefault())), tags);
+                    this.diskRead.Set(disk.Sum(io => io.Value.Where(d => d.Op.Exists(op => op == "Read")).Sum(d => d.Value.OrDefault())), tagsNoMsTelemetry);
+                    this.diskWrite.Set(disk.Sum(io => io.Value.Where(d => d.Op.Exists(op => op == "Write")).Sum(d => d.Value.OrDefault())), tagsNoMsTelemetry);
                 });
             }
         }

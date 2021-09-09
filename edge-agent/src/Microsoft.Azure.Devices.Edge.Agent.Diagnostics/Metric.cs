@@ -41,25 +41,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
         /// <returns>Hash of name and tags.</returns>
         int GetMetricKey()
         {
-            return CombineHash(this.Name.GetHashCode(), GetOrderIndependentHash(this.Tags));
+            return HashCode.Combine(this.Name.GetHashCode(), GetOrderIndependentHash(this.Tags));
         }
 
         static int GetOrderIndependentHash<T1, T2>(IEnumerable<KeyValuePair<T1, T2>> dictionary)
         {
-            return CombineHash(dictionary.Select(o => CombineHash(o.Key.GetHashCode(), o.Value.GetHashCode())).OrderBy(h => h).ToArray());
-        }
-
-        // TODO: replace with "return HashCode.Combine();"
-        // when upgraded to .net standard 2.1: https://docs.microsoft.com/en-us/dotnet/api/system.hashcode.combine?view=netstandard-2.1
-        static int CombineHash(params int[] hashes)
-        {
-            int hash = 17;
-            foreach (int h in hashes)
-            {
-                hash = hash * 31 + h;
-            }
-
-            return hash;
+            return dictionary.Select(o => HashCode.Combine(o.Key.GetHashCode(), o.Value.GetHashCode())).OrderBy(h => h).Aggregate(0, HashCode.Combine);
         }
     }
 }

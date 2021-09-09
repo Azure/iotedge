@@ -9,11 +9,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
     public class CombinedDockerConfig
     {
-        public CombinedDockerConfig(string image, CreateContainerParameters createOptions, Option<NotaryContentTrust> notaryContentTrust, Option<AuthConfig> authConfig)
+        public CombinedDockerConfig(string image, CreateContainerParameters createOptions, Option<string> digest, Option<AuthConfig> authConfig)
         {
             this.Image = Preconditions.CheckNonWhiteSpace(image, nameof(image)).Trim();
             this.CreateOptions = Preconditions.CheckNotNull(createOptions, nameof(createOptions));
-            this.NotaryContentTrust = notaryContentTrust;
+            this.Digest = digest;
             this.AuthConfig = authConfig;
         }
 
@@ -23,9 +23,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         [JsonProperty(Required = Required.AllowNull, PropertyName = "createOptions")]
         public CreateContainerParameters CreateOptions { get; }
 
-        [JsonProperty(Required = Required.AllowNull, PropertyName = "notaryContentTrust")]
-        [JsonConverter(typeof(OptionConverter<NotaryContentTrust>))]
-        public Option<NotaryContentTrust> NotaryContentTrust { get; }
+        [JsonProperty(Required = Required.AllowNull, PropertyName = "digest")]
+        [JsonConverter(typeof(OptionConverter<string>))]
+        public Option<string> Digest { get; }
 
         [JsonProperty(Required = Required.AllowNull, PropertyName = "auth")]
         [JsonConverter(typeof(OptionConverter<AuthConfig>))]

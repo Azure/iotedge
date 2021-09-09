@@ -1,0 +1,60 @@
+name: $(version)
+trigger: none
+pr: none
+
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
+  
+jobs:
+  - deployment: publishImages
+    displayName: Publish Linux Images
+    pool:
+      vmImage: ubuntu-18.04
+    workspace:
+      clean: all
+    environment: 'Azure-IoT-Edge-Core Release Env'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+            clean: true
+            fetchDepth: 100
+
+          # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
+          - task: Docker@2
+            displayName: Docker login edgebuilds
+            inputs:
+              command: login
+              containerRegistry: iotedge-edgebuilds-acr
+
+          - task: Docker@2
+            displayName: Docker login edgerelease
+            inputs:
+              command: login
+              containerRegistry: iotedge-release-acr
+        
+          - task: Bash@3
+            displayName: 'Publish Api Proxy - Linux amd64'
+            inputs:
+              filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
+              arguments: '--from $(registry.address)/$(from.registry.namespace)/azureiotedge-api-proxy:$(version)-linux-amd64 --to $(registry.address)/$(to.registry.namespace)/azureiotedge-api-proxy:$(version)-linux-amd64'
+      
+          - task: Bash@3
+            displayName: 'Publish Api Proxy - Linux arm32v7'
+            inputs:
+              filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
+              arguments: '--from $(registry.address)/$(from.registry.namespace)/azureiotedge-api-proxy:$(version)-linux-arm32v7 --to $(registry.address)/$(to.registry.namespace)/azureiotedge-api-proxy:$(version)-linux-arm32v7'
+      
+          - task: Bash@3
+            displayName: 'Publish Api Proxy - Linux arm64v8'
+            inputs:
+              filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
+              arguments: '--from $(registry.address)/$(from.registry.namespace)/azureiotedge-api-proxy:$(version)-linux-arm64v8 --to $(registry.address)/$(to.registry.namespace)/azureiotedge-api-proxy:$(version)-linux-arm64v8'
+      
+          - task: Bash@3
+            displayName: 'Publish Api Proxy Manifest'
+            inputs:
+              targetType: filePath
+              filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/buildManifest.sh'
+              arguments: '-r $(registry.address) -v $(version) -t $(System.DefaultWorkingDirectory)/edge-modules/api-proxy-module/docker/manifest.yaml.template -n $(to.registry.namespace) --tags "$(tags)"'

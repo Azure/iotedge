@@ -112,8 +112,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
                     return false;
                 }))
             {
-                IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
-                IModule m2 = new DockerModule("Module1", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+                IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVars);
+                IModule m2 = new DockerModule("Module1", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVars);
                 ModuleSet addRunning = ModuleSet.Create(m1, m2);
 
                 var client = new Kubernetes(new KubernetesClientConfiguration { Host = server.Uri });
@@ -149,7 +149,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
                     return false;
                 }))
             {
-                IModule m1 = new NonDockerModule("module1", "v1", "unknown", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars, string.Empty);
+                IModule m1 = new NonDockerModule("module1", "v1", "unknown", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, ImagePullPolicy.OnCreate, Core.Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVars, string.Empty);
                 ModuleSet addRunning = ModuleSet.Create(m1);
 
                 var client = new Kubernetes(new KubernetesClientConfiguration { Host = server.Uri });
@@ -163,8 +163,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
         [Unit]
         public async void KubernetesPlannerPlanExistsWhenNoChanges()
         {
-            IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
-            IModule m2 = new DockerModule("module2", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+            IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVars);
+            IModule m2 = new DockerModule("module2", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVars);
             KubernetesConfig kc1 = new KubernetesConfig("image1", CreatePodParameters.Create(), Option.None<AuthConfig>());
             KubernetesConfig kc2 = new KubernetesConfig("image2", CreatePodParameters.Create(), Option.None<AuthConfig>());
             var edgeDefinition = new EdgeDeploymentDefinition("v1", "EdgeDeployment", new V1ObjectMeta(name: ResourceName), new List<KubernetesModule>() { new KubernetesModule(m1, kc1, EdgeletModuleOwner), new KubernetesModule(m2, kc2, EdgeletModuleOwner) }, null);
@@ -225,8 +225,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
                     return false;
                 }))
             {
-                IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
-                IModule m2 = new DockerModule("module2", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+                IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVars);
+                IModule m2 = new DockerModule("module2", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVars);
                 ModuleSet desired = ModuleSet.Create(m1);
                 ModuleSet current = ModuleSet.Create(m2);
 
@@ -263,8 +263,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
                     return Task.FromResult(false);
                 }))
             {
-                IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
-                IModule m2 = new DockerModule("module2", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+                IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVars);
+                IModule m2 = new DockerModule("module2", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVars);
                 ModuleSet desired = ModuleSet.Create(m1);
                 ModuleSet current = ModuleSet.Create(m2);
 
@@ -281,7 +281,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
         [Unit]
         public async void KubernetesPlannerShutdownTest()
         {
-            IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+            IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVars);
             ModuleSet current = ModuleSet.Create(m1);
 
             var planner = new KubernetesPlanner(ResourceName, Selector, Namespace, DefaultClient, DefaultCommandFactory, ConfigProvider, EdgeletModuleOwner);
@@ -291,7 +291,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
 
         class NonDockerModule : IModule<string>
         {
-            public NonDockerModule(string name, string version, string type, ModuleStatus desiredStatus, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy restartPolicy, ImagePullPolicy imagePullPolicy, uint priority, ConfigurationInfo configurationInfo, IDictionary<string, EnvVal> env, string config)
+            public NonDockerModule(string name, string version, string type, ModuleStatus desiredStatus, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy restartPolicy, ImagePullPolicy imagePullPolicy, uint startupOrder, ConfigurationInfo configurationInfo, IDictionary<string, EnvVal> env, string config)
             {
                 this.Name = name;
                 this.Version = version;
@@ -299,7 +299,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
                 this.DesiredStatus = desiredStatus;
                 this.RestartPolicy = restartPolicy;
                 this.ImagePullPolicy = imagePullPolicy;
-                this.Priority = priority;
+                this.StartupOrder = startupOrder;
                 this.ConfigurationInfo = configurationInfo;
                 this.Env = env;
                 this.Config = config;
@@ -319,7 +319,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
 
             public ImagePullPolicy ImagePullPolicy { get; }
 
-            public uint Priority { get; }
+            public uint StartupOrder { get; }
 
             public ConfigurationInfo ConfigurationInfo { get; }
 

@@ -7,6 +7,6 @@ namespace TestResultCoordinator.Reports
     /// <typeparam name="T">Type of test result.</typeparam>
     interface ITestResultComparer<T>
     {
-        bool Matches(T expected, T actaul);
+        bool Matches(T expected, T actual);
     }
 }

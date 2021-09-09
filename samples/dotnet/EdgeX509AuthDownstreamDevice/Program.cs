@@ -99,7 +99,7 @@ namespace Microsoft.Azure.Devices.Client.Samples
             var sr = new StringReader(pemCerts.First() + "\r\n" + privateKey);
             var pemReader = new PemReader(sr);
 
-            RsaPrivateCrtKeyParameters keyParams = null;
+            AsymmetricKeyParameter keyParams = null;
             object certObject = pemReader.ReadObject();
             while (certObject != null)
             {
@@ -109,14 +109,18 @@ namespace Microsoft.Azure.Devices.Client.Samples
                 }
 
                 // when processing certificates generated via openssl certObject type is of AsymmetricCipherKeyPair
-                if (certObject is AsymmetricCipherKeyPair)
+                if (certObject is AsymmetricCipherKeyPair keyPair)
                 {
-                    certObject = ((AsymmetricCipherKeyPair)certObject).Private;
+                    certObject = keyPair.Private;
                 }
 
-                if (certObject is RsaPrivateCrtKeyParameters)
+                if (certObject is RsaPrivateCrtKeyParameters rsaParameters)
                 {
-                    keyParams = (RsaPrivateCrtKeyParameters)certObject;
+                    keyParams = rsaParameters;
+                }
+                else if (certObject is ECPrivateKeyParameters ecParameters)
+                {
+                    keyParams = ecParameters;
                 }
 
                 certObject = pemReader.ReadObject();

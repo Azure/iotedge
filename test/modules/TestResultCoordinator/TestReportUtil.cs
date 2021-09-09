@@ -14,8 +14,10 @@ namespace TestResultCoordinator
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using TestResultCoordinator.Reports;
-    using TestResultCoordinator.Reports.DirectMethod;
+    using TestResultCoordinator.Reports.DirectMethod.Connectivity;
+    using TestResultCoordinator.Reports.DirectMethod.LongHaul;
     using TestResultCoordinator.Reports.EdgeHubRestartTest;
+    using TestResultCoordinator.Reports.LegacyTwin;
 
     static class TestReportUtil
     {
@@ -92,11 +94,17 @@ namespace TestResultCoordinator
                         case TestReportType.TwinCountingReport:
                             reportMetadataList.Add(JsonConvert.DeserializeObject<TwinCountingReportMetadata>(((JProperty)metadata).Value.ToString()));
                             break;
+                        case TestReportType.LegacyTwinReport:
+                            reportMetadataList.Add(JsonConvert.DeserializeObject<LegacyTwinReportMetadata>(((JProperty)metadata).Value.ToString()));
+                            break;
                         case TestReportType.DeploymentTestReport:
                             reportMetadataList.Add(JsonConvert.DeserializeObject<DeploymentTestReportMetadata>(((JProperty)metadata).Value.ToString()));
                             break;
-                        case TestReportType.DirectMethodReport:
-                            reportMetadataList.Add(JsonConvert.DeserializeObject<DirectMethodReportMetadata>(((JProperty)metadata).Value.ToString()));
+                        case TestReportType.DirectMethodConnectivityReport:
+                            reportMetadataList.Add(JsonConvert.DeserializeObject<DirectMethodConnectivityReportMetadata>(((JProperty)metadata).Value.ToString()));
+                            break;
+                        case TestReportType.DirectMethodLongHaulReport:
+                            reportMetadataList.Add(JsonConvert.DeserializeObject<DirectMethodLongHaulReportMetadata>(((JProperty)metadata).Value.ToString()));
                             break;
                         case TestReportType.NetworkControllerReport:
                             reportMetadataList.Add(JsonConvert.DeserializeObject<NetworkControllerReportMetadata>(((JProperty)metadata).Value.ToString()));
@@ -136,7 +144,7 @@ namespace TestResultCoordinator
             return GetContainerSasUri(container);
         }
 
-        internal static async Task UploadLogsAsync(string iotHubConnectionString, Uri blobContainerWriteUri, ILogger logger)
+        internal static async Task UploadLogsAsync(string iotHubConnectionString, Uri blobContainerWriteUri, Option<TimeSpan> logUploadDuration, ILogger logger)
         {
             Preconditions.CheckNonWhiteSpace(iotHubConnectionString, nameof(iotHubConnectionString));
             Preconditions.CheckNotNull(blobContainerWriteUri, nameof(blobContainerWriteUri));
@@ -146,9 +154,19 @@ namespace TestResultCoordinator
             logger.LogInformation("Send upload logs request to edgeAgent.");
 
             ServiceClient serviceClient = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
+
             CloudToDeviceMethod uploadLogRequest =
-                new CloudToDeviceMethod("UploadLogs")
-                    .SetPayloadJson($"{{ \"schemaVersion\": \"1.0\", \"sasUrl\": \"{blobContainerWriteUri.AbsoluteUri}\", \"items\": [{{ \"id\": \".*\", \"filter\": {{}} }}], \"encoding\": \"gzip\" }}");
+                new CloudToDeviceMethod("UploadModuleLogs");
+            uploadLogRequest = logUploadDuration.Match<CloudToDeviceMethod>(
+            (TimeSpan logUploadDuration) =>
+            {
+                DateTime logStart = DateTime.UtcNow - logUploadDuration;
+                return uploadLogRequest.SetPayloadJson($"{{ \"schemaVersion\": \"1.0\", \"sasUrl\": \"{blobContainerWriteUri.AbsoluteUri}\", \"items\": [{{ \"id\": \".*\", \"filter\": {{\"since\": \"{logStart.ToString("O")}\"}} }}], \"encoding\": \"gzip\", \"contentType\": \"json\" }}");
+            },
+            () =>
+            {
+                return uploadLogRequest.SetPayloadJson($"{{ \"schemaVersion\": \"1.0\", \"sasUrl\": \"{blobContainerWriteUri.AbsoluteUri}\", \"items\": [{{ \"id\": \".*\", \"filter\": {{}} }}], \"encoding\": \"gzip\", \"contentType\": \"json\" }}");
+            });
 
             CloudToDeviceMethodResult uploadLogResponse = await serviceClient.InvokeDeviceMethodAsync(Settings.Current.DeviceId, "$edgeAgent", uploadLogRequest);
 

@@ -1,0 +1,243 @@
+trigger: none
+pr: none
+
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
+  itProxy: http://10.16.8.4:3128
+  otProxy: http://10.16.5.4:3128 
+  ressourceGroup: nested-edge-isa95 
+
+resources:
+  pipelines:
+  - pipeline: images
+    source: 'Azure-IoT-Edge-Core Build Images'
+    branch: 'master'
+    trigger:
+      branches:
+      - master
+      - release/*
+  - pipeline: packages
+    source: 'Azure-IoT-Edge-Core Edgelet Packages'
+    branch: 'master'
+    trigger:
+      branches:
+      - master
+      - release/*
+
+stages:
+- stage: SetupVM
+  jobs:
+  - job: SetupVM_level5
+    displayName: SettingUp level 5
+    timeoutInMinutes: 180
+    variables:
+      artifactName: iotedged-ubuntu18.04-amd64
+      identityServiceArtifactName: packages_ubuntu-18.04_amd64
+      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+      level: '5'
+      upstreamProtocol: 'amqp'
+      deploymentFile: 'nestededge_topLayerBaseDeployment_amqp.json'
+      parentName: ''
+      parentDeviceId: ''
+      proxyAddress: $(itProxy)
+    pool:
+      name: $(pool.name)
+      demands:
+        - agent-group -equals $(agent.group)
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+        - level -equals 5
+    steps:
+      - template: templates/nested-get-secrets.yaml
+      - template: templates/e2e-clean-directory.yaml            
+      - template: templates/nested-get-root-ca.yaml       
+      - template: templates/nested-create-identity.yaml   
+      - template: templates/nested-agent-deploy.yaml
+      - task: Bash@3
+        displayName: 'Exporting agentName'
+        name: exportAgentName        
+        inputs:
+          targetType: inline
+          script: |
+            echo "##vso[task.setvariable variable=agentName;isOutput=true]$(Agent.Name)"
+
+  - job: SetupVM_level4
+    dependsOn: SetupVM_level5
+    displayName: SettingUp level 4
+    condition: succeeded()
+    timeoutInMinutes: 180
+    variables:
+      identityServiceArtifactName: packages_ubuntu-18.04_amd64
+      identityServicePackageFilter: aziot-identity-service_*_amd64.deb   
+      artifactName: iotedged-ubuntu18.04-amd64
+      parentName: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]
+      parentDeviceId: $[ dependencies.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ] 
+      deploymentFile: 'nestededge_middleLayerBaseDeployment_amqp.json'
+      level: '4'
+      upstreamProtocol: 'amqp'
+    pool:
+     name: $(pool.name)
+     demands:
+       - agent-group -equals $(agent.group)
+       - Agent.OS -equals Linux
+       - Agent.OSArchitecture -equals X64
+       - level -equals 4    
+    steps:
+      - template: templates/nested-get-secrets.yaml  
+      - template: templates/e2e-clean-directory.yaml                
+      - template: templates/nested-get-root-ca.yaml         
+      - template: templates/nested-create-identity.yaml          
+      - template: templates/nested-agent-deploy.yaml
+      - task: Bash@3
+        displayName: 'Exporting agentName'
+        name: exportAgentName        
+        inputs:
+          targetType: inline
+          script: |
+            echo "##vso[task.setvariable variable=agentName;isOutput=true]$(Agent.Name)"
+
+  - job: SetupVM_level3
+    dependsOn: SetupVM_level4
+    displayName: SettingUp level 3
+    condition: succeeded()
+    timeoutInMinutes: 180
+    variables:
+      identityServiceArtifactName: packages_ubuntu-18.04_amd64
+      identityServicePackageFilter: aziot-identity-service_*_amd64.deb   
+      artifactName: iotedged-ubuntu18.04-amd64
+      parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
+      parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
+      deploymentFile: 'nestededge_isa95_smoke_test_BaseDeployment.json'
+      level: '3'
+      upstreamProtocol: 'amqp'
+      proxyAddress: $(otProxy)    
+    pool:
+     name: $(pool.name)
+     demands:
+       - agent-group -equals $(agent.group)
+       - Agent.OS -equals Linux
+       - Agent.OSArchitecture -equals X64
+       - level -equals 3    
+    steps:
+      - template: templates/nested-get-secrets.yaml  
+      - template: templates/e2e-clean-directory.yaml                
+      - template: templates/nested-get-root-ca.yaml         
+      - template: templates/nested-create-identity.yaml          
+      - template: templates/nested-agent-deploy.yaml
+      - task: Bash@3
+        displayName: 'Exporting agentName'
+        name: exportAgentName
+        inputs:
+          targetType: inline
+          script: |
+            echo "##vso[task.setvariable variable=agentName;isOutput=true]$(Agent.Name)"
+
+  - job: Run_ISA95_test
+    dependsOn:
+      - SetupVM_level5 
+      - SetupVM_level4
+      - SetupVM_level3
+    displayName: Run ISA-95 test
+    condition: succeeded()
+    timeoutInMinutes: 180
+    variables:   
+      Lvl3DeviceId: $[ dependencies.SetupVM_level3.outputs['createIdentity.parentDeviceId'] ]
+      deviceLvl5AgentName: $[ dependencies.SetupVM_level5.outputs['exportAgentName.agentName'] ]         
+      deviceLvl4AgentName: $[ dependencies.SetupVM_level4.outputs['exportAgentName.agentName'] ]       
+      deviceLvl3AgentName: $[ dependencies.SetupVM_level3.outputs['exportAgentName.agentName'] ]  
+      parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
+      parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
+      os: linux
+      arch: amd64
+      artifactName: iotedged-ubuntu18.04-amd64
+      identityServiceArtifactName: packages_ubuntu-18.04_amd64
+      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+      nestededge: true
+      proxyAddress: $(otProxy)
+      test_type: nestededge_isa95      
+    pool:
+     name: $(pool.name)
+     demands:
+       - agent-group -equals $(agent.group)
+       - Agent.OS -equals Linux
+       - Agent.OSArchitecture -equals X64
+       - level -equals jumpbox    
+    steps:
+      - template: templates/nested-get-secrets.yaml  
+      - template: templates/e2e-clean-directory.yaml  
+      - template: templates/nested-isa95-lock.yaml      
+        parameters:
+          agentName: $(deviceLvl5AgentName)
+          lvl: 5
+      - template: templates/nested-isa95-lock.yaml      
+        parameters:
+          agentName: $(deviceLvl4AgentName)
+          lvl: 4
+      - template: templates/nested-isa95-lock.yaml      
+        parameters:
+          agentName: $(deviceLvl3AgentName)
+          lvl: 3
+      - pwsh: |
+          #Sleep 30s to let the rules time to set
+          Start-Sleep -s 30 
+        displayName: Wait for network to lock
+      - template: templates/nested-get-root-ca.yaml    
+      - template: templates/e2e-setup.yaml
+      - template: templates/e2e-run.yaml
+        parameters:
+          EventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
+          IotHubConnectionString: '$(IotHub-ConnStr)'
+          test_type: $(test_type)
+
+  - job:  Clean_up     
+    dependsOn:
+      - SetupVM_level5 
+      - SetupVM_level4
+      - SetupVM_level3
+      - Run_ISA95_test
+    condition: always()
+    displayName: Clean up identities and unlock agents
+    timeoutInMinutes: 3    
+    variables:    
+      deviceLvl5DeviceId: $[ dependencies.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ] 
+      deviceLvl4DeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
+      deviceLvl5IoTHubName: $[ dependencies.SetupVM_level5.outputs['createIdentity.iotHubName'] ] 
+      deviceLvl4IoTHubName: $[ dependencies.SetupVM_level4.outputs['createIdentity.iotHubName'] ]
+      deviceLvl5AgentName: $[ dependencies.SetupVM_level5.outputs['exportAgentName.agentName'] ]         
+      deviceLvl4AgentName: $[ dependencies.SetupVM_level4.outputs['exportAgentName.agentName'] ]       
+      deviceLvl3AgentName: $[ dependencies.SetupVM_level3.outputs['exportAgentName.agentName'] ]  
+      deviceLvl5NSGName: $[ dependencies.Run_ISA95_test.outputs['isa95_lock_lvl5.nsgName'] ]         
+      deviceLvl4NSGName: $[ dependencies.Run_ISA95_test.outputs['isa95_lock_lvl4.nsgName'] ]       
+      deviceLvl3NSGName: $[ dependencies.Run_ISA95_test.outputs['isa95_lock_lvl3.nsgName'] ]  
+ 
+    pool:
+      name: $(pool.name)
+      demands:
+        - agent-group -equals $(agent.group)
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+        - level -equals jumpbox        
+    steps:
+      - template: templates/nested-get-secrets.yaml  
+      - template: templates/nested-clean-identity.yaml
+        parameters:
+          iotHubName: $(deviceLvl5IoTHubName)
+          deviceId: $(deviceLvl5DeviceId)
+          lvl: 5    
+      - template: templates/nested-clean-identity.yaml
+        parameters:
+          iotHubName: $(deviceLvl4IoTHubName)
+          deviceId: $(deviceLvl4DeviceId) 
+          lvl: 4      
+      - template: templates/nested-isa95-unlock.yaml
+        parameters:
+          agentName: $(deviceLvl5AgentName)
+          nsgName: $(deviceLvl5NSGName)
+      - template: templates/nested-isa95-unlock.yaml
+        parameters:
+          agentName: $(deviceLvl4AgentName)
+          nsgName: $(deviceLvl4NSGName)
+      - template: templates/nested-isa95-unlock.yaml
+        parameters:
+          agentName: $(deviceLvl3AgentName)
+          nsgName: $(deviceLvl3NSGName)   

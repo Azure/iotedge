@@ -1,0 +1,82 @@
+name: $(version)
+
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
+  
+jobs:
+################################################################################
+  - job: linux_API_proxy_module
+################################################################################
+    displayName: linuxAPIProxy
+    timeoutInMinutes: 120
+    pool:
+      vmImage: 'ubuntu-18.04'
+    steps:
+      - bash: |
+            if [ -z '$(version)' ]; then
+              echo '##vso[task.setvariable variable=buildVersion]$(Build.BuildNumber)'
+            else
+              echo '##vso[task.setvariable variable=buildVersion]$(version)'
+            fi
+            sudo apt-get update && sudo apt-get -y install qemu binfmt-support qemu-user-static && \
+            docker run --rm --privileged multiarch/qemu-user-static --reset -p yes && \
+            docker buildx rm  mbuilder || true  && \
+            docker buildx create --name mbuilder  || true  && \
+            docker buildx use mbuilder
+            docker -v
+        displayName: 'Set build version'
+      # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
+      - task: Docker@2
+        displayName: Docker login edgebuilds
+        inputs:
+          command: login
+          containerRegistry: iotedge-edgebuilds-acr
+      - task: Docker@2
+        displayName: Docker login edgerelease
+        inputs:
+          command: login
+          containerRegistry: iotedge-release-acr
+      # Build API Proxy executable
+      - template: templates/build-api-proxy.yaml
+      # Build API Proxy Image
+      - template: templates/image-linux.yaml
+        parameters:
+          name: API Proxy
+          imageName: azureiotedge-api-proxy
+          project: api-proxy-module
+          version: $(buildVersion)
+          buildx_flag: false
+      # Check API proxy
+      - task: ComponentGovernanceComponentDetection@0
+        inputs:
+          dockerImagesToScan: '$(registry.address)/microsoft/azureiotedge-api-proxy:$(buildVersion)-linux-amd64,$(registry.address)/microsoft/azureiotedge-api-proxy:$(buildVersion)-linux-arm32v7,$(registry.address)/microsoft/azureiotedge-api-proxy:$(buildVersion)-linux-arm64v8'
+
+################################################################################
+  - job: manifest
+################################################################################
+    displayName: Publish Manifest Images
+    pool:
+      vmImage: 'ubuntu-18.04'
+    dependsOn:
+      - linux_API_proxy_module
+    steps:
+    # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
+    - task: Docker@2
+      displayName: Docker login edgebuilds
+      inputs:
+        command: login
+        containerRegistry: iotedge-edgebuilds-acr
+    - task: Docker@2
+      displayName: Docker login edgerelease
+      inputs:
+        command: login
+        containerRegistry: iotedge-release-acr
+    - bash: |
+          if [ -z '$(version)' ]; then
+            echo '##vso[task.setvariable variable=buildVersion]$(Build.BuildNumber)'
+          else
+            echo '##vso[task.setvariable variable=buildVersion]$(version)'
+          fi
+      displayName: 'Set build version'
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(buildVersion) -t $(System.DefaultWorkingDirectory)/edge-modules/api-proxy-module/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+      displayName: 'Publish azureiotedge-api-proxy Manifest'

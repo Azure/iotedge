@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Blob
         [InlineData(LogsContentEncoding.None, LogsContentType.Text, "log")]
         public void GetExtensionTest(LogsContentEncoding contentEncoding, LogsContentType contentType, string expectedExtension)
         {
-            Assert.Equal(expectedExtension, AzureBlobLogsUploader.GetExtension(contentEncoding, contentType));
+            Assert.Equal(expectedExtension, AzureBlobRequestsUploader.GetLogsExtension(contentEncoding, contentType));
         }
 
         [Fact]
@@ -42,10 +42,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Blob
 
             var regex = new Regex(BlobNameRegexPattern);
 
-            var azureBlobLogsUploader = new AzureBlobLogsUploader(iotHub, deviceId, Mock.Of<IAzureBlobUploader>());
+            var azureBlobLogsUploader = new AzureBlobRequestsUploader(iotHub, deviceId, Mock.Of<IAzureBlobUploader>());
 
             // Act
-            string blobName = azureBlobLogsUploader.GetBlobName(id, LogsContentEncoding.Gzip, LogsContentType.Json);
+            string blobName = azureBlobLogsUploader.GetBlobName(id, AzureBlobRequestsUploader.GetLogsExtension(LogsContentEncoding.Gzip, LogsContentType.Json));
 
             // Assert
             Assert.NotNull(blobName);
@@ -95,10 +95,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Blob
                 })
                 .Returns(azureBlob.Object);
 
-            var azureBlobLogsUploader = new AzureBlobLogsUploader(iotHub, deviceId, azureBlobUploader.Object);
+            var azureBlobLogsUploader = new AzureBlobRequestsUploader(iotHub, deviceId, azureBlobUploader.Object);
 
             // Act
-            await azureBlobLogsUploader.Upload(sasUri, id, payload, LogsContentEncoding.Gzip, LogsContentType.Json);
+            await azureBlobLogsUploader.UploadLogs(sasUri, id, payload, LogsContentEncoding.Gzip, LogsContentType.Json);
 
             // Assert
             Assert.NotNull(receivedBlobName);
@@ -143,10 +143,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Blob
                 })
                 .ReturnsAsync(azureAppendBlob.Object);
 
-            var azureBlobLogsUploader = new AzureBlobLogsUploader(iotHub, deviceId, azureBlobUploader.Object);
+            var azureBlobLogsUploader = new AzureBlobRequestsUploader(iotHub, deviceId, azureBlobUploader.Object);
 
             // Act
-            Func<ArraySegment<byte>, Task> callback = await azureBlobLogsUploader.GetUploaderCallback(sasUri, id, LogsContentEncoding.Gzip, LogsContentType.Json);
+            Func<ArraySegment<byte>, Task> callback = await azureBlobLogsUploader.GetLogsUploaderCallback(sasUri, id, LogsContentEncoding.Gzip, LogsContentType.Json);
 
             Assert.NotNull(callback);
             await callback.Invoke(new ArraySegment<byte>(payload1));

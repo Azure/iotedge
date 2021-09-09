@@ -14,15 +14,17 @@ RPM_VERSION?=$(word 1,$(subst ~, , $(VERSION)))
 _release=$(or $(and $(word 2,$(subst ~, ,$1)),0.${REVISION}.$(word 2,$(subst ~, ,$1))),${REVISION})
 RPM_RELEASE?=$(call _release, ${VERSION})
 
-PACKAGE_NAME=iotedge
+PACKAGE_NAME=aziot-edge
 PACKAGE?="$(PACKAGE_NAME)-$(RPM_VERSION)"
 
 prefix?=/usr
 exec_prefix?=$(prefix)
 bindir?=$(exec_prefix)/bin
+libexecdir?=$(exec_prefix)/libexec
 libdir?=$(exec_prefix)/lib
 sysconfdir?=/etc
 localstatedir?=/var
+rundir?=/run
 datarootdir?=$(prefix)/share
 datadir?=$(datarootdir)
 docdir?=$(datarootdir)/doc/$(PACKAGE_NAME)
@@ -31,12 +33,12 @@ man1=$(mandir)/man1
 man8=$(mandir)/man8
 srcdir?=.
 unitdir?=/lib/systemd/system
+presetdir?=/usr/lib/systemd/system-preset
 
 rpmbuilddir?=$(HOME)/rpmbuild
 vendordir?=vendor
 
 CARGOFLAGS=--manifest-path=$(srcdir)/Cargo.toml
-KUBE_CARGOFLAGS=--manifest-path=$(srcdir)/iotedged/Cargo.toml
 DPKGFLAGS=-b -rfakeroot -us -uc -i
 RPMBUILDFLAGS=-v -bb --clean
 
@@ -52,16 +54,29 @@ MAKE=make
 MKDIR_P=mkdir -p
 SED=sed
 TAR=tar
-HOST_URI_OPTION=
+CONNECT_MANAGEMENT_URI=
+CONNECT_WORKLOAD_URI=
+LISTEN_MANAGEMENT_URI=
+LISTEN_WORKLOAD_URI=
 
 all:
 	VERSION=${VERSION} $(CARGO) build $(CARGOFLAGS)
 
 release:
-	$(HOST_URI_OPTION) VERSION=${VERSION} $(CARGO) build $(CARGOFLAGS) --release -p iotedged -p iotedge
+	# These must be set by the caller:
+	# - `make deb` when building Debian packages
+	# - `rpmbuild` via `make rpm` when building the CentOS package
+	[ -n '$(CONNECT_MANAGEMENT_URI)' ]
+	[ -n '$(CONNECT_WORKLOAD_URI)' ]
+	[ -n '$(LISTEN_MANAGEMENT_URI)' ]
+	[ -n '$(LISTEN_WORKLOAD_URI)' ]
 
-release-kube:
-	$(HOST_URI_OPTION) VERSION=${VERSION} $(CARGO) build $(KUBE_CARGOFLAGS) --no-default-features --features runtime-kubernetes --release
+	IOTEDGE_CONNECT_MANAGEMENT_URI=$(CONNECT_MANAGEMENT_URI) \
+		IOTEDGE_CONNECT_WORKLOAD_URI=$(CONNECT_WORKLOAD_URI) \
+		IOTEDGE_LISTEN_MANAGEMENT_URI=$(LISTEN_MANAGEMENT_URI) \
+		IOTEDGE_LISTEN_WORKLOAD_URI=$(LISTEN_WORKLOAD_URI) \
+		VERSION=${VERSION} \
+		$(CARGO) build $(CARGOFLAGS) --release -p aziot-edged -p iotedge
 
 dist:
 	$(MKDIR_P) $(TARGET)
@@ -80,35 +95,37 @@ distclean:
 	rm -rf .cargo
 	rm -rf $(vendordir)
 
-deb8: HOST_URI_OPTION=IOTEDGE_HOST=unix:///var/lib/iotedge/mgmt.sock
-deb8: release
-	$(INSTALL_PROGRAM) -D $(TARGET)/iotedged $(TARGET)/$(PACKAGE)/iotedged
-	$(INSTALL_PROGRAM) -D $(TARGET)/iotedge $(TARGET)/$(PACKAGE)/iotedge
-	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/iotedge.service $(TARGET)/$(PACKAGE)/debian/iotedge.service
-	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man1/iotedge.1 $(TARGET)/$(PACKAGE)/man/iotedge.1
-	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/iotedged.8 $(TARGET)/$(PACKAGE)/man/iotedged.8
-	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/config.yaml $(TARGET)/$(PACKAGE)/etc/iotedge/config.yaml.template
-	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/logrotate $(TARGET)/$(PACKAGE)/etc/logrotate.d/iotedge
-	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/LICENSE $(TARGET)/$(PACKAGE)$(docdir)/LICENSE
-	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/ThirdPartyNotices $(TARGET)/$(PACKAGE)$(docdir)/ThirdPartyNotices
-	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/trademark $(TARGET)/$(PACKAGE)$(docdir)/trademark
-	cp -R $(srcdir)/contrib/debian $(TARGET)/$(PACKAGE)
-	# debian directory contains files that need to be overwritten for debian8 packages to install correctly
-	cp -R $(srcdir)/contrib/debian8/* $(TARGET)/$(PACKAGE)/debian
-	$(SED) "s/@version@/${DEB_VERSION}/g; s/@revision@/${DEB_REVISION}/g;" $(srcdir)/contrib/debian/changelog > $(TARGET)/$(PACKAGE)/debian/changelog
-	$(SED) "s/@version@/${DEB_VERSION}/g; s/@revision@/${DEB_REVISION}/g;" $(srcdir)/contrib/debian/control > $(TARGET)/$(PACKAGE)/debian/control
-	cd $(TARGET)/$(PACKAGE) && dpkg-buildpackage $(DPKGFLAGS)
-
+deb: CONNECT_MANAGEMENT_URI=unix:///var/run/iotedge/mgmt.sock
+deb: CONNECT_WORKLOAD_URI=unix:///var/run/iotedge/workload.sock
+deb: LISTEN_MANAGEMENT_URI=fd://aziot-edged.mgmt.socket
+deb: LISTEN_WORKLOAD_URI=fd://aziot-edged.workload.socket
 deb: release
-	$(INSTALL_PROGRAM) -D $(TARGET)/iotedged $(TARGET)/$(PACKAGE)/iotedged
+	$(INSTALL_PROGRAM) -D $(TARGET)/aziot-edged $(TARGET)/$(PACKAGE)/aziot-edged
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedge $(TARGET)/$(PACKAGE)/iotedge
-	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/debian/iotedge.service $(TARGET)/$(PACKAGE)/debian/iotedge.service
-	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/debian/iotedge.socket $(TARGET)/$(PACKAGE)/debian/iotedge.socket
-	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/debian/iotedge.mgmt.socket $(TARGET)/$(PACKAGE)/debian/iotedge.mgmt.socket
+	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/debian/aziot-edged.service $(TARGET)/$(PACKAGE)/debian/aziot-edged.service
+	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/debian/aziot-edged.workload.socket $(TARGET)/$(PACKAGE)/debian/aziot-edged.workload.socket
+	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/debian/aziot-edged.mgmt.socket $(TARGET)/$(PACKAGE)/debian/aziot-edged.mgmt.socket
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man1/iotedge.1 $(TARGET)/$(PACKAGE)/man/iotedge.1
-	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/iotedged.8 $(TARGET)/$(PACKAGE)/man/iotedged.8
-	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/debian/config.yaml $(TARGET)/$(PACKAGE)/etc/iotedge/config.yaml.template
-	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/logrotate $(TARGET)/$(PACKAGE)/etc/logrotate.d/iotedge
+	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/aziot-edged.8 $(TARGET)/$(PACKAGE)/man/aziot-edged.8
+
+	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/template.toml $(TARGET)/$(PACKAGE)/etc/aziot/config.toml.edge.template
+	sed -i \
+		-e 's|@connect_workload_uri@|$(CONNECT_WORKLOAD_URI)|' \
+		-e 's|@connect_management_uri@|$(CONNECT_MANAGEMENT_URI)|' \
+		-e 's|@listen_workload_uri@|$(LISTEN_WORKLOAD_URI)|' \
+		-e 's|@listen_management_uri@|$(LISTEN_MANAGEMENT_URI)|' \
+		$(TARGET)/$(PACKAGE)/etc/aziot/config.toml.edge.template
+
+	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/default.toml $(TARGET)/$(PACKAGE)/etc/aziot/edged/config.toml.default
+	sed -i \
+		-e 's|@connect_workload_uri@|$(CONNECT_WORKLOAD_URI)|' \
+		-e 's|@connect_management_uri@|$(CONNECT_MANAGEMENT_URI)|' \
+		-e 's|@listen_workload_uri@|$(LISTEN_WORKLOAD_URI)|' \
+		-e 's|@listen_management_uri@|$(LISTEN_MANAGEMENT_URI)|' \
+		$(TARGET)/$(PACKAGE)/etc/aziot/edged/config.toml.default
+
+	$(INSTALL) -d $(TARGET)/$(PACKAGE)/etc/aziot/edged/config.d
+	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/logrotate $(TARGET)/$(PACKAGE)/etc/logrotate.d/aziot-edge
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/LICENSE $(TARGET)/$(PACKAGE)$(docdir)/LICENSE
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/ThirdPartyNotices $(TARGET)/$(PACKAGE)$(docdir)/ThirdPartyNotices
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/trademark $(TARGET)/$(PACKAGE)$(docdir)/trademark
@@ -117,10 +134,10 @@ deb: release
 	$(SED) "s/@version@/${DEB_VERSION}/g; s/@revision@/${DEB_REVISION}/g;" $(srcdir)/contrib/debian/control > $(TARGET)/$(PACKAGE)/debian/control
 	cd $(TARGET)/$(PACKAGE) && dpkg-buildpackage $(DPKGFLAGS)
 
-rpm: HOST_URI_OPTION=IOTEDGE_HOST=unix:///var/lib/iotedge/mgmt.sock
 rpm:
-	$(SED) "s/@version@/${RPM_VERSION}/g; s/@release@/${RPM_RELEASE}/g;" $(srcdir)/contrib/centos/iotedge.spec > $(rpmbuilddir)/SPECS/iotedge.spec
-	$(HOST_URI_OPTION) rpmbuild $(RPMBUILDFLAGS) $(rpmbuilddir)/SPECS/iotedge.spec
+	cp $(srcdir)/contrib/centos/00-aziot-edged.preset $(rpmbuilddir)/SOURCES
+	$(SED) "s/@version@/${RPM_VERSION}/g; s/@release@/${RPM_RELEASE}/g;" $(srcdir)/contrib/centos/aziot-edge.spec > $(rpmbuilddir)/SPECS/aziot-edge.spec
+	rpmbuild $(RPMBUILDFLAGS) $(rpmbuilddir)/SPECS/aziot-edge.spec
 
 rpm-dist:
 	@echo Running git archive...
@@ -138,17 +155,35 @@ rpm-dist:
 	rm -f $(TARGET)/$(PACKAGE).tar
 
 install: release
-	$(INSTALL_PROGRAM) -D $(TARGET)/iotedged $(DESTDIR)$(bindir)/iotedged
+	$(INSTALL_PROGRAM) -D $(TARGET)/aziot-edged $(DESTDIR)$(libexecdir)/aziot/aziot-edged
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedge $(DESTDIR)$(bindir)/iotedge
-	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/config.yaml $(DESTDIR)$(sysconfdir)/iotedge/config.yaml
-	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/iotedge
-	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/iotedge.service $(DESTDIR)$(unitdir)/iotedge.service
+
+	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/template.toml $(DESTDIR)$(sysconfdir)/aziot/config.toml.edge.template
+	sed -i \
+		-e 's|@connect_workload_uri@|$(CONNECT_WORKLOAD_URI)|' \
+		-e 's|@connect_management_uri@|$(CONNECT_MANAGEMENT_URI)|' \
+		-e 's|@listen_workload_uri@|$(LISTEN_WORKLOAD_URI)|' \
+		-e 's|@listen_management_uri@|$(LISTEN_MANAGEMENT_URI)|' \
+		$(DESTDIR)$(sysconfdir)/aziot/config.toml.edge.template
+
+	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/default.toml $(DESTDIR)$(sysconfdir)/aziot/edged/config.toml.default
+	sed -i \
+		-e 's|@connect_workload_uri@|$(CONNECT_WORKLOAD_URI)|' \
+		-e 's|@connect_management_uri@|$(CONNECT_MANAGEMENT_URI)|' \
+		-e 's|@listen_workload_uri@|$(LISTEN_WORKLOAD_URI)|' \
+		-e 's|@listen_management_uri@|$(LISTEN_MANAGEMENT_URI)|' \
+		$(DESTDIR)$(sysconfdir)/aziot/edged/config.toml.default
+
+	$(INSTALL) -d -m 0700 $(DESTDIR)$(sysconfdir)/aziot/edged/config.d
+	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/aziot-edge
+	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/aziot-edged.service $(DESTDIR)$(unitdir)/aziot-edged.service
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man1/iotedge.1 $(DESTDIR)$(man1)/iotedge.1
 	$(GZIP) $(DESTDIR)$(man1)/iotedge.1
-	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/iotedged.8 $(DESTDIR)$(man8)/iotedged.8
-	$(GZIP) $(DESTDIR)$(man8)/iotedged.8
+	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/aziot-edged.8 $(DESTDIR)$(man8)/aziot-edged.8
+	$(GZIP) $(DESTDIR)$(man8)/aziot-edged.8
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(localstatedir)/lib/aziot/edged
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(localstatedir)/log/aziot/edged
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(localstatedir)/lib/iotedge
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(localstatedir)/log/iotedge
 	$(INSTALL) -m 0660 /dev/null $(DESTDIR)$(localstatedir)/lib/iotedge/mgmt.sock
 	$(INSTALL) -m 0666 /dev/null $(DESTDIR)$(localstatedir)/lib/iotedge/workload.sock
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/LICENSE $(DESTDIR)$(docdir)/LICENSE
@@ -157,16 +192,23 @@ install: release
 	$(GZIP) $(DESTDIR)$(docdir)/LICENSE
 	$(GZIP) $(DESTDIR)$(docdir)/ThirdPartyNotices
 
+install-rpm: install
+	$(INSTALL_DATA) -D $(rpmbuilddir)/SOURCES/00-aziot-edged.preset $(DESTDIR)$(presetdir)/00-aziot-edged.preset
+
 uninstall:
-	rm -f $(DESTDIR)$(bindir)/iotedged
+	rm -f $(DESTDIR)$(bindir)/aziot-edged
 	rm -f $(DESTDIR)$(bindir)/iotedge
 	-rm -f $(DESTDIR)$(man1)/iotedge.1
-	-rm -f $(DESTDIR)$(man8)/iotedged.8
-	-rm $(DESTDIR)$(systconfdir)/iotedge/config.yaml
-	-rm $(DESTDIR)$(systconfdir)/logrotate.d/iotedge
+	-rm -f $(DESTDIR)$(man8)/aziot-edged.8
+	-rm $(DESTDIR)$(systconfdir)/aziot/config.toml.edge.template
+	-rm $(DESTDIR)$(systconfdir)/aziot/edged/config.toml.default
+	-rm $(DESTDIR)$(systconfdir)/logrotate.d/aziot-edge
 	-rm $(DESTDIR)$(docdir)/LICENSE
 	-rm $(DESTDIR)$(docdir)/ThirdPartyNotices
 	-rm $(DESTDIR)$(docdir)/trademark
+
+test:
+	cargo test
 
 clean:
 	rm -rf $(TARGET)
@@ -177,4 +219,4 @@ version:
 	@echo "rpm version:  ${RPM_VERSION}"
 	@echo "rpm release:  ${RPM_RELEASE}"
 
-.PHONY: all clean deb deb8 dist install rpm rpm-dist uninstall version
+.PHONY: all clean deb dist install install-rpm rpm rpm-dist uninstall version

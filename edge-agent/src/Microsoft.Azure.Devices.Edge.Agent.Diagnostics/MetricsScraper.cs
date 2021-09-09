@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
         /// <summary>
         /// Initializes a new instance of the <see cref="MetricsScraper"/> class.
         /// </summary>
-        /// <param name="endpoints">List of endpoints to scrape from. Endpoints must expose metrics in the prometheous format.
+        /// <param name="endpoints">List of endpoints to scrape from. Endpoints must expose metrics in the prometheus format.
         /// Endpoints should be in the form "http://edgeHub:9600/metrics".</param>
         /// <param name="systemTime">Source for current time.</param>
         public MetricsScraper(IList<string> endpoints, ISystemTime systemTime = null)
@@ -81,14 +81,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                 // Temporary. Only needed until edgeHub starts using asp.net to expose endpoints
                 endpoint = this.GetUriWithIpAddress(endpoint);
 
-                HttpResponseMessage result = await this.httpClient.GetAsync(endpoint, cancellationToken);
-                if (result.IsSuccessStatusCode)
+                using (HttpResponseMessage result = await this.httpClient.GetAsync(endpoint, cancellationToken))
                 {
-                    return await result.Content.ReadAsStringAsync();
-                }
-                else
-                {
-                    Log.LogInformation($"Error connecting to {endpoint} with result error code {result.StatusCode}");
+                    if (result.IsSuccessStatusCode)
+                    {
+                        return await result.Content.ReadAsStringAsync();
+                    }
+                    else
+                    {
+                        Log.LogInformation($"Error connecting to {endpoint} with result error code {result.StatusCode}");
+                    }
                 }
             }
             catch (Exception e)

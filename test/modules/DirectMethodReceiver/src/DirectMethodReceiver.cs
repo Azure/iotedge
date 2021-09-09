@@ -80,6 +80,7 @@ namespace DirectMethodReceiver
         {
             this.moduleClient = await ModuleUtil.CreateModuleClientAsync(
                 this.configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only),
+                new ClientOptions(),
                 ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                 ModuleUtil.DefaultTransientRetryStrategy,
                 this.logger);

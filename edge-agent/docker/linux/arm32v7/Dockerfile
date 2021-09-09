@@ -1,4 +1,4 @@
-ARG base_tag=1.0.6-linux-arm32v7
+ARG base_tag=1.0.6.13-linux-arm32v7
 FROM azureiotedge/azureiotedge-agent-base:${base_tag}
 
 ARG EXE_DIR=.
@@ -7,5 +7,4 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
-CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Edge Agent" && \
-    exec /usr/bin/dotnet Microsoft.Azure.Devices.Edge.Agent.Service.dll
+CMD exec /app/agentStart.sh

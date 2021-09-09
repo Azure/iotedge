@@ -15,5 +15,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
 
         protected override IEntityStore<TK, TV> GetEntityStore<TK, TV>(string entityName)
             => this.storeProvider.GetEntityStore<TK, TV>(entityName);
+
+        protected override IEntityStore<TK, TV> GetEntityStore<TK, TV>(string backwardCompatibilityEntityName, string entityName)
+           => this.storeProvider.GetEntityStore<TK, TV>(backwardCompatibilityEntityName, entityName);
     }
 }

@@ -33,7 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
                     {
                         ["mod1"] = mod1,
                         ["mod2"] = mod2
-                    }));
+                    },
+                    null));
             var configSource = Mock.Of<IConfigSource>(c => c.GetDeploymentConfigInfoAsync() == Task.FromResult(deploymentConfigInfo));
 
             var moduleSet = ModuleSet.Create(edgeAgent, edgeHub, mod1, mod2);
@@ -81,7 +82,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
                     {
                         ["mod1"] = mod1,
                         ["mod2"] = mod2
-                    }));
+                    },
+                    null));
             var configSource = Mock.Of<IConfigSource>(c => c.GetDeploymentConfigInfoAsync() == Task.FromResult(deploymentConfigInfo));
 
             var moduleSet = ModuleSet.Create(edgeAgent, edgeHub, mod1, mod2);
@@ -128,7 +130,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
                     {
                         ["mod1"] = mod1,
                         ["mod2"] = mod2
-                    }));
+                    },
+                    null));
             var configSource = Mock.Of<IConfigSource>(c => c.GetDeploymentConfigInfoAsync() == Task.FromResult(deploymentConfigInfo));
 
             var moduleSet = ModuleSet.Create(edgeAgent, edgeHub, mod1, mod2);
@@ -172,7 +175,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
                     {
                         ["mod1"] = mod1,
                         ["mod2"] = mod2
-                    }));
+                    },
+                    null));
             var configSource = Mock.Of<IConfigSource>(c => c.GetDeploymentConfigInfoAsync() == Task.FromResult(deploymentConfigInfo));
 
             var moduleSet = ModuleSet.Create(edgeAgent, edgeHub, mod1, mod2);
@@ -222,7 +226,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
                     {
                         ["mod1"] = mod1,
                         ["mod2"] = mod2
-                    }));
+                    },
+                    null));
             var configSource = Mock.Of<IConfigSource>(c => c.GetDeploymentConfigInfoAsync() == Task.FromResult(deploymentConfigInfo));
 
             var moduleSet = ModuleSet.Create(edgeAgent, edgeHub, mod1, mod2);

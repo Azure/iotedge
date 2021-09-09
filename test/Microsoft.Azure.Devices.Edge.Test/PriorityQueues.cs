@@ -7,16 +7,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Linq;
     using System.Net;
     using System.Net.Http;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Common;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
-    using Microsoft.Azure.EventHubs;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using NUnit.Framework;
@@ -34,14 +33,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string DefaultLoadGenTestStartDelay = "00:00:20";
 
         [Test]
+        [Category("FlakyOnArm")]
         public async Task PriorityQueueModuleToModuleMessages()
         {
-            // TODO: Fix PriorityQueue E2E tests for Windows and ARM32
-            if (OsPlatform.IsWindows() || !OsPlatform.Is64Bit() )
-            {
-                Assert.Ignore("Priority Queue module to module messages test has been disabled for Windows and Arm32 until we can fix it.");
-            }
-
             CancellationToken token = this.TestToken;
             string trcImage = Context.Current.TestResultCoordinatorImage.Expect(() => new ArgumentException("testResultCoordinatorImage parameter is required for Priority Queues test"));
             string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));
@@ -49,24 +43,21 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string trackingId = Guid.NewGuid().ToString();
             TestInfo testInfo = this.InitTestInfo(5, 1000, true);
 
-            Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, RelayerModuleName, trcImage, loadGenImage, testInfo, false);
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig, token);
+            Action<EdgeConfigBuilder> addLoadGenConfig = this.BuildAddLoadGenConfig(trackingId, loadGenImage, testInfo, false);
+            Action<EdgeConfigBuilder> addTrcConfig = TestResultCoordinatorUtil.BuildAddTestResultCoordinatorConfig(trackingId, trcImage, LoadGenModuleName, RelayerModuleName);
+
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig, token, Context.Current.NestedEdge);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
             Action<EdgeConfigBuilder> addRelayerConfig = this.BuildAddRelayerConfig(relayerImage, loadGenTestStatus);
-            deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token, false);
+            deployment = await this.runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig + addRelayerConfig, token, Context.Current.NestedEdge);
             await this.PollUntilFinishedAsync(RelayerModuleName, token);
-            await this.ValidateResultsAsync();
+            await TestResultCoordinatorUtil.ValidateResultsAsync();
         }
 
         [Test]
+        [Category("Flaky")]
         public async Task PriorityQueueModuleToHubMessages()
         {
-            // TODO: Add Windows and ARM32. Windows won't be able to work for this test until we add NetworkController Windows implementation
-            if (OsPlatform.IsWindows() || !OsPlatform.Is64Bit())
-            {
-                Assert.Ignore("Priority Queue module to module messages test has been disabled for Windows and Arm32 until we can fix it.");
-            }
-
             CancellationToken token = this.TestToken;
             string trcImage = Context.Current.TestResultCoordinatorImage.Expect(() => new ArgumentException("testResultCoordinatorImage parameter is required for Priority Queues test"));
             string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));
@@ -77,33 +68,30 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             var testResultReportingClient = new TestResultReportingClient { BaseUrl = "http://localhost:5001" };
 
-            Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, "hubtest", trcImage, loadGenImage, testInfo, true);
-            Action<EdgeConfigBuilder> addNetworkControllerConfig = this.BuildAddNetworkControllerConfig(trackingId, networkControllerImage);
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addNetworkControllerConfig, token);
+            Action<EdgeConfigBuilder> addLoadGenConfig = this.BuildAddLoadGenConfig(trackingId, loadGenImage, testInfo, true);
+            Action<EdgeConfigBuilder> addTrcConfig = TestResultCoordinatorUtil.BuildAddTestResultCoordinatorConfig(trackingId, trcImage, LoadGenModuleName, "hubtest");
+            Action<EdgeConfigBuilder> addNetworkControllerConfig = TestResultCoordinatorUtil.BuildAddNetworkControllerConfig(trackingId, networkControllerImage);
+
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig + addNetworkControllerConfig, token, Context.Current.NestedEdge);
             bool networkOn = true;
             await this.ToggleConnectivity(!networkOn, NetworkControllerModuleName, token);
             await Task.Delay(TimeSpan.Parse(LoadGenTestDuration) + TimeSpan.Parse(testInfo.LoadGenStartDelay) + TimeSpan.FromSeconds(10));
             await this.ToggleConnectivity(networkOn, NetworkControllerModuleName, token);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
             ConcurrentQueue<MessageTestResult> messages = new ConcurrentQueue<MessageTestResult>();
-            await this.ReceiveEventsFromIotHub(deployment.StartTime, messages, loadGenTestStatus, token);
+            await this.ReceiveEventsFromIotHub(deployment.StartTime, messages, loadGenTestStatus, trackingId, token);
             while (messages.TryDequeue(out MessageTestResult messageTestResult))
             {
                 await testResultReportingClient.ReportResultAsync(messageTestResult.ToTestOperationResultDto());
             }
 
-            await this.ValidateResultsAsync();
+            await TestResultCoordinatorUtil.ValidateResultsAsync();
         }
 
         [Test]
+        [Category("FlakyOnArm")]
         public async Task PriorityQueueTimeToLive()
         {
-            // TODO: Fix PriorityQueue TTL E2E tests for Windows and ARM32
-            if (OsPlatform.IsWindows() || !OsPlatform.Is64Bit())
-            {
-                Assert.Ignore("Priority Queue time to live test has been disabled for Windows and Arm32 until we can fix it.");
-            }
-
             CancellationToken token = this.TestToken;
             string trcImage = Context.Current.TestResultCoordinatorImage.Expect(() => new ArgumentException("testResultCoordinatorImage parameter is required for Priority Queues test"));
             string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));
@@ -111,8 +99,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string trackingId = Guid.NewGuid().ToString();
             TestInfo testInfo = this.InitTestInfo(5, 20);
 
-            Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, RelayerModuleName, trcImage, loadGenImage, testInfo, false);
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig, token);
+            Action<EdgeConfigBuilder> addLoadGenConfig = this.BuildAddLoadGenConfig(trackingId, loadGenImage, testInfo, false);
+            Action<EdgeConfigBuilder> addTrcConfig = TestResultCoordinatorUtil.BuildAddTestResultCoordinatorConfig(trackingId, trcImage, LoadGenModuleName, RelayerModuleName);
+
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig, token, Context.Current.NestedEdge);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
 
             // Wait long enough for TTL to expire for some of the messages
@@ -120,18 +110,18 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await Task.Delay(testInfo.TtlThreshold * 1000);
 
             Action<EdgeConfigBuilder> addRelayerConfig = this.BuildAddRelayerConfig(relayerImage, loadGenTestStatus);
-            deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token, false);
+            deployment = await this.runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig + addRelayerConfig, token, Context.Current.NestedEdge);
             await this.PollUntilFinishedAsync(RelayerModuleName, token);
-            await this.ValidateResultsAsync();
+            await TestResultCoordinatorUtil.ValidateResultsAsync();
         }
 
-        async Task ReceiveEventsFromIotHub(DateTime startTime, ConcurrentQueue<MessageTestResult> messages, PriorityQueueTestStatus loadGenTestStatus, CancellationToken token)
+        async Task ReceiveEventsFromIotHub(DateTime startTime, ConcurrentQueue<MessageTestResult> messages, PriorityQueueTestStatus loadGenTestStatus, string trackingId, CancellationToken token)
         {
             await Profiler.Run(
                 async () =>
                 {
                     HashSet<int> results = new HashSet<int>();
-                    await this.iotHub.ReceiveEventsAsync(
+                    await this.IotHub.ReceiveEventsAsync(
                         this.runtime.DeviceId,
                         startTime,
                         data =>
@@ -142,13 +132,23 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             {
                                 int sequenceNumber = int.Parse(data.Properties["sequenceNumber"].ToString());
                                 Log.Verbose($"Received message from IoTHub with sequence number: {sequenceNumber}");
-                                messages.Enqueue(new MessageTestResult("hubtest.receive", DateTime.UtcNow)
+
+                                var receivedTrackingId = (string)data.Properties["trackingId"];
+                                if (!receivedTrackingId.IsNullOrWhiteSpace() && receivedTrackingId.Equals(trackingId))
                                 {
-                                    TrackingId = data.Properties["trackingId"].ToString(),
-                                    BatchId = data.Properties["batchId"].ToString(),
-                                    SequenceNumber = data.Properties["sequenceNumber"].ToString()
-                                });
-                                results.Add(sequenceNumber);
+                                    messages.Enqueue(new MessageTestResult("hubtest.receive", DateTime.UtcNow)
+                                    {
+                                        TrackingId = data.Properties["trackingId"].ToString(),
+                                        BatchId = data.Properties["batchId"].ToString(),
+                                        SequenceNumber = data.Properties["sequenceNumber"].ToString()
+                                    });
+                                    results.Add(sequenceNumber);
+                                }
+                                else
+                                {
+                                    var message = receivedTrackingId.IsNullOrWhiteSpace() ? "EMPTY" : receivedTrackingId;
+                                    Log.Verbose($"Message contains incorrect tracking id: {message}. Ignoring.");
+                                }
                             }
                             else
                             {
@@ -161,20 +161,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 },
                 "Received {ResultCount} unique results from IoTHub",
                 loadGenTestStatus.ResultCount);
-        }
-
-        private async Task ValidateResultsAsync()
-        {
-            HttpClient client = new HttpClient();
-            HttpResponseMessage response = await client.GetAsync("http://localhost:5001/api/report");
-            var jsonstring = await response.Content.ReadAsStringAsync();
-            bool isPassed = (bool)JArray.Parse(jsonstring)[0]["IsPassed"];
-            if (!isPassed)
-            {
-                Log.Verbose("Test Result Coordinator response: {Response}", jsonstring);
-            }
-
-            Assert.IsTrue(isPassed);
         }
 
         private Action<EdgeConfigBuilder> BuildAddRelayerConfig(string relayerImage, PriorityQueueTestStatus loadGenTestStatus)
@@ -212,50 +198,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 });
         }
 
-        private Action<EdgeConfigBuilder> BuildAddInitialConfig(string trackingId, string actualSource, string trcImage, string loadGenImage, TestInfo testInfo, bool cloudUpstream)
+        private Action<EdgeConfigBuilder> BuildAddLoadGenConfig(string trackingId, string loadGenImage, TestInfo testInfo, bool cloudUpstream)
         {
             return new Action<EdgeConfigBuilder>(
                 builder =>
                 {
-                    // This test uses the TestResultCoordinator. It was originally designed for connectivity tests, so many of the parameters
-                    // are unnecessary for the e2e tests.
-                    // TODO: Make TestResultCoordinator more generic, so we don't have to fill out garbage values in the e2e tests.
-                    builder.AddModule(TrcModuleName, trcImage)
-                       .WithEnvironment(new[]
-                       {
-                           ("trackingId", trackingId),
-                           ("useTestResultReportingService", "false"),
-                           ("useResultEventReceivingService", "false"),
-                           ("IOT_HUB_CONNECTION_STRING", Context.Current.ConnectionString),
-                           ("testStartDelay", "00:00:00"),
-                           ("testDuration", "00:20:00"),
-                           ("verificationDelay", "00:00:00"),
-                           ("NetworkControllerRunProfile", "Online"),
-                           ("TEST_INFO", "key=unnecessary")
-                       })
-                       .WithSettings(new[] { ("createOptions", "{\"HostConfig\": {\"PortBindings\": {\"5001/tcp\": [{\"HostPort\": \"5001\"}]}}}") })
-
-                       .WithDesiredProperties(new Dictionary<string, object>
-                       {
-                           ["reportMetadataList"] = new Dictionary<string, object>
-                           {
-                               ["reportMetadata1"] = new Dictionary<string, object>
-                               {
-                                   ["TestReportType"] = "CountingReport",
-                                   ["TestOperationResultType"] = "Messages",
-                                   ["ExpectedSource"] = $"{LoadGenModuleName}.send",
-                                   ["ActualSource"] = $"{actualSource}.receive",
-                                   ["TestDescription"] = "unnecessary"
-                               },
-                               ["reportMetadata2"] = new Dictionary<string, object>
-                               {
-                                   ["TestReportType"] = "NetworkControllerReport",
-                                   ["Source"] = $"{NetworkControllerModuleName}",
-                                   ["TestDescription"] = "network controller"
-                               }
-                           }
-                       });
-
                     builder.AddModule(LoadGenModuleName, loadGenImage)
                         .WithEnvironment(new[]
                         {
@@ -349,7 +296,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         private async Task ToggleConnectivity(bool connectivityOn, string moduleName, CancellationToken token) =>
             await Profiler.Run(
                 async () =>
-                    await this.iotHub.InvokeMethodAsync(
+                    await this.IotHub.InvokeMethodAsync(
                         this.runtime.DeviceId,
                         moduleName,
                         new CloudToDeviceMethod("toggleConnectivity", TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(20)).SetPayloadJson($"{{\"networkOnValue\": \"{connectivityOn}\"}}"),
@@ -363,7 +310,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             do
             {
                 await Task.Delay(TimeSpan.FromSeconds(5));
-                var result = await this.iotHub.InvokeMethodAsync(this.runtime.DeviceId, moduleName, new CloudToDeviceMethod("IsFinished", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)), token);
+                var result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, moduleName, new CloudToDeviceMethod("IsFinished", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)), token);
                 Assert.AreEqual(result.Status, (int)HttpStatusCode.OK);
                 testStatus = JsonConvert.DeserializeObject<PriorityQueueTestStatus>(result.GetPayloadAsJson());
             }

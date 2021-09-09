@@ -1,0 +1,7 @@
+# Defaults for aziot-edged initscript
+# sourced by /etc/init.d/aziot-edged
+# installed at /etc/default/aziot-edged by the maintainer scripts
+
+#
+# This is a POSIX shell fragment
+#

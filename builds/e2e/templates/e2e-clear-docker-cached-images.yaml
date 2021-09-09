@@ -1,0 +1,34 @@
+steps:
+- task: Docker@2
+  displayName: Docker login edgebuilds
+  inputs:
+    command: login
+    containerRegistry: iotedge-edgebuilds-acr
+
+- pwsh: |
+    # We use a self-hosted agent for this job, so we need to clean up
+    # old docker images and containers to keep disk usage in check. But
+    # pull any required images for this test run first, to take advantage
+    # of cached layers from the old images (and also so that the pull
+    # operation doesn't count against each test's timeout period).
+
+    # Get images required for this run
+    $images = Get-Content -Encoding UTF8 '$(binDir)/context.json' `
+        | ConvertFrom-Json `
+        | foreach { $_.PSObject.Properties } `
+        | where { $_.Name -match 'Image$' } `
+        | foreach { $_.Value }
+
+    # Pull required images
+    $images | foreach { sudo --preserve-env docker pull $_ }
+
+    # Remove old images
+    $remove = sudo docker images --format '{{.Repository}}:{{.Tag}}' `
+        | where { $images -notcontains $_ }
+    sudo docker rm -f $(sudo docker ps -a -q)
+    $remove | foreach { sudo docker rmi $_ }
+
+    # Delete everything else
+    sudo docker network prune -f
+    sudo docker volume prune -f
+  displayName: Clear Docker Cached images

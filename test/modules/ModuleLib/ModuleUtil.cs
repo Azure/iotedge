@@ -32,6 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
 
         public static async Task<ModuleClient> CreateModuleClientAsync(
             TransportType transportType,
+            ClientOptions options,
             ITransientErrorDetectionStrategy transientErrorDetectionStrategy = null,
             RetryStrategy retryStrategy = null,
             ILogger logger = null)
@@ -42,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
                 WriteLog(logger, LogLevel.Error, $"Retry {args.CurrentRetryCount} times to create module client and failed with exception:{Environment.NewLine}{args.LastException}");
             };
 
-            ModuleClient client = await retryPolicy.ExecuteAsync(() => InitializeModuleClientAsync(transportType, logger));
+            ModuleClient client = await retryPolicy.ExecuteAsync(() => InitializeModuleClientAsync(transportType, options, logger));
             return client;
         }
 
@@ -84,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
             }
         }
 
-        static async Task<ModuleClient> InitializeModuleClientAsync(TransportType transportType, ILogger logger)
+        static async Task<ModuleClient> InitializeModuleClientAsync(TransportType transportType, ClientOptions options, ILogger logger)
         {
             ITransportSettings[] GetTransportSettings()
             {
@@ -103,8 +104,9 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
             }
 
             ITransportSettings[] settings = GetTransportSettings();
-            WriteLog(logger, LogLevel.Information, $"Trying to initialize module client using transport type [{transportType}].");
-            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
+            string modelIdIsPresent = !string.IsNullOrEmpty(options.ModelId) ? $"with modelId {options.ModelId}" : string.Empty;
+            WriteLog(logger, LogLevel.Information, $"Trying to initialize module client using transport type [{transportType}] {modelIdIsPresent}.");
+            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings, options);
             await moduleClient.OpenAsync();
 
             WriteLog(logger, LogLevel.Information, $"Successfully initialized module client of transport type [{transportType}].");

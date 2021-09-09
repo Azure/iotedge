@@ -1,0 +1,24 @@
+provisioning:
+  source: 'manual'
+  device_connection_string: 'HostName=example.azure-devices.net;DeviceId=my-device;SharedAccessKey=YXppb3QtaWRlbnRpdHktc2VydmljZXxhemlvdC1pZGU='
+
+agent:
+  name: 'edgeAgent'
+  type: 'docker'
+  config:
+    image: 'mcr.microsoft.com/azureiotedge-agent:1.0'
+
+hostname: 'my-device'
+
+connect:
+  management_uri: 'unix:///var/lib/iotedge/mgmt.sock'
+  workload_uri: 'unix:///var/lib/iotedge/workload.sock'
+
+listen:
+  management_uri: 'unix:///var/lib/iotedge/mgmt.sock'
+  workload_uri: 'unix:///var/lib/iotedge/workload.sock'
+
+homedir: '/var/lib/iotedge'
+
+moby_runtime:
+  uri: 'unix:///var/run/docker.sock'

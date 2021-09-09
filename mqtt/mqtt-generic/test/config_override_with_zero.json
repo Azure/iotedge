@@ -1,0 +1,10 @@
+{
+    "broker": {
+        "session": {
+            "max_message_size": 0,
+            "max_inflight_messages": 0,
+            "max_queued_messages": 0,
+            "max_queued_size": 0
+        }
+    }
+}

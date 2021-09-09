@@ -4,7 +4,7 @@
 This directory has the elements to create containers to cross compile to 
 various platforms, for building the edgelet packages.  Each platform here 
 has corresponding scripts in [iotedge/edgelet/build/linux](../../iotedge/edgelet/build/linux) 
-to assist is building the iotedge and libiothsm-std packages.
+to assist is building the aziot-edge packages.
 
 The table below lists what platforms we cross compile for and how to build these containers.
 
@@ -21,8 +21,8 @@ The table below lists what platforms we cross compile for and how to build these
 | Centos 7.5                   | arm64 | Dockerfile.centos7.aarch64-unknown-linux-gnueabi     | `centos/build_arm64_toolchain_container.sh aarch64-unknown-linux-gnu` |
 | Centos 7.5                   | arm32 | Dockerfile.centos7.armv7-unknown-linux-gnueabi       | `centos/build_arm_toolchain_container.sh armv7-unknown-linux-gnueabi` |
 | Centos 7.5                   | amd64 | Dockerfile.centos7.x86\_64-unknown-linux-gnu         | `centos/build_amd64_container.sh` |
-| Ubuntu 16.04                 | arm64 | Dockerfile.ubuntu16.04.aarch64-unknown-linux-gnueabi | `ubuntu16.04/build_arm64_toolchain_container.sh aarch64-unknown-linux-gnu` |
 | Ubuntu 18.04                 | arm64 | Dockerfile.ubuntu18.04.aarch64-unknown-linux-gnueabi | `ubuntu18.04/build_arm64_toolchain_container.sh aarch64-unknown-linux-gnu` |
+| Ubuntu 20.04                 | arm64 | Dockerfile.ubuntu20.04.aarch64-unknown-linux-gnueabi | `ubuntu20.04/build_arm64_toolchain_container.sh aarch64-unknown-linux-gnu` |
 
 
 To construct the container for the appropriate cross compile, set your 

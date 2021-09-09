@@ -10,17 +10,21 @@ namespace DevOpsLib
             {
                 BuildDefinitionId.CI,
                 BuildDefinitionId.EdgeletCI,
-                BuildDefinitionId.LibiohsmCI,
+                BuildDefinitionId.LibiothsmCI,
                 BuildDefinitionId.BuildImages,
                 BuildDefinitionId.EdgeletPackages,
                 BuildDefinitionId.EndToEndTest,
+                BuildDefinitionId.NestedEndToEndTest,
                 BuildDefinitionId.ConnectivityTest,
+                BuildDefinitionId.NestedConnectivityTest,
                 BuildDefinitionId.LonghaulTestEnv1,
                 BuildDefinitionId.LonghaulTestEnv2,
                 BuildDefinitionId.LonghaulTestEnv3,
+                BuildDefinitionId.NestedLonghaulTest,
                 BuildDefinitionId.StressTestEnv1,
                 BuildDefinitionId.StressTestEnv2,
-                BuildDefinitionId.StressTestEnv3
+                BuildDefinitionId.StressTestEnv3,
+                BuildDefinitionId.NestedISA95
             };
         static Dictionary<BuildDefinitionId, string> definitionIdToDisplayNameMapping = new Dictionary<BuildDefinitionId, string>
         {
@@ -30,15 +34,19 @@ namespace DevOpsLib
             { BuildDefinitionId.EdgeletPackages, "Edgelet Packages" },
             { BuildDefinitionId.EdgeletRelease, "Edgelet Release" },
             { BuildDefinitionId.EndToEndTest, "New E2E Test" },
+            { BuildDefinitionId.NestedEndToEndTest, "Nested E2E Test" },
             { BuildDefinitionId.ImageRelease, "Image Release" },
-            { BuildDefinitionId.LibiohsmCI, "Libiothsm CI" },
+            { BuildDefinitionId.LibiothsmCI, "Libiothsm CI" },
             { BuildDefinitionId.ConnectivityTest, "Connectivity Test" },
+            { BuildDefinitionId.NestedConnectivityTest, "Nested Connectivity Test" },
             { BuildDefinitionId.LonghaulTestEnv1, "Longhaul Test" },
             { BuildDefinitionId.LonghaulTestEnv2, "Longhaul Test Release Candidate" },
             { BuildDefinitionId.LonghaulTestEnv3, "Longhaul Test Release" },
+            { BuildDefinitionId.NestedLonghaulTest, "Nested Longhaul Test" },
             { BuildDefinitionId.StressTestEnv1, "Stress Test" },
             { BuildDefinitionId.StressTestEnv2, "Stress Test Release Candidate" },
             { BuildDefinitionId.StressTestEnv3, "Stress Test Release" },
+            { BuildDefinitionId.NestedISA95, "ISA95 Smoke Test" },
         };
 
         public static string DisplayName(this BuildDefinitionId buildDefinitionId)

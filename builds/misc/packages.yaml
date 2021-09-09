@@ -3,11 +3,7 @@ trigger:
   branches:
     include:
       - master
-      - iiot
 pr: none
-variables:
-  REVISION: '1'
-  WINDOWS_CODESIGN_SERVICE_CONNECTION: 'Azure IoT Edge Code Sign 2'
 jobs:
 
 ################################################################################
@@ -15,29 +11,15 @@ jobs:
 ################################################################################
     displayName: Linux
     pool:
-      vmImage: 'ubuntu-16.04'
+      vmImage: 'ubuntu-18.04'
+    variables:
+      NugetSecurityAnalysisWarningLevel: warn
     strategy:
       matrix:
         Centos75-amd64:
           arch: amd64
           os: centos7
           target.iotedged: edgelet/target/rpmbuild/RPMS/x86_64
-        # Centos75-arm32v7 and Centos75-aarch64 are built in packages.slow.yaml
-
-        Debian8-amd64:
-          os: debian8
-          arch: amd64
-          target.iotedged: edgelet/target/release
-        Debian8-arm32v7:
-          os: debian8
-          arch: arm32v7
-          target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
-        # Do not build debian8 aarch64 because it is not LTS, only amd64 and armhf are.
-        # aarch64 packages are not available in the base Debian repos and also not in ports.
-        #
-        # Per https://wiki.debian.org/LTS/Using
-        # >Important: Jessie-LTS only supports i386, amd64, armel and armhf. Users of other architectures are encouraged to upgrade to Debian 9 ("Stretch"). 
-
         Debian9-amd64:
           os: debian9
           arch: amd64
@@ -64,19 +46,6 @@ jobs:
           arch: aarch64
           target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
 
-        Ubuntu1604-amd64:
-          arch: amd64
-          os: ubuntu16.04
-          target.iotedged: edgelet/target/release
-        Ubuntu1604-arm32v7:
-          arch: arm32v7
-          os: ubuntu16.04
-          target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
-        Ubuntu1604-aarch64:
-          arch: aarch64
-          os: ubuntu16.04
-          target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
-
         Ubuntu1804-amd64:
           os: ubuntu18.04
           arch: amd64
@@ -89,27 +58,30 @@ jobs:
           os: ubuntu18.04
           arch: aarch64
           target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+        Ubuntu2004-amd64:
+          arch: amd64
+          os: ubuntu20.04
+          target.iotedged: edgelet/target/release
+        Ubuntu2004-arm32v7:
+          arch: arm32v7
+          os: ubuntu20.04
+          target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+        Ubuntu2004-aarch64:
+          arch: aarch64
+          os: ubuntu20.04
+          target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
     steps:
-      # Ensure any changes here are replicated in packages.slow.yaml
-
       - bash: |
           BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
           VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"
+          echo "Version: $VERSION"
           echo "##vso[task.setvariable variable=VERSION;]$VERSION"
 
           echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
           echo "##vso[task.setvariable variable=PACKAGE_OS;]$(os)"
         displayName: Set Version
       - script: edgelet/build/linux/package.sh
-        displayName: Create libiothsm and iotedged packages
-      - task: CopyFiles@2
-        displayName: Copy libiothsm Files to Artifact Staging
-        inputs:
-          SourceFolder: edgelet/target/hsm
-          Contents: |
-            *.deb
-            *.rpm
-          TargetFolder: '$(build.artifactstagingdirectory)'
+        displayName: Create iotedged packages
       - task: CopyFiles@2
         displayName: Copy iotedged Files to Artifact Staging
         inputs:
@@ -124,65 +96,3 @@ jobs:
           PathtoPublish: '$(build.artifactstagingdirectory)'
           ArtifactName: 'iotedged-$(os)-$(arch)'
         condition: succeededOrFailed()
-
-################################################################################
-  - job: windows_amd64
-################################################################################
-    displayName: Windows amd64
-    timeoutInMinutes: 90
-    pool:
-      vmImage: 'vs2017-win2016'
-    steps:
-      - powershell: |
-          $base_version = Get-Content -Path "$(Build.SourcesDirectory)\edgelet\version.txt"
-          if ($base_version -like '*~*') {
-            $version = ("{0}{1}" -f $base_version, $(Build.BuildNumber))
-          } else {
-            $version = $base_version
-          }
-          Write-Host "base_version=$base_version"
-          Write-Host "version=$version"
-          Write-Host ("##vso[task.setvariable variable=VERSION;]$version")
-          Write-Host ("##vso[task.setvariable variable=NO_VALGRIND;]true")
-        displayName: Set Version
-      - powershell: edgelet/build/windows/install.ps1
-        displayName: Install Rust
-      - powershell: edgelet/build/windows/build.ps1 -Release
-        displayName: Build
-      - task: CMake@1
-        displayName: 'Setup libiothsm'
-        inputs:
-          workingDirectory: 'edgelet/hsm-sys/azure-iot-hsm-c/build'
-          cmakeArgs: '-G "Visual Studio 15 2017 Win64" -DBUILD_SHARED=ON -Duse_emulator=OFF ..'
-      - task: CMake@1
-        displayName: 'Build libiothsm'
-        inputs:
-          workingDirectory: 'edgelet/hsm-sys/azure-iot-hsm-c/build'
-          cmakeArgs: '--build . --config Release'
-      - powershell: edgelet/build/windows/package.ps1 -CreateTemplate
-        displayName: Prepare package template
-      - powershell: edgelet/build/windows/package.ps1 -CreateCab
-        displayName: Generate CAB package
-      - task: CopyFiles@2
-        displayName: 'Copy installer script and package to Artifact Staging'
-        inputs:
-          SourceFolder: .
-          Contents: |
-            *.cab
-            scripts/windows/setup/IotEdgeSecurityDaemon.ps1
-          TargetFolder: '$(build.artifactstagingdirectory)'
-      - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
-        displayName: 'ESRP Installer and Package CodeSigning Internal'
-        inputs:
-          ConnectedServiceName: '$(WINDOWS_CODESIGN_SERVICE_CONNECTION)'
-          FolderPath: '$(build.artifactstagingdirectory)'
-          Pattern: '*.cab,*.ps1'
-          CertificateId: 302
-          OpusName: 'Azure IoT Edge'
-          OpusInfo: 'https://azure.microsoft.com/en-us/services/iot-edge/'
-          SessionTimeout: 20
-      - task: PublishBuildArtifacts@1
-        displayName: 'Publish Artifact: iotedged-windows'
-        inputs:
-          PathtoPublish: '$(build.artifactstagingdirectory)'
-          ArtifactName: 'iotedged-windows'

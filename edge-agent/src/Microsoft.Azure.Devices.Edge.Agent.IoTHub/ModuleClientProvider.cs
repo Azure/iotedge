@@ -100,7 +100,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                             settings.IdleTimeout = HeartbeatTimeout;
                         }
 
-                        proxy.ForEach(p => settings.Proxy = p);
                         return settings;
                     }
 
@@ -112,6 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                             settings.IdleTimeout = HeartbeatTimeout;
                         }
 
+                        // Only WebSocket protocols can use an HTTP forward proxy
                         proxy.ForEach(p => settings.Proxy = p);
                         return settings;
                     }
@@ -119,13 +119,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 case UpstreamProtocol.Mqtt:
                     {
                         var settings = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
-                        proxy.ForEach(p => settings.Proxy = p);
                         return settings;
                     }
 
                 case UpstreamProtocol.MqttWs:
                     {
                         var settings = new MqttTransportSettings(TransportType.Mqtt_WebSocket_Only);
+
+                        // Only WebSocket protocols can use an HTTP forward proxy
                         proxy.ForEach(p => settings.Proxy = p);
                         return settings;
                     }

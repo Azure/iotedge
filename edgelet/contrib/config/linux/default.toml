@@ -1,0 +1,26 @@
+# hostname = "my-device"
+
+# parent_hostname = "my-parent-device"
+
+# trust_bundle_cert = "file:///path/to/file.pem"
+
+homedir = "/var/lib/aziot/edged"
+
+[agent]
+name = "edgeAgent"
+type = "docker"
+
+[agent.config]
+image = "mcr.microsoft.com/azureiotedge-agent:1.2"
+
+[connect]
+workload_uri = "@connect_workload_uri@"
+management_uri = "@connect_management_uri@"
+
+[listen]
+workload_uri = "@listen_workload_uri@"
+management_uri = "@listen_management_uri@"
+
+[moby_runtime]
+uri = "unix:///var/run/docker.sock"
+network = "azure-iot-edge"

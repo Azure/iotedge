@@ -82,9 +82,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             return await this.RegistryManager.AddDeviceAsync(device, token);
         }
 
-        public Task<Device> CreateEdgeDeviceIdentityAsync(string deviceId, AuthenticationType authType, X509Thumbprint x509Thumbprint, CancellationToken token)
+        public async Task<Device> CreateEdgeDeviceIdentityAsync(string deviceId, Option<string> parentDeviceId, AuthenticationType authType, X509Thumbprint x509Thumbprint, CancellationToken token)
         {
-            Device edge = new Device(deviceId)
+            Log.Information($"Creating edge device {deviceId} with parentId: {parentDeviceId.GetOrElse("NO PARENT")}");
+            Device edge = await parentDeviceId.Match(
+            async p =>
+            {
+                Device parentDevice = await this.GetDeviceIdentityAsync(p, token);
+                string parentDeviceScope = parentDevice == null ? string.Empty : parentDevice.Scope;
+                Log.Information($"Parent scope: {parentDeviceScope}");
+                return new Device(deviceId)
             {
                 Authentication = new AuthenticationMechanism()
                 {
@@ -94,14 +101,31 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 Capabilities = new DeviceCapabilities()
                 {
                     IotEdge = true
-                }
+                },
+                ParentScopes = new[] { parentDeviceScope }
             };
+            },
+            () =>
+            {
+                return Task.FromResult(new Device(deviceId)
+                {
+                    Authentication = new AuthenticationMechanism()
+                    {
+                        Type = authType,
+                        X509Thumbprint = x509Thumbprint
+                    },
+                    Capabilities = new DeviceCapabilities()
+                    {
+                        IotEdge = true
+                    }
+                });
+            });
 
-            return this.CreateDeviceIdentityAsync(edge, token);
+            return await this.CreateDeviceIdentityAsync(edge, token);
         }
 
         public Task DeleteDeviceIdentityAsync(Device device, CancellationToken token) =>
-            this.RegistryManager.RemoveDeviceAsync(device);
+            this.RegistryManager.RemoveDeviceAsync(device.Id);
 
         public Task DeployDeviceConfigurationAsync(
             string deviceId,
@@ -110,8 +134,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public Task<Twin> GetTwinAsync(
             string deviceId,
-            string moduleId,
-            CancellationToken token) => this.RegistryManager.GetTwinAsync(deviceId, moduleId, token);
+            Option<string> moduleId,
+            CancellationToken token)
+        {
+            return moduleId.Match(
+                m => this.RegistryManager.GetTwinAsync(deviceId, m, token),
+                () => this.RegistryManager.GetTwinAsync(deviceId, token));
+        }
 
         public async Task UpdateTwinAsync(
             string deviceId,
@@ -119,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             object twinPatch,
             CancellationToken token)
         {
-            Twin twin = await this.GetTwinAsync(deviceId, moduleId, token);
+            Twin twin = await this.GetTwinAsync(deviceId, Option.Some(moduleId), token);
             string patch = JsonConvert.SerializeObject(twinPatch);
             await this.RegistryManager.UpdateTwinAsync(
                 deviceId,
@@ -198,6 +227,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             }
 
             await receiver.CloseAsync();
+        }
+
+        public async Task UpdateEdgeEnableStatus(string deviceId, bool enabled)
+        {
+            var edge = await this.RegistryManager.GetDeviceAsync(deviceId);
+
+            if (!edge.Capabilities.IotEdge)
+            {
+                throw new ArgumentException($"{deviceId} is not an Edge device!");
+            }
+
+            edge.Status = enabled ? DeviceStatus.Enabled : DeviceStatus.Disabled;
+            var updated = await this.RegistryManager.UpdateDeviceAsync(edge);
+            Log.Information($"Updated enabled status for {deviceId}, enabled: {enabled}");
+            Log.Information($"{updated.Id}, enabled: {updated.Status}");
         }
     }
 }

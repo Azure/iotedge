@@ -1,19 +1,98 @@
-trigger: none
+trigger:
+  branches:
+    include:
+      - master
+      - release/*
+  paths:
+    include:
+      - "mqtt/*"
+      - "builds/*"
 pr: none
-jobs:
-  ################################################################################
-  - job: compliance_amd64
-    ################################################################################
-    displayName: Compliance amd64
-    pool:
-      vmImage: "ubuntu-16.04"
-    steps:
-      - script: echo "##vso[task.setvariable variable=RUST_BACKTRACE;]1"
-        displayName: Set env variables
-      - bash: mqtt/build/linux/install.sh
-        displayName: Install Rust
-      - bash: mqtt/build/linux/build.sh -r 1
-        displayName: Build
-      - bash: mqtt/build/linux/compliance.sh
-        displayName: Test
 
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
+
+jobs:
+
+################################################################################
+  - job: linux_amd64
+################################################################################
+    displayName: Linux amd64
+    pool:
+      vmImage: 'ubuntu-18.04'
+    steps:
+      - checkout: self
+        submodules: false # mqtt broker does not use submodules
+        fetchDepth: 3
+      - task: Bash@3
+        displayName: Install Rust
+        inputs:
+          filePath: scripts/linux/generic-rust/install.sh
+          arguments: --project-root "mqtt"
+      - task: Bash@3
+        displayName: Build
+        inputs:
+          filePath: scripts/linux/generic-rust/build.sh
+          arguments: --project-root "mqtt" --packages "mqttd/Cargo.toml" --manifest-path --no-default-features --features "generic"
+      - task: Bash@3
+        displayName: Build
+        inputs:
+          filePath: scripts/linux/generic-rust/build.sh
+          arguments: --project-root "mqtt" --packages "mqttd/Cargo.toml" --manifest-path
+      - task: Bash@3
+        displayName: Test
+        inputs:
+          filePath: mqtt/build/linux/test.sh
+          arguments: --report test-results.xml
+      - task: PublishTestResults@2
+        displayName: Publish test results
+        inputs:
+          testResultsFormat: "JUnit"
+          testResultsFiles: "**/test-results.xml"
+          failTaskOnFailedTests: true
+        condition: succeededOrFailed()
+
+################################################################################
+  - job: linux_arm32v7
+################################################################################
+    displayName: Linux arm32v7
+    pool:
+      vmImage: 'ubuntu-18.04'
+    steps:
+      - checkout: self
+        submodules: false # mqtt broker does not use submodules
+        fetchDepth: 3
+      - script: |
+          echo "##vso[task.setvariable variable=RUSTUP_HOME;]$(Agent.WorkFolder)/rustup"
+          echo "##vso[task.setvariable variable=CARGO_HOME;]$(Agent.WorkFolder)/cargo"
+          echo "##vso[task.setvariable variable=PATH;]$(Agent.WorkFolder)/cargo/bin:$PATH"
+        displayName: Modify path
+      - task: Bash@3
+        displayName: Install Rust
+        inputs:
+          filePath: scripts/linux/generic-rust/install.sh
+          arguments: --project-root "mqtt"
+      - script: cargo install cross --version 0.1.16
+        displayName: Install cross
+      - task: Bash@3
+        displayName: Build with no default features
+        inputs:
+          filePath: scripts/linux/generic-rust/build.sh
+          arguments: --project-root "mqtt" --packages "mqttd/Cargo.toml" --manifest-path --no-default-features --features "generic" --target armv7-unknown-linux-gnueabihf --cargo cross
+      - task: Bash@3
+        displayName: Build with default features
+        inputs:
+          filePath: scripts/linux/generic-rust/build.sh
+          arguments: --project-root "mqtt" --packages "mqttd/Cargo.toml" --manifest-path --target armv7-unknown-linux-gnueabihf --cargo cross
+      - task: Bash@3
+        displayName: Test
+        inputs:
+          filePath: mqtt/build/linux/test.sh
+          arguments: --target armv7-unknown-linux-gnueabihf --cargo cross --report test-results.xml
+      - task: PublishTestResults@2
+        displayName: Publish test results
+        inputs:
+          testResultsFormat: "JUnit"
+          testResultsFiles: "**/test-results.xml"
+          failTaskOnFailedTests: true
+        condition: succeededOrFailed()

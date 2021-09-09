@@ -31,7 +31,7 @@
                 "value": "true"
               },
               "ExperimentalFeatures__EnableUploadLogs": {
-                  "value": "true"
+                "value": "true"
               }
             },
             "settings": {
@@ -43,17 +43,23 @@
             "type": "docker",
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-hub:<EdgeRuntime.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"ExposedPorts\": {\"9600/tcp\": {}}, \"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"443/tcp\": [{\"HostPort\": \"443\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}],\"9600/tcp\": [{\"HostPort\": \"9601\"}]}}}"
+              "createOptions": "{\"ExposedPorts\": {\"9600/tcp\": {}}, \"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}],\"9600/tcp\": [{\"HostPort\": \"9601\"}]}}}"
             },
             "env": {
-              "CollectMetrics": {
-                "value": "true"
-              },
               "experimentalfeatures__enabled": {
                 "value": "true"
               },
               "experimentalfeatures__enableMetrics": {
                 "value": "true"
+              },
+              "NestedEdgeEnabled": {
+                "value": "false"
+              },
+              "OptimizeForPerformance": {
+                "value": "<OptimizeForPerformance>"
+              },
+              "SslProtocols": {
+                "value": "tls1.2"
               }
             },
             "status": "running",
@@ -156,6 +162,9 @@
               },
               "trackingId": {
                 "value": "<TrackingId>"
+              },
+              "DirectMethodFrequency": {
+                "value": "<DirectMethodFrequency>"
               }
             },
             "settings": {
@@ -213,6 +222,9 @@
               },
               "trackingId": {
                 "value": "<TrackingId>"
+              },
+              "DirectMethodFrequency": {
+                "value": "<DirectMethodFrequency>"
               }
             },
             "settings": {
@@ -273,6 +285,9 @@
               },
               "trackingId": {
                 "value": "<TrackingId>"
+              },
+              "DirectMethodFrequency": {
+                "value": "<DirectMethodFrequency>"
               }
             },
             "settings": {
@@ -356,7 +371,7 @@
                 "value": "<TestResultCoordinator.ConsumerGroupId>"
               },
               "optimizeForPerformance": {
-                "value": "<TestResultCoordinator.OptimizeForPerformance>"
+                "value": "<OptimizeForPerformance>"
               },
               "logAnalyticsWorkspaceId": {
                 "value": "<LogAnalyticsWorkspaceId>"
@@ -414,6 +429,15 @@
               },
               "TargetModuleId": {
                 "value": "twinTester2"
+              },
+              "TwinUpdateSize": {
+                "value": "<TwinUpdateSize>"
+              },
+              "TwinUpdateFrequency": {
+                "value": "<TwinUpdateFrequency>"
+              },
+              "StorageOptimizeForPerformance": {
+                "value": "<OptimizeForPerformance>"
               }
             },
             "settings": {
@@ -447,6 +471,15 @@
               },
               "TransportType": {
                 "value": "Amqp"
+              },
+              "TwinUpdateSize": {
+                "value": "<TwinUpdateSize>"
+              },
+              "TwinUpdateFrequency": {
+                "value": "<TwinUpdateFrequency>"
+              },
+              "StorageOptimizeForPerformance": {
+                "value": "<OptimizeForPerformance>"
               }
             },
             "settings": {
@@ -480,6 +513,15 @@
               },
               "TargetModuleId": {
                 "value": "twinTester4"
+              },
+              "TwinUpdateSize": {
+                "value": "<TwinUpdateSize>"
+              },
+              "TwinUpdateFrequency": {
+                "value": "<TwinUpdateFrequency>"
+              },
+              "StorageOptimizeForPerformance": {
+                "value": "<OptimizeForPerformance>"
               }
             },
             "settings": {
@@ -513,6 +555,15 @@
               },
               "TransportType": {
                 "value": "Mqtt"
+              },
+              "TwinUpdateSize": {
+                "value": "<TwinUpdateSize>"
+              },
+              "TwinUpdateFrequency": {
+                "value": "<TwinUpdateFrequency>"
+              },
+              "StorageOptimizeForPerformance": {
+                "value": "<OptimizeForPerformance>"
               }
             },
             "settings": {
@@ -840,21 +891,21 @@
             "TestDescription": "deployment"
           },
           "reportMetadata10": {
-            "TestReportType": "DirectMethodReport",
+            "TestReportType": "DirectMethodConnectivityReport",
             "SenderSource": "directMethodSender1.send",
             "ReceiverSource": "directMethodReceiver1.receive",
             "TolerancePeriod": "00:01:00",
             "TestDescription": "direct method | cloud | amqp"
           },
           "reportMetadata11": {
-            "TestReportType": "DirectMethodReport",
+            "TestReportType": "DirectMethodConnectivityReport",
             "SenderSource": "directMethodSender2.send",
             "ReceiverSource": "directMethodReceiver2.receive",
             "TolerancePeriod": "00:01:00",
             "TestDescription": "direct method | cloud | mqtt"
           },
           "reportMetadata12": {
-            "TestReportType": "DirectMethodReport",
+            "TestReportType": "DirectMethodConnectivityReport",
             "SenderSource": "directMethodSender3.send",
             "TolerancePeriod": "00:01:00",
             "TestDescription": "edge agent ping"

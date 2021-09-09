@@ -32,119 +32,125 @@ impl State {
             Some(crate::proto::Packet::SubAck(crate::proto::SubAck {
                 packet_identifier,
                 qos,
-            })) => match self.subscription_updates_waiting_to_be_acked.pop_front() {
-                Some((
-                    packet_identifier_waiting_to_be_acked,
-                    BatchedSubscriptionUpdate::Subscribe(subscribe_to),
-                )) => {
-                    if packet_identifier != packet_identifier_waiting_to_be_acked {
-                        self.subscription_updates_waiting_to_be_acked.push_front((
-                            packet_identifier_waiting_to_be_acked,
-                            BatchedSubscriptionUpdate::Subscribe(subscribe_to),
-                        ));
+            })) => {
+                match self.subscription_updates_waiting_to_be_acked.pop_front() {
+                    Some((
+                        packet_identifier_waiting_to_be_acked,
+                        BatchedSubscriptionUpdate::Subscribe(subscribe_to),
+                    )) => {
+                        if packet_identifier != packet_identifier_waiting_to_be_acked {
+                            self.subscription_updates_waiting_to_be_acked.push_front((
+                                packet_identifier_waiting_to_be_acked,
+                                BatchedSubscriptionUpdate::Subscribe(subscribe_to),
+                            ));
+                            return Err(super::Error::UnexpectedSubAck(
+                                packet_identifier,
+                                super::UnexpectedSubUnsubAckReason::Expected(
+                                    packet_identifier_waiting_to_be_acked,
+                                ),
+                            ));
+                        }
+
+                        if subscribe_to.len() != qos.len() {
+                            let expected = subscribe_to.len();
+                            self.subscription_updates_waiting_to_be_acked.push_front((
+                                packet_identifier_waiting_to_be_acked,
+                                BatchedSubscriptionUpdate::Subscribe(subscribe_to),
+                            ));
+                            return Err(super::Error::SubAckDoesNotContainEnoughQoS(
+                                packet_identifier,
+                                expected,
+                                qos.len(),
+                            ));
+                        }
+
+                        packet_identifiers.discard(packet_identifier);
+
+                        // We can't put subscribe_to back into self.subscription_updates_waiting_to_be_acked within the below loop
+                        // since we would've partially consumed it.
+                        // Instead, if there's an error, we'll update self.subscriptions anyway with the expected QoS, and set the error to be returned here.
+                        // The error will reset the session and resend the subscription requests, including these that didn't match the expected QoS,
+                        // so pretending the subscription succeeded does no harm.
+                        let mut err = None;
+                        for (
+                            crate::proto::SubscribeTo {
+                                topic_filter,
+                                qos: expected_qos,
+                            },
+                            qos,
+                        ) in subscribe_to.into_iter().zip(qos)
+                        {
+                            match qos {
+                                crate::proto::SubAckQos::Success(actual_qos) => {
+                                    if actual_qos >= expected_qos {
+                                        log::debug!(
+                                            "Subscribed to {} with qos {:?}",
+                                            topic_filter,
+                                            actual_qos
+                                        );
+                                        self.subscriptions.insert(topic_filter.clone(), actual_qos);
+                                        subscription_updates.push(
+                                            super::SubscriptionUpdateEvent::Subscribe(
+                                                crate::proto::SubscribeTo {
+                                                    topic_filter,
+                                                    qos: actual_qos,
+                                                },
+                                            ),
+                                        );
+                                    } else {
+                                        if err.is_none() {
+                                            err = Some(super::Error::SubscriptionDowngraded(
+                                                topic_filter.clone(),
+                                                expected_qos,
+                                                actual_qos,
+                                            ));
+                                        }
+
+                                        self.subscriptions.insert(topic_filter, expected_qos);
+                                    }
+                                }
+
+                                crate::proto::SubAckQos::Failure => {
+                                    // Return an event for rejected subscription instead of retrying to send the subscription
+                                    subscription_updates.push(
+                                        super::SubscriptionUpdateEvent::RejectedByServer(
+                                            crate::proto::SubscribeTo {
+                                                topic_filter,
+                                                qos: expected_qos,
+                                            },
+                                        ),
+                                    );
+                                }
+                            }
+                        }
+
+                        if let Some(err) = err {
+                            return Err(err);
+                        }
+                    }
+
+                    Some((
+                        packet_identifier_waiting_to_be_acked,
+                        unsubscribe @ BatchedSubscriptionUpdate::Unsubscribe(_),
+                    )) => {
+                        self.subscription_updates_waiting_to_be_acked
+                            .push_front((packet_identifier, unsubscribe));
                         return Err(super::Error::UnexpectedSubAck(
                             packet_identifier,
-                            super::UnexpectedSubUnsubAckReason::Expected(
+                            super::UnexpectedSubUnsubAckReason::ExpectedUnsubAck(
                                 packet_identifier_waiting_to_be_acked,
                             ),
                         ));
                     }
 
-                    if subscribe_to.len() != qos.len() {
-                        let expected = subscribe_to.len();
-                        self.subscription_updates_waiting_to_be_acked.push_front((
-                            packet_identifier_waiting_to_be_acked,
-                            BatchedSubscriptionUpdate::Subscribe(subscribe_to),
-                        ));
-                        return Err(super::Error::SubAckDoesNotContainEnoughQoS(
+                    None => {
+                        return Err(super::Error::UnexpectedSubAck(
                             packet_identifier,
-                            expected,
-                            qos.len(),
-                        ));
-                    }
-
-                    packet_identifiers.discard(packet_identifier);
-
-                    // We can't put subscribe_to back into self.subscription_updates_waiting_to_be_acked within the below loop
-                    // since we would've partially consumed it.
-                    // Instead, if there's an error, we'll update self.subscriptions anyway with the expected QoS, and set the error to be returned here.
-                    // The error will reset the session and resend the subscription requests, including these that didn't match the expected QoS,
-                    // so pretending the subscription succeeded does no harm.
-                    let mut err = None;
-                    for (
-                        crate::proto::SubscribeTo {
-                            topic_filter,
-                            qos: expected_qos,
-                        },
-                        qos,
-                    ) in subscribe_to.into_iter().zip(qos)
-                    {
-                        match qos {
-                            crate::proto::SubAckQos::Success(actual_qos) => {
-                                if actual_qos >= expected_qos {
-                                    log::debug!(
-                                        "Subscribed to {} with {:?}",
-                                        topic_filter,
-                                        actual_qos
-                                    );
-                                    self.subscriptions.insert(topic_filter.clone(), actual_qos);
-                                    subscription_updates.push(
-                                        super::SubscriptionUpdateEvent::Subscribe(
-                                            crate::proto::SubscribeTo {
-                                                topic_filter,
-                                                qos: actual_qos,
-                                            },
-                                        ),
-                                    );
-                                } else {
-                                    if err.is_none() {
-                                        err = Some(super::Error::SubscriptionDowngraded(
-                                            topic_filter.clone(),
-                                            expected_qos,
-                                            actual_qos,
-                                        ));
-                                    }
-
-                                    self.subscriptions.insert(topic_filter, expected_qos);
-                                }
-                            }
-
-                            crate::proto::SubAckQos::Failure => {
-                                if err.is_none() {
-                                    err = Some(super::Error::SubscriptionRejectedByServer);
-                                }
-
-                                self.subscriptions.insert(topic_filter, expected_qos);
-                            }
-                        }
-                    }
-
-                    if let Some(err) = err {
-                        return Err(err);
+                            super::UnexpectedSubUnsubAckReason::DidNotExpect,
+                        ))
                     }
                 }
-
-                Some((
-                    packet_identifier_waiting_to_be_acked,
-                    unsubscribe @ BatchedSubscriptionUpdate::Unsubscribe(_),
-                )) => {
-                    self.subscription_updates_waiting_to_be_acked
-                        .push_front((packet_identifier, unsubscribe));
-                    return Err(super::Error::UnexpectedSubAck(
-                        packet_identifier,
-                        super::UnexpectedSubUnsubAckReason::ExpectedUnsubAck(
-                            packet_identifier_waiting_to_be_acked,
-                        ),
-                    ));
-                }
-
-                None => {
-                    return Err(super::Error::UnexpectedSubAck(
-                        packet_identifier,
-                        super::UnexpectedSubUnsubAckReason::DidNotExpect,
-                    ))
-                }
-            },
+            }
 
             Some(crate::proto::Packet::UnsubAck(crate::proto::UnsubAck { packet_identifier })) => {
                 match self.subscription_updates_waiting_to_be_acked.pop_front() {
@@ -220,66 +226,42 @@ impl State {
             //
             // So we cannot just make a group of all Subscribes, send that packet, then make a group of all Unsubscribes, then send that packet.
             // Instead, we have to respect the ordering of Subscribes with Unsubscribes.
-            // So we make an intermediate set of all subscriptions based on the updates waiting to be sent, compute the diff from the current subscriptions,
+            // So we make an intermediate set of all subscriptions and unsubscriptions and if for same topic an Unsubscribe is before a Subscribe, only Subscribe remains in the intermediate set
+            // and if a Unsubscribe is set after Subscribe they are both removed
             // then send a SUBSCRIBE packet for any net new subscriptions and an UNSUBSCRIBE packet for any net new unsubscriptions.
-
-            let mut current_subscriptions: std::collections::BTreeMap<_, _> = self
-                .subscriptions
-                .iter()
-                .map(|(topic_filter, qos)| (std::borrow::Cow::Borrowed(&**topic_filter), *qos))
-                .collect();
-
-            for (_, subscription_update) in &self.subscription_updates_waiting_to_be_acked {
-                match subscription_update {
-                    BatchedSubscriptionUpdate::Subscribe(subscribe_to) => {
-                        for subscribe_to in subscribe_to {
-                            current_subscriptions.insert(
-                                std::borrow::Cow::Borrowed(&*subscribe_to.topic_filter),
-                                subscribe_to.qos,
-                            );
-                        }
-                    }
-
-                    BatchedSubscriptionUpdate::Unsubscribe(unsubscribe_from) => {
-                        for unsubscribe_from in unsubscribe_from {
-                            current_subscriptions.remove(&**unsubscribe_from);
-                        }
-                    }
-                }
-            }
-
-            let mut target_subscriptions = current_subscriptions.clone();
+            let mut target_subscriptions = std::collections::BTreeMap::new();
+            let mut target_unsubscriptions = std::collections::BTreeMap::new();
 
             while let Some(subscription_update) =
                 self.subscription_updates_waiting_to_be_sent.pop_front()
             {
                 match subscription_update {
-                    SubscriptionUpdate::Subscribe(subscribe_to) => target_subscriptions.insert(
-                        std::borrow::Cow::Owned(subscribe_to.topic_filter),
-                        subscribe_to.qos,
-                    ),
+                    SubscriptionUpdate::Subscribe(subscribe_to) => {
+                        target_unsubscriptions.remove(&subscribe_to.topic_filter);
+                        target_subscriptions.insert(
+                            std::borrow::Cow::Owned(subscribe_to.topic_filter),
+                            subscribe_to.qos,
+                        );
+                    }
                     SubscriptionUpdate::Unsubscribe(unsubscribe_from) => {
-                        target_subscriptions.remove(&*unsubscribe_from)
+                        if target_subscriptions.remove(&*unsubscribe_from).is_none() {
+                            target_unsubscriptions.insert(unsubscribe_from, true);
+                        }
                     }
                 };
             }
 
             let mut pending_subscriptions: std::collections::VecDeque<_> = Default::default();
             for (topic_filter, &qos) in &target_subscriptions {
-                if current_subscriptions.get(topic_filter) != Some(&qos) {
-                    // Current subscription doesn't exist, or exists but has different QoS
-                    pending_subscriptions.push_back(crate::proto::SubscribeTo {
-                        topic_filter: topic_filter.clone().into_owned(),
-                        qos,
-                    });
-                }
+                pending_subscriptions.push_back(crate::proto::SubscribeTo {
+                    topic_filter: topic_filter.clone().into_owned(),
+                    qos,
+                });
             }
 
             let mut pending_unsubscriptions: std::collections::VecDeque<_> = Default::default();
-            for topic_filter in current_subscriptions.keys() {
-                if !target_subscriptions.contains_key(topic_filter) {
-                    pending_unsubscriptions.push_back(topic_filter.clone().into_owned());
-                }
+            for topic_filter in target_unsubscriptions.keys() {
+                pending_unsubscriptions.push_back(topic_filter.clone());
             }
 
             // Save the error, if any, from reserving a packet identifier

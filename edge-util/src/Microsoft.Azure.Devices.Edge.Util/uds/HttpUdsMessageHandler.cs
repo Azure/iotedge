@@ -20,9 +20,17 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            Socket socket = await this.GetConnectedSocketAsync();
-            var stream = new HttpBufferedStream(new NetworkStream(socket, true));
+            var endpoint = new UnixDomainSocketEndPoint(this.providerUri.LocalPath);
 
+            Events.Connecting(this.providerUri.LocalPath);
+            // do not dispose `Socket` or `HttpBufferedStream` here, b/c it will be used later
+            // by the consumer of HttpResponseMessage (HttpResponseMessage.Content.ReadAsStringAsync()).
+            // When HttpResponseMessage is disposed - the stream and socket is disposed as well.
+            Socket socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+            await socket.ConnectAsync(endpoint);
+            Events.Connected(this.providerUri.LocalPath);
+
+            var stream = new HttpBufferedStream(new NetworkStream(socket, true));
             var serializer = new HttpRequestResponseSerializer();
             byte[] requestBytes = serializer.SerializeRequest(request);
 
@@ -37,17 +45,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
             Events.ResponseReceived(response.StatusCode);
 
             return response;
-        }
-
-        async Task<Socket> GetConnectedSocketAsync()
-        {
-            var endpoint = new UnixDomainSocketEndPoint(this.providerUri.LocalPath);
-            var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
-            Events.Connecting(this.providerUri.LocalPath);
-            await socket.ConnectAsync(endpoint);
-            Events.Connected(this.providerUri.LocalPath);
-
-            return socket;
         }
 
         static class Events

@@ -2,10 +2,11 @@
 namespace Microsoft.Azure.Devices.Edge.Util.Test
 {
     using System;
-    using System.Linq;
+    using System.Collections.Generic;
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Moq;
     using Xunit;
 
     public class ClientTokenProviderTest
@@ -40,6 +41,56 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 Assert.Contains(kvp[0], keys);
                 Assert.NotNull(kvp[1]);
             }
+        }
+
+        [Fact]
+        [Unit]
+        public async Task GetModuleTokenTestCacheTest()
+        {
+            // Arrange
+            var signatureProvider = new Mock<ISignatureProvider>();
+            signatureProvider.Setup(s => s.SignAsync(It.IsAny<string>())).Returns(Task.FromResult(Guid.NewGuid().ToString()));
+
+            string iotHubHostName = "testIoThub";
+            string deviceId = "testDeviceId";
+            string moduleId = "$edgeHub";
+            ITokenProvider tokenProvider = new ClientTokenProvider(signatureProvider.Object, iotHubHostName, deviceId, moduleId, TimeSpan.FromSeconds(30));
+
+            // Act
+            string token = await tokenProvider.GetTokenAsync(Option.None<TimeSpan>());
+
+            // Assert
+            Assert.NotNull(token);
+            signatureProvider.Verify(s => s.SignAsync(It.IsAny<string>()), Times.Once);
+
+            // Act
+            var tasks = new List<Task<string>>();
+            for (int i = 0; i < 5; i++)
+            {
+                tasks.Add(tokenProvider.GetTokenAsync(Option.None<TimeSpan>()));
+            }
+
+            string[] tokens = await Task.WhenAll(tasks);
+
+            // Assert
+            Assert.NotNull(tokens);
+            Assert.Equal(5, tokens.Length);
+            for (int i = 0; i < 5; i++)
+            {
+                Assert.Equal(token, tokens[i]);
+            }
+
+            signatureProvider.Verify(s => s.SignAsync(It.IsAny<string>()), Times.Once);
+
+            await Task.Delay(TimeSpan.FromSeconds(15));
+
+            // Act
+            string newToken = await tokenProvider.GetTokenAsync(Option.None<TimeSpan>());
+
+            // Assert
+            Assert.NotNull(newToken);
+            Assert.NotEqual(token, newToken);
+            signatureProvider.Verify(s => s.SignAsync(It.IsAny<string>()), Times.AtMost(2));
         }
 
         [Fact]

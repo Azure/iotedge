@@ -4,10 +4,9 @@ parameters:
   test.buildId: ''
   test.startDelay: ''
   build.source.branch: ''
+  build.repo.path: ''
   edgelet.source.branch: ''
   images.source.branch: ''
-  edgelet.artifact.name: ''
-  images.artifact.name: ''
   container.registry: ''
   container.registry.username: ''
   container.registry.password: ''
@@ -17,83 +16,129 @@ parameters:
   snitch.alert.url: ''
   snitch.storage.account: ''
   snitch.storage.masterKey: ''
-  loadGen.message.frequency: ''
   longHaul.desiredModulesToRestartCSV: ''
   longHaul.restartIntervalInMins: ''
+  longHaul.sendReportFrequency: ''
   analyzer.consumerGroupId: ''
   logAnalytics.workspaceId: ''
   logAnalytics.sharedKey: ''
+  logAnalytics.logType: ''
   twinTester.twinUpdateSize: ''
-  twinTester.twinUpdateFrequency: ''
-  twinTester.twinUpdateFailureThreshold: ''
-  twinTester.edgeHubRestartFailureTolerance: ''
   metricsCollector.metricsEndpointsCSV: ''
   metricsCollector.scrapeFrequencyInSecs: ''
   metricsCollector.uploadTarget: ''
   metricsCollector.hostPlatform: ''
   test.runtimeLogLevel: ''
+  test.testMode: ''
+  test.useTRC: ''
+  test.deploymentFileName: ''
+  testResultCoordinator.storageAccountConnectionString: ''
+  clientModuleTransportType: ''
 
 steps:
-  - task: CopyFiles@2
-    displayName: 'Copy Edgelet Artifact'
+  - task: Bash@3
+    displayName: 'Generate device certificates'
     inputs:
-      SourceFolder: "$(Build.StagingDirectory)/${{ parameters['edgelet.artifact.name'] }}"
-      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['edgelet.artifact.name'] }}"
-      CleanTargetFolder: true
-  - task: CopyFiles@2
-    displayName: 'Copy Images Artifact'
-    inputs:
-      SourceFolder: "$(Build.StagingDirectory)/${{ parameters['images.artifact.name'] }}"
-      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}"
-      CleanTargetFolder: true
+      targetType: inline
+      workingDirectory: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/CACertificates"
+      script: |
+        chmod +x certGen.sh
+
+        ./certGen.sh create_root_and_intermediate
+        ./certGen.sh create_edge_device_ca_certificate 'ConnectivityTestDeviceCA'
+
+        echo "##vso[task.setvariable variable=TrustBundle]$(pwd)/certs/azure-iot-test-only.intermediate-full-chain.cert.pem"
+        echo "##vso[task.setvariable variable=DeviceCaCert]$(pwd)/certs/iot-edge-device-ca-ConnectivityTestDeviceCA.cert.pem"
+        echo "##vso[task.setvariable variable=DeviceCaKey]$(pwd)/private/iot-edge-device-ca-ConnectivityTestDeviceCA.key.pem"
+
   - task: Bash@3
     displayName: 'Run Long Haul Deployment'
     inputs:
       targetType: inline
       script: |
         declare -a cnreg=( ${{ parameters['container.registry.credential'] }} )
+        . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
         testName="LongHaul"
-        
+
         testInfo="TestBuildNumber=${{ parameters['test.buildNumber'] }}"
         testInfo="$testInfo,TestBuildId=${{ parameters['test.buildId'] }}"
         testInfo="$testInfo,BuildSourceBranch=${{ parameters['build.source.branch'] }}"
         testInfo="$testInfo,EdgeletSourceBranch=${{ parameters['edgelet.source.branch'] }}"
         testInfo="$testInfo,ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
         testInfo="$testInfo,HostPlatform=${{ parameters['metricsCollector.hostPlatform'] }}"
-        testInfo="$testInfo,TestName=$testName"
-        testInfo="$testInfo,UpstreamProtocol=amqp"
-        
-        . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
-        chmod +x $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/runE2ETest.sh
-        sudo $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/runE2ETest.sh \
-          -testDir "$(Agent.HomeDirectory)/.." \
-          -releaseLabel "${{ parameters['release.label'] }}" \
-          -artifactImageBuildNumber "$BuildNumber" \
-          -testName "$testName" \
-          -containerRegistry "${{ parameters['container.registry'] }}" \
-          -containerRegistryUsername "${{ parameters['container.registry.username'] }}" \
-          -containerRegistryPassword "${{ parameters['container.registry.password'] }}" \
-          -iotHubConnectionString "${{ parameters['iotHub.connectionString'] }}" \
-          -eventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" \
-          -snitchBuildNumber "${{ parameters['snitch.build.number'] }}" \
-          -snitchStorageAccount "${{ parameters['snitch.storage.account'] }}" \
-          -snitchStorageMasterKey "${{ parameters['snitch.storage.masterKey'] }}" \
-          -snitchAlertUrl "${{ parameters['snitch.alert.url'] }}" \
-          -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" \
-          -eventHubConsumerGroupId "${{ parameters['analyzer.consumerGroupId'] }}" \
-          -desiredModulesToRestartCSV "${{ parameters['longHaul.desiredModulesToRestartCSV'] }}" \
-          -restartIntervalInMins "${{ parameters['longHaul.restartIntervalInMins'] }}" \
-          -logAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" \
-          -logAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" \
-          -twinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" \
-          -twinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" \
-          -twinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}" \
-          -edgeHubRestartFailureTolerance "${{ parameters['twinTester.edgeHubRestartFailureTolerance'] }}" \
-          -metricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" \
-          -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
-          -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
-          -testInfo "$testInfo" \
-          -testStartDelay "${{ parameters['test.startDelay'] }}" \
-          -runtimeLogLevel "${{ parameters['test.runtimeLogLevel'] }}" \
-          -cleanAll
+        testInfo="$testInfo,TestName=longhaul (single-node)"
+        testInfo="$testInfo,ClientProtocol=${{ parameters['clientModuleTransportType'] }}"
+
+        if [ "${{ parameters['test.useTRC'] }}" == true ]; then
+          chmod +x ${{ parameters['build.repo.path'] }}/scripts/linux/trcE2ETest.sh
+
+          sudo --preserve-env ${{ parameters['build.repo.path'] }}/scripts/linux/trcE2ETest.sh \
+            -testDir "$(Agent.HomeDirectory)/.." \
+            -releaseLabel "${{ parameters['release.label'] }}" \
+            -artifactImageBuildNumber "$BuildNumber" \
+            -containerRegistry "${{ parameters['container.registry'] }}" \
+            -containerRegistryUsername "${{ parameters['container.registry.username'] }}" \
+            -containerRegistryPassword "${{ parameters['container.registry.password'] }}" \
+            -iotHubConnectionString "${{ parameters['iotHub.connectionString'] }}" \
+            -eventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" \
+            -testStartDelay "${{ parameters['test.startDelay'] }}" \
+            -restartIntervalInMins "${{ parameters['longHaul.restartIntervalInMins'] }}" \
+            -logAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" \
+            -logAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" \
+            -logAnalyticsLogType "${{ parameters['logAnalytics.logType'] }}" \
+            -metricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" \
+            -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
+            -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
+            -deploymentFileName "${{ parameters['test.deploymentFileName'] }}" \
+            -storageAccountConnectionString "${{ parameters['testResultCoordinator.storageAccountConnectionString'] }}" \
+            -testRuntimeLogLevel "${{ parameters['test.runtimeLogLevel'] }}" \
+            -testInfo "$testInfo" \
+            -twinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" \
+            -desiredModulesToRestartCSV "${{ parameters['longHaul.desiredModulesToRestartCSV'] }}" \
+            -sendReportFrequency "${{ parameters['longHaul.sendReportFrequency'] }}" \
+            -testMode "${{ parameters['test.testMode'] }}" \
+            -testName "$testName" \
+            -repoPath "${{ parameters['build.repo.path'] }}" \
+            -clientModuleTransportType "${{ parameters['clientModuleTransportType'] }}" \
+            -waitForTestComplete \
+            -cleanAll
+        else
+          chmod +x $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/runE2ETest.sh
+
+          sudo --preserve-env $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/runE2ETest.sh \
+            -testDir "$(Agent.HomeDirectory)/.." \
+            -releaseLabel "${{ parameters['release.label'] }}" \
+            -artifactImageBuildNumber "$BuildNumber" \
+            -testName "$testName" \
+            -containerRegistry "${{ parameters['container.registry'] }}" \
+            -containerRegistryUsername "${{ parameters['container.registry.username'] }}" \
+            -containerRegistryPassword "${{ parameters['container.registry.password'] }}" \
+            -iotHubConnectionString "${{ parameters['iotHub.connectionString'] }}" \
+            -eventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" \
+            -snitchBuildNumber "${{ parameters['snitch.build.number'] }}" \
+            -snitchStorageAccount "${{ parameters['snitch.storage.account'] }}" \
+            -snitchStorageMasterKey "${{ parameters['snitch.storage.masterKey'] }}" \
+            -snitchAlertUrl "${{ parameters['snitch.alert.url'] }}" \
+            -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" \
+            -eventHubConsumerGroupId "${{ parameters['analyzer.consumerGroupId'] }}" \
+            -desiredModulesToRestartCSV "${{ parameters['longHaul.desiredModulesToRestartCSV'] }}" \
+            -restartIntervalInMins "${{ parameters['longHaul.restartIntervalInMins'] }}" \
+            -logAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" \
+            -logAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" \
+            -twinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" \
+            -twinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" \
+            -twinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}" \
+            -edgeHubRestartFailureTolerance "${{ parameters['twinTester.edgeHubRestartFailureTolerance'] }}" \
+            -metricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" \
+            -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
+            -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
+            -testInfo "$testInfo" \
+            -testStartDelay "${{ parameters['test.startDelay'] }}" \
+            -runtimeLogLevel "${{ parameters['test.runtimeLogLevel'] }}" \
+            -cleanAll
+        fi
       workingDirectory: "$(Agent.HomeDirectory)/.."
+    env:
+      E2E_trustedCaCerts: $(TrustBundle)
+      E2E_deviceCaCert: $(DeviceCaCert)
+      E2E_deviceCaPrivateKey: $(DeviceCaKey)

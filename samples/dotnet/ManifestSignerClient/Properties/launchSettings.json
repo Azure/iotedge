@@ -1,0 +1,17 @@
+{
+  "profiles": {
+    "ManifestSignerClient": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DSA_ALGORITHM": "",
+        "USE_TESTING_CA": "",
+        "DEPLOYMENT_MANIFEST_FILE_PATH": "",
+        "SIGNED_DEPLOYMENT_MANIFEST_FILE_PATH": "",
+        "MANIFEST_TRUST_DEVICE_ROOT_CA_PATH": "",
+        "MANIFEST_TRUST_INTERMEDIATE_CA_PATH": "",
+        "MANIFEST_TRUST_SIGNER_PRIVATE_KEY_PATH": "",
+        "MANIFEST_TRUST_SIGNER_CERT_PATH": ""
+      }
+    }
+  }
+}

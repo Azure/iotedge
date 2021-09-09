@@ -49,12 +49,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Serv
             [KubernetesConstants.K8sEdgeDeviceLabel] = KubeUtils.SanitizeLabelValue("device1"),
         };
 
-        static readonly ModuleIdentity CreateIdentity = new ModuleIdentity("hostname", "gateway", "device1", "Module1", new ConnectionStringCredentials("connection string"));
+        static readonly ModuleIdentity CreateIdentity = new ModuleIdentity("hostname", "device1", "Module1", new ConnectionStringCredentials("connection string"));
 
         static KubernetesModule CreateKubernetesModule(CreatePodParameters podParameters)
         {
             var config = new KubernetesConfig("image", podParameters, Option.None<AuthConfig>());
-            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVarsDict);
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVarsDict);
             var owner = new KubernetesModuleOwner("v1", "Owner", "an-owner", "a-uid");
             return new KubernetesModule(docker, config, owner);
         }

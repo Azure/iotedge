@@ -4,11 +4,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.DeviceManager;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
@@ -65,7 +67,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     var deviceClientprovider = c.Resolve<IModuleClientProvider>();
                     var requestManager = c.Resolve<IRequestManager>();
                     var deviceManager = c.Resolve<IDeviceManager>();
-                    IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientprovider, serde, requestManager, deviceManager);
+                    var deploymentMetrics = c.Resolve<IDeploymentMetrics>();
+                    Option<X509Certificate2> manifestTrustBundle = Option.None<X509Certificate2>();
+                    IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientprovider, serde, requestManager, deviceManager, deploymentMetrics, manifestTrustBundle);
                     return edgeAgentConnection;
                 })
                 .As<IEdgeAgentConnection>()

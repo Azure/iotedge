@@ -120,6 +120,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 cancellationToken);
         }
 
+        public Task<ulong> Count() => this.entityStore.Count();
+
         public void Dispose()
         {
             this.Dispose(true);

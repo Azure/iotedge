@@ -37,26 +37,6 @@ pub enum ErrorKind {
     #[fail(display = "An error occurred obtaining the certificate's key")]
     CertificateKey,
 
-    #[fail(
-        display = "The Connection String is empty. Please update the config.yaml and provide the IoTHub connection information."
-    )]
-    ConnectionStringEmpty,
-
-    #[fail(display = "The Connection String is missing required parameter {}", _0)]
-    ConnectionStringMissingRequiredParameter(&'static str),
-
-    #[fail(
-        display = "The Connection String has a malformed value for parameter {}.",
-        _0
-    )]
-    ConnectionStringMalformedParameter(&'static str),
-
-    #[fail(
-        display = "Edge device information is required.\nPlease update config.yaml with the IoT Hub connection information.\nSee {} for more details.",
-        _0
-    )]
-    ConnectionStringNotConfigured(&'static str),
-
     #[fail(display = "An error occurred when obtaining the device identity certificate.")]
     DeviceIdentityCertificate,
 
@@ -92,18 +72,6 @@ pub enum ErrorKind {
     #[fail(display = "Invalid module type {:?}", _0)]
     InvalidModuleType(String),
 
-    #[fail(
-        display = "Error parsing URI {} specified for '{}'. Please check the config.yaml file.",
-        _0, _1
-    )]
-    InvalidSettingsUri(String, &'static str),
-
-    #[fail(
-        display = "Invalid file URI {} path specified for '{}'. Please check the config.yaml file.",
-        _0, _1
-    )]
-    InvalidSettingsUriFilePath(String, &'static str),
-
     #[fail(display = "Invalid URL {:?}", _0)]
     InvalidUrl(String),
 
@@ -122,23 +90,17 @@ pub enum ErrorKind {
     #[fail(display = "Unable to parse since.")]
     ParseSince,
 
+    #[fail(display = "Unable to get the virtualization status.")]
+    GetVirtualizationStatus,
+
     #[fail(display = "Signing error occurred.")]
     Sign,
 
     #[fail(display = "Signing error occurred. Invalid key length: {}", _0)]
     SignInvalidKeyLength(usize),
 
-    #[fail(
-        display = "URI {} is unsupported for '{}'. Please check the config.yaml file.",
-        _0, _1
-    )]
-    UnsupportedSettingsUri(String, &'static str),
-
-    #[fail(
-        display = "File URI {} is unsupported for '{}'. Please check the config.yaml file.",
-        _0, _1
-    )]
-    UnsupportedSettingsFileUri(String, &'static str),
+    #[fail(display = "The workload manager encountered an error")]
+    WorkloadManager,
 }
 
 impl Fail for Error {

@@ -6,13 +6,17 @@ Certificates created by these scripts **MUST NOT** be used for production.  They
 ## Introduction
 This document helps create certificates for use in **pre-testing** IoT SDKs against the IoT Hub and Edge runtime.  In particular, the tools in this directory can be used to either setup CA Certificates (along with proof of possession) or Edge device certificates.  This document assumes you have basic familiarity with the scenario you are setting up for as well as some knowledge of PowerShell or Bash.
 
+If you aren't familiar with how certificates work in IoT Edge scenarios, start by reading [Understand how Azure IoT Edge uses certificates].
+
 This directory contains a PowerShell (PS1) and Bash script to help create **test** certificates for Azure IoT Hub's CA Certificate / proof-of-possession and/or Edge certificates.
 
 The PS1 and Bash scripts are functionally equivalent; they are both provided depending on your preference for Windows or Linux respectively.
 
-A more detailed document showing UI screen shots for CA Certificates and proof of possession flow is available from [the official documentation].
+For more detailed instructions on how to use the scripts in this folder, see [Create certificates to test IoT Edge device features].
 
-A more detailed document explaining Edge and showing its use of certificates generated here is available from the [Edge gateway creation documentation].
+For an example of how these certificates are used in IoT Edge gateway scenarios, see [Configure an IoT Edge device to act as a transparent gateway].
+
+Starting with version 1.2, IoT Edge uses the IoT Identity Service to handle provisioning device and module identities. To learn more about how this service manages identities when certificates are used, see [Creating an IoT agent].
 
 ## USE
 
@@ -21,7 +25,7 @@ You'll need to do some initial setup prior to running these scripts.
 
 ###  **PowerShell**
 * Get OpenSSL for Windows.
-  * See https://docs.microsoft.com/en-us/azure/iot-edge/how-to-create-transparent-gateway#install-openssl.
+  * See https://docs.microsoft.com/azure/iot-edge/how-to-create-test-certificates#install-openssl.
 * Start PowerShell as an Administrator.
 * `cd` to a working directory you want to run in.  All files will be created in this directory.
 * `cp *.cnf` and `cp ca-certs.ps1` from the directory this .MD file is located into your working directory.
@@ -75,8 +79,6 @@ Finally, let's create an application and corresponding device on IoT Hub that sh
 
 On Azure IoT Hub, navigate to the "Device Explorer".  Add a new device (e.g. `mydevice`), and for its authentication type chose "X.509 CA Signed".  Devices can authenticate to IoT Hub using a certificate that is signed by the Root CA from Step 2.
 
-Note that if you're using this certificate as a DPS registration ID, the ID **must be lower case** or the server will reject it.
-
 ### **PowerShell**
 #### IoT Leaf Device Identity Certificate
 * Run `New-CACertsDevice mydevice` to create the new device identity certificate.
@@ -111,6 +113,7 @@ These scripts output certificates to the current working directory, so there is 
 * Remove certificates issued by "Azure IoT CA TestOnly*".
 * Similarly remove them from "Trusted Root Certification Authority --> Certificates" and "Intermediate Certificate Authorities --> Certificates".
 
-
-[the official documentation]: https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-security-x509-get-started
-[Edge gateway creation documentation]: https://docs.microsoft.com/en-us/azure/iot-edge/how-to-create-transparent-gateway
+[Understand how Azure IoT Edge uses certificates]: https://docs.microsoft.com/azure/iot-edge/iot-edge-certs
+[Create certificates to test IoT Edge device features]: https://docs.microsoft.com/azure/iot-edge/how-to-create-test-certificates
+[Configure an IoT Edge device to act as a transparent gateway]: https://docs.microsoft.com/azure/iot-edge/how-to-create-transparent-gateway
+[Creating an IoT agent]: https://azure.github.io/iot-identity-service/develop-an-agent.html

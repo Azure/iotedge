@@ -20,6 +20,7 @@ namespace CloudToDeviceMessageTester
         readonly ILogger logger;
         readonly string iotHubConnectionString;
         readonly string deviceId;
+        readonly string edgeDeviceId;
         readonly string moduleId;
         readonly TransportType transportType;
         readonly TestResultReportingClient testResultReportingClient;
@@ -40,6 +41,7 @@ namespace CloudToDeviceMessageTester
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
             this.iotHubConnectionString = Preconditions.CheckNonWhiteSpace(sharedMetadata.IotHubConnectionString, nameof(sharedMetadata.IotHubConnectionString));
             this.deviceId = Preconditions.CheckNonWhiteSpace(sharedMetadata.DeviceId, nameof(sharedMetadata.DeviceId));
+            this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(receiverMetadata.EdgeDeviceId, nameof(receiverMetadata.EdgeDeviceId));
             this.moduleId = Preconditions.CheckNonWhiteSpace(sharedMetadata.ModuleId, nameof(sharedMetadata.ModuleId));
             this.transportType = receiverMetadata.TransportType;
             this.gatewayHostName = Preconditions.CheckNonWhiteSpace(receiverMetadata.GatewayHostName, nameof(receiverMetadata.GatewayHostName));
@@ -77,7 +79,10 @@ namespace CloudToDeviceMessageTester
             try
             {
                 registryManager = Microsoft.Azure.Devices.RegistryManager.CreateFromConnectionString(this.iotHubConnectionString);
-                Microsoft.Azure.Devices.Device device = await registryManager.AddDeviceAsync(new Microsoft.Azure.Devices.Device(this.deviceId), ct);
+                var edgeDevice = await registryManager.GetDeviceAsync(this.edgeDeviceId);
+                var leafDevice = new Microsoft.Azure.Devices.Device(this.deviceId);
+                leafDevice.Scope = edgeDevice.Scope;
+                Microsoft.Azure.Devices.Device device = await registryManager.AddDeviceAsync(leafDevice, ct);
                 string deviceConnectionString = $"HostName={this.iotHubHostName};DeviceId={this.deviceId};SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.gatewayHostName}";
                 this.deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, new ITransportSettings[] { transportSettings });
                 await this.deviceClient.OpenAsync();
