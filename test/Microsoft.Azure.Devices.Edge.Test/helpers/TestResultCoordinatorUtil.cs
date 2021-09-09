@@ -112,23 +112,37 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             return isPassed;
         }
 
-        public static async Task ValidateScenarioAsync(TimeSpan verificationTolerance)
+        public static async Task<bool> IsCountingReportResultValidAsync(int numResultsExpected)
         {
-            DateTime end = DateTime.UtcNow + verificationTolerance;
-
-            bool scenarioPassed = false;
-            while (DateTime.UtcNow < end)
+            HttpClient client = new HttpClient();
+            HttpResponseMessage response = await client.GetAsync(TestResultCoordinatorUrl);
+            var jsonstring = await response.Content.ReadAsStringAsync();
+            bool isTestReportValid;
+            int expected;
+            int matched;
+            try
             {
-                await Task.Delay(TimeSpan.FromSeconds(5));
+                isTestReportValid = (bool)JArray.Parse(jsonstring)[0]["IsPassed"];
 
-                if (await TestResultCoordinatorUtil.IsResultValidAsync())
+                expected = (int)JArray.Parse(jsonstring)[0]["TotalExpectCount"];
+                matched = (int)JArray.Parse(jsonstring)[0]["TotalMatchCount"];
+
+                if (expected != numResultsExpected || matched != numResultsExpected)
                 {
-                    scenarioPassed = true;
-                    break;
+                    isTestReportValid = false;
                 }
             }
+            catch
+            {
+                isTestReportValid = false;
+            }
 
-            Assert.True(scenarioPassed);
+            if (!isTestReportValid)
+            {
+                Log.Information("Test Result Coordinator response: {Response}", jsonstring);
+            }
+
+            return isTestReportValid;
         }
     }
 }

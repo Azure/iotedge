@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string NetworkControllerModuleName = "networkController";
         const string GenericMqttInitiatorModuleName = "GenericMqttInitiator";
         const string GenericMqttRelayerModuleName = "GenericMqttRelayer";
-        const string GenericMqttTesterMaxMessages = "5";
+        const int GenericMqttTesterMaxMessages = 5;
         const string GenericMqttTesterTestStartDelay = "10s";
         const int VerificationTolerance = 90;
 
@@ -51,7 +51,26 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Action<EdgeConfigBuilder> config = addMqttBrokerConfig + addNetworkControllerConfig + addTestResultCoordinatorConfig + addGenericMqttTesterConfig;
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(config, token, Context.Current.NestedEdge);
 
-            await TestResultCoordinatorUtil.ValidateScenarioAsync(TimeSpan.FromSeconds(VerificationTolerance));
+            await ValidateScenarioAsync(TimeSpan.FromSeconds(VerificationTolerance), GenericMqttTesterMaxMessages);
+        }
+
+        static async Task ValidateScenarioAsync(TimeSpan verificationTolerance, int numResultsExpected)
+        {
+            DateTime end = DateTime.UtcNow + verificationTolerance;
+
+            bool scenarioPassed = false;
+            while (DateTime.UtcNow < end)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(5));
+
+                if (await TestResultCoordinatorUtil.IsCountingReportResultValidAsync(numResultsExpected))
+                {
+                    scenarioPassed = true;
+                    break;
+                }
+            }
+
+            Assert.True(scenarioPassed);
         }
 
         private Action<EdgeConfigBuilder> BuildAddGenericMqttTesterConfig(string trackingId, string trcImage, string genericMqttTesterImage)
@@ -65,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             ("TEST_SCENARIO", "InitiateAndReceiveRelayed"),
                             ("TRACKING_ID", trackingId),
                             ("TEST_START_DELAY", GenericMqttTesterTestStartDelay),
-                            ("MESSAGES_TO_SEND", GenericMqttTesterMaxMessages),
+                            ("MESSAGES_TO_SEND", GenericMqttTesterMaxMessages.ToString()),
                         });
 
                     builder.AddModule(GenericMqttRelayerModuleName, genericMqttTesterImage, false)
