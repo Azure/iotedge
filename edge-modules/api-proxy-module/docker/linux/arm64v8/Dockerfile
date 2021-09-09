@@ -2,7 +2,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License. See https://go.microsoft.com/fwlink/?linkid=2090316 for license information.
 #-------------------------------------------------------------------------------------------------------------
-FROM arm64v8/nginx:1.19.9
+FROM arm64v8/nginx:1.21.1
 WORKDIR /app
 
 RUN chown -R nginx:nginx /app && \

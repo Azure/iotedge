@@ -31,13 +31,12 @@ pub(crate) use self::up_to_date_config::UpToDateConfig;
 pub(crate) use self::well_formed_config::WellFormedConfig;
 
 use std::ffi::OsStr;
-use std::process::Command;
 
 use failure::{self, Context, Fail};
 
 use super::Checker;
 
-pub(crate) fn docker<I>(
+pub(crate) async fn docker<I>(
     docker_host_arg: &str,
     args: I,
 ) -> Result<Vec<u8>, (Option<String>, failure::Error)>
@@ -45,13 +44,13 @@ where
     I: IntoIterator,
     <I as IntoIterator>::Item: AsRef<OsStr>,
 {
-    let mut process = Command::new("docker");
+    let mut process = tokio::process::Command::new("docker");
     process.arg("-H");
     process.arg(docker_host_arg);
 
     process.args(args);
 
-    let output = process.output().map_err(|err| {
+    let output = process.output().await.map_err(|err| {
         (
             None,
             err.context(format!("could not run {:?}", process)).into(),

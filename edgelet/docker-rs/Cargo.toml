@@ -1,18 +1,20 @@
 [package]
-name = "docker"
-version = "0.1.0"
 authors = ["Azure IoT Edge Devs"]
-publish = false
 edition = "2018"
+name = "docker"
+publish = false
+version = "0.1.0"
 
 [dependencies]
+async-trait = "0.1"
 base64 = "0.9"
-failure = "0.1"
 futures = "0.1"
-hyper = "0.12"
+hyper = "0.14"
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
-serde_yaml = "0.8"
 typed-headers = "0.1"
 url = "1.5"
+
+http-common = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
+

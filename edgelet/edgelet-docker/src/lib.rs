@@ -11,16 +11,12 @@
     clippy::use_self
 )]
 
-mod client;
-mod config;
+// mod client;
 mod error;
 mod module;
 mod notary;
 mod runtime;
-mod settings;
 
-pub use config::{DockerConfig, UPSTREAM_PARENT_KEYWORD};
 pub use error::{Error, ErrorKind};
 pub use module::{DockerModule, MODULE_TYPE};
-pub use runtime::DockerModuleRuntime;
-pub use settings::{ContentTrust, LoadSettingsError, MobyRuntime, Settings, CONFIG_FILE_DEFAULT};
+pub use runtime::{init_client, DockerModuleRuntime};
