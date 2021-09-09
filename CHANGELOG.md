@@ -3,21 +3,21 @@
 ### Bug Fixes
 * Delay frequent twin pulls on reconnect ( [95b4441](https://github.com/Azure/iotedge/commit/95b4441402fbab9d292f0d962ff89c03e28b848a) )
 * Make sure to dispose HttpContentStream when done reading module logs ( [47011b1](https://github.com/Azure/iotedge/commit/47011b1ed0270182afdadb3eba27220fd4dc38bf) )
-* Update Base Images for a Security Patch ( [3b83e7f](https://github.com/Azure/iotedge/commit/3b83e7f76eaa083f73a9ee6b3f9a8973f8268f5e) )
+* Update Base Images for a Security Patch ( [3b83e7f](https://github.com/Azure/iotedge/commit/3b83e7f76eaa083f73a9ee6b3f9a8973f8268f5e), [56e96cd](https://github.com/Azure/iotedge/commit/56e96cdf9970c057b7a8028c508f6b0b997f0b62) )
 * `$upstream` support for container registry address ( [ebdb5be](https://github.com/Azure/iotedge/commit/ebdb5becf9a1c5f1fb2aa27794b6e69b0b754d52) )
 
 
 ## Edge Hub
 ### Bug Fixes
 * Add ComponentName to message properties ( [4f36aba](https://github.com/Azure/iotedge/commit/4f36aba0522b5efe547fefc27a2d695f593885e7) )
-* Update Base Images for a Security Patch ( [3b83e7f](https://github.com/Azure/iotedge/commit/3b83e7f76eaa083f73a9ee6b3f9a8973f8268f5e) )
+* Update Base Images for a Security Patch ( [3b83e7f](https://github.com/Azure/iotedge/commit/3b83e7f76eaa083f73a9ee6b3f9a8973f8268f5e), [56e96cd](https://github.com/Azure/iotedge/commit/56e96cdf9970c057b7a8028c508f6b0b997f0b62) )
 * Enable leaf identity creation ( [358aeb7](https://github.com/Azure/iotedge/commit/358aeb76f4c7b59929def8bcb977b51c2191066f) )
 
 
 ## Azure Functions Module Sample
 ### Bug Fixes
 * Update Azure Functions packages ( [d8ea036](https://github.com/Azure/iotedge/commit/d8ea036f4522d77e2e9498cde80e1b69d50b44c8) )
-* Update Base Images for a Security Patch ( [3b83e7f](https://github.com/Azure/iotedge/commit/3b83e7f76eaa083f73a9ee6b3f9a8973f8268f5e) )
+* Update Base Images for a Security Patch ( [3b83e7f](https://github.com/Azure/iotedge/commit/3b83e7f76eaa083f73a9ee6b3f9a8973f8268f5e), [56e96cd](https://github.com/Azure/iotedge/commit/56e96cdf9970c057b7a8028c508f6b0b997f0b62) )
 
 
 ## MQTT Broker
