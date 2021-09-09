@@ -106,6 +106,8 @@ jobs:
     displayName: Mariner_Linux
     pool:
       vmImage: 'ubuntu-18.04'
+    variables:
+      NugetSecurityAnalysisWarningLevel: warn
     strategy:
       matrix:
         CBL-Mariner1.0-amd64:
