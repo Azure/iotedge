@@ -6,6 +6,15 @@ variables:
   vsts.project: $(System.TeamProjectId)
   NugetSecurityAnalysisWarningLevel: warn
 
+resources:
+  pipelines:
+  - pipeline: images
+    source: 'Azure-IoT-Edge-Core Build Images'
+    branch: 'master'
+  - pipeline: packages
+    source: 'Azure-IoT-Edge-Core Edgelet Packages'
+    branch: 'master'
+
 jobs:
 ################################################################################
   - job: linux_amd64_moby
@@ -111,9 +120,9 @@ jobs:
         displayName: 'Download Edgelet Artifacts'
         inputs:
           buildType: specific
-          project: $(vsts.project)
-          pipeline: $(edgelet.package.build)
-          branchName: $(edgelet.package.branchName)
+          project: $(resources.pipeline.packages.projectID)
+          pipeline: $(resources.pipeline.packages.pipelineName)
+          branchName: $(resources.pipeline.packages.sourceBranch)
           buildVersionToDownload: latestFromBranch
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
@@ -122,9 +131,9 @@ jobs:
         displayName: 'Download Images Artifacts'
         inputs:
           buildType: specific
-          project: $(vsts.project)
-          pipeline: $(images.build)
-          branchName: $(images.branchName)
+          project: $(resources.pipeline.images.projectID)
+          pipeline: $(resources.pipeline.images.pipelineName)
+          branchName: $(resources.pipeline.images.sourceBranch)
           buildVersionToDownload: latestFromBranch
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.linux)
