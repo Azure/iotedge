@@ -16,8 +16,8 @@ echo "Edgelet version is ${VERSION}"
 
 # Update versions in specfiles
 pushd "${BUILD_REPOSITORY_LOCALPATH}"
-sed -i "s/@@VERSION@@/${VERSION}/g" builds/mariner/SPECS/azure-iotedge/azure-iotedge.signatures.json
-sed -i "s/@@VERSION@@/${VERSION}/g" builds/mariner/SPECS/azure-iotedge/azure-iotedge.spec
+sed -i "s/@@VERSION@@/${VERSION}/g" builds/mariner/SPECS/aziot-edge/aziot-edge.signatures.json
+sed -i "s/@@VERSION@@/${VERSION}/g" builds/mariner/SPECS/aziot-edge/aziot-edge.spec
 popd
 
 pushd "${EDGELET_ROOT}"
@@ -53,16 +53,18 @@ cp ../LICENSE ./LICENSE
 popd # EDGELET_ROOT
 
 # Create source tarball, including cargo dependencies and license
-pushd "${BUILD_REPOSITORY_LOCALPATH}"
-echo "Creating source tarball azure-iotedge-${VERSION}.tar.gz"
-tar -czf azure-iotedge-${VERSION}.tar.gz "${BUILD_REPOSITORY_LOCALPATH}"
+tmp_dir=$(mktemp -d -t mariner-iotedge-build-XXXXXXXXXX)
+pushd $tmp_dir
+echo "Creating source tarball aziot-edge-${VERSION}.tar.gz"
+tar -czvf aziot-edge-${VERSION}.tar.gz --transform s/./aziot-edge-${VERSION}/ -C "${BUILD_REPOSITORY_LOCALPATH}" .
 popd
 
 # Update expected tarball hash
 
 # Copy source tarball to expected locations
-mkdir -p "${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/SOURCES/"
-cp "${BUILD_REPOSITORY_LOCALPATH}/azure-iotedge-${VERSION}.tar.gz" "${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/SOURCES/"
+mkdir -p "${MARINER_BUILD_ROOT}/SPECS/aziot-edge/SOURCES/"
+mv "${tmp_dir}/aziot-edge-${VERSION}.tar.gz" "${MARINER_BUILD_ROOT}/SPECS/aziot-edge/SOURCES/"
+rm -rf ${tmp_dir}
 
 # Download Mariner repo and build toolkit
 echo "Cloning the \"${MARINER_RELEASE}\" tag of the CBL-Mariner repo."
@@ -81,6 +83,6 @@ sudo tar xzf toolkit.tar.gz
 pushd toolkit
 
 # Build Mariner RPM packages
-sudo make build-packages PACKAGE_BUILD_LIST="azure-iotedge" SRPM_FILE_SIGNATURE_HANDLING=update CONFIG_FILE= -j$(nproc)
+sudo make build-packages PACKAGE_BUILD_LIST="aziot-edge" SRPM_FILE_SIGNATURE_HANDLING=update CONFIG_FILE= -j$(nproc)
 popd
 popd
