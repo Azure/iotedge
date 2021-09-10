@@ -42,6 +42,7 @@ jobs:
           name: Metrics Collector (customer-facing)
           imageName: azureiotedge-metrics-collector
           project: Microsoft.Azure.Devices.Edge.Azure.Monitor
+          version: $(version)
 
 ################################################################################
   - job: MetricsCollector_Windows
@@ -81,6 +82,7 @@ jobs:
           name: Metrics Collector (customer-facing)
           imageName: azureiotedge-metrics-collector
           project: Microsoft.Azure.Devices.Edge.Azure.Monitor
+          version: $(version)          
 
 ################################################################################
   - job: manifest
