@@ -20,28 +20,24 @@ steps:
         $(Join-Path $env:ProgramFiles 'iotedge-moby') -join ';'
       if ('$(minimal)' -eq 'true')
       {
-        dotnet test $testFile --no-build --logger 'trx' --filter 'Name~TempSensor'
+        $filter += '&Name~TempSensor'
       }
-      else
-      {
-        dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
-      }
+
+      dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
     }
     else
     {
       # Unfortunately CentOs has some failing test that need to be worked on.
       if ('$(artifactName)'.Contains('centos'))
       {
-        sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter 'TestCategory=CentOsSafe'
+        $filter += '&TestCategory=CentOsSafe'
       }
       elseif ('$(minimal)' -eq 'true')
       {
-        sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter 'Name~TempSensor'
+        $filter += '&Name~TempSensor'
       }
-      else
-      {
-        sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
-      }
+
+      sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
     }
   displayName: Run tests
   env:
