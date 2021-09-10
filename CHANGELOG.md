@@ -1,7 +1,45 @@
+# 1.2.4 (2021-09-13)
+## Edge Agent
+### Bug Fixes
+* Delay frequent twin pulls on reconnect ( [95b4441](https://github.com/Azure/iotedge/commit/95b4441402fbab9d292f0d962ff89c03e28b848a) )
+* Make sure to dispose HttpContentStream when done reading module logs ( [47011b1](https://github.com/Azure/iotedge/commit/47011b1ed0270182afdadb3eba27220fd4dc38bf) )
+* Update Base Images for a Security Patch ( [3b83e7f](https://github.com/Azure/iotedge/commit/3b83e7f76eaa083f73a9ee6b3f9a8973f8268f5e), [56e96cd](https://github.com/Azure/iotedge/commit/56e96cdf9970c057b7a8028c508f6b0b997f0b62) )
+* `$upstream` support for container registry address ( [ebdb5be](https://github.com/Azure/iotedge/commit/ebdb5becf9a1c5f1fb2aa27794b6e69b0b754d52) )
+
+
+## Edge Hub
+### Bug Fixes
+* Add a component name to message properties ( [4f36aba](https://github.com/Azure/iotedge/commit/4f36aba0522b5efe547fefc27a2d695f593885e7) )
+* Update Base Images for a Security Patch ( [3b83e7f](https://github.com/Azure/iotedge/commit/3b83e7f76eaa083f73a9ee6b3f9a8973f8268f5e), [56e96cd](https://github.com/Azure/iotedge/commit/56e96cdf9970c057b7a8028c508f6b0b997f0b62) )
+* Enable leaf identity creation ( [358aeb7](https://github.com/Azure/iotedge/commit/358aeb76f4c7b59929def8bcb977b51c2191066f) )
+
+
+## Azure Functions Module Sample
+### Bug Fixes
+* Update Azure Functions packages ( [d8ea036](https://github.com/Azure/iotedge/commit/d8ea036f4522d77e2e9498cde80e1b69d50b44c8) )
+* Update Base Images for a Security Patch ( [3b83e7f](https://github.com/Azure/iotedge/commit/3b83e7f76eaa083f73a9ee6b3f9a8973f8268f5e), [56e96cd](https://github.com/Azure/iotedge/commit/56e96cdf9970c057b7a8028c508f6b0b997f0b62) )
+
+
+## MQTT Broker
+### Bug Fixes
+* Fix find_first_block seek logic ( [1c9b39a](https://github.com/Azure/iotedge/commit/1c9b39a4bf00d88d619164f8332df414a56ba1da) )
+
+
+## aziot-edge
+### Bug Fixes
+* Fix host cpu metric incorrectly reported at 100% ( [876900a](https://github.com/Azure/iotedge/commit/876900a3644eba5a14e09ba3d580e25eeff88f4b) )
+* Add timeout to support bundle calls ( [16ede21](https://github.com/Azure/iotedge/commit/16ede21d0d454177fad8b1ce906f012f56c02d3e) )
+* Introduce `allow_elevated_docker_permissions` flag ( [175603c](https://github.com/Azure/iotedge/commit/175603c634881e081979d507f94baf3c9f7f642f) )
+* RUSTSEC Security Update ( [24e4d27](https://github.com/Azure/iotedge/commit/24e4d272415de71e0ed75b41089e1471c35cc8c9), [b59a089](https://github.com/Azure/iotedge/commit/b59a089e6fa3fbf1d869e37e5e2a5113449b37e3), [5e2ba80](https://github.com/Azure/iotedge/commit/5e2ba80786402615bebff078b67eab63313ffc39), [790a8f9](https://github.com/Azure/iotedge/commit/790a8f99e7f24c86c4c491a6e0eb6d2c388b47ec), [c6d805b](https://github.com/Azure/iotedge/commit/c6d805b1753ba1a69bf05b2e4f0eda312545d347) )
+* $upstream support for container registry address ( [ebdb5be](https://github.com/Azure/iotedge/commit/ebdb5becf9a1c5f1fb2aa27794b6e69b0b754d52) )
+* Improve Workload Manager logging and cleanup ( [febd7a2](https://github.com/Azure/iotedge/commit/febd7a2d1467b891c0dea0edff00c90c6b320e0b) )
+
+
 # 1.2.3 (2021-06-30)
 ## aziot-edge
 ### Bug Fixes
-* Fix `iotedge check` recommending an old version of aziot-identity-service.
+* Fix `iotedge check` recommending an old version of aziot-identity-service. ( [87381d9](https://github.com/Azure/iotedge/commit/87381d992ea7edd6f12376b14299269e6ab0bbe3) )
+
 
 # 1.2.2 (2021-06-23)
 ## Edge Agent
