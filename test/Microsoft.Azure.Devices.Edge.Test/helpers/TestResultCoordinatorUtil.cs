@@ -139,7 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
             if (!isTestReportValid)
             {
-                Log.Information("Test Result Coordinator response: {Response}", jsonstring);
+                Log.Verbose("Test Result Coordinator response: {Response}", jsonstring);
             }
 
             return isTestReportValid;
