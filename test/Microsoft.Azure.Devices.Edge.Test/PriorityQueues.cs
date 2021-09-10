@@ -89,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
-        [Category("FlakyOnArm")]
+        [Category("Flaky")]
         public async Task PriorityQueueTimeToLive()
         {
             CancellationToken token = this.TestToken;
