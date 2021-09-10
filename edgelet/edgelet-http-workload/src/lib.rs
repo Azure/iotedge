@@ -149,6 +149,9 @@ http_common::make_service! {
         module::cert::identity::Route<M>,
         module::cert::server::Route<M>,
 
+        module::token::generate::Route<M>,
+        module::token::validate::Route<M>,
+
         module::data::decrypt::Route<M>,
         module::data::encrypt::Route<M>,
         module::data::sign::Route<M>,

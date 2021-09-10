@@ -800,6 +800,7 @@ dependencies = [
  "percent-encoding 2.1.0",
  "regex 1.5.4",
  "serde",
+ "serde_derive",
  "serde_json",
  "tokio 1.12.0",
  "url 2.2.2",

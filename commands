@@ -1,0 +1,5 @@
+curl -POST --unix-socket /var/run/iotedge/workload.sock http://127.0.0.1/modules/SimulatedTemperatureSensor/token/validate?api-version=2020-10-10 -d '{"token":"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJzcGlmZmU6L
+y9odWd1ZXNIdWIuYXp1cmUtZGV2aWNlcy5uZXQvbHZsNS9TaW11bGF0ZWRUZW1wZXJhdHVyZVNlbnNvciIsImF1ZCI6IlNpbXVsYXRlZFRlbXBlcmF0dXJlU2Vuc29yIiwiZXhwIjoxNjMzMDUwMjI0fQ.tAv3ObIqCOsaWIt9/d/Z9GPltGFGb+FxBehBumW2+MI"}' -H "Cont
+ent-Type: application/json"
+
+curl --unix-socket /var/run/iotedge/workload.sock http://127.0.0.1/modules/SimulatedTemperatureSensor/token/generate?api-version=2020-10-10
