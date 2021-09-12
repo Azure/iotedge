@@ -664,9 +664,11 @@ dependencies = [
 name = "edge-agent"
 version = "0.1.0"
 dependencies = [
+ "rand 0.8.4",
  "serde",
  "serde_derive",
  "serde_json",
+ "tempfile",
  "tokio 1.11.0",
 ]
 
