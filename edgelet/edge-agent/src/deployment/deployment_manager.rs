@@ -8,7 +8,7 @@ use tokio::sync::mpsc;
 
 use super::deployment::Deployment;
 
-struct DeploymentManager {
+pub struct DeploymentManager {
     notifier: mpsc::Sender<()>,
     file_location: PathBuf,
 }
@@ -36,8 +36,10 @@ impl DeploymentManager {
         Ok(())
     }
 
-    pub async fn get_deployment(&self) -> Result<Deployment, Box<dyn Error>> {
-        let mut file = File::open(&self.file_location).await?;
+    pub async fn get_deployment(
+        deployment_file: impl AsRef<Path>,
+    ) -> Result<Deployment, Box<dyn Error>> {
+        let mut file = File::open(deployment_file).await?;
         let mut contents = vec![];
         file.read_to_end(&mut contents).await?;
         let deployment = serde_json::from_slice(&contents)?;
@@ -48,6 +50,10 @@ impl DeploymentManager {
 
     fn validate_deployment(_deployment: &Deployment) -> Result<(), Box<dyn Error>> {
         Ok(())
+    }
+
+    pub fn file_location(&self) -> &Path {
+        &self.file_location
     }
 }
 
@@ -70,20 +76,19 @@ mod tests {
         let manager = DeploymentManager::new(tx, tmp_dir.path());
 
         // Deploy normally and validate file
+        let deployment_file = tmp_dir.path().join("deployment.json");
         let test_deployment = read_file(test_file).await;
         manager
             .update_deployment(&test_deployment)
             .await
             .expect("Update Deployment is able to parse and write deployment");
-        manager
-            .get_deployment()
+        DeploymentManager::get_deployment(&deployment_file)
             .await
             .expect("Written Deployment is Valid");
 
         // Correctly overwrites bad deployment
         let mut rng = rand::thread_rng();
         let noise: Vec<u8> = (0..100000).map(|_| rng.gen()).collect();
-        let deployment_file = tmp_dir.path().join("deployment.json");
         File::create(&deployment_file)
             .await
             .unwrap()
@@ -95,8 +100,7 @@ mod tests {
             .update_deployment(&test_deployment)
             .await
             .expect("Update Deployment is able to parse and write deployment");
-        manager
-            .get_deployment()
+        DeploymentManager::get_deployment(&deployment_file)
             .await
             .expect("Written Deployment is Valid");
     }

@@ -1,2 +1,4 @@
 pub mod deployment;
-pub mod deployment_manager;
+mod deployment_manager;
+
+pub use deployment_manager::DeploymentManager;
