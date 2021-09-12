@@ -661,6 +661,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "edge-agent"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "tokio 1.11.0",
+]
+
+[[package]]
 name = "edgelet-core"
 version = "0.1.0"
 dependencies = [
@@ -2623,6 +2633,7 @@ dependencies = [
  "mio 0.7.13",
  "num_cpus",
  "once_cell",
+ "parking_lot 0.11.2",
  "pin-project-lite",
  "signal-hook-registry",
  "tokio-macros",

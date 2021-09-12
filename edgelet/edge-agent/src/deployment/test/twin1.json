@@ -1,0 +1,76 @@
+{
+    "modulesContent": {
+        "$edgeAgent": {
+            "properties.desired": {
+                "modules": {
+                    "ComponentNameTest": {
+                        "settings": {
+                            "image": "lefitchereg1.azurecr.io/componentnametest:0.0.8-amd64",
+                            "createOptions": "{}"
+                        },
+                        "type": "docker",
+                        "version": "1.0",
+                        "status": "running",
+                        "restartPolicy": "always"
+                    },
+                },
+                "runtime": {
+                    "settings": {
+                        "minDockerVersion": "v1.25",
+                        "registryCredentials": {
+                            "edgebuilds": {
+                                "address": "edgebuilds.azurecr.io",
+                                "password": "CC+ZhJV=32wrlQHRxed3wGu677Zj3LyS",
+                                "username": "EdgeBuilds"
+                            },
+                            "lefitchereg1": {
+                                "address": "lefitchereg1.azurecr.io",
+                                "password": "ip9QfNEqE=EV1GRZggFe7xjHcSRICxt4",
+                                "username": "lefitcheReg1"
+                            }
+                        }
+                    },
+                    "type": "docker"
+                },
+                "schemaVersion": "1.0",
+                "systemModules": {
+                    "edgeAgent": {
+                        "settings": {
+                            "image": "mcr.microsoft.com/azureiotedge-agent:1.0",
+                            "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"9600/tcp\":[{\"HostPort\":\"9600\"}]}}}"
+                        },
+                        "type": "docker"
+                    },
+                    "edgeHub": {
+                        "settings": {
+                            "image": "lefitchereg1.azurecr.io/edge_hub_test:0.0.10-amd64",
+                            "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"5671/tcp\":[{\"HostPort\":\"5671\"}],\"8883/tcp\":[{\"HostPort\":\"8883\"}],\"443/tcp\":[{\"HostPort\":\"443\"}],\"9600/tcp\":[{\"HostPort\":\"9601\"}]}},\"ExposedPorts\":{\"9600/tcp\":{}}}"
+                        },
+                        "type": "docker",
+                        "env": {
+                            "UpstreamProtocol": {
+                                "value": "Mqtt"
+                            }
+                        },
+                        "status": "running",
+                        "restartPolicy": "always"
+                    }
+                }
+            }
+        },
+        "$edgeHub": {
+            "properties.desired": {
+                "routes": {
+                    "All": "FROM /* INTO $upstream"
+                },
+                "schemaVersion": "1.0",
+                "storeAndForwardConfiguration": {
+                    "timeToLiveSecs": 7200
+                }
+            }
+        },
+        "ComponentNameTest": {
+            "properties.desired": {}
+        }
+    }
+}
