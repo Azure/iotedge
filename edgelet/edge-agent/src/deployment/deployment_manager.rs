@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::error::Error;
 
 use tokio::fs::File;
-use tokio::io::AsyncWriteExt;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::sync::mpsc;
 
 use super::deployment::Deployment;
@@ -24,7 +24,7 @@ impl DeploymentManager {
     pub async fn update_deployment(&self, deployment: &str) -> Result<(), Box<dyn Error>> {
         let deployment: Deployment = serde_json::from_str(deployment)?;
         println!("Received deployment version {}", deployment.version);
-        Self::validate_deployment(&deployment);
+        Self::validate_deployment(&deployment)?;
 
         let deployment = serde_json::to_string(&deployment)?;
         File::create(&self.file_location)
@@ -36,7 +36,19 @@ impl DeploymentManager {
         Ok(())
     }
 
-    fn validate_deployment(_deployment: &Deployment) {}
+    pub async fn get_deployment(&self) -> Result<Deployment, Box<dyn Error>> {
+        let mut file = File::open(&self.file_location).await?;
+        let mut contents = vec![];
+        file.read_to_end(&mut contents).await?;
+        let deployment = serde_json::from_slice(&contents)?;
+
+        Self::validate_deployment(&deployment)?;
+        Ok(deployment)
+    }
+
+    fn validate_deployment(_deployment: &Deployment) -> Result<(), Box<dyn Error>> {
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -44,7 +56,7 @@ mod tests {
     use super::*;
     use rand::Rng;
     use tempfile::tempdir;
-    use tokio::{io::AsyncReadExt, select};
+    use tokio::select;
 
     #[tokio::test]
     async fn test_writing() {
@@ -63,15 +75,15 @@ mod tests {
             .update_deployment(&test_deployment)
             .await
             .expect("Update Deployment is able to parse and write deployment");
-
-        let deployment_file = tmp_dir.path().join("deployment.json");
-        let written_deployment = read_file(&deployment_file).await;
-        serde_json::from_str::<Deployment>(&written_deployment)
+        manager
+            .get_deployment()
+            .await
             .expect("Written Deployment is Valid");
 
         // Correctly overwrites bad deployment
         let mut rng = rand::thread_rng();
         let noise: Vec<u8> = (0..100000).map(|_| rng.gen()).collect();
+        let deployment_file = tmp_dir.path().join("deployment.json");
         File::create(&deployment_file)
             .await
             .unwrap()
@@ -83,8 +95,9 @@ mod tests {
             .update_deployment(&test_deployment)
             .await
             .expect("Update Deployment is able to parse and write deployment");
-        let written_deployment = read_file(&deployment_file).await;
-        serde_json::from_str::<Deployment>(&written_deployment)
+        manager
+            .get_deployment()
+            .await
             .expect("Written Deployment is Valid");
     }
 
