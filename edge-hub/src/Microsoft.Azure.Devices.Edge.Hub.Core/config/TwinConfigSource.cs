@@ -48,7 +48,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                     (message) =>
                     {
                         Twin twin = this.twinMessageConverter.FromMessage(message);
-
                         if (twin.Properties.Desired.Count > 0)
                         {
                             var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(twin.Properties.Desired.ToJson());
@@ -148,7 +147,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             Option<EdgeHubConfig> edgeHubConfig;
             try
             {
-                string desiredPropertiesJson = JsonEx.Merge(baseline, patch, true);
+                TwinCollection mergeHack = new TwinCollection(JsonEx.Merge(patch, patch, true));
+                string desiredPropertiesJson = JsonEx.Merge(baseline, mergeHack, true);
                 this.lastDesiredProperties = Option.Some(new TwinCollection(desiredPropertiesJson));
                 var desiredPropertiesPatch = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(desiredPropertiesJson);
                 edgeHubConfig = Option.Some(EdgeHubConfigParser.GetEdgeHubConfig(desiredPropertiesPatch, this.routeFactory));
