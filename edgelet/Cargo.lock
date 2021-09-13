@@ -665,7 +665,6 @@ name = "edge-agent"
 version = "0.1.0"
 dependencies = [
  "edgelet-core",
- "edgelet-settings",
  "rand 0.8.4",
  "serde",
  "serde_derive",
