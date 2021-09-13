@@ -7,7 +7,7 @@
 %define iotedge_confdir %{aziot_confdir}/edged
 
 Name:           aziot-edge
-Version:        1.2.3
+Version:        @@VERSION@@
 Release:        3%{?dist}
 
 License:        MIT
@@ -173,7 +173,7 @@ fi
 %doc %{_docdir}/%{name}/trademark
 
 %changelog
-*   Wed Sep 08 2021 Joseph Knierman <joknierm@microsoft.com> 1.2.0-4
+*   Wed Sep 08 2021 Joseph Knierman <joknierm@microsoft.com> @@VERSION@@-4
 -   Update to run on iotedge pipeline.
 *   Wed May 05 2021 David Grob <grobdavid@microsoft.com> 1.2.0-3
 -   Update to version 1.2.0 and compress source files.
