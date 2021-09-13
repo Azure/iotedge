@@ -4,8 +4,14 @@ pr: none
 # Test schedule the same between master and release/1.2, but offset 12 hours.
 # Don't run any scheduled tests on Sunday, as release/1.1 runs its scheduled tests then.
 schedules:
+- cron: "0 0 * * 1,2,3,4,5,6"
+  displayName: Daily build master
+  branches:
+    include:
+    - master
+  always: true
 - cron: "0 12 * * 1,2,3,4,5,6"
-  displayName: Daily noon build
+  displayName: Daily build release/1.2
   branches:
     include:
     - release/1.2
@@ -83,12 +89,9 @@ jobs:
           testrun.network.runProfile: "Cellular3G"
           testrun.duration: "01:00:00"
     pool:
-      name: $(pool.name)
+      name: $(pool.linux.name)
       demands:
-        - agent-group -equals $(agent.group)
-        - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals X64
-        - run-connectivity -equals true
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu18.04-amd64'
       aziotis.artifact.name: 'packages_ubuntu-18.04_amd64'
