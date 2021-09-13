@@ -32,22 +32,34 @@ impl DeploymentManager {
         })
     }
 
-    pub async fn update_deployment(&self, patch: HashMap<String, serde_json::Value>) -> Result<()> {
+    pub async fn update_deployment(
+        &self,
+        patches: HashMap<String, serde_json::Value>,
+    ) -> Result<()> {
+        for (key, patch) in patches {
+            // Do Patch
+        }
+        write_serde(&self.current_location, &self.current_deployment).await?;
+
+        if let Some(deployment) = Self::validate_deployment(&self.current_deployment)? {
+            write_serde(&self.valid_location, deployment).await?;
+        }
+
         Ok(())
     }
 
-    pub async fn get_deployment(deployment_file: impl AsRef<Path>) -> Result<Deployment> {
-        let mut file = File::open(deployment_file).await?;
-        let mut contents = vec![];
-        file.read_to_end(&mut contents).await?;
-        let deployment = serde_json::from_slice(&contents)?;
+    // pub async fn get_deployment(deployment_file: impl AsRef<Path>) -> Result<Deployment> {
+    //     let mut file = File::open(deployment_file).await?;
+    //     let mut contents = vec![];
+    //     file.read_to_end(&mut contents).await?;
+    //     let deployment = serde_json::from_slice(&contents)?;
 
-        Self::validate_deployment(&deployment)?;
-        Ok(deployment)
-    }
+    //     Self::validate_deployment(&deployment)?;
+    //     Ok(deployment)
+    // }
 
-    fn validate_deployment(_deployment: &Deployment) -> Result<()> {
-        Ok(())
+    fn validate_deployment(_deployment: &serde_json::Value) -> Result<Option<Deployment>> {
+        Ok(Default::default())
     }
 }
 
@@ -118,7 +130,8 @@ mod tests {
             .await
             .expect("Create Deployment Manager");
 
-        let expected: serde_json::Value = read_serde(test_file).await.expect("Test file is parsable");
+        let expected: serde_json::Value =
+            read_serde(test_file).await.expect("Test file is parsable");
         assert_eq!(manager.current_deployment, expected);
         assert_eq!(manager.valid_deployment, None);
     }
