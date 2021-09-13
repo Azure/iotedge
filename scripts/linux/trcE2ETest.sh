@@ -281,10 +281,13 @@ function clean_up() {
 }
 
 function print_deployment_logs() {
-    print_highlighted_message 'LOGS FROM AZIOT-EDGED'
-    journalctl -u aziot-edged -u aziot-keyd -u aziot-certd -u aziot-identityd --since "$test_start_time" --no-pager || true
+    print_highlighted_message '========== Logs from docker =========='
+    journalctl -u docker --no-pager || true
 
-    print_highlighted_message 'edgeAgent LOGS'
+    print_highlighted_message '========== Logs from iotedge system =========='
+    iotedge system logs
+
+    print_highlighted_message '========== Logs from edgeAgent =========='
     docker logs edgeAgent || true
 }
 
@@ -300,76 +303,72 @@ function print_test_run_logs() {
         return;
     fi
 
-    print_highlighted_message 'LOGS FROM IOTEDGED'
-    journalctl -u iotedge -u docker --since "$test_start_time" --no-pager || true
+    print_deployment_logs
 
-    print_highlighted_message 'edgeAgent LOGS'
-    docker logs edgeAgent || true
-
-    print_highlighted_message 'edgeHub LOGS'
+    print_highlighted_message '========== Logs from edgeHub =========='
     docker logs edgeHub || true
 
-    print_highlighted_message 'loadGen1 LOGS'
+    print_highlighted_message '========== Logs from loadGen1 =========='
     docker logs loadGen1 || true
 
-    print_highlighted_message 'loadGen2 LOGS'
+    print_highlighted_message 'loadGen2 =========='
     docker logs loadGen2 || true
 
-    print_highlighted_message 'relayer1 LOGS'
+    print_highlighted_message 'relayer1 =========='
     docker logs relayer1 || true
 
-    print_highlighted_message 'relayer2 LOGS'
+    print_highlighted_message '========== Logs from relayer2 =========='
     docker logs relayer2 || true
 
-    print_highlighted_message 'directMethodSender1 LOGS'
+    print_highlighted_message '========== Logs from directMethodSender1 =========='
     docker logs directMethodSender1 || true
 
-    print_highlighted_message 'directMethodReceiver1 LOGS'
+    print_highlighted_message '========== Logs from directMethodReceiver1 =========='
     docker logs directMethodReceiver1 || true
 
-    print_highlighted_message 'directMethodSender2 LOGS'
+    print_highlighted_message '========== Logs from directMethodSender2 =========='
     docker logs directMethodSender2 || true
 
-    print_highlighted_message 'directMethodReceiver2 LOGS'
+    print_highlighted_message '========== Logs from directMethodReceiver2 =========='
     docker logs directMethodReceiver2 || true
 
-    print_highlighted_message 'directMethodSender3 LOGS'
+    print_highlighted_message '========== Logs from directMethodSender3 =========='
     docker logs directMethodSender3 || true
 
-    print_highlighted_message 'twinTester1 LOGS'
+    print_highlighted_message '========== Logs from twinTester1 =========='
     docker logs twinTester1 || true
 
-    print_highlighted_message 'twinTester2 LOGS'
+    print_highlighted_message '========== Logs from twinTester2 =========='
     docker logs twinTester2 || true
 
-    print_highlighted_message 'twinTester3 LOGS'
+    print_highlighted_message '========== Logs from twinTester3 =========='
     docker logs twinTester3 || true
 
-    print_highlighted_message 'twinTester4 LOGS'
+    print_highlighted_message '========== Logs from twinTester4 =========='
     docker logs twinTester4 || true
 
-    print_highlighted_message 'deploymentTester1 LOGS'
+    print_highlighted_message '========== Logs from deploymentTester1 =========='
     docker logs deploymentTester1 || true
 
-    print_highlighted_message 'deploymentTester2 LOGS'
+    print_highlighted_message '========== Logs from deploymentTester2 =========='
     docker logs deploymentTester2 || true
 
-    print_highlighted_message 'cloudToDeviceMessageSender1 LOGS'
+    print_highlighted_message '========== Logs from cloudToDeviceMessageSender1 =========='
     docker logs cloudToDeviceMessageSender1 || true
 
-    print_highlighted_message 'cloudToDeviceMessageReceiver1 LOGS'
+    print_highlighted_message '========== Logs from cloudToDeviceMessageReceiver1 =========='
     docker logs cloudToDeviceMessageReceiver1 || true
 
-    print_highlighted_message 'cloudToDeviceMessageSender2 LOGS'
+    print_highlighted_message '========== Logs from cloudToDeviceMessageSender2 =========='
     docker logs cloudToDeviceMessageSender2 || true
 
-    print_highlighted_message 'cloudToDeviceMessageReceiver2 LOGS'
+    print_highlighted_message '========== Logs from cloudToDeviceMessageReceiver2 =========='
     docker logs cloudToDeviceMessageReceiver2 || true
 
-    print_highlighted_message 'genericMqttTester LOGS'
+    print_highlighted_message '========== Logs from genericMqttTester =========='
     docker logs genericMqttTester || true
 
-    print_highlighted_message 'networkController LOGS'
+    print_highlighted_message 'networkController =========='
     docker logs networkController || true
 }
 
