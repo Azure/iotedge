@@ -12,22 +12,20 @@ jobs:
     displayName: Metrics Collector Linux Build
     timeoutInMinutes: 30
     pool:
-      vmImage: 'ubuntu-18.04'
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
     steps:
       - template: ../templates/install-dotnet2.yaml
       - template: ../templates/install-dotnet3.yaml
 
-      # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
-      - task: Docker@2
-        displayName: Docker login edgebuilds
-        inputs:
-          command: login
-          containerRegistry: iotedge-edgebuilds-acr
+      # If you need to test this job. Create a new Service Connection in the Project Settings (Azure DevOps)
+      # and update the pipeline variable.
       - task: Docker@2
         displayName: Docker login edgerelease
         inputs:
           command: login
-          containerRegistry: iotedge-release-acr
+          containerRegistry: $(service.connection)
 
       - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
         name: build
@@ -44,6 +42,7 @@ jobs:
           name: Metrics Collector (customer-facing)
           imageName: azureiotedge-metrics-collector
           project: Microsoft.Azure.Devices.Edge.Azure.Monitor
+          version: $(version)
 
 ################################################################################
   - job: MetricsCollector_Windows
@@ -51,27 +50,22 @@ jobs:
     displayName: Metrics Collector Windows Build
     timeoutInMinutes: 30
     pool:
-      name: Azure-IoT-Edge-Core
+      name: $(pool.windows.name)
       demands:
-        - Build-Image -equals true
-        - win-rs5
+        - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
     workspace:
       clean: all
     steps:
       - template: ../templates/install-dotnet2.yaml
       - template: ../templates/install-dotnet3.yaml
 
-      # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
-      - task: Docker@2
-        displayName: Docker login edgebuilds
-        inputs:
-          command: login
-          containerRegistry: iotedge-edgebuilds-acr
+      # If you need to test this job. Create a new Service Connection in the Project Settings (Azure DevOps)
+      # and update the pipeline variable.
       - task: Docker@2
         displayName: Docker login edgerelease
         inputs:
           command: login
-          containerRegistry: iotedge-release-acr
+          containerRegistry: $(service.connection)
 
       - powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration:"$(Build.Configuration)" -PublishTests:$False -UpdateVersion
         name: build
@@ -88,27 +82,26 @@ jobs:
           name: Metrics Collector (customer-facing)
           imageName: azureiotedge-metrics-collector
           project: Microsoft.Azure.Devices.Edge.Azure.Monitor
+          version: $(version)          
 
 ################################################################################
   - job: manifest
 ################################################################################
     displayName: Publish Manifest Images
     pool:
-      vmImage: 'ubuntu-18.04'
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby 
     dependsOn:
       - MetricsCollector_Linux
       - MetricsCollector_Windows
     steps:
-    # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
-    - task: Docker@2
-      displayName: Docker login edgebuilds
-      inputs:
-        command: login
-        containerRegistry: iotedge-edgebuilds-acr
+    # If you need to test this job. Create a new Service Connection in the Project Settings (Azure DevOps)
+    # and update the pipeline variable.
     - task: Docker@2
       displayName: Docker login edgerelease
       inputs:
         command: login
-        containerRegistry: iotedge-release-acr
+        containerRegistry: $(service.connection)
     - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(version) -t $(System.DefaultWorkingDirectory)/edge-modules/azure-monitor/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
       displayName: 'Publish Metrics Collector Manifest'
