@@ -139,6 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         [Test]
         [Category("CentOsSafe")]
+        [Category("Flaky")]
         public async Task ModuleToModuleDirectMethod(
             [Values] Protocol protocol)
         {
