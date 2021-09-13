@@ -6,5 +6,5 @@ parameters:
   version: ''
 
 steps:
-  - powershell: scripts/windows/build/Publish-DockerImage.ps1 -Name "${{ parameters.imageName }}" -Project "${{ parameters.project }}" -Version ${{ parameters.version }} -Registry $(registry.address) -Namespace "${{ parameters.namespace }}" -Push
+  - powershell: scripts/windows/build/Publish-DockerImage.ps1 -Name "${{ parameters.imageName }}" -Project "${{ parameters.project }}" -Version "${{ parameters.version }}" -Registry $(registry.address) -Namespace "${{ parameters.namespace }}" -Push
     displayName: Build Image - ${{ parameters.name }} - amd64
