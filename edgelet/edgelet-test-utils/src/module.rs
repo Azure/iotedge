@@ -99,6 +99,10 @@ impl RuntimeSettings for TestSettings {
         unimplemented!()
     }
 
+    fn allow_elevated_docker_permissions(&self) -> bool {
+        unimplemented!()
+    }
+
     fn connect(&self) -> &Connect {
         unimplemented!()
     }
