@@ -8,15 +8,15 @@ mod util;
 
 #[tokio::main]
 async fn main() {
-    let (twin_notifier, twin_notifyee) = mpsc::channel(32);
+    let (new_deployment_notifier, new_deployment_notifyee) = mpsc::channel(32);
 
-    let deployment_manager = deployment::DeploymentManager::new(twin_notifier, "/home/lee/test");
-    let reconcile_manager = reconcile::ReconcileManager::new(
-        Duration::from_secs(10),
-        twin_notifyee,
-        deployment_manager.file_location().into(),
-        (),
-    );
+    let deployment_manager = deployment::DeploymentManager::new(new_deployment_notifier, "/home/lee/test");
+    // let reconcile_manager = reconcile::ReconcileManager::new(
+    //     Duration::from_secs(10),
+    //     new_deployment_notifyee,
+    //     deployment_manager.file_location().into(),
+    //     (),
+    // );
 
     println!("Hello, world!");
 }

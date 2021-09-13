@@ -1,10 +1,10 @@
-use std::{error::Error, path::PathBuf, time::Duration};
+use std::{path::PathBuf, time::Duration};
 
-use tokio::{io::AsyncReadExt, select, sync::mpsc};
+use tokio::{select, sync::mpsc};
 
 use edgelet_core::ModuleRuntime;
 
-use crate::deployment::{deployment::Deployment, DeploymentManager};
+use super::reconciler::Reconciler;
 
 pub struct ReconcileManager<M> {
     frequency: Duration,
@@ -57,36 +57,3 @@ where
         });
     }
 }
-
-struct Reconciler<M> {
-    deployment_file: PathBuf,
-    runtime: M,
-}
-
-impl<M> Reconciler<M>
-where
-    M: ModuleRuntime,
-{
-    fn new(deployment_file: PathBuf, runtime: M) -> Self {
-        Self {
-            deployment_file,
-            runtime,
-        }
-    }
-
-    async fn reconcile(&self) {
-        println!("Find diff of stuff")
-    }
-
-    async fn get_expected_modules(&self) -> Result<Vec<Module>, Box<dyn Error>> {
-        let deployment = DeploymentManager::get_deployment(&self.deployment_file).await;
-
-        Ok(vec![])
-    }
-
-    async fn get_current_modules(&self) -> Result<Vec<Module>, Box<dyn Error>> {
-        Ok(vec![])
-    }
-}
-
-struct Module {}
