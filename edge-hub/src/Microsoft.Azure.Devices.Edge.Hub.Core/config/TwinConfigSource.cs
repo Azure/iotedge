@@ -167,19 +167,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             return edgeHubConfig;
         }
 
-        Task UpdateReportedProperties(long desiredVersion, LastDesiredStatus desiredStatus)
+        async Task UpdateReportedProperties(long desiredVersion, LastDesiredStatus desiredStatus)
         {
             try
             {
                 var edgeHubReportedProperties = new ReportedProperties(this.versionInfo, desiredVersion, desiredStatus);
                 var twinCollection = new TwinCollection(JsonConvert.SerializeObject(edgeHubReportedProperties));
                 Core.IMessage reportedPropertiesMessage = this.twinCollectionMessageConverter.ToMessage(twinCollection);
-                return this.twinManager.UpdateReportedPropertiesAsync(this.id, reportedPropertiesMessage);
+                await this.twinManager.UpdateReportedPropertiesAsync(this.id, reportedPropertiesMessage);
             }
             catch (Exception ex)
             {
                 Events.ErrorUpdatingLastDesiredStatus(ex);
-                return Task.CompletedTask;
             }
         }
 
