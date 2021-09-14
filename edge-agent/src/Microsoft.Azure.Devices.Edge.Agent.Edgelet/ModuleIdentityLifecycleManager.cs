@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models;
@@ -75,8 +76,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             await Task.WhenAll(removeIdentities.Select(i => this.identityManager.DeleteIdentityAsync(i)));
 
             // Create/update identities.
-            IEnumerable<Task<Identity>> createTasks = createIdentities.Select(i => this.identityManager.CreateIdentityAsync(i, Constants.ModuleIdentityEdgeManagedByValue));
-            IEnumerable<Task<Identity>> updateTasks = updateIdentities.Select(i => this.identityManager.UpdateIdentityAsync(i.ModuleId, i.GenerationId, i.ManagedBy));
+            IEnumerable<Task<Identity>> createTasks = createIdentities.Select(i => this.RestrictedCall(() => this.identityManager.CreateIdentityAsync(i, Constants.ModuleIdentityEdgeManagedByValue)));
+            IEnumerable<Task<Identity>> updateTasks = updateIdentities.Select(i => this.RestrictedCall(() => this.identityManager.UpdateIdentityAsync(i.ModuleId, i.GenerationId, i.ManagedBy)));
             Identity[] upsertedIdentities = await Task.WhenAll(createTasks.Concat(updateTasks));
 
             List<IModuleIdentity> moduleIdentities = upsertedIdentities.Select(this.GetModuleIdentity).ToList();
@@ -87,6 +88,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             moduleIdentities.AddRange(unchangedIdentities.Select(i => this.GetModuleIdentity(i.Value)));
 
             return moduleIdentities.ToImmutableDictionary(m => ModuleIdentityHelper.GetModuleName(m.ModuleId));
+        }
+
+        SemaphoreSlim webcallTicket = new SemaphoreSlim(5);
+
+        async Task<Identity> RestrictedCall(Func<Task<Identity>> f)
+        {
+            await this.webcallTicket.WaitAsync();
+
+            try
+            {
+                return await f();
+            }
+            finally
+            {
+                this.webcallTicket.Release();
+            }
         }
 
         IModuleIdentity GetModuleIdentity(Identity identity) =>
