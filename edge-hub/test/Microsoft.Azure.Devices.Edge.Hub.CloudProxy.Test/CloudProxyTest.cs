@@ -92,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             await CheckMessageInEventHub(sentMessagesByDevice, startTime);
         }
 
-        [Fact]
+        [Fact(Skip = "Flaky")]
         [TestPriority(403)]
         public async Task SendMessageBatchTest()
         {
