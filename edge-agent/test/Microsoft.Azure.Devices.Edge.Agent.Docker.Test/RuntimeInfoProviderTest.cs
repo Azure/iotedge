@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         static readonly IEntityStore<string, ModuleState> RestartStateStore = new Mock<IEntityStore<string, ModuleState>>().Object;
         static readonly IRestartPolicyManager RestartManager = new Mock<IRestartPolicyManager>().Object;
 
-        [Integration]
+        [Integration(Skip = "Flaky")]
         [Fact]
         public async Task TestEmptyEnvironment()
         {
