@@ -1,7 +1,7 @@
 # This E2E test pipeline uses the following filters in order to skip certain tests:
-#   Flaky: Indicates a test which is flaky on multiple platforms
-#   FlakyOnArm: Indicates a test which is flaky only on arm
-#   CentOsSafe: Indicates a test which can be run on CentOs
+#   Flaky: Flaky on multiple platforms
+#   FlakyOnArm: Flaky only on arm
+#   CentOsSafe: Can be run on CentOs
 steps:
 - pwsh: |
     $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
