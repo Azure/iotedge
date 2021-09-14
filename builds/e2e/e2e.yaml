@@ -29,27 +29,29 @@ variables:
 
 jobs:
 
-################################################################################
-  - job: linux_arm32v7
-################################################################################
-    displayName: Linux arm32v7
+# Arm suite sometimes has a timeout problem where multiple tests fail.
+# Suspect this is an agent issue, but disabling until we fix.
+# ################################################################################
+#   - job: linux_arm32v7
+# ################################################################################
+#     displayName: Linux arm32v7
 
-    pool:
-      name: $(pool.custom.name)
-      demands: rpi3-e2e-tests
+#     pool:
+#       name: $(pool.custom.name)
+#       demands: rpi3-e2e-tests
 
-    variables:
-      os: linux
-      arch: arm32v7
-      artifactName: iotedged-debian9-arm32v7
+#     variables:
+#       os: linux
+#       arch: arm32v7
+#       artifactName: iotedged-debian9-arm32v7
 
-    timeoutInMinutes: 120
+#     timeoutInMinutes: 120
 
-    steps:
-    - template: templates/e2e-clean-directory.yaml
-    - template: templates/e2e-setup.yaml
-    - template: templates/e2e-clear-docker-cached-images.yaml
-    - template: templates/e2e-run.yaml
+#     steps:
+#     - template: templates/e2e-clean-directory.yaml
+#     - template: templates/e2e-setup.yaml
+#     - template: templates/e2e-clear-docker-cached-images.yaml
+#     - template: templates/e2e-run.yaml
 
 ################################################################################
   - job: ubuntu_1804_msmoby

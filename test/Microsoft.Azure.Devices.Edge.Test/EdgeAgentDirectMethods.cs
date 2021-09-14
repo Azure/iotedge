@@ -130,6 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
+        [Category("Flaky")]
         public async Task TestUploadModuleLogs()
         {
             string moduleName = "NumberLogger";
