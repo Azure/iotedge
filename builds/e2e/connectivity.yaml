@@ -172,7 +172,7 @@ jobs:
         condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Download aziot-identity-service'
         inputs:
-          filePath: $(Build.StagingDirectory)/$(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
+          filePath: $(Build.SourcesDirectory)/scripts/local/test/DownloadIdentityService.ps1
         env:
           GITHUB_TOKEN: $(GitHubAccessToken)
           ARTIFACT_NAME: $(aziotis.artifact.name)
