@@ -27,13 +27,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using IotHubConnectionStringBuilder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder;
     using Message = Microsoft.Azure.Devices.Client.Message;
 
-    [Integration(Skip = "Flaky")]
+    [Integration]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
     public class EdgeHubConnectionTest
     {
         const string EdgeHubModuleId = "$edgeHub";
 
-        [Theory]
+        [Theory(Skip = "Flaky")]
         [InlineData(true, true)]
         [InlineData(true, false)]
         [InlineData(false, false)]
