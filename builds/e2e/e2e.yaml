@@ -231,29 +231,30 @@ jobs:
     - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml 
 
-################################################################################
-  - job: EFLOW_amd64
-################################################################################
-    displayName: EFLOW amd64
+# Disabling until EFLOW team fixes agent hardware issues
+# ################################################################################
+#   - job: EFLOW_amd64
+# ################################################################################
+#     displayName: EFLOW amd64
 
-    pool:
-      name: $(pool.custom.name)
-      demands:
-        - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals X64
-        - run-new-e2e-tests -equals true
-        - eflow -equals true
+#     pool:
+#       name: $(pool.custom.name)
+#       demands:
+#         - Agent.OS -equals Linux
+#         - Agent.OSArchitecture -equals X64
+#         - run-new-e2e-tests -equals true
+#         - eflow -equals true
 
-    variables:
-      os: linux
-      arch: amd64
-      artifactName: iotedged-mariner-amd64
-      NUGET_HTTP_CACHE_PATH: /var/tmp/NuGet/v3-cache
-      NUGET_PACKAGES: /var/tmp/NuGet/packages
-      NUGET_PLUGINS_CACHE_PATH: /var/tmp/NuGet/plugins-cache
+#     variables:
+#       os: linux
+#       arch: amd64
+#       artifactName: iotedged-mariner-amd64
+#       NUGET_HTTP_CACHE_PATH: /var/tmp/NuGet/v3-cache
+#       NUGET_PACKAGES: /var/tmp/NuGet/packages
+#       NUGET_PLUGINS_CACHE_PATH: /var/tmp/NuGet/plugins-cache
 
-    steps:
-    - template: templates/e2e-clean-directory.yaml
-    - template: templates/e2e-setup.yaml
-    - template: templates/e2e-clear-docker-cached-images.yaml
-    - template: templates/e2e-run.yaml
+#     steps:
+#     - template: templates/e2e-clean-directory.yaml
+#     - template: templates/e2e-setup.yaml
+#     - template: templates/e2e-clear-docker-cached-images.yaml
+#     - template: templates/e2e-run.yaml
