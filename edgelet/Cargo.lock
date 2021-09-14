@@ -87,23 +87,14 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 [[package]]
 name = "aziot-cert-client-async"
 version = "0.1.0"
-source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
+source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509"
 dependencies = [
- "aziot-cert-common-http 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
- "aziot-key-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
+ "aziot-cert-common-http 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
+ "aziot-key-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "http 0.2.4",
- "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
+ "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "hyper 0.14.12",
  "percent-encoding 2.1.0",
-]
-
-[[package]]
-name = "aziot-cert-common-http"
-version = "0.1.0"
-source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
-dependencies = [
- "aziot-key-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
- "serde",
 ]
 
 [[package]]
@@ -132,9 +123,9 @@ dependencies = [
 name = "aziot-edged"
 version = "0.1.0"
 dependencies = [
- "aziot-identity-client-async 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
- "aziot-identity-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
- "aziot-identity-common-http 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
+ "aziot-identity-client-async 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
+ "aziot-identity-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
+ "aziot-identity-common-http 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "base64 0.13.0",
  "clap",
  "edgelet-core",
@@ -144,7 +135,7 @@ dependencies = [
  "edgelet-http-workload",
  "edgelet-settings",
  "futures-util",
- "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
+ "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "log",
  "logger",
  "serde",
@@ -152,20 +143,6 @@ dependencies = [
  "sha2",
  "tokio 1.11.0",
  "url 2.2.2",
-]
-
-[[package]]
-name = "aziot-identity-client-async"
-version = "0.1.0"
-source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
-dependencies = [
- "aziot-cert-common-http 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
- "aziot-identity-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
- "aziot-identity-common-http 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
- "http 0.2.4",
- "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
- "hyper 0.14.12",
- "percent-encoding 2.1.0",
 ]
 
 [[package]]
@@ -185,34 +162,11 @@ dependencies = [
 [[package]]
 name = "aziot-identity-common"
 version = "0.1.0"
-source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
-dependencies = [
- "aziot-key-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
- "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
- "serde",
-]
-
-[[package]]
-name = "aziot-identity-common"
-version = "0.1.0"
 source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509"
 dependencies = [
  "aziot-key-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "serde",
-]
-
-[[package]]
-name = "aziot-identity-common-http"
-version = "0.1.0"
-source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
-dependencies = [
- "aziot-cert-common-http 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
- "aziot-identity-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
- "aziot-key-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
- "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
- "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -243,12 +197,12 @@ dependencies = [
 [[package]]
 name = "aziot-key-client"
 version = "0.1.0"
-source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
+source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509"
 dependencies = [
- "aziot-key-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
+ "aziot-key-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "aziot-key-common-http",
  "http 0.2.4",
- "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
+ "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "httparse",
  "percent-encoding 2.1.0",
  "serde",
@@ -258,22 +212,14 @@ dependencies = [
 [[package]]
 name = "aziot-key-client-async"
 version = "0.1.0"
-source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
+source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509"
 dependencies = [
- "aziot-key-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
+ "aziot-key-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "aziot-key-common-http",
  "http 0.2.4",
- "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
+ "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "hyper 0.14.12",
  "percent-encoding 2.1.0",
-]
-
-[[package]]
-name = "aziot-key-common"
-version = "0.1.0"
-source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
-dependencies = [
- "serde",
 ]
 
 [[package]]
@@ -287,29 +233,29 @@ dependencies = [
 [[package]]
 name = "aziot-key-common-http"
 version = "0.1.0"
-source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
+source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509"
 dependencies = [
- "aziot-key-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
- "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
+ "aziot-key-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
+ "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "serde",
 ]
 
 [[package]]
 name = "aziot-key-openssl-engine"
 version = "0.1.0"
-source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
+source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509"
 dependencies = [
  "aziot-key-client",
- "aziot-key-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
+ "aziot-key-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "base64 0.13.0",
  "foreign-types-shared",
  "log",
  "openssl",
- "openssl-build 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
+ "openssl-build 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "openssl-errors",
  "openssl-sys",
- "openssl-sys2 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
- "openssl2 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
+ "openssl-sys2 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
+ "openssl2 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
 ]
 
 [[package]]
@@ -545,15 +491,6 @@ dependencies = [
 [[package]]
 name = "config-common"
 version = "0.1.0"
-source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
-dependencies = [
- "serde",
- "toml",
-]
-
-[[package]]
-name = "config-common"
-version = "0.1.0"
 source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509"
 dependencies = [
  "serde",
@@ -714,7 +651,7 @@ dependencies = [
  "async-trait",
  "base64 0.9.3",
  "futures 0.1.31",
- "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
+ "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "hyper 0.14.12",
  "serde",
  "serde_derive",
@@ -754,11 +691,11 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "aziot-cert-client-async",
- "aziot-cert-common-http 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
+ "aziot-cert-common-http 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "base64 0.9.3",
  "bytes 1.1.0",
  "chrono",
- "config-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
+ "config-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "docker",
  "edgelet-core",
  "edgelet-settings",
@@ -766,7 +703,7 @@ dependencies = [
  "failure",
  "futures 0.3.17",
  "hex 0.3.2",
- "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
+ "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "hyper 0.14.12",
  "libc",
  "log",
@@ -794,7 +731,7 @@ dependencies = [
  "edgelet-test-utils",
  "futures-util",
  "http 0.2.4",
- "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
+ "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "libc",
  "log",
  "percent-encoding 2.1.0",
@@ -808,16 +745,16 @@ name = "edgelet-http-mgmt"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "aziot-identity-client-async 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
- "aziot-identity-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
- "aziot-identity-common-http 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
+ "aziot-identity-client-async 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
+ "aziot-identity-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
+ "aziot-identity-common-http 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "edgelet-core",
  "edgelet-http",
  "edgelet-settings",
  "edgelet-test-utils",
  "futures-util",
  "http 0.2.4",
- "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
+ "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "hyper 0.14.12",
  "libc",
  "log",
@@ -837,13 +774,13 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "aziot-cert-client-async",
- "aziot-cert-common-http 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
- "aziot-identity-client-async 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
- "aziot-identity-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
- "aziot-identity-common-http 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
+ "aziot-cert-common-http 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
+ "aziot-identity-client-async 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
+ "aziot-identity-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
+ "aziot-identity-common-http 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "aziot-key-client",
  "aziot-key-client-async",
- "aziot-key-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
+ "aziot-key-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "aziot-key-common-http",
  "aziot-key-openssl-engine",
  "base64 0.13.0",
@@ -854,7 +791,7 @@ dependencies = [
  "edgelet-test-utils",
  "futures-util",
  "http 0.2.4",
- "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
+ "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "hyper 0.14.12",
  "libc",
  "log",
@@ -872,7 +809,7 @@ dependencies = [
 name = "edgelet-settings"
 version = "0.1.0"
 dependencies = [
- "config-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
+ "config-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "docker",
  "lazy_static",
  "serde",
@@ -886,9 +823,9 @@ name = "edgelet-test-utils"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "aziot-identity-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
+ "aziot-identity-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "aziot-key-client",
- "aziot-key-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
+ "aziot-key-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "bytes 1.1.0",
  "edgelet-core",
  "edgelet-settings",
@@ -1304,32 +1241,6 @@ dependencies = [
 [[package]]
 name = "http-common"
 version = "0.1.0"
-source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
-dependencies = [
- "async-trait",
- "base64 0.13.0",
- "futures-util",
- "headers",
- "http 0.2.4",
- "hyper 0.14.12",
- "hyper-openssl",
- "hyper-proxy 0.9.1",
- "libc",
- "log",
- "nix 0.18.0",
- "openssl",
- "openssl-sys",
- "percent-encoding 2.1.0",
- "serde",
- "serde_json",
- "tokio 1.11.0",
- "tracing",
- "url 2.2.2",
-]
-
-[[package]]
-name = "http-common"
-version = "0.1.0"
 source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509"
 dependencies = [
  "async-trait",
@@ -1683,7 +1594,7 @@ dependencies = [
 [[package]]
 name = "logger"
 version = "0.1.0"
-source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
+source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509"
 dependencies = [
  "env_logger",
  "log",
@@ -1941,14 +1852,6 @@ dependencies = [
 [[package]]
 name = "openssl-build"
 version = "0.1.0"
-source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
-dependencies = [
- "cc",
-]
-
-[[package]]
-name = "openssl-build"
-version = "0.1.0"
 source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509"
 dependencies = [
  "cc",
@@ -1986,32 +1889,10 @@ dependencies = [
 [[package]]
 name = "openssl-sys2"
 version = "0.1.0"
-source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
-dependencies = [
- "openssl-build 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
- "openssl-sys",
-]
-
-[[package]]
-name = "openssl-sys2"
-version = "0.1.0"
 source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509"
 dependencies = [
  "openssl-build 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "openssl-sys",
-]
-
-[[package]]
-name = "openssl2"
-version = "0.1.0"
-source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
-dependencies = [
- "foreign-types",
- "foreign-types-shared",
- "openssl",
- "openssl-build 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
- "openssl-sys",
- "openssl-sys2 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#2a82a624c5b0f47d7b7d3982bedfbcc6d270f509)",
 ]
 
 [[package]]
