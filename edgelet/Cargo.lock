@@ -87,12 +87,12 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 [[package]]
 name = "aziot-cert-client-async"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
+source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#a74412bab3551055490bd840fad53e0ecf03e547"
 dependencies = [
- "aziot-cert-common-http 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
- "aziot-key-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "aziot-cert-common-http 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
+ "aziot-key-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "http 0.2.4",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "hyper 0.14.12",
  "percent-encoding 2.1.0",
 ]
@@ -100,9 +100,9 @@ dependencies = [
 [[package]]
 name = "aziot-cert-common-http"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
+source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#a74412bab3551055490bd840fad53e0ecf03e547"
 dependencies = [
- "aziot-key-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "aziot-key-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "serde",
 ]
 
@@ -132,9 +132,9 @@ dependencies = [
 name = "aziot-edged"
 version = "0.1.0"
 dependencies = [
- "aziot-identity-client-async 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
- "aziot-identity-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
- "aziot-identity-common-http 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "aziot-identity-client-async 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
+ "aziot-identity-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
+ "aziot-identity-common-http 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "base64 0.13.0",
  "clap",
  "edgelet-core",
@@ -144,7 +144,7 @@ dependencies = [
  "edgelet-http-workload",
  "edgelet-settings",
  "futures-util",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "log",
  "logger",
  "serde",
@@ -157,13 +157,13 @@ dependencies = [
 [[package]]
 name = "aziot-identity-client-async"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
+source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#a74412bab3551055490bd840fad53e0ecf03e547"
 dependencies = [
- "aziot-cert-common-http 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
- "aziot-identity-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
- "aziot-identity-common-http 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "aziot-cert-common-http 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
+ "aziot-identity-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
+ "aziot-identity-common-http 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "http 0.2.4",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "hyper 0.14.12",
  "percent-encoding 2.1.0",
 ]
@@ -185,10 +185,10 @@ dependencies = [
 [[package]]
 name = "aziot-identity-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
+source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#a74412bab3551055490bd840fad53e0ecf03e547"
 dependencies = [
- "aziot-key-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "aziot-key-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
+ "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "serde",
 ]
 
@@ -205,12 +205,12 @@ dependencies = [
 [[package]]
 name = "aziot-identity-common-http"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
+source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#a74412bab3551055490bd840fad53e0ecf03e547"
 dependencies = [
- "aziot-cert-common-http 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
- "aziot-identity-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
- "aziot-key-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "aziot-cert-common-http 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
+ "aziot-identity-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
+ "aziot-key-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
+ "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "serde",
  "serde_json",
 ]
@@ -243,12 +243,12 @@ dependencies = [
 [[package]]
 name = "aziot-key-client"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
+source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#a74412bab3551055490bd840fad53e0ecf03e547"
 dependencies = [
- "aziot-key-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "aziot-key-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "aziot-key-common-http",
  "http 0.2.4",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "httparse",
  "percent-encoding 2.1.0",
  "serde",
@@ -258,12 +258,12 @@ dependencies = [
 [[package]]
 name = "aziot-key-client-async"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
+source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#a74412bab3551055490bd840fad53e0ecf03e547"
 dependencies = [
- "aziot-key-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "aziot-key-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "aziot-key-common-http",
  "http 0.2.4",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "hyper 0.14.12",
  "percent-encoding 2.1.0",
 ]
@@ -271,7 +271,7 @@ dependencies = [
 [[package]]
 name = "aziot-key-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
+source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#a74412bab3551055490bd840fad53e0ecf03e547"
 dependencies = [
  "serde",
 ]
@@ -287,29 +287,29 @@ dependencies = [
 [[package]]
 name = "aziot-key-common-http"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
+source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#a74412bab3551055490bd840fad53e0ecf03e547"
 dependencies = [
- "aziot-key-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "aziot-key-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
+ "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "serde",
 ]
 
 [[package]]
 name = "aziot-key-openssl-engine"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
+source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#a74412bab3551055490bd840fad53e0ecf03e547"
 dependencies = [
  "aziot-key-client",
- "aziot-key-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "aziot-key-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "base64 0.13.0",
  "foreign-types-shared",
  "log",
  "openssl",
- "openssl-build 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "openssl-build 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "openssl-errors",
  "openssl-sys",
- "openssl-sys2 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
- "openssl2 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "openssl-sys2 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
+ "openssl2 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
 ]
 
 [[package]]
@@ -545,7 +545,7 @@ dependencies = [
 [[package]]
 name = "config-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
+source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#a74412bab3551055490bd840fad53e0ecf03e547"
 dependencies = [
  "serde",
  "toml",
@@ -714,7 +714,7 @@ dependencies = [
  "async-trait",
  "base64 0.9.3",
  "futures 0.1.31",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "hyper 0.14.12",
  "serde",
  "serde_derive",
@@ -754,11 +754,11 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "aziot-cert-client-async",
- "aziot-cert-common-http 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "aziot-cert-common-http 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "base64 0.9.3",
  "bytes 1.1.0",
  "chrono",
- "config-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "config-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "docker",
  "edgelet-core",
  "edgelet-settings",
@@ -766,7 +766,7 @@ dependencies = [
  "failure",
  "futures 0.3.17",
  "hex 0.3.2",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "hyper 0.14.12",
  "libc",
  "log",
@@ -794,7 +794,7 @@ dependencies = [
  "edgelet-test-utils",
  "futures-util",
  "http 0.2.4",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "libc",
  "log",
  "percent-encoding 2.1.0",
@@ -808,16 +808,16 @@ name = "edgelet-http-mgmt"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "aziot-identity-client-async 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
- "aziot-identity-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
- "aziot-identity-common-http 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "aziot-identity-client-async 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
+ "aziot-identity-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
+ "aziot-identity-common-http 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "edgelet-core",
  "edgelet-http",
  "edgelet-settings",
  "edgelet-test-utils",
  "futures-util",
  "http 0.2.4",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "hyper 0.14.12",
  "libc",
  "log",
@@ -837,13 +837,13 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "aziot-cert-client-async",
- "aziot-cert-common-http 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
- "aziot-identity-client-async 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
- "aziot-identity-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
- "aziot-identity-common-http 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "aziot-cert-common-http 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
+ "aziot-identity-client-async 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
+ "aziot-identity-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
+ "aziot-identity-common-http 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "aziot-key-client",
  "aziot-key-client-async",
- "aziot-key-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "aziot-key-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "aziot-key-common-http",
  "aziot-key-openssl-engine",
  "base64 0.13.0",
@@ -854,7 +854,7 @@ dependencies = [
  "edgelet-test-utils",
  "futures-util",
  "http 0.2.4",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "http-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "hyper 0.14.12",
  "libc",
  "log",
@@ -872,7 +872,7 @@ dependencies = [
 name = "edgelet-settings"
 version = "0.1.0"
 dependencies = [
- "config-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "config-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "docker",
  "lazy_static",
  "serde",
@@ -886,9 +886,9 @@ name = "edgelet-test-utils"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "aziot-identity-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "aziot-identity-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "aziot-key-client",
- "aziot-key-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "aziot-key-common 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "bytes 1.1.0",
  "edgelet-core",
  "edgelet-settings",
@@ -1304,7 +1304,7 @@ dependencies = [
 [[package]]
 name = "http-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
+source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#a74412bab3551055490bd840fad53e0ecf03e547"
 dependencies = [
  "async-trait",
  "base64 0.13.0",
@@ -1683,7 +1683,7 @@ dependencies = [
 [[package]]
 name = "logger"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
+source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#a74412bab3551055490bd840fad53e0ecf03e547"
 dependencies = [
  "env_logger",
  "log",
@@ -1941,7 +1941,7 @@ dependencies = [
 [[package]]
 name = "openssl-build"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
+source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#a74412bab3551055490bd840fad53e0ecf03e547"
 dependencies = [
  "cc",
 ]
@@ -1986,9 +1986,9 @@ dependencies = [
 [[package]]
 name = "openssl-sys2"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
+source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#a74412bab3551055490bd840fad53e0ecf03e547"
 dependencies = [
- "openssl-build 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "openssl-build 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "openssl-sys",
 ]
 
@@ -2004,14 +2004,14 @@ dependencies = [
 [[package]]
 name = "openssl2"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#f6294bdd027284a27a03d83b4c5dc736d98e0a32"
+source = "git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error#a74412bab3551055490bd840fad53e0ecf03e547"
 dependencies = [
  "foreign-types",
  "foreign-types-shared",
  "openssl",
- "openssl-build 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "openssl-build 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
  "openssl-sys",
- "openssl-sys2 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "openssl-sys2 0.1.0 (git+https://github.com/nlcamp/iot-identity-service?branch=unable-to-obtain-module-identity-error)",
 ]
 
 [[package]]
