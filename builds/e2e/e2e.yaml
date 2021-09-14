@@ -231,7 +231,7 @@ jobs:
     - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml 
 
-# Disabling until EFLOW team fixes agent hardware issues
+# Disabling until EFLOW agent hardware issues are resolved
 # ################################################################################
 #   - job: EFLOW_amd64
 # ################################################################################
