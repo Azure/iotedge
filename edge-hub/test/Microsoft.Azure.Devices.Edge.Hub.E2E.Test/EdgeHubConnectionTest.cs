@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using IotHubConnectionStringBuilder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder;
     using Message = Microsoft.Azure.Devices.Client.Message;
 
-    [Integration]
+    [Integration(Skip = "Flaky")]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
     public class EdgeHubConnectionTest
     {
