@@ -59,6 +59,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                         return this.currentConfig;
                     });
 
+                if (!this.currentConfig.HasValue)
+                {
+                    throw new InvalidOperationException("Could not initialize configuration");
+                }
+
                 // Start a periodic task to pull the config.
                 this.configUpdater = Option.Some(new PeriodicTask(() => this.PullConfig(c => c.GetConfig()), this.configUpdateFrequency, this.configUpdateFrequency, Events.Log, "Get EdgeHub config"));
                 Events.Initialized();
