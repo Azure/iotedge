@@ -16,7 +16,7 @@ There are three directories under the `test/` directory:
 #### Setting up your local machine
 
 ##### Prerequisites
-To run the end-to-end tests, we will be building the required binaries from the code, build container images and push them to a local docker repository. The tests will install the IoT Edge runtime from the binaries on your machine and run the containers using your local repository.
+To run the end-to-end tests, we will be building the required binaries from the code, build container images and push them to a local container repository. The tests will install the IoT Edge runtime from the binaries on your machine and run the containers using your local repository.
 
 It is important that your machine meets the requirements to run IoT Edge. See our installation docs ([Linux](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-edge-linux), [Windows](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-edge-windows)) for more information on prerequisites
 
@@ -61,17 +61,16 @@ Create a rootCA certificate for your machine *(See [Create Certs](https://docs.m
 ~~~
 
 ##### Configure your local container repository
-We will be building the container images from the codebase and pushing them to  local docker repository. To prepare, we will install docker and configure the docker repository using the steps below. See [Deploy a registry server](https://docs.docker.com/registry/deploying/) on the docker website for further information on how to configure the registry.
+We will be building the container images from the codebase and pushing them to a local container repository. To prepare, we will install the moby engine and configure the container repository using the steps below. 
 
-###### Install docker
-See [Install docker using the convenience scripts](https://docs.docker.com/engine/install/ubuntu/#install-using-the-convenience-script) for details
+###### Install moby engine
+See [Install a container engine](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-edge?view=iotedge-2020-11#install-a-container-engine) for details
 
 ~~~ sh
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh 
+sudo apt-get install moby-engine
 ~~~
 ###### Create TLS certificates
-We will be running the docker registry with TLS and authentication turned on. If you already have certs for TLS, feel free to use those and skip the cert creation steps listed below. 
+We will be running the container registry with TLS and authentication turned on. If you already have certs for TLS, feel free to use those and skip the cert creation steps listed below. 
 In a convenient directory, create a folder called `auth` to store your keys and certs (*I have used /home/azureuser/auth*)
 ~~~sh
 mkdir auth
@@ -98,9 +97,9 @@ sudo apt-get install apache2-utils
 echo "password" | sudo htpasswd -iB htpasswd username
 ~~~
 
-###### Configure and run the local docker repository
+###### Configure and run the local container repository
 ~~~ sh
-# Set up the docker registry to listen on port 5000 and to restart automatically.
+# Set up the container registry to listen on port 5000 and to restart automatically.
 # Mount the auth folder into the container and point to the TLS and Basic auth files
 # Restart is set to always - This will ensure that the registry is always up.
 sudo docker run -d  -p 5000:5000 \
@@ -115,7 +114,7 @@ sudo docker run -d  -p 5000:5000 \
   registry:2
 
 # Run docker ps to validate that the registry came up successfully
-# If all goes well, you will see the something like below when you run Docker ps.
+# If all goes well, you will see the something like below when you run docker ps.
 # 59867fe47a5b   registry:2   "/entrypoint.sh /etc…"   6 seconds ago   Up 6 seconds   0.0.0.0:5000->5000/tcp, :::5000->5000/tcp   registry
 sudo docker ps
 
@@ -185,13 +184,13 @@ export PACKAGE_ARCH="amd64"
 # in the ./edgelet/target/release/ and named something like aziot-edge_1.2.3-1_amd64.deb
 ~~~
 
-#### Building the container images and pushing them to the local docker repo
+#### Building the container images and pushing them to the local container repo
 From the top folder of the codebase, run the following. 
 ~~~ sh
 # Consolidate artifacts for edge-hub
 sudo scripts/linux/consolidate-build-artifacts.sh --artifact-name "edge-hub"
 
-# Build and push images to local repo
+# Build and push images to local container repository
 sudo scripts/linux/buildImage.sh -r localhost:5000  -i "edge-hub" -P "edge-hub"  -v "latest" --bin-dir target
 sudo scripts/linux/buildImage.sh -r localhost:5000  -i "edge-agent" -P "Microsoft.Azure.Devices.Edge.Agent.Service"  -v "latest" --bin-dir target
 sudo scripts/linux/buildImage.sh -r localhost:5000  -i "load-gen" -P "load-gen"  -v "latest" --bin-dir target
@@ -208,7 +207,7 @@ sudo scripts/linux/buildImage.sh -r localhost:5000  -i "metrics-validator" -P "M
 sudo scripts/linux/buildImage.sh -r localhost:5000  -i "temperature-filter-function" -P "EdgeHubTriggerCSharp"  -v "latest" --bin-dir target
 
 # The Generic MQTT tester image follows a slightly different build pattern. Use the following
-# steps to build and push this image to docker.
+# steps to build and push this image to the local container repository.
 sudo scripts/linux/cross-platform-rust-build.sh --os ubuntu18.04 --arch amd64 --build-path test/modules/generic-mqtt-tester/
 cd test/modules/generic-mqtt-tester
 sudo docker build --no-cache -t localhost:5000/microsoft/generic-mqtt-tester:latest-linux-amd64 --file docker/linux/amd64/Dockerfile --build-arg EXE_DIR=. target
