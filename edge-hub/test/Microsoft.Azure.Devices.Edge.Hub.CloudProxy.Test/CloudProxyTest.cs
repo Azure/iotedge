@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         static readonly int EventHubMessageReceivedRetry = 10;
         static readonly ILogger logger = Logger.Factory.CreateLogger(nameof(CloudProxyTest));
 
-        [Fact]
+        [Fact(Skip = "Flaky")]
         [TestPriority(401)]
         public async Task SendMessageTest()
         {
@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             await CheckMessageInEventHub(sentMessagesByDevice, startTime);
         }
 
-        [Fact]
+        [Fact(Skip = "Flaky")]
         [TestPriority(402)]
         public async Task SendMessageMultipleDevicesTest()
         {
@@ -92,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             await CheckMessageInEventHub(sentMessagesByDevice, startTime);
         }
 
-        [Fact]
+        [Fact(Skip = "Flaky")]
         [TestPriority(403)]
         public async Task SendMessageBatchTest()
         {
@@ -113,7 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             await CheckMessageInEventHub(sentMessagesByDevice, startTime);
         }
 
-        [Fact]
+        [Fact(Skip = "Flaky")]
         [TestPriority(404)]
         public async Task CanGetTwin()
         {
@@ -125,7 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.True(disconnectResult);
         }
 
-        [Fact]
+        [Fact(Skip = "Flaky")]
         [TestPriority(405)]
         public async Task CanUpdateReportedProperties()
         {
@@ -151,7 +151,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.True(disconnectResult);
         }
 
-        [Fact]
+        [Fact(Skip = "Flaky")]
         [TestPriority(406)]
         public async Task CanListenForDesiredPropertyUpdates()
         {
