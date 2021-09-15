@@ -22,7 +22,7 @@ use std::future::Future;
 pub mod device;
 
 mod io;
-pub use io::{Io, IoSource, Transport, IOTHUB_ENCODE_SET, prepare_sas_token_request};
+pub use io::{prepare_sas_token_request, Io, IoSource, Transport, IOTHUB_ENCODE_SET};
 
 pub mod iotedge_client;
 
