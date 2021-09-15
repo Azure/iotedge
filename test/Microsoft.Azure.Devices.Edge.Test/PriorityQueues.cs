@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string DefaultLoadGenTestStartDelay = "00:00:20";
 
         [Test]
-        [Category("UnstableOnArm")]
+        [Category("FlakyOnArm")]
         public async Task PriorityQueueModuleToModuleMessages()
         {
             CancellationToken token = this.TestToken;
@@ -51,11 +51,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Action<EdgeConfigBuilder> addRelayerConfig = this.BuildAddRelayerConfig(relayerImage, loadGenTestStatus);
             deployment = await this.runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig + addRelayerConfig, token, Context.Current.NestedEdge);
             await this.PollUntilFinishedAsync(RelayerModuleName, token);
-            await TestResultCoordinatorUtil.ValidateResultsAsync();
+            Assert.True(await TestResultCoordinatorUtil.IsResultValidAsync());
         }
 
         [Test]
-        [Category("UnstableOnArm")]
+        [Category("Flaky")]
         public async Task PriorityQueueModuleToHubMessages()
         {
             CancellationToken token = this.TestToken;
@@ -85,11 +85,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 await testResultReportingClient.ReportResultAsync(messageTestResult.ToTestOperationResultDto());
             }
 
-            await TestResultCoordinatorUtil.ValidateResultsAsync();
+            Assert.True(await TestResultCoordinatorUtil.IsResultValidAsync());
         }
 
         [Test]
-        [Category("UnstableOnArm")]
+        [Category("FlakyOnArm")]
         public async Task PriorityQueueTimeToLive()
         {
             CancellationToken token = this.TestToken;
@@ -112,7 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Action<EdgeConfigBuilder> addRelayerConfig = this.BuildAddRelayerConfig(relayerImage, loadGenTestStatus);
             deployment = await this.runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig + addRelayerConfig, token, Context.Current.NestedEdge);
             await this.PollUntilFinishedAsync(RelayerModuleName, token);
-            await TestResultCoordinatorUtil.ValidateResultsAsync();
+            Assert.True(await TestResultCoordinatorUtil.IsResultValidAsync());
         }
 
         async Task ReceiveEventsFromIotHub(DateTime startTime, ConcurrentQueue<MessageTestResult> messages, PriorityQueueTestStatus loadGenTestStatus, string trackingId, CancellationToken token)

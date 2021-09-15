@@ -11,12 +11,14 @@ resources:
   pipelines:
   - pipeline: images
     source: 'Azure-IoT-Edge-Core Build Images'
+    branch: 'release/1.2'
     trigger:
       branches:
       - master
       - release/*
   - pipeline: packages
     source: 'Azure-IoT-Edge-Core Edgelet Packages'
+    branch: 'release/1.2'
     trigger:
       branches:
       - master
@@ -153,6 +155,8 @@ stages:
       nestededge: true
       proxyAddress: $(otProxy)
       test_type: nestededge_isa95      
+      minimal: false
+      verbose: false
     pool:
      name: $(pool.name)
      demands:

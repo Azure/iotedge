@@ -26,6 +26,9 @@ pub mod message_initiator;
 pub mod settings;
 pub mod tester;
 
+pub const INITIATE_TOPIC_PREFIX: &str = "initiate";
+pub const RELAY_TOPIC_PREFIX: &str = "relay";
+
 #[derive(Debug, Clone)]
 pub struct ShutdownHandle(Sender<()>);
 
@@ -108,6 +111,9 @@ pub enum MessageTesterError {
 
     #[error("expected settings to contain a tracking id")]
     MissingTrackingId,
+
+    #[error("topic_suffix env var is needed to generate publish/subscribe topics")]
+    TopicSuffixNeeded,
 }
 
 pub fn parse_sequence_number(publication: &ReceivedPublication) -> u32 {

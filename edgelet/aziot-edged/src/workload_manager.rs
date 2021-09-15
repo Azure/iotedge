@@ -195,7 +195,7 @@ where
         module_id: &str,
         signal_socket_created: Option<Sender<()>>,
     ) -> Result<(), Error> {
-        info!("String new listener for module {}", module_id);
+        info!("Starting new listener for module {}", module_id);
         let workload_uri = self.get_listener_uri(module_id)?;
 
         self.spawn_listener(
@@ -219,8 +219,7 @@ where
                 Ok(())
             }
         } else {
-            warn!("Couldn't find a matching module Id in the list of shutdown channels");
-            Err(Error::from(ErrorKind::WorkloadManager))
+            Ok(())
         }
     }
 
@@ -239,6 +238,9 @@ where
             warn!("Could not remove socket with uri {}", workload_uri);
             ErrorKind::WorkloadManager
         })?;
+
+        // Try to stop the listener, in case it was not stopped before.
+        self.stop(module_id)?;
 
         Ok(())
     }
@@ -278,17 +280,24 @@ where
     // Ignore error, we don't want the server to close on error.
     let server = create_socket_channel_rcv.for_each(move |module_id| match module_id {
         ModuleAction::Start(module_id, sender) => {
-            workload_manager
-                .start(&module_id, Some(sender))
-                .unwrap_or(());
+            if let Err(err) = workload_manager.start(&module_id, Some(sender)) {
+                log_failure(Level::Warn, &err);
+            }
+
             Ok(())
         }
         ModuleAction::Stop(module_id) => {
-            workload_manager.stop(&module_id).unwrap_or(());
+            if let Err(err) = workload_manager.stop(&module_id) {
+                log_failure(Level::Warn, &err);
+            }
+
             Ok(())
         }
         ModuleAction::Remove(module_id) => {
-            workload_manager.remove(&module_id).unwrap_or(());
+            if let Err(err) = workload_manager.remove(&module_id) {
+                log_failure(Level::Warn, &err);
+            }
+
             Ok(())
         }
     });
