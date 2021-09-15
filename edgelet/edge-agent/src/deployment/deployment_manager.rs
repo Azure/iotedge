@@ -33,6 +33,18 @@ impl DeploymentManager {
         })
     }
 
+    pub async fn set_deployment(&mut self, deployment: serde_json::Value) -> Result<()> {
+        self.current_deployment = deployment;
+        write_serde(&self.current_location, &self.current_deployment).await?;
+
+        if let Some(deployment) = Self::validate_deployment(&self.current_deployment)? {
+            self.valid_deployment = Some(deployment);
+            write_serde(&self.valid_location, &self.valid_deployment).await?;
+        }
+
+        Ok(())
+    }
+
     pub async fn update_deployment(
         &mut self,
         patches: HashMap<String, serde_json::Value>,
@@ -43,22 +55,16 @@ impl DeploymentManager {
         write_serde(&self.current_location, &self.current_deployment).await?;
 
         if let Some(deployment) = Self::validate_deployment(&self.current_deployment)? {
-            write_serde(&self.valid_location, &deployment).await?;
             self.valid_deployment = Some(deployment);
+            write_serde(&self.valid_location, &self.valid_deployment).await?;
         }
 
         Ok(())
     }
 
-    // pub async fn get_deployment(deployment_file: impl AsRef<Path>) -> Result<Deployment> {
-    //     let mut file = File::open(deployment_file).await?;
-    //     let mut contents = vec![];
-    //     file.read_to_end(&mut contents).await?;
-    //     let deployment = serde_json::from_slice(&contents)?;
-
-    //     Self::validate_deployment(&deployment)?;
-    //     Ok(deployment)
-    // }
+    pub fn get_valid_deployment(&self) -> Option<&Deployment> {
+        self.valid_deployment.as_ref()
+    }
 
     fn validate_deployment(_deployment: &serde_json::Value) -> Result<Option<Deployment>> {
         Ok(Default::default())
