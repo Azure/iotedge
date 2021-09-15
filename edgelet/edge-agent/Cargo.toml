@@ -4,6 +4,7 @@ name = "edge-agent"
 version = "0.1.0"
 
 [dependencies]
+json-patch = "0.2.6"
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"

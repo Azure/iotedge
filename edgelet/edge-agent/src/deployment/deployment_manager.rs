@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
+// use json_patch::patch;
 use serde::de::DeserializeOwned;
 use tokio::fs::{File, OpenOptions};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -33,16 +34,17 @@ impl DeploymentManager {
     }
 
     pub async fn update_deployment(
-        &self,
+        &mut self,
         patches: HashMap<String, serde_json::Value>,
     ) -> Result<()> {
         for (key, patch) in patches {
-            // Do Patch
+            json_patch::merge(&mut self.current_deployment, &patch);
         }
         write_serde(&self.current_location, &self.current_deployment).await?;
 
         if let Some(deployment) = Self::validate_deployment(&self.current_deployment)? {
-            write_serde(&self.valid_location, deployment).await?;
+            write_serde(&self.valid_location, &deployment).await?;
+            self.valid_deployment = Some(deployment);
         }
 
         Ok(())
@@ -96,6 +98,7 @@ where
 mod tests {
     use super::*;
     use rand::Rng;
+    use serde_json::json;
     use tempfile::tempdir;
     use tokio::select;
 
@@ -134,6 +137,73 @@ mod tests {
             read_serde(test_file).await.expect("Test file is parsable");
         assert_eq!(manager.current_deployment, expected);
         assert_eq!(manager.valid_deployment, None);
+    }
+
+    #[tokio::test]
+    async fn update_deployment() {
+        let test_file = std::path::Path::new(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/deployment/test/twin1.json"
+        ));
+        let tmp_dir = tempdir().unwrap();
+        let tmp_dir = tmp_dir.path();
+
+        tokio::fs::copy(test_file, tmp_dir.join("newest_deployment.json"))
+            .await
+            .expect("Copy Test File");
+
+        let mut manager = DeploymentManager::new(tmp_dir)
+            .await
+            .expect("Create Deployment Manager");
+
+        let changed_value = |manager: &DeploymentManager| {
+            serde_json::from_value::<String>(
+                manager
+                    .current_deployment
+                    .get("desired")
+                    .unwrap()
+                    .get("runtime")
+                    .unwrap()
+                    .get("type")
+                    .unwrap()
+                    .to_owned(),
+            )
+            .unwrap()
+        };
+        let control_value = |manager: &DeploymentManager| {
+            serde_json::from_value::<String>(
+                manager
+                    .current_deployment
+                    .get("desired")
+                    .unwrap()
+                    .get("schemaVersion")
+                    .unwrap()
+                    .to_owned(),
+            )
+            .unwrap()
+        };
+        assert_eq!("docker", changed_value(&manager), "Initial value is docker");
+        assert_eq!("1.1", control_value(&manager), "Control value is 1.1");
+
+        let mut patches = HashMap::new();
+        patches.insert(
+            "key1".to_owned(),
+            json!({
+                "desired": {
+                    "runtime": {
+                        "type": "host"
+                    }
+                }
+            }),
+        );
+
+        manager
+            .update_deployment(patches)
+            .await
+            .expect("Able to update deployment");
+
+        assert_eq!("host", changed_value(&manager), "Value is changed to host");
+        assert_eq!("1.1", control_value(&manager), "Control value is 1.1");
     }
 
     // #[tokio::test]
