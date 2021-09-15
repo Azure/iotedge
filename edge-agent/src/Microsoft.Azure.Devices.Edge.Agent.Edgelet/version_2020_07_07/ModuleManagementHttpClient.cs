@@ -27,7 +27,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07
 
     class ModuleManagementHttpClient : ModuleManagementHttpClientVersioned
     {
-
         static readonly ILogger Log = Logger.Factory.CreateLogger<ModuleManagementHttpClient>();
 
         public ModuleManagementHttpClient(Uri managementUri)
