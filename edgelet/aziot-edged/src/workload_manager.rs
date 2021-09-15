@@ -125,13 +125,16 @@ where
         let shutdown_sender = self.shutdown_senders.remove(module_id);
 
         if let Some(shutdown_sender) = shutdown_sender {
-            // When edged boots up, it clean all modules. At this moment, no socket could listening so it could legitimatly return an error.
-            shutdown_sender.send(()).ok();
+            // When edged boots up, it cleans all modules. At this moment, no socket could listening so it could legitimately return an error.
+            let _ = shutdown_sender.send(());
         }
     }
 
     fn remove_listener(&mut self, module_id: &str) -> Result<(), EdgedError> {
         log::info!("Removing listener for module {}", module_id);
+
+        // Try to stop the listener, just in case it was not stopped before
+        self.stop_listener(module_id);
 
         // If the container is removed, also remove the socket file to limit the leaking of socket file
         let workload_uri = self.get_listener_uri(module_id)?;

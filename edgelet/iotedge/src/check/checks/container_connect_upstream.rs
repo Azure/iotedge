@@ -11,7 +11,7 @@ pub(crate) fn get_host_container_upstream_tests() -> Vec<Box<dyn Checker>> {
         #[cfg(unix)]
         make_check(
             "container-default-connect-upstream-amqp",
-            "container on the default network can connect to upstream  AMQP port",
+            "container on the default network can connect to upstream AMQP port",
             UpstreamProtocolPort::Amqp,
             false,
         ),

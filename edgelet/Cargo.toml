@@ -1,17 +1,17 @@
 [workspace]
 members = [
-  "aziot-edged",
-  "docker-rs",
-  "edgelet-core",
-  "edgelet-docker",
-  "edgelet-http",
-  "edgelet-http-mgmt",
-  "edgelet-http-workload",
-  "edgelet-settings",
-  "edgelet-utils",
-  "iotedge",
-  "support-bundle",
-  "edge-agent",
+    "aziot-edged",
+    "docker-rs",
+    "edgelet-core",
+    "edgelet-docker",
+    "edgelet-http",
+    "edgelet-http-mgmt",
+    "edgelet-http-workload",
+    "edgelet-settings",
+    "edgelet-utils",
+    "iotedge",
+    "support-bundle",
+    "edge-agent",
 ]
 
 [profile.dev]
