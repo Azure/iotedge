@@ -329,7 +329,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07
         class ErrorDetectionStrategy : ITransientErrorDetectionStrategy
         {
             public bool IsTransient(Exception ex) => ex is SwaggerException se
-                                                     && (se.StatusCode >= 500 || se.StatusCode == 404);
+                                                     && se.StatusCode >= 500;
         }
     }
 }
