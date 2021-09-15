@@ -4,6 +4,7 @@ use tokio::sync::mpsc;
 
 mod deployment;
 // mod reconcile;
+mod hub_client_manager;
 mod util;
 
 #[tokio::main]
