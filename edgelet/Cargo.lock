@@ -706,6 +706,8 @@ version = "0.1.0"
 dependencies = [
  "azure-iot-mqtt",
  "edgelet-core",
+ "futures-core",
+ "futures-util",
  "json-patch",
  "rand 0.8.4",
  "serde",

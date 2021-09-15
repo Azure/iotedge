@@ -1,8 +1,12 @@
 use std::{sync::Arc, time::Duration};
 
+use futures_util::StreamExt;
 use tokio::sync::Mutex;
 
-use azure_iot_mqtt::{module::Client, Authentication, Transport};
+use azure_iot_mqtt::{
+    module::{Client, Message},
+    Authentication, Transport,
+};
 
 use crate::deployment::DeploymentManager;
 
@@ -33,6 +37,24 @@ impl ClientManager {
             deployment_manager,
             client,
         })
+    }
+
+    fn start(mut self) {
+        tokio::spawn(async move {
+            while let Some(message) = self.client.next().await {
+                match message {
+                    Ok(Message::DirectMethod {
+                        name,
+                        payload,
+                        request_id,
+                    }) => todo!(),
+                    Ok(Message::ReportedTwinState(size)) => todo!(),
+                    Ok(Message::TwinInitial(twin_initial)) => todo!(),
+                    Ok(Message::TwinPatch(twin_patch)) => todo!(),
+                    Err(_) => todo!(),
+                }
+            }
+        });
     }
 }
 
