@@ -704,11 +704,19 @@ dependencies = [
 name = "edge-agent"
 version = "0.1.0"
 dependencies = [
+ "aziot-cert-client-async",
+ "aziot-identity-client-async",
+ "aziot-identity-common",
+ "aziot-key-client-async",
+ "aziot-key-common",
  "azure-iot-mqtt",
+ "base64 0.13.0",
  "edgelet-core",
  "futures-core",
  "futures-util",
  "json-patch",
+ "native-tls",
+ "percent-encoding 2.1.0",
  "rand 0.8.4",
  "serde",
  "serde_derive",
