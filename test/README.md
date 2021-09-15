@@ -16,7 +16,7 @@ There are three directories under the `test/` directory:
 #### Setting up your local machine
 
 ##### Prerequisites
-To run the end-to-end tests, we will be building the required binaries from the code, build container images and push them to a local container repository. The tests will install the IoT Edge runtime from the binaries on your machine and run the containers using your local repository.
+To run the end-to-end tests, we will be building the required binaries from the code, build container images and push them to a local container registry. The tests will install the IoT Edge runtime from the binaries on your machine and run the containers using your local registry.
 
 It is important that your machine meets the requirements to run IoT Edge. See our installation docs ([Linux](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-edge-linux), [Windows](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-edge-windows)) for more information on prerequisites
 
@@ -60,8 +60,8 @@ Create a rootCA certificate for your machine *(See [Create Certs](https://docs.m
 # certs sub directory and will be needed to run the tests.
 ~~~
 
-##### Configure your local container repository
-We will be building the container images from the codebase and pushing them to a local container repository. To prepare, we will install the moby engine and configure the container repository using the steps below. 
+##### Configure your local container registry
+We will be building the container images from the codebase and pushing them to a local container registry. To prepare, we will install the moby engine and configure the container registry using the steps below. 
 
 ###### Install moby engine
 See [Install a container engine](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-edge?view=iotedge-2020-11#install-a-container-engine) for details
@@ -97,7 +97,7 @@ sudo apt-get install apache2-utils
 echo "password" | sudo htpasswd -iB htpasswd username
 ~~~
 
-###### Configure and run the local container repository
+###### Configure and run the local container registry
 ~~~ sh
 # Set up the container registry to listen on port 5000 and to restart automatically.
 # Mount the auth folder into the container and point to the TLS and Basic auth files
@@ -118,10 +118,11 @@ sudo docker run -d  -p 5000:5000 \
 # 59867fe47a5b   registry:2   "/entrypoint.sh /etc…"   6 seconds ago   Up 6 seconds   0.0.0.0:5000->5000/tcp, :::5000->5000/tcp   registry
 sudo docker ps
 
-# Run docker login to validate your setup. The login step will cache your credentials on 
-# your machine and will be required later when you build and push docker images
+# Run docker login to validate your setup and verify that your login/password works. 
+# The login step will cache your credentials on your machine and will be required later 
+# when you build and push docker images
 
-sudo docker login
+sudo docker login localhost:5000
 ~~~
 
 ##### Install .NET
@@ -130,6 +131,7 @@ The end-to-end tests are written in .NET Core and run with the `dotnet test` com
 Here is a convenient way to install the SDK.
 ~~~ sh
 curl -sL https://dot.net/v1/dotnet-install.sh -o dotnet-install.sh
+chmod u+x dotnet-install.sh
 ./dotnet-install.sh -c Current
 ~~~
 
@@ -190,7 +192,7 @@ From the top folder of the codebase, run the following.
 # Consolidate artifacts for edge-hub
 sudo scripts/linux/consolidate-build-artifacts.sh --artifact-name "edge-hub"
 
-# Build and push images to local container repository
+# Build and push images to local container registry
 sudo scripts/linux/buildImage.sh -r localhost:5000  -i "edge-hub" -P "edge-hub"  -v "latest" --bin-dir target
 sudo scripts/linux/buildImage.sh -r localhost:5000  -i "edge-agent" -P "Microsoft.Azure.Devices.Edge.Agent.Service"  -v "latest" --bin-dir target
 sudo scripts/linux/buildImage.sh -r localhost:5000  -i "load-gen" -P "load-gen"  -v "latest" --bin-dir target
@@ -207,7 +209,7 @@ sudo scripts/linux/buildImage.sh -r localhost:5000  -i "metrics-validator" -P "M
 sudo scripts/linux/buildImage.sh -r localhost:5000  -i "temperature-filter-function" -P "EdgeHubTriggerCSharp"  -v "latest" --bin-dir target
 
 # The Generic MQTT tester image follows a slightly different build pattern. Use the following
-# steps to build and push this image to the local container repository.
+# steps to build and push this image to the local container registry.
 sudo scripts/linux/cross-platform-rust-build.sh --os ubuntu18.04 --arch amd64 --build-path test/modules/generic-mqtt-tester/
 cd test/modules/generic-mqtt-tester
 sudo docker build --no-cache -t localhost:5000/microsoft/generic-mqtt-tester:latest-linux-amd64 --file docker/linux/amd64/Dockerfile --build-arg EXE_DIR=. target
@@ -218,40 +220,40 @@ sudo docker push localhost:5000/microsoft/generic-mqtt-tester:latest-linux-amd64
 
 #### Test parameters
 
-The end-to-end tests take several parameters, which they expect to find in a file named `context.json` in the same directory as the test binaries (e.g., `test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp2.1/context.json`). Parameter names are case-insensitive. See [end-to-end test parameters](./doc/end-to-end-test-config) for details. 
+The end-to-end tests take several parameters, which they expect to find in a file named `context.json` in the same directory as the test binaries (e.g., `test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp2.1/context.json`). Parameter names are case-insensitive. See [end-to-end test parameters](./doc/end-to-end-test-config.md) for details. 
 
 #### Sample context.json
 ~~~ json
 {
-"packagePath": "/home/azureuser/iotedge/edgelet/target/release/",
-"edgeAgentImage": "localhost:5000/microsoft/edge-agent:latest-linux-amd64",
-"edgeHubImage": "localhost:5000/microsoft/edge-hub:latest-linux-amd64",
-"loadGenImage": "localhost:5000/microsoft/load-gen:latest-linux-amd64",
-"methodSenderImage": "localhost:5000/microsoft/direct-method-sender:latest-linux-amd64",
-"methodReceiverImage": "localhost:5000/microsoft/direct-method-receiver:latest-linux-amd64",
-"networkControllerImage": "localhost:5000/microsoft/network-controller:latest-linux-amd64",
-"relayerImage": "localhost:5000/microsoft/relayer:latest-linux-amd64",
-"tempFilterFuncImage": "localhost:5000/microsoft/temperature-filter-function:latest-linux-amd64",
-"tempFilterImage": "localhost:5000/microsoft/temperature-filter:latest-linux-amd64",
-"tempSensorImage": "localhost:5000/microsoft/simulated-temperature-sensor:latest-linux-amd64",
-"testResultCoordinatorImage": "localhost:5000/microsoft/test-result-coordinator:latest-linux-amd64",
-"numberLoggerImage": "localhost:5000/microsoft/number-logger:latest-linux-amd64",
-"genericMqttTesterImage": "localhost:5000/microsoft/generic-mqtt-tester:latest-linux-amd64",
-"diagnosticsImage": "localhost:5000/microsoft/diagnostics:latest-linux-amd64",
-"metricsValidatorImage": "localhost:5000/microsoft/metrics-validator:latest-linux-amd64",
-"caCertScriptPath": "/home/azureuser/iotedge/test/certs",
-"dpsIdScope": "0ne01F35169",
-"rootCaCertificatePath": "/home/azureuser/iotedge/test/certs/certs/azure-iot-test-only.root.ca.cert.pem",
-"rootCaPrivateKeyPath": "/home/azureuser/iotedge/test/certs/private/azure-iot-test-only.root.ca.key.pem",
-"verbose": "true",
-"logFile": "/home/azureuser/iotedge/logs/logfile",
-"registries":
-        [
-                {
-                        "address": "localhost:5000",
-                        "username": "username"
-                }
-        ]
+    "packagePath": "/home/azureuser/iotedge/edgelet/target/release/",
+    "edgeAgentImage": "localhost:5000/microsoft/edge-agent:latest-linux-amd64",
+    "edgeHubImage": "localhost:5000/microsoft/edge-hub:latest-linux-amd64",
+    "loadGenImage": "localhost:5000/microsoft/load-gen:latest-linux-amd64",
+    "methodSenderImage": "localhost:5000/microsoft/direct-method-sender:latest-linux-amd64",
+    "methodReceiverImage": "localhost:5000/microsoft/direct-method-receiver:latest-linux-amd64",
+    "networkControllerImage": "localhost:5000/microsoft/network-controller:latest-linux-amd64",
+    "relayerImage": "localhost:5000/microsoft/relayer:latest-linux-amd64",
+    "tempFilterFuncImage": "localhost:5000/microsoft/temperature-filter-function:latest-linux-amd64",
+    "tempFilterImage": "localhost:5000/microsoft/temperature-filter:latest-linux-amd64",
+    "tempSensorImage": "localhost:5000/microsoft/simulated-temperature-sensor:latest-linux-amd64",
+    "testResultCoordinatorImage": "localhost:5000/microsoft/test-result-coordinator:latest-linux-amd64",
+    "numberLoggerImage": "localhost:5000/microsoft/number-logger:latest-linux-amd64",
+    "genericMqttTesterImage": "localhost:5000/microsoft/generic-mqtt-tester:latest-linux-amd64",
+    "diagnosticsImage": "localhost:5000/microsoft/diagnostics:latest-linux-amd64",
+    "metricsValidatorImage": "localhost:5000/microsoft/metrics-validator:latest-linux-amd64",
+    "caCertScriptPath": "/home/azureuser/iotedge/test/certs",
+    "dpsIdScope": "0ne01F35169",
+    "rootCaCertificatePath": "/home/azureuser/iotedge/test/certs/certs/azure-iot-test-only.root.ca.cert.pem",
+    "rootCaPrivateKeyPath": "/home/azureuser/iotedge/test/certs/private/azure-iot-test-only.root.ca.key.pem",
+    "verbose": "true",
+    "logFile": "/home/azureuser/iotedge/logs/logfile",
+    "registries":
+    [    
+        {
+            "address": "localhost:5000",
+            "username": "username"
+        }
+    ]
 }
 ~~~
 
@@ -259,7 +261,7 @@ The end-to-end tests take several parameters, which they expect to find in a fil
 
 The tests also expect to find several _secret_ parameters. It is recommended that you create environment variables and make them available to the test framework in a way that avoids committing them to your shell's command history or saving them in clear text on your filesystem.
 
-See [environment variables](./doc/end-to-end-test-config#environment-variables) for details.
+See [environment variables](./doc/end-to-end-test-config.md#environment-variables) for details.
 
 ### Run the tests
 

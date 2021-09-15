@@ -1,4 +1,6 @@
-#End to End Test Parameters
+# End to End Test Parameters
+
+_Note: A ✔ in the required column indicates that it is required for all the tests, where as * indicates that the attribute is only required for a subset of the tests_ 
 
 | Name | Required | Description |
 |------|----------|-------------|
@@ -35,7 +37,7 @@
 
 | Name | Required | Description |
 |------|----------|-------------|
-| `E2E_DPS_GROUP_KEY` | ✔ | The symmetric key of the DPS [enrollment group](https://docs.microsoft.com/en-us/azure/iot-dps/concepts-service#enrollment-group) to use. Used when running any DPS tests, ignored otherwise. |
+| `E2E_DPS_GROUP_KEY` | * | The symmetric key of the DPS [enrollment group](https://docs.microsoft.com/en-us/azure/iot-dps/concepts-service#enrollment-group) to use. Used when running any DPS tests, ignored otherwise. |
 | `E2E_IOT_HUB_CONNECTION_STRING` | ✔ | Hub-scoped IoT hub connection string that can be used to get/add/remove devices, deploy edge configurations, and get/update module twins. |
 | `E2E_EVENT_HUB_ENDPOINT` | ✔ | Connection string used to connect to the Event Hub-compatible endpoint of your IoT hub, to listen for D2C events sent by devices or modules. |
 | `E2E_REGISTRIES__{n}__PASSWORD` || Password associated with a container registry entry in the `registries` array of `context.json`. `{n}` is the number corresponding to the (zero-based) array entry. For example, if you specified a single container registry in the `registries` array, the corresponding parameter would be `[E2E_]REGISTRIES__0__PASSWORD`. |
