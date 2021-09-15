@@ -57,6 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         [Category("CentOsSafe")]
         [Category("NestedEdgeOnly")]
+        [Category("FlakyOnNested")]
         public async Task QuickstartChangeSasKey()
         {
             CancellationToken token = this.TestToken;
@@ -192,6 +193,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         [Test]
         [Category("CentOsSafe")]
+        [Category("FlakyOnNested")]
         public async Task DisableReenableParentEdge()
         {
             CancellationToken token = this.TestToken;

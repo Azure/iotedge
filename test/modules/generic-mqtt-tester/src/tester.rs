@@ -23,7 +23,7 @@ use crate::{
     },
     message_initiator::MessageInitiator,
     settings::{Settings, TestScenario},
-    ExitedWork, MessageTesterError, ShutdownHandle,
+    ExitedWork, MessageTesterError, ShutdownHandle, INITIATE_TOPIC_PREFIX,
 };
 
 const EDGEHUB_CONTAINER_ADDRESS: &str = "edgeHub:8883";
@@ -109,7 +109,7 @@ impl MessageTesterShutdownHandle {
 /// - Reports the result to the Test Result Coordinator test module.
 ///
 /// 4: `Relay` mode
-/// - Receives messages on initiate topic and relays it back to on relay topic.
+/// - Receives messages on any initiate topic and relays them back on the appropriate relay topic.
 pub struct MessageTester {
     settings: Settings,
     client: Client<ClientIoSource>,
@@ -129,7 +129,7 @@ impl MessageTester {
             .publish_handle()
             .map_err(MessageTesterError::PublishHandle)?;
 
-        let message_handler = message_handler(&settings, publish_handle.clone());
+        let message_handler = message_handler(&settings, publish_handle.clone())?;
 
         let mut message_channel = None;
         let mut message_channel_shutdown = None;
@@ -270,14 +270,21 @@ impl MessageTester {
         match settings.test_scenario() {
             TestScenario::InitiateAndReceiveRelayed => client_sub_handle
                 .subscribe(SubscribeTo {
-                    topic_filter: settings.relay_topic(),
+                    topic_filter: settings.relay_topic()?,
                     qos: QoS::AtLeastOnce,
                 })
                 .await
                 .map_err(MessageTesterError::UpdateSubscription)?,
-            TestScenario::Relay | TestScenario::Receive => client_sub_handle
+            TestScenario::Relay => client_sub_handle
                 .subscribe(SubscribeTo {
-                    topic_filter: settings.initiate_topic(),
+                    topic_filter: INITIATE_TOPIC_PREFIX.to_string() + "/+",
+                    qos: QoS::AtLeastOnce,
+                })
+                .await
+                .map_err(MessageTesterError::UpdateSubscription)?,
+            TestScenario::Receive => client_sub_handle
+                .subscribe(SubscribeTo {
+                    topic_filter: settings.initiate_topic()?,
                     qos: QoS::AtLeastOnce,
                 })
                 .await
@@ -293,22 +300,33 @@ impl MessageTester {
 fn message_handler(
     settings: &Settings,
     publish_handle: PublishHandle,
-) -> Option<Box<dyn MessageHandler + Send>> {
-    let tracking_id = settings.tracking_id();
-    let relay_topic = settings.relay_topic();
-    let module_name = settings.module_name();
-    let test_result_coordinator_url = settings.trc_url();
-    let reporting_client = TrcClient::new(test_result_coordinator_url);
-
+) -> Result<Option<Box<dyn MessageHandler + Send>>, MessageTesterError> {
     match settings.test_scenario() {
-        TestScenario::InitiateAndReceiveRelayed | TestScenario::Receive => Some(Box::new(
-            ReportResultMessageHandler::new(reporting_client, tracking_id, &module_name),
-        )),
-        TestScenario::Relay => Some(Box::new(RelayingMessageHandler::new(
-            publish_handle,
-            relay_topic,
-        ))),
-        TestScenario::Initiate => None,
+        TestScenario::InitiateAndReceiveRelayed | TestScenario::Receive => {
+            let test_result_coordinator_url = settings.trc_url();
+            let reporting_client = TrcClient::new(test_result_coordinator_url);
+
+            // If there is a batch id to compare against, we are in
+            // `InitiateAndReceiveRelayed` mode. Messages should have
+            // originated from the same module so we should validate that.
+            //
+            // If there is no batch id then we are in a more basic `Receive`
+            // mode. Messages originated from a different module so we
+            // cannot validate batch id.
+            let batch_id = settings.batch_id();
+            let tracking_id = settings
+                .tracking_id()
+                .ok_or(MessageTesterError::MissingTrackingId)?;
+            let module_name = settings.module_name();
+            Ok(Some(Box::new(ReportResultMessageHandler::new(
+                reporting_client,
+                tracking_id,
+                &module_name,
+                batch_id,
+            ))))
+        }
+        TestScenario::Relay => Ok(Some(Box::new(RelayingMessageHandler::new(publish_handle)))),
+        TestScenario::Initiate => Ok(None),
     }
 }
 

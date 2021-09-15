@@ -33,9 +33,12 @@ To reconfigure IoT Edge, run:
     }
 
     let config = super_config::Config {
+        allow_elevated_docker_permissions: None,
+
         trust_bundle_cert: None,
 
-        auto_reprovisioning_mode: edgelet_core::settings::AutoReprovisioningMode::OnErrorOnly,
+        auto_reprovisioning_mode:
+            edgelet_settings::base::aziot::AutoReprovisioningMode::OnErrorOnly,
 
         imported_master_encryption_key: None,
 
@@ -57,6 +60,10 @@ To reconfigure IoT Edge, run:
             },
 
             localid: None,
+
+            cloud_timeout_sec: aziot_identityd_config::Settings::default_cloud_timeout(),
+
+            cloud_retries: aziot_identityd_config::Settings::default_cloud_retries(),
 
             aziot_keys: Default::default(),
 
@@ -85,7 +92,7 @@ To reconfigure IoT Edge, run:
 
     let user = nix::unistd::User::from_uid(nix::unistd::Uid::current())
         .map_err(|err| format!("could not query current user information: {}", err))?
-        .ok_or_else(|| "could not query current user information")?;
+        .ok_or("could not query current user information")?;
 
     common_config::write_file(&out_config_file, &config, &user, 0o0600)
         .map_err(|err| format!("{:?}", err))?;

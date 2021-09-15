@@ -79,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             return modules;
         }
 
-        public Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<string> since, Option<string> until, CancellationToken cancellationToken)
+        public Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<string> since, Option<string> until, Option<bool> includeTimestamp, CancellationToken cancellationToken)
         {
             var containerLogsParameters = new ContainerLogsParameters
             {
@@ -89,6 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             };
             tail.ForEach(t => containerLogsParameters.Tail = t.ToString());
             since.ForEach(t => containerLogsParameters.Since = t.ToString());
+            includeTimestamp.ForEach(t => containerLogsParameters.Timestamps = t);
 
             return this.client.Containers.GetContainerLogsAsync(module, containerLogsParameters, cancellationToken);
         }

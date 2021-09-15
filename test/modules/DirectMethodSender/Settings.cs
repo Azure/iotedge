@@ -17,7 +17,7 @@ namespace DirectMethodSender
             string deviceId,
             string targetModuleId,
             TransportType transportType,
-            TimeSpan directMethodDelay,
+            TimeSpan directMethodFrequency,
             Option<Uri> reportingEndpointUrl,
             InvocationSource invocationSource,
             Option<string> serviceClientConnectionString,
@@ -35,7 +35,7 @@ namespace DirectMethodSender
             this.TargetModuleId = Preconditions.CheckNonWhiteSpace(targetModuleId, nameof(targetModuleId));
             Preconditions.CheckArgument(TransportType.IsDefined(typeof(TransportType), transportType));
             this.TransportType = transportType;
-            this.DirectMethodDelay = directMethodDelay;
+            this.DirectMethodFrequency = directMethodFrequency;
             this.InvocationSource = invocationSource;
             this.ReportingEndpointUrl = reportingEndpointUrl;
             this.ServiceClientConnectionString = serviceClientConnectionString;
@@ -59,7 +59,7 @@ namespace DirectMethodSender
                 configuration.GetValue<string>("IOTEDGE_DEVICEID"),
                 configuration.GetValue<string>("TargetModuleId", "DirectMethodReceiver"),
                 configuration.GetValue<TransportType>("TransportType", TransportType.Amqp_Tcp_Only),
-                configuration.GetValue<TimeSpan>("DirectMethodDelay", TimeSpan.FromSeconds(5)),
+                configuration.GetValue<TimeSpan>("DirectMethodFrequency", TimeSpan.FromSeconds(5)),
                 Option.Maybe(configuration.GetValue<Uri>("ReportingEndpointUrl")),
                 configuration.GetValue<InvocationSource>("InvocationSource", InvocationSource.Local),
                 Option.Maybe<string>(configuration.GetValue<string>("IOT_HUB_CONNECTION_STRING")),
@@ -77,7 +77,7 @@ namespace DirectMethodSender
 
         internal TransportType TransportType { get; }
 
-        internal TimeSpan DirectMethodDelay { get; }
+        internal TimeSpan DirectMethodFrequency { get; }
 
         internal InvocationSource InvocationSource { get; }
 
@@ -110,7 +110,7 @@ namespace DirectMethodSender
                 { nameof(this.TrackingId), this.TrackingId.ToString() },
                 { nameof(this.TransportType), Enum.GetName(typeof(TransportType), this.TransportType) },
                 { nameof(this.DirectMethodName), this.DirectMethodName },
-                { nameof(this.DirectMethodDelay), this.DirectMethodDelay.ToString() },
+                { nameof(this.DirectMethodFrequency), this.DirectMethodFrequency.ToString() },
                 { nameof(this.InvocationSource), this.InvocationSource.ToString() },
                 { nameof(this.DirectMethodResultType), this.DirectMethodResultType.ToString() },
                 { nameof(this.ReportingEndpointUrl), this.ReportingEndpointUrl.ToString() },

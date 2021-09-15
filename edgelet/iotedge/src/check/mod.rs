@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use failure::Fail;
 use failure::{self, ResultExt};
 
-use edgelet_docker::Settings;
+use edgelet_settings::{RuntimeSettings, Settings};
 
 use aziotctl_common::{
     CheckOutputSerializable, CheckOutputSerializableStreaming, CheckResultSerializable,
@@ -24,8 +24,8 @@ use self::stdout::Stdout;
 
 mod upstream_protocol_port;
 
-mod checker;
-use checker::Checker;
+mod shared;
+use shared::{CheckResult, Checker, CheckerMeta};
 
 mod checks;
 
@@ -58,30 +58,6 @@ pub enum OutputFormat {
     Text,
 }
 
-/// The various ways a check can resolve.
-///
-/// Check functions return `Result<CheckResult, failure::Error>` where `Err` represents the check failed.
-#[derive(Debug)]
-pub enum CheckResult {
-    /// Check succeeded.
-    Ok,
-
-    /// Check failed with a warning.
-    Warning(failure::Error),
-
-    /// Check is not applicable and was ignored. Should be treated as success.
-    Ignored,
-
-    /// Check was skipped because of errors from some previous checks. Should be treated as an error.
-    Skipped,
-
-    /// Check failed, and further checks should be performed.
-    Failed(failure::Error),
-
-    /// Check failed, and further checks should not be performed.
-    Fatal(failure::Error),
-}
-
 impl Check {
     pub fn new(
         container_engine_config_path: PathBuf,
@@ -112,7 +88,7 @@ impl Check {
             additional_info: AdditionalInfo::new(),
 
             iothub_hostname,
-            proxy_uri,
+            proxy_uri: get_proxy_uri(proxy_uri),
             parent_hostname: None,
             settings: None,
             docker_host_arg: None,
@@ -120,15 +96,16 @@ impl Check {
         }
     }
 
-    pub fn print_list(aziot_bin: &str) -> Result<(), Error> {
+    pub async fn print_list(aziot_bin: &str) -> Result<(), Error> {
         let mut all_checks: Vec<(String, Vec<CheckerMetaSerializable>)> = Vec::new();
 
         // get all the aziot checks by shelling-out to aziot
         {
-            let aziot_check_out = std::process::Command::new(aziot_bin)
+            let aziot_check_out = tokio::process::Command::new(aziot_bin)
                 .arg("check-list")
                 .arg("--output=json")
-                .output();
+                .output()
+                .await;
 
             match aziot_check_out {
                 Ok(out) => {
@@ -168,8 +145,8 @@ impl Check {
                     checks
                         .iter()
                         .map(|c| CheckerMetaSerializable {
-                            id: c.id().into(),
-                            description: c.description().into(),
+                            id: c.meta().id.into(),
+                            description: c.meta().description.into(),
                         })
                         .collect::<Vec<_>>(),
                 )
@@ -228,7 +205,7 @@ impl Check {
         }
     }
 
-    pub fn execute(&mut self, runtime: &mut tokio::runtime::Runtime) -> Result<(), Error> {
+    pub async fn execute(&mut self) -> Result<(), Error> {
         // heterogeneous type representing the output of a check, regardless of
         // whether or not it is built-in, or parsed from `aziot check`
         #[derive(Debug)]
@@ -237,7 +214,7 @@ impl Check {
             description: String,
             result: CheckResult,
             additional_info: serde_json::Value,
-        };
+        }
 
         let mut checks: BTreeMap<String, CheckOutputSerializable> = Default::default();
 
@@ -343,6 +320,26 @@ impl Check {
                         stdout.write_warning(|stdout| {
                             writeln!(stdout, "\u{203c} {} - Warning", check_name)?;
                             writeln!(stdout, "    skipping because of previous failures")?;
+                            Ok(())
+                        });
+                    }
+                }
+
+                CheckResult::SkippedDueTo(reason) => {
+                    num_skipped += 1;
+
+                    checks.insert(
+                        check_id,
+                        CheckOutputSerializable {
+                            result: CheckResultSerializable::Skipped,
+                            additional_info,
+                        },
+                    );
+
+                    if verbose {
+                        stdout.write_success(|stdout| {
+                            writeln!(stdout, "\u{221a} {} - OK", check_name)?;
+                            writeln!(stdout, "    skipping because of {}", reason)?;
                             Ok(())
                         });
                     }
@@ -461,15 +458,9 @@ impl Check {
                 aziot_check.arg("--iothub-hostname").arg(iothub_hostname);
             }
 
-            // Prioritize proxy address passed in as command line argument
-            // before searching aziot-edged settings for Edge Agent's
-            // environment variables.
+            // If a proxy is configured, pass along the proxy-uri
             if let Some(proxy_uri) = &self.proxy_uri {
                 aziot_check.arg("--proxy-uri").arg(proxy_uri.clone());
-            } else if let Ok(settings) = Settings::new() {
-                if let Some(agent_proxy_uri) = settings.base.agent.env().get("https_proxy") {
-                    aziot_check.arg("--proxy-uri").arg(agent_proxy_uri.clone());
-                }
             }
 
             if !self.dont_run.is_empty() {
@@ -490,7 +481,7 @@ impl Check {
                         let val = val.context(ErrorKind::Aziot)?;
                         match val {
                             CheckOutputSerializableStreaming::Section { name } => {
-                                self.output_section(&format!("{} (aziot-identity-service)", name))
+                                self.output_section(&format!("{} (aziot-identity-service)", name));
                             }
                             CheckOutputSerializableStreaming::Check { meta, output } => {
                                 if output_check(
@@ -514,14 +505,14 @@ impl Check {
                                         .as_object()
                                         .and_then(|m| m.get("iothub_hostname"))
                                         .and_then(serde_json::Value::as_str)
-                                        .map(Into::into)
+                                        .map(Into::into);
                                 }
 
                                 self.parent_hostname = info
                                     .as_object()
                                     .and_then(|m| m.get("local_gateway_hostname"))
                                     .and_then(serde_json::Value::as_str)
-                                    .map(Into::into)
+                                    .map(Into::into);
                             }
                         }
                     }
@@ -552,25 +543,23 @@ impl Check {
 
         // run the built-in checks
         'outer: for (section_name, section_checks) in &mut checks::built_in_checks() {
-            self.output_section(&section_name);
+            self.output_section(section_name);
 
             for check in section_checks {
-                let check_result = if self.dont_run.contains(check.id()) {
+                let check_result = if self.dont_run.contains(check.meta().id) {
                     CheckResult::Ignored
                 } else {
-                    check.execute(self, runtime)
+                    check.execute(self).await
                 };
 
-                if output_check(
-                    CheckOutput {
-                        id: check.id().into(),
-                        description: check.description().into(),
-                        result: check_result,
-                        additional_info: check.get_json(),
-                    },
-                    self.verbose,
-                    self.warnings_as_errors,
-                )? {
+                let check_output = CheckOutput {
+                    id: check.meta().id.into(),
+                    description: check.meta().description.into(),
+                    result: check_result,
+                    additional_info: serde_json::to_value(check).unwrap(),
+                };
+
+                if output_check(check_output, self.verbose, self.warnings_as_errors)? {
                     break 'outer;
                 }
             }
@@ -645,6 +634,24 @@ impl Check {
     }
 }
 
+fn get_proxy_uri(arg: Option<String>) -> Option<String> {
+    // If proxy address was passed in as command line argument, we are good
+    if arg.is_some() {
+        return arg;
+    }
+    // Proxy_address wasn't passed in on the command line. Pull it from the aziot-edged settings
+    // for Edge Agent's environment variables.
+    if let Ok(settings) = Settings::new() {
+        if let Some(agent_proxy_uri) = settings.base.agent().env().get("https_proxy") {
+            return Some(agent_proxy_uri.clone());
+        }
+    }
+    // Otherwise, pull it from the environment
+    std::env::var("HTTPS_PROXY")
+        .ok()
+        .or_else(|| std::env::var("https_proxy").ok())
+}
+
 fn write_lines<'a>(
     writer: &mut (impl Write + ?Sized),
     first_line_indent: &str,
@@ -670,22 +677,19 @@ mod tests {
     };
 
     lazy_static::lazy_static! {
-        static ref ENV_LOCK: std::sync::Mutex<()> = Default::default();
+        static ref ENV_LOCK: tokio::sync::Mutex<()> = Default::default();
     }
 
-    #[test]
-    fn config_file_checks_ok() {
-        let mut runtime = tokio::runtime::Runtime::new().unwrap();
-
+    #[tokio::test]
+    async fn config_file_checks_ok() {
         for filename in &["sample_settings.toml", "sample_settings.tg.filepaths.toml"] {
-            let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+            let _env_lock = ENV_LOCK.lock().await;
 
             std::env::set_var(
                 "AZIOT_EDGED_CONFIG",
                 format!(
-                    "{}/../edgelet-docker/test/{}/{}",
+                    "{}/../edgelet-settings/test-files/{}",
                     env!("CARGO_MANIFEST_DIR"),
-                    "linux",
                     filename,
                 ),
             );
@@ -705,7 +709,7 @@ mod tests {
                 None,
             );
 
-            match WellFormedConfig::default().execute(&mut check, &mut runtime) {
+            match WellFormedConfig::default().execute(&mut check).await {
                 CheckResult::Ok => (),
                 check_result => panic!("parsing {} returned {:?}", filename, check_result),
             }
@@ -713,7 +717,7 @@ mod tests {
             // Pretend it's Moby
             check.docker_server_version = Some("19.03.12+azure".to_owned());
 
-            match ContainerEngineIsMoby::default().execute(&mut check, &mut runtime) {
+            match ContainerEngineIsMoby::default().execute(&mut check).await {
                 CheckResult::Ok => (),
                 check_result => panic!(
                     "checking moby_runtime.uri in {} returned {:?}",
@@ -723,19 +727,16 @@ mod tests {
         }
     }
 
-    #[test]
-    fn config_file_checks_ok_old_moby() {
-        let mut runtime = tokio::runtime::Runtime::new().unwrap();
-
+    #[tokio::test]
+    async fn config_file_checks_ok_old_moby() {
         for filename in &["sample_settings.toml", "sample_settings.tg.filepaths.toml"] {
-            let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+            let _env_lock = ENV_LOCK.lock().await;
 
             std::env::set_var(
                 "AZIOT_EDGED_CONFIG",
                 format!(
-                    "{}/../edgelet-docker/test/{}/{}",
+                    "{}/../edgelet-settings/test-files/{}",
                     env!("CARGO_MANIFEST_DIR"),
-                    "linux",
                     filename,
                 ),
             );
@@ -755,7 +756,7 @@ mod tests {
                 None,
             );
 
-            match WellFormedConfig::default().execute(&mut check, &mut runtime) {
+            match WellFormedConfig::default().execute(&mut check).await {
                 CheckResult::Ok => (),
                 check_result => panic!("parsing {} returned {:?}", filename, check_result),
             }
@@ -763,7 +764,7 @@ mod tests {
             // Pretend it's Moby
             check.docker_server_version = Some("3.0.3".to_owned());
 
-            match ContainerEngineIsMoby::default().execute(&mut check, &mut runtime) {
+            match ContainerEngineIsMoby::default().execute(&mut check).await {
                 CheckResult::Ok => (),
                 check_result => panic!(
                     "checking moby_runtime.uri in {} returned {:?}",
@@ -773,20 +774,17 @@ mod tests {
         }
     }
 
-    #[test]
-    fn parse_settings_err() {
-        let mut runtime = tokio::runtime::Runtime::new().unwrap();
-
+    #[tokio::test]
+    async fn parse_settings_err() {
         let filename = "bad_sample_settings.toml";
 
-        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+        let _env_lock = ENV_LOCK.lock().await;
 
         std::env::set_var(
             "AZIOT_EDGED_CONFIG",
             format!(
-                "{}/../edgelet-docker/test/{}/{}",
+                "{}/../edgelet-settings/test-files/{}",
                 env!("CARGO_MANIFEST_DIR"),
-                "linux",
                 filename,
             ),
         );
@@ -806,26 +804,23 @@ mod tests {
             None,
         );
 
-        match WellFormedConfig::default().execute(&mut check, &mut runtime) {
+        match WellFormedConfig::default().execute(&mut check).await {
             CheckResult::Failed(_) => (),
             check_result => panic!("parsing {} returned {:?}", filename, check_result),
         }
     }
 
-    #[test]
-    fn moby_runtime_uri_wants_moby_based_on_server_version() {
-        let mut runtime = tokio::runtime::Runtime::new().unwrap();
-
+    #[tokio::test]
+    async fn moby_runtime_uri_wants_moby_based_on_server_version() {
         let filename = "sample_settings.toml";
 
-        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+        let _env_lock = ENV_LOCK.lock().await;
 
         std::env::set_var(
             "AZIOT_EDGED_CONFIG",
             format!(
-                "{}/../edgelet-docker/test/{}/{}",
+                "{}/../edgelet-settings/test-files/{}",
                 env!("CARGO_MANIFEST_DIR"),
-                "linux",
                 filename,
             ),
         );
@@ -845,7 +840,7 @@ mod tests {
             None,
         );
 
-        match WellFormedConfig::default().execute(&mut check, &mut runtime) {
+        match WellFormedConfig::default().execute(&mut check).await {
             CheckResult::Ok => (),
             check_result => panic!("parsing {} returned {:?}", filename, check_result),
         }
@@ -853,7 +848,7 @@ mod tests {
         // Pretend it's Docker
         check.docker_server_version = Some("19.03.12".to_owned());
 
-        match ContainerEngineIsMoby::default().execute(&mut check, &mut runtime) {
+        match ContainerEngineIsMoby::default().execute(&mut check).await {
             CheckResult::Warning(warning) => assert!(
                 warning.to_string().contains(
                     "Device is not using a production-supported container engine (moby-engine)."
@@ -868,5 +863,92 @@ mod tests {
                 filename, check_result
             ),
         }
+    }
+
+    #[tokio::test]
+    #[allow(clippy::semicolon_if_nothing_returned)]
+    async fn pickup_proxy_uri_from_the_right_place() {
+        // grab an env lock since we are going to be mucking with the environment.
+        let _env_lock = ENV_LOCK.lock().await;
+
+        // unset var to make sure we have a clean start
+        std::env::remove_var("AZIOT_EDGED_CONFIG");
+
+        // Setup the https_proxy environment var
+        let env_proxy_uri1 = "https://environment1:123";
+        std::env::set_var("https_proxy", env_proxy_uri1);
+        let proxy_uri = super::get_proxy_uri(Option::None);
+        // Validate that the uri is picked up from the environment.
+        assert!(
+            proxy_uri.is_some(),
+            "Unable to get proxy_uri from the environment"
+        );
+        assert_eq!(
+                    proxy_uri.unwrap(),
+                    env_proxy_uri1.to_string(),
+                    "proxy _uri fetched from the environment var \"https_proxy\" did not match expected value: '{};",
+                    env_proxy_uri1
+                );
+
+        // Setup the HTTPS_PROXY environment var
+        let env_proxy_uri2 = "https://environment2:123";
+        std::env::set_var("HTTPS_PROXY", env_proxy_uri2);
+        let proxy_uri = super::get_proxy_uri(Option::None);
+        // Validate that the uri is picked up from the environment.
+        assert!(
+            proxy_uri.is_some(),
+            "Unable to get proxy_uri from the environment"
+        );
+        assert_eq!(
+            proxy_uri.unwrap(),
+            env_proxy_uri2.to_string(),
+            "proxy _uri fetched from the environment var \"HTTPS_PROXY\" did not match expected value: '{};",
+            env_proxy_uri2
+        );
+
+        // Point to a test config
+        std::env::set_var(
+            "AZIOT_EDGED_CONFIG",
+            format!(
+                "{}/../edgelet-settings/test-files/{}",
+                env!("CARGO_MANIFEST_DIR"),
+                "sample_settings_with_proxy_uri.toml",
+            ),
+        );
+
+        // Get proxy_uri again
+        let config_proxy_uri = "https://config:123";
+        let proxy_uri = super::get_proxy_uri(Option::None);
+        // Validate that the uri is picked up from the config which overrides the value in the env.
+        assert!(
+            proxy_uri.is_some(),
+            "Unable to get proxy_uri from the config"
+        );
+        assert_eq!(
+            proxy_uri.unwrap(),
+            config_proxy_uri.to_string(),
+            "proxy_uri fetched from the config did not match expected value: '{}'",
+            config_proxy_uri,
+        );
+
+        // Get proxy-uri by passing in the uri as the parameter
+        let parm_proxy_uri = "https://commandline:123";
+        let proxy_uri = super::get_proxy_uri(Some(parm_proxy_uri.to_string()));
+        // Validate that uri is picked up from the passed in parameter which overrides the value in the env and config
+        assert!(
+            proxy_uri.is_some(),
+            "Unable to get proxy_uri from the command line paramter"
+        );
+        assert_eq!(
+            proxy_uri.unwrap(),
+            parm_proxy_uri.to_string(),
+            "proxy_uri fetched from the config did not match expected value: '{}'",
+            parm_proxy_uri,
+        );
+
+        // clean up the env
+        std::env::remove_var("AZIOT_EDGED_CONFIG");
+        std::env::remove_var("HTTPS_PROXY");
+        std::env::remove_var("https_proxy");
     }
 }

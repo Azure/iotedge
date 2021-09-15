@@ -100,8 +100,10 @@ fn write_colored<F>(
 where
     F: FnOnce(&mut dyn Write) -> std::io::Result<()>,
 {
-    let _ = stdout.set_color(spec);
+    stdout
+        .set_color(spec)
+        .expect("failed to set terminal color");
     let result = f(stdout);
-    let _ = stdout.reset();
+    stdout.reset().expect("failed to reset terminal color");
     result
 }

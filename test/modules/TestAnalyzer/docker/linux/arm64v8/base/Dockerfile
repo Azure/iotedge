@@ -1,4 +1,4 @@
-﻿ARG base_tag=3.1.13-bionic-arm64v8
+﻿ARG base_tag=3.1.18-bionic-arm64v8
 FROM mcr.microsoft.com/dotnet/aspnet:${base_tag}
 
 RUN apt-get update && \

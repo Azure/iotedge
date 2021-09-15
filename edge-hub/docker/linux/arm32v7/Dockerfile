@@ -1,4 +1,4 @@
-ARG base_tag=1.0.6.8-linux-arm32v7
+ARG base_tag=1.0.6.13-linux-arm32v7
 FROM azureiotedge/azureiotedge-hub-base:${base_tag}
 
 ADD ./watchdog/armv7-unknown-linux-gnueabihf/release/watchdog /usr/local/bin/watchdog
@@ -15,8 +15,11 @@ EXPOSE 8883/tcp
 EXPOSE 5671/tcp
 EXPOSE 443/tcp
 
-USER edgehubuser
 ENV OptimizeForPerformance false
 ENV MqttEventsProcessorThreadCount 1
+
+COPY Microsoft.Azure.Devices.Edge.Hub.Service/ ./
+COPY $EXE_DIR/Microsoft.Azure.Devices.Edge.Hub.Service/hubStart.sh ./
+
 CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Edge Hub" && \
-    /usr/local/bin/watchdog
+    exec /app/hubStart.sh

@@ -107,10 +107,9 @@ if [ "${REDUCED_LINKER}" = '1' ]; then
     #
     # We don't want to disable these for everyone else, so only do it in this script
     # that the CI uses.
+    sed -i '/\[profile.dev\]/a codegen-units = 1\nincremental = false' edgelet/Cargo.toml
+
     >> "${PROJECT_ROOT}/Cargo.toml" cat <<-EOF
-[profile.dev]
-codegen-units = 1
-incremental = false
 [profile.test]
 codegen-units = 1
 incremental = false

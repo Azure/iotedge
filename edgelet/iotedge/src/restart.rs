@@ -3,13 +3,11 @@
 use std::io::Write;
 use std::sync::{Arc, Mutex};
 
-use failure::{Fail, ResultExt};
-use futures::Future;
+use failure::ResultExt;
 
 use edgelet_core::ModuleRuntime;
 
 use crate::error::{Error, ErrorKind};
-use crate::Command;
 
 pub struct Restart<M, W> {
     id: String,
@@ -27,25 +25,18 @@ impl<M, W> Restart<M, W> {
     }
 }
 
-impl<M, W> Command for Restart<M, W>
+impl<M, W, E> Restart<M, W>
 where
-    M: 'static + ModuleRuntime + Clone,
-    W: 'static + Write + Send,
+    M: ModuleRuntime<Error = E>,
+    Error: From<E>,
+    W: Write + Send,
 {
-    type Future = Box<dyn Future<Item = (), Error = Error> + Send>;
-
-    fn execute(self) -> Self::Future {
-        let id = self.id.clone();
+    pub async fn execute(&self) -> Result<(), Error> {
         let write = self.output.clone();
-        let result = self
-            .runtime
-            .restart(&id)
-            .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))
-            .and_then(move |_| {
-                let mut w = write.lock().unwrap();
-                writeln!(w, "{}", id).context(ErrorKind::WriteToStdout)?;
-                Ok(())
-            });
-        Box::new(result)
+        self.runtime.restart(&self.id).await?;
+
+        let mut w = write.lock().unwrap();
+        writeln!(w, "{}", self.id).context(ErrorKind::WriteToStdout)?;
+        Ok(())
     }
 }

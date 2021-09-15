@@ -1,4 +1,4 @@
-ARG base_tag=1.0.6.8-linux-arm64v8
+ARG base_tag=1.0.6.13-linux-arm64v8
 
 FROM azureiotedge/azureiotedge-agent-base:${base_tag}
  

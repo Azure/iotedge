@@ -1,0 +1,96 @@
+parameters:
+  edgelet.artifact.name: ''
+  images.artifact.name: ''
+  aziotis.artifact.name: ''
+  aziotis.package.filter: ''
+  quickstart.artifactName: ''
+
+steps:
+  # We need to stop iotedge to facilitate large downloads.
+  # There is a stop command running in quickstart, which will get called later. But this is too late.
+  - script: |
+      sudo iotedge system stop || true
+      sudo systemctl stop iotedge || true
+    displayName: Immediately attempt to stop iotedge service (needed for arm)
+  - checkout: self
+    clean: true
+    fetchDepth: 100
+    submodules: recursive
+  - task: AzureKeyVault@1
+    displayName: 'Azure Key Vault: EdgeBuildkv'
+    inputs:
+      azureSubscription: $(azure.subscription)
+      KeyVaultName: 'edgebuildkv'
+      SecretsFilter: >- 
+        edgebuilds-azurecr-io-username,
+        edgebuilds-azurecr-io-pwd,
+        StorageAccountMasterKeyStress,
+        SnitchLongHaulAlertUrl,
+        kvLogAnalyticWorkspaceId,
+        kvLogAnalyticSharedKey,
+        EdgeLonghaulStorageAccountConnString,
+        GitHubAccessToken
+  - task: AzureKeyVault@1
+    displayName: 'Azure Key Vault: $(azure.keyVault)'
+    inputs:
+      azureSubscription: $(azure.subscription)
+      KeyVaultName: $(azure.keyVault)
+      SecretsFilter: >- 
+        IotHub-ConnStr,
+        IotHub-EventHubConnStr
+  - task: DownloadBuildArtifacts@0
+    displayName: 'Download Edgelet Artifacts'
+    inputs:
+      buildType: specific
+      project: $(vsts.project)
+      pipeline: $(edgelet.package.build)
+      branchName: $(edgelet.package.branchName)
+      buildVersionToDownload: latestFromBranch
+      downloadPath: '$(Build.StagingDirectory)'
+      artifactName: ${{ parameters['edgelet.artifact.name'] }}
+      allowPartiallySucceededBuilds: true
+  - task: DownloadBuildArtifacts@0
+    displayName: 'Download Images Artifacts'
+    inputs:
+      buildType: specific
+      project: $(vsts.project)
+      pipeline: $(images.build)
+      branchName: $(images.branchName)
+      buildVersionToDownload: latestFromBranch
+      downloadPath: '$(Build.StagingDirectory)'
+      artifactName: $(images.artifact.name.linux)
+      allowPartiallySucceededBuilds: true
+      itemPattern: |
+        $(images.artifact.name.linux)/${{ parameters['quickstart.artifactName'] }}
+        $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
+        $(images.artifact.name.linux)/scripts/linux/trcE2ETest.sh
+        $(images.artifact.name.linux)/artifactInfo.txt
+        $(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
+        $(images.artifact.name.linux)/CACertificates/certGen.sh
+        $(images.artifact.name.linux)/CACertificates/openssl_root_ca.cnf
+  - task: PowerShell@2
+    displayName: 'Download aziot-identity-service'
+    inputs:
+      filePath: $(Build.StagingDirectory)/$(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
+    env:
+      GITHUB_TOKEN: $(GitHubAccessToken)
+      ARTIFACT_NAME: ${{ parameters['aziotis.artifact.name'] }}
+      PACKAGE_FILTER: ${{ parameters['aziotis.package.filter'] }}
+      DOWNLOAD_PATH: $(Build.StagingDirectory)
+  - task: CopyFiles@2
+    displayName: 'Copy Edgelet Artifact'
+    inputs:
+      SourceFolder: "$(Build.StagingDirectory)/${{ parameters['edgelet.artifact.name'] }}"
+      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/"
+      CleanTargetFolder: true
+  - task: CopyFiles@2
+    displayName: 'Copy Images Artifact'
+    inputs:
+      SourceFolder: "$(Build.StagingDirectory)/${{ parameters['images.artifact.name'] }}"
+      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}"
+  - task: CopyFiles@2
+    displayName: 'Copy aziot-identity-service'
+    inputs:
+      SourceFolder: "$(Build.StagingDirectory)"
+      Contents: "aziot-identity-service*.deb"
+      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/"

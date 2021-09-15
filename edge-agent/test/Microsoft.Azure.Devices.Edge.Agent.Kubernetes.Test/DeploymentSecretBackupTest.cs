@@ -85,7 +85,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             };
 
             var client = new Mock<IKubernetes>(MockBehavior.Strict);
-            client.Setup(c => c.ReadNamespacedSecretWithHttpMessagesAsync(DefaultSecretName, DefaultNamespace, It.IsAny<bool?>(), It.IsAny<bool?>(), null, null, It.IsAny<CancellationToken>()))
+            client.Setup(c => c.ReadNamespacedSecretWithHttpMessagesAsync(
+                    DefaultSecretName,
+                    DefaultNamespace,
+                    It.IsAny<string>(), // pretty
+                    null, // customHeaders
+                    It.IsAny<CancellationToken>()))
                 .ReturnsAsync(response);
 
             var backupSource = new DeploymentSecretBackup(DefaultSecretName, DefaultNamespace, DefaultOwner, serde, client.Object);
@@ -110,7 +115,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             };
 
             var client = new Mock<IKubernetes>(MockBehavior.Strict);
-            client.Setup(c => c.ReadNamespacedSecretWithHttpMessagesAsync(DefaultSecretName, DefaultNamespace, It.IsAny<bool?>(), It.IsAny<bool?>(), null, null, It.IsAny<CancellationToken>()))
+            client.Setup(c => c.ReadNamespacedSecretWithHttpMessagesAsync(
+                    DefaultSecretName,
+                    DefaultNamespace,
+                    It.IsAny<string>(), // pretty
+                    null, // customHeaders
+                    It.IsAny<CancellationToken>()))
                 .ReturnsAsync(response);
 
             var backupSource = new DeploymentSecretBackup(DefaultSecretName, DefaultNamespace, DefaultOwner, serde, client.Object);
@@ -138,7 +148,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             };
 
             var client = new Mock<IKubernetes>(MockBehavior.Strict);
-            client.Setup(c => c.ReadNamespacedSecretWithHttpMessagesAsync(DefaultSecretName, DefaultNamespace, It.IsAny<bool?>(), It.IsAny<bool?>(), null, null, It.IsAny<CancellationToken>()))
+            client.Setup(c => c.ReadNamespacedSecretWithHttpMessagesAsync(
+                    DefaultSecretName,
+                    DefaultNamespace,
+                    It.IsAny<string>(), // pretty
+                    null, // customHeaders
+                    It.IsAny<CancellationToken>()))
                 .ReturnsAsync(response);
 
             var backupSource = new DeploymentSecretBackup(DefaultSecretName, DefaultNamespace, DefaultOwner, serde, client.Object);
@@ -166,7 +181,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             };
 
             var client = new Mock<IKubernetes>(MockBehavior.Strict);
-            client.Setup(c => c.ReadNamespacedSecretWithHttpMessagesAsync(DefaultSecretName, DefaultNamespace, It.IsAny<bool?>(), It.IsAny<bool?>(), null, null, It.IsAny<CancellationToken>()))
+            client.Setup(c => c.ReadNamespacedSecretWithHttpMessagesAsync(
+                    DefaultSecretName,
+                    DefaultNamespace,
+                    It.IsAny<string>(), // pretty
+                    null, // customHeaders
+                    It.IsAny<CancellationToken>()))
                 .ReturnsAsync(response);
 
             var backupSource = new DeploymentSecretBackup(DefaultSecretName, DefaultNamespace, DefaultOwner, serde, client.Object);
@@ -196,7 +216,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 
             byte[] receivedData = default(byte[]);
             var client = new Mock<IKubernetes>(MockBehavior.Strict);
-            client.Setup(c => c.ReadNamespacedSecretWithHttpMessagesAsync(DefaultSecretName, DefaultNamespace, It.IsAny<bool?>(), It.IsAny<bool?>(), null, null, It.IsAny<CancellationToken>()))
+            client.Setup(c => c.ReadNamespacedSecretWithHttpMessagesAsync(
+                    DefaultSecretName,
+                    DefaultNamespace,
+                    It.IsAny<string>(), // pretty
+                    null, // customHeaders
+                    It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new HttpOperationException("Not Found"));
             client.Setup(c => c.CreateNamespacedSecretWithHttpMessagesAsync(It.IsAny<V1Secret>(), DefaultNamespace, null, null, null, null, It.IsAny<CancellationToken>()))
                 .Callback((V1Secret body, string namespaceParameter, string dryRun, string fieldManager, string pretty, Dictionary<string, List<string>> customHeaders, CancellationToken cancellationToken) =>
@@ -244,9 +269,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 
             byte[] receivedData = default(byte[]);
             var client = new Mock<IKubernetes>(MockBehavior.Strict);
-            client.Setup(c => c.ReadNamespacedSecretWithHttpMessagesAsync(DefaultSecretName, DefaultNamespace, It.IsAny<bool?>(), It.IsAny<bool?>(), null, null, It.IsAny<CancellationToken>()))
+            client.Setup(c => c.ReadNamespacedSecretWithHttpMessagesAsync(
+                    DefaultSecretName,
+                    DefaultNamespace,
+                    It.IsAny<string>(), // pretty
+                    null, // customHeaders
+                    It.IsAny<CancellationToken>()))
                 .ReturnsAsync(readResponse);
-            client.Setup(c => c.ReplaceNamespacedSecretWithHttpMessagesAsync(It.IsAny<V1Secret>(), DefaultSecretName, DefaultNamespace, null, null, null, null, It.IsAny<CancellationToken>()))
+            client.Setup(c => c.ReplaceNamespacedSecretWithHttpMessagesAsync(
+                    It.IsAny<V1Secret>(),
+                    DefaultSecretName,
+                    DefaultNamespace,
+                    null, // dryRun
+                    null, // fieldmanager
+                    null, // pretty
+                    null, // customHeaders
+                    It.IsAny<CancellationToken>()))
                 .Callback((V1Secret body, string name, string namespaceParameter, string dryRun, string fieldManager, string pretty, Dictionary<string, List<string>> customHeaders, CancellationToken cancellationToken) =>
                 {
                     Assert.True(body.Data != null);
@@ -281,7 +319,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             };
 
             var client = new Mock<IKubernetes>(MockBehavior.Strict);
-            client.Setup(c => c.ReadNamespacedSecretWithHttpMessagesAsync(DefaultSecretName, DefaultNamespace, It.IsAny<bool?>(), It.IsAny<bool?>(), null, null, It.IsAny<CancellationToken>()))
+            client.Setup(c => c.ReadNamespacedSecretWithHttpMessagesAsync(
+                    DefaultSecretName,
+                    DefaultNamespace,
+                    It.IsAny<string>(), // pretty
+                    null, // customHeaders
+                    It.IsAny<CancellationToken>()))
                 .ReturnsAsync(readResponse);
 
             var backupSource = new DeploymentSecretBackup(DefaultSecretName, DefaultNamespace, DefaultOwner, serde, client.Object);
@@ -313,9 +356,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             };
 
             var client = new Mock<IKubernetes>(MockBehavior.Strict);
-            client.Setup(c => c.ReadNamespacedSecretWithHttpMessagesAsync(DefaultSecretName, DefaultNamespace, It.IsAny<bool?>(), It.IsAny<bool?>(), null, null, It.IsAny<CancellationToken>()))
+            client.Setup(c => c.ReadNamespacedSecretWithHttpMessagesAsync(
+                    DefaultSecretName,
+                    DefaultNamespace,
+                    It.IsAny<string>(), // pretty
+                    null, // customHeaders
+                    It.IsAny<CancellationToken>()))
                 .ReturnsAsync(readResponse);
-            client.Setup(c => c.ReplaceNamespacedSecretWithHttpMessagesAsync(It.IsAny<V1Secret>(), DefaultSecretName, DefaultNamespace, null, null, null, null, It.IsAny<CancellationToken>()))
+            client.Setup(c => c.ReplaceNamespacedSecretWithHttpMessagesAsync(
+                    It.IsAny<V1Secret>(),
+                    DefaultSecretName,
+                    DefaultNamespace,
+                    null, // dryRun
+                    null, // fieldmanager
+                    null, // pretty
+                    null, // customHeaders
+                    It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new HttpOperationException("Not Permitted"));
 
             var backupSource = new DeploymentSecretBackup(DefaultSecretName, DefaultNamespace, DefaultOwner, serde, client.Object);

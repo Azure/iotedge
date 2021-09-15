@@ -38,9 +38,9 @@ namespace DevOpsLib
             ValidationUtil.ThrowIfNullOrWhiteSpace(branchName, nameof(branchName));
 
             // TODO: need to think about how to handle unexpected exception during REST API call
-            string requestPath = string.Format(LatestBuildPathSegmentFormat, this.accessSetting.Organization, this.accessSetting.Project);
+            string requestPath = string.Format(LatestBuildPathSegmentFormat, DevOpsAccessSetting.AzureOrganization, DevOpsAccessSetting.AzureProject);
             IFlurlRequest latestBuildRequest = GetBuildsRequestUri(buildDefinitionIds, branchName, requestPath, null, 1)
-                .WithBasicAuth(string.Empty, this.accessSetting.PersonalAccessToken);
+                .WithBasicAuth(string.Empty, this.accessSetting.MsazurePAT);
 
             string resultJson = await latestBuildRequest.GetStringAsync().ConfigureAwait(false);
             JObject result = JObject.Parse(resultJson);
@@ -60,9 +60,9 @@ namespace DevOpsLib
             ValidationUtil.ThrowIfNullOrWhiteSpace(branchName, nameof(branchName));
 
             // TODO: need to think about how to handle unexpected exception during REST API call
-            string requestPath = string.Format(LatestBuildPathSegmentFormat, this.accessSetting.Organization, this.accessSetting.Project);
+            string requestPath = string.Format(LatestBuildPathSegmentFormat, DevOpsAccessSetting.AzureOrganization, DevOpsAccessSetting.AzureProject);
             IFlurlRequest latestBuildRequest = GetBuildsRequestUri(buildDefinitionIds, branchName, requestPath, minTime, maxBuildsPerDefinition)
-                .WithBasicAuth(string.Empty, this.accessSetting.PersonalAccessToken);
+                .WithBasicAuth(string.Empty, this.accessSetting.MsazurePAT);
 
             string resultJson = await latestBuildRequest.GetStringAsync().ConfigureAwait(false);
             JObject result = JObject.Parse(resultJson);
@@ -72,7 +72,9 @@ namespace DevOpsLib
                 return buildDefinitionIds.Select(i => VstsBuild.CreateBuildWithNoResult(i, branchName)).ToList();
             }
 
-            return JsonConvert.DeserializeObject<VstsBuild[]>(result["value"].ToString()).ToList();
+            IList<VstsBuild> builds = JsonConvert.DeserializeObject<VstsBuild[]>(result["value"].ToString()).ToList();
+
+            return builds;
         }
 
         private static Url GetBuildsRequestUri(HashSet<BuildDefinitionId> buildDefinitionIds, string branchName, string requestPath, DateTime? minTime, int? maxBuildsPerDefinition)
@@ -80,7 +82,7 @@ namespace DevOpsLib
             Url requestUri = DevOpsAccessSetting.BaseUrl
                 .AppendPathSegment(requestPath)
                 .SetQueryParam("definitions", string.Join(",", buildDefinitionIds.Select(b => b.IdString())))
-                .SetQueryParam("queryOrder", "finishTimeDescending")                
+                .SetQueryParam("queryOrder", "finishTimeDescending")
                 .SetQueryParam("api-version", "5.1")
                 .SetQueryParam("branchName", branchName);
 

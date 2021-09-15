@@ -54,6 +54,12 @@
               },
               "NestedEdgeEnabled": {
                 "value": "false"
+              },
+              "OptimizeForPerformance": {
+                "value": "<OptimizeForPerformance>"
+              },
+              "SslProtocols": {
+                "value": "tls1.2"
               }
             },
             "status": "running",
@@ -156,6 +162,9 @@
               },
               "trackingId": {
                 "value": "<TrackingId>"
+              },
+              "DirectMethodFrequency": {
+                "value": "<DirectMethodFrequency>"
               }
             },
             "settings": {
@@ -213,6 +222,9 @@
               },
               "trackingId": {
                 "value": "<TrackingId>"
+              },
+              "DirectMethodFrequency": {
+                "value": "<DirectMethodFrequency>"
               }
             },
             "settings": {
@@ -273,6 +285,9 @@
               },
               "trackingId": {
                 "value": "<TrackingId>"
+              },
+              "DirectMethodFrequency": {
+                "value": "<DirectMethodFrequency>"
               }
             },
             "settings": {
@@ -356,7 +371,7 @@
                 "value": "<TestResultCoordinator.ConsumerGroupId>"
               },
               "optimizeForPerformance": {
-                "value": "<TestResultCoordinator.OptimizeForPerformance>"
+                "value": "<OptimizeForPerformance>"
               },
               "logAnalyticsWorkspaceId": {
                 "value": "<LogAnalyticsWorkspaceId>"
@@ -420,6 +435,9 @@
               },
               "TwinUpdateFrequency": {
                 "value": "<TwinUpdateFrequency>"
+              },
+              "StorageOptimizeForPerformance": {
+                "value": "<OptimizeForPerformance>"
               }
             },
             "settings": {
@@ -459,6 +477,9 @@
               },
               "TwinUpdateFrequency": {
                 "value": "<TwinUpdateFrequency>"
+              },
+              "StorageOptimizeForPerformance": {
+                "value": "<OptimizeForPerformance>"
               }
             },
             "settings": {
@@ -498,6 +519,9 @@
               },
               "TwinUpdateFrequency": {
                 "value": "<TwinUpdateFrequency>"
+              },
+              "StorageOptimizeForPerformance": {
+                "value": "<OptimizeForPerformance>"
               }
             },
             "settings": {
@@ -537,6 +561,9 @@
               },
               "TwinUpdateFrequency": {
                 "value": "<TwinUpdateFrequency>"
+              },
+              "StorageOptimizeForPerformance": {
+                "value": "<OptimizeForPerformance>"
               }
             },
             "settings": {

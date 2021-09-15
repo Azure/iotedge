@@ -1,5 +1,5 @@
 {
-  "messageFrequency": "00:00:00.02",
+  "messageFrequency": "00:00:01",
   "transportType": "amqp",
   "messageSizeInBytes": 1024,
   "outputName": "output1",

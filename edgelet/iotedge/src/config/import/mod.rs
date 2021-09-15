@@ -317,11 +317,11 @@ fn execute_inner(
         // since it also triggers a reprovisioning before restarting the daemon.
 
         let auto_reprovisioning_mode = if dynamic_reprovisioning {
-            edgelet_core::settings::AutoReprovisioningMode::Dynamic
+            edgelet_settings::aziot::AutoReprovisioningMode::Dynamic
         } else if always_reprovision_on_startup {
-            edgelet_core::settings::AutoReprovisioningMode::AlwaysOnStartup
+            edgelet_settings::aziot::AutoReprovisioningMode::AlwaysOnStartup
         } else {
-            edgelet_core::settings::AutoReprovisioningMode::OnErrorOnly
+            edgelet_settings::aziot::AutoReprovisioningMode::OnErrorOnly
         };
 
         (provisioning, auto_reprovisioning_mode)
@@ -360,6 +360,8 @@ fn execute_inner(
     };
 
     let config = super_config::Config {
+        allow_elevated_docker_permissions: None,
+
         trust_bundle_cert,
 
         auto_reprovisioning_mode,
@@ -375,6 +377,10 @@ fn execute_inner(
             provisioning,
 
             localid: None,
+
+            cloud_timeout_sec: aziot_identityd_config::Settings::default_cloud_timeout(),
+
+            cloud_retries: aziot_identityd_config::Settings::default_cloud_retries(),
 
             aziot_keys: Default::default(),
 
@@ -395,10 +401,10 @@ fn execute_inner(
                 env,
                 image_pull_policy,
             } = agent;
-            edgelet_core::ModuleSpec {
+            edgelet_settings::ModuleSpec::new(
                 name,
                 type_,
-                config: {
+                {
                     let old_config::DockerConfig {
                         image,
                         image_id,
@@ -406,22 +412,32 @@ fn execute_inner(
                         digest,
                         auth,
                     } = config;
-                    edgelet_docker::DockerConfig {
+                    let new_config = edgelet_settings::DockerConfig::new(
                         image,
-                        image_id,
                         create_options,
                         digest,
                         auth,
+                        true,
+                    )?;
+
+                    // Clippy wants map_or here, but that's not possible without cloning.
+                    #[allow(clippy::option_if_let_else)]
+                    if let Some(image_id) = image_id {
+                        new_config.with_image_hash(image_id)
+                    } else {
+                        new_config
                     }
                 },
                 env,
-                image_pull_policy: match image_pull_policy {
+                match image_pull_policy {
                     old_config::ImagePullPolicy::OnCreate => {
-                        edgelet_core::ImagePullPolicy::OnCreate
+                        edgelet_settings::module::ImagePullPolicy::OnCreate
                     }
-                    old_config::ImagePullPolicy::Never => edgelet_core::ImagePullPolicy::Never,
+                    old_config::ImagePullPolicy::Never => {
+                        edgelet_settings::module::ImagePullPolicy::Never
+                    }
                 },
-            }
+            )?
         },
 
         connect: {
@@ -429,9 +445,9 @@ fn execute_inner(
                 management_uri,
                 workload_uri,
             } = connect;
-            edgelet_core::Connect {
-                management_uri,
+            edgelet_settings::uri::Connect {
                 workload_uri,
+                management_uri,
             }
         },
         listen: {
@@ -471,23 +487,27 @@ fn execute_inner(
                 format!("unexpected value of listen.workload_uri {}", workload_uri)
             })?;
 
-            edgelet_core::Listen {
+            edgelet_settings::uri::Listen {
                 management_uri,
                 workload_uri,
                 min_tls_version: match min_tls_version {
-                    old_config::Protocol::Tls10 => edgelet_core::Protocol::Tls10,
-                    old_config::Protocol::Tls11 => edgelet_core::Protocol::Tls11,
-                    old_config::Protocol::Tls12 => edgelet_core::Protocol::Tls12,
+                    old_config::Protocol::Tls10 => edgelet_settings::uri::MinTlsVersion::Tls10,
+                    old_config::Protocol::Tls11 => edgelet_settings::uri::MinTlsVersion::Tls11,
+                    old_config::Protocol::Tls12 => edgelet_settings::uri::MinTlsVersion::Tls12,
                 },
             }
         },
 
         watchdog: {
             let old_config::WatchdogSettings { max_retries } = watchdog;
-            edgelet_core::WatchdogSettings {
+            edgelet_settings::watchdog::Settings {
                 max_retries: match max_retries {
-                    old_config::RetryLimit::Infinite => edgelet_core::RetryLimit::Infinite,
-                    old_config::RetryLimit::Num(num) => edgelet_core::RetryLimit::Num(num),
+                    old_config::RetryLimit::Infinite => {
+                        edgelet_settings::watchdog::MaxRetries::Infinite
+                    }
+                    old_config::RetryLimit::Num(num) => {
+                        edgelet_settings::watchdog::MaxRetries::Num(num)
+                    }
                 },
             }
         },
@@ -505,14 +525,14 @@ fn execute_inner(
 
                 network: match network {
                     old_config::MobyNetwork::Network(network) => {
-                        edgelet_core::MobyNetwork::Network({
+                        edgelet_settings::MobyNetwork::Network({
                             let old_config::Network { name, ipv6, ipam } = network;
-                            edgelet_core::Network {
+                            edgelet_settings::docker::network::Network {
                                 name,
                                 ipv6,
                                 ipam: ipam.map(|ipam| {
                                     let old_config::Ipam { config } = ipam;
-                                    edgelet_core::Ipam {
+                                    edgelet_settings::Ipam {
                                         config: config.map(|config| {
                                             config
                                                 .into_iter()
@@ -522,7 +542,7 @@ fn execute_inner(
                                                         subnet,
                                                         ip_range,
                                                     } = config;
-                                                    edgelet_core::IpamConfig {
+                                                    edgelet_settings::docker::network::IpamConfig {
                                                         gateway,
                                                         subnet,
                                                         ip_range,
@@ -536,7 +556,9 @@ fn execute_inner(
                         })
                     }
 
-                    old_config::MobyNetwork::Name(name) => edgelet_core::MobyNetwork::Name(name),
+                    old_config::MobyNetwork::Name(name) => {
+                        edgelet_settings::MobyNetwork::Name(name)
+                    }
                 },
 
                 content_trust: content_trust
