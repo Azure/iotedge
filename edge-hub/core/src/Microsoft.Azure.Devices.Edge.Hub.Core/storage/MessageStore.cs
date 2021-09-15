@@ -49,6 +49,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             Events.MessageStoreCreated();
         }
 
+        public async Task<ulong> GetMessageCount(string endpointId)
+        {
+            if (this.endpointSequentialStores.TryGetValue(endpointId, out ISequentialStore<MessageRef> sequentialStore))
+            {
+                await sequentialStore.Count();
+            }
+            else
+            {
+                Events.SequentialStoreNotFound(endpointId);
+                return 0uL;
+            }
+        }
+
         public void SetTimeToLive(TimeSpan timeSpan)
         {
             this.timeToLive = timeSpan;
@@ -360,8 +373,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                                 }
                             }
 
-                            // update Metrics for message counts
-                            Checkpointer.Metrics.SetQueueLength(await sequentialStore.Count(), endpointId, priority.ToString());
                             totalCleanupCount += cleanupCount;
                             totalCleanupStoreCount += cleanupEntityStoreCount;
                             Events.CleanupCompleted(messageQueueId, cleanupCount, cleanupEntityStoreCount, totalCleanupCount, totalCleanupStoreCount);
@@ -405,7 +416,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 MessageAdded,
                 ErrorGettingMessagesBatch,
                 CreatedCleanupProcessor,
-                ErrorUpdatingMessageForEndpoint
+                ErrorUpdatingMessageForEndpoint,
+                SequentialStoreNotFound,
             }
 
             public static void MessageStoreCreated()
@@ -509,6 +521,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                     Log.LogDebug((int)EventIds.CreatedCleanupProcessor, $"Created cleanup processor with checkEntireQueueOnCleanup set to {checkEntireQueueOnCleanup} and messageCleanupIntervalSecs set to {cleanupInterval}");
                 }
             }
+
+            internal static void SequentialStoreNotFound(string endpointId) => Log.LogWarning((int)EventIds.SequentialStoreNotFound, $"Sequential store not found for endpoint {endpointId}");
         }
 
         class MessageIterator : IMessageIterator
