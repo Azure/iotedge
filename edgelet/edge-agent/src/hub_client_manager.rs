@@ -84,14 +84,19 @@ async fn make_client(
     key_client: Arc<KeyClient>,
     identity_client: Arc<IdentityClient>,
 ) -> Result<Client> {
-    let token = get_sas_token(
+    // Make sas token
+    let valid_period = Duration::from_secs(1000); // TODO: what should expiry time be?
+    let (signature_data, make_sas_token) = azure_iot_mqtt::prepare_sas_token_request(
         &iothub_hostname,
         device_id,
-        trust_bundle_path,
-        key_client,
-        identity_client,
-    )
-    .await?;
+        Some(EDGE_AGENT),
+        valid_period,
+    )?;
+
+    let signature = sign(&signature_data, key_client, identity_client).await?;
+    let token = make_sas_token(&signature);
+
+    // get trust bundle
     let trust_bundle_cert = cert_client.get_cert(trust_bundle_path).await?;
     let authentication = Authentication::SasToken {
         token,
@@ -112,25 +117,11 @@ async fn make_client(
     Ok(client)
 }
 
-async fn get_sas_token(
-    iothub_hostname: &str,
-    device_id: &str,
-    trust_bundle_path: &str,
+async fn sign(
+    signature_data: &str,
     key_client: Arc<KeyClient>,
     identity_client: Arc<IdentityClient>,
 ) -> Result<String> {
-    // Get Expiry for sas token
-    let since_unix_epoch = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map_err(|err| {
-            std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("could not get current time: {}", err),
-            )
-        })?;
-    let expiry = since_unix_epoch + Duration::from_secs(1000); // TODO: proper expiry
-    let expiry = expiry.as_secs().to_string();
-
     // Get Key Handle from identity client
     let identity = identity_client.get_identity(EDGE_AGENT).await?;
     let key_handle = if let aziot_identity_common::Identity::Aziot(identity) = identity {
@@ -149,17 +140,6 @@ async fn get_sas_token(
         .into());
     };
 
-    // Compose resource uri
-    let resource_uri = format!(
-        "{}/devices/{}/modules/{}",
-        iothub_hostname, device_id, EDGE_AGENT
-    );
-    let resource_uri: String =
-        percent_encoding::utf8_percent_encode(&resource_uri, azure_iot_mqtt::IOTHUB_ENCODE_SET)
-            .collect();
-
-    // Sign token
-    let signature_data = format!("{}\n{}", resource_uri, expiry);
     let signature = key_client
         .sign(
             &key_handle,
@@ -169,16 +149,5 @@ async fn get_sas_token(
         .await?;
     let signature = base64::encode(signature);
 
-    //Create token
-    let token = {
-        let mut serializer = url::form_urlencoded::Serializer::new(format!(
-            "SharedAccessSignature sr={}",
-            resource_uri
-        ));
-        serializer.append_pair("se", &expiry);
-        serializer.append_pair("sig", &signature);
-        serializer.finish()
-    };
-
-    Ok(token)
+    Ok(signature)
 }

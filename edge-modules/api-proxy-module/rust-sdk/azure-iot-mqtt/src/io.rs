@@ -475,7 +475,7 @@ fn poll_from_tungstenite_error<T>(err: tungstenite::Error) -> std::task::Poll<st
     }
 }
 
-fn prepare_sas_token_request(
+pub fn prepare_sas_token_request(
     iothub_hostname: &str,
     device_id: &str,
     module_id: Option<&str>,
