@@ -65,10 +65,14 @@ impl ClientManager {
                         name,
                         payload,
                         request_id,
-                    }) => todo!(),
-                    Ok(Message::ReportedTwinState(size)) => todo!(),
-                    Ok(Message::TwinInitial(twin_initial)) => todo!(),
-                    Ok(Message::TwinPatch(twin_patch)) => todo!(),
+                    }) => println!("Got direct method request: {}", name),
+                    Ok(Message::ReportedTwinState(size)) => println!("Got twin change ack"),
+                    Ok(Message::TwinInitial(twin_initial)) => {
+                        println!("\n\n\nGot initial Twin:\n{:#?}", twin_initial)
+                    }
+                    Ok(Message::TwinPatch(twin_patch)) => {
+                        println!("\n\n\nGot Twin Patch:\n{:#?}", twin_patch)
+                    }
                     Err(_) => todo!(),
                 }
             }
