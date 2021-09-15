@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
+    using Microsoft.Extensions.Logging;
     using Newtonsoft.Json.Linq;
     using Disk = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.Disk;
     using Identity = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.Identity;
@@ -26,6 +27,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07
 
     class ModuleManagementHttpClient : ModuleManagementHttpClientVersioned
     {
+
+        static readonly ILogger Log = Logger.Factory.CreateLogger<ModuleManagementHttpClient>();
+
         public ModuleManagementHttpClient(Uri managementUri)
             : this(managementUri, Option.None<TimeSpan>())
         {
@@ -238,6 +242,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07
                     }
                     else
                     {
+                        Log.LogInformation(123, $"Error calling {operation}: {swaggerException.Response ?? string.Empty}", swaggerException.StatusCode);
                         throw new EdgeletCommunicationException($"Error calling {operation}: {swaggerException.Response ?? string.Empty}", swaggerException.StatusCode);
                     }
 
