@@ -94,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 {
                     var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(twin.Properties.Desired.ToJson());
                     edgeHubConfig = Option.Some(EdgeHubConfigParser.GetEdgeHubConfig(desiredProperties, this.routeFactory));
-                    
+
                     this.lastDesiredProperties = Option.Some(twin.Properties.Desired);
                     await this.UpdateReportedProperties(twin.Properties.Desired.Version, new LastDesiredStatus(200, string.Empty));
                     Events.GetConfigSuccess();
