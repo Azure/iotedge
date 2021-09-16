@@ -108,10 +108,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             var configUpdaterStartupFailed = new TaskCompletionSource<bool>();
             var configDownloadTask = configUpdater.Init(configSource);
 
-            _ = configDownloadTask.ContinueWith(
-                                            _ => configUpdaterStartupFailed.SetResult(false),
-                                            TaskContinuationOptions.OnlyOnFaulted);
-
             if (!Enum.TryParse(configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode)
                 || authenticationMode != AuthenticationMode.Cloud)
             {
@@ -128,9 +124,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             {
                 try
                 {
-                    await Task.WhenAll(mqttBrokerProtocolHead.StartAsync(), configDownloadTask);
-                    await edgeHubProtocolHead.StartAsync();
-                    await Task.WhenAny(cts.Token.WhenCanceled(), renewal.Token.WhenCanceled(), configUpdaterStartupFailed.Task);
+                    await configDownloadTask;
+                    await Task.WhenAll(mqttBrokerProtocolHead.StartAsync(), edgeHubProtocolHead.StartAsync());
+                    await Task.WhenAny(cts.Token.WhenCanceled(), renewal.Token.WhenCanceled());
                 }
                 catch (Exception ex)
                 {
