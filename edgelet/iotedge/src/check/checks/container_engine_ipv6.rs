@@ -2,9 +2,9 @@ use std::fs::File;
 
 use failure::{self, Context, Fail, ResultExt};
 
-use edgelet_core::{self, MobyNetwork};
+use edgelet_settings::MobyNetwork;
 
-use crate::check::{checker::Checker, Check, CheckResult};
+use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct ContainerEngineIPv6 {
@@ -12,19 +12,18 @@ pub(crate) struct ContainerEngineIPv6 {
     actual_use_ipv6: Option<bool>,
 }
 
+#[async_trait::async_trait]
 impl Checker for ContainerEngineIPv6 {
-    fn id(&self) -> &'static str {
-        "container-engine-ipv6"
+    fn meta(&self) -> CheckerMeta {
+        CheckerMeta {
+            id: "container-engine-ipv6",
+            description: "IPv6 network configuration",
+        }
     }
-    fn description(&self) -> &'static str {
-        "IPv6 network configuration"
-    }
-    fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
+
+    async fn execute(&mut self, check: &mut Check) -> CheckResult {
         self.inner_execute(check)
             .unwrap_or_else(CheckResult::Failed)
-    }
-    fn get_json(&self) -> serde_json::Value {
-        serde_json::to_value(self).unwrap()
     }
 }
 

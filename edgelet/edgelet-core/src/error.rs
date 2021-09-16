@@ -98,6 +98,9 @@ pub enum ErrorKind {
 
     #[fail(display = "Signing error occurred. Invalid key length: {}", _0)]
     SignInvalidKeyLength(usize),
+
+    #[fail(display = "The workload manager encountered an error")]
+    WorkloadManager,
 }
 
 impl Fail for Error {

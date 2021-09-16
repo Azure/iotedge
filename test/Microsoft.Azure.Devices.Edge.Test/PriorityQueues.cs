@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string DefaultLoadGenTestStartDelay = "00:00:20";
 
         [Test]
-        [Category("UnstableOnArm")]
+        [Category("FlakyOnArm")]
         public async Task PriorityQueueModuleToModuleMessages()
         {
             CancellationToken token = this.TestToken;
@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
-        [Category("UnstableOnArm")]
+        [Category("Flaky")]
         public async Task PriorityQueueModuleToHubMessages()
         {
             CancellationToken token = this.TestToken;
@@ -89,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
-        [Category("UnstableOnArm")]
+        [Category("FlakyOnArm")]
         public async Task PriorityQueueTimeToLive()
         {
             CancellationToken token = this.TestToken;
@@ -105,9 +105,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig, token, Context.Current.NestedEdge);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
 
-            // Wait long enough for TTL to expire for some of the messages
-            Log.Information($"Waiting for {testInfo.TtlThreshold} seconds for TTL's to expire");
-            await Task.Delay(testInfo.TtlThreshold * 1000);
+            await Profiler.Run(
+                () => Task.Delay(testInfo.TtlThreshold * 1000),
+                "Waited for message TTL to expire");
 
             Action<EdgeConfigBuilder> addRelayerConfig = this.BuildAddRelayerConfig(relayerImage, loadGenTestStatus);
             deployment = await this.runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig + addRelayerConfig, token, Context.Current.NestedEdge);

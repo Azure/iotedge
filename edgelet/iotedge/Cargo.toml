@@ -1,67 +1,63 @@
 [package]
-name = "iotedge"
-version = "0.1.0"
 authors = ["Azure IoT Edge Devs"]
 description = """
 The iotedge tool is used to manage the IoT Edge runtime.
 """
 edition = "2018"
+name = "iotedge"
+version = "0.1.0"
 [dependencies]
+async-trait = "0.1"
 atty = "0.2"
 base64 = "0.9"
+byte-unit = "3.0.3"
 bytes = "0.4"
-chrono = { version = "0.4.7", features = ["serde"] }
+chrono = {version = "0.4.7", features = ["serde"]}
 chrono-humanize = "0.0.11"
 clap = "2.31"
-config = { version = "0.9", default-features = false }
+config = {version = "0.11", default-features = false}
+erased-serde = "0.3.12"
 failure = "0.1"
 futures = "0.1"
-hyper = "0.12"
+hex = "0.3"
+hyper = "0.14"
 hyper-proxy = "0.5.1"
-hyper-tls = "0.3"
 lazy_static = "1"
+libc = "0.2"
 log = "0.4"
-native-tls = "0.2"
 nix = "0.18"
 openssl = "0.10"
 regex = "0.2"
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
-serde_yaml = "0.8"
+sysinfo = "0.14.10"
 tabwriter = "1.0"
 termcolor = "0.3"
-tokio = "0.1"
+tokio = {version = "1", features = ["process", "macros"]}
 toml = "0.5"
 typed-headers = "0.1.1"
 url = "2"
 zip = "0.5.3"
 
-aziot-certd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identityd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-keyd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-keys-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-tpmd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziotctl-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-config-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-docker = { path = "../docker-rs" }
-edgelet-core = { path = "../edgelet-core" }
-edgelet-docker = { path = "../edgelet-docker" }
-edgelet-http = { path = "../edgelet-http" }
-edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
-edgelet-utils = { path = "../edgelet-utils" }
-identity-client = { path = "../identity-client" }
-management = { path = "../management" }
-support-bundle = { path = "../support-bundle" }
-
-
-[target.'cfg(unix)'.dependencies]
-byte-unit = "3.0.3"
-libc = "0.2"
-sysinfo = "0.14.10"
+aziot-certd-config = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
+aziot-identity-client-async = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
+aziot-identity-common = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
+aziot-identity-common-http = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
+aziot-identityd-config = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
+aziot-keyd-config = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
+aziot-keys-common = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
+aziot-tpmd-config = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
+aziotctl-common = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
+config-common = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
+docker = {path = "../docker-rs"}
+edgelet-core = {path = "../edgelet-core"}
+edgelet-http = {path = "../edgelet-http"}
+edgelet-settings = {path = "../edgelet-settings", features = ["settings-docker"]}
+edgelet-utils = {path = "../edgelet-utils"}
+http-common = {git = "https://github.com/Azure/iot-identity-service", features = ["tokio1"], branch = "main"}
+support-bundle = {path = "../support-bundle"}
 
 [dev-dependencies]
-edgelet-test-utils = { path = "../edgelet-test-utils" }
+edgelet-test-utils = {path = "../edgelet-test-utils"}
 tempfile = "3.1.0"
