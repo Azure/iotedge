@@ -9,7 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="CliWrap" Version="2.4.0" />
+        <PackageReference Include="CliWrap" Version="3.3.2" />
         <PackageReference Include="FluentAssertions" Version="5.9.0" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.4.0" />
         <PackageReference Include="Nito.AsyncEx" Version="5.0.0" />

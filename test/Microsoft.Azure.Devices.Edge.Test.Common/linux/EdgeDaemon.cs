@@ -18,29 +18,40 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public static async Task<EdgeDaemon> CreateAsync(CancellationToken token)
         {
-            string[] platformInfo = await Process.RunAsync("lsb_release", "-sir", token);
-            if (platformInfo.Length == 1)
+            string[] platformInfo = await Process.RunAsync("cat", @"/etc/os-release", token);
+            string os = Array.Find(platformInfo, element => element.StartsWith("ID="));
+            string version = Array.Find(platformInfo, element => element.StartsWith("VERSION_ID="));
+
+            // VERSION_ID is desired but it is an optional field
+            if (version == null)
             {
-                platformInfo = platformInfo[0].Split(' ');
+                version = Array.Find(platformInfo, element => element.StartsWith("VERSION="));
             }
 
-            string os = platformInfo[0].Trim();
-            string version = platformInfo[1].Trim();
+            if (os == null || version == null)
+            {
+                throw new NotImplementedException("Failed to gather operating system information from /etc/os-release file");
+            }
+
+            // Trim potential whitespaces and double quotes
+            char[] trimChr = { ' ', '"' };
+            os = os.Split('=').Last().Trim(trimChr).ToLower();
+            // Split potential version description (in case VERSION_ID was not available, the VERSION line can contain e.g. '7 (Core)')
+            version = version.Split('=').Last().Split(' ').First().Trim(trimChr);
+
             SupportedPackageExtension packageExtension;
 
             switch (os)
             {
-                case "Ubuntu":
-                    os = os.ToLower();
+                case "ubuntu":
                     packageExtension = SupportedPackageExtension.Deb;
                     break;
-                case "Raspbian":
+                case "raspbian":
                     os = "debian";
                     version = "stretch";
                     packageExtension = SupportedPackageExtension.Deb;
                     break;
-                case "CentOS":
-                    os = os.ToLower();
+                case "centos":
                     version = version.Split('.')[0];
                     packageExtension = SupportedPackageExtension.Rpm;
 
@@ -80,9 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             await Profiler.Run(
                 async () =>
                 {
-                    string[] output = await Process.RunAsync("bash", $"-c \"{string.Join(" || exit $?; ", commands)}\"", token);
-                    Log.Verbose(string.Join("\n", output));
-
+                    await Process.RunAsync("bash", $"-c \"{string.Join(" || exit $?; ", commands)}\"", token);
                     await this.InternalStopAsync(token);
                 },
                 message,
@@ -128,8 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         async Task InternalStartAsync(CancellationToken token)
         {
-            string[] output = await Process.RunAsync("systemctl", "start aziot-keyd aziot-certd aziot-identityd aziot-edged", token);
-            Log.Verbose(string.Join("\n", output));
+            await Process.RunAsync("systemctl", "start aziot-keyd aziot-certd aziot-identityd aziot-edged", token);
             await WaitForStatusAsync(ServiceControllerStatus.Running, token);
 
             // Waiting for the processes to enter the "Running" state doesn't guarantee that
@@ -170,8 +178,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         async Task InternalStopAsync(CancellationToken token)
         {
-            string[] output = await Process.RunAsync("systemctl", $"stop {this.packageManagement.IotedgeServices}", token);
-            Log.Verbose(string.Join("\n", output));
+            await Process.RunAsync("systemctl", $"stop {this.packageManagement.IotedgeServices}", token);
             await WaitForStatusAsync(ServiceControllerStatus.Stopped, token);
         }
 
@@ -188,29 +195,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
             string[] commands = this.packageManagement.GetUninstallCommands();
 
-            foreach (string command in commands)
-            {
-                try
+            await Profiler.Run(
+                async () =>
                 {
-                    await Profiler.Run(
-                    async () =>
+                    foreach (string command in commands)
                     {
-                        string[] output = await Process.RunAsync("bash", $"-c \"{string.Join(" || exit $?; ", command)}\"", token);
-                        if (output.Length > 0)
+                        try
                         {
-                            Log.Verbose($"Uninstall command '{command}' ran unsuccessfully. This is probably because this component wasn't installed. Output:\n" + string.Join("\n", output));
+                            await Process.RunAsync("bash", $"-c \"{string.Join(" || exit $?; ", command)}\"", token);
                         }
-                        else
+                        catch (Win32Exception e)
                         {
-                            Log.Verbose($"Uninstall command '{command}' ran successfully");
+                            Log.Verbose(e, $"Failed to uninstall edge component with command '{command}', probably because this component isn't installed");
                         }
-                    }, $"Successful: {command}");
-                }
-                catch (Win32Exception e)
-                {
-                    Log.Verbose(e, $"Failed to uninstall edge component with command '{command}', probably because this component isn't installed");
-                }
-            }
+                    }
+                }, "Uninstalled edge daemon");
         }
 
         public Task WaitForStatusAsync(EdgeDaemonStatus desired, CancellationToken token) => Profiler.Run(
@@ -234,8 +233,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     };
 
                     string[] output = await Process.RunAsync("systemctl", $"-p ActiveState show {process}", token);
-                    Log.Verbose($"{process}: {output.First()}");
-
                     if (stateMatchesDesired(output.First().Split("=").Last()))
                     {
                         break;

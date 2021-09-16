@@ -49,6 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob
                 string blobName = this.GetBlobName(id, GetLogsExtension(logsContentEncoding, logsContentType));
                 var container = new CloudBlobContainer(containerUri);
                 Events.Uploading(blobName, container.Name);
+
                 await ExecuteWithRetry(
                     () =>
                     {

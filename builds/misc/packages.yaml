@@ -11,7 +11,9 @@ jobs:
 ################################################################################
     displayName: Linux
     pool:
-      vmImage: 'ubuntu-18.04'
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
     variables:
       NugetSecurityAnalysisWarningLevel: warn
     strategy:
@@ -74,6 +76,7 @@ jobs:
       - bash: |
           BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
           VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"
+          echo "Version: $VERSION"
           echo "##vso[task.setvariable variable=VERSION;]$VERSION"
 
           echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"

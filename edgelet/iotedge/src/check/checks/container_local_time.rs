@@ -1,7 +1,7 @@
 use failure::{self, Context, ResultExt};
 use std::time::Duration;
 
-use crate::check::{checker::Checker, Check, CheckResult};
+use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct ContainerLocalTime {
@@ -10,24 +10,24 @@ pub(crate) struct ContainerLocalTime {
     diff: Option<u64>,
 }
 
+#[async_trait::async_trait]
 impl Checker for ContainerLocalTime {
-    fn id(&self) -> &'static str {
-        "container-local-time"
+    fn meta(&self) -> CheckerMeta {
+        CheckerMeta {
+            id: "container-local-time",
+            description: "container time is close to host time",
+        }
     }
-    fn description(&self) -> &'static str {
-        "container time is close to host time"
-    }
-    fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
+
+    async fn execute(&mut self, check: &mut Check) -> CheckResult {
         self.inner_execute(check)
+            .await
             .unwrap_or_else(CheckResult::Failed)
-    }
-    fn get_json(&self) -> serde_json::Value {
-        serde_json::to_value(self).unwrap()
     }
 }
 
 impl ContainerLocalTime {
-    fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    async fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
         let docker_host_arg = if let Some(docker_host_arg) = &check.docker_host_arg {
             docker_host_arg
         } else {
@@ -57,6 +57,7 @@ impl ContainerLocalTime {
                 "local-time",
             ],
         )
+        .await
         .map_err(|(_, err)| err)
         .context("Could not query local time inside container")?;
 

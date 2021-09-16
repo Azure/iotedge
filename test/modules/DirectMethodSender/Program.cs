@@ -41,6 +41,8 @@ namespace DirectMethodSender
 
                 while (!cts.Token.IsCancellationRequested && IsTestTimeUp(testStartAt))
                 {
+                    await Task.Delay(Settings.Current.DirectMethodFrequency, cts.Token);
+
                     (HttpStatusCode resultStatusCode, ulong dmCounter) = await directMethodClient.InvokeDirectMethodAsync(Settings.Current.DirectMethodName, cts);
                     DirectMethodResultType resultType = Settings.Current.DirectMethodResultType;
 
@@ -55,8 +57,6 @@ namespace DirectMethodSender
 
                         await reportClient.SendTestResultAsync(testResult);
                     }
-
-                    await Task.Delay(Settings.Current.DirectMethodFrequency, cts.Token);
                 }
 
                 await cts.Token.WhenCanceled();

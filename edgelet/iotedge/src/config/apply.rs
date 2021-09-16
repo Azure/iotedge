@@ -28,23 +28,23 @@ pub fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>> {
         if nix::unistd::Uid::current().is_root() {
             let aziotks_user = nix::unistd::User::from_name("aziotks")
                 .map_err(|err| format!("could not query aziotks user information: {}", err))?
-                .ok_or_else(|| "could not query aziotks user information")?;
+                .ok_or("could not query aziotks user information")?;
 
             let aziotcs_user = nix::unistd::User::from_name("aziotcs")
                 .map_err(|err| format!("could not query aziotcs user information: {}", err))?
-                .ok_or_else(|| "could not query aziotcs user information")?;
+                .ok_or("could not query aziotcs user information")?;
 
             let aziotid_user = nix::unistd::User::from_name("aziotid")
                 .map_err(|err| format!("could not query aziotid user information: {}", err))?
-                .ok_or_else(|| "could not query aziotid user information")?;
+                .ok_or("could not query aziotid user information")?;
 
             let aziottpm_user = nix::unistd::User::from_name("aziottpm")
                 .map_err(|err| format!("could not query aziottpm user information: {}", err))?
-                .ok_or_else(|| "could not query aziottpm user information")?;
+                .ok_or("could not query aziottpm user information")?;
 
             let iotedge_user = nix::unistd::User::from_name("iotedge")
                 .map_err(|err| format!("could not query iotedge user information: {}", err))?
-                .ok_or_else(|| "could not query iotedge user information")?;
+                .ok_or("could not query iotedge user information")?;
 
             (
                 aziotks_user,
@@ -56,7 +56,7 @@ pub fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>> {
         } else if cfg!(debug_assertions) {
             let current_user = nix::unistd::User::from_uid(nix::unistd::Uid::current())
                 .map_err(|err| format!("could not query current user information: {}", err))?
-                .ok_or_else(|| ("could not query current user information"))?;
+                .ok_or("could not query current user information")?;
             (
                 current_user.clone(),
                 current_user.clone(),
@@ -177,6 +177,7 @@ fn execute_inner(
 
     let super_config::Config {
         trust_bundle_cert,
+        allow_elevated_docker_permissions,
         auto_reprovisioning_mode,
         imported_master_encryption_key,
         manifest_trust_bundle_cert,
@@ -201,7 +202,7 @@ fn execute_inner(
     certd_config.principal.push(aziot_certd_config::Principal {
         uid: iotedge_uid.as_raw(),
         certs: vec![
-            edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned(),
+            edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned(),
             "aziot-edged/module/*".to_owned(),
         ],
     });
@@ -218,7 +219,7 @@ fn execute_inner(
     keyd_config.principal.push(aziot_keyd_config::Principal {
         uid: iotedge_uid.as_raw(),
         keys: vec![
-            edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned(),
+            edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned(),
             "iotedge_master_encryption_id".to_owned(),
         ],
     });
@@ -246,7 +247,7 @@ fn execute_inner(
         }
     };
 
-    let mut trust_bundle_certs = vec![edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()];
+    let mut trust_bundle_certs = vec![edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()];
 
     let edge_ca = edge_ca.unwrap_or(super_config::EdgeCa::Quickstart {
         auto_generated_edge_ca_expiry_days: 90,
@@ -264,7 +265,7 @@ fn execute_inner(
                 common_config::super_config::CertIssuanceMethod::Est { url, auth } => {
                     let mut aziotcs_principal = aziot_keyd_config::Principal {
                         uid: aziotcs_uid.as_raw(),
-                        keys: vec![edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()],
+                        keys: vec![edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()],
                     };
 
                     let mut keys = std::collections::BTreeMap::default();
@@ -274,7 +275,7 @@ fn execute_inner(
                         &mut certd_config.preloaded_certs,
                         &mut keys,
                         &mut aziotcs_principal,
-                        edgelet_core::AZIOT_EDGED_CA_ALIAS,
+                        edgelet_settings::AZIOT_EDGED_CA_ALIAS,
                     );
 
                     keyd_config.principal.push(aziotcs_principal);
@@ -287,7 +288,7 @@ fn execute_inner(
                     );
 
                     certd_config.cert_issuance.certs.insert(
-                        edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned(),
+                        edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned(),
                         aziot_certd_config::CertIssuanceOptions {
                             method: aziot_certd_config::CertIssuanceMethod::Est { url, auth },
                             common_name,
@@ -296,13 +297,13 @@ fn execute_inner(
                     );
 
                     (
-                        Some(edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()),
-                        Some(edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                        Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                        Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
                     )
                 }
                 common_config::super_config::CertIssuanceMethod::LocalCa => {
                     certd_config.cert_issuance.certs.insert(
-                        edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned(),
+                        edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned(),
                         aziot_certd_config::CertIssuanceOptions {
                             method: aziot_certd_config::CertIssuanceMethod::LocalCa,
                             common_name,
@@ -312,12 +313,12 @@ fn execute_inner(
 
                     keyd_config.principal.push(aziot_keyd_config::Principal {
                         uid: aziotcs_uid.as_raw(),
-                        keys: vec![edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()],
+                        keys: vec![edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()],
                     });
 
                     (
-                        Some(edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()),
-                        Some(edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                        Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                        Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
                     )
                 }
                 common_config::super_config::CertIssuanceMethod::SelfSigned => {
@@ -331,26 +332,26 @@ fn execute_inner(
                     );
 
                     (
-                        Some(edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()),
-                        Some(edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                        Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                        Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
                     )
                 }
             }
         }
         super_config::EdgeCa::Preloaded { cert, pk } => {
             keyd_config.preloaded_keys.insert(
-                edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned(),
+                edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned(),
                 pk.to_string(),
             );
 
             certd_config.preloaded_certs.insert(
-                edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned(),
+                edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned(),
                 aziot_certd_config::PreloadedCert::Uri(cert),
             );
 
             (
-                Some(edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()),
-                Some(edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
             )
         }
         super_config::EdgeCa::Quickstart {
@@ -381,30 +382,32 @@ fn execute_inner(
     }
 
     certd_config.preloaded_certs.insert(
-        edgelet_core::TRUST_BUNDLE_ALIAS.to_owned(),
+        edgelet_settings::TRUST_BUNDLE_ALIAS.to_owned(),
         aziot_certd_config::PreloadedCert::Ids(trust_bundle_certs),
     );
 
     let manifest_trust_bundle_cert = manifest_trust_bundle_cert.map(|manifest_trust_bundle_cert| {
         certd_config.preloaded_certs.insert(
-            edgelet_core::MANIFEST_TRUST_BUNDLE_ALIAS.to_owned(),
+            edgelet_settings::MANIFEST_TRUST_BUNDLE_ALIAS.to_owned(),
             aziot_certd_config::PreloadedCert::Uri(manifest_trust_bundle_cert),
         );
-        edgelet_core::MANIFEST_TRUST_BUNDLE_ALIAS.to_owned()
+        edgelet_settings::MANIFEST_TRUST_BUNDLE_ALIAS.to_owned()
     });
 
-    let edged_config = edgelet_docker::Settings {
-        base: edgelet_core::Settings {
+    let edged_config = edgelet_settings::Settings {
+        base: edgelet_settings::base::Settings {
             hostname: identityd_config.hostname.clone(),
 
             edge_ca_cert,
             edge_ca_key,
-            trust_bundle_cert: Some(edgelet_core::TRUST_BUNDLE_ALIAS.to_owned()),
+            trust_bundle_cert: Some(edgelet_settings::TRUST_BUNDLE_ALIAS.to_owned()),
             manifest_trust_bundle_cert,
 
             auto_reprovisioning_mode,
 
             homedir: AZIOT_EDGED_HOMEDIR_PATH.into(),
+
+            allow_elevated_docker_permissions: allow_elevated_docker_permissions.unwrap_or(true),
 
             agent,
 
@@ -423,7 +426,7 @@ fn execute_inner(
                 content_trust,
             } = moby_runtime;
 
-            edgelet_docker::MobyRuntime {
+            edgelet_settings::MobyRuntime {
                 uri,
                 network,
                 content_trust: content_trust
@@ -431,7 +434,7 @@ fn execute_inner(
                         |content_trust| -> Result<_, std::borrow::Cow<'static, str>> {
                             let super_config::ContentTrust { ca_certs } = content_trust;
 
-                            Ok(edgelet_docker::ContentTrust {
+                            Ok(edgelet_settings::ContentTrust {
                                 ca_certs: ca_certs
                                     .map(|ca_certs| -> Result<_, std::borrow::Cow<'static, str>> {
                                         let mut new_ca_certs: std::collections::BTreeMap<_, _> =
@@ -443,7 +446,7 @@ fn execute_inner(
                                                 cert_id.clone(),
                                                 aziot_certd_config::PreloadedCert::Uri(cert_uri),
                                             );
-                                            new_ca_certs.insert(hostname.to_owned(), cert_id);
+                                            new_ca_certs.insert(hostname.clone(), cert_id);
                                         }
 
                                         Ok(new_ca_certs)
@@ -523,7 +526,7 @@ fn set_quickstart_ca(
     common_name: Option<String>,
 ) {
     certd_config.cert_issuance.certs.insert(
-        edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned(),
+        edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned(),
         aziot_certd_config::CertIssuanceOptions {
             method: aziot_certd_config::CertIssuanceMethod::SelfSigned,
             common_name,
@@ -533,7 +536,7 @@ fn set_quickstart_ca(
 
     keyd_config.principal.push(aziot_keyd_config::Principal {
         uid: aziotcs_uid.as_raw(),
-        keys: vec![edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()],
+        keys: vec![edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()],
     });
 }
 
@@ -577,7 +580,7 @@ mod tests {
                             Ok(()) => (),
                             Err(err) if err.kind() == std::io::ErrorKind::NotFound => (),
                             Err(err) => {
-                                panic!("could not create temp master-encryption-key file: {}", err)
+                                panic!("could not create temp master-encryption-key file: {}", err);
                             }
                         }
                         Some(contents)
@@ -587,7 +590,7 @@ mod tests {
                             Ok(()) => (),
                             Err(err) if err.kind() == std::io::ErrorKind::NotFound => (),
                             Err(err) => {
-                                panic!("could not delete temp master-encryption-key file: {}", err)
+                                panic!("could not delete temp master-encryption-key file: {}", err);
                             }
                         }
                         None
@@ -615,38 +618,40 @@ mod tests {
             // Convert the file contents to bytes::Bytes before asserting, because bytes::Bytes's Debug format
             // prints human-readable strings instead of raw u8s.
             assert_eq!(
-                bytes::Bytes::from(expected_keyd_config),
-                bytes::Bytes::from(actual_keyd_config),
+                toml::from_slice::<toml::Value>(&expected_keyd_config).expect("Valid toml"),
+                toml::from_slice::<toml::Value>(&actual_keyd_config).expect("Valid toml"),
                 "keyd config does not match"
             );
             assert_eq!(
-                bytes::Bytes::from(expected_certd_config),
-                bytes::Bytes::from(actual_certd_config),
+                toml::from_slice::<toml::Value>(&expected_certd_config).expect("Valid toml"),
+                toml::from_slice::<toml::Value>(&actual_certd_config).expect("Valid toml"),
                 "certd config does not match"
             );
             assert_eq!(
-                bytes::Bytes::from(expected_identityd_config),
-                bytes::Bytes::from(actual_identityd_config),
+                toml::from_slice::<toml::Value>(&expected_identityd_config).expect("Valid toml"),
+                toml::from_slice::<toml::Value>(&actual_identityd_config).expect("Valid toml"),
                 "identityd config does not match"
             );
             assert_eq!(
-                bytes::Bytes::from(expected_tpmd_config),
-                bytes::Bytes::from(actual_tpmd_config),
+                toml::from_slice::<toml::Value>(&expected_tpmd_config).expect("Valid toml"),
+                toml::from_slice::<toml::Value>(&actual_tpmd_config).expect("Valid toml"),
                 "tpmd config does not match"
             );
             assert_eq!(
-                bytes::Bytes::from(expected_edged_config),
-                bytes::Bytes::from(actual_edged_config),
+                toml::from_slice::<toml::Value>(&expected_edged_config).expect("Valid toml"),
+                toml::from_slice::<toml::Value>(&actual_edged_config).expect("Valid toml"),
                 "edged config does not match"
             );
             assert_eq!(
-                expected_preloaded_device_id_pk_bytes.map(bytes::Bytes::from),
-                actual_preloaded_device_id_pk_bytes.map(bytes::Bytes::from),
+                expected_preloaded_device_id_pk_bytes.map(|b| toml::from_slice::<toml::Value>(&b)),
+                actual_preloaded_device_id_pk_bytes.map(|b| toml::from_slice::<toml::Value>(&b)),
                 "device ID key bytes do not match"
             );
             assert_eq!(
-                expected_preloaded_master_encryption_key_bytes.map(bytes::Bytes::from),
-                actual_preloaded_master_encryption_key_bytes.map(bytes::Bytes::from),
+                expected_preloaded_master_encryption_key_bytes
+                    .map(|b| toml::from_slice::<toml::Value>(&b)),
+                actual_preloaded_master_encryption_key_bytes
+                    .map(|b| toml::from_slice::<toml::Value>(&b)),
                 "imported master encryption key bytes do not match"
             );
         }

@@ -15,10 +15,10 @@ namespace DevOpsLibTest
         {
             HashSet<BuildDefinitionId> ids = BuildExtension.BuildDefinitions;
 
-            Assert.AreEqual(16, ids.Count);
+            Assert.AreEqual(17, ids.Count);
             Assert.True(ids.Contains(BuildDefinitionId.CI));
             Assert.True(ids.Contains(BuildDefinitionId.EdgeletCI));
-            Assert.True(ids.Contains(BuildDefinitionId.LibiohsmCI));
+            Assert.True(ids.Contains(BuildDefinitionId.LibiothsmCI));
             Assert.True(ids.Contains(BuildDefinitionId.BuildImages));
             Assert.True(ids.Contains(BuildDefinitionId.EdgeletPackages));
             Assert.True(ids.Contains(BuildDefinitionId.EndToEndTest));
@@ -32,6 +32,7 @@ namespace DevOpsLibTest
             Assert.True(ids.Contains(BuildDefinitionId.StressTestEnv1));
             Assert.True(ids.Contains(BuildDefinitionId.StressTestEnv2));
             Assert.True(ids.Contains(BuildDefinitionId.StressTestEnv3));
+            Assert.True(ids.Contains(BuildDefinitionId.NestedISA95));
         }
 
         [Test]
@@ -44,14 +45,14 @@ namespace DevOpsLibTest
             Assert.AreEqual("Edgelet Release", BuildDefinitionId.EdgeletRelease.DisplayName());
             Assert.AreEqual("New E2E Test", BuildDefinitionId.EndToEndTest.DisplayName());
             Assert.AreEqual("Image Release", BuildDefinitionId.ImageRelease.DisplayName());
-            Assert.AreEqual("Libiothsm CI", BuildDefinitionId.LibiohsmCI.DisplayName());
+            Assert.AreEqual("Libiothsm CI", BuildDefinitionId.LibiothsmCI.DisplayName());
         }
 
         [Test]
         public void TestIdString()
         {
             Assert.AreEqual("45137", BuildDefinitionId.CI.IdString());
-            Assert.AreEqual("39853", BuildDefinitionId.LibiohsmCI.IdString());
+            Assert.AreEqual("39853", BuildDefinitionId.LibiothsmCI.IdString());
         }
     }
 }
