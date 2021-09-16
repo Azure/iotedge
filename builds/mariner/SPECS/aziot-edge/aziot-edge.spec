@@ -38,6 +38,9 @@ This package contains the IoT Edge daemon and CLI tool.
 %setup -q
 
 %build
+IOTEDGE_HOST=unix:///var/lib/iotedge/mgmt.sock
+export IOTEDGE_HOST
+
 cd edgelet
 make \
     CONNECT_MANAGEMENT_URI=unix://%{iotedge_socketdir}/mgmt.sock \
@@ -47,6 +50,9 @@ make \
     release
 
 %install
+IOTEDGE_HOST=unix:///var/lib/iotedge/mgmt.sock
+export IOTEDGE_HOST
+
 rm -rf $RPM_BUILD_ROOT
 cd edgelet
 make \
