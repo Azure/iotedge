@@ -48,6 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                     (message) =>
                     {
                         Twin twin = this.twinMessageConverter.FromMessage(message);
+
                         if (twin.Properties.Desired.Count > 0)
                         {
                             var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(twin.Properties.Desired.ToJson());
@@ -90,12 +91,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             {
                 Core.IMessage message = await this.twinManager.GetTwinAsync(this.id);
                 Twin twin = this.twinMessageConverter.FromMessage(message);
+                this.lastDesiredProperties = Option.Some(twin.Properties.Desired);
                 try
                 {
                     var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(twin.Properties.Desired.ToJson());
                     edgeHubConfig = Option.Some(EdgeHubConfigParser.GetEdgeHubConfig(desiredProperties, this.routeFactory));
-
-                    this.lastDesiredProperties = Option.Some(twin.Properties.Desired);
                     await this.UpdateReportedProperties(twin.Properties.Desired.Version, new LastDesiredStatus(200, string.Empty));
                     Events.GetConfigSuccess();
                 }
@@ -149,10 +149,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             try
             {
                 string desiredPropertiesJson = JsonEx.Merge(baseline, patch, true);
+                this.lastDesiredProperties = Option.Some(new TwinCollection(desiredPropertiesJson));
                 var desiredPropertiesPatch = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(desiredPropertiesJson);
                 edgeHubConfig = Option.Some(EdgeHubConfigParser.GetEdgeHubConfig(desiredPropertiesPatch, this.routeFactory));
-
-                this.lastDesiredProperties = Option.Some(new TwinCollection(desiredPropertiesJson));
                 lastDesiredStatus = new LastDesiredStatus(200, string.Empty);
                 Events.PatchConfigSuccess();
             }
@@ -167,18 +166,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             return edgeHubConfig;
         }
 
-        async Task UpdateReportedProperties(long desiredVersion, LastDesiredStatus desiredStatus)
+        Task UpdateReportedProperties(long desiredVersion, LastDesiredStatus desiredStatus)
         {
             try
             {
                 var edgeHubReportedProperties = new ReportedProperties(this.versionInfo, desiredVersion, desiredStatus);
                 var twinCollection = new TwinCollection(JsonConvert.SerializeObject(edgeHubReportedProperties));
                 Core.IMessage reportedPropertiesMessage = this.twinCollectionMessageConverter.ToMessage(twinCollection);
-                await this.twinManager.UpdateReportedPropertiesAsync(this.id, reportedPropertiesMessage);
+                return this.twinManager.UpdateReportedPropertiesAsync(this.id, reportedPropertiesMessage);
             }
             catch (Exception ex)
             {
                 Events.ErrorUpdatingLastDesiredStatus(ex);
+                return Task.CompletedTask;
             }
         }
 
