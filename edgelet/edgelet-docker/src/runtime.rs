@@ -1124,7 +1124,8 @@ fn init_client(docker_url: &Url) -> Result<DockerClient<UrlConnector>> {
     // build the hyper client
     let client = Client::builder()
         // we don't need connection pool'ing for local docker socket.
-        .max_idle_per_host(1)
+        .keep_alive(false)
+        .max_idle_per_host(0)
         .build(UrlConnector::new(docker_url).context(ErrorKind::Initialization)?);
 
     // extract base path - the bit that comes after the scheme
