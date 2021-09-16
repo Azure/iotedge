@@ -263,7 +263,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
             }
             else if (NetworkControllerStatus.Enabled.Equals(networkControllerStatus))
             {
-                if (HttpStatusCode.NotFound.Equals(statusCode))
+                if (HttpStatusCode.NotFound.Equals(statusCode) || HttpStatusCode.FailedDependency.Equals(statusCode))
                 {
                     networkOffSuccess++;
                 }
