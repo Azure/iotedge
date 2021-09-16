@@ -4,6 +4,7 @@ ARG SRC_DIR=.
 
 # Add source code
 COPY $SRC_DIR/snitcher /snitcher
+COPY $SRC_DIR/Cargo.lock /snitcher/Cargo.lock
 
 # Install pre-requisite
 RUN apt-get update && \
@@ -25,5 +26,5 @@ RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y ca-certificates openssl
 COPY --from=builder /snitcher/target/release/snitcher \
-     /usr/local/bin/
+    /usr/local/bin/
 CMD /usr/local/bin/snitcher
