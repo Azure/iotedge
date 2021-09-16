@@ -73,6 +73,7 @@ stages:
       identityServiceArtifactName: packages_ubuntu-18.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
       nestededge: true
+      verbose: false
     pool:
       name: $(pool.name)
       demands:
