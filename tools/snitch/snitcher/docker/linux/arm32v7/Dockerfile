@@ -4,24 +4,25 @@ ARG SRC_DIR=.
 
 # Add source code
 COPY $SRC_DIR/snitcher /snitcher
+COPY $SRC_DIR/Cargo.lock /snitcher/Cargo.lock
 
 RUN sources="$(cat /etc/apt/sources.list | grep -E '^[^#]')" && \
     # Update existing repos to be specifically for amd64
     echo "$sources" | sed -e 's/^deb /deb [arch=amd64] /g' > /etc/apt/sources.list && \
     # Add armhf repos
     echo "$sources" | \
-        sed -e 's/^deb /deb [arch=armhf] /g' \
-            -e 's| http://archive.ubuntu.com/ubuntu/ | http://ports.ubuntu.com/ubuntu-ports/ |g' \
-            -e 's| http://security.ubuntu.com/ubuntu/ | http://ports.ubuntu.com/ubuntu-ports/ |g' \
-            >> /etc/apt/sources.list && \
+    sed -e 's/^deb /deb [arch=armhf] /g' \
+    -e 's| http://archive.ubuntu.com/ubuntu/ | http://ports.ubuntu.com/ubuntu-ports/ |g' \
+    -e 's| http://security.ubuntu.com/ubuntu/ | http://ports.ubuntu.com/ubuntu-ports/ |g' \
+    >> /etc/apt/sources.list && \
     dpkg --add-architecture armhf && \
     apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
-        binutils build-essential ca-certificates cmake curl debhelper dh-systemd file git \
-        gcc g++ \
-        gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf \
-        libcurl4-openssl-dev:armhf libssl-dev:armhf uuid-dev:armhf && \
+    binutils build-essential ca-certificates cmake curl debhelper dh-systemd file git \
+    gcc g++ \
+    gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf \
+    libcurl4-openssl-dev:armhf libssl-dev:armhf uuid-dev:armhf && \
     mkdir -p ~/.cargo && \
     echo '[target.armv7-unknown-linux-gnueabihf]' > ~/.cargo/config && \
     echo 'linker = "arm-linux-gnueabihf-gcc"' >> ~/.cargo/config && \
@@ -29,8 +30,8 @@ RUN sources="$(cat /etc/apt/sources.list | grep -E '^[^#]')" && \
     export ARMV7_UNKNOWN_LINUX_GNUEABIHF_OPENSSL_INCLUDE_DIR=/usr/include && \
     # Install Rust
     curl -sSLf https://sh.rustup.rs | sh -s -- -y && \
-        . ~/.cargo/env && \
-        rustup target add armv7-unknown-linux-gnueabihf && \
+    . ~/.cargo/env && \
+    rustup target add armv7-unknown-linux-gnueabihf && \
     # Build app
     cd /snitcher && \
     $HOME/.cargo/bin/cargo build --release --target armv7-unknown-linux-gnueabihf
@@ -38,7 +39,7 @@ RUN sources="$(cat /etc/apt/sources.list | grep -E '^[^#]')" && \
 # Build real container
 # [7/23/2020] Snitcher is on its way to be deprecated. The base image is not migrated over to docker.io/azureiotedge
 #   To whomever wants to update this base image will need to manually build & port over the base image
-FROM edgebuilds.azurecr.io/microsoft/snitcher-base:1.1-linux-arm32v7
+FROM edgebuilds.azurecr.io/microsoft/snitcher-base:1.5-linux-arm32v7
 COPY --from=builder /snitcher/target/armv7-unknown-linux-gnueabihf/release/snitcher \
-     /usr/local/bin/
+    /usr/local/bin/
 CMD /usr/local/bin/snitcher
