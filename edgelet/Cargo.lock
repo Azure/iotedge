@@ -712,6 +712,7 @@ dependencies = [
  "azure-iot-mqtt",
  "base64 0.13.0",
  "edgelet-core",
+ "edgelet-settings",
  "futures-core",
  "futures-util",
  "json-patch",

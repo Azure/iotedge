@@ -17,22 +17,13 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 const EDGE_AGENT: &str = "$edgeAgent";
 
-struct ClientParams {
-    device_id: String,
-    module_id: String,
-    generation_id: String,
-    edgehub_hostname: String,
-    iothub_hostname: String,
-    workload_url: url::Url,
-}
-
-struct ClientManager {
+pub struct ClientManager {
     deployment_manager: Arc<Mutex<DeploymentManager>>,
     client: Client,
 }
 
 impl ClientManager {
-    async fn new(
+    pub async fn new(
         iothub_hostname: String,
         device_id: &str,
         trust_bundle_path: &str,
@@ -57,7 +48,7 @@ impl ClientManager {
         })
     }
 
-    fn start(mut self) {
+    pub fn start(mut self) {
         tokio::spawn(async move {
             while let Some(message) = self.client.next().await {
                 match message {

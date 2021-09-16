@@ -21,9 +21,9 @@ aziot-identity-client-async = {git = "https://github.com/Azure/iot-identity-serv
 aziot-identity-common = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
 aziot-key-client-async = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
 aziot-key-common = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
-edgelet-core = {path = "../edgelet-core"}
-# edgelet-settings = {path = "../edgelet-settings", features = ["settings-docker"]}
 azure-iot-mqtt = {path = "../../edge-modules/api-proxy-module/rust-sdk/azure-iot-mqtt"}
+edgelet-core = {path = "../edgelet-core"}
+edgelet-settings = {path = "../edgelet-settings", features = ["settings-docker"]}
 
 [dev-dependencies]
 rand = "0.8.4"
