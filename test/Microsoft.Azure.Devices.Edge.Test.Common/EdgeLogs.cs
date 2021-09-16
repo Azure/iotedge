@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 foreach (string name in modules)
                 {
                     string moduleLog = $"{filePrefix}-{name}.log";
-                    output = await Process.RunAsync("iotedge", $"logs {name}", token);
+                    output = await Process.RunAsync("iotedge", $"logs {name}", token, logVerbose: false);
                     await File.WriteAllLinesAsync(moduleLog, output, token);
                     paths.Add(moduleLog);
                 }
