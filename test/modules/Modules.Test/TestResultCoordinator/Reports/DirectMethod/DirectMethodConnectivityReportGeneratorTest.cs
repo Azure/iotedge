@@ -331,7 +331,6 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
 
             var report = (DirectMethodConnectivityReport)await reportGenerator.CreateReportAsync();
 
-            Assert.Equal(expectedNetworkOnSuccess, report.NetworkOnSuccess);
             Assert.Equal(expectedNetworkOffSuccess, report.NetworkOffSuccess);
             Assert.Equal(expectedNetworkOnToleratedSuccess, report.NetworkOnToleratedSuccess);
             Assert.Equal(expectedNetworkOffToleratedSuccess, report.NetworkOffToleratedSuccess);
@@ -340,6 +339,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             Assert.Equal(expectedMismatchSuccess, report.MismatchSuccess);
             Assert.Equal(expectedMismatchFailure, report.MismatchFailure);
             Assert.Equal(expectedIsPassed, report.IsPassed);
+            Assert.Equal(expectedNetworkOnSuccess, report.NetworkOnSuccess);
         }
 
         [Theory]
