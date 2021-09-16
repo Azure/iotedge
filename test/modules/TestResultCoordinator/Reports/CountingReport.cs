@@ -113,7 +113,7 @@ namespace TestResultCoordinator.Reports
                     // We should remove this failure tolerance when fixed.
                     if (this.TestDescription.Equals(C2dOverMqttTestDescription))
                     {
-                        return this.TotalMatchCount / this.TotalExpectCount > .8;
+                        return ((double)this.TotalMatchCount / this.TotalExpectCount) > .8;
                     }
                     else
                     {
