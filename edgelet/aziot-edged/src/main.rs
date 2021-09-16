@@ -9,7 +9,7 @@ mod provision;
 mod watchdog;
 mod workload_manager;
 
-use std::sync::atomic;
+use std::sync::{atomic, Arc};
 
 use edgelet_core::{module::ModuleAction, MakeModuleRuntime, ModuleRuntime};
 use edgelet_settings::RuntimeSettings;
@@ -55,7 +55,9 @@ async fn run() -> Result<(), EdgedError> {
         )
     })?;
 
-    let identity_client = provision::identity_client(&settings)?;
+    let identity_client = Arc::new(provision::identity_client(&settings)?);
+    let cert_client = Arc::new(provision::cert_client(&settings)?);
+    let key_client = Arc::new(provision::key_client(&settings)?);
 
     let device_info = provision::get_device_info(
         &identity_client,
@@ -129,15 +131,26 @@ async fn run() -> Result<(), EdgedError> {
     // Set signal handlers for SIGTERM and SIGINT.
     set_signal_handlers(shutdown_tx);
 
-    // Run aziot-edged until the shutdown signal is received. This also runs the watchdog periodically.
-    let shutdown_reason = watchdog::run_until_shutdown(
-        settings,
+    // // Run aziot-edged until the shutdown signal is received. This also runs the watchdog periodically.
+    // let shutdown_reason = watchdog::run_until_shutdown(
+    //     settings,
+    //     &device_info,
+    //     runtime,
+    //     &identity_client,
+    //     shutdown_rx,
+    // )
+    // .await?;
+
+    edge_agent::start_edgeagent(
+        &settings,
         &device_info,
-        runtime,
-        &identity_client,
+        cert_client,
+        key_client,
+        identity_client.clone(),
         shutdown_rx,
     )
-    .await?;
+    .await
+    .unwrap();
 
     log::info!("Stopping management API...");
     management_shutdown
@@ -171,12 +184,12 @@ async fn run() -> Result<(), EdgedError> {
         wait_time += poll_period;
     }
 
-    if let edgelet_core::ShutdownReason::Reprovision = shutdown_reason {
-        match provision::reprovision(&identity_client, &cache_dir).await {
-            Ok(()) => log::info!("Successfully reprovisioned"),
-            Err(err) => log::error!("Failed to reprovision: {}", err),
-        }
-    }
+    // if let edgelet_core::ShutdownReason::Reprovision = shutdown_reason {
+    //     match provision::reprovision(&identity_client, &cache_dir).await {
+    //         Ok(()) => log::info!("Successfully reprovisioned"),
+    //         Err(err) => log::error!("Failed to reprovision: {}", err),
+    //     }
+    // }
 
     Ok(())
 }

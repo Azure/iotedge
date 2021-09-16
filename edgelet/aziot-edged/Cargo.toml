@@ -16,6 +16,7 @@ serde = "1"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "sync", "time"] }
 url = "2"
 
+edge-agent = { path = "../edge-agent" }
 edgelet-core = { path = "../edgelet-core" }
 edgelet-docker = { path = "../edgelet-docker" }
 edgelet-http = { path = "../edgelet-http" }
@@ -23,9 +24,13 @@ edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
 edgelet-http-workload = { path = "../edgelet-http-workload" }
 edgelet-settings = { path = "../edgelet-settings", features = ["settings-docker"] }
 
+aziot-cert-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-cert-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 aziot-identity-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-key-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-key-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 
 http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main", features = ["tokio1"] }
 logger = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }

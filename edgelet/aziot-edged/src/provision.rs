@@ -19,6 +19,34 @@ pub(crate) fn identity_client(
     Ok(identity_client)
 }
 
+pub(crate) fn cert_client(
+    settings: &impl edgelet_settings::RuntimeSettings,
+) -> Result<aziot_cert_client_async::Client, EdgedError> {
+    let cert_connector = http_common::Connector::new(settings.endpoints().aziot_certd_url())
+        .map_err(|err| EdgedError::from_err("Invalid Certificate Service URL", err))?;
+
+    let cert_client = aziot_cert_client_async::Client::new(
+        aziot_cert_common_http::ApiVersion::V2020_09_01,
+        cert_connector,
+    );
+
+    Ok(cert_client)
+}
+
+pub(crate) fn key_client(
+    settings: &impl edgelet_settings::RuntimeSettings,
+) -> Result<aziot_key_client_async::Client, EdgedError> {
+    let key_connector = http_common::Connector::new(settings.endpoints().aziot_keyd_url())
+        .map_err(|err| EdgedError::from_err("Invalid Key Service URL", err))?;
+
+    let key_client = aziot_key_client_async::Client::new(
+        aziot_key_common_http::ApiVersion::V2020_09_01,
+        key_connector,
+    );
+
+    Ok(key_client)
+}
+
 pub(crate) async fn get_device_info(
     identity_client: &aziot_identity_client_async::Client,
     auto_reprovisioning_mode: edgelet_settings::aziot::AutoReprovisioningMode,
