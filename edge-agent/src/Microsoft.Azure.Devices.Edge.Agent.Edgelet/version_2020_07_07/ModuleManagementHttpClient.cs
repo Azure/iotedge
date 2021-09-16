@@ -232,17 +232,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07
             switch (exception)
             {
                 case SwaggerException<ErrorResponse> errorResponseException:
-                    Log.LogInformation(123, $"Error calling {operation}: {errorResponseException.Result?.Message ?? string.Empty}", errorResponseException.StatusCode);
                     throw new EdgeletCommunicationException($"Error calling {operation}: {errorResponseException.Result?.Message ?? string.Empty}", errorResponseException.StatusCode);
 
                 case SwaggerException swaggerException:
-                    Log.LogInformation(123, $"Error calling {operation}: {swaggerException.Response ?? string.Empty}", swaggerException.StatusCode);
                     if (swaggerException.StatusCode < 400)
                     {
                         return;
                     }
                     else
                     {
+                        Log.LogInformation(123, $"Error calling {operation}: {swaggerException.Response ?? string.Empty}", swaggerException.StatusCode);
                         throw new EdgeletCommunicationException($"Error calling {operation}: {swaggerException.Response ?? string.Empty}", swaggerException.StatusCode);
                     }
 
