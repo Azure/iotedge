@@ -56,13 +56,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                     {
                         Events.GettingConfig();
                         await pullTask;
+
+                        this.currentConfig.Expect<InvalidOperationException>(() => throw new InvalidOperationException(
+                                        "Could not obtain twin neither from local store nor from cloud. " +
+                                        "This happens when there is no upstream connection and this is the first EdgeHub startup, " +
+                                        "or there is no persistent store to save a previous twin configuration. " +
+                                        "EdgeHub cannot start without basic configuration stored in twin. Stopping now."));
+
                         return this.currentConfig;
                     });
-
-                if (!this.currentConfig.HasValue)
-                {
-                    throw new InvalidOperationException("Could not initialize configuration");
-                }
 
                 // Start a periodic task to pull the config.
                 this.configUpdater = Option.Some(new PeriodicTask(() => this.PullConfig(c => c.GetConfig()), this.configUpdateFrequency, this.configUpdateFrequency, Events.Log, "Get EdgeHub config"));
