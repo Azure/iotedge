@@ -28,6 +28,7 @@ namespace TestResultCoordinator.Reports
     class CountingReport : TestResultReportBase
     {
         const string C2dOverMqttTestDescription = "C2D | mqtt";
+
         public CountingReport(
             string testDescription,
             string trackingId,
@@ -113,7 +114,7 @@ namespace TestResultCoordinator.Reports
                     // We should remove this failure tolerance when fixed.
                     if (this.TestDescription.Equals(C2dOverMqttTestDescription))
                     {
-                        return ((double)this.TotalMatchCount / this.TotalExpectCount) > .8;
+                        return ((double)this.TotalMatchCount / this.TotalExpectCount) > .8d;
                     }
                     else
                     {

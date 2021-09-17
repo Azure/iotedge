@@ -76,7 +76,11 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
             ulong totalFailing = this.NetworkOffFailure + this.NetworkOnFailure;
             ulong totalResults = totalSuccessful + totalFailing;
 
-            if (this.TestDescription.Contains("nested"))
+            if (totalResults == 0)
+            {
+                return false;
+            }
+            else if (this.TestDescription.Contains("nested"))
             {
                 // This tolerance is needed because sometimes we see large numbers of NetworkOnFailures.
                 // Also, sometimes we observe 1 NetworkOffFailure and a lot of mismatched results. The
@@ -87,7 +91,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
             {
                 // This tolerance is needed because sometimes we see large numbers of NetworkOnFailures.
                 // When this product issue is resolved, we can remove this failure tolerance.
-                bool areNetworkOnFailuresWithinThreshold = ((double)this.NetworkOnFailure / totalResults) < .30;
+                bool areNetworkOnFailuresWithinThreshold = ((double)this.NetworkOnFailure / totalResults) < .30d;
                 return this.MismatchFailure == 0 && this.NetworkOffFailure == 0 && areNetworkOnFailuresWithinThreshold && (this.NetworkOnSuccess + this.NetworkOffSuccess + this.NetworkOnToleratedSuccess + this.NetworkOffToleratedSuccess > 0);
             }
         }

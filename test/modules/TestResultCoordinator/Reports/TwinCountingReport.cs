@@ -36,11 +36,15 @@ namespace TestResultCoordinator.Reports
 
         public bool IsPassedHelper()
         {
-            if (TestDescription.Contains("nested") && TestDescription.Contains("desired property"))
+            if (this.TotalExpectCount == 0)
+            {
+                return false;
+            }
+            else if (TestDescription.Contains("nested") && TestDescription.Contains("desired property"))
             {
                 // This tolerance is needed because we see some missing desired
                 // property updates when running in nested.
-                return ((double)this.TotalMatchCount / this.TotalExpectCount > .9);
+                return ((double)this.TotalMatchCount / this.TotalExpectCount) > .9d;
             }
             else
             {
