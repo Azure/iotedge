@@ -90,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             return moduleIdentities.ToImmutableDictionary(m => ModuleIdentityHelper.GetModuleName(m.ModuleId));
         }
 
-        SemaphoreSlim webcallTicket = new SemaphoreSlim(5);
+        SemaphoreSlim webcallTicket = new SemaphoreSlim(1);
 
         async Task<Identity> RestrictedCall(Func<Task<Identity>> f)
         {
@@ -98,6 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
             try
             {
+                await Task.Delay(TimeSpan.FromSeconds(2));
                 return await f();
             }
             finally
