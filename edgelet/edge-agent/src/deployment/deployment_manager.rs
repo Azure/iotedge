@@ -1,10 +1,11 @@
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-// use json_patch::patch;
 use serde::de::DeserializeOwned;
+use serde_json::json;
 use tokio::fs::{File, OpenOptions};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+use azure_iot_mqtt::{TwinProperties, TwinState};
 
 use super::deployment::Deployment;
 
@@ -33,8 +34,8 @@ impl DeploymentManager {
         })
     }
 
-    pub async fn set_deployment(&mut self, deployment: serde_json::Value) -> Result<()> {
-        self.current_deployment = deployment;
+    pub async fn set_deployment(&mut self, deployment: TwinState) -> Result<()> {
+        self.current_deployment = json!({ "properties": deployment });
         write_serde(&self.current_location, &self.current_deployment).await?;
 
         if let Some(deployment) = Self::validate_deployment(&self.current_deployment)? {
@@ -45,13 +46,9 @@ impl DeploymentManager {
         Ok(())
     }
 
-    pub async fn update_deployment(
-        &mut self,
-        patches: HashMap<String, serde_json::Value>,
-    ) -> Result<()> {
-        for (key, patch) in patches {
-            json_patch::merge(&mut self.current_deployment, &patch);
-        }
+    pub async fn update_deployment(&mut self, patch: TwinProperties) -> Result<()> {
+        let patch = json!({ "properties": { "desired": patch }});
+        json_patch::merge(&mut self.current_deployment, &patch);
         write_serde(&self.current_location, &self.current_deployment).await?;
 
         if let Some(deployment) = Self::validate_deployment(&self.current_deployment)? {
@@ -102,6 +99,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use super::*;
     use rand::Rng;
     use serde_json::json;
@@ -142,74 +141,90 @@ mod tests {
         let expected: serde_json::Value =
             read_serde(test_file).await.expect("Test file is parsable");
         assert_eq!(manager.current_deployment, expected);
-        assert_eq!(manager.valid_deployment, None);
+        assert_eq!(manager.valid_deployment, None); // TODO: make test parse file
     }
 
     #[tokio::test]
     async fn update_deployment() {
-        let test_file = std::path::Path::new(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/src/deployment/test/twin1.json"
-        ));
         let tmp_dir = tempdir().unwrap();
         let tmp_dir = tmp_dir.path();
-
-        tokio::fs::copy(test_file, tmp_dir.join("newest_deployment.json"))
-            .await
-            .expect("Copy Test File");
 
         let mut manager = DeploymentManager::new(tmp_dir)
             .await
             .expect("Create Deployment Manager");
 
-        let changed_value = |manager: &DeploymentManager| {
-            serde_json::from_value::<String>(
-                manager
-                    .current_deployment
-                    .get("desired")
-                    .unwrap()
-                    .get("runtime")
-                    .unwrap()
-                    .get("type")
-                    .unwrap()
-                    .to_owned(),
-            )
-            .unwrap()
+        let deployment = TwinState {
+            desired: TwinProperties {
+                version: 1,
+                properties: [(
+                    "modules".to_owned(),
+                    json!({
+                        "simulated_temp": {
+                            "settings": {
+                                "image": "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor",
+                                "createOptions": ""
+                            },
+                            "type": "docker",
+                            "status": "running",
+                            "restartPolicy": "always",
+                            "version" : "1.0"
+                        }
+                    }),
+                )]
+                .iter()
+                .cloned()
+                .collect(),
+            },
+            ..Default::default()
         };
-        let control_value = |manager: &DeploymentManager| {
-            serde_json::from_value::<String>(
-                manager
-                    .current_deployment
-                    .get("desired")
-                    .unwrap()
-                    .get("schemaVersion")
-                    .unwrap()
-                    .to_owned(),
-            )
-            .unwrap()
-        };
-        assert_eq!("docker", changed_value(&manager), "Initial value is docker");
-        assert_eq!("1.1", control_value(&manager), "Control value is 1.1");
-
-        let mut patches = HashMap::new();
-        patches.insert(
-            "key1".to_owned(),
-            json!({
-                "desired": {
-                    "runtime": {
-                        "type": "host"
-                    }
-                }
-            }),
-        );
-
         manager
-            .update_deployment(patches)
+            .set_deployment(deployment)
+            .await
+            .expect("set deployment");
+
+        let patch = TwinProperties {
+            version: 2,
+            properties: [(
+                "modules".to_owned(),
+                json!({
+                    "simulated_temp": {
+                        "restartPolicy": "never"
+                    }
+                }),
+            )]
+            .iter()
+            .cloned()
+            .collect(),
+        };
+        manager
+            .update_deployment(patch)
             .await
             .expect("Able to update deployment");
 
-        assert_eq!("host", changed_value(&manager), "Value is changed to host");
-        assert_eq!("1.1", control_value(&manager), "Control value is 1.1");
+        let expected = json!({
+            "$version": 2,
+            "modules": {
+                "simulated_temp": {
+                    "settings": {
+                        "image": "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor",
+                        "createOptions": ""
+                    },
+                    "type": "docker",
+                    "status": "running",
+                    "restartPolicy": "never",
+                    "version" : "1.0"
+                }
+            }
+        });
+        let actual = manager
+            .current_deployment
+            .get("properties")
+            .expect("properties field exists")
+            .get("desired")
+            .expect("desired field exists")
+            .to_owned();
+
+        assert_eq!(expected, actual, "restart policy is changed"); // TODO: check restart policy on parsed type
     }
 
     // #[tokio::test]
