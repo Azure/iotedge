@@ -201,7 +201,8 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 new object[]
                 {
                     // Non-Offline test
-                    Enumerable.Range(1, 7).Select(v => (ulong)v), Enumerable.Range(1, 7).Select(v => (ulong)v),
+                    Enumerable.Range(1, 7).Select(v => (ulong)v),
+                    Enumerable.Range(1, 7).Select(v => (ulong)v),
                     new List<HttpStatusCode> { HttpStatusCode.NotFound, HttpStatusCode.NotFound, HttpStatusCode.NotFound, HttpStatusCode.NotFound, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK },
                     new DateTime[]
                     {
