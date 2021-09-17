@@ -351,6 +351,7 @@ function Initialize-IoTEdge {
         throw
     }
 
+    New-Sockets $EdgeDataDirectory
     Set-SystemPath
 
     # config.yaml
@@ -440,6 +441,8 @@ function Update-IoTEdge {
         # Restart if needed without prompting.
         [Switch] $RestartIfNeeded
     )
+
+    New-Sockets $EdgeDataDirectory
 
     Install-Packages `
         -ContainerOs $ContainerOs `
@@ -1066,7 +1069,6 @@ function Setup-Environment {
                 $false
             }
             else {
-                New-Sockets $EdgeDataDirectory
                 $true
             }
         }
