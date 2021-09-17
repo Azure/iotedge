@@ -796,14 +796,14 @@
             "SenderSource": "directMethodSender1.send",
             "ReceiverSource": "directMethodReceiver1.receive",
             "TolerancePeriod": "00:01:00",
-            "TestDescription": "direct method | cloud | amqp"
+            "TestDescription": "direct method | cloud | amqp | nested"
           },
           "reportMetadata11": {
             "TestReportType": "DirectMethodConnectivityReport",
             "SenderSource": "directMethodSender2.send",
             "ReceiverSource": "directMethodReceiver2.receive",
             "TolerancePeriod": "00:01:00",
-            "TestDescription": "direct method | cloud | mqtt"
+            "TestDescription": "direct method | cloud | mqtt | nested"
           },
           "reportMetadata12": {
             "TestReportType": "DirectMethodConnectivityReport",
