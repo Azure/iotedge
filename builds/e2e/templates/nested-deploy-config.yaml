@@ -24,7 +24,7 @@ steps:
           -containerRegistry "$(cr.address)" \
           -containerRegistryUsername "$(edgebuilds-azurecr-io-username)" \
           -containerRegistryPassword "$(edgebuilds-azurecr-io-pwd)" \
-          -iotHubConnectionString "$(IotHub-ConnStr)" \
+          -iotHubConnectionString "$(IotHub-ConnStr2)" \
           -deploymentFileName "${{ parameters.deploymentFile }}" \
           -storageAccountConnectionString "$(EdgeConnectivityStorageAccountConnString)" \
           -edgeRuntimeBuildNumber "$(Build.BuildNumber)" \
