@@ -154,7 +154,8 @@ stages:
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
       nestededge: true
       proxyAddress: $(otProxy)
-      test_type: nestededge_isa95      
+      test_type: nestededge_isa95
+      verbose: false
     pool:
      name: $(pool.name)
      demands:
