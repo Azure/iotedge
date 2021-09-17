@@ -528,7 +528,7 @@ namespace IotEdgeQuickstart.Details
             await this.parentEdgeDevice.ForEachAsync(async p =>
             {
                 var parentDevice = await rm.GetDeviceAsync(p);
-                device.ParentScopes = new[] { parentDevice.Scope };
+                device.ParentScopes.Add(parentDevice.Scope);
             });
 
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
