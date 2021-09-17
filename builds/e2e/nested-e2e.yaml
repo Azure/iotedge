@@ -53,7 +53,7 @@ stages:
   jobs:
   - template: templates/nested-parent-vm-setup.yaml
     parameters:
-      upstream.protocol: 'amqp'
+      upstream.protocol: amqp
       test.l4DeploymentFileName: 'nestededge_middleLayerBaseDeployment_amqp.json'
   - job:  SetupVM_and_RunTest_level3
     dependsOn:
