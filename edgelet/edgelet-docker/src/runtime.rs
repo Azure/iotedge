@@ -295,10 +295,9 @@ impl MakeModuleRuntime for DockerModuleRuntime {
 
 pub fn init_client(docker_url: &Url) -> Result<DockerApiClient> {
     // build the hyper client
-    let client: Client<_, Body> = Client::builder().pool_max_idle_per_host(0).build(
-        Connector::new(docker_url)
-            .map_err(|e| Error::from(ErrorKind::Initialization(e.to_string())))?,
-    );
+    let client: Client<_, Body> = Connector::new(docker_url)
+        .map_err(|e| Error::from(ErrorKind::Initialization(e.to_string())))?
+        .into_client();
 
     // extract base path - the bit that comes after the scheme
     let base_path = docker_url
