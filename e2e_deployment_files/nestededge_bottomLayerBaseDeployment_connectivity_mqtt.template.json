@@ -734,62 +734,62 @@
             "TestOperationResultType": "Messages",
             "ExpectedSource": "loadGen1.send",
             "ActualSource": "relayer1.receive",
-            "TestDescription": "messages | local | amqp"
+            "TestDescription": "messages | local | amqp | nested"
           },
           "reportMetadata2": {
             "TestReportType": "CountingReport",
             "TestOperationResultType": "Messages",
             "ExpectedSource": "relayer1.send",
             "ActualSource": "relayer1.eventHub",
-            "TestDescription": "messages | upstream | amqp"
+            "TestDescription": "messages | upstream | amqp | nested"
           },
           "reportMetadata3": {
             "TestReportType": "CountingReport",
             "TestOperationResultType": "Messages",
             "ExpectedSource": "loadGen2.send",
             "ActualSource": "relayer2.receive",
-            "TestDescription": "messages | local | mqtt"
+            "TestDescription": "messages | local | mqtt | nested"
           },
           "reportMetadata4": {
             "TestReportType": "CountingReport",
             "TestOperationResultType": "Messages",
             "ExpectedSource": "relayer2.send",
             "ActualSource": "relayer2.eventHub",
-            "TestDescription": "messages | upstream | mqtt"
+            "TestDescription": "messages | upstream | mqtt | nested"
           },
           "reportMetadata5": {
             "TestReportType": "TwinCountingReport",
             "TwinTestPropertyType": "Desired",
             "ExpectedSource": "twinTester1.desiredUpdated",
             "ActualSource": "twinTester2.desiredReceived",
-            "TestDescription": "twin | desired property | amqp"
+            "TestDescription": "twin | desired property | amqp | nested"
           },
           "reportMetadata6": {
             "TestReportType": "TwinCountingReport",
             "TwinTestPropertyType": "Reported",
             "ExpectedSource": "twinTester2.reportedReceived",
             "ActualSource": "twinTester2.reportedUpdated",
-            "TestDescription": "twin | reported property | amqp"
+            "TestDescription": "twin | reported property | amqp | nested"
           },
           "reportMetadata7": {
             "TestReportType": "TwinCountingReport",
             "TwinTestPropertyType": "Desired",
             "ExpectedSource": "twinTester3.desiredUpdated",
             "ActualSource": "twinTester4.desiredReceived",
-            "TestDescription": "twin | desired property | mqtt"
+            "TestDescription": "twin | desired property | mqtt | nested"
           },
           "reportMetadata8": {
             "TestReportType": "TwinCountingReport",
             "TwinTestPropertyType": "Reported",
             "ExpectedSource": "twinTester4.reportedReceived",
             "ActualSource": "twinTester4.reportedUpdated",
-            "TestDescription": "twin | reported property | mqtt"
+            "TestDescription": "twin | reported property | mqtt | nested"
           },
           "reportMetadata9": {
             "TestReportType": "DeploymentTestReport",
             "ExpectedSource": "deploymentTester1.send",
             "ActualSource": "deploymentTester2.receive",
-            "TestDescription": "deployment"
+            "TestDescription": "deployment | nested"
           },
           "reportMetadata10": {
             "TestReportType": "DirectMethodConnectivityReport",
@@ -809,7 +809,7 @@
             "TestReportType": "DirectMethodConnectivityReport",
             "SenderSource": "directMethodSender3.send",
             "TolerancePeriod": "00:01:00",
-            "TestDescription": "edge agent ping"
+            "TestDescription": "edge agent ping | nested"
           },
           "reportMetadata13": {
             "TestReportType": "CountingReport",
@@ -817,20 +817,20 @@
             "ExpectedSource": "genericMqttTester.send",
             "ActualSource": "genericMqttTester.receive",
             "LongHaulEventHubMode": "false",
-            "TestDescription": "messages | local | mqtt | generic"
+            "TestDescription": "messages | local | mqtt | generic | nested"
           },
           "reportMetadata14": {
             "TestReportType": "NetworkControllerReport",
             "Source": "networkController",
-            "TestDescription": "network controller"
+            "TestDescription": "network controller | nested"
           },
           "reportMetadata15": {
             "TestReportType": "ErrorReport",
-            "TestDescription": "test configuration"
+            "TestDescription": "test configuration | nested"
           },
           "reportMetadata16": {
             "TestReportType": "TestInfoReport",
-            "TestDescription": "test info"
+            "TestDescription": "test info | nested"
           }
         }
       }

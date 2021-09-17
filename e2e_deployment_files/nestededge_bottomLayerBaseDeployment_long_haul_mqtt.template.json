@@ -614,7 +614,7 @@
             "TestOperationResultType": "Messages",
             "ExpectedSource": "loadGen1.send",
             "ActualSource": "relayer1.receive",
-            "TestDescription": "messages | local | amqp"
+            "TestDescription": "messages | local | amqp | nested"
           },
           "reportMetadata2": {
             "TestReportType": "CountingReport",
@@ -622,14 +622,14 @@
             "ExpectedSource": "relayer1.send",
             "ActualSource": "relayer1.eventHub",
             "LongHaulEventHubMode": "true",
-            "TestDescription": "messages | upstream | amqp"
+            "TestDescription": "messages | upstream | amqp | nested"
           },
           "reportMetadata3": {
             "TestReportType": "CountingReport",
             "TestOperationResultType": "Messages",
             "ExpectedSource": "loadGen2.send",
             "ActualSource": "relayer2.receive",
-            "TestDescription": "messages | local | mqtt"
+            "TestDescription": "messages | local | mqtt | nested"
           },
           "reportMetadata4": {
             "TestReportType": "CountingReport",
@@ -637,29 +637,29 @@
             "ExpectedSource": "relayer2.send",
             "ActualSource": "relayer2.eventHub",
             "LongHaulEventHubMode": "true",
-            "TestDescription": "messages | upstream | mqtt"
+            "TestDescription": "messages | upstream | mqtt | nested"
           },
           "reportMetadata5": {
             "TestReportType": "LegacyTwinReport",
             "SenderSource": "twinTester1",
-            "TestDescription": "twin legacy | amqp"
+            "TestDescription": "twin legacy | amqp | nested"
           },
           "reportMetadata6": {
             "TestReportType": "LegacyTwinReport",
             "SenderSource": "twinTester2",
-            "TestDescription": "twin legacy | mqtt"
+            "TestDescription": "twin legacy | mqtt | nested"
           },
           "reportMetadata7": {
             "TestReportType": "DirectMethodLongHaulReport",
             "SenderSource": "directMethodSender1.send",
             "ReceiverSource": "directMethodReceiver1.receive",
-            "TestDescription": "direct method | cloud | amqp"
+            "TestDescription": "direct method | cloud | amqp | nested"
           },
           "reportMetadata8": {
             "TestReportType": "DirectMethodLongHaulReport",
             "SenderSource": "directMethodSender2.send",
             "ReceiverSource": "directMethodReceiver2.receive",
-            "TestDescription": "direct method | cloud | mqtt"
+            "TestDescription": "direct method | cloud | mqtt | nested"
           },
           "reportMetadata9": {
             "TestReportType": "CountingReport",
@@ -667,7 +667,7 @@
             "ExpectedSource": "genericMqttInitiator1.send",
             "ActualSource": "genericMqttReceiver1.receive",
             "LongHaulEventHubMode": "false",
-            "TestDescription": "messages | child-to-parent | mqtt | generic"
+            "TestDescription": "messages | child-to-parent | mqtt | generic | nested"
           },
           "reportMetadata10": {
             "TestReportType": "CountingReport",
@@ -675,20 +675,20 @@
             "ExpectedSource": "genericMqttInitiator2.send",
             "ActualSource": "genericMqttReceiver2.receive",
             "LongHaulEventHubMode": "false",
-            "TestDescription": "messages | parent-to-child | mqtt | generic"
+            "TestDescription": "messages | parent-to-child | mqtt | generic | nested"
           },
           "reportMetadata11": {
             "TestReportType": "NetworkControllerReport",
             "Source": "networkController",
-            "TestDescription": "network controller"
+            "TestDescription": "network controller | nested"
           },
           "reportMetadata12": {
             "TestReportType": "ErrorReport",
-            "TestDescription": "test configuration"
+            "TestDescription": "test configuration | nested"
           },
           "reportMetadata13": {
             "TestReportType": "TestInfoReport",
-            "TestDescription": "test info"
+            "TestDescription": "test info | nested"
           }
         }
       }
