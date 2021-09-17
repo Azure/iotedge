@@ -195,8 +195,8 @@ where
                         ))
                     }
 
-                    ModuleStatus::Unknown => {
-                        info!("Unknown Edge runtime status. Removing and recreating module...");
+                    ModuleStatus::Dead | ModuleStatus::Unknown => {
+                        info!("Edge runtime status is {}, removing and recreating module...", status);
 
                         Either::B(Either::B(
                             runtime
@@ -206,7 +206,7 @@ where
                                     create_and_start(runtime, &id_mgr, spec, module_id)
                                 }),
                         ))
-                    }
+                    },
                 };
 
                 Either::A(res)
