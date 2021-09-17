@@ -95,11 +95,6 @@ stages:
       - template: templates/nested-get-device-name.yaml
       - template: templates/e2e-setup.yaml
       - template: templates/e2e-clear-docker-cached-images.yaml
-      - template: templates/e2e-run.yaml
-        parameters:
-          EventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
-          IotHubConnectionString: '$(IotHub-ConnStr)'
-          test_type: nestededge_mqtt
       - template: templates/nested-deploy-config.yaml
         parameters:
           deviceId: $(lvl5DeviceId)
