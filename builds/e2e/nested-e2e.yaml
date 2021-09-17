@@ -46,15 +46,15 @@ stages:
   jobs:
   - template: templates/lock-test-agents.yaml
     parameters:
-      upstream.protocol: 'mqtt'
+      upstream.protocol: 'amqp'
 
 - stage: RunNestedTests
   dependsOn: LockAgents
   jobs:
   - template: templates/nested-parent-vm-setup.yaml
     parameters:
-      upstream.protocol: mqtt
-      test.l4DeploymentFileName: 'nestededge_middleLayerBaseDeployment_mqtt.json'
+      upstream.protocol: amqp
+      test.l4DeploymentFileName: 'nestededge_middleLayerBaseDeployment_amqp.json'
   - job:  SetupVM_and_RunTest_level3
     dependsOn:
       - SetupVM_level5_mqtt
