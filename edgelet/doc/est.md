@@ -1,4 +1,4 @@
-# Configuring aziot-edged with EST
+# Authenticate a Device Using Certificates Issued Dynamically via EST
 
 This document covers how to configure aziot-edged to issue device identity and Edge CA certificates over EST.
 
