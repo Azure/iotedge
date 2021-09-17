@@ -91,19 +91,20 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 Device parentDevice = await this.GetDeviceIdentityAsync(p, token);
                 string parentDeviceScope = parentDevice == null ? string.Empty : parentDevice.Scope;
                 Log.Verbose($"Parent scope: {parentDeviceScope}");
-                return new Device(deviceId)
-            {
-                Authentication = new AuthenticationMechanism()
-                {
-                    Type = authType,
-                    X509Thumbprint = x509Thumbprint
-                },
-                Capabilities = new DeviceCapabilities()
-                {
-                    IotEdge = true
-                },
-                ParentScopes = new[] { parentDeviceScope }
-            };
+                var result = new Device(deviceId)
+                                 {
+                                    Authentication = new AuthenticationMechanism()
+                                    {
+                                        Type = authType,
+                                        X509Thumbprint = x509Thumbprint
+                                    },
+                                    Capabilities = new DeviceCapabilities()
+                                    {
+                                        IotEdge = true
+                                    }
+                                 };
+                result.ParentScopes.Add(parentDeviceScope);
+                return result;
             },
             () =>
             {
