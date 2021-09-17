@@ -134,8 +134,8 @@ jobs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
           SecretsFilter: >- 
-            IotHub-ConnStr,
-            IotHub-EventHubConnStr
+            IotHub-ConnStr2,
+            IotHub-EventHubConnStr2
       - task: DownloadBuildArtifacts@0
         condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Download Edgelet Artifacts'
