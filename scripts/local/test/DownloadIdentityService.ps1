@@ -39,7 +39,7 @@ else
     # Any package in the iot-identity-service repo will have the same Git commit hash.
     # So, this script selects the first package in that repo.
     $matches = Select-String -Path ./edgelet/Cargo.lock -Pattern `
-        'github.com/nlcamp/iot-identity-service\?branch=[ -~]+#(?<commit>\w+)' | `
+        'github.com/Azure/iot-identity-service\?branch=[ -~]+#(?<commit>\w+)' | `
         Select-Object -First 1
     $commit = $matches.Matches.Groups | Where-Object -Property Name -EQ 'commit'
 
@@ -52,7 +52,7 @@ $github_headers = '@{"Accept" = "application/vnd.github.v3+json"; "Authorization
 
 for($page = 1; ; $page++)
 {
-    $url = "https://api.github.com/repos/nlcamp/iot-identity-service/actions/runs?per_page=100&page=$page"
+    $url = "https://api.github.com/repos/azure/iot-identity-service/actions/runs?per_page=100&page=$page"
     Write-Output "GET $url"
     $actions_runs = Invoke-Expression "Invoke-WebRequest $proxy -Headers $github_headers -Uri '$url'" | ConvertFrom-JSON
     $actions_size = $actions_runs.workflow_runs | Measure-Object
