@@ -176,20 +176,41 @@ where
         })
         .and_then(move |state| match state {
             Some(state) => {
-                let res = if *state.status() == ModuleStatus::Running {
-                    info!("Edge runtime is running.");
-                    future::Either::A(future::ok(()))
-                } else {
-                    info!(
-                        "Edge runtime status is {}, starting module now...",
-                        *state.status(),
-                    );
-                    future::Either::B(
-                        runtime
-                            .start(&module)
-                            .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime))),
-                    )
+                let status = state.status();
+
+                let res = match status {
+                    ModuleStatus::Running => {
+                        info!("Edge runtime is running.");
+                        Either::A(future::ok(()))
+                    }
+
+                    ModuleStatus::Stopped | ModuleStatus::Failed => {
+                        info!("Edge runtime status is {}, starting module now...", status);
+
+                        Either::B(Either::A(
+                            runtime
+                                .start(&module)
+                                .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime))),
+                        ))
+                    }
+
+                    ModuleStatus::Dead | ModuleStatus::Unknown => {
+                        info!(
+                            "Edge runtime status is {}, removing and recreating module...",
+                            status
+                        );
+
+                        Either::B(Either::B(
+                            runtime
+                                .remove(&module)
+                                .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))
+                                .and_then(move |_| {
+                                    create_and_start(runtime, spec, &module_id, &identityd_url)
+                                }),
+                        ))
+                    }
                 };
+
                 Either::A(res)
             }
 
