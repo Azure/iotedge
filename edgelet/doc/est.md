@@ -2,7 +2,7 @@
 
 This document covers how to configure aziot-edged to issue device identity and Edge CA certificates over EST.
 
-All of the configuration options mentioned are in `/etc/aziot/config.toml`. After editing the configuration file, run `sudo iotedge config apply` to apply the changes.
+All of the configuration options mentioned are in `/etc/aziot/config.toml.edge.template` that you may use to create your `/etc/aziot/config.toml` configuration file. After editing your configuration file, run `sudo iotedge config apply` to apply the changes.
 
 ## Prerequisites
 
