@@ -148,7 +148,7 @@ stages:
           container.registry: '$(cr.address)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-          iotHub.connectionString: '$(IotHub-ConnStr)'
+          iotHub.connectionString: '$(IotHub-ConnStr2)'
           eventHub.connectionString: '$(IotHub-EventHubConnStr)'
           deploymentFileName: 'nestededge_bottomLayerBaseDeployment_connectivity_mqtt.template.json'
           upstream.protocol: '$(upstream.protocol)'
