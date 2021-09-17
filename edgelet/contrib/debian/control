@@ -9,7 +9,7 @@ Homepage: https://github.com/azure/iotedge
 
 Package: aziot-edge
 Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}, adduser, ca-certificates, hostname, aziot-identity-service (= 1.3.0~dev20210914.1-1), sed
+Depends: ${misc:Depends}, ${shlibs:Depends}, adduser, ca-certificates, hostname, aziot-identity-service (= 1.3.0~dev-1), sed
 Description: Azure IoT Edge Module Runtime
  Azure IoT Edge is a fully managed service that delivers cloud intelligence
  locally by deploying and running artificial intelligence (AI), Azure services,
