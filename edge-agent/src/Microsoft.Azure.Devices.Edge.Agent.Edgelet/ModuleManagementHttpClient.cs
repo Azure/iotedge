@@ -99,21 +99,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             return new Version_2018_06_28.ModuleManagementHttpClient(managementUri);
         }
 
-        Task Throttle(Func<Task> func) => this.Throttle<bool>(
+        Task Throttle(Func<Task> identityOperation) => this.Throttle<bool>(
             async () =>
             {
-                await func();
+                await identityOperation();
                 return true;
             });
 
-        async Task<T> Throttle<T>(Func<Task<T>> func)
+        async Task<T> Throttle<T>(Func<Task<T>> identityOperation)
         {
-            await this.clientTicket.WaitAsync(this.clientTicketTimeout);
+            bool ticketAcquired = await this.clientTicket.WaitAsync(this.clientTicketTimeout);
+            if (!ticketAcquired)
+            {
+                throw new TimeoutException("Could not acquire ticket to call ModuleManager");
+            }
+
             try
             {
                 var start = DateTime.Now;
 
-                var result = await func();
+                var result = await identityOperation();
 
                 var operationDuration = DateTime.Now - start;
                 if (operationDuration < this.operationDelay)
