@@ -165,7 +165,6 @@ jobs:
             $(images.artifact.name.linux)/e2e_deployment_files/$(deploymentFileName)
             $(images.artifact.name.linux)/scripts/linux/trcE2ETest.sh
             $(images.artifact.name.linux)/artifactInfo.txt
-            $(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
             $(images.artifact.name.linux)/CACertificates/certGen.sh
             $(images.artifact.name.linux)/CACertificates/openssl_root_ca.cnf
       - task: PowerShell@2
