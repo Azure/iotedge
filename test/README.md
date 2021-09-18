@@ -13,7 +13,7 @@ There are three directories under the `test/` directory:
 
 ### One time setup
 
-#### Setting up your local machine
+#### One time setup for your local machine
 
 ##### Prerequisites
 To run the end-to-end tests, we will be building the required binaries from the code, build container images and push them to a local container registry. The tests will install the IoT Edge runtime from the binaries on your machine and run the containers using your local registry.
@@ -35,9 +35,9 @@ sudo apt-get install msopenjdk-11
 The steps above are for ubuntu 18.04. See [Install the Microsoft Build of the OpenJDK](https://docs.microsoft.com/en-us/java/openjdk/install) for information on how to install on other platforms.
 
 ##### Setup access to Microsoft installation packages
-In particular, make sure to prepare your machine to access the Microsoft installation packages. *The steps to do this are listed below for your convenience. Again, please look at the section in the linked document for your os/arch combination if it is different from ubuntu18.04/amd64*
+Prepare your machine to access the Microsoft installation packages. The steps to do this are listed below for your convenience. *Again, please look at the section in the linked document for your os/arch combination if it is different from ubuntu18.04/amd64*
 
-_TODO: Access to Microsoft installation packages is required as this codebase depends on aziot-identity-service. Resolve this dependency by building from the identity service's code repo_
+_TODO: Access to Microsoft installation packages is required as this codebase depends on aziot-identity-service. Resolve this dependency by building from the identity service's code repository_
 
 ~~~sh
 # Setup the repository information
@@ -53,7 +53,7 @@ sudo apt-get update
 ~~~
 
 ##### Create Root CA Certificate for your machine
-Create a rootCA certificate for your machine *(See [Create Certs](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-create-test-certificates?view=iotedge-2020-11#create-root-ca-certificate) for more details)*. Navigate to the directory where the certificate generation scripts are found (typically iotedge/tools/CACertificates) and run
+Create a Root CA certificate for your machine *(See [Create Certs](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-create-test-certificates?view=iotedge-2020-11#create-root-ca-certificate) for more details)*. Navigate to the directory where the certificate generation scripts are found (typically iotedge/tools/CACertificates) and run
 ~~~ sh
 ./certGen.sh create_root_and_intermediate
 # This will create root and intermediate CA certs. The Root CA cert will be located in the 
@@ -135,40 +135,100 @@ chmod u+x dotnet-install.sh
 ./dotnet-install.sh -c Current
 ~~~
 
-#### Cloud side setup for the tests
-The end-to-end tests require a number of cloud side resources i.e., IoTHub, Device Provisioning Service, and a Storage Container to be setup. This next section will walk you through how to setup the cloud resources.
+#### One time cloud resources setup for the tests
+The end-to-end tests require a number of azure cloud side resources i.e., IoTHub, Device Provisioning Service, and a Storage Container to be setup. This next section will walk you through how to setup the cloud resources.
 
-_TODO: Add instructions to do this setup using the CLI_
+##### Create a resource group
+If you don't already have a resource group, create one.
+Here is how you can create one using the CLI
+~~~ sh
+az group create --name {resource group name} --location {region}
+~~~
 
 ##### IoT Hub
 If you don't already have an existing IoT hub, create one. There is no special configuration required, except for making sure that your IoTHub is enabled for public access.
+Here is how you can create one using the CLI
+
+~~~sh
+# Create a free tier Iot hub
+az iot hub create --resource-group {resource group name} --name {IoT hub name} --sku F1 --partition-count 2
+~~~
+
 Note down the `event hub compatible endpoint` and the primary connection string of the `iothubowner` policy. These will need to be set in the `E2E_EVENT_HUB_ENDPOINT` and `E2E_IOT_HUB_CONNECTION_STRING` environment variables later to run the tests.
 
+You can get these via the CLI by running 
+~~~sh
+# Primary Connection string
+az iot hub connection-string show --hub-name {IoT hub name} --key-type primary
+
+#Default eventhub compatible end point
+az iot hub connection-string show --hub-name {IoT hub name} --default-eventhub
+
+~~~
 ##### Device Provisioning Service (DPS)
 Create a DPS instance. A subset of the end-to-end tests will use DPS for testing device provisioning scenarios. Note down the `ID Scope` of this DPS instance. You will need to set it in the `dpsIdScope` configuration variable later to run the tests.
+
+Using the CLI,
+~~~sh
+az iot dps create --name {dps group name} --resource-group {resource group name} --location {region}
+~~~
 
 ###### Create enrollment group for symmetric key based enrollment
 In your DPS instance, create a new enrollment group for symmetric key based enrollment. For this enrollment group, set the attestation type to be symmetric key, set the IoTEdge Device setting to true, and link the group to your IoThub with the access policy of `iotHubOwner`. 
 
-You do not have to create the symmetric key. The system will auto generate it for you when the group is created. After the group is created, note down the Primary Key. You will need to set this in the `E2E_DPS_GROUP_KEY` environment variable later to run the tests.
+Using the CLI,
+~~~sh
+#Link the DPS group to your Iot hub
+az iot dps linked-hub create --dps-name {dps group name} --resource-group {resource group name} \
+  --connection-string "{Iothub ConnectionString}" --location westus2
+
+#Create enrollment group for symmetric key based enrollment
+ az iot dps enrollment-group create -g {resource group name} --dps-name {dps group name} \
+  --enrollment-id {symkey enrollment group name } --edge-enabled
+~~~
+You do not have to create the symmetric key. The system will auto generate it for you when the enrollment group is created. After the enrollment group is created, note down the Primary Key. You will need to set this in the `E2E_DPS_GROUP_KEY` environment variable later to run the tests.
 
 See [Symmetric key attestation](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-auto-provision-symmetric-keys?view=iotedge-2020-11&tabs=windows) for further details.
 
 ###### Create enrollment group for X.509 certificate based enrollment
 In your DPS instance, create another enrollment group for X.509 certificate based enrollment. For this enrollment group, set the attestation type to be certificate and upload the root CA certificate that you had created earlier, set the IoTEdge Device setting to true, and link the group to your IotHub with the access policy of `iotHubOwner`.
 
+~~~sh
+# Upload the root ca cert and set it to be verified
+az iot dps certificate create --certificate-name {dps root ca name}  --resource-group {resource group name} \
+  --dps-name {dps group name} --path {path to ca cert .pem file}  --verified true
+
+# Create enrollment group for X.509 based enrollment
+az iot dps enrollment-group create -g {resource group name} --dps-name {dps group name} \
+  --enrollment-id {cert enrollment group name} --ca-name {dps root ca name} --edge-enabled
+~~~
 See [X.509 certificate attestation](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-auto-provision-x509-certs?view=iotedge-2020-11&tabs=windows) for further details.
 
 ##### Create a storage account/container
 Create a storage account and storage container, with access level set to private. A subset of the tests will use the storage container to test log/diagnostics upload scenarios. To securely acesss the storage container, create a SAS token URL ( allow https only, permissions set to "write" only). Note down this URL as you will need it to set the `E2E_BLOB_STORE_SAS` environment variable later to run the tests.
+~~~ sh
+# Create storage account
+az storage account create --name {storage account name} --resource-group {resource group name } \
+  --location {region} --sku Standard_RAGRS --kind StorageV2
 
+# Get the connection string from the Storage account. This will be needed to create the storage container
+az storage account show-connection-string --name {storage account name} \
+  --resource-group {resource group name} -o tsv
+
+# Create the storage container
+ az storage container create --name {container name} --resource-group {resource group name} \
+   --account-name {storage account name} --connection-string "{connection string}"
+
+# TODO: Currently, the SAS URL has to created using the Azure portal. Add instructions
+# here to do it using the CLI
+~~~
 
 ### Build
 #### Building the binaries
 From the top folder of the codebase ( i.e., the iotedge folder), run the following(*Note: Some of these steps will require to be run as sudo*)
 ~~~ sh
 # run build branch
-scripts/linux/buildBranch
+scripts/linux/buildBranch.sh
 # Build mqttd
 # TODO: validate if the step to build mqttd can be skipped.
 scripts/linux/cross-platform-rust-build.sh --os alpine --arch amd64 --build-path mqtt/mqttd
@@ -186,7 +246,7 @@ export PACKAGE_ARCH="amd64"
 # in the ./edgelet/target/release/ and named something like aziot-edge_1.2.3-1_amd64.deb
 ~~~
 
-#### Building the container images and pushing them to the local container repo
+#### Building the container images and pushing them to the local container registry
 From the top folder of the codebase, run the following. 
 ~~~ sh
 # Consolidate artifacts for edge-hub
@@ -220,7 +280,7 @@ sudo docker push localhost:5000/microsoft/generic-mqtt-tester:latest-linux-amd64
 
 #### Test parameters
 
-The end-to-end tests take several parameters, which they expect to find in a file named `context.json` in the same directory as the test binaries (e.g., `test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp2.1/context.json`). Parameter names are case-insensitive. See [end-to-end test parameters](./doc/end-to-end-test-config.md) for details. 
+The end-to-end tests take several parameters, which they expect to find in a file named `context.json` in the same directory as the test binaries (e.g., `test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp3.1/context.json`). Parameter names are case-insensitive. See [end-to-end test parameters](./doc/end-to-end-test-config.md) for details. 
 
 #### Sample context.json
 ~~~ json
@@ -257,13 +317,13 @@ The end-to-end tests take several parameters, which they expect to find in a fil
 }
 ~~~
 
-### Test secrets
+#### Test secrets
 
 The tests also expect to find several _secret_ parameters. It is recommended that you create environment variables and make them available to the test framework in a way that avoids committing them to your shell's command history or saving them in clear text on your filesystem.
 
 See [environment variables](./doc/end-to-end-test-config.md#environment-variables) for details.
 
-### Run the tests
+#### Run the tests
 
 With the test parameters and secrets in place, you can run all the end-to-end tests from the command line. From the top folder of the codebase,
 
@@ -276,7 +336,7 @@ sudo --preserve-env dotnet test ./Microsoft.Azure.Devices.Edge.Test \
 To learn about other ways to run the tests (e.g., to run only certain tests), see 
 [Running selective unit tests](https://docs.microsoft.com/en-us/dotnet/core/testing/selective-unit-tests#nunit)
 
-### Troubleshooting
+#### Troubleshooting
 
 #### File handle limit in VS Code
 
