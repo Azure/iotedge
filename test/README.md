@@ -8,20 +8,18 @@ There are three directories under the `test/` directory:
 2. `test/Microsoft.Azure.Devices.Edge.Test.Common/`: The helper library tests use to do interesting things--like deploy modules or wait for a message to arrive in IoT hub--lives here.
 3. `test/modules`: All custom modules used by the tests live here. The common pattern for an end-to-end test is to deploy some modules that run through a scenario (i.e., the thing you actually want to test, like sending messages between modules), then wait for them to report the results.
 
-## How to run the tests
+## One time setup
 *Note: The steps mentioned here have been run and validated on an ubuntu18.04/amd64 machine. If you are running a different os/arch, your steps may differ.*
 
-### One time setup
-
-#### One time setup for your local machine
+## One time setup for your local machine
+To run the end-to-end tests, we will be building the required binaries from the code, build container images and push them to a local container registry. The tests will install the IoT Edge runtime from the binaries on your machine and run the containers using your local registry.
 
 ##### Prerequisites
-To run the end-to-end tests, we will be building the required binaries from the code, build container images and push them to a local container registry. The tests will install the IoT Edge runtime from the binaries on your machine and run the containers using your local registry.
 
 It is important that your machine meets the requirements to run IoT Edge. See our installation docs ([Linux](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-edge-linux), [Windows](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-edge-windows)) for more information on prerequisites
 
 ##### Install java
-The build scripts use Java for code generation tasks, so you will need a jdk on your machine. Here is how you can install a jdk (if you already don't have one).
+The build scripts use Java for code generation tasks, so you will need a jdk on your machine. Here is how you can install a jdk (if you don't already have one).
 ~~~ sh
 ubuntu_release=`lsb_release -rs`
 wget https://packages.microsoft.com/config/ubuntu/${ubuntu_release}/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
@@ -135,7 +133,7 @@ chmod u+x dotnet-install.sh
 ./dotnet-install.sh -c Current
 ~~~
 
-#### One time cloud resources setup for the tests
+## One time cloud resources setup for the tests
 The end-to-end tests require a number of azure cloud side resources i.e., IoTHub, Device Provisioning Service, and a Storage Container to be setup. This next section will walk you through how to setup the cloud resources.
 
 ##### Create a resource group
@@ -223,7 +221,7 @@ az storage account show-connection-string --name {storage account name} \
 # here to do it using the CLI
 ~~~
 
-### Build
+## Build
 #### Building the binaries
 From the top folder of the codebase ( i.e., the iotedge folder), run the following(*Note: Some of these steps will require to be run as sudo*)
 ~~~ sh
@@ -276,7 +274,7 @@ sudo docker build --no-cache -t localhost:5000/microsoft/generic-mqtt-tester:lat
 sudo docker push localhost:5000/microsoft/generic-mqtt-tester:latest-linux-amd64
 ~~~
 
-### Test
+## Test
 
 #### Test parameters
 
