@@ -31,7 +31,6 @@ _Note: A ✔ in the required column indicates that it is required for all the te
 | `edgeAgentBootstrapImage` || Docker image to pull/use for the initial startup of edgeAgent. It is the EdgeAgent image used in config.yaml. This is a temporary parameter - only here now because the 1.0 version is incompatible with the way this test framework verifies deployments in the master branch. If you want to specify your own, the container registry used is the first registry in the list of registries given by the 'registries' parameter|'
 | `numberLoggerImage` || Docker image to pull/use for the Edge agent direct method tests. Used to generate predictable logs. |
 | `testTimeoutMinutes` || The maximum amount of time, in minutes, a single test should take. If this time is exceeded, the associated test will fail with a timeout error. If not given, the default value is `5`. |
-| `hubResourceId` | * | Full path to Iot Hub that will receive the metrics messages in the following format - `/resource/subscriptions/<Azure subscription GUID>/resourceGroups/<resource group name>/providers/Microsoft.Devices/IotHubs/<Iot Hub name>`. Required when running the test 'MetricsCollector', ignored otherwise.|
 | `verbose` || Boolean value indicating whether to output more verbose logging information to standard output during a test run. If not given, the default is `false`. |
 
 # [Environment Variables](#environment-variables)
@@ -44,5 +43,6 @@ _Note: A ✔ in the required column indicates that it is required for all the te
 | `E2E_REGISTRIES__{n}__PASSWORD` || Password associated with a container registry entry in the `registries` array of `context.json`. `{n}` is the number corresponding to the (zero-based) array entry. For example, if you specified a single container registry in the `registries` array, the corresponding parameter would be `E2E_REGISTRIES__0__PASSWORD`. |
 | `E2E_ROOT_CA_PASSWORD` || The password associated with the root certificate specified in `rootCaCertificatePath`. |
 | `E2E_BLOB_STORE_SAS` || The sas token used to upload module logs and support bundle in the tests. |
+| `E2E_IOT_HUB_RESOURCE_ID` || Full path to Iot hub that will receive the metrics messages in the following format - `/resource/subscriptions/<Azure subscription GUID>/resourceGroups/<resource group name>/providers/Microsoft.Devices/IotHubs/<Iot Hub name>`. Required when running the test 'MetricsCollector', ignored otherwise.|
 
 _Note: the definitive source for information about test parameters is `test/Microsoft.Azure.Devices.Edge.Test/helpers/Context.cs`._
