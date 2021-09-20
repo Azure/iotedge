@@ -757,6 +757,12 @@ function run_connectivity_test() {
             fi
 
             sleep "${sleep_frequency_secs}s"
+
+            #### DO NOT MREGE- Temporarily added for quicker debugging
+            iotedge system logs
+            iotedge logs edgeAgent
+            #### End DO NOT MERGE
+
             total_wait=$((total_wait+sleep_frequency_secs))
             echo "total wait time=$(TZ=UTC0 printf '%(%H:%M:%S)T\n' "$total_wait")"
         done
