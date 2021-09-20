@@ -41,7 +41,7 @@ steps:
         $filter += '&Name~TempSensor'
       }
 
-      sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
+      sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "EdgeAgentConnectionConfigurationTest"
     }
   displayName: Run tests
   env:
