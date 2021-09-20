@@ -95,32 +95,32 @@ stages:
       - template: templates/nested-get-device-name.yaml
       - template: templates/e2e-setup.yaml
       - template: templates/e2e-clear-docker-cached-images.yaml
-      - template: templates/e2e-run.yaml
-        parameters:
-          EventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
-          IotHubConnectionString: '$(IotHub-ConnStr)'
-          test_type: nestededge_mqtt
-      # Temporarily Comment out AMQP Nested Edge Test. While Transitioning from testing MQTT, the API Proxy Server stops running on the L4 Device due to which we cannot
-      # deploy any modules to child node and hence the test hangs. Revisit this and Unblock the pipeline for now
-      #- template: templates/nested-deploy-config.yaml
-        #parameters:
-          #deviceId: $(lvl5DeviceId)
-          #deploymentFile: nestededge_topLayerBaseDeployment_amqp.json
-          #changeDeployConfigOnly: true
-          #level: 5
-          #name: 5
-      #- template: templates/nested-deploy-config.yaml
-        #parameters:
-          #deviceId: $(parentDeviceId)
-          #deploymentFile: nestededge_middleLayer_e2e_amqp.json
-          #changeDeployConfigOnly: true
-          #level: 4
-          #name: 4
       #- template: templates/e2e-run.yaml
         #parameters:
           #EventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
           #IotHubConnectionString: '$(IotHub-ConnStr)'
-          #test_type: nestededge_amqp
+          #test_type: nestededge_mqtt
+      # Temporarily Comment out AMQP Nested Edge Test. While Transitioning from testing MQTT, the API Proxy Server stops running on the L4 Device due to which we cannot
+      # deploy any modules to child node and hence the test hangs. Revisit this and Unblock the pipeline for now
+      - template: templates/nested-deploy-config.yaml
+        parameters:
+          deviceId: $(lvl5DeviceId)
+          deploymentFile: nestededge_topLayerBaseDeployment_amqp.json
+          changeDeployConfigOnly: true
+          level: 5
+          name: 5
+      - template: templates/nested-deploy-config.yaml
+        parameters:
+          deviceId: $(parentDeviceId)
+          deploymentFile: nestededge_middleLayer_e2e_amqp.json
+          changeDeployConfigOnly: true
+          level: 4
+          name: 4
+      - template: templates/e2e-run.yaml
+        parameters:
+          EventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
+          IotHubConnectionString: '$(IotHub-ConnStr)'
+          test_type: nestededge_amqp
 
 - stage: Cleanup 
   condition: always()
