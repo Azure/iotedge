@@ -27,7 +27,7 @@ steps:
         $filter += '&Name~TempSensor'
       }
 
-      dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
+      dotnet test $testFile --no-build --logger 'trx' --filter "EdgeAgentConnectionConfigurationTest"
     }
     else
     {
