@@ -655,6 +655,12 @@ function run_connectivity_test() {
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run connectivity test with -d '$device_id' started at $test_start_time"
 
+    iotedge system set-log-level $TEST_RUNTIME_LOG_LEVEL || funcRet=$?
+    if [ $funcRet -ne 0 ]; then
+        print_error "Failed setting iotedge system log level to $TEST_RUNTIME_LOG_LEVEL"
+        return $funcRet; 
+    fi
+
     SECONDS=0
 
     NESTED_EDGE_TEST=$(printenv E2E_nestedEdgeTest)
