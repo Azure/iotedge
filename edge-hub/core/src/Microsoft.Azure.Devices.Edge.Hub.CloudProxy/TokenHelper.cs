@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public static TimeSpan GetTokenExpiryTimeRemaining(string hostName, string token) => GetTokenExpiry(hostName, token) - DateTime.UtcNow;
 
-        private class SharedAccessSignature
+        class SharedAccessSignature
         {
             const string SharedAccessSignatureName = "SharedAccessSignature";
             const string AudienceFieldName = "sr";
@@ -51,30 +51,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             static readonly DateTime EpochTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
             static readonly TimeSpan MaxClockSkew = TimeSpan.FromMinutes(5);
 
-            private readonly string encodedAudience;
-            private readonly string expiry;
-
-            private SharedAccessSignature(string iotHubName, DateTime expiresOn, string expiry, string keyName, string signature, string encodedAudience)
-            {
-                if (string.IsNullOrWhiteSpace(iotHubName))
-                {
-                    throw new ArgumentNullException(nameof(iotHubName));
-                }
-
-                this.ExpiresOn = expiresOn;
-
-                if (this.IsExpired())
-                {
-                    throw new UnauthorizedAccessException($"The specified SAS token is expired on {this.ExpiresOn}.");
-                }
-
-                this.IotHubName = iotHubName;
-                this.Signature = signature;
-                this.Audience = WebUtility.UrlDecode(encodedAudience);
-                this.encodedAudience = encodedAudience;
-                this.expiry = expiry;
-                this.KeyName = keyName ?? string.Empty;
-            }
+            readonly string encodedAudience;
+            readonly string expiry;
 
             public string IotHubName { get; }
 
@@ -164,7 +142,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 }
             }
 
-            private static IDictionary<string, string> ExtractFieldValues(string sharedAccessSignature)
+            SharedAccessSignature(string iotHubName, DateTime expiresOn, string expiry, string keyName, string signature, string encodedAudience)
+            {
+                if (string.IsNullOrWhiteSpace(iotHubName))
+                {
+                    throw new ArgumentNullException(nameof(iotHubName));
+                }
+
+                this.ExpiresOn = expiresOn;
+
+                if (this.IsExpired())
+                {
+                    throw new UnauthorizedAccessException($"The specified SAS token is expired on {this.ExpiresOn}.");
+                }
+
+                this.IotHubName = iotHubName;
+                this.Signature = signature;
+                this.Audience = WebUtility.UrlDecode(encodedAudience);
+                this.encodedAudience = encodedAudience;
+                this.expiry = expiry;
+                this.KeyName = keyName ?? string.Empty;
+            }
+
+            static IDictionary<string, string> ExtractFieldValues(string sharedAccessSignature)
             {
                 string[] lines = sharedAccessSignature.Split();
 
