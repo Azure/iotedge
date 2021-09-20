@@ -341,7 +341,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         }
 
         [Integration]
-        [Fact(Skip = "Flaky")]
+        [Fact]
         public async Task EdgeAgentConnectionConfigurationTest()
         {
             for (int i = 0; i < 25; i++)
