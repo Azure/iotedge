@@ -10,9 +10,9 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
     {
         public DirectMethodConnectivityReportMetadata(
             string testDescription,
+            Topology topology,
             string senderSource,
             TimeSpan tolerancePeriod,
-            Topology topology,
             string receiverSource = "")
             : base(testDescription)
         {

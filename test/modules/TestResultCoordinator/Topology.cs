@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace TestResultCoordinator
 {
-    enum Topology
+    public enum Topology
     {
         // A single edge device.
         SingleNode,

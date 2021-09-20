@@ -7,11 +7,11 @@ namespace TestResultCoordinator.Reports
     {
         public TwinCountingReportMetadata(
             string testDescription,
+            Topology topology,
             string expectedSource,
             string actualSource,
             TestReportType testReportType,
-            TwinTestPropertyType twinTestPropertyType,
-            Topology topology)
+            TwinTestPropertyType twinTestPropertyType)
             : base(testDescription, expectedSource, actualSource, TestOperationResultType.Twin, testReportType, false)
         {
             this.TwinTestPropertyType = twinTestPropertyType;
