@@ -462,7 +462,9 @@ namespace IotEdgeQuickstart.Details
 
             using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2)))
             {
-                await Process.RunAsync("iotedge", $"system set-log-level {runtimeLogLevel.ToString()}", cts.Token);
+                Console.WriteLine($"Calling iotedge system set-log-level {runtimeLogLevel.ToString()}");
+                string output = await Process.RunAsync("iotedge", $"system set-log-level {runtimeLogLevel.ToString()}", cts.Token, true);
+                Console.WriteLine($"{output}");
             }
         }
 
@@ -470,7 +472,7 @@ namespace IotEdgeQuickstart.Details
         {
             using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2)))
             {
-                await Process.RunAsync("systemctl", "restart aziot-keyd aziot-certd aziot-identityd aziot-edged", cts.Token);
+                await Process.RunAsync("iotedge", "system restart", cts.Token);
                 Console.WriteLine("Waiting for aziot-edged to start up.");
 
                 // Waiting for the processes to enter the "Running" state doesn't guarantee that
