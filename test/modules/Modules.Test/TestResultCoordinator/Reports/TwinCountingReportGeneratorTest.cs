@@ -191,6 +191,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReportGenerator(
                     TestDescription,
+                    TestMode.Connectivity,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -261,6 +262,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             var reportGenerator = new CountingReportGenerator(
                 TestDescription,
+                TestMode.Connectivity,
                 Guid.NewGuid().ToString(),
                 expectedSource,
                 expectedResults.GetAsyncEnumerator(),

@@ -542,6 +542,7 @@ namespace Modules.Test.TestResultCoordinator
             {
                 return Task.FromResult<ITestResultReport>(new CountingReport(
                   "mock",
+                  TestMode.Connectivity,
                   "mock",
                   "mock",
                   "mock",
