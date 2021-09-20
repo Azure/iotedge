@@ -17,6 +17,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
     {
         readonly ModuleManagementHttpClientVersioned inner;
 
+        readonly TimeSpan clientTicketTimeout = TimeSpan.FromSeconds(240);
+        readonly TimeSpan operationDelay = TimeSpan.FromSeconds(0.7);
+        readonly SemaphoreSlim clientTicket = new SemaphoreSlim(1);
+
         public ModuleManagementHttpClient(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion)
         {
             Preconditions.CheckNotNull(managementUri, nameof(managementUri));
@@ -25,13 +29,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             this.inner = GetVersionedModuleManagement(managementUri, serverSupportedApiVersion, clientSupportedApiVersion);
         }
 
-        public Task<Identity> CreateIdentityAsync(string name, string managedBy) => this.inner.CreateIdentityAsync(name, managedBy);
+        public Task<Identity> CreateIdentityAsync(string name, string managedBy) => this.Throttle(() => this.inner.CreateIdentityAsync(name, managedBy));
 
-        public Task<Identity> UpdateIdentityAsync(string name, string generationId, string managedBy) => this.inner.UpdateIdentityAsync(name, generationId, managedBy);
+        public Task<Identity> UpdateIdentityAsync(string name, string generationId, string managedBy) => this.Throttle(() => this.inner.UpdateIdentityAsync(name, generationId, managedBy));
 
-        public Task DeleteIdentityAsync(string name) => this.inner.DeleteIdentityAsync(name);
+        public Task DeleteIdentityAsync(string name) => this.Throttle(() => this.inner.DeleteIdentityAsync(name));
 
-        public Task<IEnumerable<Identity>> GetIdentities() => this.inner.GetIdentities();
+        public Task<IEnumerable<Identity>> GetIdentities() => this.Throttle(() => this.inner.GetIdentities());
 
         public Task CreateModuleAsync(ModuleSpec moduleSpec) => this.inner.CreateModuleAsync(moduleSpec);
 
@@ -93,6 +97,42 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             }
 
             return new Version_2018_06_28.ModuleManagementHttpClient(managementUri);
+        }
+
+        Task Throttle(Func<Task> identityOperation) => this.Throttle<bool>(
+            async () =>
+            {
+                await identityOperation();
+                return true;
+            });
+
+        async Task<T> Throttle<T>(Func<Task<T>> identityOperation)
+        {
+            bool ticketAcquired = await this.clientTicket.WaitAsync(this.clientTicketTimeout);
+            if (!ticketAcquired)
+            {
+                throw new TimeoutException("Could not acquire ticket to call ModuleManager");
+            }
+
+            try
+            {
+                var start = DateTime.Now;
+
+                var result = await identityOperation();
+
+                var operationDuration = DateTime.Now - start;
+                if (operationDuration < this.operationDelay)
+                {
+                    var remainingDelay = this.operationDelay - operationDuration;
+                    await Task.Delay(remainingDelay);
+                }
+
+                return result;
+            }
+            finally
+            {
+                this.clientTicket.Release();
+            }
         }
 
         static ApiVersion GetSupportedVersion(string serverSupportedApiVersion, string clientSupportedApiVersion)
