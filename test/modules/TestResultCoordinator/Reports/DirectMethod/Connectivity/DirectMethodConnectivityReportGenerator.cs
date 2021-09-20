@@ -163,13 +163,19 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
             }
 
             bool didFindMatch = false;
-            while (hasReceiverResult && dmSenderTestResult.SequenceNumber == dmReceiverTestResult.SequenceNumber)
+            if (dmSenderTestResult.SequenceNumber == dmReceiverTestResult.SequenceNumber)
             {
+                dmReceiverTestResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(receiverTestResults.Current.Result);
                 didFindMatch = true;
-                hasReceiverResult = await receiverTestResults.MoveNextAsync();
-                if (hasReceiverResult)
+
+                ulong receiverSequenceNumber = dmReceiverTestResult.SequenceNumber;
+                while (hasReceiverResult && dmSenderTestResult.SequenceNumber == receiverSequenceNumber)
                 {
-                    dmReceiverTestResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(receiverTestResults.Current.Result);
+                    hasReceiverResult = await receiverTestResults.MoveNextAsync();
+                    if (hasReceiverResult)
+                    {
+                        receiverSequenceNumber = JsonConvert.DeserializeObject<DirectMethodTestResult>(receiverTestResults.Current.Result).SequenceNumber;
+                    }
                 }
             }
 
