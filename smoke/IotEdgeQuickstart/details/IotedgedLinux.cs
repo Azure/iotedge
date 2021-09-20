@@ -463,8 +463,8 @@ namespace IotEdgeQuickstart.Details
             using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2)))
             {
                 Console.WriteLine($"Calling iotedge system set-log-level {runtimeLogLevel.ToString()}");
-                string output = await Process.RunAsync("iotedge", $"system set-log-level {runtimeLogLevel.ToString()}", cts.Token, true);
-                Console.WriteLine($"{output}");
+                string[] output = await Process.RunAsync("iotedge", $"system set-log-level {runtimeLogLevel.ToString()}", cts.Token);
+                Console.WriteLine($"{output.ToString()}");
             }
         }
 
