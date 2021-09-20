@@ -459,6 +459,11 @@ namespace IotEdgeQuickstart.Details
                 SetOwner(path, service.Value.Owner, "644");
                 Console.WriteLine($"Created config {path}");
             }
+
+            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2)))
+            {
+                await Process.RunAsync("iotedge", $"system set-log-level {runtimeLogLevel.ToString()}", cts.Token);
+            }
         }
 
         public async Task Start()
