@@ -762,28 +762,32 @@
             "TwinTestPropertyType": "Desired",
             "ExpectedSource": "twinTester1.desiredUpdated",
             "ActualSource": "twinTester2.desiredReceived",
-            "TestDescription": "twin | desired property | amqp"
+            "TestDescription": "twin | desired property | amqp",
+            "Topology": "Nested"
           },
           "reportMetadata6": {
             "TestReportType": "TwinCountingReport",
             "TwinTestPropertyType": "Reported",
             "ExpectedSource": "twinTester2.reportedReceived",
             "ActualSource": "twinTester2.reportedUpdated",
-            "TestDescription": "twin | reported property | amqp"
+            "TestDescription": "twin | reported property | amqp",
+            "Topology": "Nested"
           },
           "reportMetadata7": {
             "TestReportType": "TwinCountingReport",
             "TwinTestPropertyType": "Desired",
             "ExpectedSource": "twinTester3.desiredUpdated",
             "ActualSource": "twinTester4.desiredReceived",
-            "TestDescription": "twin | desired property | mqtt"
+            "TestDescription": "twin | desired property | mqtt",
+            "Topology": "Nested"
           },
           "reportMetadata8": {
             "TestReportType": "TwinCountingReport",
             "TwinTestPropertyType": "Reported",
             "ExpectedSource": "twinTester4.reportedReceived",
             "ActualSource": "twinTester4.reportedUpdated",
-            "TestDescription": "twin | reported property | mqtt"
+            "TestDescription": "twin | reported property | mqtt",
+            "Topology": "Nested"
           },
           "reportMetadata9": {
             "TestReportType": "DeploymentTestReport",
@@ -796,20 +800,23 @@
             "SenderSource": "directMethodSender1.send",
             "ReceiverSource": "directMethodReceiver1.receive",
             "TolerancePeriod": "00:01:00",
-            "TestDescription": "direct method | cloud | amqp | nested"
+            "TestDescription": "direct method | cloud | amqp",
+            "Topology": "Nested"
           },
           "reportMetadata11": {
             "TestReportType": "DirectMethodConnectivityReport",
             "SenderSource": "directMethodSender2.send",
             "ReceiverSource": "directMethodReceiver2.receive",
             "TolerancePeriod": "00:01:00",
-            "TestDescription": "direct method | cloud | mqtt | nested"
+            "TestDescription": "direct method | cloud | mqtt",
+            "Topology": "Nested"
           },
           "reportMetadata12": {
             "TestReportType": "DirectMethodConnectivityReport",
             "SenderSource": "directMethodSender3.send",
             "TolerancePeriod": "00:01:00",
-            "TestDescription": "edge agent ping"
+            "TestDescription": "edge agent ping",
+            "Topology": "Nested"
           },
           "reportMetadata13": {
             "TestReportType": "CountingReport",
