@@ -101,7 +101,7 @@ namespace TestResultCoordinator.Reports
 
         public override bool IsPassed => this.IsPassedHelper();
 
-        public bool IsPassedHelper()
+        bool IsPassedHelper()
         {
             return this.TotalExpectCount > 0 && this.TotalDuplicateExpectedResultCount == 0 && this.EventHubSpecificReportComponents.Match(
                 eh =>

@@ -74,7 +74,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
 
         public override bool IsPassed => this.IsPassedHelper();
 
-        public bool IsPassedHelper()
+        bool IsPassedHelper()
         {
             ulong totalSuccessful = this.NetworkOnSuccess + this.NetworkOffSuccess + this.NetworkOnToleratedSuccess + this.NetworkOffToleratedSuccess;
             ulong totalFailing = this.NetworkOffFailure + this.NetworkOnFailure;

@@ -37,7 +37,7 @@ namespace TestResultCoordinator.Reports
 
         public override bool IsPassed => this.IsPassedHelper();
 
-        public bool IsPassedHelper()
+        bool IsPassedHelper()
         {
             if (this.TotalExpectCount == 0)
             {
