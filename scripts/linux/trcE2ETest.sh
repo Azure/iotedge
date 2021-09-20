@@ -282,10 +282,10 @@ function clean_up() {
 
 function print_deployment_logs() {
     print_highlighted_message '========== Logs from docker =========='
-    journalctl -u docker --no-pager || true
+    journalctl -u docker --since "$test_start_time" --no-pager || true
 
     print_highlighted_message '========== Logs from iotedge system =========='
-    iotedge system logs
+    iotedge system logs -- --since "$test_start_time" --no-pager || true
 
     print_highlighted_message '========== Logs from edgeAgent =========='
     docker logs edgeAgent || true
