@@ -12,12 +12,14 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
             string testDescription,
             string senderSource,
             TimeSpan tolerancePeriod,
+            Topology topology,
             string receiverSource = "")
             : base(testDescription)
         {
             this.SenderSource = senderSource;
             this.TolerancePeriod = tolerancePeriod;
             this.ReceiverSource = string.IsNullOrEmpty(receiverSource) ? Option.None<string>() : Option.Some(receiverSource);
+            this.Topology = topology;
         }
 
         public TimeSpan TolerancePeriod { get; }
@@ -25,6 +27,8 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
         public string SenderSource { get; }
 
         public Option<string> ReceiverSource { get; }
+
+        public Topology Topology;
 
         public string[] ResultSources =>
             this.ReceiverSource.HasValue ? new string[] { this.SenderSource, this.ReceiverSource.OrDefault() } : new string[] { this.SenderSource };

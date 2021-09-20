@@ -22,6 +22,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
 
         internal DirectMethodConnectivityReportGenerator(
             string testDescription,
+            Topology topology,
             string trackingId,
             string senderSource,
             IAsyncEnumerator<TestOperationResult> senderTestResults,
@@ -37,6 +38,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
             }
 
             this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
+            this.Topology = topology;
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
             this.SenderTestResults = Preconditions.CheckNotNull(senderTestResults, nameof(senderTestResults));
@@ -58,6 +60,8 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
         internal string ResultType { get; }
 
         internal string TestDescription { get; }
+
+        internal Topology Topology { get; }
 
         internal ITestResultComparer<TestOperationResult> TestResultComparer { get; }
 
@@ -124,6 +128,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
             Logger.LogInformation($"Successfully finished creating {nameof(DirectMethodConnectivityReport)} for Sources [{this.SenderSource}] and [{this.ReceiverSource}]");
             return new DirectMethodConnectivityReport(
                 this.TestDescription,
+                this.Topology,
                 this.trackingId,
                 this.SenderSource,
                 this.ReceiverSource,

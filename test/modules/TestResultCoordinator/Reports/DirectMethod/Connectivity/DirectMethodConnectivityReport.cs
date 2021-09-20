@@ -11,6 +11,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
     {
         public DirectMethodConnectivityReport(
             string testDescription,
+            Topology topology,
             string trackingId,
             string senderSource,
             Option<string> receiverSource,
@@ -25,6 +26,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
             ulong mismatchFailure)
             : base(testDescription, trackingId, resultType)
         {
+            this.Topology = topology;
             this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
             this.ReceiverSource = receiverSource;
             this.NetworkOnSuccess = networkOnSuccess;
@@ -36,6 +38,8 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
             this.MismatchSuccess = mismatchSuccess;
             this.MismatchFailure = mismatchFailure;
         }
+
+        public Topology Topology { get; }
 
         public string SenderSource { get; }
 
@@ -80,7 +84,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
             {
                 return false;
             }
-            else if (this.TestDescription.Contains("nested"))
+            else if (this.Topology == Topology.Nested)
             {
                 // This tolerance is needed because sometimes we see large numbers of NetworkOnFailures.
                 // Also, sometimes we observe 1 NetworkOffFailure and a lot of mismatched results. The
