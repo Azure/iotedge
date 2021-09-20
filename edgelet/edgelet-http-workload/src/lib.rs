@@ -79,25 +79,6 @@ where
         })
     }
 
-    pub async fn check_edge_ca(&self) -> Result<(), String> {
-        let key_handle =
-            module::cert::edge_ca_key_handle(self.key_client.clone(), &self.config.edge_ca_key)
-                .await
-                .map_err(|err| err.message)?;
-
-        module::cert::check_edge_ca(
-            self.cert_client.clone(),
-            &self.config.edge_ca_cert,
-            &self.config.device_id,
-            &key_handle,
-            self.key_connector.clone(),
-        )
-        .await
-        .map_err(|err| err.message)?;
-
-        Ok(())
-    }
-
     // Test constructor used to create a test Workload Service.
     #[cfg(test)]
     pub fn new(runtime: M) -> Self {
