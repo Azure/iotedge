@@ -5,13 +5,13 @@ namespace Modules.Test.TestResultCoordinator.Reports
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
+    using global::TestResultCoordinator;
     using global::TestResultCoordinator.Reports;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
-    using global::TestResultCoordinator;
 
     [Unit]
     public class TwinCountingReportGeneratorTest

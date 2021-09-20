@@ -262,7 +262,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
 
             var reportGenerator = new DirectMethodConnectivityReportGenerator(
                 TestDescription,
-                    Topology.SingleNode,
+                Topology.SingleNode,
                 Guid.NewGuid().ToString(),
                 senderSource,
                 senderResults.GetAsyncEnumerator(),
@@ -315,7 +315,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
 
             var reportGenerator = new DirectMethodConnectivityReportGenerator(
                 TestDescription,
-                    Topology.SingleNode,
+                Topology.SingleNode,
                 Guid.NewGuid().ToString(),
                 senderSource,
                 senderResults.GetAsyncEnumerator(),
