@@ -41,6 +41,10 @@ case "$PACKAGE_OS" in
         DOCKER_IMAGE='debian:10-slim'
         ;;
 
+    'debian11')
+        DOCKER_IMAGE='debian:11-slim'
+        ;;
+
     'ubuntu18.04')
         DOCKER_IMAGE='ubuntu:18.04'
         ;;
