@@ -521,7 +521,7 @@
             "TestOperationResultType": "Messages",
             "ExpectedSource": "loadGen1.send",
             "ActualSource": "relayer1.receive",
-            "TestDescription": "messages | local | amqp | nested"
+            "TestDescription": "messages | local | amqp"
           },
           "reportMetadata2": {
             "TestReportType": "CountingReport",
@@ -529,14 +529,14 @@
             "ExpectedSource": "relayer1.send",
             "ActualSource": "relayer1.eventHub",
             "LongHaulEventHubMode": "true",
-            "TestDescription": "messages | upstream | amqp | nested"
+            "TestDescription": "messages | upstream | amqp"
           },
           "reportMetadata3": {
             "TestReportType": "CountingReport",
             "TestOperationResultType": "Messages",
             "ExpectedSource": "loadGen2.send",
             "ActualSource": "relayer2.receive",
-            "TestDescription": "messages | local | mqtt | nested"
+            "TestDescription": "messages | local | mqtt"
           },
           "reportMetadata4": {
             "TestReportType": "CountingReport",
@@ -544,42 +544,42 @@
             "ExpectedSource": "relayer2.send",
             "ActualSource": "relayer2.eventHub",
             "LongHaulEventHubMode": "true",
-            "TestDescription": "messages | upstream | mqtt | nested"
+            "TestDescription": "messages | upstream | mqtt"
           },
           "reportMetadata5": {
             "TestReportType": "LegacyTwinReport",
             "SenderSource": "twinTester1",
-            "TestDescription": "twin legacy | amqp | nested"
+            "TestDescription": "twin legacy | amqp"
           },
           "reportMetadata6": {
             "TestReportType": "LegacyTwinReport",
             "SenderSource": "twinTester2",
-            "TestDescription": "twin legacy | mqtt | nested"
+            "TestDescription": "twin legacy | mqtt"
           },
           "reportMetadata7": {
             "TestReportType": "DirectMethodLongHaulReport",
             "SenderSource": "directMethodSender1.send",
             "ReceiverSource": "directMethodReceiver1.receive",
-            "TestDescription": "direct method | cloud | amqp | nested"
+            "TestDescription": "direct method | cloud | amqp"
           },
           "reportMetadata8": {
             "TestReportType": "DirectMethodLongHaulReport",
             "SenderSource": "directMethodSender2.send",
             "ReceiverSource": "directMethodReceiver2.receive",
-            "TestDescription": "direct method | cloud | mqtt | nested"
+            "TestDescription": "direct method | cloud | mqtt"
           },
           "reportMetadata9": {
             "TestReportType": "NetworkControllerReport",
             "Source": "networkController",
-            "TestDescription": "network controller | nested"
+            "TestDescription": "network controller"
           },
           "reportMetadata10": {
             "TestReportType": "ErrorReport",
-            "TestDescription": "test configuration | nested"
+            "TestDescription": "test configuration"
           },
           "reportMetadata11": {
             "TestReportType": "TestInfoReport",
-            "TestDescription": "test info | nested"
+            "TestDescription": "test info"
           }
         }
       }
