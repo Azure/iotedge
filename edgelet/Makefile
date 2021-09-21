@@ -39,7 +39,7 @@ rpmbuilddir?=$(HOME)/rpmbuild
 vendordir?=vendor
 
 CARGOFLAGS=--manifest-path=$(srcdir)/Cargo.toml
-DPKGFLAGS=-b -rfakeroot -us -uc -i
+DPKGFLAGS=-b -rfakeroot -us -uc -i -d
 RPMBUILDFLAGS=-v -bb --clean
 
 CARGO=cargo
