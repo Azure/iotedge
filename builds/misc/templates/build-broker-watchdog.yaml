@@ -1,33 +1,43 @@
-steps:
-  - task: Bash@3
-    displayName: Build MQTT Broker - amd64
-    inputs:
-      filePath: scripts/linux/cross-platform-rust-build.sh
-      arguments: --os alpine --arch amd64 --build-path mqtt/mqttd
-  - task: Bash@3
-    displayName: Build MQTT Broker - arm32
-    inputs:
-      filePath: scripts/linux/cross-platform-rust-build.sh
-      arguments: --os ubuntu18.04 --arch arm32v7 --build-path mqtt/mqttd
-  - task: Bash@3
-    displayName: Build MQTT Broker - arm64
-    inputs:
-      filePath: scripts/linux/cross-platform-rust-build.sh
-      arguments: --os ubuntu18.04 --arch aarch64 --build-path mqtt/mqttd
-  - task: Bash@3
-    displayName: Build watchdog - amd64
-    inputs:
-      filePath: scripts/linux/cross-platform-rust-build.sh
-      arguments: --os alpine --arch amd64 --build-path edge-hub/watchdog
-  - task: Bash@3
-    displayName: Build watchdog - arm32
-    inputs:
-      filePath: scripts/linux/cross-platform-rust-build.sh
-      arguments: --os ubuntu18.04 --arch arm32v7 --build-path edge-hub/watchdog
-  - task: Bash@3
-    displayName: Build watchdog - arm64
-    inputs:
-      filePath: scripts/linux/cross-platform-rust-build.sh
-      arguments: --os ubuntu18.04 --arch aarch64 --build-path edge-hub/watchdog
-  - script: scripts/linux/consolidate-build-artifacts.sh --build-binaries-dir '$(Build.BinariesDirectory)' --artifact-name 'edge-hub'
-    displayName: Consolidate Edge Hub Artifacts
+jobs:
+  - job: BuildMqttBrokerAmd64
+    steps:
+    - task: Bash@3
+      displayName: Build MQTT Broker - amd64
+      inputs:
+        filePath: scripts/linux/cross-platform-rust-build.sh
+        arguments: --os alpine --arch amd64 --build-path mqtt/mqttd
+  - job: BuildMqttBrokerArm32
+    steps:
+    - task: Bash@3
+      displayName: Build MQTT Broker - arm32
+      inputs:
+        filePath: scripts/linux/cross-platform-rust-build.sh
+        arguments: --os ubuntu18.04 --arch arm32v7 --build-path mqtt/mqttd
+  - job: BuildMqttBrokerArm64        
+    steps:
+    - task: Bash@3
+      displayName: Build MQTT Broker - arm64
+      inputs:
+        filePath: scripts/linux/cross-platform-rust-build.sh
+        arguments: --os ubuntu18.04 --arch aarch64 --build-path mqtt/mqttd
+  - job: BuildWatchdogAmd64        
+    steps:
+    - task: Bash@3
+      displayName: Build watchdog - amd64
+      inputs:
+        filePath: scripts/linux/cross-platform-rust-build.sh
+        arguments: --os alpine --arch amd64 --build-path edge-hub/watchdog
+  - job: BuildWatchdogArm32                
+    steps:
+    - task: Bash@3
+      displayName: Build watchdog - arm32
+      inputs:
+        filePath: scripts/linux/cross-platform-rust-build.sh
+        arguments: --os ubuntu18.04 --arch arm32v7 --build-path edge-hub/watchdog
+  - job: BuildWatchdogArm64      
+    steps:
+    - task: Bash@3
+      displayName: Build watchdog - arm64
+      inputs:
+        filePath: scripts/linux/cross-platform-rust-build.sh
+        arguments: --os ubuntu18.04 --arch aarch64 --build-path edge-hub/watchdog
