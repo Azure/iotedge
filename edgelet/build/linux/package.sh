@@ -229,7 +229,7 @@ fi
 # if we don't remove it, 'Create iotedged packages' step fails with "E: Unable to locate package dh-systemd"
 if [ $PACKAGE_OS == "debian11" ]; then
 	REMOVE_SYSTEMD="dh-systemd "
-	SETUP_COMMAND=$(echo $SETUP_COMMAND | sed "s:$REMOVE_SYSTEMD::")
+	SETUP_COMMAND=$(echo "$SETUP_COMMAND" | sed "s:$REMOVE_SYSTEMD::")
 fi
 
 case "$PACKAGE_OS" in
@@ -291,7 +291,7 @@ docker run --rm \
 
         cat /etc/os-release &&
 
-        $SETUP_COMMAND
+        \"$SETUP_COMMAND\"
 
         echo 'Installing rustup' &&
         curl -sSLf https://sh.rustup.rs | sh -s -- -y &&
