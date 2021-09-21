@@ -7,7 +7,8 @@ steps:
     $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
 
     # Filter out flaky tests.
-    $filter = 'Category!=Flaky'
+    $filter = ''
+    # $filter = 'Category!=Flaky'
 
     if ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
     {
