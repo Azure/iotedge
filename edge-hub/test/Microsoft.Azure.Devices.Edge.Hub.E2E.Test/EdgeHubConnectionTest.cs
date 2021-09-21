@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     {
         const string EdgeHubModuleId = "$edgeHub";
 
-        [Theory]
+        [Theory(Skip = "Flaky")]
         [InlineData(true, true)]
         [InlineData(true, false)]
         [InlineData(false, false)]
