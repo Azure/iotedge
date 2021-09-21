@@ -225,6 +225,13 @@ if [ -z "$SETUP_COMMAND" ]; then
     exit 1
 fi
 
+# dh-systemd has been merged with dbhelper in Debian11: https://github.com/matrix-org/synapse/issues/9073
+# if we don't remove it, 'Create iotedged packages' step fails with "E: Unable to locate package dh-systemd"
+if [ $PACKAGE_OS == "debian11" ]; then
+	REMOVE_SYSTEMD="dh-systemd "
+	SETUP_COMMAND=$(echo $SETUP_COMMAND | sed "s:$REMOVE_SYSTEMD::")
+fi
+
 case "$PACKAGE_OS" in
     centos7)
         case "$PACKAGE_ARCH" in
