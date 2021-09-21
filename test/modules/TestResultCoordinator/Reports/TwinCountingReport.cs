@@ -47,11 +47,11 @@ namespace TestResultCoordinator.Reports
             {
                 // This tolerance is needed because we see some missing desired
                 // property updates when running in nested.
-                return ((double)this.TotalMatchCount / this.TotalExpectCount) > .9d;
+                return ((double)this.TotalMatchCount / this.TotalExpectCount) > .6d;
             }
             else
             {
-                return this.TotalExpectCount == this.TotalMatchCount && this.TotalExpectCount > 0;
+                return this.TotalExpectCount == this.TotalMatchCount;
             }
         }
 
