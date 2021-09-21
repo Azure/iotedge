@@ -291,7 +291,7 @@ docker run --rm \
 
         cat /etc/os-release &&
 
-        \"$SETUP_COMMAND\"
+        $SETUP_COMMAND
 
         echo 'Installing rustup' &&
         curl -sSLf https://sh.rustup.rs | sh -s -- -y &&
