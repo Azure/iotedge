@@ -32,8 +32,9 @@ pub struct MgmtClient {
 
 impl MgmtClient {
     pub fn new(url: &Url) -> Result<Self> {
-        let client: Client<_, Body> = Client::builder()
-            .build(Connector::new(url).map_err(|e| Error::from(ErrorKind::Misc(e.to_string())))?);
+        let client: Client<_, Body> = Connector::new(url)
+            .map_err(|e| Error::from(ErrorKind::Misc(e.to_string())))?
+            .into_client();
 
         let base_path = url
             .to_base_path()

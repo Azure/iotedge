@@ -102,7 +102,7 @@ async fn watchdog(
         let mut agent_spec = settings.agent().clone();
 
         let gen_id = agent_gen_id(identity_client).await?;
-        let mut env = agent_env(gen_id, settings, device_info)?;
+        let mut env = agent_env(gen_id, settings, device_info);
         agent_spec.env_mut().append(&mut env);
 
         if let edgelet_settings::module::ImagePullPolicy::OnCreate = agent_spec.image_pull_policy()
@@ -158,7 +158,7 @@ fn agent_env(
     gen_id: String,
     settings: &edgelet_settings::docker::Settings,
     device_info: &aziot_identity_common::AzureIoTSpec,
-) -> Result<std::collections::BTreeMap<String, String>, EdgedError> {
+) -> std::collections::BTreeMap<String, String> {
     let mut env = std::collections::BTreeMap::new();
 
     env.insert(
@@ -198,18 +198,15 @@ fn agent_env(
         settings.connect().management_uri().to_string(),
     );
     let workload_mnt_uri = {
+        // Home directory was used before this function was called, so it should be valid.
         let mut path = settings
             .homedir()
             .canonicalize()
-            .map_err(|err| EdgedError::from_err("Invalid homedir path", err))?;
+            .expect("Invalid homedir path");
 
         path.push("mnt");
 
         let path = path.to_str().expect("invalid path");
-
-        std::fs::create_dir_all(path).map_err(|err| {
-            EdgedError::from_err("Failed to create workload socket directory", err)
-        })?;
 
         format!("unix://{}", path)
     };
@@ -223,5 +220,5 @@ fn agent_env(
 
     env.insert("Mode".to_string(), "iotedged".to_string());
 
-    Ok(env)
+    env
 }
