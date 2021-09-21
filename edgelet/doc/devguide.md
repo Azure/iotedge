@@ -91,6 +91,8 @@ apt-get install \
     libcurl4-openssl-dev libssl-dev uuid-dev
 ```
 
+ Make sure Moby-Engine is installed in your machine by following instructions [here](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-edge?view=iotedge-2020-11#install-a-container-engine)
+
 #### macOS
 
 1. Install the dependencies using [Homebrew](https://brew.sh/) package manager
@@ -175,7 +177,7 @@ To run `iotedged` locally:
 
     - Linux / MacOS
       ```sh
-      sudo cp edgelet/contrib/linux/config.yaml $IOTEDGE_HOMEDIR
+      sudo cp edgelet/contrib/config/linux/config.yaml $IOTEDGE_HOMEDIR
       ```
 
     - Windows
@@ -183,9 +185,9 @@ To run `iotedged` locally:
       Copy-Item .\edgelet\contrib\config\windows\config.yaml -Destination $env:IOTEDGE_HOMEDIR
       ```
 
-3. Update the Device Connection String in `config.yaml` to take the device connection string from your iot hub. To Create a device in IoT Hub - Please see [Quickstart](https://docs.microsoft.com/en-us/azure/iot-edge/quickstart-linux?view=iotedge-2020-11)
+3. Update the Primary Connection String in `config.yaml` to take the device connection string from your iot hub. To Create a device in IoT Hub - Please see [Quickstart](https://docs.microsoft.com/en-us/azure/iot-edge/quickstart-linux?view=iotedge-2020-11)
 
-4. In Linux, Make sure $USER is added to docker group ( Make sure Moby-Engine is installed in your machine by following instructions [here](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-edge?view=iotedge-2020-11#install-a-container-engine))
+4. In Linux, Make sure $USER is added to docker group
 
     Check if User is already part of the group
     ```sh
@@ -198,12 +200,7 @@ To run `iotedged` locally:
     sudo usermod -aG docker $USER
     ```
 
-    Restart docker
-    ```sh
-    sudo systemctl restart docker
-    ```
-
-    Log Out and Log In or Restart Shell
+    Log Out and Log In or Restart Shell so that group membership is re-evaluated
 
 5. In Linux Create /var/lib/iotedge dir and chown the dir to the user
    
@@ -212,10 +209,10 @@ To run `iotedged` locally:
    sudo chown $USER /var/lib/iotedge/
    ```
 
-6. Run the daemon with the `IOTEDGE_HOMEDIR` environment variable set and with the path to the `config.yaml`
+6. Run the daemon with the `IOTEDGE_HOMEDIR` environment variable set and with the path to the `config.yaml`. Make sure you are in the edgelet directory when you run the command.
 
     ```sh
-    cargo run -p iotedged -- -c /absolute/path/to/config.yaml
+    cargo run -p iotedged -- -c $IOTEDGE_HOMEDIR/config.yaml
     ```
 
 
