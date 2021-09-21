@@ -10,12 +10,14 @@ mod container_engine_logrotate;
 mod container_local_time;
 mod container_resolve_parent_hostname;
 mod parent_hostname;
+mod proxy_settings;
 mod storage_mounted_from_host;
 mod up_to_date_config;
 mod well_formed_config;
 
 pub(crate) use self::aziot_edged_version::AziotEdgedVersion;
 pub(crate) use self::check_agent_image::CheckAgentImage;
+pub(crate) use self::proxy_settings::ProxySettings;
 pub(crate) use self::connect_management_uri::ConnectManagementUri;
 pub(crate) use self::container_connect_upstream::get_host_container_upstream_tests;
 pub(crate) use self::container_engine_dns::ContainerEngineDns;
@@ -92,6 +94,7 @@ pub(crate) fn built_in_checks() -> [(&'static str, Vec<Box<dyn Checker>>); 2] {
                 Box::new(EdgeAgentStorageMounted::default()),
                 Box::new(EdgeHubStorageMounted::default()),
                 Box::new(CheckAgentImage::default()),
+                Box::new(ProxySettings::default()),
             ],
         ),
         ("Connectivity checks", {
