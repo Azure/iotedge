@@ -6,6 +6,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
     using System.Linq;
     using System.Net;
     using System.Threading.Tasks;
+    using global::TestResultCoordinator;
     using global::TestResultCoordinator.Reports;
     using global::TestResultCoordinator.Reports.DirectMethod;
     using global::TestResultCoordinator.Reports.DirectMethod.Connectivity;
@@ -42,6 +43,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
 
             var reportGenerator = new DirectMethodConnectivityReportGenerator(
                 TestDescription,
+                Topology.SingleNode,
                 Guid.NewGuid().ToString(),
                 senderSource,
                 senderResults.GetAsyncEnumerator(),
@@ -74,6 +76,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DirectMethodConnectivityReportGenerator(
                     TestDescription,
+                    Topology.SingleNode,
                     trackingId,
                     "senderSource",
                     mockSenderResults.Object,
@@ -101,6 +104,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DirectMethodConnectivityReportGenerator(
                     testDescription,
+                    Topology.SingleNode,
                     Guid.NewGuid().ToString(),
                     "senderSource",
                     mockSenderResults.Object,
@@ -128,6 +132,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DirectMethodConnectivityReportGenerator(
                     TestDescription,
+                    Topology.SingleNode,
                     Guid.NewGuid().ToString(),
                     senderSource,
                     mockSenderResults.Object,
@@ -152,6 +157,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () => new DirectMethodConnectivityReportGenerator(
                     TestDescription,
+                    Topology.SingleNode,
                     Guid.NewGuid().ToString(),
                     "senderSource",
                     null,
@@ -179,6 +185,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DirectMethodConnectivityReportGenerator(
                     TestDescription,
+                    Topology.SingleNode,
                     Guid.NewGuid().ToString(),
                     "senderSource",
                     mockSenderResults.Object,
@@ -200,6 +207,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DirectMethodConnectivityReportGenerator(
                     TestDescription,
+                    Topology.SingleNode,
                     Guid.NewGuid().ToString(),
                     "senderSource",
                     mockSenderResults.Object,
@@ -225,6 +233,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DirectMethodConnectivityReportGenerator(
                     TestDescription,
+                    Topology.SingleNode,
                     Guid.NewGuid().ToString(),
                     "senderSource",
                     mockSenderResults.Object,
@@ -253,6 +262,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
 
             var reportGenerator = new DirectMethodConnectivityReportGenerator(
                 TestDescription,
+                Topology.SingleNode,
                 Guid.NewGuid().ToString(),
                 senderSource,
                 senderResults.GetAsyncEnumerator(),
@@ -305,6 +315,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
 
             var reportGenerator = new DirectMethodConnectivityReportGenerator(
                 TestDescription,
+                Topology.SingleNode,
                 Guid.NewGuid().ToString(),
                 senderSource,
                 senderResults.GetAsyncEnumerator(),
@@ -370,6 +381,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
 
             var reportGenerator = new DirectMethodConnectivityReportGenerator(
                 TestDescription,
+                Topology.SingleNode,
                 Guid.NewGuid().ToString(),
                 senderSource,
                 senderResults.GetAsyncEnumerator(),
