@@ -41,6 +41,10 @@ case "$PACKAGE_OS" in
         DOCKER_IMAGE='debian:10-slim'
         ;;
 
+    'debian11')
+        DOCKER_IMAGE='debian:11-slim'
+        ;;
+
     'ubuntu18.04')
         DOCKER_IMAGE='ubuntu:18.04'
         ;;
@@ -219,6 +223,13 @@ esac
 if [ -z "$SETUP_COMMAND" ]; then
     echo "Unrecognized target [$PACKAGE_OS.$PACKAGE_ARCH]" >&2
     exit 1
+fi
+
+# dh-systemd has been merged with dbhelper in Debian11: https://github.com/matrix-org/synapse/issues/9073
+# if we don't remove it, 'Create iotedged packages' step fails with "E: Unable to locate package dh-systemd"
+if [ $PACKAGE_OS == "debian11" ]; then
+	REMOVE_SYSTEMD="dh-systemd "
+	SETUP_COMMAND=$(echo "$SETUP_COMMAND" | sed "s:$REMOVE_SYSTEMD::")
 fi
 
 case "$PACKAGE_OS" in
