@@ -23,6 +23,7 @@ jobs:
         arguments: -r "$(registry.address)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }}" --target-arch armv7l --buildx_flag ${{ parameters.buildx_flag }}  
   - job: BuildImageArm64
     displayName: Build Image - ${{ parameters.name }} - arm64 
+    steps:
     - task: Bash@3
       condition: and(ne('${{ parameters.name }}', 'Functions Sample'), succeeded())
       inputs:
