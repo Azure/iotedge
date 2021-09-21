@@ -58,7 +58,7 @@ stages:
     name: $(pool.linux.name)
     demands:
       - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
-  dependsOn: PublishArtifacts
+  dependsOn: PublishBuildArtifacts
   jobs:
   # Edge Agent
   - template: templates/image-linux.yaml

@@ -7,21 +7,21 @@ parameters:
   buildx_flag: ''
 
 jobs:
-  - job: BuildImageAmd64
+  - job:
     displayName: Build Image - ${{ parameters.name }} - amd64
     steps:
     - task: Bash@3
       inputs:
         filePath: scripts/linux/buildImage.sh
         arguments: -r "$(registry.address)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }}"
-  - job: BuildImageArm32
+  - job:
     displayName: Build Image - ${{ parameters.name }} - arm32
     steps:  
     - task: Bash@3
       inputs:
         filePath: scripts/linux/buildImage.sh
         arguments: -r "$(registry.address)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }}" --target-arch armv7l --buildx_flag ${{ parameters.buildx_flag }}  
-  - job: BuildImageArm64
+  - job:
     displayName: Build Image - ${{ parameters.name }} - arm64 
     steps:
     - task: Bash@3
