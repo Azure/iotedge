@@ -96,7 +96,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
             apt-get update &&
             apt-get upgrade -y &&
             apt-get install -y --no-install-recommends \
-                binutils build-essential ca-certificates curl debhelper dh-systemd file git make \
+                binutils build-essential ca-certificates curl debhelper file git make \
                 gcc g++ pkg-config \
                 libcurl4-openssl-dev libssl-dev uuid-dev &&
         '
@@ -110,7 +110,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
             apt-get update &&
             apt-get upgrade -y &&
             apt-get install -y --no-install-recommends \
-                binutils build-essential ca-certificates curl debhelper dh-systemd file git make \
+                binutils build-essential ca-certificates curl debhelper file git make \
                 gcc g++ \
                 gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf \
                 libcurl4-openssl-dev:armhf libssl-dev:armhf uuid-dev:armhf &&
@@ -131,7 +131,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
             apt-get update &&
             apt-get upgrade -y &&
             apt-get install -y --no-install-recommends \
-                binutils build-essential ca-certificates curl debhelper dh-systemd file git make \
+                binutils build-essential ca-certificates curl debhelper file git make \
                 gcc g++ \
                 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
                 libcurl4-openssl-dev:arm64 libssl-dev:arm64 uuid-dev:arm64 &&
