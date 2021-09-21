@@ -132,7 +132,7 @@ deb: release
 	cp -R $(srcdir)/contrib/debian $(TARGET)/$(PACKAGE)
 	$(SED) "s/@version@/${DEB_VERSION}/g; s/@revision@/${DEB_REVISION}/g;" $(srcdir)/contrib/debian/changelog > $(TARGET)/$(PACKAGE)/debian/changelog
 	$(SED) "s/@version@/${DEB_VERSION}/g; s/@revision@/${DEB_REVISION}/g;" $(srcdir)/contrib/debian/control > $(TARGET)/$(PACKAGE)/debian/control
-	cd $(TARGET)/$(PACKAGE) && dpkg-buildpackage -d $(DPKGFLAGS)
+	cd $(TARGET)/$(PACKAGE) && dpkg-buildpackage $(DPKGFLAGS)
 
 rpm:
 	cp $(srcdir)/contrib/centos/00-aziot-edged.preset $(rpmbuilddir)/SOURCES

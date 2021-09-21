@@ -61,7 +61,7 @@ fi
 
 case "$PACKAGE_ARCH" in
     'amd64')
-        MAKE_FLAGS="DPKGFLAGS='-b -us -uc -i'"
+        MAKE_FLAGS="DPKGFLAGS='-b -us -uc -i -d'"
         ;;
 
     'arm32v7')
