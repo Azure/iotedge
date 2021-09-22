@@ -11,7 +11,7 @@ There are three directories under the `test/` directory:
 ## One time setup
 To run the end-to-end tests, we will be building the required binaries from the code, build container images and push them to a local container registry. The tests will install the IoT Edge runtime from the binaries on your machine and run the containers using your local registry. 
 
-To perpare, we will need to setup your local machine and cloud resources. The setup steps are detailed [here](./doc/one-time-setup.md)
+To prepare, we will need to setup your local machine and cloud resources. The setup steps are detailed [here](./doc/one-time-setup.md)
 
 ## Build
 #### Building the binaries
