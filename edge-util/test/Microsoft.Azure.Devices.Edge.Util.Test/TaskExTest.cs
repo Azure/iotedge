@@ -244,13 +244,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         {
             TaskCompletionSource<int> completionSource = new TaskCompletionSource<int>();
             int numStarted = 0;
-            Task<int> func(int _)
+            Task<int> Func(int _)
             {
                 numStarted++;
                 return completionSource.Task;
             }
 
-            var result = Enumerable.Range(0, 10).SelectAsync(func);
+            var result = Enumerable.Range(0, 10).SelectAsync(Func);
             await Task.Delay(100);
             Assert.False(result.IsCompleted);
             Assert.Equal(10, numStarted);
@@ -266,14 +266,14 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         {
             TaskCompletionSource<int> completionSource = new TaskCompletionSource<int>();
             int numStarted = 0;
-            Task<int> func(int _)
+            Task<int> Func(int _)
             {
                 numStarted++;
                 return completionSource.Task;
             }
 
             // Limit select to 5. Only 5 tasks should have started
-            var result = Enumerable.Range(0, 10).SelectAsync(func, 5);
+            var result = Enumerable.Range(0, 10).SelectAsync(Func, 5);
             await Task.Delay(100);
             Assert.False(result.IsCompleted);
             Assert.Equal(5, numStarted);
@@ -291,7 +291,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             TaskCompletionSource<int> completionSource = new TaskCompletionSource<int>();
             int numStarted = 0;
             int numFinished = 0;
-            async Task<int> func(int i)
+            async Task<int> Func(int i)
             {
                 numStarted++;
                 if (i == 3)
@@ -304,7 +304,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             }
 
             // Limit select to 5. Only 1 task is blocked, so expect all but 1 to complete even with limit.
-            var result = Enumerable.Range(0, 10).SelectAsync(func, 5);
+            var result = Enumerable.Range(0, 10).SelectAsync(Func, 5);
             await Task.Delay(100);
             Assert.False(result.IsCompleted);
             Assert.Equal(10, numStarted);
@@ -323,7 +323,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             TaskCompletionSource<int> completionSource = new TaskCompletionSource<int>();
             int numStarted = 0;
             int numFinished = 0;
-            async Task<int> func(int i)
+            async Task<int> Func(int i)
             {
                 numStarted++;
                 if (i % 3 == 0)
@@ -337,7 +337,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
             // Limit select to 3. Tasks 0, 3, and 6 are blocked.
             // Tasks 0-6 should be started, and tasks 1, 2, 4 and 5 should be finished
-            var result = Enumerable.Range(0, 10).SelectAsync(func, 3);
+            var result = Enumerable.Range(0, 10).SelectAsync(Func, 3);
             await Task.Delay(100);
             Assert.False(result.IsCompleted);
             Assert.Equal(7, numStarted);

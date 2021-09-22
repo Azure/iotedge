@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Util
 {
-    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
 
     public static class TaskEx
     {
@@ -289,7 +289,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             await completedTask;
         }
 
-        public static async Task<IEnumerable<U>> SelectAsync<T, U>(this IEnumerable<T> source, Func<T, Task<U>> func, int concurrentLimit = int.MaxValue)
+        public static async Task<IEnumerable<TOut>> SelectAsync<TIn, TOut>(this IEnumerable<TIn> source, Func<TIn, Task<TOut>> func, int concurrentLimit = int.MaxValue)
         {
             // If number of items to be processed is less than limit, just run all
             if (source.Count() <= concurrentLimit)
@@ -299,13 +299,13 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
             // Lock for enumerator and result list since they are accessed by independent tasks
             AsyncLock enumerator_lock = new AsyncLock();
-            List<U> result = new List<U>();
+            List<TOut> result = new List<TOut>();
             var enumerator = source.GetEnumerator();
 
             // recursive thread safe function that will drain [source] and call [func] on each element until source is empty
-            async Task process_next()
+            async Task ProcessNext()
             {
-                T current;
+                TIn current;
                 using (await enumerator_lock.LockAsync())
                 {
                     if (!enumerator.MoveNext())
@@ -314,11 +314,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
                         // Note lock is released by using statement
                         return;
                     }
+
                     current = enumerator.Current;
                 }
 
                 // Do work
-                U value = await func(current);
+                TOut value = await func(current);
 
                 // Append result to result list
                 using (await enumerator_lock.LockAsync())
@@ -327,11 +328,11 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 }
 
                 // Recurse to process next element
-                await process_next();
+                await ProcessNext();
             }
 
             // Create [concurrentLimit] independent tasks to drain source
-            await Task.WhenAll(Enumerable.Range(0, concurrentLimit).Select(_ => process_next()));
+            await Task.WhenAll(Enumerable.Range(0, concurrentLimit).Select(_ => ProcessNext()));
             return result;
         }
     }
