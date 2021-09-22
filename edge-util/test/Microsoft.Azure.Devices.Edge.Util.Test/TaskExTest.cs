@@ -336,7 +336,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             }
 
             // Limit select to 3. Tasks 0, 3, and 6 are blocked.
-            // Tasks 0-7 should be started, and tasks 1, 2, 4 and 5 should be finished
+            // Tasks 0-6 should be started, and tasks 1, 2, 4 and 5 should be finished
             var result = Enumerable.Range(0, 10).SelectAsync(func, 3);
             await Task.Delay(100);
             Assert.False(result.IsCompleted);
