@@ -30,6 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string LoadGenModuleName = "loadGenModule";
 
         [Test]
+        [Category("Flaky")]
         public async Task DeviceClient()
         {
             CancellationToken token = this.TestToken;
@@ -68,6 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
+        [Category("Flaky")]
         public async Task ModuleClient()
         {
             CancellationToken token = this.TestToken;
