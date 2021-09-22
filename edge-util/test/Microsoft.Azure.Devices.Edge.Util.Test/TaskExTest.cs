@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Util.Test
 {
     using System;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -235,6 +236,118 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                                             .StartNew<int>(() => throw new UnexpectedException())
                                             .MayThrow(typeof(ExpectedException1));
                     });
+        }
+
+        [Fact]
+        [Unit]
+        public async Task SelectAsyncNoLimitTest()
+        {
+            TaskCompletionSource<int> completionSource = new TaskCompletionSource<int>();
+            int numStarted = 0;
+            Task<int> func(int _)
+            {
+                numStarted++;
+                return completionSource.Task;
+            }
+
+            var result = Enumerable.Range(0, 10).SelectAsync(func);
+            await Task.Delay(100);
+            Assert.False(result.IsCompleted);
+            Assert.Equal(10, numStarted);
+
+            completionSource.SetResult(0);
+            await Task.Delay(100);
+            Assert.True(result.IsCompleted);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task SelectAsyncWithLimitTest()
+        {
+            TaskCompletionSource<int> completionSource = new TaskCompletionSource<int>();
+            int numStarted = 0;
+            Task<int> func(int _)
+            {
+                numStarted++;
+                return completionSource.Task;
+            }
+
+            // Limit select to 5. Only 5 tasks should have started
+            var result = Enumerable.Range(0, 10).SelectAsync(func, 5);
+            await Task.Delay(100);
+            Assert.False(result.IsCompleted);
+            Assert.Equal(5, numStarted);
+
+            completionSource.SetResult(0);
+            await Task.Delay(100);
+            Assert.True(result.IsCompleted);
+            Assert.Equal(10, numStarted);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task SelectAsyncTasksIndependentTest()
+        {
+            TaskCompletionSource<int> completionSource = new TaskCompletionSource<int>();
+            int numStarted = 0;
+            int numFinished = 0;
+            async Task<int> func(int i)
+            {
+                numStarted++;
+                if (i == 3)
+                {
+                    await completionSource.Task;
+                }
+
+                numFinished++;
+                return i;
+            }
+
+            // Limit select to 5. Only 1 task is blocked, so expect all but 1 to complete even with limit.
+            var result = Enumerable.Range(0, 10).SelectAsync(func, 5);
+            await Task.Delay(100);
+            Assert.False(result.IsCompleted);
+            Assert.Equal(10, numStarted);
+            Assert.Equal(9, numFinished);
+
+            completionSource.SetResult(0);
+            await Task.Delay(100);
+            Assert.True(result.IsCompleted);
+            Assert.Equal(10, numFinished);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task SelectAsyncWithStaggeredLimitTest()
+        {
+            TaskCompletionSource<int> completionSource = new TaskCompletionSource<int>();
+            int numStarted = 0;
+            int numFinished = 0;
+            async Task<int> func(int i)
+            {
+                numStarted++;
+                if (i % 3 == 0)
+                {
+                    await completionSource.Task;
+                }
+
+                numFinished++;
+                return i;
+            }
+
+            // Limit select to 3. Tasks 0, 3, and 6 are blocked.
+            // Tasks 0-7 should be started, and tasks 1, 2, 4 and 5 should be finished
+            var result = Enumerable.Range(0, 10).SelectAsync(func, 3);
+            await Task.Delay(100);
+            Assert.False(result.IsCompleted);
+            Assert.Equal(7, numStarted);
+            Assert.Equal(4, numFinished);
+
+            completionSource.SetResult(0);
+            await Task.Delay(100);
+            Assert.True(result.IsCompleted);
+            Assert.Equal(10, numStarted);
+            Assert.Equal(10, numFinished);
         }
 
         private class ExpectedException1 : Exception

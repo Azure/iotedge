@@ -302,7 +302,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             List<U> result = new List<U>();
             var enumerator = source.GetEnumerator();
 
-            // recursive thread safe func that will drain source and call func on each element until source is empty
+            // recursive thread safe function that will drain [source] and call [func] on each element until source is empty
             async Task process_next()
             {
                 T current;

@@ -75,6 +75,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             await Task.WhenAll(removeIdentities.Select(i => this.identityManager.DeleteIdentityAsync(i)));
 
             // Create/update identities.
+            // Since edged limits concurrent calls from a process to 10, edgeAgent should not send all calls at once.
+            // Currently, 5 calls are sent at once to provide a buffer
             IEnumerable<Identity> createdIdentities = await createIdentities.SelectAsync(i => this.identityManager.CreateIdentityAsync(i, Constants.ModuleIdentityEdgeManagedByValue), 5);
             IEnumerable<Identity> updatedIdentities = await updateIdentities.SelectAsync(i => this.identityManager.UpdateIdentityAsync(i.ModuleId, i.GenerationId, i.ManagedBy), 5);
             IEnumerable<Identity> upsertedIdentities = createdIdentities.Concat(updatedIdentities);
