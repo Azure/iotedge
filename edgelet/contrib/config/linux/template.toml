@@ -32,7 +32,7 @@
 # Manifest Trust bundle cert
 # ==============================================================================
 #
-# If you have want to enable Manifest Signing, Manifest Trust Bundle Root CA 
+# If you have want to enable Manifest Signing, Manifest Trust Bundle Root CA
 # certificate is required.
 # uncomment the next line and set the value to a file URI for
 # the path of the file.
@@ -44,17 +44,33 @@
 # Elevated Docker Permissions Flag
 # ==============================================================================
 #
-# Some docker capabilities can be used to gain root access. 
+# Some docker capabilities can be used to gain root access.
 # By default, the --privileged flag and all capabilities listed in the CapAdd
 # field of the docker HostConfig are allowed.
 #
-# In a future release, this will be disabled by default and the flag will be required 
+# In a future release, this will be disabled by default and the flag will be required
 # run as privileged.
 #
 # If no modules require privileged or additional capabilities, uncomment the following
 # line to improve the security of the device.
 #
 # allow_elevated_docker_permissions = false
+
+# ==============================================================================
+# DPS Trust Bundle Name
+# ==============================================================================
+#
+# DPS can be configured to provide trusted root CA certificates for a provisioned
+# device. If provided, this trust bundle is saved to Certificates Service with the
+# name specified here. Applications can then get these certificates from CS using
+# this name.
+#
+# If this setting is not provided and Identity Service receives a trust bundle from
+# DPS, it will save the trust bundle under the default name, aziot-dps-trust-bundle.
+#
+# This setting has no effect when [provisioning.source] is not "dps".
+#
+# dps_trust_bundle = "aziot-dps-trust-bundle"
 
 # ==============================================================================
 # Provisioning

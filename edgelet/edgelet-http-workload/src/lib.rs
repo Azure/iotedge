@@ -124,6 +124,7 @@ where
             device_id: "test-device".to_string(),
             trust_bundle: "test-trust-bundle".to_string(),
             manifest_trust_bundle: "test-manifest-trust-bundle".to_string(),
+            dps_trust_bundle: "test-dps-trust-bundle".to_string(),
             edge_ca_cert: "test-ca-cert".to_string(),
             edge_ca_key: "test-ca-key".to_string(),
         };
@@ -169,6 +170,7 @@ struct WorkloadConfig {
 
     trust_bundle: String,
     manifest_trust_bundle: String,
+    dps_trust_bundle: String,
 
     edge_ca_cert: String,
     edge_ca_key: String,
@@ -204,6 +206,7 @@ impl WorkloadConfig {
 
             trust_bundle,
             manifest_trust_bundle,
+            dps_trust_bundle: settings.dps_trust_bundle().to_string(),
 
             edge_ca_cert,
             edge_ca_key,
@@ -235,6 +238,7 @@ mod tests {
 
                 trust_bundle: edgelet_settings::TRUST_BUNDLE_ALIAS.to_string(),
                 manifest_trust_bundle: edgelet_settings::MANIFEST_TRUST_BUNDLE_ALIAS.to_string(),
+                dps_trust_bundle: settings.dps_trust_bundle,
 
                 edge_ca_cert: edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_string(),
                 edge_ca_key: edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_string(),
@@ -259,6 +263,7 @@ mod tests {
             edge_ca_key: Some("test-ca-key".to_string()),
             trust_bundle: Some("test-trust-bundle".to_string()),
             manifest_trust_bundle: Some("test-manifest-trust-bundle".to_string()),
+            dps_trust_bundle: "test-dps-trust-bundle".to_string(),
         };
 
         // Check that values from settings are used when provided.
@@ -270,6 +275,7 @@ mod tests {
 
                 trust_bundle: "test-trust-bundle".to_string(),
                 manifest_trust_bundle: "test-manifest-trust-bundle".to_string(),
+                dps_trust_bundle: "test-dps-trust-bundle".to_string(),
 
                 edge_ca_cert: "test-ca-cert".to_string(),
                 edge_ca_key: "test-ca-key".to_string(),

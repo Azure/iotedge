@@ -9,6 +9,7 @@ edition = "2018"
 serde = { version = "1.0", features = ["derive"] }
 url = { version = "2", features = ["serde"] }
 
+aziot-identityd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs" }
 config-common = { git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs", optional = true }
 docker = { path = "../docker-rs", optional = true }
 

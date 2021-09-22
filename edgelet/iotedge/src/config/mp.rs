@@ -65,6 +65,8 @@ To reconfigure IoT Edge, run:
 
             cloud_retries: aziot_identityd_config::Settings::default_cloud_retries(),
 
+            dps_trust_bundle: aziot_identityd_config::Settings::default_dps_trust_bundle(),
+
             aziot_keys: Default::default(),
 
             preloaded_keys: Default::default(),

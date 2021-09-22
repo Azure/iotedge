@@ -7,6 +7,7 @@ pub struct Settings {
 
     pub trust_bundle: Option<String>,
     pub manifest_trust_bundle: Option<String>,
+    pub dps_trust_bundle: String,
 }
 
 impl edgelet_settings::RuntimeSettings for Settings {
@@ -26,6 +27,10 @@ impl edgelet_settings::RuntimeSettings for Settings {
 
     fn manifest_trust_bundle_cert(&self) -> Option<&str> {
         self.manifest_trust_bundle.as_deref()
+    }
+
+    fn dps_trust_bundle(&self) -> &str {
+        &self.dps_trust_bundle
     }
 
     // The functions below aren't used in tests.

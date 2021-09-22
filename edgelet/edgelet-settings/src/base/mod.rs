@@ -15,6 +15,7 @@ pub trait RuntimeSettings {
 
     fn trust_bundle_cert(&self) -> Option<&str>;
     fn manifest_trust_bundle_cert(&self) -> Option<&str>;
+    fn dps_trust_bundle(&self) -> &str;
 
     fn auto_reprovisioning_mode(&self) -> aziot::AutoReprovisioningMode;
 
@@ -46,6 +47,12 @@ pub struct Settings<ModuleConfig> {
     pub trust_bundle_cert: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub manifest_trust_bundle_cert: Option<String>,
+
+    #[serde(
+        default = "aziot_identityd_config::Settings::default_dps_trust_bundle",
+        skip_serializing_if = "aziot_identityd_config::Settings::is_default_dps_trust_bundle"
+    )]
+    pub dps_trust_bundle: String,
 
     #[serde(default)]
     pub auto_reprovisioning_mode: aziot::AutoReprovisioningMode,
@@ -96,6 +103,10 @@ impl<T: Clone> RuntimeSettings for Settings<T> {
 
     fn manifest_trust_bundle_cert(&self) -> Option<&str> {
         self.manifest_trust_bundle_cert.as_deref()
+    }
+
+    fn dps_trust_bundle(&self) -> &str {
+        &self.dps_trust_bundle
     }
 
     fn auto_reprovisioning_mode(&self) -> aziot::AutoReprovisioningMode {

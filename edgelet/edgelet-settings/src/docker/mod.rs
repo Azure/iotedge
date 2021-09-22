@@ -74,6 +74,10 @@ impl crate::RuntimeSettings for Settings {
         self.base.manifest_trust_bundle_cert()
     }
 
+    fn dps_trust_bundle(&self) -> &str {
+        self.base.dps_trust_bundle()
+    }
+
     fn auto_reprovisioning_mode(&self) -> crate::aziot::AutoReprovisioningMode {
         self.base.auto_reprovisioning_mode()
     }

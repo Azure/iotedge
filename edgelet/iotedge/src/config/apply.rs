@@ -190,6 +190,9 @@ fn execute_inner(
         moby_runtime,
     } = toml::from_slice(&config).map_err(|err| format!("could not parse config file: {}", err))?;
 
+    // The DPS trust bundle name must be known by both aziot-edged and aziot-identityd.
+    let dps_trust_bundle = aziot.dps_trust_bundle.clone();
+
     let aziotctl_common::config::apply::RunOutput {
         mut certd_config,
         mut identityd_config,
@@ -402,6 +405,7 @@ fn execute_inner(
             edge_ca_key,
             trust_bundle_cert: Some(edgelet_settings::TRUST_BUNDLE_ALIAS.to_owned()),
             manifest_trust_bundle_cert,
+            dps_trust_bundle,
 
             auto_reprovisioning_mode,
 
