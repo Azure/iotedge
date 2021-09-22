@@ -55,6 +55,17 @@ async fn run() -> Result<(), EdgedError> {
         )
     })?;
 
+    let mnt_dir = std::path::Path::new(&settings.homedir()).join("mnt");
+    std::fs::create_dir_all(&mnt_dir).map_err(|err| {
+        EdgedError::from_err(
+            format!(
+                "Failed to create mnt directory {}",
+                mnt_dir.as_path().display()
+            ),
+            err,
+        )
+    })?;
+
     let identity_client = provision::identity_client(&settings)?;
 
     let device_info = provision::get_device_info(
