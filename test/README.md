@@ -134,7 +134,7 @@ chmod u+x dotnet-install.sh
 ~~~
 
 ## One time cloud resources setup for the tests
-The end-to-end tests require a number of azure cloud side resources i.e., IoTHub, Device Provisioning Service, and a Storage Container to be setup. This next section will walk you through how to setup the cloud resources.
+The end-to-end tests require a number of azure cloud side resources i.e., IoTHub, Device Provisioning Service, and a Storage Container to be setup. This next section will walk you through how to setup the cloud resources. See [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/) for further information on the CLI.
 
 ##### Create a resource group
 If you don't already have a resource group, create one.
@@ -144,12 +144,12 @@ az group create --name {resource group name} --location {region}
 ~~~
 
 ##### IoT Hub
-If you don't already have an existing IoT hub, create one. There is no special configuration required, except for making sure that your IoTHub is enabled for public access.
+If you don't already have an IoT hub, create one. There is no special configuration required, except for making sure that your IoTHub is enabled for public access.
 Here is how you can create one using the CLI
 
 ~~~sh
-# Create a free tier Iot hub
-az iot hub create --resource-group {resource group name} --name {IoT hub name} --sku F1 --partition-count 2
+# Create an Iot hub
+az iot hub create --resource-group {resource group name} --name {IoT hub name} 
 ~~~
 
 Note down the `event hub compatible endpoint` and the primary connection string of the `iothubowner` policy. These will need to be set in the `E2E_EVENT_HUB_ENDPOINT` and `E2E_IOT_HUB_CONNECTION_STRING` environment variables later to run the tests.
