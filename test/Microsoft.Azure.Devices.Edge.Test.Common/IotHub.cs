@@ -93,15 +93,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 Log.Verbose($"Parent scope: {parentDeviceScope}");
                 var result = new Device(deviceId)
                                  {
-                                    Authentication = new AuthenticationMechanism()
-                                    {
-                                        Type = authType,
-                                        X509Thumbprint = x509Thumbprint
-                                    },
-                                    Capabilities = new DeviceCapabilities()
-                                    {
-                                        IotEdge = true
-                                    }
+                                     Authentication = new AuthenticationMechanism()
+                                     {
+                                         Type = authType,
+                                         X509Thumbprint = x509Thumbprint
+                                     },
+                                     Capabilities = new DeviceCapabilities()
+                                     {
+                                         IotEdge = true
+                                     }
                                  };
                 result.ParentScopes.Add(parentDeviceScope);
                 return result;
