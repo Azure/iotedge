@@ -22,7 +22,34 @@ impl Checker for ProxySettings {
 }
 
 impl ProxySettings{
-    async fn inner_execute(&mut self, _check: &mut Check) -> Result<CheckResult, failure::Error> {    
-        return Err(Context::new("Not implemented").into());
+    async fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+        let settings = if let Some(settings) = &mut check.settings {
+            settings
+        } else {
+            return Ok(CheckResult::Skipped);
+        };
+
+        // Pull the proxy address from the aziot-edged settings
+        // for Edge Agent's environment variables.
+        let edge_agent_proxy_uri = settings.base.agent.env().get("https_proxy");
+
+        // Pull the proxy address from the evironment for Moby and Edge Daemon
+        let moby_proxy_uri = std::env::var("HTTPS_PROXY")
+                                .ok();
+        let edge_daemon_proxy_uri = std::env::var("https_proxy")
+                                .ok();
+
+        println!("edge agent: {:?}", edge_agent_proxy_uri);
+        println!("moby: {:?}", moby_proxy_uri);
+        println!("edge daemon: {:?}", edge_daemon_proxy_uri);
+
+        if edge_agent_proxy_uri.is_some() && moby_proxy_uri.is_some() && edge_daemon_proxy_uri.is_some() {
+            Ok(CheckResult::Ok)
+        } else if edge_agent_proxy_uri.is_none() && moby_proxy_uri.is_none() && edge_daemon_proxy_uri.is_none() {
+            Ok(CheckResult::Ok)
+        } else {
+            // to do break down the error to say which setting is off
+            return Err(Context::new("The proxy setting for IoT Edge Agent or IoT Edge Daemon or Moby is inconsistent.").into());
+        }
     }
 }
