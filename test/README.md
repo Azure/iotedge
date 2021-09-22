@@ -67,7 +67,7 @@ sudo apt-get install moby-engine
 ~~~
 ###### Create TLS certificates
 We will be running the container registry with TLS and authentication turned on. If you already have certs for TLS, feel free to use those and skip the cert creation steps listed below. 
-In a convenient directory, create a folder called `auth` to store your keys and certs (*I have used /home/azureuser/auth*)
+In a convenient directory, create a folder called `auth` to store your keys and certs (*The snippets below use /home/azureuser/auth*)
 ~~~sh
 mkdir auth
 cd auth
@@ -147,7 +147,7 @@ Here is how you can create one using the CLI
 
 ~~~sh
 # Create a free tier Iot hub
-az iot hub create --resource-group {resource group name} --name {IoT hub name} --sku F1 --partition-count 2
+az iot hub create --resource-group {resource group name} --name {IoT hub name} 
 ~~~
 
 Note down the `event hub compatible endpoint` and the primary connection string of the `iothubowner` policy. These will need to be set in the `E2E_EVENT_HUB_ENDPOINT` and `E2E_IOT_HUB_CONNECTION_STRING` environment variables later to run the tests.
@@ -239,7 +239,7 @@ git submodule update --init --recursive
 ./edgelet/build/linux/package.sh
 
 # copy the libiothsm*.deb file into the edgelet release directory, so that the
-# tests can pickup both deb files from the same folder.
+# tests can pickup both .deb files from the same folder.
 cp edgelet/target/hsm/libiothsm*.deb edgelet/target/release
 
 ~~~
