@@ -101,7 +101,9 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
                 binutils build-essential ca-certificates curl debhelper file git make \
                 gcc g++ pkg-config \
                 libcurl4-openssl-dev libssl-dev uuid-dev &&
-            (apt-get install -y --no-install-recommends dh-systemd || true ) &&
+            && ( env DEBIAN_FRONTEND=noninteractive apt-get install \
+         -yqq --no-install-recommends -o Dpkg::Options::=--force-unsafe-io \
+         dh-systemd || true ) &&
         '
         ;;
     
@@ -117,7 +119,9 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
                 gcc g++ \
                 gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf \
                 libcurl4-openssl-dev:armhf libssl-dev:armhf uuid-dev:armhf &&
-            (apt-get install -y --no-install-recommends dh-systemd || true ) &&
+            && ( env DEBIAN_FRONTEND=noninteractive apt-get install \
+         -yqq --no-install-recommends -o Dpkg::Options::=--force-unsafe-io \
+         dh-systemd || true ) &&
 
             mkdir -p ~/.cargo &&
             echo \'[target.armv7-unknown-linux-gnueabihf]\' > ~/.cargo/config &&
@@ -139,7 +143,9 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
                 gcc g++ \
                 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
                 libcurl4-openssl-dev:arm64 libssl-dev:arm64 uuid-dev:arm64 &&
-            (apt-get install -y --no-install-recommends dh-systemd || true ) &&
+            && ( env DEBIAN_FRONTEND=noninteractive apt-get install \
+         -yqq --no-install-recommends -o Dpkg::Options::=--force-unsafe-io \
+         dh-systemd || true ) &&
 
             mkdir -p ~/.cargo &&
             echo \'[target.aarch64-unknown-linux-gnu]\' > ~/.cargo/config &&
