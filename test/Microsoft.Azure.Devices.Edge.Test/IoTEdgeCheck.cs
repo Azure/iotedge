@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
     using System.Collections.Generic;
-    using System.Diagnostics;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -46,74 +45,43 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     }
                 }
 
-                var dockerLoginProcess = new System.Diagnostics.Process
-                {
-                    StartInfo = new ProcessStartInfo
-                    {
-                        FileName = "sudo",
-                        UseShellExecute = false,
-                        RedirectStandardOutput = true,
-                        ArgumentList =
-                        {
-                            "docker",
-                            "login",
-                            "--username",
-                            diagnosticsRegistry.Username,
-                            "--password",
-                            diagnosticsRegistry.Password,
-                            diagnosticsRegistry.Address
-                        }
-                    }
-                };
-                dockerLoginProcess.Start();
-                await Task.Run(() =>
-                {
-                    while (!dockerLoginProcess.StandardOutput.EndOfStream)
-                    {
-                        string line = dockerLoginProcess.StandardOutput.ReadLine();
-                        Log.Information(line);
-                    }
-                });
+                await Process.RunAsync(
+                    "docker",
+                    $"login --username {diagnosticsRegistry.Username} --password {diagnosticsRegistry.Password} {diagnosticsRegistry.Address}",
+                    token);
             }
 
-            var iotedgeCheckProcess = new System.Diagnostics.Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = "sudo",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    ArgumentList = { "iotedge", "check", "--diagnostics-image-name", diagnosticImageName, "--verbose" }
-                }
-            };
-
+            string args = $"check --diagnostics-image-name {diagnosticImageName} --verbose";
             if (Context.Current.EdgeProxy.HasValue)
             {
                 // When test runs behind proxy, skip MQTT and AMQP checks which legitimately fail
-                new List<string>
+                args += string.Join(" ", new[]
                 {
-                    "--dont-run",
-                    "container-connect-upstream-mqtt", "container-connect-upstream-amqp",
-                    "container-default-connect-upstream-mqtt", "container-default-connect-upstream-amqp",
-                    "host-connect-iothub-mqtt", "host-connect-iothub-amqp"
-                }.ForEach(arg => iotedgeCheckProcess.StartInfo.ArgumentList.Add(arg));
+                    " --dont-run",
+                    "container-connect-upstream-mqtt",
+                    "container-connect-upstream-amqp",
+                    "container-default-connect-upstream-mqtt",
+                    "container-default-connect-upstream-amqp",
+                    "host-connect-iothub-mqtt",
+                    "host-connect-iothub-amqp"
+                });
             }
 
             string errors_number = string.Empty;
-            iotedgeCheckProcess.Start();
-            await Task.Run(() =>
+
+            void OnStdout(string o)
             {
-                while (!iotedgeCheckProcess.StandardOutput.EndOfStream)
+                Log.Verbose(o);
+                if (o.Contains("check(s) raised errors"))
                 {
-                    string line = iotedgeCheckProcess.StandardOutput.ReadLine();
-                    Log.Information(line);
-                    if (line.Contains("check(s) raised errors"))
-                    {
-                        // Extract the number of errors
-                        errors_number = line;
-                    }
+                    // Extract the number of errors
+                    errors_number = o;
                 }
-            });
+            }
+
+            void OnStderr(string e) => Log.Verbose(e);
+
+            await Process.RunAsync("iotedge", args, OnStdout, OnStderr, token);
 
             Assert.AreEqual(string.Empty, errors_number);
         }

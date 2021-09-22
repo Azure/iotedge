@@ -161,7 +161,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     // Send a message from the leaf device
                     DateTime seekTime = DateTime.Now;
                     await leaf.SendEventAsync(token);
-                    Log.Information($"Sent message from {leafDeviceId}");
+                    Log.Verbose($"Sent message from {leafDeviceId}");
 
                     // Verify that the message was received/resent by the relayer module on L4
                     await Profiler.Run(
@@ -198,16 +198,16 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             CancellationToken token = this.TestToken;
 
-            Log.Information("Deploying L3 Edge");
+            Log.Verbose("Deploying L3 Edge");
             await this.runtime.DeployConfigurationAsync(token, this.device.NestedEdge.IsNestedEdge);
 
             // Disable the parent Edge device
-            Log.Information("Disabling Edge device");
+            Log.Verbose("Disabling Edge device");
             await this.IotHub.UpdateEdgeEnableStatus(this.runtime.DeviceId, false);
             await Task.Delay(TimeSpan.FromSeconds(10));
 
             // Re-enable parent Edge
-            Log.Information("Re-enabling Edge device");
+            Log.Verbose("Re-enabling Edge device");
             await this.IotHub.UpdateEdgeEnableStatus(this.runtime.DeviceId, true);
             await Task.Delay(TimeSpan.FromSeconds(10));
 
