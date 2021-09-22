@@ -23,6 +23,6 @@ impl Checker for ProxySettings {
 
 impl ProxySettings{
     async fn inner_execute(&mut self, _check: &mut Check) -> Result<CheckResult, failure::Error> {    
-        return Err(Context::new("To be implemented").into());
+        return Err(Context::new("Not implemented").into());
     }
 }
