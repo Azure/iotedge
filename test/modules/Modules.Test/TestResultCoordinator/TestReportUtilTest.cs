@@ -79,10 +79,10 @@ namespace Modules.Test.TestResultCoordinator
 
             string trackingId = "fakeTrackingId";
             var countingReportMetadata = new CountingReportMetadata(TestDescription, "CountingExpectedSource", "CountingAcutalSource", TestOperationResultType.Messages, TestReportType.CountingReport, false);
-            var twinCountingReportMetadata = new TwinCountingReportMetadata(TestDescription, "TwinExpectedSource", "TwinActualSource", TestReportType.TwinCountingReport, TwinTestPropertyType.Desired);
+            var twinCountingReportMetadata = new TwinCountingReportMetadata(TestDescription, Topology.SingleNode, "TwinExpectedSource", "TwinActualSource", TestReportType.TwinCountingReport, TwinTestPropertyType.Desired);
             var deploymentReportMetadata = new DeploymentTestReportMetadata(TestDescription, "DeploymentExpectedSource", "DeploymentActualSource");
-            var directMethodConnectivityReportMetadata = new DirectMethodConnectivityReportMetadata(TestDescription, "DirectMethodSenderSource", new TimeSpan(0, 0, 0, 0, 5), "DirectMethodReceiverSource");
-            var directMethodConnectivityReportMetadataWithoutReceiverSource = new DirectMethodConnectivityReportMetadata(TestDescription, "DirectMethodSenderSource", new TimeSpan(0, 0, 0, 0, 5), "DirectMethodReceiverSource");
+            var directMethodConnectivityReportMetadata = new DirectMethodConnectivityReportMetadata(TestDescription, Topology.SingleNode, "DirectMethodSenderSource", new TimeSpan(0, 0, 0, 0, 5), "DirectMethodReceiverSource");
+            var directMethodConnectivityReportMetadataWithoutReceiverSource = new DirectMethodConnectivityReportMetadata(TestDescription, Topology.SingleNode, "DirectMethodSenderSource", new TimeSpan(0, 0, 0, 0, 5), "DirectMethodReceiverSource");
             var directMethodLongHaulReportMetadata = new DirectMethodLongHaulReportMetadata(TestDescription, "DirectMethodSenderSource", "DirectMethodReceiverSource");
             var directMethodLongHaulReportMetadataWithoutReceiverSource = new DirectMethodLongHaulReportMetadata(TestDescription, "DirectMethodSenderSource", "DirectMethodReceiverSource");
             var edgeHubRestartMessageReportMetadata = new EdgeHubRestartMessageReportMetadata(TestDescription, "edgeHubRestartTester1.EdgeHubRestartMessage", "relayer1.receive");
@@ -540,7 +540,24 @@ namespace Modules.Test.TestResultCoordinator
         {
             if (!throwException)
             {
-                return Task.FromResult<ITestResultReport>(new CountingReport("mock", "mock", "mock", "mock", "mock", 23, 21, 12, 0, 0, new List<TestOperationResult>(), Option.None<EventHubSpecificReportComponents>(), Option.None<DateTime>()));
+                return Task.FromResult<ITestResultReport>(new CountingReport(
+                  "mock",
+                  TestMode.Connectivity,
+                  "mock",
+                  "mock",
+                  "mock",
+                  "mock",
+                  23,
+                  21,
+                  12,
+                  0,
+                  0,
+                  new List<TestOperationResult>(),
+                  new List<TestOperationResult>(),
+                  new List<TestOperationResult>(),
+                  new List<TestOperationResult>(),
+                  Option.None<EventHubSpecificReportComponents>(),
+                  Option.None<DateTime>()));
             }
 
             return Task.FromException<ITestResultReport>(new ApplicationException("Inject exception for testing"));

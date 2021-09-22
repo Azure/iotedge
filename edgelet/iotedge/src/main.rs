@@ -14,16 +14,16 @@ use failure::{Fail, ResultExt};
 use url::Url;
 
 use edgelet_core::{parse_since, LogOptions, LogTail};
-use edgelet_http_mgmt::ModuleClient;
 use support_bundle::OutputLocation;
 
 use iotedge::{
-    Check, Command, Error, ErrorKind, List, Logs, OutputFormat, Restart, SupportBundleCommand,
-    System, Unknown, Version,
+    Check, Error, ErrorKind, List, Logs, MgmtClient, OutputFormat, Restart, SupportBundleCommand,
+    System, Version,
 };
 
-fn main() {
-    if let Err(ref error) = run() {
+#[tokio::main]
+async fn main() {
+    if let Err(ref error) = run().await {
         let fail: &dyn Fail = error;
 
         eprintln!("{}", error.to_string());
@@ -39,7 +39,7 @@ fn main() {
 }
 
 #[allow(clippy::too_many_lines)]
-fn run() -> Result<(), Error> {
+async fn run() -> Result<(), Error> {
     let aziot_bin = option_env!("AZIOT_BIN").unwrap_or("aziotctl");
 
     let default_mgmt_uri = option_env!("IOTEDGE_CONNECT_MANAGEMENT_URI")
@@ -50,8 +50,13 @@ fn run() -> Result<(), Error> {
         edgelet_core::version().replace("~", "-")
     );
 
+    let default_support_bundle_name = format!(
+        "support_bundle{}.zip",
+        chrono::Utc::now().format("_%Y_%m_%d_%H_%M_%S_%Z")
+    );
+
     let matches = App::new(crate_name!())
-        .version(edgelet_core::version_with_source_version())
+        .version(&*edgelet_core::version_with_source_version())
         .about(crate_description!())
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .arg(
@@ -339,7 +344,7 @@ fn run() -> Result<(), Error> {
                         .short("o")
                         .takes_value(true)
                         .value_name("FILENAME")
-                        .default_value("support_bundle.zip"),
+                        .default_value(&default_support_bundle_name),
                 )
                 .arg(
                     Arg::with_name("since")
@@ -388,11 +393,8 @@ fn run() -> Result<(), Error> {
                     .map_err(Error::from)
             },
         )?;
-        let runtime = ModuleClient::new(&url).context(ErrorKind::ModuleRuntime)?;
-        Ok(runtime)
+        MgmtClient::new(&url)
     };
-
-    let mut tokio_runtime = tokio::runtime::Runtime::new().context(ErrorKind::InitializeTokio)?;
 
     match matches.subcommand() {
         ("check", Some(args)) => {
@@ -430,9 +432,9 @@ fn run() -> Result<(), Error> {
                 args.value_of("iothub-hostname").map(ToOwned::to_owned),
                 args.value_of("proxy-uri").map(ToOwned::to_owned),
             );
-            check.execute(&mut tokio_runtime)
+            check.execute().await
         }
-        ("check-list", Some(_)) => Check::print_list(aziot_bin),
+        ("check-list", Some(_)) => Check::print_list(aziot_bin).await,
         ("config", Some(args)) => match args.subcommand() {
             ("apply", Some(args)) => {
                 let config_file = args
@@ -482,15 +484,16 @@ fn run() -> Result<(), Error> {
                 std::process::exit(1);
             }
         },
-        ("list", _) => tokio_runtime.block_on(List::new(runtime()?, io::stdout()).execute()),
-        ("restart", Some(args)) => tokio_runtime.block_on(
+        ("list", _) => List::new(runtime()?, io::stdout()).execute().await,
+        ("restart", Some(args)) => {
             Restart::new(
                 args.value_of("MODULE").unwrap().to_string(),
                 runtime()?,
                 io::stdout(),
             )
-            .execute(),
-        ),
+            .execute()
+            .await
+        }
         ("logs", Some(args)) => {
             let id = args.value_of("MODULE").unwrap().to_string();
             let follow = args.is_present("follow");
@@ -520,7 +523,8 @@ fn run() -> Result<(), Error> {
             {
                 options = options.with_until(until);
             }
-            tokio_runtime.block_on(Logs::new(id, options, runtime()?).execute())
+
+            Logs::new(id, options, runtime()?).execute().await
         }
         ("system", Some(args)) => match args.subcommand() {
             ("logs", Some(args)) => {
@@ -537,7 +541,7 @@ fn run() -> Result<(), Error> {
                 log::Level::from_str(args.value_of("log_level").expect("Value is required"))
                     .expect("Value is restricted to parsable fields"),
             ),
-            ("reprovision", Some(_args)) => System::reprovision(&mut tokio_runtime),
+            ("reprovision", Some(_args)) => System::reprovision().await,
 
             (command, _) => {
                 eprintln!("Unknown system subcommand {:?}", command);
@@ -573,19 +577,24 @@ fn run() -> Result<(), Error> {
                 OutputLocation::File(location.to_owned())
             };
 
-            tokio_runtime.block_on(
-                SupportBundleCommand::new(
-                    options,
-                    include_ms_only,
-                    verbose,
-                    iothub_hostname,
-                    output_location,
-                    runtime()?,
-                )
-                .execute(),
+            SupportBundleCommand::new(
+                options,
+                include_ms_only,
+                verbose,
+                iothub_hostname,
+                output_location,
+                runtime()?,
             )
+            .execute()
+            .await
         }
-        ("version", _) => tokio_runtime.block_on(Version::new().execute()),
-        (command, _) => tokio_runtime.block_on(Unknown::new(command.to_string()).execute()),
+        ("version", _) => {
+            Version::print_version();
+            Ok(())
+        }
+        (command, _) => {
+            eprintln!("unknown command: {}", command);
+            Ok(())
+        }
     }
 }

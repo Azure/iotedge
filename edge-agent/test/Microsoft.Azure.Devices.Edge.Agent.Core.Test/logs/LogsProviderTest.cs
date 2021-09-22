@@ -30,17 +30,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
         public static IEnumerable<object[]> GetNeedToProcessStreamTestData()
         {
             yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, ModuleLogFilter.Empty, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), false };
-            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<string>(), Option.None<int>(), Option.None<string>()), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), false };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<string>(), Option.None<int>(), Option.None<bool>(), Option.None<string>()), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), false };
             yield return new object[] { new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Text, ModuleLogFilter.Empty, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
-            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<string>(), Option.Some(3), Option.Some("foo")), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
-            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<string>(), Option.Some(3), Option.None<string>()), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
-            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<string>(), Option.None<int>(), Option.Some("foo")), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
-            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Json, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<string>(), Option.None<int>(), Option.None<string>()), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
-            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<string>(), Option.None<int>(), Option.None<string>()), LogOutputFraming.SimpleLength, Option.None<LogsOutputGroupingConfig>(), false), true };
-            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<string>(), Option.None<int>(), Option.None<string>()), LogOutputFraming.None, Option.Some(new LogsOutputGroupingConfig(100, TimeSpan.FromMilliseconds(1000))), false), false };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<string>(), Option.Some(3), Option.None<bool>(), Option.Some("foo")), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<string>(), Option.Some(3), Option.None<bool>(), Option.None<string>()), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<string>(), Option.None<int>(), Option.None<bool>(), Option.Some("foo")), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Json, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<string>(), Option.None<int>(), Option.None<bool>(), Option.None<string>()), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<string>(), Option.None<int>(), Option.None<bool>(), Option.None<string>()), LogOutputFraming.SimpleLength, Option.None<LogsOutputGroupingConfig>(), false), true };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<string>(), Option.None<int>(), Option.None<bool>(), Option.None<string>()), LogOutputFraming.None, Option.Some(new LogsOutputGroupingConfig(100, TimeSpan.FromMilliseconds(1000))), false), false };
         }
 
         [Fact]
+        [Trait("Category", "GetLogsTests")]
         public async Task GetLogsAsTextTest()
         {
             // Arrange
@@ -49,11 +50,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             string moduleId = "mod1";
             Option<int> tail = Option.None<int>();
             Option<string> since = Option.None<string>();
+            Option<string> until = Option.None<string>();
+            Option<bool> includeTimestamp = Option.None<bool>();
             CancellationToken cancellationToken = CancellationToken.None;
             string expectedLogText = TestLogTexts.Join(string.Empty);
 
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
-            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, false, tail, since, Option.None<string>(), cancellationToken))
+            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, false, tail, since, until, includeTimestamp, cancellationToken))
                 .ReturnsAsync(new MemoryStream(DockerFraming.Frame(TestLogTexts)));
 
             var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));
@@ -70,19 +73,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
         }
 
         [Fact]
+        [Trait("Category", "GetLogsTests")]
         public async Task GetLogsAsTextWithCompressionTest()
         {
             // Arrange
             string iotHub = "foo.azure-devices.net";
-            string deviceId = "dev1";
-            string moduleId = "mod1";
+            string deviceId = "dev2";
+            string moduleId = "mod2";
             Option<int> tail = Option.None<int>();
             Option<string> since = Option.None<string>();
+            Option<string> until = Option.None<string>();
+            Option<bool> includeTimestamp = Option.None<bool>();
             CancellationToken cancellationToken = CancellationToken.None;
             string expectedLogText = TestLogTexts.Join(string.Empty);
 
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
-            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, false, tail, since, Option.None<string>(), cancellationToken))
+            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, false, tail, since, until, includeTimestamp, cancellationToken))
                 .ReturnsAsync(new MemoryStream(DockerFraming.Frame(TestLogTexts)));
 
             var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));
@@ -108,16 +114,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             string moduleId = "mod1";
             Option<int> tail = Option.None<int>();
             Option<string> since = Option.None<string>();
+            Option<string> until = Option.None<string>();
+            Option<bool> includeTimestamp = Option.Some(true);
             CancellationToken cancellationToken = CancellationToken.None;
 
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
-            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, false, tail, since, Option.None<string>(), cancellationToken))
+            // Note: EdgeAgent automatically includes the timestamp for log parsing by default for content type JSON
+            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, false, tail, since, until, includeTimestamp, cancellationToken))
                 .ReturnsAsync(new MemoryStream(DockerFraming.Frame(TestLogTexts)));
 
             var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
 
-            var logOptions = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Json, ModuleLogFilter.Empty, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
+            ModuleLogFilter filter = new ModuleLogFilter(tail, since, until, Option.None<int>(), includeTimestamp, Option.None<string>());
+            var logOptions = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Json, filter, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
 
             // Act
             byte[] bytes = await logsProvider.GetLogs(moduleId, logOptions, cancellationToken);
@@ -149,16 +159,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             string moduleId = "mod1";
             Option<int> tail = Option.None<int>();
             Option<string> since = Option.None<string>();
+            Option<string> until = Option.None<string>();
+            Option<bool> includeTimestamp = Option.Some(true);
             CancellationToken cancellationToken = CancellationToken.None;
 
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
-            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, false, tail, since, Option.None<string>(), cancellationToken))
+            // Note: EdgeAgent automatically includes the timestamp for log parsing by default for content type JSON
+            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, false, tail, since, until, includeTimestamp, cancellationToken))
                 .ReturnsAsync(new MemoryStream(DockerFraming.Frame(TestLogTexts)));
 
             var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
 
-            var logOptions = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Json, ModuleLogFilter.Empty, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
+            ModuleLogFilter filter = new ModuleLogFilter(tail, since, until, Option.None<int>(), includeTimestamp, Option.None<string>());
+            var logOptions = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Json, filter, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
 
             // Act
             byte[] bytes = await logsProvider.GetLogs(moduleId, logOptions, cancellationToken);
@@ -183,19 +197,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
         }
 
         [Fact]
+        [Trait("Category", "GetLogsTests")]
         public async Task GetLogsStreamTest()
         {
             // Arrange
             string iotHub = "foo.azure-devices.net";
-            string deviceId = "dev1";
-            string moduleId = "mod1";
+            string deviceId = "dev3";
+            string moduleId = "mod3";
             Option<int> tail = Option.None<int>();
             Option<string> since = Option.None<string>();
+            Option<string> until = Option.None<string>();
+            Option<bool> includeTimestamp = Option.None<bool>();
             CancellationToken cancellationToken = CancellationToken.None;
 
             byte[] dockerLogsStreamBytes = DockerFraming.Frame(TestLogTexts);
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
-            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, true, tail, since, Option.None<string>(), cancellationToken))
+            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, true, tail, since, until, includeTimestamp, cancellationToken))
                 .ReturnsAsync(new MemoryStream(dockerLogsStreamBytes));
             runtimeInfoProvider.Setup(r => r.GetModules(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new[] { new ModuleRuntimeInfo(moduleId, "docker", ModuleStatus.Running, "foo", 0, Option.None<DateTime>(), Option.None<DateTime>()) });
@@ -234,7 +251,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
 
             byte[] dockerLogsStreamBytes = DockerFraming.Frame(TestLogTexts);
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
-            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, true, tail, since, Option.None<string>(), cancellationToken))
+            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, true, tail, since, Option.None<string>(), Option.None<bool>(), cancellationToken))
                 .ReturnsAsync(new MemoryStream(dockerLogsStreamBytes));
             runtimeInfoProvider.Setup(r => r.GetModules(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new[] { new ModuleRuntimeInfo(moduleId, "docker", ModuleStatus.Running, "foo", 0, Option.None<DateTime>(), Option.None<DateTime>()) });
@@ -242,7 +259,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
 
-            var filter = new ModuleLogFilter(tail, since, Option.None<string>(), Option.Some(6), Option.Some("Starting"));
+            var filter = new ModuleLogFilter(tail, since, Option.None<string>(), Option.Some(6), Option.None<bool>(), Option.Some("Starting"));
             var logOptions = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Text, filter, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), true);
 
             var receivedBytes = new List<byte>();
@@ -278,8 +295,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             string moduleId1 = "mod1";
             string moduleId2 = "mod2";
 
-            var filter1 = new ModuleLogFilter(tail, since, Option.None<string>(), Option.Some(6), Option.Some("Starting"));
-            var filter2 = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.None<int>(), Option.Some("bad"));
+            var filter1 = new ModuleLogFilter(tail, since, Option.None<string>(), Option.Some(6), Option.None<bool>(), Option.Some("Starting"));
+            var filter2 = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.None<int>(), Option.None<bool>(), Option.Some("bad"));
 
             byte[] dockerLogsStreamBytes1 = DockerFraming.Frame(TestLogTexts);
             byte[] dockerLogsStreamBytes2 = DockerFraming.Frame(TestLogTexts);
@@ -291,9 +308,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             };
 
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
-            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId1, true, tail, since, Option.None<string>(), cancellationToken))
+            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId1, true, tail, since, Option.None<string>(), Option.None<bool>(), cancellationToken))
                 .ReturnsAsync(new MemoryStream(dockerLogsStreamBytes1));
-            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId2, true, Option.None<int>(), Option.None<string>(), Option.None<string>(), cancellationToken))
+            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId2, true, Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.None<bool>(), cancellationToken))
                 .ReturnsAsync(new MemoryStream(dockerLogsStreamBytes2));
             runtimeInfoProvider.Setup(r => r.GetModules(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(modulesList);
@@ -351,7 +368,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             string moduleId1 = "mod1";
             string moduleId2 = "mod2";
 
-            var filter = new ModuleLogFilter(tail, since, Option.None<string>(), Option.None<int>(), Option.Some("bad"));
+            var filter = new ModuleLogFilter(tail, since, Option.None<string>(), Option.None<int>(), Option.None<bool>(), Option.Some("bad"));
 
             byte[] dockerLogsStreamBytes1 = DockerFraming.Frame(TestLogTexts);
             byte[] dockerLogsStreamBytes2 = DockerFraming.Frame(TestLogTexts);
@@ -363,9 +380,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             };
 
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
-            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId1, true, tail, since, Option.None<string>(), cancellationToken))
+            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId1, true, tail, since, Option.None<string>(), Option.None<bool>(), cancellationToken))
                 .ReturnsAsync(new MemoryStream(dockerLogsStreamBytes1));
-            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId2, true, tail, since, Option.None<string>(), cancellationToken))
+            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId2, true, tail, since, Option.None<string>(), Option.None<bool>(), cancellationToken))
                 .ReturnsAsync(new MemoryStream(dockerLogsStreamBytes2));
             runtimeInfoProvider.Setup(r => r.GetModules(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(modulesList);

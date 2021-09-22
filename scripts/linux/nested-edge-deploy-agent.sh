@@ -111,6 +111,8 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<CR.Password>@$CONTAINER_REGISTRY_PASSWORD@g" "$deployment_working_file"
     sed -i -e "s@<IoTHubConnectionString>@$IOT_HUB_CONNECTION_STRING@g" "$deployment_working_file"
     sed -i -e "s@<proxyAddress>@$PROXY_ADDRESS@g" "$deployment_working_file"
+    sed -i -e "s@<TrackingId>@$TRACKING_ID@g" "$deployment_working_file"
+    sed -i -e "s@<TrcUrl>@http://${L3_IP_ADDRESS}:5001/api/testoperationresult@g" "$deployment_working_file"
 
     if [[ ! -z "$CUSTOM_EDGE_AGENT_IMAGE" ]]; then
         sed -i -e "s@\"image\":.*azureiotedge-agent:.*\"@\"image\": \"$CUSTOM_EDGE_AGENT_IMAGE\"@g" "$deployment_working_file"
@@ -191,6 +193,12 @@ function process_args() {
         elif [ $saveNextArg -eq 20 ]; then
             CHANGE_DEPLOY_CONFIG_ONLY="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 21 ]; then
+            L3_IP_ADDRESS="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 22 ]; then
+            TRACKING_ID="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -214,6 +222,8 @@ function process_args() {
                 '-iotHubName' ) saveNextArg=18;;
                 '-proxyAddress' ) saveNextArg=19;;
                 '-changeDeployConfigOnly' ) saveNextArg=20;;
+                '-l3IpAddress' ) saveNextArg=21;;
+                '-trackingId' ) saveNextArg=22;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
 
@@ -237,6 +247,10 @@ function process_args() {
     [[ -z "$STORAGE_ACCOUNT_CONNECTION_STRING" ]] && { print_error 'Storage account connection string is required'; exit 1; }
 
     echo 'Required parameters are provided'
+    
+    if [ -z "$TRACKING_ID"]; then
+        TRACKING_ID=$(cat /proc/sys/kernel/random/uuid)
+    fi
 }
 
 function set_output_params() {

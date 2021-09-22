@@ -33,6 +33,7 @@ man1=$(mandir)/man1
 man8=$(mandir)/man8
 srcdir?=.
 unitdir?=/lib/systemd/system
+presetdir?=/usr/lib/systemd/system-preset
 
 rpmbuilddir?=$(HOME)/rpmbuild
 vendordir?=vendor
@@ -134,6 +135,7 @@ deb: release
 	cd $(TARGET)/$(PACKAGE) && dpkg-buildpackage $(DPKGFLAGS)
 
 rpm:
+	cp $(srcdir)/contrib/centos/00-aziot-edged.preset $(rpmbuilddir)/SOURCES
 	$(SED) "s/@version@/${RPM_VERSION}/g; s/@release@/${RPM_RELEASE}/g;" $(srcdir)/contrib/centos/aziot-edge.spec > $(rpmbuilddir)/SPECS/aziot-edge.spec
 	rpmbuild $(RPMBUILDFLAGS) $(rpmbuilddir)/SPECS/aziot-edge.spec
 
@@ -190,6 +192,9 @@ install: release
 	$(GZIP) $(DESTDIR)$(docdir)/LICENSE
 	$(GZIP) $(DESTDIR)$(docdir)/ThirdPartyNotices
 
+install-rpm: install
+	$(INSTALL_DATA) -D $(rpmbuilddir)/SOURCES/00-aziot-edged.preset $(DESTDIR)$(presetdir)/00-aziot-edged.preset
+
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/aziot-edged
 	rm -f $(DESTDIR)$(bindir)/iotedge
@@ -202,6 +207,9 @@ uninstall:
 	-rm $(DESTDIR)$(docdir)/ThirdPartyNotices
 	-rm $(DESTDIR)$(docdir)/trademark
 
+test:
+	cargo test
+
 clean:
 	rm -rf $(TARGET)
 
@@ -211,4 +219,4 @@ version:
 	@echo "rpm version:  ${RPM_VERSION}"
 	@echo "rpm release:  ${RPM_RELEASE}"
 
-.PHONY: all clean deb dist install rpm rpm-dist uninstall version
+.PHONY: all clean deb dist install install-rpm rpm rpm-dist uninstall version

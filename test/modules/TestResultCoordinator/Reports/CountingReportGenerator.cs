@@ -18,10 +18,11 @@ namespace TestResultCoordinator.Reports
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(CountingReportGenerator));
 
         readonly string trackingId;
-        readonly ushort unmatchedResultsMaxSize;
+        readonly ushort enumeratedResultsMaxSize;
 
         internal CountingReportGenerator(
             string testDescription,
+            TestMode testMode,
             string trackingId,
             string expectedSource,
             IAsyncEnumerator<TestOperationResult> expectedTestResults,
@@ -33,6 +34,7 @@ namespace TestResultCoordinator.Reports
             bool eventHubLongHaulMode)
         {
             this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
+            this.TestMode = testMode;
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.ExpectedTestResults = Preconditions.CheckNotNull(expectedTestResults, nameof(expectedTestResults));
             this.ExpectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
@@ -40,9 +42,11 @@ namespace TestResultCoordinator.Reports
             this.ActualTestResults = Preconditions.CheckNotNull(actualTestResults, nameof(actualTestResults));
             this.TestResultComparer = Preconditions.CheckNotNull(testResultComparer, nameof(testResultComparer));
             this.ResultType = Preconditions.CheckNonWhiteSpace(resultType, nameof(resultType));
-            this.unmatchedResultsMaxSize = Preconditions.CheckRange<ushort>(unmatchedResultsMaxSize, 1);
+            this.enumeratedResultsMaxSize = Preconditions.CheckRange<ushort>(unmatchedResultsMaxSize, 1);
             this.EventHubLongHaulMode = eventHubLongHaulMode;
         }
+
+        internal TestMode TestMode { get; }
 
         internal string ActualSource { get; }
 
@@ -72,12 +76,18 @@ namespace TestResultCoordinator.Reports
 
             var lastLoadedExpectedResult = default(TestOperationResult);
             var lastLoadedActualResult = default(TestOperationResult);
+
             ulong totalExpectCount = 0;
             ulong totalMatchCount = 0;
             ulong totalDuplicateExpectedResultCount = 0;
             ulong totalDuplicateActualResultCount = 0;
             ulong totalMisorderedActualResultCount = 0;
+
             var unmatchedResults = new Queue<TestOperationResult>();
+            var duplicateExpectedResults = new Queue<TestOperationResult>();
+            var duplicateActualResults = new Queue<TestOperationResult>();
+            var misorderedActualResults = new Queue<TestOperationResult>();
+
             bool allActualResultsMatch = false;
             Option<EventHubSpecificReportComponents> eventHubSpecificReportComponents = Option.None<EventHubSpecificReportComponents>();
             Option<DateTime> lastLoadedResultCreatedAt = Option.None<DateTime>();
@@ -96,6 +106,7 @@ namespace TestResultCoordinator.Reports
                 if (this.IsActualResultSequenceNumberOlder(this.ActualTestResults.Current, this.ExpectedTestResults.Current))
                 {
                     totalMisorderedActualResultCount++;
+                    TestReportUtil.EnqueueAndEnforceMaxSize(misorderedActualResults, this.ActualTestResults.Current, this.enumeratedResultsMaxSize);
 
                     hasActualResult = await this.ActualTestResults.MoveNextAsync();
                     continue;
@@ -104,6 +115,7 @@ namespace TestResultCoordinator.Reports
                 if (this.TestResultComparer.Matches(lastLoadedExpectedResult, this.ExpectedTestResults.Current))
                 {
                     totalDuplicateExpectedResultCount++;
+                    TestReportUtil.EnqueueAndEnforceMaxSize(duplicateExpectedResults, this.ExpectedTestResults.Current, this.enumeratedResultsMaxSize);
 
                     // If we encounter a duplicate expected result, we have already
                     // accounted for corresponding actual results in prev iteration
@@ -126,6 +138,8 @@ namespace TestResultCoordinator.Reports
                     while (hasActualResult && this.TestResultComparer.Matches(lastLoadedActualResult, this.ActualTestResults.Current))
                     {
                         totalDuplicateActualResultCount++;
+                        TestReportUtil.EnqueueAndEnforceMaxSize(duplicateActualResults, this.ActualTestResults.Current, this.enumeratedResultsMaxSize);
+
                         lastLoadedActualResult = this.ActualTestResults.Current;
                         hasActualResult = await this.ActualTestResults.MoveNextAsync();
                         continue;
@@ -133,7 +147,7 @@ namespace TestResultCoordinator.Reports
                 }
                 else
                 {
-                    TestReportUtil.EnqueueAndEnforceMaxSize(unmatchedResults, this.ExpectedTestResults.Current, this.unmatchedResultsMaxSize);
+                    TestReportUtil.EnqueueAndEnforceMaxSize(unmatchedResults, this.ExpectedTestResults.Current, this.enumeratedResultsMaxSize);
                     hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
                 }
             }
@@ -142,6 +156,8 @@ namespace TestResultCoordinator.Reports
             while (hasActualResult && this.TestResultComparer.Matches(lastLoadedActualResult, this.ActualTestResults.Current))
             {
                 totalDuplicateActualResultCount++;
+                TestReportUtil.EnqueueAndEnforceMaxSize(duplicateActualResults, this.ActualTestResults.Current, this.enumeratedResultsMaxSize);
+
                 lastLoadedActualResult = this.ActualTestResults.Current;
                 hasActualResult = await this.ActualTestResults.MoveNextAsync();
             }
@@ -153,11 +169,12 @@ namespace TestResultCoordinator.Reports
                 if (this.TestResultComparer.Matches(lastLoadedExpectedResult, this.ExpectedTestResults.Current))
                 {
                     totalDuplicateExpectedResultCount++;
+                    TestReportUtil.EnqueueAndEnforceMaxSize(duplicateExpectedResults, this.ExpectedTestResults.Current, this.enumeratedResultsMaxSize);
                 }
                 else
                 {
                     totalExpectCount++;
-                    TestReportUtil.EnqueueAndEnforceMaxSize(unmatchedResults, this.ExpectedTestResults.Current, this.unmatchedResultsMaxSize);
+                    TestReportUtil.EnqueueAndEnforceMaxSize(unmatchedResults, this.ExpectedTestResults.Current, this.enumeratedResultsMaxSize);
                 }
 
                 lastLoadedExpectedResult = this.ExpectedTestResults.Current;
@@ -205,6 +222,7 @@ namespace TestResultCoordinator.Reports
                 if (this.IsActualResultSequenceNumberOlder(this.ActualTestResults.Current, lastLoadedExpectedResult))
                 {
                     totalMisorderedActualResultCount++;
+                    TestReportUtil.EnqueueAndEnforceMaxSize(misorderedActualResults, this.ActualTestResults.Current, this.enumeratedResultsMaxSize);
                 }
 
                 hasActualResult = await this.ActualTestResults.MoveNextAsync();
@@ -217,6 +235,7 @@ namespace TestResultCoordinator.Reports
 
             return new CountingReport(
                 this.TestDescription,
+                this.TestMode,
                 this.trackingId,
                 this.ExpectedSource,
                 this.ActualSource,
@@ -227,6 +246,9 @@ namespace TestResultCoordinator.Reports
                 totalDuplicateActualResultCount,
                 totalMisorderedActualResultCount,
                 new List<TestOperationResult>(unmatchedResults).AsReadOnly(),
+                new List<TestOperationResult>(duplicateExpectedResults).AsReadOnly(),
+                new List<TestOperationResult>(duplicateActualResults).AsReadOnly(),
+                new List<TestOperationResult>(misorderedActualResults).AsReadOnly(),
                 eventHubSpecificReportComponents,
                 lastLoadedResultCreatedAt);
         }

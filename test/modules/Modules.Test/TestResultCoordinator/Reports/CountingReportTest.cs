@@ -3,6 +3,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 {
     using System;
     using System.Collections.Generic;
+    using global::TestResultCoordinator;
     using global::TestResultCoordinator.Reports;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -19,6 +20,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
         {
             var report = new CountingReport(
                 TestDescription,
+                TestMode.Connectivity,
                 "trackingId123",
                 "expectedSource",
                 "actualSource",
@@ -33,6 +35,9 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     new TestOperationResult("expectedSource", "resultType1", "332", new DateTime(2019, 12, 4, 10, 15, 15)),
                     new TestOperationResult("expectedSource", "resultType1", "734", new DateTime(2019, 12, 4, 10, 15, 18)),
                 },
+                new List<TestOperationResult> { },
+                new List<TestOperationResult> { },
+                new List<TestOperationResult> { },
                 Option.None<EventHubSpecificReportComponents>(),
                 Option.None<DateTime>());
 
@@ -46,6 +51,11 @@ namespace Modules.Test.TestResultCoordinator.Reports
             Assert.Equal(33UL, report.TotalDuplicateExpectedResultCount);
             Assert.Equal(34UL, report.TotalDuplicateActualResultCount);
             Assert.Equal(0UL, report.TotalMisorderedActualResultCount);
+
+            Assert.Equal(2, report.UnmatchedResults.Count);
+            Assert.Equal(0, report.DuplicateExpectedResults.Count);
+            Assert.Equal(0, report.DuplicateActualResults.Count);
+            Assert.Equal(0, report.MisorderedActualResults.Count);
 
             Assert.Equal("expectedSource", report.UnmatchedResults[0].Source);
             Assert.Equal("resultType1", report.UnmatchedResults[0].Type);
@@ -66,6 +76,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReport(
                     testDescription,
+                    TestMode.Connectivity,
                     "trackingId123",
                     "expectedSource",
                     "actualSource",
@@ -80,6 +91,9 @@ namespace Modules.Test.TestResultCoordinator.Reports
                         new TestOperationResult("expectedSource", "resultType1", "332", new DateTime(2019, 12, 4, 10, 15, 15)),
                         new TestOperationResult("expectedSource", "resultType1", "734", new DateTime(2019, 12, 4, 10, 15, 18)),
                     },
+                    new List<TestOperationResult> { },
+                    new List<TestOperationResult> { },
+                    new List<TestOperationResult> { },
                     Option.None<EventHubSpecificReportComponents>(),
                     Option.None<DateTime>()));
 
@@ -94,6 +108,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReport(
                     TestDescription,
+                    TestMode.Connectivity,
                     trackingId,
                     "expectedSource",
                     "actualSource",
@@ -108,6 +123,9 @@ namespace Modules.Test.TestResultCoordinator.Reports
                         new TestOperationResult("expectedSource", "resultType1", "332", new DateTime(2019, 12, 4, 10, 15, 15)),
                         new TestOperationResult("expectedSource", "resultType1", "734", new DateTime(2019, 12, 4, 10, 15, 18)),
                     },
+                    new List<TestOperationResult> { },
+                    new List<TestOperationResult> { },
+                    new List<TestOperationResult> { },
                     Option.None<EventHubSpecificReportComponents>(),
                     Option.None<DateTime>()));
 
@@ -122,6 +140,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReport(
                     TestDescription,
+                    TestMode.Connectivity,
                     "trackingId-23434",
                     expectedSource,
                     "actualSource",
@@ -136,6 +155,9 @@ namespace Modules.Test.TestResultCoordinator.Reports
                         new TestOperationResult("expectedSource", "resultType1", "332", new DateTime(2019, 12, 4, 10, 15, 15)),
                         new TestOperationResult("expectedSource", "resultType1", "734", new DateTime(2019, 12, 4, 10, 15, 18)),
                     },
+                    new List<TestOperationResult> { },
+                    new List<TestOperationResult> { },
+                    new List<TestOperationResult> { },
                     Option.None<EventHubSpecificReportComponents>(),
                     Option.None<DateTime>()));
 
@@ -150,6 +172,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReport(
                     TestDescription,
+                    TestMode.Connectivity,
                     "trackingId-23434",
                     "expectedSource",
                     actualSource,
@@ -164,6 +187,9 @@ namespace Modules.Test.TestResultCoordinator.Reports
                         new TestOperationResult("expectedSource", "resultType1", "332", new DateTime(2019, 12, 4, 10, 15, 15)),
                         new TestOperationResult("expectedSource", "resultType1", "734", new DateTime(2019, 12, 4, 10, 15, 18)),
                     },
+                    new List<TestOperationResult> { },
+                    new List<TestOperationResult> { },
+                    new List<TestOperationResult> { },
                     Option.None<EventHubSpecificReportComponents>(),
                     Option.None<DateTime>()));
 
@@ -178,6 +204,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReport(
                     TestDescription,
+                    TestMode.Connectivity,
                     "trackingId-23434",
                     "expectedSource",
                     "actualSource",
@@ -192,6 +219,9 @@ namespace Modules.Test.TestResultCoordinator.Reports
                         new TestOperationResult("expectedSource", "resultType1", "332", new DateTime(2019, 12, 4, 10, 15, 15)),
                         new TestOperationResult("expectedSource", "resultType1", "734", new DateTime(2019, 12, 4, 10, 15, 18)),
                     },
+                    new List<TestOperationResult> { },
+                    new List<TestOperationResult> { },
+                    new List<TestOperationResult> { },
                     Option.None<EventHubSpecificReportComponents>(),
                     Option.None<DateTime>()));
 

@@ -35,6 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         /// </summary>
         /// <returns><see cref="Task"/> representing the asynchronous unit test.</returns>
         [Test]
+        [Category("Flaky")]
         [Category("BrokerRequired")]
         public async Task GenericMqttTelemetry()
         {

@@ -19,7 +19,7 @@ URL:            https://github.com/azure/iotedge
 %{?systemd_requires}
 BuildRequires:  systemd
 Requires(pre):  shadow-utils
-Requires:       aziot-identity-service = 1.2.0-1
+Requires:       aziot-identity-service = 1.3.0~dev-1
 Source0:        aziot-edge-%{version}.tar.gz
 
 %description
@@ -51,8 +51,9 @@ make \
     LISTEN_WORKLOAD_URI=unix://%{iotedge_socketdir}/workload.sock \
     DESTDIR=$RPM_BUILD_ROOT \
     unitdir=%{_unitdir} \
+    presetdir=%{_presetdir} \
     docdir=%{_docdir}/%{name} \
-    install
+    install-rpm
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -163,6 +164,7 @@ fi
 
 # systemd
 %{_unitdir}/aziot-edged.service
+%{_presetdir}/00-aziot-edged.preset
 
 # sockets
 %attr(660, %{iotedge_user}, %{iotedge_group}) %{iotedge_socketdir}/mgmt.sock

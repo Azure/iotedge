@@ -46,9 +46,8 @@ pub fn start(
     let shutdown_handle = ShutdownHandle(shutdown_signal.clone());
 
     info!("Initializing config monitoring loop");
-    let config = &file::get_string_from_file(PROXY_CONFIG_PATH_RAW)?;
-    let config_parser = ConfigParser::new(config)?;
-    parse_config(&config_parser)?;
+    let mut config_parser = ConfigParser::new()?;
+    parse_config(&mut config_parser)?;
 
     info!("Starting config monitoring loop");
     //Config is ready, send notification.
@@ -96,7 +95,7 @@ pub fn start(
                 };
 
             if parse_config_request {
-                match parse_config(&config_parser) {
+                match parse_config(&mut config_parser) {
                     //Notify watchdog config is there
                     Ok(()) => notify_received_config.notify_one(),
                     Err(error) => error!("Error while parsing default config: {}", error),
@@ -130,7 +129,7 @@ fn save_raw_config(twin: &HashMap<String, Value>) -> Result<()> {
     Ok(())
 }
 
-fn parse_config(parse_config: &ConfigParser) -> Result<()> {
+fn parse_config(parse_config: &mut ConfigParser) -> Result<()> {
     //Read "raw configuration". Contains environment variables and sections.
     //Extract IO calls from core function for mocking
     let str = file::get_string_from_file(PROXY_CONFIG_PATH_RAW)?;

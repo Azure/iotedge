@@ -52,10 +52,13 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
 
         public async Task<ITestResultReport> CreateReportAsync()
         {
-            long senderSuccesses = 0;
-            long receiverSuccesses = 0;
             long statusCodeZero = 0;
+            long senderSuccesses = 0;
+            long unauthorized = 0;
             long deviceNotFound = 0;
+            long transientError = 0;
+            long resourceError = 0;
+            long receiverSuccesses = 0;
             Dictionary<HttpStatusCode, long> other = new Dictionary<HttpStatusCode, long>();
             while (await this.SenderTestResults.MoveNextAsync())
             {
@@ -70,8 +73,17 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
                     case 200:
                         senderSuccesses++;
                         break;
+                    case 401:
+                        unauthorized++;
+                        break;
                     case 404:
                         deviceNotFound++;
+                        break;
+                    case 424:
+                        transientError++;
+                        break;
+                    case 503:
+                        resourceError++;
                         break;
                     default:
                         if (other.ContainsKey(statusCode))
@@ -106,7 +118,10 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
                 senderSuccesses,
                 receiverSuccesses,
                 statusCodeZero,
+                unauthorized,
                 deviceNotFound,
+                transientError,
+                resourceError,
                 other);
         }
 

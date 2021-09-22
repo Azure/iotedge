@@ -25,8 +25,6 @@ variables:
   #longhaul.restartIntervalInMins: ''
   #longHaul.sendReportFrequency: 'xx:xx:xx.xx'
   #twinTester.twinUpdateSize: ''
-  #twinTester.twinUpdateFailureThreshold: 'xx:xx:xx.xx'
-  #twinTester.edgeHubRestartFailureTolerance: 'xx:xx:xx.xx'
   #metricsCollector.metricsEndpointsCSV
   #metricsCollector.scrapeFrequencyInSecs: 'xx:xx:xx.xx'
   #metricsCollector.uploadTarget
@@ -46,78 +44,14 @@ jobs:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
         - run-long-haul -equals true
-    variables:
-      edgelet.artifact.name: 'iotedged-ubuntu18.04-amd64'
-      aziotis.artifact.name: 'packages_ubuntu-18.04_amd64'
-      aziotis.package.filter: 'aziot-identity-service_*_amd64.deb'
     steps:
-      - checkout: self
-        clean: true
-        fetchDepth: 100
-        submodules: recursive
-      - task: AzureKeyVault@1
-        displayName: 'Azure Key Vault: EdgeBuildkv'
-        inputs:
-          azureSubscription: $(azure.subscription)
-          KeyVaultName: 'edgebuildkv'
-          SecretsFilter: >- 
-            edgebuilds-azurecr-io-username,
-            edgebuilds-azurecr-io-pwd,
-            StorageAccountMasterKeyStress,
-            SnitchLongHaulAlertUrl,
-            kvLogAnalyticWorkspaceId,
-            kvLogAnalyticSharedKey,
-            EdgeLonghaulStorageAccountConnString,
-            GitHubAccessToken
-      - task: AzureKeyVault@1
-        displayName: 'Azure Key Vault: $(azure.keyVault)'
-        inputs:
-          azureSubscription: $(azure.subscription)
-          KeyVaultName: $(azure.keyVault)
-          SecretsFilter: >- 
-            IotHub-ConnStr,
-            IotHub-EventHubConnStr
-      - task: DownloadBuildArtifacts@0
-        displayName: 'Download Edgelet Artifacts'
-        inputs:
-          buildType: specific
-          project: $(vsts.project)
-          pipeline: $(edgelet.package.build)
-          branchName: $(edgelet.package.branchName)
-          buildVersionToDownload: latestFromBranch
-          downloadPath: '$(Build.StagingDirectory)'
-          artifactName: $(edgelet.artifact.name)
-          allowPartiallySucceededBuilds: true
-      - task: DownloadBuildArtifacts@0
-        displayName: 'Download Images Artifacts'
-        inputs:
-          buildType: specific
-          project: $(vsts.project)
-          pipeline: $(images.build)
-          branchName: $(images.branchName)
-          buildVersionToDownload: latestFromBranch
-          downloadPath: '$(Build.StagingDirectory)'
-          artifactName: $(images.artifact.name.linux)
-          allowPartiallySucceededBuilds: true
-          itemPattern: |
-            $(images.artifact.name.linux)/IotEdgeQuickstart.linux-x64.tar.gz
-            $(images.artifact.name.linux)/e2e_deployment_files/long_haul_deployment.template.json
-            $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
-            $(images.artifact.name.linux)/scripts/linux/trcE2ETest.sh
-            $(images.artifact.name.linux)/artifactInfo.txt
-            $(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
-            $(images.artifact.name.linux)/CACertificates/certGen.sh
-            $(images.artifact.name.linux)/CACertificates/openssl_root_ca.cnf
-      - task: PowerShell@2
-        displayName: 'Download aziot-identity-service'
-        inputs:
-          filePath: $(Build.StagingDirectory)/$(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
-        env:
-          GITHUB_TOKEN: $(GitHubAccessToken)
-          ARTIFACT_NAME: $(aziotis.artifact.name)
-          PACKAGE_FILTER: $(aziotis.package.filter)
-          DOWNLOAD_PATH: $(Build.StagingDirectory)
-      # Deploy long haul
+      - template: templates/longhaul-setup.yaml
+        parameters:
+          edgelet.artifact.name: 'iotedged-ubuntu18.04-amd64'
+          images.artifact.name: '$(images.artifact.name.linux)'
+          aziotis.artifact.name: 'packages_ubuntu-18.04_amd64'
+          aziotis.package.filter: 'aziot-identity-service_*_amd64.deb'
+          quickstart.artifactName: 'IotEdgeQuickstart.linux-x64.tar.gz'
       - template: templates/longhaul-deploy.yaml
         parameters:
           release.label: 'lh$(agent.group)'
@@ -148,21 +82,20 @@ jobs:
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
           logAnalytics.logType: '$(logAnalyticsLogType)'
           twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
-          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
-          twinTester.edgeHubRestartFailureTolerance: '$(twinTester.edgeHubRestartFailureTolerance)'
           metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
           metricsCollector.hostPlatform: 'linux_amd64_moby'
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
-          test.deploymentFileName: '$(test.deploymentFileName)'
+          test.deploymentFileName: 'long_haul_deployment.template.json'
           testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
+          clientModuleTransportType: 'All'
 
 ################################################################################
-  - job: linux_arm32v7_moby
+  - job: linux_arm32v7_moby_amqp
 ################################################################################
-    displayName: Linux ARM32v7 Moby
+    displayName: Linux ARM32v7 Moby (Amqp Client-Protocol)
     condition: eq(variables['run.linux.arm32v7.moby'], 'true')
     pool:
       name: $(pool.name)
@@ -172,79 +105,15 @@ jobs:
         - Agent.OSArchitecture -equals ARM
         - agent-osbits -equals 32
         - run-long-haul -equals true
-    variables:
-      edgelet.artifact.name: 'iotedged-debian9-arm32v7'
-      aziotis.artifact.name: 'packages_debian-9-slim_arm32v7'
-      aziotis.package.filter: 'aziot-identity-service_*_armhf.deb'
+        - client-transport -equals amqp
     steps:
-      - checkout: self
-        clean: true
-        fetchDepth: 100
-        submodules: recursive
-      - task: AzureKeyVault@1
-        displayName: 'Azure Key Vault: EdgeBuildkv'
-        inputs:
-          azureSubscription: $(azure.subscription)
-          KeyVaultName: 'edgebuildkv'
-          SecretsFilter: >- 
-            edgebuilds-azurecr-io-username,
-            edgebuilds-azurecr-io-pwd,
-            StorageAccountMasterKeyStress,
-            SnitchLongHaulAlertUrl,
-            kvLogAnalyticWorkspaceId,
-            kvLogAnalyticSharedKey,
-            EdgeLonghaulStorageAccountConnString,
-            GitHubAccessToken
-      - task: AzureKeyVault@1
-        displayName: 'Azure Key Vault: $(azure.keyVault)'
-        inputs:
-          azureSubscription: $(azure.subscription)
-          KeyVaultName: $(azure.keyVault)
-          SecretsFilter: >- 
-            IotHub-ConnStr,
-            IotHub-EventHubConnStr
-      - template: templates/e2e-clean-directory.yaml
-      - task: DownloadBuildArtifacts@0
-        displayName: 'Download Edgelet Artifacts'
-        inputs:
-          buildType: specific
-          project: $(vsts.project)
-          pipeline: $(edgelet.package.build)
-          branchName: $(edgelet.package.branchName)
-          buildVersionToDownload: latestFromBranch
-          downloadPath: '$(Build.StagingDirectory)'
-          artifactName: $(edgelet.artifact.name)
-          allowPartiallySucceededBuilds: true
-      - task: DownloadBuildArtifacts@0
-        displayName: 'Download Images Artifacts'
-        inputs:
-          buildType: specific
-          project: $(vsts.project)
-          pipeline: $(images.build)
-          branchName: $(images.branchName)
-          buildVersionToDownload: latestFromBranch
-          downloadPath: '$(Build.StagingDirectory)'
-          artifactName: $(images.artifact.name.linux)
-          allowPartiallySucceededBuilds: true
-          itemPattern: |
-            $(images.artifact.name.linux)/IotEdgeQuickstart.linux-arm.tar.gz
-            $(images.artifact.name.linux)/e2e_deployment_files/long_haul_deployment.template.json
-            $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
-            $(images.artifact.name.linux)/scripts/linux/trcE2ETest.sh
-            $(images.artifact.name.linux)/artifactInfo.txt
-            $(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
-            $(images.artifact.name.linux)/CACertificates/certGen.sh
-            $(images.artifact.name.linux)/CACertificates/openssl_root_ca.cnf
-      - task: PowerShell@2
-        displayName: 'Download aziot-identity-service'
-        inputs:
-          filePath: $(Build.StagingDirectory)/$(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
-        env:
-          GITHUB_TOKEN: $(GitHubAccessToken)
-          ARTIFACT_NAME: $(aziotis.artifact.name)
-          PACKAGE_FILTER: $(aziotis.package.filter)
-          DOWNLOAD_PATH: $(Build.StagingDirectory)
-      # Deploy long haul
+      - template: templates/longhaul-setup.yaml
+        parameters:
+          edgelet.artifact.name: 'iotedged-debian9-arm32v7'
+          images.artifact.name: '$(images.artifact.name.linux)'
+          aziotis.artifact.name: 'packages_debian-9-slim_arm32v7'
+          aziotis.package.filter: 'aziot-identity-service_*_armhf.deb'
+          quickstart.artifactName: 'IotEdgeQuickstart.linux-arm.tar.gz'
       - template: templates/longhaul-deploy.yaml
         parameters:
           release.label: 'lh$(agent.group)'
@@ -274,21 +143,81 @@ jobs:
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
           logAnalytics.logType: '$(logAnalyticsLogType)'
-          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
-          twinTester.edgeHubRestartFailureTolerance: '$(twinTester.edgeHubRestartFailureTolerance)'
           metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
           metricsCollector.hostPlatform: 'linux_arm32v7_moby'
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
-          test.deploymentFileName: '$(test.deploymentFileName)'
+          test.deploymentFileName: 'long_haul_deployment_constrained.template.json'
           testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
+          clientModuleTransportType: 'amqp'
 
 ################################################################################
-  - job: linux_arm64v8_docker
+  - job: linux_arm32v7_moby_mqtt
 ################################################################################
-    displayName: Linux ARM64v8 Docker
+    displayName: Linux ARM32v7 Moby (Mqtt Client-Protocol)
+    condition: eq(variables['run.linux.arm32v7.moby'], 'true')
+    pool:
+      name: $(pool.name)
+      demands:
+        - agent-group -equals $(agent.group)
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals ARM
+        - agent-osbits -equals 32
+        - run-long-haul -equals true
+        - client-transport -equals mqtt
+    steps:
+      - template: templates/longhaul-setup.yaml
+        parameters:
+          edgelet.artifact.name: 'iotedged-debian9-arm32v7'
+          images.artifact.name: '$(images.artifact.name.linux)'
+          aziotis.artifact.name: 'packages_debian-9-slim_arm32v7'
+          aziotis.package.filter: 'aziot-identity-service_*_armhf.deb'
+          quickstart.artifactName: 'IotEdgeQuickstart.linux-arm.tar.gz'
+      - template: templates/longhaul-deploy.yaml
+        parameters:
+          release.label: 'lh$(agent.group)'
+          test.buildNumber: '$(Build.BuildNumber)'
+          test.buildId: '$(Build.BuildId)'
+          test.startDelay: '$(test.startDelay.arm)'
+          build.source.branch: '$(Build.SourceBranchName)'
+          build.repo.path: '$(Build.SourcesDirectory)'
+          edgelet.source.branch: '$(edgelet.package.branchName)'
+          images.source.branch: '$(images.branchName)'
+          edgelet.artifact.name: '$(edgelet.artifact.name)'
+          images.artifact.name: '$(images.artifact.name.linux)'
+          container.registry: '$(container.registry)'
+          container.registry.username: '$(edgebuilds-azurecr-io-username)'
+          container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
+          iotHub.connectionString: '$(IotHub-ConnStr)'
+          eventHub.connectionString: '$(IotHub-EventHubConnStr)'
+          snitch.build.number: '$(snitch.build.number)'
+          snitch.alert.url: '$(SnitchLongHaulAlertUrl)'
+          snitch.storage.account: '$(snitch.storage.account)'
+          snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
+          longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
+          longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
+          longHaul.sendReportFrequency: '$(longHaul.sendReportFrequency)'
+          test.runtimeLogLevel: '$(test.runtimeLogLevel)'
+          analyzer.consumerGroupId: 'longhaul_linux_arm32v7'
+          logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
+          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          logAnalytics.logType: '$(logAnalyticsLogType)'
+          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
+          metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
+          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
+          metricsCollector.hostPlatform: 'linux_arm32v7_moby'
+          test.testMode: 'LongHaul'
+          test.useTRC: '$(useTRC)'
+          test.deploymentFileName: 'long_haul_deployment_constrained.template.json'
+          testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
+          clientModuleTransportType: 'mqtt'
+
+################################################################################
+  - job: linux_arm64v8_docker_amqp
+################################################################################
+    displayName: Linux ARM64v8 Docker (Amqp Client-Protocol)
     condition: eq(variables['run.linux.arm64v8.docker'], 'true')
     pool:
       name: $(pool.name)
@@ -298,79 +227,15 @@ jobs:
         - Agent.OSArchitecture -equals ARM
         - agent-osbits -equals 64
         - run-long-haul -equals true
-    variables:
-      edgelet.artifact.name: 'iotedged-ubuntu18.04-aarch64'
-      aziotis.artifact.name: 'packages_ubuntu-18.04_aarch64'
-      aziotis.package.filter: 'aziot-identity-service_*_arm64.deb'
+        - client-transport -equals amqp
     steps:
-      - checkout: self
-        clean: true
-        fetchDepth: 100
-        submodules: recursive
-      - task: AzureKeyVault@1
-        displayName: 'Azure Key Vault: EdgeBuildkv'
-        inputs:
-          azureSubscription: $(azure.subscription)
-          KeyVaultName: 'edgebuildkv'
-          SecretsFilter: >- 
-            edgebuilds-azurecr-io-username,
-            edgebuilds-azurecr-io-pwd,
-            StorageAccountMasterKeyStress,
-            SnitchLongHaulAlertUrl,
-            kvLogAnalyticWorkspaceId,
-            kvLogAnalyticSharedKey,
-            EdgeLonghaulStorageAccountConnString,
-            GitHubAccessToken
-      - task: AzureKeyVault@1
-        displayName: 'Azure Key Vault: $(azure.keyVault)'
-        inputs:
-          azureSubscription: $(azure.subscription)
-          KeyVaultName: $(azure.keyVault)
-          SecretsFilter: >- 
-            IotHub-ConnStr,
-            IotHub-EventHubConnStr
-      - template: templates/e2e-clean-directory.yaml
-      - task: DownloadBuildArtifacts@0
-        displayName: 'Download Edgelet Artifacts'
-        inputs:
-          buildType: specific
-          project: $(vsts.project)
-          pipeline: $(edgelet.package.build)
-          branchName: $(edgelet.package.branchName)
-          buildVersionToDownload: latestFromBranch
-          downloadPath: '$(Build.StagingDirectory)'
-          artifactName: $(edgelet.artifact.name)
-          allowPartiallySucceededBuilds: true
-      - task: DownloadBuildArtifacts@0
-        displayName: 'Download Images Artifacts'
-        inputs:
-          buildType: specific
-          project: $(vsts.project)
-          pipeline: $(images.build)
-          branchName: $(images.branchName)
-          buildVersionToDownload: latestFromBranch
-          downloadPath: '$(Build.StagingDirectory)'
-          artifactName: $(images.artifact.name.linux)
-          allowPartiallySucceededBuilds: true
-          itemPattern: |
-            $(images.artifact.name.linux)/IotEdgeQuickstart.linux-arm64.tar.gz
-            $(images.artifact.name.linux)/e2e_deployment_files/long_haul_deployment.template.json
-            $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
-            $(images.artifact.name.linux)/scripts/linux/trcE2ETest.sh
-            $(images.artifact.name.linux)/artifactInfo.txt
-            $(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
-            $(images.artifact.name.linux)/CACertificates/certGen.sh
-            $(images.artifact.name.linux)/CACertificates/openssl_root_ca.cnf
-      - task: PowerShell@2
-        displayName: 'Download aziot-identity-service'
-        inputs:
-          filePath: $(Build.StagingDirectory)/$(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
-        env:
-          GITHUB_TOKEN: $(GitHubAccessToken)
-          ARTIFACT_NAME: $(aziotis.artifact.name)
-          PACKAGE_FILTER: $(aziotis.package.filter)
-          DOWNLOAD_PATH: $(Build.StagingDirectory)
-      # Deploy long haul
+      - template: templates/longhaul-setup.yaml
+        parameters:
+          edgelet.artifact.name: 'iotedged-ubuntu18.04-aarch64'
+          images.artifact.name: '$(images.artifact.name.linux)'
+          aziotis.artifact.name: 'packages_ubuntu-18.04_aarch64'
+          aziotis.package.filter: 'aziot-identity-service_*_arm64.deb'
+          quickstart.artifactName: 'IotEdgeQuickstart.linux-arm64.tar.gz'
       - template: templates/longhaul-deploy.yaml
         parameters:
           release.label: 'lh$(agent.group)'
@@ -401,13 +266,74 @@ jobs:
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
           logAnalytics.logType: '$(logAnalyticsLogType)'
           twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
-          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
-          twinTester.edgeHubRestartFailureTolerance: '$(twinTester.edgeHubRestartFailureTolerance)'
           metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
           metricsCollector.hostPlatform: 'linux_arm64v8_docker'
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
-          test.deploymentFileName: '$(test.deploymentFileName)'
+          test.deploymentFileName: 'long_haul_deployment_constrained.template.json'
           testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
+          clientModuleTransportType: 'amqp'
+
+################################################################################
+  - job: linux_arm64v8_docker_mqtt
+################################################################################
+    displayName: Linux ARM64v8 Docker (Mqtt Client-Protocol)
+    condition: eq(variables['run.linux.arm64v8.docker'], 'true')
+    pool:
+      name: $(pool.name)
+      demands:
+        - agent-group -equals $(agent.group)
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals ARM
+        - agent-osbits -equals 64
+        - run-long-haul -equals true
+        - client-transport -equals mqtt 
+    steps:
+      - template: templates/longhaul-setup.yaml
+        parameters:
+          edgelet.artifact.name: 'iotedged-ubuntu18.04-aarch64'
+          images.artifact.name: '$(images.artifact.name.linux)'
+          aziotis.artifact.name: 'packages_ubuntu-18.04_aarch64'
+          aziotis.package.filter: 'aziot-identity-service_*_arm64.deb'
+          quickstart.artifactName: 'IotEdgeQuickstart.linux-arm64.tar.gz'
+      - template: templates/longhaul-deploy.yaml
+        parameters:
+          release.label: 'lh$(agent.group)'
+          test.buildNumber: '$(Build.BuildNumber)'
+          test.buildId: '$(Build.BuildId)'
+          test.startDelay: '$(test.startDelay.arm)'
+          build.source.branch: '$(Build.SourceBranchName)'
+          build.repo.path: '$(Build.SourcesDirectory)'
+          edgelet.source.branch: '$(edgelet.package.branchName)'
+          images.source.branch: '$(images.branchName)'
+          edgelet.artifact.name: '$(edgelet.artifact.name)'
+          images.artifact.name: '$(images.artifact.name.linux)'
+          container.registry: '$(container.registry)'
+          container.registry.username: '$(edgebuilds-azurecr-io-username)'
+          container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
+          iotHub.connectionString: '$(IotHub-ConnStr)'
+          eventHub.connectionString: '$(IotHub-EventHubConnStr)'
+          snitch.build.number: '$(snitch.build.number)'
+          snitch.alert.url: '$(SnitchLongHaulAlertUrl)'
+          snitch.storage.account: '$(snitch.storage.account)'
+          snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
+          longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
+          longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
+          longHaul.sendReportFrequency: '$(longHaul.sendReportFrequency)'
+          test.runtimeLogLevel: '$(test.runtimeLogLevel)'
+          analyzer.consumerGroupId: 'longhaul_linux_arm64v8'
+          logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
+          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          logAnalytics.logType: '$(logAnalyticsLogType)'
+          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
+          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
+          metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
+          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
+          metricsCollector.hostPlatform: 'linux_arm64v8_docker'
+          test.testMode: 'LongHaul'
+          test.useTRC: '$(useTRC)'
+          test.deploymentFileName: 'long_haul_deployment_constrained.template.json'
+          testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
+          clientModuleTransportType: 'mqtt'

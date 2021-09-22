@@ -12,12 +12,18 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
     public class TestResultCoordinatorUtil
     {
-        const string TestResultCoordinatorUrl = "http://testResultCoordinator:5001";
+        const string TestResultCoordinatorUrl = "http://localhost:5001/api/report";
         const string TrcModuleName = "testResultCoordinator";
         const string NetworkControllerModuleName = "networkController";
 
         public static Action<EdgeConfigBuilder> BuildAddNetworkControllerConfig(string trackingId, string networkControllerImage)
         {
+            string transportType = "Amqp";
+            if (Context.Current.TestRunnerProxy.HasValue)
+            {
+                transportType = "Amqp_WebSocket_Only";
+            }
+
             return new Action<EdgeConfigBuilder>(
                 builder =>
                 {
@@ -30,9 +36,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             ("RunFrequencies__0__OnlineFrequency", "00:00:00"),
                             ("RunFrequencies__0__RunsCount", "0"),
                             ("NetworkControllerRunProfile", "Online"),
-                            ("StartAfter", "00:00:00")
+                            ("StartAfter", "00:00:00"),
+                            ("TransportType", transportType)
                         })
-                        .WithSettings(new[] { ("createOptions", "{\"HostConfig\":{\"Binds\":[\"/var/run/docker.sock:/var/run/docker.sock\"], \"NetworkMode\":\"host\", \"Privileged\":true},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}") });
+                        .WithSettings(new[] { ("createOptions", "{\"HostConfig\":{\"Binds\":[\"/var/run/docker.sock:/var/run/docker.sock\"], \"NetworkMode\":\"host\", \"Privileged\":true},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}") })
+                        .WithProxy(Context.Current.TestRunnerProxy);
                 });
         }
 
@@ -76,16 +84,26 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                                    ["TestDescription"] = "network controller"
                                }
                            }
-                       });
+                       })
+                       .WithProxy(Context.Current.TestRunnerProxy);
                 });
         }
 
         public static async Task ValidateResultsAsync()
         {
             HttpClient client = new HttpClient();
-            HttpResponseMessage response = await client.GetAsync("http://localhost:5001/api/report");
+            HttpResponseMessage response = await client.GetAsync(TestResultCoordinatorUrl);
             var jsonstring = await response.Content.ReadAsStringAsync();
-            bool isPassed = (bool)JArray.Parse(jsonstring)[0]["IsPassed"];
+            bool isPassed;
+            try
+            {
+                isPassed = (bool)JArray.Parse(jsonstring)[0]["IsPassed"];
+            }
+            catch
+            {
+                isPassed = false;
+            }
+
             if (!isPassed)
             {
                 Log.Information("Test Result Coordinator response: {Response}", jsonstring);

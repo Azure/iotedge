@@ -1,0 +1,3 @@
+# Enable aziot-edged to start automatically.
+
+enable aziot-edged.service

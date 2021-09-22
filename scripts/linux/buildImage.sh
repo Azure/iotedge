@@ -53,8 +53,6 @@ usage()
     echo " -i, --image-name     Image name (e.g. edge-agent)"
     echo " -P, --project        Project to build image for (e.g. Microsoft.Azure.Devices.Edge.Agent.Service)"
     echo " -r, --registry       Docker registry required to build, tag and run the module"
-    echo " -u, --username       Docker Registry Username"
-    echo " -p, --password       Docker Username's password"
     echo " -n, --namespace      Docker namespace (default: $DEFAULT_DOCKER_NAMESPACE)"
     echo " -v, --image-version  Docker Image Version. Either use this option or set env variable BUILD_BUILDNUMBER"
     echo " -t, --target-arch    Target architecture (default: uname -m)"
@@ -83,50 +81,42 @@ process_args()
             DOCKER_REGISTRY="$arg"
             save_next_arg=0
         elif [[ ${save_next_arg} -eq 2 ]]; then
-            DOCKER_USERNAME="$arg"
-            save_next_arg=0
-        elif [[ ${save_next_arg} -eq 3 ]]; then
-            DOCKER_PASSWORD="$arg"
-            save_next_arg=0
-        elif [[ ${save_next_arg} -eq 4 ]]; then
             DOCKER_IMAGEVERSION="$arg"
             save_next_arg=0
-        elif [[ ${save_next_arg} -eq 5 ]]; then
+        elif [[ ${save_next_arg} -eq 3 ]]; then
             BUILD_BINARIESDIRECTORY="$arg"
             save_next_arg=0
-        elif [[ ${save_next_arg} -eq 6 ]]; then
+        elif [[ ${save_next_arg} -eq 4 ]]; then
             BASE_TAG="$arg"
             save_next_arg=0
-        elif [[ ${save_next_arg} -eq 7 ]]; then
+        elif [[ ${save_next_arg} -eq 5 ]]; then
             ARCH="$arg"
             check_arch
             save_next_arg=0
-        elif [[ ${save_next_arg} -eq 8 ]]; then
+        elif [[ ${save_next_arg} -eq 6 ]]; then
             PROJECT="$arg"
             save_next_arg=0
-        elif [[ ${save_next_arg} -eq 9 ]]; then
+        elif [[ ${save_next_arg} -eq 7 ]]; then
             DOCKER_IMAGENAME="$arg"
             save_next_arg=0
-        elif [[ ${save_next_arg} -eq 10 ]]; then
+        elif [[ ${save_next_arg} -eq 8 ]]; then
             DOCKER_NAMESPACE="$arg"
             save_next_arg=0
-        elif [[ ${save_next_arg} -eq 11 ]]; then
+        elif [[ ${save_next_arg} -eq 9 ]]; then
             DOCKER_USE_BUILDX="$arg"
             save_next_arg=0            
         else
             case "$arg" in
                 "-h" | "--help" ) usage;;
                 "-r" | "--registry" ) save_next_arg=1;;
-                "-u" | "--username" ) save_next_arg=2;;
-                "-p" | "--password" ) save_next_arg=3;;
-                "-v" | "--image-version" ) save_next_arg=4;;
-                "--bin-dir" ) save_next_arg=5;;
-                "--base-tag" ) save_next_arg=6;;
-                "-t" | "--target-arch" ) save_next_arg=7;;
-                "-P" | "--project" ) save_next_arg=8;;
-                "-i" | "--image-name" ) save_next_arg=9;;
-                "-n" | "--namespace" ) save_next_arg=10;;
-                "-b" | "--buildx_flag" ) save_next_arg=11;;
+                "-v" | "--image-version" ) save_next_arg=2;;
+                "--bin-dir" ) save_next_arg=3;;
+                "--base-tag" ) save_next_arg=4;;
+                "-t" | "--target-arch" ) save_next_arg=5;;
+                "-P" | "--project" ) save_next_arg=6;;
+                "-i" | "--image-name" ) save_next_arg=7;;
+                "-n" | "--namespace" ) save_next_arg=8;;
+                "-b" | "--buildx_flag" ) save_next_arg=9;;
                 "--skip-push" ) SKIP_PUSH=1 ;;
                 * ) usage;;
             esac
@@ -136,18 +126,6 @@ process_args()
     if [[ -z ${DOCKER_REGISTRY} ]]; then
         echo "Registry parameter invalid"
         print_help_and_exit
-    fi
-
-    if [[ ${SKIP_PUSH} -eq 0 ]]; then
-        if [[ -z ${DOCKER_USERNAME} ]]; then
-            echo "Docker username parameter invalid"
-            print_help_and_exit
-        fi
-
-        if [[ -z ${DOCKER_PASSWORD} ]]; then
-            echo "Docker password parameter invalid"
-            print_help_and_exit
-        fi
     fi
 
     if [[ -z ${DOCKER_IMAGENAME} ]]; then
@@ -283,15 +261,6 @@ docker_build_and_tag_and_push()
 ###############################################################################
 check_arch
 process_args "$@"
-
-# log in to container registry
-if [[ ${SKIP_PUSH} -eq 0 ]]; then
-    docker login "${DOCKER_REGISTRY}" -u "${DOCKER_USERNAME}" -p "${DOCKER_PASSWORD}"
-    if [[ $? -ne 0 ]]; then
-        echo "Docker login failed!"
-        exit 1
-    fi
-fi
 
 build_args=( "EXE_DIR=." )
 [[ -z "$BASE_TAG" ]] || build_args+=( "base_tag=$BASE_TAG" )

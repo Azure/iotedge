@@ -1,280 +1,224 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::cmp::Ordering;
-use std::time::{Duration, Instant};
+use edgelet_core::{ModuleRegistry, ModuleRuntime};
+use edgelet_settings::RuntimeSettings;
 
-use failure::{Fail, ResultExt};
-use futures::future::{self, Either};
-use futures::Future;
-use log::{info, warn, Level};
-use tokio::prelude::*;
-use tokio::timer::Interval;
+use crate::error::Error as EdgedError;
 
-use edgelet_core::{ImagePullPolicy, ModuleRegistry};
-use edgelet_utils::log_failure;
+pub(crate) async fn run_until_shutdown(
+    settings: edgelet_settings::docker::Settings,
+    device_info: &aziot_identity_common::AzureIoTSpec,
+    runtime: edgelet_docker::DockerModuleRuntime,
+    identity_client: &aziot_identity_client_async::Client,
+    mut shutdown_rx: tokio::sync::mpsc::UnboundedReceiver<edgelet_core::ShutdownReason>,
+) -> Result<edgelet_core::ShutdownReason, EdgedError> {
+    // Run the watchdog every 60 seconds while waiting for any running task to send a
+    // shutdown signal.
+    let watchdog_period = std::time::Duration::from_secs(60);
+    let watchdog_retries = settings.watchdog().max_retries();
+    let mut watchdog_errors = 0;
 
-use aziot_identity_common::Identity as AziotIdentity;
-use edgelet_core::module::{
-    Module, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec, ModuleStatus,
-};
-use edgelet_core::settings::RetryLimit;
+    let mut watchdog_timer = tokio::time::interval(watchdog_period);
+    watchdog_timer.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
 
-use crate::error::{Error, ErrorKind, InitializeErrorReason};
+    let shutdown_loop = shutdown_rx.recv();
+    futures_util::pin_mut!(shutdown_loop);
 
-// Time to allow EdgeAgent to gracefully shutdown (including stopping all modules, and updating reported properties)
-const EDGE_RUNTIME_STOP_TIME: Duration = Duration::from_secs(60);
+    log::info!("Starting watchdog with 60 second period...");
 
-/// This variable holds the generation ID associated with the Edge Agent module.
-const MODULE_GENERATIONID: &str = "IOTEDGE_MODULEGENERATIONID";
+    loop {
+        let watchdog_next = watchdog_timer.tick();
+        futures_util::pin_mut!(watchdog_next);
 
-/// This is the frequency with which the watchdog checks for the status of the edge runtime module.
-const WATCHDOG_FREQUENCY_SECS: u64 = 60;
+        match futures_util::future::select(watchdog_next, shutdown_loop).await {
+            futures_util::future::Either::Left((_, shutdown)) => {
+                if let Err(err) = watchdog(&settings, device_info, &runtime, identity_client).await
+                {
+                    log::warn!("Error in watchdog: {}", err);
 
-pub struct Watchdog<M> {
-    runtime: M,
-    max_retries: RetryLimit,
-    identityd_url: url::Url,
-}
+                    watchdog_errors += 1;
 
-impl<M> Watchdog<M>
-where
-    M: 'static + ModuleRuntime + Clone,
-    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
-    <M::Module as Module>::Config: Clone,
-{
-    pub fn new(runtime: M, max_retries: RetryLimit, identityd_url: &url::Url) -> Self {
-        Watchdog {
-            runtime,
-            max_retries,
-            identityd_url: identityd_url.clone(),
+                    if watchdog_retries <= watchdog_errors {
+                        return Err(EdgedError::new(
+                            "Watchdog error count has exceeded allowed retries",
+                        ));
+                    }
+                }
+
+                shutdown_loop = shutdown;
+            }
+
+            futures_util::future::Either::Right((shutdown_reason, _)) => {
+                let shutdown_reason = shutdown_reason.expect("shutdown channel closed");
+                log::info!("{}", shutdown_reason);
+                log::info!("Watchdog stopped");
+
+                log::info!("Stopping all modules...");
+                if let Err(err) = runtime
+                    .stop_all(Some(std::time::Duration::from_secs(30)))
+                    .await
+                {
+                    log::warn!("Failed to stop modules on shutdown: {}", err);
+                } else {
+                    log::info!("All modules stopped");
+                }
+
+                return Ok(shutdown_reason);
+            }
         }
     }
+}
 
-    // Start the edge runtime module (EdgeAgent). This also updates the identity of the module (module_id)
-    // to make sure it is configured for the right authentication type (sas token)
-    // spec.name = edgeAgent / module_id = $edgeAgent
-    pub fn run_until<F>(
-        self,
-        spec: ModuleSpec<<M::Module as Module>::Config>,
-        module_id: &str,
-        shutdown_signal: F,
-    ) -> impl Future<Item = (), Error = Error>
-    where
-        F: Future<Item = (), Error = ()> + 'static,
-    {
-        let runtime = self.runtime;
-        let runtime_copy = runtime.clone();
-        let name = spec.name().to_string();
-        let module_id = module_id.to_string();
-        let max_retries = self.max_retries;
-        let identityd_url = self.identityd_url;
+async fn watchdog(
+    settings: &edgelet_settings::docker::Settings,
+    device_info: &aziot_identity_common::AzureIoTSpec,
+    runtime: &edgelet_docker::DockerModuleRuntime,
+    identity_client: &aziot_identity_client_async::Client,
+) -> Result<(), EdgedError> {
+    log::info!("Watchdog checking Edge runtime status");
+    let agent_name = settings.agent().name();
 
-        let watchdog = start_watchdog(runtime, spec, module_id, max_retries, identityd_url);
+    let start = if let Ok((_, agent_status)) = runtime.get(agent_name).await {
+        let agent_status = agent_status.status();
 
-        // Swallow any errors from shutdown_signal
-        let shutdown_signal = shutdown_signal.then(|_| Ok(()));
+        if let edgelet_core::ModuleStatus::Running = agent_status {
+            log::info!("Edge runtime is running");
 
-        // Wait for the watchdog or shutdown futures to complete
-        // Since the watchdog never completes, this will wait for the
-        // shutdown signal.
-        shutdown_signal
-            .select(watchdog)
-            .then(move |result| match result {
-                Ok(((), _)) => Ok(stop_runtime(&runtime_copy, &name)),
-                Err((err, _)) => Err(err),
-            })
-            .flatten()
+            false
+        } else {
+            log::info!(
+                "Edge runtime status is {}; starting runtime now...",
+                agent_status
+            );
+
+            true
+        }
+    } else {
+        log::info!(
+            "Creating and starting Edge runtime module {}...",
+            agent_name
+        );
+
+        let mut agent_spec = settings.agent().clone();
+
+        let gen_id = agent_gen_id(identity_client).await?;
+        let mut env = agent_env(gen_id, settings, device_info);
+        agent_spec.env_mut().append(&mut env);
+
+        if let edgelet_settings::module::ImagePullPolicy::OnCreate = agent_spec.image_pull_policy()
+        {
+            runtime
+                .registry()
+                .pull(agent_spec.config())
+                .await
+                .map_err(|err| EdgedError::from_err("Failed to pull Edge runtime module", err))?;
+        }
+
+        runtime
+            .create(agent_spec)
+            .await
+            .map_err(|err| EdgedError::from_err("Failed to create Edge runtime module", err))?;
+
+        log::info!("Created Edge runtime module {}", agent_name);
+
+        true
+    };
+
+    if start {
+        runtime
+            .start(agent_name)
+            .await
+            .map_err(|err| EdgedError::from_err("Failed to start Edge runtime", err))?;
+
+        log::info!("Started Edge runtime module {}", agent_name);
+    }
+
+    Ok(())
+}
+
+async fn agent_gen_id(
+    identity_client: &aziot_identity_client_async::Client,
+) -> Result<String, EdgedError> {
+    let identity = identity_client
+        .update_module_identity("$edgeAgent")
+        .await
+        .map_err(|err| EdgedError::from_err("Failed to update $edgeAgent identity", err))?;
+
+    if let aziot_identity_common::Identity::Aziot(identity) = identity {
+        identity.gen_id.map_or_else(
+            || Err(EdgedError::new("$edgeAgent identity missing generation ID")),
+            |gen_id| Ok(gen_id.0),
+        )
+    } else {
+        Err(EdgedError::new("Invalid identity type for $edgeAgent"))
     }
 }
 
-// Stop EdgeAgent
-fn stop_runtime<M>(runtime: &M, name: &str) -> impl Future<Item = (), Error = Error>
-where
-    M: 'static + ModuleRuntime + Clone,
-    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
-    <M::Module as Module>::Config: Clone,
-{
-    info!("Stopping edge runtime module {}", name);
-    runtime
-        .stop(name, Some(EDGE_RUNTIME_STOP_TIME))
-        .or_else(|err| match (&err).into() {
-            ModuleRuntimeErrorReason::NotFound => Ok(()),
-            ModuleRuntimeErrorReason::Other => {
-                Err(Error::from(err.context(ErrorKind::ModuleRuntime)))
-            }
-        })
-}
+fn agent_env(
+    gen_id: String,
+    settings: &edgelet_settings::docker::Settings,
+    device_info: &aziot_identity_common::AzureIoTSpec,
+) -> std::collections::BTreeMap<String, String> {
+    let mut env = std::collections::BTreeMap::new();
 
-// Start watchdog on a timer for 1 minute
-pub fn start_watchdog<M>(
-    runtime: M,
-    spec: ModuleSpec<<M::Module as Module>::Config>,
-    module_id: String,
-    max_retries: RetryLimit,
-    identityd_url: url::Url,
-) -> impl Future<Item = (), Error = Error>
-where
-    M: 'static + ModuleRuntime + Clone,
-    <M::Module as Module>::Config: Clone,
-{
-    info!(
-        "Starting watchdog with {} second frequency...",
-        WATCHDOG_FREQUENCY_SECS
+    env.insert(
+        "EdgeDeviceHostName".to_string(),
+        settings.hostname().to_string(),
     );
 
-    Interval::new(Instant::now(), Duration::from_secs(WATCHDOG_FREQUENCY_SECS))
-        .map_err(|err| Error::from(err.context(ErrorKind::EdgeRuntimeStatusCheckerTimer)))
-        .and_then(move |_| {
-            info!("Checking edge runtime status");
-
-            check_runtime(
-                runtime.clone(),
-                spec.clone(),
-                module_id.clone(),
-                identityd_url.clone(),
-            )
-            .and_then(|_| future::ok(None))
-            .or_else(|e| {
-                warn!("Error in watchdog when checking for edge runtime status:");
-                log_failure(Level::Warn, &e);
-                future::ok(Some(e))
-            })
-        })
-        .fold(0, move |exec_count: u32, result: Option<Error>| {
-            result.map_or_else(
-                || Ok(0),
-                |e| {
-                    if max_retries.compare(exec_count) == Ordering::Greater {
-                        Ok(exec_count + 1)
-                    } else {
-                        Err(e)
-                    }
-                },
-            )
-        })
-        .map(|_| ())
-}
-
-// Check if the edge runtime module is running, and if not, start it.
-fn check_runtime<M>(
-    runtime: M,
-    spec: ModuleSpec<<M::Module as Module>::Config>,
-    module_id: String,
-    identityd_url: url::Url,
-) -> impl Future<Item = (), Error = Error>
-where
-    M: 'static + ModuleRuntime + Clone,
-    <M::Module as Module>::Config: Clone,
-{
-    let module = spec.name().to_string();
-    get_edge_runtime_mod(&runtime, module.clone())
-        .and_then(|m| {
-            m.map(|m| {
-                m.runtime_state()
-                    .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))
-            })
-        })
-        .and_then(move |state| match state {
-            Some(state) => {
-                let res = if *state.status() == ModuleStatus::Running {
-                    info!("Edge runtime is running.");
-                    future::Either::A(future::ok(()))
-                } else {
-                    info!(
-                        "Edge runtime status is {}, starting module now...",
-                        *state.status(),
-                    );
-                    future::Either::B(
-                        runtime
-                            .start(&module)
-                            .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime))),
-                    )
-                };
-                Either::A(res)
-            }
-
-            None => Either::B(create_and_start(runtime, spec, &module_id, &identityd_url)),
-        })
-        .map(|_| ())
-}
-
-// Gets the edge runtime module, if it exists.
-fn get_edge_runtime_mod<M>(
-    runtime: &M,
-    name: String,
-) -> impl Future<Item = Option<M::Module>, Error = Error>
-where
-    M: 'static + ModuleRuntime + Clone,
-    <M::Module as Module>::Config: Clone,
-{
-    runtime
-        .list()
-        .map(move |m| m.into_iter().find(move |m| m.name() == name))
-        .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))
-}
-
-fn create_and_start<M>(
-    runtime: M,
-    spec: ModuleSpec<<M::Module as Module>::Config>,
-    module_id: &str,
-    identityd_url: &url::Url,
-) -> impl Future<Item = (), Error = Error>
-where
-    M: 'static + ModuleRuntime + Clone,
-    <M::Module as Module>::Config: Clone,
-{
-    let module_name = spec.name().to_string();
-    info!("Creating and starting edge runtime module {}", module_name);
-    let runtime_copy = runtime.clone();
-
-    let id_mgr = identity_client::IdentityClient::new(
-        aziot_identity_common_http::ApiVersion::V2020_09_01,
-        &identityd_url,
+    env.insert(
+        "IOTEDGE_APIVERSION".to_string(),
+        format!("{}", edgelet_http::ApiVersion::V2020_10_10),
     );
 
-    id_mgr
-        .update_module(module_id.as_ref())
-        .then(move |identity| -> Result<_, Error> {
-            let identity = identity.with_context(|_| ErrorKind::ModuleRuntime)?;
+    env.insert("IOTEDGE_AUTHSCHEME".to_string(), "sasToken".to_string());
 
-            let genid = match identity {
-                AziotIdentity::Aziot(spec) => spec
-                    .gen_id
-                    .ok_or_else(|| Error::from(ErrorKind::ModuleRuntime))?,
-                AziotIdentity::Local(_) => {
-                    return Err(Error::from(ErrorKind::Initialize(
-                        InitializeErrorReason::InvalidIdentityType,
-                    )))
-                }
-            };
-            Ok(genid)
-        })
-        .into_future()
-        .and_then(move |generation_id| {
-            let mut env = spec.env().clone();
-            env.insert(MODULE_GENERATIONID.to_string(), generation_id.0);
-            let spec = spec.with_env(env);
+    env.insert(
+        "IOTEDGE_DEVICEID".to_string(),
+        device_info.device_id.0.clone(),
+    );
 
-            let pull_future = match spec.image_pull_policy() {
-                ImagePullPolicy::Never => Either::A(future::ok(())),
-                ImagePullPolicy::OnCreate => Either::B(
-                    runtime
-                        .registry()
-                        .pull(spec.config())
-                        .map_err(|_| Error::from(ErrorKind::ModuleRuntime)),
-                ),
-            };
+    env.insert(
+        "IOTEDGE_IOTHUBHOSTNAME".to_string(),
+        device_info.hub_name.clone(),
+    );
 
-            pull_future
-                .and_then(move |_| {
-                    runtime
-                        .create(spec)
-                        .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))
-                })
-                .and_then(move |_| {
-                    runtime_copy
-                        .start(&module_name)
-                        .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))
-                })
-        })
+    if device_info.gateway_host.to_lowercase() != device_info.hub_name.to_lowercase() {
+        env.insert(
+            "IOTEDGE_GATEWAYHOSTNAME".to_string(),
+            device_info.gateway_host.clone(),
+        );
+    }
+
+    env.insert("IOTEDGE_MODULEID".to_string(), "$edgeAgent".to_string());
+    env.insert("IOTEDGE_MODULEGENERATIONID".to_string(), gen_id);
+
+    let (workload_uri, management_uri) = (
+        settings.connect().workload_uri().to_string(),
+        settings.connect().management_uri().to_string(),
+    );
+    let workload_mnt_uri = {
+        // Home directory was used before this function was called, so it should be valid.
+        let mut path = settings
+            .homedir()
+            .canonicalize()
+            .expect("Invalid homedir path");
+
+        path.push("mnt");
+
+        let path = path.to_str().expect("invalid path");
+
+        format!("unix://{}", path)
+    };
+
+    env.insert("IOTEDGE_WORKLOADURI".to_string(), workload_uri);
+    env.insert("IOTEDGE_MANAGEMENTURI".to_string(), management_uri);
+    env.insert(
+        "IOTEDGE_WORKLOADLISTEN_MNTURI".to_string(),
+        workload_mnt_uri,
+    );
+
+    env.insert("Mode".to_string(), "iotedged".to_string());
+
+    env
 }

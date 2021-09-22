@@ -113,7 +113,7 @@ namespace TestResultCoordinator
             this.OptimizeForPerformance = Preconditions.CheckNotNull(optimizeForPerformance);
             this.TestStartDelay = testStartDelay;
             this.NetworkControllerType = this.GetNetworkControllerType(networkControllerRunProfileName);
-            this.UnmatchedResultsMaxSize = Preconditions.CheckRange<ushort>(unmatchedResultsMaxSize, 1);
+            this.EnumeratedResultsMaxSize = Preconditions.CheckRange<ushort>(unmatchedResultsMaxSize, 1);
 
             this.TestInfo = ModuleUtil.ParseKeyValuePairs(testInfo, Logger, true);
             this.TestInfo.Add("DeviceId", this.DeviceId);
@@ -192,7 +192,7 @@ namespace TestResultCoordinator
 
         public NetworkControllerType NetworkControllerType { get; }
 
-        public ushort UnmatchedResultsMaxSize { get; }
+        public ushort EnumeratedResultsMaxSize { get; }
 
         public Option<TestResultEventReceivingServiceSettings> TestResultEventReceivingServiceSettings { get; }
 
