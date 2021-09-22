@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Util
 {
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -285,6 +287,52 @@ namespace Microsoft.Azure.Devices.Edge.Util
             Task completedTask = await Task.WhenAny(task, tcs.Task);
             //// Await here to bubble up any exceptions
             await completedTask;
+        }
+
+        public static async Task<IEnumerable<U>> SelectAsync<T, U>(this IEnumerable<T> source, Func<T, Task<U>> func, int concurrentLimit = int.MaxValue)
+        {
+            // If number of items to be processed is less than limit, just run all
+            if (source.Count() <= concurrentLimit)
+            {
+                return await Task.WhenAll(source.Select(func));
+            }
+
+            // Lock for enumerator and result list since they are accessed by independent tasks
+            AsyncLock enumerator_lock = new AsyncLock();
+            List<U> result = new List<U>();
+            var enumerator = source.GetEnumerator();
+
+            // recursive thread safe func that will drain source and call func on each element until source is empty
+            async Task process_next()
+            {
+                T current;
+                using (await enumerator_lock.LockAsync())
+                {
+                    if (!enumerator.MoveNext())
+                    {
+                        // If enumerator is empty, end recursion
+                        // Note lock is released by using statement
+                        return;
+                    }
+                    current = enumerator.Current;
+                }
+
+                // Do work
+                U value = await func(current);
+
+                // Append result to result list
+                using (await enumerator_lock.LockAsync())
+                {
+                    result.Add(value);
+                }
+
+                // Recurse to process next element
+                await process_next();
+            }
+
+            // Create [concurrentLimit] independent tasks to drain source
+            await Task.WhenAll(Enumerable.Range(0, concurrentLimit).Select(_ => process_next()));
+            return result;
         }
     }
 }

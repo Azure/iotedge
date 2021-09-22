@@ -75,9 +75,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             await Task.WhenAll(removeIdentities.Select(i => this.identityManager.DeleteIdentityAsync(i)));
 
             // Create/update identities.
-            IEnumerable<Task<Identity>> createTasks = createIdentities.Select(i => this.identityManager.CreateIdentityAsync(i, Constants.ModuleIdentityEdgeManagedByValue));
-            IEnumerable<Task<Identity>> updateTasks = updateIdentities.Select(i => this.identityManager.UpdateIdentityAsync(i.ModuleId, i.GenerationId, i.ManagedBy));
-            Identity[] upsertedIdentities = await Task.WhenAll(createTasks.Concat(updateTasks));
+            IEnumerable<Identity> createdIdentities = await createIdentities.SelectAsync(i => this.identityManager.CreateIdentityAsync(i, Constants.ModuleIdentityEdgeManagedByValue), 5);
+            IEnumerable<Identity> updatedIdentities = await updateIdentities.SelectAsync(i => this.identityManager.UpdateIdentityAsync(i.ModuleId, i.GenerationId, i.ManagedBy), 5);
+            IEnumerable<Identity> upsertedIdentities = createdIdentities.Concat(updatedIdentities);
 
             List<IModuleIdentity> moduleIdentities = upsertedIdentities.Select(this.GetModuleIdentity).ToList();
 
