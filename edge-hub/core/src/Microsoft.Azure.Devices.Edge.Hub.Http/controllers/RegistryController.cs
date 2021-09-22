@@ -20,6 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
         readonly IRegistryOnBehalfOfApiClient apiClient;
         readonly Task<IHttpRequestAuthenticator> authenticatorGetter;
         readonly Task<IEdgeHub> edgeHubGetter;
+        static readonly ILogger Log = Logger.Factory.CreateLogger<DeviceScopeController>();
 
         public RegistryController(
             IRegistryOnBehalfOfApiClient apiClient,
@@ -41,6 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
         {
             try
             {
+                Log.LogError("enter");
                 Events.ReceivedRequest(nameof(this.CreateOrUpdateModuleAsync), deviceId, moduleId);
 
                 try
@@ -49,6 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                     moduleId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId)));
                     Preconditions.CheckNotNull(module, nameof(module));
 
+                    Log.LogError("check1");
                     if (!string.Equals(deviceId, module.DeviceId) || !string.Equals(moduleId, module.Id))
                     {
                         throw new ApplicationException("Device Id or module Id doesn't match between request URI and body.");
@@ -56,18 +59,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 }
                 catch (Exception ex)
                 {
+                    Log.LogError("check2");
                     Events.BadRequest(nameof(this.CreateOrUpdateModuleAsync), ex.Message);
                     await this.SendResponseAsync(HttpStatusCode.BadRequest, FormatErrorResponseMessage(ex.Message));
                     return;
                 }
 
+                Log.LogError("check3");
                 IHttpRequestAuthenticator authenticator = await this.authenticatorGetter;
                 if (!await AuthenticateAsync(deviceId, Option.None<string>(), Option.None<string>(), this.HttpContext, authenticator))
                 {
+                    Log.LogError("check4");
                     await this.SendResponseAsync(HttpStatusCode.Unauthorized);
                     return;
                 }
 
+                Log.LogError("check5");
                 IEdgeHub edgeHub = await this.edgeHubGetter;
                 IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
                 Option<string> targetAuthChain = await identitiesCache.GetAuthChain(deviceId);
