@@ -33,14 +33,16 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
             this.Proposed = checkpointData.Offset;
             this.closed = new AtomicBoolean(false);
             this.EndpointId = endpointId;
-            this.Priority = priority.ToString();
+            this.Priority = priority;
+
+            Metrics.SetQueueLength((ulong)Math.Max(this.Offset, 0), endpointId, priority);
         }
 
         public string Id { get; }
 
         public string EndpointId { get; }
 
-        public string Priority { get; }
+        public uint Priority { get; }
 
         public long Offset { get; private set; }
 
@@ -71,7 +73,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
         public void Propose(IMessage message)
         {
             this.Proposed = Math.Max(message.Offset, this.Proposed);
-            Metrics.SetQueueLength(this);
+            Metrics.IncrementQueueLength(this.EndpointId, this.Priority);
         }
 
         public bool Admit(IMessage message)
@@ -111,7 +113,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
                 this.LastFailedRevivalTime = lastFailedRevivalTime;
                 this.UnhealthySince = unhealthySince;
                 await this.store.SetCheckpointDataAsync(this.Id, new CheckpointData(offset, this.LastFailedRevivalTime, this.UnhealthySince), token);
-                Metrics.SetQueueLength(this);
+            }
+
+            foreach (var message in successful)
+            {
+                Metrics.DecrementQueueLength(this.EndpointId, this.Priority);
             }
 
             Events.CommitFinished(this);
@@ -187,7 +193,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
 
             public static void Close(Checkpointer checkpointer)
             {
-                Log.LogInformation((int)EventIds.Close, "[CheckpointerClose] {conetxt}", GetContextString(checkpointer));
+                Log.LogInformation((int)EventIds.Close, "[CheckpointerClose] {context}", GetContextString(checkpointer));
             }
 
             static string GetContextString(Checkpointer checkpointer)
@@ -203,13 +209,13 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
                 "Number of messages pending to be processed for the endpoint",
                 new List<string> { "endpoint", "priority", MetricsConstants.MsTelemetry });
 
-            public static void SetQueueLength(Checkpointer checkpointer) => SetQueueLength(CalculateQueueLength(checkpointer), checkpointer.EndpointId, checkpointer.Priority);
+            public static void IncrementQueueLength(string endpointId, uint priority) => QueueLength.Increment(new[] { endpointId, priority.ToString(), bool.TrueString });
 
-            public static void SetQueueLength(double length, string endpointId, string priority) => QueueLength.Set(length, new[] { endpointId, priority, bool.TrueString });
+            public static void DecrementQueueLength(string endpointId, uint priority) => QueueLength.Decrement(new[] { endpointId, priority.ToString(), bool.TrueString });
 
-            private static double CalculateQueueLength(Checkpointer checkpointer) => CalculateQueueLength(checkpointer.Proposed - checkpointer.Offset);
+            public static void SetQueueLength(ulong count, string endpointId, uint priority) => QueueLength.Set(count, new[] { endpointId, priority.ToString(), bool.TrueString });
 
-            private static double CalculateQueueLength(long length) => Math.Max(length, 0);
+            public static double GetQueueLength(string endpointId, uint priority) => QueueLength.Get(new[] { endpointId, priority.ToString(), bool.TrueString });
         }
     }
 }
