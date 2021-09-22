@@ -193,7 +193,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         [Test]
         [Category("CentOsSafe")]
-        [Category("FlakyOnNested")]
+        [Category("Flaky")]
         public async Task DisableReenableParentEdge()
         {
             CancellationToken token = this.TestToken;
