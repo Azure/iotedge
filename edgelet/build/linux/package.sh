@@ -61,7 +61,7 @@ fi
 
 case "$PACKAGE_ARCH" in
     'amd64')
-        MAKE_FLAGS="DPKGFLAGS='-b -us -uc -i -d'"
+        MAKE_FLAGS="DPKGFLAGS='-b -us -uc -i'"
         ;;
 
     'arm32v7')
@@ -258,12 +258,12 @@ case "$PACKAGE_OS" in
             arm32v7)
                 MAKE_FLAGS="'CARGOFLAGS=--target armv7-unknown-linux-gnueabihf'"
                 MAKE_FLAGS="$MAKE_FLAGS 'TARGET=target/armv7-unknown-linux-gnueabihf/release'"
-                MAKE_FLAGS="$MAKE_FLAGS 'DPKGFLAGS=-b -us -uc -i -d --host-arch armhf'"
+                MAKE_FLAGS="$MAKE_FLAGS 'DPKGFLAGS=-b -us -uc -i --host-arch armhf'"
                 ;;
             aarch64)
                 MAKE_FLAGS="'CARGOFLAGS=--target aarch64-unknown-linux-gnu'"
                 MAKE_FLAGS="$MAKE_FLAGS 'TARGET=target/aarch64-unknown-linux-gnu/release'"
-                MAKE_FLAGS="$MAKE_FLAGS 'DPKGFLAGS=-b -us -uc -i -d --host-arch arm64 --host-type aarch64-linux-gnu --target-type aarch64-linux-gnu'"
+                MAKE_FLAGS="$MAKE_FLAGS 'DPKGFLAGS=-b -us -uc -i --host-arch arm64 --host-type aarch64-linux-gnu --target-type aarch64-linux-gnu'"
                 ;;
         esac
 
