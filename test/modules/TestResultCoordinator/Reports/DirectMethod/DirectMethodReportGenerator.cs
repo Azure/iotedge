@@ -156,24 +156,11 @@ namespace TestResultCoordinator.Reports.DirectMethod
                     $"{dmSenderTestResult.GetFormattedResult()}. ReceiverTestResult: {dmReceiverTestResult.GetFormattedResult()}");
             }
 
-            bool didFindMatch = false;
             if (dmSenderTestResult.SequenceNumber == dmReceiverTestResult.SequenceNumber)
             {
-                dmReceiverTestResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(receiverTestResults.Current.Result);
-                didFindMatch = true;
-
-                ulong receiverSequenceNumber = dmReceiverTestResult.SequenceNumber;
-                while (hasReceiverResult && dmSenderTestResult.SequenceNumber == receiverSequenceNumber)
-                {
-                    hasReceiverResult = await receiverTestResults.MoveNextAsync();
-                    if (hasReceiverResult)
-                    {
-                        receiverSequenceNumber = JsonConvert.DeserializeObject<DirectMethodTestResult>(receiverTestResults.Current.Result).SequenceNumber;
-                    }
-                }
+                hasReceiverResult = await receiverTestResults.MoveNextAsync();
             }
-
-            if (!didFindMatch)
+            else
             {
                 if (dmSenderTestResult.SequenceNumber > dmReceiverTestResult.SequenceNumber)
                 {
