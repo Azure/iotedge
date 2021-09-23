@@ -67,7 +67,10 @@ sudo scripts/linux/buildImage.sh -r localhost:5000  -i "temperature-filter-funct
 
 The end-to-end tests take several parameters, which they expect to find in a file named `context.json` in the same directory as the test binaries (e.g., `test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp3.1/context.json`). Parameter names are case-insensitive. See [end-to-end test parameters](./doc/end-to-end-test-config.md) for details. 
 
+
 #### Sample context.json
+Here is a sample context.json file that you can use as a starting point to configure the parameters to fit your environment.  
+
 ~~~ json
 {
     "packagePath": "/home/azureuser/iotedge/edgelet/target/release/",
