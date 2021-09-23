@@ -742,11 +742,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             deviceManager.Verify(x => x.ReprovisionDeviceAsync(), Times.Exactly(shouldReprovision ? 1 : 0));
         }
 
-        [Fact]
+        [Theory()]
         [Unit]
-        public async Task FrequentTwinPullsOnConnectionAreThrottledAsync()
+        [Repeat(10)]
+        public async Task FrequentTwinPullsOnConnectionAreThrottledAsync(int iterationNumber)
         {
             // Arrange
+            _ = iterationNumber;
             var deviceClient = new Mock<IModuleClient>();
             deviceClient.Setup(x => x.UpstreamProtocol).Returns(UpstreamProtocol.Amqp);
             deviceClient.Setup(x => x.IsActive).Returns(true);
@@ -837,6 +839,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // get out of the 3 sec window, the delayed pull should finish by then
             await Task.Delay(3500);
             Assert.Equal(3, counter);
+            await Task.Delay(2000);
         }
 
         [Fact]
