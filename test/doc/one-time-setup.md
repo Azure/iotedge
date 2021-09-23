@@ -123,7 +123,7 @@ chmod u+x dotnet-install.sh
 ~~~
 
 ## Setup your cloud resources
-The end-to-end tests require a number of azure cloud side resources i.e., IoTHub, Device Provisioning Service, and a Storage Container to be setup. This next section will walk you through how to setup the cloud resources.
+The end-to-end tests require a number of azure cloud side resources i.e., IoT hub, Device Provisioning Service, and a Storage Container to be setup. This next section will walk you through how to setup the cloud resources.
 
 ##### Create a resource group
 If you don't already have a resource group, create one.
@@ -132,8 +132,8 @@ Here is how you can create one using the CLI
 az group create --name {resource group name} --location {region}
 ~~~
 
-##### IoT Hub
-If you don't already have an existing IoT hub, create one. There is no special configuration required, except for making sure that your IoTHub is enabled for public access.
+##### IoT hub
+If you don't already have an existing IoT hub, create one. There is no special configuration required, except for making sure that your IoT hub is enabled for public access.
 Here is how you can create one using the CLI
 
 ~~~sh
@@ -164,13 +164,13 @@ az iot dps show --name {dps group name} | grep idScope
 ~~~
 
 ###### Create enrollment group for symmetric key based enrollment
-In your DPS instance, create a new enrollment group for symmetric key based enrollment. For this enrollment group, set the attestation type to be symmetric key, set the IoTEdge Device setting to true, and link the group to your IoThub with the access policy of `iotHubOwner`. 
+In your DPS instance, create a new enrollment group for symmetric key based enrollment. For this enrollment group, set the attestation type to be symmetric key, set the IoTEdge Device setting to true, and link the group to your IoT hub with the access policy of `iotHubOwner`. 
 
 Using the CLI,
 ~~~sh
 #Link the DPS group to your Iot hub
 az iot dps linked-hub create --dps-name {dps group name} --resource-group {resource group name} \
-  --connection-string "{Iothub ConnectionString}" --location westus2
+  --connection-string "{Iot hub ConnectionString}" --location westus2
 
 #Create enrollment group for symmetric key based enrollment
  az iot dps enrollment-group create -g {resource group name} --dps-name {dps group name} \
@@ -181,7 +181,7 @@ You do not have to create the symmetric key. The system will auto generate it fo
 See [Symmetric key attestation](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-auto-provision-symmetric-keys?view=iotedge-2020-11&tabs=windows) for further details.
 
 ###### Create enrollment group for X.509 certificate based enrollment
-In your DPS instance, create another enrollment group for X.509 certificate based enrollment. For this enrollment group, set the attestation type to be certificate and upload the root CA certificate that you had created earlier, set the IoTEdge Device setting to true, and link the group to your IotHub with the access policy of `iotHubOwner`.
+In your DPS instance, create another enrollment group for X.509 certificate based enrollment. For this enrollment group, set the attestation type to be certificate and upload the root CA certificate that you had created earlier, set the IoTEdge Device setting to true, and link the group to your Iot Hub with the access policy of `iotHubOwner`.
 
 ~~~sh
 # Upload the root ca cert and set it to be verified
