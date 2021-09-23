@@ -43,6 +43,6 @@ _Note: A ✔ in the required column indicates that it is required for all the te
 | `E2E_REGISTRIES__{n}__PASSWORD` || Password associated with a container registry entry in the `registries` array of `context.json`. `{n}` is the number corresponding to the (zero-based) array entry. For example, if you specified a single container registry in the `registries` array, the corresponding parameter would be `E2E_REGISTRIES__0__PASSWORD`. |
 | `E2E_ROOT_CA_PASSWORD` || The password associated with the root certificate specified in `rootCaCertificatePath`. |
 | `E2E_BLOB_STORE_SAS` || The sas token used to upload module logs and support bundle in the tests. |
-| `E2E_IOT_HUB_RESOURCE_ID` || Full path to Iot hub that will receive the metrics messages in the following format - `/resource/subscriptions/<Azure subscription GUID>/resourceGroups/<resource group name>/providers/Microsoft.Devices/Iot hubs/<Iot hub name>`. Required when running the test 'MetricsCollector', ignored otherwise.|
+| `E2E_IOT_HUB_RESOURCE_ID` || Full path to Iot hub that will receive the metrics messages in the following format - `/resource/subscriptions/<Azure subscription GUID>/resourceGroups/<resource group name>/providers/Microsoft.Devices/IotHubs/<Iot hub name>`. Required when running the test 'MetricsCollector', ignored otherwise.|
 
 _Note: the definitive source for information about test parameters is `test/Microsoft.Azure.Devices.Edge.Test/helpers/Context.cs`._

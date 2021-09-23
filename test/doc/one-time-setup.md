@@ -123,7 +123,7 @@ chmod u+x dotnet-install.sh
 ~~~
 
 ## Setup your cloud resources
-The end-to-end tests require a number of azure cloud side resources i.e., IoT hub, Device Provisioning Service, and a Storage Container to be setup. This next section will walk you through how to setup the cloud resources.
+The end-to-end tests require a number of azure cloud side resources i.e., IoT Hub, Device Provisioning Service, and a Storage Container to be setup. This next section will walk you through how to setup the cloud resources.
 
 ##### Create a resource group
 If you don't already have a resource group, create one.
@@ -132,7 +132,7 @@ Here is how you can create one using the CLI
 az group create --name {resource group name} --location {region}
 ~~~
 
-##### IoT hub
+##### IoT Hub
 If you don't already have an existing IoT hub, create one. There is no special configuration required, except for making sure that your IoT hub is enabled for public access.
 Here is how you can create one using the CLI
 
