@@ -2,7 +2,6 @@ trigger: none
 pr: none
 
 variables:
-  NugetSecurityAnalysisWarningLevel: warn
   images.artifact.name.linux: 'core-linux'
   vsts.project: $(System.TeamProjectId)
   # Variable defined in VSTS
