@@ -64,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         if (Directory.Exists(directory))
                         {
                             Directory.Delete(directory, true);
-                            Log.Information($"Deleted {directory}");
+                            Log.Verbose($"Deleted {directory}");
                         }
                     }
 
@@ -103,10 +103,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                             string edgeAgent = Context.Current.EdgeAgentImage.GetOrElse("mcr.microsoft.com/azureiotedge-agent:1.2");
 
-                            Log.Information("Search parents");
+                            Log.Verbose("Search parents");
                             Context.Current.ParentHostname.ForEach(parentHostname =>
                             {
-                                Log.Information($"Found parent hostname {parentHostname}");
+                                Log.Verbose($"Found parent hostname {parentHostname}");
                                 config.SetParentHostname(parentHostname);
                                 msgBuilder.AppendLine($", parent hostname '{parentHostname}'");
                                 props.Add(parentHostname);
@@ -164,7 +164,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         private static void ResetConfigFile(string configFile, string defaultFile, string owner)
         {
             // Reset the config file to the default.
-            Log.Information($"Resetting {configFile} to {defaultFile}");
+            Log.Verbose($"Resetting {configFile} to {defaultFile}");
             File.Copy(defaultFile, configFile, true);
             OsPlatform.Current.SetOwner(configFile, owner, "644");
 
@@ -179,7 +179,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                 Directory.CreateDirectory(principalsPath);
                 OsPlatform.Current.SetOwner(principalsPath, owner, "755");
-                Log.Information($"Cleared {principalsPath}");
+                Log.Verbose($"Cleared {principalsPath}");
             }
         }
     }

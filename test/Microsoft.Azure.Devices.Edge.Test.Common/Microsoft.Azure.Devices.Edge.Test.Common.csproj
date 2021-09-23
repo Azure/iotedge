@@ -8,11 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Devices" Version="1.28.1-NestedEdge" />
-    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.33.1-NestedEdge" />
+    <PackageReference Include="Microsoft.Azure.Devices" Version="1.31.1" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.36.2" />
     <PackageReference Include="Microsoft.Azure.EventHubs" Version="3.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
-    <PackageReference Include="RunProcessAsTask" Version="1.2.4" />
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="4.5.0" />
     <PackageReference Include="Nett" Version="0.15.0" />
   </ItemGroup>

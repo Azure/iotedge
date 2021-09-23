@@ -7,7 +7,6 @@ namespace TestResultCoordinator.Reports
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Logging;
     using TestResultCoordinator.DirectMethod;
     using TestResultCoordinator.Reports.DirectMethod.Connectivity;
     using TestResultCoordinator.Reports.DirectMethod.LongHaul;
@@ -56,6 +55,7 @@ namespace TestResultCoordinator.Reports
 
                         return new CountingReportGenerator(
                             metadata.TestDescription,
+                            Settings.Current.TestMode,
                             trackingId,
                             metadata.ExpectedSource,
                             expectedTestResults.GetAsyncEnumerator(),
@@ -75,6 +75,7 @@ namespace TestResultCoordinator.Reports
 
                         return new TwinCountingReportGenerator(
                             metadata.TestDescription,
+                            metadata.Topology,
                             trackingId,
                             metadata.ExpectedSource,
                             expectedTestResults.GetAsyncEnumerator(),
@@ -124,6 +125,7 @@ namespace TestResultCoordinator.Reports
 
                         return new DirectMethodConnectivityReportGenerator(
                             metadata.TestDescription,
+                            metadata.Topology,
                             trackingId,
                             metadata.SenderSource,
                             senderTestResults.GetAsyncEnumerator(),

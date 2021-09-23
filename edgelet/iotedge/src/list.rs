@@ -1,19 +1,19 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::fmt::Display;
 use std::io::Write;
+use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 
-use chrono::{Duration, Utc};
+use chrono::{DateTime, Duration, TimeZone, Utc};
 use chrono_humanize::{Accuracy, HumanTime, Tense};
 use failure::{Fail, ResultExt};
-use futures::{Future, Stream};
 use tabwriter::TabWriter;
 
-use edgelet_core::{Module, ModuleRuntime, ModuleRuntimeState, ModuleStatus};
+use edgelet_core::{Module, ModuleRuntime, ModuleStatus as ModuleStatusEnum};
+use edgelet_http::ModuleStatus;
 
 use crate::error::{Error, ErrorKind};
-use crate::Command;
+use crate::MgmtModule;
 
 pub struct List<M, W> {
     runtime: M,
@@ -33,84 +33,85 @@ where
     }
 }
 
-impl<M, W> Command for List<M, W>
+impl<M, W> List<M, W>
 where
-    M: 'static + ModuleRuntime + Clone,
-    M::Module: Clone,
-    M::Config: Display,
-    W: 'static + Write + Send,
+    M: ModuleRuntime<Module = MgmtModule>,
+    W: Write,
 {
-    type Future = Box<dyn Future<Item = (), Error = Error> + Send>;
-
-    fn execute(self) -> Self::Future {
+    pub async fn execute(self) -> Result<(), Error> {
         let write = self.output.clone();
-        let result = self
+        let mut result = self
             .runtime
             .list_with_details()
-            .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))
-            .collect()
-            .and_then(move |mut result| {
-                result.sort_by(|(mod1, _), (mod2, _)| mod1.name().cmp(mod2.name()));
+            .await
+            .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))?;
 
-                let mut w = write.lock().unwrap();
-                writeln!(w, "NAME\tSTATUS\tDESCRIPTION\tCONFIG")
-                    .context(ErrorKind::WriteToStdout)?;
-                for (module, state) in result {
-                    writeln!(
-                        w,
-                        "{}\t{}\t{}\t{}",
-                        module.name(),
-                        state.status(),
-                        humanize_state(&state),
-                        module.config(),
-                    )
-                    .context(ErrorKind::WriteToStdout)?;
+        result.sort_by(|(mod1, _), (mod2, _)| mod1.name().cmp(mod2.name()));
+
+        let mut w = write.lock().unwrap();
+        writeln!(w, "NAME\tSTATUS\tDESCRIPTION\tConfig").context(ErrorKind::WriteToStdout)?;
+        for (module, _state) in result {
+            writeln!(
+                w,
+                "{}\t{}\t{}\t{}",
+                module.details.name,
+                module.details.status.runtime_status.status,
+                humanize_status(&module.details.status),
+                module.image
+            )
+            .context(ErrorKind::WriteToStdout)?;
+        }
+        w.flush().context(ErrorKind::WriteToStdout)?;
+
+        Ok(())
+    }
+}
+
+fn humanize_status(status: &ModuleStatus) -> String {
+    let status_enum = ModuleStatusEnum::from_str(&status.runtime_status.status)
+        .unwrap_or(ModuleStatusEnum::Unknown);
+    match status_enum {
+        ModuleStatusEnum::Unknown => "Unknown".to_string(),
+        ModuleStatusEnum::Stopped => {
+            if let Some(exit_status) = &status.exit_status {
+                if let Ok(time) = DateTime::parse_from_rfc3339(&exit_status.exit_time) {
+                    return format!("Stopped {}", format_time(time, Tense::Past));
                 }
-                w.flush().context(ErrorKind::WriteToStdout)?;
-                Ok(())
-            });
-        Box::new(result)
-    }
-}
+            }
 
-fn humanize_state(state: &ModuleRuntimeState) -> String {
-    match *state.status() {
-        ModuleStatus::Unknown => "Unknown".to_string(),
-        ModuleStatus::Stopped => state.finished_at().map_or_else(
-            || "Stopped".to_string(),
-            |time| {
-                format!(
-                    "Stopped {}",
-                    time_string(&HumanTime::from(Utc::now() - *time), Tense::Past)
-                )
-            },
-        ),
-        ModuleStatus::Failed => state
-            .finished_at()
-            .and_then(|time| {
-                state.exit_code().map(|code| {
-                    format!(
+            "Stopped".to_string()
+        }
+        ModuleStatusEnum::Failed => {
+            if let Some(exit_status) = &status.exit_status {
+                if let Ok(time) = DateTime::parse_from_rfc3339(&exit_status.exit_time) {
+                    return format!(
                         "Failed ({}) {}",
-                        code,
-                        time_string(&HumanTime::from(Utc::now() - *time), Tense::Past)
-                    )
-                })
-            })
-            .unwrap_or_else(|| "Failed".to_string()),
-        ModuleStatus::Running => state.started_at().map_or_else(
-            || "Up".to_string(),
-            |time| {
-                format!(
-                    "Up {}",
-                    time_string(&HumanTime::from(Utc::now() - *time), Tense::Present)
-                )
-            },
-        ),
+                        exit_status.status_code,
+                        format_time(time, Tense::Past)
+                    );
+                }
+            }
+
+            "Failed".to_string()
+        }
+        ModuleStatusEnum::Running => {
+            if let Some(start_time) = &status.start_time {
+                if let Ok(time) = DateTime::parse_from_rfc3339(start_time) {
+                    return format!("Up {}", format_time(time, Tense::Present));
+                }
+            }
+
+            "Up".to_string()
+        }
     }
 }
 
-fn time_string(ht: &HumanTime, tense: Tense) -> String {
-    if *ht <= HumanTime::from(Duration::seconds(20)) {
+fn format_time<Tz>(time: DateTime<Tz>, tense: Tense) -> String
+where
+    Tz: TimeZone,
+{
+    let ht = HumanTime::from(Utc::now().signed_duration_since(time));
+    if ht <= HumanTime::from(Duration::seconds(20)) {
         ht.to_text_en(Accuracy::Precise, tense)
     } else {
         ht.to_text_en(Accuracy::Rough, tense)

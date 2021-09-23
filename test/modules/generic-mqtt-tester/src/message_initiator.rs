@@ -59,7 +59,7 @@ impl MessageInitiator {
             reporting_client,
             payload_size: settings.message_size_in_bytes() as usize,
             messages_to_send: settings.messages_to_send(),
-            initiate_topic: settings.initiate_topic(),
+            initiate_topic: settings.initiate_topic()?,
             message_frequency: settings.message_frequency(),
             batch_id,
             tracking_id: settings

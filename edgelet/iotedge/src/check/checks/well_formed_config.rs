@@ -2,25 +2,25 @@ use std::fs::File;
 
 use failure::{self, Fail};
 
-use edgelet_docker::{Settings, CONFIG_FILE_DEFAULT, UPSTREAM_PARENT_KEYWORD};
+use edgelet_settings::{Settings, CONFIG_FILE_DEFAULT, UPSTREAM_PARENT_KEYWORD};
 
-use crate::check::{checker::Checker, Check, CheckResult};
+use crate::check::{Check, CheckResult, Checker, CheckerMeta};
+use crate::{Error, ErrorKind};
 
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct WellFormedConfig {}
 
+#[async_trait::async_trait]
 impl Checker for WellFormedConfig {
-    fn id(&self) -> &'static str {
-        "aziot-edged-config-well-formed"
+    fn meta(&self) -> CheckerMeta {
+        CheckerMeta {
+            id: "aziot-edged-config-well-formed",
+            description: "aziot-edged configuration is well-formed",
+        }
     }
-    fn description(&self) -> &'static str {
-        "aziot-edged configuration is well-formed"
-    }
-    fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
+
+    async fn execute(&mut self, check: &mut Check) -> CheckResult {
         Self::inner_execute(check).unwrap_or_else(CheckResult::Failed)
-    }
-    fn get_json(&self) -> serde_json::Value {
-        serde_json::to_value(self).unwrap()
     }
 }
 
@@ -49,14 +49,15 @@ impl WellFormedConfig {
             Ok(settings) => settings,
             Err(err) => {
                 let message = if check.verbose {
-                    "\
+                    format!("\
                         The IoT Edge configuration is not well-formed.\n\
-                        Note: In case of syntax errors, the error may not be exactly at the reported line number and position.\
-                    "
+                        Note: In case of syntax errors, the error may not be exactly at the reported line number and position.\n\
+                        {}
+                    ", err)
                 } else {
-                    "The IoT Edge daemon's configuration file is not well-formed."
+                    "The IoT Edge daemon's configuration file is not well-formed.".to_string()
                 };
-                return Err(err.context(message).into());
+                return Err(Error::from(ErrorKind::Check(message)).into());
             }
         };
 

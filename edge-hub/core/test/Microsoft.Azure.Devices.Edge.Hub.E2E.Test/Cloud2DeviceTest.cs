@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         const string DeviceNamePrefix = "E2E_c2d_";
         static readonly TimeSpan ClockSkewAdjustment = TimeSpan.FromSeconds(35);
 
-        [Theory]
+        [Theory(Skip = "Flaky")]
         [TestPriority(101)]
         [InlineData(TransportType.Mqtt_Tcp_Only)]
         // [InlineData(TransportType.Mqtt_WebSocket_Only)] // Disabled: need a valid server cert for WebSocket to work
@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
         }
 
-        [Fact]
+        [Fact(Skip = "Flaky")]
         [TestPriority(102)]
         public async void Receive_C2D_SingleMessage_AfterOfflineMessage_ShouldSucceed()
         {

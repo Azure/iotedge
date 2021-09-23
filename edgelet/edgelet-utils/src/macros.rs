@@ -8,10 +8,6 @@
 //! type defined in `edgelet-utils` to the error type being returned from the
 //! function where the macro is being used.
 //!
-//! All the input validation macros can be prefixed with the letter `f` when
-//! used inside a function that returns a `Box<Future<T, E>>` instead of a
-//! `Result<T, E>`.
-//!
 //! # Examples
 //!
 //! <h3>Custom error types with implicit conversion:</h3>
@@ -47,44 +43,6 @@
 //! }
 //!
 //! let _thing = TheThing::new(5);
-//! ```
-//!
-//! <h3>Functions that return futures:</h3>
-//!
-//! ```
-//! #[macro_use] extern crate edgelet_utils;
-//! extern crate failure;
-//! extern crate futures;
-//!
-//! use failure::Fail;
-//! use futures::future;
-//! use futures::prelude::*;
-//!
-//! use edgelet_utils::Error as UtilsError;
-//!
-//! struct BooError {
-//!     inner: Box<Fail>,
-//! }
-//!
-//! impl From<UtilsError> for BooError {
-//!     fn from(err: UtilsError) -> Self {
-//!         BooError { inner: Box::new(err) }
-//!     }
-//! }
-//!
-//! struct TheThing {
-//!     val: i32,
-//! }
-//!
-//! fn do_the_thing(val: i32) -> Box<Future<Item = TheThing, Error = BooError>> {
-//!     Box::new(
-//!         future::ok(TheThing {
-//!             val: fensure_range!(val, 10, 100)
-//!         })
-//!     )
-//! }
-//!
-//! let _thing_future = do_the_thing(20);
 //! ```
 
 use std::fmt;
@@ -131,20 +89,6 @@ macro_rules! bail {
     };
 }
 
-/// Exits a function early with an `Error`.
-///
-/// Use this macro when your function
-/// returns a `Box<Future<T, E>>` instead of a `Result<T, E>`. For usage
-/// examples see documentation for `bail!`.
-#[macro_export]
-macro_rules! fbail {
-    ($err:expr) => {
-        return Box::new(::futures::future::err(::std::convert::From::from(
-            $crate::Error::from($err),
-        )));
-    };
-}
-
 /// Internal macro used for implementing other validation macros.
 ///
 /// Not to be directly invoked. Use one of the other `ensure*` macros.
@@ -161,7 +105,7 @@ macro_rules! ensure_impl {
 }
 
 /// Check if a condition evaluates to `true` and call the `bail!` macro with an
-/// error if it doesnt.
+/// error if it doesn't.
 ///
 /// # Examples
 ///
@@ -219,24 +163,6 @@ macro_rules! ensure {
     };
 }
 
-/// Check if a condition evaluates to `true` and call the `fbail!` macro with an
-/// error if it doesnt.
-///
-/// Use this macro when your function returns a `Box<Future<T, E>>` instead of
-/// a `Result<T, E>`. For usage examples see documentation for `ensure!`.
-#[macro_export]
-macro_rules! fensure {
-    ($val:expr, $cond:expr, $err:expr) => {
-        ensure_impl!($val, $cond, $err, fbail)
-    };
-    ($val:expr, $cond:expr) => {
-        fensure!($val, $cond, $crate::ErrorKind::Argument("".to_string()));
-    };
-    ($cond:expr) => {
-        fensure!((), $cond);
-    };
-}
-
 /// Internal macro used for implementing other validation macros.
 ///
 /// Not to be directly invoked. Use one of the other `ensure*` macros.
@@ -282,17 +208,6 @@ macro_rules! ensure_range_impl {
 macro_rules! ensure_range {
     ($val:expr, $low:expr, $high:expr) => {
         ensure_range_impl!($val, $low, $high, ensure)
-    };
-}
-
-/// Check if a value falls within the range (low, high].
-///
-/// Use this macro when your function returns a `Box<Future<T, E>>` instead of
-/// a `Result<T, E>`. For usage examples see documentation for `ensure_range!`.
-#[macro_export]
-macro_rules! fensure_range {
-    ($val:expr, $low:expr, $high:expr) => {
-        ensure_range_impl!($val, $low, $high, fensure)
     };
 }
 
@@ -345,17 +260,6 @@ macro_rules! ensure_greater {
     };
 }
 
-/// Check if a value is greater than a minimum and bail with an error if it is not.
-///
-/// Use this macro when your function returns a `Box<Future<T, E>>` instead of
-/// a `Result<T, E>`. For usage examples see documentation for `ensure_greater!`.
-#[macro_export]
-macro_rules! fensure_greater {
-    ($val:expr, $low:expr) => {
-        ensure_greater_impl!($val, $low, fensure)
-    };
-}
-
 /// Internal macro used for implementing other validation macros.
 ///
 /// Not to be directly invoked. Use one of the other `ensure*` macros.
@@ -405,20 +309,6 @@ macro_rules! ensure_not_empty {
     };
 }
 
-/// Check if a string is empty and bail with an error if it is.
-///
-/// Use this macro when your function returns a `Box<Future<T, E>>` instead of
-/// a `Result<T, E>`. For usage examples see documentation for `ensure_not_empty!`.
-#[macro_export]
-macro_rules! fensure_not_empty {
-    ($val:expr, $msg:expr) => {
-        ensure_not_empty_impl!($val, $msg, fensure)
-    };
-    ($val:expr) => {
-        fensure_not_empty!($val, "".to_string())
-    };
-}
-
 pub fn ensure_not_empty_with_context<D, F>(value: &str, context: F) -> Result<(), Context<D>>
 where
     D: fmt::Display + Send + Sync,
@@ -432,226 +322,137 @@ where
 }
 
 #[cfg(test)]
+#[allow(clippy::semicolon_if_nothing_returned)]
 mod tests {
-    use std::fmt::Debug;
-    use std::mem;
-
-    use futures::future;
-    use futures::prelude::*;
-
     use crate::error::{Error, ErrorKind};
 
-    fn check_value<T, F>(expected: &T, f: F)
-    where
-        F: Fn() -> Result<T, Error>,
-        T: PartialEq + Debug,
-    {
-        match f() {
-            Ok(actual) => assert_eq!(expected, &actual),
-            Err(err) => panic!(format!("{:?}", err)),
-        }
+    macro_rules! check_ok {
+        ($expected:expr, $f:block) => {
+            let result: Result<_, Error> = async { $f }.await;
+            assert_eq!($expected, result.unwrap());
+        };
+
+        ($expected:expr, $f:tt) => {
+            let result: Result<_, Error> = $f();
+            assert_eq!($expected, result.unwrap());
+        };
     }
 
-    fn check_fvalue<T, F>(expected: &T, f: F)
-    where
-        F: Fn() -> Box<dyn Future<Item = T, Error = Error>>,
-        T: PartialEq + Debug,
-    {
-        match f().wait() {
-            Ok(actual) => assert_eq!(expected, &actual),
-            Err(err) => panic!(format!("{:?}", err)),
-        }
-    }
+    macro_rules! check_err {
+        ($expected:ident, $f:block) => {
+            let result: Result<_, Error> = async { $f }.await;
+            let err = result.expect_err("expected error but found value");
 
-    fn check_error<T, V, F>(validator: V, f: F)
-    where
-        F: Fn() -> Result<T, Error>,
-        V: Fn(&Error) -> bool,
-        T: PartialEq + Debug,
-    {
-        match f() {
-            Ok(v) => panic!(format!("Expected error but found value {:?}", v)),
-            Err(err) => {
-                if !validator(&err) {
-                    panic!(format!("Unexpected error encountered {:?}", err));
-                }
+            match err.kind() {
+                ErrorKind::$expected(..) => (),
+                _ => panic!("Unexpected error encountered {:#?}", err),
             }
-        }
-    }
+        };
 
-    fn check_ferror<T, V, F>(validator: V, f: F)
-    where
-        F: Fn() -> Box<dyn Future<Item = T, Error = Error>>,
-        V: Fn(&Error) -> bool,
-        T: PartialEq + Debug,
-    {
-        match f().wait() {
-            Ok(v) => panic!(format!("Expected error but found value {:?}", v)),
-            Err(err) => {
-                if !validator(&err) {
-                    panic!(format!("Unexpected error encountered {:?}", err));
-                }
+        ($expected:ident, $f:tt) => {
+            let result: Result<_, Error> = $f();
+            let err = result.expect_err("expected error but found value");
+
+            match err.kind() {
+                ErrorKind::$expected(..) => (),
+                _ => panic!("Unexpected error encountered {:#?}", err),
             }
-        }
+        };
     }
 
     #[test]
     fn validate_ensure() {
-        check_value(&15, || Ok(ensure!(15, 15 > 10)));
+        check_ok!(15, (|| Ok(ensure!(15, 15 > 10))));
 
-        #[allow(clippy::eq_op)]
-        check_error(
-            |err| {
-                mem::discriminant(err.kind())
-                    == mem::discriminant(&ErrorKind::Argument("".to_string()))
-            },
-            || Ok(ensure!(10, 10 > 10)),
-        );
+        check_err!(Argument, (|| Ok(ensure!(10, 9 > 10))));
     }
 
-    #[test]
-    fn validate_fensure() {
-        check_fvalue(&15, || Box::new(future::ok(fensure!(15, 15 > 10))));
+    #[tokio::test]
+    async fn validate_ensure_async() {
+        check_ok!(15, { Ok(ensure!(15, 15 > 10)) });
 
-        #[allow(clippy::eq_op)]
-        check_ferror(
-            |err| {
-                mem::discriminant(err.kind())
-                    == mem::discriminant(&ErrorKind::Argument("".to_string()))
-            },
-            || Box::new(future::ok(fensure!(10, 10 > 10))),
-        );
+        check_err!(Argument, { Ok(ensure!(10, 9 > 10)) });
     }
 
     #[test]
     fn validate_ensure_range() {
-        let validator: Box<dyn Fn(&Error) -> bool> = Box::new(|err| {
-            mem::discriminant(err.kind())
-                == mem::discriminant(&ErrorKind::ArgumentOutOfRange(
-                    "".to_string(),
-                    "".to_string(),
-                    "".to_string(),
-                ))
-        });
+        check_ok!(10, (|| Ok(ensure_range!(10, 5, 15))));
+        check_ok!(15, (|| Ok(ensure_range!(15, 5, 15))));
 
-        check_value(&10, || Ok(ensure_range!(10, 5, 15)));
-        check_value(&15, || Ok(ensure_range!(15, 5, 15)));
-        check_error(validator.as_ref(), || Ok(ensure_range!(3, 5, 15)));
-        check_error(validator.as_ref(), || Ok(ensure_range!(5, 5, 15)));
-        check_error(validator.as_ref(), || Ok(ensure_range!(25, 5, 15)));
+        check_err!(ArgumentOutOfRange, (|| Ok(ensure_range!(3, 5, 15))));
+        check_err!(ArgumentOutOfRange, (|| Ok(ensure_range!(5, 5, 15))));
+        check_err!(ArgumentOutOfRange, (|| Ok(ensure_range!(25, 5, 15))));
     }
 
-    #[test]
-    fn validate_fensure_range() {
-        let validator: Box<dyn Fn(&Error) -> bool> = Box::new(|err| {
-            mem::discriminant(err.kind())
-                == mem::discriminant(&ErrorKind::ArgumentOutOfRange(
-                    "".to_string(),
-                    "".to_string(),
-                    "".to_string(),
-                ))
-        });
+    #[tokio::test]
+    async fn validate_ensure_range_async() {
+        check_ok!(10, { Ok(ensure_range!(10, 5, 15)) });
+        check_ok!(15, { Ok(ensure_range!(15, 5, 15)) });
 
-        check_fvalue(&10, || Box::new(future::ok(fensure_range!(10, 5, 15))));
-        check_fvalue(&15, || Box::new(future::ok(fensure_range!(15, 5, 15))));
-        check_ferror(validator.as_ref(), || {
-            Box::new(future::ok(fensure_range!(3, 5, 15)))
-        });
-        check_ferror(validator.as_ref(), || {
-            Box::new(future::ok(fensure_range!(5, 5, 15)))
-        });
-        check_ferror(validator.as_ref(), || {
-            Box::new(future::ok(fensure_range!(25, 5, 15)))
-        });
+        check_err!(ArgumentOutOfRange, { Ok(ensure_range!(3, 5, 15)) });
+        check_err!(ArgumentOutOfRange, { Ok(ensure_range!(5, 5, 15)) });
+        check_err!(ArgumentOutOfRange, { Ok(ensure_range!(25, 5, 15)) });
     }
 
     #[test]
     fn validate_ensure_greater() {
-        let validator: Box<dyn Fn(&Error) -> bool> = Box::new(|err| {
-            mem::discriminant(err.kind())
-                == mem::discriminant(&ErrorKind::ArgumentTooLow("".to_string(), "".to_string()))
-        });
+        check_ok!(10, (|| Ok(ensure_greater!(10, 5))));
 
-        check_value(&10, || Ok(ensure_greater!(10, 5)));
-        check_error(validator.as_ref(), || Ok(ensure_greater!(10, 25)));
+        check_err!(ArgumentTooLow, (|| Ok(ensure_greater!(10, 25))));
     }
 
-    #[test]
-    fn validate_fensure_greater() {
-        let validator: Box<dyn Fn(&Error) -> bool> = Box::new(|err| {
-            mem::discriminant(err.kind())
-                == mem::discriminant(&ErrorKind::ArgumentTooLow("".to_string(), "".to_string()))
-        });
+    #[tokio::test]
+    async fn validate_ensure_greater_async() {
+        check_ok!(10, { Ok(ensure_greater!(10, 5)) });
 
-        check_fvalue(&10, || Box::new(future::ok(fensure_greater!(10, 5))));
-        check_ferror(validator.as_ref(), || {
-            Box::new(future::ok(fensure_greater!(10, 25)))
-        });
+        check_err!(ArgumentTooLow, { Ok(ensure_greater!(10, 25)) });
     }
 
     #[test]
     fn validate_ensure_not_empty() {
-        let validator: Box<dyn Fn(&Error) -> bool> = Box::new(|err| {
-            mem::discriminant(err.kind())
-                == mem::discriminant(&ErrorKind::ArgumentEmpty("".to_string()))
-        });
+        check_err!(ArgumentEmpty, (|| Ok(ensure_not_empty!(""))));
+        check_err!(ArgumentEmpty, (|| Ok(ensure_not_empty!("", "empty str"))));
+        check_err!(
+            ArgumentEmpty,
+            (|| Ok(ensure_not_empty!("    ", "white space str")))
+        );
 
-        check_error(validator.as_ref(), || Ok(ensure_not_empty!("")));
-        check_error(validator.as_ref(), || {
-            Ok(ensure_not_empty!("", "empty str"))
-        });
-        check_error(validator.as_ref(), || {
-            Ok(ensure_not_empty!("    ", "white space str"))
-        });
-        check_error(validator.as_ref(), || Ok(ensure_not_empty!("".to_string())));
-        check_error(validator.as_ref(), || {
-            Ok(ensure_not_empty!("".to_string(), "empty String"))
-        });
-        check_error(validator.as_ref(), || {
-            Ok(ensure_not_empty!("    ".to_string(), "white space String"))
-        });
-        check_value(&"  not empty  ", || Ok(ensure_not_empty!("  not empty  ")));
-        check_value(&"  not empty  ".to_string(), || {
-            Ok(ensure_not_empty!("  not empty  ".to_string()))
-        });
+        check_err!(ArgumentEmpty, (|| Ok(ensure_not_empty!("".to_string()))));
+        check_err!(
+            ArgumentEmpty,
+            (|| Ok(ensure_not_empty!("".to_string(), "empty String")))
+        );
+        check_err!(
+            ArgumentEmpty,
+            (|| Ok(ensure_not_empty!("    ".to_string(), "white space String")))
+        );
+
+        check_ok!("  not empty  ", (|| Ok(ensure_not_empty!("  not empty  "))));
+        check_ok!(
+            "  not empty  ".to_string(),
+            (|| Ok(ensure_not_empty!("  not empty  ".to_string())))
+        );
     }
 
-    #[test]
-    fn validate_fensure_not_empty() {
-        let validator: Box<dyn Fn(&Error) -> bool> = Box::new(|err| {
-            mem::discriminant(err.kind())
-                == mem::discriminant(&ErrorKind::ArgumentEmpty("".to_string()))
+    #[tokio::test]
+    async fn validate_ensure_not_empty_async() {
+        check_err!(ArgumentEmpty, { Ok(ensure_not_empty!("")) });
+        check_err!(ArgumentEmpty, { Ok(ensure_not_empty!("", "empty str")) });
+        check_err!(ArgumentEmpty, {
+            Ok(ensure_not_empty!("    ", "white space str"))
         });
 
-        check_ferror(validator.as_ref(), || {
-            Box::new(future::ok(fensure_not_empty!("")))
+        check_err!(ArgumentEmpty, { Ok(ensure_not_empty!("".to_string())) });
+        check_err!(ArgumentEmpty, {
+            Ok(ensure_not_empty!("".to_string(), "empty String"))
         });
-        check_ferror(validator.as_ref(), || {
-            Box::new(future::ok(fensure_not_empty!("", "empty str")))
+        check_err!(ArgumentEmpty, {
+            Ok(ensure_not_empty!("    ".to_string(), "white space String"))
         });
-        check_ferror(validator.as_ref(), || {
-            Box::new(future::ok(fensure_not_empty!("    ", "white space str")))
-        });
-        check_ferror(validator.as_ref(), || {
-            Box::new(future::ok(fensure_not_empty!("".to_string())))
-        });
-        check_ferror(validator.as_ref(), || {
-            Box::new(future::ok(fensure_not_empty!(
-                "".to_string(),
-                "empty String"
-            )))
-        });
-        check_ferror(validator.as_ref(), || {
-            Box::new(future::ok(fensure_not_empty!(
-                "    ".to_string(),
-                "white space String"
-            )))
-        });
-        check_fvalue(&"  not empty  ", || {
-            Box::new(future::ok(fensure_not_empty!("  not empty  ")))
-        });
-        check_fvalue(&"  not empty  ".to_string(), || {
-            Box::new(future::ok(fensure_not_empty!("  not empty  ".to_string())))
+
+        check_ok!("  not empty  ", { Ok(ensure_not_empty!("  not empty  ")) });
+        check_ok!("  not empty  ".to_string(), {
+            Ok(ensure_not_empty!("  not empty  ".to_string()))
         });
     }
 }

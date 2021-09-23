@@ -1,28 +1,29 @@
 // Copyright (c) Microsoft. All rights reserved.
+
+
 use std::fs;
 use std::process;
 
 use clap::{crate_description, crate_name, crate_version, App, AppSettings, Arg, SubCommand};
-use edgelet_http::UrlConnector;
-use hyper::Client;
-use log::info;
-use url::Url;
 
+use log::info;
+
+use chrono::Utc;
+use chrono::DateTime;
 use edgehub_proxy::error::Error;
 use edgehub_proxy::logging;
-use workload::apis::client::APIClient;
-use workload::apis::configuration::Configuration;
-use workload::models::ServerCertificateRequest;
+use edgelet_client::workload;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     logging::init();
-    if let Err(e) = run() {
+    if let Err(e) = run().await {
         logging::log_error(&e);
         process::exit(1);
     }
 }
 
-fn run() -> Result<(), Error> {
+async fn run() -> Result<(), Error> {
     let matches = App::new(crate_name!())
         .version(crate_version!())
         .about(crate_description!())
@@ -126,41 +127,34 @@ fn run() -> Result<(), Error> {
         )
         .get_matches();
 
-    let mut tokio_runtime = tokio::runtime::current_thread::Runtime::new()?;
-    let url = Url::parse(
-        matches
-            .value_of("host")
-            .expect("no value for required HOST"),
-    )?;
-    let client = client(&url)?;
 
-    let api_version = matches
-        .value_of("apiversion")
-        .expect("no default value for API_VERSION");
+    let url = matches
+        .value_of("host")
+        .ok_or(Error::MissingVal("HOST"))?;
+    let client = workload(url)?;
+
     let module = matches
         .value_of("moduleid")
-        .expect("no value for required MODULEID");
+        .ok_or(Error::MissingVal("MODULEID"))?;
     let gen = matches
         .value_of("genid")
-        .expect("no value for required GENID");
+        .ok_or(Error::MissingVal("GENID"))?;
 
     if let ("cert-server", Some(args)) = matches.subcommand() {
         let common_name = args
             .value_of("common name")
-            .expect("no value for required COMMON_NAME");
-        let expiration = args
-            .value_of("expiration")
-            .expect("no value for required EXPIRATION");
+            .ok_or(Error::MissingVal("COMMON_NAME"))?;
+        let expiration = DateTime::parse_from_rfc3339(
+            args
+                .value_of("expiration")
+                .ok_or(Error::MissingVal("EXPIRATION"))?)?;
+        let expiration_utc = expiration.with_timezone(&Utc);
         info!("Retrieving server certificate with common name \"{}\" and expiration \"{}\" from {}...", common_name, expiration, url);
 
-        let cert_request =
-            ServerCertificateRequest::new(common_name.to_string(), expiration.to_string());
-        let request =
-            client
-                .workload_api()
-                .create_server_certificate(api_version, module, gen, cert_request);
 
-        let response = tokio_runtime.block_on(request)?;
+        let response =
+            client.create_server_cert(module, gen, common_name, expiration_utc).await?;
+
         info!("Retrieved server certificate.");
 
         if let Some(crt_path) = args.value_of("crt file") {
@@ -198,25 +192,4 @@ fn run() -> Result<(), Error> {
         }
     }
     Ok(())
-}
-
-fn client(url: &Url) -> Result<APIClient, Error> {
-    let hyper_client = Client::builder().build(UrlConnector::new(&url)?);
-    let base_path = get_base_path(url);
-    let mut configuration = Configuration::new(hyper_client);
-    configuration.base_path = base_path.to_string();
-
-    let scheme = url.scheme().to_string();
-    configuration.uri_composer = Box::new(move |base_path, path| {
-        Ok(UrlConnector::build_hyper_uri(&scheme, base_path, path)?)
-    });
-    let client = APIClient::new(configuration);
-    Ok(client)
-}
-
-fn get_base_path(url: &Url) -> &str {
-    match url.scheme() {
-        "unix" => url.path(),
-        _ => url.as_str(),
-    }
 }

@@ -59,7 +59,7 @@ impl Policy {
         match self {
             Policy::Anonymous => (false, None),
             Policy::Caller => (true, name),
-            Policy::Module(ref expected_name) => (true, Some(expected_name)),
+            Policy::Module(expected_name) => (true, Some(expected_name)),
         }
     }
 
@@ -68,7 +68,7 @@ impl Policy {
         match self {
             Policy::Anonymous => true,
             Policy::Caller => Policy::auth_caller(name, auth_id),
-            Policy::Module(ref expected_name) => Policy::auth_caller(Some(expected_name), auth_id),
+            Policy::Module(expected_name) => Policy::auth_caller(Some(expected_name), auth_id),
         }
     }
 

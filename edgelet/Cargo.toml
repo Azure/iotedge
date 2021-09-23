@@ -2,16 +2,19 @@
 members = [
     "aziot-edged",
     "docker-rs",
-    "cert-client",
     "edgelet-core",
     "edgelet-docker",
     "edgelet-http",
     "edgelet-http-mgmt",
     "edgelet-http-workload",
-    "edgelet-test-utils",
+    "edgelet-settings",
     "edgelet-utils",
-    "identity-client",
     "iotedge",
-    "management",
-    "systemd",
+    "support-bundle",
 ]
+
+[profile.dev]
+panic = 'abort'
+
+[profile.release]
+panic = 'abort'
