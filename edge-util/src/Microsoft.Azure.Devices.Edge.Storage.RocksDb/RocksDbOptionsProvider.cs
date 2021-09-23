@@ -45,6 +45,20 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         // column families whose memtables are backed by the oldest live WAL file
         const ulong DefaultMaxTotalWalSize = 512 * 1024 * 1024;
 
+        // max_manifest_file_size = 1G (bytes)
+        //
+        // The MANIFEST-<sequence number> file holds the history of operations.
+        // When the file exceeds the configured max size, a new file is created,
+        // and the previous file is marked obsolete and is deleted in the next compaction.
+        //
+        // Upstream defaults to 1G.
+        const ulong DefaultMaxManifestFileSize = 1024 * 1024 * 1024;
+
+        // max_bytes_for_level_base = 10M (bytes) per column family
+        // Control maximum total data size for a level.
+        // Set to limit file sizes
+        const ulong MaxBytesForLevelBase = 10UL * 1024UL * 1024UL;
+
         // Set a large default is to allow RocksDb to keep open,
         // but not the default unlimited setting (unlimted = -1)
         const int DefaultMaxOpenFiles = 5000;
@@ -55,14 +69,22 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         readonly ISystemEnvironment env;
         readonly bool optimizeForPerformance;
         readonly ulong maxTotalWalSize;
+        readonly ulong maxManifestFileSize;
         readonly int maxOpenFiles;
         readonly StorageLogLevel logLevel;
 
-        public RocksDbOptionsProvider(ISystemEnvironment env, bool optimizeForPerformance, Option<ulong> maxTotalWalsize, Option<int> maxOpenFiles, Option<StorageLogLevel> logLevel)
+        public RocksDbOptionsProvider(
+            ISystemEnvironment env,
+            bool optimizeForPerformance,
+            Option<ulong> maxTotalWalsize,
+            Option<ulong> maxManifestFileSize,
+            Option<int> maxOpenFiles,
+            Option<StorageLogLevel> logLevel)
         {
             this.env = Preconditions.CheckNotNull(env);
             this.optimizeForPerformance = optimizeForPerformance;
             this.maxTotalWalSize = maxTotalWalsize.GetOrElse(DefaultMaxTotalWalSize);
+            this.maxManifestFileSize = maxManifestFileSize.GetOrElse(DefaultMaxManifestFileSize);
             this.maxOpenFiles = maxOpenFiles.GetOrElse(DefaultMaxOpenFiles);
             this.logLevel = logLevel.GetOrElse(DefaultLogLevel);
         }
@@ -74,6 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
                 .SetCreateMissingColumnFamilies();
 
             options.SetMaxTotalWalSize(this.maxTotalWalSize)
+                .SetMaxManifestFileSize(this.maxManifestFileSize)
                 .SetMaxOpenFiles(this.maxOpenFiles)
                 .SetKeepLogFileNum(DefaultKeepLogFileNum)
                 .SetInfoLogLevel((int)this.logLevel);
