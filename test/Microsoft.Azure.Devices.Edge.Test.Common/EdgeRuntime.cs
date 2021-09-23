@@ -73,6 +73,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string dotnetCmdText = string.Empty;
             int exitcode;
             string outputStr = string.Empty;
+            string stdOutput = string.Empty;
+            string stdErr = string.Empty;
 
             if (enableManifestSigning.HasValue)
             {
@@ -87,13 +89,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 var dotnetProcess = System.Diagnostics.Process.Start("dotnet", dotnetCmdText);
                 dotnetProcess.StartInfo.RedirectStandardOutput = true;
                 dotnetProcess.WaitForExit();
+                stdOutput = dotnetProcess.StandardOutput.ToString();
+                stdErr = dotnetProcess.StandardError.ToString();
                 exitcode = dotnetProcess.ExitCode;
 
                 // Read the signed deployment file back
                 string signedDeploymentPath = enableManifestSigning.OrDefault().ManifestSigningSignedDeploymentPath.OrDefault();
                 signedConfig = File.ReadAllText(signedDeploymentPath);
                 outputStr = "edge config value = " + edgeConfig + "\n client path = " + clientBinPath + "\n dotnet commnad = " + dotnetCmdText + "\n exit code = " + exitcode + "\n signed config = " + signedConfig;
-                outputStr += "\n signed deployment path " + signedDeploymentPath;
+                outputStr += "std ouput = " + stdOutput + "std err =  " + stdErr + "\n signed deployment path " + signedDeploymentPath;
             }
 
             if (!string.IsNullOrEmpty(signedConfig))
