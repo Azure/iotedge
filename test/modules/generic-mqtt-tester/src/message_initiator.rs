@@ -81,7 +81,7 @@ impl MessageInitiator {
         loop {
             if Some(seq_num) == self.messages_to_send {
                 info!("stopping test as we have sent max messages",);
-                time::delay_for(POST_MESSAGE_WAIT).await;
+                time::sleep(POST_MESSAGE_WAIT).await;
                 break;
             }
 
