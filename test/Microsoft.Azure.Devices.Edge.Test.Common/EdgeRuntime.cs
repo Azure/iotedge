@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.IO;
     using System.Linq;
     using System.Threading;
@@ -75,6 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string outputStr = string.Empty;
             string stdOutput = string.Empty;
             string stdErr = string.Empty;
+            ProcessStartInfo startInfo;
 
             if (enableManifestSigning.HasValue)
             {
@@ -86,8 +88,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 // start dotnet run ManifestSignerClient process
                 string clientBinPath = enableManifestSigning.OrDefault().ManifestSignerClientBinPath.OrDefault();
                 dotnetCmdText = "run -p " + clientBinPath;
-                var dotnetProcess = System.Diagnostics.Process.Start("dotnet", dotnetCmdText);
-                dotnetProcess.StartInfo.RedirectStandardOutput = true;
+                startInfo = new ProcessStartInfo("dotnet", dotnetCmdText);
+                startInfo.RedirectStandardOutput = true;
+                startInfo.RedirectStandardError = true;
+                var dotnetProcess = System.Diagnostics.Process.Start(startInfo);
                 dotnetProcess.WaitForExit();
                 stdOutput = dotnetProcess.StandardOutput.ToString();
                 stdErr = dotnetProcess.StandardError.ToString();
