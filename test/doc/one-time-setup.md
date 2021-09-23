@@ -137,7 +137,7 @@ If you don't already have an existing IoT hub, create one. There is no special c
 Here is how you can create one using the CLI
 
 ~~~sh
-# Create a free tier Iot hub
+# Create an Iot hub
 az iot hub create --resource-group {resource group name} --name {IoT hub name} 
 ~~~
 
@@ -158,6 +158,9 @@ Create a DPS instance. A subset of the end-to-end tests will use DPS for testing
 Using the CLI,
 ~~~sh
 az iot dps create --name {dps group name} --resource-group {resource group name} --location {region}
+
+# To get the ID Scope
+az iot dps show --name {dps group name} | grep idScope
 ~~~
 
 ###### Create enrollment group for symmetric key based enrollment
