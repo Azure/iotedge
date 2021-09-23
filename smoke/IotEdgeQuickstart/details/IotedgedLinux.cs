@@ -449,6 +449,7 @@ namespace IotEdgeQuickstart.Details
             this.proxy.ForEach(proxy => config[EDGED].Document.ReplaceOrAdd("agent.env.https_proxy", proxy));
 
             this.upstreamProtocol.ForEach(upstreamProtocol => config[EDGED].Document.ReplaceOrAdd("agent.env.UpstreamProtocol", upstreamProtocol.ToString()));
+            config[IDENTITYD].Document.ReplaceOrAdd("cloud_retries", 5);
 
             foreach (KeyValuePair<string, Config> service in config)
             {
