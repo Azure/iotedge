@@ -22,7 +22,7 @@ steps:
     $filter = 'Category!=Unstable&Category=ManifestSigning'
 
     # Filter out flaky tests.
-    $filter = 'Category!=Flaky'
+    $filter += 'Category!=Flaky'
 
     if ('$(minimal)' -eq 'true')
     {

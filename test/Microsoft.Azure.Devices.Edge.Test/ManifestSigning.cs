@@ -81,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Console.WriteLine($"Root CA path: {Context.Current.ManifestSigningGoodRootCaPath.OrDefault()}");
             this.SetLaunchSettingsWithRootCa(Context.Current.ManifestSigningDefaultLaunchSettings, Context.Current.ManifestSigningGoodRootCaPath);
 
-            // this.SetConfigToEdgeDaemon(Context.Current.ManifestSigningGoodRootCaPath, this.TestToken);
+            this.SetConfigToEdgeDaemon(Context.Current.ManifestSigningGoodRootCaPath, this.TestToken);
             ManifestSettings inputManifestSettings = new ManifestSettings(Context.Current.ManifestSigningDeploymentPath, Context.Current.ManifestSigningSignedDeploymentPath, Context.Current.ManifestSigningGoodRootCaPath, Context.Current.ManifestSignerClientBinPath);
 
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
