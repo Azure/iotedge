@@ -54,11 +54,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         // Upstream defaults to 1G.
         const ulong DefaultMaxManifestFileSize = 1024 * 1024 * 1024;
 
-        // max_bytes_for_level_base = 10M (bytes) per column family
-        // Control maximum total data size for a level.
-        // Set to limit file sizes
-        const ulong MaxBytesForLevelBase = 10UL * 1024UL * 1024UL;
-
         // Set a large default is to allow RocksDb to keep open,
         // but not the default unlimited setting (unlimted = -1)
         const int DefaultMaxOpenFiles = 5000;
