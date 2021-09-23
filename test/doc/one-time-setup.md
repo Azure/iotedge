@@ -158,6 +158,9 @@ Create a DPS instance. A subset of the end-to-end tests will use DPS for testing
 Using the CLI,
 ~~~sh
 az iot dps create --name {dps group name} --resource-group {resource group name} --location {region}
+
+# To get the ID Scope
+az iot dps show --name {dps group name} | grep idScope
 ~~~
 
 ###### Create enrollment group for symmetric key based enrollment
