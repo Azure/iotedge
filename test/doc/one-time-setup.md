@@ -137,7 +137,7 @@ If you don't already have an existing IoT hub, create one. There is no special c
 Here is how you can create one using the CLI
 
 ~~~sh
-# Create a free tier Iot hub
+# Create an Iot hub
 az iot hub create --resource-group {resource group name} --name {IoT hub name} 
 ~~~
 
