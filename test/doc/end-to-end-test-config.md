@@ -14,7 +14,7 @@ _Note: A ✔ in the required column indicates that it is required for all the te
 | `methodSenderImage` | * | Docker image to pull/use for the 'DirectMethodSender' module. Required when running the test 'ModuleToModuleDirectMethod', ignored otherwise. |
 | `optimizeForPerformance` || Boolean value passed to Edge Hub. Usually set to 'false' when running on more constrained platforms like Raspberry Pi. If not given, it defaults to 'true'. |
 | `packagePath` || Path to the folder containing IoT Edge installation packages (e.g., .deb files on Linux, .cab file on Windows). If not given, the latest stable release packages are downloaded and used. |
-| `proxy` || URL of an HTTPS proxy server to use for all communication to IoT Hub. |
+| `proxy` || URL of an HTTPS proxy server to use for all communication to IoT hub. |
 | `registries` || JSON array of container registries to be used by the tests. This information will be added to configurations deployed to the edge device under test. If not given, IoT Edge will attempt anonymous access to container registries. The format of each JSON object in the array is: `{ "address": "{server hostname}", "username": "{username}" }`. Note that each object must also have a value `"password": "{password}"`, but you are encouraged to use an environment variable to meet this requirement (see _Secret test parameters_ below). |
 | `rootCaCertificatePath` | * | Full path to a root certificate given to leaf test devices so they can verify the authenticity of Edge Hub during the TLS handshake. Required when running the test 'TransparentGateway', ignored otherwise. |
 | `rootCaPrivateKeyPath` | * | Full path to a file containing the private key associated with `rootCaCertificatePath`. Required when running the test 'TransparentGateway', ignored otherwise. |
@@ -38,11 +38,11 @@ _Note: A ✔ in the required column indicates that it is required for all the te
 | Name | Required | Description |
 |------|----------|-------------|
 | `E2E_DPS_GROUP_KEY` | * | The symmetric key of the DPS [enrollment group](https://docs.microsoft.com/en-us/azure/iot-dps/concepts-service#enrollment-group) to use. Required when running any DPS tests, ignored otherwise. |
-| `E2E_IOT_HUB_CONNECTION_STRING` | ✔ | Hub-scoped IoT Hub connection string that can be used to get/add/remove devices, deploy edge configurations, and get/update module twins. |
-| `E2E_EVENT_HUB_ENDPOINT` | ✔ | Connection string used to connect to the Event Hub-compatible endpoint of your IoT Hub, to listen for D2C events sent by devices or modules. |
+| `E2E_IOT_HUB_CONNECTION_STRING` | ✔ | Hub-scoped IoT hub connection string that can be used to get/add/remove devices, deploy edge configurations, and get/update module twins. |
+| `E2E_EVENT_HUB_ENDPOINT` | ✔ | Connection string used to connect to the Event Hub-compatible endpoint of your IoT hub, to listen for D2C events sent by devices or modules. |
 | `E2E_REGISTRIES__{n}__PASSWORD` || Password associated with a container registry entry in the `registries` array of `context.json`. `{n}` is the number corresponding to the (zero-based) array entry. For example, if you specified a single container registry in the `registries` array, the corresponding parameter would be `E2E_REGISTRIES__0__PASSWORD`. |
 | `E2E_ROOT_CA_PASSWORD` || The password associated with the root certificate specified in `rootCaCertificatePath`. |
 | `E2E_BLOB_STORE_SAS` || The sas token used to upload module logs and support bundle in the tests. |
-| `E2E_IOT_HUB_RESOURCE_ID` || Full path to Iot hub that will receive the metrics messages in the following format - `/resource/subscriptions/<Azure subscription GUID>/resourceGroups/<resource group name>/providers/Microsoft.Devices/IotHubs/<Iot Hub name>`. Required when running the test 'MetricsCollector', ignored otherwise.|
+| `E2E_IOT_HUB_RESOURCE_ID` || Full path to Iot hub that will receive the metrics messages in the following format - `/resource/subscriptions/<Azure subscription GUID>/resourceGroups/<resource group name>/providers/Microsoft.Devices/Iot hubs/<Iot hub name>`. Required when running the test 'MetricsCollector', ignored otherwise.|
 
 _Note: the definitive source for information about test parameters is `test/Microsoft.Azure.Devices.Edge.Test/helpers/Context.cs`._
