@@ -247,7 +247,7 @@ steps:
       $context['manifestSigningBadRootCaPath'] = "$testManifestSigningBadRootCaPath"
       $context['manifestSigningDefaultLaunchSettings'] = "$testManifestSigningDefaultLaunchSettings"
       $context['manifestSigningLaunchSettingsPath'] = "$testManifestSigningLaunchSettingsPath"
-      $context['manifestSignerClientDirecory'] = "$testManifestSignerClientDirectory"
+      $context['manifestSignerClientDirectory'] = "$testManifestSignerClientDirectory"
       $context['manifestSignerClientProjectPath'] = "$testManifestSignerClientProjectPath"
     }
 
