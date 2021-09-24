@@ -99,8 +99,8 @@ steps:
     New-Item -Path "$manifestSigningDeploymentDir/signed_deployment.json" -ItemType File
     $env:GOOD_ROOT_CA_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/good_root_ca.pem"
     $env:BAD_ROOT_CA_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/bad_root_ca.pem"
-    $env:INTERMEDIATE_CA_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/intermediate_ca.crt"
-    $env:SIGNER_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/signer_cert.crt"
+    $env:INTERMEDIATE_CA_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/intermediate_ca.pem"
+    $env:SIGNER_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/signer_cert.pem"
     $env:SIGNER_KEY | Out-File -Encoding Utf8 "$manifestSigningCertDir/signer_key.key"
     Write-Output "##vso[task.setvariable variable=manifestSigningCertDir]$manifestSigningCertDir"
   displayName: Build Manifest Signer Client and set up certificates
@@ -155,8 +155,8 @@ steps:
     {  
       $testManifestSigningGoodRootCaPath = Convert-Path "$(manifestSigningCertDir)/good_root_ca.pem";
       $testManifestSigningBadRootCaPath = Convert-Path "$(manifestSigningCertDir)/bad_root_ca.pem";
-      $testManifestSigningIntermediateCaPath = Convert-Path "$(manifestSigningCertDir)/intermediate_ca.crt";
-      $testManifestSigningSignerCertPath = Convert-Path "$(manifestSigningCertDir)/signer_cert.crt";
+      $testManifestSigningIntermediateCaPath = Convert-Path "$(manifestSigningCertDir)/intermediate_ca.pem";
+      $testManifestSigningSignerCertPath = Convert-Path "$(manifestSigningCertDir)/signer_cert.pem";
       $testManifestSigningSignerKeyPath = Convert-Path "$(manifestSigningCertDir)/signer_key.key";
       $testManifestSigningDeploymentPath = Convert-Path "$(manifestSigningDeploymentDir)/deployment.json";
       $testManifestSigningSignedDeploymentPath = Convert-Path "$(manifestSigningDeploymentDir)/signed_deployment.json";
