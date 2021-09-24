@@ -2,7 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
-    using Microsoft.Azure.Devices.Common.Security;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     class TokenHelper
     {
