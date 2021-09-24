@@ -41,6 +41,8 @@ where
         let service = edgelet_http_workload::Service::new(settings, runtime, device_info)
             .map_err(|err| EdgedError::from_err("Invalid service endpoint", err))?;
 
+        service.check_edge_ca().await.map_err(EdgedError::new)?;
+
         let home_dir = settings.homedir().to_path_buf();
 
         let workload_manager = WorkloadManager {

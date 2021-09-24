@@ -22,6 +22,7 @@ namespace TestResultCoordinator.Reports
 
         internal CountingReportGenerator(
             string testDescription,
+            TestMode testMode,
             string trackingId,
             string expectedSource,
             IAsyncEnumerator<TestOperationResult> expectedTestResults,
@@ -33,6 +34,7 @@ namespace TestResultCoordinator.Reports
             bool eventHubLongHaulMode)
         {
             this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
+            this.TestMode = testMode;
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.ExpectedTestResults = Preconditions.CheckNotNull(expectedTestResults, nameof(expectedTestResults));
             this.ExpectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
@@ -43,6 +45,8 @@ namespace TestResultCoordinator.Reports
             this.enumeratedResultsMaxSize = Preconditions.CheckRange<ushort>(unmatchedResultsMaxSize, 1);
             this.EventHubLongHaulMode = eventHubLongHaulMode;
         }
+
+        internal TestMode TestMode { get; }
 
         internal string ActualSource { get; }
 
@@ -231,6 +235,7 @@ namespace TestResultCoordinator.Reports
 
             return new CountingReport(
                 this.TestDescription,
+                this.TestMode,
                 this.trackingId,
                 this.ExpectedSource,
                 this.ActualSource,

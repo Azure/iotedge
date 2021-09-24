@@ -76,9 +76,6 @@ steps:
     $binDir = Convert-Path "$testDir/bin/Debug/netcoreapp3.1"
     Write-Output "##vso[task.setvariable variable=binDir]$binDir"
   displayName: Build tests
-  env:
-    http_proxy: $(Agent.ProxyUrl)
-    https_proxy: $(Agent.ProxyUrl)
 
 - pwsh: |
     $imageId = Get-Content -Encoding Utf8 `
@@ -154,6 +151,7 @@ steps:
       rootCaCertificatePath = "$rootCaCertificatePath";
       rootCaPrivateKeyPath = "$rootCaPrivateKeyPath";
       logFile = Join-Path '$(binDir)' 'testoutput.log';
+      verbose = '$(verbose)'
     }
 
     if ('$(nestededge)' -eq 'true')
