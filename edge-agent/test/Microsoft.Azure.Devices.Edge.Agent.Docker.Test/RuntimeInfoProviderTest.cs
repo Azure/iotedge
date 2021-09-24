@@ -128,7 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         }
 
         [Integration]
-        [Fact(Skip = "Flaky")]
+        [Fact]
         public async Task TestEnvVars()
         {
             const string Image = "hello-world:latest";
@@ -172,10 +172,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     await create.ExecuteAsync(cts.Token);
 
                     // check that the environment variables are being returned
-                    RuntimeInfoProvider runtimeInfoProvider = await RuntimeInfoProvider.CreateAsync(Client);
-                    IEnumerable<ModuleRuntimeInfo> modules = await runtimeInfoProvider.GetModules(cts.Token);
-                    var returnedModule = modules.First(m => m.Name == Name) as ModuleRuntimeInfo<DockerReportedConfig>;
-                    Assert.NotNull(returnedModule);
+                    for (int i = 0; i < 100; i++)
+                    {
+                        RuntimeInfoProvider runtimeInfoProvider = await RuntimeInfoProvider.CreateAsync(Client);
+                        IEnumerable<ModuleRuntimeInfo> modules = await runtimeInfoProvider.GetModules(cts.Token);
+                        var returnedModule = modules.First(m => m.Name == Name) as ModuleRuntimeInfo<DockerReportedConfig>;
+                        Assert.NotNull(returnedModule);
+                    }
                 }
             }
             finally
