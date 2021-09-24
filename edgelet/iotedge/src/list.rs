@@ -97,7 +97,7 @@ fn humanize_status(status: &ModuleStatus) -> String {
         ModuleStatusEnum::Running => {
             if let Some(start_time) = &status.start_time {
                 if let Ok(time) = DateTime::parse_from_rfc3339(start_time) {
-                    format!("Up {}", format_time(time, Tense::Present));
+                    return format!("Up {}", format_time(time, Tense::Present));
                 }
             }
 
