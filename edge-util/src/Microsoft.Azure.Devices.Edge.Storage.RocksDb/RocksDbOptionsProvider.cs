@@ -45,14 +45,14 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         // column families whose memtables are backed by the oldest live WAL file
         const ulong DefaultMaxTotalWalSize = 512 * 1024 * 1024;
 
-        // max_manifest_file_size = 1G (bytes)
+        // max_manifest_file_size = 64M (bytes)
         //
         // The MANIFEST-<sequence number> file holds the history of operations.
         // When the file exceeds the configured max size, a new file is created,
         // and the previous file is marked obsolete and is deleted in the next compaction.
         //
         // Upstream defaults to 1G.
-        const ulong DefaultMaxManifestFileSize = 1024 * 1024 * 1024;
+        const ulong DefaultMaxManifestFileSize = 64 * 1024 * 1024;
 
         // Set a large default is to allow RocksDb to keep open,
         // but not the default unlimited setting (unlimted = -1)
