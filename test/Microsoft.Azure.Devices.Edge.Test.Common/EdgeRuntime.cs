@@ -108,8 +108,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 startInfo.RedirectStandardError = true;
                 var dotnetProcess = System.Diagnostics.Process.Start(startInfo);
                 dotnetProcess.WaitForExit();
-                stdOutput = dotnetProcess.StandardOutput.ToString();
-                stdErr = dotnetProcess.StandardError.ToString();
+                stdOutput = dotnetProcess.StandardOutput.ReadToEnd();
+                stdErr = dotnetProcess.StandardError.ReadToEnd();
                 exitcode = dotnetProcess.ExitCode;
 
                 Console.WriteLine("\n Printing the contents of MSC directory before dotnet build");
