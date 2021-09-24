@@ -95,9 +95,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 foreach (var dirs in listDirs)
                 {
                     Console.WriteLine($"\n Directory name is {dirs}");
-                    foreach (var files in dirs)
+                    var listFiles = Directory.GetFiles(dirs);
+                    foreach (var files in listFiles)
                     {
-                        Console.WriteLine($"\n file name is {files} under the directory: {dirs}");
+                        Console.WriteLine($"\n \t file name is {files}");
                     }
                 }
 
@@ -115,9 +116,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 foreach (var dirs in listDirs)
                 {
                     Console.WriteLine($"\n Directory name is {dirs}");
-                    foreach (var files in dirs)
+                    var listFiles = Directory.GetFiles(dirs);
+                    foreach (var files in listFiles)
                     {
-                        Console.WriteLine($"\n file name is {files} under the directory: {dirs}");
+                        Console.WriteLine($"\n \t file name is {files}");
                     }
                 }
 
