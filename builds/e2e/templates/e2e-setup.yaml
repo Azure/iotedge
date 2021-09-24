@@ -184,7 +184,10 @@ steps:
       $testManifestSigningDefaultLaunchSettings = $testManifestSigningDefaultLaunchSettings | ConvertTo-Json -Depth 3 
       ##$testManifestSigningDefaultLaunchSettings | ConvertTo-Json -Depth 3 | Out-File -Encoding Utf8 "$testManifestSigningLaunchSettingsPath"
       $testManifestSigningDefaultLaunchSettings | Out-File -Encoding Utf8 "$testManifestSigningLaunchSettingsPath"
+      echo "LaunchSettingPath is"
       Get-Content -Path "$testManifestSigningLaunchSettingsPath"
+      Get-Content -Path "$testManifestSigningSignerCertPath"
+      Get-Content -Path $testManifestSigningGoodRootCaPath
 
     }
 

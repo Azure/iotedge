@@ -77,7 +77,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string stdOutput = string.Empty;
             string stdErr = string.Empty;
             ProcessStartInfo startInfo;
-            string[] listDirs;
 
             if (enableManifestSigning.HasValue)
             {
@@ -87,20 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 edgeConfig = edgeConfiguration.ToString();
 
                 // start dotnet run ManifestSignerClient process
-                string clientDirectory = enableManifestSigning.OrDefault().ManifestSignerClientDirectory.OrDefault();
                 string projectDirectory = enableManifestSigning.OrDefault().ManifestSignerClientProjectPath.OrDefault();
-
-                listDirs = Directory.GetDirectories(clientDirectory);
-                Console.WriteLine("\n Printing the contents of MSC directory before dotnet build");
-                foreach (var dirs in listDirs)
-                {
-                    Console.WriteLine($"\n Directory name is {dirs}");
-                    var listFiles = Directory.GetFiles(dirs);
-                    foreach (var files in listFiles)
-                    {
-                        Console.WriteLine($"\n \t file name is {files}");
-                    }
-                }
 
                 dotnetCmdText = "run -p " + projectDirectory;
                 startInfo = new ProcessStartInfo("dotnet", dotnetCmdText);
@@ -112,20 +98,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 stdErr = dotnetProcess.StandardError.ReadToEnd();
                 exitcode = dotnetProcess.ExitCode;
 
-                Console.WriteLine("\n Printing the contents of MSC directory before dotnet build");
-                foreach (var dirs in listDirs)
-                {
-                    Console.WriteLine($"\n Directory name is {dirs}");
-                    var listFiles = Directory.GetFiles(dirs);
-                    foreach (var files in listFiles)
-                    {
-                        Console.WriteLine($"\n \t file name is {files}");
-                    }
-                }
-
                 string signedDeploymentPath = enableManifestSigning.OrDefault().ManifestSigningSignedDeploymentPath.OrDefault();
                 signedConfig = File.ReadAllText(signedDeploymentPath);
-                outputStr = "\n edge config value = " + edgeConfig + "\n client directory = " + clientDirectory + "\n Project directory = " + projectDirectory + "\n dotnet commnad = " + dotnetCmdText + "\n exit code = " + exitcode + "\n signed config = " + signedConfig;
+                outputStr = "\n edge config value = " + edgeConfig + "\n Project directory = " + projectDirectory + "\n dotnet commnad = " + dotnetCmdText + "\n exit code = " + exitcode + "\n signed config = " + signedConfig;
                 outputStr += "\n std ouput = " + stdOutput + "\n std err =  " + stdErr + "\n signed deployment path " + signedDeploymentPath;
                 Console.WriteLine($"\n Output str = {outputStr}");
             }
