@@ -127,7 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.ManifestSigningBadRootCaPath = Option.Maybe(Get("manifestSigningBadRootCaPath"));
             this.ManifestSigningDefaultLaunchSettings = Option.Maybe(Get("manifestSigningDefaultLaunchSettings"));
             this.ManifestSigningLaunchSettingsPath = Option.Maybe(Get("manifestSigningLaunchSettingsPath"));
-            this.ManifestSignerClientDirecory = Option.Maybe(Get("manifestSignerClientDirectory"));
+            this.ManifestSignerClientDirectory = Option.Maybe(Get("manifestSignerClientDirectory"));
             this.ManifestSignerClientProjectPath = Option.Maybe(Get("manifestSignerClientProjectPath"));
         }
 
@@ -229,7 +229,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public Option<string> ManifestSigningLaunchSettingsPath { get; }
 
-        public Option<string> ManifestSignerClientDirecory { get; }
+        public Option<string> ManifestSignerClientDirectory { get; }
 
         public Option<string> ManifestSignerClientProjectPath { get; }
     }
