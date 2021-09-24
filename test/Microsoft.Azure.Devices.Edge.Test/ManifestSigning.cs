@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 // Wrtie the modified launch settings to the file
                 File.WriteAllText(Context.Current.ManifestSigningLaunchSettingsPath.OrDefault(), defaultJsonObject.ToString());
                 string newLauchSettingsContents = File.ReadAllText(Context.Current.ManifestSigningLaunchSettingsPath.OrDefault());
-                Console.WriteLine($"new Default Launch Settings from SetLaunchSettingsWithRootCa: {newLauchSettingsContents} ");
+                Console.WriteLine($"new Launch Settings from SetLaunchSettingsWithRootCa: {newLauchSettingsContents} ");
             }
         }
 
@@ -77,7 +77,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task TestIfSignedDeploymentIsSuccessful()
         {
-            Console.WriteLine($"Value of Launch Settings: {Context.Current.ManifestSigningDefaultLaunchSettings.OrDefault().ToString()}");
             Console.WriteLine($"Root CA path: {Context.Current.ManifestSigningGoodRootCaPath.OrDefault()}");
             this.SetLaunchSettingsWithRootCa(Context.Current.ManifestSigningDefaultLaunchSettings, Context.Current.ManifestSigningGoodRootCaPath);
 

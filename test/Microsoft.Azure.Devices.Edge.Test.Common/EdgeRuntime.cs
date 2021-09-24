@@ -77,6 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string stdOutput = string.Empty;
             string stdErr = string.Empty;
             ProcessStartInfo startInfo;
+            string[] listFiles;
 
             if (enableManifestSigning.HasValue)
             {
@@ -86,8 +87,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 edgeConfig = edgeConfiguration.ToString();
 
                 // start dotnet run ManifestSignerClient process
-                string clientBinPath = enableManifestSigning.OrDefault().ManifestSignerClientBinPath.OrDefault();
-                dotnetCmdText = "run -p " + clientBinPath;
+                string clientDirectory = enableManifestSigning.OrDefault().ManifestSignerClientDirectory.OrDefault();
+                string projectDirectory = enableManifestSigning.OrDefault().ManifestSignerClientProjectPath.OrDefault();
+
+                listFiles = Directory.GetFiles(clientDirectory);
+                Console.WriteLine("\n Printing the contents of MSC directory before dotnet build");
+                foreach (var item in listFiles)
+                {
+                    Console.WriteLine(item);
+                }
+
+                dotnetCmdText = "run -p " + projectDirectory;
                 startInfo = new ProcessStartInfo("dotnet", dotnetCmdText);
                 startInfo.RedirectStandardOutput = true;
                 startInfo.RedirectStandardError = true;
@@ -97,11 +107,18 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 stdErr = dotnetProcess.StandardError.ToString();
                 exitcode = dotnetProcess.ExitCode;
 
-                // Read the signed deployment file back
+                listFiles = Directory.GetFiles(clientDirectory);
+                Console.WriteLine("\n Printing the contents of MSC directory after dotnet build");
+                foreach (var item in listFiles)
+                {
+                    Console.WriteLine(item);
+                }
+
                 string signedDeploymentPath = enableManifestSigning.OrDefault().ManifestSigningSignedDeploymentPath.OrDefault();
                 signedConfig = File.ReadAllText(signedDeploymentPath);
-                outputStr = "edge config value = " + edgeConfig + "\n client path = " + clientBinPath + "\n dotnet commnad = " + dotnetCmdText + "\n exit code = " + exitcode + "\n signed config = " + signedConfig;
-                outputStr += "std ouput = " + stdOutput + "std err =  " + stdErr + "\n signed deployment path " + signedDeploymentPath;
+                outputStr = "\n edge config value = " + edgeConfig + "\n client directory = " + clientDirectory + "\n Project directory = " + projectDirectory + "\n dotnet commnad = " + dotnetCmdText + "\n exit code = " + exitcode + "\n signed config = " + signedConfig;
+                outputStr += "\n std ouput = " + stdOutput + "\n std err =  " + stdErr + "\n signed deployment path " + signedDeploymentPath;
+                Console.WriteLine($"\n Output str = {outputStr}");
             }
 
             if (!string.IsNullOrEmpty(signedConfig))
@@ -110,7 +127,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 edgeConfiguration = (EdgeConfiguration)JsonConvert.DeserializeObject(signedConfig);
             }
 
-            await edgeConfiguration.DeployAsyncWithPrints(outputStr, this.iotHub, token);
             EdgeModule[] modules = edgeConfiguration.ModuleNames
                 .Select(id => new EdgeModule(id, this.DeviceId, this.iotHub))
                 .ToArray();

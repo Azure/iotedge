@@ -86,8 +86,6 @@ steps:
     $manifestSignerClientDir = '$(Build.SourcesDirectory)/samples/dotnet/ManifestSignerClient'
     dotnet build $manifestSignerClientDir
     $manifestSignerClientBinDir = Convert-Path "$manifestSignerClientDir/bin/Debug/netcoreapp3.1"
-    $test = "$manifestSignerClientBinDir/Properties/launchSettings.json"
-    Get-Content -Path $test
     Write-Output "##vso[task.setvariable variable=manifestSignerClientDir]$manifestSignerClientDir"
     Write-Output "##vso[task.setvariable variable=manifestSignerClientBinDir]$manifestSignerClientBinDir"
     $manifestSigningTestDir = '$(System.ArtifactsDirectory)/manifest_signing'
@@ -161,7 +159,8 @@ steps:
       $testManifestSigningSignerKeyPath = Convert-Path "$(manifestSigningCertDir)/signer_key.key";
       $testManifestSigningDeploymentPath = Convert-Path "$(manifestSigningDeploymentDir)/deployment.json";
       $testManifestSigningSignedDeploymentPath = Convert-Path "$(manifestSigningDeploymentDir)/signed_deployment.json";
-      $testManifestSignerClientBinPath = Convert-Path "$(manifestSignerClientDir)/ManifestSignerClient.csproj";
+      $testManifestSignerClientDirectory = Convert-Path "$(manifestSignerClientDir)";
+      $testManifestSignerClientProjectPath = Convert-Path "$(manifestSignerClientDir)/ManifestSignerClient.csproj";
       $testManifestSigningLaunchSettingsPath = Convert-Path "$(manifestSignerClientBinDir)/Properties/launchSettings.json";
 
       $testManifestSigningDefaultLaunchSettings = @{
@@ -248,7 +247,8 @@ steps:
       $context['manifestSigningBadRootCaPath'] = "$testManifestSigningBadRootCaPath"
       $context['manifestSigningDefaultLaunchSettings'] = "$testManifestSigningDefaultLaunchSettings"
       $context['manifestSigningLaunchSettingsPath'] = "$testManifestSigningLaunchSettingsPath"
-      $context['manifestSignerClientBinPath'] = "$testManifestSignerClientBinPath"
+      $context['manifestSignerClientDirecory'] = "$testManifestSignerClientDirectory"
+      $context['manifestSignerClientProjectPath'] = "$testManifestSignerClientProjectPath"
     }
 
     if ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
