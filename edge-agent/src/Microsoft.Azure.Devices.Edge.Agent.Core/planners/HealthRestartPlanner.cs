@@ -355,7 +355,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
 
             // Find the modules whose desired and runtime status are not the same
             IList<IRuntimeModule> updateStateChanged = currentRuntimeModules
-                .Where(m => m.DesiredStatus != m.RuntimeStatus).ToList();
+                .Where(m => m.DesiredStatus != m.RuntimeStatus && m.RuntimeStatus != ModuleStatus.Dead).ToList();
+
+            // Remove dead modules. The next deployment will recreate them if needed.
+            IList<IRuntimeModule> dead = currentRuntimeModules
+                .Where(m => m.RuntimeStatus == ModuleStatus.Dead).ToList();
+
+            foreach (IRuntimeModule deadModule in dead)
+            {
+                removed.Add(deadModule);
+            }
 
             // Apart from all of the lists above, there can be modules in "current" where neither
             // the desired state has changed nor the runtime state has changed. For example, a module
