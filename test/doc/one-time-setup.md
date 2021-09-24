@@ -123,7 +123,7 @@ chmod u+x dotnet-install.sh
 ~~~
 
 ## Setup your cloud resources
-The end-to-end tests require a number of azure cloud side resources i.e., IoT hub, Device Provisioning Service, and a Storage Container to be setup. This next section will walk you through how to setup the cloud resources.
+The end-to-end tests require a number of azure cloud side resources i.e., IoT Hub, Device Provisioning Service, and a Storage Container to be setup. This next section will walk you through how to setup the cloud resources.
 
 ##### Create a resource group
 If you don't already have a resource group, create one.
@@ -132,7 +132,7 @@ Here is how you can create one using the CLI
 az group create --name {resource group name} --location {region}
 ~~~
 
-##### IoT hub
+##### IoT Hub
 If you don't already have an existing IoT hub, create one. There is no special configuration required, except for making sure that your IoT hub is enabled for public access.
 Here is how you can create one using the CLI
 
@@ -181,7 +181,7 @@ You do not have to create the symmetric key. The system will auto generate it fo
 See [Symmetric key attestation](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-auto-provision-symmetric-keys?view=iotedge-2020-11&tabs=windows) for further details.
 
 ###### Create enrollment group for X.509 certificate based enrollment
-In your DPS instance, create another enrollment group for X.509 certificate based enrollment. For this enrollment group, set the attestation type to be certificate and upload the root CA certificate that you had created earlier, set the IoTEdge Device setting to true, and link the group to your Iot Hub with the access policy of `iotHubOwner`.
+In your DPS instance, create another enrollment group for X.509 certificate based enrollment. For this enrollment group, set the attestation type to be certificate and upload the root CA certificate that you had created earlier, set the IoTEdge Device setting to true, and link the group to your Iot hub with the access policy of `iotHubOwner`.
 
 ~~~sh
 # Upload the root ca cert and set it to be verified
