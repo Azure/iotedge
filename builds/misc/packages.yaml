@@ -15,8 +15,6 @@ jobs:
       name: $(pool.linux.name)
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
-    variables:
-      NugetSecurityAnalysisWarningLevel: warn
     strategy:
       matrix:
         Centos75-amd64:
