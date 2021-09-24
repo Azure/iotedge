@@ -1,6 +1,5 @@
 name: $(version)
-variables:
-  NugetSecurityAnalysisWarningLevel: warn
+
 jobs: 
 ################################################################################
   - job: linux_dotnet_projects

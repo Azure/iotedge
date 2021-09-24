@@ -18,7 +18,6 @@ schedules:
   always: true
 
 variables:
-  NugetSecurityAnalysisWarningLevel: warn
   images.artifact.name.linux: 'core-linux'
 
 resources:
