@@ -9,9 +9,6 @@ trigger:
       - "builds/*"
 pr: none
 
-variables:
-  NugetSecurityAnalysisWarningLevel: warn
-
 jobs:
 
 ################################################################################
