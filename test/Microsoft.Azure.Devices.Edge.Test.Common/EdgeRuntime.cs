@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string stdOutput = string.Empty;
             string stdErr = string.Empty;
             ProcessStartInfo startInfo;
-            string[] listFiles;
+            string[] listDirs;
 
             if (enableManifestSigning.HasValue)
             {
@@ -90,11 +90,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 string clientDirectory = enableManifestSigning.OrDefault().ManifestSignerClientDirectory.OrDefault();
                 string projectDirectory = enableManifestSigning.OrDefault().ManifestSignerClientProjectPath.OrDefault();
 
-                listFiles = Directory.GetFiles(clientDirectory);
+                listDirs = Directory.GetDirectories(clientDirectory);
                 Console.WriteLine("\n Printing the contents of MSC directory before dotnet build");
-                foreach (var item in listFiles)
+                foreach (var dirs in listDirs)
                 {
-                    Console.WriteLine(item);
+                    Console.WriteLine($"\n Directory name is {dirs}");
+                    foreach (var files in dirs)
+                    {
+                        Console.WriteLine($"\n file name is {files} under the directory: {dirs}");
+                    }
                 }
 
                 dotnetCmdText = "run -p " + projectDirectory;
@@ -107,11 +111,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 stdErr = dotnetProcess.StandardError.ToString();
                 exitcode = dotnetProcess.ExitCode;
 
-                listFiles = Directory.GetFiles(clientDirectory);
-                Console.WriteLine("\n Printing the contents of MSC directory after dotnet build");
-                foreach (var item in listFiles)
+                Console.WriteLine("\n Printing the contents of MSC directory before dotnet build");
+                foreach (var dirs in listDirs)
                 {
-                    Console.WriteLine(item);
+                    Console.WriteLine($"\n Directory name is {dirs}");
+                    foreach (var files in dirs)
+                    {
+                        Console.WriteLine($"\n file name is {files} under the directory: {dirs}");
+                    }
                 }
 
                 string signedDeploymentPath = enableManifestSigning.OrDefault().ManifestSigningSignedDeploymentPath.OrDefault();
