@@ -89,9 +89,10 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
             this.testResultsValidated = true;
         }
 
-        public (NetworkControllerStatus networkControllerStatus, bool isWithinTolerancePeriod) GetNetworkControllerStatusAndWithinToleranceAt(DateTime statusTime)
+        public (NetworkControllerStatus networkControllerStatus, bool isWithinTolerancePeriod, TimeSpan TimeDiff) GetNetworkControllerStatusAndWithinToleranceAt(DateTime statusTime)
         {
             this.ValidateNetworkControllerTestResults();
+            var timeDiff = TimeSpan.Zero;
 
             // Return network controller status at given time
             NetworkControllerStatus networkControllerStatus = this.initialNetworkControllerStatus;
@@ -107,9 +108,13 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
                 networkControllerStatus = curr.NetworkControllerStatus;
                 NetworkControllerTestResult next = this.networkControllerTestResults[i + 1];
                 isWithinTolerancePeriod = statusTime > curr.CreatedAt && statusTime <= next.CreatedAt.Add(this.tolerancePeriod);
+                if (statusTime > curr.CreatedAt)
+                {
+                    timeDiff = statusTime.Subtract(curr.CreatedAt);
+                }
             }
 
-            return (networkControllerStatus, isWithinTolerancePeriod);
+            return (networkControllerStatus, isWithinTolerancePeriod, timeDiff);
         }
 
         static Option<NetworkControllerTestResult> GetNetworkControllerTestOperationResult(TestOperationResult current)

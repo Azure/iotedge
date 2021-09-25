@@ -45,18 +45,7 @@ namespace DirectMethodSender
 
                     (HttpStatusCode resultStatusCode, ulong dmCounter) = await directMethodClient.InvokeDirectMethodAsync(Settings.Current.DirectMethodName, cts);
                     DirectMethodResultType resultType = Settings.Current.DirectMethodResultType;
-
-                    if (ShouldReportResults(resultType, resultStatusCode))
-                    {
-                        // Generate a testResult type depending on the reporting endpoint
-                        TestResultBase testResult = ConstructTestResult(
-                            resultType,
-                            batchId,
-                            dmCounter,
-                            resultStatusCode);
-
-                        await reportClient.SendTestResultAsync(testResult);
-                    }
+                    Logger.LogInformation($"Result={resultType}");
                 }
 
                 await cts.Token.WhenCanceled();

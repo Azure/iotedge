@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
         public static async Task ReportTestResultAsync(TestResultReportingClient apiClient, ILogger logger, TestResultBase testResult, CancellationToken cancellationToken = default(CancellationToken))
         {
             logger.LogInformation($"Sending test result: Source={testResult.Source}, Type={testResult.ResultType}, CreatedAt={testResult.CreatedAt}, Result={testResult.GetFormattedResult()}");
-            await apiClient.ReportResultAsync(testResult.ToTestOperationResultDto(), cancellationToken);
+            // await apiClient.ReportResultAsync(testResult.ToTestOperationResultDto(), cancellationToken);
         }
 
         // TODO: Remove this function once the TRC support the two new endpoint properly.

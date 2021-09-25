@@ -89,10 +89,11 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
             while (hasSenderResult)
             {
                 this.ValidateDataSource(this.SenderTestResults.Current, this.SenderSource);
-                (NetworkControllerStatus networkControllerStatus, bool isWithinTolerancePeriod) =
+                (NetworkControllerStatus networkControllerStatus, bool isWithinTolerancePeriod, TimeSpan timeDiff) =
                     this.NetworkStatusTimeline.GetNetworkControllerStatusAndWithinToleranceAt(this.SenderTestResults.Current.CreatedAt);
                 this.ValidateNetworkControllerStatus(networkControllerStatus);
                 DirectMethodTestResult dmSenderTestResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(this.SenderTestResults.Current.Result);
+                Logger.LogInformation($"Test dm results {this.SenderTestResults.Current.Result}");
 
                 if (hasReceiverResult)
                 {
@@ -108,7 +109,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
                     }
                 }
 
-                reportGeneratorMetadata = await this.ProcessSenderTestResults(dmSenderTestResult, networkControllerStatus, isWithinTolerancePeriod, this.SenderTestResults);
+                reportGeneratorMetadata = await this.ProcessSenderTestResults(dmSenderTestResult, networkControllerStatus, isWithinTolerancePeriod, this.SenderTestResults, timeDiff, this.SenderSource);
                 networkOnSuccess += reportGeneratorMetadata.NetworkOnSuccess;
                 networkOffSuccess += reportGeneratorMetadata.NetworkOffSuccess;
                 networkOnToleratedSuccess += reportGeneratorMetadata.NetworkOnToleratedSuccess;
@@ -241,7 +242,9 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
             DirectMethodTestResult dmSenderTestResult,
             NetworkControllerStatus networkControllerStatus,
             bool isWithinTolerancePeriod,
-            IAsyncEnumerator<TestOperationResult> senderTestResults)
+            IAsyncEnumerator<TestOperationResult> senderTestResults,
+            TimeSpan timeDiff,
+            string sender)
         {
             ulong networkOnSuccess = 0;
             ulong networkOffSuccess = 0;
@@ -258,6 +261,8 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
                 }
                 else
                 {
+                    Logger.LogError($"Error: Type {this.NetworkControllerType}, statusCode {statusCode}, " +
+                        $"Controller Status {networkControllerStatus}, iswithin tol {isWithinTolerancePeriod}");
                     networkOnFailure++;
                 }
             }
@@ -269,12 +274,15 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
                 }
                 else
                 {
+                    Logger.LogError($"Error: timediff {timeDiff} by {sender}");
                     if (isWithinTolerancePeriod)
                     {
                         networkOnToleratedSuccess++;
                     }
                     else
                     {
+                        Logger.LogError($"Error: Type {this.NetworkControllerType}, statusCode {statusCode}, " +
+    $"Controller Status {networkControllerStatus}, iswithin tol {isWithinTolerancePeriod}");
                         networkOnFailure++;
                     }
                 }
@@ -287,6 +295,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
                 }
                 else if (HttpStatusCode.OK.Equals(statusCode))
                 {
+                    Logger.LogError($"Error: timediff {timeDiff} by {sender}");
                     if (isWithinTolerancePeriod)
                     {
                         networkOffToleratedSuccess++;
@@ -294,11 +303,15 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
                     else
                     {
                         networkOffFailure++;
+                        Logger.LogError($"Error: Type {this.NetworkControllerType}, statusCode {statusCode}, " +
+    $"Controller Status {networkControllerStatus}, iswithin tol {isWithinTolerancePeriod}");
                     }
                 }
                 else
                 {
                     networkOffFailure++;
+                    Logger.LogError($"Error: Type {this.NetworkControllerType}, statusCode {statusCode}, " +
+    $"Controller Status {networkControllerStatus}, iswithin tol {isWithinTolerancePeriod}");
                 }
             }
 

@@ -92,19 +92,19 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             IAsyncEnumerable<TestOperationResult> resultCollection = this.GetStoreTestResultCollection(networkControllerResultValues, networkControllerResultDates, networkControllerResultOperations);
             NetworkStatusTimeline timeline = await NetworkStatusTimeline.CreateAsync(resultCollection.GetAsyncEnumerator(), new TimeSpan(0, 0, 0, 0, 5));
 
-            (NetworkControllerStatus status, bool inTolerance) = timeline.GetNetworkControllerStatusAndWithinToleranceAt(new DateTime(2020, 1, 1, 9, 10, 11, 10));
+            (NetworkControllerStatus status, bool inTolerance, TimeSpan timeDiff) = timeline.GetNetworkControllerStatusAndWithinToleranceAt(new DateTime(2020, 1, 1, 9, 10, 11, 10));
             Assert.Equal(NetworkControllerStatus.Disabled, status);
             Assert.False(inTolerance);
-            (status, inTolerance) = timeline.GetNetworkControllerStatusAndWithinToleranceAt(new DateTime(2020, 1, 1, 9, 10, 16, 10));
+            (status, inTolerance, _) = timeline.GetNetworkControllerStatusAndWithinToleranceAt(new DateTime(2020, 1, 1, 9, 10, 16, 10));
             Assert.Equal(NetworkControllerStatus.Enabled, status);
             Assert.False(inTolerance);
-            (status, inTolerance) = timeline.GetNetworkControllerStatusAndWithinToleranceAt(new DateTime(2020, 1, 1, 9, 10, 20, 15));
+            (status, inTolerance, _) = timeline.GetNetworkControllerStatusAndWithinToleranceAt(new DateTime(2020, 1, 1, 9, 10, 20, 15));
             Assert.Equal(NetworkControllerStatus.Disabled, status);
             Assert.True(inTolerance);
-            (status, inTolerance) = timeline.GetNetworkControllerStatusAndWithinToleranceAt(new DateTime(2020, 1, 1, 9, 10, 25, 11));
+            (status, inTolerance, _) = timeline.GetNetworkControllerStatusAndWithinToleranceAt(new DateTime(2020, 1, 1, 9, 10, 25, 11));
             Assert.Equal(NetworkControllerStatus.Enabled, status);
             Assert.True(inTolerance);
-            (status, inTolerance) = timeline.GetNetworkControllerStatusAndWithinToleranceAt(new DateTime(2020, 1, 1, 9, 10, 25, 12));
+            (status, inTolerance, _) = timeline.GetNetworkControllerStatusAndWithinToleranceAt(new DateTime(2020, 1, 1, 9, 10, 25, 12));
             Assert.Equal(NetworkControllerStatus.Enabled, status);
             Assert.True(inTolerance);
         }

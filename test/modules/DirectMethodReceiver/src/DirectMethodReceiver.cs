@@ -21,6 +21,7 @@ namespace DirectMethodReceiver
         ModuleClient moduleClient;
         Option<TestResultReportingClient> testResultReportingClient;
         Option<string> trackingId;
+        int counter = 0;
 
         public DirectMethodReceiver(
             ILogger logger,
@@ -28,6 +29,7 @@ namespace DirectMethodReceiver
         {
             Preconditions.CheckNotNull(logger, nameof(logger));
             Preconditions.CheckNotNull(configuration, nameof(configuration));
+            this.counter = 0;
 
             Option<Uri> testReportCoordinatorUrl = Option.Maybe(configuration.GetValue<Uri>("ReportingEndpointUrl"));
             testReportCoordinatorUrl.ForEach(
@@ -46,6 +48,8 @@ namespace DirectMethodReceiver
         {
             try
             {
+                this.counter++;
+                this.logger.LogInformation($"Received a total of {this.counter} direct method");
                 this.logger.LogInformation($"Received direct method call: {methodRequest.DataAsJson}");
                 JToken payload = JToken.Parse(methodRequest.DataAsJson);
                 // Send the report to Test Result Coordinator
