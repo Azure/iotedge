@@ -1,10 +1,12 @@
-# 1.2.4 (2021-09-13)
+# 1.2.4 (2021-09-29)
 ## Edge Agent
 ### Bug Fixes
 * Delay frequent twin pulls on reconnect ( [95b4441](https://github.com/Azure/iotedge/commit/95b4441402fbab9d292f0d962ff89c03e28b848a) )
 * Make sure to dispose HttpContentStream when done reading module logs ( [47011b1](https://github.com/Azure/iotedge/commit/47011b1ed0270182afdadb3eba27220fd4dc38bf) )
 * Update Base Images for a Security Patch ( [3b83e7f](https://github.com/Azure/iotedge/commit/3b83e7f76eaa083f73a9ee6b3f9a8973f8268f5e), [56e96cd](https://github.com/Azure/iotedge/commit/56e96cdf9970c057b7a8028c508f6b0b997f0b62) )
 * `$upstream` support for container registry address ( [ebdb5be](https://github.com/Azure/iotedge/commit/ebdb5becf9a1c5f1fb2aa27794b6e69b0b754d52) )
+* Fix edgeAgent creates rogue ModuleClients when encounters an error ( [4b87cc9](https://github.com/Azure/iotedge/commit/4b87cc97fc202fbf72d08075dd99d891d1637f9f) )
+* Update SDK to fix dotnetty bugs ( [ea818f0](https://github.com/Azure/iotedge/commit/ea818f03f288e818626180ccc8319aea184835f9) )
 
 
 ## Edge Hub
@@ -12,6 +14,8 @@
 * Add a component name to message properties ( [4f36aba](https://github.com/Azure/iotedge/commit/4f36aba0522b5efe547fefc27a2d695f593885e7) )
 * Update Base Images for a Security Patch ( [3b83e7f](https://github.com/Azure/iotedge/commit/3b83e7f76eaa083f73a9ee6b3f9a8973f8268f5e), [56e96cd](https://github.com/Azure/iotedge/commit/56e96cdf9970c057b7a8028c508f6b0b997f0b62) )
 * Enable leaf identity creation ( [358aeb7](https://github.com/Azure/iotedge/commit/358aeb76f4c7b59929def8bcb977b51c2191066f) )
+* Update SDK to fix dotnetty bugs ( [ea818f0](https://github.com/Azure/iotedge/commit/ea818f03f288e818626180ccc8319aea184835f9) )
+* Use separate flag for MQTT Buffer pooling ( [38f34f6](https://github.com/Azure/iotedge/commit/38f34f62180b8e97c1ffd3d15cede96ddcd13d38) )
 
 
 ## Azure Functions Module Sample
@@ -33,6 +37,8 @@
 * RUSTSEC Security Update ( [24e4d27](https://github.com/Azure/iotedge/commit/24e4d272415de71e0ed75b41089e1471c35cc8c9), [b59a089](https://github.com/Azure/iotedge/commit/b59a089e6fa3fbf1d869e37e5e2a5113449b37e3), [5e2ba80](https://github.com/Azure/iotedge/commit/5e2ba80786402615bebff078b67eab63313ffc39), [790a8f9](https://github.com/Azure/iotedge/commit/790a8f99e7f24c86c4c491a6e0eb6d2c388b47ec), [c6d805b](https://github.com/Azure/iotedge/commit/c6d805b1753ba1a69bf05b2e4f0eda312545d347) )
 * $upstream support for container registry address ( [ebdb5be](https://github.com/Azure/iotedge/commit/ebdb5becf9a1c5f1fb2aa27794b6e69b0b754d52) )
 * Improve Workload Manager logging and cleanup ( [febd7a2](https://github.com/Azure/iotedge/commit/febd7a2d1467b891c0dea0edff00c90c6b320e0b) )
+* Update cargo dependencies ( [f147f12](https://github.com/Azure/iotedge/commit/f147f12881c91c029de49c1aba8f509d6c3eed47) )
+* Update to 1.2.3 IIS components ( [fea0ae2](https://github.com/Azure/iotedge/commit/fea0ae2b8f4ef41a9007294b2cb072fef3be5a61) )
 
 
 # 1.2.3 (2021-06-30)
