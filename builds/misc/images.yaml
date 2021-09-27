@@ -108,26 +108,26 @@ stages:
         sourceFolder: '$(Build.ArtifactsStagingDirectory)'
         contents: 'core-linux/**'
         targetFolder: '$(Build.BinariesDirectory)'
-    # Edge Agent
-    - template: templates/image-linux.yaml
-      parameters:
-        name: Edge Agent
-        imageName: azureiotedge-agent
-        project: Microsoft.Azure.Devices.Edge.Agent.Service
+  # Edge Agent
+  - template: templates/image-linux.yaml
+    parameters:
+      name: Edge Agent
+      imageName: azureiotedge-agent
+      project: Microsoft.Azure.Devices.Edge.Agent.Service
 
-    # Edge Hub
-    - template: templates/image-linux.yaml
-      parameters:
-        name: Edge Hub
-        imageName: azureiotedge-hub
-        project: edge-hub
+  # Edge Hub
+  - template: templates/image-linux.yaml
+    parameters:
+      name: Edge Hub
+      imageName: azureiotedge-hub
+      project: edge-hub
 
-    # Simulated Temperature Sensor
-    - template: templates/image-linux.yaml
-      parameters:
-        name: Temperature Sensor
-        imageName: azureiotedge-simulated-temperature-sensor
-        project: SimulatedTemperatureSensor      
+  # Simulated Temperature Sensor
+  - template: templates/image-linux.yaml
+    parameters:
+      name: Temperature Sensor
+      imageName: azureiotedge-simulated-temperature-sensor
+      project: SimulatedTemperatureSensor      
 
 
 # jobs:
