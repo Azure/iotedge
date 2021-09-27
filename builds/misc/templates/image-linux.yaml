@@ -5,6 +5,7 @@ parameters:
   project: ''
   version: ''
   buildx_flag: ''
+  bin_dir: ''
 
 jobs:
   - job:
@@ -13,14 +14,14 @@ jobs:
     - task: Bash@3
       inputs:
         filePath: scripts/linux/buildImage.sh
-        arguments: -r "$(registry.address)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }}"
+        arguments: -r "$(registry.address)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }}" --bin-dir "${{ parameters.bin_dir }}"
   - job:
     displayName: Build Image - ${{ parameters.name }} - arm32
     steps:  
     - task: Bash@3
       inputs:
         filePath: scripts/linux/buildImage.sh
-        arguments: -r "$(registry.address)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }}" --target-arch armv7l --buildx_flag ${{ parameters.buildx_flag }}  
+        arguments: -r "$(registry.address)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }}" --target-arch armv7l --buildx_flag ${{ parameters.buildx_flag }} --bin-dir "${{ parameters.bin_dir }}  
   - job:
     displayName: Build Image - ${{ parameters.name }} - arm64 
     steps:
@@ -28,4 +29,4 @@ jobs:
       condition: and(ne('${{ parameters.name }}', 'Functions Sample'), succeeded())
       inputs:
         filePath: scripts/linux/buildImage.sh
-        arguments: -r "$(registry.address)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }}" --target-arch aarch64 --buildx_flag ${{ parameters.buildx_flag }}
+        arguments: -r "$(registry.address)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }}" --target-arch aarch64 --buildx_flag ${{ parameters.buildx_flag }} --bin-dir "${{ parameters.bin_dir }}

@@ -131,6 +131,7 @@ stages:
       name: Edge Agent
       imageName: azureiotedge-agent
       project: Microsoft.Azure.Devices.Edge.Agent.Service
+      bin_dir: '$(Build.BinariesDirectory)'      
 
   # Edge Hub
   - template: templates/image-linux.yaml
@@ -138,13 +139,15 @@ stages:
       name: Edge Hub
       imageName: azureiotedge-hub
       project: edge-hub
+      bin_dir: '$(Build.BinariesDirectory)'
 
   # Simulated Temperature Sensor
   - template: templates/image-linux.yaml
     parameters:
       name: Temperature Sensor
       imageName: azureiotedge-simulated-temperature-sensor
-      project: SimulatedTemperatureSensor      
+      project: SimulatedTemperatureSensor
+      bin_dir: '$(Build.BinariesDirectory)'         
 
 
 # jobs:
