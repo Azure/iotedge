@@ -95,9 +95,9 @@ stages:
     name: $(pool.linux.name)
     demands:
       - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
-  dependsOn: PublishBuildArtifacts
+  dependsOn: PublishEdgeHubArtifacts
   jobs:
-  - job: Download Build Artifacts
+  - job: DownloadBuildArtifacts
     steps:
     - task: DownloadPipelineArtifact@2
       inputs:
