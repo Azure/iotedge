@@ -70,72 +70,6 @@
           }
         },
         "modules": {
-          "loadGen1": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "messageFrequency": {
-                "value": "<LoadGen.MessageFrequency>"
-              },
-              "testDuration": {
-                "value": "<TestDuration>"
-              },
-              "testStartDelay": {
-                "value": "<TestStartDelay>"
-              },
-              "trackingId": {
-                "value": "<TrackingId>"
-              },
-              "transportType": {
-                "value": "Amqp"
-              },
-              "outputName": {
-                "value": "output1"
-              },
-              "testResultCoordinatorUrl": {
-                "value": "http://testResultCoordinator:5001"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
-            }
-          },
-          "loadGen2": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "messageFrequency": {
-                "value": "<LoadGen.MessageFrequency>"
-              },
-              "testDuration": {
-                "value": "<TestDuration>"
-              },
-              "testStartDelay": {
-                "value": "<TestStartDelay>"
-              },
-              "trackingId": {
-                "value": "<TrackingId>"
-              },
-              "transportType": {
-                "value": "Mqtt"
-              },
-              "outputName": {
-                "value": "output2"
-              },
-              "testResultCoordinatorUrl": {
-                "value": "http://testResultCoordinator:5001"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
-            }
-          },
           "directMethodSender1": {
             "version": "1.0",
             "type": "docker",
@@ -298,54 +232,39 @@
               "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
-          "relayer1": {
+          "networkController": {
             "version": "1.0",
             "type": "docker",
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "transportType": {
-                "value": "Amqp"
-              },
-              "inputName": {
-                "value": "input1"
-              },
-              "outputName": {
-                "value": "output1"
+              "trackingId": {
+                "value": "<TrackingId>"
               },
               "testResultCoordinatorUrl": {
-                "value": "http://testResultCoordinator:5001"
+                "value": "http://localhost:5001"
+              },
+              "RunFrequencies__0__OfflineFrequency": {
+                "value": "<NetworkController.OfflineFrequency0>"
+              },
+              "RunFrequencies__0__OnlineFrequency": {
+                "value": "<NetworkController.OnlineFrequency0>"
+              },
+              "RunFrequencies__0__RunsCount": {
+                "value": "<NetworkController.RunsCount0>"
+              },
+              "NetworkControllerRunProfile": {
+                "value": "<NetworkController.RunProfile>"
+              },
+              "StartAfter": {
+                "value": "<TestStartDelay>"
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-relayer:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
+              "image": "<Container_Registry>/microsoft/azureiotedge-network-controller:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"Privileged\":\"true\",\"NetworkMode\":\"host\",\"Binds\":[\"/var/run/docker.sock:/var/run/docker.sock\"]},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
-          },
-          "relayer2": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "transportType": {
-                "value": "Mqtt"
-              },
-              "inputName": {
-                "value": "input2"
-              },
-              "outputName": {
-                "value": "output2"
-              },
-              "testResultCoordinatorUrl": {
-                "value": "http://testResultCoordinator:5001"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-relayer:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
-            }
-          },
+          },          
           "testResultCoordinator": {
             "version": "1.0",
             "type": "docker",
@@ -400,409 +319,10 @@
               "TEST_INFO": {
                 "value": "<TestInfo>"
               }
-            },
+            },            
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-test-result-coordinator:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"5001/tcp\": [{\"HostPort\": \"5001\"}]}}}"
-            }
-          },
-          "twinTester1": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "trackingId": {
-                "value": "<TrackingId>"
-              },
-              "testResultCoordinatorUrl": {
-                "value": "http://localhost:5001"
-              },
-              "TwinTestMode": {
-                "value": "TwinCloudOperations"
-              },
-              "testStartDelay": {
-                "value": "<TestStartDelay>"
-              },
-              "testDuration": {
-                "value": "<TestDuration>"
-              },
-              "ServiceClientConnectionString": {
-                "value": "<IoTHubConnectionString>"
-              },
-              "TargetModuleId": {
-                "value": "twinTester2"
-              },
-              "TwinUpdateSize": {
-                "value": "<TwinUpdateSize>"
-              },
-              "TwinUpdateFrequency": {
-                "value": "<TwinUpdateFrequency>"
-              },
-              "StorageOptimizeForPerformance": {
-                "value": "<OptimizeForPerformance>"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
-            }
-          },
-          "twinTester2": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "trackingId": {
-                "value": "<TrackingId>"
-              },
-              "testResultCoordinatorUrl": {
-                "value": "http://testResultCoordinator:5001"
-              },
-              "TwinTestMode": {
-                "value": "TwinEdgeOperations"
-              },
-              "testStartDelay": {
-                "value": "<TestStartDelay>"
-              },
-              "testDuration": {
-                "value": "<TestDuration>"
-              },
-              "ServiceClientConnectionString": {
-                "value": "<IoTHubConnectionString>"
-              },
-              "TransportType": {
-                "value": "Amqp"
-              },
-              "TwinUpdateSize": {
-                "value": "<TwinUpdateSize>"
-              },
-              "TwinUpdateFrequency": {
-                "value": "<TwinUpdateFrequency>"
-              },
-              "StorageOptimizeForPerformance": {
-                "value": "<OptimizeForPerformance>"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
-            }
-          },
-          "twinTester3": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "trackingId": {
-                "value": "<TrackingId>"
-              },
-              "testResultCoordinatorUrl": {
-                "value": "http://localhost:5001"
-              },
-              "TwinTestMode": {
-                "value": "TwinCloudOperations"
-              },
-              "testStartDelay": {
-                "value": "<TestStartDelay>"
-              },
-              "testDuration": {
-                "value": "<TestDuration>"
-              },
-              "ServiceClientConnectionString": {
-                "value": "<IoTHubConnectionString>"
-              },
-              "TargetModuleId": {
-                "value": "twinTester4"
-              },
-              "TwinUpdateSize": {
-                "value": "<TwinUpdateSize>"
-              },
-              "TwinUpdateFrequency": {
-                "value": "<TwinUpdateFrequency>"
-              },
-              "StorageOptimizeForPerformance": {
-                "value": "<OptimizeForPerformance>"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
-            }
-          },
-          "twinTester4": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "trackingId": {
-                "value": "<TrackingId>"
-              },
-              "testResultCoordinatorUrl": {
-                "value": "http://testResultCoordinator:5001"
-              },
-              "TwinTestMode": {
-                "value": "TwinEdgeOperations"
-              },
-              "testStartDelay": {
-                "value": "<TestStartDelay>"
-              },
-              "testDuration": {
-                "value": "<TestDuration>"
-              },
-              "ServiceClientConnectionString": {
-                "value": "<IoTHubConnectionString>"
-              },
-              "TransportType": {
-                "value": "Mqtt"
-              },
-              "TwinUpdateSize": {
-                "value": "<TwinUpdateSize>"
-              },
-              "TwinUpdateFrequency": {
-                "value": "<TwinUpdateFrequency>"
-              },
-              "StorageOptimizeForPerformance": {
-                "value": "<OptimizeForPerformance>"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
-            }
-          },
-          "deploymentTester1": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "DEPLOYMENT_TESTER_MODE": {
-                "value": "Sender"
-              },
-              "testStartDelay": {
-                "value": "<TestStartDelay>"
-              },
-              "testDuration": {
-                "value": "<TestDuration>"
-              },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
-              },
-              "trackingId": {
-                "value": "<TrackingId>"
-              },
-              "targetModuleId": {
-                "value": "deploymentTester2"
-              },
-              "testResultCoordinatorUrl": {
-                "value": "http://localhost:5001"
-              },
-              "DEPLOYMENT_UPDATE_PERIOD": {
-                "value": "<DeploymentTester1.DeploymentUpdatePeriod>"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-deployment-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
-            }
-          },
-          "deploymentTester2": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "DEPLOYMENT_TESTER_MODE": {
-                "value": "Receiver"
-              },
-              "trackingId": {
-                "value": "<TrackingId>"
-              },
-              "testResultCoordinatorUrl": {
-                "value": "http://testResultCoordinator:5001"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-deployment-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
-            }
-          },
-          "cloudToDeviceMessageSender1": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "C2DMESSAGE_TESTER_MODE": {
-                "value": "Sender"
-              },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
-              },
-              "trackingId": {
-                "value": "<TrackingId>"
-              },
-              "testDuration": {
-                "value": "<TestDuration>"
-              },
-              "testStartDelay": {
-                "value": "<TestStartDelay>"
-              },
-              "ReportingEndpointUrl": {
-                "value": "http://localhost:5001"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
-            }
-          },
-          "cloudToDeviceMessageReceiver1": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "C2DMESSAGE_TESTER_MODE": {
-                "value": "Receiver"
-              },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
-              },
-              "transportType": {
-                "value": "Amqp"
-              },
-              "ReportingEndpointUrl": {
-                "value": "http://testResultCoordinator:5001"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
-            }
-          },
-          "cloudToDeviceMessageSender2": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "C2DMESSAGE_TESTER_MODE": {
-                "value": "Sender"
-              },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
-              },
-              "trackingId": {
-                "value": "<TrackingId>"
-              },
-              "testDuration": {
-                "value": "<TestDuration>"
-              },
-              "testStartDelay": {
-                "value": "<TestStartDelay>"
-              },
-              "transportType": {
-                "value": "Mqtt"
-              },
-              "ReportingEndpointUrl": {
-                "value": "http://localhost:5001"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
-            }
-          },
-          "cloudToDeviceMessageReceiver2": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "C2DMESSAGE_TESTER_MODE": {
-                "value": "Receiver"
-              },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
-              },
-              "transportType": {
-                "value": "Mqtt"
-              },
-              "ReportingEndpointUrl": {
-                "value": "http://testResultCoordinator:5001"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
-            }
-          },
-          "networkController": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "trackingId": {
-                "value": "<TrackingId>"
-              },
-              "testResultCoordinatorUrl": {
-                "value": "http://localhost:5001"
-              },
-              "RunFrequencies__0__OfflineFrequency": {
-                "value": "<NetworkController.OfflineFrequency0>"
-              },
-              "RunFrequencies__0__OnlineFrequency": {
-                "value": "<NetworkController.OnlineFrequency0>"
-              },
-              "RunFrequencies__0__RunsCount": {
-                "value": "<NetworkController.RunsCount0>"
-              },
-              "NetworkControllerRunProfile": {
-                "value": "<NetworkController.RunProfile>"
-              },
-              "StartAfter": {
-                "value": "<TestStartDelay>"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-network-controller:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Privileged\":\"true\",\"NetworkMode\":\"host\",\"Binds\":[\"/var/run/docker.sock:/var/run/docker.sock\"]},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
-            }
-          },
-          "metricsCollector": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "LogAnalyticsWorkspaceId": {
-                "value": "<LogAnalyticsWorkspaceId>"
-              },
-              "LogAnalyticsSharedKey": {
-                "value": "<LogAnalyticsSharedKey>"
-              },
-              "LogAnalyticsLogType": {
-                "value": "testMetricsV2"
-              },
-              "MetricsEndpointsCSV": {
-                "value": "<MetricsCollector.MetricsEndpointsCSV>"
-              },
-              "ScrapeFrequencyInSecs": {
-                "value": "<MetricsCollector.ScrapeFrequencyInSecs>"
-              },
-              "UploadTarget": {
-                "value": "<MetricsCollector.UploadTarget>"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           }
         }

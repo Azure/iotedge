@@ -335,39 +335,6 @@ function print_test_run_logs() {
     print_highlighted_message '========== Logs from directMethodSender3 =========='
     docker logs directMethodSender3 || true
 
-    print_highlighted_message '========== Logs from twinTester1 =========='
-    docker logs twinTester1 || true
-
-    print_highlighted_message '========== Logs from twinTester2 =========='
-    docker logs twinTester2 || true
-
-    print_highlighted_message '========== Logs from twinTester3 =========='
-    docker logs twinTester3 || true
-
-    print_highlighted_message '========== Logs from twinTester4 =========='
-    docker logs twinTester4 || true
-
-    print_highlighted_message '========== Logs from deploymentTester1 =========='
-    docker logs deploymentTester1 || true
-
-    print_highlighted_message '========== Logs from deploymentTester2 =========='
-    docker logs deploymentTester2 || true
-
-    print_highlighted_message '========== Logs from cloudToDeviceMessageSender1 =========='
-    docker logs cloudToDeviceMessageSender1 || true
-
-    print_highlighted_message '========== Logs from cloudToDeviceMessageReceiver1 =========='
-    docker logs cloudToDeviceMessageReceiver1 || true
-
-    print_highlighted_message '========== Logs from cloudToDeviceMessageSender2 =========='
-    docker logs cloudToDeviceMessageSender2 || true
-
-    print_highlighted_message '========== Logs from cloudToDeviceMessageReceiver2 =========='
-    docker logs cloudToDeviceMessageReceiver2 || true
-
-    print_highlighted_message '========== Logs from genericMqttTester =========='
-    docker logs genericMqttTester || true
-
     print_highlighted_message 'networkController =========='
     docker logs networkController || true
 }
