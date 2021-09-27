@@ -28,7 +28,6 @@ variables:
   # The 'minimal' variable defaults to 'false'; we override it in specific jobs as needed.
   minimal: false
   verbose: false
-  NugetSecurityAnalysisWarningLevel: warn
 
 jobs:
 
