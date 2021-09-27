@@ -114,10 +114,17 @@ stages:
         source: 'current'
         path: '$(Build.ArtifactStagingDirectory)'
     - task: CopyFiles@2
+      displayName: Copy Edge Hub Artifacts
       inputs:
         sourceFolder: '$(Build.ArtifactStagingDirectory)'
         contents: 'core-linux/**'
-        targetFolder: '$(Build.BinariesDirectory)'
+        targetFolder: '$(Build.BinariesDirectory)/publish'
+    - task: CopyFiles@2
+      displayName: Copy Other Dotnet Artifacts
+      inputs:
+        sourceFolder: '$(Build.ArtifactStagingDirectory)'
+        contents: 'dotnet_artifacts/**'
+        targetFolder: '$(Build.BinariesDirectory)/publish'
   # Edge Agent
   - template: templates/image-linux.yaml
     parameters:
