@@ -18,7 +18,7 @@
 DIR=$(cd "$(dirname "$0")" && pwd)
 
 BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../..}
-TARGET_DIRECTORY=${BUILD_BINARIESDIRECTORY:-$BUILD_REPOSITORY_LOCALPATH/target}/publish
+DESTINATION_DIRECTORY=${BUILD_BINARIESDIRECTORY:-$BUILD_REPOSITORY_LOCALPATH/target}/publish
 DOTNET_ARTIFACTS_SOURCE_DIRECTORY=${BUILD_BINARIESDIRECTORY}/publish
 RUST_ARTIFACTS_SOURCE_DIRECTORY="./"
 SCRIPT_NAME=$(basename "$0")
@@ -31,7 +31,7 @@ function usage() {
     echo ""
     echo "options"
     echo " --artifact-name                  The name of the consolidated artifact directory."
-    echo " --target-dir                     The directory in which to place the consolidated artifacts."
+    echo " --dest-dir                       The directory in which to place the consolidated artifacts."
     echo " --dotnet-artifacts-source-dir    The directory containing the built dotnet source code to be consolidated."   
     echo " --rust-artifacts-source-dir      The directory containing the built Rust source code to be consolidated."
     echo " -h, --help                       Print this help and exit."
@@ -53,7 +53,7 @@ function process_args() {
             ARTIFACT_NAME=$arg
             save_next_arg=0
         elif [ ${save_next_arg} -eq 2 ]; then
-            TARGET_DIRECTORY=$arg
+            DESTINATION_DIRECTORY=$arg
             save_next_arg=0
         elif [ ${save_next_arg} -eq 3 ]; then
             DOTNET_ARTIFACTS_SOURCE_DIRECTORY=$arg
@@ -65,7 +65,7 @@ function process_args() {
             case "$arg" in
             "-h" | "--help") usage ;;
             "--artifact-name") save_next_arg=1 ;;
-            "--target-dir") save_next_arg=2 ;;
+            "--dest-dir") save_next_arg=2 ;;
             "--dotnet-artifacts-source-dir") save_next_arg=3 ;;
             "--rust-artifacts-source-dir") save_next_arg=4 ;;
             *) usage ;;
@@ -89,7 +89,7 @@ edge-hub)
     MQTT_ARTIFACTS_SOURCE="$RUST_ARTIFACTS_SOURCE_DIRECTORY/mqtt"
     WATCHDOG_ARTIFACTS_SOURCE="$RUST_ARTIFACTS_SOURCE_DIRECTORY/edge-hub/watchdog"
     EDGEHUB_DOCKER_SOURCE="edge-hub/docker"
-    ARTIFACTS_DEST="${TARGET_DIRECTORY}/$ARTIFACT_NAME"
+    ARTIFACTS_DEST="${DESTINATION_DIRECTORY}/$ARTIFACT_NAME"
 
     # make build context structure
     mkdir "$ARTIFACTS_DEST"

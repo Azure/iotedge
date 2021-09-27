@@ -89,7 +89,7 @@ stages:
         sourceFolder: '$(Build.ArtifactStagingDirectory)'              
         contents: 'watchdog_arm64/watchdog'
         targetFolder: '$(Build.ArtifactStagingDirectory)/edge-hub/watchdog/target/aarch64-unknown-linux-gnu/release'                             
-    - script: scripts/linux/consolidate-build-artifacts.sh --dotnet-artifacts-source-dir '$(Build.ArtifactStagingDirectory/dotnet_artifacts' --rust-artifacts-source-dir '$(Build.ArtifactStagingDirectory' --target-dir '$(Build.BinariesDirectory)' --artifact-name 'edge-hub'
+    - script: scripts/linux/consolidate-build-artifacts.sh --dotnet-artifacts-source-dir '$(Build.ArtifactStagingDirectory/dotnet_artifacts' --rust-artifacts-source-dir '$(Build.ArtifactStagingDirectory' --dest-dir '$(Build.BinariesDirectory)/publish' --artifact-name 'edge-hub'
       displayName: Consolidate Edge Hub Artifacts
     - script: scripts/linux/createArtifactInfo.sh --output-folder '$(Build.BinariesDirectory)/publish' --build-number $(Build.BuildNumber)
       displayName: 'Create Artifact Info File'      
