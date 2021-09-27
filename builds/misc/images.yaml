@@ -11,6 +11,7 @@ variables:
 
 stages:
 - stage: BuildExecutables
+  displayNme: Build Excecutables
   pool:
     name: $(pool.linux.name)
     demands:
@@ -37,7 +38,8 @@ stages:
         artifactName: 'dotnet_artifacts'
         artifactType: 'pipeline'
   - template: templates/build-broker-watchdog.yaml
-- stage: PublishEdgeHubArtifacts
+- stage: ConsolidateAndPubishArtifacts
+  displayNme: Consolidate And Publish Artifacts
   pool:
     name: $(pool.linux.name)
     demands:
@@ -47,35 +49,42 @@ stages:
   - job: ConsolidateEdgeHubArtifacts
     steps:
     - task: DownloadPipelineArtifact@2
+      displayNme: Download Artifacts
       inputs:
         source: 'current'
         path: '$(Build.ArtifactStagingDirectory)'
     - task: CopyFiles@2
+      displayNme: Copy mqttd (amd64)
       inputs:
         sourceFolder: '$(Build.ArtifactStagingDirectory)'
         contents: 'mqttd_amd64/mqttd'
         targetFolder: '$(Build.ArtifactStagingDirectory)/mqtt/target/x86_64-unknown-linux-musl/release'        
     - task: CopyFiles@2
+      displayNme: Copy mqttd (arm32)    
       inputs:  
         sourceFolder: '$(Build.ArtifactStagingDirectory)'        
         contents: 'mqttd_arm32/mqttd'
         targetFolder: '$(Build.ArtifactStagingDirectory)/mqtt/target/armv7-unknown-linux-gnueabihf/release'
     - task: CopyFiles@2
+      displayNme: Copy mqttd (arm64)    
       inputs:    
         sourceFolder: '$(Build.ArtifactStagingDirectory)'              
         contents: 'mqttd_arm64/mqttd'
         targetFolder: '$(Build.ArtifactStagingDirectory)/mqtt/target/aarch64-unknown-linux-gnu/release'
     - task: CopyFiles@2
+      displayNme: Copy watchdog (amd64)    
       inputs:
         sourceFolder: '$(Build.ArtifactStagingDirectory)'              
         contents: 'watchdog_amd64/watchdog'
         targetFolder: '$(Build.ArtifactStagingDirectory)/edge-hub/watchdog/target/x86_64-unknown-linux-musl/release'
     - task: CopyFiles@2
+      displayNme: Copy watchdog (arm32)    
       inputs:
         sourceFolder: '$(Build.ArtifactStagingDirectory)'              
         contents: 'watchdog_arm32/watchdog'
         targetFolder: '$(Build.ArtifactStagingDirectory)/edge-hub/watchdog/target/armv7-unknown-linux-gnueabihf/release'
     - task: CopyFiles@2
+      displayNme: Copy watchdog (arm64)    
       inputs:
         sourceFolder: '$(Build.ArtifactStagingDirectory)'              
         contents: 'watchdog_arm64/watchdog'
@@ -91,11 +100,12 @@ stages:
         artifactName: 'core-linux'
         artifactType: 'pipeline'      
 - stage:  BuildImages
+  displayNme: Build Images
   pool:
     name: $(pool.linux.name)
     demands:
       - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
-  dependsOn: PublishEdgeHubArtifacts
+  dependsOn: ConsolidateAndPubishArtifacts
   jobs:
   - job: DownloadBuildArtifacts
     steps:
