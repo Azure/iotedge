@@ -6,6 +6,11 @@ jobs:
       inputs:
         filePath: scripts/linux/cross-platform-rust-build.sh
         arguments: --os alpine --arch amd64 --build-path mqtt/mqttd
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'mqtt/target/x86_64-unknown-linux-musl/release/mqttd'
+        artifactName: mqttd_amd64
+        artifactType: 'pipeline'
   - job: BuildMqttBrokerArm32
     steps:
     - task: Bash@3
@@ -13,6 +18,11 @@ jobs:
       inputs:
         filePath: scripts/linux/cross-platform-rust-build.sh
         arguments: --os ubuntu18.04 --arch arm32v7 --build-path mqtt/mqttd
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'mqtt/target/armv7-unknown-linux-gnueabihf/release/mqttd'
+        artifactName: mqttd_arm32
+        artifactType: 'pipeline'
   - job: BuildMqttBrokerArm64        
     steps:
     - task: Bash@3
@@ -20,6 +30,11 @@ jobs:
       inputs:
         filePath: scripts/linux/cross-platform-rust-build.sh
         arguments: --os ubuntu18.04 --arch aarch64 --build-path mqtt/mqttd
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'mqtt/target/aarch64-unknown-linux-gnu/release/mqttd'
+        artifactName: mqttd_arm64
+        artifactType: 'pipeline'
   - job: BuildWatchdogAmd64        
     steps:
     - task: Bash@3
@@ -27,6 +42,11 @@ jobs:
       inputs:
         filePath: scripts/linux/cross-platform-rust-build.sh
         arguments: --os alpine --arch amd64 --build-path edge-hub/watchdog
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'edge-hub/watchdog/target/x86_64-unknown-linux-musl/release/watchdog'
+        artifactName: watchdog_amd64
+        artifactType: 'pipeline'
   - job: BuildWatchdogArm32                
     steps:
     - task: Bash@3
@@ -34,6 +54,11 @@ jobs:
       inputs:
         filePath: scripts/linux/cross-platform-rust-build.sh
         arguments: --os ubuntu18.04 --arch arm32v7 --build-path edge-hub/watchdog
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'edge-hub/watchdog/target/armv7-unknown-linux-gnueabihf/release/watchdog'
+        artifactName: watchdog_arm32
+        artifactType: 'pipeline'
   - job: BuildWatchdogArm64      
     steps:
     - task: Bash@3
@@ -41,3 +66,8 @@ jobs:
       inputs:
         filePath: scripts/linux/cross-platform-rust-build.sh
         arguments: --os ubuntu18.04 --arch aarch64 --build-path edge-hub/watchdog
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'edge-hub/watchdog/target/aarch64-unknown-linux-gnu/release/watchdog'
+        artifactName: watchdog_arm64
+        artifactType: 'pipeline'    

@@ -30,8 +30,14 @@ stages:
     - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
       name: build
       displayName: Build ($(Build.Configuration)) dotnet artifacts
+    - task: PublishPipelineArtifact@1
+      displayName: Publish Dotnet Artifacts
+      inputs:
+        targetPath: '$(Build.BinariesDirectory)/publish'
+        artifactName: 'dotnet_artifacts'
+        artifactType: 'pipeline'
   - template: templates/build-broker-watchdog.yaml
-- stage: PublishBuildArtifacts
+- stage: PublishEdgeHubArtifacts
   pool:
     name: $(pool.linux.name)
     demands:
@@ -40,19 +46,38 @@ stages:
   jobs:
   - job: ConsolidateEdgeHubArtifacts
     steps:
-    - script: scripts/linux/consolidate-build-artifacts.sh --build-binaries-dir '$(Build.BinariesDirectory)' --artifact-name 'edge-hub'
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        source: 'current'
+        path: '$(Build.ArtifactStagingDirectory)'
+    - task: CopyFiles@2
+      contents: '$(Build.ArtifactsStagingDirectory)/mqttd_amd64/mqttd'
+      targetFolder: '$(Build.ArtifactsStagingDirectory)/mqtt/target/x86_64-unknown-linux-musl/release'        
+    - task: CopyFiles@2
+      contents: '$(Build.ArtifactsStagingDirectory)/mqttd_arm32/mqttd'
+      targetFolder: '$(Build.ArtifactsStagingDirectory)/mqtt/target/armv7-unknown-linux-gnueabihf/release'
+    - task: CopyFiles@2
+      contents: '$(Build.ArtifactsStagingDirectory)/mqttd_arm64/mqttd'
+      targetFolder: '$(Build.ArtifactsStagingDirectory)/mqtt/target/aarch64-unknown-linux-gnu/release'
+    - task: CopyFiles@2
+      contents: '$(Build.ArtifactsStagingDirectory)/watchdog_amd64/watchdog'
+      targetFolder: '$(Build.ArtifactsStagingDirectory)/edge-hub/watchdog/target/x86_64-unknown-linux-musl/release'
+    - task: CopyFiles@2
+      contents: '$(Build.ArtifactsStagingDirectory)/watchdog_arm32/watchdog'
+      targetFolder: '$(Build.ArtifactsStagingDirectory)/edge-hub/watchdog/target/armv7-unknown-linux-gnueabihf/release'
+    - task: CopyFiles@2
+      contents: '$(Build.ArtifactsStagingDirectory)/watchdog_arm64/watchdog'
+      targetFolder: '$(Build.ArtifactsStagingDirectory)/edge-hub/watchdog/target/aarch64-unknown-linux-gnu/release'                             
+    - script: scripts/linux/consolidate-build-artifacts.sh --dotnet-artifacts-source-dir '$(Build.ArtifactStagingDirectory/dotnet_artifacts' --rust-artifacts-source-dir '$(Build.ArtifactsStagingDirectory' --target-dir '$(Build.BinariesDirectory)' --artifact-name 'edge-hub'
       displayName: Consolidate Edge Hub Artifacts
-  - job: CreateArtifactInfoFile
-    steps:
     - script: scripts/linux/createArtifactInfo.sh --output-folder '$(Build.BinariesDirectory)/publish' --build-number $(Build.BuildNumber)
-      displayName: 'Create Artifact Info File'
-  - job: PublishArtifacts
-    steps:
-    - task: PublishBuildArtifacts@1
+      displayName: 'Create Artifact Info File'      
+    - task: PublishPipelineArtifact@1
       displayName: 'Publish Artifacts'
       inputs:
-        PathtoPublish: '$(Build.BinariesDirectory)/publish'
-        ArtifactName: 'core-linux'
+        targetPath: '$(Build.BinariesDirectory)/publish'
+        artifactName: 'core-linux'
+        artifactType: 'pipeline'      
 - stage:  BuildImages
   pool:
     name: $(pool.linux.name)
@@ -60,6 +85,13 @@ stages:
       - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
   dependsOn: PublishBuildArtifacts
   jobs:
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      source: 'current'
+      path: '$(Build.ArtifactStagingDirectory)'
+  - task: CopyFiles@2
+    contents: '$(Build.ArtifactsStagingDirectory)/core-linux/**'
+    targetFolder: '$(Build.BinariesDirectory)'
   # Edge Agent
   - template: templates/image-linux.yaml
     parameters:
@@ -73,6 +105,13 @@ stages:
       name: Edge Hub
       imageName: azureiotedge-hub
       project: edge-hub
+
+  # Simulated Temperature Sensor
+  - template: templates/image-linux.yaml
+    parameters:
+      name: Temperature Sensor
+      imageName: azureiotedge-simulated-temperature-sensor
+      project: SimulatedTemperatureSensor      
 
 
 # jobs:
