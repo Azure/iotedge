@@ -97,35 +97,36 @@ stages:
       - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
   dependsOn: PublishBuildArtifacts
   jobs:
-  - task: DownloadPipelineArtifact@2
-    inputs:
-      source: 'current'
-      path: '$(Build.ArtifactStagingDirectory)'
-  - task: CopyFiles@2
-    inputs:
-      sourceFolder: '$(Build.ArtifactsStagingDirectory)'
-      contents: 'core-linux/**'
-      targetFolder: '$(Build.BinariesDirectory)'
-  # Edge Agent
-  - template: templates/image-linux.yaml
-    parameters:
-      name: Edge Agent
-      imageName: azureiotedge-agent
-      project: Microsoft.Azure.Devices.Edge.Agent.Service
+    steps:
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        source: 'current'
+        path: '$(Build.ArtifactStagingDirectory)'
+    - task: CopyFiles@2
+      inputs:
+        sourceFolder: '$(Build.ArtifactsStagingDirectory)'
+        contents: 'core-linux/**'
+        targetFolder: '$(Build.BinariesDirectory)'
+    # Edge Agent
+    - template: templates/image-linux.yaml
+      parameters:
+        name: Edge Agent
+        imageName: azureiotedge-agent
+        project: Microsoft.Azure.Devices.Edge.Agent.Service
 
-  # Edge Hub
-  - template: templates/image-linux.yaml
-    parameters:
-      name: Edge Hub
-      imageName: azureiotedge-hub
-      project: edge-hub
+    # Edge Hub
+    - template: templates/image-linux.yaml
+      parameters:
+        name: Edge Hub
+        imageName: azureiotedge-hub
+        project: edge-hub
 
-  # Simulated Temperature Sensor
-  - template: templates/image-linux.yaml
-    parameters:
-      name: Temperature Sensor
-      imageName: azureiotedge-simulated-temperature-sensor
-      project: SimulatedTemperatureSensor      
+    # Simulated Temperature Sensor
+    - template: templates/image-linux.yaml
+      parameters:
+        name: Temperature Sensor
+        imageName: azureiotedge-simulated-temperature-sensor
+        project: SimulatedTemperatureSensor      
 
 
 # jobs:
