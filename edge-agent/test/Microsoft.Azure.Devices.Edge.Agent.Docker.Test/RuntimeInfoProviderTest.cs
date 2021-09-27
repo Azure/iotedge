@@ -128,6 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         }
 
         [Integration]
+        [Fact]
         public async Task TestEnvVars()
         {
             const string Image = "hello-world:latest";
