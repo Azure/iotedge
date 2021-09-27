@@ -134,7 +134,7 @@ jobs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
           SecretsFilter: >- 
-            IotHub-ConnStr,
+            TempIotHub-ConnStr,
             IotHub-EventHubConnStr
       - task: DownloadBuildArtifacts@0
         condition: and(succeeded(), eq(variables['run.flag'], 1))
@@ -194,7 +194,7 @@ jobs:
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-          iotHub.connectionString: '$(IotHub-ConnStr)'
+          iotHub.connectionString: '$(TempIotHub-ConnStr)'
           eventHub.connectionString: '$(IotHub-EventHubConnStr)'
           deploymentFileName: '$(deploymentFileName)'
           upstream.protocol: '$(upstream.protocol)'
@@ -326,7 +326,7 @@ jobs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
           SecretsFilter: >- 
-            IotHub-ConnStr,
+            TempIotHub-ConnStr,
             IotHub-EventHubConnStr
       - task: DownloadBuildArtifacts@0
         condition: and(succeeded(), eq(variables['run.flag'], 1))
