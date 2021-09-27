@@ -22,6 +22,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public const string ModuleName = "metricsValidator";
 
         [Test]
+        // [9/27/2021] Disabling the test because of the bug - https://github.com/Azure/iotedge/issues/5438
+        [Fact(Skip = "Flaky")]
         [Category("FlakyOnArm")]
         public async Task ValidateMetrics()
         {
