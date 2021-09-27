@@ -1,9 +1,6 @@
 trigger: none
 pr: none
 
-variables:
-  NugetSecurityAnalysisWarningLevel: warn
-
 resources:
   pipelines:
   - pipeline: images

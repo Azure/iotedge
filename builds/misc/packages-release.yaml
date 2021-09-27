@@ -8,8 +8,6 @@ jobs:
     displayName: Linux
     pool:
       vmImage: 'ubuntu-18.04'
-    variables:
-      NugetSecurityAnalysisWarningLevel: warn
     strategy:
       matrix:
         Centos75-amd64:
