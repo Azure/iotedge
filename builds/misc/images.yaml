@@ -51,23 +51,35 @@ stages:
         source: 'current'
         path: '$(Build.ArtifactStagingDirectory)'
     - task: CopyFiles@2
-      contents: '$(Build.ArtifactsStagingDirectory)/mqttd_amd64/mqttd'
-      targetFolder: '$(Build.ArtifactsStagingDirectory)/mqtt/target/x86_64-unknown-linux-musl/release'        
+      inputs:
+        sourceFolder: '$(Build.ArtifactsStagingDirectory)'
+        contents: 'mqttd_amd64/mqttd'
+        targetFolder: '$(Build.ArtifactsStagingDirectory)/mqtt/target/x86_64-unknown-linux-musl/release'        
     - task: CopyFiles@2
-      contents: '$(Build.ArtifactsStagingDirectory)/mqttd_arm32/mqttd'
-      targetFolder: '$(Build.ArtifactsStagingDirectory)/mqtt/target/armv7-unknown-linux-gnueabihf/release'
+      inputs:  
+        sourceFolder: '$(Build.ArtifactsStagingDirectory)'        
+        contents: 'mqttd_arm32/mqttd'
+        targetFolder: '$(Build.ArtifactsStagingDirectory)/mqtt/target/armv7-unknown-linux-gnueabihf/release'
     - task: CopyFiles@2
-      contents: '$(Build.ArtifactsStagingDirectory)/mqttd_arm64/mqttd'
-      targetFolder: '$(Build.ArtifactsStagingDirectory)/mqtt/target/aarch64-unknown-linux-gnu/release'
+      inputs:    
+        sourceFolder: '$(Build.ArtifactsStagingDirectory)'              
+        contents: 'mqttd_arm64/mqttd'
+        targetFolder: '$(Build.ArtifactsStagingDirectory)/mqtt/target/aarch64-unknown-linux-gnu/release'
     - task: CopyFiles@2
-      contents: '$(Build.ArtifactsStagingDirectory)/watchdog_amd64/watchdog'
-      targetFolder: '$(Build.ArtifactsStagingDirectory)/edge-hub/watchdog/target/x86_64-unknown-linux-musl/release'
+      inputs:
+        sourceFolder: '$(Build.ArtifactsStagingDirectory)'              
+        contents: 'watchdog_amd64/watchdog'
+        targetFolder: '$(Build.ArtifactsStagingDirectory)/edge-hub/watchdog/target/x86_64-unknown-linux-musl/release'
     - task: CopyFiles@2
-      contents: '$(Build.ArtifactsStagingDirectory)/watchdog_arm32/watchdog'
-      targetFolder: '$(Build.ArtifactsStagingDirectory)/edge-hub/watchdog/target/armv7-unknown-linux-gnueabihf/release'
+      inputs:
+        sourceFolder: '$(Build.ArtifactsStagingDirectory)'              
+        contents: 'watchdog_arm32/watchdog'
+        targetFolder: '$(Build.ArtifactsStagingDirectory)/edge-hub/watchdog/target/armv7-unknown-linux-gnueabihf/release'
     - task: CopyFiles@2
-      contents: '$(Build.ArtifactsStagingDirectory)/watchdog_arm64/watchdog'
-      targetFolder: '$(Build.ArtifactsStagingDirectory)/edge-hub/watchdog/target/aarch64-unknown-linux-gnu/release'                             
+      inputs:
+        sourceFolder: '$(Build.ArtifactsStagingDirectory)'              
+        contents: 'watchdog_arm64/watchdog'
+        targetFolder: '$(Build.ArtifactsStagingDirectory)/edge-hub/watchdog/target/aarch64-unknown-linux-gnu/release'                             
     - script: scripts/linux/consolidate-build-artifacts.sh --dotnet-artifacts-source-dir '$(Build.ArtifactStagingDirectory/dotnet_artifacts' --rust-artifacts-source-dir '$(Build.ArtifactsStagingDirectory' --target-dir '$(Build.BinariesDirectory)' --artifact-name 'edge-hub'
       displayName: Consolidate Edge Hub Artifacts
     - script: scripts/linux/createArtifactInfo.sh --output-folder '$(Build.BinariesDirectory)/publish' --build-number $(Build.BuildNumber)
@@ -90,8 +102,9 @@ stages:
       source: 'current'
       path: '$(Build.ArtifactStagingDirectory)'
   - task: CopyFiles@2
-    contents: '$(Build.ArtifactsStagingDirectory)/core-linux/**'
-    targetFolder: '$(Build.BinariesDirectory)'
+      sourceFolder: '$(Build.ArtifactsStagingDirectory)'
+      contents: 'core-linux/**'
+      targetFolder: '$(Build.BinariesDirectory)'
   # Edge Agent
   - template: templates/image-linux.yaml
     parameters:
