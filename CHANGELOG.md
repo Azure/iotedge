@@ -38,7 +38,7 @@
 * $upstream support for container registry address ( [ebdb5be](https://github.com/Azure/iotedge/commit/ebdb5becf9a1c5f1fb2aa27794b6e69b0b754d52) )
 * Improve Workload Manager logging and cleanup ( [febd7a2](https://github.com/Azure/iotedge/commit/febd7a2d1467b891c0dea0edff00c90c6b320e0b) )
 * Update cargo dependencies ( [f147f12](https://github.com/Azure/iotedge/commit/f147f12881c91c029de49c1aba8f509d6c3eed47) )
-* Update to 1.2.3 IIS components ( [fea0ae2](https://github.com/Azure/iotedge/commit/fea0ae2b8f4ef41a9007294b2cb072fef3be5a61) )
+* Update Azure IoT Identity Service components to version 1.2.3 ( [fea0ae2](https://github.com/Azure/iotedge/commit/fea0ae2b8f4ef41a9007294b2cb072fef3be5a61) )
 
 
 # 1.2.3 (2021-06-30)
