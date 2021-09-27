@@ -341,6 +341,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         }
 
         [Integration]
+        [Fact]
         public async Task EdgeAgentConnectionConfigurationTest()
         {
             string edgeDeviceId = "testMmaEdgeDevice1" + Guid.NewGuid();
