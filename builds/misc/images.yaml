@@ -117,15 +117,15 @@ stages:
     - task: CopyFiles@2
       displayName: Copy Edge Hub Artifacts
       inputs:
-        sourceFolder: '$(Build.ArtifactStagingDirectory)'
-        contents: 'core-linux/**'
+        sourceFolder: '$(Build.ArtifactStagingDirectory)/core-linux'
+        contents: '**'
         targetFolder: '$(Build.BinariesDirectory)/publish'
 
     - task: CopyFiles@2
       displayName: Copy Other Dotnet Artifacts
       inputs:
-        sourceFolder: '$(Build.ArtifactStagingDirectory)'
-        contents: 'dotnet_artifacts/**'
+        sourceFolder: '$(Build.ArtifactStagingDirectory)/dotnet_artifacts'
+        contents: '**'
         targetFolder: '$(Build.BinariesDirectory)/publish'
 
     # Edge Agent
