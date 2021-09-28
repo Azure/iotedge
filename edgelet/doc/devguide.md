@@ -81,12 +81,21 @@ yum install \
     libcurl-devel libuuid-devel openssl-devel
 ```
 
-#### Debian 9-11, Ubuntu 18.04
+#### Debian 9-11
 
 ```sh
 apt-get update
 apt-get install \
     binutils build-essential ca-certificates curl cmake debhelper file git make \
+    gcc g++ pkg-config \
+    libcurl4-openssl-dev libssl-dev uuid-dev
+```
+#### Ubuntu 18.04
+
+```sh
+apt-get update
+apt-get install \
+    binutils build-essential ca-certificates curl cmake debhelper dh-systemd file git make \
     gcc g++ pkg-config \
     libcurl4-openssl-dev libssl-dev uuid-dev
 ```
