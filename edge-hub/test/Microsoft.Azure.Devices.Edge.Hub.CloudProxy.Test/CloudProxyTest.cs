@@ -184,7 +184,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.Equal(expected.SystemProperties.Keys, actual.SystemProperties.Keys);
         }
 
-        [Fact]
+        [Fact(Skip = "Flaky")]
         [TestPriority(407)]
         public async Task CloudProxyNullReceiverTest()
         {
