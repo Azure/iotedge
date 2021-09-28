@@ -52,7 +52,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 {
                     int val = Convert.ToInt32(value);
                     table.Update(key, val);
-
                 }
             }
             else
