@@ -779,7 +779,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             var moduleClientProvider = new Mock<IModuleClientProvider>();
             moduleClientProvider.Setup(d => d.Create(It.IsAny<ConnectionStatusChangesHandler>()))
-                .Callback<ConnectionStatusChangesHandler>(statusChanges => connectionStatusChangesHandler = statusChanges)
+                .Callback<ConnectionStatusChangesHandler>(statusChanges =>
+                {
+                    this.testOutputHelper.WriteLine("Module Setup Complete");
+                    connectionStatusChangesHandler = statusChanges;
+                })
                 .ReturnsAsync(deviceClient.Object);
 
             var retryStrategy = new Mock<RetryStrategy>(new object[] { false });
@@ -814,7 +818,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromHours(1), retryStrategy.Object, Mock.Of<IDeploymentMetrics>(), TimeSpan.FromSeconds(3));
 
             // There is a twin pull during init, wait for that
-            await milestone.WaitAsync(TimeSpan.FromSeconds(2));
+            Assert.True(await milestone.WaitAsync(TimeSpan.FromSeconds(2)));
+
+            await Task.Delay(TimeSpan.FromSeconds(2));
 
             // A first time call should just go through
             counter = 0;
