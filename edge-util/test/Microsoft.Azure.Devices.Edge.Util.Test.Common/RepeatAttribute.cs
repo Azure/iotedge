@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
     public sealed class RepeatAttribute : DataAttribute, ITraitAttribute
     {
-        private readonly int _count;
+        private readonly int count;
 
         public RepeatAttribute(int count)
         {
@@ -22,12 +22,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
                     paramName: nameof(count),
                     message: "Repeat count must be greater than 0.");
             }
-            _count = count;
+
+            this.count = count;
         }
 
         public override IEnumerable<object[]> GetData(MethodInfo testMethod)
         {
-            foreach (var iterationNumber in Enumerable.Range(start: 1, count: _count))
+            foreach (var iterationNumber in Enumerable.Range(start: 1, count: this.count))
             {
                 yield return new object[] { iterationNumber };
             }
