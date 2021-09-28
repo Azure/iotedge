@@ -92,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             await CheckMessageInEventHub(sentMessagesByDevice, startTime);
         }
 
-        [Fact]
+        [Fact(Skip = "Flaky")]
         [TestPriority(403)]
         public async Task SendMessageBatchTest()
         {
@@ -113,7 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             await CheckMessageInEventHub(sentMessagesByDevice, startTime);
         }
 
-        [Fact]
+        [Fact(Skip = "Flaky")]
         [TestPriority(404)]
         public async Task CanGetTwin()
         {
@@ -125,7 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.True(disconnectResult);
         }
 
-        [Fact]
+        [Fact(Skip = "Flaky")]
         [TestPriority(405)]
         public async Task CanUpdateReportedProperties()
         {
@@ -151,7 +151,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.True(disconnectResult);
         }
 
-        [Fact]
+        [Fact(Skip = "Flaky")]
         [TestPriority(406)]
         public async Task CanListenForDesiredPropertyUpdates()
         {
@@ -184,7 +184,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.Equal(expected.SystemProperties.Keys, actual.SystemProperties.Keys);
         }
 
-        [Fact]
+        [Fact(Skip = "Flaky")]
         [TestPriority(407)]
         public async Task CloudProxyNullReceiverTest()
         {

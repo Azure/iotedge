@@ -28,7 +28,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly bool isStoreAndForwardEnabled;
         readonly X509Certificate2 tlsCertificate;
         readonly bool clientCertAuthAllowed;
-        readonly bool optimizeForPerformance;
         readonly SslProtocols sslProtocols;
 
         public MqttModule(
@@ -37,7 +36,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             X509Certificate2 tlsCertificate,
             bool isStoreAndForwardEnabled,
             bool clientCertAuthAllowed,
-            bool optimizeForPerformance,
             SslProtocols sslProtocols)
         {
             this.mqttSettingsConfiguration = Preconditions.CheckNotNull(mqttSettingsConfiguration, nameof(mqttSettingsConfiguration));
@@ -45,7 +43,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.tlsCertificate = Preconditions.CheckNotNull(tlsCertificate, nameof(tlsCertificate));
             this.isStoreAndForwardEnabled = isStoreAndForwardEnabled;
             this.clientCertAuthAllowed = clientCertAuthAllowed;
-            this.optimizeForPerformance = optimizeForPerformance;
             this.sslProtocols = sslProtocols;
         }
 
@@ -55,8 +52,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                     c =>
                     {
-                        // TODO - We should probably also use some heuristics to make this determination, like how much memory does the system have.
-                        return this.optimizeForPerformance ? PooledByteBufferAllocator.Default : UnpooledByteBufferAllocator.Default as IByteBufferAllocator;
+                        var usePooledBuffers = this.mqttSettingsConfiguration.GetValue("UsePooledBuffers", false);
+                        return usePooledBuffers ? PooledByteBufferAllocator.Default : UnpooledByteBufferAllocator.Default as IByteBufferAllocator;
                     })
                 .As<IByteBufferAllocator>()
                 .SingleInstance();
