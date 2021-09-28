@@ -250,6 +250,7 @@ jobs:
           name: azureiotedge-diagnostics
           imageName: azureiotedge-diagnostics
           project: IotedgeDiagnosticsDotnet
+          version: $(Build.BuildNumber)
 
       # Edge Agent
       - template: templates/image-windows.yaml
@@ -257,6 +258,7 @@ jobs:
           name: Edge Agent
           imageName: azureiotedge-agent
           project: Microsoft.Azure.Devices.Edge.Agent.Service
+          version: $(Build.BuildNumber)
 
       # Edge Hub
       - template: templates/image-windows.yaml
@@ -264,6 +266,7 @@ jobs:
           name: Edge Hub
           imageName: azureiotedge-hub
           project: Microsoft.Azure.Devices.Edge.Hub.Service
+          version: $(Build.BuildNumber)
 
       # Simulated Temperature Sensor
       - template: templates/image-windows.yaml
@@ -271,6 +274,7 @@ jobs:
           name: Temperature Sensor
           imageName: azureiotedge-simulated-temperature-sensor
           project: SimulatedTemperatureSensor
+          version: $(Build.BuildNumber)
 
       # Temperature Filter
       - template: templates/image-windows.yaml
@@ -278,6 +282,7 @@ jobs:
           name: Temperature Filter
           imageName: azureiotedge-temperature-filter
           project: TemperatureFilter
+          version: $(Build.BuildNumber)
 
       # Load Gen
       - template: templates/image-windows.yaml
@@ -285,6 +290,7 @@ jobs:
           name: Load Gen
           imageName: azureiotedge-load-gen
           project: load-gen
+          version: $(Build.BuildNumber)
 
       # Test Analyzer
       - template: templates/image-windows.yaml
@@ -292,6 +298,7 @@ jobs:
           name: Test Analyzer
           imageName: azureiotedge-analyzer
           project: TestAnalyzer
+          version: $(Build.BuildNumber)
 
       # Functions Sample
       - template: templates/image-windows.yaml
@@ -299,6 +306,7 @@ jobs:
           name: Functions Sample
           imageName: azureiotedge-functions-filter
           project: EdgeHubTriggerCSharp
+          version: $(Build.BuildNumber)
 
       # Direct Method Sender
       - template: templates/image-windows.yaml
@@ -306,6 +314,7 @@ jobs:
           name: Direct Method Sender
           imageName: azureiotedge-direct-method-sender
           project: DirectMethodSender
+          version: $(Build.BuildNumber)
 
       # Direct Method Receiver
       - template: templates/image-windows.yaml
@@ -313,6 +322,7 @@ jobs:
           name: Direct Method Receiver
           imageName: azureiotedge-direct-method-receiver
           project: DirectMethodReceiver
+          version: $(Build.BuildNumber)
 
       # Metrics Validator
       - template: templates/image-windows.yaml
@@ -320,6 +330,7 @@ jobs:
           name: Metrics Validator
           imageName: azureiotedge-metrics-validator
           project: MetricsValidator
+          version: $(Build.BuildNumber)
 
       # NumberLogger
       - template: templates/image-windows.yaml
@@ -327,6 +338,7 @@ jobs:
           name: Number Logger
           imageName: azureiotedge-number-logger
           project: NumberLogger
+          version: $(Build.BuildNumber)
 
      # Module Restarter
       - template: templates/image-windows.yaml
@@ -334,6 +346,7 @@ jobs:
           name: Module Restarter
           imageName: azureiotedge-module-restarter
           project: ModuleRestarter
+          version: $(Build.BuildNumber)
 
      # Twin Tester
       - template: templates/image-windows.yaml
@@ -341,6 +354,7 @@ jobs:
           name: Twin Tester
           imageName: azureiotedge-twin-tester
           project: TwinTester
+          version: $(Build.BuildNumber)
 
      # Relayer
       - template: templates/image-windows.yaml
@@ -348,6 +362,7 @@ jobs:
           name: Relayer
           imageName: azureiotedge-relayer
           project: Relayer
+          version: $(Build.BuildNumber)
 
      # Metrics Collector (test-only)
       - template: templates/image-windows.yaml
@@ -355,6 +370,7 @@ jobs:
           name: Metrics Collector (test-only)
           imageName: azureiotedge-test-metrics-collector
           project: MetricsCollector
+          version: $(Build.BuildNumber)
 
      # TestResultCoordinator
       - template: templates/image-windows.yaml
@@ -362,6 +378,7 @@ jobs:
           name: TestResultCoordinator
           imageName: azureiotedge-test-result-coordinator
           project: TestResultCoordinator
+          version: $(Build.BuildNumber)
 
      # Deployment Tester
       - template: templates/image-windows.yaml
@@ -369,6 +386,7 @@ jobs:
           name: Deployment Tester
           imageName: azureiotedge-deployment-tester
           project: DeploymentTester
+          version: $(Build.BuildNumber)
 
      # EdgeHub Restart Tester
       - template: templates/image-windows.yaml
@@ -376,6 +394,7 @@ jobs:
           name: EdgeHubRestartTester
           imageName: azureiotedge-edgehub-restart-tester
           project: EdgeHubRestartTester
+          version: $(Build.BuildNumber)
 
      # Cloud To Device Message Tester
       - template: templates/image-windows.yaml
@@ -383,6 +402,7 @@ jobs:
           name: Cloud To Device Message Tester
           imageName: azureiotedge-c2dmessage-tester
           project: CloudToDeviceMessageTester
+          version: $(Build.BuildNumber)
 
      # Metrics Collector (customer-facing)
       - template: templates/image-windows.yaml
@@ -390,6 +410,7 @@ jobs:
           name: Metrics Collector (customer-facing)
           imageName: azureiotedge-metrics-collector
           project: Microsoft.Azure.Devices.Edge.Azure.Monitor
+          version: $(Build.BuildNumber)
 
 ################################################################################
   - job: manifest

@@ -24,17 +24,13 @@ jobs:
             clean: true
             fetchDepth: 100
         
-          # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
-          - task: Docker@2
-            displayName: Docker login edgebuilds
-            inputs:
-              command: login
-              containerRegistry: iotedge-edgebuilds-acr
+          # If you need to test this job. Create a new Service Connection in the Project Settings (Azure DevOps)
+          # and update the pipeline variable.
           - task: Docker@2
             displayName: Docker login edgerelease
             inputs:
               command: login
-              containerRegistry: iotedge-release-acr
+              containerRegistry: $(service.connection)              
         
           - task: Bash@3
             displayName: 'Publish Metrics Collector - Linux amd64'
@@ -72,17 +68,13 @@ jobs:
             clean: true
             fetchDepth: 100
 
-          # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
-          - task: Docker@2
-            displayName: Docker login edgebuilds
-            inputs:
-              command: login
-              containerRegistry: iotedge-edgebuilds-acr
+          # If you need to test this job. Create a new Service Connection in the Project Settings (Azure DevOps)
+          # and update the pipeline variable.
           - task: Docker@2
             displayName: Docker login edgerelease
             inputs:
               command: login
-              containerRegistry: iotedge-release-acr
+              containerRegistry: $(service.connection)                
 
           - task: PowerShell@2
             displayName: "Publish Metrics Collector - Windows amd64"
@@ -112,17 +104,13 @@ jobs:
             clean: true
             fetchDepth: 100
 
-          # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
-          - task: Docker@2
-            displayName: Docker login edgebuilds
-            inputs:
-              command: login
-              containerRegistry: iotedge-edgebuilds-acr
+          # If you need to test this job. Create a new Service Connection in the Project Settings (Azure DevOps)
+          # and update the pipeline variable.
           - task: Docker@2
             displayName: Docker login edgerelease
             inputs:
               command: login
-              containerRegistry: iotedge-release-acr
+              containerRegistry: $(service.connection)                
 
           - task: Bash@3
             displayName: 'Publish Metrics Collector Manifest'

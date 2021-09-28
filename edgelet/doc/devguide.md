@@ -100,6 +100,8 @@ apt-get install \
     libcurl4-openssl-dev libssl-dev uuid-dev
 ```
 
+ Make sure Moby-Engine is installed in your machine by following instructions [here](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-edge?view=iotedge-2020-11#install-a-container-engine)
+
 #### macOS
 
 1. Install the dependencies using [Homebrew](https://brew.sh/) package manager
@@ -177,14 +179,49 @@ To run `iotedged` locally:
         ```powershell
         $env:IOTEDGE_HOMEDIR = Resolve-Path ~/iotedge
         New-Item -Type Directory -Force $env:IOTEDGE_HOMEDIR
+        Copy-Item Resolve-Path
         ```
 
-1. Create a `config.yaml`. It's okay to create this under the `IOTEDGE_HOMEDIR` directory.
+2. Copy the configy.yaml file to the `IOTEDGE_HOMEDIR` directory.
 
-1. Run the daemon with the `IOTEDGE_HOMEDIR` environment variable set and with the path to the `config.yaml`
+    - Linux / MacOS
+      ```sh
+      sudo cp edgelet/contrib/config/linux/config.yaml $IOTEDGE_HOMEDIR
+      ```
+
+    - Windows
+      ```powershell
+      Copy-Item .\edgelet\contrib\config\windows\config.yaml -Destination $env:IOTEDGE_HOMEDIR
+      ```
+
+3. Update the Primary Connection String in `config.yaml` to take the device connection string from your iot hub. To Create a device in IoT Hub - Please see [Quickstart](https://docs.microsoft.com/en-us/azure/iot-edge/quickstart-linux?view=iotedge-2020-11)
+
+4. In Linux, Make sure $USER is added to docker group
+
+    Check if User is already part of the group
+    ```sh
+    grep docker /etc/group
+    ```
+
+    Add User to Docker Group
 
     ```sh
-    cargo run -p iotedged -- -c /absolute/path/to/config.yaml
+    sudo usermod -aG docker $USER
+    ```
+
+    Log Out and Log In or Restart Shell so that group membership is re-evaluated
+
+5. In Linux Create /var/lib/iotedge dir and chown the dir to the user
+   
+   ```sh
+   sudo mkdir -p /var/lib/iotedge
+   sudo chown $USER /var/lib/iotedge/
+   ```
+
+6. Run the daemon with the `IOTEDGE_HOMEDIR` environment variable set and with the path to the `config.yaml`. Make sure you are in the edgelet directory when you run the command.
+
+    ```sh
+    cargo run -p iotedged -- -c $IOTEDGE_HOMEDIR/config.yaml
     ```
 
 
