@@ -245,6 +245,7 @@ stages:
         name: Relayer
         imageName: azureiotedge-relayer
         project: Relayer
+        bin_dir: '$(Build.BinariesDirectory)'      
 
   # Network Controller
     - template: templates/image-linux.yaml
