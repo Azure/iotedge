@@ -92,8 +92,8 @@ edge-hub)
     ARTIFACTS_DEST="${DESTINATION_DIRECTORY}/$ARTIFACT_NAME"
 
     # make build context structure
-    mkdir "$ARTIFACTS_DEST"
-    mkdir "$ARTIFACTS_DEST/mqtt"
+    mkdir -p "$ARTIFACTS_DEST"
+    mkdir -p "$ARTIFACTS_DEST/mqtt"
     mkdir -p "$ARTIFACTS_DEST/mqtt/$TARGET_AMD64_MUSL/release"
     mkdir -p "$ARTIFACTS_DEST/mqtt/$TARGET_ARM32V7/release"
     mkdir -p "$ARTIFACTS_DEST/mqtt/$TARGET_ARM64V8/release"
@@ -109,8 +109,7 @@ edge-hub)
     cp "$MQTT_ARTIFACTS_SOURCE/target/$TARGET_AMD64_MUSL/release/mqttd" "$ARTIFACTS_DEST/mqtt/$TARGET_AMD64_MUSL/release" || true
     cp "$MQTT_ARTIFACTS_SOURCE/target/$TARGET_ARM32V7/release/mqttd" "$ARTIFACTS_DEST/mqtt/$TARGET_ARM32V7/release" || true
     cp "$MQTT_ARTIFACTS_SOURCE/target/$TARGET_ARM64V8/release/mqttd" "$ARTIFACTS_DEST/mqtt/$TARGET_ARM64V8/release" || true
-    # TODO    
-    cp "contrib/edgehub/broker.json" "$ARTIFACTS_DEST/mqtt" || true
+    cp "mqtt/contrib/edgehub/broker.json" "$ARTIFACTS_DEST/mqtt" || true
 
     # copy watchdog artifacts
     cp "$WATCHDOG_ARTIFACTS_SOURCE/target/$TARGET_AMD64_MUSL/release/watchdog" "$ARTIFACTS_DEST/watchdog/$TARGET_AMD64_MUSL/release" || true
