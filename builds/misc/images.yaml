@@ -49,38 +49,38 @@ stages:
     - task: CopyFiles@2
       displayName: Copy mqttd (amd64)
       inputs:
-        sourceFolder: '$(Build.ArtifactStagingDirectory)'
-        contents: 'mqttd_amd64/mqttd'
+        sourceFolder: '$(Build.ArtifactStagingDirectory)/mqttd_amd64'
+        contents: 'mqttd'
         targetFolder: '$(Build.ArtifactStagingDirectory)/mqtt/target/x86_64-unknown-linux-musl/release'        
     - task: CopyFiles@2
       displayName: Copy mqttd (arm32)    
       inputs:  
-        sourceFolder: '$(Build.ArtifactStagingDirectory)'        
-        contents: 'mqttd_arm32/mqttd'
+        sourceFolder: '$(Build.ArtifactStagingDirectory)/mqttd_arm32'        
+        contents: 'mqttd'
         targetFolder: '$(Build.ArtifactStagingDirectory)/mqtt/target/armv7-unknown-linux-gnueabihf/release'
     - task: CopyFiles@2
       displayName: Copy mqttd (arm64)    
       inputs:    
-        sourceFolder: '$(Build.ArtifactStagingDirectory)'              
-        contents: 'mqttd_arm64/mqttd'
+        sourceFolder: '$(Build.ArtifactStagingDirectory)/mqttd_arm64'              
+        contents: 'mqttd'
         targetFolder: '$(Build.ArtifactStagingDirectory)/mqtt/target/aarch64-unknown-linux-gnu/release'
     - task: CopyFiles@2
       displayName: Copy watchdog (amd64)    
       inputs:
-        sourceFolder: '$(Build.ArtifactStagingDirectory)'              
-        contents: 'watchdog_amd64/watchdog'
+        sourceFolder: '$(Build.ArtifactStagingDirectory)/watchdog_amd64'              
+        contents: 'watchdog'
         targetFolder: '$(Build.ArtifactStagingDirectory)/edge-hub/watchdog/target/x86_64-unknown-linux-musl/release'
     - task: CopyFiles@2
       displayName: Copy watchdog (arm32)    
       inputs:
-        sourceFolder: '$(Build.ArtifactStagingDirectory)'              
-        contents: 'watchdog_arm32/watchdog'
+        sourceFolder: '$(Build.ArtifactStagingDirectory)/watchdog_arm32'              
+        contents: 'watchdog'
         targetFolder: '$(Build.ArtifactStagingDirectory)/edge-hub/watchdog/target/armv7-unknown-linux-gnueabihf/release'
     - task: CopyFiles@2
       displayName: Copy watchdog (arm64)    
       inputs:
-        sourceFolder: '$(Build.ArtifactStagingDirectory)'              
-        contents: 'watchdog_arm64/watchdog'
+        sourceFolder: '$(Build.ArtifactStagingDirectory)/watchdog_arm64'              
+        contents: 'watchdog'
         targetFolder: '$(Build.ArtifactStagingDirectory)/edge-hub/watchdog/target/aarch64-unknown-linux-gnu/release'                             
     - script: scripts/linux/consolidate-build-artifacts.sh --dotnet-artifacts-source-dir '$(Build.ArtifactStagingDirectory/dotnet_artifacts' --rust-artifacts-source-dir '$(Build.ArtifactStagingDirectory' --dest-dir '$(Build.BinariesDirectory)/publish' --artifact-name 'edge-hub'
       displayName: Consolidate Edge Hub Artifacts
