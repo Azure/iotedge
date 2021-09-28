@@ -22,6 +22,8 @@ use trc_client::{MessageTestResult, TrcClient};
 
 use crate::{settings::Settings, ExitedWork, MessageTesterError, ShutdownHandle};
 
+const POST_MESSAGE_WAIT: Duration = Duration::from_secs(60);
+
 /// Responsible for starting to send the messages that will be relayed and
 /// tracked by the test module.
 pub struct MessageInitiator {
@@ -79,6 +81,7 @@ impl MessageInitiator {
         loop {
             if Some(seq_num) == self.messages_to_send {
                 info!("stopping test as we have sent max messages",);
+                time::sleep(POST_MESSAGE_WAIT).await;
                 break;
             }
 
