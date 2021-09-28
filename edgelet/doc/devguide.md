@@ -81,7 +81,7 @@ yum install \
     libcurl-devel libuuid-devel openssl-devel
 ```
 
-#### Debian 8-11
+#### Debian 9-11
 
 ```sh
 apt-get update
