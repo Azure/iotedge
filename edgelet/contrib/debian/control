@@ -2,7 +2,7 @@ Source: iotedge
 Section: admin
 Priority: extra
 Maintainer: Azure IoT Edge Devs
-Build-Depends: debhelper (>=9.20160709)
+Build-Depends: debhelper (>=10.2.5)
 Standards-Version: 3.9.6
 Homepage: https://github.com/azure/iotedge
 
