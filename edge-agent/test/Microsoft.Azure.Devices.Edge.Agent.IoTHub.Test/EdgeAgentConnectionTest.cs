@@ -749,14 +749,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             deviceManager.Verify(x => x.ReprovisionDeviceAsync(), Times.Exactly(shouldReprovision ? 1 : 0));
         }
 
+        // This unit test has been considered flaky in the best due to the presence of indeterminate sleeps. Description for sleeps have been added wherever used. For Repeatability Test, We can increment the Repeat Attribute.
         [Theory]
         [Unit]
-        [Repeat(20)]
+        [Repeat(1)]
         public async Task FrequentTwinPullsOnConnectionAreThrottledAsync(int iterationNumber)
         {
             // Arrange
             _ = iterationNumber;
-            this.testOutputHelper.WriteLine($"Iteration is {iterationNumber}");
             var deviceClient = new Mock<IModuleClient>();
             deviceClient.Setup(x => x.UpstreamProtocol).Returns(UpstreamProtocol.Amqp);
             deviceClient.Setup(x => x.IsActive).Returns(true);
@@ -780,12 +780,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var moduleClientProvider = new Mock<IModuleClientProvider>();
             moduleClientProvider.Setup(d => d.Create(It.IsAny<ConnectionStatusChangesHandler>()))
                 .Callback<ConnectionStatusChangesHandler>(statusChanges =>
-                {
-                    this.testOutputHelper.WriteLine("Module Setup Complete");
-                    connectionStatusChangesHandler = statusChanges;
-                })
+                connectionStatusChangesHandler = statusChanges)
                 .ReturnsAsync(deviceClient.Object);
-
             var retryStrategy = new Mock<RetryStrategy>(new object[] { false });
             retryStrategy.Setup(rs => rs.GetShouldRetry())
                 .Returns(
@@ -803,9 +799,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     () =>
                     {
                         Interlocked.Increment(ref counter);
-                        this.testOutputHelper.WriteLine($"Received Request with {Volatile.Read(ref counter)}");
                         milestone.Release();
-
                         return twin;
                     });
 
@@ -820,11 +814,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // There is a twin pull during init, wait for that
             Assert.True(await milestone.WaitAsync(TimeSpan.FromSeconds(2)));
 
+            // Give enough time for the initial pull to complete which involves updating deployment config
             await Task.Delay(TimeSpan.FromSeconds(2));
 
             // A first time call should just go through
             counter = 0;
-            this.testOutputHelper.WriteLine($"Sending Request With Counter :{Volatile.Read(ref counter)}");
             connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
 
             Assert.True(await milestone.WaitAsync(TimeSpan.FromSeconds(2)));
@@ -835,19 +829,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             await Task.Delay(3500);
 
             // The second call out of the window should go through
-            this.testOutputHelper.WriteLine($"Sending Request With Counter :{Volatile.Read(ref counter)}");
             connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
 
-            Assert.True(await milestone.WaitAsync(TimeSpan.FromSeconds(10)));
+            Assert.True(await milestone.WaitAsync(TimeSpan.FromSeconds(2)));
 
             Assert.Equal(2, Volatile.Read(ref counter));
 
             // Still in the window, so these should not go through. However, a delayed pull gets started
-            this.testOutputHelper.WriteLine($"Sending Request With Counter :{Volatile.Read(ref counter)}");
             connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
-            this.testOutputHelper.WriteLine($"Sending Request With Counter :{Volatile.Read(ref counter)}");
             connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
-            this.testOutputHelper.WriteLine($"Sending Request With Counter :{Volatile.Read(ref counter)}");
             connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
 
             await Task.Delay(500); // wait a bit more, so there is time to pull twin more if the throttling does not work
