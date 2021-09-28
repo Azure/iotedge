@@ -2,7 +2,7 @@
 
 // Copyright (c) 2013 James Manning
 // Adapted from https://github.com/jamesmanning/RunProcessAsTask
-namespace RunProcessAsTask
+namespace Microsoft.Azure.Devices.Edge.Test.Common.RunProcessAsTask
 {
     using System;
     using System.Collections.Generic;
