@@ -2,6 +2,7 @@
 
 namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using Nett;
@@ -43,11 +44,28 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string key = segments[segments.Length - 1];
             if (table.ContainsKey(key))
             {
-                table.Update(key, value.ToString()); // May need to fix to support other types.
+                if (value is string)
+                {
+                    table.Update(key, value.ToString()); // May need to fix to support other
+                }
+                else
+                {
+                    int val = Convert.ToInt32(value);
+                    table.Update(key, val);
+
+                }
             }
             else
             {
-                table.Add(key, value.ToString()); // May need to fix to support other types.
+                if (value is string)
+                {
+                    table.Add(key, value.ToString()); // May need to fix to support other types.
+                }
+                else
+                {
+                    int val = Convert.ToInt32(value);
+                    table.Add(key, val);
+                }
             }
         }
 
