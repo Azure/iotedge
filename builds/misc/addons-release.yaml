@@ -1,8 +1,5 @@
 name: $(version)
 
-variables:
-  NugetSecurityAnalysisWarningLevel: warn
-  
 jobs:
 ################################################################################
   - job: linux_API_proxy_module

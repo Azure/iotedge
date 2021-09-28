@@ -20,9 +20,6 @@ schedules:
     - release/1.2
   always: true
 
-variables:
-  NugetSecurityAnalysisWarningLevel: warn
-  
 resources:
   pipelines:
   - pipeline: images
