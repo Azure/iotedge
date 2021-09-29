@@ -389,6 +389,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                         break;
                     }
                 }
+
                 Assert.True(success);
 
                 // Service takes up to 5 mins to sync statistics to config
@@ -410,6 +411,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                         break;
                     }
                 }
+
                 Assert.True(success);
             }
             finally
