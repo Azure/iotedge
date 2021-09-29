@@ -749,14 +749,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             deviceManager.Verify(x => x.ReprovisionDeviceAsync(), Times.Exactly(shouldReprovision ? 1 : 0));
         }
 
-        // This unit test has been considered flaky in the best due to the presence of indeterminate sleeps. Description for sleeps have been added wherever used. For Repeatability Test, We can increment the Repeat Attribute.
-        [Theory]
+        // This unit test has been considered flaky in the past due to the presence of indeterminate sleeps. Description for sleeps have been added wherever used.
+        [Fact]
         [Unit]
-        [Repeat(1)]
-        public async Task FrequentTwinPullsOnConnectionAreThrottledAsync(int iterationNumber)
+        public async Task FrequentTwinPullsOnConnectionAreThrottledAsync()
         {
             // Arrange
-            _ = iterationNumber;
             var deviceClient = new Mock<IModuleClient>();
             deviceClient.Setup(x => x.UpstreamProtocol).Returns(UpstreamProtocol.Amqp);
             deviceClient.Setup(x => x.IsActive).Returns(true);
