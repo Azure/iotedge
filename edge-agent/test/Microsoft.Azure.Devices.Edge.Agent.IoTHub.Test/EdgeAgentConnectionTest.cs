@@ -32,14 +32,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
     public class EdgeAgentConnectionTest
     {
-        public EdgeAgentConnectionTest(ITestOutputHelper testOutputHelper)
-        {
-            this.testOutputHelper = testOutputHelper;
-        }
-
         const string DockerType = "docker";
         static readonly TimeSpan DefaultRequestTimeout = TimeSpan.FromSeconds(60);
-        readonly ITestOutputHelper testOutputHelper;
 
         static async Task CreateConfigurationAsync(RegistryManager registryManager, string configurationId, string targetCondition, int priority)
         {
