@@ -225,10 +225,10 @@ stages:
     steps:
     - template: templates/image-linux.yaml
       parameters:
-        name: ${{ variables.name }}
+        name: $[name]
         imageName: $(imageName)
         project: $(project)
-        bin_dir: $(bin_dir)   
+        bin_dir: $(bin_dir)
 
   # Rust test modules
   - job: BuildRustImage
