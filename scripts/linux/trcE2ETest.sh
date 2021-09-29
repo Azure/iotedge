@@ -267,6 +267,7 @@ function clean_up() {
     rm -rf /var/lib/iotedge/
     rm -rf /etc/aziot/
     rm -rf /etc/systemd/system/aziot-*.service.d/
+    rm -rf support
 
     if [ "$CLEAN_ALL" = '1' ]; then
         echo 'Prune docker system'
@@ -302,6 +303,11 @@ function print_test_run_logs() {
     if (( ret < 1 )); then
         return;
     fi
+
+    echo "Getting Support Bundle Logs"
+    mkdir ~/support
+    iotedge support-bundle -o support/iotedge_support_bundle.zip
+    echo "finished getting support Bundle Logs"
 
     print_deployment_logs
 
