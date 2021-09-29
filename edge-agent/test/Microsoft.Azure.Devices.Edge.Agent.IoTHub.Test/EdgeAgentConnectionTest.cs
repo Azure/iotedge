@@ -26,7 +26,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using Xunit;
-    using Xunit.Abstractions;
     using IotHubConnectionStringBuilder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder;
     using ServiceClient = Microsoft.Azure.Devices.ServiceClient;
 
