@@ -360,53 +360,63 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
                 await CreateConfigurationAsync(registryManager, configurationId, $"tags.{conditionPropertyName}='{conditionPropertyValue}'", 10);
 
-                // Service takes about 5 mins to sync config to twin
-                await Task.Delay(TimeSpan.FromMinutes(7));
+                // Service takes up to 5 mins to sync config to twin
+                var end_time = DateTime.Now + TimeSpan.FromMinutes(7);
+                bool success = false;
+                while (DateTime.Now < end_time)
+                {
+                    var edgeAgentConnection = CreateEdgeAgentConnection(iotHubConnectionStringBuilder, edgeDeviceId, edgeDevice);
 
-                var edgeAgentConnection = CreateEdgeAgentConnection(iotHubConnectionStringBuilder, edgeDeviceId, edgeDevice);
+                    await Task.Delay(TimeSpan.FromSeconds(20));
 
-                await Task.Delay(TimeSpan.FromSeconds(20));
+                    Option<DeploymentConfigInfo> deploymentConfigInfo = await edgeAgentConnection.GetDeploymentConfigInfoAsync();
+                    if (deploymentConfigInfo.HasValue)
+                    {
+                        DeploymentConfig deploymentConfig = deploymentConfigInfo.OrDefault().DeploymentConfig;
+                        Assert.NotNull(deploymentConfig);
+                        Assert.NotNull(deploymentConfig.Modules);
+                        Assert.NotNull(deploymentConfig.Runtime);
+                        Assert.NotNull(deploymentConfig.SystemModules);
+                        Assert.Equal(EdgeAgentConnection.ExpectedSchemaVersion.ToString(), deploymentConfig.SchemaVersion);
+                        Assert.Equal(2, deploymentConfig.Modules.Count);
+                        Assert.NotNull(deploymentConfig.Modules["mongoserver"]);
+                        Assert.NotNull(deploymentConfig.Modules["asa"]);
 
-                Option<DeploymentConfigInfo> deploymentConfigInfo = await edgeAgentConnection.GetDeploymentConfigInfoAsync();
+                        TwinCollection reportedPatch = GetEdgeAgentReportedProperties(deploymentConfigInfo.OrDefault());
+                        await edgeAgentConnection.UpdateReportedPropertiesAsync(reportedPatch);
 
-                Assert.True(deploymentConfigInfo.HasValue);
-                DeploymentConfig deploymentConfig = deploymentConfigInfo.OrDefault().DeploymentConfig;
-                Assert.NotNull(deploymentConfig);
-                Assert.NotNull(deploymentConfig.Modules);
-                Assert.NotNull(deploymentConfig.Runtime);
-                Assert.NotNull(deploymentConfig.SystemModules);
-                Assert.Equal(EdgeAgentConnection.ExpectedSchemaVersion.ToString(), deploymentConfig.SchemaVersion);
-                Assert.Equal(2, deploymentConfig.Modules.Count);
-                Assert.NotNull(deploymentConfig.Modules["mongoserver"]);
-                Assert.NotNull(deploymentConfig.Modules["asa"]);
+                        success = true;
+                        break;
+                    }
+                }
+                Assert.True(success);
 
-                TwinCollection reportedPatch = GetEdgeAgentReportedProperties(deploymentConfigInfo.OrDefault());
-                await edgeAgentConnection.UpdateReportedPropertiesAsync(reportedPatch);
+                // Service takes up to 5 mins to sync statistics to config
+                end_time = DateTime.Now + TimeSpan.FromMinutes(7);
+                success = false;
+                while (DateTime.Now < end_time)
+                {
+                    Configuration config = await registryManager.GetConfigurationAsync(configurationId);
 
-                // Service takes about 5 mins to sync statistics to config
-                await Task.Delay(TimeSpan.FromMinutes(7));
+                    if (config != null)
+                    {
+                        Assert.NotNull(config.SystemMetrics);
+                        Assert.True(config.SystemMetrics.Results.ContainsKey("targetedCount"));
+                        Assert.Equal(1, config.SystemMetrics.Results["targetedCount"]);
+                        Assert.True(config.SystemMetrics.Results.ContainsKey("appliedCount"));
+                        Assert.Equal(1, config.SystemMetrics.Results["appliedCount"]);
 
-                Configuration config = await registryManager.GetConfigurationAsync(configurationId);
-                Assert.NotNull(config);
-                Assert.NotNull(config.SystemMetrics);
-                Assert.True(config.SystemMetrics.Results.ContainsKey("targetedCount"));
-                Assert.Equal(1, config.SystemMetrics.Results["targetedCount"]);
-                Assert.True(config.SystemMetrics.Results.ContainsKey("appliedCount"));
-                Assert.Equal(1, config.SystemMetrics.Results["appliedCount"]);
+                        success = true;
+                        break;
+                    }
+                }
+                Assert.True(success);
             }
             finally
             {
                 try
                 {
                     await registryManager.RemoveDeviceAsync(edgeDeviceId);
-                }
-                catch (Exception)
-                {
-                    // ignored
-                }
-
-                try
-                {
                     await DeleteConfigurationAsync(registryManager, configurationId);
                 }
                 catch (Exception)
