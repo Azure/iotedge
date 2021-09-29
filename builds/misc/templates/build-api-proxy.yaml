@@ -34,5 +34,5 @@ jobs:
     - task: PublishPipelineArtifact@1
       inputs:
         targetPath: '${{ parameters.binDir }}/publish/${{ parameters.imageName }}'
-        artifactName: apiproxy_$(arch)
+        artifactName: api_proxy_$(arch)
         artifactType: 'pipeline'
