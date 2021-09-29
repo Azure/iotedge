@@ -143,7 +143,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward, metricsConfig, nestedEdgeEnabled, authenticationMode);
             this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures, nestedEdgeEnabled, authenticationMode == AuthenticationMode.Scope, trackDeviceState);
-            this.RegisterMqttModule(builder, storeAndForward, optimizeForPerformance, experimentalFeatures);
+            this.RegisterMqttModule(builder, storeAndForward, experimentalFeatures);
             this.RegisterAmqpModule(builder);
             builder.RegisterModule(new HttpModule(this.iotHubHostname, this.edgeDeviceId, proxyModuleId));
 
@@ -172,7 +172,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         void RegisterMqttModule(
             ContainerBuilder builder,
             StoreAndForward storeAndForward,
-            bool optimizeForPerformance,
             ExperimentalFeatures experimentalFeatures)
         {
             var topics = new MessageAddressConversionConfiguration(
@@ -186,7 +185,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             // MQTT broker overrides the legacy MQTT protocol head
             if (mqttSettingsConfiguration.GetValue("enabled", true) && !experimentalFeatures.EnableMqttBroker)
             {
-                builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, this.serverCertificate, storeAndForward.IsEnabled, clientCertAuthEnabled, optimizeForPerformance, this.sslProtocols));
+                builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, this.serverCertificate, storeAndForward.IsEnabled, clientCertAuthEnabled, this.sslProtocols));
             }
         }
 
