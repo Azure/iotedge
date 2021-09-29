@@ -106,182 +106,129 @@ stages:
       - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
   dependsOn: ConsolidateAndPubishArtifacts
   jobs:
-  # Edge Agent
-  - template: templates/image-linux.yaml
-    parameters:
-      name: Edge Agent
-      imageName: azureiotedge-agent
-      project: Microsoft.Azure.Devices.Edge.Agent.Service
-      bin_dir: '$(Build.BinariesDirectory)'      
-
-  # Edge Hub
-  - template: templates/image-linux.yaml
-    parameters:
-      name: Edge Hub
-      imageName: azureiotedge-hub
-      project: edge-hub
-      bin_dir: '$(Build.BinariesDirectory)'
-
-  # Simulated Temperature Sensor
-  - template: templates/image-linux.yaml
-    parameters:
-      name: Temperature Sensor
-      imageName: azureiotedge-simulated-temperature-sensor
-      project: SimulatedTemperatureSensor
-      bin_dir: '$(Build.BinariesDirectory)'
-
-  # Dotnet Diagnostics Module
-  - template: templates/image-linux.yaml
-    parameters:
-      name: Diagnostics
-      imageName: azureiotedge-diagnostics
-      project: IotedgeDiagnosticsDotnet
-      bin_dir: '$(Build.BinariesDirectory)'      
-
-  # Temperature Filter
-  - template: templates/image-linux.yaml
-    parameters:
-      name: Temperature Filter
-      imageName: azureiotedge-temperature-filter
-      project: TemperatureFilter
-      bin_dir: '$(Build.BinariesDirectory)'      
-
-  # Load Gen
-  - template: templates/image-linux.yaml
-    parameters:
-      name: Load Gen
-      imageName: azureiotedge-load-gen
-      project: load-gen
-      bin_dir: '$(Build.BinariesDirectory)'      
-
-  # Test Analyzer
-  - template: templates/image-linux.yaml
-    parameters:
-      name: Test Analyzer
-      imageName: azureiotedge-analyzer
-      project: TestAnalyzer
-      bin_dir: '$(Build.BinariesDirectory)'      
-
-  # Functions Sample - Not supported on linux arm64
-  - template: templates/image-linux.yaml
-    parameters:
-      name: Functions Sample
-      imageName: azureiotedge-functions-filter
-      project: EdgeHubTriggerCSharp
-      bin_dir: '$(Build.BinariesDirectory)'      
-
-  # Direct Method Sender
-  - template: templates/image-linux.yaml
-    parameters:
-      name: Direct Method Sender
-      imageName: azureiotedge-direct-method-sender
-      project: DirectMethodSender
-      bin_dir: '$(Build.BinariesDirectory)'      
-
-  # Direct Method Receiver
-  - template: templates/image-linux.yaml
-    parameters:
-      name: Direct Method Receiver
-      imageName: azureiotedge-direct-method-receiver
-      project: DirectMethodReceiver
-      bin_dir: '$(Build.BinariesDirectory)'      
-
-  # Metrics Validator
-  - template: templates/image-linux.yaml
-    parameters:
-      name: Metrics Validator
-      imageName: azureiotedge-metrics-validator
-      project: MetricsValidator
-      bin_dir: '$(Build.BinariesDirectory)'      
-
-  # Number Logger
-  - template: templates/image-linux.yaml
-    parameters:
-      name: Number Logger
-      imageName: azureiotedge-number-logger
-      project: NumberLogger
-      bin_dir: '$(Build.BinariesDirectory)'      
-
-  # Module Restarter
-  - template: templates/image-linux.yaml
-    parameters:
-      name: Module Restarter
-      imageName: azureiotedge-module-restarter
-      project: ModuleRestarter
-      bin_dir: '$(Build.BinariesDirectory)'      
-
-  # Twin Tester
-  - template: templates/image-linux.yaml
-    parameters:
-      name: TwinTester
-      imageName: azureiotedge-twin-tester
-      project: TwinTester
-      bin_dir: '$(Build.BinariesDirectory)'      
-
-  # Relayer
-  - template: templates/image-linux.yaml
-    parameters:
-      name: Relayer
-      imageName: azureiotedge-relayer
-      project: Relayer
-      bin_dir: '$(Build.BinariesDirectory)'      
-
-# Network Controller
-  - template: templates/image-linux.yaml
-    parameters:
-      name: Network Controller
-      imageName: azureiotedge-network-controller
-      project: NetworkController
-      bin_dir: '$(Build.BinariesDirectory)'      
-
-  # TestResultCoordinator
-  - template: templates/image-linux.yaml
-    parameters:
-      name: TestResultCoordinator
-      imageName: azureiotedge-test-result-coordinator
-      project: TestResultCoordinator
-      bin_dir: '$(Build.BinariesDirectory)'      
-
-  # Metrics Collector
-  - template: templates/image-linux.yaml
-    parameters:
-      name: Metrics Collector
-      imageName: azureiotedge-metrics-collector
-      project: MetricsCollector
-      bin_dir: '$(Build.BinariesDirectory)'      
-
-  # Deployment Tester
-  - template: templates/image-linux.yaml
-    parameters:
-      name: DeploymentTester
-      imageName: azureiotedge-deployment-tester
-      project: DeploymentTester
-      bin_dir: '$(Build.BinariesDirectory)'      
-
-  # EdgeHub Restart Tester
-  - template: templates/image-linux.yaml
-    parameters:
-      name: EdgeHubRestartTester
-      imageName: azureiotedge-edgehub-restart-tester
-      project: EdgeHubRestartTester
-      bin_dir: '$(Build.BinariesDirectory)'      
-
-  # Cloud To Device Message Tester
-  - template: templates/image-linux.yaml
-    parameters:
-      name: Cloud To Device Message Tester
-      imageName: azureiotedge-c2dmessage-tester
-      project: CloudToDeviceMessageTester     
-      bin_dir: '$(Build.BinariesDirectory)'
-
-  # Build API Proxy Image
-  - template: templates/image-linux.yaml
-    parameters:
-      name: API Proxy
-      imageName: azureiotedge-api-proxy
-      project: api-proxy-module
-      buildx_flag: false
-      bin_dir: '$(Build.BinariesDirectory)'
+  - job: BuildImage
+    displayName: Build Image
+    strategy:
+      matrix:
+        EdgeAgent:
+          name: Edge Agent
+          imageName: azureiotedge-agent
+          project: Microsoft.Azure.Devices.Edge.Agent.Service
+          bin_dir: '$(Build.BinariesDirectory)'
+        EdgeHub:
+          name: Edge Hub
+          imageName: azureiotedge-hub
+          project: edge-hub
+          bin_dir: '$(Build.BinariesDirectory)'
+        TemperatureSensor:
+          name: Temperature Sensor
+          imageName: azureiotedge-simulated-temperature-sensor
+          project: SimulatedTemperatureSensor
+          bin_dir: '$(Build.BinariesDirectory)'
+        Diagnostics:
+          name: Diagnostics
+          imageName: azureiotedge-diagnostics
+          project: IotedgeDiagnosticsDotnet
+          bin_dir: '$(Build.BinariesDirectory)'      
+        TemperatureFilter:
+          name: Temperature Filter
+          imageName: azureiotedge-temperature-filter
+          project: TemperatureFilter
+          bin_dir: '$(Build.BinariesDirectory)'      
+        LoadGen:
+          name: Load Gen
+          imageName: azureiotedge-load-gen
+          project: load-gen
+          bin_dir: '$(Build.BinariesDirectory)'      
+        TestAnalyzer:
+          name: Test Analyzer
+          imageName: azureiotedge-analyzer
+          project: TestAnalyzer
+          bin_dir: '$(Build.BinariesDirectory)'      
+      # Functions Sample - Not supported on linux arm64
+        FunctionsSample:
+          name: Functions Sample
+          imageName: azureiotedge-functions-filter
+          project: EdgeHubTriggerCSharp
+          bin_dir: '$(Build.BinariesDirectory)'      
+        DirectMethodSender:
+          name: Direct Method Sender
+          imageName: azureiotedge-direct-method-sender
+          project: DirectMethodSender
+          bin_dir: '$(Build.BinariesDirectory)'      
+        DirectMethodReceiver:
+          name: Direct Method Receiver
+          imageName: azureiotedge-direct-method-receiver
+          project: DirectMethodReceiver
+          bin_dir: '$(Build.BinariesDirectory)'      
+        MetricsValidator:
+          name: Metrics Validator
+          imageName: azureiotedge-metrics-validator
+          project: MetricsValidator
+          bin_dir: '$(Build.BinariesDirectory)'      
+        NumberLogger:
+          name: Number Logger
+          imageName: azureiotedge-number-logger
+          project: NumberLogger
+          bin_dir: '$(Build.BinariesDirectory)'      
+        ModuleRestarter:
+          name: Module Restarter
+          imageName: azureiotedge-module-restarter
+          project: ModuleRestarter
+          bin_dir: '$(Build.BinariesDirectory)'      
+        TwinTester:
+          name: TwinTester
+          imageName: azureiotedge-twin-tester
+          project: TwinTester
+          bin_dir: '$(Build.BinariesDirectory)'      
+        Relayer:
+          name: Relayer
+          imageName: azureiotedge-relayer
+          project: Relayer
+          bin_dir: '$(Build.BinariesDirectory)'      
+        NetworkController:
+          name: Network Controller
+          imageName: azureiotedge-network-controller
+          project: NetworkController
+          bin_dir: '$(Build.BinariesDirectory)'      
+        TestResultCoordinator:
+          name: TestResultCoordinator
+          imageName: azureiotedge-test-result-coordinator
+          project: TestResultCoordinator
+          bin_dir: '$(Build.BinariesDirectory)'      
+        MetricsCollector:
+          name: Metrics Collector
+          imageName: azureiotedge-metrics-collector
+          project: MetricsCollector
+          bin_dir: '$(Build.BinariesDirectory)'      
+        DeploymentTester:
+          name: DeploymentTester
+          imageName: azureiotedge-deployment-tester
+          project: DeploymentTester
+          bin_dir: '$(Build.BinariesDirectory)'      
+        EdgeHubRestartTester:
+          name: EdgeHubRestartTester
+          imageName: azureiotedge-edgehub-restart-tester
+          project: EdgeHubRestartTester
+          bin_dir: '$(Build.BinariesDirectory)'      
+        CloudToDeviceMessageTester:
+          name: Cloud To Device Message Tester
+          imageName: azureiotedge-c2dmessage-tester
+          project: CloudToDeviceMessageTester     
+          bin_dir: '$(Build.BinariesDirectory)'
+        ApiProxy:
+          name: API Proxy
+          imageName: azureiotedge-api-proxy
+          project: api-proxy-module
+          buildx_flag: false
+          bin_dir: '$(Build.BinariesDirectory)'        
+    steps:
+    - template: templates/image-linux.yaml
+      parameters:
+        name: $(name)
+        imageName: $(imageName)
+        project: $(project)
+        bin_dir: $(bin_dir)   
 
   # Generic MQTT Tester
   - template: templates/rust-test-module-images.yaml

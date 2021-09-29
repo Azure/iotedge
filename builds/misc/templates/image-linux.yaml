@@ -9,7 +9,7 @@ parameters:
 
 jobs:
 - job: BuildImage
-  displayName: Build ${{ parameters.name }} Image
+  displayName: Build Image
   steps:
   - task: DownloadPipelineArtifact@2
     inputs:
