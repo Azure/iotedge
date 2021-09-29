@@ -20,7 +20,7 @@ jobs:
     steps:
     - task: CopyFiles@2
       inputs:
-        sourceFolder: '$(Build.ArtifactStagingDirectory)/${{ parameters['module.path'] }}_$(arch)'
+        sourceFolder: $(Build.ArtifactStagingDirectory)/${{ parameters['module.path'] }}_$(arch)
         contents: '**'
         targetFolder: ${{ parameters['module.path'] }}/target/$(target)/release
     - task: Docker@2
