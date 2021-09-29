@@ -33,6 +33,6 @@ jobs:
         arguments: -i ${{ parameters.imageName }} -P ${{ parameters.project }} -c ${{ parameters.configuration }} --target-arch $(arch) --bin-dir ${{ parameters.binDir }}
     - task: PublishPipelineArtifact@1
       inputs:
-        targetPath: '${{ parameters.binDir }}/publish/${{ parameters.imageName }}'
+        targetPath: '${{ parameters.binDir }}/publish'
         artifactName: api_proxy_$(arch)
         artifactType: 'pipeline'
