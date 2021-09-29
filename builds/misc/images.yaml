@@ -32,6 +32,7 @@ stages:
         artifactType: 'pipeline'
   - template: templates/build-broker-watchdog.yaml
   - template: templates/build-api-proxy.yaml
+
 - stage: ConsolidateAndPubishArtifacts
   displayName: Consolidate And Publish Artifacts
   pool:
@@ -122,11 +123,32 @@ stages:
         contents: '**'
         targetFolder: '$(Build.BinariesDirectory)/publish'
 
+    - task: CopyFiles@2
+      displayName: Copy API Proxy Artifacts (amd64)
+      inputs:
+        sourceFolder: '$(Build.ArtifactStagingDirectory)/api_proxy_x86_64'
+        contents: '**'
+        targetFolder: '$(Build.BinariesDirectory)/publish'       
+        
+    - task: CopyFiles@2
+      displayName: Copy API Proxy Artifacts (arm32)
+      inputs:
+        sourceFolder: '$(Build.ArtifactStagingDirectory)/api_proxy_armv7l'
+        contents: '**'
+        targetFolder: '$(Build.BinariesDirectory)/publish'    
+        
+    - task: CopyFiles@2
+      displayName: Copy API Proxy Artifacts (arm64)
+      inputs:
+        sourceFolder: '$(Build.ArtifactStagingDirectory)/api_proxy_aarch64'
+        contents: '**'
+        targetFolder: '$(Build.BinariesDirectory)/publish'            
+
     - task: Docker@2
       displayName: Docker login edgebuilds
       inputs:
         command: login
-        containerRegistry: iotedge-edgebuilds-acr        
+        containerRegistry: iotedge-edgebuilds-acr    
 
     # Edge Agent
     - template: templates/image-linux.yaml
@@ -294,7 +316,20 @@ stages:
         name: Cloud To Device Message Tester
         imageName: azureiotedge-c2dmessage-tester
         project: CloudToDeviceMessageTester     
-        bin_dir: '$(Build.BinariesDirectory)'      
+        bin_dir: '$(Build.BinariesDirectory)'
+
+    # Build API Proxy Image
+    - template: templates/image-linux.yaml
+      parameters:
+        name: API Proxy
+        imageName: azureiotedge-api-proxy
+        project: api-proxy-module
+        buildx_flag: false    
+
+    # Check API proxy
+    - task: ComponentGovernanceComponentDetection@0
+      inputs:
+        dockerImagesToScan: '$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-amd64,$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-arm32v7,$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-arm64v8'        
 
 # ################################################################################
 #   - job: linux_API_proxy_module

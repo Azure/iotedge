@@ -4,6 +4,7 @@ parameters:
   project: 'api-proxy-module'
   configuration: 'release'
   filePath: 'scripts/linux/buildAPIProxy.sh'
+  binDir: '$(Build.BinariesDirectory)'
 
 jobs:
   - job: BuildApiProxy
@@ -29,4 +30,9 @@ jobs:
       displayName: Build API-Proxy - $(arch)
       inputs:
         filePath: ${{ parameters.filePath }}
-        arguments: -i ${{ parameters.imageName }} -P ${{ parameters.project }} -c ${{ parameters.configuration }} --target-arch $(arch)
+        arguments: -i ${{ parameters.imageName }} -P ${{ parameters.project }} -c ${{ parameters.configuration }} --target-arch $(arch) --bin-dir ${{ parameters.binDir }}
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: '${{ parameters.binDir }}/publish/${{ parameters.imageName }}'
+        artifactName: apiproxy_$(arch)
+        artifactType: 'pipeline'
