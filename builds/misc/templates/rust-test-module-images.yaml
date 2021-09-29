@@ -17,6 +17,10 @@ jobs:
           arch: aarch64
           target: aarch64-unknown-linux-gnu
     steps:
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        source: 'current'
+        path: '$(Build.ArtifactStagingDirectory)'
     - task: CopyFiles@2
       inputs:
         sourceFolder: $(Build.ArtifactStagingDirectory)/${{ parameters['module.name'] }}_$(arch)

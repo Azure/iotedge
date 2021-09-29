@@ -225,7 +225,7 @@ stages:
     steps:
     - template: templates/image-linux.yaml
       parameters:
-        name: ${{ name }}
+        name: ${{ variables.name }}
         imageName: $(imageName)
         project: $(project)
         bin_dir: $(bin_dir)   
