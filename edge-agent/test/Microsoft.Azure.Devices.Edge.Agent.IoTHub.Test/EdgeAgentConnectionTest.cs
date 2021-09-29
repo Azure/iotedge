@@ -388,6 +388,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                         success = true;
                         break;
                     }
+
+                    await Task.Delay(1000);
                 }
 
                 Assert.True(success);
@@ -410,6 +412,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                         success = true;
                         break;
                     }
+
+                    await Task.Delay(1000);
                 }
 
                 Assert.True(success);
