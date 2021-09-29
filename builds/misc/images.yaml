@@ -384,9 +384,9 @@ stages:
 #           module.name: 'generic-mqtt-tester'
 
 ################################################################################
-- stage: Manifest
+- stage: PublishManifests
 ################################################################################
-  displayName: Manifest
+  displayName: Publish Manifests
   pool:
     name: $(pool.linux.name)
     demands:
@@ -395,20 +395,25 @@ stages:
   variables:
     tags: "['latest']"
   jobs:
-  - job: PublishManifests 
+  - job: PublishManifest
+    displayName: Publish Manifest
+    strategy:
+      matrix:
+        EdgeAgent:
+          manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-agent/docker/manifest.yaml.template'
+        EdgeHub:
+          manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-hub/docker/manifest.yaml.template'
+        SimulatedTemperatureSensor:
+           manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.templat'
+        Diagnostics:
+           manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template'
+        ApiProxy:
+           manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/api-proxy-module/docker/manifest.yaml.templat'
+
     steps:
     - task: Docker@2
       displayName: Docker login edgebuilds
       inputs:
         command: login
         containerRegistry: iotedge-edgebuilds-acr
-    - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-agent/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
-      displayName: 'Publish Edge Agent Manifest'
-    - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-hub/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
-      displayName: 'Publish Edge Hub Manifest'
-    - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
-      displayName: 'Publish Temperature Sensor Manifest'
-    - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
-      displayName: 'Publish azureiotedge-diagnostics Manifest'
-    - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/api-proxy-module/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
-#       displayName: 'Publish azureiotedge-api-proxy Manifest'
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(manifestFilePath) -n microsoft --tags "$(tags)"
