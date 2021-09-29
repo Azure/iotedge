@@ -1,28 +1,34 @@
 jobs:
-  - job: BuildRustModule
-    displayName: Build Rust Module
+  - job: BuildRustExecutable
+    displayName: Build Rust Executable
     strategy:
       matrix:
         GenericMqttTesterAmd64:
           arch: amd64
-          moduleFolderName: generic-mqtt-tester
           displayName: Build generic mqtt tester - amd64
+          moduleName: generic-mqtt-tester
+          modulePath: test/modules/generic-mqtt-tester
+          target: x86_64-unknown-linux-musl
         GenericMqttTesterArm32:
           arch: arm32v7
-          moduleFolderName: generic-mqtt-tester
           displayName: Build generic mqtt tester - arm32
+          moduleName: generic-mqtt-tester
+          modulePath: test/modules/generic-mqtt-tester     
+          target: armv7-unknown-linux-gnueabihf  
         GenericMqttTesterArm64:
           arch: aarch64
-          moduleFolderName: generic-mqtt-tester
           displayName: Build generic mqtt tester - arm64
+          moduleName: generic-mqtt-tester
+          modulePath: test/modules/generic-mqtt-tester
+          target: aarch64-unknown-linux-gnu
     steps:
       - task: Bash@3
         displayName: $(displayName)
         inputs:
           filePath: scripts/linux/cross-platform-rust-build.sh
-          arguments: --os ubuntu18.04 --arch $(arch) --build-path test/modules/$(moduleFolderName)
+          arguments: --os ubuntu18.04 --arch $(arch) --build-path $(modulePath)
       - task: PublishPipelineArtifact@1
         inputs:
-          targetPath: '$(Build.BinariesDirectory)/publish'
-          artifactName: '$(moduleFolderName)_$(arch)'
+          targetPath: '$(modulePath)/target/$(target)/release/$(moduleName)'
+          artifactName: '$(modulePath)_$(arch)'
           artifactType: 'pipeline'

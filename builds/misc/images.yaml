@@ -333,21 +333,11 @@ stages:
       inputs:
         dockerImagesToScan: '$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-amd64,$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-arm32v7,$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-arm64v8'        
 
-# ################################################################################
-#   - job: RustTestModules
-# ################################################################################
-#     timeoutInMinutes: 180
-#     displayName: Rust Test Modules
-#     pool:
-#       name: $(pool.linux.name)
-#       demands:
-#         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
-#     steps:
-#       - template: templates/rust-test-module-build.yaml
-#       - template: templates/rust-test-module-images.yaml
-#         parameters:
-#           module.path: 'test/modules/generic-mqtt-tester'
-#           module.name: 'generic-mqtt-tester'
+    # Generic MQTT Tester
+    - template: templates/rust-test-module-images.yaml
+      parameters:
+        module.path: 'test/modules/generic-mqtt-tester'
+        module.name: 'generic-mqtt-tester'        
 
 ################################################################################
 - stage: PublishManifests
