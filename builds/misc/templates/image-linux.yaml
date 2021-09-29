@@ -7,10 +7,7 @@ parameters:
   buildx_flag: ''
   bin_dir: ''
 
-jobs:
-- job: BuildImage
-  displayName: Build Image
-  steps:
+steps:
   - task: DownloadPipelineArtifact@2
     inputs:
       source: 'current'
