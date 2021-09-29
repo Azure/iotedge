@@ -9,9 +9,19 @@ steps:
     path: '$(Build.ArtifactStagingDirectory)'
 - task: CopyFiles@2
   inputs:
-    sourceFolder: $(Build.ArtifactStagingDirectory)/${{ parameters['module.name'] }}_$(arch)
+    sourceFolder: $(Build.ArtifactStagingDirectory)/${{ parameters['module.name'] }}_amd64
     contents: '**'
-    targetFolder: ${{ parameters['module.path'] }}/target/$(target)/release
+    targetFolder: ${{ parameters['module.path'] }}/target/x86_64-unknown-linux-gnu/release
+- task: CopyFiles@2
+  inputs:
+    sourceFolder: $(Build.ArtifactStagingDirectory)/${{ parameters['module.name'] }}_arm32v7
+    contents: '**'
+    targetFolder: ${{ parameters['module.path'] }}/target/armv7-unknown-linux-gnueabihf/release
+- task: CopyFiles@2
+  inputs:
+    sourceFolder: $(Build.ArtifactStagingDirectory)/${{ parameters['module.name'] }}_aarch64
+    contents: '**'
+    targetFolder: ${{ parameters['module.path'] }}/target/aarch64-unknown-linux-gnu/release    
 - task: Docker@2
   displayName: Build amd64 image for ${{ parameters['module.name'] }}
   inputs:
