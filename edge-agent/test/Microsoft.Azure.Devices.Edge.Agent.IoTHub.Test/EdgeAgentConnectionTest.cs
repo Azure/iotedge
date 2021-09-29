@@ -392,7 +392,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     await Task.Delay(1000);
                 }
 
-                Assert.True(success);
+                Assert.True(success, "Did not get deployment after 7 minutes");
 
                 // Service takes up to 5 mins to sync statistics to config
                 end_time = DateTime.Now + TimeSpan.FromMinutes(7);
@@ -416,7 +416,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     await Task.Delay(1000);
                 }
 
-                Assert.True(success);
+                Assert.True(success, "Did not get config after 7 minutes");
             }
             finally
             {
