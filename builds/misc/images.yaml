@@ -230,11 +230,19 @@ stages:
         project: $(project)
         bin_dir: $(bin_dir)   
 
-  # Generic MQTT Tester
-  - template: templates/rust-test-module-images.yaml
-    parameters:
-      module.path: 'test/modules/generic-mqtt-tester'
-      module.name: 'generic-mqtt-tester'        
+  # Rust test modules
+  - job: BuildRustImage
+    displayName: Build Rust Image
+    strategy:
+      matrix:
+        GenericMqttTester:
+          name: generic-mqtt-tester
+          path: test/modules/generic-mqtt-tester
+    steps:
+    - template: templates/rust-test-module-images.yaml
+      parameters:
+        module.name: $(name)        
+        module.path: $(path)
 
 ################################################################################
 - stage: PublishManifests
