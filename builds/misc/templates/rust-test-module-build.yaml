@@ -1,34 +1,31 @@
+parameters:
+  os: 'linux'
+  module.path: ''
+  module.name: ''
+
 jobs:
   - job: BuildRustExecutable
-    displayName: Build Rust Executable
+    displayName: Build ${{ parameters['module.name'] }} Rust Executable
     strategy:
       matrix:
-        GenericMqttTesterAmd64:
+        amd64:
           arch: amd64
-          displayName: Build generic mqtt tester - amd64
-          moduleName: generic-mqtt-tester
-          modulePath: test/modules/generic-mqtt-tester
           target: x86_64-unknown-linux-musl
-        GenericMqttTesterArm32:
+        arm32:
           arch: arm32v7
-          displayName: Build generic mqtt tester - arm32
-          moduleName: generic-mqtt-tester
-          modulePath: test/modules/generic-mqtt-tester     
           target: armv7-unknown-linux-gnueabihf  
-        GenericMqttTesterArm64:
+        arm64:
           arch: aarch64
           displayName: Build generic mqtt tester - arm64
-          moduleName: generic-mqtt-tester
-          modulePath: test/modules/generic-mqtt-tester
           target: aarch64-unknown-linux-gnu
     steps:
-      - task: Bash@3
-        displayName: $(displayName)
-        inputs:
-          filePath: scripts/linux/cross-platform-rust-build.sh
-          arguments: --os ubuntu18.04 --arch $(arch) --build-path $(modulePath)
-      - task: PublishPipelineArtifact@1
-        inputs:
-          targetPath: '$(modulePath)/target/$(target)/release/$(moduleName)'
-          artifactName: '$(modulePath)_$(arch)'
-          artifactType: 'pipeline'
+    - task: Bash@3
+      displayName: Build ${{ parameters['module.name'] }} - $(arch)
+      inputs:
+        filePath: scripts/linux/cross-platform-rust-build.sh
+        arguments: --os ubuntu18.04 --arch $(arch) --build-path ${{ parameters['module.path'] }}
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: ${{ parameters['module.path'] }}/target/$(target)/release/${{ parameters['module.name'] }}
+        artifactName: ${{ parameters['module.name'] }}_$(arch)
+        artifactType: 'pipeline'

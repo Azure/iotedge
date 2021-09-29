@@ -33,6 +33,9 @@ stages:
   - template: templates/build-broker-watchdog.yaml
   - template: templates/build-api-proxy.yaml
   - template: templates/rust-test-module-build.yaml
+    parameters:
+      module.path: 'test/modules/generic-mqtt-tester'
+      module.name: 'generic-mqtt-tester'   
 
 - stage: ConsolidateAndPubishArtifacts
   displayName: Consolidate And Publish Artifacts
