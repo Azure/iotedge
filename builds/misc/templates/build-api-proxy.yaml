@@ -4,7 +4,7 @@ parameters:
   project: 'api-proxy-module'
   configuration: 'release'
   filePath: 'scripts/linux/buildAPIProxy.sh'
-  binDir: '$(Build.BinariesDirectory)'
+  binDir: ''$(Build.BinariesDirectory)''
 
 jobs:
   - job: BuildApiProxy

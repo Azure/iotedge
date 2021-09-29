@@ -324,7 +324,8 @@ stages:
         name: API Proxy
         imageName: azureiotedge-api-proxy
         project: api-proxy-module
-        buildx_flag: false    
+        buildx_flag: false
+        bin_dir: '$(Build.BinariesDirectory)'
 
     # Check API proxy
     - task: ComponentGovernanceComponentDetection@0
