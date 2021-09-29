@@ -6,9 +6,6 @@ trigger:
       - release/*
 pr: none
 
-variables:
-  NugetSecurityAnalysisWarningLevel: warn
-
 jobs:
 ################################################################################
   - job: linux_dotnet_projects

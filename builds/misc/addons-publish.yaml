@@ -2,9 +2,6 @@ name: $(version)
 trigger: none
 pr: none
 
-variables:
-  NugetSecurityAnalysisWarningLevel: warn
-  
 jobs:
   - deployment: publishImages
     displayName: Publish Linux Images
