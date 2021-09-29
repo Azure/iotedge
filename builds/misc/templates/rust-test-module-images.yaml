@@ -1,5 +1,4 @@
 parameters:
-  os: 'linux'
   module.path: ''
   module.name: ''
 

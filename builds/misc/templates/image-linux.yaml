@@ -7,7 +7,58 @@ parameters:
   buildx_flag: ''
   bin_dir: ''
 
-steps:
+jobs:
+- job: BuildImage
+  displayName: Build ${{ parameters.name }} Image
+  steps:
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      source: 'current'
+      path: '$(Build.ArtifactStagingDirectory)'
+  # TODO: Remove the need for all but one copy task by having
+  # the consolidate stage aggregate all artifacts into 'core-linux' artifact
+  # (or a better named artifact)
+  - task: CopyFiles@2
+    displayName: Copy Edge Hub Artifacts
+    inputs:
+      sourceFolder: '$(Build.ArtifactStagingDirectory)/core-linux'
+      contents: '**'
+      targetFolder: '$(Build.BinariesDirectory)/publish'
+
+  - task: CopyFiles@2
+    displayName: Copy Other Dotnet Artifacts
+    inputs:
+      sourceFolder: '$(Build.ArtifactStagingDirectory)/dotnet_artifacts'
+      contents: '**'
+      targetFolder: '$(Build.BinariesDirectory)/publish'
+
+  - task: CopyFiles@2
+    displayName: Copy API Proxy Artifacts (amd64)
+    inputs:
+      sourceFolder: '$(Build.ArtifactStagingDirectory)/api_proxy_x86_64'
+      contents: '**'
+      targetFolder: '$(Build.BinariesDirectory)/publish'       
+      
+  - task: CopyFiles@2
+    displayName: Copy API Proxy Artifacts (arm32)
+    inputs:
+      sourceFolder: '$(Build.ArtifactStagingDirectory)/api_proxy_armv7l'
+      contents: '**'
+      targetFolder: '$(Build.BinariesDirectory)/publish'    
+      
+  - task: CopyFiles@2
+    displayName: Copy API Proxy Artifacts (arm64)
+    inputs:
+      sourceFolder: '$(Build.ArtifactStagingDirectory)/api_proxy_aarch64'
+      contents: '**'
+      targetFolder: '$(Build.BinariesDirectory)/publish'            
+
+  - task: Docker@2
+    displayName: Docker login edgebuilds
+    inputs:
+      command: login
+      containerRegistry: iotedge-edgebuilds-acr   
+
   - task: Bash@3
     displayName: Build Image - ${{ parameters.name }} - amd64
     inputs:
