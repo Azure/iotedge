@@ -833,14 +833,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             await Task.Delay(500); // wait a bit more, so there is time to pull twin more if the throttling does not work
 
-            Assert.Equal(2, counter);
+            Assert.Equal(2, Volatile.Read(ref counter));
 
             // get out of the 3 sec window, the delayed pull should finish by then
             await Task.Delay(3500);
 
             Assert.True(await milestone.WaitAsync(TimeSpan.FromSeconds(2)));
 
-            Assert.Equal(3, counter);
+            Assert.Equal(3, Volatile.Read(ref counter));
         }
 
         [Fact]
