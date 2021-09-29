@@ -405,11 +405,11 @@ stages:
         EdgeHub:
           manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-hub/docker/manifest.yaml.template'
         SimulatedTemperatureSensor:
-           manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.templat'
+           manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template'
         Diagnostics:
            manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template'
         ApiProxy:
-           manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/api-proxy-module/docker/manifest.yaml.templat'
+           manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/api-proxy-module/docker/manifest.yaml.template'
 
     steps:
     - task: Docker@2
