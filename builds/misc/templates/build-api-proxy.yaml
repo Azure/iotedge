@@ -6,7 +6,8 @@ parameters:
   filePath: 'scripts/linux/buildAPIProxy.sh'
 
 jobs:
-  - job: Build API-Proxy
+  - job: BuildApiProxy
+    displayName: Build API Proxy
     strategy:
       maxParallel: 3
       matrix:
