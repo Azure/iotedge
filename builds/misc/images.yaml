@@ -32,6 +32,7 @@ stages:
         artifactType: 'pipeline'
   - template: templates/build-broker-watchdog.yaml
   - template: templates/build-api-proxy.yaml
+  - template: templates/rust-test-module-build.yaml
 
 - stage: ConsolidateAndPubishArtifacts
   displayName: Consolidate And Publish Artifacts
@@ -331,42 +332,6 @@ stages:
     - task: ComponentGovernanceComponentDetection@0
       inputs:
         dockerImagesToScan: '$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-amd64,$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-arm32v7,$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-arm64v8'        
-
-# ################################################################################
-#   - job: linux_API_proxy_module
-# ################################################################################
-#     timeoutInMinutes: 180
-#     displayName: linuxAPIProxy
-#     pool:
-#       name: $(pool.linux.name)
-#       demands:
-#         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
-#     steps:
-#       - task: Docker@2
-#         displayName: Docker login edgebuilds
-#         inputs:
-#           command: login
-#           containerRegistry: iotedge-edgebuilds-acr
-#       - bash: |
-#             sudo apt-get update && sudo apt-get -y install qemu binfmt-support qemu-user-static && \
-#             docker run --rm --privileged multiarch/qemu-user-static --reset -p yes && \
-#             docker buildx rm  mbuilder || true  && \
-#             docker buildx create --name mbuilder  || true  && \
-#             docker buildx use mbuilder
-#             docker -v
-#       # Build API Proxy executable
-#       - template: templates/build-api-proxy.yaml
-#       # Build API Proxy Image
-#       - template: templates/image-linux.yaml
-#         parameters:
-#           name: API Proxy
-#           imageName: azureiotedge-api-proxy
-#           project: api-proxy-module
-#           buildx_flag: false
-#       # Check API proxy
-#       - task: ComponentGovernanceComponentDetection@0
-#         inputs:
-#           dockerImagesToScan: '$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-amd64,$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-arm32v7,$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-arm64v8'
 
 # ################################################################################
 #   - job: RustTestModules
