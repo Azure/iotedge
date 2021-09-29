@@ -5,19 +5,27 @@ parameters:
   configuration: 'release'
   filePath: 'scripts/linux/buildAPIProxy.sh'
 
-steps:
-  - task: Bash@3
-    displayName: Build API-Proxy - amd64
-    inputs:
-      filePath: ${{ parameters.filePath }}
-      arguments: -i ${{ parameters.imageName }} -P ${{ parameters.project }} -c ${{ parameters.configuration }} --target-arch "x86_64"
-  - task: Bash@3
-    displayName: Build API-Proxy - arm32
-    inputs:
-      filePath: ${{ parameters.filePath }}
-      arguments: -i ${{ parameters.imageName }} -P ${{ parameters.project }} -c ${{ parameters.configuration }} --target-arch "armv7l"
-  - task: Bash@3
-    displayName: Build API-Proxy - arm64
-    inputs:
-      filePath: ${{ parameters.filePath }}
-      arguments: -i ${{ parameters.imageName }} -P ${{ parameters.project }} -c ${{ parameters.configuration }} --target-arch "aarch64"
+jobs:
+  - job: Build API-Proxy
+    strategy:
+      maxParallel: 3
+      matrix:
+        amd64:
+          arch: "x86_64"
+        arm32:
+          arch: "armv7l"
+        arm64:
+          arch: "aarch64"
+    steps:
+    - bash: |
+        sudo apt-get update && sudo apt-get -y install qemu binfmt-support qemu-user-static && \
+        docker run --rm --privileged multiarch/qemu-user-static --reset -p yes && \
+        docker buildx rm  mbuilder || true  && \
+        docker buildx create --name mbuilder  || true  && \
+        docker buildx use mbuilder
+        docker -v
+    - task: Bash@3
+      displayName: Build API-Proxy - $(arch)
+      inputs:
+        filePath: ${{ parameters.filePath }}
+        arguments: -i ${{ parameters.imageName }} -P ${{ parameters.project }} -c ${{ parameters.configuration }} --target-arch $(arch)
