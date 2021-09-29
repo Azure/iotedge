@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         // EdgeModule sensor;
         DateTime startTime;
 
-        public async void SetConfigToEdgeDaemon(Option<string> rootCaPath, CancellationToken token)
+        public async Task SetConfigToEdgeDaemon(Option<string> rootCaPath, CancellationToken token)
         {
             if (Context.Current.EnableManifestSigning)
             {
@@ -80,7 +80,47 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Console.WriteLine($"Root CA path: {Context.Current.ManifestSigningGoodRootCaPath.OrDefault()}");
             this.SetLaunchSettingsWithRootCa(Context.Current.ManifestSigningDefaultLaunchSettings, Context.Current.ManifestSigningGoodRootCaPath);
 
-            // this.SetConfigToEdgeDaemon(Context.Current.ManifestSigningGoodRootCaPath, this.TestToken);
+            await this.SetConfigToEdgeDaemon(Context.Current.ManifestSigningGoodRootCaPath, this.TestToken);
+            ManifestSettings inputManifestSettings = new ManifestSettings(Context.Current.ManifestSigningDeploymentPath, Context.Current.ManifestSigningSignedDeploymentPath, Context.Current.ManifestSigningGoodRootCaPath, Context.Current.ManifestSignerClientDirectory, Context.Current.ManifestSignerClientProjectPath);
+
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
+                builder =>
+                {
+                    builder.AddModule(SensorName, this.sensorImage)
+                        .WithEnvironment(new[] { ("MessageCount", "-1") });
+                },
+                this.TestToken,
+                Context.Current.NestedEdge,
+                inputManifestSettings);
+        }
+
+        [Category("ManifestSigning")]
+        [Test]
+        public async Task TestIfSignedDeploymentIsConfiguredWithBadRootCa()
+        {
+            this.SetLaunchSettingsWithRootCa(Context.Current.ManifestSigningDefaultLaunchSettings, Context.Current.ManifestSigningBadRootCaPath);
+
+            await this.SetConfigToEdgeDaemon(Context.Current.ManifestSigningGoodRootCaPath, this.TestToken);
+            ManifestSettings inputManifestSettings = new ManifestSettings(Context.Current.ManifestSigningDeploymentPath, Context.Current.ManifestSigningSignedDeploymentPath, Context.Current.ManifestSigningGoodRootCaPath, Context.Current.ManifestSignerClientDirectory, Context.Current.ManifestSignerClientProjectPath);
+
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
+                builder =>
+                {
+                    builder.AddModule(SensorName, this.sensorImage)
+                        .WithEnvironment(new[] { ("MessageCount", "-1") });
+                },
+                this.TestToken,
+                Context.Current.NestedEdge,
+                inputManifestSettings);
+        }
+
+        [Category("ManifestSigning")]
+        [Test]
+        public async Task TestIfSignedDeploymentIsConfiguredWithNoRootCa()
+        {
+            this.SetLaunchSettingsWithRootCa(Context.Current.ManifestSigningDefaultLaunchSettings, Option.None<string>());
+
+            await this.SetConfigToEdgeDaemon(Context.Current.ManifestSigningGoodRootCaPath, this.TestToken);
             ManifestSettings inputManifestSettings = new ManifestSettings(Context.Current.ManifestSigningDeploymentPath, Context.Current.ManifestSigningSignedDeploymentPath, Context.Current.ManifestSigningGoodRootCaPath, Context.Current.ManifestSignerClientDirectory, Context.Current.ManifestSignerClientProjectPath);
 
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
