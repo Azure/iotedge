@@ -404,9 +404,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     if (config != null)
                     {
                         Assert.NotNull(config.SystemMetrics);
-                        Assert.True(config.SystemMetrics.Results.ContainsKey("targetedCount"));
+                        Assert.True(config.SystemMetrics.Results.ContainsKey("targetedCount"), "targetedCount exists");
                         Assert.Equal(1, config.SystemMetrics.Results["targetedCount"]);
-                        Assert.True(config.SystemMetrics.Results.ContainsKey("appliedCount"));
+                        Assert.True(config.SystemMetrics.Results.ContainsKey("appliedCount"), "appliedCount exists");
                         Assert.Equal(1, config.SystemMetrics.Results["appliedCount"]);
 
                         success = true;
