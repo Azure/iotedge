@@ -9,7 +9,7 @@ jobs:
       matrix:
         amd64:
           arch: amd64
-          target: x86_64-unknown-linux-musl
+          target: x86_64-unknown-linux-gnu
         arm32:
           arch: arm32v7
           target: armv7-unknown-linux-gnueabihf  
