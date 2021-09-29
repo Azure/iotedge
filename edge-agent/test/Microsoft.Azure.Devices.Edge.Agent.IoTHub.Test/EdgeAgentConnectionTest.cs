@@ -362,7 +362,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
                 // Service takes up to 5 mins to sync config to twin
                 var end_time = DateTime.Now + TimeSpan.FromMinutes(7);
-                bool success = false;
+                Exception exception = null;
                 while (DateTime.Now < end_time)
                 {
                     var edgeAgentConnection = CreateEdgeAgentConnection(iotHubConnectionStringBuilder, edgeDeviceId, edgeDevice);
@@ -370,9 +370,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     await Task.Delay(TimeSpan.FromSeconds(20));
 
                     Option<DeploymentConfigInfo> deploymentConfigInfo = await edgeAgentConnection.GetDeploymentConfigInfoAsync();
-                    if (deploymentConfigInfo.HasValue)
+
+                    try
                     {
                         DeploymentConfig deploymentConfig = deploymentConfigInfo.OrDefault().DeploymentConfig;
+                        Assert.True(deploymentConfigInfo.HasValue);
                         Assert.NotNull(deploymentConfig);
                         Assert.NotNull(deploymentConfig.Modules);
                         Assert.NotNull(deploymentConfig.Runtime);
@@ -385,38 +387,50 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                         TwinCollection reportedPatch = GetEdgeAgentReportedProperties(deploymentConfigInfo.OrDefault());
                         await edgeAgentConnection.UpdateReportedPropertiesAsync(reportedPatch);
 
-                        success = true;
                         break;
+                    }
+                    catch (Exception ex)
+                    {
+                        exception = ex;
                     }
 
                     await Task.Delay(1000);
                 }
 
-                Assert.True(success, "Did not get deployment after 7 minutes");
+                if (exception != null)
+                {
+                    throw exception;
+                }
 
                 // Service takes up to 5 mins to sync statistics to config
                 end_time = DateTime.Now + TimeSpan.FromMinutes(7);
-                success = false;
                 while (DateTime.Now < end_time)
                 {
                     Configuration config = await registryManager.GetConfigurationAsync(configurationId);
 
-                    if (config != null)
+                    try
                     {
+                        Assert.NotNull(config);
                         Assert.NotNull(config.SystemMetrics);
                         Assert.True(config.SystemMetrics.Results.ContainsKey("targetedCount"), "targetedCount exists");
                         Assert.Equal(1, config.SystemMetrics.Results["targetedCount"]);
                         Assert.True(config.SystemMetrics.Results.ContainsKey("appliedCount"), "appliedCount exists");
                         Assert.Equal(1, config.SystemMetrics.Results["appliedCount"]);
 
-                        success = true;
                         break;
+                    }
+                    catch (Exception ex)
+                    {
+                        exception = ex;
                     }
 
                     await Task.Delay(1000);
                 }
 
-                Assert.True(success, "Did not get config after 7 minutes");
+                if (exception != null)
+                {
+                    throw exception;
+                }
             }
             finally
             {
