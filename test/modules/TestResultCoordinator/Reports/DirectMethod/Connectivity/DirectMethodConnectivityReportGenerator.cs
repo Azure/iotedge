@@ -89,7 +89,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
             while (hasSenderResult)
             {
                 this.ValidateDataSource(this.SenderTestResults.Current, this.SenderSource);
-                (NetworkControllerStatus networkControllerStatus, bool isWithinTolerancePeriod) =
+                (NetworkControllerStatus networkControllerStatus, bool isWithinTolerancePeriod, TimeSpan delay) =
                     this.NetworkStatusTimeline.GetNetworkControllerStatusAndWithinToleranceAt(this.SenderTestResults.Current.CreatedAt);
                 this.ValidateNetworkControllerStatus(networkControllerStatus);
                 DirectMethodTestResult dmSenderTestResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(this.SenderTestResults.Current.Result);
@@ -108,7 +108,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
                     }
                 }
 
-                reportGeneratorMetadata = await this.ProcessSenderTestResults(dmSenderTestResult, networkControllerStatus, isWithinTolerancePeriod, this.SenderTestResults);
+                reportGeneratorMetadata = await this.ProcessSenderTestResults(dmSenderTestResult, networkControllerStatus, isWithinTolerancePeriod, this.SenderTestResults, delay);
                 networkOnSuccess += reportGeneratorMetadata.NetworkOnSuccess;
                 networkOffSuccess += reportGeneratorMetadata.NetworkOffSuccess;
                 networkOnToleratedSuccess += reportGeneratorMetadata.NetworkOnToleratedSuccess;
@@ -241,7 +241,8 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
             DirectMethodTestResult dmSenderTestResult,
             NetworkControllerStatus networkControllerStatus,
             bool isWithinTolerancePeriod,
-            IAsyncEnumerator<TestOperationResult> senderTestResults)
+            IAsyncEnumerator<TestOperationResult> senderTestResults,
+            TimeSpan delay)
         {
             ulong networkOnSuccess = 0;
             ulong networkOffSuccess = 0;
@@ -258,6 +259,8 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
                 }
                 else
                 {
+                    Logger.LogError($"Error: Type {this.NetworkControllerType}, statusCode {statusCode}, " +
+                    $"Controller Status {networkControllerStatus}, iswithin tol {isWithinTolerancePeriod}, delay {delay}");
                     networkOnFailure++;
                 }
             }
@@ -275,6 +278,8 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
                     }
                     else
                     {
+                        Logger.LogError($"Error: Type {this.NetworkControllerType}, statusCode {statusCode}, " +
+                        $"Controller Status {networkControllerStatus}, iswithin tol {isWithinTolerancePeriod}, delay {delay}");
                         networkOnFailure++;
                     }
                 }
@@ -293,11 +298,15 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
                     }
                     else
                     {
+                        Logger.LogError($"Error: Type {this.NetworkControllerType}, statusCode {statusCode}, " +
+                        $"Controller Status {networkControllerStatus}, iswithin tol {isWithinTolerancePeriod}, delay {delay}");
                         networkOffFailure++;
                     }
                 }
                 else
                 {
+                    Logger.LogError($"Error: Type {this.NetworkControllerType}, statusCode {statusCode}, " +
+                    $"Controller Status {networkControllerStatus}, iswithin tol {isWithinTolerancePeriod}, delay {delay}");
                     networkOffFailure++;
                 }
             }
