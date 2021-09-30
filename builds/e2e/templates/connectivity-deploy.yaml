@@ -166,15 +166,14 @@ steps:
       New-Item $logDir -ItemType Directory -Force | Out-Null
       $artifactSuffix = '$(Build.BuildNumber)-$(System.PhaseName)' -replace '_','-'
       Copy-Item "$(Agent.HomeDirectory)/../working/support/*.zip" "$logDir/"
-      Write-Output "##vso[task.setvariable variable=artifactSuffix] artifactSuffix"
-      Remove-Item "$(Agent.HomeDirectory)/../working/support/*.zip"
+      Write-Output "##vso[task.setvariable variable=artifactSuffix] $artifactSuffix"
     displayName: "Copy Support Bundle"
     condition: succeededOrFailed()
 
   - task: PublishBuildArtifacts@1
     displayName: "Publish Support Bundle"
     inputs:
-      PathtoPublish: $(Build.ArtifactStagingDirectory)/logs${{ parameters.test_type }}
+      PathtoPublish: $(Build.ArtifactStagingDirectory)/logs${{ parameters.networkController.description }}
       ArtifactName: logs-connectivity-$(artifactSuffix)
     condition: succeededOrFailed()
     
