@@ -329,10 +329,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07
 
         class ErrorDetectionStrategy : ITransientErrorDetectionStrategy
         {
+            // In Instances when edged closes the socket connection due to to throttling of the module identity create/update request, we should be able to retry the request.
             public bool IsTransient(Exception ex) => (ex is SwaggerException se
-                                                      && se.StatusCode >= 500) ||
+                                                      && se.StatusCode >= 500)
+                                                      ||
                                                      (ex is IOException soe &&
-                                                      soe.InnerException is SocketException);
+                                                      soe?.InnerException is SocketException);
         }
     }
 }

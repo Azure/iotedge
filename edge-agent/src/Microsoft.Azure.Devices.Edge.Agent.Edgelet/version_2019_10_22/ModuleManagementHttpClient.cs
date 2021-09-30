@@ -4,8 +4,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_10_22
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
+    using System.IO;
     using System.Linq;
     using System.Net.Http;
+    using System.Net.Sockets;
     using System.Runtime.ExceptionServices;
     using System.Threading;
     using System.Threading.Tasks;
@@ -310,8 +312,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_10_22
 
         class ErrorDetectionStrategy : ITransientErrorDetectionStrategy
         {
-            public bool IsTransient(Exception ex) => ex is SwaggerException se
-                                                     && se.StatusCode >= 500;
+            // In Instances when edged closes the socket connection due to to throttling of the module identity create/update request, we should be able to retry the request.
+            public bool IsTransient(Exception ex) => (ex is SwaggerException se
+                                                      && se.StatusCode >= 500)
+                                                      ||
+                                                     (ex is IOException soe &&
+                                                      soe?.InnerException is SocketException);
         }
     }
 }
