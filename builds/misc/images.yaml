@@ -291,13 +291,13 @@ stages:
     strategy:
       matrix:
         GenericMqttTester:
-          name: generic-mqtt-tester
-          path: test/modules/generic-mqtt-tester
+          moduleName: generic-mqtt-tester
+          modulePath: test/modules/generic-mqtt-tester
     steps:
     - template: templates/rust-test-module-images.yaml
       parameters:
-        module.name: $(name)        
-        module.path: $(path)
+        module.name: $(moduleName)        
+        module.path: $(modulePath)
 
 ################################################################################
 - stage: PublishManifests
