@@ -763,6 +763,8 @@ function run_connectivity_test() {
 
             if [ "$is_build_canceled" -eq '1' ]; then
                 print_highlighted_message "build is canceled."
+                print_highlighted_message "Getting Support Bundle Logs"
+                get_support_bundle_logs
                 stop_aziot_edge || true
                 return 3
             fi
