@@ -12,5 +12,9 @@ aziot-edged-trust-bundle = ["aziot-edged-ca"]
 device-id = "file:///var/secrets/device-id.pem"
 
 [[principal]]
+uid = 5556
+certs = ["aziot-dps-trust-bundle"]
+
+[[principal]]
 uid = 5558
 certs = ["aziot-edged-ca", "aziot-edged/module/*"]

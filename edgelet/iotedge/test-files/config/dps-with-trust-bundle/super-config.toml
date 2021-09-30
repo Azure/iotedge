@@ -1,0 +1,56 @@
+auto_reprovisioning_mode = "Dynamic"
+hostname = "my-device"
+dps_trust_bundle = "my-dps-trust-bundle"
+
+[provisioning]
+source = "dps"
+global_endpoint = "https://global.azure-devices-provisioning.net/"
+id_scope = "0ab1234C5D6"
+
+[provisioning.attestation]
+method = "symmetric_key"
+registration_id = "my-device"
+
+[provisioning.attestation.symmetric_key]
+value = "YXppb3QtaWRlbnRpdHktc2VydmljZXxhemlvdC1pZGVudGl0eS1zZXJ2aWNlfGF6aW90LWlkZW50aXR5LXNlcg=="
+
+[aziot_keys]
+
+[preloaded_keys]
+
+[cert_issuance]
+
+[preloaded_certs]
+
+[agent]
+name = "edgeAgent"
+type = "docker"
+imagePullPolicy = "on-create"
+
+[agent.config]
+image = "mcr.microsoft.com/azureiotedge-agent:1.0"
+
+[agent.config.createOptions]
+
+[agent.config.auth]
+
+[agent.env]
+
+[connect]
+workload_uri = "unix:///var/run/iotedge/workload.sock"
+management_uri = "unix:///var/run/iotedge/mgmt.sock"
+
+[listen]
+workload_uri = "fd://aziot-edged.workload.socket"
+management_uri = "fd://aziot-edged.mgmt.socket"
+min_tls_version = "tls1.0"
+
+[watchdog]
+max_retries = "infinite"
+
+[edge_ca]
+auto_generated_edge_ca_expiry_days = 90
+
+[moby_runtime]
+uri = "unix:///var/run/docker.sock"
+network = "azure-iot-edge"

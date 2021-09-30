@@ -9,12 +9,10 @@ method = "self_signed"
 
 [preloaded_certs]
 aziot-edged-trust-bundle = ["aziot-edged-ca"]
-"content-trust-contoso1.azurecr.io" = "file:///var/secrets/contoso1-ca.pem"
-"content-trust-contoso2.azurecr.io" = "file:///var/secrets/contoso2-ca.pem"
 
 [[principal]]
 uid = 5556
-certs = ["aziot-dps-trust-bundle"]
+certs = ["my-dps-trust-bundle"]
 
 [[principal]]
 uid = 5558

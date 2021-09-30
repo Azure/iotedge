@@ -20,5 +20,9 @@ est-bootstrap-id-aziot-edged-ca = "file:///var/secrets/est-bootstrap-id.pem"
 trust-bundle-user = "file:///var/secrets/trusted-ca.pem"
 
 [[principal]]
+uid = 5556
+certs = ["aziot-dps-trust-bundle"]
+
+[[principal]]
 uid = 5558
 certs = ["aziot-edged-ca", "aziot-edged/module/*"]

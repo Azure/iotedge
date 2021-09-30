@@ -11,5 +11,9 @@ method = "self_signed"
 aziot-edged-trust-bundle = ["aziot-edged-ca"]
 
 [[principal]]
+uid = 5556
+certs = ["aziot-dps-trust-bundle"]
+
+[[principal]]
 uid = 5558
 certs = ["aziot-edged-ca", "aziot-edged/module/*"]
