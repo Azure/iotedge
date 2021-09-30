@@ -694,6 +694,14 @@ mod tests {
                 ),
             );
 
+            std::env::set_var(
+                "AZIOT_EDGED_CONFIG_DIR",
+                format!(
+                    "{}/../edgelet-settings/test-files/config.d",
+                    env!("CARGO_MANIFEST_DIR")
+                ),
+            );
+
             let mut check = Check::new(
                 "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
@@ -738,6 +746,14 @@ mod tests {
                     "{}/../edgelet-settings/test-files/{}",
                     env!("CARGO_MANIFEST_DIR"),
                     filename,
+                ),
+            );
+
+            std::env::set_var(
+                "AZIOT_EDGED_CONFIG_DIR",
+                format!(
+                    "{}/../edgelet-settings/test-files/config.d",
+                    env!("CARGO_MANIFEST_DIR")
                 ),
             );
 
@@ -789,6 +805,14 @@ mod tests {
             ),
         );
 
+        std::env::set_var(
+            "AZIOT_EDGED_CONFIG_DIR",
+            format!(
+                "{}/../edgelet-settings/test-files/config.d",
+                env!("CARGO_MANIFEST_DIR")
+            ),
+        );
+
         let mut check = Check::new(
             "daemon.json".into(), // unused for this test
             "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
@@ -822,6 +846,14 @@ mod tests {
                 "{}/../edgelet-settings/test-files/{}",
                 env!("CARGO_MANIFEST_DIR"),
                 filename,
+            ),
+        );
+
+        std::env::set_var(
+            "AZIOT_EDGED_CONFIG_DIR",
+            format!(
+                "{}/../edgelet-settings/test-files/config.d",
+                env!("CARGO_MANIFEST_DIR")
             ),
         );
 
@@ -873,6 +905,7 @@ mod tests {
 
         // unset var to make sure we have a clean start
         std::env::remove_var("AZIOT_EDGED_CONFIG");
+        std::env::remove_var("AZIOT_EDGED_CONFIG_DIR");
 
         // Setup the https_proxy environment var
         let env_proxy_uri1 = "https://environment1:123";
@@ -913,6 +946,14 @@ mod tests {
                 "{}/../edgelet-settings/test-files/{}",
                 env!("CARGO_MANIFEST_DIR"),
                 "sample_settings_with_proxy_uri.toml",
+            ),
+        );
+
+        std::env::set_var(
+            "AZIOT_EDGED_CONFIG_DIR",
+            format!(
+                "{}/../edgelet-settings/test-files/config.d",
+                env!("CARGO_MANIFEST_DIR")
             ),
         );
 
