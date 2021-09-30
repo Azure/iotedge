@@ -123,8 +123,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             {
                 try
                 {
-                    await configDownloadTask;
-                    await Task.WhenAll(mqttBrokerProtocolHead.StartAsync(), edgeHubProtocolHead.StartAsync());
+                    await Task.WhenAll(mqttBrokerProtocolHead.StartAsync(), configDownloadTask);
+                    await edgeHubProtocolHead.StartAsync();
                     await Task.WhenAny(cts.Token.WhenCanceled(), renewal.Token.WhenCanceled());
                 }
                 catch (Exception ex)
