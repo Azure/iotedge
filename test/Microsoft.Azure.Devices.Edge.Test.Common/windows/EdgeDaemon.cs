@@ -104,7 +104,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             var sc = new ServiceController("iotedge");
             if (sc.Status != ServiceControllerStatus.Stopped)
             {
-                sc.Stop();
+                // Sometimes Windows will throw ERROR_SERVICE_CANNOT_ACCEPT_CTRL ("The service
+                // cannot accept control messages at this time.") when we try to stop a service.
+                // When that happens, wait a couple seconds and try again.
+                await Retry.Do(
+                    () =>
+                    {
+                        sc.Refresh();
+                        sc.Stop();
+                        return Task.FromResult(true);
+                    },
+                    _ => true,
+                    e => e is Win32Exception ex && ex.ErrorCode == 1061, // ERROR_SERVICE_CANNOT_ACCEPT_CTRL
+                    TimeSpan.FromSeconds(2),
+                    token
+                );
                 await WaitForStatusAsync(sc, ServiceControllerStatus.Stopped, token);
             }
         }
