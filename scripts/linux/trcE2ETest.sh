@@ -267,7 +267,7 @@ function clean_up() {
     rm -rf /var/lib/iotedge/
     rm -rf /etc/aziot/
     rm -rf /etc/systemd/system/aziot-*.service.d/
-    
+
     if [ "$CLEAN_ALL" = '1' ]; then
         echo 'Prune docker system'
         docker system prune -af --volumes || true
@@ -291,6 +291,16 @@ function print_deployment_logs() {
     docker logs edgeAgent || true
 }
 
+
+function get_support_bundle_logs(){
+    
+    echo "Getting Support Bundle Logs"
+    mkdir -p $working_folder/support
+    iotedge support-bundle -o $working_folder/support/iotedge_support_bundle.zip
+    echo "finished getting support Bundle Logs"
+
+}
+
 function print_test_run_logs() {
     local ret=$1
 
@@ -298,16 +308,12 @@ function print_test_run_logs() {
     print_highlighted_message 'Print logs'
     print_highlighted_message 'testResultCoordinator LOGS'
     docker logs testResultCoordinator || true
+    get_support_bundle_logs
 
     if (( ret < 1 )); then
         return;
     fi
-
-    echo "Getting Support Bundle Logs"
-    mkdir -p $working_folder/support
-    iotedge support-bundle -o $working_folder/support/iotedge_support_bundle.zip
-    echo "finished getting support Bundle Logs"
-
+    
     print_deployment_logs
 
     print_highlighted_message '========== Logs from edgeHub =========='
