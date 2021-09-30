@@ -24,11 +24,11 @@ edgelet-http = { path = "../edgelet-http" }
 edgelet-settings = { path = "../edgelet-settings" }
 support-bundle = { path = "../support-bundle" }
 
-aziot-identity-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-identity-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs" }
+aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs" }
+aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs" }
 
-http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main", features = ["tokio1"] }
+http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs", features = ["tokio1"] }
 
 [dev-dependencies]
 nix = "0.22"

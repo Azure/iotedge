@@ -26,20 +26,20 @@ edgelet-core = { path = "../edgelet-core" }
 edgelet-http = { path = "../edgelet-http" }
 edgelet-settings = { path = "../edgelet-settings" }
 
-aziot-key-client = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-openssl-engine = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-key-client = { git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs" }
+aziot-key-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs" }
+aziot-key-common = { git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs" }
+aziot-key-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs" }
+aziot-key-openssl-engine = { git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs" }
 
-aziot-cert-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-cert-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-cert-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs" }
+aziot-cert-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs" }
 
-aziot-identity-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-identity-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs" }
+aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs" }
+aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs" }
 
-http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main", features = ["tokio1"] }
+http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs", features = ["tokio1"] }
 
 [dev-dependencies]
 nix = "0.22"

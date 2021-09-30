@@ -19,6 +19,6 @@ serde = "1"
 edgelet-core = { path = "../edgelet-core" }
 edgelet-settings = { path = "../edgelet-settings" }
 
-aziot-key-client = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-key-client = { git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs" }
+aziot-key-common = { git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs" }
+aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs" }

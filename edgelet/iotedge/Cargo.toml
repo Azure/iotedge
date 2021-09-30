@@ -40,22 +40,22 @@ typed-headers = "0.1.1"
 url = "2"
 zip = "0.5.3"
 
-aziot-certd-config = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
-aziot-identity-client-async = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
-aziot-identity-common = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
-aziot-identity-common-http = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
-aziot-identityd-config = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
-aziot-keyd-config = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
-aziot-keys-common = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
-aziot-tpmd-config = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
-aziotctl-common = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
-config-common = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
+aziot-certd-config = {git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs"}
+aziot-identity-client-async = {git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs"}
+aziot-identity-common = {git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs"}
+aziot-identity-common-http = {git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs"}
+aziot-identityd-config = {git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs"}
+aziot-keyd-config = {git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs"}
+aziot-keys-common = {git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs"}
+aziot-tpmd-config = {git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs"}
+aziotctl-common = {git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs"}
+config-common = {git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs"}
 docker = {path = "../docker-rs"}
 edgelet-core = {path = "../edgelet-core"}
 edgelet-http = {path = "../edgelet-http"}
 edgelet-settings = {path = "../edgelet-settings", features = ["settings-docker"]}
 edgelet-utils = {path = "../edgelet-utils"}
-http-common = {git = "https://github.com/Azure/iot-identity-service", features = ["tokio1"], branch = "main"}
+http-common = {git = "https://github.com/Azure/iot-identity-service", features = ["tokio1"], branch = "dps_certs"}
 support-bundle = {path = "../support-bundle"}
 
 [dev-dependencies]

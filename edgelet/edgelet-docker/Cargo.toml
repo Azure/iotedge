@@ -22,14 +22,14 @@ sysinfo = "0.14.10"
 tokio = {version = "1", features = ["process", "macros"]}
 url = {version = "2", features = ["serde"]}
 
-aziot-cert-client-async = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
-aziot-cert-common-http = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
-config-common = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
+aziot-cert-client-async = {git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs"}
+aziot-cert-common-http = {git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs"}
+config-common = {git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs"}
 docker = {path = "../docker-rs"}
 edgelet-core = {path = "../edgelet-core"}
 edgelet-settings = {path = "../edgelet-settings", features = ["settings-docker"]}
 edgelet-utils = {path = "../edgelet-utils"}
-http-common = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
+http-common = {git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs"}
 libc = "0.2.66"
 
 [dev_dependencies]
