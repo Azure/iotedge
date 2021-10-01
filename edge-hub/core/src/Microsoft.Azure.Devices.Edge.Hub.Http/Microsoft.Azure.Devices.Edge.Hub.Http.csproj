@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Devices" Version="1.28.4-NestedEdge" />
+    <PackageReference Include="Microsoft.Azure.Devices" Version="1.31.1" />
   </ItemGroup>
 
   <ItemGroup>
