@@ -8,10 +8,12 @@ parameters:
   bin_dir: ''
 
 steps:
-  - task: DownloadPipelineArtifact@2
+  - task: DownloadBuildArtifacts@0
     inputs:
-      source: 'current'
-      path: '$(Build.ArtifactStagingDirectory)'
+      buildType: 'current'
+      downloadPath: '$(Build.ArtifactStagingDirectory)'
+      downloadType: 'single'
+      artifactName: 'core-linux'
 
   - task: CopyFiles@2
     displayName: Copy Edge Hub Artifacts

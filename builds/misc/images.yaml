@@ -145,12 +145,11 @@ stages:
     - script: scripts/linux/createArtifactInfo.sh --output-folder '$(Build.BinariesDirectory)/publish' --build-number $(Build.BuildNumber)
       displayName: 'Create Artifact Info File'   
 
-    - task: PublishPipelineArtifact@1
+    - task: PublishBuildArtifacts@1
       displayName: 'Publish Artifacts'
       inputs:
         targetPath: '$(Build.BinariesDirectory)/publish'
         artifactName: 'core-linux'
-        artifactType: 'pipeline'     
 
 ################################################################################
 - stage:  BuildImages

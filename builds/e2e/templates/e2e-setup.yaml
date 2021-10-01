@@ -22,7 +22,7 @@ steps:
       TestRootCaPassword,
       TestBlobStoreSas
 
-- task: DownloadPipelineArtifact@2
+- task: DownloadBuildArtifacts@0
   displayName: Get Docker image info
   inputs:
     buildType: specific
@@ -30,10 +30,10 @@ steps:
     pipeline: $(resources.pipeline.images.pipelineName)
     buildVersionToDownload: specific
     buildId: $(resources.pipeline.images.runID)
+    downloadType: single    
     artifactName: $(az.pipeline.images.artifacts)
     allowPartiallySucceededBuilds: true
-    itemPattern: artifactInfo.txt
-    path: $(System.ArtifactsDirectory)
+    itemPattern: $(az.pipeline.images.artifacts)/artifactInfo.txt
 
 - task: DownloadBuildArtifacts@0
   displayName: Download edgelet packages
