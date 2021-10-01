@@ -33,7 +33,7 @@ steps:
     artifactName: $(az.pipeline.images.artifacts)
     allowPartiallySucceededBuilds: true
     itemPattern: $(az.pipeline.images.artifacts)/artifactInfo.txt
-    path: $(System.ArtifactsDirectory)/$(artifactName))
+    path: $(System.ArtifactsDirectory)
 
 - task: DownloadPipelineArtifact@2
   displayName: Download edgelet packages
@@ -45,7 +45,7 @@ steps:
     buildId: $(resources.pipeline.packages.runID)
     artifactName: $(artifactName)
     allowPartiallySucceededBuilds: true
-    path: $(az.pipeline.images.artifacts)/artifactInfo.txt
+    path: $(System.ArtifactsDirectory)
 
 - task: PowerShell@2
   displayName: 'Download aziot-identity-service'
