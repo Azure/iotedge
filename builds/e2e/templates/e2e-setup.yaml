@@ -79,7 +79,7 @@ steps:
 
 - pwsh: |
     $imageId = Get-Content -Encoding Utf8 `
-      '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'
+      '$(System.ArtifactsDirectory)/artifactInfo.txt'
     $imageId = ($imageId -split '=')[1]
     $imageTag = "$imageId-$(os)-$(arch)"
 
