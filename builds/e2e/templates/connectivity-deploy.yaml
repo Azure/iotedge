@@ -164,7 +164,7 @@ steps:
   - pwsh: |
       $logDir = '$(Build.ArtifactStagingDirectory)/logs${{ parameters['networkController.description'] }}'
       New-Item $logDir -ItemType Directory -Force | Out-Null
-      $artifactSuffix = '$(Build.BuildNumber)-${{ parameters['networkController.description'] }}' -replace '[_|/|(|)]','-'
+      $artifactSuffix = '$(Build.BuildNumber)-${{ parameters['networkController.description'] }}' -replace '[_|/|(]','-' -replace '[)]',''
       Copy-Item "$(Agent.HomeDirectory)/../working/support/*.zip" "$logDir/"
       Write-Output "##vso[task.setvariable variable=artifactSuffix] $artifactSuffix"
     displayName: "Copy Support Bundle"
