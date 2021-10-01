@@ -129,8 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                         return false;
                     },
                     TimeSpan.FromSeconds(2),
-                    token
-                );
+                    token);
                 await WaitForStatusAsync(sc, ServiceControllerStatus.Stopped, token);
             }
         }
