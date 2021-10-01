@@ -10,7 +10,9 @@ variables:
   NugetSecurityAnalysisWarningLevel: warn
 
 stages:
+################################################################################
 - stage: BuildExecutables
+################################################################################
   displayName: Build Excecutables
   pool:
     name: $(pool.linux.name)
@@ -24,20 +26,34 @@ stages:
     - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
       name: build
       displayName: Build ($(Build.Configuration)) dotnet artifacts
+
     - task: PublishPipelineArtifact@1
       displayName: Publish Dotnet Artifacts
       inputs:
         targetPath: '$(Build.BinariesDirectory)/publish'
         artifactName: 'dotnet_artifacts'
         artifactType: 'pipeline'
+
   - template: templates/build-broker-watchdog.yaml
+
   - template: templates/build-api-proxy.yaml
+
   - template: templates/rust-test-module-build.yaml
     parameters:
       module.path: 'test/modules/generic-mqtt-tester'
       module.name: 'generic-mqtt-tester'   
 
+  # This stage first downloads the build artifacts from the previous stage, then
+  # copies the mqtt and watchdog artifacts into the appropriate directories 
+  # required by consolidate-build-artifacts.sh. It then runs consolidate-build-artifacts.sh,
+  # which moves the EH dockerfile, edge-hub executable, watchdog executable, and mqttd
+  # executable into the appropriate directories for building the edge-hub image in the 
+  # 'Build Images' stage of this pipeline.  Finally, this stage consolidates the aforementioned
+  # EH artifacts with the other dotnet artifacts and publishes them all in an artifact named
+  # 'core-linux'.      
+################################################################################
 - stage: ConsolidateAndPubishArtifacts
+################################################################################
   displayName: Consolidate And Publish Artifacts
   pool:
     name: $(pool.linux.name)
@@ -45,43 +61,49 @@ stages:
       - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker  
   dependsOn: BuildExecutables
   jobs:
-  - job: ConsolidateEdgeHubArtifacts
+  - job: ConsolidateAndPublishArtifacts
     steps:
     - task: DownloadPipelineArtifact@2
       displayName: Download Artifacts
       inputs:
         source: 'current'
         path: '$(Build.ArtifactStagingDirectory)'
+
     - task: CopyFiles@2
       displayName: Copy mqttd (amd64)
       inputs:
         sourceFolder: '$(Build.ArtifactStagingDirectory)/mqttd_amd64'
         contents: 'mqttd'
-        targetFolder: '$(Build.ArtifactStagingDirectory)/mqtt/target/x86_64-unknown-linux-musl/release'        
+        targetFolder: '$(Build.ArtifactStagingDirectory)/mqtt/target/x86_64-unknown-linux-musl/release'   
+
     - task: CopyFiles@2
       displayName: Copy mqttd (arm32)    
       inputs:  
         sourceFolder: '$(Build.ArtifactStagingDirectory)/mqttd_arm32'        
         contents: 'mqttd'
         targetFolder: '$(Build.ArtifactStagingDirectory)/mqtt/target/armv7-unknown-linux-gnueabihf/release'
+
     - task: CopyFiles@2
       displayName: Copy mqttd (arm64)    
       inputs:    
         sourceFolder: '$(Build.ArtifactStagingDirectory)/mqttd_arm64'              
         contents: 'mqttd'
         targetFolder: '$(Build.ArtifactStagingDirectory)/mqtt/target/aarch64-unknown-linux-gnu/release'
+
     - task: CopyFiles@2
       displayName: Copy watchdog (amd64)    
       inputs:
         sourceFolder: '$(Build.ArtifactStagingDirectory)/watchdog_amd64'              
         contents: 'watchdog'
         targetFolder: '$(Build.ArtifactStagingDirectory)/edge-hub/watchdog/target/x86_64-unknown-linux-musl/release'
+
     - task: CopyFiles@2
       displayName: Copy watchdog (arm32)    
       inputs:
         sourceFolder: '$(Build.ArtifactStagingDirectory)/watchdog_arm32'              
         contents: 'watchdog'
         targetFolder: '$(Build.ArtifactStagingDirectory)/edge-hub/watchdog/target/armv7-unknown-linux-gnueabihf/release'
+
     - task: CopyFiles@2
       displayName: Copy watchdog (arm64)    
       inputs:
@@ -90,15 +112,49 @@ stages:
         targetFolder: '$(Build.ArtifactStagingDirectory)/edge-hub/watchdog/target/aarch64-unknown-linux-gnu/release'                             
     - script: scripts/linux/consolidate-build-artifacts.sh --dotnet-artifacts-source-dir '$(Build.ArtifactStagingDirectory)/dotnet_artifacts' --rust-artifacts-source-dir '$(Build.ArtifactStagingDirectory)' --dest-dir '$(Build.BinariesDirectory)/publish' --artifact-name 'edge-hub'
       displayName: Consolidate Edge Hub Artifacts
+    
+    # TODO: Consider moving the following copies into consolidate-build-artifacts.sh
+    - task: CopyFiles@2
+      displayName: Copy/Stage dotnet '$(System.DefaultWorkingDirectory)/edge-modules/api-proxy-module/docker/manifest.yaml.template'
+      inputs:
+        sourceFolder: '$(Build.ArtifactStagingDirectory)/dotnet_artifacts'
+        contents: '**'
+        targetFolder: '$(Build.BinariesDirectory)/publish'
+
+    - task: CopyFiles@2
+      displayName: Copy API Proxy Artifacts (amd64)
+      inputs:
+        sourceFolder: '$(Build.ArtifactStagingDirectory)/api_proxy_x86_64'
+        contents: '**'
+        targetFolder: '$(Build.BinariesDirectory)/publish'       
+        
+    - task: CopyFiles@2
+      displayName: Copy API Proxy Artifacts (arm32)
+      inputs:
+        sourceFolder: '$(Build.ArtifactStagingDirectory)/api_proxy_armv7l'
+        contents: '**'
+        targetFolder: '$(Build.BinariesDirectory)/publish'    
+        
+    - task: CopyFiles@2
+      displayName: Copy API Proxy Artifacts (arm64)
+      inputs:
+        sourceFolder: '$(Build.ArtifactStagingDirectory)/api_proxy_aarch64'
+        contents: '**'
+        targetFolder: '$(Build.BinariesDirectory)/publish'         
+
     - script: scripts/linux/createArtifactInfo.sh --output-folder '$(Build.BinariesDirectory)/publish' --build-number $(Build.BuildNumber)
-      displayName: 'Create Artifact Info File'      
+      displayName: 'Create Artifact Info File'   
+
     - task: PublishPipelineArtifact@1
       displayName: 'Publish Artifacts'
       inputs:
         targetPath: '$(Build.BinariesDirectory)/publish'
         artifactName: 'core-linux'
-        artifactType: 'pipeline'      
+        artifactType: 'pipeline'     
+
+################################################################################
 - stage:  BuildImages
+################################################################################
   displayName: Build Images
   pool:
     name: $(pool.linux.name)
@@ -114,6 +170,7 @@ stages:
           imageName: azureiotedge-agent
           project: Microsoft.Azure.Devices.Edge.Agent.Service
           bin_dir: '$(Build.BinariesDirectory)'
+
   - job: BuildImageEdgeHub
     steps:
     - template: templates/image-linux.yaml
@@ -122,6 +179,7 @@ stages:
         imageName: azureiotedge-hub
         project: edge-hub
         bin_dir: '$(Build.BinariesDirectory)'
+
   - job: BuildImageTemperatureSensor
     steps:
     - template: templates/image-linux.yaml
@@ -130,6 +188,7 @@ stages:
         imageName: azureiotedge-simulated-temperature-sensor
         project: SimulatedTemperatureSensor
         bin_dir: '$(Build.BinariesDirectory)'
+
   - job: BuildImageDiagnostics
     steps:
     - template: templates/image-linux.yaml
@@ -138,6 +197,7 @@ stages:
         imageName: azureiotedge-diagnostics
         project: IotedgeDiagnosticsDotnet
         bin_dir: '$(Build.BinariesDirectory)'   
+
   - job: BuildImageTemperatureFilter
     steps:
     - template: templates/image-linux.yaml
@@ -146,6 +206,7 @@ stages:
         imageName: azureiotedge-temperature-filter
         project: TemperatureFilter
         bin_dir: '$(Build.BinariesDirectory)'    
+
   - job: BuildImageLoadGen
     steps:
     - template: templates/image-linux.yaml
@@ -162,6 +223,7 @@ stages:
         imageName: azureiotedge-analyzer
         project: TestAnalyzer
         bin_dir: '$(Build.BinariesDirectory)'    
+
     # Functions Sample - Not supported on linux arm64
   - job: BuildImageFunctionsSample
     steps:
@@ -171,6 +233,7 @@ stages:
         imageName: azureiotedge-functions-filter
         project: EdgeHubTriggerCSharp
         bin_dir: '$(Build.BinariesDirectory)'      
+
   - job: BuildImageDirectMethodSender
     steps:
     - template: templates/image-linux.yaml
@@ -179,6 +242,7 @@ stages:
         imageName: azureiotedge-direct-method-sender
         project: DirectMethodSender
         bin_dir: '$(Build.BinariesDirectory)'      
+
   - job: BuildImageDirectMethodReceiver
     steps:
     - template: templates/image-linux.yaml
@@ -187,6 +251,7 @@ stages:
         imageName: azureiotedge-direct-method-receiver
         project: DirectMethodReceiver
         bin_dir: '$(Build.BinariesDirectory)'      
+
   - job: BuildImageMetricsValidator
     steps:
     - template: templates/image-linux.yaml
@@ -195,6 +260,7 @@ stages:
         imageName: azureiotedge-metrics-validator
         project: MetricsValidator
         bin_dir: '$(Build.BinariesDirectory)'   
+
   - job: BuildImageNumberLogger
     steps:
     - template: templates/image-linux.yaml
@@ -203,6 +269,7 @@ stages:
         imageName: azureiotedge-number-logger
         project: NumberLogger
         bin_dir: '$(Build.BinariesDirectory)'      
+
   - job: BuildImageModuleRestarter
     steps:
     - template: templates/image-linux.yaml
@@ -211,6 +278,7 @@ stages:
         imageName: azureiotedge-module-restarter
         project: ModuleRestarter
         bin_dir: '$(Build.BinariesDirectory)'    
+
   - job: BuildImageTwinTester
     steps:
     - template: templates/image-linux.yaml
@@ -226,7 +294,8 @@ stages:
         name: Relayer
         imageName: azureiotedge-relayer
         project: Relayer
-        bin_dir: '$(Build.BinariesDirectory)'      
+        bin_dir: '$(Build.BinariesDirectory)'   
+
   - job: BuildImageNetworkController
     steps:
     - template: templates/image-linux.yaml
@@ -235,6 +304,7 @@ stages:
         imageName: azureiotedge-network-controller
         project: NetworkController
         bin_dir: '$(Build.BinariesDirectory)'     
+
   - job: BuildImageTestResultCoordinator
     steps:
     - template: templates/image-linux.yaml
@@ -243,6 +313,7 @@ stages:
         imageName: azureiotedge-test-result-coordinator
         project: TestResultCoordinator
         bin_dir: '$(Build.BinariesDirectory)'     
+
   - job: BuildImageMetricsCollector
     steps:
     - template: templates/image-linux.yaml
@@ -251,6 +322,7 @@ stages:
         imageName: azureiotedge-metrics-collector
         project: MetricsCollector
         bin_dir: '$(Build.BinariesDirectory)'   
+
   - job: BuildImageDeploymentTester
     steps:
     - template: templates/image-linux.yaml
@@ -258,7 +330,8 @@ stages:
         name: DeploymentTester
         imageName: azureiotedge-deployment-tester
         project: DeploymentTester
-        bin_dir: '$(Build.BinariesDirectory)'      
+        bin_dir: '$(Build.BinariesDirectory)'    
+
   - job: BuildImageEdgeHubRestartTester
     steps:
     - template: templates/image-linux.yaml
@@ -267,6 +340,7 @@ stages:
         imageName: azureiotedge-edgehub-restart-tester
         project: EdgeHubRestartTester
         bin_dir: '$(Build.BinariesDirectory)'   
+
   - job: BuildImageCloudToDeviceMessageTester
     steps:
     - template: templates/image-linux.yaml
@@ -275,6 +349,7 @@ stages:
         imageName: azureiotedge-c2dmessage-tester
         project: CloudToDeviceMessageTester     
         bin_dir: '$(Build.BinariesDirectory)'
+        
   - job: BuildImageApiProxy 
     steps:
     - template: templates/image-linux.yaml
@@ -331,7 +406,9 @@ stages:
       inputs:
         command: login
         containerRegistry: iotedge-edgebuilds-acr
+
     - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(manifestFilePath) -n microsoft --tags "$(tags)"
+
   - job: ComponentGovernance
     steps:
     - task: ComponentGovernanceComponentDetection@0
