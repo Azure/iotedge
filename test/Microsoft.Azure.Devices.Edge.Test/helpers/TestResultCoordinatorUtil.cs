@@ -89,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 });
         }
 
-        public static async Task ValidateResultsAsync()
+        public static async Task<bool> IsResultValidAsync()
         {
             HttpClient client = new HttpClient();
             HttpResponseMessage response = await client.GetAsync(TestResultCoordinatorUrl);
@@ -109,7 +109,40 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 Log.Information("Test Result Coordinator response: {Response}", jsonstring);
             }
 
-            Assert.IsTrue(isPassed);
+            return isPassed;
+        }
+
+        public static async Task<bool> IsCountingReportResultValidAsync(int numResultsExpected)
+        {
+            HttpClient client = new HttpClient();
+            HttpResponseMessage response = await client.GetAsync(TestResultCoordinatorUrl);
+            var jsonstring = await response.Content.ReadAsStringAsync();
+            bool isTestReportValid;
+            int expected;
+            int matched;
+            try
+            {
+                isTestReportValid = (bool)JArray.Parse(jsonstring)[0]["IsPassed"];
+
+                expected = (int)JArray.Parse(jsonstring)[0]["TotalExpectCount"];
+                matched = (int)JArray.Parse(jsonstring)[0]["TotalMatchCount"];
+
+                if (expected != numResultsExpected || matched != numResultsExpected)
+                {
+                    isTestReportValid = false;
+                }
+            }
+            catch
+            {
+                isTestReportValid = false;
+            }
+
+            if (!isTestReportValid)
+            {
+                Log.Verbose("Test Result Coordinator response: {Response}", jsonstring);
+            }
+
+            return isTestReportValid;
         }
     }
 }
