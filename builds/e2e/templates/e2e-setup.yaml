@@ -32,7 +32,7 @@ steps:
     buildId: $(resources.pipeline.images.runID)
     artifactName: $(az.pipeline.images.artifacts)
     allowPartiallySucceededBuilds: true
-    itemPattern: $(az.pipeline.images.artifacts)/artifactInfo.txt
+    itemPattern: artifactInfo.txt
     path: $(System.ArtifactsDirectory)
 
 - task: DownloadPipelineArtifact@2
