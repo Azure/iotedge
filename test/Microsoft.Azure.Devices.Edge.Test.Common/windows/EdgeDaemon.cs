@@ -115,7 +115,19 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                         return Task.FromResult(true);
                     },
                     _ => true,
-                    e => e is Win32Exception ex && ex.ErrorCode == 1061, // ERROR_SERVICE_CANNOT_ACCEPT_CTRL
+                    e =>
+                    {
+                        // ERROR_SERVICE_CANNOT_ACCEPT_CTRL
+                        if (e is Win32Exception ex && ex.ErrorCode == 1061)
+                        {
+                            Log.Verbose(
+                                "While attempting to stop IoT Edge, Windows returned an error ({Error}). Retrying...",
+                                e.Message);
+                            return true;
+                        }
+
+                        return false;
+                    },
                     TimeSpan.FromSeconds(2),
                     token
                 );
