@@ -16,7 +16,7 @@ steps:
       artifactName: 'core-linux'
 
   - task: CopyFiles@2
-    displayName: Copy Edge Hub Artifacts
+    displayName: Copy Artifacts
     inputs:
       sourceFolder: '$(Build.ArtifactStagingDirectory)/core-linux'
       contents: '**'

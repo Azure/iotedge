@@ -148,7 +148,7 @@ stages:
     - task: PublishBuildArtifacts@1
       displayName: 'Publish Artifacts'
       inputs:
-        targetPath: '$(Build.BinariesDirectory)/publish'
+        pathToPublish: '$(Build.BinariesDirectory)/publish'
         artifactName: 'core-linux'
 
 ################################################################################
