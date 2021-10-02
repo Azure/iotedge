@@ -160,20 +160,17 @@ steps:
       E2E_parentHostname: ${{ parameters['connectivity.parentHostname'] }}
       E2E_parentEdgeDevice: ${{ parameters['connectivity.parentEdgeDevice'] }} 
       E2E_hostname: $(Hostname)
-
+  
   - pwsh: |
-      $logDir = '$(Build.ArtifactStagingDirectory)/logs${{ parameters['networkController.description'] }}'
-      New-Item $logDir -ItemType Directory -Force | Out-Null
       $artifactSuffix = '$(Build.BuildNumber)-${{ parameters['networkController.description'] }}' -replace '[_|/|(]','-' -replace '[)]',''
-      Copy-Item "$(Agent.HomeDirectory)/../working/support/*.zip" "$logDir/"
       Write-Output "##vso[task.setvariable variable=artifactSuffix] $artifactSuffix"
-    displayName: "Copy Support Bundle"
+    displayName: "Set Artifact Name"
     condition: succeededOrFailed()
 
   - task: PublishBuildArtifacts@1
     displayName: "Publish Support Bundle"
     inputs:
-      PathtoPublish: $(Build.ArtifactStagingDirectory)/logs${{ parameters['networkController.description'] }}
+      PathtoPublish: $(Agent.HomeDirectory)/../working/support
       ArtifactName: logs-$(artifactSuffix)
     condition: succeededOrFailed()
     

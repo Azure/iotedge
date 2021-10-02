@@ -293,12 +293,11 @@ function print_deployment_logs() {
 
 
 function get_support_bundle_logs(){
-    
+
     echo "Getting Support Bundle Logs"
     mkdir -p $working_folder/support
     iotedge support-bundle -o $working_folder/support/iotedge_support_bundle.zip
-    echo "finished getting support Bundle Logs"
-
+    echo "Finished getting support Bundle Logs"
 }
 
 function print_test_run_logs() {
@@ -782,8 +781,8 @@ function run_connectivity_test() {
         else
             testExitCode=0
         fi
-
-        print_test_run_logs $testExitCode
+        
+        get_support_bundle_logs
 
         # stop IoT Edge service after test complete to prevent sending metrics
         stop_aziot_edge
