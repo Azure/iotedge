@@ -294,10 +294,10 @@ function print_deployment_logs() {
 
 function get_support_bundle_logs(){
 
-    echo "Getting Support Bundle Logs"
+    print_highlighted_message "Getting Support Bundle Logs"
     mkdir -p $working_folder/support
     iotedge support-bundle -o $working_folder/support/iotedge_support_bundle.zip
-    echo "Finished getting support Bundle Logs"
+    print_highlighted_message "Finished getting support Bundle Logs"
 }
 
 function print_test_run_logs() {
@@ -307,7 +307,6 @@ function print_test_run_logs() {
     print_highlighted_message 'Print logs'
     print_highlighted_message 'testResultCoordinator LOGS'
     docker logs testResultCoordinator || true
-    get_support_bundle_logs
 
     if (( ret < 1 )); then
         return;
@@ -762,7 +761,6 @@ function run_connectivity_test() {
 
             if [ "$is_build_canceled" -eq '1' ]; then
                 print_highlighted_message "build is canceled."
-                print_highlighted_message "Getting Support Bundle Logs"
                 get_support_bundle_logs
                 stop_aziot_edge || true
                 return 3
