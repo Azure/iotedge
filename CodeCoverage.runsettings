@@ -77,6 +77,7 @@ Included items must then not match any entries in the exclude list to remain inc
                 <ModulePath>.*testanalyzer\..*</ModulePath>
                 <ModulePath>.*testresultcoordinator\..*</ModulePath>
                 <ModulePath>.*twintester\..*</ModulePath>
+                <ModulePath>.*microsoft.azure.webjobs.*</ModulePath>
               </Exclude>
             </ModulePaths>
 

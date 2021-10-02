@@ -2,10 +2,12 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
 {
     using System;
+    using System.ComponentModel;
     using System.IO;
     using System.Linq;
     using System.Net;
     using System.ServiceProcess;
+    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -48,12 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             };
 
             await Profiler.Run(
-                async () =>
-                {
-                    string[] output =
-                        await Process.RunAsync("powershell", string.Join(";", commands), token);
-                    Log.Verbose(string.Join("\n", output));
-                },
+                async () => await Process.RunAsync("powershell", string.Join(";", commands), token),
                 message,
                 properties);
         }
@@ -107,7 +104,32 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             var sc = new ServiceController("iotedge");
             if (sc.Status != ServiceControllerStatus.Stopped)
             {
-                sc.Stop();
+                // Sometimes Windows will throw ERROR_SERVICE_CANNOT_ACCEPT_CTRL ("The service
+                // cannot accept control messages at this time.") when we try to stop a service.
+                // When that happens, wait a couple seconds and try again.
+                await Retry.Do(
+                    () =>
+                    {
+                        sc.Refresh();
+                        sc.Stop();
+                        return Task.FromResult(true);
+                    },
+                    _ => true,
+                    e =>
+                    {
+                        // ERROR_SERVICE_CANNOT_ACCEPT_CTRL
+                        if (e is Win32Exception ex && ex.ErrorCode == 1061)
+                        {
+                            Log.Verbose(
+                                "While attempting to stop IoT Edge, Windows returned an error ({Error}). Retrying...",
+                                e.Message);
+                            return true;
+                        }
+
+                        return false;
+                    },
+                    TimeSpan.FromSeconds(2),
+                    token);
                 await WaitForStatusAsync(sc, ServiceControllerStatus.Stopped, token);
             }
         }
@@ -126,12 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             };
 
             await Profiler.Run(
-                async () =>
-                {
-                    string[] output =
-                        await Process.RunAsync("powershell", string.Join(";", commands), token);
-                    Log.Verbose(string.Join("\n", output));
-                },
+                async () => await Process.RunAsync("powershell", string.Join(";", commands), token),
                 "Uninstalled edge daemon");
         }
 
@@ -164,13 +181,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             };
 
             await Profiler.Run(
-                async () =>
-                {
-                    await Process.RunAsync(
-                        "powershell",
-                        string.Join(';', commands),
-                        token);
-                },
+                async () => await Process.RunAsync("powershell", string.Join(';', commands), token),
                 "Downloaded Edge daemon Windows installer from '{Address}'",
                 Address);
 

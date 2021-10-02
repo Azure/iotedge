@@ -130,6 +130,10 @@ impl RuntimeSettings for Settings {
         self.base.hostname()
     }
 
+    fn allow_elevated_docker_permissions(&self) -> bool {
+        true
+    }
+
     fn connect(&self) -> &Connect {
         self.base.connect()
     }

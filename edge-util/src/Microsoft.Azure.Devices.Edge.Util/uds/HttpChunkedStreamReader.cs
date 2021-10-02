@@ -116,6 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
             return bytesRead;
         }
 
+        // Underlying Stream does not support Seek()
         public override long Seek(long offset, SeekOrigin origin) => throw new NotImplementedException();
 
         public override void SetLength(long value) => throw new NotImplementedException();

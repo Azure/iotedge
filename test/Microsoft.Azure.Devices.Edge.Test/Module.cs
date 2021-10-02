@@ -65,6 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         [Test]
         [Category("CentOsSafe")]
+        [Category("Flaky")]
         public async Task TempFilter()
         {
             const string filterName = "tempFilter";
@@ -91,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 TempFilterToCloud = $"FROM /messages/modules/{filterName}/outputs/alertOutput INTO $upstream",
                                 TempSensorToTempFilter = $"FROM /messages/modules/{SensorName}/outputs/temperatureOutput INTO BrokeredEndpoint('/modules/{filterName}/inputs/input1')"
                             }
-                        } );
+                        });
                 },
                 token);
 
@@ -100,6 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
+        [Category("Flaky")]
         // Test Temperature Filter Function: https://docs.microsoft.com/en-us/azure/iot-edge/tutorial-deploy-function
         public async Task TempFilterFunc()
         {
@@ -138,6 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         [Test]
         [Category("CentOsSafe")]
+        [Category("Flaky")]
         public async Task ModuleToModuleDirectMethod(
             [Values] Protocol protocol)
         {
@@ -172,6 +175,41 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             EdgeModule sender = deployment.Modules[methodSender];
             await sender.WaitForEventsReceivedAsync(deployment.StartTime, token);
+        }
+
+        [Test]
+        [Category("CentOsSafe")]
+        public async Task MetricsCollector()
+        {
+            const string metricsCollectorName = "metricsCollector";
+
+            string metricsCollectorImage = Context.Current.MetricsCollectorImage.Expect(() => new ArgumentException("metricsCollectorImage parameter is required for MetricsCollector test"));
+            string hubResourceId = Context.Current.HubResourceId.Expect(() => new ArgumentException("IOT_HUB_RESOURCE_ID is required for MetricsCollector test"));
+
+            CancellationToken token = this.TestToken;
+
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
+                builder =>
+                {
+                    builder.AddModule(metricsCollectorName, metricsCollectorImage)
+                        .WithEnvironment(new[]
+                        {
+                            ("UploadTarget", "IotMessage"),
+                            ("ResourceID", hubResourceId)
+                        });
+                    builder.GetModule(ModuleName.EdgeHub)
+                        .WithDesiredProperties(new Dictionary<string, object>
+                        {
+                            ["routes"] = new
+                            {
+                                AzureIotEdgeMetricsCollectorToCloud = $"FROM /messages/modules/{metricsCollectorName}/* INTO $upstream"
+                            }
+                        });
+                },
+                token);
+
+            EdgeModule azureIotEdgeMetricsCollector = deployment.Modules[metricsCollectorName];
+            await azureIotEdgeMetricsCollector.WaitForEventsReceivedAsync(deployment.StartTime, token);
         }
     }
 }

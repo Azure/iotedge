@@ -1,0 +1,107 @@
+trigger: none
+pr: none
+
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
+  Build.Configuration: release
+  
+jobs:
+################################################################################
+  - job: MetricsCollector_Linux
+################################################################################
+    displayName: Metrics Collector Linux Build
+    timeoutInMinutes: 30
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
+    steps:
+      - template: ../templates/install-dotnet2.yaml
+      - template: ../templates/install-dotnet3.yaml
+
+      # If you need to test this job. Create a new Service Connection in the Project Settings (Azure DevOps)
+      # and update the pipeline variable.
+      - task: Docker@2
+        displayName: Docker login edgerelease
+        inputs:
+          command: login
+          containerRegistry: $(service.connection)
+
+      - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
+        name: build
+        displayName: Build ($(Build.Configuration))
+
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifacts'
+        inputs:
+          PathtoPublish: '$(Build.BinariesDirectory)/publish'
+          ArtifactName: 'core-linux'
+
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Metrics Collector (customer-facing)
+          imageName: azureiotedge-metrics-collector
+          project: Microsoft.Azure.Devices.Edge.Azure.Monitor
+          version: $(version)
+
+################################################################################
+  - job: MetricsCollector_Windows
+################################################################################
+    displayName: Metrics Collector Windows Build
+    timeoutInMinutes: 30
+    pool:
+      name: $(pool.windows.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
+    workspace:
+      clean: all
+    steps:
+      - template: ../templates/install-dotnet2.yaml
+      - template: ../templates/install-dotnet3.yaml
+
+      # If you need to test this job. Create a new Service Connection in the Project Settings (Azure DevOps)
+      # and update the pipeline variable.
+      - task: Docker@2
+        displayName: Docker login edgerelease
+        inputs:
+          command: login
+          containerRegistry: $(service.connection)
+
+      - powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration:"$(Build.Configuration)" -PublishTests:$False -UpdateVersion
+        name: build
+        displayName: Build ($(Build.Configuration))
+
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifacts'
+        inputs:
+          PathtoPublish: '$(Build.BinariesDirectory)/publish'
+          ArtifactName: 'core-windows'
+
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Metrics Collector (customer-facing)
+          imageName: azureiotedge-metrics-collector
+          project: Microsoft.Azure.Devices.Edge.Azure.Monitor
+          version: $(version)          
+
+################################################################################
+  - job: manifest
+################################################################################
+    displayName: Publish Manifest Images
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby 
+    dependsOn:
+      - MetricsCollector_Linux
+      - MetricsCollector_Windows
+    steps:
+    # If you need to test this job. Create a new Service Connection in the Project Settings (Azure DevOps)
+    # and update the pipeline variable.
+    - task: Docker@2
+      displayName: Docker login edgerelease
+      inputs:
+        command: login
+        containerRegistry: $(service.connection)
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(version) -t $(System.DefaultWorkingDirectory)/edge-modules/azure-monitor/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+      displayName: 'Publish Metrics Collector Manifest'

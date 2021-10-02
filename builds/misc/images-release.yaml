@@ -13,16 +13,19 @@ jobs:
     displayName: LinuxDotnet
     pool: 
       vmImage: ubuntu-18.04
-    variables:
-      build.registry.address: edgebuilds.azurecr.io
-      build.registry.user: EdgeBuilds
-      registry.address: edgerelease.azurecr.io
-      registry.user: EdgeRelease
     steps: 
-      - bash: |
-            docker login '$(build.registry.address)' --username '$(build.registry.user)' --password '$(build.registry.password)'
-            docker login '$(registry.address)' --username '$(registry.user)' --password '$(registry.password)'
-        displayName: 'Docker Login'
+      # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
+      - task: Docker@2
+        displayName: Docker login edgebuilds
+        inputs:
+          command: login
+          containerRegistry: iotedge-edgebuilds-acr
+      - task: Docker@2
+        displayName: Docker login edgerelease
+        inputs:
+          command: login
+          containerRegistry: iotedge-release-acr
+      # Dotnet 2 needed for codesign
       - template: ../templates/install-dotnet2.yaml
       - template: ../templates/install-dotnet3.yaml
       - template: ../templates/dotnet3-globaljson.yaml # use dotnet 3 as primary install for build
@@ -252,6 +255,61 @@ jobs:
                 }
               ]
           signConfigType: inlineSignParams
+      - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+        displayName: "Metrics Collector Code Sign"
+        inputs: 
+          ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+          FolderPath: $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Azure.Monitor
+          Pattern: Microsoft.Azure.Devices.Edge.Azure.Monitor*.dll
+          SessionTimeout: 20
+          inlineOperation: |
+              [
+                {
+                    "keyCode": "CP-230012",
+                    "operationSetCode": "SigntoolSign",
+                    "parameters": [
+                    {
+                        "parameterName": "OpusName",
+                        "parameterValue": "Microsoft"
+                    },
+                    {
+                        "parameterName": "OpusInfo",
+                        "parameterValue": "http://www.microsoft.com"
+                    },
+                    {
+                        "parameterName": "Append",
+                        "parameterValue": "/as"
+                    },
+                    {
+                        "parameterName": "FileDigest",
+                        "parameterValue": "/fd \"SHA256\""
+                    },
+                    {
+                        "parameterName": "PageHash",
+                        "parameterValue": "/NPH"
+                    },
+                    {
+                        "parameterName": "TimeStamp",
+                        "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
+                    }
+                    ],
+                    "toolName": "sign",
+                    "toolVersion": "1.0"
+                },
+                {
+                    "keyCode": "CP-230012",
+                    "operationSetCode": "SigntoolVerify",
+                    "parameters": [
+                    {
+                        "parameterName": "VerifyAll",
+                        "parameterValue": "/all"
+                    }
+                    ],
+                    "toolName": "sign",
+                    "toolVersion": "1.0"
+                }
+              ]
+          signConfigType: inlineSignParams          
       - template: ../templates/dotnet3-globaljson.yaml # switch to dotnet 3 as primary install for nuget package
       - task: DotNetCoreCLI@2
         displayName: "Functions Binding nuget package"
@@ -312,6 +370,12 @@ jobs:
           name: "Diagnostics Module"
           project: IotedgeDiagnosticsDotnet
           version: $(version)
+      - template: templates/image-linux.yaml
+        parameters:
+          imageName: azureiotedge-metrics-collector
+          name: "Azure IoT Edge Metrics Collector"
+          project: Microsoft.Azure.Devices.Edge.Azure.Monitor
+          version: $(version)          
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifacts to VSTS'
         inputs:
@@ -322,21 +386,21 @@ jobs:
 ################################################################################
     displayName: Windows
     pool:
-      name: Azure-IoT-Edge-Core
+      name: $(pool.windows.name)
       demands: 
-        - Build-Image -equals true
-        - win-rs5
-        - DotNetFramework
-    variables:
-      build.registry.address: edgebuilds.azurecr.io
-      build.registry.user: EdgeBuilds
-      registry.address: edgerelease.azurecr.io
-      registry.user: EdgeRelease
+       - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
     steps: 
-      - script: |
-            docker login $(build.registry.address) -u $(build.registry.user) -p $(build.registry.password)
-            docker login $(registry.address) -u $(registry.user) -p $(registry.password)
-        displayName: 'docker login'
+      # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
+      - task: Docker@2
+        displayName: Docker login edgebuilds
+        inputs:
+          command: login
+          containerRegistry: iotedge-edgebuilds-acr
+      - task: Docker@2
+        displayName: Docker login edgerelease
+        inputs:
+          command: login
+          containerRegistry: iotedge-release-acr
       - template: ../templates/install-dotnet2.yaml
       - template: ../templates/install-dotnet3.yaml
       - powershell: "scripts/windows/build/Publish-Branch.ps1 -Configuration:\"$(configuration)\" -PublishTests:$False -UpdateVersion"
@@ -511,7 +575,7 @@ jobs:
         displayName: "azureiotedge-diagnostics Code Sign"
         inputs:
           ConnectedServiceName: "Azure IoT Edge Code Sign 2"
-          FolderPath: $(Build.BinariesDirectory)/publish/IotedgeDiagnosticsDotnet
+          FolderPath: $(Build.BinariesDirectory)\publish\IotedgeDiagnosticsDotnet
           Pattern: "Microsoft.Azure.Devices.Edge.*.dll,IotedgeDiagnosticsDotnet.dll"
           SessionTimeout: 20
           inlineOperation: |
@@ -562,6 +626,61 @@ jobs:
                 }
               ]
           signConfigType: inlineSignParams
+      - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+        displayName: "Metrics Collector Code Sign"
+        inputs: 
+          ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+          FolderPath: $(Build.BinariesDirectory)\publish\Microsoft.Azure.Devices.Edge.Azure.Monitor
+          Pattern: Microsoft.Azure.Devices.Edge.Azure.Monitor*.dll
+          SessionTimeout: 20
+          inlineOperation: |
+              [
+                {
+                    "keyCode": "CP-230012",
+                    "operationSetCode": "SigntoolSign",
+                    "parameters": [
+                    {
+                        "parameterName": "OpusName",
+                        "parameterValue": "Microsoft"
+                    },
+                    {
+                        "parameterName": "OpusInfo",
+                        "parameterValue": "http://www.microsoft.com"
+                    },
+                    {
+                        "parameterName": "Append",
+                        "parameterValue": "/as"
+                    },
+                    {
+                        "parameterName": "FileDigest",
+                        "parameterValue": "/fd \"SHA256\""
+                    },
+                    {
+                        "parameterName": "PageHash",
+                        "parameterValue": "/NPH"
+                    },
+                    {
+                        "parameterName": "TimeStamp",
+                        "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
+                    }
+                    ],
+                    "toolName": "sign",
+                    "toolVersion": "1.0"
+                },
+                {
+                    "keyCode": "CP-230012",
+                    "operationSetCode": "SigntoolVerify",
+                    "parameters": [
+                    {
+                        "parameterName": "VerifyAll",
+                        "parameterValue": "/all"
+                    }
+                    ],
+                    "toolName": "sign",
+                    "toolVersion": "1.0"
+                }
+              ]
+          signConfigType: inlineSignParams          
       - task: PowerShell@2
         displayName: "Build Image - Edge Agent - amd64"
         inputs: 
@@ -586,6 +705,12 @@ jobs:
           arguments: "-Name 'azureiotedge-diagnostics' -Project 'IotedgeDiagnosticsDotnet' -Version '$(version)' -Registry '$(registry.address)' -Namespace '$(namespace)' -Push"
           filePath: ./scripts/windows/build/Publish-DockerImage.ps1
           targetType: filePath
+      - task: PowerShell@2
+        displayName: "Build Image - Metrics Collector - amd64"
+        inputs:
+          arguments: "-Name 'azureiotedge-metrics-collector' -Project 'Microsoft.Azure.Devices.Edge.Azure.Monitor' -Version '$(version)' -Registry '$(registry.address)' -Namespace '$(namespace)' -Push"
+          filePath: ./scripts/windows/build/Publish-DockerImage.ps1
+          targetType: filePath          
       - task: PublishBuildArtifacts@1
         displayName: "Publish Artifacts to VSTS"
         inputs: 
@@ -601,11 +726,24 @@ jobs:
       - linux_dotnet_projects
       - windows
     steps:
-    - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -u '$(registry.user)' -p '$(registry.password)' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
+    # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
+    - task: Docker@2
+      displayName: Docker login edgebuilds
+      inputs:
+        command: login
+        containerRegistry: iotedge-edgebuilds-acr
+    - task: Docker@2
+      displayName: Docker login edgerelease
+      inputs:
+        command: login
+        containerRegistry: iotedge-release-acr
+    - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
       displayName: 'Publish azureiotedge-diagnostics Manifest'
-    - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -u '$(registry.user)' -p '$(registry.password)' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-agent/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
+    - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-agent/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
       displayName: 'Publish Edge Agent Manifest'
-    - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -u '$(registry.user)' -p '$(registry.password)' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-hub/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
+    - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-hub/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
       displayName: 'Publish Edge Hub Manifest'
-    - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -u '$(registry.user)' -p '$(registry.password)' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
+    - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-modules/azure-monitor/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
+      displayName: 'Publish Metrics Collector Manifest'      
+    - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
       displayName: 'Publish Temperature Sensor Manifest'

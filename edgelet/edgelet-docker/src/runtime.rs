@@ -8,19 +8,22 @@ use std::time::Duration;
 use failure::{Fail, ResultExt};
 use futures::future::Either;
 use futures::prelude::*;
+use futures::sync::mpsc::UnboundedSender;
+use futures::sync::oneshot;
+use futures::sync::oneshot::{Receiver, Sender};
 use futures::{future, stream, Async, Stream};
 use hyper::{Body, Chunk as HyperChunk, Client, Request};
 use lazy_static::lazy_static;
-use log::{debug, info, Level};
+use log::{debug, error, info, warn, Level};
 use url::Url;
 
 use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
-use docker::models::{ContainerCreateBody, InlineResponse200, Ipam, NetworkConfig};
+use docker::models::{ContainerCreateBody, HostConfig, InlineResponse200, Ipam, NetworkConfig};
 use edgelet_core::{
     AuthId, Authenticator, GetTrustBundle, Ipam as CoreIpam, LogOptions, MakeModuleRuntime,
-    MobyNetwork, Module, ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    ProvisioningInfo, RegistryOperation, RuntimeOperation, RuntimeSettings,
+    MobyNetwork, Module, ModuleAction, ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState,
+    ModuleSpec, ProvisioningInfo, RegistryOperation, RuntimeOperation, RuntimeSettings,
     SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
 };
 use edgelet_http::{Pid, UrlConnector};
@@ -61,6 +64,8 @@ pub struct DockerModuleRuntime {
     client: DockerClient<UrlConnector>,
     system_resources: Arc<Mutex<System>>,
     provisioning_info: ProvisioningInfo,
+    create_socket_channel: UnboundedSender<ModuleAction>,
+    allow_elevated_docker_permissions: bool,
 }
 
 impl DockerModuleRuntime {
@@ -199,6 +204,7 @@ impl MakeModuleRuntime for DockerModuleRuntime {
         settings: Settings,
         _: ProvisioningResult,
         _: impl GetTrustBundle,
+        create_socket_channel: UnboundedSender<ModuleAction>,
     ) -> Self::Future {
         info!("Initializing module runtime...");
 
@@ -251,6 +257,9 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                             client,
                             system_resources: Arc::new(Mutex::new(system_resources)),
                             provisioning_info: ProvisioningInfo::new(settings.provisioning()),
+                            create_socket_channel,
+                            allow_elevated_docker_permissions: settings
+                                .allow_elevated_docker_permissions(),
                         }
                     });
 
@@ -321,7 +330,7 @@ impl ModuleRuntime for DockerModuleRuntime {
     type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type StopAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
 
-    fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
+    fn create(&self, mut module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
         info!("Creating module {}...", module.name());
 
         // we only want "docker" modules
@@ -330,6 +339,33 @@ impl ModuleRuntime for DockerModuleRuntime {
                 module.type_().to_string(),
             ))));
         }
+
+        unset_privileged(
+            self.allow_elevated_docker_permissions,
+            module.config_mut().create_options_mut(),
+        );
+        drop_unsafe_privileges(
+            self.allow_elevated_docker_permissions,
+            module.config_mut().create_options_mut(),
+        );
+
+        let id = module.name().to_string();
+
+        let (sender, receiver): (Sender<()>, Receiver<()>) = oneshot::channel();
+
+        if let Err(err) = self
+            .create_socket_channel
+            .unbounded_send(ModuleAction::Start(id.clone(), sender))
+            .map_err(|_| {
+                Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(
+                    id.clone(),
+                )))
+            })
+        {
+            return Box::new(future::err(err));
+        }
+        let socket_signal = self.create_socket_channel.clone();
+        let module_name = id.clone();
 
         let result = module
             .config()
@@ -379,12 +415,27 @@ impl ModuleRuntime for DockerModuleRuntime {
                     Ok(())
                 }
                 Err(err) => {
+                    let module_name = module_name;
+                    let socket_signal = socket_signal;
+
+                    if socket_signal
+                        .unbounded_send(ModuleAction::Stop(module_name.clone()))
+                        .is_err()
+                    {
+                        error!("Could not remove socket {}", module_name);
+                    }
                     log_failure(Level::Warn, &err);
                     Err(err)
                 }
             });
 
-        Box::new(result)
+        Box::new(
+            receiver
+                .map_err(move |_| {
+                    Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id)))
+                })
+                .and_then(move |()| result),
+        )
     }
 
     fn get(&self, id: &str) -> Self::GetFuture {
@@ -449,7 +500,7 @@ impl ModuleRuntime for DockerModuleRuntime {
             self.client
                 .container_api()
                 .container_start(&id, "")
-                .then(|result| match result {
+                .then(move |result| match result {
                     Ok(_) => {
                         info!("Successfully started module {}", id);
                         Ok(())
@@ -459,6 +510,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                             err,
                             ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id)),
                         );
+
                         log_failure(Level::Warn, &err);
                         Err(err)
                     }
@@ -545,6 +597,8 @@ impl ModuleRuntime for DockerModuleRuntime {
             return Box::new(future::err(Error::from(err)));
         }
 
+        let create_socket_channel = self.create_socket_channel.clone();
+
         Box::new(
             self.client
                 .container_api()
@@ -552,10 +606,24 @@ impl ModuleRuntime for DockerModuleRuntime {
                     &id, /* remove volumes */ false, /* force */ true,
                     /* remove link */ false,
                 )
-                .then(|result| match result {
+                .then(move |result| match result {
                     Ok(_) => {
-                        info!("Successfully removed module {}", id);
-                        Ok(())
+                        match create_socket_channel.unbounded_send(ModuleAction::Stop(id.clone())) {
+                            Ok(()) => {
+                                info!("Successfully removed module {}", id);
+                                Ok(())
+                            }
+                            Err(err) => {
+                                log_failure(Level::Warn, &err);
+                                error!(
+                                    "Successfully removed module {}, but could not remove socket",
+                                    id
+                                );
+                                Err(Error::from(ErrorKind::RuntimeOperation(
+                                    RuntimeOperation::GetModule(id),
+                                )))
+                            }
+                        }
                     }
                     Err(err) => {
                         let err = Error::from_docker_error(
@@ -819,7 +887,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                 true,
                 options.since(),
                 options.until(),
-                false,
+                options.timestamps(),
                 tail,
             )
             .then(|result| match result {
@@ -1071,12 +1139,68 @@ where
     })
 }
 
+// Disallow adding privileged and other capabilities if allow_elevated_docker_permissions is false
+fn unset_privileged(
+    allow_elevated_docker_permissions: bool,
+    create_options: &mut ContainerCreateBody,
+) {
+    if allow_elevated_docker_permissions {
+        return;
+    }
+    if let Some(config) = create_options.host_config() {
+        if config.privileged() == Some(&true) || config.cap_add().map_or(0, Vec::len) != 0 {
+            warn!("Privileged capabilities are disallowed on this device. Privileged capabilities can be used to gain root access. If a module needs to run as privileged, and you are aware of the consequences, set `allow_elevated_docker_permissions` to `true` in the config.toml and restart the service.");
+            let mut config = config.clone();
+
+            config.set_privileged(false);
+            config.reset_cap_add();
+
+            create_options.set_host_config(config);
+        }
+    }
+}
+
+fn drop_unsafe_privileges(
+    allow_elevated_docker_permissions: bool,
+    create_options: &mut ContainerCreateBody,
+) {
+    // Don't change default behavior unless privileged containers are disallowed
+    if allow_elevated_docker_permissions {
+        return;
+    }
+
+    // These capabilities are provided by default and can be used to gain root access:
+    // https://labs.f-secure.com/blog/helping-root-out-of-the-container/
+    // They must be explicitly enabled
+    let mut caps_to_drop = vec!["CAP_CHOWN".to_owned(), "CAP_SETUID".to_owned()];
+
+    // The suggested `Option::map_or_else` requires cloning `caps_to_drop`.
+    #[allow(clippy::option_if_let_else)]
+    let host_config = if let Some(config) = create_options.host_config() {
+        // Don't drop caps that the user added explicitly
+        if let Some(cap_add) = config.cap_add() {
+            caps_to_drop.retain(|cap_drop| !cap_add.contains(cap_drop));
+        }
+        // Add customer specified cap_drops
+        if let Some(cap_drop) = config.cap_drop() {
+            caps_to_drop.extend_from_slice(cap_drop);
+        }
+
+        config.clone().with_cap_drop(caps_to_drop)
+    } else {
+        HostConfig::new().with_cap_drop(caps_to_drop)
+    };
+
+    create_options.set_host_config(host_config);
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        authenticate, future, list_with_details, parse_get_response, AuthId, Authenticator,
-        BTreeMap, Body, CoreSystemInfo, Deserializer, DockerModuleRuntime, DockerModuleTop,
-        Duration, Error, ErrorKind, Future, GetTrustBundle, InlineResponse200, LogOptions,
+        authenticate, drop_unsafe_privileges, future, list_with_details, parse_get_response,
+        unset_privileged, AuthId, Authenticator, BTreeMap, Body, ContainerCreateBody,
+        CoreSystemInfo, Deserializer, DockerModuleRuntime, DockerModuleTop, Duration, Error,
+        ErrorKind, Future, GetTrustBundle, HostConfig, InlineResponse200, LogOptions,
         MakeModuleRuntime, Module, ModuleId, ModuleRuntime, ModuleRuntimeState, ModuleSpec, Pid,
         ProvisioningResult, Request, Settings, Stream, SystemResources,
     };
@@ -1084,14 +1208,16 @@ mod tests {
     use std::path::Path;
 
     use config::{Config, File, FileFormat};
-    use futures::future::FutureResult;
     use futures::stream::Empty;
+    use futures::sync::mpsc::UnboundedSender;
+    use futures::{future::FutureResult, sync::mpsc};
+
     use json_patch::merge;
     use serde_json::{self, json, Value as JsonValue};
 
     use edgelet_core::{
-        Certificates, Connect, Listen, ModuleRegistry, ModuleTop, Provisioning, RuntimeSettings,
-        WatchdogSettings,
+        Certificates, Connect, Listen, ModuleAction, ModuleRegistry, ModuleTop, Provisioning,
+        RuntimeSettings, WatchdogSettings,
     };
     use edgelet_test_utils::crypto::TestHsm;
     use provisioning::ReprovisioningStatus;
@@ -1127,6 +1253,7 @@ mod tests {
                 }
             },
             "hostname": "zoo",
+            "allow_elevated_docker_permissions": true,
             "connect": {
                 "management_uri": "unix:///var/run/iotedge/mgmt.sock",
                 "workload_uri": "unix:///var/run/iotedge/workload.sock"
@@ -1160,9 +1287,17 @@ mod tests {
                 "uri": "foo:///this/is/not/valid"
             }
         })));
-        let err = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
-            .wait()
-            .unwrap_err();
+        let (create_socket_channel_snd, _create_socket_channel_rcv) =
+            mpsc::unbounded::<ModuleAction>();
+
+        let err = DockerModuleRuntime::make_runtime(
+            settings,
+            provisioning_result(),
+            crypto(),
+            create_socket_channel_snd,
+        )
+        .wait()
+        .unwrap_err();
         assert!(failure::Fail::iter_chain(&err).any(|err| err
             .to_string()
             .contains("URL does not have a recognized scheme")));
@@ -1176,9 +1311,17 @@ mod tests {
                 "uri": "unix:///this/file/does/not/exist"
             }
         })));
-        let err = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
-            .wait()
-            .unwrap_err();
+        let (create_socket_channel_snd, _create_socket_channel_rcv) =
+            mpsc::unbounded::<ModuleAction>();
+
+        let err = DockerModuleRuntime::make_runtime(
+            settings,
+            provisioning_result(),
+            crypto(),
+            create_socket_channel_snd,
+        )
+        .wait()
+        .unwrap_err();
         assert!(failure::Fail::iter_chain(&err)
             .any(|err| err.to_string().contains("Socket file could not be found")));
     }
@@ -1365,6 +1508,55 @@ mod tests {
         assert_eq!("missing field `Name`", format!("{}", name.unwrap_err()));
     }
 
+    #[test]
+    fn unset_privileged_works() {
+        let mut create_options =
+            ContainerCreateBody::new().with_host_config(HostConfig::new().with_privileged(true));
+
+        // Doesn't remove privileged
+        unset_privileged(true, &mut create_options);
+        assert!(create_options.host_config().unwrap().privileged().unwrap());
+        // Removes privileged
+        unset_privileged(false, &mut create_options);
+        assert!(!create_options.host_config().unwrap().privileged().unwrap());
+        create_options.set_host_config(
+            HostConfig::new().with_cap_add(vec!["CAP1".to_owned(), "CAP2".to_owned()]),
+        );
+
+        // Doesn't remove caps
+        unset_privileged(true, &mut create_options);
+        assert_eq!(
+            create_options.host_config().unwrap().cap_add(),
+            Some(&vec!["CAP1".to_owned(), "CAP2".to_owned()])
+        );
+
+        // Removes caps
+        unset_privileged(false, &mut create_options);
+        assert_eq!(create_options.host_config().unwrap().cap_add(), None);
+    }
+
+    #[test]
+    fn drop_unsafe_privileges_works() {
+        let mut create_options = ContainerCreateBody::new().with_host_config(HostConfig::new());
+        // Do nothing if privileged is allowed
+        drop_unsafe_privileges(true, &mut create_options);
+        assert_eq!(create_options.host_config().unwrap().cap_drop(), None);
+        // Drops privileges by if privileged is false
+        drop_unsafe_privileges(false, &mut create_options);
+        assert_eq!(
+            create_options.host_config().unwrap().cap_drop(),
+            Some(&vec!["CAP_CHOWN".to_owned(), "CAP_SETUID".to_owned()])
+        );
+        // Doesn't drop caps if specified
+        create_options
+            .set_host_config(HostConfig::new().with_cap_add(vec!["CAP_CHOWN".to_owned()]));
+        drop_unsafe_privileges(false, &mut create_options);
+        assert_eq!(
+            create_options.host_config().unwrap().cap_drop(),
+            Some(&vec!["CAP_SETUID".to_owned()])
+        );
+    }
+
     #[derive(Clone)]
     struct TestConfig;
 
@@ -1386,6 +1578,10 @@ mod tests {
         }
 
         fn hostname(&self) -> &str {
+            unimplemented!()
+        }
+
+        fn allow_elevated_docker_permissions(&self) -> bool {
             unimplemented!()
         }
 
@@ -1501,6 +1697,7 @@ mod tests {
             _settings: Self::Settings,
             _provisioning_result: Self::ProvisioningResult,
             _crypto: impl GetTrustBundle,
+            _recv: UnboundedSender<ModuleAction>,
         ) -> Self::Future {
             unimplemented!()
         }

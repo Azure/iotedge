@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         public async Task<string> CollectDaemonLogsAsync(DateTime testStartTime, string filePrefix, CancellationToken token)
         {
             string args = $"-u iotedge -u docker --since \"{testStartTime:yyyy-MM-dd HH:mm:ss}\" --no-pager";
-            string[] output = await Process.RunAsync("journalctl", args, token);
+            string[] output = await Process.RunAsync("journalctl", args, token, logVerbose: false);
 
             string daemonLog = $"{filePrefix}-iotedged.log";
             await File.WriteAllLinesAsync(daemonLog, output, token);

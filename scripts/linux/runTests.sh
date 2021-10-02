@@ -65,7 +65,7 @@ while read testDll; do
   else
     testProjectDlls="$testProjectDlls $testDll"
   fi  
-done < <(find $OUTPUT_FOLDER -type f -iname $SUFFIX)
+done < <(find $OUTPUT_FOLDER -type f -iname $SUFFIX -not -path "$OUTPUT_FOLDER/bin/*")
 
 testCommandPrefix="$DOTNET_ROOT_PATH/dotnet vstest /Logger:trx;LogFileName=result.trx /TestAdapterPath:\"$OUTPUT_FOLDER\" /Parallel /InIsolation"
 if [ ! -z "$testFilterValue" ]

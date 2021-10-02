@@ -15,7 +15,9 @@ jobs:
 ################################################################################
     displayName: Linux
     pool:
-      vmImage: ubuntu-18.04
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
     strategy:
       matrix:
         Centos75-amd64:
@@ -23,20 +25,6 @@ jobs:
           os: centos7
           target.iotedged: edgelet/target/rpmbuild/RPMS/x86_64
         # Centos75-arm32v7 and Centos75-aarch64 are built in packages.slow.yaml
-
-        Debian8-amd64:
-          os: debian8
-          arch: amd64
-          target.iotedged: edgelet/target/release
-        Debian8-arm32v7:
-          os: debian8
-          arch: arm32v7
-          target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
-        # Do not build debian8 aarch64 because it is not LTS, only amd64 and armhf are.
-        # aarch64 packages are not available in the base Debian repos and also not in ports.
-        #
-        # Per https://wiki.debian.org/LTS/Using
-        # >Important: Jessie-LTS only supports i386, amd64, armel and armhf. Users of other architectures are encouraged to upgrade to Debian 9 ("Stretch"). 
 
         Debian9-amd64:
           os: debian9
@@ -64,6 +52,19 @@ jobs:
           arch: aarch64
           target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
 
+        Debian11-amd64:
+          os: debian11
+          arch: amd64
+          target.iotedged: edgelet/target/release
+        Debian11-arm32v7:
+          os: debian11
+          arch: arm32v7
+          target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+        Debian11-aarch64:
+          os: debian11
+          arch: aarch64
+          target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+
         Ubuntu1804-amd64:
           os: ubuntu18.04
           arch: amd64
@@ -78,7 +79,6 @@ jobs:
           target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
     steps:
       # Ensure any changes here are replicated in packages.slow.yaml
-
       - bash: |
           BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
           VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"
@@ -104,6 +104,7 @@ jobs:
           Contents: |
             *.deb
             *.rpm
+            *.tar.gz
           TargetFolder: '$(build.artifactstagingdirectory)'
       - task: PublishBuildArtifacts@1
         displayName: Publish Artifacts
@@ -135,24 +136,6 @@ jobs:
           echo "PACKAGE_OS=$(os)"
           echo "##vso[task.setvariable variable=MARINER_RELEASE;]$(release)"
         displayName: Set Version
-      - task: AzureKeyVault@1
-        displayName: Get secrets
-        inputs:
-          azureSubscription: $(az.subscription)
-          keyVaultName: $(kv.name)
-          secretsFilter: >-
-            marineriotedge-key
-      - task: AzureCLI@2
-        displayName: Download from Azure Blob Storage
-        inputs:
-          azureSubscription: $(az.subscription)
-          scriptType: bash
-          scriptLocation: inlineScript
-          inlineScript: |
-            az --version
-            mkdir -p "builds/mariner/SPECS/rust/SOURCES/"
-            az storage blob download --account-name "marineriotedge" --container-name "iotedge-build-pipeline" --file "builds/mariner/SPECS/rust/SOURCES/rust-1.47.0-x86_64-unknown-linux-gnu.tar.gz" --name "rust-1.47.0-x86_64-unknown-linux-gnu.tar.gz" --account-key "$(marineriotedge-key)"
-            az storage blob download --account-name "marineriotedge" --container-name "iotedge-build-pipeline" --file "edgelet/azure-iotedge-cargo-vendor.zip" --name "azure-iotedge-cargo-vendor.zip" --account-key "$(marineriotedge-key)"
       - script: edgelet/build/linux/package-mariner.sh
         displayName: Create libiothsm and iotedged packages
       - task: CopyFiles@2
@@ -184,7 +167,9 @@ jobs:
     displayName: Windows amd64
     timeoutInMinutes: 90
     pool:
-      vmImage: 'vs2017-win2016'
+      name: $(pool.windows.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
     steps:
       - powershell: |
           $base_version = Get-Content -Path "$(Build.SourcesDirectory)\edgelet\version.txt"

@@ -1,5 +1,5 @@
-ARG base_tag=3.1.13-nanoserver-1809
-FROM mcr.microsoft.com/dotnet/runtime:${base_tag}
+﻿ARG base_tag=3.1.18-nanoserver-1809
+FROM mcr.microsoft.com/dotnet/aspnet:${base_tag}
 
 ARG EXE_DIR=.
 

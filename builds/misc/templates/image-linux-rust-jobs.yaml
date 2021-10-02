@@ -10,10 +10,15 @@ jobs:
 ################################################################################
     displayName: Linux Rust ${{ parameters.archName }}
     pool:
-      vmImage: ubuntu-16.04
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
     steps:
-      - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
-        displayName: 'Docker Login'
+      - task: Docker@2
+        displayName: Docker login edgebuilds
+        inputs:
+          command: login
+          containerRegistry: iotedge-edgebuilds-acr
 
       - script: edgelet/build/linux/install.sh --package-arm
         displayName: Install Rust

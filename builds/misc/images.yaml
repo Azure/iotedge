@@ -12,13 +12,15 @@ jobs:
 ################################################################################
     displayName: LinuxDotnet
     pool:
-      vmImage: ubuntu-18.04
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
     steps:
-      - template: ../templates/install-dotnet2.yaml
-      - template: ../templates/install-dotnet3.yaml
-
-      - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
-        displayName: 'Docker Login'
+      - task: Docker@2
+        displayName: Docker login edgebuilds
+        inputs:
+          command: login
+          containerRegistry: iotedge-edgebuilds-acr
 
       - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
         name: build
@@ -137,7 +139,7 @@ jobs:
           name: Relayer
           imageName: azureiotedge-relayer
           project: Relayer
-          
+
     # Network Controller
       - template: templates/image-linux.yaml
         parameters:
@@ -152,11 +154,11 @@ jobs:
           imageName: azureiotedge-test-result-coordinator
           project: TestResultCoordinator
 
-     # Metrics Collector
+     # Metrics Collector (test-only)
       - template: templates/image-linux.yaml
         parameters:
-          name: Metrics Collector
-          imageName: azureiotedge-metrics-collector
+          name: Metrics Collector (test-only)
+          imageName: azureiotedge-test-metrics-collector
           project: MetricsCollector
 
      # Deployment Tester
@@ -179,6 +181,13 @@ jobs:
           name: Cloud To Device Message Tester
           imageName: azureiotedge-c2dmessage-tester
           project: CloudToDeviceMessageTester
+
+     # Metrics Collector (customer-facing)
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Metrics Collector (customer-facing)
+          imageName: azureiotedge-metrics-collector
+          project: Microsoft.Azure.Devices.Edge.Azure.Monitor
 
 ################################################################################
 # linux - Rust amd64
@@ -210,18 +219,17 @@ jobs:
     displayName: Windows
     timeoutInMinutes: 90
     pool:
-      name: Azure-IoT-Edge-Core
+      name: $(pool.windows.name)
       demands:
-        - Build-Image -equals true
-        - win-rs5
+        - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
     workspace:
       clean: all
     steps:
-      - template: ../templates/install-dotnet2.yaml
-      - template: ../templates/install-dotnet3.yaml
-
-      - script: echo $(registry.password)|docker login "edgebuilds.azurecr.io" -u "$(registry.user)" --password-stdin
-        displayName: Docker Login
+      - task: Docker@2
+        displayName: Docker login edgebuilds
+        inputs:
+          command: login
+          containerRegistry: iotedge-edgebuilds-acr
 
       - powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration:"$(Build.Configuration)" -PublishTests:$False -UpdateVersion
         name: build
@@ -242,6 +250,7 @@ jobs:
           name: azureiotedge-diagnostics
           imageName: azureiotedge-diagnostics
           project: IotedgeDiagnosticsDotnet
+          version: $(Build.BuildNumber)
 
       # Edge Agent
       - template: templates/image-windows.yaml
@@ -249,6 +258,7 @@ jobs:
           name: Edge Agent
           imageName: azureiotedge-agent
           project: Microsoft.Azure.Devices.Edge.Agent.Service
+          version: $(Build.BuildNumber)
 
       # Edge Hub
       - template: templates/image-windows.yaml
@@ -256,6 +266,7 @@ jobs:
           name: Edge Hub
           imageName: azureiotedge-hub
           project: Microsoft.Azure.Devices.Edge.Hub.Service
+          version: $(Build.BuildNumber)
 
       # Simulated Temperature Sensor
       - template: templates/image-windows.yaml
@@ -263,6 +274,7 @@ jobs:
           name: Temperature Sensor
           imageName: azureiotedge-simulated-temperature-sensor
           project: SimulatedTemperatureSensor
+          version: $(Build.BuildNumber)
 
       # Temperature Filter
       - template: templates/image-windows.yaml
@@ -270,6 +282,7 @@ jobs:
           name: Temperature Filter
           imageName: azureiotedge-temperature-filter
           project: TemperatureFilter
+          version: $(Build.BuildNumber)
 
       # Load Gen
       - template: templates/image-windows.yaml
@@ -277,6 +290,7 @@ jobs:
           name: Load Gen
           imageName: azureiotedge-load-gen
           project: load-gen
+          version: $(Build.BuildNumber)
 
       # Test Analyzer
       - template: templates/image-windows.yaml
@@ -284,13 +298,15 @@ jobs:
           name: Test Analyzer
           imageName: azureiotedge-analyzer
           project: TestAnalyzer
-          
+          version: $(Build.BuildNumber)
+
       # Functions Sample
       - template: templates/image-windows.yaml
         parameters:
           name: Functions Sample
           imageName: azureiotedge-functions-filter
           project: EdgeHubTriggerCSharp
+          version: $(Build.BuildNumber)
 
       # Direct Method Sender
       - template: templates/image-windows.yaml
@@ -298,6 +314,7 @@ jobs:
           name: Direct Method Sender
           imageName: azureiotedge-direct-method-sender
           project: DirectMethodSender
+          version: $(Build.BuildNumber)
 
       # Direct Method Receiver
       - template: templates/image-windows.yaml
@@ -305,13 +322,15 @@ jobs:
           name: Direct Method Receiver
           imageName: azureiotedge-direct-method-receiver
           project: DirectMethodReceiver
-          
+          version: $(Build.BuildNumber)
+
       # Metrics Validator
       - template: templates/image-windows.yaml
         parameters:
           name: Metrics Validator
           imageName: azureiotedge-metrics-validator
           project: MetricsValidator
+          version: $(Build.BuildNumber)
 
       # NumberLogger
       - template: templates/image-windows.yaml
@@ -319,6 +338,7 @@ jobs:
           name: Number Logger
           imageName: azureiotedge-number-logger
           project: NumberLogger
+          version: $(Build.BuildNumber)
 
      # Module Restarter
       - template: templates/image-windows.yaml
@@ -326,6 +346,7 @@ jobs:
           name: Module Restarter
           imageName: azureiotedge-module-restarter
           project: ModuleRestarter
+          version: $(Build.BuildNumber)
 
      # Twin Tester
       - template: templates/image-windows.yaml
@@ -333,6 +354,7 @@ jobs:
           name: Twin Tester
           imageName: azureiotedge-twin-tester
           project: TwinTester
+          version: $(Build.BuildNumber)
 
      # Relayer
       - template: templates/image-windows.yaml
@@ -340,13 +362,15 @@ jobs:
           name: Relayer
           imageName: azureiotedge-relayer
           project: Relayer
+          version: $(Build.BuildNumber)
 
-     # Metrics Collector
+     # Metrics Collector (test-only)
       - template: templates/image-windows.yaml
         parameters:
-          name: Metrics Collector
-          imageName: azureiotedge-metrics-collector
+          name: Metrics Collector (test-only)
+          imageName: azureiotedge-test-metrics-collector
           project: MetricsCollector
+          version: $(Build.BuildNumber)
 
      # TestResultCoordinator
       - template: templates/image-windows.yaml
@@ -354,6 +378,7 @@ jobs:
           name: TestResultCoordinator
           imageName: azureiotedge-test-result-coordinator
           project: TestResultCoordinator
+          version: $(Build.BuildNumber)
 
      # Deployment Tester
       - template: templates/image-windows.yaml
@@ -361,6 +386,7 @@ jobs:
           name: Deployment Tester
           imageName: azureiotedge-deployment-tester
           project: DeploymentTester
+          version: $(Build.BuildNumber)
 
      # EdgeHub Restart Tester
       - template: templates/image-windows.yaml
@@ -368,6 +394,7 @@ jobs:
           name: EdgeHubRestartTester
           imageName: azureiotedge-edgehub-restart-tester
           project: EdgeHubRestartTester
+          version: $(Build.BuildNumber)
 
      # Cloud To Device Message Tester
       - template: templates/image-windows.yaml
@@ -375,16 +402,24 @@ jobs:
           name: Cloud To Device Message Tester
           imageName: azureiotedge-c2dmessage-tester
           project: CloudToDeviceMessageTester
+          version: $(Build.BuildNumber)
 
-      - powershell: docker system prune -a -f
-        displayName: Clean Machine
+     # Metrics Collector (customer-facing)
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Metrics Collector (customer-facing)
+          imageName: azureiotedge-metrics-collector
+          project: Microsoft.Azure.Devices.Edge.Azure.Monitor
+          version: $(Build.BuildNumber)
 
 ################################################################################
   - job: manifest
 ################################################################################
     displayName: Manifest
     pool:
-      vmImage: ubuntu-18.04
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
     dependsOn:
       - linux_dotnet_projects
       - linux_rust_amd64
@@ -394,15 +429,22 @@ jobs:
     variables:
       tags: "['latest']"
     steps:
-    - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-agent/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+    - task: Docker@2
+      displayName: Docker login edgebuilds
+      inputs:
+        command: login
+        containerRegistry: iotedge-edgebuilds-acr
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-agent/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
       displayName: 'Publish Edge Agent Manifest'
-    - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-hub/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-hub/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
       displayName: 'Publish Edge Hub Manifest'
-    - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
       displayName: 'Publish Temperature Sensor Manifest'
-    - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edgelet/iotedged/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edgelet/iotedged/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
       displayName: 'Publish azureiotedge-iotedged Manifest'
-    - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
       displayName: 'Publish azureiotedge-diagnostics Manifest'
-    - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edgelet/iotedge-proxy/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edgelet/iotedge-proxy/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
       displayName: 'Publish azureiotedge-proxy Manifest'
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/azure-monitor/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+      displayName: 'Publish azureiotedge-metrics-collector Manifest'

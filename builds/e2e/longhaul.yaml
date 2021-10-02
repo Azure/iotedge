@@ -54,11 +54,25 @@ jobs:
     steps:
       - checkout: none
       - task: AzureKeyVault@1
-        displayName: 'Azure Key Vault'
+        displayName: 'Azure Key Vault: EdgeBuildkv'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: 'edgebuildkv'
+          SecretsFilter: >-
+            edgebuilds-azurecr-io-username,
+            edgebuilds-azurecr-io-pwd,
+            StorageAccountMasterKeyStress,
+            SnitchLongHaulAlertUrl,
+            kvLogAnalyticWorkspaceId,
+            kvLogAnalyticSharedKey
+      - task: AzureKeyVault@1
+        displayName: 'Azure Key Vault: $(azure.keyVault)'
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey'
+          SecretsFilter: >- 
+            IotHub-ConnStr,
+            IotHub-EventHubConnStr
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -99,8 +113,8 @@ jobs:
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-          iotHub.connectionString: '$(IotHubStressConnString)'
-          eventHub.connectionString: '$(EventHubStressConnStr)'
+          iotHub.connectionString: '$(IotHub-ConnStr)'
+          eventHub.connectionString: '$(IotHub-EventHubConnStr)'
           snitch.build.number: '$(snitch.build.number)'
           snitch.alert.url: '$(SnitchLongHaulAlertUrl)'
           snitch.storage.account: '$(snitch.storage.account)'
@@ -139,11 +153,25 @@ jobs:
     steps:
       - checkout: none
       - task: AzureKeyVault@1
-        displayName: 'Azure Key Vault'
+        displayName: 'Azure Key Vault: EdgeBuildkv'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: 'edgebuildkv'
+          SecretsFilter: >-
+            edgebuilds-azurecr-io-username,
+            edgebuilds-azurecr-io-pwd,
+            StorageAccountMasterKeyStress,
+            SnitchLongHaulAlertUrl,
+            kvLogAnalyticWorkspaceId,
+            kvLogAnalyticSharedKey
+      - task: AzureKeyVault@1
+        displayName: 'Azure Key Vault: $(azure.keyVault)'
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey'
+          SecretsFilter: >- 
+            IotHub-ConnStr,
+            IotHub-EventHubConnStr
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -184,8 +212,8 @@ jobs:
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-          iotHub.connectionString: '$(IotHubStressConnString)'
-          eventHub.connectionString: '$(EventHubStressConnStr)'
+          iotHub.connectionString: '$(IotHub-ConnStr)'
+          eventHub.connectionString: '$(IotHub-EventHubConnStr)'
           snitch.build.number: '$(snitch.build.number)'
           snitch.alert.url: '$(SnitchLongHaulAlertUrl)'
           snitch.storage.account: '$(snitch.storage.account)'
@@ -224,11 +252,25 @@ jobs:
     steps:
       - checkout: none
       - task: AzureKeyVault@1
-        displayName: 'Azure Key Vault'
+        displayName: 'Azure Key Vault: EdgeBuildkv'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: 'edgebuildkv'
+          SecretsFilter: >-
+            edgebuilds-azurecr-io-username,
+            edgebuilds-azurecr-io-pwd,
+            StorageAccountMasterKeyStress,
+            SnitchLongHaulAlertUrl,
+            kvLogAnalyticWorkspaceId,
+            kvLogAnalyticSharedKey
+      - task: AzureKeyVault@1
+        displayName: 'Azure Key Vault: $(azure.keyVault)'
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey'
+          SecretsFilter: >- 
+            IotHub-ConnStr,
+            IotHub-EventHubConnStr
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -269,8 +311,8 @@ jobs:
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-          iotHub.connectionString: '$(IotHubStressConnString)'
-          eventHub.connectionString: '$(EventHubStressConnStr)'
+          iotHub.connectionString: '$(IotHub-ConnStr)'
+          eventHub.connectionString: '$(IotHub-EventHubConnStr)'
           snitch.build.number: '$(snitch.build.number)'
           snitch.alert.url: '$(SnitchLongHaulAlertUrl)'
           snitch.storage.account: '$(snitch.storage.account)'
@@ -309,11 +351,25 @@ jobs:
     steps:
       - checkout: none
       - task: AzureKeyVault@1
-        displayName: 'Azure Key Vault'
+        displayName: 'Azure Key Vault: EdgeBuildkv'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: 'edgebuildkv'
+          SecretsFilter: >-
+            edgebuilds-azurecr-io-username,
+            edgebuilds-azurecr-io-pwd,
+            StorageAccountMasterKeyStress,
+            SnitchLongHaulAlertUrl,
+            kvLogAnalyticWorkspaceId,
+            kvLogAnalyticSharedKey
+      - task: AzureKeyVault@1
+        displayName: 'Azure Key Vault: $(azure.keyVault)'
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey'
+          SecretsFilter: >- 
+            IotHub-ConnStr,
+            IotHub-EventHubConnStr
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -356,8 +412,8 @@ jobs:
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-          iotHub.connectionString: '$(IotHubStressConnString)'
-          eventHub.connectionString: '$(EventHubStressConnStr)'
+          iotHub.connectionString: '$(IotHub-ConnStr)'
+          eventHub.connectionString: '$(IotHub-EventHubConnStr)'
           snitch.build.number: '$(snitch.build.number)'
           snitch.alert.url: '$(SnitchLongHaulAlertUrl)'
           snitch.storage.account: '$(snitch.storage.account)'
@@ -396,11 +452,25 @@ jobs:
     steps:
       - checkout: none
       - task: AzureKeyVault@1
-        displayName: 'Azure Key Vault'
+        displayName: 'Azure Key Vault: EdgeBuildkv'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: 'edgebuildkv'
+          SecretsFilter: >-
+            edgebuilds-azurecr-io-username,
+            edgebuilds-azurecr-io-pwd,
+            StorageAccountMasterKeyStress,
+            SnitchLongHaulAlertUrl,
+            kvLogAnalyticWorkspaceId,
+            kvLogAnalyticSharedKey
+      - task: AzureKeyVault@1
+        displayName: 'Azure Key Vault: $(azure.keyVault)'
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey'
+          SecretsFilter: >- 
+            IotHub-ConnStr,
+            IotHub-EventHubConnStr
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -443,8 +513,8 @@ jobs:
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-          iotHub.connectionString: '$(IotHubStressConnString)'
-          eventHub.connectionString: '$(EventHubStressConnStr)'
+          iotHub.connectionString: '$(IotHub-ConnStr)'
+          eventHub.connectionString: '$(IotHub-EventHubConnStr)'
           snitch.build.number: '$(snitch.build.number)'
           snitch.alert.url: '$(SnitchLongHaulAlertUrl)'
           snitch.storage.account: '$(snitch.storage.account)'
@@ -481,11 +551,25 @@ jobs:
     steps:
       - checkout: none
       - task: AzureKeyVault@1
-        displayName: 'Access Key Vault Secrets'
+        displayName: 'Access Key Vault Secrets: EdgeBuildkv'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: 'edgebuildkv'
+          SecretsFilter: >-
+            edgebuilds-azurecr-io-username,
+            edgebuilds-azurecr-io-pwd,
+            StorageAccountMasterKeyStress,
+            SnitchLongHaulAlertUrl,
+            kvLogAnalyticWorkspaceId,
+            kvLogAnalyticSharedKey
+      - task: AzureKeyVault@1
+        displayName: 'Azure Key Vault: $(azure.keyVault)'
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey'
+          SecretsFilter: >- 
+            IotHub-ConnStr,
+            IotHub-EventHubConnStr
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -529,8 +613,8 @@ jobs:
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-          iotHub.connectionString: '$(IotHubStressConnString)'
-          eventHub.connectionString: '$(EventHubStressConnStr)'
+          iotHub.connectionString: '$(IotHub-ConnStr)'
+          eventHub.connectionString: '$(IotHub-EventHubConnStr)'
           snitch.build.number: '$(snitch.build.number)'
           snitch.alert.url: '$(SnitchLongHaulAlertUrl)'
           snitch.storage.account: '$(snitch.storage.account)'
@@ -562,18 +646,31 @@ jobs:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - eflow -equals true
-        - run-long-haul -equals true
+        - run-long-haul-eflow -equals true
     variables:
       edgelet.artifact.name: 'iotedged-mariner-amd64'
     steps:
       - checkout: none
       - task: AzureKeyVault@1
-        displayName: 'Azure Key Vault'
+        displayName: 'Azure Key Vault: EdgeBuildkv'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: 'edgebuildkv'
+          SecretsFilter: >-
+            edgebuilds-azurecr-io-username,
+            edgebuilds-azurecr-io-pwd,
+            StorageAccountMasterKeyStress,
+            SnitchLongHaulAlertUrl,
+            kvLogAnalyticWorkspaceId,
+            kvLogAnalyticSharedKey
+      - task: AzureKeyVault@1
+        displayName: 'Azure Key Vault: $(azure.keyVault)'
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey'
+          SecretsFilter: >- 
+            IotHub-ConnStr,
+            IotHub-EventHubConnStr
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -614,8 +711,8 @@ jobs:
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-          iotHub.connectionString: '$(IotHubStressConnString)'
-          eventHub.connectionString: '$(EventHubStressConnStr)'
+          iotHub.connectionString: '$(IotHub-ConnStr)'
+          eventHub.connectionString: '$(IotHub-EventHubConnStr)'
           snitch.build.number: '$(snitch.build.number)'
           snitch.alert.url: '$(SnitchLongHaulAlertUrl)'
           snitch.storage.account: '$(snitch.storage.account)'

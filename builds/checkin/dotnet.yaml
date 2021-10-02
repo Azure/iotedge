@@ -32,7 +32,6 @@ jobs:
     pool:
       vmImage: ubuntu-18.04
     steps:
-      - template: ../templates/install-dotnet2.yaml
       - template: ../templates/install-dotnet3.yaml
       - task: Bash@3
         displayName: Install Prerequisites
@@ -47,7 +46,12 @@ jobs:
         displayName: Test
         inputs:
           filePath: scripts/linux/runTests.sh
-          arguments: '"--filter Category=Unit"'
+          arguments: '"--filter Category=Unit&Category!=GetLogsTests"'
+      - task: Bash@3
+        displayName: Run GetLogsTests Tests
+        inputs:
+          filePath: scripts/linux/runTests.sh
+          arguments: '"--filter Category=GetLogsTests"'
       - task: PublishTestResults@2
         displayName: Publish Test Results
         inputs:
@@ -64,7 +68,6 @@ jobs:
     pool:
       vmImage: "vs2017-win2016"
     steps:
-      - template: ../templates/install-dotnet2.yaml
       - template: ../templates/install-dotnet3.yaml
       - task: PowerShell@2
         displayName: Build
@@ -75,7 +78,12 @@ jobs:
         displayName: Test
         inputs:
           filePath: scripts/windows/test/Test-Branch.ps1
-          arguments: -Filter Category=Unit
+          arguments: -Filter:"Category=Unit&Category!=GetLogsTests"
+      - task: PowerShell@2
+        displayName: Run GetLogsTests Tests
+        inputs:
+          filePath: scripts/windows/test/Test-Branch.ps1
+          arguments: -Filter:"Category=GetLogsTests"
       - task: PublishTestResults@2
         displayName: Publish Test Results
         inputs:
@@ -105,7 +113,19 @@ jobs:
           testSelector: testAssemblies
           testAssemblyVer2: |
             target\*Test.dll
-          testFiltercriteria: Category=Unit
+          testFiltercriteria: Category=Unit&Category!=GetLogsTests
+          runInParallel: true
+          runTestsInIsolation: true
+          codeCoverageEnabled: true
+          runSettingsFile: CodeCoverage.runsettings
+          publishRunAttachments: true
+      - task: VSTest@2
+        displayName: Run GetLogsTests unit tests with code coverage
+        inputs:
+          testSelector: testAssemblies
+          testAssemblyVer2: |
+            target\*Test.dll
+          testFiltercriteria: Category=GetLogsTests
           runInParallel: true
           runTestsInIsolation: true
           codeCoverageEnabled: true

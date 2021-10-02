@@ -107,6 +107,7 @@ fn test_fd_ok() {
             Ok::<_, io::Error>(service)
         },
         None::<TlsAcceptorParams<'_, Crypto>>,
+        0o666,
     );
     if let Err(err) = run {
         unistd::close(fd).unwrap();
@@ -140,6 +141,7 @@ fn test_fd_err() {
             Ok::<_, io::Error>(service)
         },
         None::<TlsAcceptorParams<'_, Crypto>>,
+        0o666,
     );
 
     unistd::close(fd).unwrap();

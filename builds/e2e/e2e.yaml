@@ -5,27 +5,37 @@ resources:
   pipelines:
   - pipeline: images
     source: 'Azure-IoT-Edge-Core Build Images'
+    branch: 'release/1.1'
     trigger:
       branches:
-      - master
-      - release/*
+      - release/1.1
   - pipeline: packages
     source: 'Azure-IoT-Edge-Core Edgelet Packages'
+    branch: 'release/1.1'
     trigger:
       branches:
-      - master
-      - release/*
+      - release/1.1
+
+variables:
+  # A 'minimal' pipeline only runs one end-to-end test (TempSensor). This is useful for platforms or
+  # environments that are very similar to other platforms/environments in our matrix, e.g. Windows
+  # Server 2019 vs. Windows 10 Enterprise, or Ubuntu 18.04 with the 'docker-ce' package vs. Ubuntu
+  # 18.04 with the 'iotedge-moby' package vs. the same variations in Ubuntu 20.04. In these
+  # instances the platforms/environments are so similar that we don't reasonably expect to encounter
+  # differences--if we do, it would likely manifest during installation, or in running a very basic
+  # test. We don't need to repeat the entire test suite.
+  # The 'minimal' variable defaults to 'false'; we override it in specific jobs as needed.
+  minimal: false
 
 jobs:
-
-################################################################################	
+################################################################################
   - job: linux_arm32v7
-################################################################################	
+################################################################################
     displayName: Linux arm32v7
 
     pool:
-      name: $(pool.name)
-      demands: rpi3-e2e-tests
+      name: $(pool.custom.name)
+      demands: rpi3-e2e-tests-1.1
 
     variables:
       os: linux
@@ -35,18 +45,20 @@ jobs:
     timeoutInMinutes: 120
 
     steps:
-    - template: templates/e2e-clean-directory.yaml
-    - template: templates/e2e-setup.yaml
-    - template: templates/e2e-clear-docker-cached-images.yaml
-    - template: templates/e2e-run.yaml
+      - template: templates/e2e-clean-directory.yaml
+      - template: templates/e2e-setup.yaml
+      - template: templates/e2e-clear-docker-cached-images.yaml
+      - template: templates/e2e-run.yaml
 
-################################################################################	
-  - job: linux_amd64
-################################################################################	
-    displayName: Linux amd64
+################################################################################
+  - job: ubuntu_1804_msmoby
+################################################################################
+    displayName: Ubuntu 18.04 with iotedge-moby
 
     pool:
-      vmImage: ubuntu-18.04
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
 
     variables:
       os: linux
@@ -57,17 +69,74 @@ jobs:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
 
-################################################################################	
-  - job: windows_amd64
-################################################################################	
-    displayName: Windows amd64
+################################################################################
+  - job: ubuntu_1804_docker
+################################################################################
+    displayName: Ubuntu 18.04 with Docker (minimal)
 
     pool:
-      name: $(pool.name)
+      name: $(pool.linux.name)
       demands:
-        - Agent.OS -equals Windows_NT
-        - Agent.OSArchitecture -equals X64
-        - run-new-e2e-tests -equals true
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-ubuntu18.04-amd64
+      minimal: true
+
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################
+  - job: ubuntu_2004_msmoby
+################################################################################
+    displayName: Ubuntu 20.04 with iotedge-moby
+
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-ubuntu18.04-amd64
+
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################
+  - job: ubuntu_2004_docker
+################################################################################
+    displayName: Ubuntu 20.04 with Docker (minimal)
+
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-ubuntu18.04-amd64
+      minimal: true
+
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################
+  - job: windows_server
+################################################################################
+    displayName: Windows Server 2019
+
+    pool:
+      name: $(pool.windows.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-winserver-2019dc-test
 
     variables:
       os: windows
@@ -75,11 +144,6 @@ jobs:
       artifactName: iotedged-windows
 
     steps:
-    - pwsh: |
-        Remove-Item –path C:\ProgramData\iotedge\hsm\cert_keys\* –recurse -ErrorAction SilentlyContinue
-        Remove-Item –path C:\ProgramData\iotedge\hsm\certs\* –recurse -ErrorAction SilentlyContinue
-      displayName: Clean up HSM previous run artifacts
-
     - template: templates/e2e-setup.yaml
 
     - pwsh: |
@@ -104,18 +168,57 @@ jobs:
     - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
 
-################################################################################	
+# Disabling until falkiness is fixed on this platform
+# ################################################################################
+#   - job: windows_10ent
+# ################################################################################
+#     displayName: Windows 10 Enterprise (minimal)
+
+#     pool:
+#       name: $(pool.windows.name)
+#       demands:
+#         - ImageOverride -equals agent-aziotedge-win10-entn2019-test
+
+#     variables:
+#       os: windows
+#       arch: amd64
+#       artifactName: iotedged-windows
+#       minimal: true
+
+#     steps:
+#     - template: templates/e2e-setup.yaml
+
+#     - pwsh: |
+#         $certBytes = [system.Text.Encoding]::UTF8.GetBytes($env:PACKAGE_SIGNING_CERT)
+#         $cert = [System.Security.Cryptography.X509Certificates.X509Certificate]::new($certBytes)
+#         $store = New-Object System.Security.Cryptography.X509Certificates.X509Store `
+#           -ArgumentList 'Root', 'LocalMachine'
+#         $store.Open('ReadWrite')
+#         $store.Add($cert)
+#       displayName: Install CAB signing root cert
+#       env:
+#         PACKAGE_SIGNING_CERT: $(TestIotedgedPackageRootSigningCert)
+
+#     - pwsh: |
+#         Write-Output '>>> BEFORE:'
+#         netsh interface ipv6 show prefixpolicies
+#         netsh interface ipv6 set prefixpolicy ::ffff:0:0/96 45 4
+#         Write-Output '>>> AFTER:'
+#         netsh interface ipv6 show prefixpolicies
+#       displayName: Prefer IPv4
+
+#     - template: templates/e2e-clear-docker-cached-images.yaml
+#     - template: templates/e2e-run.yaml
+
+################################################################################
   - job: centos7_amd64
-################################################################################	
+################################################################################
     displayName: CentOs7 amd64
 
     pool:
-      name: $(pool.name)
+      name: $(pool.linux.name)
       demands:
-        - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals X64
-        - run-new-e2e-tests -equals true
-        - centos -equals 7
+        - ImageOverride -equals agent-aziotedge-centos-7-msmoby
 
     variables:
       os: linux
@@ -128,29 +231,30 @@ jobs:
     - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml 
 
-################################################################################	
-  - job: EFLOW_amd64
-################################################################################	
-    displayName: EFLOW amd64
+# Disabling until EFLOW agent hardware issues are resolved
+# ################################################################################
+#   - job: EFLOW_amd64
+# ################################################################################
+#     displayName: EFLOW amd64
 
-    pool:
-      name: $(pool.name)
-      demands:
-        - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals X64
-        - run-new-e2e-tests -equals true
-        - eflow -equals true
+#     pool:
+#       name: $(pool.custom.name)
+#       demands:
+#         - Agent.OS -equals Linux
+#         - Agent.OSArchitecture -equals X64
+#         - run-new-e2e-tests -equals true
+#         - eflow -equals true
 
-    variables:
-      os: linux
-      arch: amd64
-      artifactName: iotedged-mariner-amd64
-      NUGET_HTTP_CACHE_PATH: /var/tmp/NuGet/v3-cache
-      NUGET_PACKAGES: /var/tmp/NuGet/packages
-      NUGET_PLUGINS_CACHE_PATH: /var/tmp/NuGet/plugins-cache
+#     variables:
+#       os: linux
+#       arch: amd64
+#       artifactName: iotedged-mariner-amd64
+#       NUGET_HTTP_CACHE_PATH: /var/tmp/NuGet/v3-cache
+#       NUGET_PACKAGES: /var/tmp/NuGet/packages
+#       NUGET_PLUGINS_CACHE_PATH: /var/tmp/NuGet/plugins-cache
 
-    steps:
-    - template: templates/e2e-clean-directory.yaml
-    - template: templates/e2e-setup.yaml
-    - template: templates/e2e-clear-docker-cached-images.yaml
-    - template: templates/e2e-run.yaml
+#     steps:
+#     - template: templates/e2e-clean-directory.yaml
+#     - template: templates/e2e-setup.yaml
+#     - template: templates/e2e-clear-docker-cached-images.yaml
+#     - template: templates/e2e-run.yaml

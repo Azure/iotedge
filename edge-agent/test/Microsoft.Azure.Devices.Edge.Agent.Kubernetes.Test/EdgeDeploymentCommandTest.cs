@@ -190,7 +190,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             EdgeDeploymentDefinition edgeDeploymentDefinition = null;
             client.SetupCreateEdgeDeploymentDefinition()
                 .Callback(
-                    (object body, string group, string version, string ns, string plural, string name, Dictionary<string, List<string>> headers, CancellationToken token) => { edgeDeploymentDefinition = ((JObject)body).ToObject<EdgeDeploymentDefinition>(); })
+                    (object body, string group, string version, string ns, string plural, string dryRun, string fieldManager, string pretty, Dictionary<string, List<string>> headers, CancellationToken token) => { edgeDeploymentDefinition = ((JObject)body).ToObject<EdgeDeploymentDefinition>(); })
                 .ReturnsAsync(() => CreateResponse<object>(edgeDeploymentDefinition));
 
             var cmd = new EdgeDeploymentCommand(ResourceName, Selector, Namespace, client.Object, new[] { dockerModule }, Option.None<EdgeDeploymentDefinition>(), Runtime, configProvider.Object, EdgeletModuleOwner);
@@ -255,25 +255,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         public static ISetup<IKubernetes, Task<HttpOperationResponse<object>>> SetupCreateEdgeDeploymentDefinition(this Mock<IKubernetes> client) =>
             client.Setup(
                 c => c.CreateNamespacedCustomObjectWithHttpMessagesAsync(
-                    It.IsAny<object>(),
+                    It.IsAny<object>(), // body
                     KubernetesConstants.EdgeDeployment.Group,
                     KubernetesConstants.EdgeDeployment.Version,
-                    It.IsAny<string>(),
+                    It.IsAny<string>(), // namespace
                     KubernetesConstants.EdgeDeployment.Plural,
-                    It.IsAny<string>(),
-                    null,
+                    It.IsAny<string>(), // dryRun
+                    It.IsAny<string>(), // fieldManager
+                    It.IsAny<string>(), // pretty
+                    It.IsAny<Dictionary<string, List<string>>>(), // customHeaders
                     It.IsAny<CancellationToken>()));
 
         public static ISetup<IKubernetes, Task<HttpOperationResponse<object>>> SetupUpdateEdgeDeploymentDefinition(this Mock<IKubernetes> client) =>
             client.Setup(
                 c => c.ReplaceNamespacedCustomObjectWithHttpMessagesAsync(
-                    It.IsAny<object>(),
+                    It.IsAny<object>(), // body
                     KubernetesConstants.EdgeDeployment.Group,
                     KubernetesConstants.EdgeDeployment.Version,
-                    It.IsAny<string>(),
+                    It.IsAny<string>(), // namespace
                     KubernetesConstants.EdgeDeployment.Plural,
-                    It.IsAny<string>(),
-                    null,
+                    It.IsAny<string>(), // name
+                    It.IsAny<string>(), // dryRun
+                    It.IsAny<string>(), // fieldManager
+                    It.IsAny<Dictionary<string, List<string>>>(), // customHeaders
                     It.IsAny<CancellationToken>()));
     }
 
@@ -282,28 +286,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         public static ISetup<IKubernetes, Task<HttpOperationResponse<V1SecretList>>> SetupListSecrets(this Mock<IKubernetes> client) =>
             client.Setup(
                 c => c.ListNamespacedSecretWithHttpMessagesAsync(
-                    It.IsAny<string>(),
-                    It.IsAny<bool?>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<int?>(),
-                    It.IsAny<string>(),
-                    It.IsAny<int?>(),
-                    It.IsAny<bool?>(),
-                    It.IsAny<string>(),
-                    It.IsAny<Dictionary<string, List<string>>>(),
+                    It.IsAny<string>(), // namespace
+                    It.IsAny<bool?>(), // allowWatchBookmarks
+                    It.IsAny<string>(), // continueParameter
+                    It.IsAny<string>(), // fieldSelector
+                    It.IsAny<string>(), // labelSelector
+                    It.IsAny<int?>(), // limit
+                    It.IsAny<string>(), // resourceVersion
+                    It.IsAny<string>(), // resourceVersionMatch
+                    It.IsAny<int?>(), // timeoutSeconds
+                    It.IsAny<bool?>(), // watch
+                    It.IsAny<string>(), // pretty
+                    It.IsAny<Dictionary<string, List<string>>>(), // customHeaders
                     It.IsAny<CancellationToken>()));
 
         public static ISetup<IKubernetes, Task<HttpOperationResponse<V1Secret>>> SetupCreateSecret(this Mock<IKubernetes> client) =>
             client.Setup(
                 c => c.CreateNamespacedSecretWithHttpMessagesAsync(
                     It.IsAny<V1Secret>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<Dictionary<string, List<string>>>(),
+                    It.IsAny<string>(), // namespace
+                    It.IsAny<string>(), // dryRun
+                    It.IsAny<string>(), // fieldManager
+                    It.IsAny<string>(), // pretty
+                    It.IsAny<Dictionary<string, List<string>>>(), // customHeaders
                     It.IsAny<CancellationToken>()));
 
         public static void VerifyCreateSecret(this Mock<IKubernetes> client, Times times) =>
@@ -322,12 +327,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             client.Setup(
                 c => c.ReplaceNamespacedSecretWithHttpMessagesAsync(
                     It.IsAny<V1Secret>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<Dictionary<string, List<string>>>(),
+                    It.IsAny<string>(), // name
+                    It.IsAny<string>(), // namespace
+                    It.IsAny<string>(), // dryRun
+                    It.IsAny<string>(), // fieldmanager
+                    It.IsAny<string>(), // pretty
+                    It.IsAny<Dictionary<string, List<string>>>(), // customHeaders
                     It.IsAny<CancellationToken>()));
 
         public static ISetup<IKubernetes, Task<HttpOperationResponse<V1Secret>>> SetupGetSecret(this Mock<IKubernetes> client, string name) =>
@@ -335,8 +340,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 c => c.ReadNamespacedSecretWithHttpMessagesAsync(
                     name,
                     It.IsAny<string>(),
-                    It.IsAny<bool?>(),
-                    It.IsAny<bool?>(),
                     It.IsAny<string>(),
                     It.IsAny<Dictionary<string, List<string>>>(),
                     It.IsAny<CancellationToken>()));

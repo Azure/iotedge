@@ -137,6 +137,12 @@ function print_test_run_logs() {
     print_highlighted_message 'directMethodReceiver2 LOGS'
     docker logs directMethodReceiver2 || true
 
+    print_highlighted_message 'directMethodSender3 LOGS'
+    docker logs directMethodSender3 || true
+
+    print_highlighted_message 'directMethodReceiver3 LOGS'
+    docker logs directMethodReceiver3 || true
+
     print_highlighted_message 'twinTester1 LOGS'
     docker logs twinTester1 || true
 

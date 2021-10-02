@@ -1,4 +1,0 @@
-iotedge usr/bin
-iotedged usr/bin
-etc/iotedge/config.yaml.template
-etc/logrotate.d/iotedge

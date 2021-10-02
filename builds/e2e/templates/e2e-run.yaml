@@ -1,6 +1,18 @@
+# This E2E test pipeline uses the following filters in order to skip certain tests:
+#   Flaky: Flaky on multiple platforms
+#   FlakyOnArm: Flaky only on arm
+#   CentOsSafe: Can be run on CentOs
 steps:
 - pwsh: |
     $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
+
+    # Filter out flaky tests.
+    $filter = 'Category!=Flaky'
+
+    if ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
+    {
+      $filter += '&Category!=FlakyOnArm'
+    }
 
     if ($IsWindows)
     {
@@ -10,20 +22,26 @@ steps:
         $env:Path,
         $(Join-Path $env:ProgramFiles 'iotedge'),
         $(Join-Path $env:ProgramFiles 'iotedge-moby') -join ';'
+      if ('$(minimal)' -eq 'true')
+      {
+        $filter += '&Name~TempSensor'
+      }
 
-      dotnet vstest $testFile --logger:trx
+      dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
     }
     else
     {
       # Unfortunately CentOs has some failing test that need to be worked on.
-      if ('$(Agent.Name)'.Contains('centos'))
+      if ('$(artifactName)'.Contains('centos'))
       {
-        sudo --preserve-env dotnet test $testFile --logger:trx --filter "TestCategory=CentOsSafe"
+        $filter += '&TestCategory=CentOsSafe'
       }
-      else
+      elseif ('$(minimal)' -eq 'true')
       {
-        sudo --preserve-env dotnet vstest $testFile --logger:trx
+        $filter += '&Name~TempSensor'
       }
+
+      sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
     }
   displayName: Run tests
   env:
@@ -31,6 +49,7 @@ steps:
     E2E_EVENT_HUB_ENDPOINT: $(TestEventHubCompatibleEndpoint)
     E2E_PREVIEW_EVENT_HUB_ENDPOINT: $(TestPreviewEventHubCompatibleEndpoint)
     E2E_IOT_HUB_CONNECTION_STRING: $(TestIotHubConnectionString)
+    E2E_IOT_HUB_RESOURCE_ID: $(TestIotHubResourceId)
     E2E_PREVIEW_IOT_HUB_CONNECTION_STRING: $(TestPreviewIotHubConnectionString)
     E2E_REGISTRIES__0__PASSWORD: $(TestContainerRegistryPassword)
     E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
@@ -42,7 +61,7 @@ steps:
     testResultsFormat: vstest
     testResultsFiles: '**/*.trx'
     searchFolder: $(Build.SourcesDirectory)/TestResults
-    testRunTitle: End-to-end tests ($(Build.BuildNumber) $(os) $(arch))
+    testRunTitle: End-to-end tests ($(Build.BuildNumber) $(System.JobDisplayName))
     buildPlatform: $(arch)
   condition: succeededOrFailed()
 
@@ -56,6 +75,8 @@ steps:
     Copy-Item "$(binDir)/*-test-*.log" "$logDir/"
     Copy-Item "$(binDir)/*-device-*.log" "$logDir/"
     Copy-Item "$(binDir)/testoutput.log" "$logDir/"
+    $artifactSuffix = '$(Build.BuildNumber)-$(System.PhaseName)' -replace '_','-'
+    Write-Output "##vso[task.setvariable variable=artifactSuffix]$artifactSuffix"
   displayName: Collect Logs
   condition: succeededOrFailed()
 
@@ -63,5 +84,5 @@ steps:
   displayName: Publish logs
   inputs:
     PathtoPublish: $(Build.ArtifactStagingDirectory)/logs
-    ArtifactName: logs-end-to-end-$(Build.BuildNumber)-$(os)-$(arch)-$(artifactName)
+    ArtifactName: logs-end-to-end-$(Build.BuildNumber)-$(artifactSuffix)
   condition: succeededOrFailed()
