@@ -53,6 +53,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
 
         public abstract Task<string> SignAsync(string keyId, string algorithm, string data);
 
+        public abstract Task<string> ValidateTokenAsync(string token);
+
         protected internal async Task<T> Execute<T>(Func<Task<T>> func, string operation)
         {
             try

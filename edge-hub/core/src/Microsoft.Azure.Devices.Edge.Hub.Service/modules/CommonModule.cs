@@ -393,6 +393,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                     async c =>
                     {
+                        string edgeHubGenerationId = this.edgeHubGenerationId.Expect(() => new InvalidOperationException("Generation ID missing"));
+                        string workloadUri = this.workloadUri.Expect(() => new InvalidOperationException("workloadUri is missing"));
+                        string workloadApiVersion = this.workloadApiVersion.Expect(() => new InvalidOperationException("workloadUri version is missing"));
+                        var workloadClient = new WorkloadClient(new Uri(workloadUri), workloadApiVersion, Constants.WorkloadApiVersion, this.edgeHubModuleId, edgeHubGenerationId);
                         IAuthenticator tokenAuthenticator;
                         IAuthenticator certificateAuthenticator;
                         IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
@@ -407,12 +411,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                                 break;
 
                             case AuthenticationMode.Scope:
-                                tokenAuthenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, this.iothubHostName, this.edgeDeviceHostName, new NullAuthenticator(), true, true, this.nestedEdgeEnabled);
+                                tokenAuthenticator = new DeviceScopeJWTTokenAuthenticator(workloadClient, this.iothubHostName, this.edgeDeviceHostName, deviceScopeIdentitiesCache, new NullAuthenticator(), true, true, this.nestedEdgeEnabled);
                                 break;
 
                             default:
                                 IAuthenticator cloudTokenAuthenticator = await this.GetCloudTokenAuthenticator(c);
-                                tokenAuthenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, this.iothubHostName, this.edgeDeviceHostName, cloudTokenAuthenticator, true, true, this.nestedEdgeEnabled);
+                                tokenAuthenticator = new DeviceScopeJWTTokenAuthenticator(workloadClient, this.iothubHostName, this.edgeDeviceHostName, deviceScopeIdentitiesCache, cloudTokenAuthenticator, true, true, this.nestedEdgeEnabled);
                                 break;
                         }
 

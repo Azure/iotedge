@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
 {
     using System;
     using System.Net;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -35,6 +36,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             this.TryGetSharedAccessSignature(credentials.Token, credentials.Identity, out SharedAccessSignature sharedAccessSignature)
                 ? this.ValidateCredentials(sharedAccessSignature, serviceIdentity, credentials.Identity)
                 : false;
+
+        protected override async Task<bool> ValidateWithWorkloadAPI(ITokenCredentials credentials)
+        {
+            return await Task.FromResult(true);
+        }
 
         internal (string hostName, string deviceId, Option<string> moduleId) ParseAudience(string audience)
         {

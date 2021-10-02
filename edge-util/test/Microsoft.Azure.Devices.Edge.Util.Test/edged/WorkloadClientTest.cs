@@ -134,6 +134,18 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Edged
         }
 
         [Theory]
+        [InlineData("2020-10-10", "2020-10-10")]
+        public async Task ValidateTokenAsync(string workloadApiVersion, string workloadClientApiVersion)
+        {
+            string payload = "token";
+            var workload = new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, ModuleId, ModulegenerationId);
+
+            string response = await workload.ValidateTokenAsync(payload);
+
+            Assert.Equal(payload, response);
+        }
+
+        [Theory]
         [InlineData("2018-06-28", "2018-06-28")]
         [InlineData("2018-06-28", "2019-01-30")]
         [InlineData("2019-01-30", "2018-06-28")]

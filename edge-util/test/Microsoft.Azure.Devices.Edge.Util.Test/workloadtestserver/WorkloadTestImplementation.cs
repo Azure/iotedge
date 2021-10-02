@@ -24,6 +24,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common.WorkloadTestServer
             }
         }
 
+        public Task<ValidateTokenResponse> ValidateTokenAsync(string api_version, string name, ValidateTokenRequest payload)
+        {
+            return Task.FromResult(new ValidateTokenResponse() { Token = payload.Token });
+        }
+
         public Task<EncryptResponse> EncryptAsync(string api_version, string name, string genid, EncryptRequest payload)
         {
             string encrypted = Encoding.UTF8.GetString(payload.InitializationVector) + Encoding.UTF8.GetString(payload.Plaintext);

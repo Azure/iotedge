@@ -72,6 +72,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         protected abstract bool ValidateWithServiceIdentity(ServiceIdentity serviceIdentity, T credentials);
 
+        protected abstract Task<bool> ValidateWithWorkloadAPI(T credentials);
+
         async Task<(bool isAuthenticated, bool shouldFallback)> AuthenticateInternalAsync(T tCredentials, bool reauthenticating)
         {
             try
@@ -166,9 +168,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         async Task<(bool isAuthenticated, bool serviceIdentityFound)> AuthenticateWithServiceIdentity(T credentials, string serviceIdentityId, bool syncServiceIdentity)
         {
             Option<ServiceIdentity> serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(serviceIdentityId);
-            (bool isAuthenticated, bool serviceIdentityFound) = serviceIdentity.Map(s => (this.ValidateWithServiceIdentity(s, credentials), true)).GetOrElse((false, false));
+            bool isAuthenticated = await this.ValidateWithWorkloadAPI(credentials);
+            bool serviceIdentityFound = true;
 
-            if (!isAuthenticated && (!serviceIdentityFound || syncServiceIdentity))
+            if (!isAuthenticated && (syncServiceIdentity))
             {
                 Events.ResyncingServiceIdentity(credentials.Identity, serviceIdentityId, serviceIdentityFound);
                 await this.deviceScopeIdentitiesCache.RefreshServiceIdentity(serviceIdentityId);

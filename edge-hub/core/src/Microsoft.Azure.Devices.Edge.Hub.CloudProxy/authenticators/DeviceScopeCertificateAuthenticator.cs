@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
     using System;
     using System.Collections.Generic;
     using System.Security.Cryptography.X509Certificates;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -81,6 +82,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             }
 
             return true;
+        }
+
+        protected override async Task<bool> ValidateWithWorkloadAPI(ICertificateCredentials credentials)
+        {
+            return await Task.FromResult(true);
         }
 
         bool ValidateThumbprintAuth(ServiceIdentity serviceIdentity, ICertificateCredentials certificateCredentials)

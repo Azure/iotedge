@@ -108,6 +108,21 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2020_10_10
             }
         }
 
+        public override async Task<string> ValidateTokenAsync(string token)
+        {
+            var validateTokenRequest = new ValidateTokenRequest
+            {
+                Token = token
+            };
+
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.WorkloadUri))
+            {
+                var edgeletHttpClient = new HttpWorkloadClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.WorkloadUri) };
+                ValidateTokenResponse response = await edgeletHttpClient.ValidateTokenAsync(this.Version.Name, this.ModuleId, this.ModuleGenerationId, validateTokenRequest);
+                return response.Token;
+            }
+        }
+
         protected override void HandleException(Exception ex, string operation)
         {
             switch (ex)

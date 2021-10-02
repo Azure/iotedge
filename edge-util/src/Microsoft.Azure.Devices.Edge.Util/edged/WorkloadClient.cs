@@ -31,6 +31,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
 
         public Task<string> SignAsync(string keyId, string algorithm, string data) => this.inner.SignAsync(keyId, algorithm, data);
 
+        public Task<string> ValidateTokenAsync(string token) => this.inner.ValidateTokenAsync(token);
+
         internal WorkloadClientVersioned GetVersionedWorkloadClient(Uri workloadUri, string serverSupportedApiVersion, string clientSupportedApiVersion, string moduleId, string moduleGenerationId)
         {
             ApiVersion supportedVersion = this.GetSupportedVersion(serverSupportedApiVersion, clientSupportedApiVersion);
