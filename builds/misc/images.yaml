@@ -26,13 +26,12 @@ stages:
     - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
       name: build
       displayName: Build ($(Build.Configuration)) dotnet artifacts
-
-    - task: PublishPipelineArtifact@1
+    - task: PublishBuildArtifacts@1
       displayName: Publish Dotnet Artifacts
       inputs:
-        targetPath: '$(Build.BinariesDirectory)/publish'
+        PathtoPublish: '$(Build.BinariesDirectory)/publish'
         artifactName: 'dotnet_artifacts'
-        artifactType: 'pipeline'
+        StoreAsTar: true
 
   - template: templates/build-broker-watchdog.yaml
 
@@ -63,11 +62,12 @@ stages:
   jobs:
   - job: ConsolidateAndPublishArtifacts
     steps:
-    - task: DownloadPipelineArtifact@2
+    - task: DownloadBuildArtifacts@0
       displayName: Download Artifacts
       inputs:
-        source: 'current'
-        path: '$(Build.ArtifactStagingDirectory)'
+        buildType: 'current'
+        downloadPath: '$(Build.ArtifactStagingDirectory)'
+        extractTars: true
 
     - task: CopyFiles@2
       displayName: Copy mqttd (amd64)

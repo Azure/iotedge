@@ -15,6 +15,7 @@ jobs:
       inputs:
         pathToPublish: '$(Build.BinariesDirectory)/publish/mqttd_amd64'
         artifactName: mqttd_amd64
+        StoreAsTar: true        
   - job: BuildMqttBrokerArm32
     steps:
     - task: Bash@3
@@ -31,6 +32,7 @@ jobs:
       inputs:
         pathToPublish: '$(Build.BinariesDirectory)/publish/mqttd_arm32'
         artifactName: mqttd_arm32
+        StoreAsTar: true
   - job: BuildMqttBrokerArm64
     steps:
     - task: Bash@3
@@ -47,6 +49,7 @@ jobs:
       inputs:
         pathToPublish: '$(Build.BinariesDirectory)/publish/mqttd_arm64'
         artifactName: mqttd_arm64
+        StoreAsTar: true        
   - job: BuildWatchdogAmd64
     steps:
     - task: Bash@3
@@ -63,6 +66,7 @@ jobs:
       inputs:
         pathToPublish: '$(Build.BinariesDirectory)/publish/watchdog_amd64'
         artifactName: watchdog_amd64
+        StoreAsTar: true        
   - job: BuildWatchdogArm32
     steps:
     - task: Bash@3
@@ -79,6 +83,7 @@ jobs:
       inputs:
         pathToPublish: '$(Build.BinariesDirectory)/publish/watchdog_arm32'
         artifactName: watchdog_arm32
+        StoreAsTar: true        
   - job: BuildWatchdogArm64
     steps:
     - task: Bash@3
@@ -95,3 +100,4 @@ jobs:
       inputs:
         pathToPublish: '$(Build.BinariesDirectory)/publish/watchdog_arm64'
         artifactName: watchdog_arm64
+        StoreAsTar: true        
