@@ -67,6 +67,7 @@ stages:
       inputs:
         buildType: 'current'
         downloadPath: '$(Build.ArtifactStagingDirectory)'
+        downloadType: specific
         extractTars: true
 
     - task: CopyFiles@2
