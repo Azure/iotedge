@@ -24,8 +24,8 @@ jobs:
       inputs:
         filePath: scripts/linux/cross-platform-rust-build.sh
         arguments: --os ubuntu18.04 --arch $(arch) --build-path ${{ parameters['module.path'] }}
-    - task: PublishPipelineArtifact@1
+    - task: PublishBuildArtifacts@1
       inputs:
-        targetPath: ${{ parameters['module.path'] }}/target/$(target)/release/${{ parameters['module.name'] }}
+        pathToPublish: ${{ parameters['module.path'] }}/target/$(target)/release/${{ parameters['module.name'] }}
         artifactName: ${{ parameters['module.name'] }}_$(arch)
-        artifactType: 'pipeline'
+        storeAsTar: true

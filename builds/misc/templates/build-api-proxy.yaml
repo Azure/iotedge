@@ -31,8 +31,8 @@ jobs:
       inputs:
         filePath: ${{ parameters.filePath }}
         arguments: -i ${{ parameters.imageName }} -P ${{ parameters.project }} -c ${{ parameters.configuration }} --target-arch $(arch) --bin-dir ${{ parameters.binDir }}
-    - task: PublishPipelineArtifact@1
+    - task: PublishBuildArtifacts@1
       inputs:
-        targetPath: '${{ parameters.binDir }}/publish'
+        pathtoPublish: '${{ parameters.binDir }}/publish'
         artifactName: api_proxy_$(arch)
-        artifactType: 'pipeline'
+        storeAsTar: true

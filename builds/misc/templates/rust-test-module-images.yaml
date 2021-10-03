@@ -4,10 +4,11 @@ parameters:
   module.name: ''
 
 steps:
-- task: DownloadPipelineArtifact@2
+- task: DownloadBuildArtifacts@0
   inputs:
-    source: 'current'
-    path: '$(Build.ArtifactStagingDirectory)'
+    buildType: 'current'
+    downloadPath: '$(Build.ArtifactStagingDirectory)'
+    extractTars: true
 - task: CopyFiles@2
   inputs:
     sourceFolder: $(Build.ArtifactStagingDirectory)/${{ parameters['module.name'] }}_amd64
