@@ -6,11 +6,15 @@ jobs:
       inputs:
         filePath: scripts/linux/cross-platform-rust-build.sh
         arguments: --os alpine --arch amd64 --build-path mqtt/mqttd
-    - task: PublishPipelineArtifact@1
+    - task: CopyFiles@2
       inputs:
-        targetPath: 'mqtt/target/x86_64-unknown-linux-musl/release/mqttd'
+        sourceFolder: 'mqtt/target/x86_64-unknown-linux-musl/release/'
+        contents: 'mqttd'
+        targetFolder: '$(Build.BinariesDirectory)/publish/mqttd_amd64'
+    - task: PublishBuildArtifacts@1
+      inputs:
+        pathToPublish: '$(Build.BinariesDirectory)/publish/mqttd_amd64'
         artifactName: mqttd_amd64
-        artifactType: 'pipeline'
   - job: BuildMqttBrokerArm32
     steps:
     - task: Bash@3
@@ -18,56 +22,76 @@ jobs:
       inputs:
         filePath: scripts/linux/cross-platform-rust-build.sh
         arguments: --os ubuntu18.04 --arch arm32v7 --build-path mqtt/mqttd
-    - task: PublishPipelineArtifact@1
+    - task: CopyFiles@2
       inputs:
-        targetPath: 'mqtt/target/armv7-unknown-linux-gnueabihf/release/mqttd'
+        sourceFolder: 'mqtt/target/armv7-unknown-linux-gnueabihf/release/'
+        contents: 'mqttd'
+        targetFolder: '$(Build.BinariesDirectory)/publish/mqttd_arm32'
+    - task: PublishBuildArtifacts@1
+      inputs:
+        pathToPublish: '$(Build.BinariesDirectory)/publish/mqttd_arm32'
         artifactName: mqttd_arm32
-        artifactType: 'pipeline'
-  - job: BuildMqttBrokerArm64        
+  - job: BuildMqttBrokerArm64
     steps:
     - task: Bash@3
       displayName: Build MQTT Broker - arm64
       inputs:
         filePath: scripts/linux/cross-platform-rust-build.sh
         arguments: --os ubuntu18.04 --arch aarch64 --build-path mqtt/mqttd
-    - task: PublishPipelineArtifact@1
+    - task: CopyFiles@2
       inputs:
-        targetPath: 'mqtt/target/aarch64-unknown-linux-gnu/release/mqttd'
+        sourceFolder: 'mqtt/target/aarch64-unknown-linux-gnu/release/'
+        contents: 'mqttd'
+        targetFolder: '$(Build.BinariesDirectory)/publish/mqttd_arm64'
+    - task: PublishBuildArtifacts@1
+      inputs:
+        pathToPublish: '$(Build.BinariesDirectory)/publish/mqttd_arm64'
         artifactName: mqttd_arm64
-        artifactType: 'pipeline'
-  - job: BuildWatchdogAmd64        
+  - job: BuildWatchdogAmd64
     steps:
     - task: Bash@3
       displayName: Build watchdog - amd64
       inputs:
         filePath: scripts/linux/cross-platform-rust-build.sh
         arguments: --os alpine --arch amd64 --build-path edge-hub/watchdog
-    - task: PublishPipelineArtifact@1
+    - task: CopyFiles@2
       inputs:
-        targetPath: 'edge-hub/watchdog/target/x86_64-unknown-linux-musl/release/watchdog'
+        sourceFolder: 'edge-hub/watchdog/target/x86_64-unknown-linux-musl/release/'
+        contents: 'watchdog'
+        targetFolder: '$(Build.BinariesDirectory)/publish/watchdog_amd64'
+    - task: PublishBuildArtifacts@1
+      inputs:
+        pathToPublish: '$(Build.BinariesDirectory)/publish/watchdog_amd64'
         artifactName: watchdog_amd64
-        artifactType: 'pipeline'
-  - job: BuildWatchdogArm32                
+  - job: BuildWatchdogArm32
     steps:
     - task: Bash@3
       displayName: Build watchdog - arm32
       inputs:
         filePath: scripts/linux/cross-platform-rust-build.sh
         arguments: --os ubuntu18.04 --arch arm32v7 --build-path edge-hub/watchdog
-    - task: PublishPipelineArtifact@1
+    - task: CopyFiles@2
       inputs:
-        targetPath: 'edge-hub/watchdog/target/armv7-unknown-linux-gnueabihf/release/watchdog'
+        sourceFolder: 'edge-hub/watchdog/target/armv7-unknown-linux-gnueabihf/release/'
+        contents: 'watchdog'
+        targetFolder: '$(Build.BinariesDirectory)/publish/watchdog_arm32'
+    - task: PublishBuildArtifacts@1
+      inputs:
+        pathToPublish: '$(Build.BinariesDirectory)/publish/watchdog_arm32'
         artifactName: watchdog_arm32
-        artifactType: 'pipeline'
-  - job: BuildWatchdogArm64      
+  - job: BuildWatchdogArm64
     steps:
     - task: Bash@3
       displayName: Build watchdog - arm64
       inputs:
         filePath: scripts/linux/cross-platform-rust-build.sh
         arguments: --os ubuntu18.04 --arch aarch64 --build-path edge-hub/watchdog
-    - task: PublishPipelineArtifact@1
+    - task: CopyFiles@2
       inputs:
-        targetPath: 'edge-hub/watchdog/target/aarch64-unknown-linux-gnu/release/watchdog'
+        sourceFolder: 'edge-hub/watchdog/target/aarch64-unknown-linux-gnu/release/'
+        contents: 'watchdog'
+        targetFolder: '$(Build.BinariesDirectory)/publish/watchdog_arm64'
+    - task: PublishBuildArtifacts@1
+      inputs:
+        pathToPublish: '$(Build.BinariesDirectory)/publish/watchdog_arm64'
         artifactName: watchdog_arm64
-        artifactType: 'pipeline'    
