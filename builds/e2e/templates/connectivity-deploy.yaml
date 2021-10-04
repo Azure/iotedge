@@ -161,6 +161,7 @@ steps:
       E2E_parentEdgeDevice: ${{ parameters['connectivity.parentEdgeDevice'] }} 
       E2E_hostname: $(Hostname)
   
+  # The Step Takes the Test Description which may have special characters and replaces them with '-'
   - pwsh: |
       $artifactSuffix = '$(Build.BuildNumber)-${{ parameters['networkController.description'] }}' -replace '[_|/|(]','-' -replace '[)]',''
       Write-Output "##vso[task.setvariable variable=artifactSuffix] $artifactSuffix"
