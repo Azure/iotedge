@@ -16,7 +16,7 @@ FROM workitems
 WHERE
     [System.TeamProject] = @project
     AND [System.WorkItemType] = 'Bug'
-    AND [System.AreaPath] = 'One\IoT\Platform and Devices\{AREA}'
+    AND [System.AreaPath] = 'One\IoT\Platform and Devices\IoT Devices\{AREA}'
     AND NOT [System.State] CONTAINS 'Done'
     AND NOT [System.State] CONTAINS 'Removed'
     AND [Microsoft.VSTS.Common.Priority] = {PRIORITY}";
@@ -33,7 +33,7 @@ FROM workitems
 WHERE
     [System.TeamProject] = @project
     AND [System.WorkItemType] = 'Bug'
-    AND [System.AreaPath] = 'One\IoT\Platform and Devices\{AREA}'
+    AND [System.AreaPath] = 'One\IoT\Platform and Devices\IoT Devices\{AREA}'
     AND NOT [System.State] CONTAINS 'Done'
     AND NOT [System.State] CONTAINS 'Removed'
     AND [Microsoft.VSTS.Common.Priority] = {PRIORITY}
@@ -51,7 +51,7 @@ FROM workitems
 WHERE
     [System.TeamProject] = @project
     AND [System.WorkItemType] = 'Bug'
-    AND [System.AreaPath] = 'One\IoT\Platform and Devices\{AREA}'
+    AND [System.AreaPath] = 'One\IoT\Platform and Devices\IoT Devices\{AREA}'
     AND NOT [System.State] CONTAINS 'Done'
     AND NOT [System.State] CONTAINS 'Removed'
     AND NOT [Microsoft.VSTS.Common.Priority] IN (1)
@@ -69,7 +69,7 @@ FROM workitems
 WHERE
     [System.TeamProject] = @project
     AND [System.WorkItemType] = 'Bug'
-    AND [System.AreaPath] = 'One\IoT\Platform and Devices\{AREA}'
+    AND [System.AreaPath] = 'One\IoT\Platform and Devices\IoT Devices\{AREA}'
     AND NOT [System.State] CONTAINS 'Done'
     AND NOT [System.State] CONTAINS 'Removed'
     AND NOT [Microsoft.VSTS.Common.Priority] IN (1)
