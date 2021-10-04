@@ -2,7 +2,7 @@
 namespace LoadGen
 {
     using System;
-    using System.Net;
+    using System.Linq;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -42,14 +42,24 @@ namespace LoadGen
             var random = new Random();
             var bufferPool = new BufferPool();
 
-            using (Buffer data = bufferPool.AllocBuffer(Settings.Current.MessageSizeInBytes))
+            using (Buffer data = bufferPool.AllocBuffer((ulong)Settings.Current.MessageSizeInBytes))
             {
                 // generate some bytes
                 random.NextBytes(data.Data);
 
                 // build message
-                var messageBody = new { data = data.Data };
-                var message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody)));
+                var messageInfo = 
+                    new {
+                        moduleId = Settings.Current.ModuleId,
+                        outputName = Settings.Current.OutputName,
+                        createdTime = DateTime.UtcNow,
+                        trackingId = Settings.Current.TrackingId,
+                        transportType = Settings.Current.TransportType,
+                        data = data.Data
+                    };
+
+                var messageBody = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageInfo)).Take(Settings.Current.MessageSizeInBytes).ToArray();
+                var message = new Message(messageBody);
                 message.Properties.Add(TestConstants.Message.SequenceNumberPropertyName, messageId.ToString());
                 message.Properties.Add(TestConstants.Message.BatchIdPropertyName, this.BatchId.ToString());
                 message.Properties.Add(TestConstants.Message.TrackingIdPropertyName, this.TrackingId);

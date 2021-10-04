@@ -15,7 +15,7 @@ namespace LoadGen
 
         Settings(
             TimeSpan messageFrequency,
-            ulong messageSizeInBytes,
+            int messageSizeInBytes,
             TransportType transportType,
             string outputName,
             TimeSpan testStartDelay,
@@ -33,7 +33,7 @@ namespace LoadGen
             Preconditions.CheckRange(testStartDelay.Ticks, 0);
             Preconditions.CheckRange(testDuration.Ticks, 0);
 
-            this.MessageSizeInBytes = Preconditions.CheckRange<ulong>(messageSizeInBytes, 1);
+            this.MessageSizeInBytes = Preconditions.CheckRange<int>(messageSizeInBytes, 1);
             this.OutputName = Preconditions.CheckNonWhiteSpace(outputName, nameof(outputName));
 
             this.MessageFrequency = messageFrequency;
@@ -95,7 +95,7 @@ namespace LoadGen
 
             return new Settings(
                 configuration.GetValue("messageFrequency", TimeSpan.FromMilliseconds(20)),
-                configuration.GetValue<ulong>("messageSizeInBytes", 1024),
+                configuration.GetValue<int>("messageSizeInBytes", 1024),
                 configuration.GetValue("transportType", TransportType.Amqp_Tcp_Only),
                 configuration.GetValue("outputName", "output1"),
                 configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
@@ -112,7 +112,7 @@ namespace LoadGen
 
         public TimeSpan MessageFrequency { get; }
 
-        public ulong MessageSizeInBytes { get; }
+        public int MessageSizeInBytes { get; }
 
         public TransportType TransportType { get; }
 
