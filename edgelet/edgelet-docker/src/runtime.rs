@@ -419,7 +419,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                     let socket_signal = socket_signal;
 
                     if socket_signal
-                        .unbounded_send(ModuleAction::Remove(module_name.clone()))
+                        .unbounded_send(ModuleAction::Stop(module_name.clone()))
                         .is_err()
                     {
                         error!("Could not remove socket {}", module_name);
@@ -496,7 +496,6 @@ impl ModuleRuntime for DockerModuleRuntime {
             return Box::new(future::err(Error::from(err)));
         }
 
-        let socket_signal = self.create_socket_channel.clone();
         Box::new(
             self.client
                 .container_api()
@@ -509,14 +508,9 @@ impl ModuleRuntime for DockerModuleRuntime {
                     Err(err) => {
                         let err = Error::from_docker_error(
                             err,
-                            ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id.clone())),
+                            ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id)),
                         );
-                        if socket_signal
-                            .unbounded_send(ModuleAction::Remove(id.clone()))
-                            .is_err()
-                        {
-                            error!("Could not remove socket {}", id);
-                        }
+
                         log_failure(Level::Warn, &err);
                         Err(err)
                     }
@@ -540,26 +534,14 @@ impl ModuleRuntime for DockerModuleRuntime {
             s => s as i32,
         });
 
-        let create_socket_channel = self.create_socket_channel.clone();
         Box::new(
             self.client
                 .container_api()
                 .container_stop(&id, wait_timeout)
-                .then(move |result| match result {
+                .then(|result| match result {
                     Ok(_) => {
-                        match create_socket_channel.unbounded_send(ModuleAction::Stop(id.clone())) {
-                            Ok(()) => {
-                                info!("Successfully stoppedmodule {}", id);
-                                Ok(())
-                            },
-                            Err(err) => {
-                                log_failure(Level::Warn, &err);
-                                info!("Successfully stoppedmodule {}, but could not stop listener on socket", id);
-                                Err(Error::from(ErrorKind::RuntimeOperation(
-                                    RuntimeOperation::GetModule(id),
-                                )))
-                            }
-                        }
+                        info!("Successfully stopped module {}", id);
+                        Ok(())
                     }
                     Err(err) => {
                         let err = Error::from_docker_error(
@@ -626,8 +608,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                 )
                 .then(move |result| match result {
                     Ok(_) => {
-                        match create_socket_channel.unbounded_send(ModuleAction::Remove(id.clone()))
-                        {
+                        match create_socket_channel.unbounded_send(ModuleAction::Stop(id.clone())) {
                             Ok(()) => {
                                 info!("Successfully removed module {}", id);
                                 Ok(())

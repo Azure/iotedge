@@ -918,7 +918,7 @@ fn container_create_succeeds() {
                 sender.send(()).unwrap();
                 Ok(())
             }
-            ModuleAction::Stop(_module_id) | ModuleAction::Remove(_module_id) => Ok(()),
+            ModuleAction::Stop(_module_id) => Ok(()),
         });
     runtime.spawn(simulate_workload_manager);
     runtime.spawn(server);
