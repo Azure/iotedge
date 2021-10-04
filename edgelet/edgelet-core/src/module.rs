@@ -34,7 +34,6 @@ pub enum ModuleStatus {
 pub enum ModuleAction {
     Start(String, Sender<()>),
     Stop(String),
-    Remove(String),
 }
 
 impl FromStr for ModuleStatus {
