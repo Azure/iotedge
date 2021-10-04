@@ -59,7 +59,8 @@ pub fn runtime_state(
             .status()
             .and_then(|status| match status {
                 "created" | "paused" | "restarting" => Some(ModuleStatus::Stopped),
-                "removing" | "dead" | "exited" => status_from_exit_code(state.exit_code()),
+                "removing" | "exited" => status_from_exit_code(state.exit_code()),
+                "dead" => Some(ModuleStatus::Dead),
                 "running" => Some(ModuleStatus::Running),
                 _ => Some(ModuleStatus::Unknown),
             })
