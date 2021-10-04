@@ -46,6 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             public bool UseBackupAndRestore { get; }
             public Option<string> StorageBackupPath { get; }
             public Option<ulong> StorageMaxTotalWalSize { get; }
+            public Option<ulong> StorageMaxManifestFileSize { get; }
             public Option<int> StorageMaxOpenFiles { get; }
             public Option<StorageLogLevel> StorageLogLevel { get; }
 
@@ -57,6 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 bool useBackupAndRestore,
                 Option<string> storageBackupPath,
                 Option<ulong> storageMaxTotalWalSize,
+                Option<ulong> storageMaxManifestFileSize,
                 Option<int> storageMaxOpenFiles,
                 Option<StorageLogLevel> storageLogLevel)
             {
@@ -67,6 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 this.UseBackupAndRestore = useBackupAndRestore;
                 this.StorageBackupPath = storageBackupPath;
                 this.StorageMaxTotalWalSize = storageMaxTotalWalSize;
+                this.StorageMaxManifestFileSize = storageMaxManifestFileSize;
                 this.StorageMaxOpenFiles = storageMaxOpenFiles;
                 this.StorageLogLevel = storageLogLevel;
             }
@@ -315,6 +318,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     storeAndForward.UseBackupAndRestore,
                     storeAndForward.StorageBackupPath,
                     storeAndForward.StorageMaxTotalWalSize,
+                    storeAndForward.StorageMaxManifestFileSize,
                     storeAndForward.StorageMaxOpenFiles,
                     storeAndForward.StorageLogLevel,
                     nestedEdgeEnabled));
@@ -337,6 +341,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             string storagePath = GetOrCreateDirectoryPath(this.configuration.GetValue<string>("StorageFolder"), Constants.EdgeHubStorageFolder);
             bool storeAndForwardEnabled = this.configuration.GetValue<bool>("storeAndForwardEnabled");
             Option<ulong> storageMaxTotalWalSize = this.GetConfigIfExists<ulong>(Constants.ConfigKey.StorageMaxTotalWalSize, this.configuration);
+            Option<ulong> storageMaxManifestFileSize = this.GetConfigIfExists<ulong>(Constants.ConfigKey.StorageMaxManifestFileSize, this.configuration);
             Option<int> storageMaxOpenFiles = this.GetConfigIfExists<int>(Constants.ConfigKey.StorageMaxOpenFiles, this.configuration);
             Option<StorageLogLevel> storageLogLevel = this.GetConfigIfExists<StorageLogLevel>(Constants.ConfigKey.StorageLogLevel, this.configuration);
 
@@ -354,7 +359,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
 
             var storeAndForwardConfiguration = new StoreAndForwardConfiguration(timeToLiveSecs);
-            return new StoreAndForward(storeAndForwardEnabled, usePersistentStorage, storeAndForwardConfiguration, storagePath, useBackupAndRestore, storageBackupPath, storageMaxTotalWalSize, storageMaxOpenFiles, storageLogLevel);
+            return new StoreAndForward(storeAndForwardEnabled, usePersistentStorage, storeAndForwardConfiguration, storagePath, useBackupAndRestore, storageBackupPath, storageMaxTotalWalSize, storageMaxManifestFileSize, storageMaxOpenFiles, storageLogLevel);
         }
 
         // TODO: Move this function to a common location that can be shared between EdgeHub and EdgeAgent
