@@ -157,8 +157,6 @@ jobs:
           curl -L https://raw.github.com/eriwen/lcov-to-cobertura-xml/8c55cd11f80a21e7e46f20f8c81fcde0bf11f5e5/lcov_cobertura/lcov_cobertura.py -o lcov_cobertura.py
         workingDirectory: edgelet
         displayName: Install code coverage tools
-      - script: edgelet/build/linux/check-submodules.sh
-        displayName: Check submodules
       - script: $CARGO test --verbose
         displayName: Test
         workingDirectory: edgelet
