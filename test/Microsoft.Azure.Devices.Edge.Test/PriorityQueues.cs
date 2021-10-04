@@ -92,27 +92,29 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Category("FlakyOnArm")]
         public async Task PriorityQueueTimeToLive()
         {
-            CancellationToken token = this.TestToken;
-            string trcImage = Context.Current.TestResultCoordinatorImage.Expect(() => new ArgumentException("testResultCoordinatorImage parameter is required for Priority Queues test"));
-            string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));
-            string relayerImage = Context.Current.RelayerImage.Expect(() => new ArgumentException("relayerImage parameter is required for Priority Queues test"));
-            string trackingId = Guid.NewGuid().ToString();
-            TestInfo testInfo = this.InitTestInfo(5, 20);
+            for(int i = 0; i < 10; i++) {
+                CancellationToken token = this.TestToken;
+                string trcImage = Context.Current.TestResultCoordinatorImage.Expect(() => new ArgumentException("testResultCoordinatorImage parameter is required for Priority Queues test"));
+                string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));
+                string relayerImage = Context.Current.RelayerImage.Expect(() => new ArgumentException("relayerImage parameter is required for Priority Queues test"));
+                string trackingId = Guid.NewGuid().ToString();
+                TestInfo testInfo = this.InitTestInfo(5, 20);
 
-            Action<EdgeConfigBuilder> addLoadGenConfig = this.BuildAddLoadGenConfig(trackingId, loadGenImage, testInfo, false);
-            Action<EdgeConfigBuilder> addTrcConfig = TestResultCoordinatorUtil.BuildAddTestResultCoordinatorConfig(trackingId, trcImage, LoadGenModuleName, RelayerModuleName);
+                Action<EdgeConfigBuilder> addLoadGenConfig = this.BuildAddLoadGenConfig(trackingId, loadGenImage, testInfo, false);
+                Action<EdgeConfigBuilder> addTrcConfig = TestResultCoordinatorUtil.BuildAddTestResultCoordinatorConfig(trackingId, trcImage, LoadGenModuleName, RelayerModuleName);
 
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig, token, Context.Current.NestedEdge);
-            PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
+                EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig, token, Context.Current.NestedEdge);
+                PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
 
-            await Profiler.Run(
-                () => Task.Delay(testInfo.TtlThreshold * 1000),
-                "Waited for message TTL to expire");
+                await Profiler.Run(
+                    () => Task.Delay(testInfo.TtlThreshold * 1000),
+                    "Waited for message TTL to expire");
 
-            Action<EdgeConfigBuilder> addRelayerConfig = this.BuildAddRelayerConfig(relayerImage, loadGenTestStatus);
-            deployment = await this.runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig + addRelayerConfig, token, Context.Current.NestedEdge);
-            await this.PollUntilFinishedAsync(RelayerModuleName, token);
-            Assert.True(await TestResultCoordinatorUtil.IsResultValidAsync());
+                Action<EdgeConfigBuilder> addRelayerConfig = this.BuildAddRelayerConfig(relayerImage, loadGenTestStatus);
+                deployment = await this.runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig + addRelayerConfig, token, Context.Current.NestedEdge);
+                await this.PollUntilFinishedAsync(RelayerModuleName, token);
+                Assert.True(await TestResultCoordinatorUtil.IsResultValidAsync());
+            }
         }
 
         async Task ReceiveEventsFromIotHub(DateTime startTime, ConcurrentQueue<MessageTestResult> messages, PriorityQueueTestStatus loadGenTestStatus, string trackingId, CancellationToken token)
