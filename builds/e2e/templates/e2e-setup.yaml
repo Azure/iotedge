@@ -33,7 +33,14 @@ steps:
     downloadType: single
     artifactName: $(az.pipeline.images.artifacts)
     allowPartiallySucceededBuilds: true
-    itemPattern: $(az.pipeline.images.artifacts)/artifactInfo.txt
+    extractTars: true
+
+- task: CopyFiles@2
+  displayName: Copy extracted $(az.pipeline.images.artifacts)
+  inputs:
+    sourceFolder: '$(Agent.TempDirectory)/extracted_tars/$(az.pipeline.images.artifacts)'
+    contents: 'artifactInfo.txt'
+    targetFolder: '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)'
 
 - task: DownloadBuildArtifacts@0
   displayName: Download edgelet packages

@@ -151,6 +151,7 @@ stages:
       inputs:
         pathToPublish: '$(Build.BinariesDirectory)/publish'
         artifactName: 'core-linux'
+        StoreAsTar: true
 
 ################################################################################
 - stage:  BuildImages
