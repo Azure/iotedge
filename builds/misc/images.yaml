@@ -73,73 +73,73 @@ stages:
     - task: CopyFiles@2
       displayName: Copy mqttd (amd64)
       inputs:
-        sourceFolder: '$(Build.ArtifactStagingDirectory)/mqttd_amd64'
+        sourceFolder: '$(Agent.TempDirectory)/extracted_tars/mqttd_amd64'
         contents: 'mqttd'
         targetFolder: '$(Build.ArtifactStagingDirectory)/mqtt/target/x86_64-unknown-linux-musl/release'   
 
     - task: CopyFiles@2
       displayName: Copy mqttd (arm32)    
       inputs:  
-        sourceFolder: '$(Build.ArtifactStagingDirectory)/mqttd_arm32'        
+        sourceFolder: '$(Agent.TempDirectory)/extracted_tars/mqttd_arm32'        
         contents: 'mqttd'
         targetFolder: '$(Build.ArtifactStagingDirectory)/mqtt/target/armv7-unknown-linux-gnueabihf/release'
 
     - task: CopyFiles@2
       displayName: Copy mqttd (arm64)    
       inputs:    
-        sourceFolder: '$(Build.ArtifactStagingDirectory)/mqttd_arm64'              
+        sourceFolder: '$(Agent.TempDirectory)/extracted_tars/mqttd_arm64'              
         contents: 'mqttd'
         targetFolder: '$(Build.ArtifactStagingDirectory)/mqtt/target/aarch64-unknown-linux-gnu/release'
 
     - task: CopyFiles@2
       displayName: Copy watchdog (amd64)    
       inputs:
-        sourceFolder: '$(Build.ArtifactStagingDirectory)/watchdog_amd64'              
+        sourceFolder: '$(Agent.TempDirectory)/extracted_tars/watchdog_amd64'              
         contents: 'watchdog'
         targetFolder: '$(Build.ArtifactStagingDirectory)/edge-hub/watchdog/target/x86_64-unknown-linux-musl/release'
 
     - task: CopyFiles@2
       displayName: Copy watchdog (arm32)    
       inputs:
-        sourceFolder: '$(Build.ArtifactStagingDirectory)/watchdog_arm32'              
+        sourceFolder: '$(Agent.TempDirectory)/extracted_tars/watchdog_arm32'              
         contents: 'watchdog'
         targetFolder: '$(Build.ArtifactStagingDirectory)/edge-hub/watchdog/target/armv7-unknown-linux-gnueabihf/release'
 
     - task: CopyFiles@2
       displayName: Copy watchdog (arm64)    
       inputs:
-        sourceFolder: '$(Build.ArtifactStagingDirectory)/watchdog_arm64'              
+        sourceFolder: '$(Agent.TempDirectory)/extracted_tars/watchdog_arm64'              
         contents: 'watchdog'
         targetFolder: '$(Build.ArtifactStagingDirectory)/edge-hub/watchdog/target/aarch64-unknown-linux-gnu/release'                             
-    - script: scripts/linux/consolidate-build-artifacts.sh --dotnet-artifacts-source-dir '$(Build.ArtifactStagingDirectory)/dotnet_artifacts' --rust-artifacts-source-dir '$(Build.ArtifactStagingDirectory)' --dest-dir '$(Build.BinariesDirectory)/publish' --artifact-name 'edge-hub'
+    - script: scripts/linux/consolidate-build-artifacts.sh --dotnet-artifacts-source-dir '$(Agent.TempDirectory)/extracted_tars/dotnet_artifacts' --rust-artifacts-source-dir '$(Build.ArtifactStagingDirectory)' --dest-dir '$(Build.BinariesDirectory)/publish' --artifact-name 'edge-hub'
       displayName: Consolidate Edge Hub Artifacts
     
     # TODO: Consider moving the following copies into consolidate-build-artifacts.sh
     - task: CopyFiles@2
       displayName: Copy/Stage dotnet '$(System.DefaultWorkingDirectory)/edge-modules/api-proxy-module/docker/manifest.yaml.template'
       inputs:
-        sourceFolder: '$(Build.ArtifactStagingDirectory)/dotnet_artifacts'
+        sourceFolder: '$(Agent.TempDirectory)/extracted_tars/dotnet_artifacts'
         contents: '**'
         targetFolder: '$(Build.BinariesDirectory)/publish'
 
     - task: CopyFiles@2
       displayName: Copy API Proxy Artifacts (amd64)
       inputs:
-        sourceFolder: '$(Build.ArtifactStagingDirectory)/api_proxy_x86_64'
+        sourceFolder: '$(Agent.TempDirectory)/extracted_tars/api_proxy_x86_64'
         contents: '**'
         targetFolder: '$(Build.BinariesDirectory)/publish'       
         
     - task: CopyFiles@2
       displayName: Copy API Proxy Artifacts (arm32)
       inputs:
-        sourceFolder: '$(Build.ArtifactStagingDirectory)/api_proxy_armv7l'
+        sourceFolder: '$(Agent.TempDirectory)/extracted_tars/api_proxy_armv7l'
         contents: '**'
         targetFolder: '$(Build.BinariesDirectory)/publish'    
         
     - task: CopyFiles@2
       displayName: Copy API Proxy Artifacts (arm64)
       inputs:
-        sourceFolder: '$(Build.ArtifactStagingDirectory)/api_proxy_aarch64'
+        sourceFolder: '$(Agent.TempDirectory)/extracted_tars/api_proxy_aarch64'
         contents: '**'
         targetFolder: '$(Build.BinariesDirectory)/publish'         
 
