@@ -8,20 +8,21 @@ steps:
   inputs:
     buildType: 'current'
     downloadPath: '$(Build.ArtifactStagingDirectory)'
+    downloadType: specific
     extractTars: true
 - task: CopyFiles@2
   inputs:
-    sourceFolder: $(Build.ArtifactStagingDirectory)/${{ parameters['module.name'] }}_amd64
+    sourceFolder: $(Agent.TempDirectory)/extracted_tars/${{ parameters['module.name'] }}_amd64
     contents: '**'
     targetFolder: ${{ parameters['module.path'] }}/target/x86_64-unknown-linux-gnu/release
 - task: CopyFiles@2
   inputs:
-    sourceFolder: $(Build.ArtifactStagingDirectory)/${{ parameters['module.name'] }}_arm32v7
+    sourceFolder: $(Agent.TempDirectory)/extracted_tars/${{ parameters['module.name'] }}_arm32v7
     contents: '**'
     targetFolder: ${{ parameters['module.path'] }}/target/armv7-unknown-linux-gnueabihf/release
 - task: CopyFiles@2
   inputs:
-    sourceFolder: $(Build.ArtifactStagingDirectory)/${{ parameters['module.name'] }}_aarch64
+    sourceFolder: $(Agent.TempDirectory)/extracted_tars/${{ parameters['module.name'] }}_aarch64
     contents: '**'
     targetFolder: ${{ parameters['module.path'] }}/target/aarch64-unknown-linux-gnu/release    
 - task: Docker@2
