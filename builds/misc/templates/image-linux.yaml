@@ -14,11 +14,12 @@ steps:
       downloadPath: '$(Build.ArtifactStagingDirectory)'
       downloadType: 'single'
       artifactName: 'core-linux'
+      extractTars: true
 
   - task: CopyFiles@2
     displayName: Copy Artifacts
     inputs:
-      sourceFolder: '$(Build.ArtifactStagingDirectory)/core-linux'
+      sourceFolder: '$(Agent.TempDirectory)/extracted_tars/core-linux'
       contents: '**'
       targetFolder: '$(Build.BinariesDirectory)/publish'          
 
