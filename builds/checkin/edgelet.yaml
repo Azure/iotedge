@@ -152,7 +152,7 @@ jobs:
       #     RUST_TOOLCHAIN: $(rust.toolchain)
       - script: scripts/linux/generic-rust/install.sh --project-root "edgelet"
         displayName: Install Rust
-      - script: rustup update nightly
+      - script: rustup update nightly && rustup default nightly
         displayName: Update to Nightly Rust
       - script: |
           curl -L https://github.com/mozilla/grcov/releases/download/v0.5.1/grcov-linux-x86_64.tar.bz2 | tar jxf -
