@@ -166,7 +166,7 @@ jobs:
         workingDirectory: edgelet
       - script: |
           zip -1 target/ccov.zip `find ./target \( -name "*.gc*" \) -print`
-          grcov target/ccov.zip -s . -t lcov --llvm --branch --ignore-not-existing --ignore "/*" --ignore "*docker-rs*" > lcov.info
+          grcov target/ccov.zip -s . -t cobertura --llvm --branch --ignore-not-existing --ignore "/*" --ignore "*docker-rs*" > coverage.xml
         displayName: Assemble code coverage results
         workingDirectory: edgelet
         env:
