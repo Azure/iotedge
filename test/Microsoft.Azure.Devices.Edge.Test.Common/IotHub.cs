@@ -180,7 +180,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 position,
                 token))
             {
-                if (onEventReceived(partitionEvent.Data))
+                // Keep reading events until either: (1) the token is canceled or (2) we find the
+                // event we're looking for.
+                if (partitionEvent.Data == null || onEventReceived(partitionEvent.Data))
                 {
                     break;
                 }
