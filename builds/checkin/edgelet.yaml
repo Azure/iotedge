@@ -166,7 +166,7 @@ jobs:
         workingDirectory: edgelet
       - script: |
           zip -1 target/ccov.zip `find ./target \( -name "*.gc*" \) -print`
-          grcov target/ccov.zip -s . -t cobertura --llvm --branch --ignore-not-existing --ignore "/*" --ignore "*docker-rs*" > coverage.xml
+          grcov target/ccov.zip -s . -t lcov --llvm --branch --ignore-not-existing --ignore "/*" --ignore "*docker-rs*" > lcov.info
         displayName: Assemble code coverage results
         workingDirectory: edgelet
         env:
@@ -176,6 +176,7 @@ jobs:
         inputs:
           codeCoverageTool: cobertura
           summaryFileLocation: "edgelet/coverage.xml"
+          pathToSources: $(Build.SourcesDirectory)/edgelet/
       - task: mspremier.BuildQualityChecks.QualityChecks-task.BuildQualityChecks@5
         displayName: "Check build quality"
         inputs:
