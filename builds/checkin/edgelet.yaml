@@ -133,14 +133,14 @@ jobs:
     variables:
       coverage.excludes: "docker-rs*"
       coverage.goal: 68
-      rust.toolchain: nightly-2021-10-03
+      rust.toolchain: nightly-2021-10-04
     pool:
       vmImage: "ubuntu-18.04"
     steps:
       - script: |
           echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
           echo "##vso[task.setvariable variable=CARGO_INCREMENTAL;]0"
-          echo "##vso[task.setvariable variable=RUSTFLAGS;]-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off"
+          echo "##vso[task.setvariable variable=RUSTFLAGS;]-Zprofile -Ccodegen-units=1 -Copt-level=0 -Clink-dead-code -Coverflow-checks=off -Zpanic_abort_tests -Cpanic=abort"
           echo "##vso[task.setvariable variable=IOTEDGE_HOMEDIR;]/tmp"
           echo "##vso[task.setvariable variable=CARGO;]${CARGO_HOME:-"$HOME/.cargo"}/bin/cargo"
         displayName: Set env variables
@@ -157,6 +157,9 @@ jobs:
           curl -L https://raw.github.com/eriwen/lcov-to-cobertura-xml/8c55cd11f80a21e7e46f20f8c81fcde0bf11f5e5/lcov_cobertura/lcov_cobertura.py -o lcov_cobertura.py
         workingDirectory: edgelet
         displayName: Install code coverage tools
+      - script: $CARGO build --verbose
+        workingDirectory: edgelet
+        displayName: Build
       - script: $CARGO test --verbose
         displayName: Test
         workingDirectory: edgelet
