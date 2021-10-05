@@ -140,7 +140,7 @@ jobs:
       - script: |
           echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
           echo "##vso[task.setvariable variable=CARGO_INCREMENTAL;]0"
-          echo "##vso[task.setvariable variable=RUSTFLAGS;]-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Zno-landing-pads"
+          echo "##vso[task.setvariable variable=RUSTFLAGS;]-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off"
           echo "##vso[task.setvariable variable=IOTEDGE_HOMEDIR;]/tmp"
           echo "##vso[task.setvariable variable=CARGO;]${CARGO_HOME:-"$HOME/.cargo"}/bin/cargo"
         displayName: Set env variables
