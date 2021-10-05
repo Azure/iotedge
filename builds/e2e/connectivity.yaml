@@ -159,13 +159,20 @@ jobs:
           buildVersionToDownload: latestFromBranch
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.linux)
-          extractTars: true
           allowPartiallySucceededBuilds: true
+          extractTars: true
       - task: CopyFiles@2
         displayName: Copy $(images.artifact.name.linux) Artifacts
         inputs:
           sourceFolder: '$(Agent.TempDirectory)/extracted_tars/$(images.artifact.name.linux)'
-          contents: '**'
+          contents:  |
+            IotEdgeQuickstart.linux-x64.tar.gz
+            e2e_deployment_files/$(deploymentFileName)
+            scripts/linux/trcE2ETest.sh
+            artifactInfo.txt
+            scripts/local/test/DownloadIdentityService.ps1
+            CACertificates/certGen.sh
+            CACertificates/openssl_root_ca.cnf
           targetFolder: '$(Build.StagingDirectory)/$(images.artifact.name.linux)'
       - task: PowerShell@2
         condition: and(succeeded(), eq(variables['run.flag'], 1))
@@ -351,13 +358,20 @@ jobs:
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.linux)
           allowPartiallySucceededBuilds: true
-          itemPattern: |
-            $(images.artifact.name.linux)/IotEdgeQuickstart.linux-arm.tar.gz
-            $(images.artifact.name.linux)/e2e_deployment_files/$(deploymentFileName)
-            $(images.artifact.name.linux)/scripts/linux/trcE2ETest.sh
-            $(images.artifact.name.linux)/artifactInfo.txt
-            $(images.artifact.name.linux)/CACertificates/certGen.sh
-            $(images.artifact.name.linux)/CACertificates/openssl_root_ca.cnf
+          extractTars: true
+      - task: CopyFiles@2
+        displayName: Copy $(images.artifact.name.linux) Artifacts
+        inputs:
+          sourceFolder: '$(Agent.TempDirectory)/extracted_tars/$(images.artifact.name.linux)'
+          contents:  |
+            IotEdgeQuickstart.linux-arm.tar.gz
+            e2e_deployment_files/$(deploymentFileName)
+            scripts/linux/trcE2ETest.sh
+            artifactInfo.txt
+            scripts/local/test/DownloadIdentityService.ps1
+            CACertificates/certGen.sh
+            CACertificates/openssl_root_ca.cnf
+          targetFolder: '$(Build.StagingDirectory)/$(images.artifact.name.linux)'
       # Deploy connectivity test
       - template: templates/connectivity-deploy.yaml
         parameters:
