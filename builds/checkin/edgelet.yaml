@@ -176,7 +176,7 @@ jobs:
         displayName: Publish code coverage results
         inputs:
           codeCoverageTool: cobertura
-          summaryFileLocation: "$(Build.SourcesDirectory)/edgelet/coverage.xml"
+          summaryFileLocation: "edgelet/coverage.xml"
       - task: mspremier.BuildQualityChecks.QualityChecks-task.BuildQualityChecks@5
         displayName: "Check build quality"
         inputs:
