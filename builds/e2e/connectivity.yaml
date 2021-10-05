@@ -159,15 +159,14 @@ jobs:
           buildVersionToDownload: latestFromBranch
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.linux)
+          extractTars: true
           allowPartiallySucceededBuilds: true
-          itemPattern: |
-            $(images.artifact.name.linux)/IotEdgeQuickstart.linux-x64.tar.gz
-            $(images.artifact.name.linux)/e2e_deployment_files/$(deploymentFileName)
-            $(images.artifact.name.linux)/scripts/linux/trcE2ETest.sh
-            $(images.artifact.name.linux)/artifactInfo.txt
-            $(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
-            $(images.artifact.name.linux)/CACertificates/certGen.sh
-            $(images.artifact.name.linux)/CACertificates/openssl_root_ca.cnf
+      - task: CopyFiles@2
+        displayName: Copy $(images.artifact.name.linux) Artifacts
+        inputs:
+          sourceFolder: '$(Agent.TempDirectory)/extracted_tars/$(images.artifact.name.linux)'
+          contents: '**'
+          targetFolder: '$(Build.StagingDirectory)/$(images.artifact.name.linux)'
       - task: PowerShell@2
         condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Download aziot-identity-service'
