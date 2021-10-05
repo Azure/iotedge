@@ -144,7 +144,8 @@ jobs:
           project: $(resources.pipeline.packages.projectID)
           pipeline: $(resources.pipeline.packages.pipelineName)
           branchName: $(resources.pipeline.packages.sourceBranch)
-          buildVersionToDownload: latestFromBranch
+          buildVersionToDownload: specific
+          buildId: 47456661
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
           allowPartiallySucceededBuilds: true
@@ -156,7 +157,8 @@ jobs:
           project: $(resources.pipeline.images.projectID)
           pipeline: $(resources.pipeline.images.pipelineName)
           branchName: $(resources.pipeline.images.sourceBranch)
-          buildVersionToDownload: latestFromBranch
+          buildVersionToDownload: specific
+          buildId: 47456629
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.linux)
           allowPartiallySucceededBuilds: true
