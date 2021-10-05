@@ -292,7 +292,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                 Preconditions.CheckNotNull(thisPtr.currentSendCommand);
 
                 messages = thisPtr.currentSendCommand.Messages.Where(thisPtr.Checkpointer.Admit).ToArray();
-                messages = thisPtr.currentSendCommand.Messages;//!!
+                messages = thisPtr.currentSendCommand.Messages; // !!
                 if (messages.Count > 0)
                 {
                     ISinkResult<IMessage> result;

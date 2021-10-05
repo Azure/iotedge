@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-	  <ProjectReference Include="C:\Git\azure-iot-sdk-csharp\iothub\device\src\Microsoft.Azure.Devices.Client.csproj" />
+	  <ProjectReference Include="..\..\..\azure-iot-sdk-csharp\iothub\device\src\Microsoft.Azure.Devices.Client.csproj" />
 	  <ProjectReference Include="..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />
   </ItemGroup>
 

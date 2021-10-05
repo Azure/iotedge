@@ -53,20 +53,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
         {
             bool isTokenGood = false;
 
-            sharedAccessSignature = "";
+            sharedAccessSignature = string.Empty;
             try
             {
                 var generatedToken = this.workloadClient.ValidateTokenAsync(token).Result;
                 isTokenGood = token == generatedToken;
 #pragma warning disable IDE0059 // Unnecessary assignment of a value
 #pragma warning disable CS0168 // Variable is declared but never used
-            } catch( Exception ex)
+            }
+            catch (Exception ex)
 #pragma warning restore CS0168 // Variable is declared but never used
 #pragma warning restore IDE0059 // Unnecessary assignment of a value
             {
                 isTokenGood = false;
             }
-            
+
             return isTokenGood;
         }
 

@@ -171,7 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             bool isAuthenticated = await this.ValidateWithWorkloadAPI(credentials);
             bool serviceIdentityFound = true;
 
-            if (!isAuthenticated && (syncServiceIdentity))
+            if (!isAuthenticated && syncServiceIdentity)
             {
                 Events.ResyncingServiceIdentity(credentials.Identity, serviceIdentityId, serviceIdentityFound);
                 await this.deviceScopeIdentitiesCache.RefreshServiceIdentity(serviceIdentityId);
