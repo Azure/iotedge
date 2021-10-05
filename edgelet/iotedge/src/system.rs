@@ -91,6 +91,7 @@ impl System {
                 eprintln!("Failed to make identity client: {}", err);
                 Error::from(ErrorKind::System)
             })?,
+            1,
         );
 
         client.reprovision().await.map_err(|err| {

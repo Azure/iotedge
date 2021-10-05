@@ -4,8 +4,8 @@ namespace TestResultCoordinator.Services
     using System;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Common;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.EventHubs;
     using Microsoft.Extensions.Hosting;

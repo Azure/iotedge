@@ -72,7 +72,7 @@ fn humanize_status(status: &ModuleStatus) -> String {
         .unwrap_or(ModuleStatusEnum::Unknown);
     match status_enum {
         ModuleStatusEnum::Unknown => "Unknown".to_string(),
-        ModuleStatusEnum::Stopped => {
+        ModuleStatusEnum::Stopped | ModuleStatusEnum::Dead => {
             if let Some(exit_status) = &status.exit_status {
                 if let Ok(time) = DateTime::parse_from_rfc3339(&exit_status.exit_time) {
                     return format!("Stopped {}", format_time(time, Tense::Past));
@@ -97,7 +97,7 @@ fn humanize_status(status: &ModuleStatus) -> String {
         ModuleStatusEnum::Running => {
             if let Some(start_time) = &status.start_time {
                 if let Ok(time) = DateTime::parse_from_rfc3339(start_time) {
-                    format!("Up {}", format_time(time, Tense::Present));
+                    return format!("Up {}", format_time(time, Tense::Present));
                 }
             }
 
