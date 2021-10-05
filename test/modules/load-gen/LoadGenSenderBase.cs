@@ -55,9 +55,9 @@ namespace LoadGen
                         createdTime = DateTime.UtcNow,
                         trackingId = Settings.Current.TrackingId,
                         transportType = Settings.Current.TransportType,
+                        messageSizeInBytes = Settings.Current.MessageSizeInBytes,
                         data = data.Data
                     };
-
                 var messageBody = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageInfo)).Take(Settings.Current.MessageSizeInBytes).ToArray();
                 var message = new Message(messageBody);
                 message.Properties.Add(TestConstants.Message.SequenceNumberPropertyName, messageId.ToString());

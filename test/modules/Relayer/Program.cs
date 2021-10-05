@@ -141,10 +141,20 @@ namespace Relayer
 
                 if (!Settings.Current.ReceiveOnly)
                 {
-                    byte[] messageBytes = message.GetBytes();
-                    var messageCopy = new Message(messageBytes);
-                    messageProperties.ForEach(kvp => messageCopy.Properties.Add(kvp));
-                    await moduleClient.SendEventAsync(Settings.Current.OutputName, messageCopy);
+                    // BEARWASHERE -- Add a timestamp when it reaches relayer.
+                    var messageBody = System.Text.Encoding.UTF8.GetString(message.GetBytes());
+                    dynamic messageInfo = JsonConvert.DeserializeObject(messageBody);
+                    messageInfo.relayerTime = DateTime.UtcNow;
+                    // Get message size value from the message itself. This value is set in loadGen's SendEventAsync()
+                    var messageBodyBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageInfo)).Take(messageInfo.messageSizeInBytes).ToArray();
+                    var newMessage = new Message(messageBodyBytes);
+                    await moduleClient.SendEventAsync(Settings.Current.OutputName, newMessage);
+
+                    // BEARWASHERE -- To be removed -- NEED TO SEE IF THE MSG ARE BEING BIT_EXACT VALIDATE
+                    // byte[] messageBytes = newMessage.GetBytes();
+                    // var messageCopy = new Message(messageBytes);
+                    // messageProperties.ForEach(kvp => messageCopy.Properties.Add(kvp));
+                    // await moduleClient.SendEventAsync(Settings.Current.OutputName, messageCopy);
                     Logger.LogInformation($"Message relayed upstream for device: {message.ConnectionDeviceId}, module: {message.ConnectionModuleId}");
 
                     if (Settings.Current.EnableTrcReporting)
