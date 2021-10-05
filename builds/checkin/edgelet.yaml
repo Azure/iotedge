@@ -152,7 +152,8 @@ jobs:
           RUST_TOOLCHAIN: $(rust.toolchain)
       - script: scripts/linux/generic-rust/install.sh --project-root "edgelet"
         displayName: Install Rust
-      - script: $CARGO install grcov
+      - script: |
+          curl -L https://github.com/mozilla/grcov/releases/download/v0.8.2/grcov-linux-x86_64.tar.bz2 | tar jxf -
         workingDirectory: edgelet
         displayName: Install code coverage tools
       - script: $CARGO build --verbose
@@ -166,7 +167,8 @@ jobs:
         workingDirectory: edgelet
       - script: |
           zip -1 target/ccov.zip `find ./target \( -name "*.gc*" \) -print`
-          grcov target/ccov.zip -s . -t cobertura --llvm --branch --ignore-not-existing --ignore "/*" --ignore "*docker-rs*" > coverage.xml
+          ./grcov target/ccov.zip -s . -t cobertura --llvm --branch --ignore-not-existing --ignore "/*" --ignore "*docker-rs*" > coverage.xml
+          ./grcov target/ccov.zip -s . -t html --llvm --branch --ignore-not-existing --ignore "/*" --ignore "*docker-rs*" -o CoverageReport/
         displayName: Assemble code coverage results
         workingDirectory: edgelet
         env:
@@ -175,8 +177,8 @@ jobs:
         displayName: Publish code coverage results
         inputs:
           codeCoverageTool: cobertura
-          summaryFileLocation: "edgelet/coverage.xml"
-          pathToSources: $(Build.SourcesDirectory)/edgelet/
+          summaryFileLocation: "$(Build.SourcesDirectory)/edgelet/coverage.xml"
+          additionalCodeCoverageFiles: $(Build.SourcesDirectory)/edgelet/CoverageReport/*.html
       - task: mspremier.BuildQualityChecks.QualityChecks-task.BuildQualityChecks@5
         displayName: "Check build quality"
         inputs:
