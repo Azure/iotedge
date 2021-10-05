@@ -174,7 +174,7 @@ impl TokenGeneratorAPI {
 
         let response = TokenValidateResponse { token };
 
-        let response = http_common::server::response::json(hyper::StatusCode::CREATED, &response);
+        let response = http_common::server::response::json(hyper::StatusCode::OK, &response);
 
         Ok(response)
     }
