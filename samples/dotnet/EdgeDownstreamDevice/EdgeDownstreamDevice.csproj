@@ -9,6 +9,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.36.2" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.33.4-NestedEdge" />
   </ItemGroup>
 </Project>
