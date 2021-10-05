@@ -152,9 +152,7 @@ jobs:
           RUST_TOOLCHAIN: $(rust.toolchain)
       - script: scripts/linux/generic-rust/install.sh --project-root "edgelet"
         displayName: Install Rust
-      - script: |
-          curl -L https://github.com/mozilla/grcov/releases/download/v0.5.1/grcov-linux-x86_64.tar.bz2 | tar jxf -
-          curl -L https://raw.github.com/eriwen/lcov-to-cobertura-xml/8c55cd11f80a21e7e46f20f8c81fcde0bf11f5e5/lcov_cobertura/lcov_cobertura.py -o lcov_cobertura.py
+      - script: $CARGO install grcov
         workingDirectory: edgelet
         displayName: Install code coverage tools
       - script: $CARGO build --verbose
@@ -168,8 +166,7 @@ jobs:
         workingDirectory: edgelet
       - script: |
           zip -1 target/ccov.zip `find ./target \( -name "*.gc*" \) -print`
-          ./grcov target/ccov.zip -s . -t lcov --llvm --branch --ignore-not-existing --ignore-dir "/*" --ignore-dir "*docker-rs*" > target/lcov.info
-          python lcov_cobertura.py target/lcov.info --output ./coverage.xml --demangle --base-dir $(Build.SourcesDirectory)/edgelet -e "${COVERAGE_EXCLUDES}"
+          grcov target/ccov.zip -s . -t cobertura --llvm --branch --ignore-not-existing --ignore "/*" --ignore "*docker-rs*" > coverage.xml
         displayName: Assemble code coverage results
         workingDirectory: edgelet
         env:
