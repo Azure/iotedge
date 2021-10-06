@@ -26,6 +26,16 @@ stages:
     - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
       name: build
       displayName: Build ($(Build.Configuration)) dotnet artifacts
+    - bash: |
+        mkdir $(Build.ArtifactStagingDirectory)/core-linux && \
+        mv $(Build.BinariesDirectory)/publish/{artifactInfo.txt,CACertificates,e2e_deployment_files,e2e_test_files,\
+        scripts,IotEdgeQuickstart*,LeafDevice*} $(Build.ArtifactStagingDirectory)/core-linux
+      displayName: Move/stage test file artifacts
+    - task: PublishBuildArtifacts@1
+      displayName: Publish core-linux artifact
+      inputs:
+        PathtoPublish: '$(Build.ArtifactsStagingDirectory/core-linux'
+        artifactName: 'core-linux'
     - task: PublishBuildArtifacts@1
       displayName: Publish Dotnet Artifacts
       inputs:
@@ -42,14 +52,14 @@ stages:
       module.path: 'test/modules/generic-mqtt-tester'
       module.name: 'generic-mqtt-tester'   
 
-  # This stage first downloads the build artifacts from the previous stage, then
+  # This stage first downloads the dotnet and rust artifacts from the previous stage, then
   # copies the mqtt and watchdog artifacts into the appropriate directories 
   # required by consolidate-build-artifacts.sh. It then runs consolidate-build-artifacts.sh,
   # which moves the EH dockerfile, edge-hub executable, watchdog executable, and mqttd
-  # executable into the appropriate directories for building the edge-hub image in the 
+  # executable into the appropriate directories for later building the edge-hub image in the 
   # 'Build Images' stage of this pipeline.  Finally, this stage consolidates the aforementioned
   # EH artifacts with the other dotnet artifacts and publishes them all in an artifact named
-  # 'core-linux'.      
+  # 'consolidated_artifacts'.      
 ################################################################################
 - stage: ConsolidateAndPubishArtifacts
 ################################################################################
@@ -150,7 +160,7 @@ stages:
       displayName: 'Publish Artifacts'
       inputs:
         pathToPublish: '$(Build.BinariesDirectory)/publish'
-        artifactName: 'core-linux'
+        artifactName: 'consolidated_artifacts'
         StoreAsTar: true
 
 ################################################################################

@@ -13,13 +13,13 @@ steps:
       buildType: 'current'
       downloadPath: '$(Build.ArtifactStagingDirectory)'
       downloadType: 'single'
-      artifactName: 'core-linux'
+      artifactName: 'consolidated_artifacts'
       extractTars: true
 
   - task: CopyFiles@2
     displayName: Copy Artifacts
     inputs:
-      sourceFolder: '$(Agent.TempDirectory)/extracted_tars/core-linux'
+      sourceFolder: '$(Agent.TempDirectory)/extracted_tars/consolidated_artifacts'
       contents: '**'
       targetFolder: '$(Build.BinariesDirectory)/publish'          
 

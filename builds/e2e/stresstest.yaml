@@ -76,17 +76,11 @@ jobs:
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.linux)
           allowPartiallySucceededBuilds: true
-          extractTars: true
-      - task: CopyFiles@2
-        displayName: Copy $(images.artifact.name.linux) Artifacts
-        inputs:
-          sourceFolder: '$(Agent.TempDirectory)/extracted_tars/$(images.artifact.name.linux)'
-          contents:  |
-            IotEdgeQuickstart.linux-x64.tar.gz
-            e2e_deployment_files/stress_deployment.template.json
-            scripts/linux/runE2ETest.sh
-            artifactInfo.txt
-          targetFolder: '$(Build.StagingDirectory)/$(images.artifact.name.linux)'
+          itemPattern: |
+            $(images.artifact.name.linux)/IotEdgeQuickstart.linux-x64.tar.gz
+            $(images.artifact.name.linux)/e2e_deployment_files/stress_deployment.template.json
+            $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
+            $(images.artifact.name.linux)/artifactInfo.txt
       # Deploy stress test
       - template: templates/stresstest-deploy.yaml
         parameters:
@@ -165,16 +159,11 @@ jobs:
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.linux)
           allowPartiallySucceededBuilds: true
-      - task: CopyFiles@2
-        displayName: Copy $(images.artifact.name.linux) Artifacts
-        inputs:
-          sourceFolder: '$(Agent.TempDirectory)/extracted_tars/$(images.artifact.name.linux)'
-          contents:  |
-            IotEdgeQuickstart.linux-arm.tar.gz
-            e2e_deployment_files/stress_deployment.template.json
-            scripts/linux/runE2ETest.sh
-            artifactInfo.txt
-          targetFolder: '$(Build.StagingDirectory)/$(images.artifact.name.linux)'
+          itemPattern: |
+            $(images.artifact.name.linux)/IotEdgeQuickstart.linux-arm.tar.gz
+            $(images.artifact.name.linux)/e2e_deployment_files/stress_deployment.template.json
+            $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
+            $(images.artifact.name.linux)/artifactInfo.txt
       # Deploy stress test
       - template: templates/stresstest-deploy.yaml
         parameters:
