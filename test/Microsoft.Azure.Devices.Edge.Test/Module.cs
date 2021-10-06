@@ -19,6 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         [Test]
         [Category("CentOsSafe")]
+        [Category("FlakyOnArm")]
         [Category("nestededge_isa95")]
         public async Task TempSensor()
         {
