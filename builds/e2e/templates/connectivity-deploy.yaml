@@ -150,7 +150,7 @@ steps:
         echo "script exit code=$scriptExitCode"
         exit $scriptExitCode
 
-      workingDirectory: "$(Agent.HomeDirectory)/.."
+      workingDirectory: "$(Agent.BuildDirectory)/.."
   
     env:
       E2E_nestedEdgeTest: $(nestededge)
@@ -171,7 +171,7 @@ steps:
   - task: PublishBuildArtifacts@1
     displayName: "Publish Support Bundle"
     inputs:
-      PathtoPublish: $(Agent.HomeDirectory)/../working/support
+      PathtoPublish: $(Agent.BuildDirectory)/../working/support
       ArtifactName: logs-$(artifactSuffix)
     condition: succeededOrFailed()
     
