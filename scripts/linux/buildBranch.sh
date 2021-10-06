@@ -225,40 +225,12 @@ update_version_info
 
 build_solution
 
-publish_app "Microsoft.Azure.Devices.Edge.Agent.Service"
 publish_app "Microsoft.Azure.Devices.Edge.Hub.Service"
 publish_app "SimulatedTemperatureSensor"
-publish_app "TemperatureFilter"
-publish_app "load-gen"
-publish_app "TestAnalyzer"
-publish_app "DirectMethodSender"
-publish_app "DirectMethodReceiver"
-publish_app "ModuleRestarter"
-publish_app "TwinTester"
-publish_app "Relayer"
-publish_app "MetricsCollector"
-publish_app "TestResultCoordinator"
-publish_app "NetworkController"
-publish_app "DeploymentTester"
-publish_app "EdgeHubRestartTester"
-publish_app "MetricsValidator"
-publish_app "NumberLogger"
-publish_app "CloudToDeviceMessageTester"
-publish_app "IotedgeDiagnosticsDotnet"
 publish_app "EdgeHubTriggerCSharp"
 
 publish_lib "Microsoft.Azure.WebJobs.Extensions.EdgeHub"
 
-publish_files $SRC_SCRIPTS_DIR $PUBLISH_FOLDER
-publish_files $SRC_E2E_TEMPLATES_DIR $PUBLISH_FOLDER
-publish_files $SRC_E2E_TEST_FILES_DIR $PUBLISH_FOLDER
-publish_files $SRC_CERT_TOOLS_DIR $PUBLISH_FOLDER
 
-publish_quickstart linux-arm
-publish_quickstart linux-x64
-publish_quickstart linux-arm64
-publish_leafdevice linux-arm
-publish_leafdevice linux-x64
-publish_leafdevice linux-arm64
 
 exit $RES
