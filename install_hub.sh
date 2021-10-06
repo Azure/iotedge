@@ -1,8 +1,11 @@
 echo "start"
+export JDKBinPath="/usr/lib/jvm/java-11-openjdk-amd64/bin/"
 ./scripts/linux/buildBranch.sh -c Release --no-rocksdb-bin
 ./scripts/linux/consolidate-build-artifacts.sh --build-binaries-dir './target' --artifact-name 'edge-hub'
 ./scripts/linux/buildImage.sh -r "hugues.azurecr.io" -i "edge-hub" -n "microsoft" -P "edge-hub" -v "1.0" --bin-dir './target'
 ./scripts/linux/buildImage.sh -r "hugues.azurecr.io" -i "azureiotedge-simulated-temperature-sensor" -n "microsoft" -P "SimulatedTemperatureSensor" -v "1.0" --bin-dir './target'
+#apt-get install openjdk-11-jdk
+#export JDKBinPath="/usr/lib/jvm/java-11-openjdk-amd64/bin/"
 #sudo apt-get update; \
 #  sudo apt-get install -y apt-transport-https && \
 #  sudo apt-get update && \
