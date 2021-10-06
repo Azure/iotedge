@@ -122,9 +122,29 @@ fn storage_mounted_from_host(
         .flatten()
         .map(PathBuf::from);
 
-    let container_directories: Vec<PathBuf> =
-        mounted_directories.chain(volume_directories).collect();
+    let container_directories: Vec<PathBuf> = mounted_directories
+        .clone()
+        .chain(volume_directories.clone())
+        .collect();
     *container_directories_out = Some(container_directories.clone());
+
+    println!("------------------Storage Directory---------------------");
+    println!(
+        "{:?}",
+        storage_directory.clone().into_os_string().into_string()
+    );
+
+    println!("------------------Mounted Directories---------------------");
+    println!("{:?}", mounted_directories.clone().count());
+    for path_buf in mounted_directories {
+        println!("{:?}", path_buf.clone().into_os_string().into_string());
+    }
+
+    println!("------------------Volume Directories---------------------");
+    println!("{:?}", volume_directories.clone().count());
+    for path_buf in volume_directories {
+        println!("{:?}", path_buf.clone().into_os_string().into_string());
+    }
 
     if !container_directories
         .into_iter()
