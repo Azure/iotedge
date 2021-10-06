@@ -87,6 +87,7 @@ impl DockerModuleRuntime {
                 aziot_cert_common_http::ApiVersion::V2020_09_01,
                 http_common::Connector::new(&certd_url)
                     .map_err(|_| Error::from(ErrorKind::Docker))?, // TODO: Error Fix
+                1,
             );
 
             let mut notary_registries = BTreeMap::new();
