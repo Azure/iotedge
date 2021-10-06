@@ -150,7 +150,8 @@ steps:
         echo "script exit code=$scriptExitCode"
         exit $scriptExitCode
 
-      workingDirectory: "$(Agent.BuildDirectory)/.."
+      workingDirectory: "$(Agent.HomeDirectory)/.."
+  
     env:
       E2E_nestedEdgeTest: $(nestededge)
       E2E_trustedCaCerts: $(TrustBundle)
@@ -159,3 +160,18 @@ steps:
       E2E_parentHostname: ${{ parameters['connectivity.parentHostname'] }}
       E2E_parentEdgeDevice: ${{ parameters['connectivity.parentEdgeDevice'] }} 
       E2E_hostname: $(Hostname)
+  
+  # The Step Takes the Test Description which may have special characters and replaces them with '-'
+  - pwsh: |
+      $artifactSuffix = '$(Build.BuildNumber)-${{ parameters['networkController.description'] }}' -replace '[_|/|(]','-' -replace '[)]',''
+      Write-Output "##vso[task.setvariable variable=artifactSuffix] $artifactSuffix"
+    displayName: "Set Artifact Name"
+    condition: succeededOrFailed()
+
+  - task: PublishBuildArtifacts@1
+    displayName: "Publish Support Bundle"
+    inputs:
+      PathtoPublish: $(Agent.HomeDirectory)/../working/support
+      ArtifactName: logs-$(artifactSuffix)
+    condition: succeededOrFailed()
+    
