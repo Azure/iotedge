@@ -14,6 +14,7 @@ pub(crate) fn identity_client(
     let identity_client = aziot_identity_client_async::Client::new(
         aziot_identity_common_http::ApiVersion::V2020_09_01,
         identity_connector,
+        1,
     );
 
     Ok(identity_client)
