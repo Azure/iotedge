@@ -148,7 +148,7 @@ jobs:
         workingDirectory: edgelet
         displayName: Install Cargo Tarpaulin
       - script: |
-          $CARGO tarpaulin --out Xml --exclude-files "docker-rs*" --output-dir .
+          cargo tarpaulin --out Xml --exclude-files "docker-rs*" --output-dir .
         displayName: Test
         workingDirectory: edgelet
       - task: PublishCodeCoverageResults@1
