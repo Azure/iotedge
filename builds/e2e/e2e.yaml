@@ -169,7 +169,6 @@ jobs:
     - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
 
-# Disabling until we fix proxy timeout issues
 ################################################################################
   - job: linux_amd64_proxy
 ################################################################################
