@@ -108,11 +108,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         {
             SupportedPackageExtension.Deb => new[]
             {
-                "apt-get purge --yes aziot-edge aziot-identity-service libiothsm-std iotedge"
+                "apt-get purge --yes aziot-edge aziot-identity-service libiothsm-std iotedge",
+                "systemctl restart docker" // we can remove after this is fixed (https://github.com/moby/moby/issues/23302)
             },
             SupportedPackageExtension.RpmCentOS => new[]
             {
-                "yum remove -y --remove-leaves aziot-edge aziot-identity-service libiothsm-std iotedge"
+                "yum remove -y --remove-leaves aziot-edge aziot-identity-service libiothsm-std iotedge",
+                "systemctl restart docker" // we can remove after this is fixed (https://github.com/moby/moby/issues/23302)
             },
             SupportedPackageExtension.RpmMariner => new[]
             {

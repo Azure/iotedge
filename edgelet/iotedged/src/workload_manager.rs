@@ -228,23 +228,6 @@ where
     fn stop(&mut self, module_id: &str) -> Result<(), Error> {
         info!("Stopping listener for module {}", module_id);
 
-        let shutdown_sender = self.shutdown_senders.remove(module_id);
-
-        if let Some(shutdown_sender) = shutdown_sender {
-            if shutdown_sender.send(()).is_err() {
-                warn!("Received message that a module stopped, but was unable to close the socket server");
-                Err(Error::from(ErrorKind::WorkloadManager))
-            } else {
-                Ok(())
-            }
-        } else {
-            Ok(())
-        }
-    }
-
-    fn remove(&mut self, module_id: &str) -> Result<(), Error> {
-        info!("Removing listener for module {}", module_id);
-
         // If the container is removed, also remove the socket file to limit the leaking of socket file
         let workload_uri = self.get_listener_uri(module_id)?;
 
@@ -316,13 +299,6 @@ where
         }
         ModuleAction::Stop(module_id) => {
             if let Err(err) = workload_manager.stop(&module_id) {
-                log_failure(Level::Warn, &err);
-            }
-
-            Ok(())
-        }
-        ModuleAction::Remove(module_id) => {
-            if let Err(err) = workload_manager.remove(&module_id) {
                 log_failure(Level::Warn, &err);
             }
 
