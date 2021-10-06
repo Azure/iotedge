@@ -219,8 +219,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NumberLogger", "test\module
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IotedgeDiagnosticsDotnet", "edge-modules\iotedge-diagnostics-dotnet\IotedgeDiagnosticsDotnet.csproj", "{51FD4AB0-2E3B-4BC2-8E64-F07D56D6D139}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTypes", "test\modules\TestTypes\TestTypes.csproj", "{71B96870-4D2E-43FB-A84C-1FB12D3E522E}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		CheckInBuild|Any CPU = CheckInBuild|Any CPU
@@ -648,12 +646,6 @@ Global
 		{51FD4AB0-2E3B-4BC2-8E64-F07D56D6D139}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{51FD4AB0-2E3B-4BC2-8E64-F07D56D6D139}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{51FD4AB0-2E3B-4BC2-8E64-F07D56D6D139}.Release|Any CPU.Build.0 = Release|Any CPU
-		{71B96870-4D2E-43FB-A84C-1FB12D3E522E}.CheckInBuild|Any CPU.ActiveCfg = Debug|Any CPU
-		{71B96870-4D2E-43FB-A84C-1FB12D3E522E}.CheckInBuild|Any CPU.Build.0 = Debug|Any CPU
-		{71B96870-4D2E-43FB-A84C-1FB12D3E522E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{71B96870-4D2E-43FB-A84C-1FB12D3E522E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{71B96870-4D2E-43FB-A84C-1FB12D3E522E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{71B96870-4D2E-43FB-A84C-1FB12D3E522E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -744,7 +736,6 @@ Global
 		{9F5BD0E2-E73D-434A-8568-0C117A0716C9} = {4F3B7488-3547-4EEB-A79E-9737182960AB}
 		{B0151FFD-85C4-42B9-81CC-9193BADFE9F8} = {F921339B-32F9-4BF3-B364-2DB01FA2F1A1}
 		{51FD4AB0-2E3B-4BC2-8E64-F07D56D6D139} = {578D5330-2F72-44C6-9DB5-C93B3F42C473}
-		{71B96870-4D2E-43FB-A84C-1FB12D3E522E} = {F921339B-32F9-4BF3-B364-2DB01FA2F1A1}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D71830F5-3AF5-46B4-8A9E-1DCE4F2253AC}
