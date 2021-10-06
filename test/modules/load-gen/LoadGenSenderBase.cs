@@ -48,18 +48,8 @@ namespace LoadGen
                 random.NextBytes(data.Data);
 
                 // build message
-                var messageInfo = 
-                    new {
-                        moduleId = Settings.Current.ModuleId,
-                        outputName = Settings.Current.OutputName,
-                        createdTime = DateTime.UtcNow,
-                        trackingId = Settings.Current.TrackingId,
-                        transportType = Settings.Current.TransportType,
-                        messageSizeInBytes = Settings.Current.MessageSizeInBytes,
-                        data = data.Data
-                    };
-                var messageBody = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageInfo)).Take(Settings.Current.MessageSizeInBytes).ToArray();
-                var message = new Message(messageBody);
+                var messageBody = new { data = data.Data };
+                var message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody)));
                 message.Properties.Add(TestConstants.Message.SequenceNumberPropertyName, messageId.ToString());
                 message.Properties.Add(TestConstants.Message.BatchIdPropertyName, this.BatchId.ToString());
                 message.Properties.Add(TestConstants.Message.TrackingIdPropertyName, this.TrackingId);
