@@ -28,7 +28,7 @@ git submodule update --init --recursive
 
 # Create the installable packages. It will typically be located
 # in the ./edgelet/target/release/ and the ./edgelet/target/hsm/ folders 
-# and named something like aziot-edge*amd64.deb and libiothsm-std*.deb 
+# and named something like iotedge*amd64.deb and libiothsm-std*.deb 
 
 ./edgelet/build/linux/package.sh
 
@@ -65,7 +65,11 @@ sudo scripts/linux/buildImage.sh -r localhost:5000  -i "temperature-filter-funct
 
 #### Test parameters
 
-The end-to-end tests take several parameters, which they expect to find in a file named `context.json` in the same directory as the test binaries (e.g., `test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp3.1/context.json`). Parameter names are case-insensitive. See [end-to-end test parameters](./doc/end-to-end-test-config.md) for details. 
+The end-to-end tests take several parameters, which they expect to find in a file named `context.json` in the same directory as the test binaries:  `test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp3.1/` 
+<BR/>_Note: You will have to create this folder, if it doesn't already exist_ ). 
+
+Parameter names are case-insensitive. See [end-to-end test parameters](./doc/end-to-end-test-config.md) for details. 
+
 
 
 #### Sample context.json
@@ -109,11 +113,12 @@ Here is a sample context.json file that you can use as a starting point to confi
 
 The tests also expect to find several _secret_ parameters. It is recommended that you create environment variables and make them available to the test framework in a way that avoids committing them to your shell's command history or saving them in clear text on your filesystem.
 
-See [environment variables](./doc/end-to-end-test-config.md#environment-variables) for details.
+You will need to set the `E2E_DPS_GROUP_KEY`, `E2E_IOT_HUB_CONNECTION_STRING`, `E2E_EVENT_HUB_ENDPOINT`, `E2E_REGISTRIES__0__PASSWORD`, `E2E_ROOT_CA_PASSWORD`, `E2E_BLOB_STORE_SAS`, and `E2E_IOT_HUB_RESOURCE_ID` variables. See [environment variables](./doc/end-to-end-test-config.md#environment-variables) for details.
 
 #### Run the tests
 
 With the test parameters and secrets in place, you can run all the end-to-end tests from the command line. From the top folder of the codebase,
+
 
 ```bash
 cd test

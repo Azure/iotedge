@@ -123,7 +123,9 @@ chmod u+x dotnet-install.sh
 ~~~
 
 ## Setup your cloud resources
-The end-to-end tests require a number of azure cloud side resources i.e., IoT Hub, Device Provisioning Service, and a Storage Container to be setup. This next section will walk you through how to setup the cloud resources.
+The end-to-end tests require a number of azure cloud side resources i.e., IoT Hub, Device Provisioning Service, and a Storage Container to be setup. This next section will walk you through how to setup the cloud resources. 
+
+The steps below will also include steps for the CLI. You can install the CLI by following the instructions [here](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli). _Note: If you already have the CLI installed, make sure to upgrade to the latest version of the CLI and the aziot-iot extension_ 
 
 ##### Create a resource group
 If you don't already have a resource group, create one.
