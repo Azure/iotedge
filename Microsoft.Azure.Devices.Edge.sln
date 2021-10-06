@@ -219,7 +219,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NumberLogger", "test\module
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IotedgeDiagnosticsDotnet", "edge-modules\iotedge-diagnostics-dotnet\IotedgeDiagnosticsDotnet.csproj", "{51FD4AB0-2E3B-4BC2-8E64-F07D56D6D139}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTypes", "test\modules\TestTypes\TestTypes\TestTypes.csproj", "{71B96870-4D2E-43FB-A84C-1FB12D3E522E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTypes", "test\modules\TestTypes\TestTypes.csproj", "{71B96870-4D2E-43FB-A84C-1FB12D3E522E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
