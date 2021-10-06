@@ -131,7 +131,6 @@ jobs:
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     variables:
-      coverage.excludes: "docker-rs*"
       coverage.goal: 40
     pool:
       vmImage: "ubuntu-18.04"
@@ -144,11 +143,11 @@ jobs:
       - script: scripts/linux/generic-rust/install.sh --project-root "edgelet"
         displayName: Install Rust
       - script: |
-          wget "https://github.com/xd009642/tarpaulin/releases/download/0.18.2/cargo-tarpaulin-0.18.2-travis.tar.gz" &&  tar -xvf cargo-tarpaulin*
+          $CARGO install tarpaulin
         workingDirectory: edgelet
         displayName: Install Cargo Tarpaulin
       - script: |
-          cargo tarpaulin --out Xml --exclude-files "docker-rs*" --output-dir .
+          $CARGO tarpaulin --out Xml --exclude-files "docker-rs*" --output-dir .
         displayName: Test
         workingDirectory: edgelet
       - task: PublishCodeCoverageResults@1
