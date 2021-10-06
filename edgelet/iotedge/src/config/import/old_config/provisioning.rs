@@ -268,7 +268,6 @@ pub(crate) struct X509AttestationInfo {
 
 #[derive(Debug, serde_derive::Deserialize)]
 #[serde(rename_all = "lowercase")]
-#[allow(dead_code)]
 pub(crate) struct External {
     endpoint: Url,
 }

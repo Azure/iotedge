@@ -14,7 +14,6 @@ use std::path::PathBuf;
 use url::Url;
 
 #[derive(Debug, serde_derive::Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct Config {
     pub(crate) provisioning: Provisioning,
 

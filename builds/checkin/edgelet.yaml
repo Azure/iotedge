@@ -132,44 +132,25 @@ jobs:
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     variables:
       coverage.excludes: "docker-rs*"
-      coverage.goal: 68
-      rust.toolchain: nightly-2021-10-04
+      coverage.goal: 40
     pool:
       vmImage: "ubuntu-18.04"
     steps:
       - script: |
-          echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
-          echo "##vso[task.setvariable variable=CARGO_INCREMENTAL;]0"
-          echo "##vso[task.setvariable variable=RUSTFLAGS;]-Zprofile -Ccodegen-units=1 -Copt-level=0 -Clink-dead-code -Coverflow-checks=off"
           echo "##vso[task.setvariable variable=IOTEDGE_HOMEDIR;]/tmp"
           echo "##vso[task.setvariable variable=CARGO;]${CARGO_HOME:-"$HOME/.cargo"}/bin/cargo"
         displayName: Set env variables
-      - script: |
-          echo "$RUST_TOOLCHAIN" > rust-toolchain
-        displayName: Override Rust toolchain
         workingDirectory: edgelet
-        env:
-          RUST_TOOLCHAIN: $(rust.toolchain)
       - script: scripts/linux/generic-rust/install.sh --project-root "edgelet"
         displayName: Install Rust
       - script: |
-          $CARGO install cargo-tarpaulin
+          wget "https://github.com/xd009642/tarpaulin/releases/download/0.18.2/cargo-tarpaulin-0.18.2-travis.tar.gz" &&  tar -xvf cargo-tarpaulin*
         workingDirectory: edgelet
-        displayName: Install code coverage tools
+        displayName: Install Cargo Tarpaulin
       - script: |
           $CARGO tarpaulin --out Xml --exclude-files "docker-rs*" --output-dir .
         displayName: Test
         workingDirectory: edgelet
-      # - script: find ./target -type f ! -name '*.gc*' -delete
-      #   displayName: Cleanup build and test artifacts
-      #   workingDirectory: edgelet
-      # - script: |
-      #     zip -1 target/ccov.zip `find ./target \( -name "*.gc*" \) -print`
-      #     ./grcov target/ccov.zip -s . -t cobertura --llvm --branch --ignore-not-existing --ignore "/*" --ignore "*docker-rs*" > coverage.xml
-      #   displayName: Assemble code coverage results
-      #   workingDirectory: edgelet
-      #   env:
-      #     COVERAGE_EXCLUDES: $(coverage.excludes)
       - task: PublishCodeCoverageResults@1
         displayName: Publish code coverage results
         inputs:

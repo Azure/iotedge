@@ -156,7 +156,7 @@ macro_rules! ensure {
         ensure_impl!($val, $cond, $err, bail)
     };
     ($val:expr, $cond:expr) => {
-        ensure!($val, $cond, $crate::ErrorKind::Argument("".to_string()))
+        ensure!($val, $cond, $crate::ErrorKind::Argument("".to_string()));
     };
     ($cond:expr) => {
         ensure!((), $cond);
