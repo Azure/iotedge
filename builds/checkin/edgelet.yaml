@@ -143,7 +143,7 @@ jobs:
       - script: scripts/linux/generic-rust/install.sh --project-root "edgelet"
         displayName: Install Rust
       - script: |
-          $CARGO install tarpaulin
+          $CARGO install cargo-tarpaulin
         workingDirectory: edgelet
         displayName: Install Cargo Tarpaulin
       - script: |
