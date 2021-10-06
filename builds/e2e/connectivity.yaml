@@ -167,7 +167,7 @@ jobs:
             $(images.artifact.name.linux)/artifactInfo.txt
             $(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
             $(images.artifact.name.linux)/CACertificates/certGen.sh
-            $(images.artifact.name.linux)/CACertificates/openssl_root_ca.cnf          
+            $(images.artifact.name.linux)/CACertificates/openssl_root_ca.cnf
       - task: PowerShell@2
         condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Download aziot-identity-service'
