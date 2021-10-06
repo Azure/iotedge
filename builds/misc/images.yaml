@@ -36,7 +36,7 @@ stages:
     - task: PublishBuildArtifacts@1
       displayName: Publish core-linux artifact
       inputs:
-        PathtoPublish: '$(Build.ArtifactsStagingDirectory/core-linux'
+        PathtoPublish: '$(Build.ArtifactsStagingDirectory)/core-linux'
         artifactName: 'core-linux'
     - task: PublishBuildArtifacts@1
       displayName: Publish Dotnet Artifacts
