@@ -17,6 +17,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
     {
         readonly ModuleManagementHttpClientVersioned inner;
 
+        readonly TimeSpan clientPermitTimeout = TimeSpan.FromSeconds(240);
+        readonly SemaphoreSlim clientPermit = new SemaphoreSlim(5);
+
         public ModuleManagementHttpClient(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion)
         {
             Preconditions.CheckNotNull(managementUri, nameof(managementUri));
@@ -25,13 +28,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             this.inner = GetVersionedModuleManagement(managementUri, serverSupportedApiVersion, clientSupportedApiVersion);
         }
 
-        public Task<Identity> CreateIdentityAsync(string name, string managedBy) => this.inner.CreateIdentityAsync(name, managedBy);
+        public Task<Identity> CreateIdentityAsync(string name, string managedBy) => this.Throttle(() => this.inner.CreateIdentityAsync(name, managedBy));
 
-        public Task<Identity> UpdateIdentityAsync(string name, string generationId, string managedBy) => this.inner.UpdateIdentityAsync(name, generationId, managedBy);
+        public Task<Identity> UpdateIdentityAsync(string name, string generationId, string managedBy) => this.Throttle(() => this.inner.UpdateIdentityAsync(name, generationId, managedBy));
 
-        public Task DeleteIdentityAsync(string name) => this.inner.DeleteIdentityAsync(name);
+        public Task DeleteIdentityAsync(string name) => this.Throttle(() => this.inner.DeleteIdentityAsync(name));
 
-        public Task<IEnumerable<Identity>> GetIdentities() => this.inner.GetIdentities();
+        public Task<IEnumerable<Identity>> GetIdentities() => this.Throttle(() => this.inner.GetIdentities());
 
         public Task CreateModuleAsync(ModuleSpec moduleSpec) => this.inner.CreateModuleAsync(moduleSpec);
 
@@ -111,6 +114,34 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             }
 
             return serverVersion.Value < clientVersion.Value ? serverVersion : clientVersion;
+        }
+
+        Task Throttle(Func<Task> identityOperation)
+        {
+            return this.Throttle<bool>(
+                            async () =>
+                            {
+                                await identityOperation();
+                                return true;
+                            });
+        }
+
+        async Task<T> Throttle<T>(Func<Task<T>> identityOperation)
+        {
+            bool permitAcquired = await this.clientPermit.WaitAsync(this.clientPermitTimeout);
+            if (!permitAcquired)
+            {
+                throw new TimeoutException("Could not acquire permit to call ModuleManager");
+            }
+
+            try
+            {
+                return await identityOperation();
+            }
+            finally
+            {
+                this.clientPermit.Release();
+            }
         }
     }
 }
