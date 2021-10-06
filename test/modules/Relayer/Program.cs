@@ -141,12 +141,15 @@ namespace Relayer
 
                 if (!Settings.Current.ReceiveOnly)
                 {
-                    // BEARWASHERE -- Add a timestamp when it reaches relayer.
                     var messageBody = System.Text.Encoding.UTF8.GetString(message.GetBytes());
-                    dynamic messageInfo = JsonConvert.DeserializeObject(messageBody);
-                    messageInfo.relayerTime = DateTime.UtcNow;
+                    Logger.LogInformation($"BEARWASHERE - messageBody: {messageBody} ");
+
+                    var messageInfo = JsonConvert.DeserializeObject<TestMessageBodyType>(messageBody);
+                    messageInfo.TimeLatestRelayed = DateTime.UtcNow;
+
                     // Get message size value from the message itself. This value is set in loadGen's SendEventAsync()
-                    var messageBodyBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageInfo)).Take(messageInfo.messageSizeInBytes).ToArray();
+                    Logger.LogInformation($"BEARWASHERE - messageInfo: {messageInfo} ");
+                    var messageBodyBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageInfo)).Take(messageInfo.MessageSizeInBytes).ToArray();
                     var newMessage = new Message(messageBodyBytes);
                     await moduleClient.SendEventAsync(Settings.Current.OutputName, newMessage);
 

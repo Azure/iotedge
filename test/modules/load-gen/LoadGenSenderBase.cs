@@ -42,13 +42,30 @@ namespace LoadGen
             var random = new Random();
             var bufferPool = new BufferPool();
 
-            using (Buffer data = bufferPool.AllocBuffer((ulong)Settings.Current.MessageSizeInBytes))
+            // generate the actual json to see how much nounce we need in the message
+            var messageBody = new TestMessageBodyType 
+            {
+                MessageSizeInBytes = Settings.Current.MessageSizeInBytes,
+                ModuleId = Settings.Current.ModuleId,
+                OutputName = Settings.Current.OutputName,
+                Nounce = Encoding.UTF8.GetBytes("0").ToArray(),
+                TimeCreated = DateTime.UtcNow,
+                TrackingId = Settings.Current.TrackingId,
+                TransportType = Settings.Current.TransportType
+            };
+            // need the (-1) because right now nounce is string "0". We want to generate the full nounce.
+            var jsonOverheadSizeInBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody)).Length - 1;
+
+            // generate message's nounce
+            using (Buffer data = bufferPool.AllocBuffer((ulong)(Settings.Current.MessageSizeInBytes - jsonOverheadSizeInBytes)))
             {
                 // generate some bytes
                 random.NextBytes(data.Data);
 
-                // build message
-                var messageBody = new { data = data.Data };
+                // set nounce
+                messageBody.Nounce = data.Data;
+
+                // set the body payload and properties to be shipped
                 var message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody)));
                 message.Properties.Add(TestConstants.Message.SequenceNumberPropertyName, messageId.ToString());
                 message.Properties.Add(TestConstants.Message.BatchIdPropertyName, this.BatchId.ToString());
