@@ -42,6 +42,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     {
                         using var cts = new CancellationTokenSource(Context.Current.TeardownTimeout);
                         await NUnitLogs.CollectAsync(this.testStartTime, cts.Token);
+                        if (Context.Current.UploadSupportBundle)
+                        {
+                            try
+                            {
+                                var supportBundlePath = Context.Current.LogFile.GetOrElse(AppDomain.CurrentDomain.BaseDirectory);
+                                await Process.RunAsync(
+                                "iotedge",
+                                $"support-bundle -o {supportBundlePath}/supportbundle-{TestContext.CurrentContext.Test.Name}",
+                                cts.Token);
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Error($"Failed to Get Support Bundle  Log with Error:{ex}");
+                            }
+                        }
                     }
                 },
                 "Completed test teardown");
