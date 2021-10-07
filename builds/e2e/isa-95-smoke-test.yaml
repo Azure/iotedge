@@ -2,7 +2,6 @@ trigger: none
 pr: none
 
 variables:
-  NugetSecurityAnalysisWarningLevel: warn
   itProxy: http://10.16.8.4:3128
   otProxy: http://10.16.5.4:3128 
   ressourceGroup: nested-edge-isa95 
@@ -28,8 +27,7 @@ stages:
 - stage: LockAgents 
   jobs:
   - job:  LockAgents
-    displayName: Lock agents
-    timeoutInMinutes: 3    
+    displayName: Lock agents   
     pool:
       name: $(pool.name)
       demands:
@@ -219,7 +217,7 @@ stages:
   jobs:
   - job:  Unlock_agents
     displayName: Unlock agents
-    timeoutInMinutes: 3    
+    timeoutInMinutes: 10    
     pool:
       name: $(pool.name)
       demands:
@@ -232,7 +230,7 @@ stages:
 
   - job:  Clean_up_identities
     displayName: Clean up identities
-    timeoutInMinutes: 3    
+    timeoutInMinutes: 10    
     variables:    
       deviceLvl5DeviceId: $[ stageDependencies.RunISA95Tests.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ] 
       deviceLvl4DeviceId: $[ stageDependencies.RunISA95Tests.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 

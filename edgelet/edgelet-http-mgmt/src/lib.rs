@@ -36,6 +36,7 @@ where
         let identity = aziot_identity_client_async::Client::new(
             aziot_identity_common_http::ApiVersion::V2020_09_01,
             connector,
+            1,
         );
 
         let identity = std::sync::Arc::new(futures_util::lock::Mutex::new(identity));
