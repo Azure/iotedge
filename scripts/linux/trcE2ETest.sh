@@ -296,7 +296,7 @@ function get_support_bundle_logs(){
 
     print_highlighted_message "Getting Support Bundle Logs"
     mkdir -p $working_folder/support
-    iotedge support-bundle -o $working_folder/support/iotedge_support_bundle.zip
+    iotedge support-bundle -o $working_folder/support/iotedge_support_bundle.zip --since "$test_start_time"
     print_highlighted_message "Finished getting support Bundle Logs"
 }
 
