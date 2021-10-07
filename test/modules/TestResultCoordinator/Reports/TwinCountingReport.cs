@@ -6,6 +6,8 @@ namespace TestResultCoordinator.Reports
 
     class TwinCountingReport : TestResultReportBase
     {
+        const string TwinDesiredPropertyTestDescription = "desired property";
+
         public TwinCountingReport(string testDescription, string trackingId, string expectedSource, string actualSource, string resultType, ulong totalExpectCount, ulong totalMatchCount, ulong totalPatches, ulong totalDuplicates, ReadOnlyCollection<string> unmatchedResults)
             : base(testDescription, trackingId, resultType)
         {
@@ -36,7 +38,10 @@ namespace TestResultCoordinator.Reports
 
         bool IsPassedHelper()
         {
-            if (this.TestDescription.Contains("desired property"))
+            // This tolerance is needed because sometimes EdgeHub stops receiving
+            // many desired property updates. While we investigate we should not
+            // fail the tests for this known issue.
+            if (this.TestDescription.Contains(TwinDesiredPropertyTestDescription))
             {
                 return this.TotalExpectCount > 0 && ((double)this.TotalMatchCount / this.TotalExpectCount) > .5d;
             }

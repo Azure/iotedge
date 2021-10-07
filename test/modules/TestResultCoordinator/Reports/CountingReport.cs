@@ -50,7 +50,7 @@ namespace TestResultCoordinator.Reports
         {
             if (this.TestDescription == C2dOverMqttTestDescription)
             {
-                // This tolerance is needed because sometimes we see a few missing messages.
+                // This tolerance is needed because sometimes we see a few missing C2D messages.
                 // When this product issue is resolved, we can remove this failure tolerance.
                 return this.TotalExpectCount > 0 && ((double)this.TotalMatchCount / this.TotalMatchCount) > .95d;
             }
