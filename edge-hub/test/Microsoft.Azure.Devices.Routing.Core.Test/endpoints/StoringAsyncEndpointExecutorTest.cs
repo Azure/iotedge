@@ -320,7 +320,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             iterator.VerifyAll();
         }
 
-        [Fact]
+        [Fact(Skip = "Flaky")]
         public async Task MessagePrioritiesTest()
         {
             // Arrange
