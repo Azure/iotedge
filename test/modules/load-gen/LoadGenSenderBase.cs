@@ -43,7 +43,7 @@ namespace LoadGen
             var bufferPool = new BufferPool();
 
             // generate the actual json to see how much nounce we need in the message
-            var messageBody = new TestMessageBodyType 
+            var messageBody = new TestMessageBodyType
             {
                 MessageSizeInBytes = Settings.Current.MessageSizeInBytes,
                 ModuleId = Settings.Current.ModuleId,
