@@ -133,7 +133,7 @@ jobs:
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     variables:
       coverage.excludes: "docker-rs*"
-      coverage.goal: 44
+      coverage.goal: 47
     pool:
       vmImage: "ubuntu-18.04"
     steps:
