@@ -4,6 +4,8 @@ use std::collections::BTreeMap;
 
 use url::Url;
 
+use aziotctl_common::config as common_config;
+
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub(super) struct Config {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -67,7 +69,11 @@ pub(super) fn default_agent() -> edgelet_core::ModuleSpec<edgelet_docker::Docker
 #[derive(Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 #[serde(untagged)]
 pub(super) enum EdgeCa {
-    Explicit {
+    Issued {
+        #[serde(flatten)]
+        cert: common_config::super_config::CertIssuanceOptions,
+    },
+    Preloaded {
         cert: Url,
         pk: Url,
     },
