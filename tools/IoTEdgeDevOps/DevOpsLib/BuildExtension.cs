@@ -16,7 +16,6 @@ namespace DevOpsLib
                 BuildDefinitionId.EndToEndTest,
                 BuildDefinitionId.NestedEndToEndTest,
                 BuildDefinitionId.ConnectivityTest,
-                BuildDefinitionId.NestedConnectivityTest,
                 BuildDefinitionId.LonghaulTestEnv1,
                 BuildDefinitionId.LonghaulTestEnv2,
                 BuildDefinitionId.LonghaulTestEnv3,
@@ -24,7 +23,7 @@ namespace DevOpsLib
                 BuildDefinitionId.StressTestEnv1,
                 BuildDefinitionId.StressTestEnv2,
                 BuildDefinitionId.StressTestEnv3,
-                BuildDefinitionId.NestedISA95
+                BuildDefinitionId.NestedISA95,
             };
         static Dictionary<BuildDefinitionId, string> definitionIdToDisplayNameMapping = new Dictionary<BuildDefinitionId, string>
         {
@@ -38,7 +37,6 @@ namespace DevOpsLib
             { BuildDefinitionId.ImageRelease, "Image Release" },
             { BuildDefinitionId.LibiothsmCI, "Libiothsm CI" },
             { BuildDefinitionId.ConnectivityTest, "Connectivity Test" },
-            { BuildDefinitionId.NestedConnectivityTest, "Nested Connectivity Test" },
             { BuildDefinitionId.LonghaulTestEnv1, "Longhaul Test" },
             { BuildDefinitionId.LonghaulTestEnv2, "Longhaul Test Release Candidate" },
             { BuildDefinitionId.LonghaulTestEnv3, "Longhaul Test Release" },
