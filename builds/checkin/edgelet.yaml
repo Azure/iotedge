@@ -131,6 +131,7 @@ jobs:
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     variables:
+      coverage.excludes: "docker-rs*"
       coverage.goal: 44
     pool:
       vmImage: "ubuntu-18.04"
@@ -147,9 +148,11 @@ jobs:
         workingDirectory: edgelet
         displayName: Install Cargo Tarpaulin
       - script: |
-          $CARGO tarpaulin --out Xml --exclude-files "docker-rs*" --output-dir .
+          $CARGO tarpaulin --out Xml --exclude-files $COVERAGE_EXCLUDES --output-dir .
         displayName: Test
         workingDirectory: edgelet
+        env:
+          COVERAGE_EXCLUDES: $(coverage.excludes)
       - task: PublishCodeCoverageResults@1
         displayName: Publish code coverage results
         inputs:
