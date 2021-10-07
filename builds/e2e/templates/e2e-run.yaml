@@ -78,7 +78,7 @@ steps:
       $filter += '&Category!=NestedEdgeOnly'
     }
 
-    $filter = 'Microsoft.Azure.Devices.Edge.Test.PriorityQueues.PriorityQueueTimeToLive'
+    $filter = 'Microsoft.Azure.Devices.Edge.Test.PriorityQueues.Priority*'
 
     sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
 
