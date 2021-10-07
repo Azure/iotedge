@@ -23,7 +23,7 @@ namespace DevOpsLib
                 BuildDefinitionId.StressTestEnv1,
                 BuildDefinitionId.StressTestEnv2,
                 BuildDefinitionId.StressTestEnv3,
-                BuildDefinitionId.NestedISA95,
+                BuildDefinitionId.NestedISA95
             };
         static Dictionary<BuildDefinitionId, string> definitionIdToDisplayNameMapping = new Dictionary<BuildDefinitionId, string>
         {
@@ -44,7 +44,7 @@ namespace DevOpsLib
             { BuildDefinitionId.StressTestEnv1, "Stress Test" },
             { BuildDefinitionId.StressTestEnv2, "Stress Test Release Candidate" },
             { BuildDefinitionId.StressTestEnv3, "Stress Test Release" },
-            { BuildDefinitionId.NestedISA95, "ISA95 Smoke Test" },
+            { BuildDefinitionId.NestedISA95, "ISA95 Smoke Test" }
         };
 
         public static string DisplayName(this BuildDefinitionId buildDefinitionId)
