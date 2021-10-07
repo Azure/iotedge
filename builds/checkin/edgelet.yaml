@@ -164,7 +164,7 @@ jobs:
           echo "##vso[task.setvariable variable=CARGO;]${CARGO_HOME:-"$HOME/.cargo"}/bin/cargo"
         displayName: Set env variables
         workingDirectory: edgelet
-      - script: scripts/linux/generic-rust/install.sh --project-root "edgelet"
+      - script: edgelet/build/linux/install.sh
         displayName: Install Rust
       - script: |
           $CARGO install cargo-tarpaulin
