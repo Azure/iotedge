@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 {
     using System;
+    using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -46,10 +47,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                         {
                             try
                             {
-                                var supportBundlePath = Context.Current.LogFile.GetOrElse(AppDomain.CurrentDomain.BaseDirectory);
+                                var supportBundlePath = Context.Current.LogFile.Match((file) => Path.GetDirectoryName(file), () => AppDomain.CurrentDomain.BaseDirectory);
                                 await Process.RunAsync(
                                 "iotedge",
-                                $"support-bundle -o {supportBundlePath}/supportbundle-{TestContext.CurrentContext.Test.Name}",
+                                $"support-bundle -o {supportBundlePath}/supportbundle-{TestContext.CurrentContext.Test.Name} --since \"{testStartTime:yyyy-MM-ddTHH:mm:ssZ}\"",
                                 cts.Token);
                             }
                             catch (Exception ex)
