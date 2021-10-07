@@ -92,6 +92,15 @@ function print_deployment_logs() {
     docker logs edgeAgent || true
 }
 
+function get_support_bundle_logs(){
+
+    print_highlighted_message "Getting Support Bundle Logs"
+    mkdir -p $working_folder/support
+    time=$(echo $test_start_time | sed 's/ /T/' | sed 's/$/Z/')
+    iotedge support-bundle -o $working_folder/support/iotedge_support_bundle.zip --since "$time"
+    print_highlighted_message "Finished getting support Bundle Logs"
+}
+
 function print_test_run_logs() {
     local ret=$1
 
@@ -399,6 +408,7 @@ function run_connectivity_test() {
             
             if [ $is_build_canceled -eq 1 ]; then
                 print_highlighted_message "build is canceled."
+                get_support_bundle_logs
                 stop_iotedge_service || true
                 return 3
             fi
@@ -417,7 +427,7 @@ function run_connectivity_test() {
             testExitCode=0
         fi
 
-        print_test_run_logs $testExitCode
+        get_support_bundle_logs
 
         # stop IoT Edge service after test complete to prevent sending metrics
         sudo systemctl stop iotedge
