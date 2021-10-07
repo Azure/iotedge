@@ -14,18 +14,18 @@ namespace DevOpsLib
 
         static readonly string[] areas = new string[]
         {
-            "IoTEdge",
-            "IoTEdge\\Agility",
-            "IoTEdge\\AppModel",
-            "IoTEdge\\AppModel\\K8s",
-            "IoTEdge\\Connectivity",
-            "IoTEdge\\Core",
-            "IoTEdge\\Core\\Diagnostic",
-            "IoTEdge\\Core\\Infrastructure",
-            "IoTEdge\\Core\\Security",
-            "IoTEdge\\Documentation",
-            "IoTEdge\\FieldGateway",
-            "IoTEdge\\PartnerRequests"
+            "IoT Edge",
+            "IoT Edge\\Agility",
+            "IoT Edge\\AppModel",
+            "IoT Edge\\AppModel\\K8s",
+            "IoT Edge\\Connectivity",
+            "IoT Edge\\Core",
+            "IoT Edge\\Core\\Diagnostic",
+            "IoT Edge\\Core\\Infrastructure",
+            "IoT Edge\\Core\\Security",
+            "IoT Edge\\Documentation",
+            "IoT Edge\\FieldGateway",
+            "IoT Edge\\PartnerRequests"
         };
 
         public static HashSet<BugWiqlQuery> GenerateBugQueries()

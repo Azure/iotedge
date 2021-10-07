@@ -14,8 +14,6 @@ jobs:
       name: $(pool.linux.name)
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
-    variables:
-      NugetSecurityAnalysisWarningLevel: warn
     strategy:
       matrix:
         Centos75-amd64:
@@ -45,6 +43,19 @@ jobs:
           target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
         Debian10-aarch64:
           os: debian10
+          arch: aarch64
+          target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+
+        Debian11-amd64:
+          os: debian11
+          arch: amd64
+          target.iotedged: edgelet/target/release
+        Debian11-arm32v7:
+          os: debian11
+          arch: arm32v7
+          target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+        Debian11-aarch64:
+          os: debian11
           arch: aarch64
           target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
 
