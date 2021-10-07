@@ -274,7 +274,7 @@ pub(crate) async fn check_edge_ca(
             .map_err(|_| edgelet_http::error::server_error("failed to generate edge ca csr"))?;
 
         cert_client
-            .create_cert(edge_ca_cert, &csr, Some((edge_ca_cert, key_handle)))
+            .create_cert(edge_ca_cert, &csr, None)
             .await
             .map_err(|_| edgelet_http::error::server_error("failed to create edge ca cert"))?;
 
