@@ -52,7 +52,12 @@ stages:
   - template: templates/rust-test-module-build.yaml
     parameters:
       module.path: 'test/modules/generic-mqtt-tester'
-      module.name: 'generic-mqtt-tester'   
+      module.name: 'generic-mqtt-tester'
+
+  - template: templates/rust-test-module-build.yaml
+    parameters:
+      module.path: test/modules/obsagent-client
+      module.name: obsagent-client
 
   # This stage first downloads the dotnet and rust artifacts from the previous stage, then
   # copies the mqtt and watchdog artifacts into the appropriate directories 
