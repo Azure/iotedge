@@ -37,4 +37,4 @@ include_pull_request_author = false # default: false
 strip_html_comments = true # default: false
 
 # remove PR template from merge message body
-cut_body_after = "Azure IoTEdge PR checklist:"
+cut_body_after = "Azure IoT Edge PR checklist:"
