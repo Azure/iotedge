@@ -1,12 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 namespace DirectMethodReceiver
 {
+    using System;
+    using System.Diagnostics;
+    using System.Diagnostics.Tracing;
     using System.Globalization;
     using System.Linq;
-    using System;
-    using System.Diagnostics.Tracing;
-    using System.Diagnostics;
 
     public sealed class ConsoleEventListener : EventListener
     {
@@ -19,28 +18,31 @@ namespace DirectMethodReceiver
         // The OnEventSourceCreated will be triggered sooner than the filter is initialized in the ConsoleEventListener constructor.
         // As a result we will need to define the event filter list as a static variable.
         // Link to EventListener sourcecode: https://github.com/dotnet/runtime/blob/6696065ab0f517f5a9e5f55c559df0010a816dbe/src/libraries/System.Private.CoreLib/src/System/Diagnostics/Tracing/EventSource.cs#L4009-L4018
-        private static readonly string[] s_eventFilter = new string[] { "Microsoft-Azure-Devices", "Azure-Core", "Azure-Identity" };
+        private static readonly string[] EventFilter = new string[] { "Microsoft-Azure-Devices", "Azure-Core", "Azure-Identity" };
 
-        private readonly object _lock = new object();
+        private readonly object eventlock = new object();
 
         protected override void OnEventSourceCreated(EventSource eventSource)
         {
-            if (s_eventFilter.Any(filter => eventSource.Name.StartsWith(filter, StringComparison.OrdinalIgnoreCase)))
+            if (EventFilter.Any(filter => eventSource.Name.StartsWith(filter, StringComparison.OrdinalIgnoreCase)))
             {
                 base.OnEventSourceCreated(eventSource);
-                EnableEvents(
-                    eventSource,
-                    EventLevel.LogAlways
 #if !NET451
-                , EventKeywords.All
+                this.EnableEvents(
+                    eventSource,
+                    EventLevel.LogAlways,
+                    EventKeywords.All);
+#else
+                this.EnableEvents(
+                    eventSource,
+                    EventLevel.LogAlways);
 #endif
-                );
             }
         }
 
         protected override void OnEventWritten(EventWrittenEventArgs eventData)
         {
-            lock (_lock)
+            lock (this.eventlock)
             {
                 string eventIdent;
 #if NET451
@@ -49,7 +51,7 @@ namespace DirectMethodReceiver
 #else
                 eventIdent = eventData.EventName;
 #endif
-                string text = $"{DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fffffff", CultureInfo.InvariantCulture)} [{eventData.EventSource.Name}-{eventIdent}]{(eventData.Payload != null ? $" ({string.Join(", ", eventData.Payload)})." : "")}";
+                string text = $"{DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fffffff", CultureInfo.InvariantCulture)} [{eventData.EventSource.Name}-{eventIdent}]{(eventData.Payload != null ? $" ({string.Join(", ", eventData.Payload)})." : string.Empty)}";
 
                 ConsoleColor origForeground = Console.ForegroundColor;
                 Console.ForegroundColor = ConsoleColor.DarkYellow;

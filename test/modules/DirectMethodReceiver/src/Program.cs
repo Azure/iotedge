@@ -15,7 +15,8 @@ namespace DirectMethodReceiver
         static readonly ILogger Logger = ModuleUtil.CreateLogger("DirectMethodReceiver");
 
         public static int Main() => MainAsync().Result;
-        private static readonly ConsoleEventListener _listener = new ConsoleEventListener();
+
+        private static readonly ConsoleEventListener ConsoleListener = new ConsoleEventListener();
         static async Task<int> MainAsync()
         {
             DirectMethodReceiver directMethodReceiver = null;

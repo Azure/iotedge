@@ -9,7 +9,7 @@ namespace DirectMethodSender
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
-    using Microsoft.Extensions.Logging;    
+    using Microsoft.Extensions.Logging;
 
     sealed class DirectMethodLocalSender : DirectMethodSenderBase
     {

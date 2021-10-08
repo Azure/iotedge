@@ -14,8 +14,8 @@ namespace TwinTester
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TwinTester));
 
-        private static readonly ConsoleEventListener _listener = new ConsoleEventListener();
-        
+        private static readonly ConsoleEventListener ConsoleListener = new ConsoleEventListener();
+
         static async Task Main()
         {
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
