@@ -271,7 +271,7 @@ The provided `config.toml.template` is a template for configuration values that 
 
 ## Installation
 
-For full documentation refer to the official documentation to [Install or uninstall Azure IoT Edge for Linux](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-edge?view=iotedge-2020-11). What follows is a brief summary with accompanying notes. It assumes you have already installed a compatible container engine.
+For full documentation refer to the official documentation to [Install or uninstall Azure IoT Edge for Linux](https://docs.microsoft.com/azure/iot-edge/how-to-install-iot-edge). What follows is a brief summary with accompanying notes. It assumes you have already installed a compatible container engine.
 
 ```sh
 apt install aziot-edge

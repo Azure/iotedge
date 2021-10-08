@@ -14,7 +14,7 @@ This project contains the Edge Hub.
 
 ## How to debug Edge hub using Visual Studio
 1. Create an IOT edgeHub module connection string.
-Create a Visual studio project following process here: https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-portal-csharp-module-twin-getstarted Section Update the module twin using .NET device SDK
+Create a Visual studio project following process here: https://docs.microsoft.com/azure/iot-hub/iot-hub-portal-csharp-module-twin-getstarted Section Update the module twin using .NET device SDK
 but replace the program by the snippet below:
 ```C#
 using System;
@@ -59,10 +59,10 @@ namespace ConsoleApp1
 That snippet should create connection string for the module $edgeAgent. 
 
 2. Set environment variable
-  * `EdgeModuleHubServerCertificateFile` to the path of a SSL Certificate file (e.g. C:\edgeDevice.pfx); for debug purpose, you can [create](https://docs.microsoft.com/en-us/azure/cloud-services/cloud-services-certs-create#create-a-new-self-signed-certificate) and use a self-signed certificate.  Remember to restart Visual Studio to take effect.
+  * `EdgeModuleHubServerCertificateFile` to the path of a SSL Certificate file (e.g. C:\edgeDevice.pfx); for debug purpose, you can [create](https://docs.microsoft.com/azure/cloud-services/cloud-services-certs-create#create-a-new-self-signed-certificate) and use a self-signed certificate.  Remember to restart Visual Studio to take effect.
   * `EdgeModuleHubServerCAChainCertificateFile` to the path of the CA. If certificate is self signed then is it the same as above;
 Or
-  * `EdgeHubDevServerCertificateFile` to the path of a SSL Certificate file (e.g. C:\edgeDevice.pfx); for debug purpose, you can [create](https://docs.microsoft.com/en-us/azure/cloud-services/cloud-services-certs-create#create-a-new-self-signed-certificate) and use a self-signed certificate.  Remember to restart Visual Studio to take effect.
+  * `EdgeHubDevServerCertificateFile` to the path of a SSL Certificate file (e.g. C:\edgeDevice.pfx); for debug purpose, you can [create](https://docs.microsoft.com/azure/cloud-services/cloud-services-certs-create#create-a-new-self-signed-certificate) and use a self-signed certificate.  Remember to restart Visual Studio to take effect.
   * `EdgeHubDevTrustBundleFile` to the path of the CA. If certificate is self signed then is it the same as above;
   * `EdgeHubDevServerPrivateKeyFile` to the path of the private key (*.key file)
 3. Update following values in appsettings_hub.json in Microsoft.Azure.Devices.Edge.Hub.Service project. 
