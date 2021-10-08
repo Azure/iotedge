@@ -1,7 +1,7 @@
 # 1.1.7 (2021-10-13)
 ## iotedged
 ### Bug Fixes
-* Fix a vulnerability in the `allow_privileged` flag [6725a11](https://github.com/Azure/iotedge/commit/6725a11dc6a557478d9fe11820847e75f4ab27a1)
+* Fix a vulnerability in the `allow_elevated_docker_permissions` flag [6725a11](https://github.com/Azure/iotedge/commit/6725a11dc6a557478d9fe11820847e75f4ab27a1)
 * Fix a container socket stops working after a module restart [2e6b208](https://github.com/Azure/iotedge/commit/2e6b2082e5a632e6d041d95c625a669b8daab2b4)
 
 
