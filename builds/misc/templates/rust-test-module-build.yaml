@@ -7,13 +7,13 @@ parameters:
 
 steps:
 - task: Bash@3
-  displayName: Build ${{ parameters['module.name'] }} - amd64
+  displayName: Build ${{ parameters['module.name'] }} - ${{ parameters['arch'] }}
   inputs:
     filePath: scripts/linux/cross-platform-rust-build.sh
-    arguments: --os ubuntu18.04 --arch amd64 --build-path ${{ parameters['module.path'] }}
+    arguments: --os ubuntu18.04 --arch ${{ parameters['arch'] }} --build-path ${{ parameters['module.path'] }}
 - task: PublishBuildArtifacts@1
   inputs:
-    pathToPublish: ${{ parameters['module.path'] }}/target/x86_64-unknown-linux-gnu/release/${{ parameters['module.name'] }}
-    artifactName: ${{ parameters['module.name'] }}_amd64
+    pathToPublish: ${{ parameters['module.path'] }}/target/${{ parameters['target'] }}/release/${{ parameters['module.name'] }}
+    artifactName: ${{ parameters['module.name'] }}_${{ parameters['arch'] }}
     storeAsTar: true
 
