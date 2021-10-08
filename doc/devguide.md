@@ -38,8 +38,8 @@ To run integration tests and/or BVTs, make sure the following dependencies are i
 
 | Dependency        | Notes                |
 |-------------------|----------------------|
-| Azure CLI         | Installation instructions [here](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli). |
-| Powershell        | Installation instructions [here](https://docs.microsoft.com/en-us/powershell/scripting/setup/installing-powershell-core-on-linux). |
+| Azure CLI         | Installation instructions [here](https://docs.microsoft.com/cli/azure/install-azure-cli). |
+| Powershell        | Installation instructions [here](https://docs.microsoft.com/powershell/scripting/install/installing-powershell). |
 | Jq                | Installation instructions [here](https://stedolan.github.io/jq/download/). |
 | Docker            | Installation instructions [here](https://docs.docker.com/engine/installation/#supported-platforms). In Linux environments, be sure to follow the [post-installation steps](https://docs.docker.com/engine/installation/linux/linux-postinstall/) so the tests can run without `sudo`. |
 
@@ -53,8 +53,8 @@ scripts/linux/downloadAndInstallCert.sh -v <VaultName> -c <CertName>
 
 | Argument    | Description                |
 |-------------|----------------------------|
-| VaultName   | KeyVault name. See `az keyvault secret show` [help](https://docs.microsoft.com/en-us/cli/azure/keyvault/secret#show). |
-| CertName    | Certificate name. See `--secret` in `az keyvault secret show` [help](https://docs.microsoft.com/en-us/cli/azure/keyvault/secret#show). |
+| VaultName   | KeyVault name. See `az keyvault secret show` [help](https://docs.microsoft.com/cli/azure/keyvault/secret#az_keyvault_secret_show). |
+| CertName    | Certificate name. See `--secret` in `az keyvault secret show` [help](https://docs.microsoft.com/cli/azure/keyvault/secret#az_keyvault_secret_show). |
 
 Then run the tests either with Test Explorer in Visual Studio IDE, or with:
 
@@ -62,7 +62,7 @@ Then run the tests either with Test Explorer in Visual Studio IDE, or with:
 scripts/linux/runTests.sh "--filter Category=Integration"
 ```
 
-The syntax of the "filter" argument is described [here](https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-test#filter-option-details). All IoT Edge tests are categorized as one of `Unit`, `Integration`, or `Bvt`.
+The syntax of the "filter" argument is described [here](https://docs.microsoft.com/dotnet/core/tools/dotnet-test#filter-option-details). All IoT Edge tests are categorized as one of `Unit`, `Integration`, or `Bvt`.
 
 ## Run the end-to-end tests
 
