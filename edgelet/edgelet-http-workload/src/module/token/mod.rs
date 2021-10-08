@@ -13,6 +13,7 @@ use aziot_identity_client_async::Client as IdentityClient;
 #[cfg(test)]
 use edgelet_test_utils::clients::IdentityClient;
 
+use log::{error, info};
 use serde_derive::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_json::Value;
@@ -81,7 +82,7 @@ impl TokenGeneratorAPI {
         module_id: String,
         exp: u64,
     ) -> Result<hyper::Response<hyper::Body>, http_common::server::Error> {
-        let module_key = get_module_key(self.identity_client, &module_id).await?;
+        let module_key = get_device_key(self.identity_client).await?;
         let key_client = self.key_client.lock().await;
 
         let sub = format!(
@@ -108,6 +109,7 @@ impl TokenGeneratorAPI {
         })?;
         let claims = base64::encode_config(claims.as_bytes(), base64::STANDARD_NO_PAD);
 
+        info!("generating signature {}", format!("{}.{}", header, claims));
         let signature = key_client
             .sign(
                 &module_key,
@@ -120,6 +122,8 @@ impl TokenGeneratorAPI {
 
         let token = format!("{}.{}.{}", header, claims, signature);
 
+        info!("Generating token: {}", token);
+
         let response = TokenGenerateResponse { token };
 
         let response = http_common::server::response::json(hyper::StatusCode::CREATED, &response);
@@ -129,48 +133,55 @@ impl TokenGeneratorAPI {
 
     pub async fn validate_token(
         self,
-        module_id: String,
+        _module_id: String,
         token: String,
         exp: u64,
     ) -> Result<hyper::Response<hyper::Body>, http_common::server::Error> {
-        let module_key = get_module_key(self.identity_client, &module_id).await?;
         let key_client = self.key_client.lock().await;
 
+        info!("Received token: {}", token);
         let split = token.split('.').collect::<Vec<&str>>();
 
         if split.len() != 3 {
             return Err(edgelet_http::error::bad_request("Invalid token format"));
         }
 
-        let header = split[0];
-        let claims = split[1];
-        let signature_to_validate = split[2];
+        let header_b64encoded = split[0];
+        let claims_b64encoded = split[1];
+        let signature_to_validate_b64encoded = split[2];
 
+        let claims = base64::decode_config(claims_b64encoded, base64::STANDARD_NO_PAD)
+            .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
+        let claims: TokenClaims = serde_json::from_slice(&claims)
+            .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
+
+
+        // Validate the signature
+        info!("checking signature {}", format!("{}.{}", header_b64encoded, claims_b64encoded));
+        let module_key = get_device_key(self.identity_client).await?;
         let signature = key_client
             .sign(
                 &module_key,
                 aziot_key_common::SignMechanism::HmacSha256,
-                format!("{}.{}", header, claims).as_bytes(),
+                format!("{}.{}", header_b64encoded, claims_b64encoded).as_bytes(),
             )
             .await
             .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
-        let signature = base64::encode_config(signature, base64::STANDARD_NO_PAD);
+        let signature_b64encoded = base64::encode_config(signature, base64::STANDARD_NO_PAD);
 
-        // Validate the signature
-        if !signature.eq(signature_to_validate) {
+        if !signature_b64encoded.eq(signature_to_validate_b64encoded) {
+            error!("Signature error, expected {}, got {}", signature_b64encoded, signature_to_validate_b64encoded);
             return Err(edgelet_http::error::bad_request(
                 "Could not authenticate token",
             ));
         }
 
         // Validate if the token is not expired.
-        let claims = base64::decode_config(claims, base64::STANDARD_NO_PAD)
-            .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
-        let claims: TokenClaims = serde_json::from_slice(&claims)
-            .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
         if exp > claims.exp {
             return Err(edgelet_http::error::bad_request("Token is expired"));
         }
+
+        info!("Token is validated");
 
         let response = TokenValidateResponse { token };
 
@@ -181,17 +192,16 @@ impl TokenGeneratorAPI {
 }
 
 // !! duplicated code
-async fn get_module_key(
+async fn get_device_key(
     client: std::sync::Arc<futures_util::lock::Mutex<IdentityClient>>,
-    module_id: &str,
 ) -> Result<aziot_key_common::KeyHandle, http_common::server::Error> {
     let identity = {
         let client = client.lock().await;
 
-        client.get_identity(module_id).await.map_err(|err| {
+        client.get_device_identity().await.map_err(|err| {
             edgelet_http::error::server_error(format!(
-                "failed to get module identity for {}: {}",
-                module_id, err
+                "failed to get device identity {}",
+                err
             ))
         })
     }?;

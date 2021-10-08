@@ -96,6 +96,23 @@ impl IdentityClient {
         }
     }
 
+    pub async fn get_device_identity(&self) -> Result<Identity, std::io::Error> {
+        if self.get_identity_ok {
+            let identities = {
+                let identities = self.identities.lock().await;
+
+                identities.replace_with(|identities| identities.clone())
+            };
+
+            match identities.get("device") {
+                Some(identity) => Ok(identity.clone()),
+                None => Err(crate::test_error()),
+            }
+        } else {
+            Err(crate::test_error())
+        }
+    }    
+
     pub async fn update_module_identity(
         &self,
         module_name: &str,
