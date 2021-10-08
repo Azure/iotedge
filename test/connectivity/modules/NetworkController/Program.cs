@@ -27,6 +27,8 @@ namespace NetworkController
             Log.LogInformation($"Starting with {Settings.Current.NetworkRunProfile.ProfileType} Settings: {Settings.Current.NetworkRunProfile.ProfileSetting}");
 
             var controllers = new List<INetworkController>();
+            
+            private static readonly ConsoleEventListener _listener = new ConsoleEventListener();
 
             try
             {
