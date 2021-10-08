@@ -9,12 +9,14 @@ namespace DirectMethodSender
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using System.Diagnostics.Tracing;
 
     class Program
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("DirectMethodSender");
-
         public static int Main() => MainAsync().Result;
+
+	    private static readonly ConsoleEventListener _listener = new ConsoleEventListener();
 
         public static async Task<int> MainAsync()
         {

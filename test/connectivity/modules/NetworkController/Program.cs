@@ -19,7 +19,6 @@ namespace NetworkController
     class Program
     {
         static readonly ILogger Log = Logger.Factory.CreateLogger<Program>();
-        static readonly ConsoleEventListener _listener = new ConsoleEventListener();
         static async Task Main()
         {
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Log);
