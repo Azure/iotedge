@@ -308,78 +308,6 @@ function print_test_run_logs() {
     print_highlighted_message 'Print logs'
     print_highlighted_message 'testResultCoordinator LOGS'
     docker logs testResultCoordinator || true
-
-    if (( ret < 1 )); then
-        return;
-    fi
-    
-    print_deployment_logs
-
-    print_highlighted_message '========== Logs from edgeHub =========='
-    docker logs edgeHub || true
-
-    print_highlighted_message '========== Logs from loadGen1 =========='
-    docker logs loadGen1 || true
-
-    print_highlighted_message 'loadGen2 =========='
-    docker logs loadGen2 || true
-
-    print_highlighted_message 'relayer1 =========='
-    docker logs relayer1 || true
-
-    print_highlighted_message '========== Logs from relayer2 =========='
-    docker logs relayer2 || true
-
-    print_highlighted_message '========== Logs from directMethodSender1 =========='
-    docker logs directMethodSender1 || true
-
-    print_highlighted_message '========== Logs from directMethodReceiver1 =========='
-    docker logs directMethodReceiver1 || true
-
-    print_highlighted_message '========== Logs from directMethodSender2 =========='
-    docker logs directMethodSender2 || true
-
-    print_highlighted_message '========== Logs from directMethodReceiver2 =========='
-    docker logs directMethodReceiver2 || true
-
-    print_highlighted_message '========== Logs from directMethodSender3 =========='
-    docker logs directMethodSender3 || true
-
-    print_highlighted_message '========== Logs from twinTester1 =========='
-    docker logs twinTester1 || true
-
-    print_highlighted_message '========== Logs from twinTester2 =========='
-    docker logs twinTester2 || true
-
-    print_highlighted_message '========== Logs from twinTester3 =========='
-    docker logs twinTester3 || true
-
-    print_highlighted_message '========== Logs from twinTester4 =========='
-    docker logs twinTester4 || true
-
-    print_highlighted_message '========== Logs from deploymentTester1 =========='
-    docker logs deploymentTester1 || true
-
-    print_highlighted_message '========== Logs from deploymentTester2 =========='
-    docker logs deploymentTester2 || true
-
-    print_highlighted_message '========== Logs from cloudToDeviceMessageSender1 =========='
-    docker logs cloudToDeviceMessageSender1 || true
-
-    print_highlighted_message '========== Logs from cloudToDeviceMessageReceiver1 =========='
-    docker logs cloudToDeviceMessageReceiver1 || true
-
-    print_highlighted_message '========== Logs from cloudToDeviceMessageSender2 =========='
-    docker logs cloudToDeviceMessageSender2 || true
-
-    print_highlighted_message '========== Logs from cloudToDeviceMessageReceiver2 =========='
-    docker logs cloudToDeviceMessageReceiver2 || true
-
-    print_highlighted_message '========== Logs from genericMqttTester =========='
-    docker logs genericMqttTester || true
-
-    print_highlighted_message 'networkController =========='
-    docker logs networkController || true
 }
 
 function process_args() {
@@ -782,6 +710,7 @@ function run_connectivity_test() {
         fi
         
         get_support_bundle_logs
+        print_test_run_logs $testExitCode
 
         # stop IoT Edge service after test complete to prevent sending metrics
         stop_aziot_edge
