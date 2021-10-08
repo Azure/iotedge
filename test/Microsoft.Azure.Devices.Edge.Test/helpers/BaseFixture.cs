@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     {
                         using var cts = new CancellationTokenSource(Context.Current.TeardownTimeout);
                         await NUnitLogs.CollectAsync(this.testStartTime, cts.Token);
-                        if (Context.Current.UploadSupportBundle)
+                        if (Context.Current.GetSupportBundle)
                         {
                             try
                             {

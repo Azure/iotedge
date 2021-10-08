@@ -152,7 +152,7 @@ steps:
       rootCaPrivateKeyPath = "$rootCaPrivateKeyPath";
       logFile = Join-Path '$(binDir)' 'testoutput.log';
       verbose = '$(verbose)';
-      uploadsupportbundle = 'true'
+      getSupportBundle = 'true'
     }
 
     if ('$(nestededge)' -eq 'true')
