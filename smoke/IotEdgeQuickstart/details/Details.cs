@@ -10,7 +10,7 @@ namespace IotEdgeQuickstart.Details
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
-    using Microsoft.Azure.Devices.Edge.Test.Common;
+    using Microsoft.Azure.Devices.Common;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Azure.EventHubs;
@@ -528,7 +528,7 @@ namespace IotEdgeQuickstart.Details
             await this.parentEdgeDevice.ForEachAsync(async p =>
             {
                 var parentDevice = await rm.GetDeviceAsync(p);
-                device.ParentScopes.Add(parentDevice.Scope);
+                device.ParentScopes = new[] { parentDevice.Scope };
             });
 
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);

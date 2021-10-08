@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 // Copyright (c) 2013 James Manning
-namespace Microsoft.Azure.Devices.Edge.Test.Common.RunProcessAsTask
+namespace RunProcessAsTask
 {
     using System;
     using System.Diagnostics;
