@@ -5,7 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Net;
-    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Common.Exceptions;
@@ -745,106 +744,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         // This unit test has been considered flaky in the past due to the presence of indeterminate sleeps. Description for sleeps have been added wherever used.
         [Fact]
         [Unit]
-        public async Task FrequentTwinPullsOnConnectionAreThrottledAsync()
-        {
-            // Arrange
-            var deviceClient = new Mock<IModuleClient>();
-            deviceClient.Setup(x => x.UpstreamProtocol).Returns(UpstreamProtocol.Amqp);
-            deviceClient.Setup(x => x.IsActive).Returns(true);
-            var serde = new Mock<ISerde<DeploymentConfig>>();
-            ConnectionStatusChangesHandler connectionStatusChangesHandler = null;
-            var twin = new Twin
-            {
-                Properties = new TwinProperties
-                {
-                    Desired = new TwinCollection(
-                        JObject.FromObject(
-                            new Dictionary<string, object>
-                            {
-                                { "$version", 10 },
-                                { "MoreStuff", "MoreStuffHereToo" }
-                            }).ToString()),
-                    Reported = new TwinCollection()
-                }
-            };
-
-            var moduleClientProvider = new Mock<IModuleClientProvider>();
-            moduleClientProvider.Setup(d => d.Create(It.IsAny<ConnectionStatusChangesHandler>()))
-                .Callback<ConnectionStatusChangesHandler>(statusChanges =>
-                connectionStatusChangesHandler = statusChanges)
-                .ReturnsAsync(deviceClient.Object);
-            var retryStrategy = new Mock<RetryStrategy>(new object[] { false });
-            retryStrategy.Setup(rs => rs.GetShouldRetry())
-                .Returns(
-                    (int retryCount, Exception lastException, out TimeSpan delay) =>
-                    {
-                        delay = TimeSpan.Zero;
-                        return false;
-                    });
-
-            var counter = 0;
-            var milestone = new SemaphoreSlim(0, 1);
-
-            deviceClient.Setup(d => d.GetTwinAsync())
-                .ReturnsAsync(
-                    () =>
-                    {
-                        Interlocked.Increment(ref counter);
-                        milestone.Release();
-                        return twin;
-                    });
-
-            serde.Setup(s => s.Deserialize(It.IsAny<string>())).Returns(() => DeploymentConfig.Empty);
-
-            IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
-            var deviceManager = new Mock<IDeviceManager>();
-            deviceManager.Setup(x => x.ReprovisionDeviceAsync()).Returns(Task.CompletedTask);
-
-            var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromHours(1), retryStrategy.Object, Mock.Of<IDeploymentMetrics>(), TimeSpan.FromSeconds(3));
-
-            // There is a twin pull during init, wait for that
-            Assert.True(await milestone.WaitAsync(TimeSpan.FromSeconds(2)));
-
-            // Give enough time for the initial pull to complete which involves updating deployment config
-            await Task.Delay(TimeSpan.FromSeconds(2));
-
-            // A first time call should just go through
-            counter = 0;
-            connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
-
-            Assert.True(await milestone.WaitAsync(TimeSpan.FromSeconds(2)));
-
-            Assert.Equal(1, Volatile.Read(ref counter));
-
-            // get out of the 3 sec window
-            await Task.Delay(3500);
-
-            // The second call out of the window should go through
-            connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
-
-            Assert.True(await milestone.WaitAsync(TimeSpan.FromSeconds(2)));
-
-            Assert.Equal(2, Volatile.Read(ref counter));
-
-            // Still in the window, so these should not go through. However, a delayed pull gets started
-            connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
-            connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
-            connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
-
-            await Task.Delay(500); // wait a bit more, so there is time to pull twin more if the throttling does not work
-
-            Assert.Equal(2, Volatile.Read(ref counter));
-
-            // get out of the 3 sec window, the delayed pull should finish by then
-            await Task.Delay(3500);
-
-            Assert.True(await milestone.WaitAsync(TimeSpan.FromSeconds(2)));
-
-            Assert.Equal(3, Volatile.Read(ref counter));
-        }
-
-        [Fact]
-        [Unit]
         public async Task GetDeploymentConfigInfoIncludesExceptionWhenSchemaVersionDoesNotMatch()
         {
             // Arrange
@@ -961,7 +860,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var deviceManager = new Mock<IDeviceManager>();
 
             // Act
-            IEdgeAgentConnection connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromHours(1), retryStrategy.Object, Mock.Of<IDeploymentMetrics>(), TimeSpan.FromSeconds(30));
+            IEdgeAgentConnection connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromHours(1), retryStrategy.Object, Mock.Of<IDeploymentMetrics>());
 
             // Assert
             // The connection hasn't been created yet. So wait for it.
@@ -1044,7 +943,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var deviceManager = new Mock<IDeviceManager>();
 
             // Act
-            IEdgeAgentConnection connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromHours(1), retryStrategy.Object, Mock.Of<IDeploymentMetrics>(), TimeSpan.FromSeconds(30));
+            IEdgeAgentConnection connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromHours(1), retryStrategy.Object, Mock.Of<IDeploymentMetrics>());
 
             // Assert
             // The connection hasn't been created yet. So wait for it.
@@ -1490,7 +1389,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var deviceManager = new Mock<IDeviceManager>();
 
             // Act
-            using (var edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(10), retryStrategy, Mock.Of<IDeploymentMetrics>(), TimeSpan.FromSeconds(30)))
+            using (var edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(10), retryStrategy, Mock.Of<IDeploymentMetrics>()))
             {
                 await Task.Delay(TimeSpan.FromSeconds(3));
                 Option<DeploymentConfigInfo> receivedDeploymentConfigInfo = await edgeAgentConnection.GetDeploymentConfigInfoAsync();
@@ -1601,7 +1500,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var deviceManager = new Mock<IDeviceManager>();
 
             // Act
-            using (var edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(10), retryStrategy, Mock.Of<IDeploymentMetrics>(), TimeSpan.FromSeconds(30)))
+            using (var edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(10), retryStrategy, Mock.Of<IDeploymentMetrics>()))
             {
                 await Task.Delay(TimeSpan.FromSeconds(3));
                 Option<DeploymentConfigInfo> receivedDeploymentConfigInfo = await edgeAgentConnection.GetDeploymentConfigInfoAsync();
@@ -1704,7 +1603,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var deviceManager = new Mock<IDeviceManager>();
 
             // Act
-            IEdgeAgentConnection connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromHours(1), retryStrategy.Object, Mock.Of<IDeploymentMetrics>(), TimeSpan.FromSeconds(30));
+            IEdgeAgentConnection connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromHours(1), retryStrategy.Object, Mock.Of<IDeploymentMetrics>());
 
             // Assert
             // The connection hasn't been created yet. So wait for it.
