@@ -19,7 +19,7 @@ namespace NetworkController
     class Program
     {
         static readonly ILogger Log = Logger.Factory.CreateLogger<Program>();
-
+        static readonly ConsoleEventListener _listener = new ConsoleEventListener();
         static async Task Main()
         {
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Log);
@@ -27,8 +27,6 @@ namespace NetworkController
             Log.LogInformation($"Starting with {Settings.Current.NetworkRunProfile.ProfileType} Settings: {Settings.Current.NetworkRunProfile.ProfileSetting}");
 
             var controllers = new List<INetworkController>();
-            
-            private static readonly ConsoleEventListener _listener = new ConsoleEventListener();
 
             try
             {
