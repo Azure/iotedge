@@ -3,7 +3,7 @@
 # Licensed under the MIT License. See https://go.microsoft.com/fwlink/?linkid=2090316 for license information.
 #-------------------------------------------------------------------------------------------------------------
 
-FROM alpine:3.14.1
+FROM alpine:3.14.0
 WORKDIR /app
 COPY ./docker/linux/amd64/api-proxy-module .
 COPY ./docker/linux/amd64/templates .
