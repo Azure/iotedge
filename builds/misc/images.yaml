@@ -360,8 +360,15 @@ stages:
         project: CloudToDeviceMessageTester     
         bin_dir: '$(Build.BinariesDirectory)'
         
-  - job: BuildImageApiProxy 
+  - job: BuildImageApiProxy
     steps:
+    - bash: |
+        sudo apt-get update && sudo apt-get -y install qemu binfmt-support qemu-user-static && \
+        docker run --rm --privileged multiarch/qemu-user-static --reset -p yes && \
+        docker buildx rm  mbuilder || true  && \
+        docker buildx create --name mbuilder  || true  && \
+        docker buildx use mbuilder
+        docker -v
     - template: templates/image-linux.yaml
       parameters:
         name: API Proxy
