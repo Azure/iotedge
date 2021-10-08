@@ -1,3 +1,21 @@
+# 1.1.7 (2021-10-13)
+## iotedged
+### Bug Fixes
+* Fix a vulnerability in the `allow_privileged` flag [6725a11](https://github.com/Azure/iotedge/commit/6725a11dc6a557478d9fe11820847e75f4ab27a1)
+* Fix a container socket stops working after a module restart [2e6b208](https://github.com/Azure/iotedge/commit/2e6b2082e5a632e6d041d95c625a669b8daab2b4)
+
+
+## Edge Agent
+### Bug Fixes
+* Create parent socket folder in Windows upgrade script [6d0ca55](https://github.com/Azure/iotedge/commit/6d0ca554467300144395aa3715b1140335d3b9c2), [7ed543a](https://github.com/Azure/iotedge/commit/7ed543afb33d9a8424800ed094269c5b029df5d2)
+* Update Base Images for a Security Patch [75bb5ea](https://github.com/Azure/iotedge/commit/75bb5eabb8c243d56ad3477b79b429060c7cb2d3)
+
+
+## Edge Hub
+### Bug Fixes
+* Update Base Images for a Security Patch [75bb5ea](https://github.com/Azure/iotedge/commit/75bb5eabb8c243d56ad3477b79b429060c7cb2d3)
+
+
 # 1.1.6 (2021-09-06)
 ## iotedged
 ### Bug Fixes
