@@ -2,30 +2,18 @@ parameters:
   os: 'linux'
   module.path: ''
   module.name: ''
+  arch: ''
+  target: ''
 
-jobs:
-  - job: BuildRustExecutable
-    displayName: Build ${{ parameters['module.name'] }} Rust Executable
-    strategy:
-      matrix:
-        amd64:
-          arch: amd64
-          target: x86_64-unknown-linux-gnu
-        arm32:
-          arch: arm32v7
-          target: armv7-unknown-linux-gnueabihf  
-        arm64:
-          arch: aarch64
-          displayName: Build generic mqtt tester - arm64
-          target: aarch64-unknown-linux-gnu
-    steps:
-    - task: Bash@3
-      displayName: Build ${{ parameters['module.name'] }} - $(arch)
-      inputs:
-        filePath: scripts/linux/cross-platform-rust-build.sh
-        arguments: --os ubuntu18.04 --arch $(arch) --build-path ${{ parameters['module.path'] }}
-    - task: PublishBuildArtifacts@1
-      inputs:
-        pathToPublish: ${{ parameters['module.path'] }}/target/$(target)/release/${{ parameters['module.name'] }}
-        artifactName: ${{ parameters['module.name'] }}_$(arch)
-        storeAsTar: true
+steps:
+- task: Bash@3
+  displayName: Build ${{ parameters['module.name'] }} - amd64
+  inputs:
+    filePath: scripts/linux/cross-platform-rust-build.sh
+    arguments: --os ubuntu18.04 --arch amd64 --build-path ${{ parameters['module.path'] }}
+- task: PublishBuildArtifacts@1
+  inputs:
+    pathToPublish: ${{ parameters['module.path'] }}/target/x86_64-unknown-linux-gnu/release/${{ parameters['module.name'] }}
+    artifactName: ${{ parameters['module.name'] }}_amd64
+    storeAsTar: true
+

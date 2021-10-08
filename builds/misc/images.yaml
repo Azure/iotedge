@@ -49,15 +49,48 @@ stages:
 
   - template: templates/build-api-proxy.yaml
 
-  - template: templates/rust-test-module-build.yaml
-    parameters:
-      module.path: 'test/modules/generic-mqtt-tester'
-      module.name: 'generic-mqtt-tester'
-
-  - template: templates/rust-test-module-build.yaml
-    parameters:
-      module.path: test/modules/obsagent-client
-      module.name: obsagent-client
+  # Rust test modules
+  - job: BuildRustExecutable
+    displayName: Build Rust Executable
+    strategy:
+      matrix:
+        GenericMqttTesterAmd64:
+          moduleName: generic-mqtt-tester
+          modulePath: test/modules/generic-mqtt-tester
+          arch: amd64
+          target: x86_64-unknown-linux-gnu
+        GenericMqttTesterArm32:
+          moduleName: generic-mqtt-tester
+          modulePath: test/modules/generic-mqtt-tester
+          arch: arm32v7
+          target: armv7-unknown-linux-gnueabihf
+        GenericMqttTesterArm64:
+          moduleName: generic-mqtt-tester
+          modulePath: test/modules/generic-mqtt-tester
+          arch: aarch64
+          target: aarch64-unknown-linux-gnu
+        ObsAgentClientAmd64:
+          moduleName: obsagent-client
+          modulePath: test/modules/obsagent-client
+          arch: amd64
+          target: x86_64-unknown-linux-gnu
+        ObsAgentClientArm32:
+          moduleName: obsagent-client
+          modulePath: test/modules/obsagent-client
+          arch: arm32v7
+          target: armv7-unknown-linux-gnueabihf
+        ObsAgentClientArm64:
+          moduleName: obsagent-client
+          modulePath: test/modules/obsagent-client
+          arch: aarch64
+          target: aarch64-unknown-linux-gnu
+    steps:
+    - template: templates/rust-test-module-build.yaml
+      parameters:
+        module.name: $(moduleName)
+        module.path: $(modulePath)
+        arch: $(arch)
+        target: $(target)
 
   # This stage first downloads the dotnet and rust artifacts from the previous stage, then
   # copies the mqtt and watchdog artifacts into the appropriate directories 
