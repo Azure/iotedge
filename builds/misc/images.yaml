@@ -9,263 +9,425 @@ pr: none
 variables:
   NugetSecurityAnalysisWarningLevel: warn
 
-jobs:
+stages:
 ################################################################################
-  - job: linux_dotnet_projects
+- stage: BuildExecutables
 ################################################################################
-    timeoutInMinutes: 180
-    displayName: LinuxDotnet
-    pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+  displayName: Build Excecutables
+  pool:
+    name: $(pool.linux.name)
+    demands:
+      - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker  
+  dependsOn: []
+  jobs:
+  - job: BuildDotnetComponents
+    displayName: Build Dotnet Components
     steps:
-      - task: Docker@2
-        displayName: Docker login edgebuilds
-        inputs:
-          command: login
-          containerRegistry: iotedge-edgebuilds-acr
+    - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
+      name: build
+      displayName: Build ($(Build.Configuration)) dotnet artifacts
+    - bash: |
+        mkdir $(Build.ArtifactStagingDirectory)/core-linux && \
+        mv $(Build.BinariesDirectory)/publish/{CACertificates,e2e_deployment_files,e2e_test_files,\
+        scripts,IotEdgeQuickstart*,LeafDevice*} $(Build.ArtifactStagingDirectory)/core-linux
+      displayName: Move/stage test file artifacts
+    - script: scripts/linux/createArtifactInfo.sh --output-folder '$(Build.ArtifactStagingDirectory)/core-linux' --build-number $(Build.BuildNumber)
+      displayName: 'Create Artifact Info File'         
+    - task: PublishBuildArtifacts@1
+      displayName: Publish core-linux artifact
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)/core-linux'
+        artifactName: 'core-linux'
+    - task: PublishBuildArtifacts@1
+      displayName: Publish Dotnet Artifacts
+      inputs:
+        PathtoPublish: '$(Build.BinariesDirectory)/publish'
+        artifactName: 'dotnet_artifacts'
+        StoreAsTar: true
 
-      - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
-        name: build
-        displayName: Build ($(Build.Configuration)) dotnet artifacts
+  - template: templates/build-broker-watchdog.yaml
 
-      - template: templates/build-broker-watchdog.yaml
+  - template: templates/build-api-proxy.yaml
 
-      - script: scripts/linux/createArtifactInfo.sh --output-folder '$(Build.BinariesDirectory)/publish' --build-number $(Build.BuildNumber)
-        displayName: 'Create Artifact Info File'
+  - template: templates/rust-test-module-build.yaml
+    parameters:
+      module.path: 'test/modules/generic-mqtt-tester'
+      module.name: 'generic-mqtt-tester'   
 
-      - task: PublishBuildArtifacts@1
-        displayName: 'Publish Artifacts'
-        inputs:
-          PathtoPublish: '$(Build.BinariesDirectory)/publish'
-          ArtifactName: 'core-linux'
+  # This stage first downloads the dotnet and rust artifacts from the previous stage, then
+  # copies the mqtt and watchdog artifacts into the appropriate directories 
+  # required by consolidate-build-artifacts.sh. It then runs consolidate-build-artifacts.sh,
+  # which moves the EH dockerfile, edge-hub executable, watchdog executable, and mqttd
+  # executable into the appropriate directories for later building the edge-hub image in the 
+  # 'Build Images' stage of this pipeline.  Finally, this stage consolidates the aforementioned
+  # EH artifacts with the other dotnet artifacts and publishes them all in an artifact named
+  # 'consolidated_artifacts'.      
+################################################################################
+- stage: ConsolidateAndPubishArtifacts
+################################################################################
+  displayName: Consolidate And Publish Artifacts
+  pool:
+    name: $(pool.linux.name)
+    demands:
+      - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker  
+  dependsOn: BuildExecutables
+  jobs:
+  - job: ConsolidateAndPublishArtifacts
+    steps:
+    - task: DownloadBuildArtifacts@0
+      displayName: Download Artifacts
+      inputs:
+        buildType: 'current'
+        downloadPath: '$(Build.ArtifactStagingDirectory)'
+        downloadType: specific
+        extractTars: true
 
-      # Edge Agent
-      - template: templates/image-linux.yaml
-        parameters:
+    - task: CopyFiles@2
+      displayName: Copy mqttd (amd64)
+      inputs:
+        sourceFolder: '$(Agent.TempDirectory)/extracted_tars/mqttd_amd64'
+        contents: 'mqttd'
+        targetFolder: '$(Build.ArtifactStagingDirectory)/mqtt/target/x86_64-unknown-linux-musl/release'   
+
+    - task: CopyFiles@2
+      displayName: Copy mqttd (arm32)    
+      inputs:  
+        sourceFolder: '$(Agent.TempDirectory)/extracted_tars/mqttd_arm32'        
+        contents: 'mqttd'
+        targetFolder: '$(Build.ArtifactStagingDirectory)/mqtt/target/armv7-unknown-linux-gnueabihf/release'
+
+    - task: CopyFiles@2
+      displayName: Copy mqttd (arm64)    
+      inputs:    
+        sourceFolder: '$(Agent.TempDirectory)/extracted_tars/mqttd_arm64'              
+        contents: 'mqttd'
+        targetFolder: '$(Build.ArtifactStagingDirectory)/mqtt/target/aarch64-unknown-linux-gnu/release'
+
+    - task: CopyFiles@2
+      displayName: Copy watchdog (amd64)    
+      inputs:
+        sourceFolder: '$(Agent.TempDirectory)/extracted_tars/watchdog_amd64'              
+        contents: 'watchdog'
+        targetFolder: '$(Build.ArtifactStagingDirectory)/edge-hub/watchdog/target/x86_64-unknown-linux-musl/release'
+
+    - task: CopyFiles@2
+      displayName: Copy watchdog (arm32)    
+      inputs:
+        sourceFolder: '$(Agent.TempDirectory)/extracted_tars/watchdog_arm32'              
+        contents: 'watchdog'
+        targetFolder: '$(Build.ArtifactStagingDirectory)/edge-hub/watchdog/target/armv7-unknown-linux-gnueabihf/release'
+
+    - task: CopyFiles@2
+      displayName: Copy watchdog (arm64)    
+      inputs:
+        sourceFolder: '$(Agent.TempDirectory)/extracted_tars/watchdog_arm64'              
+        contents: 'watchdog'
+        targetFolder: '$(Build.ArtifactStagingDirectory)/edge-hub/watchdog/target/aarch64-unknown-linux-gnu/release'                             
+    - script: scripts/linux/consolidate-build-artifacts.sh --dotnet-artifacts-source-dir '$(Agent.TempDirectory)/extracted_tars/dotnet_artifacts' --rust-artifacts-source-dir '$(Build.ArtifactStagingDirectory)' --dest-dir '$(Build.BinariesDirectory)/publish' --artifact-name 'edge-hub'
+      displayName: Consolidate Edge Hub Artifacts
+    
+    # TODO: Consider moving the following copies into consolidate-build-artifacts.sh
+    - task: CopyFiles@2
+      displayName: Copy/Stage dotnet '$(System.DefaultWorkingDirectory)/edge-modules/api-proxy-module/docker/manifest.yaml.template'
+      inputs:
+        sourceFolder: '$(Agent.TempDirectory)/extracted_tars/dotnet_artifacts'
+        contents: '**'
+        targetFolder: '$(Build.BinariesDirectory)/publish'
+
+    - task: CopyFiles@2
+      displayName: Copy API Proxy Artifacts (amd64)
+      inputs:
+        sourceFolder: '$(Agent.TempDirectory)/extracted_tars/api_proxy_x86_64'
+        contents: '**'
+        targetFolder: '$(Build.BinariesDirectory)/publish'       
+        
+    - task: CopyFiles@2
+      displayName: Copy API Proxy Artifacts (arm32)
+      inputs:
+        sourceFolder: '$(Agent.TempDirectory)/extracted_tars/api_proxy_armv7l'
+        contents: '**'
+        targetFolder: '$(Build.BinariesDirectory)/publish'    
+        
+    - task: CopyFiles@2
+      displayName: Copy API Proxy Artifacts (arm64)
+      inputs:
+        sourceFolder: '$(Agent.TempDirectory)/extracted_tars/api_proxy_aarch64'
+        contents: '**'
+        targetFolder: '$(Build.BinariesDirectory)/publish'         
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Artifacts'
+      inputs:
+        pathToPublish: '$(Build.BinariesDirectory)/publish'
+        artifactName: 'consolidated_artifacts'
+        StoreAsTar: true
+
+################################################################################
+- stage:  BuildImages
+################################################################################
+  displayName: Build Images
+  pool:
+    name: $(pool.linux.name)
+    demands:
+      - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+  dependsOn: ConsolidateAndPubishArtifacts
+  jobs:
+  - job: BuildImageEdgeAgent
+    steps:
+    - template: templates/image-linux.yaml
+      parameters:
           name: Edge Agent
           imageName: azureiotedge-agent
           project: Microsoft.Azure.Devices.Edge.Agent.Service
+          bin_dir: '$(Build.BinariesDirectory)'
 
-      # Edge Hub
-      - template: templates/image-linux.yaml
-        parameters:
-          name: Edge Hub
-          imageName: azureiotedge-hub
-          project: edge-hub
-
-      # Simulated Temperature Sensor
-      - template: templates/image-linux.yaml
-        parameters:
-          name: Temperature Sensor
-          imageName: azureiotedge-simulated-temperature-sensor
-          project: SimulatedTemperatureSensor
-
-      # Dotnet Diagnostics Module
-      - template: templates/image-linux.yaml
-        parameters:
-          name: Diagnostics
-          imageName: azureiotedge-diagnostics
-          project: IotedgeDiagnosticsDotnet
-
-      # Temperature Filter
-      - template: templates/image-linux.yaml
-        parameters:
-          name: Temperature Filter
-          imageName: azureiotedge-temperature-filter
-          project: TemperatureFilter
-
-      # Load Gen
-      - template: templates/image-linux.yaml
-        parameters:
-          name: Load Gen
-          imageName: azureiotedge-load-gen
-          project: load-gen
-
-      # Test Analyzer
-      - template: templates/image-linux.yaml
-        parameters:
-          name: Test Analyzer
-          imageName: azureiotedge-analyzer
-          project: TestAnalyzer
-
-      # Functions Sample - Not supported on linux arm64
-      - template: templates/image-linux.yaml
-        parameters:
-          name: Functions Sample
-          imageName: azureiotedge-functions-filter
-          project: EdgeHubTriggerCSharp
-
-      # Direct Method Sender
-      - template: templates/image-linux.yaml
-        parameters:
-          name: Direct Method Sender
-          imageName: azureiotedge-direct-method-sender
-          project: DirectMethodSender
-
-      # Direct Method Receiver
-      - template: templates/image-linux.yaml
-        parameters:
-          name: Direct Method Receiver
-          imageName: azureiotedge-direct-method-receiver
-          project: DirectMethodReceiver
-
-      # Metrics Validator
-      - template: templates/image-linux.yaml
-        parameters:
-          name: Metrics Validator
-          imageName: azureiotedge-metrics-validator
-          project: MetricsValidator
-
-      # Number Logger
-      - template: templates/image-linux.yaml
-        parameters:
-          name: Number Logger
-          imageName: azureiotedge-number-logger
-          project: NumberLogger
-
-     # Module Restarter
-      - template: templates/image-linux.yaml
-        parameters:
-          name: Module Restarter
-          imageName: azureiotedge-module-restarter
-          project: ModuleRestarter
-
-     # Twin Tester
-      - template: templates/image-linux.yaml
-        parameters:
-          name: TwinTester
-          imageName: azureiotedge-twin-tester
-          project: TwinTester
-
-     # Relayer
-      - template: templates/image-linux.yaml
-        parameters:
-          name: Relayer
-          imageName: azureiotedge-relayer
-          project: Relayer
-
-    # Network Controller
-      - template: templates/image-linux.yaml
-        parameters:
-          name: Network Controller
-          imageName: azureiotedge-network-controller
-          project: NetworkController
-
-     # TestResultCoordinator
-      - template: templates/image-linux.yaml
-        parameters:
-          name: TestResultCoordinator
-          imageName: azureiotedge-test-result-coordinator
-          project: TestResultCoordinator
-
-     # Metrics Collector
-      - template: templates/image-linux.yaml
-        parameters:
-          name: Metrics Collector
-          imageName: azureiotedge-metrics-collector
-          project: MetricsCollector
-
-     # Deployment Tester
-      - template: templates/image-linux.yaml
-        parameters:
-          name: DeploymentTester
-          imageName: azureiotedge-deployment-tester
-          project: DeploymentTester
-
-     # EdgeHub Restart Tester
-      - template: templates/image-linux.yaml
-        parameters:
-          name: EdgeHubRestartTester
-          imageName: azureiotedge-edgehub-restart-tester
-          project: EdgeHubRestartTester
-
-     # Cloud To Device Message Tester
-      - template: templates/image-linux.yaml
-        parameters:
-          name: Cloud To Device Message Tester
-          imageName: azureiotedge-c2dmessage-tester
-          project: CloudToDeviceMessageTester
-
-################################################################################
-  - job: linux_API_proxy_module
-################################################################################
-    timeoutInMinutes: 180
-    displayName: linuxAPIProxy
-    pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+  - job: BuildImageEdgeHub
     steps:
-      - task: Docker@2
-        displayName: Docker login edgebuilds
-        inputs:
-          command: login
-          containerRegistry: iotedge-edgebuilds-acr
-      - bash: |
-            sudo apt-get update && sudo apt-get -y install qemu binfmt-support qemu-user-static && \
-            docker run --rm --privileged multiarch/qemu-user-static --reset -p yes && \
-            docker buildx rm  mbuilder || true  && \
-            docker buildx create --name mbuilder  || true  && \
-            docker buildx use mbuilder
-            docker -v
-      # Build API Proxy executable
-      - template: templates/build-api-proxy.yaml
-      # Build API Proxy Image
-      - template: templates/image-linux.yaml
-        parameters:
-          name: API Proxy
-          imageName: azureiotedge-api-proxy
-          project: api-proxy-module
-          buildx_flag: false
-      # Check API proxy
-      - task: ComponentGovernanceComponentDetection@0
-        inputs:
-          dockerImagesToScan: '$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-amd64,$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-arm32v7,$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-arm64v8'
+    - template: templates/image-linux.yaml
+      parameters:            
+        name: Edge Hub
+        imageName: azureiotedge-hub
+        project: edge-hub
+        bin_dir: '$(Build.BinariesDirectory)'
 
-################################################################################
-  - job: RustTestModules
-################################################################################
-    timeoutInMinutes: 180
-    displayName: Rust Test Modules
-    pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+  - job: BuildImageTemperatureSensor
     steps:
-      - template: templates/rust-test-module-build.yaml
-      - template: templates/rust-test-module-images.yaml
-        parameters:
-          module.path: 'test/modules/generic-mqtt-tester'
-          module.name: 'generic-mqtt-tester'
+    - template: templates/image-linux.yaml
+      parameters:          
+        name: Temperature Sensor
+        imageName: azureiotedge-simulated-temperature-sensor
+        project: SimulatedTemperatureSensor
+        bin_dir: '$(Build.BinariesDirectory)'
+
+  - job: BuildImageDiagnostics
+    steps:
+    - template: templates/image-linux.yaml
+      parameters:          
+        name: Diagnostics
+        imageName: azureiotedge-diagnostics
+        project: IotedgeDiagnosticsDotnet
+        bin_dir: '$(Build.BinariesDirectory)'   
+
+  - job: BuildImageTemperatureFilter
+    steps:
+    - template: templates/image-linux.yaml
+      parameters:             
+        name: Temperature Filter
+        imageName: azureiotedge-temperature-filter
+        project: TemperatureFilter
+        bin_dir: '$(Build.BinariesDirectory)'    
+
+  - job: BuildImageLoadGen
+    steps:
+    - template: templates/image-linux.yaml
+      parameters:            
+        name: Load Gen
+        imageName: azureiotedge-load-gen
+        project: load-gen
+        bin_dir: '$(Build.BinariesDirectory)'  
+  - job: BuildImageTestAnalyzer
+    steps:
+    - template: templates/image-linux.yaml
+      parameters:
+        name: Test Analyzer
+        imageName: azureiotedge-analyzer
+        project: TestAnalyzer
+        bin_dir: '$(Build.BinariesDirectory)'    
+
+    # Functions Sample - Not supported on linux arm64
+  - job: BuildImageFunctionsSample
+    steps:
+    - template: templates/image-linux.yaml
+      parameters:      
+        name: Functions Sample
+        imageName: azureiotedge-functions-filter
+        project: EdgeHubTriggerCSharp
+        bin_dir: '$(Build.BinariesDirectory)'      
+
+  - job: BuildImageDirectMethodSender
+    steps:
+    - template: templates/image-linux.yaml
+      parameters:          
+        name: Direct Method Sender
+        imageName: azureiotedge-direct-method-sender
+        project: DirectMethodSender
+        bin_dir: '$(Build.BinariesDirectory)'      
+
+  - job: BuildImageDirectMethodReceiver
+    steps:
+    - template: templates/image-linux.yaml
+      parameters:          
+        name: Direct Method Receiver
+        imageName: azureiotedge-direct-method-receiver
+        project: DirectMethodReceiver
+        bin_dir: '$(Build.BinariesDirectory)'      
+
+  - job: BuildImageMetricsValidator
+    steps:
+    - template: templates/image-linux.yaml
+      parameters:          
+        name: Metrics Validator
+        imageName: azureiotedge-metrics-validator
+        project: MetricsValidator
+        bin_dir: '$(Build.BinariesDirectory)'   
+
+  - job: BuildImageNumberLogger
+    steps:
+    - template: templates/image-linux.yaml
+      parameters:             
+        name: Number Logger
+        imageName: azureiotedge-number-logger
+        project: NumberLogger
+        bin_dir: '$(Build.BinariesDirectory)'      
+
+  - job: BuildImageModuleRestarter
+    steps:
+    - template: templates/image-linux.yaml
+      parameters:          
+        name: Module Restarter
+        imageName: azureiotedge-module-restarter
+        project: ModuleRestarter
+        bin_dir: '$(Build.BinariesDirectory)'    
+
+  - job: BuildImageTwinTester
+    steps:
+    - template: templates/image-linux.yaml
+      parameters:            
+        name: TwinTester
+        imageName: azureiotedge-twin-tester
+        project: TwinTester
+        bin_dir: '$(Build.BinariesDirectory)'      
+  - job: BuildImageRelayer
+    steps:
+    - template: templates/image-linux.yaml
+      parameters:          
+        name: Relayer
+        imageName: azureiotedge-relayer
+        project: Relayer
+        bin_dir: '$(Build.BinariesDirectory)'   
+
+  - job: BuildImageNetworkController
+    steps:
+    - template: templates/image-linux.yaml
+      parameters:          
+        name: Network Controller
+        imageName: azureiotedge-network-controller
+        project: NetworkController
+        bin_dir: '$(Build.BinariesDirectory)'     
+
+  - job: BuildImageTestResultCoordinator
+    steps:
+    - template: templates/image-linux.yaml
+      parameters:           
+        name: TestResultCoordinator
+        imageName: azureiotedge-test-result-coordinator
+        project: TestResultCoordinator
+        bin_dir: '$(Build.BinariesDirectory)'     
+
+  - job: BuildImageMetricsCollector
+    steps:
+    - template: templates/image-linux.yaml
+      parameters:           
+        name: Metrics Collector
+        imageName: azureiotedge-metrics-collector
+        project: MetricsCollector
+        bin_dir: '$(Build.BinariesDirectory)'   
+
+  - job: BuildImageDeploymentTester
+    steps:
+    - template: templates/image-linux.yaml
+      parameters:             
+        name: DeploymentTester
+        imageName: azureiotedge-deployment-tester
+        project: DeploymentTester
+        bin_dir: '$(Build.BinariesDirectory)'    
+
+  - job: BuildImageEdgeHubRestartTester
+    steps:
+    - template: templates/image-linux.yaml
+      parameters:          
+        name: EdgeHubRestartTester
+        imageName: azureiotedge-edgehub-restart-tester
+        project: EdgeHubRestartTester
+        bin_dir: '$(Build.BinariesDirectory)'   
+
+  - job: BuildImageCloudToDeviceMessageTester
+    steps:
+    - template: templates/image-linux.yaml
+      parameters:             
+        name: Cloud To Device Message Tester
+        imageName: azureiotedge-c2dmessage-tester
+        project: CloudToDeviceMessageTester     
+        bin_dir: '$(Build.BinariesDirectory)'
+        
+  - job: BuildImageApiProxy
+    steps:
+    - bash: |
+        sudo apt-get update && sudo apt-get -y install qemu binfmt-support qemu-user-static && \
+        docker run --rm --privileged multiarch/qemu-user-static --reset -p yes && \
+        docker buildx rm  mbuilder || true  && \
+        docker buildx create --name mbuilder  || true  && \
+        docker buildx use mbuilder
+        docker -v
+    - template: templates/image-linux.yaml
+      parameters:
+        name: API Proxy
+        imageName: azureiotedge-api-proxy
+        project: api-proxy-module
+        buildx_flag: false
+        bin_dir: '$(Build.BinariesDirectory)'        
+        
+  # Rust test modules
+  - job: BuildRustImage
+    displayName: Build Rust Image
+    strategy:
+      matrix:
+        GenericMqttTester:
+          moduleName: generic-mqtt-tester
+          modulePath: test/modules/generic-mqtt-tester
+    steps:
+    - template: templates/rust-test-module-images.yaml
+      parameters:
+        module.name: $(moduleName)        
+        module.path: $(modulePath)
 
 ################################################################################
-  - job: manifest
+- stage: PublishManifests
 ################################################################################
-    displayName: Manifest
-    pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
-    dependsOn:
-      - linux_dotnet_projects
-      - linux_API_proxy_module
-    variables:
-      tags: "['latest']"
+  displayName: Publish Manifests
+  pool:
+    name: $(pool.linux.name)
+    demands:
+      - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+  dependsOn: BuildImages
+  variables:
+    tags: "['latest']"
+  jobs:
+  - job: PublishManifest
+    displayName: Publish Manifest
+    strategy:
+      matrix:
+        EdgeAgent:
+          manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-agent/docker/manifest.yaml.template'
+        EdgeHub:
+          manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-hub/docker/manifest.yaml.template'
+        SimulatedTemperatureSensor:
+           manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template'
+        Diagnostics:
+           manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template'
+        ApiProxy:
+           manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/api-proxy-module/docker/manifest.yaml.template'
     steps:
     - task: Docker@2
       displayName: Docker login edgebuilds
       inputs:
         command: login
         containerRegistry: iotedge-edgebuilds-acr
-    - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-agent/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
-      displayName: 'Publish Edge Agent Manifest'
-    - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-hub/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
-      displayName: 'Publish Edge Hub Manifest'
-    - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
-      displayName: 'Publish Temperature Sensor Manifest'
-    - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
-      displayName: 'Publish azureiotedge-diagnostics Manifest'
-    - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/api-proxy-module/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
-      displayName: 'Publish azureiotedge-api-proxy Manifest'
+
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(manifestFilePath) -n microsoft --tags "$(tags)"
+
+  - job: ComponentGovernance
+    steps:
+    - task: ComponentGovernanceComponentDetection@0
+      inputs:
+        dockerImagesToScan: '$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-amd64,$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-arm32v7,$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-arm64v8'        
