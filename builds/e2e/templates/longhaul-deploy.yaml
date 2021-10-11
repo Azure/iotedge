@@ -142,3 +142,18 @@ steps:
       E2E_trustedCaCerts: $(TrustBundle)
       E2E_deviceCaCert: $(DeviceCaCert)
       E2E_deviceCaPrivateKey: $(DeviceCaKey)
+  
+
+    # The Step Takes the Test Description which may have special characters and replaces them with '-'
+  - pwsh: |
+      $artifactSuffix = '$(Build.BuildNumber)-${{ parameters['networkController.description'] }}' -replace '[_|/|(]','-' -replace '[)]',''
+      Write-Output "##vso[task.setvariable variable=artifactSuffix] $artifactSuffix"
+    displayName: "Set Artifact Name"
+    condition: succeededOrFailed()
+
+  - task: PublishBuildArtifacts@1
+    displayName: "Publish Support Bundle"
+    inputs:
+    PathtoPublish: $(Agent.HomeDirectory)/../working/support
+    ArtifactName: logs-$(artifactSuffix)
+    condition: succeededOrFailed()

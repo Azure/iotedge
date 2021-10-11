@@ -890,6 +890,8 @@ function run_longhaul_test() {
         print_deployment_logs
     fi
 
+    get_support_bundle_logs
+
     return $ret
 }
 
