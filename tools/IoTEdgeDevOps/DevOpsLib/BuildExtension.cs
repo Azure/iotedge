@@ -16,7 +16,6 @@ namespace DevOpsLib
                 BuildDefinitionId.EndToEndTest,
                 BuildDefinitionId.NestedEndToEndTest,
                 BuildDefinitionId.ConnectivityTest,
-                BuildDefinitionId.NestedConnectivityTest,
                 BuildDefinitionId.LonghaulTestEnv1,
                 BuildDefinitionId.LonghaulTestEnv2,
                 BuildDefinitionId.LonghaulTestEnv3,
@@ -38,7 +37,6 @@ namespace DevOpsLib
             { BuildDefinitionId.ImageRelease, "Image Release" },
             { BuildDefinitionId.LibiothsmCI, "Libiothsm CI" },
             { BuildDefinitionId.ConnectivityTest, "Connectivity Test" },
-            { BuildDefinitionId.NestedConnectivityTest, "Nested Connectivity Test" },
             { BuildDefinitionId.LonghaulTestEnv1, "Longhaul Test" },
             { BuildDefinitionId.LonghaulTestEnv2, "Longhaul Test Release Candidate" },
             { BuildDefinitionId.LonghaulTestEnv3, "Longhaul Test Release" },
@@ -46,7 +44,7 @@ namespace DevOpsLib
             { BuildDefinitionId.StressTestEnv1, "Stress Test" },
             { BuildDefinitionId.StressTestEnv2, "Stress Test Release Candidate" },
             { BuildDefinitionId.StressTestEnv3, "Stress Test Release" },
-            { BuildDefinitionId.NestedISA95, "ISA95 Smoke Test" },
+            { BuildDefinitionId.NestedISA95, "ISA95 Smoke Test" }
         };
 
         public static string DisplayName(this BuildDefinitionId buildDefinitionId)
