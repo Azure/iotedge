@@ -1,37 +1,19 @@
+parameters:
+  os: 'linux'
+  module.path: ''
+  module.name: ''
+  arch: ''
+  target: ''
+
 steps:
-  - task: Bash@3
-    displayName: Build generic mqtt tester - amd64
-    inputs:
-      filePath: scripts/linux/cross-platform-rust-build.sh
-      arguments: --os ubuntu18.04 --arch amd64 --build-path test/modules/generic-mqtt-tester
-  - task: Bash@3
-    displayName: Build generic mqtt tester - arm32
-    inputs:
-      filePath: scripts/linux/cross-platform-rust-build.sh
-      arguments: --os ubuntu18.04 --arch arm32v7 --build-path test/modules/generic-mqtt-tester
-  - task: Bash@3
-    displayName: Build generic mqtt tester - arm64
-    inputs:
-      filePath: scripts/linux/cross-platform-rust-build.sh
-      arguments: --os ubuntu18.04 --arch aarch64 --build-path test/modules/generic-mqtt-tester
-  - task: Bash@3
-    displayName: Build observability-agent client - amd64
-    inputs:
-      filePath: scripts/linux/cross-platform-rust-build.sh
-      arguments: >
-        --os alpine --arch amd64 --build-path test/modules/obsagent-client
-        --cargo-flags "--no-default-features --features otel,prom"
-  - task: Bash@3
-    displayName: Build observability-agent client - arm32
-    inputs:
-      filePath: scripts/linux/cross-platform-rust-build.sh
-      arguments: >
-        --os ubuntu18.04 --arch arm32v7 --build-path test/modules/obsagent-client
-        --cargo-flags "--no-default-features --features otel,prom"
-  - task: Bash@3
-    displayName: Build observability-agent client - arm64
-    inputs:
-      filePath: scripts/linux/cross-platform-rust-build.sh
-      arguments: >
-        --os ubuntu18.04 --arch aarch64 --build-path test/modules/obsagent-client
-        --cargo-flags "--no-default-features --features otel,prom"
+- task: Bash@3
+  displayName: Build ${{ parameters['module.name'] }} - ${{ parameters['arch'] }}
+  inputs:
+    filePath: scripts/linux/cross-platform-rust-build.sh
+    arguments: --os ubuntu18.04 --arch ${{ parameters['arch'] }} --build-path ${{ parameters['module.path'] }}
+- task: PublishBuildArtifacts@1
+  inputs:
+    pathToPublish: ${{ parameters['module.path'] }}/target/${{ parameters['target'] }}/release/${{ parameters['module.name'] }}
+    artifactName: ${{ parameters['module.name'] }}_${{ parameters['arch'] }}
+    storeAsTar: true
+
