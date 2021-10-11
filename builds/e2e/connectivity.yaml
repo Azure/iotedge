@@ -19,6 +19,7 @@ schedules:
 
 variables:
   images.artifact.name.linux: 'core-linux'
+  NugetSecurityAnalysisWarningLevel: warn
 
 resources:
   pipelines:
