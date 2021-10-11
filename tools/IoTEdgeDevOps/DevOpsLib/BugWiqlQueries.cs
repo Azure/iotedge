@@ -54,6 +54,7 @@ WHERE
     AND [System.AreaPath] = 'One\IoT\Platform and Devices\IoT Devices\{AREA}'
     AND NOT [System.State] CONTAINS 'Done'
     AND NOT [System.State] CONTAINS 'Removed'
+    AND NOT [Microsoft.VSTS.Common.Priority] IN (0)
     AND NOT [Microsoft.VSTS.Common.Priority] IN (1)
     AND NOT [Microsoft.VSTS.Common.Priority] IN (2)";
 
