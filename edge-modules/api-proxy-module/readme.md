@@ -6,7 +6,7 @@ As an example, the API proxy module enables an IoT Edge device in a bottom layer
 
 ## Concept
 
-The API Proxy module is an [IoT Edge module](https://docs.microsoft.com/en-us/azure/iot-edge/iot-edge-modules) that leverages a [nginx](http://nginx.org/) reverse proxy to route data through network layers.
+The API Proxy module is an [IoT Edge module](https://docs.microsoft.com/azure/iot-edge/iot-edge-modules) that leverages a [nginx](http://nginx.org/) reverse proxy to route data through network layers.
 The diagram below illustrates this approach in the case of an IoT Edge device in a bottom layer that pulls container images from a container registry in the Cloud:
 
 ![API proxy module architecture](images/concept.png)
@@ -55,7 +55,7 @@ The configuration of the proxy embedded in the module defines which proxy rules 
 The configuration of the proxy is done via the following complementing mechanisms:
 
 1. A default configuration file is embedded in the module
-2. A new configuration can be passed down to the module from the cloud via its [module twin](https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-devguide-module-twins)
+2. A new configuration can be passed down to the module from the cloud via its [module twin](https://docs.microsoft.com/azure/iot-hub/iot-hub-devguide-module-twins)
 3. Environment variables can be passed down at deployment time to turn configuration settings on or off
 
 Variables in the proxy configuration are identified as the following:${variable_name}
@@ -267,8 +267,8 @@ ENV_VAR1 not defined, ENV_VAR2 defined:
 
 ### Upload blob
 
-This section describes how to use the [blob storage module](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-deploy-blob) to [upload support bundle](https://github.com/Azure/iotedge/blob/master/doc/built-in-logs-pull.md). 
-It assumes that the blob storage module has already been deployed. Please follow this [link](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-deploy-blob) for detail on how to deploy it. 
+This section describes how to use the [blob storage module](https://docs.microsoft.com/azure/iot-edge/how-to-store-data-blob) to [upload support bundle](https://github.com/Azure/iotedge/blob/master/doc/built-in-logs-pull.md). 
+It assumes that the blob storage module has already been deployed. Please follow this [link](https://docs.microsoft.com/azure/iot-edge/how-to-deploy-blob) for detail on how to deploy it. 
 
 >If you want to upload support bundle, currently, the only supported configuration is when the blob storage module is at the top level. To be able to upload a support bundle, a blob container needs to be created and as of now that is only possible when the blob storage module is at the top level.
 
@@ -326,7 +326,7 @@ The configuration of the API Proxy module at **any lower layer** for this scenar
 These settings are set by default when deploying from the [Azure Marketplace](http://aka.ms/iot-edge-marketplace).
 
 To upload the support bundle and/or log file to the blob module located at the root:
-1. First create a blob container, you can use azure storage explorer for that or the rest APIs (the process is described [here](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-store-data-blob))
+1. First create a blob container, you can use azure storage explorer for that or the rest APIs (the process is described [here](https://docs.microsoft.com/azure/iot-edge/how-to-store-data-blob))
 
 2. follow the process described at this [link](https://github.com/Azure/iotedge/blob/master/doc/built-in-logs-pull.md) to request a log/bundle upload, but replace the address of the blob storage module by `$upstream`.
 For example:  
