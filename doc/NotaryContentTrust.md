@@ -47,7 +47,7 @@ Note at the end of the above steps the following files are generated:
 Important Note:
 
 -   The Comman Name (CN) in root certificate for each container must contain the Globally Unique Names(GUNs) i.e exampleregistry.azurecr.io/image 
--  Safely store the pass code for the private key for `root_ca_exampleregistry.key` and `root_image.key` and also it will be used in the next steps. 	
+-  Safely store the pass code for the private key for `root_ca_exampleregistry.key` and `root_image.key` and also it will be used in the next steps.     
 
 ### 2. Initialize TUF trust collection using Notary client
 Notary initializes the TUF trust collection for each image in the Container Registry. 
@@ -73,7 +73,7 @@ Notary client directory exists in `~/.notary`. A configuration file has be creat
 ```
 `trust_dir` is the location where the trust directory gets initialized and downloaded. `remote_server` has a sub field `url` which configures the URL of the registry server host name. 
 
-Notary needs authorization credentials to communicate to the Notary Server. For this, a Service Principal for the Azure Container Registry with Owner and Push access must be created. Follow instructions in [this](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-auth-service-principal) link to create a Service Principal.  The base64 encoding of username and password for the Service Principal will be used to create an environment variable for Notary called `NOTARY_AUTH`
+Notary needs authorization credentials to communicate to the Notary Server. For this, a Service Principal for the Azure Container Registry with Owner and Push access must be created. Follow instructions in [this](https://docs.microsoft.com/azure/container-registry/container-registry-auth-service-principal) link to create a Service Principal.  The base64 encoding of username and password for the Service Principal will be used to create an environment variable for Notary called `NOTARY_AUTH`
 
 `export NOTARY_AUTH="$(printf '%s:%s' 'username' 'password' | base64 -w 0)"`
 
