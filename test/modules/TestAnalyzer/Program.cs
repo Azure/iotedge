@@ -10,7 +10,6 @@ namespace TestAnalyzer
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.Azure.Devices.Common;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
-    using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.EventHubs;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
