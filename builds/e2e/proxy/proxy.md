@@ -70,7 +70,7 @@ chmod 600 ~/.ssh/id_rsa.runner
 ssh -i ~/.ssh/id_rsa.runner azureuser@<ip addr>
 ```
 
-To install and configure Azure Pipelines agent, see [Self-hosted Linux Agents](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/v2-linux?view=azure-devops) and [Run a self-hosted agent behind a web proxy](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/proxy?view=azure-devops&tabs=unix).
+To install and configure Azure Pipelines agent, see [Self-hosted Linux Agents](https://docs.microsoft.com/azure/devops/pipelines/agents/v2-linux) and [Run a self-hosted agent behind a web proxy](https://docs.microsoft.com/azure/devops/pipelines/agents/proxy?tabs=unix).
 
 > Note that the proxy URL required for most operations on the runner VMs is simply the hostname of the proxy server VM, e.g. `http://e2e-piaj2z37enpb4-proxy-vm:3128`. However, operations inside Docker containers on the runner VMs need either:
 > - The _fully-qualified_ name of the proxy VM, e.g. `http://e2e-piaj2z37enpb4-proxy-vm.e0gkjhpfr5quzatbjwfoss05vh.xx.internal.cloudapp.net:3128`, or
