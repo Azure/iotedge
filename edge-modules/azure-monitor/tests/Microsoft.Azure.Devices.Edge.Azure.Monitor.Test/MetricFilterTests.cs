@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Xunit;
 
 namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.Test
@@ -234,6 +235,41 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.Test
             Assert.True(filter.Matches(new Metric(testTime, "metricname", 5, new Dictionary<string, string>(), "http://veryNoisyModule:9001/metrics")));
             Assert.True(filter.Matches(new Metric(testTime, "metricname", 5, new Dictionary<string, string>(), "https://VeryNoisyModule:9001/metrics")));
             Assert.True(filter.Matches(new Metric(testTime, "metricname", 5, new Dictionary<string, string>())));
+        }
+
+        [Fact]
+        public void TestAllowedMetricFilterWithExample()
+        {
+            // setup
+
+            MetricFilter filter = new MetricFilter("edgehub_gettwin_total{edge_device=\"Ubuntu-20\"}[http://VeryNoisyModule:9001/metrics]");
+
+            Metric metric1 = new Metric(DateTime.UnixEpoch, "edgehub_gettwin_total", 5, new Dictionary<string, string>());
+            Metric metric2 = new Metric(DateTime.UnixEpoch, "edgehub_gettwin_total", 5, someTags, "http://VeryNoisyModule:9001/metrics");
+
+            Dictionary<string, string> tag = new Dictionary<string, string>() { { "edge_device", "Ubuntu-20" } };
+            Metric metric3 = new Metric(DateTime.UnixEpoch, "edgehub_gettwin_total", 5, tag, "http://VeryNoisyModule:9001/metrics");
+            Metric metric4 = new Metric(DateTime.UnixEpoch, "edgehub_gettwin_total", 5, tag, "http://Google:9001/metrics");
+
+            IEnumerable<Metric> metrics = new List<Metric>() { metric1, metric2, metric3, metric4 };
+
+            // test that string of metrics is filtered correctly.
+            metrics = metrics.Where(x => filter.Matches(x));
+
+            // assert
+            Assert.True(metrics.Count() == 1);
+            Assert.Equal("http://VeryNoisyModule:9001/metrics", metrics.ElementAt(0).Endpoint);
+            Assert.Equal("edgehub_gettwin_total", metrics.ElementAt(0).Name);
+
+            // change metric filter to the other endpoint
+            filter = new MetricFilter("edgehub_gettwin_total{edge_device=\"Ubuntu-20\"}[http://Google:9001/metrics]");
+
+            // run test again
+            metrics = metrics.Where(x => filter.Matches(x));
+
+            Assert.True(metrics.Count() == 1);
+            Assert.Equal("http://Google:9001/metrics", metrics.ElementAt(0).Endpoint);
+            Assert.Equal("edgehub_gettwin_total", metrics.ElementAt(0).Name);
         }
 
         [Fact]
