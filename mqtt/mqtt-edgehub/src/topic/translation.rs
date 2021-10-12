@@ -33,7 +33,7 @@ pub fn translate_incoming_subscribe(client_id: &ClientId, subscribe: &mut proto:
 
 pub fn translate_incoming_unsubscribe(client_id: &ClientId, unsubscribe: &mut proto::Unsubscribe) {
     for unsub_from in &mut unsubscribe.unsubscribe_from {
-        if let Some(new_topic) = TRANSLATE_C2D.to_internal(&unsub_from, client_id) {
+        if let Some(new_topic) = TRANSLATE_C2D.to_internal(unsub_from, client_id) {
             *unsub_from = new_topic;
         }
     }

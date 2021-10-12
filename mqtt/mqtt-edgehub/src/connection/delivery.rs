@@ -92,7 +92,7 @@ fn match_m2m_publish(packet: &Packet) -> Option<(proto::PacketIdentifier, String
         _ => return None,
     };
 
-    if M2M_PUBLISH_PATTERN.is_match(&topic_name) {
+    if M2M_PUBLISH_PATTERN.is_match(topic_name) {
         Some((*packet_identifier, topic_name.clone()))
     } else {
         None
@@ -110,7 +110,7 @@ where
             .map_err(|e| Error::PacketProcessing(e.into()))?
         {
             let message = Message::System(SystemEvent::Publish(confirmation));
-            self.broker_handle.send(message)?
+            self.broker_handle.send(message)?;
         }
 
         self.inner.process(packet).await
@@ -129,7 +129,7 @@ where
         let action = self.inner.process(message).await;
 
         if let PacketAction::Continue(Some((packet, _))) = &action {
-            self.store_packet_info(&packet);
+            self.store_packet_info(packet);
         }
 
         action

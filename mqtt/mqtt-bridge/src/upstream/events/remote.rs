@@ -165,9 +165,9 @@ impl PumpMessageHandler for RemoteUpstreamPumpEventHandler {
 }
 
 #[cfg(test)]
+#[allow(clippy::semicolon_if_nothing_returned)]
 mod tests {
 
-    use bytes::Bytes;
     use futures_util::FutureExt;
     use matches::assert_matches;
 
@@ -253,7 +253,7 @@ mod tests {
             .expect_publish()
             .once()
             .withf(|publication| {
-                publication.topic_name == "/foo" && publication.payload == Bytes::from("hello")
+                publication.topic_name == "/foo" && publication.payload == *"hello"
             })
             .returning(|_| Ok(()));
 

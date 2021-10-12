@@ -172,8 +172,8 @@ impl Session {
         subscribe_to: proto::SubscribeTo,
     ) -> Result<(proto::SubAckQos, Option<Subscription>), Error> {
         match self {
-            Self::Transient(connected) => connected.subscribe_to(subscribe_to),
-            Self::Persistent(connected) => connected.subscribe_to(subscribe_to),
+            Self::Transient(connected) => Ok(connected.subscribe_to(subscribe_to)),
+            Self::Persistent(connected) => Ok(connected.subscribe_to(subscribe_to)),
             Self::Offline(_) => Err(Error::SessionOffline),
             Self::Disconnecting(_) => Err(Error::SessionOffline),
         }
@@ -184,8 +184,8 @@ impl Session {
         unsubscribe: &proto::Unsubscribe,
     ) -> Result<proto::UnsubAck, Error> {
         match self {
-            Self::Transient(connected) => connected.unsubscribe(unsubscribe),
-            Self::Persistent(connected) => connected.unsubscribe(unsubscribe),
+            Self::Transient(connected) => Ok(connected.unsubscribe(unsubscribe)),
+            Self::Persistent(connected) => Ok(connected.unsubscribe(unsubscribe)),
             Self::Offline(_) => Err(Error::SessionOffline),
             Self::Disconnecting(_) => Err(Error::SessionOffline),
         }
@@ -196,7 +196,7 @@ impl Session {
             Self::Transient(connected) => connected.send(event),
             Self::Persistent(connected) => connected.send(event),
             Self::Disconnecting(disconnecting) => disconnecting.send(event),
-            _ => Err(Error::SessionOffline),
+            Self::Offline(_) => Err(Error::SessionOffline),
         }
     }
 }

@@ -119,6 +119,7 @@ impl PumpMessageHandler for LocalUpstreamPumpEventHandler {
 }
 
 #[cfg(test)]
+#[allow(clippy::semicolon_if_nothing_returned)]
 mod tests {
     use crate::client::MockPublishHandle;
 

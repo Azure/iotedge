@@ -235,8 +235,8 @@ fn make_sidecars(
     sidecars.push(Box::new(bridge_controller));
 
     let mut command_handler = CommandHandler::new(system_address, &device_id);
-    command_handler.add_command(DisconnectCommand::new(&broker_handle));
-    command_handler.add_command(AuthorizedIdentitiesCommand::new(&broker_handle));
+    command_handler.add_command(DisconnectCommand::new(broker_handle));
+    command_handler.add_command(AuthorizedIdentitiesCommand::new(broker_handle));
     command_handler.add_command(PolicyUpdateCommand::new(broker_handle));
     command_handler.add_command(BridgeUpdateCommand::new(bridge_controller_handle));
     sidecars.push(Box::new(command_handler));
