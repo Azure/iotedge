@@ -24,7 +24,9 @@ pub enum ModuleStatus {
     Running,
     Stopped,
     Failed,
+    Dead,
 }
+
 pub enum ModuleAction {
     Start(String, tokio::sync::oneshot::Sender<()>),
     Stop(String),
@@ -492,6 +494,7 @@ mod tests {
             ("running", ModuleStatus::Running),
             ("stopped", ModuleStatus::Stopped),
             ("failed", ModuleStatus::Failed),
+            ("dead", ModuleStatus::Dead),
         ]
     }
 

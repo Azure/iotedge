@@ -6,7 +6,7 @@ Build
 
 We use Azure DevOps to build and release.
 
-More information about Azure DevOps is available [here](https://docs.microsoft.com/en-us/azure/devops/pipelines/overview).
+More information about Azure DevOps is available [here](https://docs.microsoft.com/azure/devops/pipelines/get-started/what-is-azure-pipelines).
 
 Our builds fall into these categories:
 
