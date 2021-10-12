@@ -140,6 +140,7 @@ enum VersionedRpcCommand {
 }
 
 #[cfg(test)]
+#[allow(clippy::semicolon_if_nothing_returned)]
 mod tests {
     use bson::{bson, spec::BinarySubtype};
     use bytes::Bytes;
@@ -222,7 +223,15 @@ mod tests {
         let event = command("3", "pub", "/foo", Some(b"hello".to_vec()));
         let res = handler.handle(event).await;
         assert_matches!(res, Ok(Handled::Fully));
-        assert_matches!(rx.recv().await, Some(PumpMessage::Event(RemoteUpstreamPumpEvent::RpcCommand(id, RpcCommand::Publish{topic, payload}))) if topic == "/foo" && payload == b"hello" && id == "3".into());
+        assert_matches!(
+            rx.recv().await, 
+            Some(
+                PumpMessage::Event(
+                    RemoteUpstreamPumpEvent::RpcCommand(
+                        id, 
+                        RpcCommand::Publish{topic, payload})
+                    )
+                ) if topic == "/foo" && payload == b"hello" && id == "3".into());
     }
 
     #[tokio::test]

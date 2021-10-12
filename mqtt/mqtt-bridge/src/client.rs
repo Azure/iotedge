@@ -394,6 +394,7 @@ pub enum ClientError {
 }
 
 #[cfg(test)]
+#[allow(clippy::bool_assert_comparison)]
 mod tests {
     use super::*;
     use mqtt_util::AuthenticationSettings;

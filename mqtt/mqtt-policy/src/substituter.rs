@@ -39,10 +39,10 @@ impl MqttSubstituter {
                             replace(&result, variable, context.client_info().auth_id().as_str())
                         }
                         crate::DEVICE_ID_VAR => {
-                            replace(&result, variable, extract_device_id(&context))
+                            replace(&result, variable, extract_device_id(context))
                         }
                         crate::MODULE_ID_VAR => {
-                            replace(&result, variable, extract_module_id(&context))
+                            replace(&result, variable, extract_module_id(context))
                         }
                         crate::EDGEHUB_ID_VAR => replace(&result, variable, self.device_id()),
                         _ => result,

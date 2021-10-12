@@ -104,7 +104,7 @@ impl ConnectedSession {
     pub fn subscribe_to(
         &mut self,
         subscribe_to: proto::SubscribeTo,
-    ) -> Result<(proto::SubAckQos, Option<Subscription>), Error> {
+    ) -> (proto::SubAckQos, Option<Subscription>) {
         match subscribe_to.topic_filter.parse() {
             Ok(filter) => {
                 let proto::SubscribeTo { topic_filter, qos } = subscribe_to;
@@ -112,27 +112,23 @@ impl ConnectedSession {
                 let subscription = Subscription::new(filter, qos);
                 self.state
                     .update_subscription(topic_filter, subscription.clone());
-                Ok((proto::SubAckQos::Success(qos), Some(subscription)))
+                (proto::SubAckQos::Success(qos), Some(subscription))
             }
             Err(e) => {
                 warn!("invalid topic filter {}: {}", subscribe_to.topic_filter, e);
-                Ok((proto::SubAckQos::Failure, None))
+                (proto::SubAckQos::Failure, None)
             }
         }
     }
 
-    pub fn unsubscribe(
-        &mut self,
-        unsubscribe: &proto::Unsubscribe,
-    ) -> Result<proto::UnsubAck, Error> {
+    pub fn unsubscribe(&mut self, unsubscribe: &proto::Unsubscribe) -> proto::UnsubAck {
         for filter in &unsubscribe.unsubscribe_from {
-            self.state.remove_subscription(&filter);
+            self.state.remove_subscription(filter);
         }
 
-        let unsuback = proto::UnsubAck {
+        proto::UnsubAck {
             packet_identifier: unsubscribe.packet_identifier,
-        };
-        Ok(unsuback)
+        }
     }
 
     pub fn send(&self, event: ClientEvent) -> Result<(), Error> {

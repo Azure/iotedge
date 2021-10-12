@@ -149,7 +149,7 @@ impl CertificateMonitor {
         let server_cert_expiration_date = None;
 
         let work_load_api_client =
-            edgelet_client::workload(&workload_url).context("Could not get workload client")?;
+            edgelet_client::workload(workload_url).context("Could not get workload client")?;
 
         Ok(CertificateMonitor {
             module_id,
@@ -220,7 +220,7 @@ fn unwrap_certificate_response(
         None => return Err(anyhow::anyhow!("Private key field is empty")),
     };
 
-    let datetime = DateTime::parse_from_rfc3339(&resp.expiration())
+    let datetime = DateTime::parse_from_rfc3339(resp.expiration())
         .context("Error parsing certificate expiration date")?;
     // convert the string into DateTime<Utc> or other timezone
     let expiration_date = datetime.with_timezone(&Utc);
@@ -229,6 +229,7 @@ fn unwrap_certificate_response(
 }
 
 #[cfg(test)]
+#[allow(clippy::semicolon_if_nothing_returned)]
 mod tests {
     use super::*;
     use mockito::mock;

@@ -135,7 +135,7 @@ where
             .sessions
             .iter()
             .flat_map(|(_, session)| Self::prepare_activities(session))
-            .filter(|activity| match self.authorizer.authorize(&activity) {
+            .filter(|activity| match self.authorizer.authorize(activity) {
                 Ok(Authorization::Allowed) => false,
                 Ok(Authorization::Forbidden(reason)) => {
                     warn!("not authorized: {}; reason: {}", &activity, reason);
@@ -221,7 +221,7 @@ where
                 Session::Transient(session) => Some(session.snapshot()),
                 Session::Persistent(session) => Some(session.snapshot()),
                 Session::Offline(session) => Some(session.snapshot()),
-                _ => None,
+                Session::Disconnecting(_) => None,
             })
             .collect();
 
@@ -405,7 +405,7 @@ where
                 }
 
                 let subscriptions =
-                    StateChange::new_subscription_change(&client_id, Some(&session)).try_into()?;
+                    StateChange::new_subscription_change(&client_id, Some(session)).try_into()?;
 
                 self.publish_all(StateChange::new_connection_change(&self.sessions).try_into()?);
                 self.publish_all(subscriptions);
@@ -426,7 +426,7 @@ where
                 }
             }
             OpenSession::ProtocolViolation(old_session) => {
-                old_session.send(ClientEvent::DropConnection)?
+                old_session.send(ClientEvent::DropConnection)?;
             }
         }
 
@@ -451,7 +451,7 @@ where
             session.send(ClientEvent::DropConnection)?;
 
             // Ungraceful disconnect - send the will
-            self.try_send_will(client_id, session)
+            self.try_send_will(client_id, session);
         } else {
             debug!("no session for {}", client_id);
         }
@@ -465,7 +465,7 @@ where
             debug!("session removed");
 
             // Ungraceful disconnect - send the will
-            self.try_send_will(client_id, session)
+            self.try_send_will(client_id, session);
         } else {
             debug!("no session for {}", client_id);
         }
@@ -521,7 +521,7 @@ where
             }
 
             let change =
-                StateChange::new_subscription_change(client_id, Some(&session)).try_into()?;
+                StateChange::new_subscription_change(client_id, Some(session)).try_into()?;
             self.publish_all(change);
         } else {
             debug!("no session for {}", client_id);
@@ -541,7 +541,7 @@ where
                 session.send(ClientEvent::UnsubAck(unsuback))?;
 
                 let change =
-                    StateChange::new_subscription_change(client_id, Some(&session)).try_into()?;
+                    StateChange::new_subscription_change(client_id, Some(session)).try_into()?;
                 self.publish_all(change);
 
                 Ok(())
@@ -596,16 +596,16 @@ where
                     }
 
                     if let Some(publication) = maybe_publication {
-                        self.publish_all(publication)
+                        self.publish_all(publication);
                     }
                 }
                 Ok(Authorization::Forbidden(reason)) => {
                     warn!("not authorized: {}; reason: {}", &activity, reason);
-                    self.process_drop_connection(&client_id)?;
+                    self.process_drop_connection(client_id)?;
                 }
                 Err(e) => {
                     warn!(message="error authorizing client: {}", error = %e);
-                    self.process_drop_connection(&client_id)?;
+                    self.process_drop_connection(client_id)?;
                 }
             }
         } else {
@@ -623,7 +623,7 @@ where
         match self.get_session_mut(client_id) {
             Ok(session) => {
                 if let Some(event) = session.handle_puback(puback)? {
-                    session.send(event)?
+                    session.send(event)?;
                 }
                 Ok(())
             }
@@ -642,7 +642,7 @@ where
         match self.get_session_mut(client_id) {
             Ok(session) => {
                 if let Some(event) = session.handle_puback0(id)? {
-                    session.send(event)?
+                    session.send(event)?;
                 }
                 Ok(())
             }
@@ -661,7 +661,7 @@ where
         match self.get_session_mut(client_id) {
             Ok(session) => {
                 if let Some(event) = session.handle_pubrec(pubrec)? {
-                    session.send(event)?
+                    session.send(event)?;
                 }
                 Ok(())
             }
@@ -693,7 +693,7 @@ where
         };
 
         if let Some(publication) = maybe_publication {
-            self.publish_all(publication)
+            self.publish_all(publication);
         }
         Ok(())
     }
@@ -706,7 +706,7 @@ where
         match self.get_session_mut(client_id) {
             Ok(session) => {
                 if let Some(event) = session.handle_pubcomp(pubcomp)? {
-                    session.send(event)?
+                    session.send(event)?;
                 }
                 Ok(())
             }
@@ -912,7 +912,7 @@ where
             self.publish_all(StateChange::new_subscription_change(client_id, None).try_into()?);
 
             // Ungraceful drop session - send the will
-            self.try_send_will(client_id, session)
+            self.try_send_will(client_id, session);
         };
 
         Ok(())
@@ -1025,8 +1025,8 @@ where
 }
 
 fn publish_to(session: &mut Session, publication: &proto::Publication) -> Result<(), Error> {
-    if let Some(event) = session.publish_to(&publication)? {
-        session.send(event)?
+    if let Some(event) = session.publish_to(publication)? {
+        session.send(event)?;
     }
 
     Ok(())
@@ -1128,10 +1128,13 @@ pub struct BrokerHandle {
 impl BrokerHandle {
     pub fn send(&self, message: Message) -> Result<(), Error> {
         let sender = match &message {
-            Message::Client(_, ClientEvent::PubAck0(_))
-            | Message::Client(_, ClientEvent::PubAck(_))
-            | Message::Client(_, ClientEvent::PubRec(_))
-            | Message::Client(_, ClientEvent::PubComp(_)) => &self.acks,
+            Message::Client(
+                _,
+                ClientEvent::PubAck0(_)
+                | ClientEvent::PubAck(_)
+                | ClientEvent::PubRec(_)
+                | ClientEvent::PubComp(_),
+            ) => &self.acks,
             _ => &self.messages,
         };
 
@@ -1151,6 +1154,7 @@ enum OpenSession {
 pub struct NoSessionError;
 
 #[cfg(test)]
+#[allow(clippy::semicolon_if_nothing_returned)]
 pub(crate) mod tests {
     use std::time::Duration;
 
@@ -1271,7 +1275,7 @@ pub(crate) mod tests {
             rx1.recv().await,
             Some(Message::Client(_, ClientEvent::DropConnection))
         );
-        assert_matches!(rx1.recv().await, None)
+        assert_matches!(rx1.recv().await, None);
     }
 
     #[tokio::test]
@@ -1387,7 +1391,7 @@ pub(crate) mod tests {
             rx1.recv().await,
             Some(Message::Client(_, ClientEvent::DropConnection))
         );
-        assert_matches!(rx1.recv().await, None)
+        assert_matches!(rx1.recv().await, None);
     }
 
     #[tokio::test]
@@ -1440,7 +1444,7 @@ pub(crate) mod tests {
             rx1.recv().await,
             Some(Message::Client(_, ClientEvent::DropConnection))
         );
-        assert_matches!(rx1.recv().await, None)
+        assert_matches!(rx1.recv().await, None);
     }
 
     #[tokio::test]
@@ -1541,7 +1545,7 @@ pub(crate) mod tests {
             rx1.recv().await,
             Some(Message::Client(_, ClientEvent::DropConnection))
         );
-        assert_matches!(rx1.recv().await, None)
+        assert_matches!(rx1.recv().await, None);
     }
 
     #[tokio::test]
@@ -1595,7 +1599,7 @@ pub(crate) mod tests {
             rx1.recv().await,
             Some(Message::Client(_, ClientEvent::DropConnection))
         );
-        assert_matches!(rx1.recv().await, None)
+        assert_matches!(rx1.recv().await, None);
     }
 
     #[tokio::test]
@@ -1653,7 +1657,7 @@ pub(crate) mod tests {
             rx1.recv().await,
             Some(Message::Client(_, ClientEvent::DropConnection))
         );
-        assert_matches!(rx1.recv().await, None)
+        assert_matches!(rx1.recv().await, None);
     }
 
     #[tokio::test]
@@ -1709,7 +1713,7 @@ pub(crate) mod tests {
             rx1.recv().await,
             Some(Message::Client(_, ClientEvent::DropConnection))
         );
-        assert_matches!(rx1.recv().await, None)
+        assert_matches!(rx1.recv().await, None);
     }
 
     #[test]
@@ -2152,7 +2156,7 @@ pub(crate) mod tests {
             rx.recv().await,
             Some(Message::Client(_, ClientEvent::DropConnection))
         );
-        assert_matches!(rx.recv().await, None)
+        assert_matches!(rx.recv().await, None);
     }
 
     #[tokio::test]
@@ -2164,7 +2168,7 @@ pub(crate) mod tests {
                     "/topic/denied" => Authorization::Forbidden("denied".to_string()),
                     _ => Authorization::Allowed,
                 },
-                _ => Authorization::Forbidden("not allowed".to_string()),
+                Operation::Publish(_) => Authorization::Forbidden("not allowed".to_string()),
             }))
             .build();
 
@@ -2289,7 +2293,7 @@ pub(crate) mod tests {
         connect_client("client_d", &broker_handle).await.unwrap();
         check_notify_received(&mut a_rx, &["client_a", "client_b", "client_c", "client_d"]).await;
 
-        disconnect_client("client_c", &broker_handle).await;
+        disconnect_client("client_c", &broker_handle);
         check_notify_received(&mut a_rx, &["client_a", "client_b", "client_d"]).await;
     }
 
@@ -2419,7 +2423,7 @@ pub(crate) mod tests {
         Ok((client_id, rx))
     }
 
-    async fn disconnect_client(client_id: &str, broker_handle: &BrokerHandle) {
+    fn disconnect_client(client_id: &str, broker_handle: &BrokerHandle) {
         let event = ClientEvent::Disconnect(proto::Disconnect {});
 
         broker_handle
