@@ -67,6 +67,7 @@ stages:
         - Agent.OSArchitecture -equals X64
         - level -equals 5
     steps:
+      - template: templates/clean-drive-and-images.yaml  
       - template: templates/nested-get-secrets.yaml
       - template: templates/e2e-clean-directory.yaml            
       - template: templates/nested-get-root-ca.yaml       
@@ -102,6 +103,7 @@ stages:
        - Agent.OSArchitecture -equals X64
        - level -equals 4    
     steps:
+      - template: templates/clean-drive-and-images.yaml    
       - template: templates/nested-get-secrets.yaml  
       - template: templates/e2e-clean-directory.yaml                
       - template: templates/nested-get-root-ca.yaml         
@@ -138,6 +140,7 @@ stages:
        - Agent.OSArchitecture -equals X64
        - level -equals 3    
     steps:
+      - template: templates/clean-drive-and-images.yaml  
       - template: templates/nested-get-secrets.yaml  
       - template: templates/e2e-clean-directory.yaml                
       - template: templates/nested-get-root-ca.yaml         
