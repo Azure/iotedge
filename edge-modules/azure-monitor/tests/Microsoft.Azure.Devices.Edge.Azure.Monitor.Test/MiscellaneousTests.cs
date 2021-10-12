@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.Test
 
             IEnumerable<Metric> metrics = PrometheusMetricsParser.ParseMetrics(testTime, prometheusMessage);
 
-            // verify this fails (despite metric & label matching) because endpoint isn't specified (Partner bug: https://dev.azure.com/msazure/One/_workitems/edit/11023862)
+            // verify this fails (despite metric & label matching) because endpoint isn't specified
             metrics = metrics.Where(x => filter.Matches(x));
             Assert.Empty(metrics);
 
