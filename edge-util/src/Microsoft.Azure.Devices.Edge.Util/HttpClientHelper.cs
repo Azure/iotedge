@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
             if (serverUri.Scheme.Equals(UnixScheme, StringComparison.OrdinalIgnoreCase))
             {
-                client = new HttpClient(new HttpUdsMessageHandler(serverUri));
+                client = new HttpClient(new LoggingHandler(new HttpUdsMessageHandler(serverUri)));
                 return client;
             }
 
