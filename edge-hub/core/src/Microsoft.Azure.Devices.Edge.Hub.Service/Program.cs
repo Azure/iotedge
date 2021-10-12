@@ -33,6 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         private static readonly ConsoleEventListener ConsoleListener = new ConsoleEventListener();
         public static int Main()
         {
+            ConsoleEventListener ConsoleListener2 = new ConsoleEventListener();
+            
             Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Edge Hub Main()");
             IConfigurationRoot configuration = new ConfigurationBuilder()
                 .AddJsonFile(Constants.ConfigFileName)
@@ -44,6 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         static async Task<int> MainAsync(IConfigurationRoot configuration)
         {
+            
             string logLevel = configuration.GetValue($"{Logger.RuntimeLogLevelEnvKey}", "info");
             Logger.SetLogLevel(logLevel);
 
