@@ -12,7 +12,7 @@ Edge runtime applies a new deployment. This document focuses on at-scale deploym
 # Relevant twin properties
 
 This document discusses twin properties relevant to applying a new deployment to an IoT Edge device. 
-For a full list of twin properties, see [this document](https://docs.microsoft.com/azure/iot-edge/module-edgeagent-edgehub?view=iotedge-2020-11).
+For a full list of twin properties, see [this document](https://docs.microsoft.com/azure/iot-edge/module-edgeagent-edgehub).
 
 There are two sections describing relevant twin properties below. The first describes properties 
 set on the Iot Hub service and read by the IoT Edge runtime. The second 
@@ -51,7 +51,7 @@ When a configuration is "Applied", it means that this configuration has been mer
 deployment sent to the IoT Edge runtime. With layered deployments, more than one configuration may
 be applied. If a configuration is "Targeted" this means the given at-scale deployment matched to the 
 device, but a higher priority deployment was found and applied. Please see 
-["Deploy IoT Edge modules at scale using the Azure portal"](https://docs.microsoft.com/azure/iot-edge/how-to-deploy-at-scale?view=iotedge-2020-11) 
+["Deploy IoT Edge modules at scale using the Azure portal"](https://docs.microsoft.com/azure/iot-edge/how-to-deploy-at-scale) 
 for more details on IoT Edge deployments and priority.
 
 ### Desired Properties section
@@ -112,11 +112,11 @@ Example:
 | Relevant Field | Meaning |
 |------------------------------------------|-------------------------------------------------------|
 | .properties.desired."\$version"          | This number is monotonically increasing and updated on any change to desired properties. Even a rollback will increase this number. |
-| .properties.desired.systemModules.edgeAgent.settings.image | \$edgeAgent’s desired image tag. |
-| .properties.desired.systemModules.edgeHub.status | \$edgeHub’s desired status, “running” or “stopped”. |
-| .properties.desired.systemModules.edgeHub.settings.image | \$edgeHub’s desired image tag. |
-| .properties.desired.modules.*\<module\>*.status | A module’s desired status, “running” or “stopped”. |
-| .properties.desired.modules.*\<module\>*.settings.image | A module’s desired image tag. |
+| .properties.desired.systemModules.edgeAgent.settings.image | \$edgeAgent's desired image tag. |
+| .properties.desired.systemModules.edgeHub.status | \$edgeHub's desired status, "running" or "stopped". |
+| .properties.desired.systemModules.edgeHub.settings.image | \$edgeHub's desired image tag. |
+| .properties.desired.modules.*\<module\>*.status | A module's desired status, "running" or "stopped". |
+| .properties.desired.modules.*\<module\>*.settings.image | A module's desired image tag. |
 
 
 ## Set by IoT Edge
@@ -308,7 +308,7 @@ The IoT Edge runtime has received a deployment, but the deployment was invalid.
 .properties.reported.lastDesiredStatus.code == 400 or 412  
 ```
 
-NOTE: We wouldn’t expect to see `406` unless \$edgeAgent shuts down, or `417` (empty deployment) 
+NOTE: We wouldn't expect to see `406` unless \$edgeAgent shuts down, or `417` (empty deployment) 
 once the first deployment is applied. These may occur if \$edgeAgent is being updated.
 
 
@@ -352,21 +352,21 @@ specification references a bad image, or the container runtime failed for any nu
 NOTE: if this is a new module in the deployment, it will not exist in the reported properties until 
 the module is created.
 
-NOTE: If the module was previously marked as “running” it will stay “running” using the previous 
+NOTE: If the module was previously marked as "running" it will stay "running" using the previous 
 image until the pull for the new module is complete.
 
 NOTE: Some module images may be very large or download very slowly. The IoT Edge runtime will only 
 wait for just over a minute for this pull to complete before timing out. The pull will still be in 
 progress, but the runtime will report this attempt as unsuccessful until the pull is complete. The 
-IoT Edge runtime doesn’t have a clear indicator to distinguish between this state and a failed image 
+IoT Edge runtime doesn't have a clear indicator to distinguish between this state and a failed image 
 pull. You may be able to derive diagnostic information from `.properties.reported.lastDesiredStatus.description`. 
-For example, if the pull was timed out, the text will contain “The operation was canceled”, and this 
+For example, if the pull was timed out, the text will contain "The operation was canceled", and this 
 state is probably transitional.
 
 # Changes for individual deployments
 
 This document focused on at-scale deployments, but the IoT Edge runtime behavior is identical for an 
-[individual device deployment](https://docs.microsoft.com/azure/iot-edge/how-to-deploy-modules-portal?view=iotedge-2020-11). 
+[individual device deployment](https://docs.microsoft.com/azure/iot-edge/how-to-deploy-modules-portal). 
 The primary difference will be the **absence** of a [Configuration section](#configuration-section) in \$edgeAgent twin.
 
 The Configuration Section is set by the service, but it is not read or interpreted by the IoT Edge 

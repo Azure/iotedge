@@ -100,7 +100,7 @@ The valid values are:
 
 [1]: https://docs.docker.com/network/bridge/#use-the-default-bridge-network
 [2]: https://docs.docker.com/network/bridge/
-[3]: https://docs.microsoft.com/en-us/virtualization/windowscontainers/container-networking/network-drivers-topologies
+[3]: https://docs.microsoft.com/virtualization/windowscontainers/container-networking/network-drivers-topologies
 [4]: https://docs.docker.com/network/
 
 [network]: images/iotedge-network.png
