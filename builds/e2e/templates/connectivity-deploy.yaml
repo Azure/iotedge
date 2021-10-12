@@ -111,3 +111,17 @@ steps:
         exit $scriptExitCode
 
       workingDirectory: "$(Agent.HomeDirectory)/.."
+       
+  # The Step Takes the Test Description which may have special characters and replaces them with '-'
+  - pwsh: |
+      $artifactSuffix = '$(Build.BuildNumber)-${{ parameters['networkController.description'] }}' -replace '[_|/|(]','-' -replace '[)]',''
+      Write-Output "##vso[task.setvariable variable=artifactSuffix] $artifactSuffix"
+    displayName: "Set Artifact Name"
+    condition: succeededOrFailed()
+
+  - task: PublishBuildArtifacts@1
+    displayName: "Publish Support Bundle"
+    inputs:
+      pathToPublish: $(Agent.HomeDirectory)/../working/support
+      artifactName: logs-$(artifactSuffix)
+    condition: succeededOrFailed()
