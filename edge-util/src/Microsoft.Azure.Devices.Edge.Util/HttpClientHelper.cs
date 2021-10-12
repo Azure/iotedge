@@ -56,25 +56,35 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            var requestContent = string.Empty;
-            if (request.Content != null)
+            var guid = Guid.NewGuid();
+
+            try
             {
-                requestContent = await request.Content.ReadAsStringAsync();
+                var requestContent = string.Empty;
+                if (request.Content != null)
+                {
+                    requestContent = await request.Content.ReadAsStringAsync();
+                }
+
+                Log.LogInformation($"Request [{guid}]:\n\t{request}\n\t{requestContent}\n");
+
+                HttpResponseMessage response = await base.SendAsync(request, cancellationToken);
+
+                var responseContent = string.Empty;
+                if (response.Content != null)
+                {
+                    responseContent = await response.Content.ReadAsStringAsync();
+                }
+
+                Log.LogInformation($"Response [{guid}]:\n\t{response}\n\t{responseContent}");
+
+                return response;
             }
-
-            Log.LogInformation($"Request:\n\t{request}\n\t{requestContent}\n");
-
-            HttpResponseMessage response = await base.SendAsync(request, cancellationToken);
-
-            var responseContent = string.Empty;
-            if (response.Content != null)
+            catch (Exception ex)
             {
-                responseContent = await response.Content.ReadAsStringAsync();
+                Log.LogError($"Exception while handling [{guid}], {ex}");
+                throw;
             }
-
-            Log.LogInformation($"Response:\n\t{response}\n\t{responseContent}");
-
-            return response;
         }
     }
 }
