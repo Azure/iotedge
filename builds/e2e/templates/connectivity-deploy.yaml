@@ -122,6 +122,6 @@ steps:
   - task: PublishBuildArtifacts@1
     displayName: "Publish Support Bundle"
     inputs:
-    PathtoPublish: $(Agent.HomeDirectory)/../working/support
-    ArtifactName: logs-$(artifactSuffix)
+      pathToPublish: $(Agent.HomeDirectory)/../working/support
+      artifactName: logs-$(artifactSuffix)
     condition: succeededOrFailed()
