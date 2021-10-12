@@ -16,7 +16,6 @@ namespace LeafDeviceTest
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Common;
-    using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Azure.EventHubs;
