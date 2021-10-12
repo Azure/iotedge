@@ -108,64 +108,6 @@ function print_test_run_logs() {
     print_highlighted_message 'Print logs'
     print_highlighted_message 'testResultCoordinator LOGS'
     docker logs testResultCoordinator || true
-
-    if (( ret < 1 )); then
-        return;
-    fi
-
-    print_highlighted_message 'LOGS FROM IOTEDGED'
-    journalctl -u iotedge -u docker --since "$test_start_time" --no-pager || true
-
-    print_highlighted_message 'edgeAgent LOGS'
-    docker logs edgeAgent || true
-
-    print_highlighted_message 'edgeHub LOGS'
-    docker logs edgeHub || true
-
-    print_highlighted_message 'loadGen1 LOGS'
-    docker logs loadGen1 || true
-
-    print_highlighted_message 'loadGen2 LOGS'
-    docker logs loadGen2 || true
-
-    print_highlighted_message 'relayer1 LOGS'
-    docker logs relayer1 || true
-
-    print_highlighted_message 'relayer2 LOGS'
-    docker logs relayer2 || true
-
-    print_highlighted_message 'directMethodSender1 LOGS'
-    docker logs directMethodSender1 || true
-
-    print_highlighted_message 'directMethodReceiver1 LOGS'
-    docker logs directMethodReceiver1 || true
-
-    print_highlighted_message 'directMethodSender2 LOGS'
-    docker logs directMethodSender2 || true
-
-    print_highlighted_message 'directMethodReceiver2 LOGS'
-    docker logs directMethodReceiver2 || true
-
-    print_highlighted_message 'directMethodSender3 LOGS'
-    docker logs directMethodSender3 || true
-
-    print_highlighted_message 'directMethodReceiver3 LOGS'
-    docker logs directMethodReceiver3 || true
-
-    print_highlighted_message 'twinTester1 LOGS'
-    docker logs twinTester1 || true
-
-    print_highlighted_message 'twinTester2 LOGS'
-    docker logs twinTester2 || true
-
-    print_highlighted_message 'twinTester3 LOGS'
-    docker logs twinTester3 || true
-
-    print_highlighted_message 'twinTester4 LOGS'
-    docker logs twinTester4 || true
-
-    print_highlighted_message 'networkController LOGS'
-    docker logs networkController || true
 }
 
 function process_args() {
@@ -428,6 +370,7 @@ function run_connectivity_test() {
         fi
 
         get_support_bundle_logs
+        print_test_run_logs $testExitCode
 
         # stop IoT Edge service after test complete to prevent sending metrics
         sudo systemctl stop iotedge
