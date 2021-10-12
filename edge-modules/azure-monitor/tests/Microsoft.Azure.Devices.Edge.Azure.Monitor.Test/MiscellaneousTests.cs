@@ -5,18 +5,18 @@ using Xunit;
 
 namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.Test
 {
-    public class MicellaneousTests
+    public class MiscellaneousTests
     {
         private readonly static DateTime testTime = DateTime.UnixEpoch;
 
 
-        // This test has been added as a part of the fix for Partner bug: https://dev.azure.com/msazure/One/_workitems/edit/11023862
+        // This test has been added as a part of the fix for Partner bug where filtering based on AllowedMetrics doesn't work correctly.
         // Unit tests exist for both the MetricFilter and for the PrometheusParser. However, the reason this bug wasn't caught during
         // testing is because there isn't a functional test that verifies that the outcome of the interaction between the
         // PrometheusParser and the MetricFilter is what is desired.
 
         // The Azure Monitor code does not lend itself to mocking (using Dependency Injection) -- Too many changes need to be made in
-        // classes that are not meant to be changed. "MicellaneousTests" seemed to be the most reasonable way to test the offending
+        // classes that are not meant to be changed. "MiscellaneousTests" seemed to be the most reasonable way to test the offending
         // code: MetricsScrapeAndUpload.ScrapeAndUploadMetricsAsync()
 
         // The only difference between TestSingleEndpointFilter() & TestMultipleEndpointFilter() is exactly what the names suggest.
@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.Test
 
             // verify this fails (despite metric & label matching) because endpoint isn't specified (Partner bug: https://dev.azure.com/msazure/One/_workitems/edit/11023862)
             metrics = metrics.Where(x => filter.Matches(x));
-            Assert.True(metrics.Count() == 0);
+            Assert.Empty(metrics);
 
             // added endpoint
             metrics = PrometheusMetricsParser.ParseMetrics(testTime, prometheusMessage, "http://VeryNoisyModule:9001/metrics");
@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.Test
             // verify metric that doesn't exist isn't matched: edgehub_gettwin_total is a built-in metric, but hasn't been included in the "prometheusMessage" above.
             filter = new MetricFilter("edgehub_gettwin_total{edge_device=\"Ubuntu-20\"}[http://VeryNoisyModule:9001/metrics]");
             metrics = metrics.Where(x => filter.Matches(x));
-            Assert.True(metrics.Count() == 0);
+            Assert.Empty(metrics);
 
             // verify that metric filters correctly
             filter = new MetricFilter("total_network_out_bytes{instance_number=\"b9e51990-f3f9-4d90-8fc7-ef62d01929b2\"}[http://VeryNoisyModule:9001/metrics]");
