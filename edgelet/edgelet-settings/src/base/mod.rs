@@ -70,7 +70,7 @@ pub struct Settings<ModuleConfig> {
     pub endpoints: aziot::Endpoints,
 }
 
-pub(crate) fn default_allow_elevated_docker_permissions() -> bool {
+pub fn default_allow_elevated_docker_permissions() -> bool {
     // For now, we will allow elevated docker permissions by default. This will change in a future version.
     true
 }

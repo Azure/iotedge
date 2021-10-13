@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 pub const UPSTREAM_PARENT_KEYWORD: &str = "$upstream";
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DockerConfig {
     image: String,

@@ -24,7 +24,15 @@ impl DeploymentManager {
         let current_deployment = read_serde(&current_location).await?;
 
         let valid_location = storage_location.as_ref().join("valid_deployment.json");
-        let valid_deployment = read_serde(&valid_location).await?;
+        let valid_deployment: Option<Deployment> = read_serde(&valid_location).await?;
+        let valid_deployment: Option<Deployment> =
+            valid_deployment.or_else(|| match Self::validate_deployment(&current_deployment) {
+                Ok(d) => d,
+                Err(e) => {
+                    println!("Can not parse curret deployment: {}", e);
+                    None
+                }
+            });
 
         Ok(Self {
             current_location,
@@ -63,8 +71,11 @@ impl DeploymentManager {
         self.valid_deployment.as_ref()
     }
 
-    fn validate_deployment(_deployment: &serde_json::Value) -> Result<Option<Deployment>> {
-        Ok(Default::default())
+    fn validate_deployment(deployment: &serde_json::Value) -> Result<Option<Deployment>> {
+        let deployment = serde_json::from_value(deployment.clone())?;
+
+        Ok(Some(deployment))
+        // Ok(Default::default())
     }
 }
 
@@ -141,7 +152,6 @@ mod tests {
         let expected: serde_json::Value =
             read_serde(test_file).await.expect("Test file is parsable");
         assert_eq!(manager.current_deployment, expected);
-        assert_eq!(manager.valid_deployment, None); // TODO: make test parse file
     }
 
     #[tokio::test]
@@ -227,48 +237,28 @@ mod tests {
         assert_eq!(expected, actual, "restart policy is changed"); // TODO: check restart policy on parsed type
     }
 
-    // #[tokio::test]
-    // async fn test_parsing() {
-    //     let test_files_directory =
-    //         std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/src/deployment/test"));
-    //     let tmp_dir = tempdir().unwrap();
+    #[tokio::test]
+    async fn test_parsing() {
+        let test_files_directory =
+            std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/src/deployment/test"));
+        let tmp_dir = tempdir().unwrap();
+        let tmp_dir = tmp_dir.path();
 
-    //     let (tx, mut rx) = mpsc::channel(32);
-    //     let manager = DeploymentManager::new(tx, tmp_dir.path());
+        for test_file in std::fs::read_dir(test_files_directory).unwrap() {
+            let test_file = test_file.unwrap();
+            if test_file.file_type().unwrap().is_dir() {
+                continue;
+            }
+            tokio::fs::copy(test_file.path(), tmp_dir.join("newest_deployment.json"))
+                .await
+                .expect("Copy Test File");
 
-    //     for test_file in std::fs::read_dir(test_files_directory).unwrap() {
-    //         let test_file = test_file.unwrap();
-    //         if test_file.file_type().unwrap().is_dir() {
-    //             continue;
-    //         }
-    //         let test_deployment = read_file(test_file.path()).await;
-
-    //         manager
-    //             .update_deployment(&test_deployment)
-    //             .await
-    //             .expect("Update Deployment is able to parse and write deployment");
-    //         assert_eq!(
-    //             check_receiver(&mut rx).await,
-    //             Some(()),
-    //             "Updated deployment sends notification"
-    //         );
-    //         assert_eq!(
-    //             check_receiver(&mut rx).await,
-    //             None,
-    //             "Only 1 notification should be sent"
-    //         );
-    //     }
-
-    //     // let
-    // }
-
-    // // There might be a better way to do this, I don't know it
-    // async fn check_receiver<T>(receiver: &mut mpsc::Receiver<T>) -> Option<T> {
-    //     select! {
-    //         () = tokio::time::sleep(std::time::Duration::from_millis(5)) => None,
-    //         val = receiver.recv() => val,
-    //     }
-    // }
+            let manager = DeploymentManager::new(tmp_dir)
+                .await
+                .expect("Can read and parse deployment");
+            assert!(manager.valid_deployment.is_some())
+        }
+    }
 
     async fn read_file(path: impl AsRef<Path>) -> String {
         let err_msg = format!("Missing file {:#?}", path.as_ref());

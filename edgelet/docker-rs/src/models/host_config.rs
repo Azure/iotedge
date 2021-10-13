@@ -38,7 +38,7 @@ use serde_json::Value;
 // - Otherwise if it references another type under `crate::models::`, then ensure that that type also has a `#[serde(flatten)] BTreeMap` property
 //   and is commented out as much as possible. Also copy this devnote there for future readers.
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, PartialEq, Clone)]
 pub struct HostConfig {
     // /// An integer value representing this container's relative CPU weight versus other containers.
     // #[serde(rename = "CpuShares", skip_serializing_if = "Option::is_none")]

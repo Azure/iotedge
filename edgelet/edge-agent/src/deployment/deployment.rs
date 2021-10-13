@@ -1,44 +1,63 @@
+use std::collections::HashMap;
+
 // Made using https://transform.tools/json-to-rust-serde
 // Currently not correct, only for testing purposes
 
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct Deployment {
-    #[serde(rename = "deviceId")]
-    pub device_id: String,
-    #[serde(rename = "moduleId")]
-    pub module_id: String,
-    pub etag: String,
-    #[serde(rename = "deviceEtag")]
-    pub device_etag: String,
-    pub status: String,
-    #[serde(rename = "statusUpdateTime")]
-    pub status_update_time: String,
-    #[serde(rename = "connectionState")]
-    pub connection_state: String,
-    #[serde(rename = "lastActivityTime")]
-    pub last_activity_time: String,
-    #[serde(rename = "cloudToDeviceMessageCount")]
-    pub cloud_to_device_message_count: i64,
-    #[serde(rename = "authenticationType")]
-    pub authentication_type: String,
-    #[serde(rename = "x509Thumbprint")]
-    pub x509_thumbprint: X509Thumbprint,
-    #[serde(rename = "modelId")]
-    pub model_id: String,
-    pub version: i64,
     pub properties: Properties,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
-pub struct X509Thumbprint {
-    #[serde(rename = "primaryThumbprint")]
-    pub primary_thumbprint: Option<String>,
-    #[serde(rename = "secondaryThumbprint")]
-    pub secondary_thumbprint: Option<String>,
+pub struct Properties {
+    pub desired: PropertiesInner,
+    pub reported: PropertiesInner,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
-pub struct Properties {
-    pub desired: ::serde_json::Value,
-    pub reported: ::serde_json::Value,
+pub struct PropertiesInner {
+    #[serde(default)]
+    modules: HashMap<String, Module>,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+pub struct Module {
+    settings: DockerConfig,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+pub struct DockerConfig {
+    image: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    image_hash: Option<String>,
+
+    #[serde(
+        deserialize_with = "deserialize_create_options",
+        skip_serializing_if = "Option::is_none",
+        default
+    )]
+    create_options: Option<docker::models::ContainerCreateBody>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    digest: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    auth: Option<docker::models::AuthConfig>,
+
+    #[serde(
+        default = "edgelet_settings::base::default_allow_elevated_docker_permissions",
+        skip_serializing
+    )]
+    allow_elevated_docker_permissions: bool,
+}
+
+fn deserialize_create_options<'de, D>(
+    deserializer: D,
+) -> Result<Option<docker::models::ContainerCreateBody>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let s: &str = serde::de::Deserialize::deserialize(deserializer)?;
+    serde_json::from_str(s).map_err(serde::de::Error::custom)
 }

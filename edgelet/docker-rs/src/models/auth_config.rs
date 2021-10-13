@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, PartialEq, Clone)]
 pub struct AuthConfig {
     #[serde(rename = "username", skip_serializing_if = "Option::is_none")]
     username: Option<String>,
