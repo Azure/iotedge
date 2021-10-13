@@ -13,6 +13,7 @@ namespace LoadGen
     using Newtonsoft.Json;
     using OpenTelemetry;
     using OpenTelemetry.Trace;
+    using OpenTelemetry.Resources;
 
     class Program
     {
@@ -31,10 +32,14 @@ namespace LoadGen
                 Guid batchId = Guid.NewGuid();
                 Logger.LogInformation($"Batch Id={batchId}");
 
+                AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport",
+                true);
+
                 var endpoint = new Uri(Settings.Current.OtelCollectorEndpoint.GetOrElse("http://host.docker.internal:4317"));
                 Logger.LogInformation($"Created Trace Provider with Endpoint : {endpoint.ToString()}");
                 using TracerProvider tracerProvider = Sdk.CreateTracerProviderBuilder()
                 .AddSource(Settings.SOURCE_NAME)
+                .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("LoadGen"))
                 .AddOtlpExporter(opt => opt.Endpoint = endpoint)
                 .Build();
 
