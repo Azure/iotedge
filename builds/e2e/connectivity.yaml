@@ -99,6 +99,10 @@ jobs:
       aziotis.artifact.name: 'packages_ubuntu-18.04_amd64'
       aziotis.package.filter: 'aziot-identity-service_*_amd64.deb'
     steps:
+      - bash: |
+          wget https://github.com/open-telemetry/opentelemetry-collector/releases/download/v0.33.0/otel-collector_0.33.0_amd64.deb && \
+          dpkg -i ./otel-collector_0.33.0_amd64.deb &&
+          systemctl status otel-collector
       - task: Bash@3
         name: Print_test_parameters
         displayName: 'Print test parameters'
@@ -224,182 +228,182 @@ jobs:
           testInfo.testName: '$(testInfo.testName)'
 
 
-################################################################################
-  - job: linux_arm32v7_moby
-################################################################################
-    displayName: Linux ARM32v7 Moby
-    condition: and(eq(variables['run.linux.arm32v7.moby'], 'true'), ne(variables['agent.group'], ''))
-    timeoutInMinutes: 180
-    strategy:
-      matrix:
-        Online:
-          testrun.config: 1
-          testrun.network.description: "Online"
-          testrun.network.frequencies: "00:00:00 00:00:00 0"
-          testrun.network.runProfile: "Online"
-          testrun.duration: "01:00:00"
-        Offline(5/5/5):
-          testrun.config: 2
-          testrun.network.description: "Offline(5/5/5)"
-          testrun.network.frequencies: "00:05:00 00:05:00 5"
-          testrun.network.runProfile: "Offline"
-          testrun.duration: "00:50:00"
-        Offline(10/10/3):
-          testrun.config: 3
-          testrun.network.description: "Offline(10/10/3)"
-          testrun.network.frequencies: "00:10:00 00:10:00 3"
-          testrun.network.runProfile: "Offline"
-          testrun.duration: "01:00:00"
-        Offline(15/15/3):
-          testrun.config: 4
-          testrun.network.description: "Offline(15/15/3)"
-          testrun.network.frequencies: "00:15:00 00:15:00 3"
-          testrun.network.runProfile: "Offline"
-          testrun.duration: "01:30:00"
-        Offline(30/30/2):
-          testrun.config: 5
-          testrun.network.description: "Offline(30/30/2)"
-          testrun.network.frequencies: "00:30:00 00:30:00 2"
-          testrun.network.runProfile: "Offline"
-          testrun.duration: "02:00:00"
-        Offline(5/20/3):
-          testrun.config: 6
-          testrun.network.description: "Offline(5/20/3)"
-          testrun.network.frequencies: "00:05:00 00:20:00 3"
-          testrun.network.runProfile: "Offline"
-          testrun.duration: "01:15:00"
-        SatelliteGood(60/0/1):
-          testrun.config: 7
-          testrun.network.description: "SatelliteGood(60/0/1)"
-          testrun.network.frequencies: "01:00:00 00:00:00 1"
-          testrun.network.runProfile: "SatelliteGood"
-          testrun.duration: "01:00:00"
-        Cellular3G(60/0/1):
-          testrun.config: 8
-          testrun.network.description: "Cellular3G(60/0/1)"
-          testrun.network.frequencies: "01:00:00 00:00:00 1"
-          testrun.network.runProfile: "Cellular3G"
-          testrun.duration: "01:00:00"
-    pool:
-      name: $(pool.name)
-      demands:
-        - agent-group -equals $(agent.group)
-        - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals ARM
-        - agent-osbits -equals 32
-        - run-connectivity -equals true
-    variables:
-      edgelet.artifact.name: 'iotedged-debian9-arm32v7'
-    steps:
-      - task: Bash@3
-        name: Print_test_parameters
-        displayName: 'Print test parameters'
-        inputs:
-          targetType: inline
-          script: |
-            # print all matrix variables here
-            echo "testrun.config=$(testrun.config)"
-            echo "testrun.network.frequencies=$(testrun.network.frequencies)"
-            echo "testrun.network.runProfile=$(testrun.network.runProfile)"
-            echo "testrun.duration=$(testrun.duration)"
-            echo "deploymentFileName=$(deploymentFileName)"
-            echo "test.runtimeLogLevel=$(test.runtimeLogLevel)"
-      - template: templates/set-run-flag.yaml
-      - checkout: self
-        clean: true
-        fetchDepth: 100
-        submodules: recursive
-        condition: and(succeeded(), eq(variables['run.flag'], 1))
-      - task: AzureKeyVault@1
-        condition: eq(variables['run.flag'], 1)
-        displayName: 'Azure Key Vault: EdgeBuildkv'
-        inputs:
-          azureSubscription: $(azure.subscription)
-          KeyVaultName: 'edgebuildkv'
-          SecretsFilter: >- 
-            edgebuilds-azurecr-io-username,
-            edgebuilds-azurecr-io-pwd,
-            kvLogAnalyticWorkspaceId,
-            kvLogAnalyticSharedKey,
-            EdgeConnectivityStorageAccountConnString,
-            GitHubAccessToken
-      - task: AzureKeyVault@1
-        displayName: 'Azure Key Vault: $(azure.keyVault)'
-        inputs:
-          azureSubscription: $(azure.subscription)
-          KeyVaultName: $(azure.keyVault)
-          SecretsFilter: >- 
-            IotHub-ConnStr,
-            IotHub-EventHubConnStr
-      - task: DownloadBuildArtifacts@0
-        condition: and(succeeded(), eq(variables['run.flag'], 1))
-        displayName: 'Download Edgelet Artifacts'
-        inputs:
-          buildType: specific
-          project: $(vsts.project)
-          pipeline: $(edgelet.package.build)
-          branchName: $(edgelet.package.branchName)
-          buildVersionToDownload: latestFromBranch
-          downloadPath: '$(Build.StagingDirectory)'
-          artifactName: $(edgelet.artifact.name)
-          allowPartiallySucceededBuilds: true
-      - task: DownloadBuildArtifacts@0
-        condition: and(succeeded(), eq(variables['run.flag'], 1))
-        displayName: 'Download Images Artifacts'
-        inputs:
-          buildType: specific
-          project: $(vsts.project)
-          pipeline: $(images.build)
-          branchName: $(images.branchName)
-          buildVersionToDownload: latestFromBranch
-          downloadPath: '$(Build.StagingDirectory)'
-          artifactName: $(images.artifact.name.linux)
-          allowPartiallySucceededBuilds: true
-          itemPattern: |
-            $(images.artifact.name.linux)/IotEdgeQuickstart.linux-arm.tar.gz
-            $(images.artifact.name.linux)/e2e_deployment_files/$(deploymentFileName)
-            $(images.artifact.name.linux)/scripts/linux/trcE2ETest.sh
-            $(images.artifact.name.linux)/artifactInfo.txt
-            $(images.artifact.name.linux)/CACertificates/certGen.sh
-            $(images.artifact.name.linux)/CACertificates/openssl_root_ca.cnf
-      # Deploy connectivity test
-      - template: templates/connectivity-deploy.yaml
-        parameters:
-          release.label: 'ct$(agent.group)'
-          test.buildNumber: '$(Build.BuildNumber)'
-          test.buildId: '$(Build.BuildId)'
-          build.source.branch: '$(Build.SourceBranchName)'
-          build.repo.path: '$(Build.SourcesDirectory)'
-          edgelet.source.branch: '$(edgelet.package.branchName)'
-          images.source.branch: '$(images.branchName)'
-          edgelet.artifact.name: '$(edgelet.artifact.name)'
-          images.artifact.name: '$(images.artifact.name.linux)'
-          container.registry: '$(container.registry)'
-          container.registry.username: '$(edgebuilds-azurecr-io-username)'
-          container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-          iotHub.connectionString: '$(EdgeConnectivityTestHubARM32ConnString)'
-          eventHub.connectionString: '$(EdgeConnectivityEventHubARM32ConnString)'
-          deploymentFileName: '$(deploymentFileName)'
-          upstream.protocol: '$(upstream.protocol)'
-          edgeHubRestartTest.restartPeriod: '$(edgeHubRestartTest.restartPeriod)'
-          edgeHubRestartTest.sdkOperationTimeout: '$(edgeHubRestartTest.sdkOperationTimeout)'
-          testDuration: '$(testrun.duration)'
-          testStartDelay: '$(testStartDelay.arm32)'
-          networkController.frequencies: '$(testrun.network.frequencies)'
-          networkController.runProfile: '$(testrun.network.runProfile)'
-          networkController.description: '$(testrun.network.description)'
-          logAnalyticsWorkspaceId: '$(kvLogAnalyticWorkspaceId)'
-          logAnalyticsSharedKey: '$(kvLogAnalyticSharedKey)'
-          testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'
-          testResultCoordinator.verificationDelay: '$(testResultCoordinator.verificationDelay)'
-          testResultCoordinator.storageAccountConnectionString: '$(EdgeConnectivityStorageAccountConnString)'
-          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
-          metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
-          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
-          metricsCollector.hostPlatform: 'linux_arm32v7_moby'
-          edgeRuntime.buildNumber: '$(edgeRuntime.buildNumber)'
-          customEdgeAgent.image: '$(customEdgeAgent.image)'
-          customEdgeHub.image: '$(customEdgeHub.image)'
-          test.runtimeLogLevel: '$(test.runtimeLogLevel)'
-          connectivity.nested: 'false'
-          testInfo.testName: '$(testInfo.testName)'
+# ################################################################################
+#   - job: linux_arm32v7_moby
+# ################################################################################
+#     displayName: Linux ARM32v7 Moby
+#     condition: and(eq(variables['run.linux.arm32v7.moby'], 'true'), ne(variables['agent.group'], ''))
+#     timeoutInMinutes: 180
+#     strategy:
+#       matrix:
+#         Online:
+#           testrun.config: 1
+#           testrun.network.description: "Online"
+#           testrun.network.frequencies: "00:00:00 00:00:00 0"
+#           testrun.network.runProfile: "Online"
+#           testrun.duration: "01:00:00"
+#         Offline(5/5/5):
+#           testrun.config: 2
+#           testrun.network.description: "Offline(5/5/5)"
+#           testrun.network.frequencies: "00:05:00 00:05:00 5"
+#           testrun.network.runProfile: "Offline"
+#           testrun.duration: "00:50:00"
+#         Offline(10/10/3):
+#           testrun.config: 3
+#           testrun.network.description: "Offline(10/10/3)"
+#           testrun.network.frequencies: "00:10:00 00:10:00 3"
+#           testrun.network.runProfile: "Offline"
+#           testrun.duration: "01:00:00"
+#         Offline(15/15/3):
+#           testrun.config: 4
+#           testrun.network.description: "Offline(15/15/3)"
+#           testrun.network.frequencies: "00:15:00 00:15:00 3"
+#           testrun.network.runProfile: "Offline"
+#           testrun.duration: "01:30:00"
+#         Offline(30/30/2):
+#           testrun.config: 5
+#           testrun.network.description: "Offline(30/30/2)"
+#           testrun.network.frequencies: "00:30:00 00:30:00 2"
+#           testrun.network.runProfile: "Offline"
+#           testrun.duration: "02:00:00"
+#         Offline(5/20/3):
+#           testrun.config: 6
+#           testrun.network.description: "Offline(5/20/3)"
+#           testrun.network.frequencies: "00:05:00 00:20:00 3"
+#           testrun.network.runProfile: "Offline"
+#           testrun.duration: "01:15:00"
+#         SatelliteGood(60/0/1):
+#           testrun.config: 7
+#           testrun.network.description: "SatelliteGood(60/0/1)"
+#           testrun.network.frequencies: "01:00:00 00:00:00 1"
+#           testrun.network.runProfile: "SatelliteGood"
+#           testrun.duration: "01:00:00"
+#         Cellular3G(60/0/1):
+#           testrun.config: 8
+#           testrun.network.description: "Cellular3G(60/0/1)"
+#           testrun.network.frequencies: "01:00:00 00:00:00 1"
+#           testrun.network.runProfile: "Cellular3G"
+#           testrun.duration: "01:00:00"
+#     pool:
+#       name: $(pool.name)
+#       demands:
+#         - agent-group -equals $(agent.group)
+#         - Agent.OS -equals Linux
+#         - Agent.OSArchitecture -equals ARM
+#         - agent-osbits -equals 32
+#         - run-connectivity -equals true
+#     variables:
+#       edgelet.artifact.name: 'iotedged-debian9-arm32v7'
+#     steps:
+#       - task: Bash@3
+#         name: Print_test_parameters
+#         displayName: 'Print test parameters'
+#         inputs:
+#           targetType: inline
+#           script: |
+#             # print all matrix variables here
+#             echo "testrun.config=$(testrun.config)"
+#             echo "testrun.network.frequencies=$(testrun.network.frequencies)"
+#             echo "testrun.network.runProfile=$(testrun.network.runProfile)"
+#             echo "testrun.duration=$(testrun.duration)"
+#             echo "deploymentFileName=$(deploymentFileName)"
+#             echo "test.runtimeLogLevel=$(test.runtimeLogLevel)"
+#       - template: templates/set-run-flag.yaml
+#       - checkout: self
+#         clean: true
+#         fetchDepth: 100
+#         submodules: recursive
+#         condition: and(succeeded(), eq(variables['run.flag'], 1))
+#       - task: AzureKeyVault@1
+#         condition: eq(variables['run.flag'], 1)
+#         displayName: 'Azure Key Vault: EdgeBuildkv'
+#         inputs:
+#           azureSubscription: $(azure.subscription)
+#           KeyVaultName: 'edgebuildkv'
+#           SecretsFilter: >- 
+#             edgebuilds-azurecr-io-username,
+#             edgebuilds-azurecr-io-pwd,
+#             kvLogAnalyticWorkspaceId,
+#             kvLogAnalyticSharedKey,
+#             EdgeConnectivityStorageAccountConnString,
+#             GitHubAccessToken
+#       - task: AzureKeyVault@1
+#         displayName: 'Azure Key Vault: $(azure.keyVault)'
+#         inputs:
+#           azureSubscription: $(azure.subscription)
+#           KeyVaultName: $(azure.keyVault)
+#           SecretsFilter: >- 
+#             IotHub-ConnStr,
+#             IotHub-EventHubConnStr
+#       - task: DownloadBuildArtifacts@0
+#         condition: and(succeeded(), eq(variables['run.flag'], 1))
+#         displayName: 'Download Edgelet Artifacts'
+#         inputs:
+#           buildType: specific
+#           project: $(vsts.project)
+#           pipeline: $(edgelet.package.build)
+#           branchName: $(edgelet.package.branchName)
+#           buildVersionToDownload: latestFromBranch
+#           downloadPath: '$(Build.StagingDirectory)'
+#           artifactName: $(edgelet.artifact.name)
+#           allowPartiallySucceededBuilds: true
+#       - task: DownloadBuildArtifacts@0
+#         condition: and(succeeded(), eq(variables['run.flag'], 1))
+#         displayName: 'Download Images Artifacts'
+#         inputs:
+#           buildType: specific
+#           project: $(vsts.project)
+#           pipeline: $(images.build)
+#           branchName: $(images.branchName)
+#           buildVersionToDownload: latestFromBranch
+#           downloadPath: '$(Build.StagingDirectory)'
+#           artifactName: $(images.artifact.name.linux)
+#           allowPartiallySucceededBuilds: true
+#           itemPattern: |
+#             $(images.artifact.name.linux)/IotEdgeQuickstart.linux-arm.tar.gz
+#             $(images.artifact.name.linux)/e2e_deployment_files/$(deploymentFileName)
+#             $(images.artifact.name.linux)/scripts/linux/trcE2ETest.sh
+#             $(images.artifact.name.linux)/artifactInfo.txt
+#             $(images.artifact.name.linux)/CACertificates/certGen.sh
+#             $(images.artifact.name.linux)/CACertificates/openssl_root_ca.cnf
+#       # Deploy connectivity test
+#       - template: templates/connectivity-deploy.yaml
+#         parameters:
+#           release.label: 'ct$(agent.group)'
+#           test.buildNumber: '$(Build.BuildNumber)'
+#           test.buildId: '$(Build.BuildId)'
+#           build.source.branch: '$(Build.SourceBranchName)'
+#           build.repo.path: '$(Build.SourcesDirectory)'
+#           edgelet.source.branch: '$(edgelet.package.branchName)'
+#           images.source.branch: '$(images.branchName)'
+#           edgelet.artifact.name: '$(edgelet.artifact.name)'
+#           images.artifact.name: '$(images.artifact.name.linux)'
+#           container.registry: '$(container.registry)'
+#           container.registry.username: '$(edgebuilds-azurecr-io-username)'
+#           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
+#           iotHub.connectionString: '$(EdgeConnectivityTestHubARM32ConnString)'
+#           eventHub.connectionString: '$(EdgeConnectivityEventHubARM32ConnString)'
+#           deploymentFileName: '$(deploymentFileName)'
+#           upstream.protocol: '$(upstream.protocol)'
+#           edgeHubRestartTest.restartPeriod: '$(edgeHubRestartTest.restartPeriod)'
+#           edgeHubRestartTest.sdkOperationTimeout: '$(edgeHubRestartTest.sdkOperationTimeout)'
+#           testDuration: '$(testrun.duration)'
+#           testStartDelay: '$(testStartDelay.arm32)'
+#           networkController.frequencies: '$(testrun.network.frequencies)'
+#           networkController.runProfile: '$(testrun.network.runProfile)'
+#           networkController.description: '$(testrun.network.description)'
+#           logAnalyticsWorkspaceId: '$(kvLogAnalyticWorkspaceId)'
+#           logAnalyticsSharedKey: '$(kvLogAnalyticSharedKey)'
+#           testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'
+#           testResultCoordinator.verificationDelay: '$(testResultCoordinator.verificationDelay)'
+#           testResultCoordinator.storageAccountConnectionString: '$(EdgeConnectivityStorageAccountConnString)'
+#           metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
+#           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
+#           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
+#           metricsCollector.hostPlatform: 'linux_arm32v7_moby'
+#           edgeRuntime.buildNumber: '$(edgeRuntime.buildNumber)'
+#           customEdgeAgent.image: '$(customEdgeAgent.image)'
+#           customEdgeHub.image: '$(customEdgeHub.image)'
+#           test.runtimeLogLevel: '$(test.runtimeLogLevel)'
+#           connectivity.nested: 'false'
+#           testInfo.testName: '$(testInfo.testName)'
