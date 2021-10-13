@@ -30,12 +30,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         const int DefaultShutdownWaitPeriod = 60;
         const SslProtocols DefaultSslProtocols = SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12;
 
-        private static readonly ConsoleEventListener ConsoleListener = new ConsoleEventListener();
-
+        static readonly ConsoleEventListener ConsoleListener = new ConsoleEventListener();
         public static int Main()
         {
-            ConsoleEventListener consoleListener2 = new ConsoleEventListener();
-
             Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Edge Hub Main()");
             IConfigurationRoot configuration = new ConfigurationBuilder()
                 .AddJsonFile(Constants.ConfigFileName)
@@ -47,6 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         static async Task<int> MainAsync(IConfigurationRoot configuration)
         {
+            ConsoleEventListener consoleListen = new ConsoleEventListener();
             string logLevel = configuration.GetValue($"{Logger.RuntimeLogLevelEnvKey}", "info");
             Logger.SetLogLevel(logLevel);
 
