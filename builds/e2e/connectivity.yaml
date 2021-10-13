@@ -105,7 +105,7 @@ jobs:
           sudo systemctl status otel-collector
         displayName: 'Install OpenTelemetry Collector'
       - bash: |
-          docker run -d -p 8411:8411 openzipkin/zipkin
+          docker run -d -p 8411:9411 openzipkin/zipkin
         displayName: 'Install and Run Zipkin'
       - task: Bash@3
         name: Print_test_parameters
