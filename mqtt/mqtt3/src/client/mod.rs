@@ -328,8 +328,10 @@ where
                                     client_id,
                                     crate::proto::ClientId::ServerGenerated,
                                 ) {
-                                    id @ crate::proto::ClientId::ServerGenerated
-                                    | id @ crate::proto::ClientId::IdWithCleanSession(_) => id,
+                                    id
+                                    @
+                                    (crate::proto::ClientId::ServerGenerated
+                                    | crate::proto::ClientId::IdWithCleanSession(_)) => id,
                                     crate::proto::ClientId::IdWithExistingSession(id) => {
                                         crate::proto::ClientId::IdWithCleanSession(id)
                                     }

@@ -1,5 +1,5 @@
 pub async fn shutdown() {
-    imp::shutdown().await
+    imp::shutdown().await;
 }
 
 #[cfg(unix)]

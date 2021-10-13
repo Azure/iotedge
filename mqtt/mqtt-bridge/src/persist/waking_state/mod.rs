@@ -30,6 +30,7 @@ pub trait StreamWakeableState {
 }
 
 #[cfg(test)]
+#[allow(clippy::semicolon_if_nothing_returned)]
 mod tests {
     use std::{num::NonZeroUsize, pin::Pin, sync::Arc, task::Context, task::Poll};
 
@@ -187,8 +188,7 @@ mod tests {
 
     #[test_case(TestRingBuffer::default())]
     #[test_case(TestWakingMemoryStore::default())]
-    #[tokio::test]
-    async fn remove_loaded(mut state: impl StreamWakeableState) {
+    fn remove_loaded(mut state: impl StreamWakeableState) {
         let pub1 = Publication {
             topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,

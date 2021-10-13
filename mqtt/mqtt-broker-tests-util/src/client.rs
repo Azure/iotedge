@@ -61,7 +61,7 @@ impl TestClient {
             payload: payload.into(),
         })
         .await
-        .expect("couldn't publish")
+        .expect("couldn't publish");
     }
 
     pub async fn publish_qos1(
@@ -77,7 +77,7 @@ impl TestClient {
             payload: payload.into(),
         })
         .await
-        .expect("couldn't publish")
+        .expect("couldn't publish");
     }
 
     pub async fn publish_qos2(
@@ -93,7 +93,7 @@ impl TestClient {
             payload: payload.into(),
         })
         .await
-        .expect("couldn't publish")
+        .expect("couldn't publish");
     }
 
     pub async fn subscribe(&mut self, topic_filter: impl Into<String>, qos: QoS) {
@@ -103,7 +103,7 @@ impl TestClient {
                 qos,
             })
             .await
-            .expect("couldn't subscribe to a topic")
+            .expect("couldn't subscribe to a topic");
     }
 
     /// Send the Disconnect packet and shutdown the client properly.
@@ -124,7 +124,7 @@ impl TestClient {
             .expect("unable to send termination signal");
         self.event_loop_handle
             .await
-            .expect("couldn't terminate a client")
+            .expect("couldn't terminate a client");
     }
 
     pub fn connections(&mut self) -> &mut UnboundedReceiverStream<Event> {

@@ -108,6 +108,7 @@ pub enum ServerCertificateError {
 }
 
 #[cfg(test)]
+#[allow(clippy::semicolon_if_nothing_returned)]
 mod tests {
     use std::pin::Pin;
 

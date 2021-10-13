@@ -30,6 +30,6 @@ impl StreamWakeableState for TestWakingMemoryStore {
     }
 
     fn set_waker(&mut self, waker: &Waker) {
-        self.0.set_waker(waker)
+        self.0.set_waker(waker);
     }
 }

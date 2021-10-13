@@ -24,7 +24,7 @@ impl SidecarShutdownHandle {
     }
 
     pub async fn shutdown(self) {
-        self.0.await
+        self.0.await;
     }
 }
 

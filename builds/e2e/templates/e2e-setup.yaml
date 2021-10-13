@@ -225,7 +225,8 @@ steps:
       rootCaCertificatePath = "$rootCaCertificatePath";
       rootCaPrivateKeyPath = "$rootCaPrivateKeyPath";
       logFile = Join-Path '$(binDir)' 'testoutput.log';
-      verbose = '$(verbose)'
+      verbose = '$(verbose)';
+      getSupportBundle = 'true'
     }
     
     if ('$(nestededge)' -eq 'true')

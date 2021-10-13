@@ -129,6 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.ManifestSigningLaunchSettingsPath = Option.Maybe(Get("manifestSigningLaunchSettingsPath"));
             this.ManifestSignerClientDirectory = Option.Maybe(Get("manifestSignerClientDirectory"));
             this.ManifestSignerClientProjectPath = Option.Maybe(Get("manifestSignerClientProjectPath"));
+            this.GetSupportBundle = context.GetValue("getSupportBundle", false);
         }
 
         static readonly Lazy<Context> Default = new Lazy<Context>(() => new Context());
@@ -232,5 +233,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public Option<string> ManifestSignerClientDirectory { get; }
 
         public Option<string> ManifestSignerClientProjectPath { get; }
+      
+        public bool GetSupportBundle { get; }
     }
 }

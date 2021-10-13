@@ -228,10 +228,10 @@ where
         match activity.operation() {
             Operation::Connect => self.authorize_connect(activity),
             Operation::Publish(publish) => {
-                self.authorize_topic(activity, &publish.publication().topic_name())
+                self.authorize_topic(activity, publish.publication().topic_name())
             }
             Operation::Subscribe(subscribe) => {
-                self.authorize_topic(activity, &subscribe.topic_filter())
+                self.authorize_topic(activity, subscribe.topic_filter())
             }
         }
     }
@@ -325,7 +325,7 @@ mod tests {
     fn it_forbids_to_connect(activity: &Activity) {
         let authorizer = authorizer(AllowAll, vec![]);
 
-        let auth = authorizer.authorize(&activity);
+        let auth = authorizer.authorize(activity);
 
         assert_matches!(auth, Ok(Authorization::Forbidden(_)));
     }
@@ -353,7 +353,7 @@ mod tests {
         }];
         let authorizer = authorizer(DenyAll, identities);
 
-        let auth = authorizer.authorize(&activity);
+        let auth = authorizer.authorize(activity);
 
         assert_matches!(auth, Ok(Authorization::Allowed));
     }
@@ -382,7 +382,7 @@ mod tests {
         }];
         let authorizer = authorizer(DenyAll, identities);
 
-        let auth = authorizer.authorize(&activity);
+        let auth = authorizer.authorize(activity);
 
         assert_matches!(auth, Ok(Authorization::Allowed));
     }
@@ -417,7 +417,7 @@ mod tests {
         ];
         let authorizer = authorizer(DenyAll, identities);
 
-        let auth = authorizer.authorize(&activity);
+        let auth = authorizer.authorize(activity);
 
         assert_matches!(auth, Ok(Authorization::Allowed));
     }
@@ -452,7 +452,7 @@ mod tests {
         ];
         let authorizer = authorizer(DenyAll, identities);
 
-        let auth = authorizer.authorize(&activity);
+        let auth = authorizer.authorize(activity);
 
         assert_matches!(auth, Ok(Authorization::Allowed));
     }
@@ -468,7 +468,7 @@ mod tests {
         let authorizer =
             EdgeHubAuthorizer::without_ready_handle(inner, "edgehub_id", "myhub.azure-devices.net");
 
-        let auth = authorizer.authorize(&activity);
+        let auth = authorizer.authorize(activity);
 
         // make sure error message matches inner authorizer.
         assert_matches!(auth, Ok(auth) if auth == Authorization::Forbidden("not allowed inner".to_string()));
@@ -488,7 +488,7 @@ mod tests {
         // these primitives must be denied, but overridden by AllowAll
         let authorizer = authorizer(AllowAll, vec![]);
 
-        let auth = authorizer.authorize(&activity);
+        let auth = authorizer.authorize(activity);
 
         assert_matches!(auth, Ok(Authorization::Allowed));
     }
@@ -516,7 +516,7 @@ mod tests {
         }];
         let authorizer = authorizer(DenyAll, identities);
 
-        let auth = authorizer.authorize(&activity);
+        let auth = authorizer.authorize(activity);
 
         assert_matches!(auth, Ok(Authorization::Allowed));
     }
@@ -544,7 +544,7 @@ mod tests {
         }];
         let authorizer = authorizer(DenyAll, identities);
 
-        let auth = authorizer.authorize(&activity);
+        let auth = authorizer.authorize(activity);
 
         assert_matches!(auth, Ok(Authorization::Allowed));
     }
@@ -580,7 +580,7 @@ mod tests {
         ];
         let authorizer = authorizer(DenyAll, identities);
 
-        let auth = authorizer.authorize(&activity);
+        let auth = authorizer.authorize(activity);
 
         assert_matches!(auth, Ok(Authorization::Allowed));
     }
@@ -616,7 +616,7 @@ mod tests {
         ];
         let authorizer = authorizer(DenyAll, identities);
 
-        let auth = authorizer.authorize(&activity);
+        let auth = authorizer.authorize(activity);
 
         assert_matches!(auth, Ok(Authorization::Allowed));
     }
@@ -640,7 +640,7 @@ mod tests {
         ];
         let authorizer = authorizer(DenyAll, identities);
 
-        let auth = authorizer.authorize(&activity);
+        let auth = authorizer.authorize(activity);
 
         assert_matches!(auth, Ok(Authorization::Forbidden(_)));
     }

@@ -215,7 +215,7 @@ where
                     }
                     Either::Right((Ok(()), inc)) => {
                         drop(inc);
-                        debug!("outgoing finished with ok")
+                        debug!("outgoing finished with ok");
                     }
                     Either::Right((Err((mut recv, e)), inc)) => {
                         // outgoing task failed with an error.
