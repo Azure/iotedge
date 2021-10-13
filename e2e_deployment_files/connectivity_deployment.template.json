@@ -96,11 +96,14 @@
               },
               "testResultCoordinatorUrl": {
                 "value": "http://testResultCoordinator:5001"
-              }
+              },
+              "OTEL_COLLECTOR_ENDPOINT": {
+                "value": "http://host.docker.internal:4317"
+              }              
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
+              "createOptions": "{\"HostConfig\":{\"ExtraHosts\":[\"host.docker.internal:host-gateway\"]}}"
             }
           },
           "loadGen2": {
@@ -129,11 +132,14 @@
               },
               "testResultCoordinatorUrl": {
                 "value": "http://testResultCoordinator:5001"
-              }
+              },
+              "OTEL_COLLECTOR_ENDPOINT": {
+                "value": "http://host.docker.internal:4317"
+              }              
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
+              "createOptions": "{\"HostConfig\":{\"ExtraHosts\":[\"host.docker.internal:host-gateway\"]}}"
             }
           },
           "directMethodSender1": {
