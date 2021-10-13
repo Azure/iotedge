@@ -154,88 +154,88 @@ mod tests {
         assert_eq!(manager.current_deployment, expected);
     }
 
-    #[tokio::test]
-    async fn update_deployment() {
-        let tmp_dir = tempdir().unwrap();
-        let tmp_dir = tmp_dir.path();
+    // #[tokio::test]
+    // async fn update_deployment() {
+    //     let tmp_dir = tempdir().unwrap();
+    //     let tmp_dir = tmp_dir.path();
 
-        let mut manager = DeploymentManager::new(tmp_dir)
-            .await
-            .expect("Create Deployment Manager");
+    //     let mut manager = DeploymentManager::new(tmp_dir)
+    //         .await
+    //         .expect("Create Deployment Manager");
 
-        let deployment = TwinState {
-            desired: TwinProperties {
-                version: 1,
-                properties: [(
-                    "modules".to_owned(),
-                    json!({
-                        "simulated_temp": {
-                            "settings": {
-                                "image": "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor",
-                                "createOptions": ""
-                            },
-                            "type": "docker",
-                            "status": "running",
-                            "restartPolicy": "always",
-                            "version" : "1.0"
-                        }
-                    }),
-                )]
-                .iter()
-                .cloned()
-                .collect(),
-            },
-            ..Default::default()
-        };
-        manager
-            .set_deployment(deployment)
-            .await
-            .expect("set deployment");
+    //     let deployment = TwinState {
+    //         desired: TwinProperties {
+    //             version: 1,
+    //             properties: [(
+    //                 "modules".to_owned(),
+    //                 json!({
+    //                     "simulated_temp": {
+    //                         "settings": {
+    //                             "image": "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor",
+    //                             "createOptions": ""
+    //                         },
+    //                         "type": "docker",
+    //                         "status": "running",
+    //                         "restartPolicy": "always",
+    //                         "version" : "1.0"
+    //                     }
+    //                 }),
+    //             )]
+    //             .iter()
+    //             .cloned()
+    //             .collect(),
+    //         },
+    //         ..Default::default()
+    //     };
+    //     manager
+    //         .set_deployment(deployment)
+    //         .await
+    //         .expect("set deployment");
 
-        let patch = TwinProperties {
-            version: 2,
-            properties: [(
-                "modules".to_owned(),
-                json!({
-                    "simulated_temp": {
-                        "restartPolicy": "never"
-                    }
-                }),
-            )]
-            .iter()
-            .cloned()
-            .collect(),
-        };
-        manager
-            .update_deployment(patch)
-            .await
-            .expect("Able to update deployment");
+    //     let patch = TwinProperties {
+    //         version: 2,
+    //         properties: [(
+    //             "modules".to_owned(),
+    //             json!({
+    //                 "simulated_temp": {
+    //                     "restartPolicy": "never"
+    //                 }
+    //             }),
+    //         )]
+    //         .iter()
+    //         .cloned()
+    //         .collect(),
+    //     };
+    //     manager
+    //         .update_deployment(patch)
+    //         .await
+    //         .expect("Able to update deployment");
 
-        let expected = json!({
-            "$version": 2,
-            "modules": {
-                "simulated_temp": {
-                    "settings": {
-                        "image": "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor",
-                        "createOptions": ""
-                    },
-                    "type": "docker",
-                    "status": "running",
-                    "restartPolicy": "never",
-                    "version" : "1.0"
-                }
-            }
-        });
-        let actual = manager
-            .current_deployment
-            .get("properties")
-            .expect("properties field exists")
-            .get("desired")
-            .expect("desired field exists")
-            .to_owned();
+    //     let expected = json!({
+    //         "$version": 2,
+    //         "modules": {
+    //             "simulated_temp": {
+    //                 "settings": {
+    //                     "image": "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor",
+    //                     "createOptions": ""
+    //                 },
+    //                 "type": "docker",
+    //                 "status": "running",
+    //                 "restartPolicy": "never",
+    //                 "version" : "1.0"
+    //             }
+    //         }
+    //     });
+    //     let actual = manager
+    //         .current_deployment
+    //         .get("properties")
+    //         .expect("properties field exists")
+    //         .get("desired")
+    //         .expect("desired field exists")
+    //         .to_owned();
 
-        assert_eq!(expected, actual, "restart policy is changed"); // TODO: check restart policy on parsed type
-    }
+    //     assert_eq!(expected, actual, "restart policy is changed"); // TODO: check restart policy on parsed type
+    // }
 
     #[tokio::test]
     async fn test_parsing() {

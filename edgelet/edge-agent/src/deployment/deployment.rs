@@ -15,17 +15,58 @@ pub struct Properties {
 }
 
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PropertiesInner {
     #[serde(default)]
     modules: HashMap<String, Module>,
+    system_modules: SystemModules,
+    runtime: Runtime,
+    schema_version: String,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Module {
     settings: DockerConfig,
+    r#type: RuntimeType,
+    status: Option<String>,
+    restart_policy: Option<String>,
+    version: Option<String>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SystemModules {
+    edge_hub: Module,
+    edge_agent: Module,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+pub struct Runtime {
+    settings: RuntimeSettings,
+    r#type: RuntimeType,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeSettings {
+    min_docker_version: String,
+}
+
+#[derive(Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+pub enum RuntimeType {
+    #[serde(rename = "docker")]
+    Docker,
+}
+
+impl Default for RuntimeType {
+    fn default() -> Self {
+        RuntimeType::Docker
+    }
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DockerConfig {
     image: String,
 
@@ -58,6 +99,10 @@ fn deserialize_create_options<'de, D>(
 where
     D: serde::Deserializer<'de>,
 {
-    let s: &str = serde::de::Deserialize::deserialize(deserializer)?;
-    serde_json::from_str(s).map_err(serde::de::Error::custom)
+    let s: String = serde::de::Deserialize::deserialize(deserializer)?;
+    if s.is_empty() {
+        Ok(None)
+    } else {
+        serde_json::from_str(&s).map_err(serde::de::Error::custom)
+    }
 }
