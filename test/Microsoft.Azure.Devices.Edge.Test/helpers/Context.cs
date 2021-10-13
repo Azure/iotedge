@@ -233,7 +233,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public Option<string> ManifestSignerClientDirectory { get; }
 
         public Option<string> ManifestSignerClientProjectPath { get; }
-      
         public bool GetSupportBundle { get; }
     }
 }
