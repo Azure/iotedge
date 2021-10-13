@@ -177,6 +177,19 @@ provisioning:
 #   endpoint: "http://localhost:9999"
 #   dynamic_reprovisioning: false
 
+# ==============================================================================
+# Elevated Docker Permissions Flag
+# ==============================================================================
+#
+# Some docker capabilities capabilities can be used to gain root access. 
+# By default, the --privileged flag and all capabilities listed in the CapAdd
+# field of the docker HostConfig are allowed.
+#
+# If no modules require privileged or additional capabilities, uncomment the following
+# line to improve the security of the device.
+#
+# allow_elevated_docker_permissions = false
+
 ###############################################################################
 # Certificate settings
 ###############################################################################
