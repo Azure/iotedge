@@ -104,6 +104,9 @@ jobs:
           sudo dpkg -i ./otel-collector_0.33.0_amd64.deb &&
           sudo systemctl status otel-collector
         displayName: 'Install OpenTelemetry Collector'
+      - bash: |
+          docker run -d -p 8411:9411 openzipkin/zipkin
+        displayName: 'Install and Run Zipkin'
       - task: Bash@3
         name: Print_test_parameters
         displayName: 'Print test parameters'
