@@ -10,10 +10,10 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.Test
         private readonly static DateTime testTime = DateTime.UnixEpoch;
 
 
-        // This test has been added as a part of the fix for Partner bug where filtering based on AllowedMetrics doesn't work correctly.
-        // Unit tests exist for both the MetricFilter and for the PrometheusParser. However, the reason this bug wasn't caught during
-        // testing is because there isn't a functional test that verifies that the outcome of the interaction between the
-        // PrometheusParser and the MetricFilter is what is desired.
+        // These tests have been added as a part of the fix for Partner bug where filtering based on AllowedMetrics doesn't work correctly.
+        // Unit tests exist for both the MetricFilter and for the PrometheusParser. However, some bugs were not caught during testing
+        // because there isn't a functional test that verifies that the outcome of the interaction between the PrometheusParser and the
+        // MetricFilter is what is actually desired.
 
         // The Azure Monitor code does not lend itself to mocking (using Dependency Injection) -- Too many changes need to be made in
         // classes that are not meant to be changed. "MiscellaneousTests" seemed to be the most reasonable way to test the offending
@@ -86,5 +86,56 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.Test
             bigList = bigList.Where(x => filter.Matches(x));
             Assert.True(bigList.Count() == 2);
         }
+
+        // Label Equality & regex tests -- added for completeness and as a safeguard against future changes (and therefore, potential bugs)
+
+        [Fact]
+        public void TestSimpleWildcardStar()
+        {
+            string prometheusMessage = "edgehub_gettwin_total{iothub=\"IoTHub.azure-devices.net\",edge_device=\"Ubuntu-20\",instance_number=\"b9e51990-f3f9-4d90-8fc7-ef62d01929b2\",module_name=\"edgeHub\",ms_telemetry=\"False\"} 1683388"
+                + System.Environment.NewLine
+                + "edgehub_gettwin_total{iothub =\"IoTHub.azure-devices.net\",edge_device=\"Ubuntu-20\",instance_number=\"b9e51990-f3f9-4d90-8fc7-ef62d01929b2\",module_name=\"edgeAgent\",ms_telemetry=\"False\"} 5134109"
+                + System.Environment.NewLine
+                + "edgehub_gettwin_total{iothub =\"IoTHub.azure-devices.net\",edge_device=\"Ubuntu-21\",instance_number=\"023163b5-1db5-41bc-b57e-4c4d1047d9c9\",id=\"DeviceId: Ubuntu-20; ModuleId: IoTEdgeMetricsCollector [IotHubHostName: IoTHub.azure-devices.net]\"} 2"
+                + System.Environment.NewLine
+                + "edgehub_gettwin_total{iothub =\"IoTHub.azure-devices.net\",edge_device=\"Ubuntu-20\",instance_number=\"023163b5-1db5-41bc-b57e-4c4d1047d9c9\",id=\"DeviceId: Ubuntu-20; ModuleId: $edgeHub [IotHubHostName: IoTHub.azure-devices.net]\"} 1";
+
+            MetricFilter filter = new MetricFilter("*");
+
+            IEnumerable<Metric> metrics = PrometheusMetricsParser.ParseMetrics(testTime, prometheusMessage, "http://VeryNoisyModule:9001/metrics");
+
+            // verify this fails (despite metric & label matching) because endpoint isn't specified
+            IEnumerable<Metric> result = metrics.Where(x => filter.Matches(x));
+            Assert.True(result.Count() == 4);
+        }
+
+        [Fact]
+        public void TestLabelMatch()
+        {
+            string prometheusMessage = "edgehub_gettwin_total{iothub=\"IoTHub.azure-devices.net\",edge_device=\"Ubuntu-20\",instance_number=\"b9e51990-f3f9-4d90-8fc7-ef62d01929b2\",module_name=\"edgeHub\",ms_telemetry=\"False\"} 1683388"
+                + System.Environment.NewLine
+                + "edgehub_gettwin_total{iothub =\"IoTHub.azure-devices.net\",edge_device=\"Ubuntu-20\",instance_number=\"b9e51990-f3f9-4d90-8fc7-ef62d01929b2\",module_name=\"edgeAgent\",ms_telemetry=\"False\"} 5134109"
+                + System.Environment.NewLine
+                + "edgehub_gettwin_total{iothub =\"IoTHub.azure-devices.net\",edge_device=\"Ubuntu-21\",instance_number=\"023163b5-1db5-41bc-b57e-4c4d1047d9c9\",id=\"DeviceId: Ubuntu-20; ModuleId: IoTEdgeMetricsCollector [IotHubHostName: IoTHub.azure-devices.net]\"} 2"
+                + System.Environment.NewLine
+                + "edgehub_gettwin_total{iothub =\"IoTHub.azure-devices.net\",edge_device=\"Ubuntu-20\",instance_number=\"023163b5-1db5-41bc-b57e-4c4d1047d9c9\",id=\"DeviceId: Ubuntu-20; ModuleId: $edgeHub [IotHubHostName: IoTHub.azure-devices.net]\"} 1";
+
+            MetricFilter filter = new MetricFilter("edgehub_gettwin_total{edge_device!=\"Ubuntu-20\"}");
+
+            IEnumerable<Metric> metrics = PrometheusMetricsParser.ParseMetrics(testTime, prometheusMessage, "http://VeryNoisyModule:9001/metrics");
+
+            IEnumerable<Metric> result = metrics.Where(x => filter.Matches(x));
+            Assert.True(result.Count() == 1);
+            Assert.Contains("Ubuntu-21", result.ElementAt(0).Tags.Values);
+
+            filter = new MetricFilter("edgehub_gettwin_total{instance_number=\"b9e51990-f3f9-4d90-8fc7-ef62d01929b2\"}");
+            result = metrics.Where(x => filter.Matches(x));
+            Assert.True(result.Count() == 2);
+
+            filter = new MetricFilter("edgehub_gettwin_total{instance_number=\"023163b5-1db5-41bc-b57e-4c4d1047d9c9\", edge_device!=\"Ubuntu-20\"}");
+            result = metrics.Where(x => filter.Matches(x));
+            Assert.True(result.Count() == 1);
+        }
+
     }
 }
