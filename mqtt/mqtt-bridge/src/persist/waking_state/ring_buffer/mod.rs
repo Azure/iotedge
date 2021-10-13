@@ -1,3 +1,6 @@
+#![allow(clippy::semicolon_if_nothing_returned)]
+#![allow(clippy::bool_assert_comparison)]
+
 mod block;
 pub mod error;
 pub mod flush;
@@ -736,7 +739,7 @@ mod tests {
 
     fn make_ring_buffer(max_size: NonZeroU64, flush_options: FlushOptions) -> RingBuffer {
         let file = NamedTempFile::new().expect("file");
-        RingBuffer::new(&file.path(), max_size, flush_options).expect("ring buffer")
+        RingBuffer::new(file.path(), max_size, flush_options).expect("ring buffer")
     }
 
     fn total_size(publication: &Publication) -> u64 {
@@ -806,7 +809,7 @@ mod tests {
             }
             // Create ring buffer again and validate pointers match where they left off.
             {
-                let result = RingBuffer::new(&file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
+                let result = RingBuffer::new(file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
                 assert!(result.is_ok());
                 let mut rb = result.unwrap();
                 let loaded_read = rb.metadata.file_pointers.read_begin;
@@ -894,7 +897,7 @@ mod tests {
         let read;
         let write;
         {
-            let result = RingBuffer::new(&file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
+            let result = RingBuffer::new(file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
             assert!(result.is_ok());
             let mut rb = result.unwrap();
 
@@ -934,7 +937,7 @@ mod tests {
             write = rb.metadata.file_pointers.write;
         }
         {
-            let result = RingBuffer::new(&file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
+            let result = RingBuffer::new(file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
             assert!(result.is_ok());
             let rb = result.unwrap();
 
@@ -965,7 +968,7 @@ mod tests {
         let read;
         let mut write;
         {
-            let mut rb = RingBuffer::new(&file.path(), max_file_size, FLUSH_OPTIONS).unwrap();
+            let mut rb = RingBuffer::new(file.path(), max_file_size, FLUSH_OPTIONS).unwrap();
 
             // write some
             for _ in 0..10 {
@@ -1004,7 +1007,7 @@ mod tests {
             // correct pointers and read again.
         }
         {
-            let rb = RingBuffer::new(&file.path(), max_file_size, FLUSH_OPTIONS).unwrap();
+            let rb = RingBuffer::new(file.path(), max_file_size, FLUSH_OPTIONS).unwrap();
 
             let loaded_read = rb.metadata.file_pointers.read_begin;
             let loaded_write = rb.metadata.file_pointers.write;
@@ -1034,7 +1037,7 @@ mod tests {
         let mut keys = vec![];
         // Create ring buffer and perform some operations and then destruct.
         {
-            let result = RingBuffer::new(&file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
+            let result = RingBuffer::new(file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
             assert!(result.is_ok());
             let mut rb = result.unwrap();
             for _ in 0..10 {
@@ -1059,7 +1062,7 @@ mod tests {
         }
         // Create ring buffer again and validate pointers match where they left off.
         {
-            let result = RingBuffer::new(&file.path(), MAX_FILE_SIZE_HALF_NON_ZERO, FLUSH_OPTIONS);
+            let result = RingBuffer::new(file.path(), MAX_FILE_SIZE_HALF_NON_ZERO, FLUSH_OPTIONS);
             assert_matches!(
                 result,
                 Err(PersistError::RingBuffer(RingBufferError::FileTruncation {
@@ -1097,7 +1100,7 @@ mod tests {
         };
         let mut keys = vec![];
         {
-            let result = RingBuffer::new(&file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
+            let result = RingBuffer::new(file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
             assert!(result.is_ok());
             let mut rb = result.unwrap();
             // write some
@@ -1125,7 +1128,7 @@ mod tests {
             assert_eq!(rb.metadata.order, 5);
         }
         {
-            let result = RingBuffer::new(&file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
+            let result = RingBuffer::new(file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
             assert!(result.is_ok());
             let mut rb = result.unwrap();
             assert_eq!(rb.metadata.order, 5);
@@ -1366,7 +1369,7 @@ mod tests {
         };
         let mut keys = vec![];
         {
-            let result = RingBuffer::new(&file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
+            let result = RingBuffer::new(file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
             assert!(result.is_ok());
             let mut rb = result.unwrap();
 
@@ -1394,7 +1397,7 @@ mod tests {
             }
         }
         {
-            let result = RingBuffer::new(&file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
+            let result = RingBuffer::new(file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
             assert!(result.is_ok());
             let mut rb = result.unwrap();
 
@@ -1423,7 +1426,7 @@ mod tests {
 
         let mut entries = vec![];
         {
-            let result = RingBuffer::new(&file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
+            let result = RingBuffer::new(file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
             assert!(result.is_ok());
             let mut rb = result.unwrap();
 
@@ -1485,7 +1488,7 @@ mod tests {
             // correct pointers and read again.
         }
         {
-            let result = RingBuffer::new(&file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
+            let result = RingBuffer::new(file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
             assert!(result.is_ok());
             let mut rb = result.unwrap();
 
@@ -1510,7 +1513,7 @@ mod tests {
         assert_matches!(result, Ok(_));
         let file = result.unwrap();
 
-        let result = RingBuffer::new(&file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
+        let result = RingBuffer::new(file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
         assert!(result.is_ok());
         let mut rb = result.unwrap();
         let publication = Publication {
@@ -1552,7 +1555,7 @@ mod tests {
         let file = result.unwrap();
 
         let result = RingBuffer::new(
-            &file.path(),
+            file.path(),
             NonZeroU64::new(file_size).unwrap(),
             FLUSH_OPTIONS,
         );
@@ -1602,7 +1605,7 @@ mod tests {
         let mut keys = vec![];
         {
             let result = RingBuffer::new(
-                &file.path(),
+                file.path(),
                 NonZeroU64::new(file_size).unwrap(),
                 FLUSH_OPTIONS,
             );
@@ -1618,7 +1621,7 @@ mod tests {
         }
 
         let result = RingBuffer::new(
-            &file.path(),
+            file.path(),
             NonZeroU64::new(file_size).unwrap(),
             FLUSH_OPTIONS,
         );

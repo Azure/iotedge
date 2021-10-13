@@ -1,10 +1,24 @@
 trigger: none
 pr: none
 
+# Test schedule the same between master and release/1.2, but offset 12 hours. 
+# Don't run any scheduled tests on Sunday, as release/1.1 runs its scheduled tests then.
+schedules:
+- cron: "0 0 * * 1,2,3,4,5,6"
+  displayName: Daily build master
+  branches:
+    include:
+    - master
+  always: true
+- cron: "0 12 * * 1,2,3,4,5,6"
+  displayName: Daily build release/1.2
+  branches:
+    include:
+    - release/1.2
+  always: true
+
 variables:
-  NugetSecurityAnalysisWarningLevel: warn
   images.artifact.name.linux: 'core-linux'
-  vsts.project: $(System.TeamProjectId)
 
 resources:
   pipelines:
@@ -129,9 +143,9 @@ jobs:
         displayName: 'Download Edgelet Artifacts'
         inputs:
           buildType: specific
-          project: $(vsts.project)
-          pipeline: $(edgelet.package.build)
-          branchName: $(edgelet.package.branchName)
+          project: $(resources.pipeline.packages.projectID)
+          pipeline: $(resources.pipeline.packages.pipelineName)
+          branchName: $(resources.pipeline.packages.sourceBranch)
           buildVersionToDownload: latestFromBranch
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
@@ -141,9 +155,9 @@ jobs:
         displayName: 'Download Images Artifacts'
         inputs:
           buildType: specific
-          project: $(vsts.project)
-          pipeline: $(images.build)
-          branchName: $(images.branchName)
+          project: $(resources.pipeline.images.projectID)
+          pipeline: $(resources.pipeline.images.pipelineName)
+          branchName: $(resources.pipeline.images.sourceBranch)
           buildVersionToDownload: latestFromBranch
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.linux)

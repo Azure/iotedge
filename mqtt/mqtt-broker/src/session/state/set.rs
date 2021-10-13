@@ -108,6 +108,7 @@ impl<'a, V> Iterator for Iter<'a, V> {
 }
 
 #[cfg(test)]
+#[allow(clippy::bool_assert_comparison)]
 mod tests {
     use super::SmallIndexSet;
 

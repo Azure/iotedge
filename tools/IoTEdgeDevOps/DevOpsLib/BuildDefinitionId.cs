@@ -13,7 +13,6 @@ namespace DevOpsLib
         ImageRelease = 31987,
         LibiothsmCI = 39853,
         ConnectivityTest = 108949,
-        NestedConnectivityTest = 167737,
         LonghaulTestEnv1 = 66429,
         LonghaulTestEnv2 = 93654,
         LonghaulTestEnv3 = 93725,
@@ -21,5 +20,6 @@ namespace DevOpsLib
         StressTestEnv1 = 66357,
         StressTestEnv2 = 96102,
         StressTestEnv3 = 96103,
+        NestedISA95 = 167652,
     }
 }

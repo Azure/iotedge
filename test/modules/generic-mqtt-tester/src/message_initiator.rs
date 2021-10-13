@@ -22,6 +22,8 @@ use trc_client::{MessageTestResult, TrcClient};
 
 use crate::{settings::Settings, ExitedWork, MessageTesterError, ShutdownHandle};
 
+const POST_MESSAGE_WAIT: Duration = Duration::from_secs(60);
+
 /// Responsible for starting to send the messages that will be relayed and
 /// tracked by the test module.
 pub struct MessageInitiator {
@@ -59,10 +61,12 @@ impl MessageInitiator {
             reporting_client,
             payload_size: settings.message_size_in_bytes() as usize,
             messages_to_send: settings.messages_to_send(),
-            initiate_topic: settings.initiate_topic(),
+            initiate_topic: settings.initiate_topic()?,
             message_frequency: settings.message_frequency(),
             batch_id,
-            tracking_id: settings.tracking_id(),
+            tracking_id: settings
+                .tracking_id()
+                .ok_or(MessageTesterError::MissingTrackingId)?,
             report_source,
         })
     }
@@ -77,6 +81,7 @@ impl MessageInitiator {
         loop {
             if Some(seq_num) == self.messages_to_send {
                 info!("stopping test as we have sent max messages",);
+                time::sleep(POST_MESSAGE_WAIT).await;
                 break;
             }
 
@@ -84,7 +89,7 @@ impl MessageInitiator {
             let mut payload = BytesMut::with_capacity(self.payload_size + 4);
             payload.put_u32(seq_num);
             payload.put_u128_le(self.batch_id.to_u128_le());
-            payload.put_slice(&dummy_data);
+            payload.put_slice(dummy_data);
             let publication = Publication {
                 topic_name: self.initiate_topic.clone(),
                 qos: QoS::ExactlyOnce,

@@ -66,6 +66,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 await receiver.OpenAsync();
                 await receiver.SetMethodHandlerAsync("poke", MethodHandler, null);
 
+                var waitStart = DateTime.Now;
+                var isConnected = false;
+
+                while (!isConnected && (DateTime.Now - waitStart) < TimeSpan.FromSeconds(30))
+                {
+                    var connectedDevice = await rm.GetModuleAsync(edgeDeviceId, receiverModuleName);
+                    isConnected = connectedDevice.ConnectionState == DeviceConnectionState.Connected;
+                }
+
+                Assert.True(isConnected);
+
                 // Need longer sleep to ensure receiver is completely initialized
                 await Task.Delay(TimeSpan.FromSeconds(10));
 
@@ -146,6 +157,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 receiver = DeviceClient.CreateFromConnectionString(receiverModuleConnectionString, transportSettings);
                 await receiver.OpenAsync();
                 await receiver.SetMethodHandlerAsync("poke", MethodHandler, null);
+
+                var waitStart = DateTime.Now;
+                var isConnected = false;
+
+                while (!isConnected && (DateTime.Now - waitStart) < TimeSpan.FromSeconds(30))
+                {
+                    var connectedDevice = await rm.GetDeviceAsync(deviceId);
+                    isConnected = connectedDevice.ConnectionState == DeviceConnectionState.Connected;
+                }
+
+                Assert.True(isConnected);
 
                 // Need longer sleep to ensure receiver is completely initialized
                 await Task.Delay(TimeSpan.FromSeconds(10));

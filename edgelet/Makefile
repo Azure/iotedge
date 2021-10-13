@@ -207,6 +207,9 @@ uninstall:
 	-rm $(DESTDIR)$(docdir)/ThirdPartyNotices
 	-rm $(DESTDIR)$(docdir)/trademark
 
+test:
+	cargo test
+
 clean:
 	rm -rf $(TARGET)
 

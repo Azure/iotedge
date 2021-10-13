@@ -53,4 +53,4 @@ Here's what the `storeAndForwardconfiguration` section of the deployment manifes
 ```
 
 [1]: https://docs.microsoft.com/azure/iot-edge/module-composition
-[2]: https://docs.microsoft.com/en-us/azure/iot-edge/how-to-deploy-modules-cli
+[2]: https://docs.microsoft.com/azure/iot-edge/how-to-deploy-modules-cli

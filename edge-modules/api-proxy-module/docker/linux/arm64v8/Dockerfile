@@ -2,8 +2,16 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License. See https://go.microsoft.com/fwlink/?linkid=2090316 for license information.
 #-------------------------------------------------------------------------------------------------------------
-FROM arm64v8/nginx:1.19.9
+FROM arm64v8/nginx:1.21.1
 WORKDIR /app
+
+RUN apt-get update && \	
+    apt-get install -y libcap2-bin && \
+    rm -rf /var/lib/apt/lists/*	
+RUN setcap 'cap_net_bind_service=+ep' /usr/sbin/nginx
+
+ENV NGINXUSER_ID ${NGINXUSER_ID:-13624}
+RUN usermod -u ${NGINXUSER_ID} nginx
 
 RUN chown -R nginx:nginx /app && \
     chown -R nginx:nginx /var/cache/nginx && \

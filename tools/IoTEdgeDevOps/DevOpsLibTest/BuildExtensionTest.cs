@@ -24,7 +24,6 @@ namespace DevOpsLibTest
             Assert.True(ids.Contains(BuildDefinitionId.EndToEndTest));
             Assert.True(ids.Contains(BuildDefinitionId.NestedEndToEndTest));
             Assert.True(ids.Contains(BuildDefinitionId.ConnectivityTest));
-            Assert.True(ids.Contains(BuildDefinitionId.NestedConnectivityTest));
             Assert.True(ids.Contains(BuildDefinitionId.LonghaulTestEnv1));
             Assert.True(ids.Contains(BuildDefinitionId.LonghaulTestEnv2));
             Assert.True(ids.Contains(BuildDefinitionId.LonghaulTestEnv3));
@@ -32,6 +31,7 @@ namespace DevOpsLibTest
             Assert.True(ids.Contains(BuildDefinitionId.StressTestEnv1));
             Assert.True(ids.Contains(BuildDefinitionId.StressTestEnv2));
             Assert.True(ids.Contains(BuildDefinitionId.StressTestEnv3));
+            Assert.True(ids.Contains(BuildDefinitionId.NestedISA95));
         }
 
         [Test]

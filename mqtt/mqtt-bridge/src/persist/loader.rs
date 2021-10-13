@@ -121,8 +121,7 @@ mod tests {
 
     #[test_case(TestRingBuffer::default())]
     #[test_case(TestWakingMemoryStore::default())]
-    #[tokio::test]
-    async fn smaller_batch_size_respected(state: impl StreamWakeableState) {
+    fn smaller_batch_size_respected(state: impl StreamWakeableState) {
         // setup state
         let state = Arc::new(Mutex::new(state));
 
@@ -159,8 +158,7 @@ mod tests {
 
     #[test_case(TestRingBuffer::default())]
     #[test_case(TestWakingMemoryStore::default())]
-    #[tokio::test]
-    async fn larger_batch_size_respected(state: impl StreamWakeableState) {
+    fn larger_batch_size_respected(state: impl StreamWakeableState) {
         // setup state
         let state = Arc::new(Mutex::new(state));
 
@@ -201,8 +199,7 @@ mod tests {
 
     #[test_case(TestRingBuffer::default())]
     #[test_case(TestWakingMemoryStore::default())]
-    #[tokio::test]
-    async fn ordering_maintained_across_inserts(state: impl StreamWakeableState) {
+    fn ordering_maintained_across_inserts(state: impl StreamWakeableState) {
         // setup state
         let state = Arc::new(Mutex::new(state));
 
@@ -229,7 +226,7 @@ mod tests {
         let mut elements = loader.next_batch().unwrap();
 
         for key in keys {
-            assert_eq!(elements.pop_front().unwrap().0.offset, key.offset)
+            assert_eq!(elements.pop_front().unwrap().0.offset, key.offset);
         }
     }
 

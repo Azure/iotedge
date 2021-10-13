@@ -196,7 +196,7 @@ Note at the end of the above steps the following files are generated:
 Important Note:
 
 -   The Comman Name (CN) in root certificate for each container must contain the Globally Unique Names(GUNs) i.e exampleregistry.azurecr.io/image 
--  Safely store the pass code for the private key for `root_ca_exampleregistry.key` and `root_image.key` and also it will be used in the next steps. 	
+-  Safely store the pass code for the private key for `root_ca_exampleregistry.key` and `root_image.key` and also it will be used in the next steps.     
 
 ## Step 2. Initialize TUF trust collection using Notary client
 Notary initializes the TUF trust collection for each image in the Container Registry. 

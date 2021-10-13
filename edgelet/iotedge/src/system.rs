@@ -9,8 +9,8 @@ use aziotctl_common::system::{
     ServiceDefinition, SERVICE_DEFINITIONS as IS_SERVICES,
 };
 
+use aziot_identity_client_async::Client as IdentityClient;
 use aziot_identity_common_http::ApiVersion;
-use identity_client::IdentityClient;
 
 use crate::error::{Error, ErrorKind};
 
@@ -48,7 +48,7 @@ impl System {
     pub fn get_system_logs(args: &[&OsStr]) -> Result<(), Error> {
         let services: Vec<&str> = SERVICE_DEFINITIONS.iter().map(|s| s.service).collect();
 
-        logs(&services, &args).map_err(|err| {
+        logs(&services, args).map_err(|err| {
             eprintln!("{:#?}", err);
             Error::from(ErrorKind::System)
         })
@@ -82,17 +82,22 @@ impl System {
         })
     }
 
-    pub fn reprovision(runtime: &mut tokio::runtime::Runtime) -> Result<(), Error> {
+    pub async fn reprovision() -> Result<(), Error> {
         let uri = url::Url::parse("unix:///run/aziot/identityd.sock")
             .expect("hard-coded URI should parse");
-        let client = IdentityClient::new(ApiVersion::V2020_09_01, &uri);
-
-        runtime
-            .block_on(client.reprovision_device())
-            .map_err(|err| {
-                eprintln!("Failed to reprovision: {}", err);
+        let client = IdentityClient::new(
+            ApiVersion::V2020_09_01,
+            http_common::Connector::new(&uri).map_err(|err| {
+                eprintln!("Failed to make identity client: {}", err);
                 Error::from(ErrorKind::System)
-            })?;
+            })?,
+            1,
+        );
+
+        client.reprovision().await.map_err(|err| {
+            eprintln!("Failed to reprovision: {}", err);
+            Error::from(ErrorKind::System)
+        })?;
 
         println!("Successfully reprovisioned with IoT Hub.");
 

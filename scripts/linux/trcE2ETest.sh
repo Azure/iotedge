@@ -52,6 +52,7 @@ function usage() {
     echo " -testMode                                Test mode for TestResultCoordinator to start up with correct settings. Value is either 'LongHaul' or 'Connectivity'."
     echo " -repoPath                                Path of the checked-out iotedge repository for getting the deployment file."
     echo " -clientModuleTransportType               Value for contrained long haul specifying transport type for all client modules."
+    echo " -trackingId                              Tracking id used to tag test events. Needed if running nested tests and test events are sent to TRC from L4 node. Otherwise generated."
     echo ' -cleanAll                                Do docker prune for containers, logs and volumes.'
     exit 1;
 }
@@ -170,7 +171,7 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<CR.Password>@$CONTAINER_REGISTRY_PASSWORD@g" "$deployment_working_file"
     sed -i -e "s@<IoTHubConnectionString>@$IOT_HUB_CONNECTION_STRING@g" "$deployment_working_file"
     sed -i -e "s@<TestStartDelay>@$TEST_START_DELAY@g" "$deployment_working_file"
-    sed -i -e "s@<TrackingId>@$tracking_id@g" "$deployment_working_file"
+    sed -i -e "s@<TrackingId>@$TRACKING_ID@g" "$deployment_working_file"
     sed -i -e "s@<LogAnalyticsWorkspaceId>@$LOG_ANALYTICS_WORKSPACEID@g" "$deployment_working_file"
     sed -i -e "s@<LogAnalyticsSharedKey>@$LOG_ANALYTICS_SHAREDKEY@g" "$deployment_working_file"
     sed -i -e "s@<UpstreamProtocol>@$UPSTREAM_PROTOCOL@g" "$deployment_working_file"
@@ -280,11 +281,24 @@ function clean_up() {
 }
 
 function print_deployment_logs() {
-    print_highlighted_message 'LOGS FROM AZIOT-EDGED'
-    journalctl -u aziot-edged -u aziot-keyd -u aziot-certd -u aziot-identityd --since "$test_start_time" --no-pager || true
+    print_highlighted_message '========== Logs from docker =========='
+    journalctl -u docker --since "$test_start_time" --no-pager || true
 
-    print_highlighted_message 'edgeAgent LOGS'
+    print_highlighted_message '========== Logs from iotedge system =========='
+    iotedge system logs -- --since "$test_start_time" --no-pager || true
+
+    print_highlighted_message '========== Logs from edgeAgent =========='
     docker logs edgeAgent || true
+}
+
+
+function get_support_bundle_logs(){
+
+    print_highlighted_message "Getting Support Bundle Logs"
+    mkdir -p $working_folder/support
+    time=$(echo $test_start_time | sed 's/ /T/' | sed 's/$/Z/')
+    iotedge support-bundle -o $working_folder/support/iotedge_support_bundle.zip --since "$time"
+    print_highlighted_message "Finished getting support Bundle Logs"
 }
 
 function print_test_run_logs() {
@@ -294,80 +308,6 @@ function print_test_run_logs() {
     print_highlighted_message 'Print logs'
     print_highlighted_message 'testResultCoordinator LOGS'
     docker logs testResultCoordinator || true
-
-    if (( ret < 1 )); then
-        return;
-    fi
-
-    print_highlighted_message 'LOGS FROM IOTEDGED'
-    journalctl -u iotedge -u docker --since "$test_start_time" --no-pager || true
-
-    print_highlighted_message 'edgeAgent LOGS'
-    docker logs edgeAgent || true
-
-    print_highlighted_message 'edgeHub LOGS'
-    docker logs edgeHub || true
-
-    print_highlighted_message 'loadGen1 LOGS'
-    docker logs loadGen1 || true
-
-    print_highlighted_message 'loadGen2 LOGS'
-    docker logs loadGen2 || true
-
-    print_highlighted_message 'relayer1 LOGS'
-    docker logs relayer1 || true
-
-    print_highlighted_message 'relayer2 LOGS'
-    docker logs relayer2 || true
-
-    print_highlighted_message 'directMethodSender1 LOGS'
-    docker logs directMethodSender1 || true
-
-    print_highlighted_message 'directMethodReceiver1 LOGS'
-    docker logs directMethodReceiver1 || true
-
-    print_highlighted_message 'directMethodSender2 LOGS'
-    docker logs directMethodSender2 || true
-
-    print_highlighted_message 'directMethodReceiver2 LOGS'
-    docker logs directMethodReceiver2 || true
-
-    print_highlighted_message 'directMethodSender3 LOGS'
-    docker logs directMethodSender3 || true
-
-    print_highlighted_message 'twinTester1 LOGS'
-    docker logs twinTester1 || true
-
-    print_highlighted_message 'twinTester2 LOGS'
-    docker logs twinTester2 || true
-
-    print_highlighted_message 'twinTester3 LOGS'
-    docker logs twinTester3 || true
-
-    print_highlighted_message 'twinTester4 LOGS'
-    docker logs twinTester4 || true
-
-    print_highlighted_message 'deploymentTester1 LOGS'
-    docker logs deploymentTester1 || true
-
-    print_highlighted_message 'deploymentTester2 LOGS'
-    docker logs deploymentTester2 || true
-
-    print_highlighted_message 'cloudToDeviceMessageSender1 LOGS'
-    docker logs cloudToDeviceMessageSender1 || true
-
-    print_highlighted_message 'cloudToDeviceMessageReceiver1 LOGS'
-    docker logs cloudToDeviceMessageReceiver1 || true
-
-    print_highlighted_message 'cloudToDeviceMessageSender2 LOGS'
-    docker logs cloudToDeviceMessageSender2 || true
-
-    print_highlighted_message 'cloudToDeviceMessageReceiver2 LOGS'
-    docker logs cloudToDeviceMessageReceiver2 || true
-
-
-    print_highlighted_message 'networkController LOGS'
-    docker logs networkController || true
 }
 
 function process_args() {
@@ -513,6 +453,9 @@ function process_args() {
         elif [ $saveNextArg -eq 46 ]; then
             CLIENT_MODULE_TRANSPORT_TYPE="$arg"
             saveNextArg=0;
+        elif [ $saveNextArg -eq 47 ]; then
+            TRACKING_ID="$arg"
+            saveNextArg=0;
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -562,6 +505,7 @@ function process_args() {
                 '-testMode' ) saveNextArg=44;;
                 '-repoPath' ) saveNextArg=45;;
                 '-clientModuleTransportType' ) saveNextArg=46;;
+                '-trackingId' ) saveNextArg=47;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
 
@@ -594,6 +538,10 @@ function process_args() {
     [[ (-z "${CLIENT_MODULE_TRANSPORT_TYPE,,}") && ("${image_architecture_label,,}" == "arm32v7" || "${image_architecture_label,,}" == "arm64v8") ]] && { print_error 'Arm platform needs to run with client module transport type set'; exit 1; }
 
     echo 'Required parameters are provided'
+
+    if [ -z "$TRACKING_ID"]; then
+        TRACKING_ID=$(cat /proc/sys/kernel/random/uuid)
+    fi
 }
 
 function validate_test_parameters() {
@@ -742,6 +690,7 @@ function run_connectivity_test() {
 
             if [ "$is_build_canceled" -eq '1' ]; then
                 print_highlighted_message "build is canceled."
+                get_support_bundle_logs
                 stop_aziot_edge || true
                 return 3
             fi
@@ -759,7 +708,8 @@ function run_connectivity_test() {
         else
             testExitCode=0
         fi
-
+        
+        get_support_bundle_logs
         print_test_run_logs $testExitCode
 
         # stop IoT Edge service after test complete to prevent sending metrics
@@ -966,8 +916,7 @@ fi
 
 deployment_working_file="$working_folder/deployment.json"
 
-tracking_id=$(cat /proc/sys/kernel/random/uuid)
-TEST_INFO="$TEST_INFO,TestId=$tracking_id"
+TEST_INFO="$TEST_INFO,TestId=$TRACKING_ID"
 TEST_INFO="$TEST_INFO,UpstreamProtocol=$UPSTREAM_PROTOCOL"
 TEST_INFO="$TEST_INFO,NetworkControllerOfflineFrequency=${NETWORK_CONTROLLER_FREQUENCIES[0]}"
 TEST_INFO="$TEST_INFO,NetworkControllerOnlineFrequency=${NETWORK_CONTROLLER_FREQUENCIES[1]}"

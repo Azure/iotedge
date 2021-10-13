@@ -3,21 +3,36 @@ parameters:
   IotHubConnectionString: '$(TestIotHubConnectionString)'
   test_type: '' 
 
+# This E2E test pipeline uses the following filters in order to skip certain tests:
+#   Flaky: Flaky on multiple platforms
+#   FlakyOnArm: Flaky only on arm
+#   FlakyOnNested: Flaky only on nested
+#   CentOsSafe: Can be run on CentOs
+#   SingleNodeOnly: Only applies to single-node cases
+#   NestedEdgeOnly: Only applies to nested edge cases
+#   NestedEdgeAmqpOnly: Only applies to nested edge cases using amqp upstream protocol
+#   LegacyMqttRequired: Only applies to cases with the edgehub legacy mqtt protocol head
+#   BrokerRequired: Only applies to cases with the broker enabled
 steps:
 - pwsh: |
     $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
     $test_type = '${{ parameters.test_type }}'
 
-    # Filter out unstable tests.
-    $filter = 'Category!=Unstable'
+    # Filter out flaky tests.
+    $filter = 'Category!=Flaky'
 
-    if ('$(Agent.Name)'.Contains('centos'))
+    if ('$(minimal)' -eq 'true')
+    {
+      $filter += '&Name~TempSensor'
+    }
+
+    if ('$(artifactName)'.Contains('centos'))
     {
       $filter += '&Category=CentOsSafe'
     }
     elseif ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
     {
-      $filter += '&Category!=UnstableOnArm'
+      $filter += '&Category!=FlakyOnArm'
     }
     
     if ($test_type -eq 'nestededge_mqtt')
@@ -26,6 +41,10 @@ steps:
       $filter += '&Category!=NestedEdgeAmqpOnly'
       $filter += '&Category!=LegacyMqttRequired'
     
+      $filter += '&Category!=FlakyOnNested'
+
+      # Below tests were disabled and marked for re-enable when a blocking item was resolved.
+      # When it was resolved the tests were never enabled. We need to re-enable these.
       $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
     }
     elseif ($test_type -eq 'nestededge_amqp')
@@ -33,6 +52,10 @@ steps:
       $filter += '&Category!=SingleNodeOnly'
       $filter += '&Category!=BrokerRequired'
 
+      $filter += '&Category!=FlakyOnNested'
+
+      # Below tests were disabled and marked for re-enable when a blocking item was resolved.
+      # When it was resolved the tests were never enabled. We need to re-enable these.
       $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
     }
     elseif ($test_type -eq 'nestededge_isa95')
@@ -53,9 +76,9 @@ steps:
     else
     {
       $filter += '&Category!=NestedEdgeOnly'
-    } 
+    }
 
-    sudo --preserve-env dotnet test $testFile --logger:trx --testcasefilter:$filter
+    sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
 
   displayName: Run tests ${{ parameters.test_type }}
   env:
@@ -65,8 +88,6 @@ steps:
     E2E_REGISTRIES__0__PASSWORD: $(TestContainerRegistryPassword)
     E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
     E2E_BLOB_STORE_SAS: $(TestBlobStoreSas)
-    http_proxy: $(Agent.ProxyUrl)
-    https_proxy: $(Agent.ProxyUrl)
     no_proxy: 'localhost'
 
 - task: PublishTestResults@2
@@ -91,6 +112,9 @@ steps:
     Copy-Item "$(binDir)/*-test-*.log" "$logDir/"
     Copy-Item "$(binDir)/*-device-*.log" "$logDir/"
     Copy-Item "$(binDir)/testoutput.log" "$logDir/"
+    Copy-Item "$(binDir)/supportbundle*" "$logDir/"
+    $artifactSuffix = '$(Build.BuildNumber)-$(System.PhaseName)' -replace '_','-'
+    Write-Output "##vso[task.setvariable variable=artifactSuffix]$artifactSuffix"
   displayName: Collect Logs
   condition: succeededOrFailed()
 
@@ -98,5 +122,5 @@ steps:
   displayName: Publish logs
   inputs:
     PathtoPublish: $(Build.ArtifactStagingDirectory)/logs${{ parameters.test_type }}
-    ArtifactName: logs-end-to-end-$(Build.BuildNumber)-$(System.PhaseName)
+    ArtifactName: logs-end-to-end-$(artifactSuffix)
   condition: succeededOrFailed()
