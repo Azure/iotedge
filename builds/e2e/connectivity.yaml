@@ -45,48 +45,48 @@ jobs:
           testrun.network.frequencies: "00:00:00 00:00:00 0"
           testrun.network.runProfile: "Online"
           testrun.duration: "01:00:00"
-        Offline(5/5/5):
-          testrun.config: 2
-          testrun.network.description: "Offline(5/5/5)"
-          testrun.network.frequencies: "00:05:00 00:05:00 5"
-          testrun.network.runProfile: "Offline"
-          testrun.duration: "00:50:00"
-        Offline(10/10/3):
-          testrun.config: 3
-          testrun.network.description: "Offline(10/10/3)"
-          testrun.network.frequencies: "00:10:00 00:10:00 3"
-          testrun.network.runProfile: "Offline"
-          testrun.duration: "01:00:00"
-        Offline(15/15/3):
-          testrun.config: 4
-          testrun.network.description: "Offline(15/15/3)"
-          testrun.network.frequencies: "00:15:00 00:15:00 3"
-          testrun.network.runProfile: "Offline"
-          testrun.duration: "01:30:00"
-        Offline(30/30/2):
-          testrun.config: 5
-          testrun.network.description: "Offline(30/30/2)"
-          testrun.network.frequencies: "00:30:00 00:30:00 2"
-          testrun.network.runProfile: "Offline"
-          testrun.duration: "02:00:00"
-        Offline(5/20/3):
-          testrun.config: 6
-          testrun.network.description: "Offline(5/20/3)"
-          testrun.network.frequencies: "00:05:00 00:20:00 3"
-          testrun.network.runProfile: "Offline"
-          testrun.duration: "01:15:00"
-        SatelliteGood(60/0/1):
-          testrun.config: 7
-          testrun.network.description: "SatelliteGood(60/0/1)"
-          testrun.network.frequencies: "01:00:00 00:00:00 1"
-          testrun.network.runProfile: "SatelliteGood"
-          testrun.duration: "01:00:00"
-        Cellular3G(60/0/1):
-          testrun.config: 8
-          testrun.network.description: "Cellular3G(60/0/1)"
-          testrun.network.frequencies: "01:00:00 00:00:00 1"
-          testrun.network.runProfile: "Cellular3G"
-          testrun.duration: "01:00:00"
+        # Offline(5/5/5):
+        #   testrun.config: 2
+        #   testrun.network.description: "Offline(5/5/5)"
+        #   testrun.network.frequencies: "00:05:00 00:05:00 5"
+        #   testrun.network.runProfile: "Offline"
+        #   testrun.duration: "00:50:00"
+        # Offline(10/10/3):
+        #   testrun.config: 3
+        #   testrun.network.description: "Offline(10/10/3)"
+        #   testrun.network.frequencies: "00:10:00 00:10:00 3"
+        #   testrun.network.runProfile: "Offline"
+        #   testrun.duration: "01:00:00"
+        # Offline(15/15/3):
+        #   testrun.config: 4
+        #   testrun.network.description: "Offline(15/15/3)"
+        #   testrun.network.frequencies: "00:15:00 00:15:00 3"
+        #   testrun.network.runProfile: "Offline"
+        #   testrun.duration: "01:30:00"
+        # Offline(30/30/2):
+        #   testrun.config: 5
+        #   testrun.network.description: "Offline(30/30/2)"
+        #   testrun.network.frequencies: "00:30:00 00:30:00 2"
+        #   testrun.network.runProfile: "Offline"
+        #   testrun.duration: "02:00:00"
+        # Offline(5/20/3):
+        #   testrun.config: 6
+        #   testrun.network.description: "Offline(5/20/3)"
+        #   testrun.network.frequencies: "00:05:00 00:20:00 3"
+        #   testrun.network.runProfile: "Offline"
+        #   testrun.duration: "01:15:00"
+        # SatelliteGood(60/0/1):
+        #   testrun.config: 7
+        #   testrun.network.description: "SatelliteGood(60/0/1)"
+        #   testrun.network.frequencies: "01:00:00 00:00:00 1"
+        #   testrun.network.runProfile: "SatelliteGood"
+        #   testrun.duration: "01:00:00"
+        # Cellular3G(60/0/1):
+        #   testrun.config: 8
+        #   testrun.network.description: "Cellular3G(60/0/1)"
+        #   testrun.network.frequencies: "01:00:00 00:00:00 1"
+        #   testrun.network.runProfile: "Cellular3G"
+        #   testrun.duration: "01:00:00"
     pool:
       name: $(pool.name)
       demands:
