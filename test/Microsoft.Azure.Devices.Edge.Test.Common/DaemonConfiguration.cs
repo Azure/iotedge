@@ -177,7 +177,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.SetAuth(keyName);
         }
 
-        public void SetDpsX509(string idScope, string registrationId, string identityCertPath, string identityPkPath, string trustBundle)
+        public void SetDpsX509(string idScope, string registrationId, string identityCertPath, string identityPkPath)
         {
             if (!File.Exists(identityCertPath))
             {
@@ -187,11 +187,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             if (!File.Exists(identityPkPath))
             {
                 throw new InvalidOperationException($"{identityPkPath} does not exist");
-            }
-
-            if (!File.Exists(trustBundle))
-            {
-                throw new InvalidOperationException($"{trustBundle} does not exist");
             }
 
             this.SetBasicDpsParam(idScope);
@@ -207,8 +202,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string keyName = DaemonConfiguration.SanitizeName(keyFileName);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.attestation.identity_pk", keyName);
             this.config[Service.Keyd].Document.ReplaceOrAdd($"preloaded_keys.{keyName}", "file://" + identityPkPath);
-
-            this.config[Service.Certd].Document.ReplaceOrAdd("preloaded_certs.aziot-edged-trust-bundle", "file://" + trustBundle);
 
             this.SetAuth(keyName);
         }
