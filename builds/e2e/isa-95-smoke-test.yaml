@@ -25,7 +25,26 @@ resources:
       - release/*
 
 stages:
-- stage: SetupVM
+- stage: LockAgents 
+  jobs:
+  - job:  LockAgents
+    displayName: Lock agents   
+    pool:
+      name: $(pool.name)
+      demands:
+        - agent-group -equals $(agent.group)
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+    steps:
+      - template: templates/nested-get-secrets.yaml
+      - script: scripts/linux/nestedAgentLock.sh -a "$(agent.group)" -b "$(Build.BuildId)" -n 1 -u "amqp"
+        env:
+          PAT: "$(edgebuild-1-PAT)"
+        displayName: Lock agents for nested topology
+        name: lock_test_agent
+      
+- stage: RunISA95Tests
+  dependsOn: LockAgents
   jobs:
   - job: SetupVM_level5
     displayName: SettingUp level 5
@@ -48,6 +67,7 @@ stages:
         - Agent.OSArchitecture -equals X64
         - level -equals 5
     steps:
+      - template: templates/clean-drive-and-images.yaml  
       - template: templates/nested-get-secrets.yaml
       - template: templates/e2e-clean-directory.yaml            
       - template: templates/nested-get-root-ca.yaml       
@@ -83,6 +103,7 @@ stages:
        - Agent.OSArchitecture -equals X64
        - level -equals 4    
     steps:
+      - template: templates/clean-drive-and-images.yaml    
       - template: templates/nested-get-secrets.yaml  
       - template: templates/e2e-clean-directory.yaml                
       - template: templates/nested-get-root-ca.yaml         
@@ -119,6 +140,7 @@ stages:
        - Agent.OSArchitecture -equals X64
        - level -equals 3    
     steps:
+      - template: templates/clean-drive-and-images.yaml  
       - template: templates/nested-get-secrets.yaml  
       - template: templates/e2e-clean-directory.yaml                
       - template: templates/nested-get-root-ca.yaml         
@@ -191,34 +213,47 @@ stages:
           IotHubConnectionString: '$(IotHub-ConnStr)'
           test_type: $(test_type)
 
-  - job:  Clean_up     
-    dependsOn:
-      - SetupVM_level5 
-      - SetupVM_level4
-      - SetupVM_level3
-      - Run_ISA95_test
-    condition: always()
-    displayName: Clean up identities and unlock agents
-    timeoutInMinutes: 3    
-    variables:    
-      deviceLvl5DeviceId: $[ dependencies.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ] 
-      deviceLvl4DeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
-      deviceLvl5IoTHubName: $[ dependencies.SetupVM_level5.outputs['createIdentity.iotHubName'] ] 
-      deviceLvl4IoTHubName: $[ dependencies.SetupVM_level4.outputs['createIdentity.iotHubName'] ]
-      deviceLvl5AgentName: $[ dependencies.SetupVM_level5.outputs['exportAgentName.agentName'] ]         
-      deviceLvl4AgentName: $[ dependencies.SetupVM_level4.outputs['exportAgentName.agentName'] ]       
-      deviceLvl3AgentName: $[ dependencies.SetupVM_level3.outputs['exportAgentName.agentName'] ]  
-      deviceLvl5NSGName: $[ dependencies.Run_ISA95_test.outputs['isa95_lock_lvl5.nsgName'] ]         
-      deviceLvl4NSGName: $[ dependencies.Run_ISA95_test.outputs['isa95_lock_lvl4.nsgName'] ]       
-      deviceLvl3NSGName: $[ dependencies.Run_ISA95_test.outputs['isa95_lock_lvl3.nsgName'] ]  
- 
+
+- stage: Cleanup 
+  condition: always()
+  dependsOn:
+    - LockAgents
+    - RunISA95Tests
+  jobs:
+  - job:  Unlock_agents
+    displayName: Unlock agents
+    timeoutInMinutes: 10    
     pool:
       name: $(pool.name)
       demands:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - level -equals jumpbox        
+    steps:
+      - template: templates/nested-get-secrets.yaml
+      - template: templates/unlock-test-agents.yaml
+
+  - job:  Clean_up_identities
+    displayName: Clean up identities
+    timeoutInMinutes: 10    
+    variables:    
+      deviceLvl5DeviceId: $[ stageDependencies.RunISA95Tests.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ] 
+      deviceLvl4DeviceId: $[ stageDependencies.RunISA95Tests.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
+      deviceLvl5IoTHubName: $[ stageDependencies.RunISA95Tests.SetupVM_level5.outputs['createIdentity.iotHubName'] ] 
+      deviceLvl4IoTHubName: $[ stageDependencies.RunISA95Tests.SetupVM_level4.outputs['createIdentity.iotHubName'] ]
+      deviceLvl5AgentName: $[ stageDependencies.RunISA95Tests.SetupVM_level5.outputs['exportAgentName.agentName'] ]         
+      deviceLvl4AgentName: $[ stageDependencies.RunISA95Tests.SetupVM_level4.outputs['exportAgentName.agentName'] ]       
+      deviceLvl3AgentName: $[ stageDependencies.RunISA95Tests.SetupVM_level3.outputs['exportAgentName.agentName'] ]  
+      deviceLvl5NSGName: $[ stageDependencies.RunISA95Tests.Run_ISA95_test.outputs['isa95_lock_lvl5.nsgName'] ]         
+      deviceLvl4NSGName: $[ stageDependencies.RunISA95Tests.Run_ISA95_test.outputs['isa95_lock_lvl4.nsgName'] ]       
+      deviceLvl3NSGName: $[ stageDependencies.RunISA95Tests.Run_ISA95_test.outputs['isa95_lock_lvl3.nsgName'] ]  
+    pool:
+      name: $(pool.name)
+      demands:
+        - agent-group -equals $(agent.group)
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+        - level -equals jumpbox
     steps:
       - template: templates/nested-get-secrets.yaml  
       - template: templates/nested-clean-identity.yaml
@@ -230,7 +265,12 @@ stages:
         parameters:
           iotHubName: $(deviceLvl4IoTHubName)
           deviceId: $(deviceLvl4DeviceId) 
-          lvl: 4      
+          lvl: 4  
+      - template: templates/nested-clean-identity.yaml
+        parameters:
+          iotHubName: $(deviceLvl3IoTHubName)
+          deviceId: $(deviceLvl3DeviceId) 
+          lvl: 3                 
       - template: templates/nested-isa95-unlock.yaml
         parameters:
           agentName: $(deviceLvl5AgentName)
