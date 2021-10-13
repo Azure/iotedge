@@ -127,4 +127,4 @@ When this deployment manifest is deployed to a device that does not have any mod
 Please refer to [Deploy Azure IoT Edge modules with Azure CLI][2] for steps on how to deploy the deployment.json file to your device.
 
 [1]: https://docs.microsoft.com/azure/iot-edge/module-composition
-[2]: https://docs.microsoft.com/en-us/azure/iot-edge/how-to-deploy-modules-cli
+[2]: https://docs.microsoft.com/azure/iot-edge/how-to-deploy-modules-cli

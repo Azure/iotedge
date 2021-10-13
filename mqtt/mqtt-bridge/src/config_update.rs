@@ -51,7 +51,7 @@ impl ConfigUpdater {
 
         update_pump(local_updates, &mut self.current_forwards);
 
-        update_pump(remote_updates, &mut self.current_subscriptions)
+        update_pump(remote_updates, &mut self.current_subscriptions);
     }
 }
 
@@ -78,7 +78,7 @@ fn diff_topic_rules(updated: Vec<TopicRule>, current: &HashMap<String, TopicRule
     for sub in current.keys() {
         if !subs_map.contains_key(sub) {
             if let Some(curr) = current.get(sub) {
-                removed.push(curr.clone())
+                removed.push(curr.clone());
             }
         }
     }
@@ -89,13 +89,13 @@ fn diff_topic_rules(updated: Vec<TopicRule>, current: &HashMap<String, TopicRule
 fn update_pump(pump_diff: PumpDiff, current: &mut HashMap<String, TopicRule>) {
     let (added, removed) = pump_diff.into_parts();
 
-    added.into_iter().for_each(|added| {
+    for added in added {
         current.insert(added.subscribe_to(), added);
-    });
+    }
 
-    removed.iter().for_each(|updated| {
+    for updated in &removed {
         current.remove(&updated.subscribe_to());
-    });
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -146,7 +146,7 @@ impl BridgeUpdate {
             .iter()
             .filter_map(|sub| match sub {
                 Direction::Out(topic) | Direction::Both(topic) => Some(topic.clone()),
-                _ => None,
+                Direction::In(_) => None,
             })
             .collect();
         let subscriptions = self
@@ -154,7 +154,7 @@ impl BridgeUpdate {
             .iter()
             .filter_map(|sub| match sub {
                 Direction::In(topic) | Direction::Both(topic) => Some(topic.clone()),
-                _ => None,
+                Direction::Out(_) => None,
             })
             .collect();
 
@@ -219,6 +219,7 @@ impl PumpDiff {
 }
 
 #[cfg(test)]
+#[allow(clippy::bool_assert_comparison)]
 mod tests {
     use super::*;
 

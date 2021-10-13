@@ -1,4 +1,4 @@
-# Azure IoTEdge PR checklist:
+# Azure IoT Edge PR checklist:
 
 This checklist is used to make sure that common guidelines for a pull request are followed.
 

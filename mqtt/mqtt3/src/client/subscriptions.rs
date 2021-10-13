@@ -435,6 +435,7 @@ impl State {
             }
         } else {
             // Re-create all pending (ie unacked) changes to the set of subscriptions
+            #[allow(clippy::needless_collect)]
             let unacked_packets: Vec<_> = self
                 .subscription_updates_waiting_to_be_acked
                 .iter()

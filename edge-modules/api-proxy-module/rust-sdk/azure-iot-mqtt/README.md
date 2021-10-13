@@ -1,14 +1,14 @@
-An Azure IoT client library. It implements [the Azure IoT Hub MQTT protocol.](https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-mqtt-support)
+An Azure IoT client library. It implements [the Azure IoT Hub MQTT protocol.](https://docs.microsoft.com/azure/iot-hub/iot-hub-mqtt-support)
 
 
 # Features
 
 - Device client
-	- Receive initial twin state and updates
-	- Receive and respond to direct method requests
+    - Receive initial twin state and updates
+    - Receive and respond to direct method requests
 
 - Module client
-	- Receive and respond to direct method requests
+    - Receive and respond to direct method requests
 
 - Supports MQTT and MQTT-over-WebSocket protocols.
 

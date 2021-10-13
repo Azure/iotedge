@@ -73,7 +73,7 @@ fn main() -> Result<()> {
 
     if let Err(e) = edgehub_handle.join() {
         should_shutdown.store(true, Ordering::Relaxed);
-        error!("Failure while running Edge Hub process. {:?}", e)
+        error!("Failure while running Edge Hub process. {:?}", e);
     } else {
         info!("Successfully stopped Edge Hub process");
     }

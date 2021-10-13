@@ -172,7 +172,7 @@ impl SessionState {
             if let Some(limit) = self.waiting_to_be_sent.enqueue(publication) {
                 let dropped = limit.publication();
                 info!("{}. drop publication {}", limit, dropped.topic_name);
-                debug!("dropped publication {:?}", dropped)
+                debug!("dropped publication {:?}", dropped);
             }
         }
         Ok(())
@@ -192,7 +192,7 @@ impl SessionState {
                 if let Some(limit) = self.waiting_to_be_sent.enqueue(publication) {
                     let dropped = limit.publication();
                     info!("{}. drop publication {}", limit, dropped.topic_name);
-                    debug!("dropped publication {:?}", dropped)
+                    debug!("dropped publication {:?}", dropped);
                 }
                 Ok(None)
             }
@@ -503,7 +503,7 @@ mod tests {
             session
                 .waiting_to_be_sent
                 .iter()
-                .find(|p| p.payload == Bytes::from("last message")),
+                .find(|p| p.payload == *"last message"),
             None
         );
     }
@@ -548,7 +548,7 @@ mod tests {
             session
                 .waiting_to_be_sent
                 .iter()
-                .find(|p| p.payload == Bytes::from("last message")),
+                .find(|p| p.payload == *"last message"),
             None
         );
     }
@@ -594,7 +594,7 @@ mod tests {
             session
                 .waiting_to_be_sent
                 .iter()
-                .find(|p| p.payload == Bytes::from("first message")),
+                .find(|p| p.payload == *"first message"),
             None
         );
     }
@@ -640,7 +640,7 @@ mod tests {
             session
                 .waiting_to_be_sent
                 .iter()
-                .find(|p| p.payload == Bytes::from("first message")),
+                .find(|p| p.payload == *"first message"),
             None
         );
     }
@@ -686,7 +686,7 @@ mod tests {
             session
                 .waiting_to_be_sent
                 .iter()
-                .find(|p| p.payload == Bytes::from("first message")),
+                .find(|p| p.payload == *"first message"),
             None
         );
     }

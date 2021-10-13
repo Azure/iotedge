@@ -7,6 +7,7 @@ namespace DevOpsLib
     {
         static readonly BugPriorityGrouping[] priorities = new BugPriorityGrouping[]
         {
+            BugPriorityGrouping.Pri0,
             BugPriorityGrouping.Pri1,
             BugPriorityGrouping.Pri2,
             BugPriorityGrouping.PriOther

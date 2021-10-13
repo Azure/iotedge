@@ -68,11 +68,11 @@ where
 
         let snapshot_interval = self.bootstrap.snapshot_interval(&self.settings);
         let (mut snapshotter_shutdown_handle, snapshotter_join_handle) =
-            snapshot::start_snapshotter(broker.handle(), persistor, snapshot_interval).await;
+            snapshot::start_snapshotter(broker.handle(), persistor, snapshot_interval);
 
         let expiration = self.bootstrap.session_expiration(&self.settings);
         let cleanup_interval = self.bootstrap.session_cleanup_interval(&self.settings);
-        cleanup::start_cleanup(broker.handle(), cleanup_interval, expiration).await?;
+        cleanup::start_cleanup(broker.handle(), cleanup_interval, expiration)?;
 
         let state = self.bootstrap.run(self.settings, broker).await?;
 

@@ -222,7 +222,7 @@ where
 
         let span = self
             .span
-            .and_then(|id| self.ctx.span(&id))
+            .and_then(|id| self.ctx.span(id))
             .or_else(|| self.ctx.lookup_current());
 
         let scope = span.into_iter().flat_map(|span| span.scope());
