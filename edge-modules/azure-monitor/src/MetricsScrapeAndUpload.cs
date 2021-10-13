@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 
         public void Start(TimeSpan scrapeAndUploadInterval)
         {
-            this.periodicScrapeAndUpload = new PeriodicTask(this.ScrapeAndUploadMetricsAsync, scrapeAndUploadInterval, new TimeSpan(0, 0, 0), LoggerUtil.Writer, "Scrape and Upload Metrics", true);
+            this.periodicScrapeAndUpload = new PeriodicTask(this.ScrapeAndUploadMetricsAsync, scrapeAndUploadInterval, TimeSpan.FromMinutes(1), LoggerUtil.Writer, "Scrape and Upload Metrics", true);
         }
 
         public void Dispose()

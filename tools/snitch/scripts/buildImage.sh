@@ -18,8 +18,6 @@ usage()
     echo " -i, --image-name     Image name (e.g. snitcher)"
     echo " -P, --project        Project to build image for. Must be 'snitcher' or 'prep-mail'"
     echo " -r, --registry       Docker registry required to build, tag and run the module"
-    echo " -u, --username       Docker Registry Username"
-    echo " -p, --password       Docker Username's password"
     echo " -n, --namespace      Docker namespace (default: $DEFAULT_DOCKER_NAMESPACE)"
     echo " -v, --image-version  Docker Image Version."
     echo "--skip-push           Build images, but don't push them"
@@ -41,33 +39,25 @@ process_args()
             DOCKER_REGISTRY="$arg"
             save_next_arg=0
         elif [ $save_next_arg -eq 2 ]; then
-            DOCKER_USERNAME="$arg"
-            save_next_arg=0
-        elif [ $save_next_arg -eq 3 ]; then
-            DOCKER_PASSWORD="$arg"
-            save_next_arg=0
-        elif [ $save_next_arg -eq 4 ]; then
             DOCKER_IMAGEVERSION="$arg"
             save_next_arg=0
-        elif [ $save_next_arg -eq 5 ]; then
+        elif [ $save_next_arg -eq 3 ]; then
             PROJECT="$arg"
             save_next_arg=0
-        elif [ $save_next_arg -eq 6 ]; then
+        elif [ $save_next_arg -eq 4 ]; then
             DOCKER_IMAGENAME="$arg"
             save_next_arg=0
-        elif [ $save_next_arg -eq 7 ]; then
+        elif [ $save_next_arg -eq 5 ]; then
             DOCKER_NAMESPACE="$arg"
             save_next_arg=0
         else
             case "$arg" in
                 "-h" | "--help" ) usage;;
                 "-r" | "--registry" ) save_next_arg=1;;
-                "-u" | "--username" ) save_next_arg=2;;
-                "-p" | "--password" ) save_next_arg=3;;
-                "-v" | "--image-version" ) save_next_arg=4;;
-                "-P" | "--project" ) save_next_arg=5;;
-                "-i" | "--image-name" ) save_next_arg=6;;
-                "-n" | "--namespace" ) save_next_arg=7;;
+                "-v" | "--image-version" ) save_next_arg=2;;
+                "-P" | "--project" ) save_next_arg=3;;
+                "-i" | "--image-name" ) save_next_arg=4;;
+                "-n" | "--namespace" ) save_next_arg=5;;
                 "--skip-push" ) SKIP_PUSH=1 ;;
                 * ) usage;;
             esac
@@ -77,18 +67,6 @@ process_args()
     if [[ -z ${DOCKER_REGISTRY} ]]; then
         echo "Registry parameter invalid"
         print_help_and_exit
-    fi
-
-    if [[ $SKIP_PUSH -eq 0 ]]; then
-        if [[ -z ${DOCKER_USERNAME} ]]; then
-            echo "Docker username parameter invalid"
-            print_help_and_exit
-        fi
-
-        if [[ -z ${DOCKER_PASSWORD} ]]; then
-            echo "Docker password parameter invalid"
-            print_help_and_exit
-        fi
     fi
 
     if [[ -z ${DOCKER_IMAGENAME} ]]; then
@@ -158,14 +136,6 @@ docker_build_and_tag_and_push()
 }
 
 process_args "$@"
-
-# log in to container registry
-if [ $SKIP_PUSH -eq 0 ]; then
-    if ! docker login "$DOCKER_REGISTRY" -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"; then
-        echo "Docker login failed!"
-        exit 1
-    fi
-fi
 
 # push image
 docker_build_and_tag_and_push \

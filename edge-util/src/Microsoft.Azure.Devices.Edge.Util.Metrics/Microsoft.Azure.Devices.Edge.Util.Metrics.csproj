@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\..\..\netstandardVersion.props" />
+
+  <PropertyGroup>
+    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+    <Configurations>Debug;Release;CheckInBuild</Configurations>
+    <HighEntropyVA>true</HighEntropyVA>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="App.Metrics" Version="3.0.0" />
+    <PackageReference Include="App.Metrics.Formatters.Prometheus" Version="3.0.0" />
+
+    <!-- 
+      Prometheus version should not go below 4.2.0 or there will be a dll
+      misconfiguration issue.
+    -->
+    <PackageReference Include="prometheus-net" Version="4.2.0" />
+    <PackageReference Include="prometheus-net.AspNetCore" Version="4.2.0" />
+
+    <!--
+      prometheus-net.AspNetCore takes a transitive dependency on
+      System.Test.Encodings.Web. Use an explicit reference here to override the
+      version and fix a security vulnerability.
+      See https://github.com/dotnet/runtime/issues/49377#issuecomment-804930299.
+    -->
+    <PackageReference Include="System.Text.Encodings.Web" Version="4.5.1" />
+
+    <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="..\..\..\stylecop.json" Link="stylecop.json" />
+  </ItemGroup>
+  <PropertyGroup>
+    <CodeAnalysisRuleSet>..\..\..\stylecop.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <Import Project="..\..\..\stylecop.props" />
+</Project>

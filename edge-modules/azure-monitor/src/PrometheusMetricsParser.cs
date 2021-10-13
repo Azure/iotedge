@@ -146,7 +146,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                         timeGeneratedUtc,
                         metricName,
                         metricValue,
-                        tags);
+                        tags,
+                        endpoint);
                 }
             }
         }

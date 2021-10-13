@@ -1,5 +1,5 @@
-ARG base_tag=3.1.15-alpine3.13
-FROM mcr.microsoft.com/dotnet/runtime:${base_tag}
+﻿ARG base_tag=3.1.19-alpine3.14
+FROM mcr.microsoft.com/dotnet/aspnet:${base_tag}
 
 ARG EXE_DIR=.
 

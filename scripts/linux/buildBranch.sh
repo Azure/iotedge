@@ -247,8 +247,8 @@ publish_app "NumberLogger"
 publish_app "CloudToDeviceMessageTester"
 publish_app "IotedgeDiagnosticsDotnet"
 publish_app "Microsoft.Azure.Devices.Edge.Azure.Monitor"
+publish_app "EdgeHubTriggerCSharp"
 
-publish_lib "EdgeHubTriggerCSharp"
 publish_lib "Microsoft.Azure.WebJobs.Extensions.EdgeHub"
 
 publish_files $SRC_SCRIPTS_DIR $PUBLISH_FOLDER
