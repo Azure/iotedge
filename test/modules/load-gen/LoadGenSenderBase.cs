@@ -2,6 +2,7 @@
 namespace LoadGen
 {
     using System;
+    using System.Diagnostics;
     using System.Net;
     using System.Text;
     using System.Threading;
@@ -12,6 +13,8 @@ namespace LoadGen
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
+    using OpenTelemetry;
+    using OpenTelemetry.Trace;
 
     public abstract class LoadGenSenderBase
     {
@@ -47,12 +50,25 @@ namespace LoadGen
                 // generate some bytes
                 random.NextBytes(data.Data);
 
+                Logger.LogInformation("Created Trace ID and SPAN ID");
+                using var activity = Settings.activitySource.StartActivity("set-module-event", ActivityKind.Producer);
+                if (activity == null)
+                {
+                    Logger.LogInformation("Null!!");
+                }
+                else
+                {
+                    Logger.LogInformation("Activity IS NOT NULL");
+                }
+                activity?.AddEvent(new ActivityEvent($"Sending Message with BatchID : {this.BatchId.ToString()}"));
+                Logger.LogInformation($"ACTIVITY TRACEID is {activity?.TraceId}");
                 // build message
                 var messageBody = new { data = data.Data };
                 var message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody)));
                 message.Properties.Add(TestConstants.Message.SequenceNumberPropertyName, messageId.ToString());
                 message.Properties.Add(TestConstants.Message.BatchIdPropertyName, this.BatchId.ToString());
                 message.Properties.Add(TestConstants.Message.TrackingIdPropertyName, this.TrackingId);
+                message.Properties.Add(TestConstants.Message.TraceIdPropertyName, activity?.TraceId.ToString());
 
                 // sending the result via edgeHub
                 await this.Client.SendEventAsync(outputName, message);

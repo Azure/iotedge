@@ -8,6 +8,8 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
             public const string TrackingIdPropertyName = "trackingId";
             public const string BatchIdPropertyName = "batchId";
             public const string SequenceNumberPropertyName = "sequenceNumber";
+            public const string TraceIdPropertyName = "traceId";
+            public const string SpanIdPropertyName = "spanId";
         }
 
         public static class Error
