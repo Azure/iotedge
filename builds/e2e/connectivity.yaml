@@ -101,8 +101,8 @@ jobs:
     steps:
       - bash: |
           wget https://github.com/open-telemetry/opentelemetry-collector/releases/download/v0.33.0/otel-collector_0.33.0_amd64.deb && \
-          dpkg -i ./otel-collector_0.33.0_amd64.deb &&
-          systemctl status otel-collector
+          sudo dpkg -i ./otel-collector_0.33.0_amd64.deb &&
+          sudo systemctl status otel-collector
       - task: Bash@3
         name: Print_test_parameters
         displayName: 'Print test parameters'
