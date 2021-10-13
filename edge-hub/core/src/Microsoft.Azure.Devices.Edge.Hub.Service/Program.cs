@@ -47,7 +47,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         static async Task<int> MainAsync(IConfigurationRoot configuration)
         {
-            
             string logLevel = configuration.GetValue($"{Logger.RuntimeLogLevelEnvKey}", "info");
             Logger.SetLogLevel(logLevel);
 
