@@ -60,6 +60,15 @@ Optional config items:
     - This can only be turned on if `UploadTarget` set to `IotMessage`
     - ex: `false`
     - Defaults to false.
+- `IotHubConnectFrequency`
+    - Frequency at which the module will connect to IoT Hub for adoption profiling statistics
+    - Input taken in timespan format
+    - ex: `00:12:00`
+    - Defaults to every 24 hours
+- `AzureDomain`
+    - Configurable azure domain which is used to construct the log analytics upload address.
+    - ex: `azure.com.cn`
+    - Defaults to `azure.com`
 
 
 ## Upload Target:

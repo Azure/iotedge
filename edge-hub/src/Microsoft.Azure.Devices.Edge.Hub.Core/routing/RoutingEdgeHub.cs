@@ -52,6 +52,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             this.subscriptionProcessor = Preconditions.CheckNotNull(subscriptionProcessor, nameof(subscriptionProcessor));
         }
 
+        public string GetEdgeDeviceId() => this.edgeDeviceId;
+
         public Task ProcessDeviceMessage(IIdentity identity, IMessage message)
         {
             Preconditions.CheckNotNull(message, nameof(message));
@@ -99,9 +101,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             Preconditions.CheckNotNull(reportedPropertiesMessage, nameof(reportedPropertiesMessage));
             Events.UpdateReportedPropertiesReceived(identity);
             Task cloudSendMessageTask = this.twinManager.UpdateReportedPropertiesAsync(identity.Id, reportedPropertiesMessage);
-
-            reportedPropertiesMessage.SystemProperties[SystemProperties.ConnectionDeviceId] = this.edgeDeviceId;
-            reportedPropertiesMessage.SystemProperties[SystemProperties.ConnectionModuleId] = this.edgeModuleId;
 
             IRoutingMessage routingMessage = this.ProcessMessageInternal(reportedPropertiesMessage, false);
             Task routingSendMessageTask = this.router.RouteAsync(routingMessage);

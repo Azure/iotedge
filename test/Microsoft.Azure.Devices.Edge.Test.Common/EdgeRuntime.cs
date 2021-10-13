@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
                 .WithProxy(this.proxy);
             builder.AddEdgeHub(this.hubImage.OrDefault(), this.optimizeForPerformance)
-                .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
+                .WithEnvironment(new[] { ("RuntimeLogLevel", "debug"), ("SslProtocols", "tls1.2") })
                 .WithProxy(this.proxy);
 
             addConfig(builder);

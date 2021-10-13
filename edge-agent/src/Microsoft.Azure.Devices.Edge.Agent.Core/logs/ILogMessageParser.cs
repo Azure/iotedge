@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 {
     extern alias akka;
     using akka::Akka.IO;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public interface ILogMessageParser
     {

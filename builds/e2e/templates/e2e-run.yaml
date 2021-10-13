@@ -1,6 +1,18 @@
+# This E2E test pipeline uses the following filters in order to skip certain tests:
+#   Flaky: Flaky on multiple platforms
+#   FlakyOnArm: Flaky only on arm
+#   CentOsSafe: Can be run on CentOs
 steps:
 - pwsh: |
     $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
+
+    # Filter out flaky tests.
+    $filter = 'Category!=Flaky'
+
+    if ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
+    {
+      $filter += '&Category!=FlakyOnArm'
+    }
 
     if ($IsWindows)
     {
@@ -10,31 +22,26 @@ steps:
         $env:Path,
         $(Join-Path $env:ProgramFiles 'iotedge'),
         $(Join-Path $env:ProgramFiles 'iotedge-moby') -join ';'
-
       if ('$(minimal)' -eq 'true')
       {
-        dotnet test $testFile --no-build --logger 'trx' --filter 'Name~TempSensor'
+        $filter += '&Name~TempSensor'
       }
-      else
-      {
-        dotnet test $testFile --no-build --logger 'trx'
-      }
+
+      dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
     }
     else
     {
       # Unfortunately CentOs has some failing test that need to be worked on.
-      if ('$(Agent.Name)'.Contains('centos'))
+      if ('$(artifactName)'.Contains('centos'))
       {
-        sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter 'TestCategory=CentOsSafe'
+        $filter += '&TestCategory=CentOsSafe'
       }
       elseif ('$(minimal)' -eq 'true')
       {
-        sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter 'Name~TempSensor'
+        $filter += '&Name~TempSensor'
       }
-      else
-      {
-        sudo --preserve-env dotnet test $testFile --no-build --logger 'trx'
-      }
+
+      sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
     }
   displayName: Run tests
   env:
@@ -68,6 +75,7 @@ steps:
     Copy-Item "$(binDir)/*-test-*.log" "$logDir/"
     Copy-Item "$(binDir)/*-device-*.log" "$logDir/"
     Copy-Item "$(binDir)/testoutput.log" "$logDir/"
+    Copy-Item "$(binDir)/supportbundle*" "$logDir/"
     $artifactSuffix = '$(Build.BuildNumber)-$(System.PhaseName)' -replace '_','-'
     Write-Output "##vso[task.setvariable variable=artifactSuffix]$artifactSuffix"
   displayName: Collect Logs

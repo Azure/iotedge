@@ -25,10 +25,10 @@
                 "value": "<UpstreamProtocol>"
               },
               "experimentalfeatures__enabled": {
-                  "value": "true"
+                "value": "true"
               },
               "experimentalfeatures__enableMetrics": {
-                  "value": "true"
+                "value": "true"
               },
               "ExperimentalFeatures__EnableUploadLogs": {
                 "value": "true"
@@ -47,10 +47,13 @@
             },
             "env": {
               "experimentalfeatures__enabled": {
-                  "value": "true"
+                "value": "true"
               },
               "experimentalfeatures__enableMetrics": {
-                  "value": "true"
+                "value": "true"
+              },
+              "SslProtocols": {
+                "value": "tls1.2"
               }
             },
             "status": "running",

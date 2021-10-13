@@ -1,4 +1,4 @@
-# -*- mode: dockerfile -*-
+﻿# -*- mode: dockerfile -*-
 
 # You can override this `--build-arg BASE_IMAGE=...` to use different
 # version of Rust or OpenSSL.

@@ -343,5 +343,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 Assert.Equal("Value2", amqpMessage.ApplicationProperties.Map["Prop2"].ToString());
             }
         }
+
+        [Fact]
+        public void TestConnectionDeviceIdTest()
+        {
+            // Setup
+            var systemProperties = new Dictionary<string, string>
+            {
+                [SystemProperties.ConnectionDeviceId] = "edgeDeviceId",
+                [SystemProperties.ConnectionModuleId] = "$edgeHub",
+                [SystemProperties.RpConnectionDeviceIdInternal] = "leafDevice1",
+                [SystemProperties.RpConnectionModuleIdInternal] = "leafModule1",
+            };
+
+            byte[] bytes = { 1, 2, 3, 4 };
+
+            var message = new EdgeMessage(bytes, new Dictionary<string, string>(), systemProperties);
+            var messageConverter = new AmqpMessageConverter();
+
+            // Act
+            using (AmqpMessage amqpMessage = messageConverter.FromMessage(message))
+            {
+                // Assert
+                Assert.Equal("leafDevice1", amqpMessage.MessageAnnotations.Map[Constants.MessageAnnotationsConnectionDeviceId]);
+                Assert.Equal("leafModule1", amqpMessage.MessageAnnotations.Map[Constants.MessageAnnotationsConnectionModuleId]);
+            }
+        }
     }
 }

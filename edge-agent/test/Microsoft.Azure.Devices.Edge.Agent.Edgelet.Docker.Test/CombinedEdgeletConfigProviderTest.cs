@@ -73,6 +73,55 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
         }
 
         [Fact]
+        public void TestVolMountEdgelet()
+        {
+            // Arrange
+            var runtimeInfo = new Mock<IRuntimeInfo<DockerRuntimeConfig>>();
+            runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
+
+            var module = new Mock<IModule<DockerConfig>>();
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest"));
+            module.SetupGet(m => m.Name).Returns(Constants.EdgeAgentModuleName);
+
+            var unixUris = new Dictionary<string, string>
+            {
+                { Constants.EdgeletWorkloadUriVariableName, "unix:///path/to/workload.sock" },
+                { Constants.EdgeletWorkloadListenMntUriVariableName, "unix:///path/to/homedir/mnt" },
+                { Constants.EdgeletManagementUriVariableName, "unix:///path/to/mgmt.sock" }
+            };
+
+            var windowsUris = new Dictionary<string, string>
+            {
+                { Constants.EdgeletWorkloadUriVariableName, "unix:///C:/path/to/workload/sock" },
+                { Constants.EdgeletWorkloadListenMntUriVariableName, "unix:///C:/path/to/homedir/mnt" },
+                { Constants.EdgeletManagementUriVariableName, "unix:///C:/path/to/mgmt/sock" }
+            };
+
+            IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
+                RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? windowsUris : unixUris).Build();
+            var configSource = Mock.Of<IConfigSource>(s => s.Configuration == configRoot);
+            ICombinedConfigProvider<CombinedDockerConfig> provider = new CombinedEdgeletConfigProvider(new[] { new AuthConfig() }, configSource);
+
+            // Act
+            CombinedDockerConfig config = provider.GetCombinedConfig(module.Object, runtimeInfo.Object);
+
+            // Assert
+            Assert.NotNull(config.CreateOptions);
+            Assert.NotNull(config.CreateOptions.HostConfig);
+            Assert.NotNull(config.CreateOptions.HostConfig.Binds);
+            Assert.Equal(2, config.CreateOptions.HostConfig.Binds.Count);
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                Assert.Equal("/path/to/homedir/mnt/edgeAgent.sock:/path/to/workload.sock", config.CreateOptions.HostConfig.Binds[0]);
+                Assert.Equal("/path/to/mgmt.sock:/path/to/mgmt.sock", config.CreateOptions.HostConfig.Binds[1]);
+            }else
+            {
+                Assert.Equal("C:\\path\\to\\homedir\\mnt\\edgeAgent:C:\\path\\to\\workload", config.CreateOptions.HostConfig.Binds[0]);
+                Assert.Equal("C:\\path\\to\\mgmt:C:\\path\\to\\mgmt", config.CreateOptions.HostConfig.Binds[1]);
+            }
+        }
+
+        [Fact]
         public void TestNoVolMountForNonUds()
         {
             // Arrange

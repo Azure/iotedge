@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.Devices" Version="1.22.0" />
-    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.28.0" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.28.2" />
   </ItemGroup>
 
   <ItemGroup>

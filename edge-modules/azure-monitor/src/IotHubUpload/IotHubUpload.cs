@@ -17,11 +17,11 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.IotHubMetricsUpload
     public class IotHubMetricsUpload : IMetricsPublisher
     {
         const string IdentifierPropertyName = "id";
-        readonly ModuleClient moduleClient;
+        readonly ModuleClientWrapper ModuleClientWrapper;
 
-        public IotHubMetricsUpload(ModuleClient moduleClient)
+        public IotHubMetricsUpload(ModuleClientWrapper moduleClientWrapper)
         {
-            this.moduleClient = Preconditions.CheckNotNull(moduleClient, nameof(moduleClient));
+            this.ModuleClientWrapper = Preconditions.CheckNotNull(moduleClientWrapper, nameof(moduleClientWrapper));
         }
 
         public async Task<bool> PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.IotHubMetricsUpload
                 Message metricsMessage = new Message(metricsData);
                 metricsMessage.Properties[IdentifierPropertyName] = Constants.IoTUploadMessageIdentifier;
 
-                await this.moduleClient.SendEventAsync("metricOutput", metricsMessage);
+                await this.ModuleClientWrapper.SendMessage("metricOutput", metricsMessage);
 
                 LoggerUtil.Writer.LogInformation("Successfully sent metrics via IoT message");
                 return true;
