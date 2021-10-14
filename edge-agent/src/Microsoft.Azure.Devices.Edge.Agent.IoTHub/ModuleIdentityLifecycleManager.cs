@@ -20,8 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly string deviceId;
         readonly string gatewayHostName;
         private Activity activity;
-        internal const string SOURCE_NAME = "Microsoft.Azure.Devices.Edge.Agent.IoTHub.ModuleIdentityLifecycleManager";
-        internal static ActivitySource Source = new ActivitySource(SOURCE_NAME, "1.2.4");
+        internal static ActivitySource Source = new ActivitySource("Microsoft.Azure.Devices.Edge.Agent.IoTHub.ModuleIdentityLifecycleManager", "1.2.4");
 
         public ModuleIdentityLifecycleManager(
             IServiceClient serviceClient,
@@ -59,6 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 this.activity.Dispose();
             }
 
+            
             this.activity = Source.StartActivity("GetModuleIdentitiesAsync", ActivityKind.Internal);
             this.activity?.SetTag("desiredModules", string.Join(Environment.NewLine, desired.Modules));
             this.activity?.SetTag("currentModules", string.Join(Environment.NewLine, current.Modules));
