@@ -19,7 +19,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         readonly IIdentityManager identityManager;
         readonly ModuleIdentityProviderServiceBuilder identityProviderServiceBuilder;
         readonly Uri workloadUri;
-        private Activity activity;
         internal const string SOURCE_NAME = "Microsoft.Azure.Devices.Edge.Agent.Edgelet.ModuleIdentityLifecycleManager";
         internal static ActivitySource Source = new ActivitySource(SOURCE_NAME, "1.2.4");
         protected virtual bool ShouldAlwaysReturnIdentities => false;
@@ -33,84 +32,83 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         public async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(ModuleSet desired, ModuleSet current)
         {
-            if (this.activity != null)
+            using (Activity activity = Source.StartActivity("GetModuleIdentitiesAsync(desired,current)", ActivityKind.Internal))
             {
-                this.activity.Dispose();
-            }
+                activity?.SetTag("desiredModules", string.Join(Environment.NewLine, desired.Modules));
+                activity?.SetTag("currentModules", string.Join(Environment.NewLine, current.Modules));
+                Diff diff = desired.Diff(current);
 
-            this.activity = Source.StartActivity("GetModuleIdentitiesAsync", ActivityKind.Internal);
-            this.activity?.SetTag("desiredModules", string.Join(Environment.NewLine, desired.Modules));
-            this.activity?.SetTag("currentModules", string.Join(Environment.NewLine, current.Modules));
-            Diff diff = desired.Diff(current);
+                if (diff.IsEmpty && !this.ShouldAlwaysReturnIdentities)
+                {
+                    activity?.AddEvent(new ActivityEvent($"DiffIsEmpty"));
+                    return ImmutableDictionary<string, IModuleIdentity>.Empty;
+                }
 
-            if (diff.IsEmpty && !this.ShouldAlwaysReturnIdentities)
-            {
-                this.activity?.AddEvent(new ActivityEvent($"DiffIsEmpty"));
-                return ImmutableDictionary<string, IModuleIdentity>.Empty;
-            }
-
-            try
-            {
-                this.activity?.AddEvent(new ActivityEvent($"GetModuleIdentitiesAsyncDiff"));
-                this.activity?.SetTag("diff", string.Join(Environment.NewLine, diff));
-                IImmutableDictionary<string, IModuleIdentity> moduleIdentities = await this.GetModuleIdentitiesAsync(diff);
-                return moduleIdentities;
-            }
-            catch (Exception ex)
-            {
-                Events.ErrorGettingModuleIdentities(ex);
-                return ImmutableDictionary<string, IModuleIdentity>.Empty;
+                try
+                {
+                    IImmutableDictionary<string, IModuleIdentity> moduleIdentities = await this.GetModuleIdentitiesAsync(diff);
+                    return moduleIdentities;
+                }
+                catch (Exception ex)
+                {
+                    Events.ErrorGettingModuleIdentities(ex);
+                    return ImmutableDictionary<string, IModuleIdentity>.Empty;
+                }
             }
         }
 
         async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(Diff diff)
         {
-            IList<string> addedOrUpdatedModuleNames = diff.AddedOrUpdated.Select(m => ModuleIdentityHelper.GetModuleIdentityName(m.Name)).ToList();
-            List<string> removedModuleNames = diff.Removed.Select(ModuleIdentityHelper.GetModuleIdentityName).ToList();
+            using (Activity activity = Source.StartActivity("GetModuleIdentitiesAsync(diff)", ActivityKind.Internal))
+            {
+                activity?.SetTag("diff", string.Join(Environment.NewLine, diff));
+                IList<string> addedOrUpdatedModuleNames = diff.AddedOrUpdated.Select(m => ModuleIdentityHelper.GetModuleIdentityName(m.Name)).ToList();
+                List<string> removedModuleNames = diff.Removed.Select(ModuleIdentityHelper.GetModuleIdentityName).ToList();
 
-            IImmutableDictionary<string, Identity> identities = (await this.identityManager.GetIdentities()).ToImmutableDictionary(i => i.ModuleId);
+                IImmutableDictionary<string, Identity> identities = (await this.identityManager.GetIdentities()).ToImmutableDictionary(i => i.ModuleId);
 
-            // Create identities for all modules that are in the deployment but aren't in iotedged.
-            IEnumerable<string> createIdentities = addedOrUpdatedModuleNames.Where(m => !identities.ContainsKey(m));
+                // Create identities for all modules that are in the deployment but aren't in iotedged.
+                IEnumerable<string> createIdentities = addedOrUpdatedModuleNames.Where(m => !identities.ContainsKey(m));
 
-            // Update identities for all modules that are in the deployment and are in iotedged (except for Edge Agent which gets special
-            // treatment in iotedged).
-            //
-            // NOTE: This update can potentially be made more efficient by checking that an update is actually needed, i.e. if auth type
-            // is not SAS and/or if the credentials are not what iotedged expects it to be.
-            IEnumerable<Identity> updateIdentities = addedOrUpdatedModuleNames
-                .Where(m => identities.ContainsKey(m) && m != Constants.EdgeAgentModuleIdentityName)
-                .Select(m => identities[m]);
+                // Update identities for all modules that are in the deployment and are in iotedged (except for Edge Agent which gets special
+                // treatment in iotedged).
+                //
+                // NOTE: This update can potentially be made more efficient by checking that an update is actually needed, i.e. if auth type
+                // is not SAS and/or if the credentials are not what iotedged expects it to be.
+                IEnumerable<Identity> updateIdentities = addedOrUpdatedModuleNames
+                    .Where(m => identities.ContainsKey(m) && m != Constants.EdgeAgentModuleIdentityName)
+                    .Select(m => identities[m]);
 
-            // Remove identities which exist in iotedged but don't exist in the deployment anymore. We exclude however, identities that
-            // aren't managed by Edge since these have been created by some out-of-band process and Edge doesn't "own" the identity.
-            IEnumerable<string> removeIdentities = removedModuleNames.Where(
-                m => identities.ContainsKey(m) &&
-                     Constants.ModuleIdentityEdgeManagedByValue.Equals(identities[m].ManagedBy, StringComparison.OrdinalIgnoreCase));
+                // Remove identities which exist in iotedged but don't exist in the deployment anymore. We exclude however, identities that
+                // aren't managed by Edge since these have been created by some out-of-band process and Edge doesn't "own" the identity.
+                IEnumerable<string> removeIdentities = removedModuleNames.Where(
+                    m => identities.ContainsKey(m) &&
+                        Constants.ModuleIdentityEdgeManagedByValue.Equals(identities[m].ManagedBy, StringComparison.OrdinalIgnoreCase));
 
-            // First remove identities (so that we don't go over the IoTHub limit).
-            await Task.WhenAll(removeIdentities.Select(i => this.identityManager.DeleteIdentityAsync(i)));
+                // First remove identities (so that we don't go over the IoTHub limit).
+                await Task.WhenAll(removeIdentities.Select(i => this.identityManager.DeleteIdentityAsync(i)));
 
-            // Create/update identities.
-            this.activity?.AddEvent(new ActivityEvent($"CreateIdentitiesAsync:Started"));
-            this.activity?.SetTag("createIdentities", string.Join(Environment.NewLine, createIdentities));
-            IEnumerable<Task<Identity>> createTasks = createIdentities.Select(i => this.identityManager.CreateIdentityAsync(i, Constants.ModuleIdentityEdgeManagedByValue));
-            this.activity?.AddEvent(new ActivityEvent($"CreateIdentitiesAsync:Ended"));
-            this.activity?.AddEvent(new ActivityEvent($"UpdateIdentitiesAsync:Started"));
-            this.activity?.SetTag("updateIdentities", string.Join(Environment.NewLine, updateIdentities));
-            IEnumerable<Task<Identity>> updateTasks = updateIdentities.Select(i => this.identityManager.UpdateIdentityAsync(i.ModuleId, i.GenerationId, i.ManagedBy));
-            this.activity?.AddEvent(new ActivityEvent($"UpdateIdentitiesAsync:Ended"));
-            Identity[] upsertedIdentities = await Task.WhenAll(createTasks.Concat(updateTasks));
+                // Create/update identities.
+                activity?.AddEvent(new ActivityEvent($"CreateIdentitiesAsync:Started"));
+                activity?.SetTag("createIdentities", string.Join(Environment.NewLine, createIdentities));
+                IEnumerable<Task<Identity>> createTasks = createIdentities.Select(i => this.identityManager.CreateIdentityAsync(i, Constants.ModuleIdentityEdgeManagedByValue));
+                activity?.AddEvent(new ActivityEvent($"CreateIdentitiesAsync:Ended"));
+                activity?.AddEvent(new ActivityEvent($"UpdateIdentitiesAsync:Started"));
+                activity?.SetTag("updateIdentities", string.Join(Environment.NewLine, updateIdentities));
+                IEnumerable<Task<Identity>> updateTasks = updateIdentities.Select(i => this.identityManager.UpdateIdentityAsync(i.ModuleId, i.GenerationId, i.ManagedBy));
+                activity?.AddEvent(new ActivityEvent($"UpdateIdentitiesAsync:Ended"));
+                Identity[] upsertedIdentities = await Task.WhenAll(createTasks.Concat(updateTasks));
 
-            List<IModuleIdentity> moduleIdentities = upsertedIdentities.Select(this.GetModuleIdentity).ToList();
+                List<IModuleIdentity> moduleIdentities = upsertedIdentities.Select(this.GetModuleIdentity).ToList();
 
-            // Add back the unchanged identities (including Edge Agent).
-            var upsertedIdentityList = moduleIdentities.Select(i => i.ModuleId).ToList();
-            var unchangedIdentities = identities.Where(i => !removedModuleNames.Contains(i.Key) && !upsertedIdentityList.Contains(i.Key));
-            moduleIdentities.AddRange(unchangedIdentities.Select(i => this.GetModuleIdentity(i.Value)));
+                // Add back the unchanged identities (including Edge Agent).
+                var upsertedIdentityList = moduleIdentities.Select(i => i.ModuleId).ToList();
+                var unchangedIdentities = identities.Where(i => !removedModuleNames.Contains(i.Key) && !upsertedIdentityList.Contains(i.Key));
+                moduleIdentities.AddRange(unchangedIdentities.Select(i => this.GetModuleIdentity(i.Value)));
 
-            this.activity?.SetTag("moduleIdentities", string.Join(Environment.NewLine, moduleIdentities));
-            return moduleIdentities.ToImmutableDictionary(m => ModuleIdentityHelper.GetModuleName(m.ModuleId));
+                activity?.SetTag("moduleIdentities", string.Join(Environment.NewLine, moduleIdentities));
+                return moduleIdentities.ToImmutableDictionary(m => ModuleIdentityHelper.GetModuleName(m.ModuleId));
+            }
         }
 
         IModuleIdentity GetModuleIdentity(Identity identity) =>

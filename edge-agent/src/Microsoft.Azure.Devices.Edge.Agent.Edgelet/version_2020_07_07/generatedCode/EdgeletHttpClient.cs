@@ -9,6 +9,10 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.GeneratedCode
 {
+    using System.Diagnostics;
+    using OpenTelemetry;
+    using OpenTelemetry.Trace;  
+    using ModuleIdentityLifecycleManager = Microsoft.Azure.Devices.Edge.Agent.Edgelet.ModuleIdentityLifecycleManager;
     using System = global::System;
 #pragma warning disable // Disable all warnings
 
@@ -1027,66 +1031,69 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
         public async System.Threading.Tasks.Task<Identity> CreateIdentityAsync(string api_version, IdentitySpec identity, System.Threading.CancellationToken cancellationToken)
         {
-            if (api_version == null)
-                throw new System.ArgumentNullException("api_version");
-
-            if (identity == null)
-                throw new System.ArgumentNullException("identity");
-
-            var urlBuilder_ = new System.Text.StringBuilder();
-            urlBuilder_.Append(BaseUrl != null ? BaseUrl.TrimEnd('/') : "").Append("/identities/?");
-            urlBuilder_.Append(System.Net.WebUtility.UrlEncode("api-version") + "=").Append(System.Net.WebUtility.UrlEncode(ConvertToString(api_version, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
-            urlBuilder_.Length--;
-
-            var client_ = _httpClient;
-            try
+            using (Activity activity = ModuleIdentityLifecycleManager.Source.StartActivity("EdgeletHttpClient:CreateIdentityAsync", ActivityKind.Internal))
             {
-                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                if (api_version == null)
+                    throw new System.ArgumentNullException("api_version");
+
+                if (identity == null)
+                    throw new System.ArgumentNullException("identity");
+
+                var urlBuilder_ = new System.Text.StringBuilder();
+                urlBuilder_.Append(BaseUrl != null ? BaseUrl.TrimEnd('/') : "").Append("/identities/?");
+                urlBuilder_.Append(System.Net.WebUtility.UrlEncode("api-version") + "=").Append(System.Net.WebUtility.UrlEncode(ConvertToString(api_version, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
+                urlBuilder_.Length--;
+
+                var client_ = _httpClient;
+                try
                 {
-                    var content_ = new System.Net.Http.StringContent(Newtonsoft.Json.JsonConvert.SerializeObject(identity, _settings.Value));
-                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
-                    request_.Content = content_;
-                    request_.Method = new System.Net.Http.HttpMethod("POST");
-                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
-
-                    PrepareRequest(client_, request_, urlBuilder_);
-                    var url_ = urlBuilder_.ToString();
-                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
-                    PrepareRequest(client_, request_, url_);
-
-                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
-                    try
+                    using (var request_ = new System.Net.Http.HttpRequestMessage())
                     {
-                        var headers_ = System.Linq.Enumerable.ToDictionary(response_.Headers, h_ => h_.Key, h_ => h_.Value);
-                        if (response_.Content != null && response_.Content.Headers != null)
-                        {
-                            foreach (var item_ in response_.Content.Headers)
-                                headers_[item_.Key] = item_.Value;
-                        }
+                        var content_ = new System.Net.Http.StringContent(Newtonsoft.Json.JsonConvert.SerializeObject(identity, _settings.Value));
+                        content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                        request_.Content = content_;
+                        request_.Method = new System.Net.Http.HttpMethod("POST");
+                        request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
-                        ProcessResponse(client_, response_);
+                        PrepareRequest(client_, request_, urlBuilder_);
+                        var url_ = urlBuilder_.ToString();
+                        request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+                        PrepareRequest(client_, request_, url_);
 
-                        var status_ = ((int)response_.StatusCode).ToString();
-                        if (status_ == "200")
+                        var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                        try
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<Identity>(response_, headers_).ConfigureAwait(false);
-                            return objectResponse_.Object;
+                            var headers_ = System.Linq.Enumerable.ToDictionary(response_.Headers, h_ => h_.Key, h_ => h_.Value);
+                            if (response_.Content != null && response_.Content.Headers != null)
+                            {
+                                foreach (var item_ in response_.Content.Headers)
+                                    headers_[item_.Key] = item_.Value;
+                            }
+
+                            ProcessResponse(client_, response_);
+
+                            var status_ = ((int)response_.StatusCode).ToString();
+                            if (status_ == "200")
+                            {
+                                var objectResponse_ = await ReadObjectResponseAsync<Identity>(response_, headers_).ConfigureAwait(false);
+                                return objectResponse_.Object;
+                            }
+                            else
+                            {
+                                var objectResponse_ = await ReadObjectResponseAsync<ErrorResponse>(response_, headers_).ConfigureAwait(false);
+                                throw new SwaggerException<ErrorResponse>("Error", (int)response_.StatusCode, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            }
                         }
-                        else
+                        finally
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<ErrorResponse>(response_, headers_).ConfigureAwait(false);
-                            throw new SwaggerException<ErrorResponse>("Error", (int)response_.StatusCode, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            if (response_ != null)
+                                response_.Dispose();
                         }
-                    }
-                    finally
-                    {
-                        if (response_ != null)
-                            response_.Dispose();
                     }
                 }
-            }
-            finally
-            {
+                finally
+                {
+                }
             }
         }
 
