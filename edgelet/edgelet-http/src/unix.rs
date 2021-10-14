@@ -20,25 +20,24 @@ use crate::util::{incoming::Incoming, socket_file_exists};
 
 pub fn listener<P: AsRef<Path>>(path: P, unix_socket_permission: u32) -> Result<Incoming, Error> {
     let listener = if socket_file_exists(path.as_ref()) {
-        // get the previous file's metadata
-        #[cfg(unix)]
-        let metadata = get_metadata(path.as_ref())?;
 
         debug!("unlinking {}...", path.as_ref().display());
         fs::remove_file(&path)
             .with_context(|_| ErrorKind::Path(path.as_ref().display().to_string()))?;
         debug!("unlinked {}", path.as_ref().display());
 
-        #[cfg(unix)]
-        let prev = set_umask(&metadata, path.as_ref());
-        #[cfg(unix)]
-        defer! {{ umask(prev); }}
-
-        debug!("binding {}...", path.as_ref().display());
-
         let listener = UnixListener::bind(&path)
             .with_context(|_| ErrorKind::Path(path.as_ref().display().to_string()))?;
         debug!("bound {}", path.as_ref().display());
+
+        fs::set_permissions(
+            path.as_ref(),
+            fs::Permissions::from_mode(unix_socket_permission),
+        )
+        .map_err(|err| {
+            error!("Cannot set directory permissions: {}", err);
+            ErrorKind::Path(path.as_ref().display().to_string())
+        })?
 
         Incoming::Unix(listener)
     } else {
