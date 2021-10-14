@@ -17,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
         public string[] ModuleNames { get; }
 
+        [JsonConstructor]
         public EdgeConfiguration(
             string deviceId,
             IEnumerable<string> moduleNames,
