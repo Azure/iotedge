@@ -83,6 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 // Wrtie the current config into a file
                 string deploymentPath = enableManifestSigning.OrDefault().ManifestSigningDeploymentPath.OrDefault();
                 File.WriteAllText(deploymentPath, edgeConfiguration.ToString());
+                // EdgeConfiguration ToString() outputs the ConfigurationContent
                 edgeConfig = edgeConfiguration.ToString();
 
                 // start dotnet run ManifestSignerClient process
@@ -108,7 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             if (!string.IsNullOrEmpty(signedConfig))
             {
                 // Convert signed config to EdgeConfiguration
-                edgeConfiguration = JsonConvert.DeserializeObject<EdgeConfiguration>(signedConfig);
+                edgeConfiguration.config = JsonConvert.DeserializeObject<ConfigurationContent>(signedConfig);
             }
 
             EdgeModule[] modules = edgeConfiguration.ModuleNames
