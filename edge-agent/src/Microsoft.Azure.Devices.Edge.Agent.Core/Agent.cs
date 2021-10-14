@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using System.Diagnostics;
     using System.Linq;
     using System.Runtime.ExceptionServices;
     using System.Threading;
@@ -15,6 +16,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
+    using OpenTelemetry;
+    using OpenTelemetry.Trace;
 
     public class Agent
     {
@@ -34,6 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         IEnvironment environment;
         DeploymentConfigInfo currentConfig;
         DeploymentStatus status;
+        public static readonly ActivitySource Source = new ActivitySource("Microsoft.Azure.Devices.Edge.Agent.Core.Agent", "1.2.4");
 
         public Agent(
             IConfigSource configSource,
@@ -112,98 +116,101 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public async Task ReconcileAsync(CancellationToken token)
         {
-            ModuleSet moduleSetToReport = null;
-            using (await this.reconcileLock.LockAsync(token))
+            using (Activity activity = Agent.Source.StartActivity("Agent:ReconcileAsync", ActivityKind.Internal))
             {
-                try
+                ModuleSet moduleSetToReport = null;
+                using (await this.reconcileLock.LockAsync(token))
                 {
-                    Events.StartingReconcile();
-                    (ModuleSet current, DeploymentConfigInfo deploymentConfigInfo, Exception exception) = await this.GetReconcileData(token);
-                    moduleSetToReport = current;
-                    if (exception != null)
+                    try
                     {
-                        ExceptionDispatchInfo.Capture(exception).Throw();
-                    }
-
-                    DeploymentConfig deploymentConfig = deploymentConfigInfo.DeploymentConfig;
-                    if (deploymentConfig.Equals(DeploymentConfig.Empty))
-                    {
-                        this.status = DeploymentStatus.Success;
-                    }
-                    else
-                    {
-                        ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
-                        _ = Task.Run(() => this.deploymentMetrics.ComputeAvailability(desiredModuleSet, current))
-                            .ContinueWith(t => Events.UnknownFailure(t.Exception), TaskContinuationOptions.OnlyOnFaulted)
-                            .ConfigureAwait(false);
-
-                        // TODO - Update this logic to create identities only when needed, in the Command factory, instead of creating all the identities
-                        // up front here. That will allow handling the case when only the state of the system has changed (say one module crashes), and
-                        // no new identities need to be created. This will simplify the logic to allow EdgeAgent to work when offline.
-                        // But that required ModuleSet.Diff to be updated to include modules updated by deployment, and modules updated by state change.
-                        IImmutableDictionary<string, IModuleIdentity> identities = await this.moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desiredModuleSet, current);
-                        Plan plan = await this.planner.PlanAsync(desiredModuleSet, current, deploymentConfig.Runtime, identities);
-
-                        if (plan.IsEmpty)
+                        Events.StartingReconcile();
+                        (ModuleSet current, DeploymentConfigInfo deploymentConfigInfo, Exception exception) = await this.GetReconcileData(token);
+                        moduleSetToReport = current;
+                        if (exception != null)
                         {
-                            if (this.currentConfig.Version != deploymentConfigInfo.Version)
-                            {
-                                await this.UpdateCurrentConfig(deploymentConfigInfo);
-                            }
+                            ExceptionDispatchInfo.Capture(exception).Throw();
+                        }
 
+                        DeploymentConfig deploymentConfig = deploymentConfigInfo.DeploymentConfig;
+                        if (deploymentConfig.Equals(DeploymentConfig.Empty))
+                        {
                             this.status = DeploymentStatus.Success;
                         }
                         else
                         {
-                            try
+                            ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
+                            _ = Task.Run(() => this.deploymentMetrics.ComputeAvailability(desiredModuleSet, current))
+                                .ContinueWith(t => Events.UnknownFailure(t.Exception), TaskContinuationOptions.OnlyOnFaulted)
+                                .ConfigureAwait(false);
+
+                            // TODO - Update this logic to create identities only when needed, in the Command factory, instead of creating all the identities
+                            // up front here. That will allow handling the case when only the state of the system has changed (say one module crashes), and
+                            // no new identities need to be created. This will simplify the logic to allow EdgeAgent to work when offline.
+                            // But that required ModuleSet.Diff to be updated to include modules updated by deployment, and modules updated by state change.
+                            IImmutableDictionary<string, IModuleIdentity> identities = await this.moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desiredModuleSet, current);
+                            Plan plan = await this.planner.PlanAsync(desiredModuleSet, current, deploymentConfig.Runtime, identities);
+
+                            if (plan.IsEmpty)
                             {
-                                using (this.deploymentMetrics.ReportDeploymentTime())
+                                if (this.currentConfig.Version != deploymentConfigInfo.Version)
                                 {
-                                    bool result = await this.planRunner.ExecuteAsync(deploymentConfigInfo.Version, plan, token);
                                     await this.UpdateCurrentConfig(deploymentConfigInfo);
-                                    if (result)
+                                }
+
+                                this.status = DeploymentStatus.Success;
+                            }
+                            else
+                            {
+                                try
+                                {
+                                    using (this.deploymentMetrics.ReportDeploymentTime())
                                     {
-                                        this.status = DeploymentStatus.Success;
+                                        bool result = await this.planRunner.ExecuteAsync(deploymentConfigInfo.Version, plan, token);
+                                        await this.UpdateCurrentConfig(deploymentConfigInfo);
+                                        if (result)
+                                        {
+                                            this.status = DeploymentStatus.Success;
+                                        }
                                     }
                                 }
-                            }
-                            catch (Exception ex) when (!ex.IsFatal())
-                            {
-                                Events.PlanExecutionFailed(ex);
-                                await this.UpdateCurrentConfig(deploymentConfigInfo);
-                                throw;
+                                catch (Exception ex) when (!ex.IsFatal())
+                                {
+                                    Events.PlanExecutionFailed(ex);
+                                    await this.UpdateCurrentConfig(deploymentConfigInfo);
+                                    throw;
+                                }
                             }
                         }
                     }
-                }
-                catch (Exception ex) when (!ex.IsFatal())
-                {
-                    switch (ex)
+                    catch (Exception ex) when (!ex.IsFatal())
                     {
-                        case ConfigEmptyException _:
-                            this.status = new DeploymentStatus(DeploymentStatusCode.ConfigEmptyError, ex.Message);
-                            Events.EmptyConfig(ex);
-                            break;
+                        switch (ex)
+                        {
+                            case ConfigEmptyException _:
+                                this.status = new DeploymentStatus(DeploymentStatusCode.ConfigEmptyError, ex.Message);
+                                Events.EmptyConfig(ex);
+                                break;
 
-                        case InvalidSchemaVersionException _:
-                            this.status = new DeploymentStatus(DeploymentStatusCode.InvalidSchemaVersion, ex.Message);
-                            Events.InvalidSchemaVersion(ex);
-                            break;
+                            case InvalidSchemaVersionException _:
+                                this.status = new DeploymentStatus(DeploymentStatusCode.InvalidSchemaVersion, ex.Message);
+                                Events.InvalidSchemaVersion(ex);
+                                break;
 
-                        case ConfigFormatException _:
-                            this.status = new DeploymentStatus(DeploymentStatusCode.ConfigFormatError, ex.Message);
-                            Events.InvalidConfigFormat(ex);
-                            break;
+                            case ConfigFormatException _:
+                                this.status = new DeploymentStatus(DeploymentStatusCode.ConfigFormatError, ex.Message);
+                                Events.InvalidConfigFormat(ex);
+                                break;
 
-                        default:
-                            this.status = new DeploymentStatus(DeploymentStatusCode.Failed, ex.Message);
-                            Events.UnknownFailure(ex);
-                            break;
+                            default:
+                                this.status = new DeploymentStatus(DeploymentStatusCode.Failed, ex.Message);
+                                Events.UnknownFailure(ex);
+                                break;
+                        }
                     }
-                }
 
-                await this.reporter.ReportAsync(token, moduleSetToReport, await this.environment.GetRuntimeInfoAsync(), this.currentConfig.Version, this.status);
-                Events.FinishedReconcile();
+                    await this.reporter.ReportAsync(token, moduleSetToReport, await this.environment.GetRuntimeInfoAsync(), this.currentConfig.Version, this.status);
+                    Events.FinishedReconcile();
+                }
             }
         }
 

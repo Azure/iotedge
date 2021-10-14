@@ -13,14 +13,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
     using Microsoft.Extensions.Logging;
     using OpenTelemetry;
     using OpenTelemetry.Trace;
+    using Agent = Microsoft.Azure.Devices.Edge.Agent.Core.Agent;
 
     public class ModuleIdentityLifecycleManager : IModuleIdentityLifecycleManager
     {
         readonly IIdentityManager identityManager;
         readonly ModuleIdentityProviderServiceBuilder identityProviderServiceBuilder;
         readonly Uri workloadUri;
-        internal const string SOURCE_NAME = "Microsoft.Azure.Devices.Edge.Agent.Edgelet.ModuleIdentityLifecycleManager";
-        internal static ActivitySource Source = new ActivitySource(SOURCE_NAME, "1.2.4");
         protected virtual bool ShouldAlwaysReturnIdentities => false;
 
         public ModuleIdentityLifecycleManager(IIdentityManager identityManager, ModuleIdentityProviderServiceBuilder identityProviderServiceBuilder, Uri workloadUri)
@@ -32,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         public async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(ModuleSet desired, ModuleSet current)
         {
-            using (Activity activity = Source.StartActivity("GetModuleIdentitiesAsync(desired,current)", ActivityKind.Internal))
+            using (Activity activity = Agent.Source.StartActivity("ModuleIdentityLifecycleManager:GetModuleIdentitiesAsync(desired,current)", ActivityKind.Internal))
             {
                 activity?.SetTag("desiredModules", string.Join(Environment.NewLine, desired.Modules));
                 activity?.SetTag("currentModules", string.Join(Environment.NewLine, current.Modules));
@@ -59,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(Diff diff)
         {
-            using (Activity activity = Source.StartActivity("GetModuleIdentitiesAsync(diff)", ActivityKind.Internal))
+            using (Activity activity = Agent.Source.StartActivity("StartActivity:GetModuleIdentitiesAsync(diff)", ActivityKind.Internal))
             {
                 activity?.SetTag("diff", string.Join(Environment.NewLine, diff));
                 IList<string> addedOrUpdatedModuleNames = diff.AddedOrUpdated.Select(m => ModuleIdentityHelper.GetModuleIdentityName(m.Name)).ToList();

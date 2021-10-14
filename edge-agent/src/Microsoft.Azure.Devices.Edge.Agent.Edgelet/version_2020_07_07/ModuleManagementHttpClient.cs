@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07
     using OpenTelemetry.Trace;
     using Disk = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.Disk;
     using Identity = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.Identity;
-    using ModuleIdentityLifecycleManager = Microsoft.Azure.Devices.Edge.Agent.Edgelet.ModuleIdentityLifecycleManager;
+    using Agent = Microsoft.Azure.Devices.Edge.Agent.Core.Agent;
     using ModuleSpec = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.ModuleSpec;
     using ProvisioningInfo = Microsoft.Azure.Devices.Edge.Agent.Core.ProvisioningInfo;
     using SystemInfo = Microsoft.Azure.Devices.Edge.Agent.Core.SystemInfo;
@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07
 
         public override async Task<Identity> CreateIdentityAsync(string name, string managedBy)
         {
-            using (Activity activity = ModuleIdentityLifecycleManager.Source.StartActivity("ModuleManagementHttpClient:CreateIdentityAsync", ActivityKind.Internal))
+            using (Activity activity = Agent.Source.StartActivity("ModuleManagementHttpClient:CreateIdentityAsync", ActivityKind.Internal))
             {
                 using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
                 {
