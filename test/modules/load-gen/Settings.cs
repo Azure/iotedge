@@ -14,7 +14,7 @@ namespace LoadGen
     {
         internal static Settings Current = Create();
 
-        internal const string SOURCE_NAME = "microsoft.azure-iot.edge.test.module.loadgen";
+        internal const string SOURCE_NAME = "loadgen.module";
 
         internal static ActivitySource activitySource = new ActivitySource(SOURCE_NAME, "0.0.1");
 

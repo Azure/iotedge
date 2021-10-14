@@ -30,6 +30,8 @@ namespace Relayer
         static volatile bool isFinished = false;
         static ConcurrentBag<string> resultsReceived = new ConcurrentBag<string>();
 
+        static TextMapPropagator _propagator = new TraceContextPropagator();
+
         static async Task Main(string[] args)
         {
             Logger.LogInformation($"Starting Relayer with the following settings: \r\n{Settings.Current}");
@@ -83,16 +85,15 @@ namespace Relayer
         static async Task<MessageResponse> ProcessAndSendMessageAsync(Message message, object userContext)
         {
             Logger.LogInformation($"Received message from device: {message.ConnectionDeviceId}, module: {message.ConnectionModuleId}");
-            using var activity = Settings.activitySource.StartActivity("ReceivedMessage", ActivityKind.Producer);
+            var parentContext = _propagator.Extract(
+               default,
+               message,
+               ExtractTraceContextFromBasicProperties);
+
+            using var activity = Settings.activitySource.StartActivity("ReceivedMessage", ActivityKind.Consumer, parentContext.ActivityContext);
             if (activity == null)
             {
                 Logger.LogInformation("Failed To Create Activity");
-            }
-            if (message.Properties.Keys.Contains(TestConstants.Message.ParentIdPropertyName))
-            {
-                var parentId = message.Properties[TestConstants.Message.ParentIdPropertyName];
-                Logger.LogInformation($"Parent ID Transmitted is {parentId}");
-                activity.SetTag($"relayer.child.{parentId}", parentId);
             }
             var testResultCoordinatorUrl = Option.None<Uri>();
 
@@ -167,12 +168,13 @@ namespace Relayer
 
                 if (!Settings.Current.ReceiveOnly)
                 {
+                    using var cloudActivity = Settings.activitySource.StartActivity("RelayToCloud", ActivityKind.Producer);
                     byte[] messageBytes = message.GetBytes();
                     var messageCopy = new Message(messageBytes);
                     messageProperties.ForEach(kvp => messageCopy.Properties.Add(kvp));
                     await moduleClient.SendEventAsync(Settings.Current.OutputName, messageCopy);
                     Logger.LogInformation($"Message relayed upstream for device: {message.ConnectionDeviceId}, module: {message.ConnectionModuleId}");
-
+                    cloudActivity?.AddEvent(new ActivityEvent("Sent Upstream Message"));
                     if (Settings.Current.EnableTrcReporting)
                     {
                         // Report sending message successfully to Test Result Coordinator
@@ -207,6 +209,18 @@ namespace Relayer
             }
 
             return MessageResponse.Completed;
+        }
+
+        public static IEnumerable<string> ExtractTraceContextFromBasicProperties(Message message, string key)
+        {
+            Logger.LogInformation("Got Called!!");
+            if (message.Properties.TryGetValue(key, out var value))
+            {
+                Logger.LogInformation($"Got Value:{value}");
+                return new[] { value };
+            }
+
+            return Enumerable.Empty<string>();
         }
 
         private static async Task SetIsFinishedDirectMethodAsync(ModuleClient client)

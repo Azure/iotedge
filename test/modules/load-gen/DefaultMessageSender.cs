@@ -31,7 +31,7 @@ namespace LoadGen
 
                     using var activity = Settings.activitySource.StartActivity("RunLoadGenAsync", ActivityKind.Internal);
 
-                    await this.SendEventAsync(messageIdCounter, Settings.Current.OutputName, activity?.TraceId.ToString());
+                    await this.SendEventAsync(messageIdCounter, Settings.Current.OutputName);
 
                     // Report sending message successfully to Test Result Coordinator
                     await this.ReportResult(messageIdCounter);

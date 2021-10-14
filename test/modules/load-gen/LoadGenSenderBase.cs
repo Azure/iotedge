@@ -15,6 +15,8 @@ namespace LoadGen
     using Newtonsoft.Json;
     using OpenTelemetry;
     using OpenTelemetry.Trace;
+    using OpenTelemetry.Context.Propagation;
+    using System.Collections.Generic;
 
     public abstract class LoadGenSenderBase
     {
@@ -40,7 +42,9 @@ namespace LoadGen
 
         public abstract Task RunAsync(CancellationTokenSource cts, DateTime testStartAt);
 
-        protected async Task SendEventAsync(long messageId, string outputName, string parentId = null)
+        private readonly TextMapPropagator _propagator = Propagators.DefaultTextMapPropagator;
+
+        protected async Task SendEventAsync(long messageId, string outputName)
         {
             var random = new Random();
             var bufferPool = new BufferPool();
@@ -53,22 +57,30 @@ namespace LoadGen
                 Logger.LogInformation($"Activity TraceId is {activity?.TraceId}");
                 Logger.LogInformation($"Activity SpanId is {activity?.SpanId}");
                 activity?.AddEvent(new ActivityEvent($"Sending Message with BatchID : {this.BatchId.ToString()}"));
+
                 // build message
                 var messageBody = new { data = data.Data };
                 var message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody)));
                 message.Properties.Add(TestConstants.Message.SequenceNumberPropertyName, messageId.ToString());
                 message.Properties.Add(TestConstants.Message.BatchIdPropertyName, this.BatchId.ToString());
                 message.Properties.Add(TestConstants.Message.TrackingIdPropertyName, this.TrackingId);
-                if (parentId != null)
-                {
-                    message.Properties.Add(TestConstants.Message.ParentIdPropertyName, parentId);
-                    activity?.AddTag($"loadgen.parent.{parentId}", parentId);
-                }
+
+                // Inject Context for Distributed Tracing
+                _propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), message,
+                InjectTraceContextIntoBasicProperties);
+
                 // sending the result via edgeHub
                 await this.Client.SendEventAsync(outputName, message);
                 this.Logger.LogInformation($"Sent message successfully: sequenceNumber={messageId}");
                 activity?.AddEvent(new ActivityEvent($"Sending Message with BatchId:{this.BatchId.ToString()}"));
             }
+        }
+
+        private void InjectTraceContextIntoBasicProperties(
+            Message message, string key, string value)
+        {
+            Logger.LogInformation($"Added {key} Key with Value {value}!!!!!");
+            message.Properties[key] = value;
         }
 
         protected async Task ReportResult(long messageIdCounter)
