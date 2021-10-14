@@ -77,11 +77,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task TestIfSignedDeploymentIsSuccessful()
         {
-            Console.WriteLine($"Root CA path: {Context.Current.ManifestSigningGoodRootCaPath.OrDefault()}");
+            /* Console.WriteLine($"Root CA path: {Context.Current.ManifestSigningGoodRootCaPath.OrDefault()}");
             this.SetLaunchSettingsWithRootCa(Context.Current.ManifestSigningDefaultLaunchSettings, Context.Current.ManifestSigningGoodRootCaPath);
 
             await this.SetConfigToEdgeDaemon(Context.Current.ManifestSigningGoodRootCaPath, this.TestToken);
             ManifestSettings inputManifestSettings = new ManifestSettings(Context.Current.ManifestSigningDeploymentPath, Context.Current.ManifestSigningSignedDeploymentPath, Context.Current.ManifestSigningGoodRootCaPath, Context.Current.ManifestSignerClientDirectory, Context.Current.ManifestSignerClientProjectPath);
+            */
 
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                 builder =>
@@ -91,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 },
                 this.TestToken,
                 Context.Current.NestedEdge,
-                inputManifestSettings);
+                null);
         }
 
         /*
