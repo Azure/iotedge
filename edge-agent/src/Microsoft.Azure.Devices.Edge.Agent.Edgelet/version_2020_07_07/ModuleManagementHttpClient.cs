@@ -20,9 +20,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07
     using Newtonsoft.Json.Linq;
     using OpenTelemetry;
     using OpenTelemetry.Trace;
+    using Agent = Microsoft.Azure.Devices.Edge.Agent.Core.Agent;
     using Disk = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.Disk;
     using Identity = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.Identity;
-    using Agent = Microsoft.Azure.Devices.Edge.Agent.Core.Agent;
     using ModuleSpec = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.ModuleSpec;
     using ProvisioningInfo = Microsoft.Azure.Devices.Edge.Agent.Core.ProvisioningInfo;
     using SystemInfo = Microsoft.Azure.Devices.Edge.Agent.Core.SystemInfo;
@@ -63,48 +63,60 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07
 
         public override async Task<Identity> UpdateIdentityAsync(string name, string generationId, string managedBy)
         {
-            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
+            using (Activity activity = Agent.Source.StartActivity("ModuleManagementHttpClient:UpdateIdentityAsync", ActivityKind.Internal))
             {
-                var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
-                GeneratedCode.Identity identity = await this.Execute(
-                    () => edgeletHttpClient.UpdateIdentityAsync(
-                        this.Version.Name,
-                        name,
-                        new UpdateIdentity
-                        {
-                            GenerationId = generationId,
-                            ManagedBy = managedBy
-                        }),
-                    $"Update identity for {name} with generation ID {generationId}");
-                return this.MapFromIdentity(identity);
+                using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
+                {
+                    var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
+                    GeneratedCode.Identity identity = await this.Execute(
+                        () => edgeletHttpClient.UpdateIdentityAsync(
+                            this.Version.Name,
+                            name,
+                            new UpdateIdentity
+                            {
+                                GenerationId = generationId,
+                                ManagedBy = managedBy
+                            }),
+                        $"Update identity for {name} with generation ID {generationId}");
+                    return this.MapFromIdentity(identity);
+                }
             }
         }
 
         public override async Task DeleteIdentityAsync(string name)
         {
-            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
+            using (Activity activity = Agent.Source.StartActivity("ModuleManagementHttpClient:DeleteIdentityAsync", ActivityKind.Internal))
             {
-                var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
-                await this.Execute(() => edgeletHttpClient.DeleteIdentityAsync(this.Version.Name, name), $"Delete identity for {name}");
+                using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
+                {
+                    var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
+                    await this.Execute(() => edgeletHttpClient.DeleteIdentityAsync(this.Version.Name, name), $"Delete identity for {name}");
+                }
             }
         }
 
         public override async Task<IEnumerable<Identity>> GetIdentities()
         {
-            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
+            using (Activity activity = Agent.Source.StartActivity("ModuleManagementHttpClient:GetIdentities", ActivityKind.Internal))
             {
-                var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
-                IdentityList identityList = await this.Execute(() => edgeletHttpClient.ListIdentitiesAsync(this.Version.Name), $"List identities");
-                return identityList.Identities.Select(i => this.MapFromIdentity(i));
+                using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
+                {
+                    var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
+                    IdentityList identityList = await this.Execute(() => edgeletHttpClient.ListIdentitiesAsync(this.Version.Name), $"List identities");
+                    return identityList.Identities.Select(i => this.MapFromIdentity(i));
+                }
             }
         }
 
         public override async Task CreateModuleAsync(ModuleSpec moduleSpec)
         {
-            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
+            using (Activity activity = Agent.Source.StartActivity("ModuleManagementHttpClient:CreateModuleAsync", ActivityKind.Internal))
             {
-                var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
-                await this.Execute(() => edgeletHttpClient.CreateModuleAsync(this.Version.Name, MapToModuleSpec(moduleSpec)), $"Create module {moduleSpec.Name}");
+                using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
+                {
+                    var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
+                    await this.Execute(() => edgeletHttpClient.CreateModuleAsync(this.Version.Name, MapToModuleSpec(moduleSpec)), $"Create module {moduleSpec.Name}");
+                }
             }
         }
 
