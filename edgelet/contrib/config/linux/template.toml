@@ -31,7 +31,7 @@
 # Elevated Docker Permissions Flag
 # ==============================================================================
 #
-# Some docker capabilities capabilities can be used to gain root access. 
+# Some docker capabilities can be used to gain root access. 
 # By default, the --privileged flag and all capabilities listed in the CapAdd
 # field of the docker HostConfig are allowed.
 #
