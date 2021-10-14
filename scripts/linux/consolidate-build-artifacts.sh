@@ -17,10 +17,10 @@
 # Get directory of running script
 DIR=$(cd "$(dirname "$0")" && pwd)
 
-BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../..}
+BUILD_REPOSITORY_LOCALPATH=$(realpath ${BUILD_REPOSITORY_LOCALPATH:-$DIR/../..})
 DESTINATION_DIRECTORY=${BUILD_BINARIESDIRECTORY:-$BUILD_REPOSITORY_LOCALPATH/target}/publish
-DOTNET_ARTIFACTS_SOURCE_DIRECTORY=${BUILD_BINARIESDIRECTORY}/publish
-RUST_ARTIFACTS_SOURCE_DIRECTORY="./"
+DOTNET_ARTIFACTS_SOURCE_DIRECTORY=$DESTINATION_DIRECTORY
+RUST_ARTIFACTS_SOURCE_DIRECTORY=$BUILD_REPOSITORY_LOCALPATH
 SCRIPT_NAME=$(basename "$0")
 
 ###############################################################################
@@ -92,12 +92,9 @@ edge-hub)
     ARTIFACTS_DEST="${DESTINATION_DIRECTORY}/$ARTIFACT_NAME"
 
     # make build context structure
-    mkdir -p "$ARTIFACTS_DEST"
-    mkdir -p "$ARTIFACTS_DEST/mqtt"
     mkdir -p "$ARTIFACTS_DEST/mqtt/$TARGET_AMD64_MUSL/release"
     mkdir -p "$ARTIFACTS_DEST/mqtt/$TARGET_ARM32V7/release"
     mkdir -p "$ARTIFACTS_DEST/mqtt/$TARGET_ARM64V8/release"
-    mkdir "$ARTIFACTS_DEST/watchdog"
     mkdir -p "$ARTIFACTS_DEST/watchdog/$TARGET_AMD64_MUSL/release"
     mkdir -p "$ARTIFACTS_DEST/watchdog/$TARGET_ARM32V7/release"
     mkdir -p "$ARTIFACTS_DEST/watchdog/$TARGET_ARM64V8/release"
@@ -123,7 +120,6 @@ mqttd)
     ARTIFACTS_DEST="mqtt/build-context"
 
     # make build context structure
-    mkdir "$ARTIFACTS_DEST"
     mkdir -p "$ARTIFACTS_DEST/$TARGET_AMD64_MUSL/release"
     mkdir -p "$ARTIFACTS_DEST/$TARGET_ARM32V7/release"
     mkdir -p "$ARTIFACTS_DEST/$TARGET_ARM64V8/release"
