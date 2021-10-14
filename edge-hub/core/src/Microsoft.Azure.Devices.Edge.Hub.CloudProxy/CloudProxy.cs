@@ -19,6 +19,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using static System.FormattableString;
+    using OpenTelemetry;
+    using OpenTelemetry.Trace;
+    using OpenTelemetry.Context.Propagation;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
 
     class CloudProxy : ICloudProxy
     {
@@ -48,6 +52,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly bool closeOnIdleTimeout;
 
         SubscriptionState subscriptionState = new SubscriptionState();
+
+        static TextMapPropagator _propagator = new TraceContextPropagator();
+        internal const string SOURCE_NAME = "EdgeHub-Cloudproxy.module";
+
+        internal static ActivitySource activitySource = new ActivitySource(SOURCE_NAME, "0.0.1");
 
         public CloudProxy(
             IClient client,
@@ -141,6 +150,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
+        public static IEnumerable<string> ExtractTraceContextFromBasicProperties(Message message, string key)
+        {
+            ILogger Log = Logger.Factory.CreateLogger<CloudProxy>();
+            if (message.Properties.TryGetValue(key, out var value))
+            {
+                Log.LogInformation($"Got Value:{value}");
+                return new[] { value };
+            }
+
+            return Enumerable.Empty<string>();
+        }
+
         public async Task SendMessageAsync(IMessage inputMessage)
         {
             Preconditions.CheckNotNull(inputMessage, nameof(inputMessage));
@@ -149,6 +170,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             await this.ResetTimerAsync();
             try
             {
+                var parentContext = _propagator.Extract(default,
+                    message,
+                    ExtractTraceContextFromBasicProperties);
+                using var activity = activitySource.StartActivity("SendEventAsync", ActivityKind.Producer);
+
+                message.Properties.Add("traceId", activity?.TraceId.ToString());
+                message.Properties.Add("spanId", activity?.SpanId.ToString());
+
                 string outputRoute = inputMessage.GetOutput();
                 using (Metrics.TimeMessageSend(this.clientId, outputRoute))
                 {

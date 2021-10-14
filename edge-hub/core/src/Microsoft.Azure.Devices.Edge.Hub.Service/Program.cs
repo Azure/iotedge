@@ -24,6 +24,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
+    using OpenTelemetry;
+    using OpenTelemetry.Trace;
+    using OpenTelemetry.Resources;
+    using OpenTelemetry.Context.Propagation;
+    using System.Diagnostics;
+
 
     public class Program
     {
@@ -53,6 +59,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
 
             ILogger logger = Logger.Factory.CreateLogger("EdgeHub");
+            AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport",
+               true);
+
+            var endpoint = new Uri("http://host.docker.internal:4317");
+            logger.LogInformation($"Created Trace Provider with Endpoint : {endpoint.ToString()}");
+            using TracerProvider tracerProvider = Sdk.CreateTracerProviderBuilder()
+            .AddSource("EdgeHub-Service")
+            .AddSource("EdgeHub-Cloudproxy.module")
+            .AddSource("EdgeHub-RoutingEdgeHub.module")
+            .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("Edge-Hub"))
+            .AddOtlpExporter(opt => opt.Endpoint = endpoint)
+            .Build();
 
             EdgeHubCertificates certificates = await EdgeHubCertificates.LoadAsync(configuration, logger);
             bool clientCertAuthEnabled = configuration.GetValue(Constants.ConfigKey.EdgeHubClientCertAuthEnabled, false);

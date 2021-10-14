@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
     using System.Threading.Tasks;
     using App.Metrics;
@@ -15,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Extensions.Logging;
+    using OpenTelemetry.Context.Propagation;
     using Serilog.Events;
     using static System.FormattableString;
     using Constants = Microsoft.Azure.Devices.Edge.Hub.Core.Constants;
@@ -205,6 +207,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         {
             const int IdStart = HubCoreEventIds.RoutingEdgeHub;
             static readonly ILogger Log = Logger.Factory.CreateLogger<RoutingEdgeHub>();
+            internal static TextMapPropagator _propagator = new TraceContextPropagator();
+            internal const string SOURCE_NAME = "EdgeHub-RoutingEdgeHub.module";
+
+            internal static ActivitySource activitySource = new ActivitySource(SOURCE_NAME, "0.0.1");
 
             enum EventIds
             {
@@ -225,6 +231,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 Log.LogWarning((int)EventIds.DeviceConnectionNotFound, Invariant($"Unable to send C2D message to device {id} as an active device connection was not found."));
             }
 
+            public static IEnumerable<string> ExtractTraceContextFromBasicProperties(IMessage message, string key)
+            {
+                Log.LogDebug((int)EventIds.MethodReceived, "Got Called!!");
+                if (message.Properties.TryGetValue(key, out var value))
+                {
+                    Log.LogDebug((int)EventIds.MethodReceived, $"Got Value:{value}");
+                    return new[] { value };
+                }
+
+                return Enumerable.Empty<string>();
+            }
+
             public static void MessagesReceived(IIdentity identity, IList<IMessage> messages)
             {
                 if (Logger.GetLogLevel() <= LogEventLevel.Debug)
@@ -241,6 +259,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     else
                     {
                         Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received {messages.Count} message(s) from {identity.Id}"));
+                        var parentContext = _propagator.Extract(default,messages.ElementAt(0),ExtractTraceContextFromBasicProperties);
+
+                        using var activity = activitySource.StartActivity("ReceivedMessage", ActivityKind.Consumer, parentContext.ActivityContext);
+
                     }
                 }
             }
