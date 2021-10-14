@@ -4,19 +4,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using System.Diagnostics;
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using OpenTelemetry;
+    using OpenTelemetry.Trace;
 
     public class ModuleIdentityLifecycleManager : IModuleIdentityLifecycleManager
     {
         readonly IIdentityManager identityManager;
         readonly ModuleIdentityProviderServiceBuilder identityProviderServiceBuilder;
         readonly Uri workloadUri;
-
+        private Activity activity;
+        internal const string SOURCE_NAME = "Microsoft.Azure.Devices.Edge.Agent.Edgelet.ModuleIdentityLifecycleManager";
+        internal static ActivitySource Source = new ActivitySource(SOURCE_NAME, "1.2.4");
         protected virtual bool ShouldAlwaysReturnIdentities => false;
 
         public ModuleIdentityLifecycleManager(IIdentityManager identityManager, ModuleIdentityProviderServiceBuilder identityProviderServiceBuilder, Uri workloadUri)
@@ -28,14 +33,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         public async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(ModuleSet desired, ModuleSet current)
         {
+            if (this.activity != null)
+            {
+                this.activity.Dispose();
+            }
+
+            this.activity = Source.StartActivity("GetModuleIdentitiesAsync", ActivityKind.Internal);
+            this.activity?.SetTag("desiredModules", string.Join(Environment.NewLine, desired.Modules));
+            this.activity?.SetTag("currentModules", string.Join(Environment.NewLine, current.Modules));
             Diff diff = desired.Diff(current);
+
             if (diff.IsEmpty && !this.ShouldAlwaysReturnIdentities)
             {
+                this.activity?.AddEvent(new ActivityEvent($"DiffIsEmpty"));
                 return ImmutableDictionary<string, IModuleIdentity>.Empty;
             }
 
             try
             {
+                this.activity?.AddEvent(new ActivityEvent($"GetModuleIdentitiesAsyncDiff"));
+                this.activity?.SetTag("diff", string.Join(Environment.NewLine, diff));
                 IImmutableDictionary<string, IModuleIdentity> moduleIdentities = await this.GetModuleIdentitiesAsync(diff);
                 return moduleIdentities;
             }
@@ -75,8 +92,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             await Task.WhenAll(removeIdentities.Select(i => this.identityManager.DeleteIdentityAsync(i)));
 
             // Create/update identities.
+            this.activity?.AddEvent(new ActivityEvent($"CreateIdentitiesAsync:Started"));
+            this.activity?.SetTag("createIdentities", string.Join(Environment.NewLine, createIdentities));
             IEnumerable<Task<Identity>> createTasks = createIdentities.Select(i => this.identityManager.CreateIdentityAsync(i, Constants.ModuleIdentityEdgeManagedByValue));
+            this.activity?.AddEvent(new ActivityEvent($"CreateIdentitiesAsync:Ended"));
+            this.activity?.AddEvent(new ActivityEvent($"UpdateIdentitiesAsync:Started"));
+            this.activity?.SetTag("updateIdentities", string.Join(Environment.NewLine, updateIdentities));
             IEnumerable<Task<Identity>> updateTasks = updateIdentities.Select(i => this.identityManager.UpdateIdentityAsync(i.ModuleId, i.GenerationId, i.ManagedBy));
+            this.activity?.AddEvent(new ActivityEvent($"UpdateIdentitiesAsync:Ended"));
             Identity[] upsertedIdentities = await Task.WhenAll(createTasks.Concat(updateTasks));
 
             List<IModuleIdentity> moduleIdentities = upsertedIdentities.Select(this.GetModuleIdentity).ToList();
@@ -86,6 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             var unchangedIdentities = identities.Where(i => !removedModuleNames.Contains(i.Key) && !upsertedIdentityList.Contains(i.Key));
             moduleIdentities.AddRange(unchangedIdentities.Select(i => this.GetModuleIdentity(i.Value)));
 
+            this.activity?.SetTag("moduleIdentities", string.Join(Environment.NewLine, moduleIdentities));
             return moduleIdentities.ToImmutableDictionary(m => ModuleIdentityHelper.GetModuleName(m.ModuleId));
         }
 
