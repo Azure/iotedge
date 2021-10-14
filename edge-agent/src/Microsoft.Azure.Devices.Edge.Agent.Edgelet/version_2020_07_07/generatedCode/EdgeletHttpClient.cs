@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
     using System.Diagnostics;
     using OpenTelemetry;
     using OpenTelemetry.Trace;  
-    using ModuleIdentityLifecycleManager = Microsoft.Azure.Devices.Edge.Agent.Edgelet.ModuleIdentityLifecycleManager;
+    using Agent = Microsoft.Azure.Devices.Edge.Agent.Core.Agent;
     using System = global::System;
 #pragma warning disable // Disable all warnings
 
@@ -1031,7 +1031,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
         public async System.Threading.Tasks.Task<Identity> CreateIdentityAsync(string api_version, IdentitySpec identity, System.Threading.CancellationToken cancellationToken)
         {
-            using (Activity activity = ModuleIdentityLifecycleManager.Source.StartActivity("EdgeletHttpClient:CreateIdentityAsync", ActivityKind.Internal))
+            using (Activity activity = Agent.Source.StartActivity("EdgeletHttpClient:CreateIdentityAsync", ActivityKind.Internal))
             {
                 if (api_version == null)
                     throw new System.ArgumentNullException("api_version");
