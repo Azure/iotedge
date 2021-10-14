@@ -4,11 +4,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using System.Diagnostics;
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using OpenTelemetry;
+    using OpenTelemetry.Trace;
 
     public class ModuleIdentityLifecycleManager : IModuleIdentityLifecycleManager
     {
@@ -16,6 +19,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly string iothubHostName;
         readonly string deviceId;
         readonly string gatewayHostName;
+        private Activity activity;
+        internal const string SOURCE_NAME = "Microsoft.Azure.Devices.Edge.Agent.IoTHub.ModuleIdentityLifecycleManager";
+        internal static ActivitySource Source = new ActivitySource(SOURCE_NAME, "1.2.4");
 
         public ModuleIdentityLifecycleManager(
             IServiceClient serviceClient,
@@ -48,14 +54,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         // deployment.
         public async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(ModuleSet desired, ModuleSet current)
         {
+            if (this.activity != null)
+            {
+                this.activity.Dispose();
+            }
+
+            this.activity = Source.StartActivity("GetModuleIdentitiesAsync", ActivityKind.Internal);
+            this.activity?.SetTag("desiredModules", string.Join(Environment.NewLine, desired.Modules));
+            this.activity?.SetTag("currentModules", string.Join(Environment.NewLine, current.Modules));
             Diff diff = desired.Diff(current);
             if (diff.IsEmpty)
             {
+                this.activity?.AddEvent(new ActivityEvent($"DiffIsEmpty"));
                 return ImmutableDictionary<string, IModuleIdentity>.Empty;
             }
 
             try
             {
+                this.activity?.AddEvent(new ActivityEvent($"GetModuleIdentitiesAsyncDiff"));
+                this.activity?.SetTag("diff", string.Join(Environment.NewLine, diff));
                 IImmutableDictionary<string, IModuleIdentity> moduleIdentities = await this.GetModuleIdentitiesAsync(diff);
                 return moduleIdentities;
             }
@@ -101,7 +118,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                         return m;
                     }).ToList();
 
+            this.activity?.AddEvent(new ActivityEvent($"UpdateServiceModulesIdentityAsync:Started"));
+            this.activity?.SetTag("removeIdentities", string.Join(Environment.NewLine, removeIdentities));
+            this.activity?.SetTag("createIdentities", string.Join(Environment.NewLine, createIdentities));
+            this.activity?.SetTag("updateIdentities", string.Join(Environment.NewLine, updateIdentities));
             List<Module> updatedModulesIndentity = (await this.UpdateServiceModulesIdentityAsync(removeIdentities, createIdentities, updateIdentities)).ToList();
+            this.activity?.AddEvent(new ActivityEvent($"UpdateServiceModulesIdentityAsync:Ended"));
             ImmutableDictionary<string, Module> updatedDict = updatedModulesIndentity.ToImmutableDictionary(p => p.Id);
 
             IEnumerable<IModuleIdentity> moduleIdentities;
