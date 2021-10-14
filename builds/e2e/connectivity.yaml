@@ -105,6 +105,15 @@ jobs:
           sudo systemctl status otel-collector
         displayName: 'Install OpenTelemetry Collector'
       - bash: |
+          file='/etc/otel-collector/config.yaml'
+          match='debug'
+          insert='  zipkin:\n    endpoint: "http:\/\/localhost:8411\/api\/v2\/spans"\n    format: proto\n'
+          sudo sed -i "s/$match/$match\n$insert/" $file
+          match='\[logging\]'
+          insert='[logging, zipkin]'
+          sudo sed -i "s/$match/$insert/" $file
+        displayName: 'Add zipkin exporter to yaml'
+      - bash: |
           docker run -d -p 8411:9411 openzipkin/zipkin
         displayName: 'Install and Run Zipkin'
       - task: Bash@3
