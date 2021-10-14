@@ -58,7 +58,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 this.activity.Dispose();
             }
 
-            
             this.activity = Source.StartActivity("GetModuleIdentitiesAsync", ActivityKind.Internal);
             this.activity?.SetTag("desiredModules", string.Join(Environment.NewLine, desired.Modules));
             this.activity?.SetTag("currentModules", string.Join(Environment.NewLine, current.Modules));
