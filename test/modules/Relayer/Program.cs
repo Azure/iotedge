@@ -15,6 +15,11 @@ namespace Relayer
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
+    using OpenTelemetry;
+    using OpenTelemetry.Trace;
+    using OpenTelemetry.Resources;
+    using OpenTelemetry.Context.Propagation;
+    using System.Diagnostics;
 
     /*
      * Module for relaying messages. It receives a message and passes it on.
@@ -32,6 +37,17 @@ namespace Relayer
 
             try
             {
+                AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport",
+               true);
+
+                var endpoint = new Uri(Settings.Current.OtelCollectorEndpoint.GetOrElse("http://host.docker.internal:4317"));
+                Logger.LogInformation($"Created Trace Provider with Endpoint : {endpoint.ToString()}");
+                using TracerProvider tracerProvider = Sdk.CreateTracerProviderBuilder()
+                .AddSource(Settings.SOURCE_NAME)
+                .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("Relayer"))
+                .AddOtlpExporter(opt => opt.Endpoint = endpoint)
+                .Build();
+
                 moduleClient = await ModuleUtil.CreateModuleClientAsync(
                     Settings.Current.TransportType,
                     new ClientOptions(),
@@ -67,6 +83,17 @@ namespace Relayer
         static async Task<MessageResponse> ProcessAndSendMessageAsync(Message message, object userContext)
         {
             Logger.LogInformation($"Received message from device: {message.ConnectionDeviceId}, module: {message.ConnectionModuleId}");
+            //var parentContext = Settings.Propagator.Extract(default, message.Properties, ExtractTraceContextFromBasicProperties);
+            //Baggage.Current = parentContext.Baggage;
+            //Logger.LogInformation($"Parent Trace ID From Extracted Message : {parentContext.ActivityContext.TraceId.ToString()} , Parent Span ID From Extracted Message : {parentContext.ActivityContext.SpanId.ToString()}");
+            using var activity = Settings.activitySource.StartActivity("ProcessEventsAsync", ActivityKind.Consumer);
+            // new ActivityContext(ActivityTraceId.CreateFromString(traceId),
+            // ActivitySpanId.CreateFromString(spanId),
+            // ActivityTraceFlags.None));
+            if (activity == null)
+            {
+                Logger.LogInformation("Failed To Create Activity");
+            }
 
             var testResultCoordinatorUrl = Option.None<Uri>();
 
@@ -189,6 +216,23 @@ namespace Relayer
                 "IsFinished",
                 (MethodRequest methodRequest, object _) => Task.FromResult(IsFinished()),
                 null);
+        }
+
+        private static IEnumerable<string> ExtractTraceContextFromBasicProperties(IDictionary<string, string> props, string key)
+        {
+            try
+            {
+                if (props.TryGetValue(key, out var value))
+                {
+                    return new[] { value };
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to extract trace context: {ex}");
+            }
+
+            return Enumerable.Empty<string>();
         }
 
         private static MethodResponse IsFinished()

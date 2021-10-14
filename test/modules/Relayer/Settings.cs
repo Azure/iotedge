@@ -3,14 +3,20 @@ namespace Relayer
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.IO;
     using System.Linq;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
+    using OpenTelemetry.Context.Propagation;
 
     class Settings
     {
+        internal const string SOURCE_NAME = "relayer";
+
+        internal static ActivitySource activitySource = new ActivitySource(SOURCE_NAME, "0.0.1");
+
         internal static Settings Current = Create();
 
         Settings(
@@ -22,7 +28,8 @@ namespace Relayer
             bool receiveOnly,
             int messageDuplicateTolerance,
             bool enableTrcReporting,
-            Option<int> uniqueResultsExpected)
+            Option<int> uniqueResultsExpected,
+            Option<string> otelCollectorEndpoint)
         {
             this.InputName = Preconditions.CheckNonWhiteSpace(inputName, nameof(inputName));
             this.OutputName = Preconditions.CheckNonWhiteSpace(outputName, nameof(outputName));
@@ -33,6 +40,7 @@ namespace Relayer
             this.MessageDuplicateTolerance = messageDuplicateTolerance;
             this.EnableTrcReporting = enableTrcReporting;
             this.UniqueResultsExpected = uniqueResultsExpected;
+            this.OtelCollectorEndpoint = otelCollectorEndpoint;
         }
 
         static Settings Create()
@@ -55,7 +63,8 @@ namespace Relayer
                 configuration.GetValue<bool>("receiveOnly", false),
                 configuration.GetValue<int>("messageDuplicateTolerance", 2),
                 configuration.GetValue<bool>("enableTrcReporting", true),
-                uniqueResultsExpected);
+                uniqueResultsExpected,
+                Option.Maybe(configuration.GetValue<string>("OTEL_COLLECTOR_ENDPOINT")));
         }
 
         public TransportType TransportType { get; }
@@ -76,6 +85,8 @@ namespace Relayer
 
         public Option<int> UniqueResultsExpected { get; }
 
+        public Option<string> OtelCollectorEndpoint { get; }
+
         public override string ToString()
         {
             // serializing in this pattern so that secrets don't accidentally get added anywhere in the future
@@ -89,6 +100,7 @@ namespace Relayer
                 { nameof(this.ReceiveOnly), this.ReceiveOnly.ToString() },
                 { nameof(this.MessageDuplicateTolerance), this.MessageDuplicateTolerance.ToString() },
                 { nameof(this.EnableTrcReporting), this.EnableTrcReporting.ToString() },
+                { nameof(this.OtelCollectorEndpoint), this.OtelCollectorEndpoint.ToString() },
             };
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
