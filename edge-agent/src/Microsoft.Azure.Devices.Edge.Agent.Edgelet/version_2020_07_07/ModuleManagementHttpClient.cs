@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
+    using System.Diagnostics;
     using System.IO;
     using System.Linq;
     using System.Net.Http;
@@ -17,8 +18,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07
     using Microsoft.Azure.Devices.Edge.Util.Edged;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Newtonsoft.Json.Linq;
+    using OpenTelemetry;
+    using OpenTelemetry.Trace;
     using Disk = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.Disk;
     using Identity = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.Identity;
+    using Agent = Microsoft.Azure.Devices.Edge.Agent.Core.Agent;
     using ModuleSpec = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.ModuleSpec;
     using ProvisioningInfo = Microsoft.Azure.Devices.Edge.Agent.Core.ProvisioningInfo;
     using SystemInfo = Microsoft.Azure.Devices.Edge.Agent.Core.SystemInfo;
@@ -38,19 +42,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07
 
         public override async Task<Identity> CreateIdentityAsync(string name, string managedBy)
         {
-            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
+            using (Activity activity = Agent.Source.StartActivity("ModuleManagementHttpClient:CreateIdentityAsync", ActivityKind.Internal))
             {
-                var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
-                GeneratedCode.Identity identity = await this.Execute(
-                    () => edgeletHttpClient.CreateIdentityAsync(
-                        this.Version.Name,
-                        new IdentitySpec
-                        {
-                            ModuleId = name,
-                            ManagedBy = managedBy
-                        }),
-                    $"Create identity for {name}");
-                return this.MapFromIdentity(identity);
+                using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
+                {
+                    var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
+                    GeneratedCode.Identity identity = await this.Execute(
+                        () => edgeletHttpClient.CreateIdentityAsync(
+                            this.Version.Name,
+                            new IdentitySpec
+                            {
+                                ModuleId = name,
+                                ManagedBy = managedBy
+                            }),
+                        $"Create identity for {name}");
+                    return this.MapFromIdentity(identity);
+                }
             }
         }
 

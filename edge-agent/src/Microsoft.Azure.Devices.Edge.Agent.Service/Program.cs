@@ -81,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             logger.LogInformation($"Created Trace Provider with Endpoint : {endpoint.ToString()}");
             using TracerProvider tracerProvider = Sdk.CreateTracerProviderBuilder()
             .AddSource("Microsoft.Azure.Devices.Edge.Agent.IoTHub.ModuleIdentityLifecycleManager")
-            .AddSource("Microsoft.Azure.Devices.Edge.Agent.Edgelet.ModuleIdentityLifecycleManager")
+            .AddSource("Microsoft.Azure.Devices.Edge.Agent.Core.Agent")
             .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("EdgeAgent"))
             .AddOtlpExporter(opt => opt.Endpoint = endpoint)
             .Build();
