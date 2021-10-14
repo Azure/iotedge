@@ -10,11 +10,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
     public class EdgeConfiguration
     {
-        readonly ConfigurationContent config;
-        readonly string deviceId;
-        readonly object expectedConfig;
-        readonly IEnumerable<string> moduleImages;
+        public readonly ConfigurationContent config;
+        public readonly string deviceId;
+        public readonly object expectedConfig;
+        public readonly IEnumerable<string> moduleImages;
 
+        [JsonProperty("moduleNames")]
         public string[] ModuleNames { get; }
 
         [JsonConstructor]
