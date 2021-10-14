@@ -118,7 +118,7 @@ jobs:
         displayName: 'Add zipkin exporter to yaml'
       - bash: |
           docker stop zipkin || true && \
-          docker remove zipkin || true && \
+          docker rm zipkin || true && \
           docker run -d -p 8411:9411 --name zipkin openzipkin/zipkin &
         displayName: 'Install and Run Zipkin'
       - task: Bash@3
