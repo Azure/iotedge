@@ -14,8 +14,11 @@ namespace Relayer
     class Settings
     {
         internal const string SOURCE_NAME = "relayer";
+        internal const string LOADGEN_SOURCE_NAME = "microsoft.azure-iot.edge.test.module.loadgen";
 
         internal static ActivitySource activitySource = new ActivitySource(SOURCE_NAME, "0.0.1");
+
+        internal static ActivitySource LoadgenactivitySource = new ActivitySource(LOADGEN_SOURCE_NAME, "0.0.1");
 
         internal static Settings Current = Create();
 

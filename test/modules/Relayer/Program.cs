@@ -83,18 +83,17 @@ namespace Relayer
         static async Task<MessageResponse> ProcessAndSendMessageAsync(Message message, object userContext)
         {
             Logger.LogInformation($"Received message from device: {message.ConnectionDeviceId}, module: {message.ConnectionModuleId}");
-            //var parentContext = Settings.Propagator.Extract(default, message.Properties, ExtractTraceContextFromBasicProperties);
-            //Baggage.Current = parentContext.Baggage;
-            //Logger.LogInformation($"Parent Trace ID From Extracted Message : {parentContext.ActivityContext.TraceId.ToString()} , Parent Span ID From Extracted Message : {parentContext.ActivityContext.SpanId.ToString()}");
-            using var activity = Settings.activitySource.StartActivity("ProcessEventsAsync", ActivityKind.Consumer);
-            // new ActivityContext(ActivityTraceId.CreateFromString(traceId),
-            // ActivitySpanId.CreateFromString(spanId),
-            // ActivityTraceFlags.None));
+            using var activity = Settings.activitySource.StartActivity("ReceivedMessage", ActivityKind.Producer);
             if (activity == null)
             {
                 Logger.LogInformation("Failed To Create Activity");
             }
-
+            if (message.Properties.Keys.Contains(TestConstants.Message.ParentIdPropertyName))
+            {
+                var parentId = message.Properties[TestConstants.Message.ParentIdPropertyName];
+                Logger.LogInformation($"Parent ID Transmitted is {parentId}");
+                activity.SetTag($"relayer.child.{parentId}", parentId);
+            }
             var testResultCoordinatorUrl = Option.None<Uri>();
 
             if (Settings.Current.EnableTrcReporting)

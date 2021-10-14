@@ -2,6 +2,7 @@
 namespace LoadGen
 {
     using System;
+    using System.Diagnostics;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
@@ -28,7 +29,9 @@ namespace LoadGen
                 {
                     await Task.Delay(Settings.Current.MessageFrequency);
 
-                    await this.SendEventAsync(messageIdCounter, Settings.Current.OutputName);
+                    using var activity = Settings.activitySource.StartActivity("RunLoadGenAsync", ActivityKind.Internal);
+
+                    await this.SendEventAsync(messageIdCounter, Settings.Current.OutputName, activity?.TraceId.ToString());
 
                     // Report sending message successfully to Test Result Coordinator
                     await this.ReportResult(messageIdCounter);
@@ -38,6 +41,7 @@ namespace LoadGen
                         this.Logger.LogInformation($"Sent {messageIdCounter} messages.");
                     }
 
+                    activity?.SetTag("default.message.count", messageIdCounter);
                     messageIdCounter++;
                 }
                 catch (Exception ex)

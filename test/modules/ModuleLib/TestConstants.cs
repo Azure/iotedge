@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
             public const string SequenceNumberPropertyName = "sequenceNumber";
             public const string TraceIdPropertyName = "traceId";
             public const string SpanIdPropertyName = "spanId";
+            public const string ParentIdPropertyName = "parentId";
         }
 
         public static class Error

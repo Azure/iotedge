@@ -40,9 +40,7 @@ namespace LoadGen
 
         public abstract Task RunAsync(CancellationTokenSource cts, DateTime testStartAt);
 
-        private Activity activity;
-
-        protected async Task SendEventAsync(long messageId, string outputName)
+        protected async Task SendEventAsync(long messageId, string outputName, string parentId = null)
         {
             var random = new Random();
             var bufferPool = new BufferPool();
@@ -51,12 +49,7 @@ namespace LoadGen
             {
                 // generate some bytes
                 random.NextBytes(data.Data);
-                if (activity != null)
-                {
-                    Logger.LogInformation("Disposing Previous Activity");
-                    activity.Dispose();
-                }
-                activity = Settings.activitySource.StartActivity("SendEventAsync", ActivityKind.Producer);
+                using var activity = Settings.activitySource.StartActivity("SendEventAsync", ActivityKind.Producer);
                 Logger.LogInformation($"Activity TraceId is {activity?.TraceId}");
                 Logger.LogInformation($"Activity SpanId is {activity?.SpanId}");
                 activity?.AddEvent(new ActivityEvent($"Sending Message with BatchID : {this.BatchId.ToString()}"));
@@ -66,21 +59,21 @@ namespace LoadGen
                 message.Properties.Add(TestConstants.Message.SequenceNumberPropertyName, messageId.ToString());
                 message.Properties.Add(TestConstants.Message.BatchIdPropertyName, this.BatchId.ToString());
                 message.Properties.Add(TestConstants.Message.TrackingIdPropertyName, this.TrackingId);
-                message.Properties.Add(TestConstants.Message.TraceIdPropertyName, activity?.TraceId.ToString());
-                message.Properties.Add(TestConstants.Message.SpanIdPropertyName, activity?.SpanId.ToString());
+                if (parentId != null)
+                {
+                    message.Properties.Add(TestConstants.Message.ParentIdPropertyName, parentId);
+                    activity?.AddTag($"loadgen.parent.{parentId}", parentId);
+                }
                 // sending the result via edgeHub
                 await this.Client.SendEventAsync(outputName, message);
                 this.Logger.LogInformation($"Sent message successfully: sequenceNumber={messageId}");
+                activity?.AddEvent(new ActivityEvent($"Sending Message with BatchId:{this.BatchId.ToString()}"));
             }
         }
 
         protected async Task ReportResult(long messageIdCounter)
         {
-            if (activity != null)
-            {
-                Logger.LogInformation("Previous Activity Not NUll");
-                activity?.AddEvent(new ActivityEvent($"Sending Results with BatchID : {this.BatchId.ToString()}"));
-            }
+            using var activity = Settings.activitySource.StartActivity("ReportResults", ActivityKind.Internal);
             await Settings.Current.TestResultCoordinatorUrl.ForEachAsync(
                 async trcUrl =>
                 {
@@ -94,6 +87,8 @@ namespace LoadGen
                     };
                     await ModuleUtil.ReportTestResultAsync(testResultReportingClient, this.Logger, testResult);
                 });
+
+            activity?.AddEvent(new ActivityEvent($"Sent Test Results to TRC"));
         }
     }
 }
