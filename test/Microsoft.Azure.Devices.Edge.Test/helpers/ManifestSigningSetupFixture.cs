@@ -2,12 +2,9 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 {
     using System;
-    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
-    using Microsoft.Azure.Devices.Edge.Util;
-    using NUnit.Framework;
     using Serilog;
 
     public class ManifestSigningSetupFixture : SasManualProvisioningFixture

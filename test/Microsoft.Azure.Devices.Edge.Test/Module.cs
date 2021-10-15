@@ -18,6 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
 
         [Test]
+        [Category("ManifestSigning")]
         [Category("CentOsSafe")]
         [Category("nestededge_isa95")]
         public async Task TempSensor()
