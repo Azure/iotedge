@@ -31,7 +31,7 @@
 # Elevated Docker Permissions Flag
 # ==============================================================================
 #
-# Some docker capabilities capabilities can be used to gain root access. 
+# Some docker capabilities can be used to gain root access. 
 # By default, the --privileged flag and all capabilities listed in the CapAdd
 # field of the docker HostConfig are allowed.
 #
@@ -85,7 +85,7 @@
 # source = "manual"
 # iothub_hostname = "example.azure-devices.net"
 # device_id = "my-device"
-# 
+#
 # [provisioning.authentication]
 # method = "sas"
 #
@@ -99,7 +99,7 @@
 # source = "manual"
 # iothub_hostname = "example.azure-devices.net"
 # device_id = "my-device"
-# 
+#
 # [provisioning.authentication]
 # method = "x509"
 #
@@ -116,7 +116,7 @@
 # source = "dps"
 # global_endpoint = "https://global.azure-devices-provisioning.net"
 # id_scope = "0ab1234C5D6"
-# 
+#
 # [provisioning.attestation]
 # method = "symmetric_key"
 # registration_id = "my-device"
@@ -131,7 +131,7 @@
 # source = "dps"
 # global_endpoint = "https://global.azure-devices-provisioning.net"
 # id_scope = "0ab1234C5D6"
-# 
+#
 # [provisioning.attestation]
 # method = "x509"
 # registration_id = "my-device"
@@ -149,7 +149,7 @@
 # source = "dps"
 # global_endpoint = "https://global.azure-devices-provisioning.net"
 # id_scope = "0ab1234C5D6"
-# 
+#
 # [provisioning.attestation]
 # method = "tpm"
 # registration_id = "my-device"
@@ -170,7 +170,7 @@
 # trusted_certs = [
 #     "file:///var/secrets/est-id-ca.pem",
 # ]
-# 
+#
 # [cert_issuance.est.auth]
 # username = "estuser"
 # password = "estpwd"
@@ -276,26 +276,69 @@
 # ==============================================================================
 #
 # If you have your own Edge CA certificate that you want all module certificates
-# to be issued by, uncomment this section and replace the values with your own.
-#
+# to be issued by, uncomment one of the sections below and replace the values with
+# your own.
+
+# Edge CA certificate loaded from a file:
+# ---------------------
+
 # [edge_ca]
 # cert = "file:///var/secrets/edge-ca.pem"                # file URI
 #
 # pk = "file:///var/secrets/edge-ca.key.pem"              # file URI, or...
 # pk = "pkcs11:slot-id=0;object=edge%20ca?pin-value=1234" # PKCS#11 URI
 
+# Edge CA certificate issued over EST:
+# ---------------------
+
+# [edge_ca]
+# method = "est"
+#
+# # Optional EST configuration for issuing the Edge CA certificate below.
+# # If not set, the defaults in [cert_issuance.est] will be used.
+#
+# common_name = "iotedged workload ca"
+# expiry_days = 90
+# url = "https://example.org/.well-known/est"
+#
+# username = "estuser"
+# password = "estpwd"
+#
+# # EST ID cert already on device, or...
+# identity_cert = "file:///var/secrets/est-id.pem"
+#
+# identity_pk = "file:///var/secrets/est-id.key.pem"            # file URI, or...
+# identity_pk = "pkcs11:slot-id=0;object=est-id?pin-value=1234" # PKCS#11 URI
+#
+# # EST ID cert requested via EST bootstrap ID cert
+# bootstrap_identity_cert = "file:///var/secrets/est-bootstrap-id.pem"
+#
+# bootstrap_identity_pk = "file:///var/secrets/est-bootstrap-id.key.pem"            # file URI, or...
+# bootstrap_identity_pk = "pkcs11:slot-id=0;object=est-bootstrap-id?pin-value=1234" # PKCS#11 URI
+
+# Edge CA certificate issued from a local CA certificate:
+# Requires [cert_issuance.local_ca] to be set.
+# ---------------------
+
+# [edge_ca]
+# method = "local_ca"
+#
+# # Optional configuration below.
+#
+# common_name = "iotedged workload ca"
+# expiry_days = 90
 
 # ==============================================================================
 # Edge CA certificate (Quickstart)
 # ==============================================================================
 #
-# If you do not have your own Edge CA certificate that you want all 
-# module certificates to be issued by, you can uncomment this section and 
-# set the number of days for the lifetime of the auto-generated 
+# If you do not have your own Edge CA certificate that you want all
+# module certificates to be issued by, you can uncomment this section and
+# set the number of days for the lifetime of the auto-generated
 # self-signed Edge CA certificate. Defaults to 90 days.
 #
 # SECURITY NOTE: this setting is NOT recommended for production usage. Please
-# configure your own Edge CA certificate in the Edge CA certificate section 
+# configure your own Edge CA certificate in the Edge CA certificate section
 # above instead.
 #
 # [edge_ca]

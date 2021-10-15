@@ -340,7 +340,7 @@ fn execute_inner(
             }) = device_cert
             {
                 (
-                    Some(super_config::EdgeCa::Explicit {
+                    Some(super_config::EdgeCa::Preloaded {
                         cert: device_ca_cert,
                         pk: device_ca_pk,
                     }),
