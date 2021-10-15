@@ -194,40 +194,40 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
                     .Concat(desiredStatedChangedCommands.Select(d => d.command))
                     .Concat(resetHealthStatus);
             }
+        }
 
-            async Task<IList<(ICommand command, string module)>> ProcessDesiredStatusChangedModules(IList<IModule> desiredStatusChanged, ModuleSet current)
+        async Task<IList<(ICommand command, string module)>> ProcessDesiredStatusChangedModules(IList<IModule> desiredStatusChanged, ModuleSet current)
+        {
+            var commands = new List<(ICommand command, string module)>();
+            foreach (IModule module in desiredStatusChanged)
             {
-                var commands = new List<(ICommand command, string module)>();
-                foreach (IModule module in desiredStatusChanged)
+                if (current.TryGetModule(module.Name, out IModule currentModule))
                 {
-                    if (current.TryGetModule(module.Name, out IModule currentModule))
+                    if (module.DesiredStatus != ((IRuntimeModule)currentModule).RuntimeStatus)
                     {
-                        if (module.DesiredStatus != ((IRuntimeModule)currentModule).RuntimeStatus)
+                        if (module.DesiredStatus == ModuleStatus.Running)
                         {
-                            if (module.DesiredStatus == ModuleStatus.Running)
-                            {
-                                ICommand startCommand = await this.commandFactory.StartAsync(currentModule);
-                                commands.Add((startCommand, module.Name));
-                            }
-                            else if (module.DesiredStatus == ModuleStatus.Stopped)
-                            {
-                                ICommand stopCommand = await this.commandFactory.StopAsync(currentModule);
-                                commands.Add((stopCommand, module.Name));
-                            }
-                            else
-                            {
-                                Events.InvalidDesiredState(module);
-                            }
+                            ICommand startCommand = await this.commandFactory.StartAsync(currentModule);
+                            commands.Add((startCommand, module.Name));
+                        }
+                        else if (module.DesiredStatus == ModuleStatus.Stopped)
+                        {
+                            ICommand stopCommand = await this.commandFactory.StopAsync(currentModule);
+                            commands.Add((stopCommand, module.Name));
+                        }
+                        else
+                        {
+                            Events.InvalidDesiredState(module);
                         }
                     }
-                    else
-                    {
-                        Events.CurrentModuleNotFound(module.Name);
-                    }
                 }
-
-                return commands;
+                else
+                {
+                    Events.CurrentModuleNotFound(module.Name);
+                }
             }
+
+            return commands;
         }
 
         async Task<IEnumerable<ICommand>> ProcessStateChangedModules(IList<IRuntimeModule> updateStateChangedModules)
