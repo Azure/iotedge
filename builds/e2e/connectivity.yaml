@@ -116,6 +116,7 @@ jobs:
               insert='  zipkin:\n    endpoint: "http:\/\/localhost:8411\/api\/v2\/spans"\n    format: proto'
               sudo sed -i "s/$match/$match\n$insert/" $file
           fi
+          sudo systemctl restart otel-collector
         displayName: 'Add zipkin exporter to yaml'
       - bash: |
           docker stop zipkin || true && \
