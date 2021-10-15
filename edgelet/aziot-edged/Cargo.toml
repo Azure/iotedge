@@ -10,6 +10,8 @@ base64 = "0.13"
 clap = "2.33"
 futures-util = "0.3"
 log = "0.4"
+opentelemetry = { version = "0.16", features = ["rt-tokio", "metrics", "serialize"] }
+opentelemetry-otlp = { version = "0.9", features = ["tonic", "metrics"] }
 serde_json = "1"
 sha2 = "0.9"
 serde = "1"
