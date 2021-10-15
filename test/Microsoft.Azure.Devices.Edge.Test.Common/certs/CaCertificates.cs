@@ -51,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
             Preconditions.CheckArgument(File.Exists(certificatePath));
             Preconditions.CheckArgument(File.Exists(keyPath));
             Preconditions.CheckArgument(File.Exists(trustedCertsPath));
-            Preconditions.CheckArgument(File.Exists(manifestSigningTrustBundlePath));
+            // Preconditions.CheckArgument(File.Exists(manifestSigningTrustBundlePath));
             this.CertificatePath = certificatePath;
             this.KeyPath = keyPath;
             this.TrustedCertificatesPath = trustedCertsPath;
