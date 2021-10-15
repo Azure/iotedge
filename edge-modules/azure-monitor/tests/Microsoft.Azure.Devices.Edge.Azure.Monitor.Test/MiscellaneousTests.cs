@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.Test
         private readonly static DateTime testTime = DateTime.UnixEpoch;
 
 
-        // These tests have been added as a part of the fix for Partner bug where filtering based on AllowedMetrics doesn't work correctly.
+        // These tests have been added as a part of the fix for a Partner bug where filtering based on AllowedMetrics doesn't work correctly.
         // Unit tests exist for both the MetricFilter and for the PrometheusParser. However, some bugs were not caught during testing
         // because there isn't a functional test that verifies that the outcome of the interaction between the PrometheusParser and the
         // MetricFilter is what is actually desired.
@@ -132,17 +132,20 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.Test
             Assert.True(result.Count() == 4);
 
             // Wildcards * (any characters) and ? (any single character) can be used in metric names.
-            // For example, *CPU would match maxCPU and minCPU but not CPUMaximum.
+            // For example, *_out_bytes would match max_network_out_bytes and total_network_out_bytes (but not network_out_bytes_max).
 
             filter = new MetricFilter("*_out_bytes");
             result = metrics.Where(x => filter.Matches(x));
             Assert.True(result.Count() == 2);
 
-            // ???CPU would match maxCPU and minCPU but not maximumCPU.
+            // will match max_network_out_bytes, but not total_network_out_bytes
+            // ? refers to a single character in our implementation, not 1 or 'more than 1'.
             filter = new MetricFilter("???_network_out_bytes");
             result = metrics.Where(x => filter.Matches(x));
             Assert.True(result.Count() == 1);
 
+            // will match total_network_out_bytes, but not max_network_out_bytes
+            // ? refers to a single character in our implementation, not 0 or 1.
             filter = new MetricFilter("?????_network_out_bytes");
             result = metrics.Where(x => filter.Matches(x));
             Assert.True(result.Count() == 1);
@@ -193,6 +196,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.Test
                 + "edgehub_gettwin_total{iothub =\"IoTHub.azure-devices.net\",edge_device=\"Ubuntu-20\",KingKong_SSN=\"63b5-1db5-41\",id=\"DeviceId: Ubuntu-20; ModuleId: $edgeHub [IotHubHostName: IoTHub.azure-devices.net]\"} 1";
 
             // Like PromQL, the following matching operators are allowed
+            // Future maintainability note: The leading hypen '-' in the regexes below matters, easy to miss though it may be.
+
             // = ~Match labels to a provided regex
             MetricFilter filter = new MetricFilter("edgehub_gettwin_total{KingKong_SSN=~\"[-a-zA-Z0-9_]*\"}");
 
