@@ -119,7 +119,7 @@ jobs:
       - bash: |
           docker stop zipkin || true && \
           docker rm zipkin || true && \
-          docker run -d -p 8411:9411 --name zipkin openzipkin/zipkin &
+          docker run -d -p 8411:9411 --name zipkin --restart always openzipkin/zipkin
         displayName: 'Install and Run Zipkin'
       - task: Bash@3
         name: Print_test_parameters
