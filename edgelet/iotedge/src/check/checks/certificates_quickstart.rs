@@ -77,40 +77,36 @@ impl CertificatesQuickstart {
         });
         self.device_ca_cert_path = check.device_ca_cert_path.clone();
 
-        if settings.certificates().device_cert().is_none() {
-            let certificate_info = CertificateValidity::parse(
-                "Device CA certificate".to_owned(),
-                check.device_ca_cert_path.clone().unwrap(),
-            )?;
-            let not_after = certificate_info.not_after;
-            self.certificate_info = Some(certificate_info);
+        let certificate_info = CertificateValidity::parse(
+            "Device CA certificate".to_owned(),
+            check.device_ca_cert_path.clone().unwrap(),
+        )?;
+        let not_after = certificate_info.not_after;
+        self.certificate_info = Some(certificate_info);
 
-            let now = chrono::Utc::now();
+        let now = chrono::Utc::now();
 
-            if not_after < now {
-                return Ok(CheckResult::Warning(
-                Context::new(format!(
-                    "The Edge device is using self-signed automatically-generated development certificates.\n\
-                     The certs expired at {}. Restart the IoT Edge daemon to generate new development certs.\n\
-                     Please consider using production certificates instead. See https://aka.ms/iotedge-prod-checklist-certs for best practices.",
-                    not_after,
-                ))
-                .into(),
-            ));
-            } else {
-                return Ok(CheckResult::Warning(
-                Context::new(format!(
-                    "The Edge device is using self-signed automatically-generated development certificates.\n\
-                     They will expire in {} days (at {}) causing module-to-module and downstream device communication to fail on an active deployment.\n\
-                     After the certs have expired, restarting the IoT Edge daemon will trigger it to generate new development certs.\n\
-                     Please consider using production certificates instead. See https://aka.ms/iotedge-prod-checklist-certs for best practices.",
-                    (not_after - now).num_days(), not_after,
-                ))
-                .into(),
-            ));
-            }
+        if not_after < now {
+            Ok(CheckResult::Warning(
+            Context::new(format!(
+                "The Edge device is using self-signed automatically-generated development certificates.\n\
+                    The certs expired at {}. Restart the IoT Edge daemon to generate new development certs.\n\
+                    Please consider using production certificates instead. See https://aka.ms/iotedge-prod-checklist-certs for best practices.",
+                not_after,
+            ))
+            .into(),
+        ))
+        } else {
+            Ok(CheckResult::Warning(
+            Context::new(format!(
+                "The Edge device is using self-signed automatically-generated development certificates.\n\
+                    They will expire in {} days (at {}) causing module-to-module and downstream device communication to fail on an active deployment.\n\
+                    After the certs have expired, restarting the IoT Edge daemon will trigger it to generate new development certs.\n\
+                    Please consider using production certificates instead. See https://aka.ms/iotedge-prod-checklist-certs for best practices.",
+                (not_after - now).num_days(), not_after,
+            ))
+            .into(),
+        ))
         }
-
-        Ok(CheckResult::Ok)
     }
 }
