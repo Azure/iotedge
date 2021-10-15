@@ -69,6 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             addConfig(builder);
             DateTime deployTime = DateTime.Now;
             EdgeConfiguration edgeConfiguration = builder.Build();
+            await edgeConfiguration.DeployAsync(this.iotHub, token);
             string signedConfig = string.Empty;
             string edgeConfig = string.Empty;
             string dotnetCmdText = string.Empty;
