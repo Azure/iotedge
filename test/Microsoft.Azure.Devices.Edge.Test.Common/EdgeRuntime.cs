@@ -86,7 +86,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 File.WriteAllText(deploymentPath, edgeConfiguration.ToString());
                 // EdgeConfiguration ToString() outputs the ConfigurationContent
                 edgeConfig = edgeConfiguration.ToString();
-
                 // start dotnet run ManifestSignerClient process
                 string projectDirectory = enableManifestSigning.OrDefault().ManifestSignerClientProjectPath.OrDefault();
 

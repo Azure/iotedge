@@ -118,7 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     },
                     this.TestToken,
                     Context.Current.NestedEdge,
-                    null);
+                    inputManifestSettings);
                 this.sensor = deployment.Modules[SensorName];
                 this.startTime = deployment.StartTime;
             }

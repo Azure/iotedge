@@ -188,34 +188,34 @@ jobs:
 #    - template: templates/e2e-run.yaml
 
 ################################################################################
-  - job: linux_amd64_proxy
+#  - job: linux_amd64_proxy
 ################################################################################
-    displayName: Linux amd64 behind a proxy
-
-    pool:
-      name: $(pool.custom.name)
-      demands: new-e2e-proxy
-
-    variables:
-      os: linux
-      arch: amd64
-      artifactName: iotedged-ubuntu18.04-amd64
-      identityServiceArtifactName: packages_ubuntu-18.04_amd64
-      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      # workaround, see https://github.com/Microsoft/azure-pipelines-agent/issues/2138#issuecomment-470166671
-      'agent.disablelogplugin.testfilepublisherplugin': true
-      'agent.disablelogplugin.testresultlogplugin': true
-      # because we aren't publishing test artifacts for this job, turn on verbose logging instead
-      verbose: true
-      # don't error on component governance here, as this task doesn't have proxy support
-      NugetSecurityAnalysisWarningLevel: warn
-
-    timeoutInMinutes: 120
-
-    steps:
-    - template: templates/e2e-clean-directory.yaml
-    - template: templates/e2e-setup.yaml
-    - template: templates/e2e-clear-docker-cached-images.yaml
-    - template: templates/e2e-run.yaml
-      parameters:
-        test_type: http_proxy
+#    displayName: Linux amd64 behind a proxy
+#
+#    pool:
+#      name: $(pool.custom.name)
+#      demands: new-e2e-proxy
+#
+#    variables:
+#      os: linux
+#      arch: amd64
+#      artifactName: iotedged-ubuntu18.04-amd64
+#      identityServiceArtifactName: packages_ubuntu-18.04_amd64
+#      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+#      # workaround, see https://github.com/Microsoft/azure-pipelines-agent/issues/2138#issuecomment-470166671
+#      'agent.disablelogplugin.testfilepublisherplugin': true
+#      'agent.disablelogplugin.testresultlogplugin': true
+#      # because we aren't publishing test artifacts for this job, turn on verbose logging instead
+#      verbose: true
+#      # don't error on component governance here, as this task doesn't have proxy support
+#      NugetSecurityAnalysisWarningLevel: warn
+#
+#    timeoutInMinutes: 120
+#
+#    steps:
+#    - template: templates/e2e-clean-directory.yaml
+#    - template: templates/e2e-setup.yaml
+#    - template: templates/e2e-clear-docker-cached-images.yaml
+#    - template: templates/e2e-run.yaml
+#      parameters:
+#       test_type: http_proxy
