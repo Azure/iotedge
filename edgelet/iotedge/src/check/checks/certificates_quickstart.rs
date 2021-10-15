@@ -32,6 +32,8 @@ impl Checker for CertificatesQuickstart {
 
 impl CertificatesQuickstart {
     fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+        println!("---------CHECK STARTING--------------------");
+
         let settings = if let Some(settings) = &check.settings {
             settings
         } else {
