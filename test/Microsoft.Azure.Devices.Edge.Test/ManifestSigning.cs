@@ -19,7 +19,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
     {
         const string SensorName = "tempSensor";
         const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
-        string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
         // EdgeModule sensor;
         DateTime startTime;
 
@@ -82,7 +81,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             await this.SetConfigToEdgeDaemon(Context.Current.ManifestSigningGoodRootCaPath, this.TestToken);
             ManifestSettings inputManifestSettings = new ManifestSettings(Context.Current.ManifestSigningDeploymentPath, Context.Current.ManifestSigningSignedDeploymentPath, Context.Current.ManifestSigningGoodRootCaPath, Context.Current.ManifestSignerClientDirectory, Context.Current.ManifestSignerClientProjectPath);
-            */
 
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                 builder =>
@@ -92,7 +90,34 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 },
                 this.TestToken,
                 Context.Current.NestedEdge,
-                null);
+                inputManifestSettings);
+            */
+
+            EdgeModule sensor;
+            DateTime startTime;
+            string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
+
+            // This is a temporary solution see ticket: 9288683
+            if (!Context.Current.ISA95Tag)
+            {
+                EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
+                    builder =>
+                    {
+                        builder.AddModule(SensorName, sensorImage)
+                            .WithEnvironment(new[] { ("MessageCount", "-1") });
+                    },
+                    this.TestToken,
+                    Context.Current.NestedEdge);
+                sensor = deployment.Modules[SensorName];
+                startTime = deployment.StartTime;
+            }
+            else
+            {
+                sensor = new EdgeModule(SensorName, this.runtime.DeviceId, this.IotHub);
+                startTime = DateTime.Now;
+            }
+
+            await sensor.WaitForEventsReceivedAsync(startTime, this.TestToken);
         }
 
         /*

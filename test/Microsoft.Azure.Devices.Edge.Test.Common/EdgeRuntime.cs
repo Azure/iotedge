@@ -109,7 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             if (!string.IsNullOrEmpty(signedConfig))
             {
                 // Convert signed config to EdgeConfiguration
-                edgeConfiguration.config = JsonConvert.DeserializeObject<ConfigurationContent>(signedConfig);
+                edgeConfiguration.Config = JsonConvert.DeserializeObject<ConfigurationContent>(signedConfig);
             }
 
             EdgeModule[] modules = edgeConfiguration.ModuleNames
