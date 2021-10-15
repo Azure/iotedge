@@ -100,9 +100,9 @@ jobs:
       aziotis.package.filter: 'aziot-identity-service_*_amd64.deb'
     steps:
       - bash: |
-          sudo apt-get purge otel-collector && \
+          sudo apt-get purge -y otel-collector && \
           wget https://github.com/open-telemetry/opentelemetry-collector/releases/download/v0.33.0/otel-collector_0.33.0_amd64.deb && \
-          sudo apt-get install ./otel-collector_0.33.0_amd64.deb &&
+          sudo apt-get install -y ./otel-collector_0.33.0_amd64.deb &&
           sudo systemctl status otel-collector
         displayName: 'Install OpenTelemetry Collector'
       - bash: |
@@ -246,7 +246,7 @@ jobs:
           test.runtimeLogLevel: '$(test.runtimeLogLevel)'
           testInfo.testName: '$(testInfo.testName)'
       - bash: |
-          docker stop zipkin && docker rm zipkin && sudo apt-get purge otel-collector
+          docker stop zipkin && docker rm zipkin && sudo apt-get purge -y otel-collector
 
 
 # ################################################################################
