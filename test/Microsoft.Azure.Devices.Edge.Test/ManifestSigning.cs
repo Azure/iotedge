@@ -49,6 +49,30 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         token);
                 }
             }
+            else
+            {
+                if (!Context.Current.ISA95Tag)
+                {
+                    TestCertificates testCerts;
+                    (testCerts, this.ca) = await TestCertificates.GenerateCertsAsync(this.device.Id, token);
+                    this.startTime = DateTime.Now;
+                    await this.ConfigureDaemonAsync(
+                        config =>
+                        {
+                            testCerts.AddCertsToConfig(config);
+
+                            config.SetManualSasProvisioning(this.IotHub.Hostname, Context.Current.ParentHostname, this.device.Id, this.device.SharedAccessKey);
+
+                            config.Update();
+                            return Task.FromResult((
+                                "with connection string for device '{Identity}'",
+                                new object[] { this.device.Id }));
+                        },
+                        this.device,
+                        this.startTime,
+                        token);
+                }
+            }
         }
 
         public void SetLaunchSettingsWithRootCa(Option<string> defaultLaunchSettings, Option<string> rootCaPath)

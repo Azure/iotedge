@@ -148,7 +148,7 @@ jobs:
       artifactName: iotedged-ubuntu20.04-amd64
       identityServiceArtifactName: packages_ubuntu-20.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      enableManifestSigning : true
+      enableManifestSigning : false
       # When we switch to 1ES-hosted agents, we can make this a minimal pipeline
       # minimal: true
 
