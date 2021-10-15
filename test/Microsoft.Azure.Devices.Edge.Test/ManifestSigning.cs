@@ -96,6 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             EdgeModule sensor;
             DateTime startTime;
             string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
+            await this.SetConfigToEdgeDaemon(Option.None<string>(), this.TestToken);
 
             // This is a temporary solution see ticket: 9288683
             if (!Context.Current.ISA95Tag)
