@@ -10,6 +10,8 @@ namespace TestResultCoordinator.Reports
     /// </summary>
     class CountingReport : TestResultReportBase
     {
+        const string C2dOverMqttTestDescription = "C2D | mqtt";
+
         public CountingReport(
             string testDescription,
             string trackingId,
@@ -46,9 +48,16 @@ namespace TestResultCoordinator.Reports
 
         bool IsPassedHelper()
         {
-            // This tolerance is needed because sometimes we see a few missing messages.
-            // When this product issue is resolved, we can remove this failure tolerance.
-            return this.TotalExpectCount > 0 && ((double)this.TotalMatchCount / this.TotalMatchCount) > .95d;
+            if (this.TestDescription == C2dOverMqttTestDescription)
+            {
+                // This tolerance is needed because sometimes we see a few missing C2D messages.
+                // When this product issue is resolved, we can remove this failure tolerance.
+                return this.TotalExpectCount > 0 && ((double)this.TotalMatchCount / this.TotalMatchCount) > .95d;
+            }
+            else
+            {
+                return this.TotalExpectCount > 0 && this.TotalMatchCount == this.TotalExpectCount;
+            }
         }
 
         public override string Title => $"Counting Report between [{this.ExpectedSource}] and [{this.ActualSource}] ({this.ResultType})";
