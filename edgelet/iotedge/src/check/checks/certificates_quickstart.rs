@@ -35,6 +35,7 @@ impl CertificatesQuickstart {
         let settings = if let Some(settings) = &check.settings {
             settings
         } else {
+            println!("---------CHECK IS SKIPPED--------------------");
             return Ok(CheckResult::Skipped);
         };
 
