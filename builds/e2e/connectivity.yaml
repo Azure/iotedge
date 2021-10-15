@@ -108,12 +108,12 @@ jobs:
           file='/etc/otel-collector/config.yaml'
           match='\[logging\]'
           insert='[logging, zipkin]'
-          sed -i "43s/$match/$insert/" $file
+          suod sed -i "43s/$match/$insert/" $file
           zipkinCount=$(grep -c "zipkin:" $file)
           if [ "$zipkinCount" -eq 1 ]; then
               match='debug'
               insert='  zipkin:\n    endpoint: "http:\/\/localhost:8411\/api\/v2\/spans"\n    format: proto'
-              sed -i "s/$match/$match\n$insert/" $file
+              sudo sed -i "s/$match/$match\n$insert/" $file
           fi
         displayName: 'Add zipkin exporter to yaml'
       - bash: |
