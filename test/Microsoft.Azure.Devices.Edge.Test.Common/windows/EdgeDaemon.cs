@@ -102,37 +102,40 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
         async Task InternalStopAsync(CancellationToken token)
         {
             var sc = new ServiceController("iotedge");
-            if (sc.Status != ServiceControllerStatus.Stopped)
-            {
-                // Sometimes Windows will throw ERROR_SERVICE_CANNOT_ACCEPT_CTRL ("The service
-                // cannot accept control messages at this time.") or ERROR_SERVICE_NOT_ACTIVE
-                // ("The service has not been started.") when we try to stop a service. When
-                // that happens, wait a couple seconds and try again.
-                await Retry.Do(
-                    () =>
-                    {
-                        sc.Refresh();
-                        sc.Stop();
-                        return Task.FromResult(true);
-                    },
-                    _ => true,
-                    e =>
-                    {
-                        // ERROR_SERVICE_CANNOT_ACCEPT_CTRL
-                        // ERROR_SERVICE_NOT_ACTIVE
-                        if (e is Win32Exception ex && (ex.ErrorCode == 1061 || ex.ErrorCode == 1062))
-                        {
-                            Log.Verbose(
-                                "While attempting to stop IoT Edge, Windows returned an error ({Error}). Retrying...",
-                                e.Message);
-                            return true;
-                        }
 
-                        return false;
-                    },
-                    TimeSpan.FromSeconds(2),
-                    token);
-                await WaitForStatusAsync(sc, ServiceControllerStatus.Stopped, token);
+            // Sometimes Windows will throw ERROR_SERVICE_CANNOT_ACCEPT_CTRL ("The service
+            // cannot accept control messages at this time.") or ERROR_SERVICE_NOT_ACTIVE
+            // ("The service has not been started.") when we try to stop a service. When
+            // that happens, wait a couple seconds and try again.
+            await Retry.Do(
+                () =>
+                {
+                    sc.Refresh();
+                    if (sc.Status != ServiceControllerStatus.StopPending &&
+                        sc.Status != ServiceControllerStatus.Stopped)
+                    {
+                        sc.Stop();
+                    }
+                    return Task.FromResult(true);
+                },
+                _ => true,
+                e =>
+                {
+                    // ERROR_SERVICE_CANNOT_ACCEPT_CTRL || ERROR_SERVICE_NOT_ACTIVE
+                    if (e is Win32Exception ex && (ex.ErrorCode == 1061 || ex.ErrorCode == 1062))
+                    {
+                        Log.Verbose(
+                            "While attempting to stop IoT Edge (Status = {Status}), Windows returned an error ({Error}). Retrying...",
+                            sc.Status.ToString(),
+                            e.Message);
+                        return true;
+                    }
+
+                    return false;
+                },
+                TimeSpan.FromSeconds(2),
+                token);
+            await WaitForStatusAsync(sc, ServiceControllerStatus.Stopped, token);
             }
         }
 
