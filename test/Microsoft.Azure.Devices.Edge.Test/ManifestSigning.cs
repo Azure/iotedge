@@ -101,7 +101,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task TestIfSignedDeploymentIsSuccessful()
         {
-            // Console.WriteLine($"Root CA path: {Context.Current.ManifestSigningGoodRootCaPath.OrDefault()}");
             this.SetLaunchSettingsWithRootCa(Context.Current.ManifestSigningDefaultLaunchSettings, Context.Current.ManifestSigningGoodRootCaPath);
 
             await this.SetConfigToEdgeDaemon(Context.Current.ManifestSigningGoodRootCaPath, this.TestToken);
@@ -129,27 +128,47 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
 
             await this.sensor.WaitForEventsReceivedAsync(this.startTime, this.TestToken);
+            await this.SetConfigToEdgeDaemon(Option.None<string>(), this.TestToken);
         }
 
-        /*
-        [Category("ManifestSigning")]
+        /*[Category("ManifestSigning")]
         [Test]
         public async Task TestIfSignedDeploymentIsConfiguredWithBadRootCa()
         {
             this.SetLaunchSettingsWithRootCa(Context.Current.ManifestSigningDefaultLaunchSettings, Context.Current.ManifestSigningBadRootCaPath);
 
-            await this.SetConfigToEdgeDaemon(Context.Current.ManifestSigningGoodRootCaPath, this.TestToken);
-            ManifestSettings inputManifestSettings = new ManifestSettings(Context.Current.ManifestSigningDeploymentPath, Context.Current.ManifestSigningSignedDeploymentPath, Context.Current.ManifestSigningGoodRootCaPath, Context.Current.ManifestSignerClientDirectory, Context.Current.ManifestSignerClientProjectPath);
+            await this.SetConfigToEdgeDaemon(Context.Current.ManifestSigningBadRootCaPath, this.TestToken);
+            ManifestSettings inputManifestSettings = new ManifestSettings(Context.Current.ManifestSigningDeploymentPath, Context.Current.ManifestSigningSignedDeploymentPath, Context.Current.ManifestSigningBadRootCaPath, Context.Current.ManifestSignerClientDirectory, Context.Current.ManifestSignerClientProjectPath);
 
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
-                builder =>
+            try
+            {
+                // This is a temporary solution see ticket: 9288683
+                if (!Context.Current.ISA95Tag)
                 {
-                    builder.AddModule(SensorName, this.sensorImage)
-                        .WithEnvironment(new[] { ("MessageCount", "-1") });
-                },
-                this.TestToken,
-                Context.Current.NestedEdge,
-                inputManifestSettings);
+                    EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
+                        builder =>
+                        {
+                            builder.AddModule(SensorName, this.sensorImage)
+                                .WithEnvironment(new[] { ("MessageCount", "-1") });
+                        },
+                        this.TestToken,
+                        Context.Current.NestedEdge,
+                        inputManifestSettings);
+                    this.sensor = deployment.Modules[SensorName];
+                    this.startTime = deployment.StartTime;
+                }
+                else
+                {
+                    this.sensor = new EdgeModule(SensorName, this.runtime.DeviceId, this.IotHub);
+                    this.startTime = DateTime.Now;
+                }
+
+                await this.sensor.WaitForEventsReceivedAsync(this.startTime, this.TestToken);
+            }
+            catch (TaskCanceledException)
+            {
+                Assert.AreNotEqual();
+            }
         }
 
         [Category("ManifestSigning")]
@@ -158,133 +177,37 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             this.SetLaunchSettingsWithRootCa(Context.Current.ManifestSigningDefaultLaunchSettings, Option.None<string>());
 
-            await this.SetConfigToEdgeDaemon(Context.Current.ManifestSigningGoodRootCaPath, this.TestToken);
-            ManifestSettings inputManifestSettings = new ManifestSettings(Context.Current.ManifestSigningDeploymentPath, Context.Current.ManifestSigningSignedDeploymentPath, Context.Current.ManifestSigningGoodRootCaPath, Context.Current.ManifestSignerClientDirectory, Context.Current.ManifestSignerClientProjectPath);
+            await this.SetConfigToEdgeDaemon(Context.Current.ManifestSigningBadRootCaPath, this.TestToken);
+            ManifestSettings inputManifestSettings = new ManifestSettings(Context.Current.ManifestSigningDeploymentPath, Context.Current.ManifestSigningSignedDeploymentPath, Option.None<string>(), Context.Current.ManifestSignerClientDirectory, Context.Current.ManifestSignerClientProjectPath);
 
             try
             {
-                EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
-                builder =>
+                // This is a temporary solution see ticket: 9288683
+                if (!Context.Current.ISA95Tag)
                 {
-                    builder.AddModule(SensorName, this.sensorImage)
-                        .WithEnvironment(new[] { ("MessageCount", "-1") });
-                },
-                this.TestToken,
-                Context.Current.NestedEdge,
-                inputManifestSettings);
+                    EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
+                        builder =>
+                        {
+                            builder.AddModule(SensorName, this.sensorImage)
+                                .WithEnvironment(new[] { ("MessageCount", "-1") });
+                        },
+                        this.TestToken,
+                        Context.Current.NestedEdge,
+                        inputManifestSettings);
+                    this.sensor = deployment.Modules[SensorName];
+                    this.startTime = deployment.StartTime;
+                }
+                else
+                {
+                    this.sensor = new EdgeModule(SensorName, this.runtime.DeviceId, this.IotHub);
+                    this.startTime = DateTime.Now;
+                }
+
+                await this.sensor.WaitForEventsReceivedAsync(this.startTime, this.TestToken);
             }
-            catch (TaskCanceledException ex)
+            catch (TaskCanceledException )
             {
-                // assert on not equal EA twin version
             }
-        }
-        */
-
-        /*[Category("ManifestSigning")]
-        [Test]
-        public async Task TestIfSignedDeploymentIsConfiguredWithBadRootCa()
-        {
-            this.SetConfigToEdgeDaemon(Context.Current.ManifestSigningBadRootCaPath, this.TestToken);
-
-            this.SetLaunchSettingsWithRootCa(Context.Current.ManifestSigningDefaultLaunchSettings, Context.Current.ManifestSigningBadRootCaPath);
-
-            ManifestSettings inputManifestSettings = new ManifestSettings(Context.Current.ManifestSigningDeploymentPath, Context.Current.ManifestSigningSignedDeploymentPath, Context.Current.ManifestSigningGoodRootCaPath, Context.Current.ManifestSignerClientBinPath);
-
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
-                builder =>
-                {
-                    builder.AddModule(SensorName, this.sensorImage)
-                        .WithEnvironment(new[] { ("MessageCount", "-1") });
-                },
-                this.TestToken,
-                Context.Current.NestedEdge,
-                inputManifestSettings);
-
-            this.sensor = deployment.Modules[SensorName];
-            this.startTime = deployment.StartTime;
-
-            await this.sensor.WaitForEventsReceivedAsync(this.startTime, this.TestToken);
-
-            await this.sensor.UpdateDesiredPropertiesAsync(
-                new
-                {
-                    properties = new
-                    {
-                        desired = new
-                        {
-                            SendData = true,
-                            SendInterval = 10
-                        }
-                    }
-                },
-                this.TestToken);
-
-            await this.sensor.WaitForReportedPropertyUpdatesAsync(
-                new
-                {
-                    properties = new
-                    {
-                        reported = new
-                        {
-                            SendData = true,
-                            SendInterval = 10
-                        }
-                    }
-                },
-                this.TestToken);
-        }
-
-        [Category("ManifestSigning")]
-        [Test]
-        public async Task TestIfSignedDeploymentIsConfiguredWithNoRootCa()
-        {
-            this.SetConfigToEdgeDaemon(Option.None<string>(), this.TestToken);
-            this.SetLaunchSettingsWithRootCa(Context.Current.ManifestSigningDefaultLaunchSettings, Context.Current.ManifestSigningGoodRootCaPath);
-
-            ManifestSettings inputManifestSettings = new ManifestSettings(Context.Current.ManifestSigningDeploymentPath, Context.Current.ManifestSigningSignedDeploymentPath, Context.Current.ManifestSigningGoodRootCaPath, Context.Current.ManifestSignerClientBinPath);
-
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
-                builder =>
-                {
-                    builder.AddModule(SensorName, this.sensorImage)
-                        .WithEnvironment(new[] { ("MessageCount", "-1") });
-                },
-                this.TestToken,
-                Context.Current.NestedEdge,
-                inputManifestSettings);
-
-            this.sensor = deployment.Modules[SensorName];
-            this.startTime = deployment.StartTime;
-
-            await this.sensor.WaitForEventsReceivedAsync(this.startTime, this.TestToken);
-
-            await this.sensor.UpdateDesiredPropertiesAsync(
-                new
-                {
-                    properties = new
-                    {
-                        desired = new
-                        {
-                            SendData = true,
-                            SendInterval = 10
-                        }
-                    }
-                },
-                this.TestToken);
-
-            await this.sensor.WaitForReportedPropertyUpdatesAsync(
-                new
-                {
-                    properties = new
-                    {
-                        reported = new
-                        {
-                            SendData = true,
-                            SendInterval = 10
-                        }
-                    }
-                },
-                this.TestToken);
         }
         */
     }
