@@ -116,6 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                     {
                         sc.Stop();
                     }
+
                     return Task.FromResult(true);
                 },
                 _ => true,
@@ -136,7 +137,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                 TimeSpan.FromSeconds(2),
                 token);
             await WaitForStatusAsync(sc, ServiceControllerStatus.Stopped, token);
-            }
         }
 
         public async Task UninstallAsync(CancellationToken token)
