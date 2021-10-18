@@ -19,7 +19,8 @@ steps:
     $test_type = '${{ parameters.test_type }}'
 
     # Filter out Manifest Signing tests.
-    $filter = 'Category=ManifestSigning&Category=MSlabeled'
+    $filter = 'Category=ManifestSigning'
+    $filter += '&Category=MSlabeled'
 
     # Filter out flaky tests.
     #$filter = 'Category!=Flaky'

@@ -97,8 +97,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
         }
 
-        [Category("ManifestSigning")]
         [Test]
+        [Category("ManifestSigning")]
         public async Task TestIfSignedDeploymentIsSuccessful()
         {
             this.SetLaunchSettingsWithRootCa(Context.Current.ManifestSigningDefaultLaunchSettings, Context.Current.ManifestSigningGoodRootCaPath);
