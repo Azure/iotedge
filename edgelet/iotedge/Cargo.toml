@@ -25,6 +25,8 @@ hyper-proxy = "0.5.1"
 lazy_static = "1"
 libc = "0.2"
 log = "0.4"
+opentelemetry = { version = "0.16", features = ["rt-tokio", "metrics", "serialize"] }
+opentelemetry-otlp = { version = "0.9", features = ["tonic", "metrics"] }
 nix = "0.18"
 openssl = "0.10"
 regex = "0.2"

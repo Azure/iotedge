@@ -12,6 +12,8 @@ http = "0.2"
 hyper = "0.14"
 libc = "0.2"
 log = "0.4"
+opentelemetry = { version = "0.16", features = ["rt-tokio", "metrics", "serialize"] }
+opentelemetry-otlp = { version = "0.9", features = ["tonic", "metrics"] }
 percent-encoding = "2"
 regex = "1"
 serde = "1"

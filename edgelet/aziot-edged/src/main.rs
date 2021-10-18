@@ -9,17 +9,9 @@ mod provision;
 mod watchdog;
 mod workload_manager;
 
-use opentelemetry::global::shutdown_tracer_provider;
-use opentelemetry::sdk::metrics::{selectors, PushController};
-use opentelemetry::trace::TraceError;
-use opentelemetry::{
-    baggage::BaggageExt,
-    metrics::{self, ObserverResult},
-    trace::{TraceContextExt, Tracer},
-    Context, Key, KeyValue,
-};
-use opentelemetry::{global, sdk::trace as sdktrace};
-use opentelemetry_otlp::{ExportConfig, WithExportConfig};
+use opentelemetry::sdk::Resource;
+use opentelemetry::{global, KeyValue, sdk::trace as sdktrace, trace::{TraceError, Tracer}};
+use opentelemetry_otlp::WithExportConfig;
 use std::sync::atomic;
 
 use edgelet_core::{module::ModuleAction, MakeModuleRuntime, ModuleRuntime};
@@ -44,14 +36,16 @@ async fn main() {
     log::info!("Version - {}", edgelet_core::version_with_source_version());
 
     let _ = init_tracer().expect("Error initializing tracer");
-    let tracer = global::tracer("aziot-edged");
-    tracer.in_span("run", |_cx| async {
-        if let Err(err) = run().await {
-            log::error!("{}", err);
+    let tracer = global::tracer("aziot_edged");
+    tracer
+        .in_span("run", |_cx| async {
+            if let Err(err) = run().await {
+                log::error!("{}", err);
 
-            std::process::exit(err.into());
-        }
-    }).await;
+                std::process::exit(err.into());
+            }
+        })
+        .await;
     global::shutdown_tracer_provider();
 }
 
@@ -246,6 +240,10 @@ fn init_tracer() -> Result<sdktrace::Tracer, TraceError> {
             opentelemetry_otlp::new_exporter()
                 .tonic()
                 .with_endpoint("http://localhost:4317"),
+        )
+        .with_trace_config(
+            sdktrace::config()
+                .with_resource(Resource::new(vec![KeyValue::new("service.name", "aziot-edged")])),
         )
         .install_batch(opentelemetry::runtime::Tokio)
 }

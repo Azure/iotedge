@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+use opentelemetry::{Context, global, trace::{FutureExt, Span, TraceContextExt, Tracer, TracerProvider}};
 
 pub(crate) struct Route<M>
 where
@@ -49,10 +50,14 @@ where
     type DeleteBody = serde::de::IgnoredAny;
 
     async fn get(self) -> http_common::server::RouteResponse {
+        let tracer_provider = global::tracer_provider();
+        let tracer = tracer_provider.tracer("aziot-edged", Some(env!("CARGO_PKG_VERSION")));
+        let span = tracer.start("edgelet-http-mgmt:module:list");    
+        let cx = Context::current_with_span(span);  
         let runtime = self.runtime.lock().await;
 
-        let modules = runtime
-            .list_with_details()
+        let modules = FutureExt::with_context(runtime
+            .list_with_details(), cx.clone())
             .await
             .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
 
@@ -64,11 +69,15 @@ where
 
     type PostBody = edgelet_http::ModuleSpec;
     async fn post(self, body: Option<Self::PostBody>) -> http_common::server::RouteResponse {
+        let tracer_provider = global::tracer_provider();
+        let tracer = tracer_provider.tracer("aziot-edged", Some(env!("CARGO_PKG_VERSION")));
+        let mut span = tracer.start("edgelet-http-mgmt:module:create");      
         edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
         let body = match body {
             Some(body) => body,
             None => {
+                span.end();
                 return Err(edgelet_http::error::bad_request("missing request body"));
             }
         };
@@ -80,7 +89,7 @@ where
 
         super::create_module(&*runtime, body).await?;
         let res = http_common::server::response::json(hyper::StatusCode::CREATED, &details);
-
+        span.end();
         Ok(res)
     }
 

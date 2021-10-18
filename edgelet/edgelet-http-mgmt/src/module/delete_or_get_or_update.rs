@@ -1,5 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use opentelemetry::{global, trace::{Span, Tracer, TracerProvider}};
+
 pub(crate) struct Route<M>
 where
     M: edgelet_core::ModuleRuntime + Send + Sync,
@@ -55,17 +57,29 @@ where
 
     type DeleteBody = serde::de::IgnoredAny;
     async fn delete(self, _body: Option<Self::DeleteBody>) -> http_common::server::RouteResponse {
+        let tracer_provider = global::tracer_provider();
+        let tracer = tracer_provider.tracer("aziot-edged", Some(env!("CARGO_PKG_VERSION")));
+        let mut span = tracer.start("module:delete");   
         edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
         let runtime = self.runtime.lock().await;
 
         match runtime.remove(&self.module).await {
-            Ok(_) => Ok(http_common::server::response::no_content()),
-            Err(err) => Err(edgelet_http::error::server_error(err.to_string())),
+            Ok(_) => {
+                span.end();
+                Ok(http_common::server::response::no_content())
+            },
+            Err(err) => {
+                span.end();
+                Err(edgelet_http::error::server_error(err.to_string()))
+            },
         }
     }
 
     async fn get(self) -> http_common::server::RouteResponse {
+        let tracer_provider = global::tracer_provider();
+        let tracer = tracer_provider.tracer("aziot-edged", Some(env!("CARGO_PKG_VERSION")));
+        let mut span = tracer.start("module:get");   
         let runtime = self.runtime.lock().await;
 
         let module_info = runtime
@@ -75,7 +89,7 @@ where
 
         let res: edgelet_http::ModuleDetails = module_info.into();
         let res = http_common::server::response::json(hyper::StatusCode::OK, &res);
-
+        span.end();
         Ok(res)
     }
 
@@ -83,12 +97,17 @@ where
 
     type PutBody = edgelet_http::ModuleSpec;
     async fn put(self, body: Self::PutBody) -> http_common::server::RouteResponse {
+        let tracer_provider = global::tracer_provider();
+        let tracer = tracer_provider.tracer("aziot-edged", Some(env!("CARGO_PKG_VERSION")));
+        let mut span = tracer.start("module:update");   
         edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
         let start = if let Some(start) = &self.start {
+            span.end();
             std::str::FromStr::from_str(start)
                 .map_err(|_| edgelet_http::error::bad_request("invalid parameter: start"))?
         } else {
+            span.end();
             false
         };
 
@@ -109,9 +128,11 @@ where
             // It doesn't matter if restarting edgeAgent fails because the aziot-edged watchdog will
             // retry on failure.
             tokio::spawn(async move { self.update_module(body, start).await });
-
+            
+            span.end();
             Ok(res)
         } else {
+            span.end();
             self.update_module(body, start).await
         }
     }

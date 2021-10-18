@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use opentelemetry::{Context, global, trace::{FutureExt, Span, TraceContextExt, Tracer, TracerProvider}};
 use std::io::Write;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
@@ -39,10 +40,14 @@ where
     W: Write,
 {
     pub async fn execute(self) -> Result<(), Error> {
+        let tracer_provider = global::tracer_provider();
+        let tracer = tracer_provider.tracer("aziot-edged", Some(env!("CARGO_PKG_VERSION")));
+        let span = tracer.start("edgelet-http-mgmt:module:list");    
+        let cx = Context::current_with_span(span);         
         let write = self.output.clone();
-        let mut result = self
+        let mut result = FutureExt::with_context(self
             .runtime
-            .list_with_details()
+            .list_with_details(), cx)
             .await
             .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))?;
 

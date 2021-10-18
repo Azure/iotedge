@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use opentelemetry::{global, trace::{Span, Tracer, TracerProvider}};
 use std::convert::TryFrom;
 
 #[cfg(not(test))]
@@ -73,6 +74,9 @@ where
     type DeleteBody = serde::de::IgnoredAny;
 
     async fn get(self) -> http_common::server::RouteResponse {
+        let tracer_provider = global::tracer_provider();
+        let tracer = tracer_provider.tracer("aziot-edged", Some(env!("CARGO_PKG_VERSION")));
+        let mut span = tracer.start("identity:get");
         let client = self.client.lock().await;
 
         let mut identities = vec![];
@@ -84,23 +88,29 @@ where
                 }
             }
             Err(err) => {
+                span.end();
                 return Err(edgelet_http::error::server_error(err.to_string()));
             }
         };
 
         let res = ListIdentitiesResponse { identities };
         let res = http_common::server::response::json(hyper::StatusCode::OK, &res);
+        span.end();
 
         Ok(res)
     }
 
     type PostBody = CreateIdentityRequest;
     async fn post(self, body: Option<Self::PostBody>) -> http_common::server::RouteResponse {
+        let tracer_provider = global::tracer_provider();
+        let tracer = tracer_provider.tracer("aziot-edged", Some(env!("CARGO_PKG_VERSION")));
+        let mut span = tracer.start("identity:post");
         edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
         let body = match body {
             Some(body) => body,
             None => {
+                span.end();
                 return Err(edgelet_http::error::bad_request("missing request body"));
             }
         };
@@ -115,11 +125,13 @@ where
                 identity
             }
             Err(err) => {
+                span.end();
                 return Err(edgelet_http::error::server_error(err.to_string()));
             }
         };
 
         let res = http_common::server::response::json(hyper::StatusCode::OK, &identity);
+        span.end();
 
         Ok(res)
     }
