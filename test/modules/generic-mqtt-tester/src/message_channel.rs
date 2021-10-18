@@ -86,7 +86,7 @@ impl MessageHandler for ReportResultMessageHandler {
                 error!("error reporting result to trc: {:?}", e);
             }
         } else {
-            warn!("received publication with non-matching batch id")
+            warn!("received publication with non-matching batch id");
         }
 
         Ok(())

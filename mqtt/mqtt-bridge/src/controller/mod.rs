@@ -93,7 +93,7 @@ impl BridgeController {
                 }
             }
         } else {
-            info!("no upstream settings detected")
+            info!("no upstream settings detected");
         }
     }
 }
@@ -123,7 +123,7 @@ impl Sidecar for BridgeController {
 
             match future::select(self.messages.select_next_some(), wait_bridge_or_pending).await {
                 Either::Left((BridgeControllerMessage::BridgeControllerUpdate(update), _)) => {
-                    process_update(update, &mut bridges).await
+                    process_update(update, &mut bridges).await;
                 }
                 Either::Left((BridgeControllerMessage::Shutdown, _)) => {
                     info!("bridge controller shutdown requested");

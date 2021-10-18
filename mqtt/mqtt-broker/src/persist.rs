@@ -609,6 +609,7 @@ pub enum PersistError {
 }
 
 #[cfg(all(test, target_arch = "x86_64"))]
+#[allow(clippy::semicolon_if_nothing_returned)]
 mod tests {
     use std::io::Cursor;
 

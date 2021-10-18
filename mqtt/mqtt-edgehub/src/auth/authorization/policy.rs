@@ -45,9 +45,9 @@ impl Authorizer for PolicyAuthorizer {
 
     fn authorize(&self, activity: &Activity) -> Result<Authorization, Self::Error> {
         let request = Request::with_context(
-            identity(&activity),
-            operation(&activity),
-            resource(&activity),
+            identity(activity),
+            operation(activity),
+            resource(activity),
             activity.clone(),
         )
         .map_err(Error::Authorization)?;
@@ -170,7 +170,7 @@ mod tests {
     fn it_allows_activity(activity: &Activity) {
         let authorizer = authorizer();
 
-        let auth = authorizer.authorize(&activity);
+        let auth = authorizer.authorize(activity);
 
         assert_matches!(auth, Ok(Authorization::Allowed));
     }
@@ -183,7 +183,7 @@ mod tests {
     fn it_forbids_activity(activity: &Activity) {
         let authorizer = authorizer();
 
-        let auth = authorizer.authorize(&activity);
+        let auth = authorizer.authorize(activity);
 
         assert_matches!(auth, Ok(Authorization::Forbidden(_)));
     }

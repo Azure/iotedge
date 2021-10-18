@@ -233,7 +233,7 @@ impl SasTokenSource {
             .map_err(|e| Error::new(ErrorKind::Other, format!("could not get signature: {}", e)))?;
         let signature = signature.digest();
         let token = UrlSerializer::new(format!("sr={}", resource_uri))
-            .append_pair("sig", &signature)
+            .append_pair("sig", signature)
             .append_pair("se", &expiry)
             .finish();
 
@@ -289,7 +289,7 @@ impl TrustBundleSource {
             Credentials::PlainText(cred_settings) => {
                 cred_settings.trust_bundle().map(str::to_string)
             }
-            _ => None,
+            Credentials::Anonymous(_) => None,
         };
 
         Ok(certificate)

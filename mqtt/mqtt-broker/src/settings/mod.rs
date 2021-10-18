@@ -272,7 +272,7 @@ mod tests {
         let json = serde_json::json!({ "foo": { "bar": 42 } });
         let value: Container = serde_json::from_value(json).unwrap();
 
-        assert_eq!(value.foo(), Some(&Foo { bar: 42 }))
+        assert_eq!(value.foo(), Some(&Foo { bar: 42 }));
     }
 
     #[test]
@@ -280,7 +280,7 @@ mod tests {
         let json = serde_json::json!({ "foo": {  } });
         let value: Container = serde_json::from_value(json).unwrap();
 
-        assert_eq!(value.foo(), None)
+        assert_eq!(value.foo(), None);
     }
 
     #[test]
@@ -288,7 +288,7 @@ mod tests {
         let json = serde_json::json!({ "foo": { "enabled": true, "bar": 42 } });
         let value: Container = serde_json::from_value(json).unwrap();
 
-        assert_eq!(value.foo(), Some(&Foo { bar: 42 }))
+        assert_eq!(value.foo(), Some(&Foo { bar: 42 }));
     }
 
     #[test]
@@ -296,7 +296,7 @@ mod tests {
         let json = serde_json::json!({ "foo": { "enabled": false, "bar": 42 } });
         let value: Container = serde_json::from_value(json).unwrap();
 
-        assert_eq!(value.foo(), None)
+        assert_eq!(value.foo(), None);
     }
 
     #[test]
@@ -304,7 +304,7 @@ mod tests {
         let json = serde_json::json!({});
         let value: Container = serde_json::from_value(json).unwrap();
 
-        assert_eq!(value.foo(), None)
+        assert_eq!(value.foo(), None);
     }
 
     #[derive(Debug, Deserialize)]

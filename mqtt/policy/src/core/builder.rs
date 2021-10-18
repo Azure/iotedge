@@ -166,7 +166,7 @@ fn process_identities(statement: &Statement) -> (Identities, Identities) {
     let mut static_ids = Identities::new();
     let mut variable_ids = Identities::new();
     for identity in &statement.identities {
-        let (static_ops, variable_ops) = process_operations(&statement);
+        let (static_ops, variable_ops) = process_operations(statement);
 
         if is_variable_rule(identity) {
             // if current identity has substitutions,
@@ -190,7 +190,7 @@ fn process_operations(statement: &Statement) -> (Operations, Operations) {
     let mut static_ops = Operations::new();
     let mut variable_ops = Operations::new();
     for operation in &statement.operations {
-        let (static_res, variable_res) = process_resources(&statement);
+        let (static_res, variable_res) = process_resources(statement);
 
         if is_variable_rule(operation) {
             // if current operation has variables,
