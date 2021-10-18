@@ -480,4 +480,4 @@ stages:
   displayName: Run E2E Tests
   dependsOn: PublishManifests
   jobs:
-    - template: ./e2e/e2e.yaml
+    - template: ../e2e/e2e.yaml
