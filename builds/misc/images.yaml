@@ -480,16 +480,4 @@ stages:
   displayName: Run E2E Tests
   dependsOn: PublishManifests
   jobs:
-    - job: ubuntu_1804_docker
-      displayName: Ubuntu 18.04 with Docker
-      pool:
-        vmImage: ubuntu-18.04
-      variables:
-        os: linux
-        arch: amd64
-        artifactName: iotedged-ubuntu18.04-amd64
-        identityServiceArtifactName: packages_ubuntu-18.04_amd64
-        identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      steps:
-        - template: ../e2e/templates/e2e-setup.yaml
-        - template: ../e2e/templates/e2e-run.yaml
+    - template: ./e2e/e2e.yaml
