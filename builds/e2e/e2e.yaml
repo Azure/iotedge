@@ -1,6 +1,9 @@
 trigger: none
-pr: none
-
+pr:
+  branches:
+    include:
+      - master
+      - release/*
 resources:
   pipelines:
   - pipeline: images
