@@ -105,8 +105,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             if (sc.Status != ServiceControllerStatus.Stopped)
             {
                 // Sometimes Windows will throw ERROR_SERVICE_CANNOT_ACCEPT_CTRL ("The service
-                // cannot accept control messages at this time.") when we try to stop a service.
-                // When that happens, wait a couple seconds and try again.
+                // cannot accept control messages at this time.") or ERROR_SERVICE_NOT_ACTIVE
+                // ("The service has not been started.") when we try to stop a service. When
+                // that happens, wait a couple seconds and try again.
                 await Retry.Do(
                     () =>
                     {
@@ -118,7 +119,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                     e =>
                     {
                         // ERROR_SERVICE_CANNOT_ACCEPT_CTRL
-                        if (e is Win32Exception ex && ex.ErrorCode == 1061)
+                        // ERROR_SERVICE_NOT_ACTIVE
+                        if (e is Win32Exception ex && (ex.ErrorCode == 1061 || ex.ErrorCode == 1062))
                         {
                             Log.Verbose(
                                 "While attempting to stop IoT Edge, Windows returned an error ({Error}). Retrying...",
