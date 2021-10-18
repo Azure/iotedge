@@ -1,4 +1,4 @@
-***Please write your PR Description here and read PR checklist below***
+***Please replace this line with your PR description and read PR checklist below***
 
 ## Azure IoT Edge PR checklist:
 
