@@ -19,67 +19,67 @@ steps:
     $test_type = '${{ parameters.test_type }}'
 
     # Filter out Manifest Signing tests.
-    $filter = 'Category=ManifestSigning'
+    #$filter = 'Category=ManifestSigning'
 
     # Filter out flaky tests.
-    #$filter = 'Category!=Flaky'
-    #
-    #if ('$(minimal)' -eq 'true')
-    #{
-    #  $filter += '&Name~TempSensor'
-    #}
-    #
-    #if ('$(artifactName)'.Contains('centos'))
-    #{
-    #  $filter += '&Category=CentOsSafe'
-    #}
-    #elseif ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
-    #{
-    #  $filter += '&Category!=FlakyOnArm'
-    #}
-    #
-    #if ($test_type -eq 'nestededge_mqtt')
-    #{
-    #  $filter += '&Category!=SingleNodeOnly'
-    #  $filter += '&Category!=NestedEdgeAmqpOnly'
-    #  $filter += '&Category!=LegacyMqttRequired'
-    #
-    #  $filter += '&Category!=FlakyOnNested'
-    #
-    #  # Below tests were disabled and marked for re-enable when a blocking item was resolved.
-    #  # When it was resolved the tests were never enabled. We need to re-enable these.
-    #  $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
-    #}
-    #elseif ($test_type -eq 'nestededge_amqp')
-    #{
-    #  $filter += '&Category!=SingleNodeOnly'
-    #  $filter += '&Category!=BrokerRequired'
-    #
-    #  $filter += '&Category!=FlakyOnNested'
-    #
-    #  # Below tests were disabled and marked for re-enable when a blocking item was resolved.
-    #  # When it was resolved the tests were never enabled. We need to re-enable these.
-    #  $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
-    #}
-    #elseif ($test_type -eq 'nestededge_isa95')
-    #{
-    #  $filter = 'Category=nestededge_isa95'
-    #}
-    #elseif ($test_type -eq 'http_proxy')
-    #{
-    #  #Disable tests that don't work in proxy environment. Renable post-investigation.
-    #  $filter += '&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~ValidateMetrics'
-    #
-    #  #Disable tests that timeout in proxy self-host environment
-    #  $filter += '&FullyQualifiedName!~TestGetModuleLogs&FullyQualifiedName!~TestUploadSupportBundle'
-    #
-    #  #Disable nested edge tests
-    #  $filter += '&Category!=NestedEdgeOnly'
-    #}
-    #else
-    #{
-    #  $filter += '&Category!=NestedEdgeOnly'
-    #}
+    $filter = 'Category!=Flaky'
+    
+    if ('$(minimal)' -eq 'true')
+    {
+      $filter += '&Name~TempSensor'
+    }
+    
+    if ('$(artifactName)'.Contains('centos'))
+    {
+      $filter += '&Category=CentOsSafe'
+    }
+    elseif ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
+    {
+      $filter += '&Category!=FlakyOnArm'
+    }
+    
+    if ($test_type -eq 'nestededge_mqtt')
+    {
+      $filter += '&Category!=SingleNodeOnly'
+      $filter += '&Category!=NestedEdgeAmqpOnly'
+      $filter += '&Category!=LegacyMqttRequired'
+    
+      $filter += '&Category!=FlakyOnNested'
+    
+      # Below tests were disabled and marked for re-enable when a blocking item was resolved.
+      # When it was resolved the tests were never enabled. We need to re-enable these.
+      $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
+    }
+    elseif ($test_type -eq 'nestededge_amqp')
+    {
+      $filter += '&Category!=SingleNodeOnly'
+      $filter += '&Category!=BrokerRequired'
+    
+      $filter += '&Category!=FlakyOnNested'
+    
+      # Below tests were disabled and marked for re-enable when a blocking item was resolved.
+      # When it was resolved the tests were never enabled. We need to re-enable these.
+      $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
+    }
+    elseif ($test_type -eq 'nestededge_isa95')
+    {
+      $filter = 'Category=nestededge_isa95'
+    }
+    elseif ($test_type -eq 'http_proxy')
+    {
+      #Disable tests that don't work in proxy environment. Renable post-investigation.
+      $filter += '&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~ValidateMetrics'
+    
+      #Disable tests that timeout in proxy self-host environment
+      $filter += '&FullyQualifiedName!~TestGetModuleLogs&FullyQualifiedName!~TestUploadSupportBundle'
+    
+      #Disable nested edge tests
+      $filter += '&Category!=NestedEdgeOnly'
+    }
+    else
+    {
+      $filter += '&Category!=NestedEdgeOnly'
+    }
 
     sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
 

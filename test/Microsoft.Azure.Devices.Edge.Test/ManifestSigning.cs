@@ -128,7 +128,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
 
             await this.sensor.WaitForEventsReceivedAsync(this.startTime, this.TestToken);
-            await this.SetConfigToEdgeDaemon(Option.None<string>(), this.TestToken);
         }
 
         /*[Category("ManifestSigning")]
