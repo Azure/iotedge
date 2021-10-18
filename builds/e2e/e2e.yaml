@@ -206,6 +206,8 @@ jobs:
       'agent.disablelogplugin.testresultlogplugin': true
       # because we aren't publishing test artifacts for this job, turn on verbose logging instead
       verbose: true
+      # skip component governance detection to avoid proxy issues. It is checked in the other jobs.
+      skipComponentGovernanceDetection: true
 
     timeoutInMinutes: 120
 
