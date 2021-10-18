@@ -21,7 +21,7 @@ trust-bundle-user = "file:///var/secrets/trusted-ca.pem"
 
 [[principal]]
 uid = 5556
-certs = ["aziot-dps-trust-bundle"]
+certs = ["aziot-dps-trust-bundle", "aziot-dps-identity-cert"]
 
 [[principal]]
 uid = 5558

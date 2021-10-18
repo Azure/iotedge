@@ -10,7 +10,7 @@ iotedge_master_encryption_id = "file:///var/secrets/aziot/keyd/imported-master-e
 
 [[principal]]
 uid = 5556
-keys = ["aziot_identityd_master_id", "device-id"]
+keys = ["aziot_identityd_master_id", "aziot-dps-identity-cert-key", "device-id"]
 
 [[principal]]
 uid = 5558

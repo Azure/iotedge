@@ -8,7 +8,7 @@ homedir_path = "/var/lib/aziot/keyd"
 
 [[principal]]
 uid = 5556
-keys = ["aziot_identityd_master_id"]
+keys = ["aziot_identityd_master_id", "aziot-dps-identity-cert-key"]
 
 [[principal]]
 uid = 5558

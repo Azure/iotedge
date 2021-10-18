@@ -9,7 +9,7 @@ device-id = "file:///var/secrets/device-id.key.pem"
 
 [[principal]]
 uid = 5556
-keys = ["aziot_identityd_master_id", "device-id"]
+keys = ["aziot_identityd_master_id", "aziot-dps-identity-cert-key", "device-id"]
 
 [[principal]]
 uid = 5558
