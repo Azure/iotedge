@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
+    using Microsoft.Azure.Devices.Shared;
     using Newtonsoft.Json.Linq;
     using NUnit.Framework;
 
@@ -101,8 +102,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Category("ManifestSigning")]
         public async Task TestIfSignedDeploymentIsSuccessful()
         {
+            // Edge Daemon is configured with a good root CA and manifest is signed.
             this.SetLaunchSettingsWithRootCa(Context.Current.ManifestSigningDefaultLaunchSettings, Context.Current.ManifestSigningGoodRootCaPath);
-
             await this.SetConfigToEdgeDaemon(Context.Current.ManifestSigningGoodRootCaPath, this.TestToken);
             ManifestSettings inputManifestSettings = new ManifestSettings(Context.Current.ManifestSigningDeploymentPath, Context.Current.ManifestSigningSignedDeploymentPath, Context.Current.ManifestSigningGoodRootCaPath, Context.Current.ManifestSignerClientDirectory, Context.Current.ManifestSignerClientProjectPath);
 
@@ -130,12 +131,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await this.sensor.WaitForEventsReceivedAsync(this.startTime, this.TestToken);
         }
 
-        /*[Category("ManifestSigning")]
+        [Category("ManifestSigning")]
         [Test]
         public async Task TestIfSignedDeploymentIsConfiguredWithBadRootCa()
         {
-            this.SetLaunchSettingsWithRootCa(Context.Current.ManifestSigningDefaultLaunchSettings, Context.Current.ManifestSigningBadRootCaPath);
+            // Edge Daemon is configured with a bad root CA but manifest is signed.
+            int fasterTimeOut = 120;
+            CancellationTokenSource manifestSigningCts = new CancellationTokenSource(fasterTimeOut);
 
+            this.SetLaunchSettingsWithRootCa(Context.Current.ManifestSigningDefaultLaunchSettings, Context.Current.ManifestSigningBadRootCaPath);
             await this.SetConfigToEdgeDaemon(Context.Current.ManifestSigningBadRootCaPath, this.TestToken);
             ManifestSettings inputManifestSettings = new ManifestSettings(Context.Current.ManifestSigningDeploymentPath, Context.Current.ManifestSigningSignedDeploymentPath, Context.Current.ManifestSigningBadRootCaPath, Context.Current.ManifestSignerClientDirectory, Context.Current.ManifestSignerClientProjectPath);
 
@@ -162,11 +166,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     this.startTime = DateTime.Now;
                 }
 
-                await this.sensor.WaitForEventsReceivedAsync(this.startTime, this.TestToken);
+                await this.sensor.WaitForEventsReceivedAsync(this.startTime, manifestSigningCts.Token);
             }
             catch (TaskCanceledException)
             {
-                Assert.AreNotEqual();
+                Twin twin = await this.IotHub.GetTwinAsync(this.runtime.DeviceId, Option.Some("$edgeAgent"), this.TestToken);
+                Assert.AreNotEqual(twin.Properties.Desired.Version, twin.Properties.Reported.GetLastUpdatedVersion());
             }
         }
 
@@ -174,10 +179,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task TestIfSignedDeploymentIsConfiguredWithNoRootCa()
         {
-            this.SetLaunchSettingsWithRootCa(Context.Current.ManifestSigningDefaultLaunchSettings, Option.None<string>());
+            // Edge Daemon is not configured but manifest is signed.
+            int fasterTimeOut = 120;
+            CancellationTokenSource manifestSigningCts = new CancellationTokenSource(fasterTimeOut);
 
-            await this.SetConfigToEdgeDaemon(Context.Current.ManifestSigningBadRootCaPath, this.TestToken);
-            ManifestSettings inputManifestSettings = new ManifestSettings(Context.Current.ManifestSigningDeploymentPath, Context.Current.ManifestSigningSignedDeploymentPath, Option.None<string>(), Context.Current.ManifestSignerClientDirectory, Context.Current.ManifestSignerClientProjectPath);
+            this.SetLaunchSettingsWithRootCa(Context.Current.ManifestSigningDefaultLaunchSettings, Option.None<string>());
+            await this.SetConfigToEdgeDaemon(Option.None<string>(), this.TestToken);
+            ManifestSettings inputManifestSettings = new ManifestSettings(Context.Current.ManifestSigningDeploymentPath, Context.Current.ManifestSigningSignedDeploymentPath, Context.Current.ManifestSigningGoodRootCaPath, Context.Current.ManifestSignerClientDirectory, Context.Current.ManifestSignerClientProjectPath);
 
             try
             {
@@ -202,12 +210,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     this.startTime = DateTime.Now;
                 }
 
-                await this.sensor.WaitForEventsReceivedAsync(this.startTime, this.TestToken);
+                await this.sensor.WaitForEventsReceivedAsync(this.startTime, manifestSigningCts.Token);
             }
-            catch (TaskCanceledException )
+            catch (TaskCanceledException)
             {
+                Twin twin = await this.IotHub.GetTwinAsync(this.runtime.DeviceId, Option.Some("$edgeAgent"), this.TestToken);
+                Assert.AreNotEqual(twin.Properties.Desired.Version, twin.Properties.Reported.GetLastUpdatedVersion());
             }
         }
-        */
     }
 }
