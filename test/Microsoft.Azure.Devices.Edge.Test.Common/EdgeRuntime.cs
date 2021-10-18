@@ -69,7 +69,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             addConfig(builder);
             DateTime deployTime = DateTime.Now;
             EdgeConfiguration edgeConfiguration = builder.Build();
-            await edgeConfiguration.DeployAsync(this.iotHub, token);
             string signedConfig = string.Empty;
             string edgeConfig = string.Empty;
             string dotnetCmdText = string.Empty;
@@ -112,6 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 edgeConfiguration.Config = JsonConvert.DeserializeObject<ConfigurationContent>(signedConfig);
             }
 
+            await edgeConfiguration.DeployAsync(this.iotHub, token);
             EdgeModule[] modules = edgeConfiguration.ModuleNames
                 .Select(id => new EdgeModule(id, this.DeviceId, this.iotHub))
                 .ToArray();
