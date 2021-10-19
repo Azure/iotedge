@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use http::HeaderMap;
 use opentelemetry::{Context, global, trace::{FutureExt, Span, TraceContextExt, Tracer, TracerProvider}};
-use opentelemetry_http::HeaderExtractor;
 
 pub(crate) struct Route<M>
 where
@@ -53,16 +51,9 @@ where
     type DeleteBody = serde::de::IgnoredAny;
 
     async fn get(self) -> http_common::server::RouteResponse {
-        let headers = HeaderMap::new();
-        let parent_cx = global::get_text_map_propagator(|propagator| {
-            propagator.extract(&HeaderExtractor(&headers))
-        });
         let tracer_provider = global::tracer_provider();
         let tracer = tracer_provider.tracer("aziot-edged", Some(env!("CARGO_PKG_VERSION")));
-        let span = tracer
-            .span_builder("edgelet-http-mgmt:module:list")
-            .with_parent_context(parent_cx)
-            .start(&tracer);
+        let span = tracer.start("edgelet-http-mgmt:module:list");
         let cx = Context::current_with_span(span);
         let runtime = self.runtime.lock().await;
 
