@@ -1,0 +1,14 @@
+trigger: none
+pr:
+  branches:
+    include:
+      - master
+      - release/*
+
+stages:
+  - template: templates/build-images.yaml
+    parameters:
+      skipBuildImages : true
+  - template: templates/build-packages.yaml
+    parameters:
+      skipBuildImages : false
