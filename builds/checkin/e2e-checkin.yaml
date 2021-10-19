@@ -5,6 +5,34 @@ pr:
       - master
       - release/*
 
+resources:
+  pipelines:
+  - pipeline: images
+    source: 'Azure-IoT-Edge-Core Build Images'
+    branch: 'release/1.2'
+    trigger:
+      branches:
+      - master
+      - release/*
+  - pipeline: packages
+    source: 'Azure-IoT-Edge-Core Edgelet Packages'
+    branch: 'release/1.2'
+    trigger:
+      branches:
+      - master
+      - release/*
+
+variables:
+  # A 'minimal' pipeline only runs one end-to-end test (TempSensor). This is useful for platforms or
+  # environments that are very similar to other platforms/environments in our matrix, Ubuntu 18.04
+  # with the 'docker-ce' package vs. Ubuntu 18.04 with the 'iotedge-moby' package vs. the same
+  # variations in Ubuntu 20.04. In these instances the platforms/environments are so similar that we
+  # don't reasonably expect to encounter differences--if we do, it would likely manifest during
+  # installation, or in running a very basic test. We don't need to repeat the entire test suite.
+  # The 'minimal' variable defaults to 'false'; we override it in specific jobs as needed.
+  minimal: false
+  verbose: false
+
 stages:
   - template: ../misc/templates/build-images.yaml
     parameters:
@@ -12,3 +40,28 @@ stages:
   - template: ../misc/templates/build-packages.yaml
     parameters:
       skipBuildPackages : false
+  - stage: RunE2ETest
+    displayName: Ubuntu 18.04 with iotedge-moby
+    condition: succeeded()
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+    dependsOn:
+      - PublishManifests
+      - BuildPackages
+    jobs:
+      - job: ubuntu_1804_msmoby
+        displayName: Ubuntu 18.04 with iotedge-moby
+        variables:
+          os: linux
+          arch: amd64
+          artifactName: iotedged-ubuntu18.04-amd64
+          identityServiceArtifactName: packages_ubuntu-18.04_amd64
+          identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+    
+        steps:
+        - template: templates/e2e-setup.yaml
+        - template: templates/e2e-run.yaml
+
+    
