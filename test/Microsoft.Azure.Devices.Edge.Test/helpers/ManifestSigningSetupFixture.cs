@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     {
         protected override Task BeforeTestTimerStarts() => this.SasProvisionEdgeAsync();
 
-        protected override Task AfterTestTimerEnds() => this.daemon.ConfigureAsync(
+        /* protected override Task AfterTestTimerEnds() => this.daemon.ConfigureAsync(
                         config =>
                         {
                             config.RemoveManifestTrustBundle();
@@ -21,6 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                                 "Removed Manifest Trust Bundle", new object[] { }));
                         },
                         this.TestToken);
+        */
 
         protected override async Task SasProvisionEdgeAsync(bool withCerts = false)
         {
