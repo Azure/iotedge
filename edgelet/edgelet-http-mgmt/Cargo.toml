@@ -13,6 +13,7 @@ hyper = "0.14"
 libc = "0.2"
 log = "0.4"
 opentelemetry = { version = "0.16", features = ["rt-tokio", "metrics", "serialize"] }
+opentelemetry-http = "0.5"
 opentelemetry-otlp = { version = "0.9", features = ["tonic", "metrics"] }
 percent-encoding = "2"
 regex = "1"
@@ -26,11 +27,11 @@ edgelet-http = { path = "../edgelet-http" }
 edgelet-settings = { path = "../edgelet-settings" }
 support-bundle = { path = "../support-bundle" }
 
-aziot-identity-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-identity-client-async = { path="/home/noel/workspaces/nlcamp/iot-identity-service/identity/aziot-identity-client-async" }
+aziot-identity-common = { path="/home/noel/workspaces/nlcamp/iot-identity-service/identity/aziot-identity-common" }
+aziot-identity-common-http = { path="/home/noel/workspaces/nlcamp/iot-identity-service/identity/aziot-identity-common-http" }
 
-http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main", features = ["tokio1"] }
+http-common = { path="/home/noel/workspaces/nlcamp/iot-identity-service/http-common", features = ["tokio1"] }
 
 [dev-dependencies]
 nix = "0.22"

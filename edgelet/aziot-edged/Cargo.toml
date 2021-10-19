@@ -25,9 +25,9 @@ edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
 edgelet-http-workload = { path = "../edgelet-http-workload" }
 edgelet-settings = { path = "../edgelet-settings", features = ["settings-docker"] }
 
-aziot-identity-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-identity-client-async = { path="/home/noel/workspaces/nlcamp/iot-identity-service/identity/aziot-identity-client-async" }
+aziot-identity-common = { path="/home/noel/workspaces/nlcamp/iot-identity-service/identity/aziot-identity-common" }
+aziot-identity-common-http = { path="/home/noel/workspaces/nlcamp/iot-identity-service/identity/aziot-identity-common-http" }
 
-http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main", features = ["tokio1"] }
-logger = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+http-common = { path="/home/noel/workspaces/nlcamp/iot-identity-service/http-common", features = ["tokio1"] }
+logger = { path="/home/noel/workspaces/nlcamp/iot-identity-service/logger" }

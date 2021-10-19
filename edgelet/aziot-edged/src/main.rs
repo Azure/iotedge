@@ -10,6 +10,7 @@ mod watchdog;
 mod workload_manager;
 
 use opentelemetry::sdk::Resource;
+use opentelemetry::sdk::propagation::TraceContextPropagator;
 use opentelemetry::{global, KeyValue, sdk::trace as sdktrace, trace::{TraceError, Tracer}};
 use opentelemetry_otlp::WithExportConfig;
 use std::sync::atomic;
@@ -234,6 +235,7 @@ fn set_signal_handlers(
 }
 
 fn init_tracer() -> Result<sdktrace::Tracer, TraceError> {
+    global::set_text_map_propagator(TraceContextPropagator::new());
     opentelemetry_otlp::new_pipeline()
         .tracing()
         .with_exporter(
