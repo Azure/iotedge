@@ -40,11 +40,11 @@ stages:
           artifactName: 'dotnet_artifacts'
           StoreAsTar: true
   
-    - template: templates/build-broker-watchdog.yaml
+    - template: build-broker-watchdog.yaml
   
-    - template: templates/build-api-proxy.yaml
+    - template: build-api-proxy.yaml
   
-    - template: templates/rust-test-module-build.yaml
+    - template: rust-test-module-build.yaml
       parameters:
         module.path: 'test/modules/generic-mqtt-tester'
         module.name: 'generic-mqtt-tester'   
@@ -169,7 +169,7 @@ stages:
     jobs:
     - job: BuildImageEdgeAgent
       steps:
-      - template: templates/image-linux.yaml
+      - template: image-linux.yaml
         parameters:
             name: Edge Agent
             imageName: azureiotedge-agent
@@ -178,7 +178,7 @@ stages:
   
     - job: BuildImageEdgeHub
       steps:
-      - template: templates/image-linux.yaml
+      - template: image-linux.yaml
         parameters:            
           name: Edge Hub
           imageName: azureiotedge-hub
@@ -187,7 +187,7 @@ stages:
   
     - job: BuildImageTemperatureSensor
       steps:
-      - template: templates/image-linux.yaml
+      - template: image-linux.yaml
         parameters:          
           name: Temperature Sensor
           imageName: azureiotedge-simulated-temperature-sensor
@@ -196,7 +196,7 @@ stages:
   
     - job: BuildImageDiagnostics
       steps:
-      - template: templates/image-linux.yaml
+      - template: image-linux.yaml
         parameters:          
           name: Diagnostics
           imageName: azureiotedge-diagnostics
@@ -205,7 +205,7 @@ stages:
   
     - job: BuildImageTemperatureFilter
       steps:
-      - template: templates/image-linux.yaml
+      - template: image-linux.yaml
         parameters:             
           name: Temperature Filter
           imageName: azureiotedge-temperature-filter
@@ -214,7 +214,7 @@ stages:
   
     - job: BuildImageLoadGen
       steps:
-      - template: templates/image-linux.yaml
+      - template: image-linux.yaml
         parameters:            
           name: Load Gen
           imageName: azureiotedge-load-gen
@@ -222,7 +222,7 @@ stages:
           bin_dir: '$(Build.BinariesDirectory)'  
     - job: BuildImageTestAnalyzer
       steps:
-      - template: templates/image-linux.yaml
+      - template: image-linux.yaml
         parameters:
           name: Test Analyzer
           imageName: azureiotedge-analyzer
@@ -232,7 +232,7 @@ stages:
       # Functions Sample - Not supported on linux arm64
     - job: BuildImageFunctionsSample
       steps:
-      - template: templates/image-linux.yaml
+      - template: image-linux.yaml
         parameters:      
           name: Functions Sample
           imageName: azureiotedge-functions-filter
@@ -241,7 +241,7 @@ stages:
   
     - job: BuildImageDirectMethodSender
       steps:
-      - template: templates/image-linux.yaml
+      - template: image-linux.yaml
         parameters:          
           name: Direct Method Sender
           imageName: azureiotedge-direct-method-sender
@@ -250,7 +250,7 @@ stages:
   
     - job: BuildImageDirectMethodReceiver
       steps:
-      - template: templates/image-linux.yaml
+      - template: image-linux.yaml
         parameters:          
           name: Direct Method Receiver
           imageName: azureiotedge-direct-method-receiver
@@ -259,7 +259,7 @@ stages:
   
     - job: BuildImageMetricsValidator
       steps:
-      - template: templates/image-linux.yaml
+      - template: image-linux.yaml
         parameters:          
           name: Metrics Validator
           imageName: azureiotedge-metrics-validator
@@ -268,7 +268,7 @@ stages:
   
     - job: BuildImageNumberLogger
       steps:
-      - template: templates/image-linux.yaml
+      - template: image-linux.yaml
         parameters:             
           name: Number Logger
           imageName: azureiotedge-number-logger
@@ -277,7 +277,7 @@ stages:
   
     - job: BuildImageModuleRestarter
       steps:
-      - template: templates/image-linux.yaml
+      - template: image-linux.yaml
         parameters:          
           name: Module Restarter
           imageName: azureiotedge-module-restarter
@@ -286,7 +286,7 @@ stages:
   
     - job: BuildImageTwinTester
       steps:
-      - template: templates/image-linux.yaml
+      - template: image-linux.yaml
         parameters:            
           name: TwinTester
           imageName: azureiotedge-twin-tester
@@ -294,7 +294,7 @@ stages:
           bin_dir: '$(Build.BinariesDirectory)'      
     - job: BuildImageRelayer
       steps:
-      - template: templates/image-linux.yaml
+      - template: image-linux.yaml
         parameters:          
           name: Relayer
           imageName: azureiotedge-relayer
@@ -303,7 +303,7 @@ stages:
   
     - job: BuildImageNetworkController
       steps:
-      - template: templates/image-linux.yaml
+      - template: image-linux.yaml
         parameters:          
           name: Network Controller
           imageName: azureiotedge-network-controller
@@ -312,7 +312,7 @@ stages:
   
     - job: BuildImageTestResultCoordinator
       steps:
-      - template: templates/image-linux.yaml
+      - template: image-linux.yaml
         parameters:           
           name: TestResultCoordinator
           imageName: azureiotedge-test-result-coordinator
@@ -321,7 +321,7 @@ stages:
   
     - job: BuildImageMetricsCollector
       steps:
-      - template: templates/image-linux.yaml
+      - template: image-linux.yaml
         parameters:           
           name: Metrics Collector
           imageName: azureiotedge-metrics-collector
@@ -330,7 +330,7 @@ stages:
   
     - job: BuildImageDeploymentTester
       steps:
-      - template: templates/image-linux.yaml
+      - template: image-linux.yaml
         parameters:             
           name: DeploymentTester
           imageName: azureiotedge-deployment-tester
@@ -339,7 +339,7 @@ stages:
   
     - job: BuildImageEdgeHubRestartTester
       steps:
-      - template: templates/image-linux.yaml
+      - template: image-linux.yaml
         parameters:          
           name: EdgeHubRestartTester
           imageName: azureiotedge-edgehub-restart-tester
@@ -348,7 +348,7 @@ stages:
   
     - job: BuildImageCloudToDeviceMessageTester
       steps:
-      - template: templates/image-linux.yaml
+      - template: image-linux.yaml
         parameters:             
           name: Cloud To Device Message Tester
           imageName: azureiotedge-c2dmessage-tester
@@ -364,7 +364,7 @@ stages:
           docker buildx create --name mbuilder  || true  && \
           docker buildx use mbuilder
           docker -v
-      - template: templates/image-linux.yaml
+      - template: image-linux.yaml
         parameters:
           name: API Proxy
           imageName: azureiotedge-api-proxy
@@ -381,7 +381,7 @@ stages:
             moduleName: generic-mqtt-tester
             modulePath: test/modules/generic-mqtt-tester
       steps:
-      - template: templates/rust-test-module-images.yaml
+      - template: rust-test-module-images.yaml
         parameters:
           module.name: $(moduleName)        
           module.path: $(modulePath)
