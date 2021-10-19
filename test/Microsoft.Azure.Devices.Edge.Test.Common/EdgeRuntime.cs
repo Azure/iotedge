@@ -70,39 +70,25 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             DateTime deployTime = DateTime.Now;
             EdgeConfiguration edgeConfiguration = builder.Build();
             string signedConfig = string.Empty;
-            string edgeConfig = string.Empty;
-            string dotnetCmdText = string.Empty;
-            int exitcode;
-            string outputStr = string.Empty;
-            string stdOutput = string.Empty;
-            string stdErr = string.Empty;
+
             ProcessStartInfo startInfo;
 
             if (enableManifestSigning.HasValue)
             {
-                // Wrtie the current config into a file
+                // Wrtie the current config into a file: EdgeConfiguration ToString() outputs the ConfigurationContent
                 string deploymentPath = enableManifestSigning.OrDefault().ManifestSigningDeploymentPath.OrDefault();
                 File.WriteAllText(deploymentPath, edgeConfiguration.ToString());
-                // EdgeConfiguration ToString() outputs the ConfigurationContent
-                edgeConfig = edgeConfiguration.ToString();
-                // start dotnet run ManifestSignerClient process
-                string projectDirectory = enableManifestSigning.OrDefault().ManifestSignerClientProjectPath.OrDefault();
 
-                dotnetCmdText = "run -p " + projectDirectory;
+                // Run Manifest signer client
+                string projectDirectory = enableManifestSigning.OrDefault().ManifestSignerClientProjectPath.OrDefault();
+                string dotnetCmdText = "run -p " + projectDirectory;
                 startInfo = new ProcessStartInfo("dotnet", dotnetCmdText);
-                startInfo.RedirectStandardOutput = true;
-                startInfo.RedirectStandardError = true;
                 var dotnetProcess = System.Diagnostics.Process.Start(startInfo);
                 dotnetProcess.WaitForExit();
-                stdOutput = dotnetProcess.StandardOutput.ReadToEnd();
-                stdErr = dotnetProcess.StandardError.ReadToEnd();
-                exitcode = dotnetProcess.ExitCode;
 
+                // write the signed deployment into a file
                 string signedDeploymentPath = enableManifestSigning.OrDefault().ManifestSigningSignedDeploymentPath.OrDefault();
                 signedConfig = File.ReadAllText(signedDeploymentPath);
-                outputStr = "\n edge config value = " + edgeConfig + "\n Project directory = " + projectDirectory + "\n dotnet commnad = " + dotnetCmdText + "\n exit code = " + exitcode + "\n signed config = " + signedConfig;
-                outputStr += "\n std ouput = " + stdOutput + "\n std err =  " + stdErr + "\n signed deployment path " + signedDeploymentPath;
-                Console.WriteLine($"\n Output str = {outputStr}");
             }
 
             if (!string.IsNullOrEmpty(signedConfig))
