@@ -31,7 +31,7 @@ stages:
   - stage: BuildPackages
   ################################################################################
     displayName: Build Packages
-    condition: or(eq(${{ parameters['E2EBuild'] }}, false), eq($(stagedependencies.CheckBuildPackages.check_source_change_edgelet.outputs['EDGELETCHANGES']), 'true'))
+    condition: or(eq(${{ parameters['E2EBuild'] }}, false), eq(dependencies.CheckBuildPackages.outputs['check_source_change_edgelet.EDGELETCHANGES'], 'true'))
     pool:
       name: $(pool.linux.name)
       demands:
