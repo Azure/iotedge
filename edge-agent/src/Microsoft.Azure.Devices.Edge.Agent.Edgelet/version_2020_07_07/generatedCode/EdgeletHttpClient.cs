@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
         public async System.Threading.Tasks.Task<ModuleList> ListModulesAsync(string api_version, System.Threading.CancellationToken cancellationToken)
         {
-            using (Activity activity = Agent.Source.StartActivity("EdgeletHttpClient:ListModulesAsync", ActivityKind.Internal))
+            using (Activity activity = Agent.Source.StartActivity("EdgeletHttpClient:ListModulesAsync", ActivityKind.Client))
             {
 
                 if (api_version == null)
