@@ -126,6 +126,25 @@ where
     ) -> Result<(), Error> {
         let label = "work".to_string();
 
+        // If a listener has already been created, remove previous listener.
+        // This avoid the launch of 2 listeners.
+        // We chose to remove instead and create a new one instead of
+        // just return and say, one listener has already been created:
+        // We chose to remove because a listener could crash without getting removed correctly.
+        // That could make the module crash. Then that module would be restarted without ever going to
+        // "stop"
+        // There is still a chance that 2 concurrent servers are launch with concurrence,
+        // But it is extremely unlikely and anyway doesn't have any side effect expect memory footprint.
+        if let Some(shutdown_sender) = self.shutdown_senders.remove(module_id) {
+            info!(
+                "Listener  {} already started, removing old listener",
+                module_id
+            );
+            shutdown_sender
+                .send(())
+                .map_err(|()| Error::from(ErrorKind::WorkloadService))?;
+        }
+
         let (shutdown_sender, shutdown_receiver) = oneshot::channel();
 
         self.shutdown_senders
