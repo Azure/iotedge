@@ -6,7 +6,7 @@ parameters:
 stages:
 
   ################################################################################
-  - stage: CheckBuild
+  - stage: CheckBuildImages
   ################################################################################
     displayName: Check For Source Code Changes
     pool:
@@ -31,12 +31,12 @@ stages:
   - stage: BuildExecutables
   ################################################################################
     displayName: Build Excecutables
-    condition: or(eq(${{ parameters['E2EBuild'] }}, false), eq(stagedependencies.CheckBuild.check_source_change_runtime.outputs['RUNTIMECHANGES'], true))
+    condition: or(eq(${{ parameters['E2EBuild'] }}, false), eq(stagedependencies.CheckBuildImages.check_source_change_runtime.outputs['RUNTIMECHANGES'], 'true'))
     pool:
       name: $(pool.linux.name)
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker  
-    dependsOn: CheckBuild
+    dependsOn: CheckBuildImages
     jobs:
     - job: BuildDotnetComponents
       displayName: Build Dotnet Components
