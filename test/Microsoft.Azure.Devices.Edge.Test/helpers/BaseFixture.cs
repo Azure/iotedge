@@ -38,8 +38,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             await Profiler.Run(
                 async () =>
                 {
-                    this.cts.Dispose();
-
                     if ((!Context.Current.ISA95Tag) && (TestContext.CurrentContext.Result.Outcome != ResultState.Ignored))
                     {
                         using var cts = new CancellationTokenSource(Context.Current.TeardownTimeout);
@@ -64,6 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 "Completed test teardown");
 
             await this.AfterTestTimerEnds();
+            this.cts.Dispose();
         }
     }
 }
