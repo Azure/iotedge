@@ -203,7 +203,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             builder.AddModule(SensorName, this.sensorImage)
                                 .WithEnvironment(new[] { ("MessageCount", "-1") });
                         },
-                        manifestSigningCts.Token,
+                        this.TestToken,
                         Context.Current.NestedEdge,
                         inputManifestSettings);
                     this.sensor = deployment.Modules[SensorName];
@@ -215,7 +215,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     this.startTime = DateTime.Now;
                 }
 
-                await this.sensor.WaitForEventsReceivedAsync(this.startTime, manifestSigningCts.Token);
+                await this.sensor.WaitForEventsReceivedAsync(this.startTime, this.TestToken);
             }
             catch (TaskCanceledException)
             {
