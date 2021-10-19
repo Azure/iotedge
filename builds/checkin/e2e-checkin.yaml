@@ -43,26 +43,14 @@ stages:
               fi
             displayName: Check changes in edgelet sources
             name: check_files_edgelet
-      - job: check_source_change_runtime
-        displayName: Check Source Changes Edgelet (changes are outside of test folders)
-        steps:
-          - bash: |
-              git log -m -1 --name-only --first-parent --pretty="" | egrep -i -v '^(test/Microsoft.Azure.Devices.Edge.Test)'
-              if [[ $? == 0 ]]; then
-                echo "Detected changes outside of Test Folders"
-                echo "##vso[task.setvariable variable=RUNTIMECHANGES;isOutput=true]TRUE"
-              fi
-            displayName: Check changes in runtime sources
-            name: check_files_runtime
 
   - template: ../misc/templates/build-images.yaml
     parameters:
-      skipBuildImages : $[stageDependencies.CheckBuildImagesPackages.check_source_change_edgelet.outputs['check_files_runtime.RUNTIMECHANGES']]
-
+      E2EBuild : true
 
   - template: ../misc/templates/build-packages.yaml
     parameters:
-      skipBuildPackages : dependencies.check_source_change_edgelet.outputs['check_files_edgelet.EDGELETCHANGES']
+      skipBuildPackages : false
       E2EBuild : true
 
   - stage: RunE2ETest

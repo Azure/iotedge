@@ -1,19 +1,43 @@
 parameters:
-  - name: 'skipBuildImages'
+  - name: 'E2EBuild'
     type: boolean
     default: false
 
 stages:
+
+  ################################################################################
+  - stage: CheckBuild
+  ################################################################################
+    displayName: Check For Source Code Changes
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+      dependsOn: []
+      jobs:
+        - job: check_source_change_runtime
+          displayName: Check Source Changes Edgelet (changes are outside of test folders)
+          steps:
+          - bash: |
+              git log -m -1 --name-only --first-parent --pretty="" | egrep -i -v '^(test/Microsoft.Azure.Devices.Edge.Test)'
+              if [[ $? == 0 ]]; then
+                echo "Detected changes outside of Test Folders"
+                echo "##vso[task.setvariable variable=RUNTIMECHANGES;isOutput=true]TRUE"
+              fi
+            displayName: Check changes in runtime sources
+            name: check_files_runtime
+
   ################################################################################
   - stage: BuildExecutables
   ################################################################################
     displayName: Build Excecutables
-    condition: eq(${{ parameters['skipBuildImages'] }}, false)
+  - stage: CheckBuild
+    condition: or(eq(${{ parameters['E2EBuild'] }}, false), eq(${{ stagedependencies.CheckBuild.check_source_change_runtime['RUNTIMECHANGES'] }}, true)
     pool:
       name: $(pool.linux.name)
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker  
-    dependsOn: []
+    dependsOn: CheckBuild
     jobs:
     - job: BuildDotnetComponents
       displayName: Build Dotnet Components
