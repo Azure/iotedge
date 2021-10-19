@@ -19,6 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         protected CancellationToken TestToken => this.cts.Token;
 
         protected virtual Task BeforeTestTimerStarts() => Task.CompletedTask;
+        protected virtual Task AfterTestTimerEnds() => Task.CompletedTask;
 
         [SetUp]
         protected async Task BeforeEachTestAsync()
@@ -61,6 +62,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     }
                 },
                 "Completed test teardown");
+
+            await this.AfterTestTimerEnds();
         }
     }
 }

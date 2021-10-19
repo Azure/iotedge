@@ -129,7 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
 
             await this.sensor.WaitForEventsReceivedAsync(this.startTime, this.TestToken);
-        }*/
+        }
 
         [Category("ManifestSigning")]
         [Test]
@@ -141,51 +141,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             await this.SetConfigToEdgeDaemon(Context.Current.ManifestSigningBadRootCaPath, this.TestToken);
 
-            try
-            {
-                // This is a temporary solution see ticket: 9288683
-                if (!Context.Current.ISA95Tag)
-                {
-                    EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
-                        builder =>
-                        {
-                            builder.AddModule(SensorName, this.sensorImage)
-                                .WithEnvironment(new[] { ("MessageCount", "-1") });
-                        },
-                        this.TestToken,
-                        Context.Current.NestedEdge,
-                        inputManifestSettings);
-                    this.sensor = deployment.Modules[SensorName];
-                    this.startTime = deployment.StartTime;
-                }
-                else
-                {
-                    this.sensor = new EdgeModule(SensorName, this.runtime.DeviceId, this.IotHub);
-                    this.startTime = DateTime.Now;
-                }
-
-                // Set a faster time out as its expected to fail.
-                int fasterTimeOut = 120;
-                CancellationTokenSource manifestSigningCts = new CancellationTokenSource(fasterTimeOut);
-
-                await this.sensor.WaitForEventsReceivedAsync(this.startTime, manifestSigningCts.Token);
-            }
-            catch (TaskCanceledException)
-            {
-                Twin twin = await this.IotHub.GetTwinAsync(this.runtime.DeviceId, Option.Some("$edgeAgent"), this.TestToken);
-                Assert.AreNotEqual(twin.Properties.Desired.Version, twin.Properties.Reported.GetLastUpdatedVersion());
-            }
-        }
-
-        /*[Category("ManifestSigning")]
-        [Test]
-        public async Task TestIfSignedDeploymentIsConfiguredWithNoRootCa()
-        {
-            // Edge Daemon is not configured but manifest is signed.
-            this.SetLaunchSettingsWithRootCa(Context.Current.ManifestSigningDefaultLaunchSettings, Context.Current.ManifestSigningGoodRootCaPath);
-            ManifestSettings inputManifestSettings = new ManifestSettings(Context.Current.ManifestSigningDeploymentPath, Context.Current.ManifestSigningSignedDeploymentPath, Context.Current.ManifestSigningGoodRootCaPath, Context.Current.ManifestSignerClientDirectory, Context.Current.ManifestSignerClientProjectPath);
-
-            await this.SetConfigToEdgeDaemon(Option.None<string>(), this.TestToken);
+            // Set a faster time out as its expected to fail.
+            int fasterTimeOut = 120;
+            CancellationTokenSource manifestSigningCts = new CancellationTokenSource(fasterTimeOut);
 
             try
             {
@@ -209,10 +167,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     this.sensor = new EdgeModule(SensorName, this.runtime.DeviceId, this.IotHub);
                     this.startTime = DateTime.Now;
                 }
-
-                // Set a faster time out as its expected to fail.
-                int fasterTimeOut = 120;
-                CancellationTokenSource manifestSigningCts = new CancellationTokenSource(fasterTimeOut);
 
                 await this.sensor.WaitForEventsReceivedAsync(this.startTime, manifestSigningCts.Token);
             }
@@ -222,5 +176,51 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Assert.AreNotEqual(twin.Properties.Desired.Version, twin.Properties.Reported.GetLastUpdatedVersion());
             }
         }*/
+
+        [Category("ManifestSigning")]
+        [Test]
+        public async Task TestIfSignedDeploymentIsConfiguredWithNoRootCa()
+        {
+            // Edge Daemon is not configured but manifest is signed.
+            this.SetLaunchSettingsWithRootCa(Context.Current.ManifestSigningDefaultLaunchSettings, Context.Current.ManifestSigningGoodRootCaPath);
+            ManifestSettings inputManifestSettings = new ManifestSettings(Context.Current.ManifestSigningDeploymentPath, Context.Current.ManifestSigningSignedDeploymentPath, Context.Current.ManifestSigningGoodRootCaPath, Context.Current.ManifestSignerClientDirectory, Context.Current.ManifestSignerClientProjectPath);
+
+            await this.SetConfigToEdgeDaemon(Option.None<string>(), this.TestToken);
+
+            // Set a faster time out as its expected to fail.
+            int fasterTimeOut = 120;
+            CancellationTokenSource manifestSigningCts = new CancellationTokenSource(fasterTimeOut);
+
+            try
+            {
+                // This is a temporary solution see ticket: 9288683
+                if (!Context.Current.ISA95Tag)
+                {
+                    EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
+                        builder =>
+                        {
+                            builder.AddModule(SensorName, this.sensorImage)
+                                .WithEnvironment(new[] { ("MessageCount", "-1") });
+                        },
+                        manifestSigningCts.Token,
+                        Context.Current.NestedEdge,
+                        inputManifestSettings);
+                    this.sensor = deployment.Modules[SensorName];
+                    this.startTime = deployment.StartTime;
+                }
+                else
+                {
+                    this.sensor = new EdgeModule(SensorName, this.runtime.DeviceId, this.IotHub);
+                    this.startTime = DateTime.Now;
+                }
+
+                await this.sensor.WaitForEventsReceivedAsync(this.startTime, manifestSigningCts.Token);
+            }
+            catch (TaskCanceledException)
+            {
+                Twin twin = await this.IotHub.GetTwinAsync(this.runtime.DeviceId, Option.Some("$edgeAgent"), manifestSigningCts.Token);
+                Assert.AreNotEqual(twin.Properties.Desired.Version, twin.Properties.Reported.GetLastUpdatedVersion());
+            }
+        }
     }
 }

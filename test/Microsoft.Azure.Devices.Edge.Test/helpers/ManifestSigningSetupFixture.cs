@@ -11,6 +11,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     {
         protected override Task BeforeTestTimerStarts() => this.SasProvisionEdgeAsync();
 
+        protected override Task AfterTestTimerEnds() => this.daemon.ConfigureAsync(
+                        config =>
+                        {
+                            config.RemoveManifestTrustBundle();
+
+                            config.Update();
+                            return Task.FromResult((
+                                "Removed Manifest Trust Bundle", new object[] { }));
+                        },
+                        this.TestToken);
+
         protected override async Task SasProvisionEdgeAsync(bool withCerts = false)
         {
             // It creates a Sas Provisioned device with a manifest trust bundle
