@@ -13,11 +13,11 @@ stages:
       name: $(pool.linux.name)
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
-      dependsOn: []
-      jobs:
-        - job: check_source_change_runtime
-          displayName: Check Source Changes Edgelet (changes are outside of test folders)
-          steps:
+    dependsOn: []
+    jobs:
+      - job: check_source_change_runtime
+        displayName: Check Source Changes Edgelet (changes are outside of test folders)
+        steps:
           - bash: |
               git log -m -1 --name-only --first-parent --pretty="" | egrep -i -v '^(test/Microsoft.Azure.Devices.Edge.Test)'
               if [[ $? == 0 ]]; then
