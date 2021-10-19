@@ -55,6 +55,12 @@ stages:
     dependsOn:
       - PublishManifests
       - BuildPackages
+    condition: |
+      and
+      (
+        eq(dependencies.PublishManifests.result, 'Succeeded','Skipped'),
+        in(dependencies.BuildPackages.result, 'Succeeded', 'Skipped'),
+      )     
     jobs:
       - job: ubuntu_1804_msmoby
         displayName: Ubuntu 18.04 with iotedge-moby
