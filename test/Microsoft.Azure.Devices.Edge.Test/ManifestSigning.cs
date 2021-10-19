@@ -130,7 +130,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             await this.sensor.WaitForEventsReceivedAsync(this.startTime, this.TestToken);
         }
-        
         [Category("ManifestSigning")]
         [Test]
         public async Task TestIfSignedDeploymentIsConfiguredWithBadRootCa()

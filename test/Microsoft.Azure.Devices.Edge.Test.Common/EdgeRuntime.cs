@@ -93,10 +93,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             if (!string.IsNullOrEmpty(signedConfig))
             {
-                // Convert signed config to EdgeConfiguration
+                // Convert signed config to ConfigurationContent
                 edgeConfiguration.Config = JsonConvert.DeserializeObject<ConfigurationContent>(signedConfig);
             }
 
+            Console.WriteLine($"\n Signed config str = {signedConfig}");
             await edgeConfiguration.DeployAsync(this.iotHub, token);
             EdgeModule[] modules = edgeConfiguration.ModuleNames
                 .Select(id => new EdgeModule(id, this.DeviceId, this.iotHub))
