@@ -89,7 +89,7 @@ stages:
               arch: aarch64
               os: ubuntu20.04
               target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
-        condition: or(eq(${{ parameters['E2EBuild'] }}, false), and(eq(${{ parameters['E2EBuild'] }}, true), eq(${{arch}},'amd64')))
+        condition: or(eq(${{ parameters['E2EBuild'] }}, false), and(eq(${{ parameters['E2EBuild'] }}, true), eq(${{'arch'}},'amd64')))
         steps:
           - bash: |
               BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
