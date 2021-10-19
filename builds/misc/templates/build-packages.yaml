@@ -99,10 +99,10 @@ stages:
               echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
               echo "##vso[task.setvariable variable=PACKAGE_OS;]$(os)"
             displayName: Set Version
-            condition: or(eq(${{ parameters['E2EBuild'] }}, false), and(eq(${{ parameters['E2EBuild'] }}, true), eq($(arch),'amd64')))
+            condition: or(eq(${{ parameters['E2EBuild'] }}, false), and(eq(${{ parameters['E2EBuild'] }}, true), eq(variables.arch,'amd64')))
           - script: edgelet/build/linux/package.sh
             displayName: Create iotedged packages
-            condition: or(eq(${{ parameters['E2EBuild'] }}, false), and(eq(${{ parameters['E2EBuild'] }}, true), eq($(arch),'amd64')))
+            condition: or(eq(${{ parameters['E2EBuild'] }}, false), and(eq(${{ parameters['E2EBuild'] }}, true), eq(variables.arch,'amd64')))
           - task: CopyFiles@2
             displayName: Copy iotedged Files to Artifact Staging
             inputs:
@@ -111,10 +111,10 @@ stages:
                 *.deb
                 *.rpm
               TargetFolder: '$(build.artifactstagingdirectory)'
-            condition: or(eq(${{ parameters['E2EBuild'] }}, false), and(eq(${{ parameters['E2EBuild'] }}, true), eq($(arch),'amd64')))
+            condition: or(eq(${{ parameters['E2EBuild'] }}, false), and(eq(${{ parameters['E2EBuild'] }}, true), eq(variables.arch,'amd64')))
           - task: PublishBuildArtifacts@1
             displayName: Publish Artifacts
             inputs:
               PathtoPublish: '$(build.artifactstagingdirectory)'
               ArtifactName: 'iotedged-$(os)-$(arch)'
-            condition: and(succeededOrFailed(), or(eq(${{ parameters['E2EBuild'] }}, false), and(eq(${{ parameters['E2EBuild'] }}, true), eq($(arch),'amd64'))))
+            condition: and(succeededOrFailed(), or(eq(${{ parameters['E2EBuild'] }}, false), and(eq(${{ parameters['E2EBuild'] }}, true), eq(variables.arch,'amd64'))))
