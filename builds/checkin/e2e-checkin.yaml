@@ -56,8 +56,9 @@ stages:
             name: check_files_runtime
 
   - template: ../misc/templates/build-images.yaml
+    dependsOn: CheckBuildImagesPackages
     parameters:
-      skipBuildImages : stageDependencies.CheckBuildImagesPackages.check_source_change_edgelet.outputs['check_files_runtime.RUNTIMECHANGES']
+      skipBuildImages : $[stageDependencies.CheckBuildImagesPackages.check_source_change_edgelet.outputs['check_files_runtime.RUNTIMECHANGES']
 
 
   - template: ../misc/templates/build-packages.yaml
