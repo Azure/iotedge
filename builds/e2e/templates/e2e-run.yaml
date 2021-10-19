@@ -77,6 +77,8 @@ steps:
     {
       $filter += '&Category!=NestedEdgeOnly'
     }
+    
+    $filter = 'FullyQualifiedName~PriorityQueue'
 
     sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
 

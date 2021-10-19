@@ -18,6 +18,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
     using Nito.AsyncEx;
     using static System.FormattableString;
     using AsyncLock = Microsoft.Azure.Devices.Edge.Util.Concurrency.AsyncLock;
+    using EdgeMetrics = Microsoft.Azure.Devices.Edge.Util.Metrics.Metrics;
 
     public class StoringAsyncEndpointExecutor : IEndpointExecutor
     {
@@ -505,5 +506,22 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 return new MetricTags(new string[] { "EndpointId", "priority" }, new string[] { id, priority.ToString() });
             }
         }
+
+        public static class Metrics
+        {
+            public static readonly IMetricsGauge QueueLength = EdgeMetrics.Instance.CreateGauge(
+                "queue_length",
+                "Number of messages pending to be processed for the endpoint",
+                new List<string> { "endpoint", "priority", MetricsConstants.MsTelemetry });
+
+            public static void SetQueueLength(ICheckpointer checkpointer, IMessageStore messageStore) => SetQueueLength(CalculateQueueLength(checkpointer), checkpointer.EndpointId, checkpointer.Priority);
+
+            public static void SetQueueLength(double length, string endpointId, string priority) => QueueLength.Set(length, new[] { endpointId, priority, bool.TrueString });
+
+            private static double CalculateQueueLength(ICheckpointer checkpointer) => CalculateQueueLength(checkpointer.Proposed - checkpointer.Offset);
+
+            private static double CalculateQueueLength(long length) => Math.Max(length, 0);
+        }
+
     }
 }
