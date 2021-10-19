@@ -20,9 +20,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07
     using Newtonsoft.Json.Linq;
     using OpenTelemetry;
     using OpenTelemetry.Trace;
+    using Agent = Microsoft.Azure.Devices.Edge.Agent.Core.Agent;
     using Disk = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.Disk;
     using Identity = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.Identity;
-    using Agent = Microsoft.Azure.Devices.Edge.Agent.Core.Agent;
     using ModuleSpec = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.ModuleSpec;
     using ProvisioningInfo = Microsoft.Azure.Devices.Edge.Agent.Core.ProvisioningInfo;
     using SystemInfo = Microsoft.Azure.Devices.Edge.Agent.Core.SystemInfo;
