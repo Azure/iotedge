@@ -129,7 +129,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
 
             await this.sensor.WaitForEventsReceivedAsync(this.startTime, this.TestToken);
-        }
+        }*/
+
         [Category("ManifestSigning")]
         [Test]
         public async Task TestIfSignedDeploymentIsConfiguredWithBadRootCa()
@@ -175,9 +176,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Assert.AreNotEqual(twin.Properties.Desired.Version, twin.Properties.Reported.GetLastUpdatedVersion());
             }
         }
-        */
 
-        [Category("ManifestSigning")]
+        /*[Category("ManifestSigning")]
         [Test]
         public async Task TestIfSignedDeploymentIsConfiguredWithNoRootCa()
         {
@@ -221,6 +221,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Twin twin = await this.IotHub.GetTwinAsync(this.runtime.DeviceId, Option.Some("$edgeAgent"), this.TestToken);
                 Assert.AreNotEqual(twin.Properties.Desired.Version, twin.Properties.Reported.GetLastUpdatedVersion());
             }
-        }
+        }*/
     }
 }
