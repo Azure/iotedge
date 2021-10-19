@@ -8,7 +8,7 @@ stages:
   - stage: BuildPackages
   ################################################################################
     displayName: Build Packages
-    condition: eq(${{ parameters['skipBuildPackages'] }}, true)
+    condition: eq(${{ parameters['skipBuildPackages'] }}, false)
     pool:
       name: $(pool.linux.name)
       demands:

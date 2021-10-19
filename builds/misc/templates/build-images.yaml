@@ -8,7 +8,7 @@ stages:
   - stage: BuildExecutables
   ################################################################################
     displayName: Build Excecutables
-    condition: eq(${{ parameters['skipBuildImages'] }}, true)
+    condition: eq(${{ parameters['skipBuildImages'] }}, false)
     pool:
       name: $(pool.linux.name)
       demands:
