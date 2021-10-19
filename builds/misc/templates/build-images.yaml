@@ -32,7 +32,7 @@ stages:
   ################################################################################
     displayName: Build Excecutables
   - stage: CheckBuild
-    condition: or(eq(${{ parameters['E2EBuild'] }}, false), eq(stagedependencies.CheckBuild.check_source_change_runtime['RUNTIMECHANGES'], true)
+    condition: or(eq(${{ parameters['E2EBuild'] }}, false), eq(stagedependencies.CheckBuild.check_source_change_runtime['RUNTIMECHANGES'], true))
     pool:
       name: $(pool.linux.name)
       demands:
