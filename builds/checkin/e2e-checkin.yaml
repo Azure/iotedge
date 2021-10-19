@@ -34,15 +34,20 @@ variables:
   verbose: false
 
 stages:
+
   - template: ../misc/templates/build-images.yaml
     parameters:
       skipBuildImages : true
+
+
   - template: ../misc/templates/build-packages.yaml
     parameters:
       skipBuildPackages : false
+      E2EBuild : true
+
+
   - stage: RunE2ETest
     displayName: Ubuntu 18.04 with iotedge-moby
-    condition: succeeded()
     pool:
       name: $(pool.linux.name)
       demands:
