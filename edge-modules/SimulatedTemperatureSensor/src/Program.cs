@@ -290,11 +290,11 @@ namespace SimulatedTemperatureSensor
                     }
 
                     ITransportSettings[] settings = GetTransportSettings();
-                    Console.WriteLine($"[Information]: Trying to initialize module client using transport type [{transportType}].");
+                    Console.WriteLine($"[Information] [{DateTime.UtcNow}]: Trying to initialize module client using transport type [{transportType}].");
                     ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
                     await moduleClient.OpenAsync();
 
-                    Console.WriteLine($"[Information]: Successfully initialized module client of transport type [{transportType}].");
+                    Console.WriteLine($"[Information] [{DateTime.UtcNow}]: Successfully initialized module client of transport type [{transportType}].");
                     return moduleClient;
                 });
 
