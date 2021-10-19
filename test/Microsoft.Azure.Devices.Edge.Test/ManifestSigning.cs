@@ -2,12 +2,10 @@
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
-    using System.Collections.Generic;
     using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
-    using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
@@ -34,6 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     TestCertificates testCerts;
                     (testCerts, this.ca) = await TestCertificates.GenerateCertsAsync(this.device.Id, token);
                     this.startTime = DateTime.Now;
+
                     await this.ConfigureDaemonAsync(
                         config =>
                         {
@@ -98,14 +97,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
         }
 
-        [Test]
+        /*[Test]
         [Category("ManifestSigning")]
         public async Task TestIfSignedDeploymentIsSuccessful()
         {
             // Edge Daemon is configured with a good root CA and manifest is signed.
             this.SetLaunchSettingsWithRootCa(Context.Current.ManifestSigningDefaultLaunchSettings, Context.Current.ManifestSigningGoodRootCaPath);
-            await this.SetConfigToEdgeDaemon(Context.Current.ManifestSigningGoodRootCaPath, this.TestToken);
             ManifestSettings inputManifestSettings = new ManifestSettings(Context.Current.ManifestSigningDeploymentPath, Context.Current.ManifestSigningSignedDeploymentPath, Context.Current.ManifestSigningGoodRootCaPath, Context.Current.ManifestSignerClientDirectory, Context.Current.ManifestSignerClientProjectPath);
+
+            await this.SetConfigToEdgeDaemon(Context.Current.ManifestSigningGoodRootCaPath, this.TestToken);
 
             // This is a temporary solution see ticket: 9288683
             if (!Context.Current.ISA95Tag)
@@ -130,18 +130,16 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             await this.sensor.WaitForEventsReceivedAsync(this.startTime, this.TestToken);
         }
-
+        */
         [Category("ManifestSigning")]
         [Test]
         public async Task TestIfSignedDeploymentIsConfiguredWithBadRootCa()
         {
             // Edge Daemon is configured with a bad root CA but manifest is signed.
-            int fasterTimeOut = 120;
-            CancellationTokenSource manifestSigningCts = new CancellationTokenSource(fasterTimeOut);
+            this.SetLaunchSettingsWithRootCa(Context.Current.ManifestSigningDefaultLaunchSettings, Context.Current.ManifestSigningGoodRootCaPath);
+            ManifestSettings inputManifestSettings = new ManifestSettings(Context.Current.ManifestSigningDeploymentPath, Context.Current.ManifestSigningSignedDeploymentPath, Context.Current.ManifestSigningGoodRootCaPath, Context.Current.ManifestSignerClientDirectory, Context.Current.ManifestSignerClientProjectPath);
 
-            this.SetLaunchSettingsWithRootCa(Context.Current.ManifestSigningDefaultLaunchSettings, Context.Current.ManifestSigningBadRootCaPath);
             await this.SetConfigToEdgeDaemon(Context.Current.ManifestSigningBadRootCaPath, this.TestToken);
-            ManifestSettings inputManifestSettings = new ManifestSettings(Context.Current.ManifestSigningDeploymentPath, Context.Current.ManifestSigningSignedDeploymentPath, Context.Current.ManifestSigningBadRootCaPath, Context.Current.ManifestSignerClientDirectory, Context.Current.ManifestSignerClientProjectPath);
 
             try
             {
@@ -166,6 +164,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     this.startTime = DateTime.Now;
                 }
 
+                // Set a faster time out as its expected to fail.
+                int fasterTimeOut = 120;
+                CancellationTokenSource manifestSigningCts = new CancellationTokenSource(fasterTimeOut);
+
                 await this.sensor.WaitForEventsReceivedAsync(this.startTime, manifestSigningCts.Token);
             }
             catch (TaskCanceledException)
@@ -175,17 +177,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
         }
 
-        [Category("ManifestSigning")]
+        /*[Category("ManifestSigning")]
         [Test]
         public async Task TestIfSignedDeploymentIsConfiguredWithNoRootCa()
         {
             // Edge Daemon is not configured but manifest is signed.
-            int fasterTimeOut = 120;
-            CancellationTokenSource manifestSigningCts = new CancellationTokenSource(fasterTimeOut);
-
-            this.SetLaunchSettingsWithRootCa(Context.Current.ManifestSigningDefaultLaunchSettings, Option.None<string>());
-            await this.SetConfigToEdgeDaemon(Option.None<string>(), this.TestToken);
+            this.SetLaunchSettingsWithRootCa(Context.Current.ManifestSigningDefaultLaunchSettings, Context.Current.ManifestSigningGoodRootCaPath);
             ManifestSettings inputManifestSettings = new ManifestSettings(Context.Current.ManifestSigningDeploymentPath, Context.Current.ManifestSigningSignedDeploymentPath, Context.Current.ManifestSigningGoodRootCaPath, Context.Current.ManifestSignerClientDirectory, Context.Current.ManifestSignerClientProjectPath);
+
+            await this.SetConfigToEdgeDaemon(Option.None<string>(), this.TestToken);
 
             try
             {
@@ -210,6 +210,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     this.startTime = DateTime.Now;
                 }
 
+                // Set a faster time out as its expected to fail.
+                int fasterTimeOut = 120;
+                CancellationTokenSource manifestSigningCts = new CancellationTokenSource(fasterTimeOut);
+
                 await this.sensor.WaitForEventsReceivedAsync(this.startTime, manifestSigningCts.Token);
             }
             catch (TaskCanceledException)
@@ -218,5 +222,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Assert.AreNotEqual(twin.Properties.Desired.Version, twin.Properties.Reported.GetLastUpdatedVersion());
             }
         }
+        */
     }
 }
