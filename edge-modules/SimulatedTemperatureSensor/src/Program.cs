@@ -240,6 +240,7 @@ namespace SimulatedTemperatureSensor
 
         static async Task OnDesiredPropertiesUpdated(TwinCollection desiredPropertiesPatch, object userContext)
         {
+            Console.WriteLine($"{DateTime.UtcNow}: received desired property update");
             // At this point just update the configure configuration.
             if (desiredPropertiesPatch.Contains(SendIntervalConfigKey))
             {
@@ -257,9 +258,11 @@ namespace SimulatedTemperatureSensor
                 sendData = desiredSendDataValue;
             }
 
+            Console.WriteLine($"{DateTime.UtcNow}: sending reported property update");
             var moduleClient = (ModuleClient)userContext;
             var patch = new TwinCollection($"{{ \"SendData\":{sendData.ToString().ToLower()}, \"SendInterval\": {messageDelay.TotalSeconds}}}");
             await moduleClient.UpdateReportedPropertiesAsync(patch); // Just report back last desired property.
+            Console.WriteLine($"{DateTime.UtcNow}: sent reported property update");
         }
 
         static async Task<ModuleClient> CreateModuleClientAsync(
