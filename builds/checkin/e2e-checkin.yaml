@@ -57,12 +57,12 @@ stages:
 
   - template: ../misc/templates/build-images.yaml
     parameters:
-      skipBuildImages : dependencies.check_source_change_edgelet.outputs['check_files.RUNTIMECHANGES']
+      skipBuildImages : dependencies.check_source_change_edgelet.outputs['check_files_runtime.RUNTIMECHANGES']
 
 
   - template: ../misc/templates/build-packages.yaml
     parameters:
-      skipBuildPackages : dependencies.check_source_change_edgelet.outputs['check_files.EDGELETCHANGES']
+      skipBuildPackages : dependencies.check_source_change_edgelet.outputs['check_files_edgelet.EDGELETCHANGES']
       E2EBuild : true
 
   - stage: RunE2ETest
