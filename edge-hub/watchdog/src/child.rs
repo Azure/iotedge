@@ -43,7 +43,7 @@ impl ChildProcess {
             info!("Terminating {} process", self.name);
             self.send_signal(Signal::SIGTERM);
         } else {
-            info!("{} process has stopped", self.name)
+            info!("{} process has stopped", self.name);
         }
 
         self.wait_for_exit();

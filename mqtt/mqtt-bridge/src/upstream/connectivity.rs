@@ -85,7 +85,7 @@ impl MqttEventHandler for ConnectivityMqttEventHandler {
                         let msg = PumpMessage::Event(event);
                         self.sender.send(msg).await?;
 
-                        info!("sent connected state")
+                        info!("sent connected state");
                     }
                 }
                 return Ok(Handled::Fully);
@@ -103,6 +103,7 @@ impl MqttEventHandler for ConnectivityMqttEventHandler {
 pub struct ConnectivityError(#[from] PumpError);
 
 #[cfg(test)]
+#[allow(clippy::semicolon_if_nothing_returned)]
 mod tests {
     use futures_util::FutureExt;
     use matches::assert_matches;
@@ -208,7 +209,7 @@ mod tests {
 
         assert!(connectivity_receiver.recv().now_or_never().is_none());
         assert_eq!(ch.state, ConnectivityState::Disconnected);
-        assert_eq!(res_disconnected, Handled::Fully)
+        assert_eq!(res_disconnected, Handled::Fully);
     }
 
     #[tokio::test]
@@ -225,7 +226,7 @@ mod tests {
 
         let res = ch.handle(event).await.unwrap();
 
-        assert_matches!(res, Handled::Skipped(_))
+        assert_matches!(res, Handled::Skipped(_));
     }
 
     #[tokio::test]

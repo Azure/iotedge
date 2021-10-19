@@ -9,7 +9,7 @@ use mqtt_broker::{
     SystemEvent, VersionedFileFormat,
 };
 
-pub async fn start_snapshotter(
+pub fn start_snapshotter(
     broker_handle: BrokerHandle,
     persistor: FilePersistor<VersionedFileFormat>,
     snapshot_interval: Duration,

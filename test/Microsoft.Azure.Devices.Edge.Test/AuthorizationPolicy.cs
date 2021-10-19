@@ -164,8 +164,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
             // There is no reliable way to signal when the policy
             // is updated in $edgehub, so need to retry several times.
             //
-            // DefaultProgressive => 55 sec max.
-            await RetryPolicy.DefaultProgressive.ExecuteAsync(
+            // Custom retry policy => 120 sec max.
+            var retryStrategy = new Incremental(15, RetryStrategy.DefaultRetryInterval, RetryStrategy.DefaultRetryIncrement);
+            var retryPolicy = new RetryPolicy(new CatchAllErrorDetectionStrategy(), retryStrategy);
+
+            await retryPolicy.ExecuteAsync(
                 async () =>
             {
                 using var client = DeviceClient.CreateFromConnectionString(connectionString, Client.TransportType.Mqtt);
@@ -299,5 +302,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 await leaf.WaitForEventsReceivedAsync(seekTime, token);
             });
         }
+    }
+
+    class CatchAllErrorDetectionStrategy : ITransientErrorDetectionStrategy
+    {
+        public bool IsTransient(Exception ex) => true;
     }
 }

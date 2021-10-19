@@ -2,7 +2,6 @@ mod common;
 
 use std::{any::Any, convert::Infallible, time::Duration};
 
-use bytes::Bytes;
 use futures_util::StreamExt;
 use matches::assert_matches;
 
@@ -117,12 +116,12 @@ async fn send_message_upstream_downstream() {
 
     assert_matches!(
         upstream_client.publications().next().await,
-        Some(ReceivedPublication { payload, .. }) if payload == Bytes::from("from local")
+        Some(ReceivedPublication { payload, .. }) if payload == *"from local"
     );
 
     assert_matches!(
         local_client.publications().next().await,
-        Some(ReceivedPublication { payload, .. }) if payload == Bytes::from("from upstream")
+        Some(ReceivedPublication { payload, .. }) if payload == *"from upstream"
     );
 
     controller_handle.shutdown();
@@ -198,7 +197,7 @@ async fn send_message_upstream_with_crash_is_lossless() {
 
     assert_matches!(
         upstream_client.publications().next().await,
-        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("from local")
+        Some(ReceivedPublication{payload, .. }) if payload == *"from local"
     );
 
     upstream_server_handle.shutdown().await;
@@ -237,7 +236,7 @@ async fn send_message_upstream_with_crash_is_lossless() {
 
     assert_matches!(
         upstream_client.publications().next().await,
-        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("from local again")
+        Some(ReceivedPublication{payload, .. }) if payload == *"from local again"
     );
 
     controller_handle.shutdown();
@@ -341,12 +340,12 @@ async fn bridge_settings_update() {
 
     assert_matches!(
         local_client.publications().next().await,
-        Some(ReceivedPublication { payload, .. }) if payload == Bytes::from("from upstream after update")
+        Some(ReceivedPublication { payload, .. }) if payload == *"from upstream after update"
     );
 
     assert_matches!(
         upstream_client.publications().next().await,
-        Some(ReceivedPublication { payload, .. }) if payload == Bytes::from("from local after update")
+        Some(ReceivedPublication { payload, .. }) if payload == *"from local after update"
     );
 
     controller_handle.shutdown();
@@ -435,7 +434,7 @@ async fn subscribe_to_upstream_rejected_should_retry() {
 
     assert_matches!(
         local_client.publications().next().await,
-        Some(ReceivedPublication { payload, .. }) if payload == Bytes::from("from upstream after update")
+        Some(ReceivedPublication { payload, .. }) if payload == *"from upstream after update"
     );
 
     controller_handle.shutdown();
@@ -501,7 +500,7 @@ async fn connect_to_upstream_failure_should_retry() {
 
     assert_matches!(
         local_client.publications().next().await,
-        Some(ReceivedPublication { payload, .. }) if payload == Bytes::from("{\"status\":\"Disconnected\"}")
+        Some(ReceivedPublication { payload, .. }) if payload == *"{\"status\":\"Disconnected\"}"
     );
 
     let (mut upstream_server_handle, _) = common::setup_upstream_broker(
@@ -512,13 +511,13 @@ async fn connect_to_upstream_failure_should_retry() {
 
     assert_matches!(
         local_client.publications().next().await,
-        Some(ReceivedPublication { payload, .. }) if payload == Bytes::from("{\"status\":\"Connected\"}")
+        Some(ReceivedPublication { payload, .. }) if payload == *"{\"status\":\"Connected\"}"
     );
 
     upstream_server_handle.shutdown().await;
     assert_matches!(
         local_client.publications().next().await,
-        Some(ReceivedPublication { payload, .. }) if payload == Bytes::from("{\"status\":\"Disconnected\"}")
+        Some(ReceivedPublication { payload, .. }) if payload == *"{\"status\":\"Disconnected\"}"
     );
 
     let (mut upstream_server_handle, _) = common::setup_upstream_broker(
@@ -528,7 +527,7 @@ async fn connect_to_upstream_failure_should_retry() {
     );
     assert_matches!(
         local_client.publications().next().await,
-        Some(ReceivedPublication { payload, .. }) if payload == Bytes::from("{\"status\":\"Connected\"}")
+        Some(ReceivedPublication { payload, .. }) if payload == *"{\"status\":\"Connected\"}"
     );
 
     controller_handle.shutdown();
@@ -606,12 +605,12 @@ async fn bridge_forwards_messages_after_restart() {
 
     assert_matches!(
         upstream_client.publications().next().await,
-        Some(ReceivedPublication { payload, .. }) if payload == Bytes::from("from local 1")
+        Some(ReceivedPublication { payload, .. }) if payload == *"from local 1"
     );
 
     assert_matches!(
         local_client.publications().next().await,
-        Some(ReceivedPublication { payload, .. }) if payload == Bytes::from("from upstream 1")
+        Some(ReceivedPublication { payload, .. }) if payload == *"from upstream 1"
     );
 
     // shutdown all bridges
@@ -654,12 +653,12 @@ async fn bridge_forwards_messages_after_restart() {
 
     assert_matches!(
         upstream_client.publications().next().await,
-        Some(ReceivedPublication { payload, .. }) if payload == Bytes::from("from local 3")
+        Some(ReceivedPublication { payload, .. }) if payload == *"from local 3"
     );
 
     assert_matches!(
         local_client.publications().next().await,
-        Some(ReceivedPublication { payload, .. }) if payload == Bytes::from("from upstream 3")
+        Some(ReceivedPublication { payload, .. }) if payload == *"from upstream 3"
     );
 
     controller_handle.shutdown();
@@ -742,12 +741,12 @@ async fn recreate_upstream_bridge_when_fails() {
 
     assert_matches!(
         local_client.publications().next().await,
-        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("from upstream")
+        Some(ReceivedPublication{payload, .. }) if payload == *"from upstream"
     );
 
     assert_matches!(
         upstream_client.publications().next().await,
-        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("from local")
+        Some(ReceivedPublication{payload, .. }) if payload == *"from local"
     );
 
     controller_handle.shutdown();

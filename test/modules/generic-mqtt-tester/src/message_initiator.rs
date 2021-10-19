@@ -89,7 +89,7 @@ impl MessageInitiator {
             let mut payload = BytesMut::with_capacity(self.payload_size + 4);
             payload.put_u32(seq_num);
             payload.put_u128_le(self.batch_id.to_u128_le());
-            payload.put_slice(&dummy_data);
+            payload.put_slice(dummy_data);
             let publication = Publication {
                 topic_name: self.initiate_topic.clone(),
                 qos: QoS::ExactlyOnce,
