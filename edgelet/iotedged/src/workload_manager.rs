@@ -133,13 +133,32 @@ where
     ) -> Result<(), Error> {
         let label = "work".to_string();
 
-        let (shutdown_sender, shutdown_receiver) = oneshot::channel();
+        // If a listener has already been created, remove previous listener.
+        // This avoid the launch of 2 listeners.
+        // We chose to remove instead and create a new one instead of
+        // just return and say, one listener has already been created:
+        // We chose to remove because a listener could crash without getting removed correctly.
+        // That could make the module crash. Then that module would be restarted without ever going to
+        // "stop"
+        // There is still a chance that 2 concurrent servers are launch with concurrence,
+        // But it is extremely unlikely and anyway doesn't have any side effect expect memory footprint.
+        if let Some(shutdown_sender) = self.shutdown_senders.remove(module_id) {
+            info!(
+                "Listener  {} already started, removing old listener",
+                module_id
+            );
+            shutdown_sender
+                .send(())
+                .map_err(|()| Error::from(ErrorKind::WorkloadService))?;
+        }
 
-        let cert_manager = self.cert_manager.clone();
-        let min_protocol_version = self.min_protocol_version;
+        let (shutdown_sender, shutdown_receiver) = oneshot::channel();
 
         self.shutdown_senders
             .insert(module_id.to_string(), shutdown_sender);
+
+        let cert_manager = self.cert_manager.clone();
+        let min_protocol_version = self.min_protocol_version;
 
         let future = WorkloadService::new(
             &self.key_store,
@@ -214,7 +233,7 @@ where
         module_id: &str,
         signal_socket_created: Option<Sender<()>>,
     ) -> Result<(), Error> {
-        info!("String new listener for module {}", module_id);
+        info!("Starting new listener for module {}", module_id);
         let workload_uri = self.get_listener_uri(module_id)?;
 
         self.spawn_listener(
@@ -228,24 +247,6 @@ where
     fn stop(&mut self, module_id: &str) -> Result<(), Error> {
         info!("Stopping listener for module {}", module_id);
 
-        let shutdown_sender = self.shutdown_senders.remove(module_id);
-
-        if let Some(shutdown_sender) = shutdown_sender {
-            if shutdown_sender.send(()).is_err() {
-                warn!("Received message that a module stopped, but was unable to close the socket server");
-                Err(Error::from(ErrorKind::WorkloadManager))
-            } else {
-                Ok(())
-            }
-        } else {
-            warn!("Couldn't find a matching module Id in the list of shutdown channels");
-            Err(Error::from(ErrorKind::WorkloadManager))
-        }
-    }
-
-    fn remove(&mut self, module_id: &str) -> Result<(), Error> {
-        info!("Removing listener for module {}", module_id);
-
         // If the container is removed, also remove the socket file to limit the leaking of socket file
         let workload_uri = self.get_listener_uri(module_id)?;
 
@@ -258,6 +259,9 @@ where
             warn!("Could not remove socket with uri {}", workload_uri);
             ErrorKind::WorkloadManager
         })?;
+
+        // Try to stop the listener, in case it was not stopped before.
+        self.stop(module_id)?;
 
         Ok(())
     }
@@ -306,17 +310,17 @@ where
     // Ignore error, we don't want the server to close on error.
     let server = create_socket_channel_rcv.for_each(move |module_id| match module_id {
         ModuleAction::Start(module_id, sender) => {
-            workload_manager
-                .start(&module_id, Some(sender))
-                .unwrap_or(());
+            if let Err(err) = workload_manager.start(&module_id, Some(sender)) {
+                log_failure(Level::Warn, &err);
+            }
+
             Ok(())
         }
         ModuleAction::Stop(module_id) => {
-            workload_manager.stop(&module_id).unwrap_or(());
-            Ok(())
-        }
-        ModuleAction::Remove(module_id) => {
-            workload_manager.remove(&module_id).unwrap_or(());
+            if let Err(err) = workload_manager.stop(&module_id) {
+                log_failure(Level::Warn, &err);
+            }
+
             Ok(())
         }
     });
