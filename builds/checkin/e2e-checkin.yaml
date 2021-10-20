@@ -24,13 +24,49 @@ resources:
 
 stages:
 
-  - template: ../misc/templates/build-images.yaml
-    parameters:
-      E2EBuild : true
+  ################################################################################
+  - stage: PublishManifests
+  ################################################################################
+    displayName: Check For Source Code Changes
+    pool:
+        name: $(pool.linux.name)
+        demands:
+          - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+    dependsOn: []
+    jobs:
+      - job: check_source_change_edgelet
+        displayName: Check Source Changes Edgelet (changes ARE in builds or edgelet)
+        steps:
+          - bash: |
+             echo "PublishManifests"
+            displayName: Check changes in edgelet sources
+            name: check_files
 
-  - template: ../misc/templates/build-packages.yaml
-    parameters:
-      E2EBuild : true
+  ################################################################################
+  - stage: BuildPackages
+  ################################################################################
+    displayName: Check For Source Code Changes
+    pool:
+        name: $(pool.linux.name)
+        demands:
+          - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+    dependsOn: []
+    jobs:
+      - job: check_source_change_edgelet
+        displayName: Check Source Changes Edgelet (changes ARE in builds or edgelet)
+        steps:
+          - bash: |
+             echo "BuildPackages"
+            displayName: Check changes in edgelet sources
+            name: check_files
+
+  # - template: ../misc/templates/build-images.yaml
+  #   parameters:
+  #     E2EBuild : true
+
+  # - template: ../misc/templates/build-packages.yaml
+  #   parameters:
+  #     E2EBuild : true
 
   - stage: RunE2ETest
     displayName: End-to-End Test
@@ -65,8 +101,8 @@ stages:
           artifactName: iotedged-ubuntu18.04-amd64
           identityServiceArtifactName: packages_ubuntu-18.04_amd64
           identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-          builtImages: $[ stageDependencies.PublishManifests.result]
-          builtPackages: $[ stageDependencies.BuildPackages.result]
+          builtImages: $(stageDependencies.PublishManifests.result)
+          builtPackages: $(stageDependencies.BuildPackages.result)
         steps:
         - template: ../e2e/templates/e2e-setup.yaml
         - template: ../e2e/templates/e2e-run.yaml
