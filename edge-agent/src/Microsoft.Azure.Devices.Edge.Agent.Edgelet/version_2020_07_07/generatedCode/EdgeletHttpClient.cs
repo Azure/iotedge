@@ -15,6 +15,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
     using OpenTelemetry.Trace;
     using Agent = Microsoft.Azure.Devices.Edge.Agent.Core.Agent;
     using System = global::System;
+    using System.Collections.Generic;
+    using System.Net.Http.Headers;
+    using System;
 #pragma warning disable // Disable all warnings
 
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "13.6.2.0 (NJsonSchema v10.1.23.0 (Newtonsoft.Json v11.0.0.0))")]
@@ -60,6 +63,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
             return ListModulesAsync(api_version, System.Threading.CancellationToken.None);
         }
 
+        private void InjectTraceContextIntoBasicProperties(HttpHeaders props, string key, string value)
+        {
+            try
+            {
+                props.Add(key, value);
+            }
+            catch (Exception ex)
+            {
+                // this.logger.LogError(ex, "Failed to inject trace context.");
+            }
+        }
+
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>List modules.</summary>
         /// <param name="api_version">The version of the API.</param>
@@ -69,7 +84,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
         {
             using (Activity activity = Agent.Source.StartActivity("EdgeletHttpClient:ListModulesAsync", ActivityKind.Client))
             {
-
                 if (api_version == null)
                     throw new System.ArgumentNullException("api_version");
 
@@ -91,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
                         request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
                         PrepareRequest(client_, request_, url_);
 
-                        // _propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), message, InjectTraceContextIntoBasicProperties);
+                        _propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), request_.Headers, InjectTraceContextIntoBasicProperties);
                         var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
                         try
                         {
