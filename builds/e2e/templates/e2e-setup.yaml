@@ -34,7 +34,7 @@ steps:
       echo "Use Build Image Artifacts"
       echo "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]FALSE"
     fi
-    if [[ ! -z $(builtImages) ] && [ $(builtPackages) == 'Succeeded' ]]
+    if [[ ! -z $(builtPackages) ] && [ $(builtPackages) == 'Succeeded' ]]
     then
       echo "Use Pipeline Package Artifacts"
       echo "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]TRUE"
