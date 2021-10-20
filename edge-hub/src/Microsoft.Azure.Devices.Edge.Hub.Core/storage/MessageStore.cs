@@ -134,6 +134,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
         public IMessageIterator GetMessageIterator(string endpointId) => this.GetMessageIterator(endpointId, DefaultStartingOffset);
 
+        public Task<ulong> GetMessageCountFromOffset(string endpointId, long offset)
+        {
+            if (!this.endpointSequentialStores.TryGetValue(Preconditions.CheckNonWhiteSpace(endpointId, nameof(endpointId)), out ISequentialStore<MessageRef> sequentialStore))
+            {
+                throw new InvalidOperationException($"Endpoint {nameof(endpointId)} not found");
+            }
+
+            return sequentialStore.GetCountFromOffset(offset);
+        }
+
         public void Dispose()
         {
             this.Dispose(true);
@@ -295,23 +305,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                             Events.CleanupCheckpointState(messageQueueId, checkpointData);
                             int cleanupEntityStoreCount = 0;
 
-                            // If checkEntireQueueOnCleanup is set to false, we only peek the head, message counts is tailOffset-headOffset+1
-                            // otherwise count while iterating over the queue.
-                            var headOffset = 0L;
-                            var tailOffset = sequentialStore.GetTailOffset(CancellationToken.None);
-                            var messageCount = 0L;
-
                             async Task<bool> DeleteMessageCallback(long offset, MessageRef messageRef)
                             {
                                 var expiry = messageRef.TimeStamp + messageRef.TimeToLive;
                                 if (offset > checkpointData.Offset && expiry > DateTime.UtcNow)
                                 {
-                                    // message is not sent and not expired, increase message counts
-                                    messageCount++;
                                     return false;
                                 }
-
-                                headOffset = Math.Max(headOffset, offset);
 
                                 var message = await this.TryDecrementRefCountUpdate(messageRef.EdgeMessageId, messageQueueId);
 
@@ -365,12 +365,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                                 {
                                     cleanupCount++;
                                 }
-
-                                messageCount = tailOffset - headOffset + 1;
                             }
 
-                            // update Metrics for message counts
-                            Checkpointer.Metrics.QueueLength.Set(messageCount, new[] { endpointId, priority.ToString(), bool.TrueString });
+                            // Since we will have the total *true* count of messages in the store,
+                            // we need to set the counter here to the total count of messages in the store.
+                            Checkpointer.Metrics.SetQueueLength(await sequentialStore.Count(), endpointId, priority);
+
                             totalCleanupCount += cleanupCount;
                             totalCleanupStoreCount += cleanupEntityStoreCount;
                             Events.CleanupCompleted(messageQueueId, cleanupCount, cleanupEntityStoreCount, totalCleanupCount, totalCleanupStoreCount);
