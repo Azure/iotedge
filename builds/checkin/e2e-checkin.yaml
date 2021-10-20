@@ -24,13 +24,13 @@ resources:
 
 stages:
 
-  - template: ../misc/templates/build-images.yaml
-    parameters:
-      E2EBuild : true
+  # - template: ../misc/templates/build-images.yaml
+  #   parameters:
+  #     E2EBuild : true
 
-  - template: ../misc/templates/build-packages.yaml
-    parameters:
-      E2EBuild : true
+  # - template: ../misc/templates/build-packages.yaml
+  #   parameters:
+  #     E2EBuild : true
 
   - stage: RunE2ETest
     displayName: End-to-End Test
