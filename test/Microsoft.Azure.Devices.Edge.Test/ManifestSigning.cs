@@ -97,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
         }
 
-        /*[Test]
+        [Test]
         [Category("ManifestSigning")]
         public async Task TestIfSignedDeploymentIsSuccessful()
         {
@@ -176,7 +176,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Assert.AreNotEqual(twin.Properties.Desired.Version, twin.Properties.Reported.GetLastUpdatedVersion());
             }
         }
-        */
 
         [Category("ManifestSigning")]
         [Test]
@@ -203,7 +202,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             builder.AddModule(SensorName, this.sensorImage)
                                 .WithEnvironment(new[] { ("MessageCount", "-1") });
                         },
-                        this.TestToken,
+                        manifestSigningCts.Token,
                         Context.Current.NestedEdge,
                         inputManifestSettings);
                     this.sensor = deployment.Modules[SensorName];
@@ -215,7 +214,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     this.startTime = DateTime.Now;
                 }
 
-                await this.sensor.WaitForEventsReceivedAsync(this.startTime, this.TestToken);
+                await this.sensor.WaitForEventsReceivedAsync(this.startTime, manifestSigningCts.Token);
             }
             catch (TaskCanceledException)
             {
