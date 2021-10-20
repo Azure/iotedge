@@ -59,11 +59,15 @@ steps:
 
 - task: DownloadPipelineArtifact@2
   displayName: Download Pipeline Build Packages
-  condition: eq(variables['check_use_artifacts.UsePipelinePackageArtifacts'],'false')
+  condition: eq(variables['check_use_artifacts.UsePipelinePackageArtifacts'],'true')
   inputs:
-    source: 'current'
-    artifact: $(artifactName)
+    source: 'specific'
+    project: $(resources.pipeline.e2e.projectID)
+    pipeline: $(resources.pipeline.e2e.pipelineName)
+    runVersion: specific
+    runId: 48054847
     path: $(System.ArtifactsDirectory)
+    patterns: $(artifactName)
 
 - task: DownloadBuildArtifacts@0
   displayName: Download Resource Build Images
