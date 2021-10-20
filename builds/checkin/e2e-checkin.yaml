@@ -21,6 +21,13 @@ resources:
       branches:
       - master
       - release/*
+  - pipeline: e2e
+    source: 'E2E_PR'
+    branch: 'release/test1/1.2'
+    trigger:
+      branches:
+      - master
+      - release/*
 
 stages:
 

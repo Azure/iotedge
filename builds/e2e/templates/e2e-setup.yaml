@@ -26,21 +26,21 @@ steps:
 - bash: | 
     echo "Built Images Result is $(builtImages)"
     echo "Built Packages Result is $(builtPackages)"
-    if [[ $(builtImages) == 'Succeeded' ]]
+    if [[ ! -z $(builtImages) && $(builtImages) == 'Succeeded' ]]
     then
       echo "Use Pipeline Image Artifacts"
       echo "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]TRUE"
     else
       echo "Use Build Image Artifacts"
-      echo "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]FALSE"
+      echo "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]TRUE"
     fi
-    if [[ $(builtPackages) == 'Succeeded' ]]
+    if [[ ! -z $(builtPackages) && $(builtPackages) == 'Succeeded' ]]
     then
       echo "Use Pipeline Package Artifacts"
       echo "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]TRUE"
     else
       echo "Use Build Package Artifacts"
-      echo "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]FALSE"
+      echo "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]TRUE"
     fi
   name: check_use_artifacts
   displayName: Check Use Pipeline Image Artifacts
@@ -49,14 +49,17 @@ steps:
   displayName: Download Pipeline Build Images
   condition: eq(variables['check_use_artifacts.UsePipelineImageArtifacts'],'true')
   inputs:
-    source: 'current'
-    artifact: $(az.pipeline.images.artifacts)
+    source: 'specific'
+    project: $(resources.pipeline.e2e.projectID)
+    pipeline: $(resources.pipeline.e2e.pipelineName)
+    runVersion: specific
+    runId: 48054847
     path: $(System.ArtifactsDirectory)
     patterns: $(az.pipeline.images.artifacts)/artifactInfo.txt
 
 - task: DownloadPipelineArtifact@2
   displayName: Download Pipeline Build Packages
-  condition: eq(variables['check_use_artifacts.UsePipelinePackageArtifacts'],'true')
+  condition: eq(variables['check_use_artifacts.UsePipelinePackageArtifacts'],'false')
   inputs:
     source: 'current'
     artifact: $(artifactName)
