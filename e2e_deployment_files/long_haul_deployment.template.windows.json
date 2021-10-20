@@ -418,7 +418,7 @@
               }
             },
             "settings": {
-              "image": "edgerelease.azurecr.io/microsoft/azureiotedge-metrics-collector:1.0.2-windows-<Architecture>",
+              "image": "edgerelease.azurecr.io/microsoft/azureiotedge-metrics-collector:1.0.3-windows-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
             }
           }
