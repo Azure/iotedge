@@ -32,7 +32,7 @@ steps:
       echo "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]TRUE"
     else
       echo "Use Build Image Artifacts"
-      echo "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]FALSE"
+      echo "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]TRUE"
     fi
     if[[$(builtPackages) -eq 'Succeeded']]
     then
@@ -40,7 +40,7 @@ steps:
       echo "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]TRUE"
     else
       echo "Use Build Package Artifacts"
-      echo "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]FALSE"
+      echo "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]TRUE"
     fi
   name: check_use_artifacts
   displayName: Check Use Pipeline Image Artifacts
