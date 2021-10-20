@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         static readonly string edgeModuleName = "$edgeHub";
         static readonly string edgeDeviceId = "testDevice";
 
-        [Fact]
+        [Fact(Skip = "Flaky")]
         public async Task OnReconnectionClientsGetResubscribed()
         {
             // The logic of this test is the following
