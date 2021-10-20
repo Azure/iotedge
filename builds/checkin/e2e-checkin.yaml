@@ -67,7 +67,6 @@ stages:
           identityServicePackageFilter: aziot-identity-service_*_amd64.deb
           builtImages: $[ stageDependencies.PublishManifests.result]
           builtPackages: $[ stageDependencies.BuildPackages.result]
-          E2EBuild: true
         steps:
         - template: ../e2e/templates/e2e-setup.yaml
         - template: ../e2e/templates/e2e-run.yaml

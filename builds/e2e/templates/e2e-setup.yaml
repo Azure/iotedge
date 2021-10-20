@@ -32,7 +32,7 @@ steps:
       echo "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]TRUE"
     else
       echo "Use Build Image Artifacts"
-      echo "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]FALSE"
+      echo "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]TRUE"
     fi
     if [[ ! -z $(builtPackages) ] && [ $(builtPackages) == 'Succeeded' ]]
     then
@@ -40,13 +40,22 @@ steps:
       echo "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]TRUE"
     else
       echo "Use Build Package Artifacts"
-      echo "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]FALSE"
+      echo "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]TRUE"
     fi
   name: check_use_artifacts
   displayName: Check Use Pipeline Image Artifacts
 
+- task: DownloadPipelineArtifact@2
+  displayName: Download Pipeline Build Images
+  condition: eq(variables['check_use_artifacts.UsePipelineImageArtifacts'],'true')
+  inputs:
+    source: 'current'
+    artifact: $(az.pipeline.images.artifacts)
+    path: $(System.ArtifactsDirectory)
+    patterns: $(az.pipeline.images.artifacts)/artifactInfo.txt
+
 - task: DownloadBuildArtifacts@0
-  displayName: Download Build Images
+  displayName: Download Resource Build Images
   condition: eq(variables['check_use_artifacts.UsePipelineImageArtifacts'],'false')
   inputs:  
     buildType: specific
