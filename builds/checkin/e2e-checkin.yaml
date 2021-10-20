@@ -56,7 +56,8 @@ stages:
           artifactName: iotedged-ubuntu18.04-amd64
           identityServiceArtifactName: packages_ubuntu-18.04_amd64
           identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-    
+          builtImages: $[ stageDependencies.PublishManifests.result]
+          builtPackages: $[ stageDependencies.BuildPackages.result]
         steps:
         - template: ../e2e/templates/e2e-setup.yaml
         - template: ../e2e/templates/e2e-run.yaml

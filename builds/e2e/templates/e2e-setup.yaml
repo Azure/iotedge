@@ -1,3 +1,8 @@
+parameters:
+  - name: 'E2EBuild'
+    type: boolean
+    default: false
+
 steps:
 - checkout: self
   clean: true
@@ -22,9 +27,15 @@ steps:
       TestRootCaPassword,
       TestBlobStoreSas
 
+- bash: | 
+    echo "Built Images Result is $(builtImages)"
+    echo "Built Packages Result is $(builtPackages)"
+  displayName: Check Use Pipeline Image Artifacts
+  condition: eq(${{ parameters['E2EBuild'] }}, true)
+
 - task: DownloadBuildArtifacts@0
-  displayName: Get Docker image info
-  inputs:
+  displayName: Download Build Images
+  inputs:  
     buildType: specific
     project: $(resources.pipeline.images.projectID)
     pipeline: $(resources.pipeline.images.pipelineName)
@@ -34,7 +45,7 @@ steps:
     artifactName: $(az.pipeline.images.artifacts)
     allowPartiallySucceededBuilds: true
     itemPattern: $(az.pipeline.images.artifacts)/artifactInfo.txt
-
+    
 - task: DownloadBuildArtifacts@0
   displayName: Download edgelet packages
   inputs:
