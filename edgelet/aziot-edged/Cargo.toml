@@ -27,5 +27,5 @@ aziot-identity-client-async = { git = "https://github.com/Azure/iot-identity-ser
 aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs" }
 aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs" }
 
-http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs", features = ["tokio1"] }
+http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs" }
 logger = { git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs" }
