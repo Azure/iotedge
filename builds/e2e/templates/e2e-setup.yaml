@@ -47,7 +47,7 @@ steps:
 
 - task: DownloadBuildArtifacts@0
   displayName: Download Build Images
-  condition: eq(dependencies.check_use_artifacts.UsePipelineImageArtifacts,'false')
+  condition: eq(variables['check_use_artifacts.UsePipelineImageArtifacts'],'false')
   inputs:  
     buildType: specific
     project: $(resources.pipeline.images.projectID)
@@ -61,7 +61,7 @@ steps:
     
 - task: DownloadBuildArtifacts@0
   displayName: Download edgelet packages
-  condition: eq(check_use_artifacts.UsePipelinePackageArtifacts,'false')
+  condition: eq(variables['check_use_artifacts.UsePipelinePackageArtifacts'],'false')
   inputs:
     buildType: specific
     project: $(resources.pipeline.packages.projectID)
