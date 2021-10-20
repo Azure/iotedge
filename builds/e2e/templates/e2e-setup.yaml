@@ -67,7 +67,7 @@ steps:
     runVersion: specific
     runId: 48054847
     path: $(System.ArtifactsDirectory)
-    patterns: $(artifactName)
+    patterns: $(artifactName)/*.deb
 
 - task: DownloadBuildArtifacts@0
   displayName: Download Resource Build Images
