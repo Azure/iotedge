@@ -34,7 +34,7 @@ stages:
           - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
     dependsOn: []
     jobs:
-      - job: check_source_change_edgelet
+      - job: check_source_change_images
         displayName: Check Source Changes Edgelet (changes ARE in builds or edgelet)
         steps:
           - bash: |
@@ -101,8 +101,8 @@ stages:
           artifactName: iotedged-ubuntu18.04-amd64
           identityServiceArtifactName: packages_ubuntu-18.04_amd64
           identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-          builtImages: $(stageDependencies.PublishManifests.result)
-          builtPackages: $(stageDependencies.BuildPackages.result)
+          builtImages: $[ stageDependencies.PublishManifests.check_source_change_images.result ]
+          builtPackages: $[ stageDependencies.BuildPackages.check_source_change_edgelet.result ]
         steps:
         - template: ../e2e/templates/e2e-setup.yaml
         - template: ../e2e/templates/e2e-run.yaml
