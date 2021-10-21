@@ -56,7 +56,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             });
 
             app.UseHttpsRedirection();
-            app.UseWebSockets();
+
+            // We don't need to have server-initiated WebSocket ping requests,
+            // because the top level protocols (AMQT/MQTT) already do have
+            // keep-alive mechanisms implemented.
+            app.UseWebSockets(new WebSocketOptions
+            {
+                KeepAliveInterval = TimeSpan.Zero
+            });
 
             var webSocketListenerRegistry = app.ApplicationServices.GetService(typeof(IWebSocketListenerRegistry)) as IWebSocketListenerRegistry;
             var httpProxiedCertificateExtractor = app.ApplicationServices.GetService(typeof(Task<IHttpProxiedCertificateExtractor>)) as Task<IHttpProxiedCertificateExtractor>;
