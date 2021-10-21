@@ -142,13 +142,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await this.SetConfigToEdgeDaemon(Context.Current.ManifestSigningBadRootCaPath, this.TestToken);
 
             // Set a faster time out as its expected to fail.
-            int fasterTimeOut = 120;
-            CancellationTokenSource manifestSigningCts = new CancellationTokenSource(fasterTimeOut);
+            CancellationTokenSource manifestSigningCts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
 
-            try
+            // This is a temporary solution see ticket: 9288683
+            if (!Context.Current.ISA95Tag)
             {
-                // This is a temporary solution see ticket: 9288683
-                if (!Context.Current.ISA95Tag)
+                try
                 {
                     EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                         builder =>
@@ -156,24 +155,16 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             builder.AddModule(SensorName, this.sensorImage)
                                 .WithEnvironment(new[] { ("MessageCount", "-1") });
                         },
-                        this.TestToken,
+                        manifestSigningCts.Token,
                         Context.Current.NestedEdge,
                         inputManifestSettings);
-                    this.sensor = deployment.Modules[SensorName];
-                    this.startTime = deployment.StartTime;
                 }
-                else
+                catch (TaskCanceledException)
                 {
-                    this.sensor = new EdgeModule(SensorName, this.runtime.DeviceId, this.IotHub);
-                    this.startTime = DateTime.Now;
+                    CancellationTokenSource getTwinTimer = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+                    Twin twin = await this.IotHub.GetTwinAsync(this.runtime.DeviceId, Option.Some("$edgeAgent"), getTwinTimer.Token);
+                    Assert.AreNotEqual(twin.Properties.Desired.Version, twin.Properties.Reported.GetLastUpdatedVersion());
                 }
-
-                await this.sensor.WaitForEventsReceivedAsync(this.startTime, this.TestToken);
-            }
-            catch (TaskCanceledException)
-            {
-                Twin twin = await this.IotHub.GetTwinAsync(this.runtime.DeviceId, Option.Some("$edgeAgent"), this.TestToken);
-                Assert.AreNotEqual(twin.Properties.Desired.Version, twin.Properties.Reported.GetLastUpdatedVersion());
             }
         }
 
@@ -188,13 +179,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await this.SetConfigToEdgeDaemon(Option.None<string>(), this.TestToken);
 
             // Set a faster time out as its expected to fail.
-            int fasterTimeOut = 120;
-            CancellationTokenSource manifestSigningCts = new CancellationTokenSource(fasterTimeOut);
+            CancellationTokenSource manifestSigningCts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
 
-            try
+            // This is a temporary solution see ticket: 9288683
+            if (!Context.Current.ISA95Tag)
             {
-                // This is a temporary solution see ticket: 9288683
-                if (!Context.Current.ISA95Tag)
+                try
                 {
                     EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                         builder =>
@@ -202,24 +192,16 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             builder.AddModule(SensorName, this.sensorImage)
                                 .WithEnvironment(new[] { ("MessageCount", "-1") });
                         },
-                        this.TestToken,
+                        manifestSigningCts.Token,
                         Context.Current.NestedEdge,
                         inputManifestSettings);
-                    this.sensor = deployment.Modules[SensorName];
-                    this.startTime = deployment.StartTime;
                 }
-                else
+                catch (TaskCanceledException)
                 {
-                    this.sensor = new EdgeModule(SensorName, this.runtime.DeviceId, this.IotHub);
-                    this.startTime = DateTime.Now;
+                    CancellationTokenSource getTwinTimer = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+                    Twin twin = await this.IotHub.GetTwinAsync(this.runtime.DeviceId, Option.Some("$edgeAgent"), getTwinTimer.Token);
+                    Assert.AreNotEqual(twin.Properties.Desired.Version, twin.Properties.Reported.GetLastUpdatedVersion());
                 }
-
-                await this.sensor.WaitForEventsReceivedAsync(this.startTime, this.TestToken);
-            }
-            catch (TaskCanceledException)
-            {
-                Twin twin = await this.IotHub.GetTwinAsync(this.runtime.DeviceId, Option.Some("$edgeAgent"), this.TestToken);
-                Assert.AreNotEqual(twin.Properties.Desired.Version, twin.Properties.Reported.GetLastUpdatedVersion());
             }
         }
     }
