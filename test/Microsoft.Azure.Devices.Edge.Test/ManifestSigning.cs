@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string SensorName = "tempSensor";
         const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
         string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
-        // EdgeModule sensor;
+        EdgeModule sensor;
         DateTime startTime;
 
         public async Task SetConfigToEdgeDaemon(Option<string> rootCaPath, CancellationToken token)
