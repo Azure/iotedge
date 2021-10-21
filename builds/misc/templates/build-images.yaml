@@ -19,7 +19,7 @@ stages:
         displayName: Check Source Changes Edgelet (changes are outside of test or doc folders)
         steps:
           - bash: |
-              git log -m -1 --name-only --first-parent --pretty="" | egrep -i -v '^(test/Microsoft.Azure.Devices.Edge.Test|doc)'
+              git log -m -1 --name-only --first-parent --pretty="" | egrep -i -v '^(test/Microsoft.Azure.Devices.Edge.Test|doc|edgelet)'
               if [[ $? == 0 ]]; then
                 echo "Detected changes outside of Test Folders"
                 echo "##vso[task.setvariable variable=RUNTIMECHANGES;isOutput=true]TRUE"

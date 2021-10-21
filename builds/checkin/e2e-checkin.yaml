@@ -29,7 +29,7 @@ stages:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
     dependsOn:
       - PublishManifests
       - BuildPackages
@@ -41,8 +41,8 @@ stages:
         in(dependencies.BuildPackages.result, 'Succeeded','Skipped')
       )     
     jobs:
-      - job: ubuntu_1804_msmoby
-        displayName: Ubuntu 18.04 with iotedge-moby
+      - job: ubuntu_2004_msmoby
+        displayName: Ubuntu 20.04 with iotedge-moby
         variables:
           # A 'minimal' pipeline only runs one end-to-end test (TempSensor). This is useful for platforms or
           # environments that are very similar to other platforms/environments in our matrix, Ubuntu 18.04
@@ -51,12 +51,11 @@ stages:
           # don't reasonably expect to encounter differences--if we do, it would likely manifest during
           # installation, or in running a very basic test. We don't need to repeat the entire test suite.
           # The 'minimal' variable defaults to 'false'; we override it in specific jobs as needed.
-          minimal: false
           verbose: false
           os: linux
           arch: amd64
-          artifactName: iotedged-ubuntu18.04-amd64
-          identityServiceArtifactName: packages_ubuntu-18.04_amd64
+          artifactName: iotedged-ubuntu20.04-amd64
+          identityServiceArtifactName: packages_ubuntu-20.04_amd64
           identityServicePackageFilter: aziot-identity-service_*_amd64.deb
           builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
           builtPackages: $[ stageDependencies.BuildPackages.linux.result ]
