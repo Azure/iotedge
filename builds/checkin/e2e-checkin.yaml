@@ -13,9 +13,6 @@ resources:
   - pipeline: packages
     source: 'Azure-IoT-Edge-Core Edgelet Packages'
     branch: 'release/1.2'
-  - pipeline: e2e
-    source: 'E2E_PR'
-    branch: 'release/test1/1.2'
 
 stages:
 
