@@ -90,6 +90,17 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     defaultJsonObject["profiles"]["ManifestSignerClient"]["environmentVariables"]["MANIFEST_TRUST_DEVICE_ROOT_CA_PATH"] = rootCaPath.OrDefault();
                 }
 
+                // delete the previous launch settings file
+                string launchSettingsFile = Context.Current.ManifestSigningLaunchSettingsPath.OrDefault();
+                if (File.Exists(launchSettingsFile))
+                {
+                    File.Delete(launchSettingsFile);
+                }
+                else
+                {
+                    Console.WriteLine("Launch settings file doesn't exist");
+                }
+
                 // Wrtie the modified launch settings to the file
                 File.WriteAllText(Context.Current.ManifestSigningLaunchSettingsPath.OrDefault(), defaultJsonObject.ToString());
                 string newLauchSettingsContents = File.ReadAllText(Context.Current.ManifestSigningLaunchSettingsPath.OrDefault());
@@ -163,10 +174,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 catch (TaskCanceledException)
                 {
                     Console.WriteLine("The task got cancelled - hello");
-                    CancellationTokenSource getTwinTimer = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-                    Twin twin = await this.IotHub.GetTwinAsync(this.runtime.DeviceId, Option.Some("$edgeAgent"), getTwinTimer.Token);
-                    Assert.AreNotEqual(twin.Properties.Desired.Version, twin.Properties.Reported.GetLastUpdatedVersion());
                 }
+
+                CancellationTokenSource getTwinTimer = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+                Twin twin = await this.IotHub.GetTwinAsync(this.runtime.DeviceId, Option.Some("$edgeAgent"), getTwinTimer.Token);
+                Assert.AreNotEqual(twin.Properties.Desired.Version, twin.Properties.Reported.GetLastUpdatedVersion());
             }
         }
 
