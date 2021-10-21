@@ -66,34 +66,18 @@ where
             let mut cert_response: Vec<String> = Vec::new();
 
             for bundle in self.trust_bundle {
-                match client.get_cert(&bundle).await {
-                    Ok(certs) => {
-                        let mut certs = std::str::from_utf8(&certs)
-                            .map_err(|err| {
-                                edgelet_http::error::server_error(format!(
-                                    "could not parse trust bundle {}: {}",
-                                    bundle, err
-                                ))
-                            })?
-                            .to_string();
-
-                        let last = certs.chars().last().ok_or_else(|| {
+                if let Ok(certs) = client.get_cert(&bundle).await {
+                    let certs = std::str::from_utf8(&certs)
+                        .map_err(|err| {
                             edgelet_http::error::server_error(format!(
-                                "empty trust bundle {}",
-                                bundle
+                                "could not parse trust bundle {}: {}",
+                                bundle, err
                             ))
-                        })?;
+                        })?
+                        .to_string();
 
-                        if last != '\n' {
-                            certs.push('\n');
-                        }
-
-                        cert_response.push(certs);
-                    }
-                    Err(err) => {
-                        log::warn!("Failed to get trust bundle {}: {}", bundle, err);
-                    }
-                };
+                    cert_response.push(certs);
+                }
             }
 
             cert_response
