@@ -11,7 +11,6 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
     {
         public DirectMethodConnectivityReport(
             string testDescription,
-            Topology topology,
             string trackingId,
             string senderSource,
             Option<string> receiverSource,
@@ -26,7 +25,6 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
             ulong mismatchFailure)
             : base(testDescription, trackingId, resultType)
         {
-            this.Topology = topology;
             this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
             this.ReceiverSource = receiverSource;
             this.NetworkOnSuccess = networkOnSuccess;
@@ -38,8 +36,6 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
             this.MismatchSuccess = mismatchSuccess;
             this.MismatchFailure = mismatchFailure;
         }
-
-        public Topology Topology { get; }
 
         public string SenderSource { get; }
 
@@ -72,32 +68,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
         public override string Title => this.ReceiverSource.HasValue ?
             $"DirectMethod Connectivity Report for [{this.SenderSource}] and [{this.ReceiverSource.OrDefault()}] ({this.ResultType})" : $"DirectMethod Report for [{this.SenderSource}] ({this.ResultType})";
 
-        public override bool IsPassed => this.IsPassedHelper();
-
-        bool IsPassedHelper()
-        {
-            ulong totalSuccessful = this.NetworkOnSuccess + this.NetworkOffSuccess + this.NetworkOnToleratedSuccess + this.NetworkOffToleratedSuccess;
-            ulong totalFailing = this.NetworkOffFailure + this.NetworkOnFailure;
-            ulong totalResults = totalSuccessful + totalFailing;
-
-            if (totalResults == 0)
-            {
-                return false;
-            }
-            else if (this.Topology == Topology.Nested)
-            {
-                // This tolerance is needed because sometimes we see large numbers of NetworkOnFailures.
-                // Also, sometimes we observe 1 NetworkOffFailure and a lot of mismatched results. The
-                // mismatched results are likely a test logic issue that needs further investigation.
-                return totalSuccessful > 1;
-            }
-            else
-            {
-                // This tolerance is needed because sometimes we see large numbers of NetworkOnFailures.
-                // When this product issue is resolved, we can remove this failure tolerance.
-                bool areNetworkOnFailuresWithinThreshold = ((double)this.NetworkOnFailure / totalResults) < .30d;
-                return this.MismatchFailure == 0 && this.NetworkOffFailure == 0 && areNetworkOnFailuresWithinThreshold && (this.NetworkOnSuccess + this.NetworkOffSuccess + this.NetworkOnToleratedSuccess + this.NetworkOffToleratedSuccess > 0);
-            }
-        }
+        public override bool IsPassed =>
+            this.MismatchFailure == 0 && this.NetworkOffFailure == 0 && this.NetworkOnFailure == 0 && (this.NetworkOnSuccess + this.NetworkOffSuccess + this.NetworkOnToleratedSuccess + this.NetworkOffToleratedSuccess > 0);
     }
 }

@@ -5,7 +5,6 @@ namespace Modules.Test.TestResultCoordinator.Reports
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
-    using global::TestResultCoordinator;
     using global::TestResultCoordinator.Reports;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Storage;
@@ -53,7 +52,6 @@ namespace Modules.Test.TestResultCoordinator.Reports
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new TwinCountingReportGenerator(
                     testDescription,
-                    Topology.SingleNode,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -77,7 +75,6 @@ namespace Modules.Test.TestResultCoordinator.Reports
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new TwinCountingReportGenerator(
                     TestDescription,
-                    Topology.SingleNode,
                     trackingId,
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -101,7 +98,6 @@ namespace Modules.Test.TestResultCoordinator.Reports
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new TwinCountingReportGenerator(
                     TestDescription,
-                    Topology.SingleNode,
                     Guid.NewGuid().ToString(),
                     expectedSource,
                     mockExpectedResults.Object,
@@ -122,7 +118,6 @@ namespace Modules.Test.TestResultCoordinator.Reports
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () => new TwinCountingReportGenerator(
                     TestDescription,
-                    Topology.SingleNode,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     null,
@@ -146,7 +141,6 @@ namespace Modules.Test.TestResultCoordinator.Reports
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new TwinCountingReportGenerator(
                     TestDescription,
-                    Topology.SingleNode,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -167,7 +161,6 @@ namespace Modules.Test.TestResultCoordinator.Reports
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () => new TwinCountingReportGenerator(
                     TestDescription,
-                    Topology.SingleNode,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -191,7 +184,6 @@ namespace Modules.Test.TestResultCoordinator.Reports
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReportGenerator(
                     TestDescription,
-                    TestMode.Connectivity,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -214,7 +206,6 @@ namespace Modules.Test.TestResultCoordinator.Reports
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () => new TwinCountingReportGenerator(
                     TestDescription,
-                    Topology.SingleNode,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -237,7 +228,6 @@ namespace Modules.Test.TestResultCoordinator.Reports
             ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(
                 () => new TwinCountingReportGenerator(
                     TestDescription,
-                    Topology.SingleNode,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -262,7 +252,6 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             var reportGenerator = new CountingReportGenerator(
                 TestDescription,
-                TestMode.Connectivity,
                 Guid.NewGuid().ToString(),
                 expectedSource,
                 expectedResults.GetAsyncEnumerator(),
@@ -303,7 +292,6 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             var reportGenerator = new TwinCountingReportGenerator(
                 TestDescription,
-                Topology.SingleNode,
                 Guid.NewGuid().ToString(),
                 expectedSource,
                 expectedResults.GetAsyncEnumerator(),

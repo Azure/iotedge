@@ -11,6 +11,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Storage;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Moq;
     using Newtonsoft.Json;
     using Xunit;

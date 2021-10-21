@@ -51,7 +51,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
 
         public override bool IsPassed => this.IsPassedHelper();
 
-        bool IsPassedHelper()
+        public bool IsPassedHelper()
         {
             if (this.Other.Sum(x => x.Value) > 0)
             {

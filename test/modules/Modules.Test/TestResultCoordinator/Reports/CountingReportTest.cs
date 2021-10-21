@@ -3,7 +3,6 @@ namespace Modules.Test.TestResultCoordinator.Reports
 {
     using System;
     using System.Collections.Generic;
-    using global::TestResultCoordinator;
     using global::TestResultCoordinator.Reports;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -20,7 +19,6 @@ namespace Modules.Test.TestResultCoordinator.Reports
         {
             var report = new CountingReport(
                 TestDescription,
-                TestMode.Connectivity,
                 "trackingId123",
                 "expectedSource",
                 "actualSource",
@@ -76,7 +74,6 @@ namespace Modules.Test.TestResultCoordinator.Reports
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReport(
                     testDescription,
-                    TestMode.Connectivity,
                     "trackingId123",
                     "expectedSource",
                     "actualSource",
@@ -108,7 +105,6 @@ namespace Modules.Test.TestResultCoordinator.Reports
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReport(
                     TestDescription,
-                    TestMode.Connectivity,
                     trackingId,
                     "expectedSource",
                     "actualSource",
@@ -140,7 +136,6 @@ namespace Modules.Test.TestResultCoordinator.Reports
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReport(
                     TestDescription,
-                    TestMode.Connectivity,
                     "trackingId-23434",
                     expectedSource,
                     "actualSource",
@@ -172,7 +167,6 @@ namespace Modules.Test.TestResultCoordinator.Reports
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReport(
                     TestDescription,
-                    TestMode.Connectivity,
                     "trackingId-23434",
                     "expectedSource",
                     actualSource,
@@ -204,7 +198,6 @@ namespace Modules.Test.TestResultCoordinator.Reports
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReport(
                     TestDescription,
-                    TestMode.Connectivity,
                     "trackingId-23434",
                     "expectedSource",
                     "actualSource",
