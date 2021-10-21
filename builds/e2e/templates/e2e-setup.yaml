@@ -32,7 +32,7 @@ steps:
       echo "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]TRUE"
     else
       echo "Use Build Image Artifacts"
-      echo "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]TRUE"
+      echo "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]FALSE"
     fi
     if [[ ! -z $(builtPackages) && $(builtPackages) == 'Succeeded' ]]
     then
@@ -40,7 +40,7 @@ steps:
       echo "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]TRUE"
     else
       echo "Use Build Package Artifacts"
-      echo "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]TRUE"
+      echo "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]FALSE"
     fi
   name: check_use_artifacts
   displayName: Check Use Pipeline Image Artifacts
@@ -49,11 +49,7 @@ steps:
   displayName: Download Pipeline Build Images
   condition: eq(variables['check_use_artifacts.UsePipelineImageArtifacts'],'true')
   inputs:
-    source: 'specific'
-    project: $(resources.pipeline.e2e.projectID)
-    pipeline: $(resources.pipeline.e2e.pipelineName)
-    runVersion: specific
-    runId: 48054847
+    source: 'current'
     path: $(System.ArtifactsDirectory)
     patterns: $(az.pipeline.images.artifacts)/artifactInfo.txt
 
@@ -61,11 +57,7 @@ steps:
   displayName: Download Pipeline Build Packages
   condition: eq(variables['check_use_artifacts.UsePipelinePackageArtifacts'],'true')
   inputs:
-    source: 'specific'
-    project: $(resources.pipeline.e2e.projectID)
-    pipeline: $(resources.pipeline.e2e.pipelineName)
-    runVersion: specific
-    runId: 48054847
+    source: 'current'
     path: $(System.ArtifactsDirectory)
     patterns: $(artifactName)/*.deb
 
