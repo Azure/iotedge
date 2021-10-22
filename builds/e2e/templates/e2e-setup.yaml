@@ -264,5 +264,4 @@ steps:
     }
 
     $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
-    Get-Content -Path '$(binDir)/context.json'
   displayName: Create test arguments file (context.json)

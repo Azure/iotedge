@@ -142,6 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await this.sensor.WaitForEventsReceivedAsync(this.startTime, this.TestToken);
         }
 
+        [Category("Flaky")]
         [Category("ManifestSigning")]
         [Test]
         public async Task TestIfSignedDeploymentIsConfiguredWithBadRootCa()
@@ -178,9 +179,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                 CancellationTokenSource getTwinTimer = new CancellationTokenSource(TimeSpan.FromMinutes(5));
                 Twin twin = await this.IotHub.GetTwinAsync(this.runtime.DeviceId, Option.Some("$edgeAgent"), getTwinTimer.Token);
+
+                Assert.IsTrue(isThereException);
                 // EdgeAgent will reject the new deployment, so the reported and desired versions will not match
                 Assert.AreNotEqual(twin.Properties.Desired.Version, twin.Properties.Reported.GetLastUpdatedVersion());
-                Assert.IsTrue(isThereException);
             }
         }
 
@@ -220,9 +222,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                 CancellationTokenSource getTwinTimer = new CancellationTokenSource(TimeSpan.FromMinutes(5));
                 Twin twin = await this.IotHub.GetTwinAsync(this.runtime.DeviceId, Option.Some("$edgeAgent"), getTwinTimer.Token);
+
+                Assert.IsTrue(isThereException);
                 // EdgeAgent will reject the new deployment, so the reported and desired versions will not match
                 Assert.AreNotEqual(twin.Properties.Desired.Version, twin.Properties.Reported.GetLastUpdatedVersion());
-                Assert.IsTrue(isThereException);
             }
         }
     }
