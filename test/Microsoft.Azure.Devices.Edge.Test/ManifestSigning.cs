@@ -109,7 +109,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
-        [Category("ManifestSigning")]
         public async Task TestIfSignedDeploymentIsSuccessful()
         {
             // Edge Daemon is configured with a good root CA and manifest is signed.
@@ -143,7 +142,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Category("Flaky")]
-        [Category("ManifestSigning")]
         [Test]
         public async Task TestIfSignedDeploymentIsConfiguredWithBadRootCa()
         {
@@ -186,7 +184,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
         }
 
-        [Category("ManifestSigning")]
         [Test]
         public async Task TestIfSignedDeploymentIsConfiguredWithNoRootCa()
         {
