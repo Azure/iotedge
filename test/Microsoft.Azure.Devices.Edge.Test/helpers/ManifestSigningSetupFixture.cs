@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             return Task.FromResult((
                                 "Removed Manifest Trust Bundle", new object[] { }));
                         },
-                        this.TestToken);
+                        new CancellationTokenSource(TimeSpan.FromMinutes(2)).Token);
 
         protected override async Task SasProvisionEdgeAsync(bool withCerts = false)
         {

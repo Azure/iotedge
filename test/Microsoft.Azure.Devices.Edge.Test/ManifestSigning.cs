@@ -153,7 +153,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await this.SetConfigToEdgeDaemon(Context.Current.ManifestSigningBadRootCaPath, this.TestToken);
 
             // Set a faster time out as its expected to fail.
-            CancellationTokenSource manifestSigningCts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+            CancellationTokenSource manifestSigningCts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+            bool isThereException = false;
 
             // This is a temporary solution see ticket: 9288683
             if (!Context.Current.ISA95Tag)
@@ -169,20 +170,21 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         manifestSigningCts.Token,
                         Context.Current.NestedEdge,
                         inputManifestSettings);
-                    Console.WriteLine("Deployment done ");
                 }
                 catch (TaskCanceledException)
                 {
-                    Console.WriteLine("The task got cancelled - hello");
+                    isThereException = true;
                 }
 
                 CancellationTokenSource getTwinTimer = new CancellationTokenSource(TimeSpan.FromMinutes(5));
                 Twin twin = await this.IotHub.GetTwinAsync(this.runtime.DeviceId, Option.Some("$edgeAgent"), getTwinTimer.Token);
+                // EdgeAgent will reject the new deployment, so the reported and desired versions will not match
                 Assert.AreNotEqual(twin.Properties.Desired.Version, twin.Properties.Reported.GetLastUpdatedVersion());
+                Assert.IsTrue(isThereException);
             }
         }
 
-        /*[Category("ManifestSigning")]
+        [Category("ManifestSigning")]
         [Test]
         public async Task TestIfSignedDeploymentIsConfiguredWithNoRootCa()
         {
@@ -194,6 +196,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             // Set a faster time out as its expected to fail.
             CancellationTokenSource manifestSigningCts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+            bool isThereException = false;
 
             // This is a temporary solution see ticket: 9288683
             if (!Context.Current.ISA95Tag)
@@ -212,11 +215,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 }
                 catch (TaskCanceledException)
                 {
-                    CancellationTokenSource getTwinTimer = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-                    Twin twin = await this.IotHub.GetTwinAsync(this.runtime.DeviceId, Option.Some("$edgeAgent"), getTwinTimer.Token);
-                    Assert.AreNotEqual(twin.Properties.Desired.Version, twin.Properties.Reported.GetLastUpdatedVersion());
+                    isThereException = true;
                 }
+
+                CancellationTokenSource getTwinTimer = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+                Twin twin = await this.IotHub.GetTwinAsync(this.runtime.DeviceId, Option.Some("$edgeAgent"), getTwinTimer.Token);
+                // EdgeAgent will reject the new deployment, so the reported and desired versions will not match
+                Assert.AreNotEqual(twin.Properties.Desired.Version, twin.Properties.Reported.GetLastUpdatedVersion());
+                Assert.IsTrue(isThereException);
             }
-        }*/
+        }
     }
 }

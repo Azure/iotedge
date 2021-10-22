@@ -247,7 +247,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             if (inputManifestSigningTrustBundlePath.HasValue)
             {
-                // File.Create(manifestSigningTrustBundlePath);
                 File.Copy(inputManifestSigningTrustBundlePath.OrDefault(), manifestSigningTrustBundlePath);
                 OsPlatform.Current.SetOwner(manifestSigningTrustBundlePath, "aziotcs", "644");
             }
