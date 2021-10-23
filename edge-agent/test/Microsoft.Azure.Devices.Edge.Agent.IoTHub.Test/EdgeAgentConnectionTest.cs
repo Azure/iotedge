@@ -1803,8 +1803,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         }
 
         [Unit]
-        [Theory]
-        [Category("Flaky")]
+        [Theory(Skip = "Fix manifest chain")]
         [MemberData(nameof(GetBadManifestTrustBundleForTesting))]
         public void TestBadManifestTrustBundle(bool isExceptionExpected, bool expectedResult, EdgeAgentConnection edgeAgentConnection, TwinCollection twinDesiredProperties)
         {
