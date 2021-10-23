@@ -1,3 +1,5 @@
+name: $(Date:yyyyMMdd).$(Rev:r).$(Build.BuildId)
+
 trigger: none
 pr:
   branches:
@@ -15,6 +17,17 @@ resources:
     branch: 'release/1.2'
 
 stages:
+  
+  - stage: DisplayBuildNumber
+    displayName: Display Build Number
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
+    jobs:
+      - job: buildNumber
+        steps:
+          - script: echo '$(Build.BuildNumber)'
 
   - template: ../misc/templates/build-images.yaml
     parameters:
