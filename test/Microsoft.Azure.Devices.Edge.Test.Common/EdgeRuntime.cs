@@ -75,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             if (enableManifestSigning.HasValue)
             {
-                // Wrtie the current config into a file: EdgeConfiguration ToString() outputs the ConfigurationContent
+                // Write the current config into a file: EdgeConfiguration ToString() outputs the ConfigurationContent
                 string deploymentPath = enableManifestSigning.OrDefault().ManifestSigningDeploymentPath.OrDefault();
                 File.WriteAllText(deploymentPath, edgeConfiguration.ToString());
 
@@ -97,7 +97,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 edgeConfiguration.Config = JsonConvert.DeserializeObject<ConfigurationContent>(signedConfig);
             }
 
-            Console.WriteLine($"\n Signed config str = {signedConfig}");
             await edgeConfiguration.DeployAsync(this.iotHub, token);
             EdgeModule[] modules = edgeConfiguration.ModuleNames
                 .Select(id => new EdgeModule(id, this.DeviceId, this.iotHub))

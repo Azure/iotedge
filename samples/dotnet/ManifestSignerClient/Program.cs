@@ -242,7 +242,7 @@ namespace ManifestSignerClient
             catch (Exception e)
             {
                 Console.WriteLine(e.ToString());
-                // Environment.Exit(0);
+                Environment.Exit(0);
             }
         }
     }

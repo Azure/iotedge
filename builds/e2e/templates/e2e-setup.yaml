@@ -221,7 +221,6 @@ steps:
       verbose = '$(verbose)';
       getSupportBundle = 'true'
     }
-    
     if ('$(nestededge)' -eq 'true')
     {
       $context['hostname'] = '$(deviceName)'
