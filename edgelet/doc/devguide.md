@@ -1,4 +1,4 @@
-# IoT Edge Security Daemon -Dev Guide
+# IoT Edge Security Daemon - Development Guide
 
 There are two options for building the IoT Edge Security Daemon.
 
