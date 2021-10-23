@@ -531,6 +531,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
 
             public List<IMessage> GetReceivedMessagesForEndpoint(string endpointId) => this.GetQueue(endpointId).Queue;
 
+            public Task<ulong> GetMessageCountFromOffset(string endpointId, long offset) => Task.FromResult(0ul);
+
             TestMessageQueue GetQueue(string endpointId) => this.endpointQueues.GetOrAdd(endpointId, new TestMessageQueue());
 
             class TestMessageQueue : IMessageIterator
