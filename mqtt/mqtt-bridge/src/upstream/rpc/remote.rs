@@ -206,6 +206,7 @@ impl RpcPumpHandle {
 }
 
 #[cfg(test)]
+#[allow(clippy::semicolon_if_nothing_returned)]
 mod tests {
     use matches::assert_matches;
     use test_case::test_case;

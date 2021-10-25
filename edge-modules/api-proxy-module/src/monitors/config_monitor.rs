@@ -136,7 +136,7 @@ fn parse_config(parse_config: &mut ConfigParser) -> Result<()> {
 
     let str = parse_config.get_parsed_config(&str)?;
     //Extract IO calls from core function for mocking
-    file::write_binary_to_file(&str.as_bytes(), PROXY_CONFIG_PATH_PARSED)?;
+    file::write_binary_to_file(str.as_bytes(), PROXY_CONFIG_PATH_PARSED)?;
 
     Ok(())
 }

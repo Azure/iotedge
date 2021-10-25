@@ -7,7 +7,7 @@ use tracing::{info, warn};
 
 use mqtt_broker::{BrokerHandle, Message, SystemEvent};
 
-pub async fn start_cleanup(
+pub fn start_cleanup(
     broker_handle: BrokerHandle,
     cleanup_interval: StdDuration,
     expiration: StdDuration,

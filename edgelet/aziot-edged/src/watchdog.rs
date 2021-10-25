@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use edgelet_core::{ModuleRegistry, ModuleRuntime};
+use edgelet_core::ModuleRuntime;
 use edgelet_settings::RuntimeSettings;
 
 use crate::error::Error as EdgedError;
@@ -78,60 +78,86 @@ async fn watchdog(
     log::info!("Watchdog checking Edge runtime status");
     let agent_name = settings.agent().name();
 
-    let start = if let Ok((_, agent_status)) = runtime.get(agent_name).await {
+    if let Ok((_, agent_status)) = runtime.get(agent_name).await {
         let agent_status = agent_status.status();
 
-        if let edgelet_core::ModuleStatus::Running = agent_status {
-            log::info!("Edge runtime is running");
+        match agent_status {
+            edgelet_core::ModuleStatus::Running => {
+                log::info!("Edge runtime is running");
+            }
 
-            false
-        } else {
-            log::info!(
-                "Edge runtime status is {}; starting runtime now...",
-                agent_status
-            );
+            edgelet_core::ModuleStatus::Stopped | edgelet_core::ModuleStatus::Failed => {
+                log::info!(
+                    "Edge runtime status is {}, starting module now...",
+                    agent_status
+                );
 
-            true
+                runtime
+                    .start(agent_name)
+                    .await
+                    .map_err(|err| EdgedError::from_err("Failed to start Edge runtime", err))?;
+
+                log::info!("Started Edge runtime module {}", agent_name);
+            }
+
+            edgelet_core::ModuleStatus::Dead | edgelet_core::ModuleStatus::Unknown => {
+                log::info!(
+                    "Edge runtime status is {}, removing and recreating module...",
+                    agent_status
+                );
+
+                runtime
+                    .remove(agent_name)
+                    .await
+                    .map_err(|err| EdgedError::from_err("Failed to remove Edge runtime", err))?;
+
+                create_and_start_agent(settings, device_info, runtime, identity_client).await?;
+            }
         }
     } else {
-        log::info!(
-            "Creating and starting Edge runtime module {}...",
-            agent_name
-        );
-
-        let mut agent_spec = settings.agent().clone();
-
-        let gen_id = agent_gen_id(identity_client).await?;
-        let mut env = agent_env(gen_id, settings, device_info)?;
-        agent_spec.env_mut().append(&mut env);
-
-        if let edgelet_settings::module::ImagePullPolicy::OnCreate = agent_spec.image_pull_policy()
-        {
-            runtime
-                .registry()
-                .pull(agent_spec.config())
-                .await
-                .map_err(|err| EdgedError::from_err("Failed to pull Edge runtime module", err))?;
-        }
-
-        runtime
-            .create(agent_spec)
-            .await
-            .map_err(|err| EdgedError::from_err("Failed to create Edge runtime module", err))?;
-
-        log::info!("Created Edge runtime module {}", agent_name);
-
-        true
-    };
-
-    if start {
-        runtime
-            .start(agent_name)
-            .await
-            .map_err(|err| EdgedError::from_err("Failed to start Edge runtime", err))?;
-
-        log::info!("Started Edge runtime module {}", agent_name);
+        create_and_start_agent(settings, device_info, runtime, identity_client).await?;
     }
+
+    Ok(())
+}
+
+async fn create_and_start_agent(
+    settings: &edgelet_settings::docker::Settings,
+    device_info: &aziot_identity_common::AzureIoTSpec,
+    runtime: &edgelet_docker::DockerModuleRuntime,
+    identity_client: &aziot_identity_client_async::Client,
+) -> Result<(), EdgedError> {
+    let agent_name = settings.agent().name();
+    let mut agent_spec = settings.agent().clone();
+
+    let gen_id = agent_gen_id(identity_client).await?;
+    let mut env = agent_env(gen_id, settings, device_info);
+    agent_spec.env_mut().append(&mut env);
+
+    log::info!(
+        "Creating and starting Edge runtime module {}...",
+        agent_name
+    );
+
+    if let edgelet_settings::module::ImagePullPolicy::OnCreate = agent_spec.image_pull_policy() {
+        edgelet_core::ModuleRegistry::pull(runtime.registry(), agent_spec.config())
+            .await
+            .map_err(|err| EdgedError::from_err("Failed to pull Edge runtime module", err))?;
+    }
+
+    runtime
+        .create(agent_spec)
+        .await
+        .map_err(|err| EdgedError::from_err("Failed to create Edge runtime module", err))?;
+
+    log::info!("Created Edge runtime module {}", agent_name);
+
+    runtime
+        .start(agent_name)
+        .await
+        .map_err(|err| EdgedError::from_err("Failed to start Edge runtime", err))?;
+
+    log::info!("Started Edge runtime module {}", agent_name);
 
     Ok(())
 }
@@ -158,7 +184,7 @@ fn agent_env(
     gen_id: String,
     settings: &edgelet_settings::docker::Settings,
     device_info: &aziot_identity_common::AzureIoTSpec,
-) -> Result<std::collections::BTreeMap<String, String>, EdgedError> {
+) -> std::collections::BTreeMap<String, String> {
     let mut env = std::collections::BTreeMap::new();
 
     env.insert(
@@ -198,18 +224,15 @@ fn agent_env(
         settings.connect().management_uri().to_string(),
     );
     let workload_mnt_uri = {
+        // Home directory was used before this function was called, so it should be valid.
         let mut path = settings
             .homedir()
             .canonicalize()
-            .map_err(|err| EdgedError::from_err("Invalid homedir path", err))?;
+            .expect("Invalid homedir path");
 
         path.push("mnt");
 
         let path = path.to_str().expect("invalid path");
-
-        std::fs::create_dir_all(path).map_err(|err| {
-            EdgedError::from_err("Failed to create workload socket directory", err)
-        })?;
 
         format!("unix://{}", path)
     };
@@ -223,5 +246,5 @@ fn agent_env(
 
     env.insert("Mode".to_string(), "iotedged".to_string());
 
-    Ok(env)
+    env
 }

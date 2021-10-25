@@ -17,8 +17,10 @@
 # Get directory of running script
 DIR=$(cd "$(dirname "$0")" && pwd)
 
-BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../..}
-BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:-$BUILD_REPOSITORY_LOCALPATH/target}
+BUILD_REPOSITORY_LOCALPATH=$(realpath ${BUILD_REPOSITORY_LOCALPATH:-$DIR/../..})
+DESTINATION_DIRECTORY=${BUILD_BINARIESDIRECTORY:-$BUILD_REPOSITORY_LOCALPATH/target}/publish
+DOTNET_ARTIFACTS_SOURCE_DIRECTORY=$DESTINATION_DIRECTORY
+RUST_ARTIFACTS_SOURCE_DIRECTORY=$BUILD_REPOSITORY_LOCALPATH
 SCRIPT_NAME=$(basename "$0")
 
 ###############################################################################
@@ -28,9 +30,11 @@ function usage() {
     echo "$SCRIPT_NAME [options]"
     echo ""
     echo "options"
-    echo " --artifact-name           The name of the artifact to consolidate for which to consolidate the artifacts."
-    echo " --build-binaries-dir      The name of the artifact to consolidate for which to consolidate the artifacts."
-    echo " -h, --help                Print this help and exit."
+    echo " --artifact-name                  The name of the consolidated artifact directory."
+    echo " --dest-dir                       The directory in which to place the consolidated artifacts."
+    echo " --dotnet-artifacts-source-dir    The directory containing the built dotnet source code to be consolidated."   
+    echo " --rust-artifacts-source-dir      The directory containing the built Rust source code to be consolidated."
+    echo " -h, --help                       Print this help and exit."
     exit 1
 }
 
@@ -49,13 +53,21 @@ function process_args() {
             ARTIFACT_NAME=$arg
             save_next_arg=0
         elif [ ${save_next_arg} -eq 2 ]; then
-            BUILD_BINARIESDIRECTORY=$arg
+            DESTINATION_DIRECTORY=$arg
             save_next_arg=0
+        elif [ ${save_next_arg} -eq 3 ]; then
+            DOTNET_ARTIFACTS_SOURCE_DIRECTORY=$arg
+            save_next_arg=0       
+        elif [ ${save_next_arg} -eq 4 ]; then
+            RUST_ARTIFACTS_SOURCE_DIRECTORY=$arg
+            save_next_arg=0                     
         else
             case "$arg" in
             "-h" | "--help") usage ;;
             "--artifact-name") save_next_arg=1 ;;
-            "--build-binaries-dir") save_next_arg=2 ;;
+            "--dest-dir") save_next_arg=2 ;;
+            "--dotnet-artifacts-source-dir") save_next_arg=3 ;;
+            "--rust-artifacts-source-dir") save_next_arg=4 ;;
             *) usage ;;
             esac
         fi
@@ -73,19 +85,16 @@ TARGET_AMD64_GNU="x86_64-unknown-linux-gnu"
 
 case "$ARTIFACT_NAME" in
 edge-hub)
-    EDGEHUB_ARTIFACTS_SOURCE="$BUILD_BINARIESDIRECTORY/publish/Microsoft.Azure.Devices.Edge.Hub.Service"
-    MQTT_ARTIFACTS_SOURCE="mqtt"
-    WATCHDOG_ARTIFACTS_SOURCE="edge-hub/watchdog"
+    EDGEHUB_ARTIFACTS_SOURCE="$DOTNET_ARTIFACTS_SOURCE_DIRECTORY/Microsoft.Azure.Devices.Edge.Hub.Service"
+    MQTT_ARTIFACTS_SOURCE="$RUST_ARTIFACTS_SOURCE_DIRECTORY/mqtt"
+    WATCHDOG_ARTIFACTS_SOURCE="$RUST_ARTIFACTS_SOURCE_DIRECTORY/edge-hub/watchdog"
     EDGEHUB_DOCKER_SOURCE="edge-hub/docker"
-    ARTIFACTS_DEST="${BUILD_BINARIESDIRECTORY}/publish/$ARTIFACT_NAME"
+    ARTIFACTS_DEST="${DESTINATION_DIRECTORY}/$ARTIFACT_NAME"
 
     # make build context structure
-    mkdir "$ARTIFACTS_DEST"
-    mkdir "$ARTIFACTS_DEST/mqtt"
     mkdir -p "$ARTIFACTS_DEST/mqtt/$TARGET_AMD64_MUSL/release"
     mkdir -p "$ARTIFACTS_DEST/mqtt/$TARGET_ARM32V7/release"
     mkdir -p "$ARTIFACTS_DEST/mqtt/$TARGET_ARM64V8/release"
-    mkdir "$ARTIFACTS_DEST/watchdog"
     mkdir -p "$ARTIFACTS_DEST/watchdog/$TARGET_AMD64_MUSL/release"
     mkdir -p "$ARTIFACTS_DEST/watchdog/$TARGET_ARM32V7/release"
     mkdir -p "$ARTIFACTS_DEST/watchdog/$TARGET_ARM64V8/release"
@@ -97,7 +106,7 @@ edge-hub)
     cp "$MQTT_ARTIFACTS_SOURCE/target/$TARGET_AMD64_MUSL/release/mqttd" "$ARTIFACTS_DEST/mqtt/$TARGET_AMD64_MUSL/release" || true
     cp "$MQTT_ARTIFACTS_SOURCE/target/$TARGET_ARM32V7/release/mqttd" "$ARTIFACTS_DEST/mqtt/$TARGET_ARM32V7/release" || true
     cp "$MQTT_ARTIFACTS_SOURCE/target/$TARGET_ARM64V8/release/mqttd" "$ARTIFACTS_DEST/mqtt/$TARGET_ARM64V8/release" || true
-    cp "$MQTT_ARTIFACTS_SOURCE/contrib/edgehub/broker.json" "$ARTIFACTS_DEST/mqtt" || true
+    cp "mqtt/contrib/edgehub/broker.json" "$ARTIFACTS_DEST/mqtt" || true
 
     # copy watchdog artifacts
     cp "$WATCHDOG_ARTIFACTS_SOURCE/target/$TARGET_AMD64_MUSL/release/watchdog" "$ARTIFACTS_DEST/watchdog/$TARGET_AMD64_MUSL/release" || true
@@ -111,7 +120,6 @@ mqttd)
     ARTIFACTS_DEST="mqtt/build-context"
 
     # make build context structure
-    mkdir "$ARTIFACTS_DEST"
     mkdir -p "$ARTIFACTS_DEST/$TARGET_AMD64_MUSL/release"
     mkdir -p "$ARTIFACTS_DEST/$TARGET_ARM32V7/release"
     mkdir -p "$ARTIFACTS_DEST/$TARGET_ARM64V8/release"

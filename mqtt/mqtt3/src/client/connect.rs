@@ -183,7 +183,7 @@ where
                     ..
                 } => match std::pin::Pin::new(framed).poll_flush(cx) {
                     std::task::Poll::Ready(Ok(())) => {
-                        *framed_state = FramedState::WaitingForConnAck
+                        *framed_state = FramedState::WaitingForConnAck;
                     }
                     std::task::Poll::Ready(Err(err)) => {
                         log::warn!("could not connect to server: {}", err);

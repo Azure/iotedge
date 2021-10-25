@@ -110,7 +110,7 @@ where
                                 }
                             }
                             Err(e) => {
-                                error!("topic rule could not be parsed {}. {}", subscribe_to, e)
+                                error!("topic rule could not be parsed {}. {}", subscribe_to, e);
                             }
                         }
                     }
