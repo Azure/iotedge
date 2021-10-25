@@ -50,7 +50,7 @@ steps:
   inputs:  
     source: 'specific'
     project: '$(System.TeamProjectId)'
-    pipeline: '55463'
+    pipeline: '123456'
     runVersion: 'latestFromBranch'
     runBranch: 'release/1.2'
     allowPartiallySucceededBuilds: true
