@@ -1,4 +1,4 @@
-# End-to-end tests
+# End-to-end tests for IoT Edge
 
 ## Test code structure
 
