@@ -52,4 +52,4 @@ winapi = { version = "0.3", features = ["ntdef", "ntstatus", "winnt", "winsock2"
 [dev-dependencies]
 edgelet-test-utils = { path = "../edgelet-test-utils" }
 tempfile = "3.1.0"
-
+assert_matches = "1.5"
