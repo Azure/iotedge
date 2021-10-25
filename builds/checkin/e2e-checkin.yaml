@@ -1,4 +1,7 @@
-name: $(Date:yyyyMMdd).$(Rev:r).$(Build.BuildId)
+# Makes sure that the BuildNumber for this pipeline doesn't coincide with
+# the build number from 'Azure-IoT-Edge-Core Build Images' pipeline since
+# they both push packages to an acr and may lead to overwriting the packages.
+name: e2e.$(Date:yyyyMMdd).$(Rev:r)
 
 trigger: none
 pr:
@@ -18,17 +21,6 @@ resources:
 
 stages:
   
-  - stage: DisplayBuildNumber
-    displayName: Display Build Number
-    pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
-    jobs:
-      - job: buildNumber
-        steps:
-          - script: echo '$(Build.BuildNumber)'
-
   - template: ../misc/templates/build-images.yaml
     parameters:
       E2EBuild : true
