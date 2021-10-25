@@ -1,4 +1,6 @@
-trigger: none
+trigger:
+  include:
+    - refs/pull/*/head
 pr:
   branches:
     include:
