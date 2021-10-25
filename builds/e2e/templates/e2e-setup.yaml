@@ -61,19 +61,18 @@ steps:
     path: $(System.ArtifactsDirectory)
     patterns: $(artifactName)/*.deb
 
-- task: DownloadBuildArtifacts@0
+- task: DownloadPipelineArtifact@2
   displayName: Download Resource Build Images New
   # condition: eq(variables['check_use_artifacts.UsePipelineImageArtifacts'],'false')
   inputs:  
-    buildType: specific
+    source: 'specific'
     project: $(resources.pipeline.packages.projectID)
     pipeline: $(resources.pipeline.packages.pipelineName)
-    branchName: $(resources.pipeline.packages.sourceBranch)
-    buildVersionToDownload: latestFromBranch
-    downloadType: single
-    artifactName: $(az.pipeline.images.artifacts)
+    runVersion: 'latestFromBranch'
+    runBranch: 'release/1.2'
     allowPartiallySucceededBuilds: true
-    itemPattern: $(az.pipeline.images.artifacts)/artifactInfo.txt
+    path: $(System.ArtifactsDirectory)
+    patterns: $(az.pipeline.images.artifacts)/artifactInfo.txt
     
 - task: DownloadBuildArtifacts@0
   displayName: Download edgelet packages
