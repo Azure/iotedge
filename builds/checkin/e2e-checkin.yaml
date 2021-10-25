@@ -1,6 +1,7 @@
 trigger:
-  include:
-    - refs/pull/*/head
+  branches:
+    include:
+      - refs/pull/*/head
 pr:
   branches:
     include:
