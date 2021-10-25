@@ -46,7 +46,7 @@ jobs:
       artifactName: iotedged-debian9-arm32v7
       identityServiceArtifactName: packages_debian-9-slim_arm32v7
       identityServicePackageFilter: aziot-identity-service_*_armhf.deb
-      enableManifestSigning : false
+      enableManifestSigning: false
 
     timeoutInMinutes: 120
 
@@ -99,7 +99,7 @@ jobs:
       artifactName: iotedged-ubuntu18.04-amd64
       identityServiceArtifactName: packages_ubuntu-18.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      enableManifestSigning : true
+      enableManifestSigning: true
       # When we switch to 1ES-hosted agents, we can make this a minimal pipeline
       # minimal: true
 
@@ -150,7 +150,7 @@ jobs:
       artifactName: iotedged-ubuntu20.04-amd64
       identityServiceArtifactName: packages_ubuntu-20.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      enableManifestSigning : true
+      enableManifestSigning: true
       # When we switch to 1ES-hosted agents, we can make this a minimal pipeline
       # minimal: true
 
