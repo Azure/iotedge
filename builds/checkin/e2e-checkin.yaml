@@ -1,5 +1,4 @@
 trigger: none
-
 pr:
   branches:
     include:
@@ -51,8 +50,8 @@ stages:
           artifactName: iotedged-ubuntu20.04-amd64
           identityServiceArtifactName: packages_ubuntu-20.04_amd64
           identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-          builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
-          builtPackages: $[ stageDependencies.BuildPackages.linux.result ]
+          builtImages: 'Skipped' #$[ stageDependencies.PublishManifests.PublishManifest.result ]
+          builtPackages: 'Skipped' #$[ stageDependencies.BuildPackages.linux.result ]
         steps:
         - template: ../e2e/templates/e2e-setup.yaml
         - template: ../e2e/templates/e2e-run.yaml
