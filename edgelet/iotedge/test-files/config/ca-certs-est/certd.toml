@@ -11,7 +11,6 @@ identity_cert = "est-id-aziot-edged-ca"
 identity_pk = "est-id-aziot-edged-ca"
 bootstrap_identity_cert = "est-bootstrap-id-aziot-edged-ca"
 bootstrap_identity_pk = "est-bootstrap-id-aziot-edged-ca"
-expiry_days = 120
 common_name = "iotedged workload ca my-device"
 
 [preloaded_certs]
