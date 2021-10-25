@@ -24,7 +24,7 @@ steps:
       TestBlobStoreSas
 
 - bash: | 
-    echo "Built Images Result is $(resources.pipeline.packages.projectID)"
+    echo "ProjectID is $(resources.pipeline.packages.projectID)"
   name: check_use_artifacts
   displayName: Check Use Pipeline Image Artifacts
 
