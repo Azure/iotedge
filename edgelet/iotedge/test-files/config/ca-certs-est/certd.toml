@@ -3,8 +3,6 @@
 
 homedir_path = "/var/lib/aziot/certd"
 [cert_issuance.aziot-edged-ca]
-common_name = "iotedged workload ca my-device"
-expiry_days = 120
 method = "est"
 url = "https://example.org/.well-known/est"
 username = "user"
@@ -13,6 +11,8 @@ identity_cert = "est-id-aziot-edged-ca"
 identity_pk = "est-id-aziot-edged-ca"
 bootstrap_identity_cert = "est-bootstrap-id-aziot-edged-ca"
 bootstrap_identity_pk = "est-bootstrap-id-aziot-edged-ca"
+expiry_days = 120
+common_name = "iotedged workload ca my-device"
 
 [preloaded_certs]
 aziot-edged-trust-bundle = ["aziot-edged-ca", "trust-bundle-user"]
