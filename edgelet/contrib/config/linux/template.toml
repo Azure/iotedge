@@ -124,7 +124,7 @@
 # common_name = "my-device"                                          # with the given common name, or...
 # subject = { L = "AQ", ST = "Antarctica", CN = "my-device" }        # with the given DN fields
 #
-## identity key
+## identity certificate private key
 # identity_pk = "file:///var/secrets/device-id.key.pem"              # file URI, or...
 # identity_pk = "pkcs11:slot-id=0;object=device%20id?pin-value=1234" # PKCS#11 URI
 
@@ -162,7 +162,7 @@
 # common_name = "my-device"                                          # with the given common name, or...
 # subject = { L = "AQ", ST = "Antarctica", CN = "my-device" }        # with the given DN fields
 #
-## identity key
+## identity certificate private key
 # identity_pk = "file:///var/secrets/device-id.key.pem"              # file URI, or...
 # identity_pk = "pkcs11:slot-id=0;object=device%20id?pin-value=1234" # PKCS#11 URI
 
