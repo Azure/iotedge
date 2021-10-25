@@ -49,9 +49,10 @@ steps:
   # condition: eq(variables['check_use_artifacts.UsePipelineImageArtifacts'],'false')
   inputs:  
     source: 'specific'
-    project: $(resources.pipeline.packages.projectID)
+    project: '$(System.TeamProjectId)'
     pipeline: '55463'
-    runVersion: 'latest'
+    runVersion: 'latestFromBranch'
+    runBranch: 'release/1.2'
     allowPartiallySucceededBuilds: true
     path: $(System.ArtifactsDirectory)
     patterns: $(az.pipeline.images.artifacts)/artifactInfo.txt
