@@ -177,6 +177,8 @@ steps:
       $context['testTimeoutMinutes'] = 10
     }
 
+    echo $env:AGENT_PROXYURL
+
     if ($env:AGENT_PROXYURL)
     {
       $context['testRunnerProxy'] = $env:AGENT_PROXYURL
