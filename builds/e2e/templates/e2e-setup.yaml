@@ -23,27 +23,10 @@ steps:
       TestRootCaPassword,
       TestBlobStoreSas
 
-# - bash: | 
-#     echo "Built Images Result is $(builtImages)"
-#     echo "Built Packages Result is $(builtPackages)"
-#     if [[ ! -z $(builtImages) && $(builtImages) == 'Succeeded' ]]
-#     then
-#       echo "Use Pipeline Image Artifacts"
-#       echo "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]FALSE"
-#     else
-#       echo "Use Build Image Artifacts"
-#       echo "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]FALSE"
-#     fi
-#     if [[ ! -z $(builtPackages) && $(builtPackages) == 'Succeeded' ]]
-#     then
-#       echo "Use Pipeline Package Artifacts"
-#       echo "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]FALSE"
-#     else
-#       echo "Use Build Package Artifacts"
-#       echo "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]FALSE"
-#     fi
-#   name: check_use_artifacts
-#   displayName: Check Use Pipeline Image Artifacts
+- bash: | 
+    echo "Built Images Result is $(resources.pipeline.packages.projectID)"
+  name: check_use_artifacts
+  displayName: Check Use Pipeline Image Artifacts
 
 - task: DownloadPipelineArtifact@2
   displayName: Download Pipeline Build Images
@@ -68,8 +51,7 @@ steps:
     source: 'specific'
     project: $(resources.pipeline.packages.projectID)
     pipeline: '55463'
-    runVersion: 'latestFromBranch'
-    runBranch: 'release/1.2'
+    runVersion: 'latest'
     allowPartiallySucceededBuilds: true
     path: $(System.ArtifactsDirectory)
     patterns: $(az.pipeline.images.artifacts)/artifactInfo.txt
