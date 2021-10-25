@@ -7,9 +7,9 @@ cert = "local-ca"
 pk = "local-ca"
 
 [cert_issuance.aziot-edged-ca]
-common_name = "my-device local-ca"
-expiry_days = 365
 method = "local_ca"
+expiry_days = 365
+common_name = "my-device local-ca"
 
 [preloaded_certs]
 aziot-edged-trust-bundle = ["aziot-edged-ca", "trust-bundle-user"]
