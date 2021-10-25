@@ -1,7 +1,5 @@
-trigger:
-  branches:
-    include:
-      - refs/pull/*/head
+trigger: none
+
 pr:
   branches:
     include:
@@ -18,8 +16,7 @@ resources:
     branch: 'release/1.2'
 
 stages:
-  
-  #temp comment
+
   # - template: ../misc/templates/build-images.yaml
   #   parameters:
   #     E2EBuild : true

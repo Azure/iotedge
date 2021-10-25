@@ -24,25 +24,9 @@ steps:
       TestBlobStoreSas
 
 - bash: | 
-    echo "ProjectID is $(resources.pipeline.packages.projectID)"
+    echo "ProjectID is $(System.TeamProjectId)"
   name: check_use_artifacts
   displayName: Check Use Pipeline Image Artifacts
-
-- task: DownloadPipelineArtifact@2
-  displayName: Download Pipeline Build Images
-  condition: eq(variables['check_use_artifacts.UsePipelineImageArtifacts'],'true')
-  inputs:
-    source: 'current'
-    path: $(System.ArtifactsDirectory)
-    patterns: $(az.pipeline.images.artifacts)/artifactInfo.txt
-
-- task: DownloadPipelineArtifact@2
-  displayName: Download Pipeline Build Packages
-  condition: eq(variables['check_use_artifacts.UsePipelinePackageArtifacts'],'true')
-  inputs:
-    source: 'current'
-    path: $(System.ArtifactsDirectory)
-    patterns: $(artifactName)/*.deb
 
 - task: DownloadPipelineArtifact@2
   displayName: Download Resource Build Images New
@@ -50,7 +34,7 @@ steps:
   inputs:  
     source: 'specific'
     project: '$(System.TeamProjectId)'
-    pipeline: '55174'
+    pipeline: 55174
     runVersion: 'latestFromBranch'
     runBranch: 'refs/heads/master'
     allowPartiallySucceededBuilds: true
