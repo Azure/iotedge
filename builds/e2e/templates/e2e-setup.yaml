@@ -67,7 +67,7 @@ steps:
   inputs:  
     source: 'specific'
     project: $(resources.pipeline.packages.projectID)
-    pipeline: $(resources.pipeline.packages.pipelineName)
+    pipeline: '55463'
     runVersion: 'latestFromBranch'
     runBranch: 'release/1.2'
     allowPartiallySucceededBuilds: true
