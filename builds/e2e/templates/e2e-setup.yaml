@@ -50,9 +50,9 @@ steps:
   inputs:  
     source: 'specific'
     project: '$(System.TeamProjectId)'
-    pipeline: '123456'
+    pipeline: '55174'
     runVersion: 'latestFromBranch'
-    runBranch: 'release/1.2'
+    runBranch: 'refs/heads/master'
     allowPartiallySucceededBuilds: true
     path: $(System.ArtifactsDirectory)
     patterns: $(az.pipeline.images.artifacts)/artifactInfo.txt
