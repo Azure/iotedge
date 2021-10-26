@@ -26,13 +26,13 @@ variables:
 
 stages:
   
-  - template: ../misc/templates/build-images.yaml
-    parameters:
-      E2EBuild : true
+  # - template: ../misc/templates/build-images.yaml
+  #   parameters:
+  #     E2EBuild : true
 
-  - template: ../misc/templates/build-packages.yaml
-    parameters:
-      E2EBuild : true
+  # - template: ../misc/templates/build-packages.yaml
+  #   parameters:
+  #     E2EBuild : true
 
   - stage: RunE2ETest
     displayName: End-to-End Test
@@ -40,16 +40,16 @@ stages:
       name: $(pool.linux.name)
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
-    dependsOn:
-      - BuildExecutables
-      - BuildPackages
-    condition: |
-      and
-      ( 
-        succeededOrFailed(),
-        in(dependencies.BuildExecutables.result, 'Succeeded','Skipped'),
-        in(dependencies.BuildPackages.result, 'Succeeded','Skipped')
-      )     
+    # dependsOn:
+    #   - BuildExecutables
+    #   - BuildPackages
+    # condition: |
+    #   and
+    #   ( 
+    #     succeededOrFailed(),
+    #     in(dependencies.BuildExecutables.result, 'Succeeded','Skipped'),
+    #     in(dependencies.BuildPackages.result, 'Succeeded','Skipped')
+    #   )     
     jobs:
       - job: ubuntu_2004_msmoby
         displayName: Ubuntu 20.04 with iotedge-moby
@@ -58,8 +58,8 @@ stages:
           os: linux
           arch: amd64
           artifactName: iotedged-ubuntu18.04-amd64
-          builtImages: $[ stageDependencies.BuildExecutables.manifest.result ]
-          builtPackages: $[ stageDependencies.BuildPackages.linux.result ]
+          builtImages: 'Skipped' #$[ stageDependencies.BuildExecutables.manifest.result ]
+          builtPackages: 'Skipped' #$[ stageDependencies.BuildPackages.linux.result ]
         steps:
         - template: ../e2e/templates/e2e-setup.yaml
         - template: ../e2e/templates/e2e-run.yaml
