@@ -64,7 +64,7 @@ steps:
   inputs:
     source: 'current'
     path: $(System.ArtifactsDirectory)
-    patterns: $(artifactName)/*.deb
+    patterns: $(artifactName)/*
   
 - task: DownloadBuildArtifacts@0
   displayName: Download Resource Build Images
