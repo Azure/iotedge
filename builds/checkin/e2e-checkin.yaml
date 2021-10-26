@@ -1,7 +1,6 @@
 # Makes sure that the BuildNumber for this pipeline doesn't coincide with
 # the build number from 'Azure-IoT-Edge-Core Build Images' pipeline since
 # they both push packages to an acr and may lead to overwriting the packages.
-
 name: e2e.$(Date:yyyyMMdd).$(Rev:r)
 
 trigger: none
@@ -52,13 +51,13 @@ stages:
         in(dependencies.BuildPackages.result, 'Succeeded','Skipped')
       )     
     jobs:
-      - job: ubuntu_1804_msmoby
-        displayName: Ubuntu 18.04 with iotedge-moby
+      - job: ubuntu_2004_msmoby
+        displayName: Ubuntu 20.04 with iotedge-moby
         variables:
           verbose: false
           os: linux
           arch: amd64
-          artifactName: iotedged-ubuntu20.04-amd64
+          artifactName: iotedged-ubuntu18.04-amd64
           builtImages: $[ stageDependencies.BuildExecutables.manifest.result ]
           builtPackages: $[ stageDependencies.BuildPackages.linux.result ]
         steps:
