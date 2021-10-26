@@ -362,12 +362,6 @@ fn execute_inner(
         super_config::EdgeCa::Quickstart {
             auto_generated_edge_ca_expiry_days,
         } => {
-            let common_name = format!(
-                "{} {}",
-                IOTEDGED_COMMONNAME_PREFIX, identityd_config.hostname
-            );
-            let subject = Some(aziot_certd_config::CertSubject::CommonName(common_name));
-
             set_quickstart_ca(
                 &mut keyd_config,
                 &mut certd_config,
