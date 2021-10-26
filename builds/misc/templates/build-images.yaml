@@ -1,0 +1,480 @@
+parameters:
+  - name: 'E2EBuild'
+    type: boolean
+    default: false
+
+stages:
+
+################################################################################
+  - stage: CheckBuildImages
+################################################################################
+    displayName: Check For Source Code Changes
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+    dependsOn: []
+    jobs:
+      - job: check_source_change_runtime
+        displayName: Check Source Changes Edgelet (changes are outside of test or doc folders)
+        steps:
+          - bash: |
+              git log -m -1 --name-only --first-parent --pretty="" | egrep -i -v '^(test/Microsoft.Azure.Devices.Edge.Test|doc|edgelet)'
+              if [[ $? == 0 ]]; then
+                echo "Detected changes outside of Test Folders"
+                echo "##vso[task.setvariable variable=RUNTIMECHANGES;isOutput=true]TRUE"
+              fi
+            displayName: Check changes in runtime sources
+            name: check_files
+################################################################################
+  - stage: BuildExecutables
+################################################################################
+    displayName: Build Excecutables
+    condition: |
+          or
+            (
+              eq(${{ parameters['E2EBuild'] }}, false), 
+              eq(dependencies.CheckBuildImages.outputs['check_source_change_runtime.check_files.RUNTIMECHANGES'], 'true')
+            )
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker  
+    dependsOn: CheckBuildImages
+    jobs:
+      - job: linux_dotnet_projects
+        displayName: LinuxDotnet
+        steps:
+        - task: Docker@2
+          displayName: Docker login edgebuilds
+          inputs:
+            command: login
+            containerRegistry: iotedge-edgebuilds-acr
+  
+        - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
+          name: build
+          displayName: Build ($(Build.Configuration))
+  
+        - script: scripts/linux/createArtifactInfo.sh --output-folder '$(Build.BinariesDirectory)/publish' --build-number $(Build.BuildNumber)
+          displayName: 'Create Artifact Info File'
+  
+        - task: PublishBuildArtifacts@1
+          displayName: 'Publish Artifacts'
+          inputs:
+            PathtoPublish: '$(Build.BinariesDirectory)/publish'
+            ArtifactName: 'core-linux'
+  
+        # Edge Agent
+        - template: image-linux.yaml
+          parameters:
+            name: Edge Agent
+            imageName: azureiotedge-agent
+            project: Microsoft.Azure.Devices.Edge.Agent.Service
+  
+        # Edge Hub
+        - template: image-linux.yaml
+          parameters:
+            name: Edge Hub
+            imageName: azureiotedge-hub
+            project: Microsoft.Azure.Devices.Edge.Hub.Service
+  
+        # Simulated Temperature Sensor
+        - template: image-linux.yaml
+          parameters:
+            name: Temperature Sensor
+            imageName: azureiotedge-simulated-temperature-sensor
+            project: SimulatedTemperatureSensor
+  
+        # Dotnet Diagnostics Module
+        - template: image-linux.yaml
+          parameters:
+            name: Diagnostics
+            imageName: azureiotedge-diagnostics
+            project: IotedgeDiagnosticsDotnet
+  
+        # Temperature Filter
+        - template: image-linux.yaml
+          parameters:
+            name: Temperature Filter
+            imageName: azureiotedge-temperature-filter
+            project: TemperatureFilter
+  
+        # Load Gen
+        - template: image-linux.yaml
+          parameters:
+            name: Load Gen
+            imageName: azureiotedge-load-gen
+            project: load-gen
+  
+        # Test Analyzer
+        - template: image-linux.yaml
+          parameters:
+            name: Test Analyzer
+            imageName: azureiotedge-analyzer
+            project: TestAnalyzer
+  
+        # Functions Sample - Not supported on linux arm64
+        - template: image-linux.yaml
+          parameters:
+            name: Functions Sample
+            imageName: azureiotedge-functions-filter
+            project: EdgeHubTriggerCSharp
+  
+        # Direct Method Sender
+        - template: image-linux.yaml
+          parameters:
+            name: Direct Method Sender
+            imageName: azureiotedge-direct-method-sender
+            project: DirectMethodSender
+  
+        # Direct Method Receiver
+        - template: image-linux.yaml
+          parameters:
+            name: Direct Method Receiver
+            imageName: azureiotedge-direct-method-receiver
+            project: DirectMethodReceiver
+  
+        # Metrics Validator
+        - template: image-linux.yaml
+          parameters:
+            name: Metrics Validator
+            imageName: azureiotedge-metrics-validator
+            project: MetricsValidator
+  
+        # Number Logger
+        - template: image-linux.yaml
+          parameters:
+            name: Number Logger
+            imageName: azureiotedge-number-logger
+            project: NumberLogger
+  
+       # Module Restarter
+        - template: image-linux.yaml
+          parameters:
+            name: Module Restarter
+            imageName: azureiotedge-module-restarter
+            project: ModuleRestarter
+  
+       # Twin Tester
+        - template: image-linux.yaml
+          parameters:
+            name: TwinTester
+            imageName: azureiotedge-twin-tester
+            project: TwinTester
+  
+       # Relayer
+        - template: image-linux.yaml
+          parameters:
+            name: Relayer
+            imageName: azureiotedge-relayer
+            project: Relayer
+  
+      # Network Controller
+        - template: image-linux.yaml
+          parameters:
+            name: Network Controller
+            imageName: azureiotedge-network-controller
+            project: NetworkController
+  
+       # TestResultCoordinator
+        - template: image-linux.yaml
+          parameters:
+            name: TestResultCoordinator
+            imageName: azureiotedge-test-result-coordinator
+            project: TestResultCoordinator
+  
+       # Metrics Collector (test-only)
+        - template: image-linux.yaml
+          parameters:
+            name: Metrics Collector (test-only)
+            imageName: azureiotedge-test-metrics-collector
+            project: MetricsCollector
+  
+       # Deployment Tester
+        - template: image-linux.yaml
+          parameters:
+            name: DeploymentTester
+            imageName: azureiotedge-deployment-tester
+            project: DeploymentTester
+  
+       # EdgeHub Restart Tester
+        - template: image-linux.yaml
+          parameters:
+            name: EdgeHubRestartTester
+            imageName: azureiotedge-edgehub-restart-tester
+            project: EdgeHubRestartTester
+  
+       # Cloud To Device Message Tester
+        - template: image-linux.yaml
+          parameters:
+            name: Cloud To Device Message Tester
+            imageName: azureiotedge-c2dmessage-tester
+            project: CloudToDeviceMessageTester
+  
+       # Metrics Collector (customer-facing)
+        - template: image-linux.yaml
+          parameters:
+            name: Metrics Collector (customer-facing)
+            imageName: azureiotedge-metrics-collector
+            project: Microsoft.Azure.Devices.Edge.Azure.Monitor
+  
+################################################################################
+  # linux - Rust amd64
+################################################################################
+      - template: image-linux-rust-jobs.yaml
+        parameters:
+          archName: amd64
+          targetArch: x86_64
+  
+################################################################################
+  # linux - Rust arm32
+################################################################################
+      - template: image-linux-rust-jobs.yaml
+        parameters:
+          archName: arm32
+          targetArch: armv7l
+  
+################################################################################
+  # linux - Rust arm64
+################################################################################
+      - template: image-linux-rust-jobs.yaml
+        parameters:
+          archName: arm64
+          targetArch: aarch64
+  
+################################################################################
+  - job: windows
+################################################################################
+    displayName: Windows
+    condition: eq(${{ parameters['E2EBuild'] }}, false)
+    timeoutInMinutes: 90
+    pool:
+        name: $(pool.windows.name)
+        demands:
+          - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
+    workspace:
+        clean: all
+    steps:
+        - task: Docker@2
+          displayName: Docker login edgebuilds
+          inputs:
+            command: login
+            containerRegistry: iotedge-edgebuilds-acr
+  
+        - powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration:"$(Build.Configuration)" -PublishTests:$False -UpdateVersion
+          name: build
+          displayName: Build ($(Build.Configuration))
+  
+        - powershell: scripts/windows/build/Create-ArtifactInfo.ps1 -outputFolder '$(Build.BinariesDirectory)/publish' -buildNumber $(Build.BuildNumber)
+          displayName: 'Create Artifact Info File'
+  
+        - task: PublishBuildArtifacts@1
+          displayName: 'Publish Artifacts'
+          inputs:
+            PathtoPublish: '$(Build.BinariesDirectory)/publish'
+            ArtifactName: 'core-windows'
+  
+        # azureiotedge-diagnostics
+        - template: image-windows.yaml
+          parameters:
+            name: azureiotedge-diagnostics
+            imageName: azureiotedge-diagnostics
+            project: IotedgeDiagnosticsDotnet
+            version: $(Build.BuildNumber)
+  
+        # Edge Agent
+        - template: image-windows.yaml
+          parameters:
+            name: Edge Agent
+            imageName: azureiotedge-agent
+            project: Microsoft.Azure.Devices.Edge.Agent.Service
+            version: $(Build.BuildNumber)
+  
+        # Edge Hub
+        - template: image-windows.yaml
+          parameters:
+            name: Edge Hub
+            imageName: azureiotedge-hub
+            project: Microsoft.Azure.Devices.Edge.Hub.Service
+            version: $(Build.BuildNumber)
+  
+        # Simulated Temperature Sensor
+        - template: image-windows.yaml
+          parameters:
+            name: Temperature Sensor
+            imageName: azureiotedge-simulated-temperature-sensor
+            project: SimulatedTemperatureSensor
+            version: $(Build.BuildNumber)
+  
+        # Temperature Filter
+        - template: image-windows.yaml
+          parameters:
+            name: Temperature Filter
+            imageName: azureiotedge-temperature-filter
+            project: TemperatureFilter
+            version: $(Build.BuildNumber)
+  
+        # Load Gen
+        - template: image-windows.yaml
+          parameters:
+            name: Load Gen
+            imageName: azureiotedge-load-gen
+            project: load-gen
+            version: $(Build.BuildNumber)
+  
+        # Test Analyzer
+        - template: image-windows.yaml
+          parameters:
+            name: Test Analyzer
+            imageName: azureiotedge-analyzer
+            project: TestAnalyzer
+            version: $(Build.BuildNumber)
+  
+        # Functions Sample
+        - template: image-windows.yaml
+          parameters:
+            name: Functions Sample
+            imageName: azureiotedge-functions-filter
+            project: EdgeHubTriggerCSharp
+            version: $(Build.BuildNumber)
+  
+        # Direct Method Sender
+        - template: image-windows.yaml
+          parameters:
+            name: Direct Method Sender
+            imageName: azureiotedge-direct-method-sender
+            project: DirectMethodSender
+            version: $(Build.BuildNumber)
+  
+        # Direct Method Receiver
+        - template: image-windows.yaml
+          parameters:
+            name: Direct Method Receiver
+            imageName: azureiotedge-direct-method-receiver
+            project: DirectMethodReceiver
+            version: $(Build.BuildNumber)
+  
+        # Metrics Validator
+        - template: image-windows.yaml
+          parameters:
+            name: Metrics Validator
+            imageName: azureiotedge-metrics-validator
+            project: MetricsValidator
+            version: $(Build.BuildNumber)
+  
+        # NumberLogger
+        - template: image-windows.yaml
+          parameters:
+            name: Number Logger
+            imageName: azureiotedge-number-logger
+            project: NumberLogger
+            version: $(Build.BuildNumber)
+  
+       # Module Restarter
+        - template: image-windows.yaml
+          parameters:
+            name: Module Restarter
+            imageName: azureiotedge-module-restarter
+            project: ModuleRestarter
+            version: $(Build.BuildNumber)
+  
+       # Twin Tester
+        - template: image-windows.yaml
+          parameters:
+            name: Twin Tester
+            imageName: azureiotedge-twin-tester
+            project: TwinTester
+            version: $(Build.BuildNumber)
+  
+       # Relayer
+        - template: image-windows.yaml
+          parameters:
+            name: Relayer
+            imageName: azureiotedge-relayer
+            project: Relayer
+            version: $(Build.BuildNumber)
+  
+       # Metrics Collector (test-only)
+        - template: image-windows.yaml
+          parameters:
+            name: Metrics Collector (test-only)
+            imageName: azureiotedge-test-metrics-collector
+            project: MetricsCollector
+            version: $(Build.BuildNumber)
+  
+       # TestResultCoordinator
+        - template: image-windows.yaml
+          parameters:
+            name: TestResultCoordinator
+            imageName: azureiotedge-test-result-coordinator
+            project: TestResultCoordinator
+            version: $(Build.BuildNumber)
+  
+       # Deployment Tester
+        - template: image-windows.yaml
+          parameters:
+            name: Deployment Tester
+            imageName: azureiotedge-deployment-tester
+            project: DeploymentTester
+            version: $(Build.BuildNumber)
+  
+       # EdgeHub Restart Tester
+        - template: image-windows.yaml
+          parameters:
+            name: EdgeHubRestartTester
+            imageName: azureiotedge-edgehub-restart-tester
+            project: EdgeHubRestartTester
+            version: $(Build.BuildNumber)
+  
+       # Cloud To Device Message Tester
+        - template: image-windows.yaml
+          parameters:
+            name: Cloud To Device Message Tester
+            imageName: azureiotedge-c2dmessage-tester
+            project: CloudToDeviceMessageTester
+            version: $(Build.BuildNumber)
+  
+       # Metrics Collector (customer-facing)
+        - template: image-windows.yaml
+          parameters:
+            name: Metrics Collector (customer-facing)
+            imageName: azureiotedge-metrics-collector
+            project: Microsoft.Azure.Devices.Edge.Azure.Monitor
+            version: $(Build.BuildNumber)
+  
+################################################################################
+  - job: manifest
+################################################################################
+    displayName: Manifest
+    pool:
+        name: $(pool.linux.name)
+        demands:
+          - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+    dependsOn:
+        - linux_dotnet_projects
+        - linux_rust_amd64
+        - linux_rust_arm32
+        - linux_rust_arm64
+        - windows
+    variables:
+        tags: "['latest']"
+    steps:
+      - task: Docker@2
+        displayName: Docker login edgebuilds
+        inputs:
+          command: login
+          containerRegistry: iotedge-edgebuilds-acr
+      - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-agent/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+        displayName: 'Publish Edge Agent Manifest'
+      - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-hub/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+        displayName: 'Publish Edge Hub Manifest'
+      - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+        displayName: 'Publish Temperature Sensor Manifest'
+      - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edgelet/iotedged/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+        displayName: 'Publish azureiotedge-iotedged Manifest'
+      - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+        displayName: 'Publish azureiotedge-diagnostics Manifest'
+      - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edgelet/iotedge-proxy/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+        displayName: 'Publish azureiotedge-proxy Manifest'
+      - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/azure-monitor/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+        displayName: 'Publish azureiotedge-metrics-collector Manifest'
