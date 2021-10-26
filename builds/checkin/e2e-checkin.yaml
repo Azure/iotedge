@@ -9,6 +9,7 @@ pr:
     include:
       - master
       - release/*
+  drafts: false  
 
 resources:
   pipelines:
