@@ -23,30 +23,39 @@ steps:
       TestBlobStoreSas
 
 - pwsh: | 
-    Write-Host "Built Images Result is $(builtImages)"
-    Write-Host "Built Packages Result is $(builtPackages)"
-    $buildImages = "$(builtImages)"
-    $buildPackages = "$(builtPackages)"
-    if ($buildImages -eq 'Succeeded')
+    try
     {
-      Write-Host "Use Pipeline Image Artifacts"
-      Write-Host "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]TRUE"
-    }     
-    else
+      Write-Host "Built Images Result is $(builtImages)"
+      Write-Host "Built Packages Result is $(builtPackages)"
+      $buildImages = "$(builtImages)"
+      $buildPackages = "$(builtPackages)"
+      if ($buildImages -eq 'Succeeded')
+      {
+        Write-Host "Use Pipeline Image Artifacts"
+        Write-Host "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]TRUE"
+      }     
+      else
+      {
+        Write-Host "Use Build Image Artifacts"
+        Write-Host "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]FALSE"
+      }
+      if ($buildPackages -eq 'Succeeded')
+      {
+        Write-Host "Use Pipeline Package Artifacts"
+        Write-Host "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]TRUE"
+      }
+      else
+      {
+        Write-Host "Use Build Package Artifacts"
+        Write-Host "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]FALSE"
+      }
+    }
+    catch
     {
-      Write-Host "Use Build Image Artifacts"
       Write-Host "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]FALSE"
-    }
-    if ($buildPackages -eq 'Succeeded')
-    {
-      Write-Host "Use Pipeline Package Artifacts"
-      Write-Host "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]TRUE"
-    }
-    else
-    {
-      Write-Host "Use Build Package Artifacts"
       Write-Host "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]FALSE"
     }
+    
   name: check_use_artifacts
   displayName: Check Use Pipeline Image Artifacts
 
