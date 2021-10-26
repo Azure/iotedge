@@ -160,6 +160,8 @@ steps:
       $context['teardownTimeoutMinutes'] = 5
       $context['testTimeoutMinutes'] = 6
     }
-
+    
+    Write-Host "Edge agent image: $edgeAgentImage"
+    Write-Host "Edge hub image: $edgeHubImage"
     $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
   displayName: Create test arguments file (context.json)
