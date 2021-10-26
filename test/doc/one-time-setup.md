@@ -217,15 +217,25 @@ az storage account show-connection-string --name {storage account name} \
 
 ~~~
 
-Currently, the SAS URL has to created using the Azure portal.
+The SAS URL can be created using the Azure portal as follows:
  - Navigate to your storage account.
  - Under 'Data storage' click 'Containers', and select the right container.
  - Click on 'Shared access tokens' under 'Settings'.
  - Select 'Write' permissions and hit 'Generate SAS token and URL'.
  - Save the URL as E2E_BLOB_STORE_SAS.
 
+Alternately, you can use the Azure CLI:
+
+~~~sh
+ az storage container generate-sas --name <container_name> --account-name <your_storage_account_name> --account-key <storage_key> --permissions rw --expiry YYYY-MM-DD
+
+# you can get the account name and key from 'Storage Accounts' --> <Your account> -- > 'Security + networking' --> 'Access keys'
+~~~
+
 
 ###### Potential error messages you may run into
+
+Just running (all) the E2E tests the first time may result into the following error:
 
 ~~~
 System.Security.Cryptography.CryptographicException : The owner of '~/.dotnet/corefx/cryptography/x509stores/root' is not the current user.
