@@ -5,9 +5,6 @@ trigger:
       - master
       - release/*
 pr: none
-variables:
-  REVISION: '1'
-  WINDOWS_CODESIGN_SERVICE_CONNECTION: 'Azure IoT Edge Code Sign 2'
 
 stages:
   - template: templates/build-packages.yaml
