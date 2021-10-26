@@ -16,7 +16,7 @@ URL:            https://github.com/azure/iotedge
 
 %{?systemd_requires}
 BuildRequires:  systemd
-BuildRequires:  rust >= 1.47.0
+BuildRequires:  rust = 1.47.0
 Requires(pre):  shadow-utils
 Requires:       openssl
 Requires:       moby-engine
@@ -90,6 +90,11 @@ fi
 # Create iotedge user
 if ! /usr/bin/getent passwd iotedge >/dev/null; then
     %{_sbindir}/useradd -r -g %{iotedge_group} -c "iotedge user" -s /bin/nologin -d %{iotedge_home} %{iotedge_user}
+fi
+
+# Add iotedge user to systemd-journal group so it can get system logs
+if /usr/bin/getent group systemd-journal >/dev/null; then
+    %{_sbindir}/usermod -aG systemd-journal %{iotedge_user}
 fi
 
 # Add iotedge user to moby-engine group
