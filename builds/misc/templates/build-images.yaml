@@ -41,7 +41,7 @@ stages:
       name: $(pool.linux.name)
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker  
-    dependsOn: []
+    dependsOn: CheckBuildImages
     jobs:
     - job: BuildDotnetComponents
       displayName: Build Dotnet Components
