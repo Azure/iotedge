@@ -3,10 +3,6 @@ parameters:
     type: boolean
     default: false
 
-variables:
-  REVISION: '1'
-  WINDOWS_CODESIGN_SERVICE_CONNECTION: 'Azure IoT Edge Code Sign 2'
-
 stages:
 
 ################################################################################
