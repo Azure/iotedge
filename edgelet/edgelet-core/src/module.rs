@@ -27,6 +27,7 @@ pub enum ModuleStatus {
     Running,
     Stopped,
     Failed,
+    Dead,
 }
 
 pub enum ModuleAction {
@@ -689,6 +690,7 @@ mod tests {
             ("running", ModuleStatus::Running),
             ("stopped", ModuleStatus::Stopped),
             ("failed", ModuleStatus::Failed),
+            ("dead", ModuleStatus::Dead),
         ]
     }
 

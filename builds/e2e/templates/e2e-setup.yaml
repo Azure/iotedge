@@ -1,3 +1,4 @@
+
 steps:
 - checkout: self
   clean: true
@@ -22,9 +23,48 @@ steps:
       TestRootCaPassword,
       TestBlobStoreSas
 
-- task: DownloadBuildArtifacts@0
-  displayName: Get Docker image info
+- bash: | 
+    echo "Built Images Result is $(builtImages)"
+    echo "Built Packages Result is $(builtPackages)"
+    if [[ ! -z $(builtImages) && $(builtImages) == 'Succeeded' ]]
+    then
+      echo "Use Pipeline Image Artifacts"
+      echo "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]TRUE"
+    else
+      echo "Use Build Image Artifacts"
+      echo "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]FALSE"
+    fi
+    if [[ ! -z $(builtPackages) && $(builtPackages) == 'Succeeded' ]]
+    then
+      echo "Use Pipeline Package Artifacts"
+      echo "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]TRUE"
+    else
+      echo "Use Build Package Artifacts"
+      echo "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]FALSE"
+    fi
+  name: check_use_artifacts
+  displayName: Check Use Pipeline Image Artifacts
+
+- task: DownloadPipelineArtifact@2
+  displayName: Download Pipeline Build Images
+  condition: eq(variables['check_use_artifacts.UsePipelineImageArtifacts'],'true')
   inputs:
+    source: 'current'
+    path: $(System.ArtifactsDirectory)
+    patterns: $(az.pipeline.images.artifacts)/artifactInfo.txt
+
+- task: DownloadPipelineArtifact@2
+  displayName: Download Pipeline Build Packages
+  condition: eq(variables['check_use_artifacts.UsePipelinePackageArtifacts'],'true')
+  inputs:
+    source: 'current'
+    path: $(System.ArtifactsDirectory)
+    patterns: $(artifactName)/*.deb
+
+- task: DownloadBuildArtifacts@0
+  displayName: Download Resource Build Images
+  condition: eq(variables['check_use_artifacts.UsePipelineImageArtifacts'],'false')
+  inputs:  
     buildType: specific
     project: $(resources.pipeline.images.projectID)
     pipeline: $(resources.pipeline.images.pipelineName)
@@ -34,9 +74,10 @@ steps:
     artifactName: $(az.pipeline.images.artifacts)
     allowPartiallySucceededBuilds: true
     itemPattern: $(az.pipeline.images.artifacts)/artifactInfo.txt
-
+    
 - task: DownloadBuildArtifacts@0
   displayName: Download edgelet packages
+  condition: eq(variables['check_use_artifacts.UsePipelinePackageArtifacts'],'false')
   inputs:
     buildType: specific
     project: $(resources.pipeline.packages.projectID)
@@ -151,7 +192,8 @@ steps:
       rootCaCertificatePath = "$rootCaCertificatePath";
       rootCaPrivateKeyPath = "$rootCaPrivateKeyPath";
       logFile = Join-Path '$(binDir)' 'testoutput.log';
-      verbose = '$(verbose)'
+      verbose = '$(verbose)';
+      getSupportBundle = 'true'
     }
 
     if ('$(nestededge)' -eq 'true')

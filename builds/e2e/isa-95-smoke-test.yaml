@@ -17,7 +17,6 @@ schedules:
   always: true
 
 variables:
-  NugetSecurityAnalysisWarningLevel: warn
   itProxy: http://10.16.8.4:3128
   otProxy: http://10.16.5.4:3128 
   ressourceGroup: nested-edge-isa95 
@@ -74,6 +73,7 @@ stages:
         - Agent.OSArchitecture -equals X64
         - level -equals 5
     steps:
+      - template: templates/clean-drive-and-images.yaml  
       - template: templates/nested-get-secrets.yaml
       - template: templates/e2e-clean-directory.yaml            
       - template: templates/nested-get-root-ca.yaml       
@@ -109,6 +109,7 @@ stages:
        - Agent.OSArchitecture -equals X64
        - level -equals 4    
     steps:
+      - template: templates/clean-drive-and-images.yaml    
       - template: templates/nested-get-secrets.yaml  
       - template: templates/e2e-clean-directory.yaml                
       - template: templates/nested-get-root-ca.yaml         
@@ -145,6 +146,7 @@ stages:
        - Agent.OSArchitecture -equals X64
        - level -equals 3    
     steps:
+      - template: templates/clean-drive-and-images.yaml  
       - template: templates/nested-get-secrets.yaml  
       - template: templates/e2e-clean-directory.yaml                
       - template: templates/nested-get-root-ca.yaml         

@@ -1,17 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::fs;
-#[cfg(unix)]
-use std::os::unix::fs::MetadataExt;
 use std::os::unix::prelude::PermissionsExt;
 use std::path::Path;
 
 use failure::ResultExt;
 use log::{debug, error};
-#[cfg(unix)]
-use nix::sys::stat::{umask, Mode};
-#[cfg(unix)]
-use scopeguard::defer;
 #[cfg(unix)]
 use tokio_uds::UnixListener;
 
@@ -19,88 +13,49 @@ use crate::error::{Error, ErrorKind};
 use crate::util::{incoming::Incoming, socket_file_exists};
 
 pub fn listener<P: AsRef<Path>>(path: P, unix_socket_permission: u32) -> Result<Incoming, Error> {
-    let listener = if socket_file_exists(path.as_ref()) {
-        // get the previous file's metadata
-        #[cfg(unix)]
-        let metadata = get_metadata(path.as_ref())?;
+    let path = path.as_ref();
+    let path_display = path.display();
 
-        debug!("unlinking {}...", path.as_ref().display());
-        fs::remove_file(&path)
-            .with_context(|_| ErrorKind::Path(path.as_ref().display().to_string()))?;
-        debug!("unlinked {}", path.as_ref().display());
+    if socket_file_exists(path) {
+        debug!("unlinking {}...", path_display);
 
-        #[cfg(unix)]
-        let prev = set_umask(&metadata, path.as_ref());
-        #[cfg(unix)]
-        defer! {{ umask(prev); }}
-
-        debug!("binding {}...", path.as_ref().display());
-
-        let listener = UnixListener::bind(&path)
-            .with_context(|_| ErrorKind::Path(path.as_ref().display().to_string()))?;
-        debug!("bound {}", path.as_ref().display());
-
-        Incoming::Unix(listener)
-    } else {
-        // If parent doesn't exist, create it and socket will be created inside.
-        if let Some(parent) = path.as_ref().parent() {
-            if !parent.exists() {
-                fs::create_dir_all(parent).with_context(|err| {
-                    error!("Cannot create directory, error: {}", err);
-                    ErrorKind::Path(path.as_ref().display().to_string())
-                })?;
-            }
+        let err1 = fs::remove_file(path).err();
+        let err2 = fs::remove_dir_all(path).err();
+        if let Some((err1, err2)) = err1.zip(err2) {
+            error!("Could not unlink existing socket: [{}] [{}]", err1, err2);
+            return Err(ErrorKind::Path(path_display.to_string()).into());
         }
+        debug!("unlinked {}", path_display);
+    }
 
-        let listener = UnixListener::bind(&path)
-            .with_context(|_| ErrorKind::Path(path.as_ref().display().to_string()))?;
-
-        fs::set_permissions(
-            path.as_ref(),
-            fs::Permissions::from_mode(unix_socket_permission),
-        )
-        .map_err(|err| {
-            error!("Cannot set directory permissions: {}", err);
-            ErrorKind::Path(path.as_ref().display().to_string())
+    // If parent doesn't exist, create it and socket will be created inside.
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).with_context(|err| {
+            error!("Cannot create directory, error: {}", err);
+            ErrorKind::Path(path_display.to_string())
         })?;
+    }
 
-        Incoming::Unix(listener)
-    };
+    let listener =
+        UnixListener::bind(&path).with_context(|_| ErrorKind::Path(path_display.to_string()))?;
+    debug!("bound {}", path_display);
 
-    Ok(listener)
-}
+    fs::set_permissions(path, fs::Permissions::from_mode(unix_socket_permission)).map_err(
+        |err| {
+            error!("Cannot set directory permissions: {}", err);
+            ErrorKind::Path(path_display.to_string())
+        },
+    )?;
 
-#[cfg(unix)]
-fn get_metadata(path: &Path) -> Result<fs::Metadata, Error> {
-    let metadata =
-        fs::metadata(path).with_context(|_| ErrorKind::Path(path.display().to_string()))?;
-    debug!("read metadata {:?} for {}", metadata, path.display());
-    Ok(metadata)
-}
-
-#[cfg(unix)]
-fn set_umask(metadata: &fs::Metadata, path: &Path) -> Mode {
-    #[cfg(target_os = "macos")]
-    #[allow(clippy::cast_possible_truncation)]
-    let mode = Mode::from_bits_truncate(metadata.mode() as u16);
-
-    #[cfg(not(target_os = "macos"))]
-    let mode = Mode::from_bits_truncate(metadata.mode());
-
-    let mut mask = Mode::all();
-    mask.toggle(mode);
-
-    debug!("settings permissions {:#o} for {}...", mode, path.display());
-
-    umask(mask)
+    Ok(Incoming::Unix(listener))
 }
 
 #[cfg(test)]
 #[cfg(unix)]
 mod tests {
-    use super::{listener, MetadataExt};
-
+    use super::listener;
     use std::fs::OpenOptions;
+    use std::os::unix::fs::MetadataExt;
     use std::os::unix::fs::OpenOptionsExt;
 
     use futures::Stream;
@@ -126,7 +81,21 @@ mod tests {
         let _srv = listener.for_each(move |(_socket, _addr)| Ok(()));
 
         let file_stat = stat(&path).unwrap();
-        assert_eq!(0o600, file_stat.st_mode & 0o777);
+        assert_eq!(0o666, file_stat.st_mode & 0o777);
+
+        dir.close().unwrap();
+    }
+
+    #[test]
+    fn test_socket_not_created() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("dummy_socket.sock");
+
+        let listener = listener(&path, 0o666).unwrap();
+        let _srv = listener.for_each(move |(_socket, _addr)| Ok(()));
+
+        let file_stat = stat(&path).unwrap();
+        assert_eq!(0o666, file_stat.st_mode & 0o777);
 
         dir.close().unwrap();
     }

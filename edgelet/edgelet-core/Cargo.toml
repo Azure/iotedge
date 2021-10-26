@@ -12,7 +12,6 @@ chrono = { version = "0.4", features = ["serde"] }
 consistenttime = "0.2.0"
 futures = "0.1"
 failure = "0.1"
-hmac = "0.5.0"
 humantime = "2"
 lazy_static = "1.0"
 regex = "0.2"

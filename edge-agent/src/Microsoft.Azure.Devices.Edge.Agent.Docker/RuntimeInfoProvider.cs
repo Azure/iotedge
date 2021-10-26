@@ -172,11 +172,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     break;
 
                 case "removing":
-                case "dead":
                 case "exited":
                     // if the exit code is anything other than zero then the container is
                     // considered as having "failed"; otherwise it is considered as stopped
                     status = containerState.ExitCode == 0 ? ModuleStatus.Stopped : ModuleStatus.Failed;
+                    break;
+
+                case "dead":
+                    status = ModuleStatus.Dead;
                     break;
 
                 case "running":
