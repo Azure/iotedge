@@ -19,6 +19,11 @@ resources:
     source: 'Azure-IoT-Edge-Core Edgelet Packages'
     branch: 'release/1.2'
 
+
+variables:
+  REVISION: '1'
+  WINDOWS_CODESIGN_SERVICE_CONNECTION: 'Azure IoT Edge Code Sign 2'
+
 stages:
   
   - template: ../misc/templates/build-images.yaml
