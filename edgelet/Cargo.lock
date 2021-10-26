@@ -93,7 +93,7 @@ dependencies = [
  "aziot-key-common",
  "http 0.2.5",
  "http-common",
- "hyper 0.14.13",
+ "hyper 0.14.14",
  "percent-encoding 2.1.0",
 ]
 
@@ -156,7 +156,7 @@ dependencies = [
  "aziot-identity-common-http",
  "http 0.2.5",
  "http-common",
- "hyper 0.14.13",
+ "hyper 0.14.14",
  "percent-encoding 2.1.0",
 ]
 
@@ -219,7 +219,7 @@ dependencies = [
  "aziot-key-common-http",
  "http 0.2.5",
  "http-common",
- "hyper 0.14.13",
+ "hyper 0.14.14",
  "percent-encoding 2.1.0",
 ]
 
@@ -689,7 +689,7 @@ dependencies = [
  "base64 0.9.3",
  "futures 0.1.31",
  "http-common",
- "hyper 0.14.13",
+ "hyper 0.14.14",
  "serde",
  "serde_derive",
  "serde_json",
@@ -710,7 +710,7 @@ dependencies = [
  "failure",
  "futures 0.3.17",
  "humantime",
- "hyper 0.14.13",
+ "hyper 0.14.14",
  "lazy_static",
  "log",
  "serde",
@@ -741,7 +741,7 @@ dependencies = [
  "futures 0.3.17",
  "hex 0.3.2",
  "http-common",
- "hyper 0.14.13",
+ "hyper 0.14.14",
  "libc",
  "log",
  "maplit",
@@ -792,7 +792,7 @@ dependencies = [
  "futures-util",
  "http 0.2.5",
  "http-common",
- "hyper 0.14.13",
+ "hyper 0.14.14",
  "libc",
  "log",
  "nix 0.22.2",
@@ -829,7 +829,7 @@ dependencies = [
  "futures-util",
  "http 0.2.5",
  "http-common",
- "hyper 0.14.13",
+ "hyper 0.14.14",
  "libc",
  "log",
  "nix 0.22.2",
@@ -870,7 +870,7 @@ dependencies = [
  "futures 0.3.17",
  "futures-util",
  "http 0.2.5",
- "hyper 0.14.13",
+ "hyper 0.14.14",
  "nix 0.22.2",
  "openssl",
  "serde",
@@ -1267,9 +1267,9 @@ dependencies = [
 
 [[package]]
 name = "http-body"
-version = "0.4.3"
+version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "399c583b2979440c60be0821a6199eca73bc3c8dcd9d070d75ac726e2c6186e5"
+checksum = "1ff4f84919677303da5f147645dbea6b1881f368d03ac84e1dc09031ebd7b2c6"
 dependencies = [
  "bytes 1.1.0",
  "http 0.2.5",
@@ -1286,7 +1286,7 @@ dependencies = [
  "futures-util",
  "headers",
  "http 0.2.5",
- "hyper 0.14.13",
+ "hyper 0.14.14",
  "hyper-openssl",
  "hyper-proxy 0.9.1",
  "libc",
@@ -1352,9 +1352,9 @@ dependencies = [
 
 [[package]]
 name = "hyper"
-version = "0.14.13"
+version = "0.14.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15d1cfb9e4f68655fa04c01f59edb405b6074a0f7118ea881e5026e4a1cd8593"
+checksum = "2b91bb1f221b6ea1f1e4371216b70f40748774c2fb5971b450c07773fb92d26b"
 dependencies = [
  "bytes 1.1.0",
  "futures-channel",
@@ -1362,7 +1362,7 @@ dependencies = [
  "futures-util",
  "h2 0.3.6",
  "http 0.2.5",
- "http-body 0.4.3",
+ "http-body 0.4.4",
  "httparse",
  "httpdate",
  "itoa",
@@ -1381,7 +1381,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a9d52322a69f0a93f177d76ca82073fcec8d5b4eb6e28525d5b3142fa718195c"
 dependencies = [
  "http 0.2.5",
- "hyper 0.14.13",
+ "hyper 0.14.14",
  "linked_hash_set",
  "once_cell",
  "openssl",
@@ -1419,7 +1419,7 @@ dependencies = [
  "futures 0.3.17",
  "headers",
  "http 0.2.5",
- "hyper 0.14.13",
+ "hyper 0.14.14",
  "openssl",
  "tokio 1.12.0",
  "tokio-openssl",
@@ -1520,7 +1520,7 @@ dependencies = [
  "futures 0.1.31",
  "hex 0.3.2",
  "http-common",
- "hyper 0.14.13",
+ "hyper 0.14.14",
  "hyper-proxy 0.5.1",
  "lazy_static",
  "libc",
@@ -2499,7 +2499,7 @@ dependencies = [
  "edgelet-settings",
  "failure",
  "futures 0.3.17",
- "hyper 0.14.13",
+ "hyper 0.14.14",
  "regex 1.5.4",
  "tempfile",
  "tokio 1.12.0",

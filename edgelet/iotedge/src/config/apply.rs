@@ -258,11 +258,12 @@ fn execute_inner(
 
     let (edge_ca_cert, edge_ca_key) = match edge_ca {
         super_config::EdgeCa::Issued { cert } => {
-            let common_name = cert.common_name.unwrap_or(format!(
-                "{} {}",
-                IOTEDGED_COMMONNAME_PREFIX, identityd_config.hostname
-            ));
-            let subject = Some(aziot_certd_config::CertSubject::CommonName(common_name));
+            let subject = cert.subject.or_else(|| {
+                Some(aziot_certd_config::CertSubject::CommonName(format!(
+                    "{} {}",
+                    IOTEDGED_COMMONNAME_PREFIX, identityd_config.hostname
+                )))
+            });
             let expiry_days = cert.expiry_days;
 
             match cert.method {
@@ -295,8 +296,8 @@ fn execute_inner(
                         edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned(),
                         aziot_certd_config::CertIssuanceOptions {
                             method: aziot_certd_config::CertIssuanceMethod::Est { url, auth },
-                            subject,
                             expiry_days,
+                            subject,
                         },
                     );
 
@@ -310,8 +311,8 @@ fn execute_inner(
                         edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned(),
                         aziot_certd_config::CertIssuanceOptions {
                             method: aziot_certd_config::CertIssuanceMethod::LocalCa,
-                            subject,
                             expiry_days,
+                            subject,
                         },
                     );
 
@@ -372,7 +373,10 @@ fn execute_inner(
                 &mut certd_config,
                 aziotcs_uid,
                 Some(auto_generated_edge_ca_expiry_days),
-                subject,
+                Some(aziot_certd_config::CertSubject::CommonName(format!(
+                    "{} {}",
+                    IOTEDGED_COMMONNAME_PREFIX, identityd_config.hostname
+                ))),
             );
 
             (None, None)
@@ -537,8 +541,8 @@ fn set_quickstart_ca(
         edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned(),
         aziot_certd_config::CertIssuanceOptions {
             method: aziot_certd_config::CertIssuanceMethod::SelfSigned,
-            subject,
             expiry_days,
+            subject,
         },
     );
 
