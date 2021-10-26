@@ -115,6 +115,9 @@ steps:
   
       $binDir = Convert-Path "$testDir/bin/Debug/netcoreapp3.1"
       Write-Output "##vso[task.setvariable variable=binDir]$binDir"
+    env:
+      http_proxy: $(Agent.ProxyUrl)
+      https_proxy: $(Agent.ProxyUrl)
     displayName: Build tests
   
   - pwsh: |
