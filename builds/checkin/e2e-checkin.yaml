@@ -58,7 +58,7 @@ stages:
           os: linux
           arch: amd64
           artifactName: iotedged-ubuntu18.04-amd64
-          builtImages: $[ stageDependencies.BuildExecutables.manifest.result ]
+          builtImages: $[ stageDependencies.BuildExecutables.result ]
           builtPackages: $[ stageDependencies.BuildPackages.linux.result ]
         steps:
         - template: ../e2e/templates/e2e-setup.yaml
