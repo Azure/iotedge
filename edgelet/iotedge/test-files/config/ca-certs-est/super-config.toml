@@ -49,7 +49,6 @@ max_retries = "infinite"
 
 [edge_ca]
 method = "est"
-expiry_days = 120
 url = "https://example.org/.well-known/est"
 username = "user"
 password = "password"
