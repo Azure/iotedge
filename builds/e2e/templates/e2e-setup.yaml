@@ -25,7 +25,7 @@ steps:
 - pwsh: | 
     Write-Host "Built Images Result is $(builtImages)"
     Write-Host "Built Packages Result is $(builtPackages)"
-    if ($(builtImages) == 'Succeeded')
+    if ($(builtImages) -eq 'Succeeded')
     {
       Write-Host "Use Pipeline Image Artifacts"
       Write-Host "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]TRUE"
@@ -35,7 +35,7 @@ steps:
       Write-Host "Use Build Image Artifacts"
       Write-Host "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]FALSE"
     }
-    if ($(builtPackages) == 'Succeeded')
+    if ($(builtPackages) -eq 'Succeeded')
     {
       Write-Host "Use Pipeline Package Artifacts"
       Write-Host "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]TRUE"
