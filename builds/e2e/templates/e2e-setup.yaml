@@ -22,25 +22,29 @@ steps:
       TestRootCaPassword,
       TestBlobStoreSas
 
-- bash: | 
-    echo "Built Images Result is $(builtImages)"
-    echo "Built Packages Result is $(builtPackages)"
-    if [[ ! -z $(builtImages) && $(builtImages) == 'Succeeded' ]]
-    then
-      echo "Use Pipeline Image Artifacts"
-      echo "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]TRUE"
+- pwsh: | 
+    Write-Host "Built Images Result is $(builtImages)"
+    Write-Host "Built Packages Result is $(builtPackages)"
+    if ($(builtImages) == 'Succeeded')
+    {
+      Write-Host "Use Pipeline Image Artifacts"
+      Write-Host "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]TRUE"
+    }     
     else
-      echo "Use Build Image Artifacts"
-      echo "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]FALSE"
-    fi
-    if [[ ! -z $(builtPackages) && $(builtPackages) == 'Succeeded' ]]
-    then
-      echo "Use Pipeline Package Artifacts"
-      echo "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]TRUE"
+    {
+      Write-Host "Use Build Image Artifacts"
+      Write-Host "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]FALSE"
+    }
+    if ($(builtPackages) == 'Succeeded')
+    {
+      Write-Host "Use Pipeline Package Artifacts"
+      Write-Host "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]TRUE"
+    }
     else
-      echo "Use Build Package Artifacts"
-      echo "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]FALSE"
-    fi
+    {
+      Write-Host "Use Build Package Artifacts"
+      Write-Host "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]FALSE"
+    }
   name: check_use_artifacts
   displayName: Check Use Pipeline Image Artifacts
 

@@ -28,105 +28,105 @@ variables:
   minimal: false
 
 jobs:
-################################################################################
-  - job: linux_arm32v7
-################################################################################
-    displayName: Linux arm32v7
+# ################################################################################
+#   - job: linux_arm32v7
+# ################################################################################
+#     displayName: Linux arm32v7
 
-    pool:
-      name: $(pool.custom.name)
-      demands: rpi3-e2e-tests-1.1
+#     pool:
+#       name: $(pool.custom.name)
+#       demands: rpi3-e2e-tests-1.1
 
-    variables:
-      os: linux
-      arch: arm32v7
-      artifactName: iotedged-debian9-arm32v7
+#     variables:
+#       os: linux
+#       arch: arm32v7
+#       artifactName: iotedged-debian9-arm32v7
 
-    timeoutInMinutes: 120
+#     timeoutInMinutes: 120
 
-    steps:
-      - template: templates/e2e-clean-directory.yaml
-      - template: templates/e2e-setup.yaml
-      - template: templates/e2e-clear-docker-cached-images.yaml
-      - template: templates/e2e-run.yaml
+#     steps:
+#       - template: templates/e2e-clean-directory.yaml
+#       - template: templates/e2e-setup.yaml
+#       - template: templates/e2e-clear-docker-cached-images.yaml
+#       - template: templates/e2e-run.yaml
 
-################################################################################
-  - job: ubuntu_1804_msmoby
-################################################################################
-    displayName: Ubuntu 18.04 with iotedge-moby
+# ################################################################################
+#   - job: ubuntu_1804_msmoby
+# ################################################################################
+#     displayName: Ubuntu 18.04 with iotedge-moby
 
-    pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
+#     pool:
+#       name: $(pool.linux.name)
+#       demands:
+#         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
 
-    variables:
-      os: linux
-      arch: amd64
-      artifactName: iotedged-ubuntu18.04-amd64
+#     variables:
+#       os: linux
+#       arch: amd64
+#       artifactName: iotedged-ubuntu18.04-amd64
 
-    steps:
-    - template: templates/e2e-setup.yaml
-    - template: templates/e2e-run.yaml
+#     steps:
+#     - template: templates/e2e-setup.yaml
+#     - template: templates/e2e-run.yaml
 
-################################################################################
-  - job: ubuntu_1804_docker
-################################################################################
-    displayName: Ubuntu 18.04 with Docker (minimal)
+# ################################################################################
+#   - job: ubuntu_1804_docker
+# ################################################################################
+#     displayName: Ubuntu 18.04 with Docker (minimal)
 
-    pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+#     pool:
+#       name: $(pool.linux.name)
+#       demands:
+#         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
 
-    variables:
-      os: linux
-      arch: amd64
-      artifactName: iotedged-ubuntu18.04-amd64
-      minimal: true
+#     variables:
+#       os: linux
+#       arch: amd64
+#       artifactName: iotedged-ubuntu18.04-amd64
+#       minimal: true
 
-    steps:
-    - template: templates/e2e-setup.yaml
-    - template: templates/e2e-run.yaml
+#     steps:
+#     - template: templates/e2e-setup.yaml
+#     - template: templates/e2e-run.yaml
 
-################################################################################
-  - job: ubuntu_2004_msmoby
-################################################################################
-    displayName: Ubuntu 20.04 with iotedge-moby
+# ################################################################################
+#   - job: ubuntu_2004_msmoby
+# ################################################################################
+#     displayName: Ubuntu 20.04 with iotedge-moby
 
-    pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
+#     pool:
+#       name: $(pool.linux.name)
+#       demands:
+#         - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
 
-    variables:
-      os: linux
-      arch: amd64
-      artifactName: iotedged-ubuntu18.04-amd64
+#     variables:
+#       os: linux
+#       arch: amd64
+#       artifactName: iotedged-ubuntu18.04-amd64
 
-    steps:
-    - template: templates/e2e-setup.yaml
-    - template: templates/e2e-run.yaml
+#     steps:
+#     - template: templates/e2e-setup.yaml
+#     - template: templates/e2e-run.yaml
 
-################################################################################
-  - job: ubuntu_2004_docker
-################################################################################
-    displayName: Ubuntu 20.04 with Docker (minimal)
+# ################################################################################
+#   - job: ubuntu_2004_docker
+# ################################################################################
+#     displayName: Ubuntu 20.04 with Docker (minimal)
 
-    pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+#     pool:
+#       name: $(pool.linux.name)
+#       demands:
+#         - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
 
-    variables:
-      os: linux
-      arch: amd64
-      artifactName: iotedged-ubuntu18.04-amd64
-      minimal: true
+#     variables:
+#       os: linux
+#       arch: amd64
+#       artifactName: iotedged-ubuntu18.04-amd64
+#       minimal: true
 
-    steps:
-    - template: templates/e2e-setup.yaml
-    - template: templates/e2e-run.yaml
+#     steps:
+#     - template: templates/e2e-setup.yaml
+#     - template: templates/e2e-run.yaml
 
 ################################################################################
   - job: windows_server
