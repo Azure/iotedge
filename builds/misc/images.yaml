@@ -9,5 +9,5 @@ pr: none
 variables:
   NugetSecurityAnalysisWarningLevel: warn
   
-  stages:
-    - template: templates/build-images.yaml
+stages:
+  - template: templates/build-images.yaml
