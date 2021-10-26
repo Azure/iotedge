@@ -1,4 +1,3 @@
-
 steps:
   - checkout: self
     clean: true
