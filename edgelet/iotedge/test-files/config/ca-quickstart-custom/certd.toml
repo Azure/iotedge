@@ -3,9 +3,9 @@
 
 homedir_path = "/var/lib/aziot/certd"
 [cert_issuance.aziot-edged-ca]
-common_name = "my-device custom-quickstart"
-expiry_days = 365
 method = "self_signed"
+expiry_days = 365
+common_name = "my-device custom-quickstart"
 
 [preloaded_certs]
 aziot-edged-trust-bundle = ["aziot-edged-ca", "trust-bundle-user"]
