@@ -254,10 +254,12 @@ fn execute_inner(
 
     let (edge_ca_cert, edge_ca_key) = match edge_ca {
         super_config::EdgeCa::Issued { cert } => {
-            let common_name = Some(cert.common_name.unwrap_or(format!(
-                "{} {}",
-                IOTEDGED_COMMONNAME_PREFIX, identityd_config.hostname
-            )));
+            let subject = cert.subject.or_else(|| {
+                Some(aziot_certd_config::CertSubject::CommonName(format!(
+                    "{} {}",
+                    IOTEDGED_COMMONNAME_PREFIX, identityd_config.hostname
+                )))
+            });
             let expiry_days = cert.expiry_days;
 
             match cert.method {
@@ -290,8 +292,8 @@ fn execute_inner(
                         edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned(),
                         aziot_certd_config::CertIssuanceOptions {
                             method: aziot_certd_config::CertIssuanceMethod::Est { url, auth },
-                            common_name,
                             expiry_days,
+                            subject,
                         },
                     );
 
@@ -305,8 +307,8 @@ fn execute_inner(
                         edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned(),
                         aziot_certd_config::CertIssuanceOptions {
                             method: aziot_certd_config::CertIssuanceMethod::LocalCa,
-                            common_name,
                             expiry_days,
+                            subject,
                         },
                     );
 
@@ -327,7 +329,7 @@ fn execute_inner(
                         &mut certd_config,
                         aziotcs_uid,
                         expiry_days,
-                        common_name,
+                        subject,
                     );
 
                     (
@@ -361,10 +363,10 @@ fn execute_inner(
                 &mut certd_config,
                 aziotcs_uid,
                 Some(auto_generated_edge_ca_expiry_days),
-                Some(format!(
+                Some(aziot_certd_config::CertSubject::CommonName(format!(
                     "{} {}",
                     IOTEDGED_COMMONNAME_PREFIX, identityd_config.hostname
-                )),
+                ))),
             );
 
             (None, None)
@@ -513,14 +515,14 @@ fn set_quickstart_ca(
     certd_config: &mut aziot_certd_config::Config,
     aziotcs_uid: nix::unistd::Uid,
     expiry_days: Option<u32>,
-    common_name: Option<String>,
+    subject: Option<aziot_certd_config::CertSubject>,
 ) {
     certd_config.cert_issuance.certs.insert(
         edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned(),
         aziot_certd_config::CertIssuanceOptions {
             method: aziot_certd_config::CertIssuanceMethod::SelfSigned,
-            common_name,
             expiry_days,
+            subject,
         },
     );
 
