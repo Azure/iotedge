@@ -152,7 +152,7 @@ stages:
 ################################################################################
     - job: mariner_linux
 ################################################################################
-      displayName: Linux
+      displayName: Mariner_Linux
       condition: eq(${{ parameters['E2EBuild'] }}, false)
       pool:
         vmImage: 'ubuntu-18.04'
