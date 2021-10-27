@@ -26,6 +26,7 @@ namespace LoadGen
             {
                 try
                 {
+
                     await Task.Delay(Settings.Current.MessageFrequency);
 
                     await this.SendEventAsync(messageIdCounter, Settings.Current.OutputName);
