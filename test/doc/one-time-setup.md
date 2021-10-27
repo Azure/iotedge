@@ -227,9 +227,14 @@ The SAS URL can be created using the Azure portal as follows:
 Alternately, you can use the Azure CLI:
 
 ~~~sh
- az storage container generate-sas --name <container_name> --account-name <your_storage_account_name> --account-key <storage_key> --permissions rw --expiry YYYY-MM-DD
+# you can get the account key from 'Storage Accounts' --> <Your account> -- > 'Security + networking' --> 'Access keys', or use the CLI as follows:
+ az storage account keys list --resource-group {resource group name} --account-name {storage account name}
 
-# you can get the account name and key from 'Storage Accounts' --> <Your account> -- > 'Security + networking' --> 'Access keys'
+# generate the SAS token
+  az storage container generate-sas --name {container name} --account-name {storage account name} --account-key {storage key} --permissions rw --expiry YYYY-MM-DD
+
+# append the token to the following to get the E2E_BLOB_STORE_SAS
+ https://{storage account name}.blob.core.windows.net/{container name}?{sas token}
 ~~~
 
 
