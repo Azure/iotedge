@@ -38,6 +38,7 @@ namespace SimulatedTemperatureSensor
         static readonly AtomicBoolean Reset = new AtomicBoolean(false);
         static readonly Random Rnd = new Random();
         static TimeSpan messageDelay;
+        static TimeSpan startDelay;
         static bool sendData = true;
 
         public enum ControlCommandEnum
@@ -58,6 +59,7 @@ namespace SimulatedTemperatureSensor
                 .AddEnvironmentVariables()
                 .Build();
 
+            startDelay = configuration.GetValue("StartDelay", TimeSpan.FromSeconds(0));
             messageDelay = configuration.GetValue("MessageDelay", TimeSpan.FromSeconds(5));
             int messageCount = configuration.GetValue(MessageCountConfigKey, 500);
             var simulatorParameters = new SimulatorParameters
@@ -73,7 +75,10 @@ namespace SimulatedTemperatureSensor
             Console.WriteLine(
                 $"Initializing simulated temperature sensor to send {(SendUnlimitedMessages(messageCount) ? "unlimited" : messageCount.ToString())} "
                 + $"messages, at an interval of {messageDelay.TotalSeconds} seconds.\n"
-                + $"To change this, set the environment variable {MessageCountConfigKey} to the number of messages that should be sent (set it to -1 to send unlimited messages).");
+                + $"To change this, set the environment variable {MessageCountConfigKey} to the number of messages that should be sent (set it to -1 to send unlimited messages).\n"
+                + $"Start delay set to {startDelay}.");
+
+            await Task.Delay(startDelay);
 
             TransportType transportType = configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only);
 
@@ -81,7 +86,6 @@ namespace SimulatedTemperatureSensor
                 transportType,
                 DefaultTimeoutErrorDetectionStrategy,
                 DefaultTransientRetryStrategy);
-            await moduleClient.OpenAsync();
             await moduleClient.SetMethodHandlerAsync("reset", ResetMethod, null);
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
@@ -290,11 +294,11 @@ namespace SimulatedTemperatureSensor
                     }
 
                     ITransportSettings[] settings = GetTransportSettings();
-                    Console.WriteLine($"[Information]: Trying to initialize module client using transport type [{transportType}].");
+                    Console.WriteLine($"[Information] [{DateTime.Now.ToLocalTime()}]: Trying to initialize module client using transport type [{transportType}].");
                     ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
                     await moduleClient.OpenAsync();
 
-                    Console.WriteLine($"[Information]: Successfully initialized module client of transport type [{transportType}].");
+                    Console.WriteLine($"[Information] [{DateTime.Now.ToLocalTime()}]: Successfully initialized module client of transport type [{transportType}].");
                     return moduleClient;
                 });
 

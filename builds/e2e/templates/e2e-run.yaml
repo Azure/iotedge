@@ -16,6 +16,8 @@ steps:
 
     if ($IsWindows)
     {
+      $filter += '&Category!=FlakyOnWindows'
+
       # The windows installer script doesn't update the PATH in the current
       # terminal session, so add `iotedge` and `docker` CLIs manually
       $env:Path =
