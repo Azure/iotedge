@@ -127,7 +127,7 @@ jobs:
     steps:
     - bash: |
         echo "Writing Host Name"
-        sudo hostnamectl set-hostname e2eTest001
+        sudo hostnamectl set-hostname 8cc0a661c000001
       displayName: Write Host Name
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
