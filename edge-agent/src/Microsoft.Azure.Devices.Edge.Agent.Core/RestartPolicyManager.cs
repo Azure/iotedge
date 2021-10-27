@@ -30,6 +30,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 throw new ArgumentException("ModuleStatus unknown is not a valid status.", nameof(status));
             }
 
+            // Dead modules should not be restarted.
+            if (status == ModuleStatus.Dead)
+            {
+                return ModuleStatus.Dead;
+            }
+
             if (status != ModuleStatus.Running && restartPolicy > RestartPolicy.Never)
             {
                 // we need to act only if restart policy is "Always" (which means the module
