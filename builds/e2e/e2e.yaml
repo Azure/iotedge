@@ -125,6 +125,10 @@ jobs:
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
 
     steps:
+    - bash: |
+        echo "Writing Host Name"
+        sudo hostnamectl set-hostname e2eTest001
+      displayName: Write Host Name
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
 
