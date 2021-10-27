@@ -126,8 +126,8 @@ jobs:
 
     steps:
     - bash: |
-        echo "Writing Host Name"
-        sudo hostnamectl set-hostname 8c0100
+        echo "Writing Host Name e2e-$BUILD_BUILDID"
+        sudo hostnamectl set-hostname e2e-$BUILD_BUILDID
       displayName: Write Host Name
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
