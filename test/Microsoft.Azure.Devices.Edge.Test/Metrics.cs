@@ -29,7 +29,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string metricsCollectorImage = Context.Current.MetricsCollectorImage.Expect(() => new ArgumentException("metricsCollectorImage parameter is required for MetricsCollector test"));
             string hubResourceId = Context.Current.HubResourceId.Expect(() => new ArgumentException("IOT_HUB_RESOURCE_ID is required for MetricsCollector test"));
 
-            CancellationToken token = this.TestToken;
+            // Overriding the default test timeout with a longer timeout. This
+            // is needed for arm, as modules take a long time to come up, get
+            // metrics ready, scrape, send, read from hub.
+            //
+            // This test won't always take 10 minutes, as it will finish as soon
+            // as metrics become available in hub. This only takes > 5 minutes
+            // for arm.
+            CancellationToken token = new CancellationTokenSource(TimeSpan.FromMinutes(10)).Token;
 
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                 builder =>
