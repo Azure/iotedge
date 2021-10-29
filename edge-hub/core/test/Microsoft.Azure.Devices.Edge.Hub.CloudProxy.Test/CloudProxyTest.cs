@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -241,6 +242,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             // Act
             await Assert.ThrowsAsync(exceptionType, () => cloudProxy.SendMessageAsync(message));
+
+            // Assert.
+            client.VerifyAll();
+        }
+
+        [Fact]
+        public async Task TestHandleFailOverExceptions()
+        {
+            // Arrange
+            var symbol = new Amqp.Encoding.AmqpSymbol("com.microsoft:iot-hub-not-found-error");
+            var failOverException = new IotHubException(new Amqp.AmqpException(symbol, $"(condition='{symbol}')"));
+
+            var messageConverter = Mock.Of<IMessageConverter<Message>>(m => m.FromMessage(It.IsAny<IMessage>()) == new Message());
+            var messageConverterProvider = Mock.Of<IMessageConverterProvider>(m => m.Get<Message>() == messageConverter);
+            string clientId = "d1";
+            var cloudListener = Mock.Of<ICloudListener>();
+            TimeSpan idleTimeout = TimeSpan.FromSeconds(60);
+            Action<string, CloudConnectionStatus> connectionStatusChangedHandler = (s, status) => { };
+            var client = new Mock<IClient>(MockBehavior.Strict);
+            client.Setup(c => c.SendEventAsync(It.IsAny<Message>())).ThrowsAsync(failOverException);
+            client.Setup(c => c.CloseAsync()).Returns(Task.CompletedTask);
+            var cloudProxy = new CloudProxy(client.Object, messageConverterProvider, clientId, connectionStatusChangedHandler, cloudListener, idleTimeout, false);
+            IMessage message = new EdgeMessage.Builder(new byte[0]).Build();
+
+            // Act
+            await Assert.ThrowsAsync<IotHubException>(() => cloudProxy.SendMessageAsync(message));
 
             // Assert.
             client.VerifyAll();

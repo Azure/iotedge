@@ -100,29 +100,25 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 token);
 
             IdCertificates idCert = await ca.GenerateIdentityCertificatesAsync(registrationId, token);
-
-            // The trust bundle for this test isn't used. It can be any arbitrary existing certificate.
-            string trustBundle = Path.Combine(caCertScriptPath, FixedPaths.DeviceCaCert.TrustCert);
+            (TestCertificates testCerts, _) = await TestCertificates.GenerateCertsAsync(registrationId, token);
 
             // Generated credentials need to be copied out of the script path because future runs
             // of the script will overwrite them.
             string path = Path.Combine(FixedPaths.E2E_TEST_DIR, registrationId);
             string certPath = Path.Combine(path, "device_id_cert.pem");
             string keyPath = Path.Combine(path, "device_id_cert_key.pem");
-            string trustBundlePath = Path.Combine(path, "trust_bundle.pem");
 
             Directory.CreateDirectory(path);
             File.Copy(idCert.CertificatePath, certPath);
             OsPlatform.Current.SetOwner(certPath, "aziotcs", "644");
             File.Copy(idCert.KeyPath, keyPath);
             OsPlatform.Current.SetOwner(keyPath, "aziotks", "600");
-            File.Copy(trustBundle, trustBundlePath);
-            OsPlatform.Current.SetOwner(trustBundlePath, "aziotcs", "644");
 
             await this.daemon.ConfigureAsync(
                 config =>
                 {
-                    config.SetDpsX509(idScope, registrationId, certPath, keyPath, trustBundlePath);
+                    testCerts.AddCertsToConfig(config);
+                    config.SetDpsX509(idScope, registrationId, certPath, keyPath);
                     config.Update();
                     return Task.FromResult((
                         "with DPS X509 attestation for '{Identity}'",

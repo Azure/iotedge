@@ -92,7 +92,7 @@ impl BlockHeaderV1 {
     }
 
     pub fn set_should_not_overwrite(&mut self, value: bool) {
-        self.should_not_overwrite = value
+        self.should_not_overwrite = value;
     }
 }
 
@@ -151,7 +151,7 @@ where
 
 pub(crate) fn calculate_crc_over_bytes(bytes: &[u8]) -> u32 {
     let mut hasher = crc32fast::Hasher::default();
-    hasher.update(&bytes);
+    hasher.update(bytes);
     hasher.finalize()
 }
 

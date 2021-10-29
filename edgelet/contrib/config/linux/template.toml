@@ -44,7 +44,7 @@
 # Elevated Docker Permissions Flag
 # ==============================================================================
 #
-# Some docker capabilities capabilities can be used to gain root access. 
+# Some docker capabilities can be used to gain root access. 
 # By default, the --privileged flag and all capabilities listed in the CapAdd
 # field of the docker HostConfig are allowed.
 #
@@ -116,10 +116,15 @@
 # [provisioning.authentication]
 # method = "x509"
 #
+## identity certificate
 # identity_cert = "file:///var/secrets/device-id.pem"                # file URI, or...
-# identity_cert = { method = "est", common_name = "my-device" }      # dynamically issued via EST, or...
-# identity_cert = { method = "local_ca", common_name = "my-device" } # dynamically issued by a local CA
+# [provisioning.authentication.identity_cert]                        # dynamically issued via...
+# method = "est"                                                     # - EST
+# method = "local_ca"                                                # - a local CA
+# common_name = "my-device"                                          # with the given common name, or...
+# subject = { L = "AQ", ST = "Antarctica", CN = "my-device" }        # with the given DN fields
 #
+## identity certificate private key
 # identity_pk = "file:///var/secrets/device-id.key.pem"              # file URI, or...
 # identity_pk = "pkcs11:slot-id=0;object=device%20id?pin-value=1234" # PKCS#11 URI
 
@@ -142,17 +147,22 @@
 ## DPS provisioning with X.509 certificate
 # [provisioning]
 # source = "dps"
-# global_endpoint = "https://global.azure-devices-provisioning.net"
+# global_endpoint = "https://global.azure-devices-provisioning.net/"
 # id_scope = "0ab1234C5D6"
 #
 # [provisioning.attestation]
 # method = "x509"
 # registration_id = "my-device"
 #
+## identity certificate
 # identity_cert = "file:///var/secrets/device-id.pem"                # file URI, or...
-# identity_cert = { method = "est", common_name = "my-device" }      # dynamically issued via EST, or...
-# identity_cert = { method = "local_ca", common_name = "my-device" } # dynamically issued by a local CA
+# [provisioning.attestation.identity_cert]                           # dynamically issued via...
+# method = "est"                                                     # - EST
+# method = "local_ca"                                                # - a local CA
+# common_name = "my-device"                                          # with the given common name, or...
+# subject = { L = "AQ", ST = "Antarctica", CN = "my-device" }        # with the given DN fields
 #
+## identity certificate private key
 # identity_pk = "file:///var/secrets/device-id.key.pem"              # file URI, or...
 # identity_pk = "pkcs11:slot-id=0;object=device%20id?pin-value=1234" # PKCS#11 URI
 

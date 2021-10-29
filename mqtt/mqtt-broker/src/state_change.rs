@@ -45,7 +45,7 @@ impl<'a> StateChange<'a> {
                 Session::Transient(_) => Some(client_id),
                 Session::Persistent(_) => Some(client_id),
                 Session::Offline(_) => Some(client_id),
-                _ => None,
+                Session::Disconnecting(_) => None,
             })
             .collect();
 
@@ -186,7 +186,7 @@ mod tests {
         if let StateChange::Connections(no_connections) = &no_connections {
             assert_eq!(&Vec::<&ClientId>::new(), no_connections);
         } else {
-            panic!("Expected Connection Change")
+            panic!("Expected Connection Change");
         }
 
         let message: proto::Publication = no_connections.try_into().unwrap();
@@ -211,7 +211,7 @@ mod tests {
             let expected: ClientId = "Session 1".into();
             assert_eq!(&vec![&expected], one_connection);
         } else {
-            panic!("Expected Connection Change")
+            panic!("Expected Connection Change");
         }
 
         let message: proto::Publication = one_connection.try_into().unwrap();
@@ -237,7 +237,7 @@ mod tests {
             actual.sort_unstable();
             assert_eq!(vec!["Session 1", "Session 2", "Session 3"], actual);
         } else {
-            panic!("Expected Connection Change")
+            panic!("Expected Connection Change");
         }
 
         let message: proto::Publication = many_connections.try_into().unwrap();
@@ -263,7 +263,7 @@ mod tests {
             actual.sort_unstable();
             assert_eq!(vec!["Session 2", "Session 4", "Session 6"], actual);
         } else {
-            panic!("Expected Connection Change")
+            panic!("Expected Connection Change");
         }
 
         let message: proto::Publication = many_connections.try_into().unwrap();
@@ -283,7 +283,7 @@ mod tests {
         if let StateChange::Sessions(no_sessions) = &no_sessions {
             assert_eq!(&Vec::<&ClientId>::new(), no_sessions);
         } else {
-            panic!("Expected Session Change")
+            panic!("Expected Session Change");
         }
 
         let message: proto::Publication = no_sessions.try_into().unwrap();
@@ -308,7 +308,7 @@ mod tests {
             let expected: ClientId = "Session 1".into();
             assert_eq!(&vec![&expected], one_session);
         } else {
-            panic!("Expected Session Change")
+            panic!("Expected Session Change");
         }
 
         let message: proto::Publication = one_session.try_into().unwrap();
@@ -334,7 +334,7 @@ mod tests {
             actual.sort_unstable();
             assert_eq!(vec!["Session 1", "Session 2", "Session 3"], actual);
         } else {
-            panic!("Expected Session Change")
+            panic!("Expected Session Change");
         }
 
         let message: proto::Publication = many_sessions.try_into().unwrap();
@@ -370,7 +370,7 @@ mod tests {
                 actual
             );
         } else {
-            panic!("Expected Session Change")
+            panic!("Expected Session Change");
         }
 
         let message: proto::Publication = many_sessions.try_into().unwrap();
@@ -407,7 +407,7 @@ mod tests {
             state.update_subscription(
                 topic_filter.as_ref().to_owned(),
                 Subscription::new(
-                    TopicFilter::from_str(&topic_filter.as_ref()).unwrap(),
+                    TopicFilter::from_str(topic_filter.as_ref()).unwrap(),
                     proto::QoS::AtLeastOnce,
                 ),
             );
@@ -459,7 +459,7 @@ mod tests {
 
         assert_eq!(&topic_name, topic);
         assert_eq!(qos, STATE_CHANGE_QOS);
-        assert_eq!(retain, true);
+        assert!(retain);
         is_notify_equal(&payload, body);
     }
 }

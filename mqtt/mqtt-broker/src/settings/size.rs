@@ -253,13 +253,13 @@ mod tests {
         #[cfg(target_pointer_width = "64")]
         fn it_can_parse_input(input in r"[0-9]{9}\s*(k|K|m|M|g|G)?(b|B)") {
             let size = input.parse::<HumanSize>();
-            prop_assert!(size.is_ok())
+            prop_assert!(size.is_ok());
         }
 
         #[test]
         fn it_cannot_parse_input(input in r"[^0-9]+[0-9]{9}[^0-9]+(k|K|m|M|g|G)?.*") {
             let size = input.parse::<HumanSize>();
-            prop_assert!(size.is_err())
+            prop_assert!(size.is_err());
         }
     }
 }

@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string DefaultLoadGenTestStartDelay = "00:00:20";
 
         [Test]
-        [Category("FlakyOnArm")]
+        [Category("Flaky")]
         public async Task PriorityQueueModuleToModuleMessages()
         {
             CancellationToken token = this.TestToken;
@@ -89,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
-        [Category("FlakyOnArm")]
+        [Category("Flaky")]
         public async Task PriorityQueueTimeToLive()
         {
             CancellationToken token = this.TestToken;

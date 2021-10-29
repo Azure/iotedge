@@ -47,7 +47,7 @@ where
     pub fn send(&mut self, event: E) {
         debug!("sending broker ready event: {}", event);
         if self.0.send(event).is_err() {
-            error!("no active receiver found")
+            error!("no active receiver found");
         }
     }
 }
@@ -129,6 +129,7 @@ pub enum BrokerReadyError {
 }
 
 #[cfg(test)]
+#[allow(clippy::semicolon_if_nothing_returned)]
 mod tests {
     use matches::assert_matches;
 

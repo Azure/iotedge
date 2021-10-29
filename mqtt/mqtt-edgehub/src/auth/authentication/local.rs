@@ -1,3 +1,5 @@
+#![allow(clippy::semicolon_if_nothing_returned)]
+
 use std::convert::Infallible;
 
 use async_trait::async_trait;
@@ -43,7 +45,7 @@ mod tests {
     use test_case::test_case;
 
     use mqtt_broker::{
-        auth::{AuthenticationContext, Authenticator, Identity},
+        auth::{AuthenticationContext, Authenticator},
         AuthId,
     };
 
@@ -60,7 +62,7 @@ mod tests {
         let authenticator = authenticator();
         let auth_id = authenticator.authenticate(context).await;
 
-        assert_matches!(auth_id, Ok(Some(AuthId::Identity(identity))) if identity == Identity::from("client_1"));
+        assert_matches!(auth_id, Ok(Some(AuthId::Identity(identity))) if identity == "client_1");
     }
 
     #[tokio::test]

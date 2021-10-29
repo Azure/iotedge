@@ -110,4 +110,4 @@ RESPONSE PAYLOAD: None
 
 For more information about the REST API's specification, please refer to the [endpoint's swagger specification](../edgelet/api/externalProvisioningVersion_2019_04_10.yaml)
 
-[1]: https://docs.microsoft.com/en-us/rest/api/iot-dps/querydeviceregistrationstates/querydeviceregistrationstates#deviceregistrationstate
+[1]: https://docs.microsoft.com/rest/api/iot-dps/service/device-registration-state/query

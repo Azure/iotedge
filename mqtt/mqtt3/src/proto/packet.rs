@@ -290,7 +290,7 @@ impl PacketMeta for Connect {
             }
             match client_id {
                 super::ClientId::ServerGenerated | super::ClientId::IdWithCleanSession(_) => {
-                    connect_flags |= 0x02
+                    connect_flags |= 0x02;
                 }
                 super::ClientId::IdWithExistingSession(_) => (),
             }
@@ -552,11 +552,11 @@ impl PacketMeta for Publish {
             PacketIdentifierDupQoS::AtMostOnce => (),
             PacketIdentifierDupQoS::AtLeastOnce(packet_identifier, _)
             | PacketIdentifierDupQoS::ExactlyOnce(packet_identifier, _) => {
-                dst.put_packet_identifier_bytes(*packet_identifier)
+                dst.put_packet_identifier_bytes(*packet_identifier);
             }
         }
 
-        dst.put_slice_bytes(&payload);
+        dst.put_slice_bytes(payload);
 
         Ok(())
     }
