@@ -155,6 +155,7 @@ steps:
       rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
       logFile = Join-Path '$(binDir)' 'testoutput.log';
       getSupportBundle = 'true'
+      verbose = 'true'
     }
 
     if ($IsWindows)
