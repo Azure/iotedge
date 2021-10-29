@@ -61,6 +61,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 token);
 
             EdgeModule azureIotEdgeMetricsCollector = deployment.Modules[CollectorModuleName];
+
+            // debug, will remove before merge
+            await Task.Delay(TimeSpan.FromMinutes(5));
+
             string output = await azureIotEdgeMetricsCollector.WaitForEventsReceivedAsync(DateTime.Now, token, "id");
 
             JsonSerializerSettings settings = new JsonSerializerSettings();
