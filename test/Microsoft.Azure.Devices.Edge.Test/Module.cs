@@ -28,43 +28,17 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 builder =>
                 {
                     builder.AddModule(SensorName, sensorImage)
-                        .WithEnvironment(new[] { ("MessageCount", "1") });
+                        .WithEnvironment(new[] { ("MessageCount", "1"), ("StartDelay", "00:00:30") });
                 },
                 token);
 
             EdgeModule sensor = deployment.Modules[SensorName];
             await sensor.WaitForEventsReceivedAsync(deployment.StartTime, token);
-
-            await sensor.UpdateDesiredPropertiesAsync(
-                new
-                {
-                    properties = new
-                    {
-                        desired = new
-                        {
-                            SendData = true,
-                            SendInterval = 10
-                        }
-                    }
-                },
-                token);
-            await sensor.WaitForReportedPropertyUpdatesAsync(
-                new
-                {
-                    properties = new
-                    {
-                        reported = new
-                        {
-                            SendData = true,
-                            SendInterval = 10
-                        }
-                    }
-                },
-                token);
         }
 
         [Test]
         [Category("CentOsSafe")]
+        [Category("Flaky")]
         public async Task TempFilter()
         {
             const string filterName = "tempFilter";
@@ -100,6 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
+        [Category("Flaky")]
         // Test Temperature Filter Function: https://docs.microsoft.com/en-us/azure/iot-edge/tutorial-deploy-function
         public async Task TempFilterFunc()
         {
@@ -138,6 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         [Test]
         [Category("CentOsSafe")]
+        [Category("Flaky")]
         public async Task ModuleToModuleDirectMethod(
             [Values] Protocol protocol)
         {

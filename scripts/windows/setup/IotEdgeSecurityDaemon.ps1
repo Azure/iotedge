@@ -442,6 +442,8 @@ function Update-IoTEdge {
         [Switch] $RestartIfNeeded
     )
 
+    New-Sockets $EdgeDataDirectory
+
     Install-Packages `
         -ContainerOs $ContainerOs `
         -Proxy $Proxy `

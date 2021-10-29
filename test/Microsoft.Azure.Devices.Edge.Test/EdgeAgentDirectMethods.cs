@@ -34,6 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
+        [Category("Flaky")]
         public async Task TestGetModuleLogs()
         {
             string moduleName = "NumberLogger";
@@ -129,10 +130,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
+        [Category("Flaky")]
         public async Task TestUploadModuleLogs()
         {
-            Assert.Ignore("This test currently does not run automatically. To manually run, replace the sas url below with one pointing to a valid blob store");
-
             string moduleName = "NumberLogger";
             int count = 10;
             string sasUrl = Context.Current.BlobSasUrl.Expect(() => new InvalidOperationException("Missing Blob SAS url"));

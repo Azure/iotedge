@@ -38,6 +38,9 @@
               },
               "mqttSettings_enabled": {
                 "value": "true"
+              },
+              "SslProtocols": {
+                "value": "tls1.2"
               }
             },
             "status": "running",

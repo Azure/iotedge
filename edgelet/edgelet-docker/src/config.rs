@@ -63,6 +63,10 @@ impl DockerConfig {
         &self.create_options
     }
 
+    pub fn create_options_mut(&mut self) -> &mut ContainerCreateBody {
+        &mut self.create_options
+    }
+
     pub fn with_create_options(mut self, create_options: ContainerCreateBody) -> Self {
         self.create_options = create_options;
         self

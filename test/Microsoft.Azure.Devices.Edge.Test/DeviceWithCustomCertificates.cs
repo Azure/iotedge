@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     class DeviceWithCustomCertificates : CustomCertificatesFixture
     {
         [Test]
+        [Category("Flaky")]
         public async Task TransparentGateway(
             [Values] TestAuthenticationType testAuth,
             [Values(Protocol.Mqtt, Protocol.Amqp)] Protocol protocol)

@@ -1,13 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test
 {
+    using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
     using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
-    using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
     using Serilog;
     using Serilog.Events;
@@ -42,6 +43,17 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                     // Install IoT Edge, and do some basic configuration
                     await this.daemon.UninstallAsync(token);
+
+                    // Delete directories used by previous installs.
+                    List<string> directories = new List<string>() { "/run/iotedge", "/var/lib/iotedge", "/var/run/iotedge" };
+                    directories.ForEach(directory =>
+                    {
+                        if (Directory.Exists(directory))
+                        {
+                            Directory.Delete(directory, true);
+                            Log.Verbose($"Deleted {directory}");
+                        }
+                    });
                     await this.daemon.InstallAsync(Context.Current.PackagePath, Context.Current.Proxy, token);
 
                     await this.daemon.ConfigureAsync(

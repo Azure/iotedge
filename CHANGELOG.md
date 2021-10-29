@@ -1,3 +1,56 @@
+# 1.1.7 (2021-10-13)
+## iotedged
+### Bug Fixes
+* Introduce `allow_elevated_docker_permissions` option in daemon config [6725a11](https://github.com/Azure/iotedge/commit/6725a11dc6a557478d9fe11820847e75f4ab27a1)
+* Fix a container socket stops working after a module restart [2e6b208](https://github.com/Azure/iotedge/commit/2e6b2082e5a632e6d041d95c625a669b8daab2b4)
+
+
+## Edge Agent
+### Bug Fixes
+* Create parent socket folder in Windows upgrade script [6d0ca55](https://github.com/Azure/iotedge/commit/6d0ca554467300144395aa3715b1140335d3b9c2), [7ed543a](https://github.com/Azure/iotedge/commit/7ed543afb33d9a8424800ed094269c5b029df5d2)
+* Update Base Images for a Security Patch [75bb5ea](https://github.com/Azure/iotedge/commit/75bb5eabb8c243d56ad3477b79b429060c7cb2d3)
+
+
+## Edge Hub
+### Bug Fixes
+* Update Base Images for a Security Patch [75bb5ea](https://github.com/Azure/iotedge/commit/75bb5eabb8c243d56ad3477b79b429060c7cb2d3)
+
+
+# 1.1.6 (2021-09-06)
+## iotedged
+### Bug Fixes
+* Hotfix the container socket failure upon a module deployment on Windows [382cf77](https://github.com/Azure/iotedge/commit/382cf778bf061cf02ca893a68584e63eb6c6c878)
+
+
+# 1.1.5 (2021-08-27)
+## Edge Agent
+### Bug Fixes
+* Fix twin pulls on reconnection between two edge devices with the same identity [c7a81c1](https://github.com/Azure/iotedge/commit/c7a81c193b901d5799f8a782b36290f8da8d6cd6)
+* Update package dependency for security vulnerabilities [e7c900d](https://github.com/Azure/iotedge/commit/e7c900deb4573c7cf51e1c62c59971224e7999cd), [c347dba](https://github.com/Azure/iotedge/commit/c347dbae914d081b1994bb5da2db2efe645b5d99)
+* Update base images for a security patch [0998c04](https://github.com/Azure/iotedge/commit/0998c04f9ce71fbe9ea56bd7453316fae42ec2e9)
+* Update Prometheus versions to 4.2.0 [842c8c3](https://github.com/Azure/iotedge/commit/842c8c3d56e7ebc77aefd25a40bc38ffa96ba118)
+
+
+## Edge Hub
+### Bug Fixes
+* Update package dependency for security vulnerabilities [e7c900d](https://github.com/Azure/iotedge/commit/e7c900deb4573c7cf51e1c62c59971224e7999cd), [c347dba](https://github.com/Azure/iotedge/commit/c347dbae914d081b1994bb5da2db2efe645b5d99)
+* Update base images for a security patch [0998c04](https://github.com/Azure/iotedge/commit/0998c04f9ce71fbe9ea56bd7453316fae42ec2e9)
+* Decouple pooled buffers functionality from `OptimizeForPerformance` flag [50027ff](https://github.com/Azure/iotedge/commit/50027ff39e22e45335c5ce5f30e0fda23d8f26be)
+* Update Prometheus versions to 4.2.0 [842c8c3](https://github.com/Azure/iotedge/commit/842c8c3d56e7ebc77aefd25a40bc38ffa96ba118)
+
+
+## Azure Functions Module Sample
+### Bug Fixes
+* Update Azure Functions packages [58cfa2b](https://github.com/Azure/iotedge/commit/58cfa2b8cea5811ff3f1a61441fd001ee6b25d69)
+* Update base images for a security patch [0998c04](https://github.com/Azure/iotedge/commit/0998c04f9ce71fbe9ea56bd7453316fae42ec2e9)
+
+
+## iotedged
+### Bug Fixes
+* Fix Rust security vulnerabilities [31b488f](https://github.com/Azure/iotedge/commit/31b488f33acbb3eeac6cdf86422b1c2785f3b92c), [8bd4fff](https://github.com/Azure/iotedge/commit/8bd4fffbb0eb5c2f2291fda4263d6c6b693571e0)
+* Organize Unix and Workload socket on containers. [b7a6d10](https://github.com/Azure/iotedge/commit/b7a6d10721943012ecde657ac677cf356f5139e1)
+
+
 # 1.1.4 (2021-07-05)
 ## Edge Agent
 ### Bug Fixes
