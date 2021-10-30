@@ -10,7 +10,7 @@ impl Checker for ProxySettings {
     fn meta(&self) -> CheckerMeta {
         CheckerMeta {
             id: "proxy-settings",
-            description: "proxy settings are consistent in iotedged, moby daemon and config.toml",
+            description: "proxy settings are consistent in aziot-edged, moby daemon and config.toml",
         }
     }
 
@@ -23,7 +23,7 @@ impl Checker for ProxySettings {
 
 impl ProxySettings{
     async fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
-        let settings = if let Some(settings) = &mut check.settings {
+        let settings = if let Some(settings) = &mut check.settings {            
             settings
         } else {
             return Ok(CheckResult::Skipped);
@@ -32,12 +32,9 @@ impl ProxySettings{
         // Pull the proxy address from the aziot-edged settings
         // for Edge Agent's environment variables.
         let edge_agent_proxy_uri = settings.base.agent.env().get("https_proxy");
-
-        // Pull the proxy address from the evironment for Moby and Edge Daemon
-        let moby_proxy_uri = std::env::var("HTTPS_PROXY")
-                                .ok();
-        let edge_daemon_proxy_uri = std::env::var("https_proxy")
-                                .ok();
+        // Pull local service env variables for Moby and Edge Daemon
+        let moby_proxy_uri = check.docker_proxy.clone();
+        let edge_daemon_proxy_uri = check.aziot_edge_proxy.clone();
 
         println!("edge agent: {:?}", edge_agent_proxy_uri);
         println!("moby: {:?}", moby_proxy_uri);
