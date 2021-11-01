@@ -73,3 +73,42 @@ jobs:
         displayName: Format Code
       - bash: mqtt/build/linux/clippy.sh
         displayName: Clippy
+
+################################################################################
+  - job: code_coverage
+################################################################################
+    displayName: Code Coverage
+    dependsOn: check_run_pipeline
+    condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
+    variables:
+      coverage.goal: 44
+    pool:
+      vmImage: "ubuntu-18.04"
+    steps:
+      - script: |
+          echo "##vso[task.setvariable variable=IOTEDGE_HOMEDIR;]/tmp"
+          echo "##vso[task.setvariable variable=CARGO;]${CARGO_HOME:-"$HOME/.cargo"}/bin/cargo"
+        displayName: Set env variables
+        workingDirectory: mqtt
+      - script: scripts/linux/generic-rust/install.sh --project-root "mqtt"
+        displayName: Install Rust
+      - script: |
+          $CARGO install cargo-tarpaulin
+        workingDirectory: mqtt
+        displayName: Install Cargo Tarpaulin
+      - script: |
+          $CARGO tarpaulin --out Xml --output-dir .
+        displayName: Test
+        workingDirectory: mqtt
+      - task: PublishCodeCoverageResults@1
+        displayName: Publish code coverage results
+        inputs:
+          codeCoverageTool: cobertura
+          summaryFileLocation: "mqtt/cobertura.xml"
+      - task: mspremier.BuildQualityChecks.QualityChecks-task.BuildQualityChecks@5
+        displayName: "Check build quality"
+        inputs:
+          checkCoverage: true
+          coverageFailOption: fixed
+          coverageType: lines
+          coverageThreshold: $(coverage.goal)
