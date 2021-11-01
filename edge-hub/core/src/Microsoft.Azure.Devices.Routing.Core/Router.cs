@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using System.Diagnostics;
     using System.Globalization;
     using System.Linq;
     using System.Threading;
@@ -11,7 +12,9 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Extensions.Logging;
+    using OpenTelemetry.Context.Propagation;
 
     public class Router : IDisposable
     {
@@ -21,6 +24,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
         readonly Evaluator evaluator;
         readonly AtomicReference<ImmutableDictionary<string, Route>> routes;
         readonly AsyncLock sync = new AsyncLock();
+        static TextMapPropagator propagator = new TraceContextPropagator();
         readonly string iotHubName;
 
         Router(string id, string iotHubName, Evaluator evaluator, Dispatcher dispatcher)
@@ -222,10 +226,28 @@ namespace Microsoft.Azure.Devices.Routing.Core
         Task RouteInternalAsync(IMessage message)
         {
             ISet<RouteResult> results = this.evaluator.Evaluate(message);
-
+            var parentContext = propagator.Extract(
+             default,
+             message,
+             ExtractTraceContextFromBasicProperties);
             Events.MessageEvaluation(this.iotHubName, message, results);
-
+            using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("ReceivedMessage", ActivityKind.Consumer, parentContext.ActivityContext);
+            if (message.MessageSource is BaseMessageSource)
+            {
+                activity?.SetTag("RoutingSource", (message as BaseMessageSource).Source);
+                activity?.SetTag("RoutingDestination", results.Select(x => x.Endpoint.Name).ToList().Join(","));
+            }
             return this.dispatcher.DispatchAsync(message, results);
+        }
+
+        private static IEnumerable<string> ExtractTraceContextFromBasicProperties(IMessage message, string key)
+        {
+            if (message.Properties.TryGetValue(key, out var value))
+            {
+                return new[] { value };
+            }
+
+            return Enumerable.Empty<string>();
         }
 
         void CheckClosed()
