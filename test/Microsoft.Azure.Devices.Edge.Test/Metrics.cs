@@ -78,6 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         [Test]
         [Category("FlakyOnArm")]
+        [Category("FlakyOnWindows")]
         public async Task ValidateMetrics()
         {
             CancellationToken token = this.TestToken;
