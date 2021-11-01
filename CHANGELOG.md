@@ -1,4 +1,4 @@
-# 1.1.8 (2021-11-01)
+# 1.1.8 (2021-11-02)
 ## iotedged
 ### Bug Fixes
 * Fix permission denied on workload socket [53157f2](https://github.com/Azure/iotedge/commit/53157f28c55eae5058527d87e6555eab863927e4)
