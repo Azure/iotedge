@@ -262,7 +262,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
 
             // Act
-            Stream logsStream = await client.GetModuleLogs("edgeHub", false, Option.None<int>(), Option.None<string>(), Option.None<string>(),  Option.Some(false), CancellationToken.None);
+            Stream logsStream = await client.GetModuleLogs("edgeHub", false, Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.Some(false), CancellationToken.None);
 
             // Assert
             Assert.NotNull(logsStream);
@@ -281,7 +281,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             var until = "2021-11-03T12:07:0Z";
 
             // Act and Assert
-            var ex = await Assert.ThrowsAsync<InvalidDataException>(async () =>
+            var ex = await Assert.ThrowsAsync<ArgumentException>(async () =>
             {
                 await client.GetModuleLogs("edgeHub", false, Option.Some<int>(10), Option.Some<string>(since), Option.Some<string>(until), Option.Some(true), CancellationToken.None);
             });
