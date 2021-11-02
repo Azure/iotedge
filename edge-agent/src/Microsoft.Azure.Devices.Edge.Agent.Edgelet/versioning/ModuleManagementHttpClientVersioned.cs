@@ -90,11 +90,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
                 string baseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri).TrimEnd('/');
-                var logsUrl = new StringBuilder();              
+                var logsUrl = new StringBuilder();
                 logsUrl.AppendFormat(CultureInfo.InvariantCulture, LogsUrlTemplate, baseUrl, module, this.Version.Name, follow.ToString().ToLowerInvariant());
                 since.ForEach(s =>
                 {
-                    if (!DateTime.TryParseExact(s, "yyyy-MM-dd'T'HH:mm:ssZ", enUS, DateTimeStyles.None, out var time))
+                    if (!DateTime.TryParseExact(s, "yyyy-MM-dd'T'HH:mm:ssZ", CultureInfo.InvariantCulture, DateTimeStyles.None, out var time))
                     {
                         throw new InvalidDataException($"Since Time with value : {s} is not in the correct format. The correct format should be yyyy-MM-dd'T'HH:mm:ssZ");
                     }
@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                 });
                 until.ForEach(u =>
                 {
-                    if (!DateTime.TryParseExact(u, "yyyy-MM-dd'T'HH:mm:ssZ", enUS, DateTimeStyles.None, out var time))
+                    if (!DateTime.TryParseExact(u, "yyyy-MM-dd'T'HH:mm:ssZ", CultureInfo.InvariantCulture, DateTimeStyles.None, out var time))
                     {
                         throw new InvalidDataException($"Until Time with value : {u} is not in the correct format. The correct format should be yyyy-MM-dd'T'HH:mm:ssZ");
                     }
