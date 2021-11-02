@@ -60,6 +60,7 @@ impl WorkloadService {
             cert::EdgeCaCertificate {
                 cert_id: config.edge_ca_cert().to_string(),
                 key_id: config.edge_ca_key().to_string(),
+                device_id: config.device_id().to_string(),
             },
             ErrorKind::StartService,
         );
