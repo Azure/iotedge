@@ -76,6 +76,7 @@ where
                     super::EdgeCaCertificate {
                         cert_id: cfg.edge_ca_cert().to_string(),
                         key_id: cfg.edge_ca_key().to_string(),
+                        device_id: cfg.device_id().to_string(),
                     },
                     ErrorKind::CertOperation(CertOperation::CreateIdentityCert),
                 )
