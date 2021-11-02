@@ -71,8 +71,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             EdgeConfiguration edgeConfiguration = builder.Build();
             string signedConfig = string.Empty;
 
-            ProcessStartInfo startInfo;
-
             if (enableManifestSigning.HasValue)
             {
                 // Write the current config into a file: EdgeConfiguration ToString() outputs the ConfigurationContent
@@ -82,9 +80,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 // Run Manifest signer client
                 string projectDirectory = enableManifestSigning.OrDefault().ManifestSignerClientProjectPath.OrDefault();
                 string dotnetCmdText = "run -p " + projectDirectory;
+                CancellationTokenSource manifestSignerCts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+
+                /* ProcessStartInfo startInfo;
                 startInfo = new ProcessStartInfo("dotnet", dotnetCmdText);
                 var dotnetProcess = System.Diagnostics.Process.Start(startInfo);
-                dotnetProcess.WaitForExit();
+                dotnetProcess.WaitForExit();*/
+
+                await Process.RunAsync(
+                    "dotnet",
+                    dotnetCmdText,
+                    manifestSignerCts.Token);
 
                 // write the signed deployment into a file
                 string signedDeploymentPath = enableManifestSigning.OrDefault().ManifestSigningSignedDeploymentPath.OrDefault();

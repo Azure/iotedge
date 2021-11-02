@@ -47,13 +47,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
         }
 
         public CaCertificates(string certificatePath, string keyPath, string trustedCertsPath, string manifestSigningTrustBundlePath)
+            : this(certificatePath, keyPath, trustedCertsPath)
         {
-            Preconditions.CheckArgument(File.Exists(certificatePath));
-            Preconditions.CheckArgument(File.Exists(keyPath));
-            Preconditions.CheckArgument(File.Exists(trustedCertsPath));
-            this.CertificatePath = certificatePath;
-            this.KeyPath = keyPath;
-            this.TrustedCertificatesPath = trustedCertsPath;
             this.ManifestTrustedCertificatesPath = Option.Maybe(manifestSigningTrustBundlePath);
         }
     }
