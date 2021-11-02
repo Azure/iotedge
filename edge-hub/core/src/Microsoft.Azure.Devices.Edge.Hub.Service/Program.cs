@@ -105,12 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             IConfigSource configSource = await container.Resolve<Task<IConfigSource>>();
             ConfigUpdater configUpdater = await container.Resolve<Task<ConfigUpdater>>();
             ExperimentalFeatures experimentalFeatures = CreateExperimentalFeatures(configuration);
-            var configUpdaterStartupFailed = new TaskCompletionSource<bool>();
             var configDownloadTask = configUpdater.Init(configSource);
-
-            _ = configDownloadTask.ContinueWith(
-                                            _ => configUpdaterStartupFailed.SetResult(false),
-                                            TaskContinuationOptions.OnlyOnFaulted);
 
             if (!Enum.TryParse(configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode)
                 || authenticationMode != AuthenticationMode.Cloud)
@@ -122,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             TimeSpan shutdownWaitPeriod = TimeSpan.FromSeconds(configuration.GetValue("ShutdownWaitPeriod", DefaultShutdownWaitPeriod));
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(shutdownWaitPeriod, logger);
 
-            using (IProtocolHead mqttBrokerProtocolHead = await GetMqttBrokerProtocolHeadAsync(experimentalFeatures, container))
+            using (IProtocolHead mqttBrokerProtocolHead = await GetMqttBrokerProtocolHeadAsync(experimentalFeatures, container, configDownloadTask))
             using (IProtocolHead edgeHubProtocolHead = await GetEdgeHubProtocolHeadAsync(logger, configuration, experimentalFeatures, container, hosting))
             using (var renewal = new CertificateRenewal(certificates, logger))
             {
@@ -130,7 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 {
                     await Task.WhenAll(mqttBrokerProtocolHead.StartAsync(), configDownloadTask);
                     await edgeHubProtocolHead.StartAsync();
-                    await Task.WhenAny(cts.Token.WhenCanceled(), renewal.Token.WhenCanceled(), configUpdaterStartupFailed.Task);
+                    await Task.WhenAny(cts.Token.WhenCanceled(), renewal.Token.WhenCanceled());
                 }
                 catch (Exception ex)
                 {
@@ -166,7 +161,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
         }
 
-        static async Task<IProtocolHead> GetMqttBrokerProtocolHeadAsync(ExperimentalFeatures experimentalFeatures, IContainer container)
+        static async Task<IProtocolHead> GetMqttBrokerProtocolHeadAsync(ExperimentalFeatures experimentalFeatures, IContainer container, Task configDownloadTask)
         {
             if (!experimentalFeatures.EnableMqttBroker)
             {
@@ -175,6 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             var orderedProtocolHeads = new List<IProtocolHead>();
             orderedProtocolHeads.Add(container.Resolve<MqttBrokerProtocolHead>());
+            await configDownloadTask;
             orderedProtocolHeads.Add(await container.Resolve<Task<AuthAgentProtocolHead>>());
             return new OrderedProtocolHead(orderedProtocolHeads);
         }
