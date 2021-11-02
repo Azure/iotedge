@@ -46,7 +46,7 @@ jobs:
       artifactName: iotedged-debian9-arm32v7
       identityServiceArtifactName: packages_debian-9-slim_arm32v7
       identityServicePackageFilter: aziot-identity-service_*_armhf.deb
-      enableManifestSigning: false
+      enableManifestSigning: true
 
     timeoutInMinutes: 120
 

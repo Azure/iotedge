@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         EdgeModule sensor;
         DateTime startTime;
 
-        public async Task SetConfigToEdgeDaemon(Option<string> rootCaPath, CancellationToken token)
+        async Task SetConfigToEdgeDaemon(Option<string> rootCaPath, CancellationToken token)
         {
             if (Context.Current.EnableManifestSigning)
             {
@@ -52,35 +52,21 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
         }
 
-        public void SetLaunchSettingsWithRootCa(Option<string> defaultLaunchSettings, Option<string> rootCaPath)
+        void SetLaunchSettingsWithRootCa(Option<string> defaultLaunchSettings, Option<string> rootCaPath)
         {
             // get the default launch settings and update with the root CA required for the test
             if (defaultLaunchSettings.HasValue && rootCaPath.HasValue)
             {
                 string defaultLaunchSettingsString = defaultLaunchSettings.OrDefault();
-                Console.WriteLine($"Default Launch Settings:  {defaultLaunchSettingsString}");
                 JObject defaultJsonObject = JObject.Parse(defaultLaunchSettingsString);
                 if (defaultJsonObject["profiles"]["ManifestSignerClient"]["environmentVariables"] != null)
                 {
-                    Console.WriteLine("Updated Root CA location");
                     defaultJsonObject["profiles"]["ManifestSignerClient"]["environmentVariables"]["MANIFEST_TRUST_DEVICE_ROOT_CA_PATH"] = rootCaPath.OrDefault();
-                }
-
-                // delete the previous launch settings file
-                string launchSettingsFile = Context.Current.ManifestSigningLaunchSettingsPath.OrDefault();
-                if (File.Exists(launchSettingsFile))
-                {
-                    File.Delete(launchSettingsFile);
-                }
-                else
-                {
-                    Console.WriteLine("Launch settings file doesn't exist");
                 }
 
                 // Wrtie the modified launch settings to the file
                 File.WriteAllText(Context.Current.ManifestSigningLaunchSettingsPath.OrDefault(), defaultJsonObject.ToString());
                 string newLauchSettingsContents = File.ReadAllText(Context.Current.ManifestSigningLaunchSettingsPath.OrDefault());
-                Console.WriteLine($"new Launch Settings from SetLaunchSettingsWithRootCa: {newLauchSettingsContents} ");
             }
         }
 
