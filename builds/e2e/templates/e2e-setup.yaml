@@ -26,6 +26,7 @@ steps:
         TestManifestSigningSignerCert,
         TestManifestSigningSignerKey,
         TestManifestSigningBadRootCa
+
   
   - bash: | 
       echo "Built Images Result is $(builtImages)"
@@ -124,7 +125,7 @@ steps:
       http_proxy: $(Agent.ProxyUrl)
       https_proxy: $(Agent.ProxyUrl)
     displayName: Build tests
-
+    
   - pwsh: |
       $manifestSignerClientDir = '$(Build.SourcesDirectory)/samples/dotnet/ManifestSignerClient'
       dotnet build $manifestSignerClientDir
@@ -293,6 +294,6 @@ steps:
         $context['testRunnerProxy'] = $env:AGENT_PROXYURL
         $context['edgeProxy'] = $env:AGENT_PROXYURL
       }
-  
+      
       $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
     displayName: Create test arguments file (context.json)
