@@ -90,10 +90,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
                 string baseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri).TrimEnd('/');
-                var logsUrl = new StringBuilder();
+                var logsUrl = new StringBuilder();              
                 logsUrl.AppendFormat(CultureInfo.InvariantCulture, LogsUrlTemplate, baseUrl, module, this.Version.Name, follow.ToString().ToLowerInvariant());
-                since.ForEach(s => logsUrl.AppendFormat($"&{LogsUrlSinceParameter}={Uri.EscapeUriString(s)}"));
-                until.ForEach(u => logsUrl.AppendFormat($"&{LogsUrlUntilParameter}={Uri.EscapeUriString(u)}"));
+                since.ForEach(s =>
+                {
+                    if (!DateTime.TryParseExact(s, "yyyy-MM-dd'T'HH:mm:ssZ", enUS, DateTimeStyles.None, out var time))
+                    {
+                        throw new InvalidDataException($"Since Time with value : {s} is not in the correct format. The correct format should be yyyy-MM-dd'T'HH:mm:ssZ");
+                    }
+
+                    logsUrl.AppendFormat($"&{LogsUrlSinceParameter}={Uri.EscapeUriString(s)}");
+                });
+                until.ForEach(u =>
+                {
+                    if (!DateTime.TryParseExact(u, "yyyy-MM-dd'T'HH:mm:ssZ", enUS, DateTimeStyles.None, out var time))
+                    {
+                        throw new InvalidDataException($"Until Time with value : {u} is not in the correct format. The correct format should be yyyy-MM-dd'T'HH:mm:ssZ");
+                    }
+
+                    logsUrl.AppendFormat($"&{LogsUrlUntilParameter}={Uri.EscapeUriString(u)}");
+                });
                 includeTimestamp.ForEach(b => logsUrl.AppendFormat($"&{LogsIncludeTimestampParameter}={b.ToString().ToLower()}"));
 
                 if (!(tail.HasValue && since.HasValue && until.HasValue))
