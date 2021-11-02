@@ -96,7 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                 {
                     if (!DateTime.TryParseExact(s, "yyyy-MM-dd'T'HH:mm:ssZ", CultureInfo.InvariantCulture, DateTimeStyles.None, out var time))
                     {
-                        throw new InvalidDataException($"Since Time with value : {s} is not in the correct format. The correct format should be yyyy-MM-dd'T'HH:mm:ssZ");
+                        throw new ArgumentException($"Since Time with value : {s} is not in the correct format. The correct format should be yyyy-MM-dd'T'HH:mm:ssZ");
                     }
 
                     logsUrl.AppendFormat($"&{LogsUrlSinceParameter}={Uri.EscapeUriString(s)}");
@@ -105,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                 {
                     if (!DateTime.TryParseExact(u, "yyyy-MM-dd'T'HH:mm:ssZ", CultureInfo.InvariantCulture, DateTimeStyles.None, out var time))
                     {
-                        throw new InvalidDataException($"Until Time with value : {u} is not in the correct format. The correct format should be yyyy-MM-dd'T'HH:mm:ssZ");
+                        throw new ArgumentException($"Until Time with value : {u} is not in the correct format. The correct format should be yyyy-MM-dd'T'HH:mm:ssZ");
                     }
 
                     logsUrl.AppendFormat($"&{LogsUrlUntilParameter}={Uri.EscapeUriString(u)}");
