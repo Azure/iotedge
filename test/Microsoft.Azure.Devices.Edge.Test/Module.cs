@@ -49,33 +49,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
 
             await sensor.WaitForEventsReceivedAsync(startTime, token);
-
-            await sensor.UpdateDesiredPropertiesAsync(
-                new
-                {
-                    properties = new
-                    {
-                        desired = new
-                        {
-                            SendData = true,
-                            SendInterval = 10
-                        }
-                    }
-                },
-                token);
-            await sensor.WaitForReportedPropertyUpdatesAsync(
-                new
-                {
-                    properties = new
-                    {
-                        reported = new
-                        {
-                            SendData = true,
-                            SendInterval = 10
-                        }
-                    }
-                },
-                token);
         }
 
         [Test]
