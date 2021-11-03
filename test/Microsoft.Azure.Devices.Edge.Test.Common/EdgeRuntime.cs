@@ -3,11 +3,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.IO;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
 
     public class EdgeRuntime
     {
@@ -38,8 +42,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public async Task<EdgeDeployment> DeployConfigurationAsync(
             Action<EdgeConfigBuilder> addConfig,
             CancellationToken token,
-            bool nestedEdge)
+            bool nestedEdge,
+            ManifestSettings enableManifestSigning1 = null)
         {
+            var enableManifestSigning = Option.Maybe(enableManifestSigning1);
             (string, string)[] hubEnvVar = new (string, string)[] { ("RuntimeLogLevel", "debug"), ("SslProtocols", "tls1.2") };
 
             if (nestedEdge == true)
@@ -61,9 +67,37 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 .WithProxy(this.proxy);
 
             addConfig(builder);
-
             DateTime deployTime = DateTime.Now;
             EdgeConfiguration edgeConfiguration = builder.Build();
+            string signedConfig = string.Empty;
+
+            if (enableManifestSigning.HasValue)
+            {
+                // Write the current config into a file: EdgeConfiguration ToString() outputs the ConfigurationContent
+                string deploymentPath = enableManifestSigning.OrDefault().ManifestSigningDeploymentPath.OrDefault();
+                File.WriteAllText(deploymentPath, edgeConfiguration.ToString());
+
+                // Run Manifest signer client
+                string projectDirectory = enableManifestSigning.OrDefault().ManifestSignerClientProjectPath.OrDefault();
+                string dotnetCmdText = "run -p " + projectDirectory;
+                CancellationTokenSource manifestSignerCts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+
+                await Process.RunAsync(
+                    "dotnet",
+                    dotnetCmdText,
+                    manifestSignerCts.Token);
+
+                // write the signed deployment into a file
+                string signedDeploymentPath = enableManifestSigning.OrDefault().ManifestSigningSignedDeploymentPath.OrDefault();
+                signedConfig = File.ReadAllText(signedDeploymentPath);
+            }
+
+            if (!string.IsNullOrEmpty(signedConfig))
+            {
+                // Convert signed config to ConfigurationContent
+                edgeConfiguration.Config = JsonConvert.DeserializeObject<ConfigurationContent>(signedConfig);
+            }
+
             await edgeConfiguration.DeployAsync(this.iotHub, token);
             EdgeModule[] modules = edgeConfiguration.ModuleNames
                 .Select(id => new EdgeModule(id, this.DeviceId, this.iotHub))
