@@ -234,9 +234,10 @@ namespace Microsoft.Azure.Devices.Routing.Core
             using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("ReceivedMessage", ActivityKind.Consumer, parentContext.ActivityContext);
             if (message.MessageSource is BaseMessageSource)
             {
-                activity?.SetTag("RoutingSource", (message as BaseMessageSource).Source);
+                activity?.SetTag("RoutingSource", (message.MessageSource as BaseMessageSource).Source);
                 activity?.SetTag("RoutingDestination", results.Select(x => x.Endpoint.Name).ToList().Join(","));
             }
+
             return this.dispatcher.DispatchAsync(message, results);
         }
 
