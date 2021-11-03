@@ -1,7 +1,7 @@
 parameters:
   EventHubCompatibleEndpoint: '$(TestEventHubCompatibleEndpoint)'
   IotHubConnectionString: '$(TestIotHubConnectionString)'
-  test_type: ''
+  test_type: '' 
 
 # This E2E test pipeline uses the following filters in order to skip certain tests:
 #   Flaky: Flaky on multiple platforms
@@ -20,10 +20,12 @@ steps:
 
     # Filter out flaky tests.
     $filter = 'Category!=Flaky'
+
     if ('$(minimal)' -eq 'true')
     {
       $filter += '&Name~TempSensor'
     }
+
     if ('$(artifactName)'.Contains('centos'))
     {
       $filter += '&Category=CentOsSafe'
@@ -32,12 +34,15 @@ steps:
     {
       $filter += '&Category!=FlakyOnArm'
     }
+    
     if ($test_type -eq 'nestededge_mqtt')
     {
       $filter += '&Category!=SingleNodeOnly'
       $filter += '&Category!=NestedEdgeAmqpOnly'
       $filter += '&Category!=LegacyMqttRequired'
+    
       $filter += '&Category!=FlakyOnNested'
+
       # Below tests were disabled and marked for re-enable when a blocking item was resolved.
       # When it was resolved the tests were never enabled. We need to re-enable these.
       $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
@@ -46,7 +51,9 @@ steps:
     {
       $filter += '&Category!=SingleNodeOnly'
       $filter += '&Category!=BrokerRequired'
+
       $filter += '&Category!=FlakyOnNested'
+
       # Below tests were disabled and marked for re-enable when a blocking item was resolved.
       # When it was resolved the tests were never enabled. We need to re-enable these.
       $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
@@ -59,8 +66,10 @@ steps:
     {
       #Disable tests that don't work in proxy environment. Renable post-investigation.
       $filter += '&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~ValidateMetrics'
+
       #Disable tests that timeout in proxy self-host environment
       $filter += '&FullyQualifiedName!~TestGetModuleLogs&FullyQualifiedName!~TestUploadSupportBundle'
+
       #Disable nested edge tests
       $filter += '&Category!=NestedEdgeOnly'
     }
