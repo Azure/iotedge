@@ -82,11 +82,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 string dotnetCmdText = "run -p " + projectDirectory;
                 CancellationTokenSource manifestSignerCts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
 
-                /* ProcessStartInfo startInfo;
-                startInfo = new ProcessStartInfo("dotnet", dotnetCmdText);
-                var dotnetProcess = System.Diagnostics.Process.Start(startInfo);
-                dotnetProcess.WaitForExit();*/
-
                 await Process.RunAsync(
                     "dotnet",
                     dotnetCmdText,

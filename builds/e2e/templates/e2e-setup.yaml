@@ -194,41 +194,38 @@ steps:
         $edgeHubImage = "$imagePrefix-hub:$imageTag";
       }
 
-      if ('$(enableManifestSigning)' -eq 'true')
-      {  
-        $testManifestSigningGoodRootCaPath = Convert-Path "$(manifestSigningCertDir)/good_root_ca.pem";
-        $testManifestSigningBadRootCaPath = Convert-Path "$(manifestSigningCertDir)/bad_root_ca.pem";
-        $testManifestSigningIntermediateCaPath = Convert-Path "$(manifestSigningCertDir)/intermediate_ca.pem";
-        $testManifestSigningSignerCertPath = Convert-Path "$(manifestSigningCertDir)/signer_cert.pem";
-        $testManifestSigningSignerKeyPath = Convert-Path "$(manifestSigningCertDir)/signer_key.key";
-        $testManifestSigningDeploymentPath = Convert-Path "$(manifestSigningDeploymentDir)/deployment.json";
-        $testManifestSigningSignedDeploymentPath = Convert-Path "$(manifestSigningDeploymentDir)/signed_deployment.json";
-        $testManifestSignerClientDirectory = Convert-Path "$(manifestSignerClientDir)";
-        $testManifestSignerClientProjectPath = Convert-Path "$(manifestSignerClientDir)/ManifestSignerClient.csproj";
-        $testManifestSigningLaunchSettingsPath = Convert-Path "$(manifestSignerClientDir)/Properties/launchSettings.json";
+      $testManifestSigningGoodRootCaPath = Convert-Path "$(manifestSigningCertDir)/good_root_ca.pem";
+      $testManifestSigningBadRootCaPath = Convert-Path "$(manifestSigningCertDir)/bad_root_ca.pem";
+      $testManifestSigningIntermediateCaPath = Convert-Path "$(manifestSigningCertDir)/intermediate_ca.pem";
+      $testManifestSigningSignerCertPath = Convert-Path "$(manifestSigningCertDir)/signer_cert.pem";
+      $testManifestSigningSignerKeyPath = Convert-Path "$(manifestSigningCertDir)/signer_key.key";
+      $testManifestSigningDeploymentPath = Convert-Path "$(manifestSigningDeploymentDir)/deployment.json";
+      $testManifestSigningSignedDeploymentPath = Convert-Path "$(manifestSigningDeploymentDir)/signed_deployment.json";
+      $testManifestSignerClientDirectory = Convert-Path "$(manifestSignerClientDir)";
+      $testManifestSignerClientProjectPath = Convert-Path "$(manifestSignerClientDir)/ManifestSignerClient.csproj";
+      $testManifestSigningLaunchSettingsPath = Convert-Path "$(manifestSignerClientDir)/Properties/launchSettings.json";
 
-        $testManifestSigningDefaultLaunchSettings = @{
-          profiles = @{
-            ManifestSignerClient = @{
-              commandName = "Project";
-              environmentVariables = @{  
-                USE_TESTING_CA = "true";
-                DEPLOYMENT_MANIFEST_FILE_PATH = "$testManifestSigningDeploymentPath";
-                SIGNED_DEPLOYMENT_MANIFEST_FILE_PATH = "$testManifestSigningSignedDeploymentPath";
-                MANIFEST_TRUST_INTERMEDIATE_CA_PATH = "$testManifestSigningIntermediateCaPath";
-                MANIFEST_TRUST_SIGNER_PRIVATE_KEY_PATH = "$testManifestSigningSignerKeyPath";
-                MANIFEST_TRUST_SIGNER_CERT_PATH = "$testManifestSigningSignerCertPath";
-                DSA_ALGORITHM = "ES256";
-              }
+      $testManifestSigningDefaultLaunchSettings = @{
+        profiles = @{
+          ManifestSignerClient = @{
+            commandName = "Project";
+            environmentVariables = @{  
+              USE_TESTING_CA = "true";
+              DEPLOYMENT_MANIFEST_FILE_PATH = "$testManifestSigningDeploymentPath";
+              SIGNED_DEPLOYMENT_MANIFEST_FILE_PATH = "$testManifestSigningSignedDeploymentPath";
+              MANIFEST_TRUST_INTERMEDIATE_CA_PATH = "$testManifestSigningIntermediateCaPath";
+              MANIFEST_TRUST_SIGNER_PRIVATE_KEY_PATH = "$testManifestSigningSignerKeyPath";
+              MANIFEST_TRUST_SIGNER_CERT_PATH = "$testManifestSigningSignerCertPath";
+              DSA_ALGORITHM = "ES256";
             }
           }
-        };
+        }
+      };
 
-        $testManifestSigningDefaultLaunchSettings = $testManifestSigningDefaultLaunchSettings | ConvertTo-Json -Depth 3 
-        $testManifestSigningDefaultLaunchSettings | Out-File -Encoding Utf8 "$testManifestSigningLaunchSettingsPath"
-        Get-Content -Path "$testManifestSigningLaunchSettingsPath"
-      }
-  
+      $testManifestSigningDefaultLaunchSettings = $testManifestSigningDefaultLaunchSettings | ConvertTo-Json -Depth 3 
+      $testManifestSigningDefaultLaunchSettings | Out-File -Encoding Utf8 "$testManifestSigningLaunchSettingsPath"
+      Get-Content -Path "$testManifestSigningLaunchSettingsPath"
+      
       echo "Edge agent image: $edgeAgentImage"
       echo "Edge hub image: $edgeHubImage"
   
@@ -294,6 +291,15 @@ steps:
         $context['testRunnerProxy'] = $env:AGENT_PROXYURL
         $context['edgeProxy'] = $env:AGENT_PROXYURL
       }
+
+      $context['manifestSigningDeploymentPath'] = "$testManifestSigningDeploymentPath"
+      $context['manifestSigningSignedDeploymentPath'] = "$testManifestSigningSignedDeploymentPath"
+      $context['manifestSigningGoodRootCaPath'] = "$testManifestSigningGoodRootCaPath"
+      $context['manifestSigningBadRootCaPath'] = "$testManifestSigningBadRootCaPath"
+      $context['manifestSigningDefaultLaunchSettings'] = "$testManifestSigningDefaultLaunchSettings"
+      $context['manifestSigningLaunchSettingsPath'] = "$testManifestSigningLaunchSettingsPath"
+      $context['manifestSignerClientDirectory'] = "$testManifestSignerClientDirectory"
+      $context['manifestSignerClientProjectPath'] = "$testManifestSignerClientProjectPath"
       
       $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
     displayName: Create test arguments file (context.json)
