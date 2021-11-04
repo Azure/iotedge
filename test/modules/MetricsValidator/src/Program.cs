@@ -71,9 +71,15 @@ namespace MetricsValidator
                                 await Task.WhenAll(tests.Select(test => test.Start(cts.Token)));
                             }
 
-                            return new MethodResponse(Encoding.UTF8.GetBytes(testReporter.ReportResults()), (int)HttpStatusCode.OK);
+                            var result = new MethodResponse(Encoding.UTF8.GetBytes(testReporter.ReportResults()), (int)HttpStatusCode.OK);
+
+                            Logger.LogInformation($"Finished validating metrics. Result size: {result.Result.Length}");
+                            return result;
                         },
                         null);
+
+                    moduleClient.SetConnectionStatusChangesHandler((status, reason)
+                        => Logger.LogWarning($"IoT Hub connection status Changed Status: {status} Reason: {reason}"));
 
                     Logger.LogInformation("Ready to validate metrics");
                     await cts.Token.WhenCanceled();
