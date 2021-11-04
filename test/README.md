@@ -2,7 +2,7 @@
 
 ## Test code structure
 
-There are three directories under the `test/` directory:
+There are six directories under the `test/` directory, three of which are of immediate concern, when it comes to running E2E tests:
 
 1. `test/Microsoft.Azure.Devices.Edge.Test/`: The actual tests live here, as do "fixtures" (setup and tear-down code that runs before/after/between tests) and the `Context` class (exposes the test arguments to tests).
 2. `test/Microsoft.Azure.Devices.Edge.Test.Common/`: The helper library tests use to do interesting things--like deploy modules or wait for a message to arrive in IoT hub--lives here.
@@ -73,7 +73,7 @@ sudo docker push localhost:5000/microsoft/generic-mqtt-tester:latest-linux-amd64
 The end-to-end tests take several parameters, which they expect to find in a file named `context.json` in the same directory as the test binaries (e.g., `test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp3.1/context.json`). Parameter names are case-insensitive. See [end-to-end test parameters](./doc/end-to-end-test-config.md) for details. 
 
 #### Sample context.json
-Here is a sample context.json file that you can use as a starting point to configure the parameters to fit your environment. 
+Here is a sample context.json file that you can use as a starting point to configure the parameters to fit your environment.
 ~~~ json
 {
     "packagePath": "/home/azureuser/iotedge/edgelet/target/release/",
@@ -92,14 +92,14 @@ Here is a sample context.json file that you can use as a starting point to confi
     "genericMqttTesterImage": "localhost:5000/microsoft/generic-mqtt-tester:latest-linux-amd64",
     "diagnosticsImage": "localhost:5000/microsoft/diagnostics:latest-linux-amd64",
     "metricsValidatorImage": "localhost:5000/microsoft/metrics-validator:latest-linux-amd64",
-    "caCertScriptPath": "/home/azureuser/iotedge/test/certs",
+    "caCertScriptPath": "/home/azureuser/iotedge/tools/CACertificates/",
     "dpsIdScope": "0ne01F35169",
-    "rootCaCertificatePath": "/home/azureuser/iotedge/test/certs/certs/azure-iot-test-only.root.ca.cert.pem",
-    "rootCaPrivateKeyPath": "/home/azureuser/iotedge/test/certs/private/azure-iot-test-only.root.ca.key.pem",
+    "rootCaCertificatePath": "/home/azureuser/iotedge/tools/CACertificates/certs/certs/azure-iot-test-only.root.ca.cert.pem",
+    "rootCaPrivateKeyPath": "/home/azureuser/iotedge/tools/CACertificates/certs/private/azure-iot-test-only.root.ca.key.pem",
     "verbose": "true",
     "logFile": "/home/azureuser/iotedge/logs/logfile",
     "registries":
-    [    
+    [
         {
             "address": "localhost:5000",
             "username": "username"
