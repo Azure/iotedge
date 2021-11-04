@@ -27,6 +27,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
 
         public static IEnumerable<object[]> VersionMap => GetVersionMap();
 
+        public static IEnumerable<object[]> InvalidVersionDateTimeMap => GetInvalidDateTime();
+
         public ModuleManagementHttpClientTest(EdgeletFixture edgeletFixture)
         {
             this.serverUrl = new Uri(edgeletFixture.ServiceUrl);
@@ -262,13 +264,40 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
 
             // Act
-            Stream logsStream = await client.GetModuleLogs("edgeHub", false, Option.None<int>(), Option.None<string>(), Option.None<string>(),  Option.Some(false), CancellationToken.None);
+            Stream logsStream = await client.GetModuleLogs("edgeHub", false, Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.Some(false), CancellationToken.None);
 
             // Assert
             Assert.NotNull(logsStream);
             byte[] buffer = new byte[1024];
             int bytesRead = await logsStream.ReadAsync(buffer, 0, buffer.Length);
             Assert.Equal(buffer.Length, bytesRead);
+        }
+
+        [Theory]
+        [MemberData(nameof(InvalidVersionDateTimeMap))]
+        public async Task ModuleLogsTestInvalidDateTime(string serverApiVersion, string clientApiVersion, string since, string until)
+        {
+            // Arrange
+            IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
+            // Act and Assert
+            var ex = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            {
+                await client.GetModuleLogs("edgeHub", false, Option.Some<int>(10), Option.Some<string>(since), Option.Some<string>(until), Option.Some(true), CancellationToken.None);
+            });
+            Assert.Contains("The correct format should be yyyy-MM-dd'T'HH:mm:ssZ", ex.Message);
+        }
+
+        [Theory]
+        [MemberData(nameof(VersionMap))]
+        public async Task ModuleLogsTestValidDateTime(string serverApiVersion, string clientApiVersion)
+        {
+            // Arrange
+            IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
+
+            // Act and Assert
+            string since = DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd'T'HH:mm:ssZ");
+            string until = DateTime.Now.AddDays(+1).ToString("yyyy-MM-dd'T'HH:mm:ssZ");
+            await client.GetModuleLogs("edgeHub", false, Option.Some<int>(10), Option.Some<string>(since), Option.Some<string>(until), Option.Some(true), CancellationToken.None);
         }
 
         [Theory]
@@ -347,6 +376,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         {
             List<object[]> versionMap = Versions.SelectMany(x => Versions.Select(y => new object[] { x, y })).ToList();
             return versionMap;
+        }
+
+        public static IEnumerable<object[]> GetInvalidDateTime()
+        {
+            var invalidDateTimes = new List<(string Since, string Until)>()
+            {
+                ($"2021-11-01T12:07:0Z", "2021-11-01T12:07:44Z"),
+                ("2021-11-01T12:07:32Z", "2021-11-01T12:07:0Z"),
+                ("random1", "random2"),
+            };
+
+            var incorrect = GetVersionMap().SelectMany(x => invalidDateTimes.Select(y => new object[] { x[0], x[1], y.Since, y.Until }));
+            return incorrect;
         }
     }
 }
