@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
 
         public static IEnumerable<object[]> VersionMap => GetVersionMap();
 
-        public static IEnumerable<object[]> VersionDateTimeMap => GetInvalidDateTime();
+        public static IEnumerable<object[]> InvalidVersionDateTimeMap => GetInvalidDateTime();
 
         public ModuleManagementHttpClientTest(EdgeletFixture edgeletFixture)
         {
@@ -274,7 +274,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         }
 
         [Theory]
-        [MemberData(nameof(VersionDateTimeMap))]
+        [MemberData(nameof(InvalidVersionDateTimeMap))]
         public async Task ModuleLogsTestInvalidDateTime(string serverApiVersion, string clientApiVersion, string since, string until)
         {
             // Arrange
@@ -289,7 +289,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
 
         [Theory]
         [MemberData(nameof(VersionMap))]
-        public async Task ModuleLogsValidDateTime(string serverApiVersion, string clientApiVersion)
+        public async Task ModuleLogsTestValidDateTime(string serverApiVersion, string clientApiVersion)
         {
             // Arrange
             IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
