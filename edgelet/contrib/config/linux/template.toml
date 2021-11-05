@@ -132,6 +132,10 @@
 # [provisioning.authentication]
 # method = "x509"
 #
+## identity certificate private key
+# identity_pk = "file:///var/secrets/device-id.key.pem"              # file URI, or...
+# identity_pk = "pkcs11:slot-id=0;object=device%20id?pin-value=1234" # PKCS#11 URI
+#
 ## identity certificate
 # identity_cert = "file:///var/secrets/device-id.pem"                # file URI, or...
 # [provisioning.authentication.identity_cert]                        # dynamically issued via...
@@ -139,10 +143,6 @@
 # method = "local_ca"                                                # - a local CA
 # common_name = "my-device"                                          # with the given common name, or...
 # subject = { L = "AQ", ST = "Antarctica", CN = "my-device" }        # with the given DN fields
-#
-## identity certificate private key
-# identity_pk = "file:///var/secrets/device-id.key.pem"              # file URI, or...
-# identity_pk = "pkcs11:slot-id=0;object=device%20id?pin-value=1234" # PKCS#11 URI
 
 
 ## DPS provisioning with symmetric key
@@ -170,6 +170,10 @@
 # method = "x509"
 # registration_id = "my-device"
 #
+## identity certificate private key
+# identity_pk = "file:///var/secrets/device-id.key.pem"              # file URI, or...
+# identity_pk = "pkcs11:slot-id=0;object=device%20id?pin-value=1234" # PKCS#11 URI
+#
 ## identity certificate
 # identity_cert = "file:///var/secrets/device-id.pem"                # file URI, or...
 # [provisioning.attestation.identity_cert]                           # dynamically issued via...
@@ -177,10 +181,6 @@
 # method = "local_ca"                                                # - a local CA
 # common_name = "my-device"                                          # with the given common name, or...
 # subject = { L = "AQ", ST = "Antarctica", CN = "my-device" }        # with the given DN fields
-#
-## identity certificate private key
-# identity_pk = "file:///var/secrets/device-id.key.pem"              # file URI, or...
-# identity_pk = "pkcs11:slot-id=0;object=device%20id?pin-value=1234" # PKCS#11 URI
 
 
 ## DPS provisioning with TPM
