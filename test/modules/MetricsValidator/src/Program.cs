@@ -79,7 +79,7 @@ namespace MetricsValidator
                         null);
 
                     moduleClient.SetConnectionStatusChangesHandler((status, reason)
-                        => Logger.LogWarning($"IoT Hub connection status Changed Status: {status} Reason: {reason}"));
+                        => Logger.LogWarning($"Module to Edge Hub connection changed Status: {status} Reason: {reason}"));
 
                     Logger.LogInformation("Ready to validate metrics");
                     await cts.Token.WhenCanceled();
