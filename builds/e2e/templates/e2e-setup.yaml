@@ -225,6 +225,7 @@ steps:
     {
       $context['testRunnerProxy'] = $env:AGENT_PROXYURL
       $context['edgeProxy'] = $env:AGENT_PROXYURL
+      echo "Proxy URL is $env:AGENT_PROXYURL"
     }
 
     $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
