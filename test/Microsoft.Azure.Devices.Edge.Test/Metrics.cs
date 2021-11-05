@@ -31,7 +31,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
             var agent = new EdgeAgent(this.runtime.DeviceId, this.IotHub);
             await agent.PingAsync(token);
 
-            var result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId,
+            var result = await this.IotHub.InvokeMethodAsync(
+                this.runtime.DeviceId,
                 ModuleName,
                 new CloudToDeviceMethod("ValidateMetrics", TimeSpan.FromSeconds(120), TimeSpan.FromSeconds(60)),
                 token);
