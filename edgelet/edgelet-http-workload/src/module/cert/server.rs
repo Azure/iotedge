@@ -99,8 +99,7 @@ where
         };
 
         // Server certificates have the module ID and certificate CN as the SANs.
-        let module_id_san = super::sanitize_dns_name(self.module_id);
-        let module_id_san = super::SubjectAltName::Dns(module_id_san);
+        let module_id_san = super::SubjectAltName::Dns(self.module_id);
 
         let subject_alt_names = vec![common_name_san, module_id_san];
 
@@ -138,13 +137,13 @@ mod tests {
 
     const TEST_PATH: &str = "/modules/testModule/genid/1/certificate/server";
 
-    const MODULENAME: &str = "testModule";
+    const MODULE_NAME: &str = "testModule";
 
     async fn post(
         route: super::Route<edgelet_test_utils::runtime::Runtime>,
     ) -> http_common::server::RouteResponse {
         let body = super::ServerCertificateRequest {
-            common_name: "testModule".to_string(),
+            common_name: MODULE_NAME.to_string(),
         };
 
         route.post(Some(body)).await
@@ -154,7 +153,7 @@ mod tests {
     fn parse_uri() {
         // Valid URI
         let route = test_route_ok!(TEST_PATH);
-        assert_eq!("testModule", &route.module_id);
+        assert_eq!(MODULE_NAME, &route.module_id);
         assert_eq!("1", &route.gen_id);
         assert_eq!(nix::unistd::getpid().as_raw(), route.pid);
 
@@ -173,7 +172,7 @@ mod tests {
 
     #[tokio::test]
     async fn auth() {
-        edgelet_test_utils::test_auth_caller!(TEST_PATH, "testModule", post);
+        edgelet_test_utils::test_auth_caller!(TEST_PATH, MODULE_NAME, post);
     }
 
     #[tokio::test]
@@ -185,7 +184,7 @@ mod tests {
             runtime.module_auth = std::collections::BTreeMap::new();
             runtime
                 .module_auth
-                .insert(MODULENAME.to_string(), vec![pid]);
+                .insert(MODULE_NAME.to_string(), vec![pid]);
         }
 
         let response = post(route).await.unwrap();
@@ -201,7 +200,7 @@ mod tests {
         let sans = cert.unwrap().subject_alt_names();
         for san in sans.unwrap().iter() {
             let name = san.dnsname().unwrap();
-            assert_eq!(MODULENAME.to_lowercase(), name.to_lowercase());
+            assert_eq!(MODULE_NAME.to_lowercase(), name.to_lowercase());
         }
     }
 }
