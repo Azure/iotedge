@@ -19,6 +19,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         [Test]
         [Category("CentOsSafe")]
+        // This test should be disabled on windows until the following is resolved:
+        // https://github.com/Azure/azure-iot-sdk-csharp/issues/2223
+        [Category("FlakyOnWindows")]
         public async Task TempSensor()
         {
             string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);

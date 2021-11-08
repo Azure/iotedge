@@ -1,6 +1,7 @@
 # This E2E test pipeline uses the following filters in order to skip certain tests:
 #   Flaky: Flaky on multiple platforms
 #   FlakyOnArm: Flaky only on arm
+#   FlakyOnWindows: Flaky only on windows
 #   CentOsSafe: Can be run on CentOs
 steps:
 - pwsh: |
@@ -26,7 +27,10 @@ steps:
         $(Join-Path $env:ProgramFiles 'iotedge-moby') -join ';'
       if ('$(minimal)' -eq 'true')
       {
-        $filter += '&Name~TempSensor'
+        # The minimal test suite on windows cannot use TempSensor test.
+        # Using another test for now until this issue is resolved:
+        # https://github.com/Azure/azure-iot-sdk-csharp/issues/2223
+        $filter += '&Name~TestPing'
       }
 
       dotnet test $testFile --no-build --logger 'trx' --filter "FullyQualifiedName=Microsoft.Azure.Devices.Edge.Test.Metrics.MetricsCollector"
