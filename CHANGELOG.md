@@ -1,3 +1,41 @@
+# 1.1.8 (2021-11-02)
+## iotedged
+### Bug Fixes
+* Fix permission denied on workload socket [53157f2](https://github.com/Azure/iotedge/commit/53157f28c55eae5058527d87e6555eab863927e4)
+* IoTedge Check checks expired production certs [1baad81](https://github.com/Azure/iotedge/commit/1baad8145781bac27306ed585f23a7af0742c370)
+
+
+## Edge Agent
+### Bug Fixes
+* Recreate edgeAgent when not Running, Stopped, or Failed [9efa300](https://github.com/Azure/iotedge/commit/9efa30091697c9617189b08b495fae8299f00787)
+
+
+## Edge Hub
+### Bug Fixes
+* Remove WebSocket Ping KeepAlives [a346b3b](https://github.com/Azure/iotedge/commit/a346b3bf3bca5398022ba1de911ac14fbdc7b1d0)
+* Detect fail-over from iot hub/sdk behavior and disconnect from hub [01cd351](https://github.com/Azure/iotedge/commit/01cd3510c54c71010845a4b770cd9d5be04719f7)
+* Correct wrong path for MessageStore.cs [6c8906d](https://github.com/Azure/iotedge/commit/6c8906d468be98b37b4db60a1361682469095baa)
+* Update dependency on vulnerable package [9ae0ddf](https://github.com/Azure/iotedge/commit/9ae0ddfb7b6fc5186d7c9107db2f6415819d8afe)
+
+
+# 1.1.7 (2021-10-13)
+## iotedged
+### Bug Fixes
+* Introduce `allow_elevated_docker_permissions` option in daemon config [6725a11](https://github.com/Azure/iotedge/commit/6725a11dc6a557478d9fe11820847e75f4ab27a1)
+* Fix a container socket stops working after a module restart [2e6b208](https://github.com/Azure/iotedge/commit/2e6b2082e5a632e6d041d95c625a669b8daab2b4)
+
+
+## Edge Agent
+### Bug Fixes
+* Create parent socket folder in Windows upgrade script [6d0ca55](https://github.com/Azure/iotedge/commit/6d0ca554467300144395aa3715b1140335d3b9c2), [7ed543a](https://github.com/Azure/iotedge/commit/7ed543afb33d9a8424800ed094269c5b029df5d2)
+* Update Base Images for a Security Patch [75bb5ea](https://github.com/Azure/iotedge/commit/75bb5eabb8c243d56ad3477b79b429060c7cb2d3)
+
+
+## Edge Hub
+### Bug Fixes
+* Update Base Images for a Security Patch [75bb5ea](https://github.com/Azure/iotedge/commit/75bb5eabb8c243d56ad3477b79b429060c7cb2d3)
+
+
 # 1.1.6 (2021-09-06)
 ## iotedged
 ### Bug Fixes

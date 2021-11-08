@@ -1,0 +1,264 @@
+parameters:
+  - name: 'E2EBuild'
+    type: boolean
+    default: false
+
+stages:
+
+################################################################################
+  - stage: CheckBuildPackages
+################################################################################
+    displayName: Check For Source Code Changes
+    pool:
+        name: $(pool.linux.name)
+        demands:
+          - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+    dependsOn: []
+    jobs:
+      - job: check_source_change_edgelet
+        displayName: Check Source Changes Edgelet (changes ARE in builds or edgelet)
+        steps:
+          - bash: |
+              git log -m -1 --name-only --first-parent --pretty="" | egrep -i '^(builds|edgelet)'
+              if [[ $? == 0 ]]; then
+                echo "Detected changes inside builds or edgelet folders"
+                echo "##vso[task.setvariable variable=EDGELETCHANGES;isOutput=true]TRUE"
+              fi
+            displayName: Check changes in edgelet sources
+            name: check_files
+  
+################################################################################
+  - stage: BuildPackages
+################################################################################
+    displayName: Build Packages
+    condition: |
+      or
+      (
+        eq(${{ parameters['E2EBuild'] }}, false), 
+        eq(dependencies.CheckBuildPackages.outputs['check_source_change_edgelet.check_files.EDGELETCHANGES'], 'true')
+      )
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+    dependsOn: CheckBuildPackages
+    jobs:
+################################################################################
+    - job: linux
+################################################################################
+      displayName: Linux
+      pool:
+        name: $(pool.linux.name)
+        demands:
+          - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+      strategy:
+        matrix:
+          Centos75-amd64:
+            arch: amd64
+            os: centos7
+            target.iotedged: edgelet/target/rpmbuild/RPMS/x86_64
+          # Centos75-arm32v7 and Centos75-aarch64 are built in packages.slow.yaml 
+          Debian9-amd64:
+            os: debian9
+            arch: amd64
+            target.iotedged: edgelet/target/release
+          Debian9-arm32v7:
+            os: debian9
+            arch: arm32v7
+            target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+          Debian9-aarch64:
+            os: debian9
+            arch: aarch64
+            target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+  
+          Debian10-amd64:
+            os: debian10
+            arch: amd64
+            target.iotedged: edgelet/target/release
+          Debian10-arm32v7:
+            os: debian10
+            arch: arm32v7
+            target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+          Debian10-aarch64:
+            os: debian10
+            arch: aarch64
+            target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+  
+          Debian11-amd64:
+            os: debian11
+            arch: amd64
+            target.iotedged: edgelet/target/release
+          Debian11-arm32v7:
+            os: debian11
+            arch: arm32v7
+            target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+          Debian11-aarch64:
+            os: debian11
+            arch: aarch64
+            target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+  
+          Ubuntu1804-amd64:
+            os: ubuntu18.04
+            arch: amd64
+            target.iotedged: edgelet/target/release
+          Ubuntu1804-arm32v7:
+            os: ubuntu18.04
+            arch: arm32v7
+            target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+          Ubuntu1804-aarch64:
+            os: ubuntu18.04
+            arch: aarch64
+            target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+      steps:
+        # Ensure any changes here are replicated in packages.slow.yaml
+        - bash: |
+            BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
+            VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"
+            echo "##vso[task.setvariable variable=VERSION;]$VERSION"
+  
+            echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
+            echo "##vso[task.setvariable variable=PACKAGE_OS;]$(os)"
+          displayName: Set Version
+          condition: or(eq(${{ parameters['E2EBuild'] }}, false), eq(variables.arch,'amd64'))
+        - script: edgelet/build/linux/package.sh
+          displayName: Create libiothsm and iotedged packages
+          condition: or(eq(${{ parameters['E2EBuild'] }}, false), eq(variables.arch,'amd64'))
+        - task: CopyFiles@2
+          displayName: Copy libiothsm Files to Artifact Staging
+          condition: or(eq(${{ parameters['E2EBuild'] }}, false), eq(variables.arch,'amd64'))
+          inputs:
+            SourceFolder: edgelet/target/hsm
+            Contents: |
+              *.deb
+              *.rpm
+            TargetFolder: '$(build.artifactstagingdirectory)'
+        - task: CopyFiles@2
+          displayName: Copy iotedged Files to Artifact Staging
+          condition: or(eq(${{ parameters['E2EBuild'] }}, false), eq(variables.arch,'amd64'))
+          inputs:
+            SourceFolder: $(target.iotedged)
+            Contents: |
+              *.deb
+              *.rpm
+              *.tar.gz
+            TargetFolder: '$(build.artifactstagingdirectory)'
+        - task: PublishBuildArtifacts@1
+          displayName: Publish Artifacts
+          inputs:
+            PathtoPublish: '$(build.artifactstagingdirectory)'
+            ArtifactName: 'iotedged-$(os)-$(arch)'
+          condition: and(succeededOrFailed(),or(eq(${{ parameters['E2EBuild'] }}, false), eq(variables.arch,'amd64')))
+  
+################################################################################
+    - job: mariner_linux
+################################################################################
+      displayName: Mariner_Linux
+      condition: eq(${{ parameters['E2EBuild'] }}, false)
+      pool:
+        vmImage: 'ubuntu-18.04'
+      strategy:
+        matrix:
+          CBL-Mariner1.0-amd64:
+            arch: amd64
+            os: mariner
+            release: tags/1.0-stable
+            target.iotedged: builds/mariner/out/RPMS/x86_64/
+      steps:
+        - bash: |
+            BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
+            VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"
+            echo "##vso[task.setvariable variable=VERSION;]$VERSION"
+  
+            echo "PACKAGE_ARCH=$(arch)"
+            echo "PACKAGE_OS=$(os)"
+            echo "##vso[task.setvariable variable=MARINER_RELEASE;]$(release)"
+          displayName: Set Version
+        - script: edgelet/build/linux/package-mariner.sh
+          displayName: Create libiothsm and iotedged packages
+        - task: CopyFiles@2
+          displayName: Copy iotedged and libiothsm build logs to artifact staging
+          inputs:
+            SourceFolder: builds/mariner/build/logs/pkggen/rpmbuilding/
+            Contents: |
+              **/*.rpm.log
+            TargetFolder: '$(build.artifactstagingdirectory)'
+          condition: succeededOrFailed()
+        - task: CopyFiles@2
+          displayName: Copy iotedged and libiothsm Files to Artifact Staging
+          inputs:
+            SourceFolder: $(target.iotedged)
+            Contents: |
+              *.rpm
+            TargetFolder: '$(build.artifactstagingdirectory)'
+          condition: succeededOrFailed()
+        - task: PublishBuildArtifacts@1
+          displayName: Publish Artifacts
+          inputs:
+            PathtoPublish: '$(build.artifactstagingdirectory)'
+            ArtifactName: 'iotedged-$(os)-$(arch)'
+          condition: succeededOrFailed()
+  
+################################################################################
+    - job: windows_amd64
+################################################################################
+      displayName: Windows amd64
+      condition: eq(${{ parameters['E2EBuild'] }}, false)
+      timeoutInMinutes: 90
+      pool:
+        name: $(pool.windows.name)
+        demands:
+          - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
+      steps:
+        - powershell: |
+            $base_version = Get-Content -Path "$(Build.SourcesDirectory)\edgelet\version.txt"
+            if ($base_version -like '*~*') {
+              $version = ("{0}{1}" -f $base_version, $(Build.BuildNumber))
+            } else {
+              $version = $base_version
+            }
+            Write-Host "base_version=$base_version"
+            Write-Host "version=$version"
+            Write-Host ("##vso[task.setvariable variable=VERSION;]$version")
+            Write-Host ("##vso[task.setvariable variable=NO_VALGRIND;]true")
+          displayName: Set Version
+        - powershell: edgelet/build/windows/install.ps1
+          displayName: Install Rust
+        - powershell: edgelet/build/windows/build.ps1 -Release
+          displayName: Build
+        - task: CMake@1
+          displayName: 'Setup libiothsm'
+          inputs:
+            workingDirectory: 'edgelet/hsm-sys/azure-iot-hsm-c/build'
+            cmakeArgs: '-G "Visual Studio 15 2017 Win64" -DBUILD_SHARED=ON -Duse_emulator=OFF ..'
+        - task: CMake@1
+          displayName: 'Build libiothsm'
+          inputs:
+            workingDirectory: 'edgelet/hsm-sys/azure-iot-hsm-c/build'
+            cmakeArgs: '--build . --config Release'
+        - powershell: edgelet/build/windows/package.ps1 -CreateTemplate
+          displayName: Prepare package template
+        - powershell: edgelet/build/windows/package.ps1 -CreateCab
+          displayName: Generate CAB package
+        - task: CopyFiles@2
+          displayName: 'Copy installer script and package to Artifact Staging'
+          inputs:
+            SourceFolder: .
+            Contents: |
+              *.cab
+              scripts/windows/setup/IotEdgeSecurityDaemon.ps1
+            TargetFolder: '$(build.artifactstagingdirectory)'
+        - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+          displayName: 'ESRP Installer and Package CodeSigning Internal'
+          inputs:
+            ConnectedServiceName: '$(WINDOWS_CODESIGN_SERVICE_CONNECTION)'
+            FolderPath: '$(build.artifactstagingdirectory)'
+            Pattern: '*.cab,*.ps1'
+            CertificateId: 302
+            OpusName: 'Azure IoT Edge'
+            OpusInfo: 'https://azure.microsoft.com/en-us/services/iot-edge/'
+            SessionTimeout: 20
+        - task: PublishBuildArtifacts@1
+          displayName: 'Publish Artifact: iotedged-windows'
+          inputs:
+            PathtoPublish: '$(build.artifactstagingdirectory)'
+            ArtifactName: 'iotedged-windows'
