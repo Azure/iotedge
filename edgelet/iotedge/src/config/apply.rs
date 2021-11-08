@@ -3,6 +3,10 @@
 //! This subcommand takes the super-config file, converts it into the individual services' config files,
 //! writes those files, and restarts the services.
 
+use std::borrow::Cow;
+use std::collections::BTreeMap;
+use std::fs::{self, File};
+use std::io::{BufRead, BufReader};
 use std::path::Path;
 
 use aziotctl_common::config as common_config;
@@ -16,7 +20,7 @@ const TRUST_BUNDLE_USER_ALIAS: &str = "trust-bundle-user";
 // TODO: Dedupe this with edgelet-http-workload
 const IOTEDGED_COMMONNAME_PREFIX: &str = "iotedged workload ca";
 
-pub fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>> {
+pub fn execute(config: &Path) -> Result<(), Cow<'static, str>> {
     // In production, running as root is the easiest way to guarantee the tool has write access to every service's config file.
     // But it's convenient to not do this for the sake of development because the the development machine doesn't necessarily
     // have the package installed and the users created, and it's easier to have the config files owned by the current user anyway.
@@ -171,8 +175,8 @@ fn execute_inner(
     aziotcs_uid: nix::unistd::Uid,
     aziotid_uid: nix::unistd::Uid,
     iotedge_uid: nix::unistd::Uid,
-) -> Result<RunOutput, std::borrow::Cow<'static, str>> {
-    let config = std::fs::read(config)
+) -> Result<RunOutput, Cow<'static, str>> {
+    let config = fs::read(config)
         .map_err(|err| format!("could not read config file {}: {}", config.display(), err))?;
 
     let super_config::Config {
@@ -182,7 +186,8 @@ fn execute_inner(
         imported_master_encryption_key,
         manifest_trust_bundle_cert,
         aziot,
-        agent,
+        mut agent,
+        product_info,
         connect,
         listen,
         watchdog,
@@ -226,14 +231,14 @@ fn execute_inner(
 
     let preloaded_master_encryption_key_bytes = {
         if let Some(imported_master_encryption_key) = imported_master_encryption_key {
-            let preloaded_master_encryption_key_bytes =
-                std::fs::read(&imported_master_encryption_key).map_err(|err| {
-                    format!(
-                        "could not import master encryption key file {}: {}",
-                        imported_master_encryption_key.display(),
-                        err
-                    )
-                })?;
+            let preloaded_master_encryption_key_bytes = fs::read(&imported_master_encryption_key)
+                .map_err(|err| {
+                format!(
+                    "could not import master encryption key file {}: {}",
+                    imported_master_encryption_key.display(),
+                    err
+                )
+            })?;
             keyd_config.preloaded_keys.insert(
                 "iotedge_master_encryption_id".to_owned(),
                 (aziot_keys_common::PreloadedKeyLocation::Filesystem {
@@ -270,7 +275,7 @@ fn execute_inner(
                         keys: vec![edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()],
                     };
 
-                    let mut keys = std::collections::BTreeMap::default();
+                    let mut keys = BTreeMap::default();
 
                     let auth = common_config::apply::set_est_auth(
                         auth.as_ref(),
@@ -396,6 +401,87 @@ fn execute_inner(
         edgelet_settings::MANIFEST_TRUST_BUNDLE_ALIAS.to_owned()
     });
 
+    if let Some(product_info) = product_info {
+        let product_info_env = "IOTEDGE_PRODUCTINFO".to_owned();
+
+        match product_info {
+            super_config::ProductInfo::System => {
+                let kernel_info = String::from_utf8(
+                    fs::read("/proc/version")
+                        .map_err(|err| format!("cannot get kernel info: {}", err))?,
+                )
+                .expect("malformed uname output")
+                .trim()
+                .to_owned();
+
+                let (os_id, os_version_id) = {
+                    let r = regex::Regex::new(r#"^(?:([0-9a-z._-]+)|"([0-9a-z._-]+)")$"#)
+                        .expect("malformed regular expression");
+
+                    let b = BufReader::new(
+                        File::open("/etc/os-release")
+                            .or_else(|_| fs::File::open("/usr/lib/os-release"))
+                            .map_err(|err| format!("cannot get OS release information: {}", err))?,
+                    );
+
+                    let mut os_id = None;
+                    let mut os_version_id = None;
+
+                    for line in b.lines() {
+                        match line.expect("IO failure").split_once("=") {
+                            Some(("ID", value)) if r.is_match(value) => {
+                                os_id = Some(r.replace(value, "$1$2").to_string());
+                            }
+                            Some(("VERSION_ID", value)) if r.is_match(value) => {
+                                os_version_id = Some(r.replace(value, "$1$2").to_string());
+                            }
+                            _ => (),
+                        }
+                    }
+
+                    os_id
+                        .zip(os_version_id)
+                        .ok_or("malformed OS release file")?
+                };
+
+                let sys_name = String::from_utf8(
+                    fs::read("/sys/devices/virtual/dmi/id/product_name")
+                        .map_err(|err| format!("cannot get system name from DMI: {}", err))?,
+                )
+                .expect("malformed DMI data")
+                .trim()
+                .to_owned();
+
+                let sys_version = String::from_utf8(
+                    fs::read("/sys/devices/virtual/dmi/id/product_version")
+                        .map_err(|err| format!("cannot get system version from DMI: {}", err))?,
+                )
+                .expect("malformed DMI data")
+                .trim()
+                .to_owned();
+
+                let sys_vendor = String::from_utf8(
+                    fs::read("/sys/devices/virtual/dmi/id/sys_vendor")
+                        .map_err(|err| format!("cannot get system vendor from DMI: {}", err))?,
+                )
+                .expect("malformed DMI data")
+                .trim()
+                .to_owned();
+
+                agent.env_mut().insert(
+                    product_info_env,
+                    format!(
+                        "({}:{}-{}:{} {} {})",
+                        kernel_info, os_id, os_version_id, sys_name, sys_version, sys_vendor
+                    ),
+                );
+            }
+            super_config::ProductInfo::Custom(custom) => {
+                agent.env_mut().insert(product_info_env, custom);
+            }
+        }
+    }
+
     let edged_config = edgelet_settings::Settings {
         base: edgelet_settings::base::Settings {
             hostname: identityd_config.hostname.clone(),
@@ -432,31 +518,28 @@ fn execute_inner(
                 uri,
                 network,
                 content_trust: content_trust
-                    .map(
-                        |content_trust| -> Result<_, std::borrow::Cow<'static, str>> {
-                            let super_config::ContentTrust { ca_certs } = content_trust;
+                    .map(|content_trust| -> Result<_, Cow<'static, str>> {
+                        let super_config::ContentTrust { ca_certs } = content_trust;
 
-                            Ok(edgelet_settings::ContentTrust {
-                                ca_certs: ca_certs
-                                    .map(|ca_certs| -> Result<_, std::borrow::Cow<'static, str>> {
-                                        let mut new_ca_certs: std::collections::BTreeMap<_, _> =
-                                            Default::default();
+                        Ok(edgelet_settings::ContentTrust {
+                            ca_certs: ca_certs
+                                .map(|ca_certs| -> Result<_, Cow<'static, str>> {
+                                    let mut new_ca_certs: BTreeMap<_, _> = Default::default();
 
-                                        for (hostname, cert_uri) in ca_certs {
-                                            let cert_id = format!("content-trust-{}", hostname);
-                                            certd_config.preloaded_certs.insert(
-                                                cert_id.clone(),
-                                                aziot_certd_config::PreloadedCert::Uri(cert_uri),
-                                            );
-                                            new_ca_certs.insert(hostname.clone(), cert_id);
-                                        }
+                                    for (hostname, cert_uri) in ca_certs {
+                                        let cert_id = format!("content-trust-{}", hostname);
+                                        certd_config.preloaded_certs.insert(
+                                            cert_id.clone(),
+                                            aziot_certd_config::PreloadedCert::Uri(cert_uri),
+                                        );
+                                        new_ca_certs.insert(hostname.clone(), cert_id);
+                                    }
 
-                                        Ok(new_ca_certs)
-                                    })
-                                    .transpose()?,
-                            })
-                        },
-                    )
+                                    Ok(new_ca_certs)
+                                })
+                                .transpose()?,
+                        })
+                    })
                     .transpose()?,
             }
         },
@@ -548,7 +631,7 @@ mod tests {
     fn test() {
         let files_directory =
             std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/test-files/config"));
-        for entry in std::fs::read_dir(files_directory).unwrap() {
+        for entry in fs::read_dir(files_directory).unwrap() {
             let entry = entry.unwrap();
             if !entry.file_type().unwrap().is_dir() {
                 continue;
@@ -561,24 +644,24 @@ mod tests {
             println!(".\n.\n=========\n.\nRunning test {}", test_name);
 
             let super_config_file = case_directory.join("super-config.toml");
-            let expected_keyd_config = std::fs::read(case_directory.join("keyd.toml")).unwrap();
-            let expected_certd_config = std::fs::read(case_directory.join("certd.toml")).unwrap();
+            let expected_keyd_config = fs::read(case_directory.join("keyd.toml")).unwrap();
+            let expected_certd_config = fs::read(case_directory.join("certd.toml")).unwrap();
             let expected_identityd_config =
-                std::fs::read(case_directory.join("identityd.toml")).unwrap();
-            let expected_tpmd_config = std::fs::read(case_directory.join("tpmd.toml")).unwrap();
-            let expected_edged_config = std::fs::read(case_directory.join("edged.toml")).unwrap();
+                fs::read(case_directory.join("identityd.toml")).unwrap();
+            let expected_tpmd_config = fs::read(case_directory.join("tpmd.toml")).unwrap();
+            let expected_edged_config = fs::read(case_directory.join("edged.toml")).unwrap();
 
             let expected_preloaded_device_id_pk_bytes =
-                match std::fs::read(case_directory.join("device-id")) {
+                match fs::read(case_directory.join("device-id")) {
                     Ok(contents) => Some(contents),
                     Err(err) if err.kind() == std::io::ErrorKind::NotFound => None,
                     Err(err) => panic!("could not read device-id file: {}", err),
                 };
 
             let expected_preloaded_master_encryption_key_bytes = {
-                match std::fs::read(case_directory.join("master-encryption-key")) {
+                match fs::read(case_directory.join("master-encryption-key")) {
                     Ok(contents) => {
-                        match std::fs::write("/tmp/master-encryption-key", &contents) {
+                        match fs::write("/tmp/master-encryption-key", &contents) {
                             Ok(()) => (),
                             Err(err) if err.kind() == std::io::ErrorKind::NotFound => (),
                             Err(err) => {
@@ -588,7 +671,7 @@ mod tests {
                         Some(contents)
                     }
                     Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
-                        match std::fs::remove_file("/tmp/master-encryption-key") {
+                        match fs::remove_file("/tmp/master-encryption-key") {
                             Ok(()) => (),
                             Err(err) if err.kind() == std::io::ErrorKind::NotFound => (),
                             Err(err) => {

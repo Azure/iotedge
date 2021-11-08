@@ -439,6 +439,7 @@ fn execute_inner(
                 },
             )?
         },
+        product_info: Default::default(),
 
         connect: {
             let old_config::Connect {

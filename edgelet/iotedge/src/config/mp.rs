@@ -77,6 +77,7 @@ To reconfigure IoT Edge, run:
         },
 
         agent: super_config::default_agent(),
+        product_info: Default::default(),
 
         connect: Default::default(),
         listen: Default::default(),

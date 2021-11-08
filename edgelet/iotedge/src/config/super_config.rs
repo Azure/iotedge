@@ -39,6 +39,9 @@ pub struct Config {
     pub agent: edgelet_settings::ModuleSpec<edgelet_settings::DockerConfig>,
 
     #[serde(default)]
+    pub product_info: Option<ProductInfo>,
+
+    #[serde(default)]
     pub connect: edgelet_settings::uri::Connect,
     #[serde(default)]
     pub listen: edgelet_settings::uri::Listen,
@@ -70,6 +73,13 @@ pub fn default_agent() -> edgelet_settings::ModuleSpec<edgelet_settings::DockerC
         /* image pull policy */ Default::default(),
     )
     .expect("name and type are never empty")
+}
+
+#[derive(Debug, serde_derive::Deserialize, serde_derive::Serialize)]
+#[serde(rename_all = "snake_case", tag = "source", content = "value")]
+pub enum ProductInfo {
+    System,
+    Custom(String),
 }
 
 #[derive(Debug, serde_derive::Deserialize, serde_derive::Serialize)]
