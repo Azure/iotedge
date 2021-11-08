@@ -144,10 +144,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             {
                 var builder = new ContainerBuilder();
                 builder.RegisterModule(new LoggingModule(dockerLoggingDriver, dockerLoggingOptions));
-                string productInfo =
-                    versionInfo != VersionInfo.Empty ?
-                    $"{Constants.IoTEdgeAgentProductInfoIdentifier}/{versionInfo}" :
-                    Constants.IoTEdgeAgentProductInfoIdentifier;
+                string productInfo = Constants.IoTEdgeAgentProductInfoIdentifier;
+                if (versionInfo != VersionInfo.Empty)
+                {
+                    productInfo += $"/{versionInfo}";
+                }
+                string additionalProductInfo = configuration.GetValue<string>(Constants.EdgeletProductInfoVariableName);
+                if (!string.IsNullOrEmpty(additionalProductInfo))
+                {
+                    productInfo += $" {additionalProductInfo}";
+                }
                 Option<UpstreamProtocol> upstreamProtocol = configuration.GetValue<string>(Constants.UpstreamProtocolKey).ToUpstreamProtocol();
                 Option<IWebProxy> proxy = Proxy.Parse(configuration.GetValue<string>("https_proxy"), logger);
                 bool closeOnIdleTimeout = configuration.GetValue(Constants.CloseOnIdleTimeout, false);

@@ -71,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string EdgeletApiVersionVariableName = "IOTEDGE_APIVERSION";
 
-        public const string EdgeletProductInfoVariableName = "IOTEDGE_PRODUCT_INFO";
+        public const string EdgeletProductInfoVariableName = "IOTEDGE_PRODUCTINFO";
 
         public const string ModeKey = "Mode";
 
