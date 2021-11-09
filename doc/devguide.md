@@ -79,7 +79,7 @@ Currently, Code Coverage Local Checks are supported only in a Windows Environmen
 dotnet test /p:CollectCoverage=true --filter "Category=Unit" -s CodeCoverage.runsettings --logger:trx --results-directory TestResults
 ```
 
-2. Convert *.converage to *.coveragexml file to generate HTML Reports
+2. Convert *.coverage to *.coveragexml file to generate HTML Reports
 
 ```pwsh
 dotnet tool install --global dotnet-coverageconverter
