@@ -109,10 +109,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
                 networkControllerStatus = curr.NetworkControllerStatus;
                 NetworkControllerTestResult next = this.networkControllerTestResults[i + 1];
                 isWithinTolerancePeriod = statusTime > curr.CreatedAt && statusTime <= next.CreatedAt.Add(this.tolerancePeriod);
-                if (statusTime > curr.CreatedAt)
-                {
-                    delay = statusTime.Subtract(curr.CreatedAt);
-                }
+                delay = statusTime.Subtract(curr.CreatedAt);
             }
 
             return (networkControllerStatus, isWithinTolerancePeriod, delay);
