@@ -34,7 +34,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
-        [Category("Flaky")]
         public async Task TestGetModuleLogs()
         {
             string moduleName = "NumberLogger";
@@ -51,8 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 }, token);
             await Task.Delay(30000);
 
-            string since = DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd'T'HH:mm:sZ");
-            string until = DateTime.Now.AddDays(+1).ToString("yyyy-MM-dd'T'HH:mm:sZ");
+            string since = DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd'T'HH:mm:ssZ");
+            string until = DateTime.Now.AddDays(+1).ToString("yyyy-MM-dd'T'HH:mm:ssZ");
 
             var request = new ModuleLogsRequest("1.0", new List<LogRequestItem> { new LogRequestItem(moduleName, new ModuleLogFilter(Option.Some(10), Option.Some(since), Option.Some(until), Option.None<int>(), Option.None<bool>(), Option.None<string>())) }, LogsContentEncoding.None, LogsContentType.Text);
 
