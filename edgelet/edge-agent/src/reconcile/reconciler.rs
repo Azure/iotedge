@@ -1,4 +1,4 @@
-use edgelet_core::ModuleRuntime;
+use edgelet_core::{Module, ModuleRuntime, ModuleRuntimeState};
 use edgelet_settings::DockerConfig;
 
 use crate::deployment::DeploymentProvider;
@@ -24,11 +24,21 @@ where
     }
 
     pub async fn reconcile(&self) -> Result<()> {
-        let differance = self.get_differance().await?;
+        println!("Starting Reconcile");
+        println!(
+            "Got current modules: {:#?}",
+            self.get_current_modules().await
+        );
+        println!(
+            "Got expected modules: {:#?}",
+            self.get_expected_modules().await
+        );
 
-        for module_to_create in differance.modules_to_create {
-            self.runtime.create(module_to_create).await.unwrap();
-        }
+        // let differance = self.get_differance().await?;
+
+        // for module_to_create in differance.modules_to_create {
+        //     self.runtime.create(module_to_create).await.unwrap();
+        // }
 
         Ok(())
     }
@@ -43,15 +53,33 @@ where
         Ok(vec![])
     }
 
-    async fn get_current_modules(&self) -> Result<Vec<ModuleSettings>> {
-        Ok(vec![])
+    async fn get_current_modules(&self) -> Result<Vec<RunningModule>> {
+        let modules = self
+            .runtime
+            .list_with_details()
+            .await
+            .unwrap()
+            .iter()
+            .map(|(module, state)| RunningModule {
+                name: module.name().to_owned(),
+                state: state.to_owned(),
+            })
+            .collect();
+
+        Ok(modules)
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 struct ModuleDifferance {
     modules_to_create: Vec<ModuleSettings>,
-    modules_to_delete: Vec<ModuleSettings>,
-    state_change_modules: Vec<ModuleSettings>,
-    failed_modules: Vec<ModuleSettings>,
+    modules_to_delete: Vec<RunningModule>,
+    state_change_modules: Vec<RunningModule>,
+    failed_modules: Vec<RunningModule>,
+}
+
+#[derive(Default, Debug)]
+struct RunningModule {
+    name: String,
+    state: ModuleRuntimeState,
 }

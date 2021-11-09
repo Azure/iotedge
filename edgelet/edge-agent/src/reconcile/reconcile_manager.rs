@@ -4,20 +4,22 @@ use edgelet_core::ModuleRuntime;
 use edgelet_settings::DockerConfig;
 
 use super::reconciler::Reconciler;
+use crate::deployment::DeploymentProvider;
 
-pub struct ReconcileManager<M> {
+pub struct ReconcileManager<D, M> {
     frequency: Duration,
-    reconciler: Reconciler<M>,
+    reconciler: Reconciler<D, M>,
 }
 
-impl<M> ReconcileManager<M>
+impl<D, M> ReconcileManager<D, M>
 where
+    D: DeploymentProvider + Send + Sync + 'static,
     M: ModuleRuntime<Config = DockerConfig> + Send + Sync + 'static,
 {
-    pub fn new(frequency: Duration, deployment_file: PathBuf, runtime: M) -> Self {
+    pub fn new(frequency: Duration, deployment_provider: D, runtime: M) -> Self {
         Self {
             frequency,
-            reconciler: Reconciler::new(deployment_file, runtime),
+            reconciler: Reconciler::new(deployment_provider, runtime),
         }
     }
 
