@@ -4,6 +4,7 @@ namespace SimulatedTemperatureSensor
     using System;
     using System.IO;
     using System.Net;
+    using System.Net.Security;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -279,6 +280,7 @@ namespace SimulatedTemperatureSensor
                 {
                     ITransportSettings[] GetTransportSettings()
                     {
+                        RemoteCertificateValidationCallback certificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
                         switch (transportType)
                         {
                             case TransportType.Mqtt:
@@ -289,7 +291,12 @@ namespace SimulatedTemperatureSensor
                             case TransportType.Amqp_WebSocket_Only:
                                 return new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only) };
                             default:
-                                return new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
+                                var settings = new AmqpTransportSettings(TransportType.Amqp_Tcp_Only);
+                                settings.RemoteCertificateValidationCallback = certificateValidationCallback;
+                                return new ITransportSettings[]
+                                {
+                                    settings
+                                };
                         }
                     }
 
