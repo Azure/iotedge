@@ -33,7 +33,7 @@ steps:
         $filter += '&Name~TestPing'
       }
 
-      dotnet test $testFile --no-build --logger 'trx' --filter "FullyQualifiedName=Microsoft.Azure.Devices.Edge.Test.Metrics.MetricsCollector"
+      dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
     }
     else
     {
@@ -47,7 +47,7 @@ steps:
         $filter += '&Name~TempSensor'
       }
 
-      sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "FullyQualifiedName=Microsoft.Azure.Devices.Edge.Test.Metrics.MetricsCollector"
+      sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
     }
   displayName: Run tests
   env:
