@@ -142,7 +142,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn load_current() {
+    async fn load_existing() {
         let test_file = std::path::Path::new(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/src/deployment/test/twin1.json"
@@ -247,7 +247,7 @@ mod tests {
     // }
 
     #[tokio::test]
-    async fn test_parsing() {
+    async fn test_load_all_deployments() {
         let test_files_directory =
             std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/src/deployment/test"));
         let tmp_dir = tempdir().unwrap();

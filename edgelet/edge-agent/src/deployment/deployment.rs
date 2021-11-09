@@ -1,5 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 
+// https://github.com/SchemaStore/schemastore/blob/master/src/schemas/json/azure-iot-edgeagent-deployment-1.1.json
+
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct Deployment {
     pub properties: Properties,
@@ -26,11 +28,12 @@ pub struct PropertiesInner {
 pub struct ModuleConfig {
     pub settings: DockerSettings,
     pub r#type: RuntimeType,
-    pub env: BTreeMap<String, String>,
     pub status: Option<String>,
     pub restart_policy: Option<String>,
-    pub imagePullPolicy: Option<String>,
+    pub image_pull_policy: Option<String>,
     pub version: Option<String>,
+    #[serde(default)]
+    pub env: BTreeMap<String, String>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
@@ -80,12 +83,8 @@ pub struct DockerSettings {
     #[serde(skip_serializing_if = "Option::is_none")]
     image_hash: Option<String>,
 
-    #[serde(
-        deserialize_with = "deserialize_create_options",
-        skip_serializing_if = "Option::is_none",
-        default
-    )]
-    create_options: Option<docker::models::ContainerCreateBody>,
+    #[serde(flatten)]
+    create_option: CreateOption,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     digest: Option<String>,
@@ -100,6 +99,23 @@ pub struct DockerSettings {
     allow_elevated_docker_permissions: bool,
 }
 
+impl From<DockerSettings> for edgelet_settings::DockerConfig {
+    fn from(settings: DockerSettings) -> Self {
+        Self::default() // TODO: convert
+    }
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+pub struct CreateOption {
+    #[serde(
+        deserialize_with = "deserialize_create_options",
+        // skip_serializing_if = "Option::is_none",
+        default,
+        rename = "createOptions"
+    )]
+    create_options: Option<docker::models::ContainerCreateBody>,
+}
+
 fn deserialize_create_options<'de, D>(
     deserializer: D,
 ) -> Result<Option<docker::models::ContainerCreateBody>, D::Error>
@@ -108,8 +124,59 @@ where
 {
     let s: String = serde::de::Deserialize::deserialize(deserializer)?;
     if s.is_empty() {
+        // println!("Parsing empty create options");
         Ok(None)
     } else {
+        // println!("Parsing create options: {}", s);
         serde_json::from_str(&s).map_err(serde::de::Error::custom)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs::File;
+
+    use super::*;
+
+    #[test]
+    fn test_read_all() {
+        let test_files_directory =
+            std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/src/deployment/test"));
+
+        for test_file in std::fs::read_dir(test_files_directory).unwrap() {
+            let test_file = test_file.unwrap();
+            if test_file.file_type().unwrap().is_dir() {
+                continue;
+            }
+            let test_file = test_file.path();
+
+            println!("Parsing deployment file {:#?}", test_file);
+            let raw_deployment = File::open(&test_file).unwrap();
+            let _deployment: Deployment = serde_json::from_reader(&raw_deployment)
+                .expect(&format!("Could not parse deployment file {:#?}", test_file));
+        }
+    }
+
+    #[test]
+    fn test_parse_create_options() {
+        let test_file = std::path::Path::new(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/deployment/test/twin1.json"
+        ));
+        let raw_deployment = File::open(&test_file).unwrap();
+        let deployment: Deployment = serde_json::from_reader(&raw_deployment)
+            .expect(&format!("Could not parse deployment file {:#?}", test_file));
+
+        assert!(
+            deployment
+                .properties
+                .desired
+                .system_modules
+                .edge_hub
+                .settings
+                .create_option
+                .create_options
+                != None
+        );
     }
 }
