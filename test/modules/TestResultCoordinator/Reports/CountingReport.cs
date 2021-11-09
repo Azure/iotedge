@@ -27,7 +27,7 @@ namespace TestResultCoordinator.Reports
     /// </summary>
     class CountingReport : TestResultReportBase
     {
-        const string C2dOverMqttTestDescription = "C2D | mqtt";
+        const string C2dTestDescription = "C2D";
         const string GenericMqttTelemetryTestDescription = "messages | local | mqtt | generic";
 
         public CountingReport(
@@ -117,7 +117,7 @@ namespace TestResultCoordinator.Reports
                 {
                     // Product issue for C2D messages connected to edgehub over mqtt.
                     // We should remove this failure tolerance when fixed.
-                    if (this.TestDescription.Equals(C2dOverMqttTestDescription))
+                    if (this.TestDescription.Contains(C2dTestDescription))
                     {
                         return ((double)this.TotalMatchCount / this.TotalExpectCount) > .8d;
                     }
