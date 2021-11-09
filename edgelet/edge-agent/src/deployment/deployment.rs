@@ -1,4 +1,7 @@
-use std::collections::{BTreeMap, HashMap};
+use std::{
+    collections::{BTreeMap, HashMap},
+    fmt,
+};
 
 // https://github.com/SchemaStore/schemastore/blob/master/src/schemas/json/azure-iot-edgeagent-deployment-1.1.json
 
@@ -105,15 +108,104 @@ impl From<DockerSettings> for edgelet_settings::DockerConfig {
     }
 }
 
-#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize)]
 pub struct CreateOption {
     #[serde(
-        deserialize_with = "deserialize_create_options",
-        // skip_serializing_if = "Option::is_none",
+        skip_serializing_if = "Option::is_none",
         default,
         rename = "createOptions"
     )]
     create_options: Option<docker::models::ContainerCreateBody>,
+}
+
+impl<'de> serde::Deserialize<'de> for CreateOption {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        // enum Field { Secs, Nanos }
+
+        // // This part could also be generated independently by:
+        // //
+        // #[derive(serde::Deserialize)]
+        // #[serde(field_identifier, rename_all = "lowercase")]
+        // enum Field {
+        //     Secs,
+        //     Nanos,
+        // }
+        // impl<'de> Deserialize<'de> for Field {
+        //     fn deserialize<D>(deserializer: D) -> Result<Field, D::Error>
+        //     where
+        //         D: Deserializer<'de>,
+        //     {
+        //         struct FieldVisitor;
+
+        //         impl<'de> Visitor<'de> for FieldVisitor {
+        //             type Value = Field;
+
+        //             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        //                 formatter.write_str("`secs` or `nanos`")
+        //             }
+
+        //             fn visit_str<E>(self, value: &str) -> Result<Field, E>
+        //             where
+        //                 E: de::Error,
+        //             {
+        //                 match value {
+        //                     "secs" => Ok(Field::Secs),
+        //                     "nanos" => Ok(Field::Nanos),
+        //                     _ => Err(de::Error::unknown_field(value, FIELDS)),
+        //                 }
+        //             }
+        //         }
+
+        //         deserializer.deserialize_identifier(FieldVisitor)
+        //     }
+        // }
+
+        struct CreateOptionsVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for CreateOptionsVisitor {
+            type Value = CreateOption;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("struct Duration")
+            }
+
+            fn visit_map<V>(self, mut map: V) -> Result<Self::Value, V::Error>
+            where
+                V: serde::de::MapAccess<'de>,
+            {
+                println!("visit map");
+                let mut create_options: Option<docker::models::ContainerCreateBody> = None;
+                let mut parts: [String; 10];
+
+                while let Some(key) = map.next_key::<String>()? {
+                    let s: String = map.next_value()?;
+                    println!("Got key {}: {}", key, s);
+
+                    if key == "createOptions" {
+                        if create_options.is_some() {
+                            return Err(serde::de::Error::duplicate_field("createOptions"));
+                        }
+
+                        create_options = if s.is_empty() {
+                            None
+                        } else {
+                            Some(serde_json::from_str(&s).map_err(serde::de::Error::custom)?)
+                        };
+                    }
+                }
+                // let secs = secs.ok_or_else(|| de::Error::missing_field("secs"))?;
+                // let nanos = nanos.ok_or_else(|| de::Error::missing_field("nanos"))?;
+
+                Ok(CreateOption { create_options })
+            }
+        }
+
+        const FIELDS: &'static [&'static str] = &["createOptions"];
+        deserializer.deserialize_struct("CreateOption", FIELDS, CreateOptionsVisitor)
+    }
 }
 
 fn deserialize_create_options<'de, D>(
