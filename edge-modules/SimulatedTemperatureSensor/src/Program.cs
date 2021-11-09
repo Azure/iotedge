@@ -291,6 +291,7 @@ namespace SimulatedTemperatureSensor
                             case TransportType.Amqp_WebSocket_Only:
                                 return new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only) };
                             default:
+                                Console.WriteLine("NEW CODE CHANGES -------------------");
                                 var settings = new AmqpTransportSettings(TransportType.Amqp_Tcp_Only);
                                 settings.RemoteCertificateValidationCallback = certificateValidationCallback;
                                 return new ITransportSettings[]
