@@ -67,15 +67,24 @@ impl DeploymentManager {
         Ok(())
     }
 
-    pub fn get_valid_deployment(&self) -> Option<&Deployment> {
-        self.valid_deployment.as_ref()
-    }
-
     fn validate_deployment(deployment: &serde_json::Value) -> Result<Option<Deployment>> {
-        let deployment = serde_json::from_value(deployment.clone())?;
+        match serde_json::from_value(deployment.clone()) {
+            Ok(deployment) => Ok(Some(deployment)),
+            Err(error) => {
+                println!("Invalid Deployment: {}", error);
+                Ok(None)
+            }
+        }
+    }
+}
 
-        Ok(Some(deployment))
-        // Ok(Default::default())
+pub trait DeploymentProvider {
+    fn get_deployment(&self) -> Option<&Deployment>;
+}
+
+impl DeploymentProvider for DeploymentManager {
+    fn get_deployment(&self) -> Option<&Deployment> {
+        self.valid_deployment.as_ref()
     }
 }
 

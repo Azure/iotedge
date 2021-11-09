@@ -1,25 +1,24 @@
-use std::path::PathBuf;
-
 use edgelet_core::ModuleRuntime;
 use edgelet_settings::DockerConfig;
 
-use crate::deployment::DeploymentManager;
+use crate::deployment::DeploymentProvider;
 
 type ModuleSettings = edgelet_settings::module::Settings<edgelet_settings::DockerConfig>;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
-pub struct Reconciler<M> {
-    deployment_file: PathBuf,
+pub struct Reconciler<D, M> {
+    deployment_provider: D,
     runtime: M,
 }
 
-impl<M> Reconciler<M>
+impl<D, M> Reconciler<D, M>
 where
+    D: DeploymentProvider,
     M: ModuleRuntime<Config = DockerConfig>,
 {
-    pub fn new(deployment_file: PathBuf, runtime: M) -> Self {
+    pub fn new(deployment_provider: D, runtime: M) -> Self {
         Self {
-            deployment_file,
+            deployment_provider,
             runtime,
         }
     }
@@ -39,7 +38,7 @@ where
     }
 
     async fn get_expected_modules(&self) -> Result<Vec<ModuleSettings>> {
-        let deployment = DeploymentManager::get_deployment(&self.deployment_file).await;
+        let deployment = self.deployment_provider.get_deployment();
 
         Ok(vec![])
     }

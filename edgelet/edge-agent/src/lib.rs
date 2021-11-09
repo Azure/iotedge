@@ -1,5 +1,5 @@
 mod deployment;
-// mod reconcile;
+mod reconcile;
 mod hub_client_manager;
 mod util;
 
