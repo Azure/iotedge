@@ -123,53 +123,13 @@ impl<'de> serde::Deserialize<'de> for CreateOption {
     where
         D: serde::Deserializer<'de>,
     {
-        // enum Field { Secs, Nanos }
-
-        // // This part could also be generated independently by:
-        // //
-        // #[derive(serde::Deserialize)]
-        // #[serde(field_identifier, rename_all = "lowercase")]
-        // enum Field {
-        //     Secs,
-        //     Nanos,
-        // }
-        // impl<'de> Deserialize<'de> for Field {
-        //     fn deserialize<D>(deserializer: D) -> Result<Field, D::Error>
-        //     where
-        //         D: Deserializer<'de>,
-        //     {
-        //         struct FieldVisitor;
-
-        //         impl<'de> Visitor<'de> for FieldVisitor {
-        //             type Value = Field;
-
-        //             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        //                 formatter.write_str("`secs` or `nanos`")
-        //             }
-
-        //             fn visit_str<E>(self, value: &str) -> Result<Field, E>
-        //             where
-        //                 E: de::Error,
-        //             {
-        //                 match value {
-        //                     "secs" => Ok(Field::Secs),
-        //                     "nanos" => Ok(Field::Nanos),
-        //                     _ => Err(de::Error::unknown_field(value, FIELDS)),
-        //                 }
-        //             }
-        //         }
-
-        //         deserializer.deserialize_identifier(FieldVisitor)
-        //     }
-        // }
-
         struct CreateOptionsVisitor;
 
         impl<'de> serde::de::Visitor<'de> for CreateOptionsVisitor {
             type Value = CreateOption;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("struct Duration")
+                formatter.write_str("create options")
             }
 
             fn visit_map<V>(self, mut map: V) -> Result<Self::Value, V::Error>
@@ -177,50 +137,43 @@ impl<'de> serde::Deserialize<'de> for CreateOption {
                 V: serde::de::MapAccess<'de>,
             {
                 println!("visit map");
-                let mut create_options: Option<docker::models::ContainerCreateBody> = None;
-                let mut parts: [String; 10];
+                let mut parts: [String; 10] = Default::default();
 
                 while let Some(key) = map.next_key::<String>()? {
-                    let s: String = map.next_value()?;
-                    println!("Got key {}: {}", key, s);
+                    println!("Got key {}", key);
+                    let i: usize = if key == "createOptions" {
+                        0
+                    } else {
+                        key[13..].parse().unwrap() // Note parsing cannot fail, since the possible values of "key" are constrained below
+                    };
 
-                    if key == "createOptions" {
-                        if create_options.is_some() {
-                            return Err(serde::de::Error::duplicate_field("createOptions"));
-                        }
-
-                        create_options = if s.is_empty() {
-                            None
-                        } else {
-                            Some(serde_json::from_str(&s).map_err(serde::de::Error::custom)?)
-                        };
-                    }
+                    parts[i] = map.next_value()?;
                 }
-                // let secs = secs.ok_or_else(|| de::Error::missing_field("secs"))?;
-                // let nanos = nanos.ok_or_else(|| de::Error::missing_field("nanos"))?;
+
+                let create_options = parts.concat();
+                let create_options = if create_options.is_empty() {
+                    None
+                } else {
+                    Some(serde_json::from_str(&create_options).map_err(serde::de::Error::custom)?)
+                };
 
                 Ok(CreateOption { create_options })
             }
         }
 
-        const FIELDS: &'static [&'static str] = &["createOptions"];
+        const FIELDS: &'static [&'static str] = &[
+            "createOptions",
+            "createOptions1",
+            "createOptions2",
+            "createOptions3",
+            "createOptions4",
+            "createOptions5",
+            "createOptions6",
+            "createOptions7",
+            "createOptions8",
+            "createOptions9",
+        ];
         deserializer.deserialize_struct("CreateOption", FIELDS, CreateOptionsVisitor)
-    }
-}
-
-fn deserialize_create_options<'de, D>(
-    deserializer: D,
-) -> Result<Option<docker::models::ContainerCreateBody>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let s: String = serde::de::Deserialize::deserialize(deserializer)?;
-    if s.is_empty() {
-        // println!("Parsing empty create options");
-        Ok(None)
-    } else {
-        // println!("Parsing create options: {}", s);
-        serde_json::from_str(&s).map_err(serde::de::Error::custom)
     }
 }
 
@@ -251,24 +204,28 @@ mod tests {
 
     #[test]
     fn test_parse_create_options() {
-        let test_file = std::path::Path::new(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/src/deployment/test/twin1.json"
-        ));
-        let raw_deployment = File::open(&test_file).unwrap();
-        let deployment: Deployment = serde_json::from_reader(&raw_deployment)
-            .expect(&format!("Could not parse deployment file {:#?}", test_file));
+        for file in ["twin1", "twin1_split_create_options"] {
+            let test_file = format!(
+                "{}/src/deployment/test/{}.json",
+                env!("CARGO_MANIFEST_DIR"),
+                file
+            );
+            let raw_deployment = File::open(&test_file).unwrap();
+            let deployment: Deployment = serde_json::from_reader(&raw_deployment)
+                .expect(&format!("Could not parse deployment file {:#?}", test_file));
 
-        assert!(
-            deployment
+            let create_options = deployment
                 .properties
                 .desired
                 .system_modules
                 .edge_hub
                 .settings
                 .create_option
-                .create_options
-                != None
-        );
+                .create_options;
+            let body = create_options.expect(&format!("create_options missing for {}", file));
+            let host_config = body
+                .host_config()
+                .expect(&format!("host_config missing for {}", file));
+        }
     }
 }
