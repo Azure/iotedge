@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Billing;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Json;
     using Newtonsoft.Json;
@@ -40,7 +41,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service
             IEnumerable<string> capabilities,
             ServiceAuthentication authentication,
             ServiceIdentityStatus status)
-            : this(deviceId,
+            : this(
+                  deviceId,
                   moduleId,
                   deviceScope,
                   parentScopes,

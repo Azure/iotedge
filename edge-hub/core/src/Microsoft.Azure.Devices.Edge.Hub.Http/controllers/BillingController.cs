@@ -1,17 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
     using System.Net;
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Mvc;
-    using Microsoft.Azure.Devices.Common;
-    using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Billing;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
@@ -53,14 +48,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             }
         }
 
-        internal async Task<PurchaseResult> HandleGetPurchaseAsync(string deviceId, string moduleId, IDeviceScopeIdentitiesCache identitiesCache)
+        async Task<PurchaseResult> HandleGetPurchaseAsync(string deviceId, string moduleId, IDeviceScopeIdentitiesCache identitiesCache)
         {
-            Option<PurchaseContent> purchase = await identitiesCache.GetPurchaseAsync(deviceId, moduleId);
+            SynchedPurchase purchase = await identitiesCache.GetPurchaseAsync(deviceId, moduleId);
 
-            Events.SendingPurchaseResult(deviceId, moduleId, purchase);
-            return purchase.Match(
-               purchase => new PurchaseResultSuccess() { PurchaseStatus = PurchaseStatus.Complete, PublisherId = purchase.PublisherId, OfferId = purchase.OfferId, PlanId = purchase.PlanId },
-               () => new PurchaseResultSuccess() { PurchaseStatus = PurchaseStatus.NotFound });
+            Events.SendingPurchaseResult(deviceId, moduleId, purchase.PurchaseContent);
+            return purchase.PurchaseContent.Match(
+               p => new PurchaseResultSuccess() { PublisherId = p.PublisherId, OfferId = p.OfferId, PlanId = p.PlanId, PurchaseStatus = PurchaseStatus.Complete, SynchedDateTimeUtc = purchase.SynchedDateUtc },
+               () => new PurchaseResultSuccess() { PurchaseStatus = PurchaseStatus.NotFound, SynchedDateTimeUtc = purchase.SynchedDateUtc });
         }
 
         async Task SendResponse(HttpStatusCode status, string responseJson)
@@ -84,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 SendingPurchaseResult = IdStart,
             }
 
-            internal static void SendingPurchaseResult(string deviceId, string moduleId, Option<PurchaseContent> purchase)
+            public static void SendingPurchaseResult(string deviceId, string moduleId, Option<PurchaseContent> purchase)
             {
                 Log.LogInformation((int)EventIds.SendingPurchaseResult, $"Sending ScopeResult for {deviceId}/{moduleId}: {purchase}");
             }

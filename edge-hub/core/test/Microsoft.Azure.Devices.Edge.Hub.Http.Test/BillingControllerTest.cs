@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 {
+    using System;
     using System.IO;
     using System.Net;
     using System.Text;
@@ -8,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Billing;
     using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Http.Controllers;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -24,8 +26,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         {
             string childEdgeId = "edge2";
             string moduleId = "module1";
-            
-            PurchaseContent purchaseContent = new PurchaseContent() {
+
+            PurchaseContent purchaseContent = new PurchaseContent()
+            {
                 PublisherId = "id",
                 OfferId = "offer1",
                 PlanId = "plan1"
@@ -54,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
                 .Returns(identitiesCache.Object);
 
             identitiesCache.Setup(c => c.GetPurchaseAsync(It.Is<string>(id => id == targetEdgeId), It.Is<string>(id => id == moduleId)))
-                .ReturnsAsync(Option.Some(purchaseContent));
+                .ReturnsAsync(new SynchedPurchase(DateTime.UtcNow, Option.Some(purchaseContent)));
 
             var authenticator = new Mock<IHttpRequestAuthenticator>();
             authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<string>(), It.IsAny<Option<string>>(), It.IsAny<Option<string>>(), It.IsAny<HttpContext>()))

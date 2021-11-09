@@ -1,8 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Http
 {
+    using System;
     using System.Net;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Billing;
     using Newtonsoft.Json;
+    using Newtonsoft.Json.Converters;
 
     public abstract class PurchaseResult
     {
@@ -17,9 +20,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
 
     public class PurchaseResultSuccess : PurchaseResult
     {
-        public PurchaseResultSuccess() : base(HttpStatusCode.OK)
+        public PurchaseResultSuccess()
+            : base(HttpStatusCode.OK)
         {
         }
+
+        [JsonConverter(typeof(StringEnumConverter))]
+        [JsonProperty("purchaseStatus")]
+        public PurchaseStatus PurchaseStatus { get; set; }
 
         [JsonProperty("publisherId")]
         public string PublisherId { get; set; }
@@ -30,8 +38,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
         [JsonProperty("planId")]
         public string PlanId { get; set; }
 
-        [JsonProperty("purchaseStatus")]
-        public PurchaseStatus PurchaseStatus { get; set; }
+        [JsonProperty("synchedDateTimeUtc")]
+        public DateTime SynchedDateTimeUtc { get; set; }
     }
 
     public class PurchaseResultError : PurchaseResult
@@ -44,11 +52,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
 
         [JsonProperty("ErrorMessage")]
         public string ErrorMessage { get; set; }
-    }
-
-    public enum PurchaseStatus
-    {
-        NotFound,
-        Complete
     }
 }

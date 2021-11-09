@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Hub.Core
+namespace Microsoft.Azure.Devices.Edge.Hub.Core.Billing
 {
     using System;
     using Newtonsoft.Json;
