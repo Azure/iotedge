@@ -1,3 +1,36 @@
+# 1.2.5 (2021-11-09)
+## Edge Agent
+### Bug Fixes
+* Add `RocksDB_MaxManifestFileSize` env var to Edge Agent and Edge Hub ( [c9c4b29](https://github.com/Azure/iotedge/commit/c9c4b2979c5986597c86bb8630ddd4a97df490f1) )
+* Recreate edgeAgent when not Running, Stopped, or Failed ( [c5d6176](https://github.com/Azure/iotedge/commit/c5d6176af44e3650507d394411c824b1019204f8) )
+* Update SDK to 1.36.3 ( [f12d7ca](https://github.com/Azure/iotedge/commit/f12d7ca0ff6ea826d09989b5b5488af44c366a6f) )
+* Restricting EdgeAgent identity parallel operation calls to edged to 5 ( [2391cd9](https://github.com/Azure/iotedge/commit/2391cd992af91633293e5f27fde07cd1522888f3) )
+
+
+## Edge Hub
+### Bug Fixes
+* Remove WebSocket Ping KeepAlives ( [2d451cc](https://github.com/Azure/iotedge/commit/2d451cc576d5f934c3767ebb894089e7d722b217) )
+* Update SDK to 1.36.3 ( [f12d7ca](https://github.com/Azure/iotedge/commit/f12d7ca0ff6ea826d09989b5b5488af44c366a6f), [9a2a526](https://github.com/Azure/iotedge/commit/9a2a52659b75d4964254607d253b3d7189ae07b3) )
+* Detect fail-over from Iot Hub and SDK behavior and disconnect from IoT Hub ( [52c563a](https://github.com/Azure/iotedge/commit/52c563a506ff56d80905dcb054dfa918104a1fa2) )
+* Fix `edgehub_queue_len` metric ( [487890d](https://github.com/Azure/iotedge/commit/487890db566cb31cef7e8b83dff34526f2c74608) )
+
+
+## Azure Functions Module Sample
+### Bug Fixes
+* Update TempFilterFunc binding protocol to Amqp_Tcp_Only ( [a5e559c](https://github.com/Azure/iotedge/commit/a5e559c823528fc38c83cf110ccbacca8549bda4) )
+* Update Base Images for a security patch ( [d6e3657](https://github.com/Azure/iotedge/commit/d6e3657c5abac3752138b3c29955556aad8a8b30) )
+* Update SDK to 1.36.3 ( [f12d7ca](https://github.com/Azure/iotedge/commit/f12d7ca0ff6ea826d09989b5b5488af44c366a6f) )
+
+
+## aziot-edge
+### Bug Fixes
+* Disable connection pooling for docker client ( [12e12cf](https://github.com/Azure/iotedge/commit/12e12cff639560b554ab3c84ff8d2a1acaa5e6fe) )
+* Allows an issued Edge CA certificate to be specified in the super config ( [6368eb6](https://github.com/Azure/iotedge/commit/6368eb60e09e0f24e78dd0a936b31223437968e9) )
+* Fix workload socket permission denied ( [861aceb](https://github.com/Azure/iotedge/commit/861acebc55d8b4737451edfaa2d12ed2e8dad6ed) )
+* Backport EST documentation and update configuration template ( [3822152](https://github.com/Azure/iotedge/commit/382215262b3320c15f2694617ac0e77f8f86a251) )
+* Fix typo in template configuration ( [d0978ba](https://github.com/Azure/iotedge/commit/d0978bacaeeecbd0fe4611b6c38bbcbc10044d9a) )
+
+
 # 1.2.4 (2021-09-29)
 ## Edge Agent
 ### Bug Fixes
