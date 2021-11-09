@@ -4,6 +4,7 @@
 * Add `RocksDB_MaxManifestFileSize` env var to Edge Agent and Edge Hub ( [c9c4b29](https://github.com/Azure/iotedge/commit/c9c4b2979c5986597c86bb8630ddd4a97df490f1) )
 * Recreate edgeAgent when not Running, Stopped, or Failed ( [c5d6176](https://github.com/Azure/iotedge/commit/c5d6176af44e3650507d394411c824b1019204f8) )
 * Update SDK to 1.36.3 ( [f12d7ca](https://github.com/Azure/iotedge/commit/f12d7ca0ff6ea826d09989b5b5488af44c366a6f) )
+* Update Base Images for a security patch ( [d6e3657](https://github.com/Azure/iotedge/commit/d6e3657c5abac3752138b3c29955556aad8a8b30) )
 * Restricting EdgeAgent identity parallel operation calls to edged to 5 ( [2391cd9](https://github.com/Azure/iotedge/commit/2391cd992af91633293e5f27fde07cd1522888f3) )
 
 
@@ -11,6 +12,7 @@
 ### Bug Fixes
 * Remove WebSocket Ping KeepAlives ( [2d451cc](https://github.com/Azure/iotedge/commit/2d451cc576d5f934c3767ebb894089e7d722b217) )
 * Update SDK to 1.36.3 ( [f12d7ca](https://github.com/Azure/iotedge/commit/f12d7ca0ff6ea826d09989b5b5488af44c366a6f), [9a2a526](https://github.com/Azure/iotedge/commit/9a2a52659b75d4964254607d253b3d7189ae07b3) )
+* Update Base Images for a security patch ( [d6e3657](https://github.com/Azure/iotedge/commit/d6e3657c5abac3752138b3c29955556aad8a8b30) )
 * Detect fail-over from Iot Hub and SDK behavior and disconnect from IoT Hub ( [52c563a](https://github.com/Azure/iotedge/commit/52c563a506ff56d80905dcb054dfa918104a1fa2) )
 * Fix `edgehub_queue_len` metric ( [487890d](https://github.com/Azure/iotedge/commit/487890db566cb31cef7e8b83dff34526f2c74608) )
 
