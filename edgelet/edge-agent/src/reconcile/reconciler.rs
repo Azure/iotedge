@@ -1,13 +1,20 @@
+use std::sync::Arc;
+
+use tokio::sync::Mutex;
+
 use edgelet_core::{Module, ModuleRuntime, ModuleRuntimeState};
 use edgelet_settings::DockerConfig;
 
-use crate::deployment::DeploymentProvider;
+use crate::deployment::{
+    deployment::{DockerSettings, ModuleConfig},
+    DeploymentProvider,
+};
 
 type ModuleSettings = edgelet_settings::module::Settings<edgelet_settings::DockerConfig>;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 pub struct Reconciler<D, M> {
-    deployment_provider: D,
+    deployment_provider: Arc<Mutex<D>>,
     runtime: M,
 }
 
@@ -16,7 +23,7 @@ where
     D: DeploymentProvider,
     M: ModuleRuntime<Config = DockerConfig>,
 {
-    pub fn new(deployment_provider: D, runtime: M) -> Self {
+    pub fn new(deployment_provider: Arc<Mutex<D>>, runtime: M) -> Self {
         Self {
             deployment_provider,
             runtime,
@@ -47,8 +54,24 @@ where
         Ok(Default::default())
     }
 
-    async fn get_expected_modules(&self) -> Result<Vec<ModuleSettings>> {
-        let deployment = self.deployment_provider.get_deployment();
+    async fn get_expected_modules(&self) -> Result<Vec<PlannedModule>> {
+        let provider = self.deployment_provider.lock().await;
+        let deployment = if let Some(d) = provider.get_deployment() {
+            d
+        } else {
+            println!("todo: no deployment error");
+            return Ok(vec![]);
+        };
+
+        let modules = deployment
+            .properties
+            .desired
+            .modules
+            .iter()
+            .map(|(name, module)| PlannedModule {
+                name: name.to_owned(),
+                settings: module.to_owned(),
+            });
 
         Ok(vec![])
     }
@@ -72,9 +95,9 @@ where
 
 #[derive(Default, Debug)]
 struct ModuleDifferance {
-    modules_to_create: Vec<ModuleSettings>,
+    modules_to_create: Vec<PlannedModule>,
     modules_to_delete: Vec<RunningModule>,
-    state_change_modules: Vec<RunningModule>,
+    state_change_modules: Vec<PlannedModule>,
     failed_modules: Vec<RunningModule>,
 }
 
@@ -82,4 +105,10 @@ struct ModuleDifferance {
 struct RunningModule {
     name: String,
     state: ModuleRuntimeState,
+}
+
+#[derive(Default, Debug)]
+struct PlannedModule {
+    name: String,
+    settings: ModuleConfig,
 }

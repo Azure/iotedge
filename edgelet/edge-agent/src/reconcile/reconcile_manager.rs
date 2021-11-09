@@ -1,4 +1,6 @@
-use std::{path::PathBuf, time::Duration};
+use std::{sync::Arc, time::Duration};
+
+use tokio::sync::Mutex;
 
 use edgelet_core::ModuleRuntime;
 use edgelet_settings::DockerConfig;
@@ -16,7 +18,7 @@ where
     D: DeploymentProvider + Send + Sync + 'static,
     M: ModuleRuntime<Config = DockerConfig> + Send + Sync + 'static,
 {
-    pub fn new(frequency: Duration, deployment_provider: D, runtime: M) -> Self {
+    pub fn new(frequency: Duration, deployment_provider: Arc<Mutex<D>>, runtime: M) -> Self {
         Self {
             frequency,
             reconciler: Reconciler::new(deployment_provider, runtime),
@@ -24,13 +26,20 @@ where
     }
 
     pub fn start(self) {
+        let Self {
+            frequency,
+            reconciler,
+        } = self;
+
         tokio::spawn(async move {
             println!("Started task Reconciliation");
 
             loop {
-                tokio::time::sleep(self.frequency).await;
+                tokio::time::sleep(frequency).await;
                 println!("Starting Periodic Reconciliation");
-                self.reconciler.reconcile().await;
+                if let Err(error) = reconciler.reconcile().await {
+                    println!("Error while reconciling: {:#?}", error);
+                }
             }
         });
     }

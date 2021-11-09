@@ -43,12 +43,13 @@ where
     )
     .await?;
     let reconcile_manager = reconcile::ReconcileManager::new(
-        Duration { secs: 5, nanos: 0 },
+        Duration::from_secs(5),
         deployment_manager.clone(),
         runtime,
     );
 
     client_manager.start();
+    reconcile_manager.start();
 
     println!("Started EdgeAgent");
     shutdown_rx.recv().await;

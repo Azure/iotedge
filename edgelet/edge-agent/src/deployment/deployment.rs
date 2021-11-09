@@ -1,7 +1,4 @@
-use std::collections::HashMap;
-
-// Made using https://transform.tools/json-to-rust-serde
-// Currently not correct, only for testing purposes
+use std::collections::{BTreeMap, HashMap};
 
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct Deployment {
@@ -18,45 +15,55 @@ pub struct Properties {
 #[serde(rename_all = "camelCase")]
 pub struct PropertiesInner {
     #[serde(default)]
-    modules: HashMap<String, Module>,
-    system_modules: SystemModules,
-    runtime: Runtime,
-    schema_version: String,
+    pub modules: HashMap<String, ModuleConfig>,
+    pub system_modules: SystemModules,
+    pub runtime: Runtime,
+    pub schema_version: String,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Module {
-    settings: DockerConfig,
-    r#type: RuntimeType,
-    status: Option<String>,
-    restart_policy: Option<String>,
-    version: Option<String>,
+pub struct ModuleConfig {
+    pub settings: DockerSettings,
+    pub r#type: RuntimeType,
+    pub env: BTreeMap<String, String>,
+    pub status: Option<String>,
+    pub restart_policy: Option<String>,
+    pub imagePullPolicy: Option<String>,
+    pub version: Option<String>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SystemModules {
-    edge_hub: Module,
-    edge_agent: Module,
+    pub edge_hub: ModuleConfig,
+    pub edge_agent: ModuleConfig,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct Runtime {
-    settings: RuntimeSettings,
-    r#type: RuntimeType,
+    pub settings: RuntimeSettings,
+    pub r#type: RuntimeType,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeSettings {
-    min_docker_version: String,
+    pub min_docker_version: String,
 }
 
 #[derive(Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
 pub enum RuntimeType {
     #[serde(rename = "docker")]
     Docker,
+}
+
+impl std::fmt::Display for RuntimeType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Docker => f.write_str("docker"),
+        }
+    }
 }
 
 impl Default for RuntimeType {
@@ -67,7 +74,7 @@ impl Default for RuntimeType {
 
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct DockerConfig {
+pub struct DockerSettings {
     image: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
