@@ -295,7 +295,9 @@ namespace SimulatedTemperatureSensor
 
                     ITransportSettings[] settings = GetTransportSettings();
                     Console.WriteLine($"[Information] [{DateTime.Now.ToLocalTime()}]: Trying to initialize module client using transport type [{transportType}].");
-                    ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
+
+                    IAuthenticationMethod auth = AuthenticationMethodFactory.CreateAuthenticationWithSharedAccessPolicyKey("windows-10-test", "iothubowner", Environment.GetEnvironmentVariable("auth"));
+                    ModuleClient moduleClient = ModuleClient.Create("manual-test-hub.azure-devices.net", "localhost", auth, transportType);
                     await moduleClient.OpenAsync();
 
                     Console.WriteLine($"[Information] [{DateTime.Now.ToLocalTime()}]: Successfully initialized module client of transport type [{transportType}].");
