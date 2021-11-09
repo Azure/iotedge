@@ -122,6 +122,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         public Task<ulong> Count() => Task.FromResult((ulong)this.keyValues.Count);
 
+        public Task<ulong> GetCountFromOffset(byte[] offset) => throw new NotImplementedException();
+
         public void Dispose()
         {
             // No-op
