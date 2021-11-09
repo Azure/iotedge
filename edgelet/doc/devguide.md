@@ -194,6 +194,48 @@ To run `aziot-edged` locally:
 cargo test --all
 ```
 
+### Run Code Coverage Checks
+
+In order to run Code Coverage Checks locally do the following 
+```sh
+
+#Run From the Edgelet Directory
+cd edgelet 
+
+#One Time Setup Only.
+cargo install cargo-tarpaulin
+
+
+#Run Unit Test with Code Coverage
+cargo tarpaulin --out Xml --output-dir .
+```
+
+You should see an output like this
+
+```sh
+.
+.
+.
+|| support-bundle/src/error.rs: 0/9
+|| support-bundle/src/runtime_util.rs: 0/18
+|| support-bundle/src/shell_util.rs: 0/117
+|| support-bundle/src/support_bundle.rs: 0/50
+|| 
+46.28% coverage, 2993/6467 lines covered
+```
+
+Additionally, You can also view a HTML Report highlighting code sections covered using the following
+
+```sh
+
+#One Time Setup Only.
+pip install pycobertura
+
+#Create an HTML Report for viewing using pycobertura
+pycobertura show --format html --output coverage.html cobertura.xml
+
+```
+
 
 ### Additional Tools
 
