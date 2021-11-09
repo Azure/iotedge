@@ -304,7 +304,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
                     if (scopeResult.Modules != null)
                     {
-                        serviceIdentities.AddRange(scopeResult.Modules.Select(m => m.ToServiceIdentity()));
+                        serviceIdentities.AddRange(scopeResult.Modules.Select(m => {
+                            Option<PurchaseContent> maybePurchase = Option.None<PurchaseContent>();
+                            if (scopeResult.Purchases != null)
+                            {
+                                scopeResult.Purchases.TryGetValue(m.DeviceId + "/" + m.Id, out PurchaseContent purchase);
+                                maybePurchase = Option.Maybe(purchase);
+                            }
+                            return m.ToServiceIdentity(maybePurchase);
+                        }));
                     }
 
                     if (!string.IsNullOrWhiteSpace(scopeResult.ContinuationLink))

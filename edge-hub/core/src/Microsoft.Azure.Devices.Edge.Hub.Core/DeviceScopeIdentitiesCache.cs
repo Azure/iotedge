@@ -476,6 +476,42 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
+        Task<Option<PurchaseContent>> GetPurchaseAsync(string id, Option<PurchaseContent> purchase, bool refresh = false)
+        {
+            return purchase.Match(p => Task.FromResult(Option.Some(p)), async () => {
+                var lastSingleIdenityRefresh = identitiesLastRefreshTime.ContainsKey(id) ? identitiesLastRefreshTime[id] : DateTime.MinValue;
+                if (refresh && lastSingleIdenityRefresh > cacheLastRefreshTime)
+                {
+                    InitiateCacheRefresh();
+                    await WaitForCacheRefresh(TimeSpan.FromSeconds(60));
+                    var updatedidentity = await this.GetServiceIdentityInternal(id);
+                    
+                    return await GetPurchaseAsync(id, updatedidentity.AndThen(i => i.PurchaseContent), false);
+                }
+                else
+                {
+                    return Option.None<PurchaseContent>();
+                }
+            });
+        }
+
+        public async Task<Option<PurchaseContent>> GetPurchaseAsync(string deviceId, string moduleId)
+        {
+            // TODO: format module id
+            string id = deviceId + "/" + moduleId;
+
+            var serviceIdentity = await this.GetServiceIdentityInternal(id);
+            return await serviceIdentity.Match(
+                si =>
+                {
+                    return GetPurchaseAsync(id, si.PurchaseContent, true);
+                },
+                () =>
+                {
+                    return Task.FromResult(Option.None<PurchaseContent>());
+                });
+        }
+
         internal class ServiceIdentityStore : IDisposable
         {
             static readonly string DeviceScopeFormat = "ms-azure-iot-edge://{0}-{1}";

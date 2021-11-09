@@ -16,7 +16,39 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service
             IEnumerable<string> capabilities,
             ServiceAuthentication authentication,
             ServiceIdentityStatus status)
-            : this(deviceId, null, null, Enumerable.Empty<string>(), generationId, capabilities, authentication, status)
+            : this(deviceId, null, null, Enumerable.Empty<string>(), generationId, capabilities, authentication, status, Option.None<PurchaseContent>())
+        {
+        }
+
+        public ServiceIdentity(
+            string deviceId,
+            string generationId,
+            IEnumerable<string> capabilities,
+            ServiceAuthentication authentication,
+            ServiceIdentityStatus status,
+            Option<PurchaseContent> purchaseContent)
+            : this(deviceId, null, null, Enumerable.Empty<string>(), generationId, capabilities, authentication, status, purchaseContent)
+        {
+        }
+
+        public ServiceIdentity(
+            string deviceId,
+            string moduleId,
+            string deviceScope,
+            IEnumerable<string> parentScopes,
+            string generationId,
+            IEnumerable<string> capabilities,
+            ServiceAuthentication authentication,
+            ServiceIdentityStatus status)
+            : this(deviceId,
+                  moduleId,
+                  deviceScope,
+                  parentScopes,
+                  generationId,
+                  capabilities,
+                  authentication,
+                  status,
+                  Option.None<PurchaseContent>())
         {
         }
 
@@ -29,7 +61,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service
             string generationId,
             IEnumerable<string> capabilities,
             ServiceAuthentication authentication,
-            ServiceIdentityStatus status)
+            ServiceIdentityStatus status,
+            Option<PurchaseContent> purchaseContent)
         {
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.ModuleId = Option.Maybe(moduleId);
@@ -39,6 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service
             this.Id = this.ModuleId.Map(m => $"{deviceId}/{moduleId}").GetOrElse(deviceId);
             this.GenerationId = Preconditions.CheckNonWhiteSpace(generationId, nameof(generationId));
             this.Status = status;
+            this.PurchaseContent = purchaseContent;
 
             this.ParentScopes = parentScopes != null
                 ? new List<string>(parentScopes)
@@ -80,6 +114,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service
         [JsonProperty("generationId")]
         public string GenerationId { get; }
 
+        [JsonProperty("purchase")]
+        [JsonConverter(typeof(OptionConverter<PurchaseContent>))]
+        public Option<PurchaseContent> PurchaseContent { get; }
+
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj))
@@ -104,6 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service
                 hashCode = (hashCode * 397) ^ (this.GenerationId != null ? this.GenerationId.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ EqualityComparer<Option<string>>.Default.GetHashCode(this.DeviceScope);
                 hashCode = this.ParentScopes != null ? this.ParentScopes.Aggregate(hashCode, (acc, item) => acc * 397 ^ item.GetHashCode()) : hashCode;
+                hashCode = (hashCode * 397) ^ this.PurchaseContent.GetHashCode();
                 return hashCode;
             }
         }
@@ -122,7 +161,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service
                 && this.Status == other.Status
                 && string.Equals(this.GenerationId, other.GenerationId)
                 && this.DeviceScope.Equals(other.DeviceScope)
-                && ((this.ParentScopes != null && other.ParentScopes != null && Enumerable.SequenceEqual(this.ParentScopes, other.ParentScopes)) || (this.ParentScopes == null && other.ParentScopes == null));
+                && ((this.ParentScopes != null && other.ParentScopes != null && Enumerable.SequenceEqual(this.ParentScopes, other.ParentScopes)) || (this.ParentScopes == null && other.ParentScopes == null))
+                && this.PurchaseContent.Equals(other.PurchaseContent);
         }
     }
 }
