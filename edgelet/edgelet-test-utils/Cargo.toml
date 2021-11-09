@@ -19,6 +19,6 @@ serde = "1"
 edgelet-core = { path = "../edgelet-core" }
 edgelet-settings = { path = "../edgelet-settings" }
 
-aziot-key-client = { path="/home/noel/workspaces/nlcamp/iot-identity-service/key/aziot-key-client" }
-aziot-key-common = { path="/home/noel/workspaces/nlcamp/iot-identity-service/key/aziot-key-common" }
-aziot-identity-common = { path="/home/noel/workspaces/nlcamp/iot-identity-service/identity/aziot-identity-common" }
+aziot-key-client = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master" }
+aziot-key-common = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master" }
+aziot-identity-common = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master" }
