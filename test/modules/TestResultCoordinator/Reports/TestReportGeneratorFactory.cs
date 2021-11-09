@@ -56,6 +56,7 @@ namespace TestResultCoordinator.Reports
 
                         return new CountingReportGenerator(
                             metadata.TestDescription,
+                            Settings.Current.TestMode,
                             trackingId,
                             metadata.ExpectedSource,
                             expectedTestResults.GetAsyncEnumerator(),
@@ -75,6 +76,7 @@ namespace TestResultCoordinator.Reports
 
                         return new TwinCountingReportGenerator(
                             metadata.TestDescription,
+                            metadata.Topology,
                             trackingId,
                             metadata.ExpectedSource,
                             expectedTestResults.GetAsyncEnumerator(),
