@@ -118,6 +118,10 @@ pub struct CreateOption {
     create_options: Option<docker::models::ContainerCreateBody>,
 }
 
+lazy_static::lazy_static! {
+    static ref CREATE_OPTIONS_REGEX: regex::Regex = regex::Regex::new(r"^(createoptions|createOptions)(?P<index>\d*)$").expect("could not compile regex");
+}
+
 impl<'de> serde::Deserialize<'de> for CreateOption {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -136,21 +140,32 @@ impl<'de> serde::Deserialize<'de> for CreateOption {
             where
                 V: serde::de::MapAccess<'de>,
             {
-                println!("visit map");
-                let mut parts: [String; 10] = Default::default();
+                let mut create_options: String = String::new();
+                let mut parts: Vec<(u32, String)> = Vec::new();
 
                 while let Some(key) = map.next_key::<String>()? {
-                    println!("Got key {}", key);
-                    let i: usize = if key == "createOptions" {
-                        0
-                    } else {
-                        key[13..].parse().unwrap() // Note parsing cannot fail, since the possible values of "key" are constrained below
-                    };
+                    if let Some(capture) = CREATE_OPTIONS_REGEX.captures(&key) {
+                        let value: String = map.next_value()?;
 
-                    parts[i] = map.next_value()?;
+                        let index = &capture["index"];
+                        if index.is_empty() {
+                            // this is the normal case of just using createOptions
+                            create_options = value;
+                        } else {
+                            // this is the case of using createOptions1, createOptions2, etc.
+                            let index: u32 = index.parse().map_err(serde::de::Error::custom)?;
+                            parts.push((index, value));
+                        };
+                    }
                 }
 
-                let create_options = parts.concat();
+                if !parts.is_empty() {
+                    parts.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+                    for (_i, part) in parts {
+                        create_options += &part;
+                    }
+                }
+
                 let create_options = if create_options.is_empty() {
                     None
                 } else {
@@ -160,20 +175,7 @@ impl<'de> serde::Deserialize<'de> for CreateOption {
                 Ok(CreateOption { create_options })
             }
         }
-
-        const FIELDS: &'static [&'static str] = &[
-            "createOptions",
-            "createOptions1",
-            "createOptions2",
-            "createOptions3",
-            "createOptions4",
-            "createOptions5",
-            "createOptions6",
-            "createOptions7",
-            "createOptions8",
-            "createOptions9",
-        ];
-        deserializer.deserialize_struct("CreateOption", FIELDS, CreateOptionsVisitor)
+        deserializer.deserialize_map(CreateOptionsVisitor)
     }
 }
 
