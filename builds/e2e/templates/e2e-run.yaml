@@ -68,7 +68,7 @@ steps:
       $filter += '&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~ValidateMetrics'
 
       #Disable tests that timeout in proxy self-host environment
-      $filter += '&FullyQualifiedName!~TestGetModuleLogs&FullyQualifiedName!~TestUploadSupportBundle'
+      $filter += '&FullyQualifiedName!~TestUploadSupportBundle'
 
       #Disable nested edge tests
       $filter += '&Category!=NestedEdgeOnly'
@@ -77,8 +77,16 @@ steps:
     {
       $filter += '&Category!=NestedEdgeOnly'
     }
-
-    sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
+    
+    #Dotnet SDK 3.1.415 package on Centos doesn't allow dotnet to be accessed via sudo command due to Path issues. Use the below workaround for centos only.
+    if ('$(artifactName)'.Contains('centos'))
+    {
+      sudo --preserve-env $(command -v dotnet) test $testFile --no-build --logger 'trx' --filter "$filter"
+    }
+    else
+    {
+      sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
+    }
 
   displayName: Run tests ${{ parameters.test_type }}
   env:
