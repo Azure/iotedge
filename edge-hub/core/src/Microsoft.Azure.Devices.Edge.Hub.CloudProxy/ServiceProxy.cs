@@ -310,7 +310,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                             Option<PurchaseContent> maybePurchase = Option.None<PurchaseContent>();
                             if (scopeResult.Purchases != null)
                             {
-                                scopeResult.Purchases.TryGetValue(m.DeviceId + "/" + m.Id, out PurchaseContent purchase);
+                                scopeResult.Purchases.TryGetValue($"{m.DeviceId}/{m.Id}", out PurchaseContent purchase);
                                 maybePurchase = Option.Maybe(purchase);
                             }
 
