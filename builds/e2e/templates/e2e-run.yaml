@@ -77,7 +77,8 @@ steps:
     {
       $filter += '&Category!=NestedEdgeOnly'
     }
-
+    export PATH=$PATH:$HOME/.dotnet
+    export DOTNET_ROOT=$HOME/.dotnet
     sudo --preserve-env env "PATH=$PATH" dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
 
   displayName: Run tests ${{ parameters.test_type }}
