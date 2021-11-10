@@ -116,7 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service
         [JsonProperty("generationId")]
         public string GenerationId { get; }
 
-        [JsonProperty("purchase")]
+        [JsonProperty("purchase", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [JsonConverter(typeof(OptionConverter<PurchaseContent>))]
         public Option<PurchaseContent> PurchaseContent { get; }
 
