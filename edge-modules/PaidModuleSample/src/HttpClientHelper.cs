@@ -614,13 +614,10 @@ namespace PaidModuleSample
             }
         }
 
-
-
         public System.Threading.Tasks.Task<TrustBundleResponse> TrustBundleAsync(string api_version)
         {
             return TrustBundleAsync(api_version, System.Threading.CancellationToken.None);
         }
-
 
         public async System.Threading.Tasks.Task<TrustBundleResponse> TrustBundleAsync(string api_version, System.Threading.CancellationToken cancellationToken)
         {
@@ -728,57 +725,13 @@ namespace PaidModuleSample
         }
     }
 
-    public partial class SignRequest : System.ComponentModel.INotifyPropertyChanged
+    public class SignRequest
     {
-        private string _keyId;
-        private SignRequestAlgo _algo;
-        private byte[] _data;
+        public string KeyId { get; set; }
 
-        /// <summary>Name of key to perform sign operation.</summary>
-        [Newtonsoft.Json.JsonProperty("keyId", Required = Newtonsoft.Json.Required.Always)]
-        public string KeyId
-        {
-            get { return _keyId; }
-            set
-            {
-                if (_keyId != value)
-                {
-                    _keyId = value;
-                    RaisePropertyChanged();
-                }
-            }
-        }
+        public SignRequestAlgo Algo { get; set; }
 
-        /// <summary>Sign algorithm to be used.</summary>
-        [Newtonsoft.Json.JsonProperty("algo", Required = Newtonsoft.Json.Required.Always)]
-        [Newtonsoft.Json.JsonConverter(typeof(Newtonsoft.Json.Converters.StringEnumConverter))]
-        public SignRequestAlgo Algo
-        {
-            get { return _algo; }
-            set
-            {
-                if (_algo != value)
-                {
-                    _algo = value;
-                    RaisePropertyChanged();
-                }
-            }
-        }
-
-        /// <summary>Data to be signed.</summary>
-        [Newtonsoft.Json.JsonProperty("data", Required = Newtonsoft.Json.Required.Always)]
-        public byte[] Data
-        {
-            get { return _data; }
-            set
-            {
-                if (_data != value)
-                {
-                    _data = value;
-                    RaisePropertyChanged();
-                }
-            }
-        }
+        public byte[] Data { get; set; }
 
         public string ToJson()
         {
@@ -789,37 +742,11 @@ namespace PaidModuleSample
         {
             return Newtonsoft.Json.JsonConvert.DeserializeObject<SignRequest>(data);
         }
-
-        public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
-
-        protected virtual void RaisePropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = null)
-        {
-            var handler = PropertyChanged;
-            if (handler != null)
-                handler(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
-        }
-
     }
 
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "10.3.4.0 (Newtonsoft.Json v12.0.0.0)")]
-    public partial class SignResponse : System.ComponentModel.INotifyPropertyChanged
+    public class SignResponse
     {
-        private byte[] _digest;
-
-        /// <summary>Signature of the data.</summary>
-        [Newtonsoft.Json.JsonProperty("digest", Required = Newtonsoft.Json.Required.Always)]
-        public byte[] Digest
-        {
-            get { return _digest; }
-            set
-            {
-                if (_digest != value)
-                {
-                    _digest = value;
-                    RaisePropertyChanged();
-                }
-            }
-        }
+        public byte[] Digest { get; set; }
 
         public string ToJson()
         {
@@ -830,39 +757,11 @@ namespace PaidModuleSample
         {
             return Newtonsoft.Json.JsonConvert.DeserializeObject<SignResponse>(data);
         }
-
-        public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
-
-        protected virtual void RaisePropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = null)
-        {
-            var handler = PropertyChanged;
-            if (handler != null)
-                handler(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
-        }
-
     }
 
-
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "10.3.4.0 (Newtonsoft.Json v12.0.0.0)")]
-    public partial class TrustBundleResponse : System.ComponentModel.INotifyPropertyChanged
+    public class TrustBundleResponse
     {
-        private string _certificate;
-
-        /// <summary>Base64 encoded PEM formatted byte array containing the trusted certificates.</summary>
-        [Newtonsoft.Json.JsonProperty("certificate", Required = Newtonsoft.Json.Required.Always)]
-        public string Certificate
-        {
-            get { return _certificate; }
-            set
-            {
-                if (_certificate != value)
-                {
-                    _certificate = value;
-                    RaisePropertyChanged();
-                }
-            }
-        }
+        public string Certificate { get; set; }
 
         public string ToJson()
         {
@@ -873,37 +772,11 @@ namespace PaidModuleSample
         {
             return Newtonsoft.Json.JsonConvert.DeserializeObject<TrustBundleResponse>(data);
         }
-
-        public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
-
-        protected virtual void RaisePropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = null)
-        {
-            var handler = PropertyChanged;
-            if (handler != null)
-                handler(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
-        }
-
     }
 
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "10.3.4.0 (Newtonsoft.Json v12.0.0.0)")]
-    public partial class ErrorResponse : System.ComponentModel.INotifyPropertyChanged
+    public class ErrorResponse
     {
-        private string _message;
-
-        [Newtonsoft.Json.JsonProperty("message", Required = Newtonsoft.Json.Required.Always)]
-        public string Message
-        {
-            get { return _message; }
-            set
-            {
-                if (_message != value)
-                {
-                    _message = value;
-                    RaisePropertyChanged();
-                }
-            }
-        }
+        public string Message { get; set; }
 
         public string ToJson()
         {
@@ -914,27 +787,13 @@ namespace PaidModuleSample
         {
             return Newtonsoft.Json.JsonConvert.DeserializeObject<ErrorResponse>(data);
         }
-
-        public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
-
-        protected virtual void RaisePropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = null)
-        {
-            var handler = PropertyChanged;
-            if (handler != null)
-                handler(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
-        }
-
     }
 
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "10.3.4.0 (Newtonsoft.Json v12.0.0.0)")]
     public enum SignRequestAlgo
     {
-        [System.Runtime.Serialization.EnumMember(Value = "HMACSHA256")]
         HMACSHA256 = 0,
-
     }
 
-    [System.CodeDom.Compiler.GeneratedCode("NSwag", "13.10.2.0 (NJsonSchema v10.3.4.0 (Newtonsoft.Json v12.0.0.0))")]
     public partial class IoTEdgedException : System.Exception
     {
         public int StatusCode { get; private set; }
@@ -957,7 +816,6 @@ namespace PaidModuleSample
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCode("NSwag", "13.10.2.0 (NJsonSchema v10.3.4.0 (Newtonsoft.Json v12.0.0.0))")]
     public partial class IoTEdgedException<TResult> : IoTEdgedException
     {
         public TResult Result { get; private set; }

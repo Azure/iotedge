@@ -39,7 +39,6 @@ namespace PaidModuleSample
             string moduleId = configuration.GetValue<string>("IOTEDGE_MODULEID");
             string generationId = configuration.GetValue<string>("IOTEDGE_MODULEGENERATIONID");
             string providerUri = configuration.GetValue<string>("IOTEDGE_WORKLOADURI");
-            string version = configuration.GetValue<string>("IOTEDGE_APIVERSION"); // "2020-10-10"
             string gateway = configuration.GetValue<string>("IOTEDGE_GATEWAYHOSTNAME");
 
             string url = $"https://{gateway}/devices/{deviceId}/modules/{moduleId}/purchase";
@@ -62,7 +61,7 @@ namespace PaidModuleSample
             }
             else
             {
-                Console.WriteLine($"Response status {response.StatusCode}, content {purchase}}");
+                Console.WriteLine($"Response status {response.StatusCode}, content {purchase}");
             }
 
             await WhenCanceled(cts.Token);
