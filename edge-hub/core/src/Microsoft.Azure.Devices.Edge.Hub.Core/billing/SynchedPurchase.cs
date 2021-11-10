@@ -1,12 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Billing
 {
-    using Microsoft.Azure.Devices.Edge.Util;
     using System;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public class SynchedPurchase
     {
-        public SynchedPurchase(DateTime synchedDateUtc) : this(synchedDateUtc, Option.None<PurchaseContent>())
+        public SynchedPurchase(DateTime synchedDateUtc)
+            : this(synchedDateUtc, Option.None<PurchaseContent>())
         {
         }
 
