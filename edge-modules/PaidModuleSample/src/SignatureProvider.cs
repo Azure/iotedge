@@ -9,7 +9,7 @@ namespace PaidModuleSample
     public class SignatureProvider
     {
         const string DefaultKeyId = "primary";
-        const string ApiVersion = "2020-10-10";
+        const string ApiVersion = "2019-01-30";
 
         readonly Uri WorkloadUri;
         readonly string ModuleId;

@@ -2,6 +2,7 @@
 namespace PaidModuleSample
 {
     using Microsoft.Extensions.Configuration;
+    using Newtonsoft.Json;
     using System;
     using System.Collections.Generic;
     using System.Globalization;
@@ -54,7 +55,15 @@ namespace PaidModuleSample
             Console.WriteLine($"Send request to {url}");
             var response = await ConstructRequestAndFetchResponseAsync(url, token, HttpMethod.Get);
             var purchase = await response.Content.ReadAsStringAsync();
-            Console.WriteLine($"Response {purchase}");
+
+            if (response.StatusCode == HttpStatusCode.OK)
+            {
+                Console.WriteLine($"Response status {response.StatusCode}, content {JsonConvert.DeserializeObject(purchase)}");
+            }
+            else
+            {
+                Console.WriteLine($"Response status {response.StatusCode}, content {purchase}}");
+            }
 
             await WhenCanceled(cts.Token);
 
