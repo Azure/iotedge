@@ -38,27 +38,27 @@ steps:
     displayName: 'Copy Edgelet Artifact'
     inputs:
       SourceFolder: "$(Build.StagingDirectory)/${{ parameters['edgelet.artifact.name'] }}"
-      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/"
+      TargetFolder: "$(Agent.BuildDirectory)/../artifacts/"
       CleanTargetFolder: true
   - task: CopyFiles@2
     condition: and(succeeded(), eq(variables['run.flag'], 1))
     displayName: 'Copy Images Artifact'
     inputs:
       SourceFolder: "$(Build.StagingDirectory)/${{ parameters['images.artifact.name'] }}"
-      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}"
+      TargetFolder: "$(Agent.BuildDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}"
   - task: CopyFiles@2
     condition: and(succeeded(), eq(variables['run.flag'], 1))
     displayName: 'Copy aziot-identity-service'
     inputs:
       SourceFolder: "$(Build.StagingDirectory)"
       Contents: "$(aziotis.package.filter)"
-      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/"
+      TargetFolder: "$(Agent.BuildDirectory)/../artifacts/"
   - task: Bash@3
     condition: and(succeeded(), eq(variables['run.flag'], 1))
     displayName: 'Generate device certificates'
     inputs:
       ${{ if eq(parameters['connectivity.nested'], 'false') }}:
-        workingDirectory: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/CACertificates"
+        workingDirectory: "$(Agent.BuildDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/CACertificates"
       ${{ if eq(parameters['connectivity.nested'], 'true') }}:
         workingDirectory: "/certs"
       targetType: inline
@@ -93,7 +93,7 @@ steps:
       targetType: inline
       script: |
         declare -a cnreg=( ${{ parameters['container.registry.credential'] }} )
-        . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
+        . $(Agent.BuildDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
         chmod +x ${{ parameters['build.repo.path'] }}/scripts/linux/trcE2ETest.sh
         testName="Connectivity"
 
@@ -111,7 +111,7 @@ steps:
 
         sudo --preserve-env ${{ parameters['build.repo.path'] }}/scripts/linux/trcE2ETest.sh \
           -testName 'Connectivity' \
-          -testDir "$(Agent.HomeDirectory)/.." \
+          -testDir "$(Agent.BuildDirectory)/.." \
           -releaseLabel "${{ parameters['release.label'] }}" \
           -artifactImageBuildNumber "$BuildNumber" \
           -containerRegistry "${{ parameters['container.registry'] }}" \
@@ -150,7 +150,7 @@ steps:
         echo "script exit code=$scriptExitCode"
         exit $scriptExitCode
 
-      workingDirectory: "$(Agent.HomeDirectory)/.."
+      workingDirectory: "$(Agent.BuildDirectory)/.."
   
     env:
       E2E_nestedEdgeTest: $(nestededge)
