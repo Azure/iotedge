@@ -5,8 +5,10 @@ stages:
   - stage: BuildExecutables
 ################################################################################
     displayName: Build Executables
-    pool: 
-      vmImage: ubuntu-18.04
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
     dependsOn: []
     jobs:
     - job: BuildDotnetComponents
