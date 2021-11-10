@@ -77,7 +77,8 @@ steps:
     {
       $filter += '&Category!=NestedEdgeOnly'
     }
-    dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
+
+    sudo --preserve-env $(command -v dotnet) test $testFile --no-build --logger 'trx' --filter "$filter"
 
   displayName: Run tests ${{ parameters.test_type }}
   env:
