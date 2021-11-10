@@ -89,7 +89,7 @@ stages:
           displayName: "Edge Hub Code Sign"
           inputs: 
             ConnectedServiceName: "Azure IoT Edge Code Sign 2"
-            FolderPath: $(Build.BinariesDirectory)/publish/edge-hub/Microsoft.Azure.Devices.Edge.Hub.Service
+            FolderPath: $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service
             Pattern: "Microsoft.Azure.Devices.Edge.*.dll,Microsoft.Azure.Devices.Routing.*.dll"
             SessionTimeout: 20
             inlineOperation: |
