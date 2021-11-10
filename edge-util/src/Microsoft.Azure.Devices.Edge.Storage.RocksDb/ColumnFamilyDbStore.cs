@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     class ColumnFamilyDbStore : IDbStore
     {
         readonly IRocksDb db;
-        private ulong count;
+        private long count;
 
         public ColumnFamilyDbStore(IRocksDb db, ColumnFamilyHandle handle)
         {
@@ -20,6 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             this.Handle = Preconditions.CheckNotNull(handle, nameof(handle));
 
             var iterator = db.NewIterator(this.Handle);
+            iterator.SeekToFirst();
             this.count = 0;
             while (iterator.Valid())
             {
@@ -65,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
             Action operation = () => this.db.Put(key, value, this.Handle);
             await operation.ExecuteUntilCancelled(cancellationToken);
-            this.count += 1;
+            Interlocked.Increment(ref this.count);
         }
 
         public async Task Remove(byte[] key, CancellationToken cancellationToken)
@@ -74,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
             Action operation = () => this.db.Remove(key, this.Handle);
             await operation.ExecuteUntilCancelled(cancellationToken);
-            this.count -= 1;
+            Interlocked.Decrement(ref this.count);
         }
 
         public async Task<Option<(byte[] key, byte[] value)>> GetLastEntry(CancellationToken cancellationToken)
@@ -140,7 +141,22 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             return this.IterateBatch(iterator => iterator.SeekToFirst(), batchSize, callback, cancellationToken);
         }
 
-        public Task<ulong> Count() => Task.FromResult(this.count);
+        public Task<ulong> Count() => Task.FromResult((ulong)Interlocked.Read(ref this.count));
+
+        public Task<ulong> GetCountFromOffset(byte[] offset)
+        {
+            var iterator = this.db.NewIterator(this.Handle);
+            iterator.Seek(offset);
+
+            ulong count = 0;
+            while (iterator.Valid())
+            {
+                count += 1;
+                iterator = iterator.Next();
+            }
+
+            return Task.FromResult(count);
+        }
 
         public void Dispose()
         {

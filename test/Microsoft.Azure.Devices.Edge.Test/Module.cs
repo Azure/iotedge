@@ -152,40 +152,5 @@ namespace Microsoft.Azure.Devices.Edge.Test
             EdgeModule sender = deployment.Modules[methodSender];
             await sender.WaitForEventsReceivedAsync(deployment.StartTime, token);
         }
-
-        [Test]
-        [Category("CentOsSafe")]
-        public async Task MetricsCollector()
-        {
-            const string metricsCollectorName = "metricsCollector";
-
-            string metricsCollectorImage = Context.Current.MetricsCollectorImage.Expect(() => new ArgumentException("metricsCollectorImage parameter is required for MetricsCollector test"));
-            string hubResourceId = Context.Current.HubResourceId.Expect(() => new ArgumentException("IOT_HUB_RESOURCE_ID is required for MetricsCollector test"));
-
-            CancellationToken token = this.TestToken;
-
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
-                builder =>
-                {
-                    builder.AddModule(metricsCollectorName, metricsCollectorImage)
-                        .WithEnvironment(new[]
-                        {
-                            ("UploadTarget", "IotMessage"),
-                            ("ResourceID", hubResourceId)
-                        });
-                    builder.GetModule(ModuleName.EdgeHub)
-                        .WithDesiredProperties(new Dictionary<string, object>
-                        {
-                            ["routes"] = new
-                            {
-                                AzureIotEdgeMetricsCollectorToCloud = $"FROM /messages/modules/{metricsCollectorName}/* INTO $upstream"
-                            }
-                        });
-                },
-                token);
-
-            EdgeModule azureIotEdgeMetricsCollector = deployment.Modules[metricsCollectorName];
-            await azureIotEdgeMetricsCollector.WaitForEventsReceivedAsync(deployment.StartTime, token);
-        }
     }
 }
