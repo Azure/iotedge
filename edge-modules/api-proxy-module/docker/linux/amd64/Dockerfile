@@ -25,8 +25,7 @@ RUN setcap 'cap_net_bind_service=+ep' /usr/sbin/nginx
 RUN chown -R nginx:nginx /app && \
     mkdir /var/cache/nginx && \
     chown -R nginx:nginx /var/cache/nginx && \
-    chown -R nginx:nginx /var/log/nginx && \
-    chown -R nginx:nginx /etc/nginx/conf.d
+    chown -R nginx:nginx /var/log/nginx
 RUN touch /var/run/nginx/nginx.pid && \
         chown -R nginx:nginx /var/run/nginx/nginx.pid 
         
