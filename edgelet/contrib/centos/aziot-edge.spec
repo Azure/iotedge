@@ -17,7 +17,7 @@ URL:            https://github.com/azure/iotedge
 %{?systemd_requires}
 BuildRequires:  systemd
 Requires(pre):  shadow-utils
-Requires:       aziot-identity-service = 1.2.3-1
+Requires:       aziot-identity-service = 1.2.4-1
 Source0:        aziot-edge-%{version}.tar.gz
 
 %description
