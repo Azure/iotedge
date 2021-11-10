@@ -151,7 +151,7 @@ stages:
       
       # TODO: Consider moving the following copies into consolidate-build-artifacts.sh
       - task: CopyFiles@2
-        displayName: Copy/Stage dotnet '$(System.DefaultWorkingDirectory)/edge-modules/api-proxy-module/docker/manifest.yaml.template'
+        displayName: Copy/Stage dotnet artifacts
         inputs:
           sourceFolder: '$(Agent.TempDirectory)/extracted_tars/dotnet_artifacts'
           contents: '**'
