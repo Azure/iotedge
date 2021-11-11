@@ -33,9 +33,7 @@ namespace PaidModuleSample
 
             var purchaseInfoProvider = new PurchaseInfoProvider(iotHubHostName, gateway, deviceId, moduleId, generationId, workloadUri);
 
-            Console.WriteLine($"Getting purchase from {gateway}");
-            var purchase = await purchaseInfoProvider.GetPurchaseAsync(deviceId, moduleId);
-            Console.WriteLine($"Purchase: {purchase}");
+            await purchaseInfoProvider.StartGetPurchaseAsync(deviceId, moduleId, cts.Token);
 
             await WhenCanceled(cts.Token);
 

@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace PaidModuleSample
 {
-    using Newtonsoft.Json;
     using System;
     using System.Collections.Generic;
     using System.Globalization;
@@ -16,6 +15,7 @@ namespace PaidModuleSample
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+    using Newtonsoft.Json;
 
     public class PurchaseInfoProvider
     {
@@ -47,7 +47,7 @@ namespace PaidModuleSample
             this.signatureProvider = new SignatureProvider(moduleId, generationId, workloadUri);
         }
 
-        public async Task<PurchaseResponse> GetPurchaseAsync(string deviceId, string moduleId)
+        public async Task StartGetPurchaseAsync(string deviceId, string moduleId, CancellationToken cancellationToken)
         {
             await InstallCertificates();
             var token = await GetTokenAsync(this.IotHubHostName, this.DeviceId, this.ModuleId, DateTime.Now, TimeSpan.FromDays(1));
@@ -57,7 +57,14 @@ namespace PaidModuleSample
 
             var client = new EdgeHubPurchaseClient(httpClient);
             client.BaseUrl = $"https://{this.GatewayHostName}";
-            return await client.GetPurchaseAsync(deviceId, moduleId);
+
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                Console.WriteLine($"Getting purchase from {this.GatewayHostName}");
+                var purchase = await client.GetPurchaseAsync(deviceId, moduleId);
+                Console.WriteLine($"Purchase: {purchase}");
+                await Task.Delay(TimeSpan.FromSeconds(60), cancellationToken);
+            }
         }
 
         async Task<string> GetTokenAsync(string iotHubHostName, string deviceId, string moduleId, DateTime startTime, TimeSpan ttl)
