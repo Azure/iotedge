@@ -29,7 +29,7 @@ steps:
       Write-Host "Built Packages Result is $(builtPackages)"
       $buildImages = "$(builtImages)"
       $buildPackages = "$(builtPackages)"
-      if ($buildImages -eq 'Succeeded')
+      if ($buildImages -eq 'Succeeded' -or $buildImages -eq 'SucceededWithIssues')
       {
         Write-Host "Use Pipeline Image Artifacts"
         Write-Host "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]TRUE"
@@ -39,7 +39,7 @@ steps:
         Write-Host "Use Build Image Artifacts"
         Write-Host "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]FALSE"
       }
-      if ($buildPackages -eq 'Succeeded')
+      if ($buildPackages -eq 'Succeeded' -or $buildPackages -eq 'SucceededWithIssues')
       {
         Write-Host "Use Pipeline Package Artifacts"
         Write-Host "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]TRUE"
