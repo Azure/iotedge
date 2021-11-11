@@ -171,7 +171,7 @@ namespace Relayer
                     using var upstreamActivity = Settings.activitySource.StartActivity("RelayUpstream", ActivityKind.Producer);
                     // Inject Context for Distributed Tracing
                     var contextToInject = Activity.Current.Context;
-                    propagator.Inject(new PropagationContext(contextToInject, Baggage.Current), message,
+                    propagator.Inject(new PropagationContext(contextToInject, Baggage.Current), messageCopy,
                                     InjectTraceContextIntoBasicProperties);
                     await moduleClient.SendEventAsync(Settings.Current.OutputName, messageCopy);
                     Logger.LogInformation($"Sent Message relayed upstream for device: {message.ConnectionDeviceId}, module: {message.ConnectionModuleId}");
