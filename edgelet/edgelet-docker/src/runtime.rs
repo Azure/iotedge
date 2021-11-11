@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use opentelemetry::{Context, global, trace::{FutureExt, Span, TraceContextExt, Tracer, TracerProvider}};
+use opentelemetry::{
+    global,
+    trace::{FutureExt, Span, TraceContextExt, Tracer, TracerProvider},
+    Context,
+};
 use std::collections::{BTreeMap, HashMap};
 use std::convert::TryInto;
 use std::path::{Path, PathBuf};
@@ -467,7 +471,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         debug!("Getting module {}...", id);
         let tracer_provider = global::tracer_provider();
         let tracer = tracer_provider.tracer("aziot-edged", Some(env!("CARGO_PKG_VERSION")));
-        let mut span = tracer.start("DockerModuleRuntime:get");   
+        let mut span = tracer.start("DockerModuleRuntime:get");
         ensure_not_empty_with_context(id, || {
             ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.to_owned()))
         })
@@ -521,9 +525,10 @@ impl ModuleRuntime for DockerModuleRuntime {
             config = config.with_image_hash(image_hash.to_string());
         }
 
-        let module = ResultExt::with_context(DockerModule::new(self.client.clone(), name, config), |_| {
-            ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.to_string()))
-        })?;
+        let module =
+            ResultExt::with_context(DockerModule::new(self.client.clone(), name, config), |_| {
+                ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.to_string()))
+            })?;
         let state = runtime_state(response.id(), response.state());
         span.end();
         Ok((module, state))
@@ -798,7 +803,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         debug!("Listing modules...");
         let tracer_provider = global::tracer_provider();
         let tracer = tracer_provider.tracer("aziot-edged", Some(env!("CARGO_PKG_VERSION")));
-        let mut span = tracer.start("DockerModuleRuntime:list");   
+        let mut span = tracer.start("DockerModuleRuntime:list");
         let mut filters = HashMap::new();
         filters.insert("label", LABELS);
         let filters = serde_json::to_string(&filters)
@@ -865,11 +870,13 @@ impl ModuleRuntime for DockerModuleRuntime {
         let tracer_provider = global::tracer_provider();
         let tracer = tracer_provider.tracer("aziot-edged", Some(env!("CARGO_PKG_VERSION")));
         let span = tracer.start("DockerModuleRuntime:list_with_details");
-        let cx = Context::current_with_span(span);  
+        let cx = Context::current_with_span(span);
         let mut result = Vec::new();
         for module in self.list().await? {
             // Note, if error calling just drop module from list
-            if let Ok(module_with_details) = FutureExt::with_context(self.get(module.name()), cx.clone()).await {
+            if let Ok(module_with_details) =
+                FutureExt::with_context(self.get(module.name()), cx.clone()).await
+            {
                 result.push(module_with_details);
             }
         }
@@ -949,9 +956,10 @@ impl ModuleRuntime for DockerModuleRuntime {
             err
         })?;
 
-        let pids = ResultExt::with_context(parse_top_response::<Deserializer>(&top_response), |_| {
-            ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id.to_owned()))
-        })?;
+        let pids =
+            ResultExt::with_context(parse_top_response::<Deserializer>(&top_response), |_| {
+                ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id.to_owned()))
+            })?;
 
         Ok(pids)
     }

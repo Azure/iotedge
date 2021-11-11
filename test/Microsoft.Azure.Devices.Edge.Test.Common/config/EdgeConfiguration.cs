@@ -10,10 +10,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
     public class EdgeConfiguration
     {
-        readonly ConfigurationContent config;
         readonly string deviceId;
         readonly object expectedConfig;
         readonly IEnumerable<string> moduleImages;
+        public ConfigurationContent Config;
 
         public string[] ModuleNames { get; }
 
@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             ConfigurationContent config,
             object expectedConfig)
         {
-            this.config = config;
+            this.Config = config;
             this.deviceId = deviceId;
             this.expectedConfig = expectedConfig;
             this.moduleImages = moduleImages;
@@ -104,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
         }
 
         public Task DeployAsync(IotHub iotHub, CancellationToken token) => Profiler.Run(
-            () => iotHub.DeployDeviceConfigurationAsync(this.deviceId, this.config, token),
+            () => iotHub.DeployDeviceConfigurationAsync(this.deviceId, this.Config, token),
             "Deployed edge configuration to device with modules:\n    {Modules}",
             string.Join("\n    ", this.moduleImages));
 
@@ -114,6 +114,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             return agent.WaitForReportedConfigurationAsync(this.expectedConfig, token);
         }
 
-        public override string ToString() => JsonConvert.SerializeObject(this.config, Formatting.Indented);
+        public override string ToString() => JsonConvert.SerializeObject(this.Config, Formatting.Indented);
     }
 }

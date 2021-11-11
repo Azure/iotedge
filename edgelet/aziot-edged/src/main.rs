@@ -9,9 +9,14 @@ mod provision;
 mod watchdog;
 mod workload_manager;
 
-use opentelemetry::sdk::Resource;
 use opentelemetry::sdk::propagation::TraceContextPropagator;
-use opentelemetry::{global, KeyValue, sdk::trace as sdktrace, trace::{TraceError, Tracer}};
+use opentelemetry::sdk::Resource;
+use opentelemetry::{
+    global,
+    sdk::trace as sdktrace,
+    trace::{TraceError, Tracer},
+    KeyValue,
+};
 use opentelemetry_otlp::WithExportConfig;
 use std::sync::atomic;
 
@@ -36,7 +41,7 @@ async fn main() {
     log::info!("Starting Azure IoT Edge Daemon");
     log::info!("Version - {}", edgelet_core::version_with_source_version());
 
-    let _ = init_tracer().expect("Error initializing tracer");
+    let _tracer = init_tracer().expect("Error initializing tracer");
     let tracer = global::tracer("aziot_edged");
     tracer
         .in_span("run", |_cx| async {
@@ -244,8 +249,10 @@ fn init_tracer() -> Result<sdktrace::Tracer, TraceError> {
                 .with_endpoint("http://localhost:4317"),
         )
         .with_trace_config(
-            sdktrace::config()
-                .with_resource(Resource::new(vec![KeyValue::new("service.name", "aziot-edged")])),
+            sdktrace::config().with_resource(Resource::new(vec![KeyValue::new(
+                "service.name",
+                "aziot-edged",
+            )])),
         )
         .install_batch(opentelemetry::runtime::Tokio)
 }

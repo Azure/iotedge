@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use opentelemetry::{Context, global, trace::{FutureExt, Span, TraceContextExt, Tracer, TracerProvider}};
+use opentelemetry::{
+    global,
+    trace::{FutureExt, Span, TraceContextExt, Tracer, TracerProvider},
+    Context,
+};
 
 pub(crate) struct Route<M>
 where
@@ -57,8 +61,7 @@ where
         let cx = Context::current_with_span(span);
         let runtime = self.runtime.lock().await;
 
-        let modules = FutureExt::with_context(runtime
-            .list_with_details(), cx.clone())
+        let modules = FutureExt::with_context(runtime.list_with_details(), cx.clone())
             .await
             .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
 
@@ -72,7 +75,7 @@ where
     async fn post(self, body: Option<Self::PostBody>) -> http_common::server::RouteResponse {
         let tracer_provider = global::tracer_provider();
         let tracer = tracer_provider.tracer("aziot-edged", Some(env!("CARGO_PKG_VERSION")));
-        let mut span = tracer.start("edgelet-http-mgmt:module:create");      
+        let mut span = tracer.start("edgelet-http-mgmt:module:create");
         edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
         let body = match body {

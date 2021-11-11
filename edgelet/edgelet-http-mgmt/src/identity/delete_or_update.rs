@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use opentelemetry::{global, trace::{Span, Tracer, TracerProvider}};
+use opentelemetry::{
+    global,
+    trace::{Span, Tracer, TracerProvider},
+};
 use std::convert::TryFrom;
 
 #[cfg(not(test))]
@@ -71,11 +74,11 @@ where
             Ok(_) => {
                 span.end();
                 Ok(http_common::server::response::no_content())
-            },
+            }
             Err(err) => {
                 span.end();
                 Err(edgelet_http::error::server_error(err.to_string()))
-            },
+            }
         }
     }
 

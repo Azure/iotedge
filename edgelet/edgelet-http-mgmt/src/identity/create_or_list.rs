@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use opentelemetry::{global, trace::{Span, Tracer, TracerProvider}};
+use opentelemetry::{
+    global,
+    trace::{Span, Tracer, TracerProvider},
+};
 use std::convert::TryFrom;
 
 #[cfg(not(test))]

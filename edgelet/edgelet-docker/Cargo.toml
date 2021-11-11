@@ -24,14 +24,14 @@ sysinfo = "0.14.10"
 tokio = {version = "1", features = ["process", "macros"]}
 url = {version = "2", features = ["serde"]}
 
-aziot-cert-client-async = {path="/home/noel/workspaces/nlcamp/iot-identity-service/cert/aziot-cert-client-async"}
-aziot-cert-common-http = {path="/home/noel/workspaces/nlcamp/iot-identity-service/cert/aziot-cert-common-http"}
-config-common = {path="/home/noel/workspaces/nlcamp/iot-identity-service/config-common"}
+aziot-cert-client-async = {git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master"}
+aziot-cert-common-http = {git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master"}
+config-common = {git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master"}
 docker = {path = "../docker-rs"}
 edgelet-core = {path = "../edgelet-core"}
 edgelet-settings = {path = "../edgelet-settings", features = ["settings-docker"]}
 edgelet-utils = {path = "../edgelet-utils"}
-http-common = { path="/home/noel/workspaces/nlcamp/iot-identity-service/http-common", features = ["tokio1"] }
+http-common = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master", features = ["otel"] }
 libc = "0.2.66"
 
 [dev_dependencies]

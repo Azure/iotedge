@@ -8,6 +8,7 @@ edition = "2018"
 [dependencies]
 async-trait = "0.1"
 base64 = "0.13"
+cfg-if = "1.0"
 chrono = "0.4"
 futures-util = "0.3"
 http = "0.2"
@@ -29,20 +30,21 @@ edgelet-core = { path = "../edgelet-core" }
 edgelet-http = { path = "../edgelet-http" }
 edgelet-settings = { path = "../edgelet-settings" }
 
-aziot-key-client = { path="/home/noel/workspaces/nlcamp/iot-identity-service/key/aziot-key-client" }
-aziot-key-client-async = { path="/home/noel/workspaces/nlcamp/iot-identity-service/key/aziot-key-client-async" }
-aziot-key-common = { path="/home/noel/workspaces/nlcamp/iot-identity-service/key/aziot-key-common" }
-aziot-key-common-http = { path="/home/noel/workspaces/nlcamp/iot-identity-service/key/aziot-key-common-http" }
-aziot-key-openssl-engine = { path="/home/noel/workspaces/nlcamp/iot-identity-service/key/aziot-key-openssl-engine" }
+aziot-key-client = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master" }
+aziot-key-client-async = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master" }
+aziot-key-common = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master" }
+aziot-key-common-http = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master" }
+aziot-key-openssl-engine = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master" }
 
-aziot-cert-client-async = { path="/home/noel/workspaces/nlcamp/iot-identity-service/cert/aziot-cert-client-async" }
-aziot-cert-common-http = { path="/home/noel/workspaces/nlcamp/iot-identity-service/cert/aziot-cert-common-http" }
+aziot-cert-client-async = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master" }
+aziot-cert-common-http = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master" }
 
-aziot-identity-client-async = { path="/home/noel/workspaces/nlcamp/iot-identity-service/identity/aziot-identity-client-async" }
-aziot-identity-common = { path="/home/noel/workspaces/nlcamp/iot-identity-service/identity/aziot-identity-common" }
-aziot-identity-common-http = { path="/home/noel/workspaces/nlcamp/iot-identity-service/identity/aziot-identity-common-http" }
+aziot-identity-client-async = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master" }
+aziot-identity-common = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master" }
+aziot-identity-common-http = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master" }
 
-http-common = { path="/home/noel/workspaces/nlcamp/iot-identity-service/http-common", features = ["tokio1"] }
+http-common = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master", features = ["otel"] }
+
 [dev-dependencies]
 nix = "0.22"
 
