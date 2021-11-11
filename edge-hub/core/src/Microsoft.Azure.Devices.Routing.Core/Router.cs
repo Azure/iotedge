@@ -226,7 +226,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
         Task RouteInternalAsync(IMessage message)
         {
             ISet<RouteResult> results = this.evaluator.Evaluate(message);
-            var parentContext = propagator.Extract(
+            var parentContext = this.propagator.Extract(
              default,
              message,
              ExtractTraceContextFromBasicProperties);
