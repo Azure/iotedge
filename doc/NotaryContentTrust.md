@@ -73,7 +73,7 @@ Notary initializes the TUF trust collection for each image in the Container Regi
 ##### a. Notary Installation
 Notary client can be installed with the command for `amd64` target platform and avoid installing using `sudo apt-get install notary`
 
-`wget '[https://github.com/theupdateframework/notary/releases/download/v0.6.0/notary-Linux-amd64](https://github.com/theupdateframework/notary/releases/download/v0.6.0/notary-Linux-amd64)'` 
+`wget https://github.com/theupdateframework/notary/releases/download/v0.6.1/notary-Linux-amd64'`
 
 Rename `notary-Linux-amd64` to `notary` and change the permissions by `chmod +x notary` and place the binary in `/usr/bin/notary`
 
@@ -91,7 +91,7 @@ Notary client directory exists in `~/.notary`. A configuration file has be creat
 ```
 `trust_dir` is the location where the trust directory gets initialized and downloaded. `remote_server` has a sub field `url` which configures the URL of the registry server host name. 
 
-Notary needs authorization credentials to communicate to the Notary Server. For this, a Service Principal for the Azure Container Registry with Owner and Push access must be created. Follow instructions in [this](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-auth-service-principal) link to create a Service Principal. It is mandatory to create the Service Principals to use the Content Trust feature of Azure Container Registry. Read [this](https://docs.microsoft.com/en-us/azure/iot-edge/production-checklist?view=iotedge-2020-11#security-considerations) documentation of IoT Edge on how to use Service Principals.
+Notary needs authorization credentials to communicate to the Notary Server. For this, a Service Principal for the Azure Container Registry with Owner, AcrImageSigner and AcrPush access must be created. Follow instructions in [this](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-auth-service-principal) link to create a Service Principal. It is mandatory to create the Service Principals to use the Content Trust feature of Azure Container Registry. Read [this](https://docs.microsoft.com/en-us/azure/iot-edge/production-checklist?view=iotedge-2020-11#security-considerations) documentation of IoT Edge on how to use Service Principals.
 
 The base64 encoding of username and password for the Service Principal will be used to create an environment variable for Notary called `NOTARY_AUTH`
 
