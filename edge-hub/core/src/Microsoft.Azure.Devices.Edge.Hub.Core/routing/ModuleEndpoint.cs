@@ -19,6 +19,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
     using ISinkResult = Microsoft.Azure.Devices.Routing.Core.ISinkResult<Microsoft.Azure.Devices.Routing.Core.IMessage>;
     using Option = Microsoft.Azure.Devices.Edge.Util.Option;
+    using OpenTelemetry;
+    using OpenTelemetry.Context.Propagation;
+    using System.Diagnostics;
 
     public class ModuleEndpoint : Endpoint
     {
@@ -91,6 +94,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 // TODO - Add more info to this log message
                 Log.LogWarning((int)EventIds.InvalidMessage, ex, Invariant($"Non retryable exception occurred while sending message."));
             }
+
+            internal static void LogNullActivity()
+            {
+                Log.LogInformation((int)EventIds.InvalidMessage, Invariant($"Got Null Activity!!!!"));
+            }
         }
 
         class ModuleMessageProcessor : IProcessor
@@ -103,6 +111,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             };
 
             readonly ModuleEndpoint moduleEndpoint;
+
+            readonly TextMapPropagator propagator = new TraceContextPropagator();
+
             Util.Option<IDeviceProxy> devicePoxy = Option.None<IDeviceProxy>();
 
             public ModuleMessageProcessor(ModuleEndpoint endpoint)
@@ -159,6 +170,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 foreach (IRoutingMessage routingMessage in routingMessages)
                 {
                     IMessage message = this.moduleEndpoint.messageConverter.ToMessage(routingMessage);
+                    var parentContext = propagator.Extract(default,
+                                                           message,
+                                                           ExtractTraceContextFromBasicProperties);
+                    using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("ProcessModuleMessage", ActivityKind.Consumer, parentContext.ActivityContext);
+                    if (activity == null)
+                    {
+                        Events.LogNullActivity();
+                    }
+                    // Inject Context for Distributed Tracing
+                    propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), message,
+                    InjectTraceContextIntoBasicProperties);
                     try
                     {
                         if (failed.Count == 0)
@@ -195,6 +217,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 }
 
                 return new SinkResult<IRoutingMessage>(succeeded, failed, invalid, sendFailureDetails);
+            }
+
+            private void InjectTraceContextIntoBasicProperties(IMessage message, string key, string value)
+            {
+                message.Properties[key] = value;
+            }
+
+            private static IEnumerable<string> ExtractTraceContextFromBasicProperties(IMessage message, string key)
+            {
+                if (message.Properties.TryGetValue(key, out var value))
+                {
+                    return new[] { value };
+                }
+
+                return Enumerable.Empty<string>();
             }
 
             bool IsTransientException(Exception ex) => ex is EdgeHubConnectionException

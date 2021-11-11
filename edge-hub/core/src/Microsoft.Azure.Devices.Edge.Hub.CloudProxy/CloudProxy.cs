@@ -19,6 +19,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using static System.FormattableString;
+    using OpenTelemetry.Context.Propagation;
+    using OpenTelemetry;
 
     class CloudProxy : ICloudProxy
     {
@@ -46,6 +48,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly ResettableTimer timer;
         readonly AsyncLock timerGuard = new AsyncLock();
         readonly bool closeOnIdleTimeout;
+
+        readonly TextMapPropagator propagator = new TraceContextPropagator();
+
 
         SubscriptionState subscriptionState = new SubscriptionState();
 
@@ -145,6 +150,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             Preconditions.CheckNotNull(inputMessage, nameof(inputMessage));
             IMessageConverter<Message> converter = this.messageConverterProvider.Get<Message>();
+            var parentContext = propagator.Extract(default,
+                                                   inputMessage,
+                                                   ExtractTraceContextFromBasicProperties);
+            using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("CloudSendMessage", ActivityKind.Consumer, parentContext.ActivityContext);
+            activity?.SetTag("ClientId", this.clientId);
             Message message = converter.FromMessage(inputMessage);
             await this.ResetTimerAsync();
             try
@@ -173,6 +183,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             IList<Message> messages = Preconditions.CheckNotNull(inputMessages, nameof(inputMessages))
                 .Select(inputMessage =>
                 {
+                    var parentContext = propagator.Extract(default,
+                                                  inputMessage,
+                                                  ExtractTraceContextFromBasicProperties);
+                    using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("CloudSendMessage", ActivityKind.Consumer, parentContext.ActivityContext);
+                    activity?.SetTag("ClientId", this.clientId);
                     metricOutputRoute = metricOutputRoute ?? inputMessage.GetOutput();
                     Metrics.MessageProcessingLatency(this.clientId, inputMessage);
                     return converter.FromMessage(inputMessage);
@@ -201,6 +216,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 await this.HandleException(ex);
                 throw;
             }
+        }
+
+        private void InjectTraceContextIntoBasicProperties(
+         IMessage message, string key, string value)
+        {
+            message.Properties[key] = value;
+        }
+
+        private static IEnumerable<string> ExtractTraceContextFromBasicProperties(IMessage message, string key)
+        {
+            if (message.Properties.TryGetValue(key, out var value))
+            {
+                return new[] { value };
+            }
+
+            return Enumerable.Empty<string>();
         }
 
         public async Task UpdateReportedPropertiesAsync(IMessage reportedPropertiesMessage)

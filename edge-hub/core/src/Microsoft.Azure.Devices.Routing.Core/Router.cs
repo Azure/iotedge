@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
         readonly Evaluator evaluator;
         readonly AtomicReference<ImmutableDictionary<string, Route>> routes;
         readonly AsyncLock sync = new AsyncLock();
-        static TextMapPropagator propagator = new TraceContextPropagator();
+        readonly TextMapPropagator propagator = new TraceContextPropagator();
         readonly string iotHubName;
 
         Router(string id, string iotHubName, Evaluator evaluator, Dispatcher dispatcher)
@@ -231,7 +231,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
              message,
              ExtractTraceContextFromBasicProperties);
             Events.MessageEvaluation(this.iotHubName, message, results);
-            using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("ReceivedMessage", ActivityKind.Consumer, parentContext.ActivityContext);
+            using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("RouteMessage", ActivityKind.Consumer, parentContext.ActivityContext);
             if (message.MessageSource is BaseMessageSource)
             {
                 activity?.SetTag("RoutingSource", (message.MessageSource as BaseMessageSource).Source);

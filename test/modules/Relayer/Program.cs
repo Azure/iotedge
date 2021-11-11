@@ -168,13 +168,13 @@ namespace Relayer
                     byte[] messageBytes = message.GetBytes();
                     var messageCopy = new Message(messageBytes);
                     messageProperties.ForEach(kvp => messageCopy.Properties.Add(kvp));
-                    await moduleClient.SendEventAsync(Settings.Current.OutputName, messageCopy);
-                    Logger.LogInformation($"Message relayed upstream for device: {message.ConnectionDeviceId}, module: {message.ConnectionModuleId}");
                     using var upstreamActivity = Settings.activitySource.StartActivity("RelayUpstream", ActivityKind.Producer);
-
                     // Inject Context for Distributed Tracing
-                    propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), message,
+                    var contextToInject = Activity.Current.Context;
+                    propagator.Inject(new PropagationContext(contextToInject, Baggage.Current), message,
                                     InjectTraceContextIntoBasicProperties);
+                    await moduleClient.SendEventAsync(Settings.Current.OutputName, messageCopy);
+                    Logger.LogInformation($"Sent Message relayed upstream for device: {message.ConnectionDeviceId}, module: {message.ConnectionModuleId}");
 
                     if (Settings.Current.EnableTrcReporting)
                     {

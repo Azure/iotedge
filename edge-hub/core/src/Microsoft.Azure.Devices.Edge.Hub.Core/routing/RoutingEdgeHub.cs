@@ -21,6 +21,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
     using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
     using SystemProperties = Microsoft.Azure.Devices.Edge.Hub.Core.SystemProperties;
+    using OpenTelemetry.Context.Propagation;
+    using System.Diagnostics;
+    using OpenTelemetry;
 
     public class RoutingEdgeHub : IEdgeHub
     {
@@ -33,6 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         readonly IInvokeMethodHandler invokeMethodHandler;
         readonly ISubscriptionProcessor subscriptionProcessor;
         readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
+        readonly TextMapPropagator propagator = new TraceContextPropagator();
 
         public RoutingEdgeHub(
             Router router,
@@ -63,11 +67,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             Preconditions.CheckNotNull(message, nameof(message));
             Preconditions.CheckNotNull(identity, nameof(identity));
             Events.MessageReceived(identity, message);
-
+            var parentContext = propagator.Extract(default,
+                                                    message,
+                                                    ExtractTraceContextFromBasicProperties);
+            using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("ProcessSingleDeviceMessage", ActivityKind.Consumer, parentContext.ActivityContext);
             IRoutingMessage routingMessage = this.ProcessMessageInternal(message, true);
             Metrics.AddMessageSize(routingMessage.Size(), identity.Id);
             Metrics.AddReceivedMessage(identity.Id, message.GetOutput());
-
+            propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), message, InjectTraceContextIntoBasicProperties);
             return this.router.RouteAsync(routingMessage);
         }
 
@@ -76,17 +83,44 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             IList<IMessage> messagesList = messages as IList<IMessage>
                                            ?? Preconditions.CheckNotNull(messages, nameof(messages)).ToList();
             Events.MessagesReceived(identity, messagesList);
-
             IEnumerable<IRoutingMessage> routingMessages = messagesList
                 .Select(
                     m =>
                     {
+                        var parentContext = propagator.Extract(
+                                                        default,
+                                                        m,
+                                                        ExtractTraceContextFromBasicProperties);
+                        using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("ProcessDeviceMessage", ActivityKind.Consumer, parentContext.ActivityContext);
+                        if (activity == null)
+                        {
+                            Events.NullActivity(identity.Id);
+                        }
+                        Events.NonNullActivity(identity.Id);
+                        activity?.SetTag("ClientId", identity.Id);
                         IRoutingMessage routingMessage = this.ProcessMessageInternal(m, true);
                         Metrics.AddMessageSize(routingMessage.Size(), identity.Id);
                         Metrics.AddReceivedMessage(identity.Id, m.GetOutput());
+                        propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), m, InjectTraceContextIntoBasicProperties);
                         return routingMessage;
                     });
             return this.router.RouteAsync(routingMessages);
+        }
+
+        private void InjectTraceContextIntoBasicProperties(
+         IMessage message, string key, string value)
+        {
+            message.Properties[key] = value;
+        }
+
+        private static IEnumerable<string> ExtractTraceContextFromBasicProperties(IMessage message, string key)
+        {
+            if (message.Properties.TryGetValue(key, out var value))
+            {
+                return new[] { value };
+            }
+
+            return Enumerable.Empty<string>();
         }
 
         public Task<DirectMethodResponse> InvokeMethodAsync(string id, DirectMethodRequest methodRequest)
@@ -270,6 +304,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             internal static void UpdateDesiredPropertiesCallReceived(string id)
             {
                 Log.LogDebug((int)EventIds.DesiredPropertiesUpdateReceived, Invariant($"Desired properties update message received for {id ?? string.Empty}"));
+            }
+
+            internal static void NullActivity(string id)
+            {
+                Log.LogDebug((int)EventIds.DesiredPropertiesUpdateReceived, Invariant($"NULL ACTIVITY for {id}"));
+            }
+
+            internal static void NonNullActivity(string id)
+            {
+                Log.LogDebug((int)EventIds.DesiredPropertiesUpdateReceived, Invariant($"NON NULL ACTIVITY for {id}"));
             }
         }
 

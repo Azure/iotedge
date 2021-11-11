@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using System.Diagnostics;
     using System.IO;
     using System.Linq;
     using System.Threading;
@@ -18,6 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Extensions.Logging;
+    using OpenTelemetry.Context.Propagation;
     using static System.FormattableString;
     using Constants = Microsoft.Azure.Devices.Edge.Hub.Core.Constants;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
@@ -31,7 +33,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
         readonly int maxBatchSize;
         readonly bool trackDeviceState;
-
         public CloudEndpoint(
             string id,
             Func<string, Task<Try<ICloudProxy>>> cloudProxyGetterFunc,
@@ -73,6 +74,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             readonly CloudEndpoint cloudEndpoint;
             readonly bool trackDeviceState;
+
+            readonly TextMapPropagator propagator = new TraceContextPropagator();
 
             public CloudMessageProcessor(CloudEndpoint endpoint, bool trackDeviceState)
             {
@@ -216,25 +219,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     var cp = cloudProxy.Value;
                     try
                     {
-                            List<IMessage> messages = routingMessages
-                                .Select(r => this.cloudEndpoint.messageConverter.ToMessage(r))
-                                .ToList();
-
-                            if (messages.Count == 1)
-                            {
-                                await cp.SendMessageAsync(messages[0]);
-                            }
-                            else
-                            {
-                                await cp.SendMessageBatchAsync(messages);
-                            }
-
-                            return new SinkResult<IRoutingMessage>(routingMessages);
-                        }
-                        catch (Exception ex)
+                        List<IMessage> messages = routingMessages
+                            .Select(r => this.cloudEndpoint.messageConverter.ToMessage(r))
+                            .ToList();
+                        foreach (var message in messages)
                         {
-                            return this.HandleException(ex, id, routingMessages);
+                            var parentContext = propagator.Extract(
+                                                            default,
+                                                            message,
+                                                            ExtractTraceContextFromBasicProperties);
+                            using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("RouteCloudMessage", ActivityKind.Consumer, parentContext.ActivityContext);
+                            activity?.SetTag("ClientId", id);
                         }
+                        if (messages.Count == 1)
+                        {
+                            await cp.SendMessageAsync(messages[0]);
+                        }
+                        else
+                        {
+                            await cp.SendMessageBatchAsync(messages);
+                        }
+
+                        return new SinkResult<IRoutingMessage>(routingMessages);
+                    }
+                    catch (Exception ex)
+                    {
+                        return this.HandleException(ex, id, routingMessages);
+                    }
                 }
                 else
                 {
@@ -247,6 +258,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                         return this.HandleException(cloudProxy.Exception, id, routingMessages);
                     }
                 }
+            }
+
+            private static IEnumerable<string> ExtractTraceContextFromBasicProperties(IMessage message, string key)
+            {
+                if (message.Properties.TryGetValue(key, out var value))
+                {
+                    return new[] { value };
+                }
+
+                return Enumerable.Empty<string>();
             }
 
             ISinkResult HandleException(Exception ex, string id, List<IRoutingMessage> routingMessages)
