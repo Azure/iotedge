@@ -17,8 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Billing
             this.PurchaseContent = purchaseContent;
         }
 
-        public Option<PurchaseContent> PurchaseContent { get; set; }
+        public Option<PurchaseContent> PurchaseContent { get; }
 
-        public DateTime SynchedDateUtc { get; set; }
+        public DateTime SynchedDateUtc { get; }
     }
 }

@@ -27,12 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string childEdgeId = "edge2";
             string moduleId = "module1";
 
-            PurchaseContent purchaseContent = new PurchaseContent()
-            {
-                PublisherId = "id",
-                OfferId = "offer1",
-                PlanId = "plan1"
-            };
+            PurchaseContent purchaseContent = new PurchaseContent("id", "offer1", "plan1");
             var controller = MakeController(childEdgeId, moduleId, purchaseContent);
 
             // Act

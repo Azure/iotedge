@@ -7,13 +7,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Billing
     public class PurchaseContent : IEquatable<PurchaseContent>
     {
         [JsonProperty("publisherId")]
-        public string PublisherId { get; set; }
+        public string PublisherId { get; }
 
         [JsonProperty("offerId")]
-        public string OfferId { get; set; }
+        public string OfferId { get; }
 
         [JsonProperty("planId")]
-        public string PlanId { get; set; }
+        public string PlanId { get; }
+
+        [JsonConstructor]
+        public PurchaseContent(string publisherId, string offerId, string planId)
+        {
+            this.PublisherId = publisherId;
+            this.OfferId = offerId;
+            this.PlanId = planId;
+        }
 
         public override bool Equals(object obj)
         {
