@@ -224,13 +224,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                             .ToList();
                         foreach (var message in messages)
                         {
-                            var parentContext = propagator.Extract(
+                            var parentContext = this.propagator.Extract(
                                                             default,
                                                             message,
                                                             ExtractTraceContextFromBasicProperties);
                             using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("RouteCloudMessage", ActivityKind.Consumer, parentContext.ActivityContext);
                             activity?.SetTag("ClientId", id);
                         }
+
                         if (messages.Count == 1)
                         {
                             await cp.SendMessageAsync(messages[0]);

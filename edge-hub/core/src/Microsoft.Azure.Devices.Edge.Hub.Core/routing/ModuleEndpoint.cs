@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using System.Diagnostics;
     using System.IO;
     using System.Linq;
     using System.Threading;
@@ -14,14 +15,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Extensions.Logging;
+    using OpenTelemetry;
+    using OpenTelemetry.Context.Propagation;
     using static System.FormattableString;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
     using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
     using ISinkResult = Microsoft.Azure.Devices.Routing.Core.ISinkResult<Microsoft.Azure.Devices.Routing.Core.IMessage>;
     using Option = Microsoft.Azure.Devices.Edge.Util.Option;
-    using OpenTelemetry;
-    using OpenTelemetry.Context.Propagation;
-    using System.Diagnostics;
 
     public class ModuleEndpoint : Endpoint
     {
@@ -170,17 +170,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 foreach (IRoutingMessage routingMessage in routingMessages)
                 {
                     IMessage message = this.moduleEndpoint.messageConverter.ToMessage(routingMessage);
-                    var parentContext = propagator.Extract(default,
+                    var parentContext = this.propagator.Extract(
+                                                           default,
                                                            message,
                                                            ExtractTraceContextFromBasicProperties);
                     using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("ProcessModuleMessage", ActivityKind.Consumer, parentContext.ActivityContext);
-                    if (activity == null)
-                    {
-                        Events.LogNullActivity();
-                    }
+
                     // Inject Context for Distributed Tracing
-                    propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), message,
-                    InjectTraceContextIntoBasicProperties);
+                    this.propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), message, this.InjectTraceContextIntoBasicProperties);
                     try
                     {
                         if (failed.Count == 0)

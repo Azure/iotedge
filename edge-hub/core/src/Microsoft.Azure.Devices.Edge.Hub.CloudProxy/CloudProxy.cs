@@ -18,9 +18,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
-    using static System.FormattableString;
-    using OpenTelemetry.Context.Propagation;
     using OpenTelemetry;
+    using OpenTelemetry.Context.Propagation;
+    using static System.FormattableString;
 
     class CloudProxy : ICloudProxy
     {
@@ -50,7 +50,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly bool closeOnIdleTimeout;
 
         readonly TextMapPropagator propagator = new TraceContextPropagator();
-
 
         SubscriptionState subscriptionState = new SubscriptionState();
 
@@ -150,7 +149,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             Preconditions.CheckNotNull(inputMessage, nameof(inputMessage));
             IMessageConverter<Message> converter = this.messageConverterProvider.Get<Message>();
-            var parentContext = propagator.Extract(default,
+            var parentContext = this.propagator.Extract(
+                                                   default,
                                                    inputMessage,
                                                    ExtractTraceContextFromBasicProperties);
             using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("CloudSendMessage", ActivityKind.Consumer, parentContext.ActivityContext);
@@ -183,7 +183,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             IList<Message> messages = Preconditions.CheckNotNull(inputMessages, nameof(inputMessages))
                 .Select(inputMessage =>
                 {
-                    var parentContext = propagator.Extract(default,
+                    var parentContext = this.propagator.Extract(
+                                                  default,
                                                   inputMessage,
                                                   ExtractTraceContextFromBasicProperties);
                     using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("CloudSendMessage", ActivityKind.Consumer, parentContext.ActivityContext);

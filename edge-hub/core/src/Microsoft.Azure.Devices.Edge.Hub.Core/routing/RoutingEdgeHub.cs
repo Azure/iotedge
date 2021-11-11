@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
     using System.Threading.Tasks;
     using App.Metrics;
@@ -15,15 +16,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Extensions.Logging;
+    using OpenTelemetry;
+    using OpenTelemetry.Context.Propagation;
     using Serilog.Events;
     using static System.FormattableString;
     using Constants = Microsoft.Azure.Devices.Edge.Hub.Core.Constants;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
     using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
     using SystemProperties = Microsoft.Azure.Devices.Edge.Hub.Core.SystemProperties;
-    using OpenTelemetry.Context.Propagation;
-    using System.Diagnostics;
-    using OpenTelemetry;
 
     public class RoutingEdgeHub : IEdgeHub
     {
@@ -67,14 +67,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             Preconditions.CheckNotNull(message, nameof(message));
             Preconditions.CheckNotNull(identity, nameof(identity));
             Events.MessageReceived(identity, message);
-            var parentContext = propagator.Extract(default,
+            var parentContext = this.propagator.Extract(
+                                                    default,
                                                     message,
                                                     ExtractTraceContextFromBasicProperties);
             using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("ProcessSingleDeviceMessage", ActivityKind.Consumer, parentContext.ActivityContext);
             IRoutingMessage routingMessage = this.ProcessMessageInternal(message, true);
             Metrics.AddMessageSize(routingMessage.Size(), identity.Id);
             Metrics.AddReceivedMessage(identity.Id, message.GetOutput());
-            propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), message, InjectTraceContextIntoBasicProperties);
+            this.propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), message, this.InjectTraceContextIntoBasicProperties);
             return this.router.RouteAsync(routingMessage);
         }
 
@@ -87,21 +88,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 .Select(
                     m =>
                     {
-                        var parentContext = propagator.Extract(
+                        var parentContext = this.propagator.Extract(
                                                         default,
                                                         m,
                                                         ExtractTraceContextFromBasicProperties);
                         using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("ProcessDeviceMessage", ActivityKind.Consumer, parentContext.ActivityContext);
-                        if (activity == null)
-                        {
-                            Events.NullActivity(identity.Id);
-                        }
                         Events.NonNullActivity(identity.Id);
                         activity?.SetTag("ClientId", identity.Id);
                         IRoutingMessage routingMessage = this.ProcessMessageInternal(m, true);
                         Metrics.AddMessageSize(routingMessage.Size(), identity.Id);
                         Metrics.AddReceivedMessage(identity.Id, m.GetOutput());
-                        propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), m, InjectTraceContextIntoBasicProperties);
+                        this.propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), m, this.InjectTraceContextIntoBasicProperties);
                         return routingMessage;
                     });
             return this.router.RouteAsync(routingMessages);
