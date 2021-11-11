@@ -41,9 +41,8 @@ stages:
     condition: |
       and
       ( 
-        succeededOrFailed(),
-        in(dependencies.PublishManifests.result, 'Succeeded','Skipped'),
-        in(dependencies.BuildPackages.result, 'Succeeded','Skipped')
+        in(dependencies.PublishManifests.result, 'Succeeded','Skipped', 'SucceededWithIssues'),
+        in(dependencies.BuildPackages.result, 'Succeeded','Skipped', 'SucceededWithIssues')
       )     
     jobs:
       - job: ubuntu_2004_msmoby
