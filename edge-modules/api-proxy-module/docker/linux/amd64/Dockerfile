@@ -3,7 +3,7 @@
 # Licensed under the MIT License. See https://go.microsoft.com/fwlink/?linkid=2090316 for license information.
 #-------------------------------------------------------------------------------------------------------------
 
-FROM alpine:3.13.6
+FROM alpine:3.14.0
 WORKDIR /app
 
 RUN	apk update && \
@@ -19,14 +19,13 @@ COPY ./docker/linux/amd64/templates .
 
 RUN	apk update && \
     apk add --no-cache nginx && \
-	mkdir /run/nginx
+	mkdir -p /run/nginx
 RUN setcap 'cap_net_bind_service=+ep' /usr/sbin/nginx
 
 RUN chown -R nginx:nginx /app && \
     mkdir /var/cache/nginx && \
     chown -R nginx:nginx /var/cache/nginx && \
-    chown -R nginx:nginx /var/log/nginx && \
-    chown -R nginx:nginx /etc/nginx/conf.d
+    chown -R nginx:nginx /var/log/nginx
 RUN touch /var/run/nginx/nginx.pid && \
         chown -R nginx:nginx /var/run/nginx/nginx.pid 
         
