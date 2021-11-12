@@ -1130,6 +1130,7 @@ namespace PaidModuleSample
             [JsonProperty("keyId")]
             public string KeyId { get; set; }
 
+            [Newtonsoft.Json.JsonConverter(typeof(Newtonsoft.Json.Converters.StringEnumConverter))]
             [JsonProperty("algo")]
             public SignRequestAlgo Algo { get; set; }
 
