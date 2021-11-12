@@ -73,7 +73,7 @@ Notary initializes the TUF trust collection for each image in the Container Regi
 ##### a. Notary Installation
 Notary client can be installed with `wget` command for `amd64` target platform and avoid installing using `sudo apt-get install notary`
 
-`wget https://github.com/theupdateframework/notary/releases/download/v0.6.1/notary-Linux-amd64'`
+`wget https://github.com/theupdateframework/notary/releases/download/v0.6.1/notary-Linux-amd64`
 
 Rename `notary-Linux-amd64` to `notary` and change the permissions by `chmod +x notary` and place the binary in `/usr/bin/notary`
 
