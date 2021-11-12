@@ -1128,10 +1128,13 @@ namespace PaidModuleSample
 
         class SignRequest
         {
+            [JsonProperty("keyId")]
             public string KeyId { get; set; }
 
+            [JsonProperty("algo")]
             public SignRequestAlgo Algo { get; set; }
 
+            [JsonProperty("data")]
             public byte[] Data { get; set; }
 
             public string ToJson()
@@ -1147,6 +1150,7 @@ namespace PaidModuleSample
 
         class SignResponse
         {
+            [JsonProperty("digest")]
             public byte[] Digest { get; set; }
 
             public string ToJson()
@@ -1162,6 +1166,7 @@ namespace PaidModuleSample
 
         class TrustBundleResponse
         {
+            [JsonProperty("certificate")]
             public string Certificate { get; set; }
 
             public string ToJson()
