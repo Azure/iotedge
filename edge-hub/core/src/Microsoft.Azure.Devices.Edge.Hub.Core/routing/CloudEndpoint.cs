@@ -226,8 +226,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                         {
                             var parentContext = this.propagator.Extract(
                                                             default,
-                                                            message,
-                                                            ExtractTraceContextFromBasicProperties);
+                                                            message.Properties,
+                                                            TracingInformation.ExtractTraceContextFromCarrier);
                             using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("RouteCloudMessage", ActivityKind.Consumer, parentContext.ActivityContext);
                             activity?.SetTag("ClientId", id);
                         }
@@ -259,16 +259,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                         return this.HandleException(cloudProxy.Exception, id, routingMessages);
                     }
                 }
-            }
-
-            private static IEnumerable<string> ExtractTraceContextFromBasicProperties(IMessage message, string key)
-            {
-                if (message.Properties.TryGetValue(key, out var value))
-                {
-                    return new[] { value };
-                }
-
-                return Enumerable.Empty<string>();
             }
 
             ISinkResult HandleException(Exception ex, string id, List<IRoutingMessage> routingMessages)

@@ -172,12 +172,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     IMessage message = this.moduleEndpoint.messageConverter.ToMessage(routingMessage);
                     var parentContext = this.propagator.Extract(
                                                            default,
-                                                           message,
-                                                           ExtractTraceContextFromBasicProperties);
+                                                           message.Properties,
+                                                           TracingInformation.ExtractTraceContextFromCarrier);
                     using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("ProcessModuleMessage", ActivityKind.Consumer, parentContext.ActivityContext);
 
                     // Inject Context for Distributed Tracing
-                    this.propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), message, this.InjectTraceContextIntoBasicProperties);
+                    this.propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), message.Properties, TracingInformation.InjectTraceContextIntoCarrier);
                     try
                     {
                         if (failed.Count == 0)
@@ -214,21 +214,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 }
 
                 return new SinkResult<IRoutingMessage>(succeeded, failed, invalid, sendFailureDetails);
-            }
-
-            private void InjectTraceContextIntoBasicProperties(IMessage message, string key, string value)
-            {
-                message.Properties[key] = value;
-            }
-
-            private static IEnumerable<string> ExtractTraceContextFromBasicProperties(IMessage message, string key)
-            {
-                if (message.Properties.TryGetValue(key, out var value))
-                {
-                    return new[] { value };
-                }
-
-                return Enumerable.Empty<string>();
             }
 
             bool IsTransientException(Exception ex) => ex is EdgeHubConnectionException

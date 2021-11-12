@@ -151,9 +151,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             IMessageConverter<Message> converter = this.messageConverterProvider.Get<Message>();
             var parentContext = this.propagator.Extract(
                                                    default,
-                                                   inputMessage,
-                                                   ExtractTraceContextFromBasicProperties);
-            using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("CloudSendMessage", ActivityKind.Consumer, parentContext.ActivityContext);
+                                                   inputMessage.Properties,
+                                                   TracingInformation.ExtractTraceContextFromCarrier);
+            using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("CloudProxySendMessage", ActivityKind.Consumer, parentContext.ActivityContext);
             activity?.SetTag("ClientId", this.clientId);
             Message message = converter.FromMessage(inputMessage);
             await this.ResetTimerAsync();
@@ -185,9 +185,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 {
                     var parentContext = this.propagator.Extract(
                                                   default,
-                                                  inputMessage,
-                                                  ExtractTraceContextFromBasicProperties);
-                    using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("CloudSendMessage", ActivityKind.Consumer, parentContext.ActivityContext);
+                                                  inputMessage.Properties,
+                                                  TracingInformation.ExtractTraceContextFromCarrier);
+                    using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("CloudProxySendMessage", ActivityKind.Consumer, parentContext.ActivityContext);
                     activity?.SetTag("ClientId", this.clientId);
                     metricOutputRoute = metricOutputRoute ?? inputMessage.GetOutput();
                     Metrics.MessageProcessingLatency(this.clientId, inputMessage);
@@ -217,22 +217,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 await this.HandleException(ex);
                 throw;
             }
-        }
-
-        private void InjectTraceContextIntoBasicProperties(
-         IMessage message, string key, string value)
-        {
-            message.Properties[key] = value;
-        }
-
-        private static IEnumerable<string> ExtractTraceContextFromBasicProperties(IMessage message, string key)
-        {
-            if (message.Properties.TryGetValue(key, out var value))
-            {
-                return new[] { value };
-            }
-
-            return Enumerable.Empty<string>();
         }
 
         public async Task UpdateReportedPropertiesAsync(IMessage reportedPropertiesMessage)

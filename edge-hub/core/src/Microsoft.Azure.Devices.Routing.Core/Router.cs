@@ -228,8 +228,8 @@ namespace Microsoft.Azure.Devices.Routing.Core
             ISet<RouteResult> results = this.evaluator.Evaluate(message);
             var parentContext = this.propagator.Extract(
              default,
-             message,
-             ExtractTraceContextFromBasicProperties);
+             message.Properties,
+             TracingInformation.ExtractTraceContextFromCarrier);
             Events.MessageEvaluation(this.iotHubName, message, results);
             using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("RouteMessage", ActivityKind.Consumer, parentContext.ActivityContext);
             if (message.MessageSource is BaseMessageSource)

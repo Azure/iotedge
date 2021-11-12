@@ -62,20 +62,13 @@ namespace LoadGen
                 message.Properties.Add(TestConstants.Message.TrackingIdPropertyName, this.TrackingId);
 
                 // Inject Context for Distributed Tracing
-                propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), message,
-                InjectTraceContextIntoBasicProperties);
+                propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), message.Properties,
+                TracingInformation.InjectTraceContextIntoCarrier);
 
                 // sending the result via edgeHub
                 await this.Client.SendEventAsync(outputName, message);
                 this.Logger.LogInformation($"Sent message successfully: sequenceNumber={messageId}");
             }
-        }
-
-        private void InjectTraceContextIntoBasicProperties(
-          Message message, string key, string value)
-        {
-            Logger.LogInformation($"Added {key} Key with Value {value}!!!!!");
-            message.Properties[key] = value;
         }
 
         protected async Task ReportResult(long messageIdCounter)

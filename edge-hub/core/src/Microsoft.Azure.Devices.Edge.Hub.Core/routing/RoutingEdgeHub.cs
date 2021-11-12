@@ -69,13 +69,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             Events.MessageReceived(identity, message);
             var parentContext = this.propagator.Extract(
                                                     default,
-                                                    message,
-                                                    ExtractTraceContextFromBasicProperties);
+                                                    message.Properties,
+                                                    TracingInformation.ExtractTraceContextFromCarrier);
             using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("ProcessSingleDeviceMessage", ActivityKind.Consumer, parentContext.ActivityContext);
             IRoutingMessage routingMessage = this.ProcessMessageInternal(message, true);
             Metrics.AddMessageSize(routingMessage.Size(), identity.Id);
             Metrics.AddReceivedMessage(identity.Id, message.GetOutput());
-            this.propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), message, this.InjectTraceContextIntoBasicProperties);
+            this.propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), message.Properties, TracingInformation.InjectTraceContextIntoCarrier);
             return this.router.RouteAsync(routingMessage);
         }
 
@@ -90,34 +90,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     {
                         var parentContext = this.propagator.Extract(
                                                         default,
-                                                        m,
-                                                        ExtractTraceContextFromBasicProperties);
+                                                        m.Properties,
+                                                        TracingInformation.ExtractTraceContextFromCarrier);
                         using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("ProcessDeviceMessage", ActivityKind.Consumer, parentContext.ActivityContext);
-                        Events.NonNullActivity(identity.Id);
                         activity?.SetTag("ClientId", identity.Id);
                         IRoutingMessage routingMessage = this.ProcessMessageInternal(m, true);
                         Metrics.AddMessageSize(routingMessage.Size(), identity.Id);
                         Metrics.AddReceivedMessage(identity.Id, m.GetOutput());
-                        this.propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), m, this.InjectTraceContextIntoBasicProperties);
+                        this.propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), m.Properties, TracingInformation.InjectTraceContextIntoCarrier);
                         return routingMessage;
                     });
             return this.router.RouteAsync(routingMessages);
-        }
-
-        private void InjectTraceContextIntoBasicProperties(
-         IMessage message, string key, string value)
-        {
-            message.Properties[key] = value;
-        }
-
-        private static IEnumerable<string> ExtractTraceContextFromBasicProperties(IMessage message, string key)
-        {
-            if (message.Properties.TryGetValue(key, out var value))
-            {
-                return new[] { value };
-            }
-
-            return Enumerable.Empty<string>();
         }
 
         public Task<DirectMethodResponse> InvokeMethodAsync(string id, DirectMethodRequest methodRequest)

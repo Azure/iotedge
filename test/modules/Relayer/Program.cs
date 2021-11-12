@@ -4,6 +4,7 @@ namespace Relayer
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
     using System.Net;
     using System.Text;
@@ -16,10 +17,9 @@ namespace Relayer
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using OpenTelemetry;
-    using OpenTelemetry.Trace;
-    using OpenTelemetry.Resources;
-    using System.Diagnostics;
     using OpenTelemetry.Context.Propagation;
+    using OpenTelemetry.Resources;
+    using OpenTelemetry.Trace;
 
 
     /*
@@ -88,8 +88,8 @@ namespace Relayer
             Logger.LogInformation($"Received message from device: {message.ConnectionDeviceId}, module: {message.ConnectionModuleId}");
             var parentContext = propagator.Extract(
               default,
-              message,
-              ExtractTraceContextFromBasicProperties);
+              message.Properties,
+              TracingInformation.ExtractTraceContextFromCarrier);
 
             using var activity = Settings.activitySource.StartActivity("ReceivedMessage", ActivityKind.Consumer, parentContext.ActivityContext);
             var testResultCoordinatorUrl = Option.None<Uri>();
@@ -171,8 +171,8 @@ namespace Relayer
                     using var upstreamActivity = Settings.activitySource.StartActivity("RelayUpstream", ActivityKind.Producer);
                     // Inject Context for Distributed Tracing
                     var contextToInject = Activity.Current.Context;
-                    propagator.Inject(new PropagationContext(contextToInject, Baggage.Current), messageCopy,
-                                    InjectTraceContextIntoBasicProperties);
+                    propagator.Inject(new PropagationContext(contextToInject, Baggage.Current), messageCopy.Properties,
+                                    TracingInformation.InjectTraceContextIntoCarrier);
                     await moduleClient.SendEventAsync(Settings.Current.OutputName, messageCopy);
                     Logger.LogInformation($"Sent Message relayed upstream for device: {message.ConnectionDeviceId}, module: {message.ConnectionModuleId}");
 
@@ -220,12 +220,6 @@ namespace Relayer
             }
 
             return Enumerable.Empty<string>();
-        }
-
-        private static void InjectTraceContextIntoBasicProperties(
-         Message message, string key, string value)
-        {
-            message.Properties[key] = value;
         }
 
         private static async Task SetIsFinishedDirectMethodAsync(ModuleClient client)
