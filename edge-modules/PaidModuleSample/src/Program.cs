@@ -37,7 +37,7 @@ namespace PaidModuleSample
             {
                 Console.WriteLine($"Getting purchase from {gateway}");
                 var purchase = await purchaseInfoProvider.GetPurchaseAsync(deviceId, moduleId, cts.Token);
-                Console.WriteLine($"Purchase: {purchase}");
+                Console.WriteLine($"publisherId: {purchase.PublisherId}, offerId: {purchase.OfferId}, planId: {purchase.PlanId}");
                 await Task.Delay(TimeSpan.FromSeconds(60), cts.Token);
             }
 
