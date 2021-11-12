@@ -27,7 +27,12 @@ steps:
     displayName: Docker login edgebuilds
     inputs:
       command: login
-      containerRegistry: iotedge-edgebuilds-acr   
+      containerRegistry: iotedge-edgebuilds-acr
+  - task: Docker@2
+    displayName: Docker login edgerelease
+    inputs:
+      command: login
+      containerRegistry: iotedge-release-acr      
 
   - task: Bash@3
     displayName: Build Image - ${{ parameters.name }} - amd64
