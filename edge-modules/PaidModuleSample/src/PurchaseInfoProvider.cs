@@ -24,8 +24,9 @@ namespace PaidModuleSample
         readonly string DeviceId;
         readonly string ModuleId;
         readonly SignatureProvider signatureProvider;
+        private string token;
 
-        public PurchaseInfoProvider(string iotHubHostName, string gateway, string deviceId, string moduleId, string generationId, string workloadUri)
+        private PurchaseInfoProvider(string iotHubHostName, string gateway, string deviceId, string moduleId, string generationId, string workloadUri)
         {
             if (iotHubHostName == null)
                 throw new ArgumentNullException("iotHubHostName");
@@ -47,24 +48,30 @@ namespace PaidModuleSample
             this.signatureProvider = new SignatureProvider(moduleId, generationId, workloadUri);
         }
 
-        public async Task StartGetPurchaseAsync(string deviceId, string moduleId, CancellationToken cancellationToken)
+        private async Task<PurchaseInfoProvider> InitializeAsync(string iotHubHostName, string deviceId, string moduleId)
         {
-            await InstallCertificates();
-            var token = await GetTokenAsync(this.IotHubHostName, this.DeviceId, this.ModuleId, DateTime.Now, TimeSpan.FromDays(1));
+            await this.InstallCertificates();
+            this.token = await this.GetTokenAsync(iotHubHostName, deviceId, moduleId, DateTime.Now, TimeSpan.FromHours(24));
 
+            return this;
+        }
+
+        public static async Task<PurchaseInfoProvider> CreateAsync(string iotHubHostName, string gateway, string deviceId, string moduleId, string generationId, string workloadUri)
+        {
+            var purchaseProvider = new PurchaseInfoProvider(iotHubHostName, gateway, deviceId, moduleId, generationId, workloadUri);
+            await purchaseProvider.InitializeAsync(iotHubHostName, deviceId, moduleId);
+            return purchaseProvider;
+        }
+
+        public async Task<PurchaseResponse> GetPurchaseAsync(string deviceId, string moduleId, CancellationToken cancellationToken)
+        {
             var httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Authorization = AuthenticationHeaderValue.Parse(token);
+            httpClient.DefaultRequestHeaders.Authorization = AuthenticationHeaderValue.Parse(this.token);
 
             var client = new EdgeHubPurchaseClient(httpClient);
             client.BaseUrl = $"https://{this.GatewayHostName}";
 
-            while (!cancellationToken.IsCancellationRequested)
-            {
-                Console.WriteLine($"Getting purchase from {this.GatewayHostName}");
-                var purchase = await client.GetPurchaseAsync(deviceId, moduleId);
-                Console.WriteLine($"Purchase: {purchase}");
-                await Task.Delay(TimeSpan.FromSeconds(60), cancellationToken);
-            }
+            return await client.GetPurchaseAsync(deviceId, moduleId, cancellationToken);
         }
 
         async Task<string> GetTokenAsync(string iotHubHostName, string deviceId, string moduleId, DateTime startTime, TimeSpan ttl)

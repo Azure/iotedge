@@ -31,9 +31,15 @@ namespace PaidModuleSample
             string workloadUri = configuration.GetValue<string>("IOTEDGE_WORKLOADURI");
             string gateway = configuration.GetValue<string>("IOTEDGE_GATEWAYHOSTNAME");
 
-            var purchaseInfoProvider = new PurchaseInfoProvider(iotHubHostName, gateway, deviceId, moduleId, generationId, workloadUri);
+            var purchaseInfoProvider = await PurchaseInfoProvider.CreateAsync(iotHubHostName, gateway, deviceId, moduleId, generationId, workloadUri);
 
-            await purchaseInfoProvider.StartGetPurchaseAsync(deviceId, moduleId, cts.Token);
+            while (!cts.IsCancellationRequested)
+            {
+                Console.WriteLine($"Getting purchase from {gateway}");
+                var purchase = await purchaseInfoProvider.GetPurchaseAsync(deviceId, moduleId, cts.Token);
+                Console.WriteLine($"Purchase: {purchase}");
+                await Task.Delay(TimeSpan.FromSeconds(60), cts.Token);
+            }
 
             await WhenCanceled(cts.Token);
 
