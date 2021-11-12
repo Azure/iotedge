@@ -6,12 +6,15 @@ namespace Microsoft.Azure.Devices.Edge.Util
     using System.Diagnostics;
     using System.Linq;
     using System.Reflection;
+    using OpenTelemetry.Context.Propagation;
 
     public static class TracingInformation
     {
         public const string EdgeHubSourceName = "EdgeHub";
 
         public const string EdgeAgentSourceName = "EdgeAgent";
+
+        public static readonly TextMapPropagator Propagator = new TraceContextPropagator();
 
         public static ActivitySource EdgeHubActivitySource = new ActivitySource(EdgeHubSourceName, Assembly.GetExecutingAssembly().ImageRuntimeVersion);
 

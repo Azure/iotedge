@@ -16,8 +16,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Extensions.Logging;
-    using OpenTelemetry;
-    using OpenTelemetry.Context.Propagation;
     using Serilog.Events;
     using static System.FormattableString;
     using Constants = Microsoft.Azure.Devices.Edge.Hub.Core.Constants;
@@ -36,7 +34,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         readonly IInvokeMethodHandler invokeMethodHandler;
         readonly ISubscriptionProcessor subscriptionProcessor;
         readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
-        readonly TextMapPropagator propagator = new TraceContextPropagator();
 
         public RoutingEdgeHub(
             Router router,
@@ -67,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             Preconditions.CheckNotNull(message, nameof(message));
             Preconditions.CheckNotNull(identity, nameof(identity));
             Events.MessageReceived(identity, message);
-            var parentContext = this.propagator.Extract(
+            var parentContext = TracingInformation.propagator.Extract(
                                                     default,
                                                     message.Properties,
                                                     TracingInformation.ExtractTraceContextFromCarrier);
@@ -88,11 +85,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 .Select(
                     m =>
                     {
-                        var parentContext = this.propagator.Extract(
+                        var parentContext = TracingInformation.propagator.Extract(
                                                         default,
                                                         m.Properties,
                                                         TracingInformation.ExtractTraceContextFromCarrier);
-                        using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("ProcessDeviceMessage", ActivityKind.Consumer, parentContext.ActivityContext);
+                        using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("ProcessDeviceMessages", ActivityKind.Consumer, parentContext.ActivityContext);
                         activity?.SetTag("ClientId", identity.Id);
                         IRoutingMessage routingMessage = this.ProcessMessageInternal(m, true);
                         Metrics.AddMessageSize(routingMessage.Size(), identity.Id);

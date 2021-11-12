@@ -14,7 +14,6 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Extensions.Logging;
-    using OpenTelemetry.Context.Propagation;
 
     public class Router : IDisposable
     {
@@ -24,7 +23,6 @@ namespace Microsoft.Azure.Devices.Routing.Core
         readonly Evaluator evaluator;
         readonly AtomicReference<ImmutableDictionary<string, Route>> routes;
         readonly AsyncLock sync = new AsyncLock();
-        readonly TextMapPropagator propagator = new TraceContextPropagator();
         readonly string iotHubName;
 
         Router(string id, string iotHubName, Evaluator evaluator, Dispatcher dispatcher)
@@ -226,7 +224,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
         Task RouteInternalAsync(IMessage message)
         {
             ISet<RouteResult> results = this.evaluator.Evaluate(message);
-            var parentContext = this.propagator.Extract(
+            var parentContext = TracingInformation.propagator.Extract(
              default,
              message.Properties,
              TracingInformation.ExtractTraceContextFromCarrier);
@@ -239,16 +237,6 @@ namespace Microsoft.Azure.Devices.Routing.Core
             }
 
             return this.dispatcher.DispatchAsync(message, results);
-        }
-
-        private static IEnumerable<string> ExtractTraceContextFromBasicProperties(IMessage message, string key)
-        {
-            if (message.Properties.TryGetValue(key, out var value))
-            {
-                return new[] { value };
-            }
-
-            return Enumerable.Empty<string>();
         }
 
         void CheckClosed()

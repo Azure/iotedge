@@ -19,7 +19,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Extensions.Logging;
-    using OpenTelemetry.Context.Propagation;
     using static System.FormattableString;
     using Constants = Microsoft.Azure.Devices.Edge.Hub.Core.Constants;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
@@ -74,8 +73,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             readonly CloudEndpoint cloudEndpoint;
             readonly bool trackDeviceState;
-
-            readonly TextMapPropagator propagator = new TraceContextPropagator();
 
             public CloudMessageProcessor(CloudEndpoint endpoint, bool trackDeviceState)
             {
@@ -224,7 +221,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                             .ToList();
                         foreach (var message in messages)
                         {
-                            var parentContext = this.propagator.Extract(
+                            var parentContext = TracingInformation.propagator.Extract(
                                                             default,
                                                             message.Properties,
                                                             TracingInformation.ExtractTraceContextFromCarrier);

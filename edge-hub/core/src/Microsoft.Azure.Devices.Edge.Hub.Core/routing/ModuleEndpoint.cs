@@ -15,8 +15,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Extensions.Logging;
-    using OpenTelemetry;
-    using OpenTelemetry.Context.Propagation;
     using static System.FormattableString;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
     using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
@@ -112,8 +110,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             readonly ModuleEndpoint moduleEndpoint;
 
-            readonly TextMapPropagator propagator = new TraceContextPropagator();
-
             Util.Option<IDeviceProxy> devicePoxy = Option.None<IDeviceProxy>();
 
             public ModuleMessageProcessor(ModuleEndpoint endpoint)
@@ -170,7 +166,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 foreach (IRoutingMessage routingMessage in routingMessages)
                 {
                     IMessage message = this.moduleEndpoint.messageConverter.ToMessage(routingMessage);
-                    var parentContext = this.propagator.Extract(
+                    var parentContext = TracingInformation.propagator.Extract(
                                                            default,
                                                            message.Properties,
                                                            TracingInformation.ExtractTraceContextFromCarrier);
