@@ -741,9 +741,8 @@ namespace PaidModuleSample
 
                 var urlBuilder_ = new System.Text.StringBuilder();
                 urlBuilder_.Append(BaseUrl != null ? BaseUrl.TrimEnd('/') : "").Append("/devices/{deviceId}/modules/{moduleId}/purchase");
-                urlBuilder_.Replace("{deviceId}", System.Net.WebUtility.UrlEncode(ConvertToString(moduleId, System.Globalization.CultureInfo.InvariantCulture)));
+                urlBuilder_.Replace("{deviceId}", System.Net.WebUtility.UrlEncode(ConvertToString(deviceId, System.Globalization.CultureInfo.InvariantCulture)));
                 urlBuilder_.Replace("{moduleId}", System.Net.WebUtility.UrlEncode(ConvertToString(moduleId, System.Globalization.CultureInfo.InvariantCulture)));
-                urlBuilder_.Length--;
 
                 var client_ = _httpClient;
                 try
