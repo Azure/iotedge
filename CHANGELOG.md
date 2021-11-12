@@ -1,4 +1,4 @@
-# 1.2.5 (2021-11-12)
+# 1.2.6 (2021-11-12)
 ## Edge Agent
 ### Bug Fixes
 * Revert [2677657](https://github.com/Azure/iotedge/commit/26776577a4eec9414108e29d2bb4263c9b2d8b76), which inadvertently disabled duration and Unix timestamp formats in the since and until arguments of GetModuleLogs and UploadModuleLogs direct methods.
