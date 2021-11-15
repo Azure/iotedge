@@ -13,7 +13,7 @@ There are two options for building the IoT Edge Security Daemon.
 
 Linux packages are built using the `edgelet/build/linux/package.sh` script. Set the following environment variables, then invoke the script:
 
-1. `PACKAGE_OS`: This is the OS on which the resulting packages will be installed. It should be one of `centos7`, `debian9`, `debian10`, `ubuntu18.04` or `ubuntu20.04`
+1. `PACKAGE_OS`: This is the OS on which the resulting packages will be installed. It should be one of `centos7`, `debian9`, `debian10`, `debian11`, `ubuntu18.04`, or `ubuntu20.04`
 
 1. `PACKAGE_ARCH`: This is the architecture of the OS on which the resulting packages will be installed. It should be one of `amd64`, `arm32v7` or `aarch64`.
 
@@ -81,7 +81,16 @@ yum install \
     libcurl-devel libuuid-devel openssl-devel
 ```
 
-#### Debian 8-10, Ubuntu 18.04
+#### Debian 9-11
+
+```sh
+apt-get update
+apt-get install \
+    binutils build-essential ca-certificates curl cmake debhelper file git make \
+    gcc g++ pkg-config \
+    libcurl4-openssl-dev libssl-dev uuid-dev
+```
+#### Ubuntu 18.04, 20.04
 
 ```sh
 apt-get update
@@ -183,6 +192,48 @@ To run `aziot-edged` locally:
 
 ```sh
 cargo test --all
+```
+
+### Run Code Coverage Checks
+
+In order to run Code Coverage Checks locally do the following 
+```sh
+
+#Run From the Edgelet Directory
+cd edgelet 
+
+#One Time Setup Only.
+cargo install cargo-tarpaulin
+
+
+#Run Unit Test with Code Coverage
+cargo tarpaulin --out Xml --output-dir .
+```
+
+You should see an output like this
+
+```sh
+.
+.
+.
+|| support-bundle/src/error.rs: 0/9
+|| support-bundle/src/runtime_util.rs: 0/18
+|| support-bundle/src/shell_util.rs: 0/117
+|| support-bundle/src/support_bundle.rs: 0/50
+|| 
+46.28% coverage, 2993/6467 lines covered
+```
+
+Additionally, You can also view a HTML Report highlighting code sections covered using the following
+
+```sh
+
+#One Time Setup Only.
+pip install pycobertura
+
+#Create an HTML Report for viewing using pycobertura
+pycobertura show --format html --output coverage.html cobertura.xml
+
 ```
 
 

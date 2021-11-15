@@ -49,33 +49,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
 
             await sensor.WaitForEventsReceivedAsync(startTime, token);
-
-            await sensor.UpdateDesiredPropertiesAsync(
-                new
-                {
-                    properties = new
-                    {
-                        desired = new
-                        {
-                            SendData = true,
-                            SendInterval = 10
-                        }
-                    }
-                },
-                token);
-            await sensor.WaitForReportedPropertyUpdatesAsync(
-                new
-                {
-                    properties = new
-                    {
-                        reported = new
-                        {
-                            SendData = true,
-                            SendInterval = 10
-                        }
-                    }
-                },
-                token);
         }
 
         [Test]
@@ -117,6 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         [Test]
         [Category("FlakyOnArm")]
+        [Category("CentOsSafe")]
         // Test Temperature Filter Function: https://docs.microsoft.com/en-us/azure/iot-edge/tutorial-deploy-function
         public async Task TempFilterFunc()
         {

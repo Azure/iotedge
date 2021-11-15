@@ -120,6 +120,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.NestedEdge = context.GetValue("nestededge", false);
             this.DeviceId = Option.Maybe(Get("deviceId"));
             this.ISA95Tag = context.GetValue("isa95Tag", false);
+            this.EnableManifestSigning = context.GetValue("enableManifestSigning", false);
+            this.ManifestSigningDeploymentPath = Option.Maybe(Get("manifestSigningDeploymentPath"));
+            this.ManifestSigningSignedDeploymentPath = Option.Maybe(Get("manifestSigningSignedDeploymentPath"));
+            this.ManifestSigningGoodRootCaPath = Option.Maybe(Get("manifestSigningGoodRootCaPath"));
+            this.ManifestSigningBadRootCaPath = Option.Maybe(Get("manifestSigningBadRootCaPath"));
+            this.ManifestSigningDefaultLaunchSettings = Option.Maybe(Get("manifestSigningDefaultLaunchSettings"));
+            this.ManifestSigningLaunchSettingsPath = Option.Maybe(Get("manifestSigningLaunchSettingsPath"));
+            this.ManifestSignerClientDirectory = Option.Maybe(Get("manifestSignerClientDirectory"));
+            this.ManifestSignerClientProjectPath = Option.Maybe(Get("manifestSignerClientProjectPath"));
+            this.GetSupportBundle = context.GetValue("getSupportBundle", false);
         }
 
         static readonly Lazy<Context> Default = new Lazy<Context>(() => new Context());
@@ -205,5 +215,24 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public bool NestedEdge { get; }
 
         public bool ISA95Tag { get; }
+
+        public bool EnableManifestSigning { get; }
+
+        public Option<string> ManifestSigningDeploymentPath { get; }
+
+        public Option<string> ManifestSigningSignedDeploymentPath { get; }
+
+        public Option<string> ManifestSigningGoodRootCaPath { get; }
+
+        public Option<string> ManifestSigningBadRootCaPath { get; }
+
+        public Option<string> ManifestSigningDefaultLaunchSettings { get; }
+
+        public Option<string> ManifestSigningLaunchSettingsPath { get; }
+
+        public Option<string> ManifestSignerClientDirectory { get; }
+
+        public Option<string> ManifestSignerClientProjectPath { get; }
+        public bool GetSupportBundle { get; }
     }
 }

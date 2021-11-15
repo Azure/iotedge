@@ -58,6 +58,16 @@ async fn run() -> Result<(), EdgedError> {
     let identity_client = Arc::new(provision::identity_client(&settings)?);
     let cert_client = Arc::new(provision::cert_client(&settings)?);
     let key_client = Arc::new(provision::key_client(&settings)?);
+    let mnt_dir = std::path::Path::new(&settings.homedir()).join("mnt");
+    std::fs::create_dir_all(&mnt_dir).map_err(|err| {
+        EdgedError::from_err(
+            format!(
+                "Failed to create mnt directory {}",
+                mnt_dir.as_path().display()
+            ),
+            err,
+        )
+    })?;
 
     let device_info = provision::get_device_info(
         &identity_client,

@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using System.ComponentModel;
     using System.Linq;
     using System.Net;
     using System.Security.Cryptography.X509Certificates;
@@ -750,6 +751,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             deviceManager.Verify(x => x.ReprovisionDeviceAsync(), Times.Exactly(shouldReprovision ? 1 : 0));
         }
 
+        // This unit test has been considered flaky in the past due to the presence of indeterminate sleeps. Description for sleeps have been added wherever used.
         [Fact]
         [Unit]
         public async Task FrequentTwinPullsOnConnectionAreThrottledAsync()
@@ -777,9 +779,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             var moduleClientProvider = new Mock<IModuleClientProvider>();
             moduleClientProvider.Setup(d => d.Create(It.IsAny<ConnectionStatusChangesHandler>()))
-                .Callback<ConnectionStatusChangesHandler>(statusChanges => connectionStatusChangesHandler = statusChanges)
+                .Callback<ConnectionStatusChangesHandler>(statusChanges =>
+                connectionStatusChangesHandler = statusChanges)
                 .ReturnsAsync(deviceClient.Object);
-
             var retryStrategy = new Mock<RetryStrategy>(new object[] { false });
             retryStrategy.Setup(rs => rs.GetShouldRetry())
                 .Returns(
@@ -796,9 +798,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 .ReturnsAsync(
                     () =>
                     {
-                        counter++;
+                        Interlocked.Increment(ref counter);
                         milestone.Release();
-
                         return twin;
                     });
 
@@ -812,15 +813,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromHours(1), retryStrategy.Object, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle, TimeSpan.FromSeconds(3));
 
             // There is a twin pull during init, wait for that
-            await milestone.WaitAsync(TimeSpan.FromSeconds(2));
+            Assert.True(await milestone.WaitAsync(TimeSpan.FromSeconds(2)));
+
+            // Give enough time for the initial pull to complete which involves updating deployment config
+            await Task.Delay(TimeSpan.FromSeconds(2));
 
             // A first time call should just go through
             counter = 0;
             connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
 
-            await milestone.WaitAsync(TimeSpan.FromSeconds(2));
+            Assert.True(await milestone.WaitAsync(TimeSpan.FromSeconds(2)));
 
-            Assert.Equal(1, counter);
+            Assert.Equal(1, Volatile.Read(ref counter));
 
             // get out of the 3 sec window
             await Task.Delay(3500);
@@ -828,24 +832,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // The second call out of the window should go through
             connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
 
-            await milestone.WaitAsync(TimeSpan.FromSeconds(2));
+            Assert.True(await milestone.WaitAsync(TimeSpan.FromSeconds(2)));
 
-            Assert.Equal(2, counter);
+            Assert.Equal(2, Volatile.Read(ref counter));
 
             // Still in the window, so these should not go through. However, a delayed pull gets started
             connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
             connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
             connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
 
-            await milestone.WaitAsync(TimeSpan.FromSeconds(2));
-
             await Task.Delay(500); // wait a bit more, so there is time to pull twin more if the throttling does not work
 
-            Assert.Equal(2, counter);
+            Assert.Equal(2, Volatile.Read(ref counter));
 
             // get out of the 3 sec window, the delayed pull should finish by then
             await Task.Delay(3500);
-            Assert.Equal(3, counter);
+
+            Assert.True(await milestone.WaitAsync(TimeSpan.FromSeconds(2)));
+
+            Assert.Equal(3, Volatile.Read(ref counter));
         }
 
         [Fact]
@@ -1797,6 +1802,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             }
         }
 
+        [Unit]
+        [Theory(Skip = "Fix manifest chain")]
+        [MemberData(nameof(GetBadManifestTrustBundleForTesting))]
+        public void TestBadManifestTrustBundle(bool isExceptionExpected, bool expectedResult, EdgeAgentConnection edgeAgentConnection, TwinCollection twinDesiredProperties)
+        {
+            if (isExceptionExpected)
+            {
+                Assert.Throws<ManifestTrustBundleChainingFailedException>(() => edgeAgentConnection.CheckIfTwinSignatureIsValid(twinDesiredProperties));
+            }
+            else
+            {
+                Assert.Equal(expectedResult, edgeAgentConnection.CheckIfTwinSignatureIsValid(twinDesiredProperties));
+            }
+        }
+
         public static IEnumerable<object[]> GetDeploymentForSchemas()
         {
             var modulesWithDefaultStartupOrder =
@@ -2334,6 +2354,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             yield return new object[] { true, false, GetEdgeAgentConnectionForManifestSigning(edgeAgentRightImageName, null, GetEcdsaManifestTrustBundle()), unsignedTwinData };
         }
 
+        public static IEnumerable<object[]> GetBadManifestTrustBundleForTesting()
+        {
+            ManifestIntegrity integrityWithEcdsaCerts = GetEcdsaManifestIntegrity();
+            string edgeAgentRightImageName = GetEdgeAgentRightImageName();
+            TwinCollection goodTwinDataEcdsa = GetTwinDesiredProperties(edgeAgentRightImageName, integrityWithEcdsaCerts);
+
+            // Signed Twin and Bad Manifest Trust Bundle - Expect Chaining Exception
+            yield return new object[] { true, false, GetEdgeAgentConnectionForManifestSigning(edgeAgentRightImageName, null, GetBadEcdsaManifestTrustBundle()), goodTwinDataEcdsa };
+            yield return new object[] { true, false, GetEdgeAgentConnectionForManifestSigning(edgeAgentRightImageName, null, GetBadRsaManifestTrustBundle()), goodTwinDataEcdsa };
+        }
+
         public static IEnumerable<object[]> GetTwinCollectionToCheckExtractAgentTwinAndVerify()
         {
             ManifestIntegrity integrityWithEcdsaCerts = GetEcdsaManifestIntegrity();
@@ -2472,6 +2503,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             string ecdsaManifestTrustbundleValue = "MIIFozCCA4ugAwIBAgIUD6luogGDzlhip/mEtJMAAHl0GaAwDQYJKoZIhvcNAQEL\rBQAwYTELMAkGA1UEBhMCVVMxCzAJBgNVBAgMAldBMQswCQYDVQQHDAJzczELMAkG\rA1UECgwCc3MxCzAJBgNVBAsMAnNzMQswCQYDVQQDDAJzczERMA8GCSqGSIb3DQEJ\rARYCc3MwHhcNMjAxMjMwMjMxNjU3WhcNMjMxMDIwMjMxNjU3WjBhMQswCQYDVQQG\rEwJVUzELMAkGA1UECAwCV0ExCzAJBgNVBAcMAnNzMQswCQYDVQQKDAJzczELMAkG\rA1UECwwCc3MxCzAJBgNVBAMMAnNzMREwDwYJKoZIhvcNAQkBFgJzczCCAiIwDQYJ\rKoZIhvcNAQEBBQADggIPADCCAgoCggIBAKc6z0fuCrWaCeZCoF8VlxWQdrNIQS6z\rMwlzOF9mNh+WNZKFD8arPVGpCtiY5zghA0EzXUAIJgMlsrYPMHFH763Al7Ob5mR/\r7DNJqyR8NgZ9pBDGjqQsxxOHFAVaUQLeGzoeDUzUGdNpRWk0X+4JvgHqt0Hmuhzw\rpW00Pj7Cak7fs5VbUdp9k16oA/8vFnbcZ6UUKzxY9aiuN18B/CHOSDGc9yduUysc\r/SOdGU9B8R/OLr1hSjEnmvFmk3KU6kv1APgrFmaOW//gihNZbyXGk5NvNDOIjXfN\r1zc5Owmd6bGUYU2WCHMwIIzNYa3xf3Qfuz/4W1Ke8DBL2BpXokHHhrIXg5TD0Jvj\rqevrAOwRjb7dQV4shCv+jWpPUi4dDXJKZJUcpfZs23Rp7p/dGwMkFOUcw8udv2Ye\rx6j1H/pUxOnBmKd39kUkzY0TetwkQMrAnhMQ7zY0a2neDXk6wDDEK35CyAiM/xZf\rzhh/D8rZBWoK9OezEgdwosw7MJWQSc8mxNl4FaxELMdmGCr+6TI7C2Lg3+iIJooY\rFGDYOj1JxvXKFtaUUPUF6up3jH7FfbMSpLzmq/Yv95DvWV1KGS7LfzJmE7zBL4/1\r7WTjWT6heWKx5GQzck8U4OWt743mVhF13YqQ/U04ChOLDbz07lH4N+v4LcbdzwmR\rW4Wv7m7IY3abAgMBAAGjUzBRMB0GA1UdDgQWBBQusZAXF6xOrlU/BDkAJLwipDfQ\rszAfBgNVHSMEGDAWgBQusZAXF6xOrlU/BDkAJLwipDfQszAPBgNVHRMBAf8EBTAD\rAQH/MA0GCSqGSIb3DQEBCwUAA4ICAQARO5HRzFyffGxmdsU1qmtxq01HUi02+3O8\rbdO2GQ2zwaMnfzi6V2q2VJrmK6g1LiWRcLo+9xX4qdDX7SXtaMtvOK7nQSUixwvz\rEXZVJcxeJ4wb5R6VlffApV9NiSe+HTJUXEjputSPzdP78ubytlKzRVdp4+fdGiax\r41ZVPs21BRENQbH5AnJ7LmqSU7ouzcSPxVFc1UKn+8gSmP2cJsZl0eZhA4KoF3MK\rZ1bp1O44YXwPJSWRQISBci70Qf6AP+PQRPBmhAMpDl5JbX6bxgjBCFODFADlmk+K\r6ruBaH5RlpxfRlP/JzNoz4k5yw8wp8UZkCPrUQwYKfjgCRt38q3twNL8pkOOp6u5\r/oRZxj4PncFbJUQy2cQeZW2zLSze+O8Oxi57WDHXjQqIkB5Hayj24CAY5PcEWMLD\rGoq8dIzVFxWqbqAObAGD13shP9ElH5MnELYqXfyphn0edDN6upDtMWZ3B7JYT8lk\rhnyG4QSDB9fWoxgZkHielqLuNGWB3BgIjMc/apRelxfVACXuTAf9wA5rDSxziJm6\rx9UnmMlmFVN+/t68/Zbn4tn+fM3ryYcMGAEQ+j6fpzoDSV+k2KvYJFg7bVP2V8On\rmWwSDWh+AiHrc4o09vgwsLh6c/XZHxoYSFbpcm8ZvVm2wx3b+q6R2UndQPKS6UP/\rCC+33/Zuew==";
             X509Certificate2 ecdsaManifestTrustbundle = new X509Certificate2(Convert.FromBase64String(ecdsaManifestTrustbundleValue));
             return Option.Some(ecdsaManifestTrustbundle);
+        }
+
+        public static Option<X509Certificate2> GetBadEcdsaManifestTrustBundle()
+        {
+            string ecdsaManifestTrustbundleValue = "MIICGDCCAXqgAwIBAgIUBPlgz9VzDwCNQGUGdd5pGmVf64EwCgYIKoZIzj0EAwIwHjEcMBoGA1UEAwwTdGVzdGluZyBiYWQgcm9vdCBDQTAeFw0yMTEwMjExODIzMzVaFw0yMTExMjAxODIzMzVaMB4xHDAaBgNVBAMME3Rlc3RpbmcgYmFkIHJvb3QgQ0EwgZswEAYHKoZIzj0CAQYFK4EEACMDgYYABADd/GuxeaXcVa0Qydnc8vgRRSxjflF7lQH6BNPlCNFbPLcV40Ow31yRN+sOkpPV1EtRrtTJUCT8QjnPac5wK96o3gBpO2FhFQfkgEOwWjOf8qUSo69KkNJS7L+rQ0V3mul04REDBdtqXTNiyNCbiRUOl72Z5MTXSs1NHkDG8KGJ2jPir6NTMFEwHQYDVR0OBBYEFIuZUEOy/bTatWfWdh2PNnPUv1bvMB8GA1UdIwQYMBaAFIuZUEOy/bTatWfWdh2PNnPUv1bvMA8GA1UdEwEB/wQFMAMBAf8wCgYIKoZIzj0EAwIDgYsAMIGHAkEVjlXhQ06lE9bLxvHvZtdIqZT1O571AorksCZJqO7HBmvBskZlv7s7f4TaQpBOLi3fYvwdCi9CzD9TX82ta2MXeAJCAS72GJTiuzG7q9BWl7Qwq2HJzBIRD3KjHCO/4TEhCDjoQqZa6CjsdEZKq43MkaprFw5QW5YJmnY4Qsmi91G9Qd5/";
+            X509Certificate2 ecdsaManifestTrustbundle = new X509Certificate2(Convert.FromBase64String(ecdsaManifestTrustbundleValue));
+            return Option.Some(ecdsaManifestTrustbundle);
+        }
+
+        public static Option<X509Certificate2> GetBadRsaManifestTrustBundle()
+        {
+            string rsaManifestTrustbundleValue = "MIIFozCCA4ugAwIBAgIUD6luogGDzlhip/mEtJMAAHl0GaAwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCVVMxCzAJBgNVBAgMAldBMQswCQYDVQQHDAJzczELMAkGA1UECgwCc3MxCzAJBgNVBAsMAnNzMQswCQYDVQQDDAJzczERMA8GCSqGSIb3DQEJARYCc3MwHhcNMjAxMjMwMjMxNjU3WhcNMjMxMDIwMjMxNjU3WjBhMQswCQYDVQQGEwJVUzELMAkGA1UECAwCV0ExCzAJBgNVBAcMAnNzMQswCQYDVQQKDAJzczELMAkGA1UECwwCc3MxCzAJBgNVBAMMAnNzMREwDwYJKoZIhvcNAQkBFgJzczCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBAKc6z0fuCrWaCeZCoF8VlxWQdrNIQS6zMwlzOF9mNh+WNZKFD8arPVGpCtiY5zghA0EzXUAIJgMlsrYPMHFH763Al7Ob5mR/7DNJqyR8NgZ9pBDGjqQsxxOHFAVaUQLeGzoeDUzUGdNpRWk0X+4JvgHqt0HmuhzwpW00Pj7Cak7fs5VbUdp9k16oA/8vFnbcZ6UUKzxY9aiuN18B/CHOSDGc9yduUysc/SOdGU9B8R/OLr1hSjEnmvFmk3KU6kv1APgrFmaOW//gihNZbyXGk5NvNDOIjXfN1zc5Owmd6bGUYU2WCHMwIIzNYa3xf3Qfuz/4W1Ke8DBL2BpXokHHhrIXg5TD0JvjqevrAOwRjb7dQV4shCv+jWpPUi4dDXJKZJUcpfZs23Rp7p/dGwMkFOUcw8udv2Yex6j1H/pUxOnBmKd39kUkzY0TetwkQMrAnhMQ7zY0a2neDXk6wDDEK35CyAiM/xZfzhh/D8rZBWoK9OezEgdwosw7MJWQSc8mxNl4FaxELMdmGCr+6TI7C2Lg3+iIJooYFGDYOj1JxvXKFtaUUPUF6up3jH7FfbMSpLzmq/Yv95DvWV1KGS7LfzJmE7zBL4/17WTjWT6heWKx5GQzck8U4OWt743mVhF13YqQ/U04ChOLDbz07lH4N+v4LcbdzwmRW4Wv7m7IY3abAgMBAAGjUzBRMB0GA1UdDgQWBBQusZAXF6xOrlU/BDkAJLwipDfQszAfBgNVHSMEGDAWgBQusZAXF6xOrlU/BDkAJLwipDfQszAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4ICAQARO5HRzFyffGxmdsU1qmtxq01HUi02+3O8bdO2GQ2zwaMnfzi6V2q2VJrmK6g1LiWRcLo+9xX4qdDX7SXtaMtvOK7nQSUixwvzEXZVJcxeJ4wb5R6VlffApV9NiSe+HTJUXEjputSPzdP78ubytlKzRVdp4+fdGiax41ZVPs21BRENQbH5AnJ7LmqSU7ouzcSPxVFc1UKn+8gSmP2cJsZl0eZhA4KoF3MKZ1bp1O44YXwPJSWRQISBci70Qf6AP+PQRPBmhAMpDl5JbX6bxgjBCFODFADlmk+K6ruBaH5RlpxfRlP/JzNoz4k5yw8wp8UZkCPrUQwYKfjgCRt38q3twNL8pkOOp6u5/oRZxj4PncFbJUQy2cQeZW2zLSze+O8Oxi57WDHXjQqIkB5Hayj24CAY5PcEWMLDGoq8dIzVFxWqbqAObAGD13shP9ElH5MnELYqXfyphn0edDN6upDtMWZ3B7JYT8lkhnyG4QSDB9fWoxgZkHielqLuNGWB3BgIjMc/apRelxfVACXuTAf9wA5rDSxziJm6x9UnmMlmFVN+/t68/Zbn4tn+fM3ryYcMGAEQ+j6fpzoDSV+k2KvYJFg7bVP2V8OnmWwSDWh+AiHrc4o09vgwsLh6c/XZHxoYSFbpcm8ZvVm2wx3b+q6R2UndQPKS6UP/CC+33/Zuew==";
+            X509Certificate2 rsaManifestTrustbundle = new X509Certificate2(Convert.FromBase64String(rsaManifestTrustbundleValue));
+            return Option.Some(rsaManifestTrustbundle);
         }
 
         public static string[] GetRsaSignerTestCert() => new string[]

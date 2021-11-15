@@ -164,7 +164,7 @@ async fn auth_update_happy_case() {
         .publish_qos1("$edgehub/device-1/twin/res/#", "test_payload", true)
         .await;
 
-    assert_matches!(device_client.next().await, Some(Packet::Publish(p)) if p.payload == Bytes::from("test_payload"));
+    assert_matches!(device_client.next().await, Some(Packet::Publish(p)) if p.payload == *"test_payload");
 
     command_handler_shutdown_handle
         .shutdown()

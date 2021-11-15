@@ -49,6 +49,7 @@ where
         let key_client = aziot_key_client_async::Client::new(
             aziot_key_common_http::ApiVersion::V2020_09_01,
             key_connector.clone(),
+            1,
         );
         let key_client = std::sync::Arc::new(futures_util::lock::Mutex::new(key_client));
 
@@ -56,6 +57,7 @@ where
         let cert_client = aziot_cert_client_async::Client::new(
             aziot_cert_common_http::ApiVersion::V2020_09_01,
             cert_connector,
+            1,
         );
         let cert_client = std::sync::Arc::new(futures_util::lock::Mutex::new(cert_client));
 
@@ -63,6 +65,7 @@ where
         let identity_client = aziot_identity_client_async::Client::new(
             aziot_identity_common_http::ApiVersion::V2020_09_01,
             identity_connector,
+            1,
         );
         let identity_client = std::sync::Arc::new(futures_util::lock::Mutex::new(identity_client));
 
@@ -77,6 +80,25 @@ where
             runtime,
             config,
         })
+    }
+
+    pub async fn check_edge_ca(&self) -> Result<(), String> {
+        let key_handle =
+            module::cert::edge_ca_key_handle(self.key_client.clone(), &self.config.edge_ca_key)
+                .await
+                .map_err(|err| err.message)?;
+
+        module::cert::check_edge_ca(
+            self.cert_client.clone(),
+            &self.config.edge_ca_cert,
+            &self.config.device_id,
+            &key_handle,
+            self.key_connector.clone(),
+        )
+        .await
+        .map_err(|err| err.message)?;
+
+        Ok(())
     }
 
     // Test constructor used to create a test Workload Service.

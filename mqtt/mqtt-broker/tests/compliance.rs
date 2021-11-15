@@ -116,15 +116,15 @@ async fn basic_pub_sub() {
     );
     assert_matches!(
         client.publications().next().await,
-        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("qos 0")
+        Some(ReceivedPublication{payload, .. }) if payload == *"qos 0"
     );
     assert_matches!(
         client.publications().next().await,
-        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("qos 1")
+        Some(ReceivedPublication{payload, .. }) if payload == *"qos 1"
     );
     assert_matches!(
         client.publications().next().await,
-        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("qos 2")
+        Some(ReceivedPublication{payload, .. }) if payload == *"qos 2"
     );
 
     client.shutdown().await;
@@ -348,7 +348,7 @@ async fn will_message() {
     // expect will message
     assert_matches!(
         client_b.publications().next().await,
-        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("will_msg_a")
+        Some(ReceivedPublication{payload, .. }) if payload == *"will_msg_a"
     );
 
     client_b.shutdown().await;
@@ -454,7 +454,7 @@ async fn will_message_on_protocol_error() {
     // expect will message
     assert_matches!(
         client_b.publications().next().await,
-        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("will_msg_a")
+        Some(ReceivedPublication{payload, .. }) if payload == *"will_msg_a"
     );
 
     client_b.shutdown().await;
@@ -681,7 +681,7 @@ async fn inflight_qos1_messages_redelivered_on_reconnect() {
         Some(Packet::Publish(Publish {
             payload,
             ..
-        })) if payload == Bytes::from("qos 0")
+        })) if payload == *"qos 0"
     );
 
     for i in 1..=QOS1_MESSAGES {
@@ -821,7 +821,7 @@ async fn inflight_qos1_messages_redelivered_on_server_restart() {
         Some(Packet::Publish(Publish {
             payload,
             ..
-        })) if payload == Bytes::from("qos 0")
+        })) if payload == *"qos 0"
     );
 
     for i in 1..=QOS1_MESSAGES {

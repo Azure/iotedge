@@ -87,6 +87,7 @@ impl DockerModuleRuntime {
                 aziot_cert_common_http::ApiVersion::V2020_09_01,
                 http_common::Connector::new(&certd_url)
                     .map_err(|_| Error::from(ErrorKind::Docker))?, // TODO: Error Fix
+                1,
             );
 
             let mut notary_registries = BTreeMap::new();
@@ -295,10 +296,9 @@ impl MakeModuleRuntime for DockerModuleRuntime {
 
 pub fn init_client(docker_url: &Url) -> Result<DockerApiClient> {
     // build the hyper client
-    let client: Client<_, Body> = Client::builder().build(
-        Connector::new(docker_url)
-            .map_err(|e| Error::from(ErrorKind::Initialization(e.to_string())))?,
-    );
+    let client: Client<_, Body> = Connector::new(docker_url)
+        .map_err(|e| Error::from(ErrorKind::Initialization(e.to_string())))?
+        .into_client();
 
     // extract base path - the bit that comes after the scheme
     let base_path = docker_url

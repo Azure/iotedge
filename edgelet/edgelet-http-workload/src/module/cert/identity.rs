@@ -71,8 +71,7 @@ where
 
         let cert_id = format!("aziot-edged/module/{}:identity", &self.module_id);
 
-        let module_uri = super::sanitize_dns_name(self.module_uri);
-        let subject_alt_names = vec![super::SubjectAltName::Dns(module_uri)];
+        let subject_alt_names = vec![super::SubjectAltName::Dns(self.module_uri)];
 
         let csr_extensions = identity_cert_extensions().map_err(|_| {
             edgelet_http::error::server_error("failed to set identity csr extensions")

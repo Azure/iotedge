@@ -81,8 +81,17 @@ impl CertApi {
         let csr = new_csr(common_name, keys, subject_alt_names, extensions)
             .map_err(|_| edgelet_http::error::server_error("failed to generate csr"))?;
 
-        let edge_ca_key_handle = self.edge_ca_key_handle().await?;
-        self.check_edge_ca(&edge_ca_key_handle).await?;
+        let edge_ca_key_handle =
+            edge_ca_key_handle(self.key_client.clone(), &self.edge_ca_key).await?;
+
+        check_edge_ca(
+            self.cert_client.clone(),
+            &self.edge_ca_cert,
+            &self.device_id,
+            &edge_ca_key_handle,
+            self.key_connector.clone(),
+        )
+        .await?;
 
         let cert = self
             .create_cert(&cert_id, &csr, &edge_ca_key_handle)
@@ -98,47 +107,6 @@ impl CertApi {
         let response = http_common::server::response::json(hyper::StatusCode::CREATED, &response);
 
         Ok(response)
-    }
-
-    async fn edge_ca_key_handle(
-        &self,
-    ) -> Result<aziot_key_common::KeyHandle, http_common::server::Error> {
-        let key_client = self.key_client.lock().await;
-
-        key_client
-            .create_key_pair_if_not_exists(&self.edge_ca_key, Some("rsa-2048:*"))
-            .await
-            .map_err(|_| edgelet_http::error::server_error("failed to retrieve edge ca key"))
-    }
-
-    async fn check_edge_ca(
-        &self,
-        key_handle: &aziot_key_common::KeyHandle,
-    ) -> Result<(), http_common::server::Error> {
-        let cert_client = self.cert_client.lock().await;
-
-        if should_renew(&cert_client, &self.edge_ca_cert).await? {
-            let common_name = format!("iotedged workload ca {}", self.device_id);
-            let keys = self.edge_ca_keys(key_handle)?;
-
-            let extensions = edge_ca_extensions().map_err(|_| {
-                edgelet_http::error::server_error("failed to set edge ca csr extensions")
-            })?;
-
-            let csr = new_csr(common_name, keys, Vec::new(), extensions)
-                .map_err(|_| edgelet_http::error::server_error("failed to generate edge ca csr"))?;
-
-            cert_client
-                .create_cert(
-                    &self.edge_ca_cert,
-                    &csr,
-                    Some((&self.edge_ca_cert, key_handle)),
-                )
-                .await
-                .map_err(|_| edgelet_http::error::server_error("failed to create edge ca cert"))?;
-        }
-
-        Ok(())
     }
 
     async fn create_cert(
@@ -163,55 +131,6 @@ impl CertApi {
 
         Ok(cert.to_string())
     }
-
-    fn edge_ca_keys(
-        &self,
-        key_handle: &aziot_key_common::KeyHandle,
-    ) -> Result<
-        (
-            openssl::pkey::PKey<openssl::pkey::Private>,
-            openssl::pkey::PKey<openssl::pkey::Public>,
-        ),
-        http_common::server::Error,
-    > {
-        // The openssl engine must use a sync client. Elsewhere, the async client is used.
-        let key_client = aziot_key_client::Client::new(
-            aziot_key_common_http::ApiVersion::V2020_09_01,
-            self.key_connector.clone(),
-        );
-        let key_client = std::sync::Arc::new(key_client);
-        let key_handle =
-            std::ffi::CString::new(key_handle.0.clone()).expect("key handle contained null");
-
-        let mut engine = KeyEngine::load(key_client)
-            .map_err(|_| edgelet_http::error::server_error("failed to load openssl key engine"))?;
-
-        let private_key = engine
-            .load_private_key(&key_handle)
-            .map_err(|_| edgelet_http::error::server_error("failed to load edge ca private key"))?;
-
-        let public_key = engine
-            .load_public_key(&key_handle)
-            .map_err(|_| edgelet_http::error::server_error("failed to load edge ca public key"))?;
-
-        Ok((private_key, public_key))
-    }
-}
-
-/// DNS names must conform to following rules per RFC 1035:
-///  - Length less than 64 characters
-///  - Contains only lowercase alphanumeric characters or '-'
-///  - Starts and ends with an alphanumeric character
-///
-/// This function removes illegal characters from a given DNS name and trims it to 63 characters.
-pub fn sanitize_dns_name(name: String) -> String {
-    name.trim_start_matches(|c: char| !c.is_ascii_alphabetic())
-        .trim_end_matches(|c: char| !c.is_ascii_alphanumeric())
-        .to_lowercase()
-        .chars()
-        .filter(|c| c.is_ascii_alphanumeric() || c == &'-')
-        .take(63)
-        .collect::<String>()
 }
 
 fn new_keys() -> Result<
@@ -302,6 +221,55 @@ fn key_to_pem(key: &openssl::pkey::PKey<openssl::pkey::Private>) -> String {
     key_pem
 }
 
+pub(crate) async fn edge_ca_key_handle(
+    key_client: std::sync::Arc<futures_util::lock::Mutex<KeyClient>>,
+    edge_ca_key: &str,
+) -> Result<aziot_key_common::KeyHandle, http_common::server::Error> {
+    let key_client = key_client.lock().await;
+
+    key_client
+        .create_key_pair_if_not_exists(edge_ca_key, Some("rsa-2048:*"))
+        .await
+        .map_err(|_| edgelet_http::error::server_error("failed to retrieve edge ca key"))
+}
+
+pub(crate) async fn check_edge_ca(
+    cert_client: std::sync::Arc<futures_util::lock::Mutex<CertClient>>,
+    edge_ca_cert: &str,
+    device_id: &str,
+    key_handle: &aziot_key_common::KeyHandle,
+    key_connector: http_common::Connector,
+) -> Result<(), http_common::server::Error> {
+    let cert_client = cert_client.lock().await;
+
+    log::info!("Checking Edge CA certificate...");
+
+    if should_renew(&cert_client, edge_ca_cert).await? {
+        log::info!("Requesting new Edge CA certificate...");
+
+        let common_name = format!("iotedged workload ca {}", device_id);
+        let keys = edge_ca_keys(key_connector, key_handle)?;
+
+        let extensions = edge_ca_extensions().map_err(|_| {
+            edgelet_http::error::server_error("failed to set edge ca csr extensions")
+        })?;
+
+        let csr = new_csr(common_name, keys, Vec::new(), extensions)
+            .map_err(|_| edgelet_http::error::server_error("failed to generate edge ca csr"))?;
+
+        cert_client
+            .create_cert(edge_ca_cert, &csr, None)
+            .await
+            .map_err(|_| edgelet_http::error::server_error("failed to create edge ca cert"))?;
+
+        log::info!("Created new Edge CA certificate");
+    } else {
+        log::info!("Current Edge CA certificate does not need to be renewed");
+    }
+
+    Ok(())
+}
+
 async fn should_renew(
     cert_client: &CertClient,
     cert_id: &str,
@@ -324,6 +292,39 @@ async fn should_renew(
         }
         Err(_) => Ok(true),
     }
+}
+
+fn edge_ca_keys(
+    key_connector: http_common::Connector,
+    key_handle: &aziot_key_common::KeyHandle,
+) -> Result<
+    (
+        openssl::pkey::PKey<openssl::pkey::Private>,
+        openssl::pkey::PKey<openssl::pkey::Public>,
+    ),
+    http_common::server::Error,
+> {
+    // The openssl engine must use a sync client. Elsewhere, the async client is used.
+    let key_client = aziot_key_client::Client::new(
+        aziot_key_common_http::ApiVersion::V2020_09_01,
+        key_connector,
+    );
+    let key_client = std::sync::Arc::new(key_client);
+    let key_handle =
+        std::ffi::CString::new(key_handle.0.clone()).expect("key handle contained null");
+
+    let mut engine = KeyEngine::load(key_client)
+        .map_err(|_| edgelet_http::error::server_error("failed to load openssl key engine"))?;
+
+    let private_key = engine
+        .load_private_key(&key_handle)
+        .map_err(|_| edgelet_http::error::server_error("failed to load edge ca private key"))?;
+
+    let public_key = engine
+        .load_public_key(&key_handle)
+        .map_err(|_| edgelet_http::error::server_error("failed to load edge ca public key"))?;
+
+    Ok((private_key, public_key))
 }
 
 fn edge_ca_extensions(
@@ -427,7 +428,15 @@ mod tests {
             }
 
             let key_handle = aziot_key_common::KeyHandle(api.edge_ca_key.clone());
-            api.check_edge_ca(&key_handle).await.unwrap();
+            super::check_edge_ca(
+                api.cert_client.clone(),
+                &api.edge_ca_cert,
+                &api.device_id,
+                &key_handle,
+                api.key_connector.clone(),
+            )
+            .await
+            .unwrap();
 
             let new_cert = {
                 let cert_client = api.cert_client.lock().await;

@@ -5,10 +5,17 @@
 FROM arm64v8/nginx:1.21.1
 WORKDIR /app
 
+RUN apt-get update && \	
+    apt-get install -y libcap2-bin && \
+    rm -rf /var/lib/apt/lists/*	
+RUN setcap 'cap_net_bind_service=+ep' /usr/sbin/nginx
+
+ENV NGINXUSER_ID ${NGINXUSER_ID:-13624}
+RUN usermod -u ${NGINXUSER_ID} nginx
+
 RUN chown -R nginx:nginx /app && \
     chown -R nginx:nginx /var/cache/nginx && \
-    chown -R nginx:nginx /var/log/nginx && \
-    chown -R nginx:nginx /etc/nginx/conf.d
+    chown -R nginx:nginx /var/log/nginx
 RUN touch /var/run/nginx.pid && \
         chown -R nginx:nginx /var/run/nginx.pid 
 

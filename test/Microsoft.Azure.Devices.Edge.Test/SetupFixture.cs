@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
+    using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
     using Serilog;
     using Serilog.Events;
@@ -25,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             ("/etc/aziot/keyd/config.toml", "aziotks"),
             ("/etc/aziot/certd/config.toml", "aziotcs"),
             ("/etc/aziot/identityd/config.toml", "aziotid"),
-            ("/etc/aziot/tpmd/config.toml", "aziotts"),
+            ("/etc/aziot/tpmd/config.toml", "aziottpm"),
             ("/etc/aziot/edged/config.toml", "iotedge")
         };
 
@@ -63,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         if (Directory.Exists(directory))
                         {
                             Directory.Delete(directory, true);
-                            Log.Information($"Deleted {directory}");
+                            Log.Verbose($"Deleted {directory}");
                         }
                     }
 
@@ -102,10 +103,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                             string edgeAgent = Context.Current.EdgeAgentImage.GetOrElse("mcr.microsoft.com/azureiotedge-agent:1.2");
 
-                            Log.Information("Search parents");
+                            Log.Verbose("Search parents");
                             Context.Current.ParentHostname.ForEach(parentHostname =>
                             {
-                                Log.Information($"Found parent hostname {parentHostname}");
+                                Log.Verbose($"Found parent hostname {parentHostname}");
                                 config.SetParentHostname(parentHostname);
                                 msgBuilder.AppendLine($", parent hostname '{parentHostname}'");
                                 props.Add(parentHostname);
@@ -163,7 +164,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         private static void ResetConfigFile(string configFile, string defaultFile, string owner)
         {
             // Reset the config file to the default.
-            Log.Information($"Resetting {configFile} to {defaultFile}");
+            Log.Verbose($"Resetting {configFile} to {defaultFile}");
             File.Copy(defaultFile, configFile, true);
             OsPlatform.Current.SetOwner(configFile, owner, "644");
 
@@ -178,7 +179,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                 Directory.CreateDirectory(principalsPath);
                 OsPlatform.Current.SetOwner(principalsPath, owner, "755");
-                Log.Information($"Cleared {principalsPath}");
+                Log.Verbose($"Cleared {principalsPath}");
             }
         }
     }
@@ -226,6 +227,31 @@ namespace Microsoft.Azure.Devices.Edge.Test
             OsPlatform.Current.SetOwner(keyPath, "aziotks", "600");
 
             config.SetCertificates(new CaCertificates(certPath, keyPath, trustBundlePath));
+        }
+
+        public void AddCertsToConfigForManifestSigning(DaemonConfiguration config, Option<string> inputManifestSigningTrustBundlePath)
+        {
+            string path = Path.Combine(FixedPaths.E2E_TEST_DIR, this.deviceId);
+            string certPath = Path.Combine(path, "device_ca_cert.pem");
+            string keyPath = Path.Combine(path, "device_ca_cert_key.pem");
+            string trustBundlePath = Path.Combine(path, "trust_bundle.pem");
+            string manifestSigningTrustBundlePath = Path.Combine(path, "manifest_trust_bundle.pem");
+
+            Directory.CreateDirectory(path);
+            File.Copy(this.certs.TrustedCertificatesPath, trustBundlePath);
+            OsPlatform.Current.SetOwner(trustBundlePath, "aziotcs", "644");
+            File.Copy(this.certs.CertificatePath, certPath);
+            OsPlatform.Current.SetOwner(certPath, "aziotcs", "644");
+            File.Copy(this.certs.KeyPath, keyPath);
+            OsPlatform.Current.SetOwner(keyPath, "aziotks", "600");
+
+            if (inputManifestSigningTrustBundlePath.HasValue)
+            {
+                File.Copy(inputManifestSigningTrustBundlePath.OrDefault(), manifestSigningTrustBundlePath);
+                OsPlatform.Current.SetOwner(manifestSigningTrustBundlePath, "aziotcs", "644");
+            }
+
+            config.SetCertificates(new CaCertificates(certPath, keyPath, trustBundlePath, manifestSigningTrustBundlePath));
         }
     }
 }

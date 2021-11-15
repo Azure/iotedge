@@ -9,7 +9,7 @@
     unused_mut
 )]
 #![allow(clippy::all, clippy::pedantic)]
-
+#![cfg(not(tarpaulin_include))]
 pub mod apis;
 pub mod models;
 pub mod utils;

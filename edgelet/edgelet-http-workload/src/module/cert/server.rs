@@ -95,14 +95,11 @@ where
         let common_name_san = if std::net::IpAddr::from_str(&common_name_san).is_ok() {
             super::SubjectAltName::Ip(common_name_san)
         } else {
-            let common_name_san = super::sanitize_dns_name(common_name_san);
-
             super::SubjectAltName::Dns(common_name_san)
         };
 
         // Server certificates have the module ID and certificate CN as the SANs.
-        let module_id_san = super::sanitize_dns_name(self.module_id);
-        let module_id_san = super::SubjectAltName::Dns(module_id_san);
+        let module_id_san = super::SubjectAltName::Dns(self.module_id);
 
         let subject_alt_names = vec![common_name_san, module_id_san];
 
@@ -133,17 +130,30 @@ fn server_cert_extensions(
 
 #[cfg(test)]
 mod tests {
+    use crate::module::cert::CertificateResponse;
     use http_common::server::Route;
 
     use edgelet_test_utils::{test_route_err, test_route_ok};
 
     const TEST_PATH: &str = "/modules/testModule/genid/1/certificate/server";
 
+    const MODULE_NAME: &str = "testModule";
+
+    async fn post(
+        route: super::Route<edgelet_test_utils::runtime::Runtime>,
+    ) -> http_common::server::RouteResponse {
+        let body = super::ServerCertificateRequest {
+            common_name: MODULE_NAME.to_string(),
+        };
+
+        route.post(Some(body)).await
+    }
+
     #[test]
     fn parse_uri() {
         // Valid URI
         let route = test_route_ok!(TEST_PATH);
-        assert_eq!("testModule", &route.module_id);
+        assert_eq!(MODULE_NAME, &route.module_id);
         assert_eq!("1", &route.gen_id);
         assert_eq!(nix::unistd::getpid().as_raw(), route.pid);
 
@@ -162,16 +172,35 @@ mod tests {
 
     #[tokio::test]
     async fn auth() {
-        async fn post(
-            route: super::Route<edgelet_test_utils::runtime::Runtime>,
-        ) -> http_common::server::RouteResponse {
-            let body = super::ServerCertificateRequest {
-                common_name: "testModule".to_string(),
-            };
+        edgelet_test_utils::test_auth_caller!(TEST_PATH, MODULE_NAME, post);
+    }
 
-            route.post(Some(body)).await
+    #[tokio::test]
+    async fn verifysans() {
+        let route = edgelet_test_utils::test_route_ok!(TEST_PATH);
+        {
+            let pid = nix::unistd::getpid().as_raw();
+            let mut runtime = route.runtime.lock().await;
+            runtime.module_auth = std::collections::BTreeMap::new();
+            runtime
+                .module_auth
+                .insert(MODULE_NAME.to_string(), vec![pid]);
         }
 
-        edgelet_test_utils::test_auth_caller!(TEST_PATH, "testModule", post);
+        let response = post(route).await.unwrap();
+        let body_bytes = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let cert_response = serde_json::from_str::<CertificateResponse>(
+            &String::from_utf8(body_bytes.to_vec()).unwrap(),
+        )
+        .unwrap()
+        .certificate;
+
+        let cert = openssl::x509::X509::from_pem(cert_response.as_bytes())
+            .map_err(|_| edgelet_http::error::server_error("failed to parse cert"));
+        let sans = cert.unwrap().subject_alt_names();
+        for san in sans.unwrap().iter() {
+            let name = san.dnsname().unwrap();
+            assert_eq!(MODULE_NAME.to_lowercase(), name.to_lowercase());
+        }
     }
 }

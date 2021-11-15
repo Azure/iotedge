@@ -1,3 +1,5 @@
+#![allow(clippy::semicolon_if_nothing_returned)]
+
 use std::{
     convert::{TryFrom, TryInto},
     time::{Duration, Instant},

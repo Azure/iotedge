@@ -14,6 +14,7 @@ pub(crate) fn identity_client(
     let identity_client = aziot_identity_client_async::Client::new(
         aziot_identity_common_http::ApiVersion::V2020_09_01,
         identity_connector,
+        1,
     );
 
     Ok(identity_client)
@@ -28,6 +29,7 @@ pub(crate) fn cert_client(
     let cert_client = aziot_cert_client_async::Client::new(
         aziot_cert_common_http::ApiVersion::V2020_09_01,
         cert_connector,
+        1,
     );
 
     Ok(cert_client)
@@ -42,6 +44,7 @@ pub(crate) fn key_client(
     let key_client = aziot_key_client_async::Client::new(
         aziot_key_common_http::ApiVersion::V2020_09_01,
         key_connector,
+        1,
     );
 
     Ok(key_client)

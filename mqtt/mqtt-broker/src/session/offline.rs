@@ -83,7 +83,7 @@ impl OfflineSession {
                     p1.packet_identifier_dup_qos = pidq;
                     Publish::QoS12(*id, p1)
                 }
-                _ => publish.clone(),
+                Publish::QoS0(..) => publish.clone(),
             };
 
             debug!("resending QoS12 packet {}", id);
