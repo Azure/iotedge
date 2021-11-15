@@ -13,7 +13,7 @@ use azure_iot_mqtt::{
 
 use crate::deployment::DeploymentManager;
 
-type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync + 'static>>;
 
 const EDGE_AGENT: &str = "$edgeAgent";
 
@@ -59,10 +59,18 @@ impl ClientManager {
                     }) => println!("Got direct method request: {}", name),
                     Ok(Message::ReportedTwinState(size)) => println!("Got twin change ack"),
                     Ok(Message::TwinInitial(twin_initial)) => {
-                        println!("\n\n\nGot initial Twin:\n{:#?}", twin_initial)
+                        println!("\n\n\nGot initial Twin:\n{:#?}", twin_initial);
+                        let mut deployment_manager = self.deployment_manager.lock().await;
+                        if let Err(e) = deployment_manager.set_deployment(twin_initial).await {
+                            println!("Set Deployment Error: {:#?}", e);
+                        }
                     }
                     Ok(Message::TwinPatch(twin_patch)) => {
-                        println!("\n\n\nGot Twin Patch:\n{:#?}", twin_patch)
+                        println!("\n\n\nGot Twin Patch:\n{:#?}", twin_patch);
+                        let mut deployment_manager = self.deployment_manager.lock().await;
+                        if let Err(e) = deployment_manager.update_deployment(twin_patch).await {
+                            println!("Update Deployment Error: {:#?}", e);
+                        }
                     }
                     Err(_) => todo!(),
                 }
@@ -107,7 +115,8 @@ async fn make_client(
         None,
         Duration::from_secs(300), //TODO
         Duration::from_secs(300), //TODO
-    )?;
+    )
+    .map_err(|e| format!("Make Hub Client Error: {:#?}", e))?;
 
     Ok(client)
 }

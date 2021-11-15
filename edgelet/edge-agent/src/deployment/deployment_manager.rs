@@ -9,7 +9,7 @@ use azure_iot_mqtt::{TwinProperties, TwinState};
 
 use super::deployment::Deployment;
 
-type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
 pub struct DeploymentManager {
     current_location: PathBuf,
@@ -43,6 +43,7 @@ impl DeploymentManager {
     }
 
     pub async fn set_deployment(&mut self, deployment: TwinState) -> Result<()> {
+        println!("Setting deplyoment");
         self.current_deployment = json!({ "properties": deployment });
         write_serde(&self.current_location, &self.current_deployment).await?;
 
@@ -55,6 +56,7 @@ impl DeploymentManager {
     }
 
     pub async fn update_deployment(&mut self, patch: TwinProperties) -> Result<()> {
+        println!("Updating deplyoment");
         let patch = json!({ "properties": { "desired": patch }});
         json_patch::merge(&mut self.current_deployment, &patch);
         write_serde(&self.current_location, &self.current_deployment).await?;

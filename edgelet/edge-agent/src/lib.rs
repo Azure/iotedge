@@ -22,7 +22,7 @@ pub async fn start_edgeagent<M>(
     identity_client: Arc<IdentityClient>,
     mut shutdown_rx: tokio::sync::mpsc::UnboundedReceiver<edgelet_core::ShutdownReason>,
     runtime: M,
-) -> Result<(), Box<dyn std::error::Error>>
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>>
 where
     M: ModuleRuntime<Config = DockerConfig> + Send + Sync + 'static,
 {
