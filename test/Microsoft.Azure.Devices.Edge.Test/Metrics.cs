@@ -77,8 +77,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
-        [Category("FlakyOnArm")]
-        [Category("FlakyOnWindows")]
         public async Task ValidateMetrics()
         {
             CancellationToken token = this.TestToken;
@@ -87,7 +85,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
             var agent = new EdgeAgent(this.runtime.DeviceId, this.iotHub);
             await agent.PingAsync(token);
 
-            var result = await this.iotHub.InvokeMethodAsync(this.runtime.DeviceId, ValidatorModuleName, new CloudToDeviceMethod("ValidateMetrics", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)), token);
+            var result = await this.iotHub.InvokeMethodAsync(
+                this.runtime.DeviceId,
+                ValidatorModuleName,
+                new CloudToDeviceMethod(
+                "ValidateMetrics",
+                TimeSpan.FromSeconds(120),
+                TimeSpan.FromSeconds(60)),
+                token);
             Assert.AreEqual(result.Status, (int)HttpStatusCode.OK);
 
             string body = result.GetPayloadAsJson();
