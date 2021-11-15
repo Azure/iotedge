@@ -92,26 +92,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                 string baseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri).TrimEnd('/');
                 var logsUrl = new StringBuilder();
                 logsUrl.AppendFormat(CultureInfo.InvariantCulture, LogsUrlTemplate, baseUrl, module, this.Version.Name, follow.ToString().ToLowerInvariant());
-                List<(string Name, string Value)> timeCollection = new List<(string, string)>();
-                since.ForEach(s =>
-                {
-                    timeCollection.Add((LogsUrlSinceParameter, s));
-                    logsUrl.AppendFormat($"&{LogsUrlSinceParameter}={Uri.EscapeUriString(s)}");
-                });
-                until.ForEach(u =>
-                {
-                    timeCollection.Add((LogsUrlUntilParameter, u));
-                    logsUrl.AppendFormat($"&{LogsUrlUntilParameter}={Uri.EscapeUriString(u)}");
-                });
-
-                timeCollection.ForEach(t =>
-                {
-                    if (!DateTime.TryParseExact(t.Value, "yyyy-MM-dd'T'HH:mm:ssZ", CultureInfo.InvariantCulture, DateTimeStyles.None, out var time))
-                    {
-                        throw new ArgumentException($"{t.Name} Time with value : {t.Value} is not in the correct format. The correct format should be yyyy-MM-dd'T'HH:mm:ssZ");
-                    }
-                });
-
+                since.ForEach(s => logsUrl.AppendFormat($"&{LogsUrlSinceParameter}={Uri.EscapeUriString(s)}"));
+                until.ForEach(u => logsUrl.AppendFormat($"&{LogsUrlUntilParameter}={Uri.EscapeUriString(u)}"));
                 includeTimestamp.ForEach(b => logsUrl.AppendFormat($"&{LogsIncludeTimestampParameter}={b.ToString().ToLower()}"));
 
                 if (!(tail.HasValue && since.HasValue && until.HasValue))
