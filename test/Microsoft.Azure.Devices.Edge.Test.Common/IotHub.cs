@@ -92,17 +92,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 string parentDeviceScope = parentDevice == null ? string.Empty : parentDevice.Scope;
                 Log.Verbose($"Parent scope: {parentDeviceScope}");
                 var result = new Device(deviceId)
-                                 {
-                                     Authentication = new AuthenticationMechanism()
-                                     {
-                                         Type = authType,
-                                         X509Thumbprint = x509Thumbprint
-                                     },
-                                     Capabilities = new DeviceCapabilities()
-                                     {
-                                         IotEdge = true
-                                     }
-                                 };
+                {
+                    Authentication = new AuthenticationMechanism()
+                    {
+                        Type = authType,
+                        X509Thumbprint = x509Thumbprint
+                    },
+                    Capabilities = new DeviceCapabilities()
+                    {
+                        IotEdge = true
+                    }
+                };
                 result.ParentScopes.Add(parentDeviceScope);
                 return result;
             },
@@ -184,7 +184,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 {
                     Log.Verbose($"Method '{method.MethodName}' on '{deviceId}/{moduleId}' returned: " +
                         $"{result.Status}\n{result.GetPayloadAsJson()}");
-                    return result.Status == 200;
+
+                    // No Need to retry when server returns Bad Request.
+                    return result.Status == 200 || result.Status == 400;
                 },
                 e =>
                     {
