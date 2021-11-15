@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace PaidModuleSample
+namespace TransactableModuleSample 
 {
     using System;
     using System.IO;
@@ -13,7 +13,7 @@ namespace PaidModuleSample
 
         static async Task<int> MainAsync()
         {
-            Console.WriteLine("PaidModuleSample Main() started.");
+            Console.WriteLine("TransactableModuleSample  Main() started.");
 
             CancellationTokenSource cts = new CancellationTokenSource();
             Console.CancelKeyPress += (sender, cpe) => cts.Cancel();
@@ -24,26 +24,19 @@ namespace PaidModuleSample
                .AddEnvironmentVariables()
                .Build();
 
-            string iotHubHostName = configuration.GetValue<string>("IOTEDGE_IOTHUBHOSTNAME");
-            string deviceId = configuration.GetValue<string>("IOTEDGE_DEVICEID");
-            string moduleId = configuration.GetValue<string>("IOTEDGE_MODULEID");
-            string generationId = configuration.GetValue<string>("IOTEDGE_MODULEGENERATIONID");
-            string workloadUri = configuration.GetValue<string>("IOTEDGE_WORKLOADURI");
-            string gateway = configuration.GetValue<string>("IOTEDGE_GATEWAYHOSTNAME");
-
-            var purchaseInfoProvider = await PurchaseInfoProvider.CreateAsync(iotHubHostName, gateway, deviceId, moduleId, generationId, workloadUri);
+            var purchaseInfoProvider = await PurchaseInfoProvider.CreateAsync(configuration);
 
             while (!cts.IsCancellationRequested)
             {
-                Console.WriteLine($"Getting purchase from {gateway}");
-                var purchase = await purchaseInfoProvider.GetPurchaseAsync(deviceId, moduleId, cts.Token);
+                Console.WriteLine("Getting purchase");
+                PurchaseInfo purchase = await purchaseInfoProvider.GetPurchaseAsync(cts.Token);
                 Console.WriteLine($"publisherId: {purchase.PublisherId}, offerId: {purchase.OfferId}, planId: {purchase.PlanId}");
                 await Task.Delay(TimeSpan.FromSeconds(60), cts.Token);
             }
 
             await WhenCanceled(cts.Token);
 
-            Console.WriteLine("PaidModuleSample Main() finished.");
+            Console.WriteLine("TransactableModuleSample  Main() finished.");
             return 0;
         }
 

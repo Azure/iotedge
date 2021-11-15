@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace PaidModuleSample
+namespace TransactableModuleSample 
 {
     using System;
     using System.Collections.Generic;
@@ -15,33 +15,19 @@ namespace PaidModuleSample
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
 
     public class PurchaseInfoProvider
     {
-        readonly string IotHubHostName;
         readonly string GatewayHostName;
         readonly string DeviceId;
         readonly string ModuleId;
         readonly SignatureProvider signatureProvider;
         private string token;
 
-        private PurchaseInfoProvider(string iotHubHostName, string gateway, string deviceId, string moduleId, string generationId, string workloadUri)
+        private PurchaseInfoProvider(string gateway, string deviceId, string moduleId, string generationId, string workloadUri)
         {
-            if (iotHubHostName == null)
-                throw new ArgumentNullException("iotHubHostName");
-            if (gateway == null)
-                throw new ArgumentNullException("gateway");
-            if (deviceId == null)
-                throw new ArgumentNullException("deviceId");
-            if (moduleId == null)
-                throw new ArgumentNullException("moduleId");
-            if (generationId == null)
-                throw new ArgumentNullException("generationId");
-            if (workloadUri == null)
-                throw new ArgumentNullException("workloadUri");
-
-            this.IotHubHostName = iotHubHostName;
             this.GatewayHostName = gateway;
             this.DeviceId = deviceId;
             this.ModuleId = moduleId;
@@ -56,14 +42,34 @@ namespace PaidModuleSample
             return this;
         }
 
-        public static async Task<PurchaseInfoProvider> CreateAsync(string iotHubHostName, string gateway, string deviceId, string moduleId, string generationId, string workloadUri)
+        public static async Task<PurchaseInfoProvider> CreateAsync(IConfiguration configuration)
         {
-            var purchaseProvider = new PurchaseInfoProvider(iotHubHostName, gateway, deviceId, moduleId, generationId, workloadUri);
+            string iotHubHostName = configuration.GetValue<string>("IOTEDGE_IOTHUBHOSTNAME");
+            string deviceId = configuration.GetValue<string>("IOTEDGE_DEVICEID");
+            string moduleId = configuration.GetValue<string>("IOTEDGE_MODULEID");
+            string generationId = configuration.GetValue<string>("IOTEDGE_MODULEGENERATIONID");
+            string workloadUri = configuration.GetValue<string>("IOTEDGE_WORKLOADURI");
+            string gateway = configuration.GetValue<string>("IOTEDGE_GATEWAYHOSTNAME");
+
+            if (iotHubHostName == null)
+                throw new ArgumentNullException("iotHubHostName");
+            if (gateway == null)
+                throw new ArgumentNullException("gateway");
+            if (deviceId == null)
+                throw new ArgumentNullException("deviceId");
+            if (moduleId == null)
+                throw new ArgumentNullException("moduleId");
+            if (generationId == null)
+                throw new ArgumentNullException("generationId");
+            if (workloadUri == null)
+                throw new ArgumentNullException("workloadUri");
+
+            var purchaseProvider = new PurchaseInfoProvider(gateway, deviceId, moduleId, generationId, workloadUri);
             await purchaseProvider.InitializeAsync(iotHubHostName, deviceId, moduleId);
             return purchaseProvider;
         }
 
-        public async Task<PurchaseResponse> GetPurchaseAsync(string deviceId, string moduleId, CancellationToken cancellationToken)
+        public async Task<PurchaseInfo> GetPurchaseAsync(CancellationToken cancellationToken)
         {
             var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Authorization = AuthenticationHeaderValue.Parse(this.token);
@@ -71,7 +77,7 @@ namespace PaidModuleSample
             var client = new EdgeHubPurchaseClient(httpClient);
             client.BaseUrl = $"https://{this.GatewayHostName}";
 
-            return await client.GetPurchaseAsync(deviceId, moduleId, cancellationToken);
+            return await client.GetPurchaseAsync(this.DeviceId, this.ModuleId, cancellationToken);
         }
 
         async Task<string> GetTokenAsync(string iotHubHostName, string deviceId, string moduleId, DateTime startTime, TimeSpan ttl)
@@ -726,12 +732,12 @@ namespace PaidModuleSample
             protected Newtonsoft.Json.JsonSerializerSettings JsonSerializerSettings { get { return _settings.Value; } }
 
 
-            public Task<PurchaseResponse> GetPurchaseAsync(string deviceId, string moduleId)
+            public Task<PurchaseInfo> GetPurchaseAsync(string deviceId, string moduleId)
             {
                 return GetPurchaseAsync(deviceId, moduleId, System.Threading.CancellationToken.None);
             }
 
-            public async Task<PurchaseResponse> GetPurchaseAsync(string deviceId, string moduleId, System.Threading.CancellationToken cancellationToken)
+            public async Task<PurchaseInfo> GetPurchaseAsync(string deviceId, string moduleId, System.Threading.CancellationToken cancellationToken)
             {
                 if (deviceId == null)
                     throw new System.ArgumentNullException("deviceId");
@@ -773,10 +779,10 @@ namespace PaidModuleSample
                             if (status_ == "200")
                             {
                                 var responseData_ = response_.Content == null ? null : await response_.Content.ReadAsStringAsync().ConfigureAwait(false);
-                                var result_ = default(PurchaseResponse);
+                                var result_ = default(PurchaseInfo);
                                 try
                                 {
-                                    result_ = Newtonsoft.Json.JsonConvert.DeserializeObject<PurchaseResponse>(responseData_, _settings.Value);
+                                    result_ = Newtonsoft.Json.JsonConvert.DeserializeObject<PurchaseInfo>(responseData_, _settings.Value);
                                     return result_;
                                 }
                                 catch (System.Exception exception_)
@@ -857,31 +863,6 @@ namespace PaidModuleSample
 
                 return System.Convert.ToString(value, cultureInfo);
             }
-        }
-
-        public class PurchaseResponse
-        {
-            [Newtonsoft.Json.JsonConverter(typeof(Newtonsoft.Json.Converters.StringEnumConverter))]
-            [JsonProperty("purchaseStatus")]
-            public PurchaseStatus PurchaseStatus { get; set; }
-
-            [JsonProperty("publisherId")]
-            public string PublisherId { get; set; }
-
-            [JsonProperty("offerId")]
-            public string OfferId { get; set; }
-
-            [JsonProperty("planId")]
-            public string PlanId { get; set; }
-
-            [JsonProperty("synchedDateTimeUtc")]
-            public DateTime SynchedDateTimeUtc { get; set; }
-        }
-
-        public enum PurchaseStatus
-        {
-            NotFound,
-            Complete
         }
 
         class HttpWorkloadClient
@@ -1195,7 +1176,7 @@ namespace PaidModuleSample
             }
         }
 
-        public enum SignRequestAlgo
+        enum SignRequestAlgo
         {
             HMACSHA256 = 0,
         }
@@ -1232,5 +1213,30 @@ namespace PaidModuleSample
                 Result = result;
             }
         }
+    }
+
+    public class PurchaseInfo
+    {
+        [Newtonsoft.Json.JsonConverter(typeof(Newtonsoft.Json.Converters.StringEnumConverter))]
+        [JsonProperty("purchaseStatus")]
+        public PurchaseStatus PurchaseStatus { get; set; }
+
+        [JsonProperty("publisherId")]
+        public string PublisherId { get; set; }
+
+        [JsonProperty("offerId")]
+        public string OfferId { get; set; }
+
+        [JsonProperty("planId")]
+        public string PlanId { get; set; }
+
+        [JsonProperty("synchedDateTimeUtc")]
+        public DateTime SynchedDateTimeUtc { get; set; }
+    }
+
+    public enum PurchaseStatus
+    {
+        NotFound,
+        Complete
     }
 }
