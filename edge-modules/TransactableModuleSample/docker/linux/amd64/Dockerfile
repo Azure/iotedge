@@ -3,7 +3,7 @@ FROM mcr.microsoft.com/dotnet/runtime:${base_tag}
 
 ARG EXE_DIR=.
 
-ENV MODULE_NAME "TransactableModuleSample .dll"
+ENV MODULE_NAME "TransactableModuleSample.dll"
 
 WORKDIR /app
 
@@ -14,4 +14,4 @@ RUN adduser -Ds /bin/sh moduleuser
 USER moduleuser
 
 CMD echo "$(date --utc +"[%Y-%m-%d %H:%M:%S %:z]"): Starting Module" && \
-    exec /usr/bin/dotnet TransactableModuleSample .dll
+    exec /usr/bin/dotnet TransactableModuleSample.dll

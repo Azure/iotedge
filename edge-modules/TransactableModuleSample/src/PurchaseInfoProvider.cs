@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace TransactableModuleSample 
+namespace TransactableModuleSample
 {
     using System;
     using System.Collections.Generic;

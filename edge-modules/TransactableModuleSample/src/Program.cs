@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace TransactableModuleSample 
+namespace TransactableModuleSample
 {
     using System;
     using System.IO;
@@ -13,7 +13,7 @@ namespace TransactableModuleSample
 
         static async Task<int> MainAsync()
         {
-            Console.WriteLine("TransactableModuleSample  Main() started.");
+            Console.WriteLine("TransactableModuleSample Main() started.");
 
             CancellationTokenSource cts = new CancellationTokenSource();
             Console.CancelKeyPress += (sender, cpe) => cts.Cancel();
@@ -36,7 +36,7 @@ namespace TransactableModuleSample
 
             await WhenCanceled(cts.Token);
 
-            Console.WriteLine("TransactableModuleSample  Main() finished.");
+            Console.WriteLine("TransactableModuleSample Main() finished.");
             return 0;
         }
 
