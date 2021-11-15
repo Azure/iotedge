@@ -40,9 +40,10 @@ namespace Relayer
 
             try
             {
+
+#if ENABLE_TRACE
                 AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport",
               true);
-
                 var endpoint = new Uri(Settings.Current.OtelCollectorEndpoint.GetOrElse("http://host.docker.internal:4317"));
                 Logger.LogInformation($"Created Trace Provider with Endpoint : {endpoint.ToString()}");
                 using TracerProvider tracerProvider = Sdk.CreateTracerProviderBuilder()
@@ -50,6 +51,7 @@ namespace Relayer
                 .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(Settings.SourceName))
                 .AddOtlpExporter(opt => opt.Endpoint = endpoint)
                 .Build();
+#endif
 
                 moduleClient = await ModuleUtil.CreateModuleClientAsync(
                     Settings.Current.TransportType,

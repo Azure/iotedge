@@ -30,6 +30,7 @@ usage()
     echo ""
     echo "options"
     echo " -c, --config         Product binary configuration: Debug [default] or Release"
+    echo "-f, --flag            Build with Specific Compilation Flags, ; Delimited"
     echo " --no-rocksdb-bin     Do not copy the RocksDB binaries into the project's output folders"
     echo " --dotnet_runtime     Set the dotnet_runtime version to build. (Default netcoreapp3.1)"
     exit 1;
@@ -52,12 +53,16 @@ process_args()
         elif [ $save_next_arg -eq 2 ]; then
             DOTNET_RUNTIME="$arg"
             save_next_arg=0
+        elif [ $save_next_arg -eq 3 ]; then
+            FLAGS="$arg"
+            save_next_arg=0
         else
             case "$arg" in
                 "-h" | "--help" ) usage;;
                 "-c" | "--config" ) save_next_arg=1;;
                 "--no-rocksdb-bin" ) MSBUILD_OPTIONS="-p:RocksDbAsPackage=false";;
                 "--dotnet_runtime" ) save_next_arg=2;;
+                "-f" | "--flags") save_next_arg=3;;
                 * ) usage;;
             esac
         fi
@@ -136,7 +141,11 @@ publish_project()
     fi
 
     echo "Publishing $type '$name'"
-    $DOTNET_ROOT_PATH/dotnet publish -f $framework -p:DotNet_Runtime=$DOTNET_RUNTIME -c $config $option -o $output $path
+     if [ -z "$FLAGS" ];then
+        $DOTNET_ROOT_PATH/dotnet publish -f $framework -p:DotNet_Runtime=$DOTNET_RUNTIME -c $config $option -o $output $path 
+     else
+        $DOTNET_ROOT_PATH/dotnet publish -f $framework -p:DotNet_Runtime=$DOTNET_RUNTIME -c $config $option -o $output $path /p:DefineConstants=$FLAGS
+     fi
     if [ $? -gt 0 ]; then
         RES=1
     fi
@@ -200,13 +209,17 @@ build_solution()
     echo "Building IoT Edge solution"
     dotnet --version
     
-    build_command="$DOTNET_ROOT_PATH/dotnet build -c $CONFIGURATION -o \"$BUILD_BINARIESDIRECTORY\""
-    
+    if [ -z "$FLAGS" ];then
+        build_command="$DOTNET_ROOT_PATH/dotnet build -c $CONFIGURATION -o \"$BUILD_BINARIESDIRECTORY\""
+     else
+        build_command="$DOTNET_ROOT_PATH/dotnet build -c $CONFIGURATION -o \"$BUILD_BINARIESDIRECTORY\" /p:DefineConstants=$FLAGS"
+    fi
     if [ -n "$DOTNET_RUNTIME" ]; then
         build_command="$build_command -p:DotNet_Runtime=$DOTNET_RUNTIME"
     fi
     build_command="$build_command $ROOT_FOLDER/Microsoft.Azure.Devices.Edge.sln"
-        
+    
+    echo $build_command
     eval ${build_command}
     if [ $? -gt 0 ]; then
         RES=1

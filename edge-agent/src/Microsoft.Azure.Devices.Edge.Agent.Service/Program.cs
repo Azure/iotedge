@@ -77,9 +77,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 logger.LogInformation($"Version - {versionInfo.ToString(true)}");
             }
 
+#if ENABLE_TRACE
             AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
             Activity.DefaultIdFormat = ActivityIdFormat.W3C;
-
             var endpoint = new Uri("http://host.docker.internal:4317");
             logger.LogInformation($"Created Trace Provider with Endpoint : {endpoint.ToString()}");
             using TracerProvider tracerProvider = Sdk.CreateTracerProviderBuilder()
@@ -89,6 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("EdgeAgent"))
             .AddOtlpExporter(opt => opt.Endpoint = endpoint)
             .Build();
+#endif
 
             LogLogo(logger);
 

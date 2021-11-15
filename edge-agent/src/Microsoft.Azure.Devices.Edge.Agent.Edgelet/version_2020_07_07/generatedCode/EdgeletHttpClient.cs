@@ -9,15 +9,15 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.GeneratedCode
 {
+    using System;
+    using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Net.Http.Headers;
     using OpenTelemetry;
     using OpenTelemetry.Context.Propagation;
     using OpenTelemetry.Trace;
-    using Agent = Microsoft.Azure.Devices.Edge.Agent.Core.Agent;
     using System = global::System;
-    using System.Collections.Generic;
-    using System.Net.Http.Headers;
-    using System;
+    using Agent = Microsoft.Azure.Devices.Edge.Agent.Core.Agent;
 #pragma warning disable // Disable all warnings
 
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "13.6.2.0 (NJsonSchema v10.1.23.0 (Newtonsoft.Json v11.0.0.0))")]
@@ -105,7 +105,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
                         request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
                         PrepareRequest(client_, request_, url_);
 
-                        _propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), request_.Headers, InjectTraceContextIntoBasicProperties);
+                        if (activity != null)
+                        {
+                            _propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), request_.Headers, InjectTraceContextIntoBasicProperties);
+                        }
                         var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
                         try
                         {
@@ -272,7 +275,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
                     var url_ = urlBuilder_.ToString();
                     request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
                     PrepareRequest(client_, request_, url_);
-    
+
                     // _propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), message, InjectTraceContextIntoBasicProperties);
                     var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
                     try
@@ -1822,7 +1825,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
         public int? Cpus { get; set; }
 
         [Newtonsoft.Json.JsonProperty("virtualized", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
-        public string Virtualized { get; set; }  
+        public string Virtualized { get; set; }
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "10.1.23.0 (Newtonsoft.Json v11.0.0.0)")]

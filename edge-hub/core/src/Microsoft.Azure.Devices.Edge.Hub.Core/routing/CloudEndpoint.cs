@@ -221,7 +221,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                             .ToList();
                         foreach (var message in messages)
                         {
-                            var parentContext = TracingInformation.propagator.Extract(
+                            var parentContext = TracingInformation.Propagator.Extract(
                                                             default,
                                                             message.Properties,
                                                             TracingInformation.ExtractTraceContextFromCarrier);

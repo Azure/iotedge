@@ -56,15 +56,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
 
             ILogger logger = Logger.Factory.CreateLogger("EdgeHub");
-
+#if ENABLE_TRACE
             AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
             var endpoint = new Uri("http://host.docker.internal:4317");
-            logger.LogInformation($"Created Trace Provider with Endpoint : {endpoint.ToString()}");
+            Console.WriteLine($"Created Trace Provider with Endpoint : {endpoint.ToString()}");
             using TracerProvider tracerProvider = Sdk.CreateTracerProviderBuilder()
             .AddSource(TracingInformation.EdgeHubSourceName)
             .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(TracingInformation.EdgeHubSourceName))
             .AddOtlpExporter(opt => opt.Endpoint = endpoint)
             .Build();
+#endif
 
             EdgeHubCertificates certificates = await EdgeHubCertificates.LoadAsync(configuration, logger);
             bool clientCertAuthEnabled = configuration.GetValue(Constants.ConfigKey.EdgeHubClientCertAuthEnabled, false);

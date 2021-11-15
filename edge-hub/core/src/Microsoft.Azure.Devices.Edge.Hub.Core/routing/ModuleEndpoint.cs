@@ -166,14 +166,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 foreach (IRoutingMessage routingMessage in routingMessages)
                 {
                     IMessage message = this.moduleEndpoint.messageConverter.ToMessage(routingMessage);
-                    var parentContext = TracingInformation.propagator.Extract(
+                    var parentContext = TracingInformation.Propagator.Extract(
                                                            default,
                                                            message.Properties,
                                                            TracingInformation.ExtractTraceContextFromCarrier);
                     using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("ProcessModuleMessage", ActivityKind.Consumer, parentContext.ActivityContext);
-
-                    // Inject Context for Distributed Tracing
-                    this.propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), message.Properties, TracingInformation.InjectTraceContextIntoCarrier);
+                    message.Properties.Inject(activity?.Context);
                     try
                     {
                         if (failed.Count == 0)

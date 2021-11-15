@@ -64,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             Preconditions.CheckNotNull(message, nameof(message));
             Preconditions.CheckNotNull(identity, nameof(identity));
             Events.MessageReceived(identity, message);
-            var parentContext = TracingInformation.propagator.Extract(
+            var parentContext = TracingInformation.Propagator.Extract(
                                                     default,
                                                     message.Properties,
                                                     TracingInformation.ExtractTraceContextFromCarrier);
@@ -72,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             IRoutingMessage routingMessage = this.ProcessMessageInternal(message, true);
             Metrics.AddMessageSize(routingMessage.Size(), identity.Id);
             Metrics.AddReceivedMessage(identity.Id, message.GetOutput());
-            this.propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), message.Properties, TracingInformation.InjectTraceContextIntoCarrier);
+            message.Properties.Inject(activity?.Context);
             return this.router.RouteAsync(routingMessage);
         }
 
@@ -85,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 .Select(
                     m =>
                     {
-                        var parentContext = TracingInformation.propagator.Extract(
+                        var parentContext = TracingInformation.Propagator.Extract(
                                                         default,
                                                         m.Properties,
                                                         TracingInformation.ExtractTraceContextFromCarrier);
@@ -94,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                         IRoutingMessage routingMessage = this.ProcessMessageInternal(m, true);
                         Metrics.AddMessageSize(routingMessage.Size(), identity.Id);
                         Metrics.AddReceivedMessage(identity.Id, m.GetOutput());
-                        this.propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), m.Properties, TracingInformation.InjectTraceContextIntoCarrier);
+                        m.Properties.Inject(activity?.Context);
                         return routingMessage;
                     });
             return this.router.RouteAsync(routingMessages);

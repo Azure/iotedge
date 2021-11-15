@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
     using System.Diagnostics;
     using System.Linq;
     using System.Reflection;
+    using OpenTelemetry;
     using OpenTelemetry.Context.Propagation;
 
     public static class TracingInformation
@@ -19,6 +20,14 @@ namespace Microsoft.Azure.Devices.Edge.Util
         public static ActivitySource EdgeHubActivitySource = new ActivitySource(EdgeHubSourceName, Assembly.GetExecutingAssembly().ImageRuntimeVersion);
 
         public static ActivitySource EdgeAgentActivitySource = new ActivitySource(EdgeAgentSourceName, Assembly.GetExecutingAssembly().ImageRuntimeVersion);
+
+        public static void Inject(this IDictionary<string, string> carrier, ActivityContext? context)
+        {
+            if (context.HasValue)
+            {
+                Propagator.Inject(new PropagationContext(context.Value, Baggage.Current), carrier, InjectTraceContextIntoCarrier);
+            }
+        }
 
         public static IEnumerable<string> ExtractTraceContextFromCarrier(IDictionary<string, string> carrier, string key)
         {
