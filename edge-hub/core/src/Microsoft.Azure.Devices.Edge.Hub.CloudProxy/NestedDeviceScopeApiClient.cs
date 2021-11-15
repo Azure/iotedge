@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         const string GetDevicesAndModulesInTargetScopeUriFormat = "/devices/{0}/modules/{1}/devicesAndModulesInTargetDeviceScope?api-version={2}";
         const string GetDeviceAndModuleOnBehalfOfUriFormat = "/devices/{0}/modules/{1}/getDeviceAndModuleOnBehalfOf?api-version={2}";
 
-        const string NestedApiVersion = "2020-06-30-preview";
+        const string NestedApiVersion = "2021-11-30-preview";
 
         static readonly TimeSpan OperationTimeout = TimeSpan.FromMinutes(2);
         // Timeout set to HttpClient is > OperationTimeout because HttpClient throws TaskCanceledException when it timeouts and retry policy won't retry it in that case

@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Billing;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -292,6 +293,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public async Task<IList<string>> GetAllIds() => await this.serviceIdentityHierarchy.GetAllIds();
 
+        public async Task<SynchedPurchase> GetPurchaseAsync(string deviceId, string moduleId)
+        {
+            string id = $"{deviceId}/{moduleId}";
+            var serviceIdentity = await this.GetServiceIdentityInternal(id);
+            return await serviceIdentity.Match(
+                si =>
+                {
+                    return this.GetPurchaseAsync(id, si.PurchaseContent, true);
+                },
+                () =>
+                {
+                    var lastSingleIdentityRefresh = this.identitiesLastRefreshTime.ContainsKey(id) ? this.identitiesLastRefreshTime[id] : this.cacheLastRefreshTime;
+                    return Task.FromResult(new SynchedPurchase(lastSingleIdentityRefresh > this.cacheLastRefreshTime ? lastSingleIdentityRefresh : this.cacheLastRefreshTime));
+                });
+        }
+
         public void Dispose()
         {
             this.store?.Dispose();
@@ -474,6 +491,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     this.ServiceIdentityUpdated?.Invoke(this, serviceIdentity);
                 }
             }
+        }
+
+        Task<SynchedPurchase> GetPurchaseAsync(string id, Option<PurchaseContent> purchase, bool refresh = false)
+        {
+            var lastSingleIdentityRefresh = this.identitiesLastRefreshTime.ContainsKey(id) ? this.identitiesLastRefreshTime[id] : this.cacheLastRefreshTime;
+            var lastSynched = lastSingleIdentityRefresh > this.cacheLastRefreshTime ? lastSingleIdentityRefresh : this.cacheLastRefreshTime;
+
+            return purchase.Match(
+                p => Task.FromResult(new SynchedPurchase(lastSynched, purchase)),
+                async () =>
+                {
+                    // TODO: Remove full cache refresh when IotHub APi is fixed
+                    // Needs to refresh cache for new identity that was retrieved from IotHub
+                    // because purchase is not returned for single identity API
+                    if (refresh && lastSingleIdentityRefresh > this.cacheLastRefreshTime)
+                    {
+                        this.InitiateCacheRefresh();
+                        await this.WaitForCacheRefresh(TimeSpan.FromSeconds(60));
+                        var updatedidentity = await this.GetServiceIdentityInternal(id);
+
+                        return await this.GetPurchaseAsync(id, updatedidentity.AndThen(i => i.PurchaseContent), false);
+                    }
+                    else
+                    {
+                        return new SynchedPurchase(lastSynched);
+                    }
+            });
         }
 
         internal class ServiceIdentityStore : IDisposable

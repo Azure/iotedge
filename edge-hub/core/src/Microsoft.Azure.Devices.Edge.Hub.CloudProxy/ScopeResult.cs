@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System.Collections.Generic;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Billing;
     using Newtonsoft.Json;
 
     public class ScopeResult
@@ -31,5 +32,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         /// </summary>
         [JsonProperty(PropertyName = "continuationLink", Required = Required.AllowNull)]
         public string ContinuationLink { get; }
+
+        /// <summary>
+        /// The scope result items, as a collection.
+        /// </summary>
+        [JsonProperty(PropertyName = "purchases", NullValueHandling = NullValueHandling.Ignore)]
+        public IDictionary<string, PurchaseContent> Purchases { get; set; }
     }
 }
