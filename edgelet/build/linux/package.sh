@@ -277,6 +277,8 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
 
     ubuntu18.04.amd64|ubuntu20.04.amd64)
         SETUP_COMMAND=$'
+            export DEBIAN_FRONTEND=noninteractive
+            export TZ=UTC
             apt-get update &&
             apt-get upgrade -y &&
             apt-get install -y --no-install-recommends \
@@ -288,6 +290,8 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
 
     ubuntu18.04.arm32v7|ubuntu20.04.arm32v7)
         SETUP_COMMAND=$'
+            export DEBIAN_FRONTEND=noninteractive
+            export TZ=UTC
             sources="$(cat /etc/apt/sources.list | grep -E \'^[^#]\')" &&
             # Update existing repos to be specifically for amd64
             echo "$sources" | sed -e \'s/^deb /deb [arch=amd64] /g\' > /etc/apt/sources.list &&
@@ -326,6 +330,8 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
 
     ubuntu18.04.aarch64|ubuntu20.04.aarch64)
         SETUP_COMMAND=$'
+            export DEBIAN_FRONTEND=noninteractive
+            export TZ=UTC
             sources="$(cat /etc/apt/sources.list | grep -E \'^[^#]\')" &&
             # Update existing repos to be specifically for amd64
             echo "$sources" | sed -e \'s/^deb /deb [arch=amd64] /g\' > /etc/apt/sources.list &&
