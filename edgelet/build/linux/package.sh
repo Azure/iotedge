@@ -275,7 +275,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++"
         ;;
 
-    ubuntu18.04.amd64)
+    ubuntu18.04.amd64|ubuntu20.04.amd64)
         SETUP_COMMAND=$'
             apt-get update &&
             apt-get upgrade -y &&
@@ -286,7 +286,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         '
         ;;
 
-    ubuntu18.04.arm32v7)
+    ubuntu18.04.arm32v7|ubuntu20.04.arm32v7)
         SETUP_COMMAND=$'
             sources="$(cat /etc/apt/sources.list | grep -E \'^[^#]\')" &&
             # Update existing repos to be specifically for amd64
@@ -324,7 +324,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_CXX_COMPILER=arm-linux-gnueabihf-g++"
         ;;
 
-    ubuntu18.04.aarch64)
+    ubuntu18.04.aarch64|ubuntu20.04.aarch64)
         SETUP_COMMAND=$'
             sources="$(cat /etc/apt/sources.list | grep -E \'^[^#]\')" &&
             # Update existing repos to be specifically for amd64
