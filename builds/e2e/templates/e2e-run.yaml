@@ -61,7 +61,6 @@ steps:
       $filter += '&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~ValidateMetrics'
       #Disable tests that timeout in proxy self-host environment
       $filter += '&FullyQualifiedName!~TestUploadSupportBundle'
-
       #Disable nested edge tests
       $filter += '&Category!=NestedEdgeOnly'
     }
