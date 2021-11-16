@@ -111,7 +111,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                         HttpResponseMessage httpResponseMessage = await httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
                         if (!httpResponseMessage.IsSuccessStatusCode)
                         {
-                            throw new EdgeletCommunicationException(await httpResponseMessage.Content.ReadAsStringAsync(), (int)httpResponseMessage.StatusCode);
+                            switch (httpResponseMessage.StatusCode)
+                            {
+                                case HttpStatusCode.BadRequest:
+                                    throw new ArgumentException($"Request Returned Status Code {httpResponseMessage.StatusCode} with Message {await httpResponseMessage.Content.ReadAsStringAsync()}");
+                                default:
+                                    throw new InvalidOperationException($"Request Returned Status Code {httpResponseMessage.StatusCode} with Message {await httpResponseMessage.Content.ReadAsStringAsync()}");
+                            }
                         }
 
                         return await httpResponseMessage.Content.ReadAsStreamAsync();
