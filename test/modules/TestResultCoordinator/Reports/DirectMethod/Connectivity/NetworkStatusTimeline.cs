@@ -92,7 +92,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
         public (NetworkControllerStatus networkControllerStatus, bool isWithinTolerancePeriod, TimeSpan delay) GetNetworkControllerStatusAndWithinToleranceAt(DateTime statusTime)
         {
             this.ValidateNetworkControllerTestResults();
-
+            //the time between when the test results finish and the network controller comes up 
             var delay = TimeSpan.Zero;
 
             // Return network controller status at given time

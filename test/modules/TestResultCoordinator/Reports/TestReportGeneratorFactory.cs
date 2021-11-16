@@ -7,7 +7,6 @@ namespace TestResultCoordinator.Reports
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Logging;
     using TestResultCoordinator.DirectMethod;
     using TestResultCoordinator.Reports.DirectMethod.Connectivity;
     using TestResultCoordinator.Reports.DirectMethod.LongHaul;
