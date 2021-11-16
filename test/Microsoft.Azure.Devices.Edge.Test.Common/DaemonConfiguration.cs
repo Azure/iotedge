@@ -253,6 +253,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 throw new InvalidOperationException($"{certs.TrustedCertificatesPath} does not exist");
             }
 
+            if (certs.ManifestTrustedCertificatesPath.HasValue && File.Exists(certs.ManifestTrustedCertificatesPath.OrDefault()))
+            {
+                this.config[Service.Certd].Document.ReplaceOrAdd("preloaded_certs.aziot-edged-manifest-trust-bundle", "file://" + certs.ManifestTrustedCertificatesPath.OrDefault());
+            }
+
             this.config[Service.Certd].Document.ReplaceOrAdd("preloaded_certs.aziot-edged-ca", "file://" + certs.CertificatePath);
             this.config[Service.Keyd].Document.ReplaceOrAdd("preloaded_keys.aziot-edged-ca", "file://" + certs.KeyPath);
             this.config[Service.Certd].Document.ReplaceOrAdd("preloaded_certs.aziot-edged-trust-bundle", "file://" + certs.TrustedCertificatesPath);
@@ -264,6 +269,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config[Service.Keyd].Document.RemoveIfExists("preloaded_keys.aziot-edged-ca");
             this.config[Service.Certd].Document.RemoveIfExists("preloaded_certs.aziot-edged-trust-bundle");
         }
+
+        public void RemoveManifestTrustBundle() => this.config[Service.Certd].Document.RemoveIfExists("preloaded_certs.aziot-edged-manifest-trust-bundle");
 
         public void AddIdentityPrincipal(string name, uint uid, string[] type = null, Dictionary<string, string> opts = null)
         {

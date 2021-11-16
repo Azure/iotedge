@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using System.Collections.Generic;
     using System.Linq;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Billing;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
@@ -26,6 +27,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public static ServiceIdentity ToServiceIdentity(this Module module)
         {
+            return module.ToServiceIdentity(Option.None<PurchaseContent>());
+        }
+
+        public static ServiceIdentity ToServiceIdentity(this Module module, Option<PurchaseContent> purchaseContent)
+        {
             Preconditions.CheckNotNull(module, nameof(module));
             return new ServiceIdentity(
                 module.DeviceId,
@@ -35,7 +41,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 module.GenerationId,
                 Enumerable.Empty<string>(),
                 module.Authentication.ToServiceAuthentication(),
-                ServiceIdentityStatus.Enabled);
+                ServiceIdentityStatus.Enabled,
+                purchaseContent);
         }
 
         public static ServiceAuthentication ToServiceAuthentication(this AuthenticationMechanism authenticationMechanism)

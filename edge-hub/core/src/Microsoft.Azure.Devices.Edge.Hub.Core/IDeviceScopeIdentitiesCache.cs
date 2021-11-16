@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Billing;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
 
@@ -36,5 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         Task RefreshServiceIdentityOnBehalfOf(string refreshTarget, string onBehalfOfDevice);
 
         Task RefreshAuthChain(string authChain);
+
+        Task<SynchedPurchase> GetPurchaseAsync(string deviceId, string moduleId);
     }
 }

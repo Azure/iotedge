@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using System.Net;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Billing;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
@@ -304,7 +305,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
                     if (scopeResult.Modules != null)
                     {
-                        serviceIdentities.AddRange(scopeResult.Modules.Select(m => m.ToServiceIdentity()));
+                        serviceIdentities.AddRange(scopeResult.Modules.Select(m =>
+                        {
+                            Option<PurchaseContent> maybePurchase = Option.None<PurchaseContent>();
+                            if (scopeResult.Purchases != null)
+                            {
+                                scopeResult.Purchases.TryGetValue($"{m.DeviceId}/{m.Id}", out PurchaseContent purchase);
+                                maybePurchase = Option.Maybe(purchase);
+                            }
+
+                            return m.ToServiceIdentity(maybePurchase);
+                        }));
                     }
 
                     if (!string.IsNullOrWhiteSpace(scopeResult.ContinuationLink))
