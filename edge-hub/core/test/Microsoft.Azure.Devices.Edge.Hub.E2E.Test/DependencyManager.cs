@@ -175,6 +175,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     enableNonPersistentStorageBackup,
                     backupFolder,
                     Option.None<ulong>(),
+                    Option.None<ulong>(),
                     Option.None<int>(),
                     Option.None<StorageLogLevel>(),
                     false));
@@ -217,7 +218,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     trackDeviceState: true));
 
             builder.RegisterModule(new HttpModule("Edge1", iotHubConnectionStringBuilder.DeviceId, "iotedgeApiProxy"));
-            builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, this.serverCertificate, false, false, false, this.sslProtocols));
+            builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, this.serverCertificate, false, false, this.sslProtocols));
             builder.RegisterModule(new AmqpModule("amqps", 5671, this.serverCertificate, iotHubConnectionStringBuilder.HostName, true, this.sslProtocols, false));
         }
 

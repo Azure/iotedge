@@ -1,10 +1,47 @@
-# 1.2.4 (2021-09-13)
+# 1.2.5 (2021-11-09)
+## Edge Agent
+### Bug Fixes
+* Add `RocksDB_MaxManifestFileSize` env var to Edge Agent and Edge Hub ( [c9c4b29](https://github.com/Azure/iotedge/commit/c9c4b2979c5986597c86bb8630ddd4a97df490f1) )
+* Recreate edgeAgent when not Running, Stopped, or Failed ( [c5d6176](https://github.com/Azure/iotedge/commit/c5d6176af44e3650507d394411c824b1019204f8) )
+* Update SDK to 1.36.3 ( [f12d7ca](https://github.com/Azure/iotedge/commit/f12d7ca0ff6ea826d09989b5b5488af44c366a6f) )
+* Update Base Images for a security patch ( [d6e3657](https://github.com/Azure/iotedge/commit/d6e3657c5abac3752138b3c29955556aad8a8b30) )
+* Restricting EdgeAgent identity parallel operation calls to edged to 5 ( [2391cd9](https://github.com/Azure/iotedge/commit/2391cd992af91633293e5f27fde07cd1522888f3) )
+
+
+## Edge Hub
+### Bug Fixes
+* Remove WebSocket Ping KeepAlives ( [2d451cc](https://github.com/Azure/iotedge/commit/2d451cc576d5f934c3767ebb894089e7d722b217) )
+* Update SDK to 1.36.3 ( [f12d7ca](https://github.com/Azure/iotedge/commit/f12d7ca0ff6ea826d09989b5b5488af44c366a6f), [9a2a526](https://github.com/Azure/iotedge/commit/9a2a52659b75d4964254607d253b3d7189ae07b3) )
+* Update Base Images for a security patch ( [d6e3657](https://github.com/Azure/iotedge/commit/d6e3657c5abac3752138b3c29955556aad8a8b30) )
+* Detect fail-over from Iot Hub and SDK behavior and disconnect from IoT Hub ( [52c563a](https://github.com/Azure/iotedge/commit/52c563a506ff56d80905dcb054dfa918104a1fa2) )
+* Fix `edgehub_queue_len` metric ( [487890d](https://github.com/Azure/iotedge/commit/487890db566cb31cef7e8b83dff34526f2c74608) )
+
+
+## Azure Functions Module Sample
+### Bug Fixes
+* Update TempFilterFunc binding protocol to Amqp_Tcp_Only ( [a5e559c](https://github.com/Azure/iotedge/commit/a5e559c823528fc38c83cf110ccbacca8549bda4) )
+* Update Base Images for a security patch ( [d6e3657](https://github.com/Azure/iotedge/commit/d6e3657c5abac3752138b3c29955556aad8a8b30) )
+* Update SDK to 1.36.3 ( [f12d7ca](https://github.com/Azure/iotedge/commit/f12d7ca0ff6ea826d09989b5b5488af44c366a6f) )
+
+
+## aziot-edge
+### Bug Fixes
+* Disable connection pooling for docker client ( [12e12cf](https://github.com/Azure/iotedge/commit/12e12cff639560b554ab3c84ff8d2a1acaa5e6fe) )
+* Allows an issued Edge CA certificate to be specified in the super config ( [6368eb6](https://github.com/Azure/iotedge/commit/6368eb60e09e0f24e78dd0a936b31223437968e9) )
+* Fix workload socket permission denied ( [861aceb](https://github.com/Azure/iotedge/commit/861acebc55d8b4737451edfaa2d12ed2e8dad6ed) )
+* Backport EST documentation and update configuration template ( [3822152](https://github.com/Azure/iotedge/commit/382215262b3320c15f2694617ac0e77f8f86a251) )
+* Fix typo in template configuration ( [d0978ba](https://github.com/Azure/iotedge/commit/d0978bacaeeecbd0fe4611b6c38bbcbc10044d9a) )
+
+
+# 1.2.4 (2021-09-29)
 ## Edge Agent
 ### Bug Fixes
 * Delay frequent twin pulls on reconnect ( [95b4441](https://github.com/Azure/iotedge/commit/95b4441402fbab9d292f0d962ff89c03e28b848a) )
 * Make sure to dispose HttpContentStream when done reading module logs ( [47011b1](https://github.com/Azure/iotedge/commit/47011b1ed0270182afdadb3eba27220fd4dc38bf) )
 * Update Base Images for a Security Patch ( [3b83e7f](https://github.com/Azure/iotedge/commit/3b83e7f76eaa083f73a9ee6b3f9a8973f8268f5e), [56e96cd](https://github.com/Azure/iotedge/commit/56e96cdf9970c057b7a8028c508f6b0b997f0b62) )
 * `$upstream` support for container registry address ( [ebdb5be](https://github.com/Azure/iotedge/commit/ebdb5becf9a1c5f1fb2aa27794b6e69b0b754d52) )
+* Fix edgeAgent creates rogue ModuleClients when encounters an error ( [4b87cc9](https://github.com/Azure/iotedge/commit/4b87cc97fc202fbf72d08075dd99d891d1637f9f) )
+* Update SDK to fix dotnetty bugs ( [ea818f0](https://github.com/Azure/iotedge/commit/ea818f03f288e818626180ccc8319aea184835f9) )
 
 
 ## Edge Hub
@@ -12,6 +49,8 @@
 * Add a component name to message properties ( [4f36aba](https://github.com/Azure/iotedge/commit/4f36aba0522b5efe547fefc27a2d695f593885e7) )
 * Update Base Images for a Security Patch ( [3b83e7f](https://github.com/Azure/iotedge/commit/3b83e7f76eaa083f73a9ee6b3f9a8973f8268f5e), [56e96cd](https://github.com/Azure/iotedge/commit/56e96cdf9970c057b7a8028c508f6b0b997f0b62) )
 * Enable leaf identity creation ( [358aeb7](https://github.com/Azure/iotedge/commit/358aeb76f4c7b59929def8bcb977b51c2191066f) )
+* Update SDK to fix dotnetty bugs ( [ea818f0](https://github.com/Azure/iotedge/commit/ea818f03f288e818626180ccc8319aea184835f9) )
+* Use separate flag for MQTT Buffer pooling ( [38f34f6](https://github.com/Azure/iotedge/commit/38f34f62180b8e97c1ffd3d15cede96ddcd13d38) )
 
 
 ## Azure Functions Module Sample
@@ -33,6 +72,8 @@
 * RUSTSEC Security Update ( [24e4d27](https://github.com/Azure/iotedge/commit/24e4d272415de71e0ed75b41089e1471c35cc8c9), [b59a089](https://github.com/Azure/iotedge/commit/b59a089e6fa3fbf1d869e37e5e2a5113449b37e3), [5e2ba80](https://github.com/Azure/iotedge/commit/5e2ba80786402615bebff078b67eab63313ffc39), [790a8f9](https://github.com/Azure/iotedge/commit/790a8f99e7f24c86c4c491a6e0eb6d2c388b47ec), [c6d805b](https://github.com/Azure/iotedge/commit/c6d805b1753ba1a69bf05b2e4f0eda312545d347) )
 * $upstream support for container registry address ( [ebdb5be](https://github.com/Azure/iotedge/commit/ebdb5becf9a1c5f1fb2aa27794b6e69b0b754d52) )
 * Improve Workload Manager logging and cleanup ( [febd7a2](https://github.com/Azure/iotedge/commit/febd7a2d1467b891c0dea0edff00c90c6b320e0b) )
+* Update cargo dependencies ( [f147f12](https://github.com/Azure/iotedge/commit/f147f12881c91c029de49c1aba8f509d6c3eed47) )
+* Update Azure IoT Identity Service components to version 1.2.3 ( [fea0ae2](https://github.com/Azure/iotedge/commit/fea0ae2b8f4ef41a9007294b2cb072fef3be5a61) )
 
 
 # 1.2.3 (2021-06-30)

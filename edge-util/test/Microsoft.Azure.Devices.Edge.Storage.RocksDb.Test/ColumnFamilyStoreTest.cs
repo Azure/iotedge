@@ -72,5 +72,36 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
             Assert.Equal(lastKey, lastEntry.key.FromBytes());
             Assert.Equal(lastValue, lastEntry.value.FromBytes());
         }
+
+        [Fact]
+        public async Task MessageCountTest()
+        {
+            using (IDbStore columnFamilyDbStore = this.rocksDbStoreProvider.GetDbStore("test"))
+            {
+                Assert.Equal(0ul, await columnFamilyDbStore.Count());
+
+                for (int i = 0; i < 10; i++)
+                {
+                    string key = $"key{i}";
+                    string value = "$value{i}";
+                    await columnFamilyDbStore.Put(key.ToBytes(), value.ToBytes());
+                }
+
+                Assert.Equal(10ul, await columnFamilyDbStore.Count());
+            }
+
+            using (IDbStore columnFamilyDbStore = this.rocksDbStoreProvider.GetDbStore("test"))
+            {
+                Assert.Equal(10ul, await columnFamilyDbStore.Count());
+
+                for (int i = 0; i < 10; i++)
+                {
+                    string key = $"key{i}";
+                    await columnFamilyDbStore.Remove(key.ToBytes());
+                }
+
+                Assert.Equal(0ul, await columnFamilyDbStore.Count());
+            }
+        }
     }
 }

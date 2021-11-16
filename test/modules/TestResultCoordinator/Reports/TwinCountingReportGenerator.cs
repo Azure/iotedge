@@ -13,6 +13,7 @@ namespace TestResultCoordinator.Reports
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TwinCountingReportGenerator));
         readonly string testDescription;
+        readonly Topology topology;
         readonly string trackingId;
         readonly string expectedSource;
         readonly IAsyncEnumerator<TestOperationResult> expectedTestResults;
@@ -24,6 +25,7 @@ namespace TestResultCoordinator.Reports
 
         internal TwinCountingReportGenerator(
             string testDescription,
+            Topology topology,
             string trackingId,
             string expectedSource,
             IAsyncEnumerator<TestOperationResult> expectedTestResults,
@@ -34,6 +36,7 @@ namespace TestResultCoordinator.Reports
             ushort unmatchedResultsMaxSize)
         {
             this.testDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
+            this.topology = topology;
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.expectedTestResults = Preconditions.CheckNotNull(expectedTestResults, nameof(expectedTestResults));
             this.expectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
@@ -119,6 +122,7 @@ namespace TestResultCoordinator.Reports
 
             return new TwinCountingReport(
                 this.testDescription,
+                this.topology,
                 this.trackingId,
                 this.expectedSource,
                 this.actualSource,

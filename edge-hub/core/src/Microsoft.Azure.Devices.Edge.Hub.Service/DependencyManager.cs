@@ -46,6 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             public bool UseBackupAndRestore { get; }
             public Option<string> StorageBackupPath { get; }
             public Option<ulong> StorageMaxTotalWalSize { get; }
+            public Option<ulong> StorageMaxManifestFileSize { get; }
             public Option<int> StorageMaxOpenFiles { get; }
             public Option<StorageLogLevel> StorageLogLevel { get; }
 
@@ -57,6 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 bool useBackupAndRestore,
                 Option<string> storageBackupPath,
                 Option<ulong> storageMaxTotalWalSize,
+                Option<ulong> storageMaxManifestFileSize,
                 Option<int> storageMaxOpenFiles,
                 Option<StorageLogLevel> storageLogLevel)
             {
@@ -67,6 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 this.UseBackupAndRestore = useBackupAndRestore;
                 this.StorageBackupPath = storageBackupPath;
                 this.StorageMaxTotalWalSize = storageMaxTotalWalSize;
+                this.StorageMaxManifestFileSize = storageMaxManifestFileSize;
                 this.StorageMaxOpenFiles = storageMaxOpenFiles;
                 this.StorageLogLevel = storageLogLevel;
             }
@@ -137,7 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward, metricsConfig, nestedEdgeEnabled, authenticationMode);
             this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures, nestedEdgeEnabled, authenticationMode == AuthenticationMode.Scope, trackDeviceState);
-            this.RegisterMqttModule(builder, storeAndForward, optimizeForPerformance, experimentalFeatures);
+            this.RegisterMqttModule(builder, storeAndForward, experimentalFeatures);
             this.RegisterAmqpModule(builder);
             builder.RegisterModule(new HttpModule(this.iotHubHostname, this.edgeDeviceId, proxyModuleId));
 
@@ -166,7 +169,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         void RegisterMqttModule(
             ContainerBuilder builder,
             StoreAndForward storeAndForward,
-            bool optimizeForPerformance,
             ExperimentalFeatures experimentalFeatures)
         {
             var topics = new MessageAddressConversionConfiguration(
@@ -180,7 +182,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             // MQTT broker overrides the legacy MQTT protocol head
             if (mqttSettingsConfiguration.GetValue("enabled", true) && !experimentalFeatures.EnableMqttBroker)
             {
-                builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, this.serverCertificate, storeAndForward.IsEnabled, clientCertAuthEnabled, optimizeForPerformance, this.sslProtocols));
+                builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, this.serverCertificate, storeAndForward.IsEnabled, clientCertAuthEnabled, this.sslProtocols));
             }
         }
 
@@ -316,6 +318,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     storeAndForward.UseBackupAndRestore,
                     storeAndForward.StorageBackupPath,
                     storeAndForward.StorageMaxTotalWalSize,
+                    storeAndForward.StorageMaxManifestFileSize,
                     storeAndForward.StorageMaxOpenFiles,
                     storeAndForward.StorageLogLevel,
                     nestedEdgeEnabled));
@@ -338,6 +341,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             string storagePath = GetOrCreateDirectoryPath(this.configuration.GetValue<string>("StorageFolder"), Constants.EdgeHubStorageFolder);
             bool storeAndForwardEnabled = this.configuration.GetValue<bool>("storeAndForwardEnabled");
             Option<ulong> storageMaxTotalWalSize = this.GetConfigIfExists<ulong>(Constants.ConfigKey.StorageMaxTotalWalSize, this.configuration);
+            Option<ulong> storageMaxManifestFileSize = this.GetConfigIfExists<ulong>(Constants.ConfigKey.StorageMaxManifestFileSize, this.configuration);
             Option<int> storageMaxOpenFiles = this.GetConfigIfExists<int>(Constants.ConfigKey.StorageMaxOpenFiles, this.configuration);
             Option<StorageLogLevel> storageLogLevel = this.GetConfigIfExists<StorageLogLevel>(Constants.ConfigKey.StorageLogLevel, this.configuration);
 
@@ -355,7 +359,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
 
             var storeAndForwardConfiguration = new StoreAndForwardConfiguration(timeToLiveSecs);
-            return new StoreAndForward(storeAndForwardEnabled, usePersistentStorage, storeAndForwardConfiguration, storagePath, useBackupAndRestore, storageBackupPath, storageMaxTotalWalSize, storageMaxOpenFiles, storageLogLevel);
+            return new StoreAndForward(storeAndForwardEnabled, usePersistentStorage, storeAndForwardConfiguration, storagePath, useBackupAndRestore, storageBackupPath, storageMaxTotalWalSize, storageMaxManifestFileSize, storageMaxOpenFiles, storageLogLevel);
         }
 
         // TODO: Move this function to a common location that can be shared between EdgeHub and EdgeAgent
