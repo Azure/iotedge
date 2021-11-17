@@ -109,6 +109,19 @@ stages:
             os: ubuntu18.04
             arch: aarch64
             target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+
+          Ubuntu2004-amd64:
+              arch: amd64
+              os: ubuntu20.04
+              target.iotedged: edgelet/target/release
+          Ubuntu2004-arm32v7:
+              arch: arm32v7
+              os: ubuntu20.04
+              target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+          Ubuntu2004-aarch64:
+              arch: aarch64
+              os: ubuntu20.04
+              target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
       steps:
         # Ensure any changes here are replicated in packages.slow.yaml
         - bash: |
