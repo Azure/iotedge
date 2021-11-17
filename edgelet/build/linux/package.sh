@@ -405,7 +405,7 @@ case "$PACKAGE_OS" in
             amd64)
                 # only need to create the vendor package once
                 case "$PACKAGE_OS" in
-                    ubuntu18.04)
+                    ubuntu18.04|ubuntu20.04)
                        BUILD_DIST="make dist VERSION=$DEFAULT_VERSION"
                        ;;
                 esac
