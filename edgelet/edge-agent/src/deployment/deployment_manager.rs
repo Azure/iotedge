@@ -32,16 +32,17 @@ impl DeploymentManager {
         let valid_deployment: Option<Deployment> =
             match Self::validate_deployment(&current_deployment) {
                 Ok(deployment) => {
-                    log::debug!("Successfully parsed latest deployment: {:#?}", deployment);
                     write_serde(&valid_location, &deployment).await?;
                     deployment
                 }
                 Err(e) => {
-                    log::warn!("Can not parse newest deployment: {}", e);
+                    if current_deployment != serde_json::Value::Null {
+                        log::warn!("Can not parse newest deployment: {}", e);
+                    }
                     let deployment: Option<Deployment> = read_serde(&valid_location).await?;
                     if deployment.is_some() {
                         log::info!("Reading latest valid deployment");
-                        log::debug!("Latest valid seployment is: {:#?}", deployment);
+                        log::debug!("Latest valid deployment is: {:#?}", deployment);
                     } else {
                         log::info!("No valid deployment found");
                     }

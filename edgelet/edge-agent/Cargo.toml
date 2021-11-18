@@ -4,6 +4,7 @@ name = "edge-agent"
 version = "0.1.0"
 
 [dependencies]
+async-trait = "0.1"
 base64 = "0.13"
 futures-core = "0.3"
 futures-util = "0.3"
@@ -30,5 +31,6 @@ edgelet-core = {path = "../edgelet-core"}
 edgelet-settings = {path = "../edgelet-settings", features = ["settings-docker"]}
 
 [dev-dependencies]
+edgelet-test-utils = {path = "../edgelet-test-utils"}
 rand = "0.8.4"
 tempfile = "3.2"

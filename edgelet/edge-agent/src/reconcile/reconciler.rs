@@ -11,7 +11,7 @@ use crate::deployment::{
 };
 
 type ModuleSettings = edgelet_settings::module::Settings<edgelet_settings::DockerConfig>;
-type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync + 'static>>;
 
 pub struct Reconciler<D, M> {
     deployment_provider: Arc<Mutex<D>>,
@@ -111,4 +111,54 @@ struct RunningModule {
 struct PlannedModule {
     name: String,
     settings: ModuleConfig,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use std::{fs::File, path::Path};
+
+    use edgelet_test_utils::runtime::TestRuntime;
+
+    use crate::deployment::deployment::Deployment;
+
+    #[tokio::test]
+    async fn test1() {
+        let test_file = std::path::Path::new(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/reconcile/test/deployment1.json"
+        ));
+        let provider = TestDeploymentProvider::FromFile(test_file);
+        let provider = Arc::new(Mutex::new(provider));
+
+        let runtime = TestRuntime::<DockerConfig> {
+            ..Default::default()
+        };
+
+        let reconciler = Reconciler::new(provider, runtime);
+    }
+
+    struct TestDeploymentProvider {
+        deployment: Option<Deployment>,
+    }
+
+    impl TestDeploymentProvider {
+        fn FromFile<P>(path: P) -> Self
+        where
+            P: AsRef<Path>,
+        {
+            let file = File::open(path).expect("Could not read test deployment");
+            let deployment =
+                serde_json::from_reader(&file).expect("Could not pares test deployment");
+
+            Self { deployment }
+        }
+    }
+
+    impl DeploymentProvider for TestDeploymentProvider {
+        fn get_deployment(&self) -> Option<&Deployment> {
+            self.deployment.as_ref()
+        }
+    }
 }

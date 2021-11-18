@@ -745,6 +745,7 @@ dependencies = [
 name = "edge-agent"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "aziot-cert-client-async",
  "aziot-identity-client-async",
  "aziot-identity-common",
@@ -755,6 +756,7 @@ dependencies = [
  "docker",
  "edgelet-core",
  "edgelet-settings",
+ "edgelet-test-utils",
  "futures-core",
  "futures-util",
  "json-patch",

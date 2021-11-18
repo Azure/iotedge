@@ -1,28 +1,37 @@
+use std::marker::PhantomData;
+
 // Copyright (c) Microsoft. All rights reserved.
 
 #[derive(Clone, Default, serde::Deserialize, serde::Serialize)]
 pub struct Config {}
 
 #[derive(Clone)]
-pub struct Module {
+pub struct TestModule<C> {
     pub name: String,
     pub type_: String,
-    pub config: Config,
+    pub config: C,
 }
+pub type Module = TestModule<Config>;
 
-impl Default for Module {
+impl<C> Default for TestModule<C>
+where
+    C: Default,
+{
     fn default() -> Self {
-        Module {
+        TestModule {
             name: "testModule".to_string(),
             type_: "test".to_string(),
-            config: Config::default(),
+            config: C::default(),
         }
     }
 }
 
 #[async_trait::async_trait]
-impl edgelet_core::Module for Module {
-    type Config = Config;
+impl<C> edgelet_core::Module for TestModule<C>
+where
+    C: Send + Sync,
+{
+    type Config = C;
     type Error = std::io::Error;
 
     fn name(&self) -> &str {
@@ -44,11 +53,17 @@ impl edgelet_core::Module for Module {
     }
 }
 
-pub struct ModuleRegistry {}
+pub struct TestModuleRegistry<C> {
+    phantom: PhantomData<C>,
+}
+pub type ModuleRegistry = TestModuleRegistry<Config>;
 
 #[async_trait::async_trait]
-impl edgelet_core::ModuleRegistry for ModuleRegistry {
-    type Config = Config;
+impl<C> edgelet_core::ModuleRegistry for TestModuleRegistry<C>
+where
+    C: Send + Sync,
+{
+    type Config = C;
     type Error = std::io::Error;
 
     // The fuctions below aren't used in tests.
@@ -62,11 +77,13 @@ impl edgelet_core::ModuleRegistry for ModuleRegistry {
     }
 }
 
-pub struct Runtime {
+pub struct TestRuntime<C> {
     pub module_auth: std::collections::BTreeMap<String, Vec<i32>>,
+    pub modules: Vec<TestModule<C>>,
 }
+pub type Runtime = TestRuntime<Config>;
 
-impl Default for Runtime {
+impl<C> Default for TestRuntime<C> {
     fn default() -> Self {
         // The PID in module_top is used for auth. Bypass auth when testing by always placing
         // this process's PID in the default module_top response.
@@ -75,19 +92,23 @@ impl Default for Runtime {
         let mut modules = std::collections::BTreeMap::new();
         modules.insert("default".to_string(), vec![pid]);
 
-        Runtime {
+        TestRuntime {
             module_auth: modules,
+            modules: Vec::new(),
         }
     }
 }
 
 #[async_trait::async_trait]
-impl edgelet_core::ModuleRuntime for Runtime {
+impl<C> edgelet_core::ModuleRuntime for TestRuntime<C>
+where
+    C: serde::Serialize + Send + Sync + Clone,
+{
     type Error = std::io::Error;
 
-    type Config = Config;
-    type Module = Module;
-    type ModuleRegistry = ModuleRegistry;
+    type Config = C;
+    type Module = TestModule<C>;
+    type ModuleRegistry = TestModuleRegistry<C>;
 
     async fn module_top(&self, id: &str) -> Result<Vec<i32>, Self::Error> {
         if id == "runtimeError" {
