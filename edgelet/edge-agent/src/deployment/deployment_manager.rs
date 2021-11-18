@@ -171,7 +171,7 @@ mod tests {
         let tmp_dir = tempdir().unwrap();
         let tmp_dir = tmp_dir.path();
 
-        let test_obj = crate::deployment::deployment::ModuleConfig {
+        let test_obj = crate::deployment::deployment::Deployment {
             ..Default::default()
         };
 

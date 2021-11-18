@@ -112,13 +112,8 @@ impl From<DockerSettings> for edgelet_settings::DockerConfig {
     }
 }
 
-#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize)]
+#[derive(Default, Debug, Clone, PartialEq)]
 pub struct CreateOption {
-    #[serde(
-        skip_serializing_if = "Option::is_none",
-        default,
-        rename = "createOptions"
-    )]
     create_options: Option<docker::models::ContainerCreateBody>,
 }
 
@@ -180,6 +175,16 @@ impl<'de> serde::Deserialize<'de> for CreateOption {
             }
         }
         deserializer.deserialize_map(CreateOptionsVisitor)
+    }
+}
+
+impl serde::Serialize for CreateOption {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let string_wrapper: String = serde_json::to_string(&self.create_options).unwrap();
+        serializer.collect_map([("create_options", string_wrapper)])
     }
 }
 
