@@ -759,6 +759,7 @@ dependencies = [
  "futures-util",
  "json-patch",
  "lazy_static",
+ "log",
  "native-tls",
  "percent-encoding 2.1.0",
  "rand 0.8.4",

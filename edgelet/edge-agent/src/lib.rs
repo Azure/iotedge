@@ -31,7 +31,7 @@ where
         deployment::DeploymentManager::new("storage_location").await?,
     ));
     let client_manager = hub_client_manager::ClientManager::new(
-        settings.hostname().to_owned(),
+        settings.hostname().to_owned(), // TODO: Get iothub hostname
         &device_info.device_id.0,
         settings.trust_bundle_cert().ok_or_else(|| {
             std::io::Error::new(std::io::ErrorKind::Other, "missing trust bundle cert")

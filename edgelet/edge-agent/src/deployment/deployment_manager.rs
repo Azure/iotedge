@@ -21,18 +21,33 @@ pub struct DeploymentManager {
 impl DeploymentManager {
     pub async fn new(storage_location: impl AsRef<Path>) -> Result<Self> {
         let current_location = storage_location.as_ref().join("newest_deployment.json");
+        log::info!(
+            "Reading latest deployment from disk: {:?}",
+            current_location
+        );
         let current_deployment = read_serde(&current_location).await?;
+        log::debug!("Latest deployment is: {:#?}", current_deployment);
 
         let valid_location = storage_location.as_ref().join("valid_deployment.json");
-        let valid_deployment: Option<Deployment> = read_serde(&valid_location).await?;
         let valid_deployment: Option<Deployment> =
-            valid_deployment.or_else(|| match Self::validate_deployment(&current_deployment) {
-                Ok(d) => d,
-                Err(e) => {
-                    println!("Can not parse curret deployment: {}", e);
-                    None
+            match Self::validate_deployment(&current_deployment) {
+                Ok(deployment) => {
+                    log::debug!("Successfully parsed latest deployment: {:#?}", deployment);
+                    write_serde(&valid_location, &deployment).await?;
+                    deployment
                 }
-            });
+                Err(e) => {
+                    log::warn!("Can not parse newest deployment: {}", e);
+                    let deployment: Option<Deployment> = read_serde(&valid_location).await?;
+                    if deployment.is_some() {
+                        log::info!("Reading latest valid deployment");
+                        log::debug!("Latest valid seployment is: {:#?}", deployment);
+                    } else {
+                        log::info!("No valid deployment found");
+                    }
+                    deployment
+                }
+            };
 
         Ok(Self {
             current_location,
@@ -43,9 +58,11 @@ impl DeploymentManager {
     }
 
     pub async fn set_deployment(&mut self, deployment: TwinState) -> Result<()> {
-        println!("Setting deplyoment");
+        log::info!("Recieved initial deployment from upstream");
+
         self.current_deployment = json!({ "properties": deployment });
         write_serde(&self.current_location, &self.current_deployment).await?;
+        log::debug!("Newest deployment is: {:#?}", self.current_deployment);
 
         if let Some(deployment) = Self::validate_deployment(&self.current_deployment)? {
             self.valid_deployment = Some(deployment);
@@ -56,10 +73,11 @@ impl DeploymentManager {
     }
 
     pub async fn update_deployment(&mut self, patch: TwinProperties) -> Result<()> {
-        println!("Updating deplyoment");
+        log::info!("Recieved deployment update from upstream");
         let patch = json!({ "properties": { "desired": patch }});
         json_patch::merge(&mut self.current_deployment, &patch);
         write_serde(&self.current_location, &self.current_deployment).await?;
+        log::debug!("Newest deployment is: {:#?}", self.current_deployment);
 
         if let Some(deployment) = Self::validate_deployment(&self.current_deployment)? {
             self.valid_deployment = Some(deployment);
@@ -70,10 +88,14 @@ impl DeploymentManager {
     }
 
     fn validate_deployment(deployment: &serde_json::Value) -> Result<Option<Deployment>> {
+        log::debug!("Validating latest deployment");
         match serde_json::from_value(deployment.clone()) {
-            Ok(deployment) => Ok(Some(deployment)),
+            Ok(deployment) => {
+                log::debug!("Latest deployment is valid: {:#?}", deployment);
+                Ok(Some(deployment))
+            }
             Err(error) => {
-                println!("Invalid Deployment: {}", error);
+                log::warn!("Can not parse newest deployment: {}", error);
                 Ok(None)
             }
         }
@@ -163,6 +185,7 @@ mod tests {
         let expected: serde_json::Value =
             read_serde(test_file).await.expect("Test file is parsable");
         assert_eq!(manager.current_deployment, expected);
+        assert_ne!(manager.valid_deployment, None);
     }
 
     // #[tokio::test]
