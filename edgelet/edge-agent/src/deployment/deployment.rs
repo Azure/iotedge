@@ -13,7 +13,7 @@ pub struct Deployment {
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct Properties {
     pub desired: PropertiesInner,
-    pub reported: PropertiesInner,
+    pub reported: serde_json::Value,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
