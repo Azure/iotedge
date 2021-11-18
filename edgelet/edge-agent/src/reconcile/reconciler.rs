@@ -129,7 +129,7 @@ mod tests {
             env!("CARGO_MANIFEST_DIR"),
             "/src/reconcile/test/deployment1.json"
         ));
-        let provider = TestDeploymentProvider::FromFile(test_file);
+        let provider = TestDeploymentProvider::from_file(test_file);
         let provider = Arc::new(Mutex::new(provider));
 
         let runtime = TestRuntime::<DockerConfig> {
@@ -144,13 +144,13 @@ mod tests {
     }
 
     impl TestDeploymentProvider {
-        fn FromFile<P>(path: P) -> Self
+        fn from_file<P>(path: P) -> Self
         where
             P: AsRef<Path>,
         {
             let file = File::open(path).expect("Could not read test deployment");
             let deployment =
-                serde_json::from_reader(&file).expect("Could not pares test deployment");
+                serde_json::from_reader(&file).expect("Could not parse test deployment");
 
             Self { deployment }
         }

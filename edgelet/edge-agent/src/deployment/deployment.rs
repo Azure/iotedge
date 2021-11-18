@@ -97,14 +97,18 @@ pub struct DockerSettings {
 
     #[serde(
         default = "edgelet_settings::base::default_allow_elevated_docker_permissions",
-        skip_serializing
+        skip_serializing_if = "is_default_docker_perms"
     )]
     allow_elevated_docker_permissions: bool,
 }
 
+fn is_default_docker_perms(val: &bool) -> bool {
+    val == &edgelet_settings::base::default_allow_elevated_docker_permissions()
+}
+
 impl From<DockerSettings> for edgelet_settings::DockerConfig {
     fn from(settings: DockerSettings) -> Self {
-        Self::default() // TODO: convert
+        todo!()
     }
 }
 

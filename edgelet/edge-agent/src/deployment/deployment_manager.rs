@@ -167,6 +167,24 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn read_write() {
+        let tmp_dir = tempdir().unwrap();
+        let tmp_dir = tmp_dir.path();
+
+        let test_obj = crate::deployment::deployment::ModuleConfig {
+            ..Default::default()
+        };
+
+        let file = tmp_dir.join("test.json");
+        write_serde(&file, &test_obj)
+            .await
+            .expect("Can write object");
+        let result = read_serde(&file).await.expect("Can read object");
+
+        assert_eq!(test_obj, result);
+    }
+
+    #[tokio::test]
     async fn load_existing() {
         let test_file = std::path::Path::new(concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -187,6 +205,18 @@ mod tests {
             read_serde(test_file).await.expect("Test file is parsable");
         assert_eq!(manager.current_deployment, expected);
         assert_ne!(manager.valid_deployment, None);
+
+        write_serde(
+            tmp_dir.join("valid_deployment.json"),
+            manager.valid_deployment,
+        )
+        .await
+        .unwrap();
+        let valid_deployment: Option<Deployment> =
+            read_serde(tmp_dir.join("valid_deployment.json"))
+                .await
+                .expect("Valid deployment is readable");
+        assert_ne!(valid_deployment, None);
     }
 
     // #[tokio::test]
