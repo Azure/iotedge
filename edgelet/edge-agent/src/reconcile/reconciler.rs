@@ -10,7 +10,7 @@ use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, Mo
 use edgelet_settings::{module::ImagePullPolicy, DockerConfig, ModuleSpec};
 
 use crate::deployment::{
-    deployment::{DockerSettings, ModuleConfig, RestartPolicy},
+    deployment::{ModuleConfig, ModuleStatus as DeploymentModuleStatus, RestartPolicy},
     DeploymentProvider,
 };
 
@@ -45,8 +45,10 @@ where
         // Note delete should come first, since hub has a limit of 50 identities
         self.delete_modules(differance.modules_to_delete).await?;
         self.create_modules(differance.modules_to_create).await?;
-        self.set_modules_state(differance.state_change_modules).await?;
-        self.handle_failed_modules(differance.failed_modules).await?;
+        self.set_modules_state(differance.state_change_modules)
+            .await?;
+        self.handle_failed_modules(differance.failed_modules)
+            .await?;
 
         Ok(())
     }
@@ -69,7 +71,7 @@ where
 
                 let desired_config: DockerConfig = desired.config.settings.clone().try_into()?;
                 if desired_config != current.config
-                /* TODO compare env vars here */
+                /* TODO compare env vars here and image tag*/
                 {
                     // Module should be modified to match desired, and the change requires a new container
                     state_change_modules.push(StateChangeModule {
@@ -79,7 +81,7 @@ where
                 } else {
                     // Module config matches, check if state matches
                     match desired.config.status {
-                        crate::deployment::deployment::ModuleStatus::Running => {
+                        DeploymentModuleStatus::Running => {
                             match current.state.status() {
                                 ModuleStatus::Running => { /* Do nthing, module is in correct state. */
                                 }
@@ -101,7 +103,7 @@ where
                                 }
                             }
                         }
-                        crate::deployment::deployment::ModuleStatus::Stopped => {
+                        DeploymentModuleStatus::Stopped => {
                             if current.state.status() != &ModuleStatus::Stopped {
                                 // Set Module to stopped. It doesn't matter if module is failed, since we're stopping it anyway
                                 state_change_modules.push(StateChangeModule {
@@ -250,6 +252,7 @@ where
         );
         for state_change_module in state_change_modules {
             if state_change_module.reset_container {
+                // Module must be removed and restarted
                 let name = &state_change_module.module.name.clone();
                 self.runtime
                     .remove(name)
@@ -260,9 +263,33 @@ where
                     .create(state_change_module.module.try_into()?)
                     .await
                     .map_err(|e| format!("Error creating module {}: {:?}", name, e))?;
+            } else {
+                match state_change_module.module.config.status {
+                    DeploymentModuleStatus::Running => {
+                        self.runtime
+                            .start(&state_change_module.module.name)
+                            .await
+                            .map_err(|e| {
+                                format!(
+                                    "Error starting module {}: {:?}",
+                                    state_change_module.module.name, e
+                                )
+                            })?;
+                    }
+                    DeploymentModuleStatus::Stopped => {
+                        // TODO: get stop before kill duration
+                        self.runtime
+                            .stop(&state_change_module.module.name, None)
+                            .await
+                            .map_err(|e| {
+                                format!(
+                                    "Error stopping module {}: {:?}",
+                                    state_change_module.module.name, e
+                                )
+                            })?;
+                    }
+                }
             }
-
-            // match state_change_module.module.config.status {}
         }
 
         Ok(())
