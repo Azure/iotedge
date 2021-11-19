@@ -45,6 +45,8 @@ where
         // Note delete should come first, since hub has a limit of 50 identities
         self.delete_modules(differance.modules_to_delete).await?;
         self.create_modules(differance.modules_to_create).await?;
+        self.set_modules_state(differance.state_change_modules).await?;
+        self.handle_failed_modules(differance.failed_modules).await?;
 
         Ok(())
     }
@@ -148,7 +150,7 @@ where
             .collect();
 
         modules.push(DesiredModule {
-            name: "$edgeHub".to_owned(),
+            name: "edgeHub".to_owned(),
             config: deployment
                 .properties
                 .desired
@@ -266,7 +268,7 @@ where
         Ok(())
     }
 
-    async fn handle_failed_modules(failed_modules: Vec<FailedModule>) -> Result<()> {
+    async fn handle_failed_modules(&self, failed_modules: Vec<FailedModule>) -> Result<()> {
         //     match desired.config.restart_policy {
         //         RestartPolicy::Always
         //         | RestartPolicy::OnFailure
