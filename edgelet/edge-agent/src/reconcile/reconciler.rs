@@ -198,16 +198,19 @@ where
         );
         for module in modules_to_create {
             // TODO: Create identity in hub
-            self.create_and_start_module(module).await?;
+            self.pull_and_make_module(module.clone()).await?;
+            self.set_module_state(&module.name, &module.config.status)
+                .await?;
         }
 
         Ok(())
     }
 
-    async fn create_and_start_module(&self, module: DesiredModule) -> Result<()> {
+    async fn pull_and_make_module(&self, module: DesiredModule) -> Result<()> {
         let name = module.name.clone();
 
         if module.config.image_pull_policy == ImagePullPolicy::OnCreate {
+            // TODO: Docker login
             let config: DockerConfig = module.config.settings.clone().try_into()?;
             self.registry
                 .pull(&config)
@@ -219,11 +222,6 @@ where
             .create(module.try_into()?)
             .await
             .map_err(|e| format!("Error creating container {}: {:?}", name, e))?;
-
-        self.runtime
-            .start(&name)
-            .await
-            .map_err(|e| format!("Error starting container {}: {:?}", name, e))?;
 
         Ok(())
     }
@@ -261,42 +259,43 @@ where
                 .join(", ")
         );
         for state_change_module in state_change_modules {
+            let name = &state_change_module.module.name.clone();
             if state_change_module.reset_container {
                 // Module must be removed and restarted
-                let name = &state_change_module.module.name.clone();
                 self.runtime
                     .remove(name)
                     .await
                     .map_err(|e| format!("Error deleting container {}: {:?}", name, e))?;
 
-                self.create_and_start_module(state_change_module.module)
+                self.pull_and_make_module(state_change_module.module.clone())
                     .await?;
-            } else {
-                match state_change_module.module.config.status {
-                    DeploymentModuleStatus::Running => {
-                        self.runtime
-                            .start(&state_change_module.module.name)
-                            .await
-                            .map_err(|e| {
-                                format!(
-                                    "Error starting module {}: {:?}",
-                                    state_change_module.module.name, e
-                                )
-                            })?;
-                    }
-                    DeploymentModuleStatus::Stopped => {
-                        // TODO: get stop before kill duration
-                        self.runtime
-                            .stop(&state_change_module.module.name, None)
-                            .await
-                            .map_err(|e| {
-                                format!(
-                                    "Error stopping module {}: {:?}",
-                                    state_change_module.module.name, e
-                                )
-                            })?;
-                    }
-                }
+            }
+
+            self.set_module_state(&name, &state_change_module.module.config.status)
+                .await?;
+        }
+
+        Ok(())
+    }
+
+    async fn set_module_state(
+        &self,
+        id: &str,
+        desired_state: &DeploymentModuleStatus,
+    ) -> Result<()> {
+        match desired_state {
+            DeploymentModuleStatus::Running => {
+                self.runtime
+                    .start(id)
+                    .await
+                    .map_err(|e| format!("Error starting module {}: {:?}", id, e))?;
+            }
+            DeploymentModuleStatus::Stopped => {
+                // TODO: get stop before kill duration
+                self.runtime
+                    .stop(id, None)
+                    .await
+                    .map_err(|e| format!("Error stopping module {}: {:?}", id, e))?;
             }
         }
 
@@ -354,7 +353,7 @@ struct FailedModule {
     restart_policy: RestartPolicy,
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 struct DesiredModule {
     name: String,
     config: ModuleConfig,
