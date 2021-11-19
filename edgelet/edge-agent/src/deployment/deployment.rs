@@ -31,7 +31,8 @@ pub struct PropertiesInner {
 pub struct ModuleConfig {
     pub settings: DockerSettings,
     pub r#type: RuntimeType,
-    pub status: Option<String>,
+    #[serde(default)]
+    pub status: edgelet_core::ModuleStatus,
     pub restart_policy: Option<String>,
     pub image_pull_policy: Option<String>,
     pub version: Option<String>,

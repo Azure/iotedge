@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use tokio::sync::Mutex;
 
@@ -32,16 +32,8 @@ where
 
     pub async fn reconcile(&self) -> Result<()> {
         println!("Starting Reconcile");
-        println!(
-            "Got current modules: {:#?}",
-            self.get_current_modules().await
-        );
-        println!(
-            "Got expected modules: {:#?}",
-            self.get_expected_modules().await
-        );
 
-        // let differance = self.get_differance().await?;
+        let _differance = self.get_differance().await?;
 
         // for module_to_create in differance.modules_to_create {
         //     self.runtime.create(module_to_create).await.unwrap();
@@ -51,10 +43,21 @@ where
     }
 
     async fn get_differance(&self) -> Result<ModuleDifferance> {
+        let current_modules = self.get_current_modules().await?;
+        let desired_modules = self.get_desired_modules().await?;
+        println!("Got current modules: {:?}", current_modules);
+        println!("Got desired modules: {:?}", desired_modules);
+
+        for desired in desired_modules {
+            if let Some(current) = current_modules.get(&desired.name) {
+                if &desired.settings.status != current.state.status() {}
+            }
+        }
+
         Ok(Default::default())
     }
 
-    async fn get_expected_modules(&self) -> Result<Vec<PlannedModule>> {
+    async fn get_desired_modules(&self) -> Result<Vec<DesiredModule>> {
         let provider = self.deployment_provider.lock().await;
         let deployment = if let Some(d) = provider.get_deployment() {
             d
@@ -68,7 +71,7 @@ where
             .desired
             .modules
             .iter()
-            .map(|(name, module)| PlannedModule {
+            .map(|(name, module)| DesiredModule {
                 name: name.to_owned(),
                 settings: module.to_owned(),
             })
@@ -77,17 +80,22 @@ where
         Ok(modules)
     }
 
-    async fn get_current_modules(&self) -> Result<Vec<RunningModule>> {
+    async fn get_current_modules(&self) -> Result<HashMap<String, RunningModule>> {
         let modules = self
             .runtime
             .list_with_details()
             .await
             .unwrap()
             .iter()
-            .map(|(module, state)| RunningModule {
-                name: module.name().to_owned(),
-                config: module.config().to_owned(),
-                state: state.to_owned(),
+            .map(|(module, state)| {
+                (
+                    module.name().to_owned(),
+                    RunningModule {
+                        name: module.name().to_owned(),
+                        config: module.config().to_owned(),
+                        state: state.to_owned(),
+                    },
+                )
             })
             .collect();
 
@@ -97,9 +105,9 @@ where
 
 #[derive(Default, Debug)]
 struct ModuleDifferance {
-    modules_to_create: Vec<PlannedModule>,
+    modules_to_create: Vec<DesiredModule>,
     modules_to_delete: Vec<RunningModule>,
-    state_change_modules: Vec<PlannedModule>,
+    state_change_modules: Vec<DesiredModule>,
     failed_modules: Vec<RunningModule>,
 }
 
@@ -111,7 +119,7 @@ struct RunningModule {
 }
 
 #[derive(Default, Debug)]
-struct PlannedModule {
+struct DesiredModule {
     name: String,
     settings: ModuleConfig,
 }

@@ -27,6 +27,12 @@ pub enum ModuleStatus {
     Dead,
 }
 
+impl Default for ModuleStatus {
+    fn default() -> Self {
+        ModuleStatus::Running
+    }
+}
+
 pub enum ModuleAction {
     Start(String, tokio::sync::oneshot::Sender<()>),
     Stop(String),

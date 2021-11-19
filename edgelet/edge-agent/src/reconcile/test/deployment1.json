@@ -34,7 +34,6 @@
                         "create_options": "{}"
                     },
                     "type": "docker",
-                    "status": null,
                     "restartPolicy": null,
                     "imagePullPolicy": null,
                     "version": null,
