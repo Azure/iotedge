@@ -6,8 +6,8 @@ use std::{
 
 use tokio::sync::Mutex;
 
-use edgelet_core::{Module, ModuleRuntime, ModuleRuntimeState, ModuleStatus};
-use edgelet_settings::{DockerConfig, ModuleSpec};
+use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleStatus};
+use edgelet_settings::{module::ImagePullPolicy, DockerConfig, ModuleSpec};
 
 use crate::deployment::{
     deployment::{DockerSettings, ModuleConfig, RestartPolicy},
@@ -17,20 +17,23 @@ use crate::deployment::{
 type ModuleSettings = edgelet_settings::module::Settings<edgelet_settings::DockerConfig>;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync + 'static>>;
 
-pub struct Reconciler<D, M> {
+pub struct Reconciler<D, M, R> {
     deployment_provider: Arc<Mutex<D>>,
     runtime: M,
+    registry: R,
 }
 
-impl<D, M> Reconciler<D, M>
+impl<D, M, R> Reconciler<D, M, R>
 where
     D: DeploymentProvider,
     M: ModuleRuntime<Config = DockerConfig>,
+    R: ModuleRegistry<Config = DockerConfig>,
 {
-    pub fn new(deployment_provider: Arc<Mutex<D>>, runtime: M) -> Self {
+    pub fn new(deployment_provider: Arc<Mutex<D>>, runtime: M, registry: R) -> Self {
         Self {
             deployment_provider,
             runtime,
+            registry,
         }
     }
 
@@ -146,7 +149,12 @@ where
 
         modules.push(DesiredModule {
             name: "$edgeHub".to_owned(),
-            config:  deployment.properties.desired.system_modules.edge_hub.to_owned(),
+            config: deployment
+                .properties
+                .desired
+                .system_modules
+                .edge_hub
+                .to_owned(),
         });
 
         Ok(modules)
@@ -189,10 +197,18 @@ where
 
             // TODO: Create identity in hub
 
+            if module.config.image_pull_policy == ImagePullPolicy::OnCreate {
+                let config: DockerConfig = module.config.settings.clone().try_into()?;
+                self.registry
+                    .pull(&config)
+                    .await
+                    .map_err(|e| format!("Error pulling image {}: {:?}", config.image(), e))?;
+            }
+
             self.runtime
                 .create(module.try_into()?)
                 .await
-                .map_err(|e| format!("Error creating container {}: {}", name, e))?;
+                .map_err(|e| format!("Error creating container {}: {:?}", name, e))?;
         }
 
         Ok(())
@@ -214,7 +230,7 @@ where
             self.runtime
                 .remove(&module.name)
                 .await
-                .map_err(|e| format!("Error deleting container {}: {}", module.name, e))?;
+                .map_err(|e| format!("Error deleting container {}: {:?}", module.name, e))?;
         }
 
         Ok(())
@@ -236,12 +252,12 @@ where
                 self.runtime
                     .remove(name)
                     .await
-                    .map_err(|e| format!("Error deleting container {}: {}", name, e))?;
+                    .map_err(|e| format!("Error deleting container {}: {:?}", name, e))?;
 
                 self.runtime
                     .create(state_change_module.module.try_into()?)
                     .await
-                    .map_err(|e| format!("Error creating module {}: {}", name, e))?;
+                    .map_err(|e| format!("Error creating module {}: {:?}", name, e))?;
             }
 
             // match state_change_module.module.config.status {}

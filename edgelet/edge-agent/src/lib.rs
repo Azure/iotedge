@@ -9,12 +9,12 @@ use std::time::Duration;
 use aziot_cert_client_async::Client as CertClient;
 use aziot_identity_client_async::Client as IdentityClient;
 use aziot_key_client_async::Client as KeyClient;
-use edgelet_core::ModuleRuntime;
+use edgelet_core::{ModuleRegistry, ModuleRuntime};
 use edgelet_settings::DockerConfig;
 use edgelet_settings::{docker::Settings, RuntimeSettings};
 use tokio::sync::Mutex;
 
-pub async fn start_edgeagent<M>(
+pub async fn start_edgeagent<M, R>(
     settings: &Settings,
     device_info: &aziot_identity_common::AzureIoTSpec,
     cert_client: Arc<CertClient>,
@@ -22,9 +22,11 @@ pub async fn start_edgeagent<M>(
     identity_client: Arc<IdentityClient>,
     mut shutdown_rx: tokio::sync::mpsc::UnboundedReceiver<edgelet_core::ShutdownReason>,
     runtime: M,
+    registry: R,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>
 where
     M: ModuleRuntime<Config = DockerConfig> + Send + Sync + 'static,
+    R: ModuleRegistry<Config = DockerConfig> + Send + Sync + 'static,
 {
     println!("Starting EdgeAgent");
     let deployment_manager = Arc::new(Mutex::new(
@@ -46,6 +48,7 @@ where
         Duration::from_secs(5),
         deployment_manager.clone(),
         runtime,
+        registry,
     );
 
     client_manager.start();

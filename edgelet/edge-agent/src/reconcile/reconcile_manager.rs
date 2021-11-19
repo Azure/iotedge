@@ -2,26 +2,32 @@ use std::{sync::Arc, time::Duration};
 
 use tokio::sync::Mutex;
 
-use edgelet_core::ModuleRuntime;
+use edgelet_core::{ModuleRegistry, ModuleRuntime};
 use edgelet_settings::DockerConfig;
 
 use super::reconciler::Reconciler;
 use crate::deployment::DeploymentProvider;
 
-pub struct ReconcileManager<D, M> {
+pub struct ReconcileManager<D, M, R> {
     frequency: Duration,
-    reconciler: Reconciler<D, M>,
+    reconciler: Reconciler<D, M, R>,
 }
 
-impl<D, M> ReconcileManager<D, M>
+impl<D, M, R> ReconcileManager<D, M, R>
 where
     D: DeploymentProvider + Send + Sync + 'static,
     M: ModuleRuntime<Config = DockerConfig> + Send + Sync + 'static,
+    R: ModuleRegistry<Config = DockerConfig> + Send + Sync + 'static,
 {
-    pub fn new(frequency: Duration, deployment_provider: Arc<Mutex<D>>, runtime: M) -> Self {
+    pub fn new(
+        frequency: Duration,
+        deployment_provider: Arc<Mutex<D>>,
+        runtime: M,
+        registry: R,
+    ) -> Self {
         Self {
             frequency,
-            reconciler: Reconciler::new(deployment_provider, runtime),
+            reconciler: Reconciler::new(deployment_provider, runtime, registry),
         }
     }
 

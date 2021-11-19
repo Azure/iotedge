@@ -132,7 +132,7 @@ where
     match file {
         Ok(mut file) => {
             let mut contents = vec![];
-            file.read_to_end(&mut contents).await.unwrap();
+            file.read_to_end(&mut contents).await?;
 
             let result = serde_json::from_slice(&contents)?;
             Ok(result)

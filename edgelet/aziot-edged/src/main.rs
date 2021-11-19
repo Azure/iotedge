@@ -158,7 +158,8 @@ async fn run() -> Result<(), EdgedError> {
         key_client,
         identity_client.clone(),
         shutdown_rx,
-        runtime,
+        runtime.clone(),
+        runtime.clone(),
     )
     .await
     .unwrap();
