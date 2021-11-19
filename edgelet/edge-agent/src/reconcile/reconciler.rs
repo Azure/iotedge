@@ -83,7 +83,7 @@ where
                     match desired.config.status {
                         DeploymentModuleStatus::Running => {
                             match current.state.status() {
-                                ModuleStatus::Running => { /* Do nthing, module is in correct state. */
+                                ModuleStatus::Running => { /* Do nothing, module is in correct state. */
                                 }
                                 ModuleStatus::Stopped => {
                                     // Module is not stopped, module should be started
@@ -96,15 +96,22 @@ where
                                 | ModuleStatus::Unknown
                                 | ModuleStatus::Dead => {
                                     // Module is in a bad state, send to restart planner
-                                    failed_modules.push(FailedModule {
-                                        module: current,
-                                        restart_policy: desired.config.restart_policy,
-                                    })
+
+                                    state_change_modules.push(StateChangeModule {
+                                        module: desired,
+                                        reset_container: false,
+                                    });
+
+                                    // TODO: Implement restart planner
+                                    // failed_modules.push(FailedModule {
+                                    //     module: current,
+                                    //     restart_policy: desired.config.restart_policy,
+                                    // })
                                 }
                             }
                         }
                         DeploymentModuleStatus::Stopped => {
-                            if current.state.status() != &ModuleStatus::Stopped {
+                            if current.state.status() == &ModuleStatus::Running {
                                 // Set Module to stopped. It doesn't matter if module is failed, since we're stopping it anyway
                                 state_change_modules.push(StateChangeModule {
                                     module: desired,
@@ -212,10 +219,13 @@ where
         if module.config.image_pull_policy == ImagePullPolicy::OnCreate {
             // TODO: Docker login
             let config: DockerConfig = module.config.settings.clone().try_into()?;
-            self.registry
-                .pull(&config)
-                .await
-                .map_err(|e| format!("Error pulling image {}: {:?}", config.image(), e))?;
+            if let Err(e) = self.registry.pull(&config).await {
+                log::warn!(
+                    "Could not pull image {}. Attempting to use existing image. Reason: {:?}",
+                    config.image(),
+                    e
+                );
+            }
         }
 
         self.runtime
