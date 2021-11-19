@@ -197,23 +197,33 @@ where
                 .join(", ")
         );
         for module in modules_to_create {
-            let name = module.name.clone();
-
             // TODO: Create identity in hub
-
-            if module.config.image_pull_policy == ImagePullPolicy::OnCreate {
-                let config: DockerConfig = module.config.settings.clone().try_into()?;
-                self.registry
-                    .pull(&config)
-                    .await
-                    .map_err(|e| format!("Error pulling image {}: {:?}", config.image(), e))?;
-            }
-
-            self.runtime
-                .create(module.try_into()?)
-                .await
-                .map_err(|e| format!("Error creating container {}: {:?}", name, e))?;
+            self.create_and_start_module(module).await?;
         }
+
+        Ok(())
+    }
+
+    async fn create_and_start_module(&self, module: DesiredModule) -> Result<()> {
+        let name = module.name.clone();
+
+        if module.config.image_pull_policy == ImagePullPolicy::OnCreate {
+            let config: DockerConfig = module.config.settings.clone().try_into()?;
+            self.registry
+                .pull(&config)
+                .await
+                .map_err(|e| format!("Error pulling image {}: {:?}", config.image(), e))?;
+        }
+
+        self.runtime
+            .create(module.try_into()?)
+            .await
+            .map_err(|e| format!("Error creating container {}: {:?}", name, e))?;
+
+        self.runtime
+            .start(&name)
+            .await
+            .map_err(|e| format!("Error starting container {}: {:?}", name, e))?;
 
         Ok(())
     }
@@ -259,10 +269,8 @@ where
                     .await
                     .map_err(|e| format!("Error deleting container {}: {:?}", name, e))?;
 
-                self.runtime
-                    .create(state_change_module.module.try_into()?)
-                    .await
-                    .map_err(|e| format!("Error creating module {}: {:?}", name, e))?;
+                self.create_and_start_module(state_change_module.module)
+                    .await?;
             } else {
                 match state_change_module.module.config.status {
                     DeploymentModuleStatus::Running => {
