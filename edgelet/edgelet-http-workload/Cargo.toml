@@ -27,7 +27,7 @@ tokio = "1"
 url = "2"
 
 edgelet-core = { path = "../edgelet-core" }
-edgelet-http = { path = "../edgelet-http" }
+edgelet-http = { path = "../edgelet-http", features = ["otel"] }
 edgelet-settings = { path = "../edgelet-settings" }
 
 aziot-key-client = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master" }
@@ -49,3 +49,6 @@ http-common = { git = "https://github.com/nlcamp/iot-identity-service", branch =
 nix = "0.22"
 
 edgelet-test-utils = { path = "../edgelet-test-utils" }
+
+[features]
+otel = []

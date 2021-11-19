@@ -24,7 +24,7 @@ tokio = { version = "1", features = ["macros", "sync"] }
 url = "2"
 
 edgelet-core = { path = "../edgelet-core" }
-edgelet-http = { path = "../edgelet-http" }
+edgelet-http = { path = "../edgelet-http", features = ["otel"] }
 edgelet-settings = { path = "../edgelet-settings" }
 support-bundle = { path = "../support-bundle" }
 
@@ -38,3 +38,6 @@ http-common = { git = "https://github.com/nlcamp/iot-identity-service", branch =
 nix = "0.22"
 
 edgelet-test-utils = { path = "../edgelet-test-utils" }
+
+[features]
+otel = []

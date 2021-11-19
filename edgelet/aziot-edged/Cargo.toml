@@ -19,10 +19,10 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "syn
 url = "2"
 
 edgelet-core = { path = "../edgelet-core" }
-edgelet-docker = { path = "../edgelet-docker" }
-edgelet-http = { path = "../edgelet-http" }
-edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
-edgelet-http-workload = { path = "../edgelet-http-workload" }
+edgelet-docker = { path = "../edgelet-docker", features = ["otel"] }
+edgelet-http = { path = "../edgelet-http", features = ["otel"] }
+edgelet-http-mgmt = { path = "../edgelet-http-mgmt", features = ["otel"] }
+edgelet-http-workload = { path = "../edgelet-http-workload", features = ["otel"] }
 edgelet-settings = { path = "../edgelet-settings", features = ["settings-docker"] }
 
 aziot-identity-client-async = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master" }
@@ -31,3 +31,6 @@ aziot-identity-common-http = { git = "https://github.com/nlcamp/iot-identity-ser
 
 http-common = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master", features = ["otel"] }
 logger = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master" }
+
+[features]
+otel = []

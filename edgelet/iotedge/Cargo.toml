@@ -54,7 +54,7 @@ aziotctl-common = {git = "https://github.com/nlcamp/iot-identity-service", branc
 config-common = {git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master"}
 docker = {path = "../docker-rs"}
 edgelet-core = {path = "../edgelet-core"}
-edgelet-http = {path = "../edgelet-http"}
+edgelet-http = {path = "../edgelet-http", features = ["otel"]}
 edgelet-settings = {path = "../edgelet-settings", features = ["settings-docker"]}
 edgelet-utils = {path = "../edgelet-utils"}
 http-common = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master", features = ["otel"] }
@@ -63,3 +63,6 @@ support-bundle = {path = "../support-bundle"}
 [dev-dependencies]
 edgelet-test-utils = {path = "../edgelet-test-utils"}
 tempfile = "3.1.0"
+
+[features]
+otel = []

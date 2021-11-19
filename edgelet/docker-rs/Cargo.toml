@@ -17,3 +17,6 @@ typed-headers = "0.1"
 url = "1.5"
 
 http-common = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master", features = ["otel"] }
+
+[features]
+otel = []

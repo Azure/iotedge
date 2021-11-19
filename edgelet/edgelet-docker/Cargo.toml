@@ -40,3 +40,6 @@ tempdir = "0.3.7"
 tempfile = "3"
 time = "0.1"
 typed-headers = "0.1"
+
+[features]
+otel = []

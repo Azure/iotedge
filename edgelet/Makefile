@@ -41,6 +41,8 @@ vendordir?=vendor
 CARGOFLAGS=--manifest-path=$(srcdir)/Cargo.toml
 DPKGFLAGS=-b -rfakeroot -us -uc -i
 RPMBUILDFLAGS=-v -bb --clean
+#Todo: Set this up to empty value
+FEATURES=--features otel
 
 CARGO=cargo
 GIT=git
@@ -76,7 +78,7 @@ release:
 		IOTEDGE_LISTEN_MANAGEMENT_URI=$(LISTEN_MANAGEMENT_URI) \
 		IOTEDGE_LISTEN_WORKLOAD_URI=$(LISTEN_WORKLOAD_URI) \
 		VERSION=${VERSION} \
-		$(CARGO) build $(CARGOFLAGS) --release -p aziot-edged -p iotedge
+		$(CARGO) build $(CARGOFLAGS) $(FEATURES) --release -p aziot-edged -p iotedge
 
 dist:
 	$(MKDIR_P) $(TARGET)
