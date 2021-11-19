@@ -133,7 +133,7 @@ where
             return Ok(vec![]);
         };
 
-        let modules = deployment
+        let mut modules: Vec<DesiredModule> = deployment
             .properties
             .desired
             .modules
@@ -143,6 +143,11 @@ where
                 config: module.to_owned(),
             })
             .collect();
+
+        modules.push(DesiredModule {
+            name: "$edgeHub".to_owned(),
+            config:  deployment.properties.desired.system_modules.edge_hub.to_owned(),
+        });
 
         Ok(modules)
     }
