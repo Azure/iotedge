@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
 
 use edgelet_core::{Module, ModuleRuntime, ModuleRuntimeState};
-use edgelet_settings::DockerConfig;
+use edgelet_settings::{DockerConfig, ModuleSpec};
 
 use crate::deployment::{
     deployment::{DockerSettings, ModuleConfig},
@@ -58,10 +58,8 @@ where
             if let Some((_, current)) = current_modules.remove_entry(&desired.name) {
                 // Module with same name exists, check if should be modified.
 
-
-
                 // For this part, maybe make state change a type with container remove a bool
-                
+
                 // if true { // Check create options/env vars
                 //    // module must be removed and re-created
                 // } else if &desired.settings.status != current.state.status() {
@@ -97,7 +95,7 @@ where
             .iter()
             .map(|(name, module)| DesiredModule {
                 name: name.to_owned(),
-                settings: module.to_owned(),
+                config: module.to_owned(),
             })
             .collect();
 
@@ -125,6 +123,28 @@ where
 
         Ok(modules)
     }
+
+    async fn create_modules(&self, modules_to_create: Vec<DesiredModule>) -> Result<()> {
+        for module in modules_to_create {
+            let name = module.name.clone();
+            let runtime_module = ModuleSpec::new(
+                module.name,
+                module.config.r#type.to_string(),
+                module.config.settings.into(),
+                module.config.env,
+                module.config.image_pull_policy,
+            )?;
+
+            // TODO: Create identity in hub
+
+            self.runtime
+                .create(runtime_module)
+                .await
+                .map_err(|e| format!("Error creating module {}: {}", name, e))?;
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(Default, Debug)]
@@ -145,7 +165,7 @@ struct RunningModule {
 #[derive(Default, Debug)]
 struct DesiredModule {
     name: String,
-    settings: ModuleConfig,
+    config: ModuleConfig,
 }
 
 #[cfg(test)]

@@ -34,7 +34,8 @@ pub struct ModuleConfig {
     #[serde(default)]
     pub status: edgelet_core::ModuleStatus,
     pub restart_policy: Option<String>,
-    pub image_pull_policy: Option<String>,
+    #[serde(default)]
+    pub image_pull_policy: edgelet_settings::module::ImagePullPolicy,
     pub version: Option<String>,
     #[serde(default)]
     pub env: BTreeMap<String, String>,
@@ -109,7 +110,14 @@ fn is_default_docker_perms(val: &bool) -> bool {
 
 impl From<DockerSettings> for edgelet_settings::DockerConfig {
     fn from(settings: DockerSettings) -> Self {
-        todo!()
+        Self {
+            allow_elevated_docker_permissions: settings.allow_elevated_docker_permissions,
+            auth: settings.auth,
+            create_options: settings.create_option.create_options.unwrap_or_default(),
+            digest: settings.digest,
+            image: settings.image,
+            image_hash: settings.image_hash,
+        }
     }
 }
 

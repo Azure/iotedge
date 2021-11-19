@@ -10,7 +10,7 @@
                     "type": "docker",
                     "status": "running",
                     "restartPolicy": "always",
-                    "imagePullPolicy": null,
+                    "imagePullPolicy": "on-create",
                     "version": "1.0",
                     "env": {}
                 }
@@ -24,7 +24,7 @@
                     "type": "docker",
                     "status": "running",
                     "restartPolicy": "always",
-                    "imagePullPolicy": null,
+                    "imagePullPolicy": "on-create",
                     "version": null,
                     "env": {}
                 },
@@ -35,7 +35,7 @@
                     },
                     "type": "docker",
                     "restartPolicy": null,
-                    "imagePullPolicy": null,
+                    "imagePullPolicy": "on-create",
                     "version": null,
                     "env": {}
                 }
