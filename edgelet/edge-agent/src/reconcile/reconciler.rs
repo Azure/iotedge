@@ -1,12 +1,16 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::HashMap,
+    convert::{TryFrom, TryInto},
+    sync::Arc,
+};
 
 use tokio::sync::Mutex;
 
-use edgelet_core::{Module, ModuleRuntime, ModuleRuntimeState};
+use edgelet_core::{Module, ModuleRuntime, ModuleRuntimeState, ModuleStatus};
 use edgelet_settings::{DockerConfig, ModuleSpec};
 
 use crate::deployment::{
-    deployment::{DockerSettings, ModuleConfig},
+    deployment::{DockerSettings, ModuleConfig, RestartPolicy},
     DeploymentProvider,
 };
 
@@ -33,11 +37,11 @@ where
     pub async fn reconcile(&self) -> Result<()> {
         println!("Starting Reconcile");
 
-        let _differance = self.get_differance().await?;
+        let differance = self.get_differance().await?;
 
-        // for module_to_create in differance.modules_to_create {
-        //     self.runtime.create(module_to_create).await.unwrap();
-        // }
+        // Note delete should come first, since hub has a limit of 50 identities
+        self.delete_modules(differance.modules_to_delete).await?;
+        self.create_modules(differance.modules_to_create).await?;
 
         Ok(())
     }
@@ -50,23 +54,59 @@ where
 
         let mut modules_to_create: Vec<DesiredModule> = Vec::new();
         let mut modules_to_delete: Vec<RunningModule> = Vec::new();
-        let mut state_change_modules: Vec<DesiredModule> = Vec::new();
-        let mut failed_modules: Vec<RunningModule> = Vec::new();
+        let mut state_change_modules: Vec<StateChangeModule> = Vec::new();
+        let mut failed_modules: Vec<FailedModule> = Vec::new();
 
         // This loop will remove all modules in desired modules from current modules, resulting in a list of modules to remove.
         for desired in desired_modules {
             if let Some((_, current)) = current_modules.remove_entry(&desired.name) {
                 // Module with same name exists, check if should be modified.
 
-                // For this part, maybe make state change a type with container remove a bool
-
-                // if true { // Check create options/env vars
-                //    // module must be removed and re-created
-                // } else if &desired.settings.status != current.state.status() {
-
-                // }else {
-                //     // No change needed
-                // }
+                let desired_config: DockerConfig = desired.config.settings.clone().try_into()?;
+                if desired_config != current.config
+                /* TODO compare env vars here */
+                {
+                    // Module should be modified to match desired, and the change requires a new container
+                    state_change_modules.push(StateChangeModule {
+                        module: desired,
+                        reset_container: true,
+                    });
+                } else {
+                    // Module config matches, check if state matches
+                    match desired.config.status {
+                        crate::deployment::deployment::ModuleStatus::Running => {
+                            match current.state.status() {
+                                ModuleStatus::Running => { /* Do nthing, module is in correct state. */
+                                }
+                                ModuleStatus::Stopped => {
+                                    // Module is not stopped, module should be started
+                                    state_change_modules.push(StateChangeModule {
+                                        module: desired,
+                                        reset_container: false,
+                                    });
+                                }
+                                ModuleStatus::Failed
+                                | ModuleStatus::Unknown
+                                | ModuleStatus::Dead => {
+                                    // Module is in a bad state, send to restart planner
+                                    failed_modules.push(FailedModule {
+                                        module: current,
+                                        restart_policy: desired.config.restart_policy,
+                                    })
+                                }
+                            }
+                        }
+                        crate::deployment::deployment::ModuleStatus::Stopped => {
+                            if current.state.status() != &ModuleStatus::Stopped {
+                                // Set Module to stopped. It doesn't matter if module is failed, since we're stopping it anyway
+                                state_change_modules.push(StateChangeModule {
+                                    module: desired,
+                                    reset_container: false,
+                                });
+                            }
+                        }
+                    }
+                }
             } else {
                 // Module doesn't exist, create it.
                 modules_to_create.push(desired);
@@ -76,7 +116,12 @@ where
         // If a module is still in the current_modules list at this point, it should be deleted.
         modules_to_delete.extend(current_modules.into_iter().map(|(_, m)| m));
 
-        Ok(Default::default())
+        Ok(ModuleDifferance {
+            modules_to_create,
+            modules_to_delete,
+            state_change_modules,
+            failed_modules,
+        })
     }
 
     async fn get_desired_modules(&self) -> Result<Vec<DesiredModule>> {
@@ -125,24 +170,101 @@ where
     }
 
     async fn create_modules(&self, modules_to_create: Vec<DesiredModule>) -> Result<()> {
+        log::debug!(
+            "Creating {} modules: {}",
+            modules_to_create.len(),
+            modules_to_create
+                .iter()
+                .map(|m| m.name.clone())
+                .collect::<Vec<String>>()
+                .join(", ")
+        );
         for module in modules_to_create {
             let name = module.name.clone();
-            let runtime_module = ModuleSpec::new(
-                module.name,
-                module.config.r#type.to_string(),
-                module.config.settings.into(),
-                module.config.env,
-                module.config.image_pull_policy,
-            )?;
 
             // TODO: Create identity in hub
 
             self.runtime
-                .create(runtime_module)
+                .create(module.try_into()?)
                 .await
-                .map_err(|e| format!("Error creating module {}: {}", name, e))?;
+                .map_err(|e| format!("Error creating container {}: {}", name, e))?;
         }
 
+        Ok(())
+    }
+
+    async fn delete_modules(&self, modules_to_delete: Vec<RunningModule>) -> Result<()> {
+        log::debug!(
+            "Deleting {} modules: {}",
+            modules_to_delete.len(),
+            modules_to_delete
+                .iter()
+                .map(|m| m.name.clone())
+                .collect::<Vec<String>>()
+                .join(", ")
+        );
+        for module in modules_to_delete {
+            // TODO: Delete identity in hub
+
+            self.runtime
+                .remove(&module.name)
+                .await
+                .map_err(|e| format!("Error deleting container {}: {}", module.name, e))?;
+        }
+
+        Ok(())
+    }
+
+    async fn set_modules_state(&self, state_change_modules: Vec<StateChangeModule>) -> Result<()> {
+        log::debug!(
+            "Changing state for {} modules: {}",
+            state_change_modules.len(),
+            state_change_modules
+                .iter()
+                .map(|m| m.module.name.clone())
+                .collect::<Vec<String>>()
+                .join(", ")
+        );
+        for state_change_module in state_change_modules {
+            if state_change_module.reset_container {
+                let name = &state_change_module.module.name.clone();
+                self.runtime
+                    .remove(name)
+                    .await
+                    .map_err(|e| format!("Error deleting container {}: {}", name, e))?;
+
+                self.runtime
+                    .create(state_change_module.module.try_into()?)
+                    .await
+                    .map_err(|e| format!("Error creating module {}: {}", name, e))?;
+            }
+
+            // match state_change_module.module.config.status {}
+        }
+
+        Ok(())
+    }
+
+    async fn handle_failed_modules(failed_modules: Vec<FailedModule>) -> Result<()> {
+        //     match desired.config.restart_policy {
+        //         RestartPolicy::Always
+        //         | RestartPolicy::OnFailure
+        //         | RestartPolicy::OnUnhealthy => {
+        //             log::debug!(
+        //     "Module {} failed with restart policy {}. Adding to health monitor.",
+        //     current.name,
+        //     desired.config.restart_policy,
+        // );
+        //             failed_modules.push(current);
+        //         }
+        //         RestartPolicy::Never => {
+        //             log::debug!(
+        //                 r#"Module {} failed but has restart policy "never". No restart will occur."#,
+        //                 current.name
+        //             );
+        //         }
+        //     }
+        // }
         Ok(())
     }
 }
@@ -151,8 +273,8 @@ where
 struct ModuleDifferance {
     modules_to_create: Vec<DesiredModule>,
     modules_to_delete: Vec<RunningModule>,
-    state_change_modules: Vec<DesiredModule>,
-    failed_modules: Vec<RunningModule>,
+    state_change_modules: Vec<StateChangeModule>,
+    failed_modules: Vec<FailedModule>,
 }
 
 #[derive(Default, Debug)]
@@ -163,9 +285,37 @@ struct RunningModule {
 }
 
 #[derive(Default, Debug)]
+struct StateChangeModule {
+    module: DesiredModule,
+    reset_container: bool,
+}
+
+#[derive(Default, Debug)]
+struct FailedModule {
+    module: RunningModule,
+    restart_policy: RestartPolicy,
+}
+
+#[derive(Default, Debug)]
 struct DesiredModule {
     name: String,
     config: ModuleConfig,
+}
+
+impl TryFrom<DesiredModule> for ModuleSpec<DockerConfig> {
+    type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
+
+    fn try_from(module: DesiredModule) -> Result<Self> {
+        let spec = ModuleSpec::new(
+            module.name,
+            module.config.r#type.to_string(),
+            module.config.settings.try_into()?,
+            module.config.env,
+            module.config.image_pull_policy,
+        )?;
+
+        Ok(spec)
+    }
 }
 
 #[cfg(test)]

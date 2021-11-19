@@ -1,5 +1,6 @@
 use std::{
     collections::{BTreeMap, HashMap},
+    convert::TryFrom,
     fmt,
 };
 
@@ -32,8 +33,9 @@ pub struct ModuleConfig {
     pub settings: DockerSettings,
     pub r#type: RuntimeType,
     #[serde(default)]
-    pub status: edgelet_core::ModuleStatus,
-    pub restart_policy: Option<String>,
+    pub status: ModuleStatus,
+    #[serde(default)]
+    pub restart_policy: RestartPolicy,
     #[serde(default)]
     pub image_pull_policy: edgelet_settings::module::ImagePullPolicy,
     pub version: Option<String>,
@@ -61,8 +63,36 @@ pub struct RuntimeSettings {
 }
 
 #[derive(Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum RestartPolicy {
+    Always,
+    #[serde(rename = "on-failure")]
+    OnFailure,
+    #[serde(rename = "on-unhealthy")]
+    OnUnhealthy,
+    Never,
+}
+
+impl std::fmt::Display for RestartPolicy {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Always => f.write_str("always"),
+            Self::OnFailure => f.write_str("on-failure"),
+            Self::OnUnhealthy => f.write_str("on-unhealthy"),
+            Self::Never => f.write_str("never"),
+        }
+    }
+}
+
+impl Default for RestartPolicy {
+    fn default() -> Self {
+        Self::Always
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum RuntimeType {
-    #[serde(rename = "docker")]
     Docker,
 }
 
@@ -76,7 +106,29 @@ impl std::fmt::Display for RuntimeType {
 
 impl Default for RuntimeType {
     fn default() -> Self {
-        RuntimeType::Docker
+        Self::Docker
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ModuleStatus {
+    Running,
+    Stopped,
+}
+
+impl std::fmt::Display for ModuleStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Running => f.write_str("running"),
+            Self::Stopped => f.write_str("stopped"),
+        }
+    }
+}
+
+impl Default for ModuleStatus {
+    fn default() -> Self {
+        Self::Running
     }
 }
 
@@ -108,16 +160,19 @@ fn is_default_docker_perms(val: &bool) -> bool {
     val == &edgelet_settings::base::default_allow_elevated_docker_permissions()
 }
 
-impl From<DockerSettings> for edgelet_settings::DockerConfig {
-    fn from(settings: DockerSettings) -> Self {
-        Self {
-            allow_elevated_docker_permissions: settings.allow_elevated_docker_permissions,
-            auth: settings.auth,
-            create_options: settings.create_option.create_options.unwrap_or_default(),
-            digest: settings.digest,
-            image: settings.image,
-            image_hash: settings.image_hash,
-        }
+impl TryFrom<DockerSettings> for edgelet_settings::DockerConfig {
+    type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
+
+    fn try_from(settings: DockerSettings) -> Result<Self, Self::Error> {
+        let config = edgelet_settings::DockerConfig::new(
+            settings.image,
+            settings.create_option.create_options.unwrap_or_default(),
+            settings.digest,
+            settings.auth,
+            settings.allow_elevated_docker_permissions,
+        )?;
+
+        Ok(config)
     }
 }
 
