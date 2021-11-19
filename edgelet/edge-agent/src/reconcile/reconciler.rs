@@ -43,16 +43,40 @@ where
     }
 
     async fn get_differance(&self) -> Result<ModuleDifferance> {
-        let current_modules = self.get_current_modules().await?;
+        let mut current_modules = self.get_current_modules().await?;
         let desired_modules = self.get_desired_modules().await?;
         println!("Got current modules: {:?}", current_modules);
         println!("Got desired modules: {:?}", desired_modules);
 
+        let mut modules_to_create: Vec<DesiredModule> = Vec::new();
+        let mut modules_to_delete: Vec<RunningModule> = Vec::new();
+        let mut state_change_modules: Vec<DesiredModule> = Vec::new();
+        let mut failed_modules: Vec<RunningModule> = Vec::new();
+
+        // This loop will remove all modules in desired modules from current modules, resulting in a list of modules to remove.
         for desired in desired_modules {
-            if let Some(current) = current_modules.get(&desired.name) {
-                if &desired.settings.status != current.state.status() {}
+            if let Some((_, current)) = current_modules.remove_entry(&desired.name) {
+                // Module with same name exists, check if should be modified.
+
+
+
+                // For this part, maybe make state change a type with container remove a bool
+                
+                // if true { // Check create options/env vars
+                //    // module must be removed and re-created
+                // } else if &desired.settings.status != current.state.status() {
+
+                // }else {
+                //     // No change needed
+                // }
+            } else {
+                // Module doesn't exist, create it.
+                modules_to_create.push(desired);
             }
         }
+
+        // If a module is still in the current_modules list at this point, it should be deleted.
+        modules_to_delete.extend(current_modules.into_iter().map(|(_, m)| m));
 
         Ok(Default::default())
     }
