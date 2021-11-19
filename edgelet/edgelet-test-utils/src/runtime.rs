@@ -79,7 +79,7 @@ where
 
 pub struct TestRuntime<C> {
     pub module_auth: std::collections::BTreeMap<String, Vec<i32>>,
-    pub modules: Vec<TestModule<C>>,
+    pub module_details: Vec<(TestModule<C>, edgelet_core::ModuleRuntimeState)>,
 }
 pub type Runtime = TestRuntime<Config>;
 
@@ -94,7 +94,7 @@ impl<C> Default for TestRuntime<C> {
 
         TestRuntime {
             module_auth: modules,
-            modules: Vec::new(),
+            module_details: Vec::new(),
         }
     }
 }
@@ -124,6 +124,12 @@ where
 
             Ok(pids)
         }
+    }
+
+    async fn list_with_details(
+        &self,
+    ) -> Result<Vec<(Self::Module, edgelet_core::ModuleRuntimeState)>, Self::Error> {
+        Ok(self.module_details.clone())
     }
 
     // The functions below aren't used in tests.
@@ -171,12 +177,6 @@ where
     }
 
     async fn list(&self) -> Result<Vec<Self::Module>, Self::Error> {
-        unimplemented!()
-    }
-
-    async fn list_with_details(
-        &self,
-    ) -> Result<Vec<(Self::Module, edgelet_core::ModuleRuntimeState)>, Self::Error> {
         unimplemented!()
     }
 

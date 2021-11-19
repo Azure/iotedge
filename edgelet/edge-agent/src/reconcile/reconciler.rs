@@ -71,9 +71,10 @@ where
             .map(|(name, module)| PlannedModule {
                 name: name.to_owned(),
                 settings: module.to_owned(),
-            });
+            })
+            .collect();
 
-        Ok(vec![])
+        Ok(modules)
     }
 
     async fn get_current_modules(&self) -> Result<Vec<RunningModule>> {
@@ -85,6 +86,7 @@ where
             .iter()
             .map(|(module, state)| RunningModule {
                 name: module.name().to_owned(),
+                config: module.config().to_owned(),
                 state: state.to_owned(),
             })
             .collect();
@@ -104,6 +106,7 @@ struct ModuleDifferance {
 #[derive(Default, Debug)]
 struct RunningModule {
     name: String,
+    config: DockerConfig,
     state: ModuleRuntimeState,
 }
 
@@ -119,7 +122,7 @@ mod tests {
 
     use std::{fs::File, path::Path};
 
-    use edgelet_test_utils::runtime::TestRuntime;
+    use edgelet_test_utils::runtime::{TestModule, TestRuntime};
 
     use crate::deployment::deployment::Deployment;
 
@@ -132,11 +135,17 @@ mod tests {
         let provider = TestDeploymentProvider::from_file(test_file);
         let provider = Arc::new(Mutex::new(provider));
 
+        let temp_sensor = TestModule::<DockerConfig> {
+            name: "SimulatedTemperatureSensor".to_owned(),
+            ..Default::default()
+        };
         let runtime = TestRuntime::<DockerConfig> {
+            module_details: vec![(temp_sensor, ModuleRuntimeState::default())],
             ..Default::default()
         };
 
         let reconciler = Reconciler::new(provider, runtime);
+        reconciler.reconcile().await.unwrap();
     }
 
     struct TestDeploymentProvider {
