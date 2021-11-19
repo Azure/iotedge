@@ -391,7 +391,7 @@ mod tests {
 
     use std::{fs::File, path::Path};
 
-    use edgelet_test_utils::runtime::{TestModule, TestRuntime};
+    use edgelet_test_utils::runtime::{TestModule, TestModuleRegistry, TestRuntime};
 
     use crate::deployment::deployment::Deployment;
 
@@ -412,8 +412,9 @@ mod tests {
             module_details: vec![(temp_sensor, ModuleRuntimeState::default())],
             ..Default::default()
         };
+        let registry = TestModuleRegistry::<DockerConfig>::default();
 
-        let reconciler = Reconciler::new(provider, runtime);
+        let reconciler = Reconciler::new(provider, runtime, registry);
         reconciler.reconcile().await.unwrap();
     }
 

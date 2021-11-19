@@ -34,7 +34,7 @@
                         "create_options": "{}"
                     },
                     "type": "docker",
-                    "restartPolicy": null,
+                    "restartPolicy": "always",
                     "imagePullPolicy": "on-create",
                     "version": null,
                     "env": {}

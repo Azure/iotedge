@@ -62,8 +62,8 @@ impl DeploymentManager {
         log::info!("Recieved initial deployment from upstream");
 
         self.current_deployment = json!({ "properties": deployment });
-        write_serde(&self.current_location, &self.current_deployment).await?;
         log::debug!("Newest deployment is: {:#?}", self.current_deployment);
+        write_serde(&self.current_location, &self.current_deployment).await?;
 
         if let Some(deployment) = Self::validate_deployment(&self.current_deployment)? {
             self.valid_deployment = Some(deployment);
@@ -77,8 +77,8 @@ impl DeploymentManager {
         log::info!("Recieved deployment update from upstream");
         let patch = json!({ "properties": { "desired": patch }});
         json_patch::merge(&mut self.current_deployment, &patch);
-        write_serde(&self.current_location, &self.current_deployment).await?;
         log::debug!("Newest deployment is: {:#?}", self.current_deployment);
+        write_serde(&self.current_location, &self.current_deployment).await?;
 
         if let Some(deployment) = Self::validate_deployment(&self.current_deployment)? {
             self.valid_deployment = Some(deployment);

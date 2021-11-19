@@ -53,6 +53,7 @@ where
     }
 }
 
+#[derive(Default)]
 pub struct TestModuleRegistry<C> {
     phantom: PhantomData<C>,
 }
