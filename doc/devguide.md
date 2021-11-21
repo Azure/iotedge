@@ -106,7 +106,7 @@ options
 There is a script in the repo to setup a docker container with the Visual Studio Debugger (vsdbg).  After running the script in a container, you can connect the VSCode debugger to a process running in the container. The following example shows how to run the setup script on a Linux IoT Edge device to setup the debugger in the Edge Agent container:
 
 ```
-$ scripts/linux/setupModuleDebugger.sh -c edgeAgent
+$ scripts/linux/setupContainerDebugger.sh -c edgeAgent
 ```
 After running the debugger setup script, create a launch.json file in the edgeAgent/.vscode directory. The launch.json file should have the following contents (Note: replace the value in `sourceFileMap` before running):
 ```
