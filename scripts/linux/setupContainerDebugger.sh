@@ -18,7 +18,8 @@ function usage() {
     echo "$SCRIPT_NAME [options]"
     echo ""
     echo "options"
-    echo " -c, --container-name             The name of the container in which to setup the debugger"
+    echo " -c, --container-name             The name of the container in which to setup the debugger."
+    echo " -u, --username                   The username associated with the process to be debugged."
     echo " -h, --help                       Print this help and exit."
     exit 1
 }
@@ -36,11 +37,15 @@ function process_args() {
     for arg in "$@"; do
         if [ ${save_next_arg} -eq 1 ]; then
             CONTAINER_NAME=$arg
-            save_next_arg=0                 
+            save_next_arg=0
+        elif [ ${save_next_arg} -eq 2 ]; then
+            USERNAME=$arg
+            save_next_arg=0          
         else
             case "$arg" in
             "-h" | "--help") usage ;;
             "-c" | "--container-name") save_next_arg=1 ;;
+            "-u" | "--username") save_next_arg=2 ;;
             *) usage ;;
             esac
         fi
