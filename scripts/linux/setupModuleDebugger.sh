@@ -52,12 +52,8 @@ process_args "$@"
 sudo docker exec -it $CONTAINER_NAME apk add curl icu procps shadow sudo
 sudo docker exec -it $CONTAINER_NAME curl -sSL https://aka.ms/getvsdbgsh  -o /root/GetVsDbg.sh
 sudo docker exec -it $CONTAINER_NAME sh -C /root/GetVsDbg.sh -v latest -l /root/vsdbg
-sudo docker exec -it $CONTAINER_NAME mv /root/vsdbg/vsdbg /root/vsdbg/vsdbg-bin
-sudo docker exec -it $CONTAINER_NAME sh -c "echo \#\!/bin/sh > /root/vsdbg/vsdbg"
-sudo docker exec -it $CONTAINER_NAME sh -c "echo /root/vsdbg/vsdbg-bin \$\@ >> /root/vsdbg/vsdbg"
 sudo docker exec -it $CONTAINER_NAME chmod 770 /root 
 sudo docker exec -it $CONTAINER_NAME chmod 770 /root/vsdbg
 sudo docker exec -it $CONTAINER_NAME chmod 770 /root/vsdbg/vsdbg
-sudo docker exec -it $CONTAINER_NAME chmod 770 /root/vsdbg/vsdbg-bin
 sudo docker exec -it $CONTAINER_NAME usermod $USERNAME -G root
 
