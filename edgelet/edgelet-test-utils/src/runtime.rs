@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, sync::Mutex};
 
 // Copyright (c) Microsoft. All rights reserved.
 
@@ -55,33 +55,40 @@ where
 
 #[derive(Default)]
 pub struct TestModuleRegistry<C> {
-    phantom: PhantomData<C>,
+    pub pulls: Mutex<Vec<C>>,
+    pub removes: Mutex<Vec<String>>,
 }
 pub type ModuleRegistry = TestModuleRegistry<Config>;
 
 #[async_trait::async_trait]
 impl<C> edgelet_core::ModuleRegistry for TestModuleRegistry<C>
 where
-    C: Send + Sync,
+    C: Send + Sync + Clone,
 {
     type Config = C;
     type Error = std::io::Error;
 
-    // The fuctions below aren't used in tests.
-
-    async fn pull(&self, _config: &Self::Config) -> Result<(), Self::Error> {
-        unimplemented!()
+    async fn pull(&self, config: &C) -> Result<(), Self::Error> {
+        let mut pulls = self.pulls.lock().expect("Could not aquire pulls mutex");
+        pulls.push(config.to_owned());
+        Ok(())
     }
 
-    async fn remove(&self, _name: &str) -> Result<(), Self::Error> {
-        unimplemented!()
+    async fn remove(&self, name: &str) -> Result<(), Self::Error> {
+        let mut removes = self.removes.lock().expect("Could not aquire removes mutex");
+        removes.push(name.to_owned());
+        Ok(())
     }
 }
 
 pub struct TestRuntime<C> {
     pub module_auth: std::collections::BTreeMap<String, Vec<i32>>,
     pub module_details: Vec<(TestModule<C>, edgelet_core::ModuleRuntimeState)>,
+    pub created: Mutex<Vec<edgelet_settings::ModuleSpec<C>>>,
+    pub started: Mutex<Vec<String>>,
+    pub removed: Mutex<Vec<String>>,
 }
+
 pub type Runtime = TestRuntime<Config>;
 
 impl<C> Default for TestRuntime<C> {
@@ -96,6 +103,9 @@ impl<C> Default for TestRuntime<C> {
         TestRuntime {
             module_auth: modules,
             module_details: Vec::new(),
+            created: Mutex::new(Vec::new()),
+            started: Mutex::new(Vec::new()),
+            removed: Mutex::new(Vec::new()),
         }
     }
 }
@@ -133,23 +143,33 @@ where
         Ok(self.module_details.clone())
     }
 
-    // The functions below aren't used in tests.
-
     async fn create(
         &self,
-        _module: edgelet_settings::ModuleSpec<Self::Config>,
+        module: edgelet_settings::ModuleSpec<Self::Config>,
     ) -> Result<(), Self::Error> {
-        unimplemented!()
+        let mut created = self.created.lock().expect("Could not aquire pulls mutex");
+        created.push(module);
+        Ok(())
     }
+
+    async fn start(&self, id: &str) -> Result<(), Self::Error> {
+        let mut started = self.started.lock().expect("Could not aquire pulls mutex");
+        started.push(id.to_owned());
+        Ok(())
+    }
+    
+    async fn remove(&self, id: &str) -> Result<(), Self::Error> {
+        let mut removed = self.removed.lock().expect("Could not aquire pulls mutex");
+        removed.push(id.to_owned());
+        Ok(())
+    }
+
+    // The functions below aren't used in tests.
 
     async fn get(
         &self,
         _id: &str,
     ) -> Result<(Self::Module, edgelet_core::ModuleRuntimeState), Self::Error> {
-        unimplemented!()
-    }
-
-    async fn start(&self, _id: &str) -> Result<(), Self::Error> {
         unimplemented!()
     }
 
@@ -162,10 +182,6 @@ where
     }
 
     async fn restart(&self, _id: &str) -> Result<(), Self::Error> {
-        unimplemented!()
-    }
-
-    async fn remove(&self, _id: &str) -> Result<(), Self::Error> {
         unimplemented!()
     }
 
