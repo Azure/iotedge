@@ -27,10 +27,15 @@ namespace SimulatedTemperatureSensor
         {
             Console.WriteLine("Basic module started.");
             ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync();
+            await moduleClient.OpenAsync();
+            Console.WriteLine("Connected to EH.");
 
             for (int i = 0; i < 10000; i++)
             {
                 await moduleClient.SendEventAsync(new Message(new byte[] { 1, 2, 3 }));
+
+                Console.WriteLine("Sent message {0}", i);
+
                 await Task.Delay(TimeSpan.FromSeconds(1));
             }
 
