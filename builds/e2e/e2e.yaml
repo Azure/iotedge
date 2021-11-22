@@ -35,7 +35,7 @@ jobs:
 
     pool:
       name: $(pool.custom.name)
-      demands: rpi3-e2e-tests-1.1
+      demands: rpi3-e2e-tests
 
     variables:
       os: linux
@@ -102,7 +102,7 @@ jobs:
     variables:
       os: linux
       arch: amd64
-      artifactName: iotedged-ubuntu18.04-amd64
+      artifactName: iotedged-ubuntu20.04-amd64
 
     steps:
     - template: templates/e2e-setup.yaml
@@ -121,7 +121,7 @@ jobs:
     variables:
       os: linux
       arch: amd64
-      artifactName: iotedged-ubuntu18.04-amd64
+      artifactName: iotedged-ubuntu20.04-amd64
       minimal: true
 
     steps:

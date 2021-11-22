@@ -134,6 +134,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
         public IMessageIterator GetMessageIterator(string endpointId) => this.GetMessageIterator(endpointId, DefaultStartingOffset);
 
+        public Task<ulong> GetMessageCountFromOffset(string endpointId, long offset)
+        {
+            if (!this.endpointSequentialStores.TryGetValue(Preconditions.CheckNonWhiteSpace(endpointId, nameof(endpointId)), out ISequentialStore<MessageRef> sequentialStore))
+            {
+                throw new InvalidOperationException($"Endpoint {nameof(endpointId)} not found");
+            }
+
+            return sequentialStore.GetCountFromOffset(offset);
+        }
+
         public void Dispose()
         {
             this.Dispose(true);
@@ -357,8 +367,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                                 }
                             }
 
-                            // update Metrics for message counts
-                            Checkpointer.Metrics.SetQueueLength(await sequentialStore.Count(), endpointId, priority.ToString());
+                            // Since we will have the total *true* count of messages in the store,
+                            // we need to set the counter here to the total count of messages in the store.
+                            Checkpointer.Metrics.SetQueueLength(await sequentialStore.Count(), endpointId, priority);
+
                             totalCleanupCount += cleanupCount;
                             totalCleanupStoreCount += cleanupEntityStoreCount;
                             Events.CleanupCompleted(messageQueueId, cleanupCount, cleanupEntityStoreCount, totalCleanupCount, totalCleanupStoreCount);
