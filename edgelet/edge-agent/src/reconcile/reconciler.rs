@@ -415,7 +415,10 @@ mod tests {
         let registry = TestModuleRegistry::<DockerConfig>::default();
 
         let reconciler = Reconciler::new(provider, runtime, registry);
-        reconciler.reconcile().await.unwrap();
+        reconciler
+            .reconcile()
+            .await
+            .expect("Could not complete reconcile loop");
     }
 
     #[tokio::test]
@@ -434,12 +437,57 @@ mod tests {
         let registry = TestModuleRegistry::<DockerConfig>::default();
 
         let reconciler = Reconciler::new(provider, &runtime, &registry);
-        reconciler.reconcile().await.unwrap();
+        reconciler
+            .reconcile()
+            .await
+            .expect("Could not complete reconcile loop");
 
+        // Check that images are pulled.
         let pulls = registry.pulls.lock().expect("Could not aquire pulls mutex");
-        assert_eq!(pulls.len(), 1);
-        assert_eq!(pulls[1].image(), "test");
+        assert_eq!(pulls.len(), 2);
 
+        let expected_images: &[&str] = &[
+            "mcr.microsoft.com/azureiotedge-hub:1.2",
+            "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0",
+        ];
+        let mut actual_images: Vec<&str> = pulls.iter().map(|c| c.image()).collect();
+        actual_images.sort();
+        assert_eq!(expected_images, &actual_images);
+
+        // Check that containers are created
+        let created = runtime
+            .created
+            .lock()
+            .expect("Could not aquire created mutex");
+        assert_eq!(created.len(), 2);
+
+        let mut actual_images: Vec<&str> = created.iter().map(|c| c.config().image()).collect();
+        actual_images.sort();
+        assert_eq!(expected_images, &actual_images);
+
+        // Check that containers are started
+        let started = runtime
+            .started
+            .lock()
+            .expect("Could not aquire started mutex");
+        assert_eq!(started.len(), 2);
+
+        let expected_names: &[&str] = &["SimulatedTemperatureSensor", "edgeHub"];
+        let mut actual_names: Vec<&str> = started.iter().map(String::as_str).collect();
+        actual_names.sort();
+        assert_eq!(expected_names, &actual_names);
+
+        // Check that no containers are stopped or removed
+        let stopped = runtime
+            .stopped
+            .lock()
+            .expect("Could not aquire stopped mutex");
+        assert_eq!(stopped.len(), 0);
+        let removed = runtime
+            .removed
+            .lock()
+            .expect("Could not aquire removed mutex");
+        assert_eq!(removed.len(), 0);
     }
 
     struct TestDeploymentProvider {

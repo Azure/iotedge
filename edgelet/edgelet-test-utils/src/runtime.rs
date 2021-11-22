@@ -86,6 +86,7 @@ pub struct TestRuntime<C> {
     pub module_details: Vec<(TestModule<C>, edgelet_core::ModuleRuntimeState)>,
     pub created: Mutex<Vec<edgelet_settings::ModuleSpec<C>>>,
     pub started: Mutex<Vec<String>>,
+    pub stopped: Mutex<Vec<String>>,
     pub removed: Mutex<Vec<String>>,
 }
 
@@ -105,6 +106,7 @@ impl<C> Default for TestRuntime<C> {
             module_details: Vec::new(),
             created: Mutex::new(Vec::new()),
             started: Mutex::new(Vec::new()),
+            stopped: Mutex::new(Vec::new()),
             removed: Mutex::new(Vec::new()),
         }
     }
@@ -147,19 +149,29 @@ where
         &self,
         module: edgelet_settings::ModuleSpec<Self::Config>,
     ) -> Result<(), Self::Error> {
-        let mut created = self.created.lock().expect("Could not aquire pulls mutex");
+        let mut created = self.created.lock().expect("Could not aquire created mutex");
         created.push(module);
         Ok(())
     }
 
     async fn start(&self, id: &str) -> Result<(), Self::Error> {
-        let mut started = self.started.lock().expect("Could not aquire pulls mutex");
+        let mut started = self.started.lock().expect("Could not aquire started mutex");
         started.push(id.to_owned());
         Ok(())
     }
-    
+
+    async fn stop(
+        &self,
+        id: &str,
+        _wait_before_kill: Option<std::time::Duration>,
+    ) -> Result<(), Self::Error> {
+        let mut stopped = self.stopped.lock().expect("Could not aquire stopped mutex");
+        stopped.push(id.to_owned());
+        Ok(())
+    }
+
     async fn remove(&self, id: &str) -> Result<(), Self::Error> {
-        let mut removed = self.removed.lock().expect("Could not aquire pulls mutex");
+        let mut removed = self.removed.lock().expect("Could not aquire removed mutex");
         removed.push(id.to_owned());
         Ok(())
     }
@@ -170,14 +182,6 @@ where
         &self,
         _id: &str,
     ) -> Result<(Self::Module, edgelet_core::ModuleRuntimeState), Self::Error> {
-        unimplemented!()
-    }
-
-    async fn stop(
-        &self,
-        _id: &str,
-        _wait_before_kill: Option<std::time::Duration>,
-    ) -> Result<(), Self::Error> {
         unimplemented!()
     }
 
