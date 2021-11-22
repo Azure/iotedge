@@ -3,6 +3,7 @@ namespace Diagnostics
 {
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.Linq;
     using System.Net;
     using System.Net.Http;
@@ -10,6 +11,8 @@ namespace Diagnostics
     using System.Runtime.InteropServices;
     using System.Security.Authentication;
     using System.Security.Cryptography.X509Certificates;
+    using System.Text;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
@@ -18,6 +21,8 @@ namespace Diagnostics
     class Program
     {
         const string CLIENT_WORKLOAD_API_VERSION = "2019-01-30";
+        const int SOCKET_STREAM_WAIT_INTERVAL_MS = 50;
+        const int SOCKET_STREAM_WAIT_TIMEOUT_MS = 15000;
 
         public static int Main(string[] args)
         {
@@ -132,26 +137,63 @@ namespace Diagnostics
             }
             else
             {
-                // The current rust code never put proxy parameter when port is != than 443.
-                // So the code below is never exercised. It was put there to avoid silently ignoring the proxy
-                // if the rust code is changed.
                 if (proxy != null)
                 {
                     Uri proxyUri = new Uri(proxy);
-                    IProxyClient proxyClient = MakeProxy(proxyUri);
 
-                    // Setup timeouts
-                    proxyClient.ReceiveTimeout = (int)TimeSpan.FromSeconds(60).TotalMilliseconds;
-                    proxyClient.SendTimeout = (int)TimeSpan.FromSeconds(60).TotalMilliseconds;
+                    // Proxy Lib Nuget Package has a bug where which sends the  incorrect connect command. Untill this PR Gets merged https://github.com/grinay/ProxyLib/pull/1, Use a local implementation to send a connect command
+                    var tcpClient = new TcpClient();
 
-                    // Get TcpClient to futher work
-                    var client = proxyClient.CreateConnection(hostname, int.Parse(port));
-                    client.GetStream();
+                    try
+                    {
+                        tcpClient.SendTimeout = (int)TimeSpan.FromSeconds(60).TotalMilliseconds;
+                        tcpClient.ReceiveTimeout = (int)TimeSpan.FromSeconds(60).TotalMilliseconds;
+
+                        tcpClient.Connect(proxyUri.Host, proxyUri.Port);
+
+                        NetworkStream stream = tcpClient.GetStream();
+
+                        string connectCmd = string.Format(CultureInfo.InvariantCulture, "CONNECT {0}:{1} HTTP/1.0\r\nHOST: {0}:{1}\r\n\r\n", proxyUri.Host, proxyUri.Port.ToString(CultureInfo.InvariantCulture));
+
+                        byte[] request = ASCIIEncoding.ASCII.GetBytes(connectCmd);
+
+                        // send the connect request
+                        stream.Write(request, 0, request.Length);
+
+                        await WaitForData(stream);
+
+                        byte[] response = new byte[tcpClient.ReceiveBufferSize];
+                        StringBuilder sbuilder = new StringBuilder();
+                        int bytes = 0;
+                        long total = 0;
+
+                        do
+                        {
+                            bytes = stream.Read(response, 0, tcpClient.ReceiveBufferSize);
+                            total += bytes;
+                            sbuilder.Append(System.Text.ASCIIEncoding.UTF8.GetString(response, 0, bytes));
+                        }
+                        while (stream.DataAvailable);
+
+                        ParseResponse(sbuilder.ToString());
+                    }
+                    finally
+                    {
+                        tcpClient?.Close();
+                        tcpClient?.Dispose();
+                    }
                 }
                 else
                 {
                     TcpClient client = new TcpClient();
-                    await client.ConnectAsync(hostname, int.Parse(port));
+                    var cancelTask = Task.Delay(SOCKET_STREAM_WAIT_TIMEOUT_MS);
+                    var connectTask = client.ConnectAsync(hostname, int.Parse(port));
+                    await Task.WhenAny(connectTask, cancelTask);
+                    if (cancelTask.IsCompleted && !connectTask.IsCompleted)
+                    {
+                        throw new Exception($"Connect to {hostname} at Port {port} Timedout");
+                    }
+
                     client.GetStream();
                 }
             }
@@ -162,26 +204,52 @@ namespace Diagnostics
             _ = Dns.GetHostEntry(parent_hostname);
         }
 
-        static IProxyClient MakeProxy(Uri proxyUri)
+        private static async Task WaitForData(NetworkStream stream)
         {
-            // Uses https://github.com/grinay/ProxyLib
-            ProxyClientFactory factory = new ProxyClientFactory();
-            if (proxyUri.UserInfo == string.Empty)
+            int sleepTime = 0;
+            while (!stream.DataAvailable)
             {
-                return factory.CreateProxyClient(ProxyType.Http, proxyUri.Host, proxyUri.Port);
-            }
-            else
-            {
-                if (proxyUri.UserInfo.Contains(':'))
+                await Task.Delay(SOCKET_STREAM_WAIT_INTERVAL_MS);
+                sleepTime += SOCKET_STREAM_WAIT_INTERVAL_MS;
+                if (sleepTime > SOCKET_STREAM_WAIT_TIMEOUT_MS)
                 {
-                    var userPass = proxyUri.UserInfo.Split(':');
-                    return factory.CreateProxyClient(ProxyType.Http, proxyUri.Host, proxyUri.Port, userPass[0], userPass[1]);
-                }
-                else
-                {
-                    throw new Exception($"Invalid user info: {proxyUri.UserInfo}");
+                    throw new InvalidOperationException("Timed out while waiting for Data from TCP Socket Stream");
                 }
             }
+        }
+
+        private static void ParseResponse(string response)
+        {
+            string[] data = null;
+
+            // Get rid of the LF character if it exists and then split the string on all CR
+            data = response.Replace('\n', ' ').Split('\r');
+
+            ParseCodeAndText(data[0]);
+        }
+
+        private static (HttpStatusCode code, string text) ParseCodeAndText(string line)
+        {
+            int begin = 0;
+            int end = 0;
+            string val = null;
+
+            if (line.IndexOf("HTTP") == -1)
+                throw new ArgumentException(string.Format("No HTTP response received from proxy destination.  Server response: {0}.", line));
+
+            begin = line.IndexOf(" ") + 1;
+            end = line.IndexOf(" ", begin);
+
+            val = line.Substring(begin, end - begin);
+
+            if (!int.TryParse(val, out int code))
+            {
+                throw new ArgumentException(string.Format("An invalid response code was received from proxy destination.  Server response: {0}.", line));
+            }
+
+            var respCode = (HttpStatusCode)code;
+            var respText = line.Substring(end + 1).Trim();
+            return (respCode, respText);
         }
     }
 }
