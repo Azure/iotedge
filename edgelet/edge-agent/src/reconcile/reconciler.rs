@@ -53,11 +53,11 @@ where
         Ok(())
     }
 
-    async fn get_differance(&self) -> Result<ModuleDifferance> {
+    async fn get_differance(&self) -> Result<ModuleDifference> {
         let mut current_modules = self.get_current_modules().await?;
         let desired_modules = self.get_desired_modules().await?;
-        println!("Got current modules: {:?}", current_modules);
-        println!("Got desired modules: {:?}", desired_modules);
+        log::debug!("Got current modules:\n{:?}", current_modules);
+        log::debug!("Got desired modules:\n{:?}", desired_modules);
 
         let mut modules_to_create: Vec<DesiredModule> = Vec::new();
         let mut modules_to_delete: Vec<RunningModule> = Vec::new();
@@ -130,12 +130,14 @@ where
         // If a module is still in the current_modules list at this point, it should be deleted.
         modules_to_delete.extend(current_modules.into_iter().map(|(_, m)| m));
 
-        Ok(ModuleDifferance {
+        let difference = ModuleDifference {
             modules_to_create,
             modules_to_delete,
             state_change_modules,
             failed_modules,
-        })
+        };
+        log::debug!("Found the following differences:\n{:?}", difference);
+        Ok(difference)
     }
 
     async fn get_desired_modules(&self) -> Result<Vec<DesiredModule>> {
@@ -337,7 +339,7 @@ where
 }
 
 #[derive(Default, Debug)]
-struct ModuleDifferance {
+struct ModuleDifference {
     modules_to_create: Vec<DesiredModule>,
     modules_to_delete: Vec<RunningModule>,
     state_change_modules: Vec<StateChangeModule>,
@@ -397,6 +399,7 @@ mod tests {
 
     #[tokio::test]
     async fn runs_without_error() {
+        simple_logger::SimpleLogger::new().init();
         let test_file = std::path::Path::new(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/src/reconcile/test/basic_sim_temp_deployment.json"
@@ -423,6 +426,7 @@ mod tests {
 
     #[tokio::test]
     async fn deploys_module() {
+        simple_logger::SimpleLogger::new().init();
         let test_file = std::path::Path::new(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/src/reconcile/test/basic_sim_temp_deployment.json"
@@ -490,8 +494,132 @@ mod tests {
         assert_eq!(removed.len(), 0);
     }
 
+    #[tokio::test]
+    async fn finds_state_difference() {
+        simple_logger::SimpleLogger::new().init();
+        let test_file = std::path::Path::new(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/reconcile/test/basic_sim_temp_deployment.json"
+        ));
+        let provider = TestDeploymentProvider::from_file(test_file);
+        let provider = Arc::new(Mutex::new(provider));
+        let registry = TestModuleRegistry::<DockerConfig>::default();
+
+        let sim_temp_module = TestModule::<DockerConfig> {
+            name: "SimulatedTemperatureSensor".to_owned(),
+            config: serde_json::from_str(
+                r#"{"image": "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0"}"#,
+            )
+            .unwrap(),
+            ..Default::default()
+        };
+        let sim_temp_state = ModuleRuntimeState::default().with_status(ModuleStatus::Running);
+        let runtime = TestRuntime::<DockerConfig> {
+            module_details: vec![(sim_temp_module.clone(), sim_temp_state.clone())],
+            ..Default::default()
+        };
+
+        let reconciler = Reconciler::new(provider.clone(), &runtime, &registry);
+
+        /* ===========================================================*/
+        println!("\nNo Change Test");
+        let difference = reconciler
+            .get_differance()
+            .await
+            .expect("Error getting difference");
+
+        assert_eq!(difference.modules_to_create.len(), 1); // Edgehub
+        assert_eq!(difference.modules_to_delete.len(), 0);
+        assert_eq!(difference.state_change_modules.len(), 0);
+        assert_eq!(difference.failed_modules.len(), 0);
+
+        /* ===========================================================*/
+        println!("\nStop Simulated Temperature Sensor Test");
+        let stop_sim_temp_state = sim_temp_state.clone().with_status(ModuleStatus::Stopped);
+        let runtime = TestRuntime::<DockerConfig> {
+            module_details: vec![(sim_temp_module.clone(), stop_sim_temp_state)],
+            ..Default::default()
+        };
+
+        let reconciler = Reconciler::new(provider.clone(), &runtime, &registry);
+
+        let difference = reconciler
+            .get_differance()
+            .await
+            .expect("Error getting difference");
+
+        assert_eq!(difference.state_change_modules.len(), 1);
+        assert_eq!(difference.state_change_modules[0].reset_container, false);
+        assert_eq!(
+            &difference.state_change_modules[0].module.name,
+            "SimulatedTemperatureSensor"
+        );
+
+        assert_eq!(difference.modules_to_create.len(), 1); // Edgehub
+        assert_eq!(difference.modules_to_delete.len(), 0);
+        assert_eq!(difference.failed_modules.len(), 0);
+
+        /* ===========================================================*/
+        println!("\nChange Docker Config Test");
+        let mut docker_config_change_module = sim_temp_module.clone();
+        docker_config_change_module.config = docker_config_change_module
+            .config
+            .with_image("this is the old running module".to_string());
+        let runtime = TestRuntime::<DockerConfig> {
+            module_details: vec![(docker_config_change_module, sim_temp_state.clone())],
+            ..Default::default()
+        };
+
+        let reconciler = Reconciler::new(provider.clone(), &runtime, &registry);
+
+        let difference = reconciler
+            .get_differance()
+            .await
+            .expect("Error getting difference");
+
+        assert_eq!(difference.state_change_modules.len(), 1);
+        // Since a container config value was changed, the container must be reset
+        assert_eq!(difference.state_change_modules[0].reset_container, true);
+        assert_eq!(
+            &difference.state_change_modules[0].module.name,
+            "SimulatedTemperatureSensor"
+        );
+        // The image should have been replaced with the image in the basic_sim_temp_deployment.json
+        assert_eq!(
+            &difference.state_change_modules[0]
+                .module
+                .config
+                .settings
+                .image,
+            "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0"
+        );
+
+        assert_eq!(difference.modules_to_create.len(), 1); // Edgehub
+        assert_eq!(difference.modules_to_delete.len(), 0);
+        assert_eq!(difference.failed_modules.len(), 0);
+
+        /* ===========================================================*/
+        println!("\nCreate Simulated Temperature Sensor Test");
+        let runtime = TestRuntime::<DockerConfig> {
+            module_details: vec![],
+            ..Default::default()
+        };
+
+        let reconciler = Reconciler::new(provider.clone(), &runtime, &registry);
+
+        let difference = reconciler
+            .get_differance()
+            .await
+            .expect("Error getting difference");
+
+        assert_eq!(difference.modules_to_create.len(), 2); // Edgehub and Sim Temp
+        assert_eq!(difference.modules_to_delete.len(), 0);
+        assert_eq!(difference.state_change_modules.len(), 0);
+        assert_eq!(difference.failed_modules.len(), 0);
+    }
+
     struct TestDeploymentProvider {
-        deployment: Option<Deployment>,
+        pub deployment: Option<Deployment>,
     }
 
     impl TestDeploymentProvider {

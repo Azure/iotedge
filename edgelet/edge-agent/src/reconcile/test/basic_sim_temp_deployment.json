@@ -27,17 +27,6 @@
                     "imagePullPolicy": "on-create",
                     "version": null,
                     "env": {}
-                },
-                "edgeAgent": {
-                    "settings": {
-                        "image": "mcr.microsoft.com/azureiotedge-agent:1.2",
-                        "create_options": "{}"
-                    },
-                    "type": "docker",
-                    "restartPolicy": "always",
-                    "imagePullPolicy": "on-create",
-                    "version": null,
-                    "env": {}
                 }
             },
             "runtime": {

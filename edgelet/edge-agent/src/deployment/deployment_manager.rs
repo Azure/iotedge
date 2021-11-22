@@ -154,6 +154,7 @@ mod tests {
 
     #[tokio::test]
     async fn empty_directory() {
+        simple_logger::SimpleLogger::new().init();
         let tmp_dir = tempdir().unwrap();
         let tmp_dir = tmp_dir.path();
 
@@ -168,6 +169,7 @@ mod tests {
 
     #[tokio::test]
     async fn read_write() {
+        simple_logger::SimpleLogger::new().init();
         let tmp_dir = tempdir().unwrap();
         let tmp_dir = tmp_dir.path();
 
@@ -186,6 +188,7 @@ mod tests {
 
     #[tokio::test]
     async fn load_existing() {
+        simple_logger::SimpleLogger::new().init();
         let test_file = std::path::Path::new(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/src/deployment/test/twin1.json"
@@ -221,6 +224,7 @@ mod tests {
 
     // #[tokio::test]
     // async fn update_deployment() {
+    // simple_logger::SimpleLogger::new().init();
     //     let tmp_dir = tempdir().unwrap();
     //     let tmp_dir = tmp_dir.path();
 
@@ -304,6 +308,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_load_all_deployments() {
+        simple_logger::SimpleLogger::new().init();
         let test_files_directory =
             std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/src/deployment/test"));
         let tmp_dir = tempdir().unwrap();

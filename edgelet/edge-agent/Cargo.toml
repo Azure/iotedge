@@ -33,4 +33,5 @@ edgelet-settings = {path = "../edgelet-settings", features = ["settings-docker"]
 [dev-dependencies]
 edgelet-test-utils = {path = "../edgelet-test-utils"}
 rand = "0.8.4"
+simple_logger = "1.13.0"
 tempfile = "3.2"

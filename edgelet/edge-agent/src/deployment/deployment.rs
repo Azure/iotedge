@@ -47,7 +47,8 @@ pub struct ModuleConfig {
 #[serde(rename_all = "camelCase")]
 pub struct SystemModules {
     pub edge_hub: ModuleConfig,
-    pub edge_agent: ModuleConfig,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub edge_agent: Option<ModuleConfig>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
@@ -135,25 +136,25 @@ impl Default for ModuleStatus {
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DockerSettings {
-    image: String,
+    pub image: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    image_hash: Option<String>,
+    pub image_hash: Option<String>,
 
     #[serde(flatten)]
-    create_option: CreateOption,
+    pub create_option: CreateOption,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    digest: Option<String>,
+    pub digest: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    auth: Option<docker::models::AuthConfig>,
+    pub auth: Option<docker::models::AuthConfig>,
 
     #[serde(
         default = "edgelet_settings::base::default_allow_elevated_docker_permissions",
         skip_serializing_if = "is_default_docker_perms"
     )]
-    allow_elevated_docker_permissions: bool,
+    pub allow_elevated_docker_permissions: bool,
 }
 
 fn is_default_docker_perms(val: &bool) -> bool {
