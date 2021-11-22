@@ -272,6 +272,24 @@ pub trait ModuleRegistry {
     async fn remove(&self, name: &str) -> Result<(), Self::Error>;
 }
 
+#[async_trait::async_trait]
+impl<T> ModuleRegistry for &'_ T
+where
+    T: ModuleRegistry + Sync + Send,
+    T::Config: Sync + Send,
+    T::Error: Sync + Send,
+{
+    type Config = T::Config;
+    type Error = T::Error;
+
+    async fn pull(&self, config: &Self::Config) -> Result<(), Self::Error> {
+        (**self).pull(config).await
+    }
+    async fn remove(&self, name: &str) -> Result<(), Self::Error> {
+        (**self).remove(name).await
+    }
+}
+
 #[derive(Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct SystemInfo {
     /// OS Type of the Host. Example of value expected: \"linux\" and \"windows\".
@@ -403,6 +421,69 @@ pub trait ModuleRuntime: Sized {
     async fn module_top(&self, id: &str) -> Result<Vec<i32>, Self::Error>;
 
     fn registry(&self) -> &Self::ModuleRegistry;
+}
+
+#[async_trait::async_trait]
+impl<T> ModuleRuntime for &'_ T
+where
+    T: ModuleRuntime + Sync + Send,
+    T::Config: Sync + Send,
+    T::Error: Sync + Send,
+    T::Module: Sync + Send,
+    T::ModuleRegistry: Sync + Send,
+{
+    type Config = T::Config;
+    type Error = T::Error;
+    type Module = T::Module;
+    type ModuleRegistry = T::ModuleRegistry;
+
+    async fn create(&self, module: ModuleSpec<Self::Config>) -> Result<(), Self::Error> {
+        (**self).create(module).await
+    }
+    async fn get(&self, id: &str) -> Result<(Self::Module, ModuleRuntimeState), Self::Error> {
+        (**self).get(id).await
+    }
+    async fn start(&self, id: &str) -> Result<(), Self::Error> {
+        (**self).start(id).await
+    }
+    async fn stop(&self, id: &str, wait_before_kill: Option<Duration>) -> Result<(), Self::Error> {
+        (**self).stop(id, wait_before_kill).await
+    }
+    async fn restart(&self, id: &str) -> Result<(), Self::Error> {
+        (**self).restart(id).await
+    }
+    async fn remove(&self, id: &str) -> Result<(), Self::Error> {
+        (**self).remove(id).await
+    }
+    async fn system_info(&self) -> Result<SystemInfo, Self::Error> {
+        (**self).system_info().await
+    }
+    async fn system_resources(&self) -> Result<SystemResources, Self::Error> {
+        (**self).system_resources().await
+    }
+    async fn list(&self) -> Result<Vec<Self::Module>, Self::Error> {
+        (**self).list().await
+    }
+    async fn list_with_details(
+        &self,
+    ) -> Result<Vec<(Self::Module, ModuleRuntimeState)>, Self::Error> {
+        (**self).list_with_details().await
+    }
+    async fn logs(&self, id: &str, options: &LogOptions) -> Result<hyper::Body, Self::Error> {
+        (**self).logs(id, options).await
+    }
+    async fn remove_all(&self) -> Result<(), Self::Error> {
+        (**self).remove_all().await
+    }
+    async fn stop_all(&self, wait_before_kill: Option<Duration>) -> Result<(), Self::Error> {
+        (**self).stop_all(wait_before_kill).await
+    }
+    async fn module_top(&self, id: &str) -> Result<Vec<i32>, Self::Error> {
+        (**self).module_top(id).await
+    }
+    fn registry(&self) -> &Self::ModuleRegistry {
+        (**self).registry()
+    }
 }
 
 #[derive(Clone, Copy, Debug)]

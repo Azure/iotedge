@@ -396,26 +396,50 @@ mod tests {
     use crate::deployment::deployment::Deployment;
 
     #[tokio::test]
-    async fn test1() {
+    async fn runs_without_error() {
         let test_file = std::path::Path::new(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/src/reconcile/test/deployment1.json"
+            "/src/reconcile/test/basic_sim_temp_deployment.json"
         ));
         let provider = TestDeploymentProvider::from_file(test_file);
         let provider = Arc::new(Mutex::new(provider));
 
-        let temp_sensor = TestModule::<DockerConfig> {
+        let running = TestModule::<DockerConfig> {
             name: "SimulatedTemperatureSensor".to_owned(),
             ..Default::default()
         };
         let runtime = TestRuntime::<DockerConfig> {
-            module_details: vec![(temp_sensor, ModuleRuntimeState::default())],
+            module_details: vec![(running, ModuleRuntimeState::default())],
             ..Default::default()
         };
         let registry = TestModuleRegistry::<DockerConfig>::default();
 
         let reconciler = Reconciler::new(provider, runtime, registry);
         reconciler.reconcile().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn deploys_module() {
+        let test_file = std::path::Path::new(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/reconcile/test/basic_sim_temp_deployment.json"
+        ));
+        let provider = TestDeploymentProvider::from_file(test_file);
+        let provider = Arc::new(Mutex::new(provider));
+
+        let runtime = TestRuntime::<DockerConfig> {
+            module_details: vec![],
+            ..Default::default()
+        };
+        let registry = TestModuleRegistry::<DockerConfig>::default();
+
+        let reconciler = Reconciler::new(provider, &runtime, &registry);
+        reconciler.reconcile().await.unwrap();
+
+        let pulls = registry.pulls.lock().expect("Could not aquire pulls mutex");
+        assert_eq!(pulls.len(), 1);
+        assert_eq!(pulls[1].image(), "test");
+
     }
 
     struct TestDeploymentProvider {
