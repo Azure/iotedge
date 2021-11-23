@@ -174,7 +174,12 @@ impl TryFrom<ModuleConfig> for edgelet_settings::DockerConfig {
             .map(|(k, v)| (k.to_owned(), v.to_string()))
             .collect();
         let env = docker::utils::merge_env(create_options.env(), &env);
-        let create_options = create_options.with_env(env);
+
+        let create_options = if env.is_empty() {
+            create_options
+        } else {
+            create_options.with_env(env)
+        };
 
         let config = edgelet_settings::DockerConfig::new(
             settings.image,
