@@ -4,6 +4,7 @@ namespace Diagnostics
     using System;
     using System.Collections.Generic;
     using System.Globalization;
+    using System.IO;
     using System.Linq;
     using System.Net;
     using System.Net.Http;
@@ -142,58 +143,32 @@ namespace Diagnostics
                     Uri proxyUri = new Uri(proxy);
 
                     // Proxy Lib Nuget Package has a bug where which sends the  incorrect connect command. Untill this PR Gets merged https://github.com/grinay/ProxyLib/pull/1, Use a local implementation to send a connect command
-                    var tcpClient = new TcpClient();
+                    using var tcpClient = new TcpClient();
+                    tcpClient.SendTimeout = (int)TimeSpan.FromSeconds(60).TotalMilliseconds;
+                    tcpClient.ReceiveTimeout = (int)TimeSpan.FromSeconds(60).TotalMilliseconds;
 
-                    try
-                    {
-                        tcpClient.SendTimeout = (int)TimeSpan.FromSeconds(60).TotalMilliseconds;
-                        tcpClient.ReceiveTimeout = (int)TimeSpan.FromSeconds(60).TotalMilliseconds;
+                    var connectTask = tcpClient.ConnectAsync(proxyUri.Host, proxyUri.Port);
+                    await TaskEx.TimeoutAfter(connectTask, TimeSpan.FromMilliseconds(SOCKET_STREAM_WAIT_TIMEOUT_MS));
 
-                        tcpClient.Connect(proxyUri.Host, proxyUri.Port);
+                    NetworkStream stream = tcpClient.GetStream();
+                    string connectCmd = string.Format(CultureInfo.InvariantCulture, "CONNECT {0}:{1} HTTP/1.0\r\nHOST: {0}:{1}\r\n\r\n", proxyUri.Host, proxyUri.Port.ToString(CultureInfo.InvariantCulture));
+                    byte[] request = ASCIIEncoding.ASCII.GetBytes(connectCmd);
 
-                        NetworkStream stream = tcpClient.GetStream();
+                    // send the connect request
+                    stream.Write(request, 0, request.Length);
 
-                        string connectCmd = string.Format(CultureInfo.InvariantCulture, "CONNECT {0}:{1} HTTP/1.0\r\nHOST: {0}:{1}\r\n\r\n", proxyUri.Host, proxyUri.Port.ToString(CultureInfo.InvariantCulture));
+                    await WaitForData(stream);
 
-                        byte[] request = ASCIIEncoding.ASCII.GetBytes(connectCmd);
-
-                        // send the connect request
-                        stream.Write(request, 0, request.Length);
-
-                        await WaitForData(stream);
-
-                        byte[] response = new byte[tcpClient.ReceiveBufferSize];
-                        StringBuilder sbuilder = new StringBuilder();
-                        int bytes = 0;
-                        long total = 0;
-
-                        do
-                        {
-                            bytes = stream.Read(response, 0, tcpClient.ReceiveBufferSize);
-                            total += bytes;
-                            sbuilder.Append(System.Text.ASCIIEncoding.UTF8.GetString(response, 0, bytes));
-                        }
-                        while (stream.DataAvailable);
-
-                        ParseResponse(sbuilder.ToString());
-                    }
-                    finally
-                    {
-                        tcpClient?.Close();
-                        tcpClient?.Dispose();
-                    }
+                    byte[] response = new byte[tcpClient.ReceiveBufferSize];
+                    StringBuilder sbuilder = new StringBuilder();
+                    var streamData = new StreamReader(stream).ReadToEnd();
+                    ParseResponse(streamData);
                 }
                 else
                 {
                     TcpClient client = new TcpClient();
-                    var cancelTask = Task.Delay(SOCKET_STREAM_WAIT_TIMEOUT_MS);
                     var connectTask = client.ConnectAsync(hostname, int.Parse(port));
-                    await Task.WhenAny(connectTask, cancelTask);
-                    if (cancelTask.IsCompleted && !connectTask.IsCompleted)
-                    {
-                        throw new Exception($"Connect to {hostname} at Port {port} Timedout");
-                    }
-
+                    await TaskEx.TimeoutAfter(connectTask, TimeSpan.FromMilliseconds(SOCKET_STREAM_WAIT_TIMEOUT_MS));
                     client.GetStream();
                 }
             }
@@ -204,7 +179,7 @@ namespace Diagnostics
             _ = Dns.GetHostEntry(parent_hostname);
         }
 
-        private static async Task WaitForData(NetworkStream stream)
+        static async Task WaitForData(NetworkStream stream)
         {
             int sleepTime = 0;
             while (!stream.DataAvailable)
@@ -218,17 +193,20 @@ namespace Diagnostics
             }
         }
 
-        private static void ParseResponse(string response)
+        static void ParseResponse(string response)
         {
             string[] data = null;
 
             // Get rid of the LF character if it exists and then split the string on all CR
             data = response.Replace('\n', ' ').Split('\r');
-
-            ParseCodeAndText(data[0]);
+            (var code, var text) = ParseCodeAndText(data[0]);
+            if (code != HttpStatusCode.OK)
+            {
+                throw new InvalidOperationException($"Response {response} Returned a Non-Sucess Status Code");
+            }
         }
 
-        private static (HttpStatusCode code, string text) ParseCodeAndText(string line)
+        static (HttpStatusCode code, string text) ParseCodeAndText(string line)
         {
             int begin = 0;
             int end = 0;
