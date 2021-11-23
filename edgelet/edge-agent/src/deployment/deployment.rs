@@ -1,7 +1,7 @@
 use std::{
     collections::{BTreeMap, HashMap},
     convert::TryFrom,
-    fmt,
+    fmt::{self, Write},
 };
 
 // https://github.com/SchemaStore/schemastore/blob/master/src/schemas/json/azure-iot-edgeagent-deployment-1.1.json
@@ -40,7 +40,7 @@ pub struct ModuleConfig {
     pub image_pull_policy: edgelet_settings::module::ImagePullPolicy,
     pub version: Option<String>,
     #[serde(default)]
-    pub env: BTreeMap<String, String>,
+    pub env: BTreeMap<String, EnvValue>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
@@ -253,6 +253,24 @@ impl serde::Serialize for CreateOption {
             serializer.collect_map([("createOptions", string_wrapper)])
         } else {
             serializer.serialize_none()
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(untagged)]
+pub enum EnvValue {
+    Number(f64),
+    Bool(bool),
+    String(String),
+}
+
+impl fmt::Display for EnvValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            EnvValue::Number(v) => f.write_str(&v.to_string()),
+            EnvValue::Bool(v) => f.write_str(&v.to_string()),
+            EnvValue::String(v) => f.write_str(v),
         }
     }
 }

@@ -379,7 +379,12 @@ impl TryFrom<DesiredModule> for ModuleSpec<DockerConfig> {
             module.name,
             module.config.r#type.to_string(),
             module.config.settings.try_into()?,
-            module.config.env,
+            module
+                .config
+                .env
+                .into_iter()
+                .map(|(k, v)| (k, v.to_string()))
+                .collect(),
             module.config.image_pull_policy,
         )?;
 
@@ -393,10 +398,10 @@ mod tests {
 
     use std::{fs::File, path::Path};
 
-    use docker::models::ContainerCreateBody;
+    use docker::models::*;
     use edgelet_test_utils::runtime::{TestModule, TestModuleRegistry, TestRuntime};
 
-    use crate::deployment::deployment::Deployment;
+    use crate::deployment::deployment::*;
 
     #[tokio::test]
     async fn runs_without_error() {
@@ -496,9 +501,8 @@ mod tests {
     }
 
     mod state_difference {
-        use docker::models::HostConfig;
-
         use super::*;
+        use std::collections::BTreeMap;
 
         #[tokio::test]
         async fn no_change() {
@@ -604,7 +608,6 @@ mod tests {
 
         #[tokio::test]
         async fn change_module_image() {
-            // TODO: check env test
             let (provider, registry, sim_temp_module, sim_temp_state) =
                 setup("basic_sim_temp_deployment.json");
 
@@ -650,28 +653,6 @@ mod tests {
             let (provider, registry, sim_temp_module, sim_temp_state) =
                 setup("binding_sim_temp_deployment.json");
 
-            {
-                let provider = provider.clone();
-                let provider = provider.lock().await;
-                println!("{:#?}", provider.deployment);
-                provider
-                    .deployment
-                    .as_ref()
-                    .expect("deployment")
-                    .properties
-                    .desired
-                    .modules
-                    .get("SimulatedTemperatureSensor")
-                    .expect("module")
-                    .settings
-                    .create_option
-                    .create_options
-                    .as_ref()
-                    .expect("Create Options")
-                    .host_config()
-                    .expect("host config");
-            }
-
             let mut docker_config_change_module = sim_temp_module;
             docker_config_change_module.config =
                 docker_config_change_module.config.with_create_options(
@@ -712,6 +693,59 @@ mod tests {
                     .expect("Host config should not be empty")
                     .binds(),
                 None
+            );
+            // The port bindings should be have the new deployments value
+            difference.state_change_modules[0]
+                .module
+                .config
+                .settings
+                .create_option
+                .create_options
+                .as_ref()
+                .expect("Create options should not be empty")
+                .host_config()
+                .expect("Host config should not be empty")
+                .port_bindings()
+                .expect("Port Bindings should not be empty");
+
+            assert_eq!(difference.modules_to_create.len(), 1); // Edgehub
+            assert_eq!(difference.modules_to_delete.len(), 0);
+            assert_eq!(difference.failed_modules.len(), 0);
+        }
+
+        #[tokio::test]
+        async fn change_docker_env() {
+            let (provider, registry, sim_temp_module, sim_temp_state) =
+                setup("env_sim_temp_deployment.json");
+
+            let runtime = TestRuntime::<DockerConfig> {
+                module_details: vec![(sim_temp_module, sim_temp_state)],
+                ..Default::default()
+            };
+            let reconciler = Reconciler::new(provider, &runtime, &registry);
+            let difference = reconciler
+                .get_differance()
+                .await
+                .expect("Error getting difference");
+
+            assert_eq!(difference.state_change_modules.len(), 1);
+            // Since a container config value was changed, the container must be reset
+            assert_eq!(difference.state_change_modules[0].reset_container, true);
+            assert_eq!(
+                &difference.state_change_modules[0].module.name,
+                "SimulatedTemperatureSensor"
+            );
+            // The env should be set
+            let expected: BTreeMap<String, EnvValue> = [
+                ("Variable1".to_owned(), EnvValue::Number(5.0)),
+                ("Variable2".to_owned(), EnvValue::String("Hello".to_owned())),
+            ]
+            .iter()
+            .cloned()
+            .collect();
+            assert_eq!(
+                difference.state_change_modules[0].module.config.env,
+                expected
             );
 
             assert_eq!(difference.modules_to_create.len(), 1); // Edgehub

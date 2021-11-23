@@ -144,13 +144,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
     use super::*;
-    use rand::Rng;
-    use serde_json::json;
     use tempfile::tempdir;
-    use tokio::select;
+
+    use crate::deployment::deployment::*;
 
     #[tokio::test]
     async fn empty_directory() {
@@ -173,7 +170,7 @@ mod tests {
         let tmp_dir = tempdir().unwrap();
         let tmp_dir = tmp_dir.path();
 
-        let test_obj = crate::deployment::deployment::Deployment::default();
+        let test_obj = Deployment::default();
         let file = tmp_dir.join("test1.json");
         write_serde(&file, &test_obj)
             .await
@@ -181,13 +178,13 @@ mod tests {
         let result = read_serde(&file).await.expect("Can read object 1");
         assert_eq!(test_obj, result);
 
-        let test_obj = crate::deployment::deployment::Deployment {
-            properties: crate::deployment::deployment::Properties {
-                desired: crate::deployment::deployment::PropertiesInner {
-                    system_modules: crate::deployment::deployment::SystemModules {
-                        edge_hub: crate::deployment::deployment::ModuleConfig {
-                            settings: crate::deployment::deployment::DockerSettings {
-                                create_option: crate::deployment::deployment::CreateOption {
+        let test_obj = Deployment {
+            properties: Properties {
+                desired: PropertiesInner {
+                    system_modules: SystemModules {
+                        edge_hub: ModuleConfig {
+                            settings: DockerSettings {
+                                create_option: CreateOption {
                                     create_options: Some(
                                         docker::models::ContainerCreateBody::new()
                                             .with_host_config(
@@ -216,6 +213,48 @@ mod tests {
             .await
             .expect("Can write object");
         let result = read_serde(&file).await.expect("Can read object 2");
+        assert_eq!(test_obj, result);
+
+        let test_obj = Deployment {
+            properties: Properties {
+                desired: PropertiesInner {
+                    system_modules: SystemModules {
+                        edge_hub: ModuleConfig {
+                            env: [
+                                (
+                                    "Variable1".to_owned(),
+                                    EnvValue::Number(5.0),
+                                ),
+                                (
+                                    "Variable2".to_owned(),
+                                    EnvValue::String(
+                                        "Hello".to_owned(),
+                                    ),
+                                ),
+                                (
+                                    "Variable3".to_owned(),
+                                    EnvValue::Bool(true),
+                                ),
+                            ]
+                            .iter()
+                            .cloned()
+                            .collect(),
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        let file = tmp_dir.join("test3.json");
+        write_serde(&file, &test_obj)
+            .await
+            .expect("Can write object");
+        let result = read_serde(&file).await.expect("Can read object 3");
         assert_eq!(test_obj, result);
     }
 
