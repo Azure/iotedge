@@ -1,7 +1,7 @@
 use std::{
     collections::{BTreeMap, HashMap},
     convert::TryFrom,
-    fmt::{self, Write},
+    fmt,
 };
 
 // https://github.com/SchemaStore/schemastore/blob/master/src/schemas/json/azure-iot-edgeagent-deployment-1.1.json

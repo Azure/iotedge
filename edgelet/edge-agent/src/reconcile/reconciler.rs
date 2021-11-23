@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::HashMap,
     convert::{TryFrom, TryInto},
     sync::Arc,
 };
@@ -10,11 +10,10 @@ use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, Mo
 use edgelet_settings::{module::ImagePullPolicy, DockerConfig, ModuleSpec};
 
 use crate::deployment::{
-    deployment::{EnvValue, ModuleConfig, ModuleStatus as DeploymentModuleStatus, RestartPolicy},
+    deployment::{ModuleConfig, ModuleStatus as DeploymentModuleStatus, RestartPolicy},
     DeploymentProvider,
 };
 
-type ModuleSettings = edgelet_settings::module::Settings<edgelet_settings::DockerConfig>;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync + 'static>>;
 
 pub struct Reconciler<D, M, R> {
@@ -95,16 +94,17 @@ where
                                 | ModuleStatus::Dead => {
                                     // Module is in a bad state, send to restart planner
 
+                                    // TODO: Implement restart planner. 
+                                    // Once this is done no longer add this to state change
                                     state_change_modules.push(StateChangeModule {
-                                        module: desired,
+                                        module: desired.clone(),
                                         reset_container: false,
                                     });
 
-                                    // TODO: Implement restart planner
-                                    // failed_modules.push(FailedModule {
-                                    //     module: current,
-                                    //     restart_policy: desired.config.restart_policy,
-                                    // })
+                                    failed_modules.push(FailedModule {
+                                        module: current,
+                                        restart_policy: desired.config.restart_policy,
+                                    })
                                 }
                             }
                         }
@@ -312,7 +312,7 @@ where
         Ok(())
     }
 
-    async fn handle_failed_modules(&self, failed_modules: Vec<FailedModule>) -> Result<()> {
+    async fn handle_failed_modules(&self, _failed_modules: Vec<FailedModule>) -> Result<()> {
         //     match desired.config.restart_policy {
         //         RestartPolicy::Always
         //         | RestartPolicy::OnFailure
@@ -397,104 +397,107 @@ mod tests {
 
     use crate::deployment::deployment::*;
 
-    #[tokio::test]
-    async fn runs_without_error() {
-        simple_logger::SimpleLogger::new().init();
-        let test_file = std::path::Path::new(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/src/reconcile/test/basic_sim_temp_deployment.json"
-        ));
-        let provider = TestDeploymentProvider::from_file(test_file);
-        let provider = Arc::new(Mutex::new(provider));
+    mod deploy {
+        use super::*;
+        #[tokio::test]
+        async fn runs_without_error() {
+            let _ = simple_logger::SimpleLogger::new().init();
+            let test_file = std::path::Path::new(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/reconcile/test/basic_sim_temp_deployment.json"
+            ));
+            let provider = TestDeploymentProvider::from_file(test_file);
+            let provider = Arc::new(Mutex::new(provider));
 
-        let running = TestModule::<DockerConfig> {
-            name: "SimulatedTemperatureSensor".to_owned(),
-            ..Default::default()
-        };
-        let runtime = TestRuntime::<DockerConfig> {
-            module_details: vec![(running, ModuleRuntimeState::default())],
-            ..Default::default()
-        };
-        let registry = TestModuleRegistry::<DockerConfig>::default();
+            let running = TestModule::<DockerConfig> {
+                name: "SimulatedTemperatureSensor".to_owned(),
+                ..Default::default()
+            };
+            let runtime = TestRuntime::<DockerConfig> {
+                module_details: vec![(running, ModuleRuntimeState::default())],
+                ..Default::default()
+            };
+            let registry = TestModuleRegistry::<DockerConfig>::default();
 
-        let reconciler = Reconciler::new(provider, runtime, registry);
-        reconciler
-            .reconcile()
-            .await
-            .expect("Could not complete reconcile loop");
+            let reconciler = Reconciler::new(provider, runtime, registry);
+            reconciler
+                .reconcile()
+                .await
+                .expect("Could not complete reconcile loop");
+        }
+
+        #[tokio::test]
+        async fn deploys_module() {
+            let _ = simple_logger::SimpleLogger::new().init();
+            let test_file = std::path::Path::new(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/reconcile/test/basic_sim_temp_deployment.json"
+            ));
+            let provider = TestDeploymentProvider::from_file(test_file);
+            let provider = Arc::new(Mutex::new(provider));
+
+            let runtime = TestRuntime::<DockerConfig> {
+                module_details: vec![],
+                ..Default::default()
+            };
+            let registry = TestModuleRegistry::<DockerConfig>::default();
+
+            let reconciler = Reconciler::new(provider, &runtime, &registry);
+            reconciler
+                .reconcile()
+                .await
+                .expect("Could not complete reconcile loop");
+
+            // Check that images are pulled.
+            let pulls = registry.pulls.lock().expect("Could not aquire pulls mutex");
+            assert_eq!(pulls.len(), 2);
+
+            let expected_images: &[&str] = &[
+                "mcr.microsoft.com/azureiotedge-hub:1.2",
+                "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0",
+            ];
+            let mut actual_images: Vec<&str> = pulls.iter().map(|c| c.image()).collect();
+            actual_images.sort();
+            assert_eq!(expected_images, &actual_images);
+
+            // Check that containers are created
+            let created = runtime
+                .created
+                .lock()
+                .expect("Could not aquire created mutex");
+            assert_eq!(created.len(), 2);
+
+            let mut actual_images: Vec<&str> = created.iter().map(|c| c.config().image()).collect();
+            actual_images.sort();
+            assert_eq!(expected_images, &actual_images);
+
+            // Check that containers are started
+            let started = runtime
+                .started
+                .lock()
+                .expect("Could not aquire started mutex");
+            assert_eq!(started.len(), 2);
+
+            let expected_names: &[&str] = &["SimulatedTemperatureSensor", "edgeHub"];
+            let mut actual_names: Vec<&str> = started.iter().map(String::as_str).collect();
+            actual_names.sort();
+            assert_eq!(expected_names, &actual_names);
+
+            // Check that no containers are stopped or removed
+            let stopped = runtime
+                .stopped
+                .lock()
+                .expect("Could not aquire stopped mutex");
+            assert_eq!(stopped.len(), 0);
+            let removed = runtime
+                .removed
+                .lock()
+                .expect("Could not aquire removed mutex");
+            assert_eq!(removed.len(), 0);
+        }
     }
 
-    #[tokio::test]
-    async fn deploys_module() {
-        simple_logger::SimpleLogger::new().init();
-        let test_file = std::path::Path::new(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/src/reconcile/test/basic_sim_temp_deployment.json"
-        ));
-        let provider = TestDeploymentProvider::from_file(test_file);
-        let provider = Arc::new(Mutex::new(provider));
-
-        let runtime = TestRuntime::<DockerConfig> {
-            module_details: vec![],
-            ..Default::default()
-        };
-        let registry = TestModuleRegistry::<DockerConfig>::default();
-
-        let reconciler = Reconciler::new(provider, &runtime, &registry);
-        reconciler
-            .reconcile()
-            .await
-            .expect("Could not complete reconcile loop");
-
-        // Check that images are pulled.
-        let pulls = registry.pulls.lock().expect("Could not aquire pulls mutex");
-        assert_eq!(pulls.len(), 2);
-
-        let expected_images: &[&str] = &[
-            "mcr.microsoft.com/azureiotedge-hub:1.2",
-            "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0",
-        ];
-        let mut actual_images: Vec<&str> = pulls.iter().map(|c| c.image()).collect();
-        actual_images.sort();
-        assert_eq!(expected_images, &actual_images);
-
-        // Check that containers are created
-        let created = runtime
-            .created
-            .lock()
-            .expect("Could not aquire created mutex");
-        assert_eq!(created.len(), 2);
-
-        let mut actual_images: Vec<&str> = created.iter().map(|c| c.config().image()).collect();
-        actual_images.sort();
-        assert_eq!(expected_images, &actual_images);
-
-        // Check that containers are started
-        let started = runtime
-            .started
-            .lock()
-            .expect("Could not aquire started mutex");
-        assert_eq!(started.len(), 2);
-
-        let expected_names: &[&str] = &["SimulatedTemperatureSensor", "edgeHub"];
-        let mut actual_names: Vec<&str> = started.iter().map(String::as_str).collect();
-        actual_names.sort();
-        assert_eq!(expected_names, &actual_names);
-
-        // Check that no containers are stopped or removed
-        let stopped = runtime
-            .stopped
-            .lock()
-            .expect("Could not aquire stopped mutex");
-        assert_eq!(stopped.len(), 0);
-        let removed = runtime
-            .removed
-            .lock()
-            .expect("Could not aquire removed mutex");
-        assert_eq!(removed.len(), 0);
-    }
-
-    mod state_difference {
+    mod difference {
         use super::*;
         use std::collections::BTreeMap;
 
@@ -707,7 +710,7 @@ mod tests {
             assert_eq!(difference.failed_modules.len(), 0);
         }
 
-        // #[tokio::test]
+        #[tokio::test]
         async fn set_docker_env() {
             let (provider, registry, sim_temp_module, sim_temp_state) =
                 setup("env_sim_temp_deployment.json");
@@ -747,7 +750,7 @@ mod tests {
             assert_eq!(difference.failed_modules.len(), 0);
         }
 
-        // #[tokio::test]
+        #[tokio::test]
         async fn remove_docker_env() {
             let (provider, registry, sim_temp_module, sim_temp_state) =
                 setup("basic_sim_temp_deployment.json");
@@ -823,7 +826,7 @@ mod tests {
             TestModule<DockerConfig>,
             ModuleRuntimeState,
         ) {
-            simple_logger::SimpleLogger::new().init();
+            let _ = simple_logger::SimpleLogger::new().init();
             let test_file = format!("{}/src/reconcile/test/{}", env!("CARGO_MANIFEST_DIR"), file);
             let provider = TestDeploymentProvider::from_file(test_file);
             let provider = Arc::new(Mutex::new(provider));

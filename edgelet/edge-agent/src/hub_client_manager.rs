@@ -56,20 +56,20 @@ impl ClientManager {
                         name,
                         payload,
                         request_id,
-                    }) => println!("Got direct method request: {}", name),
-                    Ok(Message::ReportedTwinState(size)) => println!("Got twin change ack"),
+                    }) => log::debug!("Got direct method request: {}, {:?}, {}", name, payload, request_id),
+                    Ok(Message::ReportedTwinState(size)) => log::debug!("Got twin change ack: {:?}", size),
                     Ok(Message::TwinInitial(twin_initial)) => {
-                        println!("\n\n\nGot initial Twin:\n{:#?}", twin_initial);
+                        log::debug!("Got initial Twin: {:?}", twin_initial);
                         let mut deployment_manager = self.deployment_manager.lock().await;
                         if let Err(e) = deployment_manager.set_deployment(twin_initial).await {
-                            println!("Set Deployment Error: {:#?}", e);
+                            log::error!("Set Deployment Error: {:#?}", e);
                         }
                     }
                     Ok(Message::TwinPatch(twin_patch)) => {
-                        println!("\n\n\nGot Twin Patch:\n{:#?}", twin_patch);
+                        log::debug!("Got Twin Patch: {:?}", twin_patch);
                         let mut deployment_manager = self.deployment_manager.lock().await;
                         if let Err(e) = deployment_manager.update_deployment(twin_patch).await {
-                            println!("Update Deployment Error: {:#?}", e);
+                            log::error!("Update Deployment Error: {:#?}", e);
                         }
                     }
                     Err(_) => todo!(),

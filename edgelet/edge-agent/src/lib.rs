@@ -1,7 +1,6 @@
 mod deployment;
 mod hub_client_manager;
 mod reconcile;
-mod util;
 
 use std::sync::Arc;
 use std::time::Duration;
