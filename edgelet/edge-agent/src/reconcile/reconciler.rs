@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{BTreeMap, HashMap},
     convert::{TryFrom, TryInto},
     sync::Arc,
 };
@@ -10,7 +10,7 @@ use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, Mo
 use edgelet_settings::{module::ImagePullPolicy, DockerConfig, ModuleSpec};
 
 use crate::deployment::{
-    deployment::{ModuleConfig, ModuleStatus as DeploymentModuleStatus, RestartPolicy},
+    deployment::{EnvValue, ModuleConfig, ModuleStatus as DeploymentModuleStatus, RestartPolicy},
     DeploymentProvider,
 };
 
@@ -71,6 +71,7 @@ where
 
                 let desired_config: DockerConfig = desired.config.settings.clone().try_into()?;
                 if desired_config != current.config
+                    || is_env_diff(&desired.config.env, &current.config)
                 /* TODO compare env vars here and image tag*/
                 {
                     // Module should be modified to match desired, and the change requires a new container
@@ -336,6 +337,25 @@ where
         // }
         Ok(())
     }
+}
+
+fn is_env_diff(desired: &BTreeMap<String, EnvValue>, current: &DockerConfig) -> bool {
+    let mut current = docker::utils::parse_docker_env(current.create_options().env());
+
+    for (desired_key, desired_value) in desired {
+        if let Some((_current_key, current_value)) = current.remove_entry(desired_key.as_str()) {
+            if current_value != &desired_value.to_string() {
+                // env value should be changed
+                return true;
+            }
+        } else {
+            // new env value must be added
+            return true;
+        }
+    }
+
+    // current env value must be removed
+    !current.is_empty()
 }
 
 #[derive(Default, Debug)]
@@ -714,7 +734,8 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn change_docker_env() {
+        async fn set_docker_env() {
+            // TODO: remove docker env
             let (provider, registry, sim_temp_module, sim_temp_state) =
                 setup("env_sim_temp_deployment.json");
 
@@ -735,7 +756,7 @@ mod tests {
                 &difference.state_change_modules[0].module.name,
                 "SimulatedTemperatureSensor"
             );
-            // The env should be set
+            // The new env should be set
             let expected: BTreeMap<String, EnvValue> = [
                 ("Variable1".to_owned(), EnvValue::Number(5.0)),
                 ("Variable2".to_owned(), EnvValue::String("Hello".to_owned())),

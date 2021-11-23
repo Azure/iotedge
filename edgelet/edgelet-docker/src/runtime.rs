@@ -53,19 +53,11 @@ pub struct DockerModuleRuntime {
 
 impl DockerModuleRuntime {
     fn merge_env(cur_env: Option<&[String]>, new_env: &BTreeMap<String, String>) -> Vec<String> {
+        // parse docker env into key-value pairs
+        let mut merged_env = docker::utils::parse_docker_env(cur_env);
         // build a new merged map containing string slices for keys and values
         // pointing into String instances in new_env
-        let mut merged_env = BTreeMap::new();
         merged_env.extend(new_env.iter().map(|(k, v)| (k.as_str(), v.as_str())));
-
-        if let Some(env) = cur_env {
-            // extend merged_env with variables in cur_env (again, these are
-            // only string slices pointing into strings inside cur_env)
-            merged_env.extend(env.iter().filter_map(|s| {
-                let mut tokens = s.splitn(2, '=');
-                tokens.next().map(|key| (key, tokens.next().unwrap_or("")))
-            }));
-        }
 
         // finally build a new Vec<String>; we alloc new strings here
         merged_env
