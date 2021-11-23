@@ -337,7 +337,7 @@ mod tests {
                 .create_option
                 .create_options;
             let body = create_options.expect(&format!("create_options missing for {}", file));
-            let host_config = body
+            let _host_config = body
                 .host_config()
                 .expect(&format!("host_config missing for {}", file));
         }

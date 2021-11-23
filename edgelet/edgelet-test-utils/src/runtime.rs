@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, sync::Mutex};
+use std::sync::Mutex;
 
 // Copyright (c) Microsoft. All rights reserved.
 

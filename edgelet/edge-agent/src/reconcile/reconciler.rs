@@ -524,7 +524,7 @@ mod tests {
 
         #[tokio::test]
         async fn create_module() {
-            let (provider, registry, sim_temp_module, sim_temp_state) =
+            let (provider, registry, _, _) =
                 setup("basic_sim_temp_deployment.json");
 
             let runtime = TestRuntime::<DockerConfig> {

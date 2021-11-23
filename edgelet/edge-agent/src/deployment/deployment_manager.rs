@@ -395,13 +395,4 @@ mod tests {
             assert!(manager.valid_deployment.is_some())
         }
     }
-
-    async fn read_file(path: impl AsRef<Path>) -> String {
-        let err_msg = format!("Missing file {:#?}", path.as_ref());
-        let mut file = File::open(path).await.expect(&err_msg);
-        let mut contents = vec![];
-        file.read_to_end(&mut contents).await.unwrap();
-
-        String::from_utf8(contents).unwrap()
-    }
 }
