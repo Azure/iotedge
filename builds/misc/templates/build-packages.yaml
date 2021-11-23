@@ -137,6 +137,12 @@ stages:
                 *.rpm
               TargetFolder: '$(build.artifactstagingdirectory)'
             condition: or(eq(${{ parameters['E2EBuild'] }}, false), eq(variables.arch,'amd64'))
+
+          - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
+            displayName: 'SBOM Generation Task'
+            inputs:
+                BuildDropPath: '$(build.artifactstagingdirectory)'            
+            
           - task: PublishBuildArtifacts@1
             displayName: Publish Artifacts
             inputs:
