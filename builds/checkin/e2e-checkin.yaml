@@ -41,9 +41,8 @@ stages:
     condition: |
       and
       ( 
-        succeededOrFailed(),
-        in(dependencies.PublishManifests.result, 'Succeeded','Skipped'),
-        in(dependencies.BuildPackages.result, 'Succeeded','Skipped')
+        in(dependencies.PublishManifests.result, 'Succeeded','Skipped', 'SucceededWithIssues'),
+        in(dependencies.BuildPackages.result, 'Succeeded','Skipped', 'SucceededWithIssues')
       )     
     jobs:
       - job: ubuntu_2004_msmoby
@@ -58,12 +57,6 @@ stages:
           builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
           builtPackages: $[ stageDependencies.BuildPackages.linux.result ]
         steps:
-          # Since 1ES Agents may have a non-conformed RFC 1035 Host Name, Modify the Host Name here so that Downstream communication doesn't
-          # have TLS Handshake errors
-        - bash: |
-            echo "Writing Host Name e2e-$BUILD_BUILDID"
-            sudo hostnamectl set-hostname e2e-$BUILD_BUILDID
-          displayName: Modify Host Name
         - template: ../e2e/templates/e2e-setup.yaml
         - template: ../e2e/templates/e2e-run.yaml
 
