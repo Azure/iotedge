@@ -169,19 +169,18 @@ stages:
               echo "##vso[task.setvariable variable=MARINER_RELEASE;]$(release)"
             displayName: Set Version
           - task: AzureKeyVault@1
-            condition: eq(variables['run.flag'], 1)
             displayName: 'Azure Key Vault: EdgeBuildkv'
             inputs:
               azureSubscription: $(azure.subscription)
               KeyVaultName: 'edgebuildkv'
               SecretsFilter: >- 
-                GitHubAccessToken
+                IotEdge1-GitHub-PAT
           - task: PowerShell@2
             displayName: 'Download aziot-identity-service'
             inputs:
               filePath: scripts/local/test/DownloadIdentityService.ps1
             env:
-              GITHUB_TOKEN: $(GitHubAccessToken)
+              GITHUB_TOKEN: $(IotEdge1-GitHub-PAT)
               ARTIFACT_NAME: 'packages_mariner_amd64'
               PACKAGE_FILTER: 'aziot-identity-service-*.cm1.x86_64.rpm'
               DOWNLOAD_PATH: $(Build.StagingDirectory)
