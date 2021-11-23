@@ -168,6 +168,14 @@ stages:
               echo "PACKAGE_OS=$(os)"
               echo "##vso[task.setvariable variable=MARINER_RELEASE;]$(release)"
             displayName: Set Version
+          - task: AzureKeyVault@1
+            condition: eq(variables['run.flag'], 1)
+            displayName: 'Azure Key Vault: EdgeBuildkv'
+            inputs:
+              azureSubscription: $(azure.subscription)
+              KeyVaultName: 'edgebuildkv'
+              SecretsFilter: >- 
+                GitHubAccessToken
           - task: PowerShell@2
             displayName: 'Download aziot-identity-service'
             inputs:
