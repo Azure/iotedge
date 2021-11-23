@@ -393,6 +393,7 @@ mod tests {
 
     use std::{fs::File, path::Path};
 
+    use docker::models::ContainerCreateBody;
     use edgelet_test_utils::runtime::{TestModule, TestModuleRegistry, TestRuntime};
 
     use crate::deployment::deployment::Deployment;
@@ -495,6 +496,8 @@ mod tests {
     }
 
     mod state_difference {
+        use docker::models::HostConfig;
+
         use super::*;
 
         #[tokio::test]
@@ -515,35 +518,6 @@ mod tests {
             assert_eq!(difference.modules_to_create.len(), 1); // Edgehub
             assert_eq!(difference.modules_to_delete.len(), 0);
             assert_eq!(difference.state_change_modules.len(), 0);
-            assert_eq!(difference.failed_modules.len(), 0);
-        }
-
-        #[tokio::test]
-        async fn stop_module() {
-            let (provider, registry, sim_temp_module, sim_temp_state) =
-                setup("basic_sim_temp_deployment.json");
-
-            let stop_sim_temp_state = sim_temp_state.with_status(ModuleStatus::Stopped);
-
-            let runtime = TestRuntime::<DockerConfig> {
-                module_details: vec![(sim_temp_module, stop_sim_temp_state)],
-                ..Default::default()
-            };
-            let reconciler = Reconciler::new(provider, &runtime, &registry);
-            let difference = reconciler
-                .get_differance()
-                .await
-                .expect("Error getting difference");
-
-            assert_eq!(difference.state_change_modules.len(), 1);
-            assert_eq!(difference.state_change_modules[0].reset_container, false);
-            assert_eq!(
-                &difference.state_change_modules[0].module.name,
-                "SimulatedTemperatureSensor"
-            );
-
-            assert_eq!(difference.modules_to_create.len(), 1); // Edgehub
-            assert_eq!(difference.modules_to_delete.len(), 0);
             assert_eq!(difference.failed_modules.len(), 0);
         }
 
@@ -571,6 +545,39 @@ mod tests {
         #[tokio::test]
         async fn start_module() {
             let (provider, registry, sim_temp_module, sim_temp_state) =
+                setup("basic_sim_temp_deployment.json");
+
+            let stop_sim_temp_state = sim_temp_state.with_status(ModuleStatus::Stopped);
+
+            let runtime = TestRuntime::<DockerConfig> {
+                module_details: vec![(sim_temp_module, stop_sim_temp_state)],
+                ..Default::default()
+            };
+            let reconciler = Reconciler::new(provider, &runtime, &registry);
+            let difference = reconciler
+                .get_differance()
+                .await
+                .expect("Error getting difference");
+
+            assert_eq!(difference.state_change_modules.len(), 1);
+            assert_eq!(difference.state_change_modules[0].reset_container, false);
+            assert_eq!(
+                &difference.state_change_modules[0].module.name,
+                "SimulatedTemperatureSensor"
+            );
+            assert_eq!(
+                difference.state_change_modules[0].module.config.status,
+                DeploymentModuleStatus::Running,
+            );
+
+            assert_eq!(difference.modules_to_create.len(), 1); // Edgehub
+            assert_eq!(difference.modules_to_delete.len(), 0);
+            assert_eq!(difference.failed_modules.len(), 0);
+        }
+
+        #[tokio::test]
+        async fn stop_module() {
+            let (provider, registry, sim_temp_module, sim_temp_state) =
                 setup("stopped_sim_temp_deployment.json");
 
             let runtime = TestRuntime::<DockerConfig> {
@@ -596,17 +603,18 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn change_docker_config() {
+        async fn change_module_image() {
+            // TODO: check env test
             let (provider, registry, sim_temp_module, sim_temp_state) =
                 setup("basic_sim_temp_deployment.json");
 
-            let mut docker_config_change_module = sim_temp_module;
-            docker_config_change_module.config = docker_config_change_module
+            let mut image_change_module = sim_temp_module;
+            image_change_module.config = image_change_module
                 .config
                 .with_image("this is the old module image. It should be replaced".to_string());
 
             let runtime = TestRuntime::<DockerConfig> {
-                module_details: vec![(docker_config_change_module, sim_temp_state)],
+                module_details: vec![(image_change_module, sim_temp_state)],
                 ..Default::default()
             };
             let reconciler = Reconciler::new(provider, &runtime, &registry);
@@ -630,6 +638,80 @@ mod tests {
                     .settings
                     .image,
                 "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0"
+            );
+
+            assert_eq!(difference.modules_to_create.len(), 1); // Edgehub
+            assert_eq!(difference.modules_to_delete.len(), 0);
+            assert_eq!(difference.failed_modules.len(), 0);
+        }
+
+        #[tokio::test]
+        async fn change_docker_config() {
+            let (provider, registry, sim_temp_module, sim_temp_state) =
+                setup("binding_sim_temp_deployment.json");
+
+            {
+                let provider = provider.clone();
+                let provider = provider.lock().await;
+                println!("{:#?}", provider.deployment);
+                provider
+                    .deployment
+                    .as_ref()
+                    .expect("deployment")
+                    .properties
+                    .desired
+                    .modules
+                    .get("SimulatedTemperatureSensor")
+                    .expect("module")
+                    .settings
+                    .create_option
+                    .create_options
+                    .as_ref()
+                    .expect("Create Options")
+                    .host_config()
+                    .expect("host config");
+            }
+
+            let mut docker_config_change_module = sim_temp_module;
+            docker_config_change_module.config =
+                docker_config_change_module.config.with_create_options(
+                    ContainerCreateBody::new().with_host_config(
+                        HostConfig::new()
+                            .with_binds(vec!["5000:5000".to_string(), "443:443".to_string()]),
+                    ),
+                );
+
+            let runtime = TestRuntime::<DockerConfig> {
+                module_details: vec![(docker_config_change_module, sim_temp_state)],
+                ..Default::default()
+            };
+            let reconciler = Reconciler::new(provider, &runtime, &registry);
+            let difference = reconciler
+                .get_differance()
+                .await
+                .expect("Error getting difference");
+
+            assert_eq!(difference.state_change_modules.len(), 1);
+            // Since a container config value was changed, the container must be reset
+            assert_eq!(difference.state_change_modules[0].reset_container, true);
+            assert_eq!(
+                &difference.state_change_modules[0].module.name,
+                "SimulatedTemperatureSensor"
+            );
+            // The binds should be set to empty like in the deployment
+            assert_eq!(
+                difference.state_change_modules[0]
+                    .module
+                    .config
+                    .settings
+                    .create_option
+                    .create_options
+                    .as_ref()
+                    .expect("Create options should not be empty")
+                    .host_config()
+                    .expect("Host config should not be empty")
+                    .binds(),
+                None
             );
 
             assert_eq!(difference.modules_to_create.len(), 1); // Edgehub

@@ -173,16 +173,49 @@ mod tests {
         let tmp_dir = tempdir().unwrap();
         let tmp_dir = tmp_dir.path();
 
-        let test_obj = crate::deployment::deployment::Deployment {
-            ..Default::default()
-        };
-
-        let file = tmp_dir.join("test.json");
+        let test_obj = crate::deployment::deployment::Deployment::default();
+        let file = tmp_dir.join("test1.json");
         write_serde(&file, &test_obj)
             .await
             .expect("Can write object");
-        let result = read_serde(&file).await.expect("Can read object");
+        let result = read_serde(&file).await.expect("Can read object 1");
+        assert_eq!(test_obj, result);
 
+        let test_obj = crate::deployment::deployment::Deployment {
+            properties: crate::deployment::deployment::Properties {
+                desired: crate::deployment::deployment::PropertiesInner {
+                    system_modules: crate::deployment::deployment::SystemModules {
+                        edge_hub: crate::deployment::deployment::ModuleConfig {
+                            settings: crate::deployment::deployment::DockerSettings {
+                                create_option: crate::deployment::deployment::CreateOption {
+                                    create_options: Some(
+                                        docker::models::ContainerCreateBody::new()
+                                            .with_host_config(
+                                                docker::models::HostConfig::new().with_binds(vec![
+                                                    "5000:5000".to_owned(),
+                                                    "443:443".to_owned(),
+                                                ]),
+                                            ),
+                                    ),
+                                },
+                                ..Default::default()
+                            },
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        let file = tmp_dir.join("test2.json");
+        write_serde(&file, &test_obj)
+            .await
+            .expect("Can write object");
+        let result = read_serde(&file).await.expect("Can read object 2");
         assert_eq!(test_obj, result);
     }
 
@@ -209,12 +242,6 @@ mod tests {
         assert_eq!(manager.current_deployment, expected);
         assert_ne!(manager.valid_deployment, None);
 
-        write_serde(
-            tmp_dir.join("valid_deployment.json"),
-            manager.valid_deployment,
-        )
-        .await
-        .unwrap();
         let valid_deployment: Option<Deployment> =
             read_serde(tmp_dir.join("valid_deployment.json"))
                 .await

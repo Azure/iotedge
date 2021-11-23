@@ -179,11 +179,11 @@ impl TryFrom<DockerSettings> for edgelet_settings::DockerConfig {
 
 #[derive(Default, Debug, Clone, PartialEq)]
 pub struct CreateOption {
-    create_options: Option<docker::models::ContainerCreateBody>,
+    pub create_options: Option<docker::models::ContainerCreateBody>,
 }
 
 lazy_static::lazy_static! {
-    static ref CREATE_OPTIONS_REGEX: regex::Regex = regex::Regex::new(r"^(createoptions|createOptions)(?P<index>\d*)$").expect("could not compile regex");
+    static ref CREATE_OPTIONS_REGEX: regex::Regex = regex::Regex::new(r"^(createoptions|createOptions|CreateOptions)(?P<index>\d*)$").expect("could not compile regex");
 }
 
 impl<'de> serde::Deserialize<'de> for CreateOption {
@@ -248,8 +248,12 @@ impl serde::Serialize for CreateOption {
     where
         S: serde::Serializer,
     {
-        let string_wrapper: String = serde_json::to_string(&self.create_options).unwrap();
-        serializer.collect_map([("create_options", string_wrapper)])
+        if let Some(create_options) = &self.create_options {
+            let string_wrapper: String = serde_json::to_string(create_options).unwrap();
+            serializer.collect_map([("createOptions", string_wrapper)])
+        } else {
+            serializer.serialize_none()
+        }
     }
 }
 

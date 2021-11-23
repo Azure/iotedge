@@ -5,10 +5,10 @@
                 "SimulatedTemperatureSensor": {
                     "settings": {
                         "image": "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0",
-                        "createOptions": "{}"
+                        "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"5671/tcp\":[{\"HostPort\":\"5671\"}],\"8883/tcp\":[{\"HostPort\":\"8883\"}],\"443/tcp\":[{\"HostPort\":\"443\"}]}}}"
                     },
                     "type": "docker",
-                    "status": "stopped",
+                    "status": "running",
                     "restartPolicy": "always",
                     "imagePullPolicy": "on-create",
                     "version": "1.0",

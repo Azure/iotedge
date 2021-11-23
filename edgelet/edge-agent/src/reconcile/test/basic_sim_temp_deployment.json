@@ -5,7 +5,7 @@
                 "SimulatedTemperatureSensor": {
                     "settings": {
                         "image": "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0",
-                        "create_options": "{}"
+                        "createOptions": "{}"
                     },
                     "type": "docker",
                     "status": "running",
@@ -19,7 +19,7 @@
                 "edgeHub": {
                     "settings": {
                         "image": "mcr.microsoft.com/azureiotedge-hub:1.2",
-                        "create_options": "{\"HostConfig\":{\"PortBindings\":{\"443/tcp\":[{\"HostPort\":\"443\"}],\"5671/tcp\":[{\"HostPort\":\"5671\"}],\"8883/tcp\":[{\"HostPort\":\"8883\"}]}}}"
+                        "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"443/tcp\":[{\"HostPort\":\"443\"}],\"5671/tcp\":[{\"HostPort\":\"5671\"}],\"8883/tcp\":[{\"HostPort\":\"8883\"}]}}}"
                     },
                     "type": "docker",
                     "status": "running",
