@@ -116,7 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                                 case HttpStatusCode.BadRequest:
                                     throw new ArgumentException($"Request Returned Status Code {httpResponseMessage.StatusCode} with Message {await httpResponseMessage.Content.ReadAsStringAsync()}");
                                 default:
-                                    throw new InvalidOperationException($"Request Returned Status Code {httpResponseMessage.StatusCode} with Message {await httpResponseMessage.Content.ReadAsStringAsync()}");
+                                    throw new EdgeletCommunicationException(await httpResponseMessage.Content.ReadAsStringAsync(), (int)httpResponseMessage.StatusCode);
                             }
                         }
 
