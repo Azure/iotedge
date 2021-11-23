@@ -52,20 +52,6 @@ pub struct DockerModuleRuntime {
 }
 
 impl DockerModuleRuntime {
-    fn merge_env(cur_env: Option<&[String]>, new_env: &BTreeMap<String, String>) -> Vec<String> {
-        // parse docker env into key-value pairs
-        let mut merged_env = docker::utils::parse_docker_env(cur_env);
-        // build a new merged map containing string slices for keys and values
-        // pointing into String instances in new_env
-        merged_env.extend(new_env.iter().map(|(k, v)| (k.as_str(), v.as_str())));
-
-        // finally build a new Vec<String>; we alloc new strings here
-        merged_env
-            .iter()
-            .map(|(key, value)| format!("{}={}", key, value))
-            .collect()
-    }
-
     async fn get_notary_registries(settings: &Settings) -> Result<BTreeMap<String, PathBuf>> {
         if let Some(content_trust_map) = settings
             .moby_runtime()
@@ -418,7 +404,7 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         debug!("Creating container {} with image {}", module.name(), image);
         let create_options = module.config().create_options().clone();
-        let merged_env = DockerModuleRuntime::merge_env(create_options.env(), module.env());
+        let merged_env = docker::utils::merge_env(create_options.env(), module.env());
 
         let mut labels = create_options
             .labels()

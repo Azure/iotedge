@@ -50,16 +50,24 @@ impl<'a> typed_headers::Header for UserAgent<'a> {
     }
 }
 
-pub fn parse_docker_env(docker_env: Option<&[String]>) -> BTreeMap<&str, &str> {
-    let mut result = BTreeMap::new();
-    if let Some(env) = docker_env {
+pub fn merge_env(cur_env: Option<&[String]>, new_env: &BTreeMap<String, String>) -> Vec<String> {
+    let mut merged_env = BTreeMap::new();
+    // build a new merged map containing string slices for keys and values
+    // pointing into String instances in new_env
+    merged_env.extend(new_env.iter().map(|(k, v)| (k.as_str(), v.as_str())));
+
+    if let Some(env) = cur_env {
         // extend merged_env with variables in cur_env (these are
         // only string slices pointing into strings inside cur_env)
-        result.extend(env.iter().filter_map(|s| {
+        merged_env.extend(env.iter().filter_map(|s| {
             let mut tokens = s.splitn(2, '=');
             tokens.next().map(|key| (key, tokens.next().unwrap_or("")))
         }));
     }
 
-    result
+    // finally build a new Vec<String>; we alloc new strings here
+    merged_env
+        .iter()
+        .map(|(key, value)| format!("{}={}", key, value))
+        .collect()
 }

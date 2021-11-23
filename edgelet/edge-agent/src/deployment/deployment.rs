@@ -161,13 +161,24 @@ fn is_default_docker_perms(val: &bool) -> bool {
     val == &edgelet_settings::base::default_allow_elevated_docker_permissions()
 }
 
-impl TryFrom<DockerSettings> for edgelet_settings::DockerConfig {
+impl TryFrom<ModuleConfig> for edgelet_settings::DockerConfig {
     type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
 
-    fn try_from(settings: DockerSettings) -> Result<Self, Self::Error> {
+    fn try_from(config: ModuleConfig) -> Result<Self, Self::Error> {
+        let ModuleConfig { settings, env, .. } = config;
+
+        // Merge env variables
+        let create_options = settings.create_option.create_options.unwrap_or_default();
+        let env = env
+            .iter()
+            .map(|(k, v)| (k.to_owned(), v.to_string()))
+            .collect();
+        let env = docker::utils::merge_env(create_options.env(), &env);
+        let create_options = create_options.with_env(env);
+
         let config = edgelet_settings::DockerConfig::new(
             settings.image,
-            settings.create_option.create_options.unwrap_or_default(),
+            create_options,
             settings.digest,
             settings.auth,
             settings.allow_elevated_docker_permissions,
