@@ -171,7 +171,7 @@ stages:
           - task: AzureKeyVault@1
             displayName: 'Azure Key Vault: EdgeBuildkv'
             inputs:
-              azureSubscription: $(azure.subscription)
+              azureSubscription: $(az.subscription)
               KeyVaultName: 'edgebuildkv'
               SecretsFilter: >- 
                 IotEdge1-GitHub-PAT
