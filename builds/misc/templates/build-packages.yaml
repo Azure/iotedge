@@ -164,7 +164,7 @@ stages:
               BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
               VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"
               echo "##vso[task.setvariable variable=VERSION;]$VERSION"
-              echo "PACKAGE_ARCH=$(arch)"
+              echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
               echo "PACKAGE_OS=$(os)"
               echo "##vso[task.setvariable variable=MARINER_RELEASE;]$(release)"
               mariner_arch=$(arch)
