@@ -69,13 +69,7 @@ where
                 // Module with same name exists, check if should be modified.
 
                 let desired_config: DockerConfig = desired.config.clone().try_into()?;
-                if desired_config != current.config {
-                    // Module should be modified to match desired, and the change requires a new container
-                    state_change_modules.push(StateChangeModule {
-                        module: desired,
-                        reset_container: true,
-                    });
-                } else {
+                if desired_config == current.config {
                     // Module config matches, check if state matches
                     match desired.config.status {
                         DeploymentModuleStatus::Running => {
@@ -94,7 +88,7 @@ where
                                 | ModuleStatus::Dead => {
                                     // Module is in a bad state, send to restart planner
 
-                                    // TODO: Implement restart planner. 
+                                    // TODO: Implement restart planner.
                                     // Once this is done no longer add this to state change
                                     state_change_modules.push(StateChangeModule {
                                         module: desired.clone(),
@@ -104,7 +98,7 @@ where
                                     failed_modules.push(FailedModule {
                                         module: current,
                                         restart_policy: desired.config.restart_policy,
-                                    })
+                                    });
                                 }
                             }
                         }
@@ -118,6 +112,12 @@ where
                             }
                         }
                     }
+                } else {
+                    // Module should be modified to match desired, and the change requires a new container
+                    state_change_modules.push(StateChangeModule {
+                        module: desired,
+                        reset_container: true,
+                    });
                 }
             } else {
                 // Module doesn't exist, create it.
@@ -153,8 +153,8 @@ where
             .modules
             .iter()
             .map(|(name, module)| DesiredModule {
-                name: name.to_owned(),
-                config: module.to_owned(),
+                name: name.clone(),
+                config: module.clone(),
             })
             .collect();
 
@@ -165,7 +165,7 @@ where
                 .desired
                 .system_modules
                 .edge_hub
-                .to_owned(),
+                .clone(),
         });
 
         Ok(modules)
@@ -183,8 +183,8 @@ where
                     module.name().to_owned(),
                     RunningModule {
                         name: module.name().to_owned(),
-                        config: module.config().to_owned(),
-                        state: state.to_owned(),
+                        config: module.config().clone(),
+                        state: state.clone(),
                     },
                 )
             })
@@ -281,7 +281,7 @@ where
                     .await?;
             }
 
-            self.set_module_state(&name, &state_change_module.module.config.status)
+            self.set_module_state(name, &state_change_module.module.config.status)
                 .await?;
         }
 
@@ -524,8 +524,7 @@ mod tests {
 
         #[tokio::test]
         async fn create_module() {
-            let (provider, registry, _, _) =
-                setup("basic_sim_temp_deployment.json");
+            let (provider, registry, _, _) = setup("basic_sim_temp_deployment.json");
 
             let runtime = TestRuntime::<DockerConfig> {
                 module_details: vec![],

@@ -1,3 +1,4 @@
+#[allow(clippy::module_inception)]
 pub mod deployment;
 mod deployment_manager;
 

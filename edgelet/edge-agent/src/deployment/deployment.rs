@@ -157,6 +157,7 @@ pub struct DockerSettings {
     pub allow_elevated_docker_permissions: bool,
 }
 
+#[allow(clippy::trivially_copy_pass_by_ref)] // Needed by serde
 fn is_default_docker_perms(val: &bool) -> bool {
     val == &edgelet_settings::base::default_allow_elevated_docker_permissions()
 }
@@ -171,7 +172,7 @@ impl TryFrom<ModuleConfig> for edgelet_settings::DockerConfig {
         let create_options = settings.create_option.create_options.unwrap_or_default();
         let env = env
             .iter()
-            .map(|(k, v)| (k.to_owned(), v.to_string()))
+            .map(|(k, v)| (k.clone(), v.to_string()))
             .collect();
         let env = docker::utils::merge_env(create_options.env(), &env);
 
@@ -212,7 +213,7 @@ impl<'de> serde::Deserialize<'de> for CreateOption {
         impl<'de> serde::de::Visitor<'de> for CreateOptionsVisitor {
             type Value = CreateOption;
 
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
                 formatter.write_str("create options")
             }
 

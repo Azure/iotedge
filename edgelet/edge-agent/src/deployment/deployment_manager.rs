@@ -97,7 +97,7 @@ impl DeploymentManager {
             }
             Err(error) => {
                 log::warn!("Can not parse newest deployment: {}", error);
-                Ok(None)
+                Err(error.into())
             }
         }
     }

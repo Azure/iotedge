@@ -1,3 +1,17 @@
+// Copyright (c) Microsoft. All rights reserved.
+
+#![deny(rust_2018_idioms, warnings)]
+#![deny(clippy::all, clippy::pedantic)]
+#![allow(
+    clippy::default_trait_access,
+    clippy::missing_errors_doc,
+    clippy::module_name_repetitions,
+    clippy::must_use_candidate,
+    clippy::too_many_lines,
+    clippy::use_self,
+    clippy::option_if_let_else
+)]
+
 mod deployment;
 mod hub_client_manager;
 mod reconcile;
@@ -13,6 +27,7 @@ use edgelet_settings::DockerConfig;
 use edgelet_settings::{docker::Settings, RuntimeSettings};
 use tokio::sync::Mutex;
 
+#[allow(clippy::too_many_arguments)]
 pub async fn start_edgeagent<M, R>(
     settings: &Settings,
     device_info: &aziot_identity_common::AzureIoTSpec,
