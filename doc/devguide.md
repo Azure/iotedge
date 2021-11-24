@@ -123,3 +123,52 @@ options
  -v, --image-version  Docker Image Version.
  -t, --template       Yaml file template for manifest definition.
 ```
+## Attach the VSCode Debugger to EdgeAgent
+There is a script in the repo to setup a docker container with the Visual Studio Debugger (vsdbg).  After running the script in a container, you can connect the VSCode debugger to a process running in the container. The following example shows how to run the setup script on a Linux IoT Edge device to setup the debugger in the Edge Agent container:
+
+```
+$ scripts/linux/setupContainerDebugger.sh -c edgeAgent -u edgeagentuser
+```
+After running the debugger setup script, create a launch.json file in the edgeAgent/.vscode directory. The launch.json file should have the following contents (Note: replace the value in `sourceFileMap` before running):
+```
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Remote Debug IoT Edge Module (.NET Core)",
+            "type": "coreclr",
+            "request": "attach",
+            "processId": "${command:pickRemoteProcess}",
+            "pipeTransport": {
+                "pipeProgram": "docker",
+                "pipeArgs": [
+                    "exec",
+                    "-i",
+                    "-u",
+                    "edgeagentuser"
+                    "edgeAgent",
+                    "sh",
+                    "-c"
+                ],
+                "debuggerPath": "/root/vsdbg/vsdbg",
+                "pipeCwd": "${workspaceFolder}",
+                "quoteArgs": true
+            },
+            "sourceFileMap": {
+                "<replace-with-compile-time-path-to-edge-agent-source>": "${workspaceRoot}"
+            },
+            "symbolOptions": {
+                "searchPaths": ["/app"],
+                "searchMicrosoftSymbolServer": false,
+                "searchNuGetOrgSymbolServer": false
+            },
+            "justMyCode": true,
+            "requireExactSource": true
+        }
+    ]
+}
+```
+Start debugging by selecting the configuration defined above from the 'Run and Debug' tab (Ctrl+Shift+D) and selecting the 'Start Debugging' button (F5). 
