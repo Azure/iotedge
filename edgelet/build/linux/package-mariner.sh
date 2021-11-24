@@ -77,6 +77,12 @@ popd
 sudo mv out/toolkit-*.tar.gz "${MARINER_BUILD_ROOT}/toolkit.tar.gz"
 popd
 
+#copy over IIS RPM
+pwd
+ls -Ra
+mkdir -p ${MARINER_BUILD_ROOT}out/RPMS/${MARINER_ARCH}
+cp aziot-identity-service/mariner/amd64/aziot-identity-service-*.cm1.${MARINER_ARCH}.rpm ${MARINER_BUILD_ROOT}/out/RPMS/${MARINER_ARCH}
+
 # Prepare toolkit
 pushd ${MARINER_BUILD_ROOT}
 sudo tar xzf toolkit.tar.gz
