@@ -158,7 +158,7 @@ stages:
               arch: amd64
               os: mariner
               release: tags/1.0-stable
-              target.iotedged: builds/mariner/out/RPMS/x86_64/
+              target.iotedged: builds/mariner/out/RPMS
         steps:
           - bash: |
               BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
@@ -168,7 +168,7 @@ stages:
               echo "PACKAGE_OS=$(os)"
               echo "##vso[task.setvariable variable=MARINER_RELEASE;]$(release)"
               mariner_arch=$(arch)
-              if [$mariner_arch = 'amd64']; then
+              if [$mariner_arch == "amd64"]; then
                 mariner_arch="x86_64"
               fi
               echo "##vso[task.setvariable variable=MARINER_ARCH;]$mariner_arch"
@@ -203,7 +203,7 @@ stages:
           - task: CopyFiles@2
             displayName: Copy iotedged Files to Artifact Staging
             inputs:
-              SourceFolder: $(target.iotedged)
+              SourceFolder: $(target.iotedged)/$(mariner_arch)
               Contents: |
                 *.rpm
               TargetFolder: '$(build.artifactstagingdirectory)'
