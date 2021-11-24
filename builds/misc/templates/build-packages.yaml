@@ -168,7 +168,7 @@ stages:
               echo "PACKAGE_OS=$(os)"
               echo "##vso[task.setvariable variable=MARINER_RELEASE;]$(release)"
               mariner_arch=$(arch)
-              if [$mariner_arch == "amd64"]; then
+              if [ $mariner_arch == "amd64" ]; then
                 mariner_arch="x86_64"
               fi
               echo "##vso[task.setvariable variable=MARINER_ARCH;]$mariner_arch"
