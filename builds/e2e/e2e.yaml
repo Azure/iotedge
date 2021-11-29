@@ -123,10 +123,6 @@ jobs:
       artifactName: iotedged-ubuntu20.04-aarch64
 
     steps:
-    - bash: |
-        sudo rm -rf /home/ubuntu/myagent/_work/1/s/TestResults/
-        echo "Getting IP"
-        echo $(ifconfig | grep inet)
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
 
