@@ -10,7 +10,7 @@ steps:
     # Filter out flaky tests.
     $filter = 'Category!=Flaky'
 
-    if ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'aarch64')
+    if ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
     {
       $filter += '&Category!=FlakyOnArm'
     }

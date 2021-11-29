@@ -127,11 +127,6 @@ steps:
 
     $imageTag = "$imageId-$(os)-$(arch)"
     
-    if ('$(arch)' -eq 'aarch64')
-    {
-      $imageTag = "$imageId-$(os)-arm64v8"
-    }
-
     $context = @{
       dpsIdScope = '$(dps.idScope)'
       edgeAgentImage = "$imagePrefix-agent:$imageTag";
@@ -168,7 +163,7 @@ steps:
       $context['installerPath'] = Convert-Path '$(Build.SourcesDirectory)/scripts/windows/setup'
     }
 
-    if (('$(arch)' -eq 'arm32v7') -or ('$(arch)' -eq 'aarch64'))
+    if (('$(arch)' -eq 'arm32v7') -or ('$(arch)' -eq 'arm64v8'))
     {
       $context['optimizeForPerformance'] = 'false'
       $context['setupTimeoutMinutes'] = 10

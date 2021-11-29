@@ -109,9 +109,9 @@ jobs:
     - template: templates/e2e-run.yaml
 
 ################################################################################
-  - job: ubuntu_2004_aarch64
+  - job: ubuntu_2004_arm64v8
 ################################################################################
-    displayName: Ubuntu 20.04 with aarch64
+    displayName: Ubuntu 20.04 with arm64v8
     pool:
       name: $(pool.custom.name)
       demands: 
@@ -119,7 +119,7 @@ jobs:
 
     variables:
       os: linux
-      arch: aarch64
+      arch: arm64v8
       artifactName: iotedged-ubuntu20.04-aarch64
 
     steps:
