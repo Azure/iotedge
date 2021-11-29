@@ -22,6 +22,7 @@ pub trait RuntimeSettings {
 
     fn agent(&self) -> &module::Settings<Self::ModuleConfig>;
     fn agent_mut(&mut self) -> &mut module::Settings<Self::ModuleConfig>;
+    fn product_info(&self) -> Option<&std::path::Path>;
 
     fn connect(&self) -> &uri::Connect;
     fn listen(&self) -> &uri::Listen;
@@ -56,6 +57,9 @@ pub struct Settings<ModuleConfig> {
     pub allow_elevated_docker_permissions: bool,
 
     pub agent: module::Settings<ModuleConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub product_info: Option<std::path::PathBuf>,
+
     pub connect: uri::Connect,
     pub listen: uri::Listen,
 
@@ -112,6 +116,10 @@ impl<T: Clone> RuntimeSettings for Settings<T> {
 
     fn agent_mut(&mut self) -> &mut module::Settings<Self::ModuleConfig> {
         &mut self.agent
+    }
+
+    fn product_info(&self) -> Option<&std::path::Path> {
+        self.product_info.as_deref()
     }
 
     fn connect(&self) -> &uri::Connect {

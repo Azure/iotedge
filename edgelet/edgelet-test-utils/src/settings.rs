@@ -50,6 +50,10 @@ impl edgelet_settings::RuntimeSettings for Settings {
         unimplemented!()
     }
 
+    fn product_info(&self) -> Option<&std::path::Path> {
+        unimplemented!()
+    }
+
     fn connect(&self) -> &edgelet_settings::uri::Connect {
         unimplemented!()
     }

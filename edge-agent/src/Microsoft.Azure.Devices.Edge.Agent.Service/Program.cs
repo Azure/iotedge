@@ -149,11 +149,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 {
                     productInfo += $"/{versionInfo}";
                 }
+
                 string additionalProductInfo = configuration.GetValue<string>(Constants.EdgeletProductInfoVariableName);
                 if (!string.IsNullOrEmpty(additionalProductInfo))
                 {
                     productInfo += $" {additionalProductInfo}";
                 }
+
                 Option<UpstreamProtocol> upstreamProtocol = configuration.GetValue<string>(Constants.UpstreamProtocolKey).ToUpstreamProtocol();
                 Option<IWebProxy> proxy = Proxy.Parse(configuration.GetValue<string>("https_proxy"), logger);
                 bool closeOnIdleTimeout = configuration.GetValue(Constants.CloseOnIdleTimeout, false);

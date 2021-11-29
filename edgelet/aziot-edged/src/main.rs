@@ -5,6 +5,7 @@
 
 mod error;
 mod management;
+mod product_info;
 mod provision;
 mod watchdog;
 mod workload_manager;

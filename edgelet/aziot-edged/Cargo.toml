@@ -12,8 +12,9 @@ futures-util = "0.3"
 log = "0.4"
 serde_json = "1"
 sha2 = "0.9"
-serde = "1"
+serde = { version = "1", features = ["derive"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "sync", "time"] }
+toml = "0.5"
 url = "2"
 
 edgelet-core = { path = "../edgelet-core" }

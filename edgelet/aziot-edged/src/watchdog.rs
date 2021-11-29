@@ -1,20 +1,29 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use edgelet_core::ModuleRuntime;
+use std::collections::BTreeMap;
+use std::time::Duration;
+
+use aziot_identity_client_async::Client as IdentityClient;
+use aziot_identity_common::{AzureIoTSpec, Identity};
+use futures_util::future::Either;
+
+use edgelet_core::{ModuleRuntime, ModuleStatus, ShutdownReason};
+use edgelet_docker::DockerModuleRuntime;
+use edgelet_settings::docker::Settings as DockerSettings;
 use edgelet_settings::RuntimeSettings;
 
 use crate::error::Error as EdgedError;
 
 pub(crate) async fn run_until_shutdown(
-    settings: edgelet_settings::docker::Settings,
-    device_info: &aziot_identity_common::AzureIoTSpec,
-    runtime: edgelet_docker::DockerModuleRuntime,
-    identity_client: &aziot_identity_client_async::Client,
-    mut shutdown_rx: tokio::sync::mpsc::UnboundedReceiver<edgelet_core::ShutdownReason>,
-) -> Result<edgelet_core::ShutdownReason, EdgedError> {
+    settings: DockerSettings,
+    device_info: &AzureIoTSpec,
+    runtime: DockerModuleRuntime,
+    identity_client: &IdentityClient,
+    mut shutdown_rx: tokio::sync::mpsc::UnboundedReceiver<ShutdownReason>,
+) -> Result<ShutdownReason, EdgedError> {
     // Run the watchdog every 60 seconds while waiting for any running task to send a
     // shutdown signal.
-    let watchdog_period = std::time::Duration::from_secs(60);
+    let watchdog_period = Duration::from_secs(60);
     let watchdog_retries = settings.watchdog().max_retries();
     let mut watchdog_errors = 0;
 
@@ -31,7 +40,7 @@ pub(crate) async fn run_until_shutdown(
         futures_util::pin_mut!(watchdog_next);
 
         match futures_util::future::select(watchdog_next, shutdown_loop).await {
-            futures_util::future::Either::Left((_, shutdown)) => {
+            Either::Left((_, shutdown)) => {
                 if let Err(err) = watchdog(&settings, device_info, &runtime, identity_client).await
                 {
                     log::warn!("Error in watchdog: {}", err);
@@ -48,16 +57,13 @@ pub(crate) async fn run_until_shutdown(
                 shutdown_loop = shutdown;
             }
 
-            futures_util::future::Either::Right((shutdown_reason, _)) => {
+            Either::Right((shutdown_reason, _)) => {
                 let shutdown_reason = shutdown_reason.expect("shutdown channel closed");
                 log::info!("{}", shutdown_reason);
                 log::info!("Watchdog stopped");
 
                 log::info!("Stopping all modules...");
-                if let Err(err) = runtime
-                    .stop_all(Some(std::time::Duration::from_secs(30)))
-                    .await
-                {
+                if let Err(err) = runtime.stop_all(Some(Duration::from_secs(30))).await {
                     log::warn!("Failed to stop modules on shutdown: {}", err);
                 } else {
                     log::info!("All modules stopped");
@@ -70,10 +76,10 @@ pub(crate) async fn run_until_shutdown(
 }
 
 async fn watchdog(
-    settings: &edgelet_settings::docker::Settings,
-    device_info: &aziot_identity_common::AzureIoTSpec,
-    runtime: &edgelet_docker::DockerModuleRuntime,
-    identity_client: &aziot_identity_client_async::Client,
+    settings: &DockerSettings,
+    device_info: &AzureIoTSpec,
+    runtime: &DockerModuleRuntime,
+    identity_client: &IdentityClient,
 ) -> Result<(), EdgedError> {
     log::info!("Watchdog checking Edge runtime status");
     let agent_name = settings.agent().name();
@@ -82,11 +88,11 @@ async fn watchdog(
         let agent_status = agent_status.status();
 
         match agent_status {
-            edgelet_core::ModuleStatus::Running => {
+            ModuleStatus::Running => {
                 log::info!("Edge runtime is running");
             }
 
-            edgelet_core::ModuleStatus::Stopped | edgelet_core::ModuleStatus::Failed => {
+            ModuleStatus::Stopped | ModuleStatus::Failed => {
                 log::info!(
                     "Edge runtime status is {}, starting module now...",
                     agent_status
@@ -100,7 +106,7 @@ async fn watchdog(
                 log::info!("Started Edge runtime module {}", agent_name);
             }
 
-            edgelet_core::ModuleStatus::Dead | edgelet_core::ModuleStatus::Unknown => {
+            ModuleStatus::Dead | ModuleStatus::Unknown => {
                 log::info!(
                     "Edge runtime status is {}, removing and recreating module...",
                     agent_status
@@ -122,10 +128,10 @@ async fn watchdog(
 }
 
 async fn create_and_start_agent(
-    settings: &edgelet_settings::docker::Settings,
-    device_info: &aziot_identity_common::AzureIoTSpec,
-    runtime: &edgelet_docker::DockerModuleRuntime,
-    identity_client: &aziot_identity_client_async::Client,
+    settings: &DockerSettings,
+    device_info: &AzureIoTSpec,
+    runtime: &DockerModuleRuntime,
+    identity_client: &IdentityClient,
 ) -> Result<(), EdgedError> {
     let agent_name = settings.agent().name();
     let mut agent_spec = settings.agent().clone();
@@ -133,6 +139,34 @@ async fn create_and_start_agent(
     let gen_id = agent_gen_id(identity_client).await?;
     let mut env = agent_env(gen_id, settings, device_info);
     agent_spec.env_mut().append(&mut env);
+
+    let pinfo = if let Some(path) = settings.product_info() {
+        Ok(
+            crate::product_info::ProductInfo::try_load(path).map_err(|err| {
+                EdgedError::from_err(
+                    format!("malformed product info at path {}", path.display()),
+                    err,
+                )
+            })?,
+        )
+    } else {
+        crate::product_info::ProductInfo::from_system()
+    };
+
+    match pinfo {
+        Ok(pinfo) => {
+            let prev = agent_spec
+                .env_mut()
+                .insert("IOTEDGE_PRODUCTINFO".to_owned(), pinfo.to_string());
+
+            if prev.is_some() {
+                log::warn!("overrode old IOTEDGE_PRODUCTINFO environment variable");
+            }
+        }
+        Err(err) => {
+            log::warn!("failed to infer system product info: {}", err);
+        }
+    }
 
     log::info!(
         "Creating and starting Edge runtime module {}...",
@@ -162,15 +196,13 @@ async fn create_and_start_agent(
     Ok(())
 }
 
-async fn agent_gen_id(
-    identity_client: &aziot_identity_client_async::Client,
-) -> Result<String, EdgedError> {
+async fn agent_gen_id(identity_client: &IdentityClient) -> Result<String, EdgedError> {
     let identity = identity_client
         .update_module_identity("$edgeAgent")
         .await
         .map_err(|err| EdgedError::from_err("Failed to update $edgeAgent identity", err))?;
 
-    if let aziot_identity_common::Identity::Aziot(identity) = identity {
+    if let Identity::Aziot(identity) = identity {
         identity.gen_id.map_or_else(
             || Err(EdgedError::new("$edgeAgent identity missing generation ID")),
             |gen_id| Ok(gen_id.0),
@@ -182,10 +214,10 @@ async fn agent_gen_id(
 
 fn agent_env(
     gen_id: String,
-    settings: &edgelet_settings::docker::Settings,
-    device_info: &aziot_identity_common::AzureIoTSpec,
-) -> std::collections::BTreeMap<String, String> {
-    let mut env = std::collections::BTreeMap::new();
+    settings: &DockerSettings,
+    device_info: &AzureIoTSpec,
+) -> BTreeMap<String, String> {
+    let mut env = BTreeMap::new();
 
     env.insert(
         "EdgeDeviceHostName".to_string(),

@@ -90,6 +90,10 @@ impl crate::RuntimeSettings for Settings {
         self.base.agent_mut()
     }
 
+    fn product_info(&self) -> Option<&std::path::Path> {
+        self.base.product_info()
+    }
+
     fn connect(&self) -> &crate::uri::Connect {
         self.base.connect()
     }
