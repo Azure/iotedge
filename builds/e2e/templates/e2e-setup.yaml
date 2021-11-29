@@ -124,7 +124,13 @@ steps:
     $imageId = Get-Content -Encoding Utf8 `
       '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'
     $imageId = ($imageId -split '=')[1]
+
     $imageTag = "$imageId-$(os)-$(arch)"
+    
+    if ('$(arch)' -eq 'aarch64')
+    {
+      $imageTag = "$imageId-$(os)-arm64v8"
+    }
 
     $context = @{
       dpsIdScope = '$(dps.idScope)'
