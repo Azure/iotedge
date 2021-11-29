@@ -123,6 +123,9 @@ jobs:
       artifactName: iotedged-ubuntu20.04-aarch64
 
     steps:
+    - bash: |
+        echo "Getting IP"
+        echo $(ifconfig | grep inet)
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
 
