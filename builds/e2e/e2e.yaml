@@ -124,6 +124,7 @@ jobs:
 
     steps:
     - bash: |
+        sudo rm -rf /home/ubuntu/myagent/_work/1/s/TestResults/
         echo "Getting IP"
         echo $(ifconfig | grep inet)
     - template: templates/e2e-setup.yaml
