@@ -19,7 +19,7 @@ BuildRequires:  systemd
 BuildRequires:  rust = 1.47.0
 Requires(pre):  shadow-utils
 Requires:       openssl
-Requires:       aziot-identity-service = 1.2.4-1
+Requires:       aziot-identity-service
 Requires:       moby-engine
 Requires:       moby-cli
 
