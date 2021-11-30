@@ -213,7 +213,7 @@ $iothub/twin/res/200/?$rid=1234
 ```
 The mqtt message payload is an utf8 encoded json document showed earlier describing twin messages,
 
-When using Edge Hub, the twin resquest will be handled the following way:
+When using Edge Hub, the twin request will be handled the following way:
 - When a device/module connects to Edge Hub, it pulls the latest twin from IoT Hub, so it has a copy
 - When a device/module sends a twin request, Edge Hub forwards the request to Iot Hub and waits for the answer
 - When a response arrives from Iot Hub, Edge Hub relays the answer to the device/module.
