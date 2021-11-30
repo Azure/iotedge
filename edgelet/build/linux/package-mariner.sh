@@ -8,6 +8,7 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 BUILD_REPOSITORY_LOCALPATH="$(realpath "${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}")"
 EDGELET_ROOT="${BUILD_REPOSITORY_LOCALPATH}/edgelet"
 MARINER_BUILD_ROOT="${BUILD_REPOSITORY_LOCALPATH}/builds/mariner"
+REVISION="${REVISION:-1}"
 
 # Get version from this file, but omit strings like "~dev" which are illegal in Mariner RPM versions.
 VERSION="$(cat "$EDGELET_ROOT/version.txt" | sed 's/~.*//')"
@@ -17,7 +18,7 @@ echo "Edgelet version is ${VERSION}"
 pushd "${BUILD_REPOSITORY_LOCALPATH}"
 sed -i "s/@@VERSION@@/${VERSION}/g" builds/mariner/SPECS/aziot-edge/aziot-edge.signatures.json
 sed -i "s/@@VERSION@@/${VERSION}/g" builds/mariner/SPECS/aziot-edge/aziot-edge.spec
-sed -i "s/@@RELEASE@@/${RELEASE}/g" builds/mariner/SPECS/aziot-edge/aziot-edge.spec
+sed -i "s/@@RELEASE@@/${REVISION}/g" builds/mariner/SPECS/aziot-edge/aziot-edge.spec
 popd
 
 pushd "${EDGELET_ROOT}"
