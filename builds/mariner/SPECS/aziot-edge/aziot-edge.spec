@@ -8,7 +8,7 @@
 
 Name:           aziot-edge
 Version:        @@VERSION@@
-Release:        3%{?dist}
+Release:        @@RELEASE@@%{?dist}
 
 License:        MIT
 Summary:        Azure IoT Edge Module Runtime
@@ -19,7 +19,7 @@ BuildRequires:  systemd
 BuildRequires:  rust = 1.47.0
 Requires(pre):  shadow-utils
 Requires:       openssl
-Requires:       aziot-identity-service
+Requires:       aziot-identity-service = 1.2.4-1
 Requires:       moby-engine
 Requires:       moby-cli
 
@@ -62,6 +62,7 @@ make \
     docdir=%{_docdir}/%{name} \
     install
 
+install -D contrib/centos/00-aziot-edged.preset %{buildroot}%{_presetdir}/00-aziot-edged.preset
 %clean
 rm -rf $RPM_BUILD_ROOT
 
@@ -166,6 +167,7 @@ fi
 
 # systemd
 %{_unitdir}/aziot-edged.service
+%{_presetdir}/00-aziot-edged.preset
 
 # sockets
 %attr(660, %{iotedge_user}, %{iotedge_group}) %{iotedge_socketdir}/mgmt.sock
@@ -181,7 +183,7 @@ fi
 %doc %{_docdir}/%{name}/trademark
 
 %changelog
-*   Wed Sep 08 2021 Joseph Knierman <joknierm@microsoft.com> @@VERSION@@-4
+*   Wed Sep 08 2021 Joseph Knierman <joknierm@microsoft.com> @@VERSION@@-@@RELEASE@@
 -   Update to run on iotedge pipeline.
 *   Wed May 05 2021 David Grob <grobdavid@microsoft.com> 1.2.0-3
 -   Update to version 1.2.0 and compress source files.
