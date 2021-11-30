@@ -145,6 +145,28 @@ jobs:
     - template: templates/e2e-run.yaml
 
 ################################################################################
+  - job: ubuntu_2004_arm64v8
+################################################################################
+    displayName: Ubuntu 20.04 with arm64v8
+    pool:
+      name: $(pool.custom.name)
+      demands: 
+        - agent-group -equals rpi3-e2e-aarch64
+
+    variables:
+      os: linux
+      arch: arm64v8
+      artifactName: iotedged-ubuntu20.04-aarch64
+      identityServiceArtifactName: packages_ubuntu-20.04_aarch64
+      identityServicePackageFilter: aziot-identity-service_*_arm64.deb
+
+    steps:
+    - template: templates/e2e-clean-directory.yaml
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-clear-docker-cached-images.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################
   - job: centos7_amd64
 ################################################################################
     displayName: CentOs7 amd64
