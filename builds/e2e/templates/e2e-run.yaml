@@ -1,6 +1,7 @@
 # This E2E test pipeline uses the following filters in order to skip certain tests:
 #   Flaky: Flaky on multiple platforms
 #   FlakyOnArm: Flaky only on arm
+#   FlakyOnWindows: Flaky only on windows
 #   CentOsSafe: Can be run on CentOs
 steps:
 - pwsh: |
@@ -16,6 +17,8 @@ steps:
 
     if ($IsWindows)
     {
+      $filter += '&Category!=FlakyOnWindows'
+
       # The windows installer script doesn't update the PATH in the current
       # terminal session, so add `iotedge` and `docker` CLIs manually
       $env:Path =
@@ -24,7 +27,10 @@ steps:
         $(Join-Path $env:ProgramFiles 'iotedge-moby') -join ';'
       if ('$(minimal)' -eq 'true')
       {
-        $filter += '&Name~TempSensor'
+        # The minimal test suite on windows cannot use TempSensor test.
+        # Using another test for now until this issue is resolved:
+        # https://github.com/Azure/azure-iot-sdk-csharp/issues/2223
+        $filter += '&Name~TestPing'
       }
 
       dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
@@ -40,8 +46,16 @@ steps:
       {
         $filter += '&Name~TempSensor'
       }
-
-      sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
+      
+      #Dotnet SDK 3.1.415 package on Centos doesn't allow dotnet to be accessed via sudo command due to Path issues. Use the below workaround for centos only.
+      if ('$(artifactName)'.Contains('centos'))
+      {
+        sudo --preserve-env $(command -v dotnet) test $testFile --no-build --logger 'trx' --filter "$filter"
+      }
+      else
+      {
+        sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
+      }
     }
   displayName: Run tests
   env:

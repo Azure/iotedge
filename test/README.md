@@ -2,7 +2,7 @@
 
 ## Test code structure
 
-There are three directories under the `test/` directory:
+There are five directories under the `test/` directory, three of which are of immediate concern, when it comes to running E2E tests:
 
 1. `test/Microsoft.Azure.Devices.Edge.Test/`: The actual tests live here, as do "fixtures" (setup and tear-down code that runs before/after/between tests) and the `Context` class (exposes the test arguments to tests).
 2. `test/Microsoft.Azure.Devices.Edge.Test.Common/`: The helper library tests use to do interesting things--like deploy modules or wait for a message to arrive in IoT hub--lives here.
@@ -55,7 +55,7 @@ sudo scripts/linux/buildImage.sh -r localhost:5000  -i "simulated-temperature-se
 sudo scripts/linux/buildImage.sh -r localhost:5000  -i "test-result-coordinator" -P "TestResultCoordinator"  -v "latest" --bin-dir target
 sudo scripts/linux/buildImage.sh -r localhost:5000  -i "number-logger" -P "NumberLogger"  -v "latest" --bin-dir target
 sudo scripts/linux/buildImage.sh -r localhost:5000  -i "diagnostics" -P "IotedgeDiagnosticsDotnet"  -v "latest" --bin-dir target
-sudo scripts/linux/buildImage.sh -r localhost:5000  -i "metrics-collector" -P "MetricsCollector"  -v "latest" --bin-dir target
+sudo scripts/linux/buildImage.sh -r localhost:5000  -i "metrics-collector" -P "Microsoft.Azure.Devices.Edge.Azure.Monitor" -v "latest" --bin-dir target
 sudo scripts/linux/buildImage.sh -r localhost:5000  -i "metrics-validator" -P "MetricsValidator"  -v "latest" --bin-dir target
 sudo scripts/linux/buildImage.sh -r localhost:5000  -i "temperature-filter-function" -P "EdgeHubTriggerCSharp"  -v "latest" --bin-dir target
 
@@ -73,7 +73,7 @@ Parameter names are case-insensitive. See [end-to-end test parameters](./doc/end
 
 
 #### Sample context.json
-Here is a sample context.json file that you can use as a starting point to configure the parameters to fit your environment.  
+Here is a sample context.json file that you can use as a starting point to configure the parameters to fit your environment.
 
 ~~~ json
 {
@@ -93,14 +93,14 @@ Here is a sample context.json file that you can use as a starting point to confi
     "diagnosticsImage": "localhost:5000/microsoft/diagnostics:latest-linux-amd64",
     "metricsCollectorImage": "localhost:5000/microsoft/metrics-collector:latest-linux-amd64",
     "metricsValidatorImage": "localhost:5000/microsoft/metrics-validator:latest-linux-amd64",
-    "caCertScriptPath": "/home/azureuser/iotedge/test/certs",
+    "caCertScriptPath": "/home/azureuser/iotedge/tools/CACertificates/",
     "dpsIdScope": "0ne01F35169",
-    "rootCaCertificatePath": "/home/azureuser/iotedge/test/certs/certs/azure-iot-test-only.root.ca.cert.pem",
-    "rootCaPrivateKeyPath": "/home/azureuser/iotedge/test/certs/private/azure-iot-test-only.root.ca.key.pem",
+    "rootCaCertificatePath": "/home/azureuser/iotedge/tools/CACertificates/certs/azure-iot-test-only.root.ca.cert.pem",
+    "rootCaPrivateKeyPath": "/home/azureuser/iotedge/tools/CACertificates/private/azure-iot-test-only.root.ca.key.pem",
     "verbose": "true",
     "logFile": "/home/azureuser/iotedge/logs/logfile",
     "registries":
-    [    
+    [
         {
             "address": "localhost:5000",
             "username": "username"

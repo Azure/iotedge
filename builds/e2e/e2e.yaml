@@ -35,7 +35,7 @@ jobs:
 
     pool:
       name: $(pool.custom.name)
-      demands: rpi3-e2e-tests-1.1
+      demands: rpi3-e2e-tests
 
     variables:
       os: linux
@@ -102,10 +102,30 @@ jobs:
     variables:
       os: linux
       arch: amd64
-      artifactName: iotedged-ubuntu18.04-amd64
+      artifactName: iotedged-ubuntu20.04-amd64
 
     steps:
     - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################
+  - job: ubuntu_2004_arm64v8
+################################################################################
+    displayName: Ubuntu 20.04 with arm64v8
+    pool:
+      name: $(pool.custom.name)
+      demands: 
+        - agent-group -equals rpi3-e2e-aarch64
+
+    variables:
+      os: linux
+      arch: arm64v8
+      artifactName: iotedged-ubuntu20.04-aarch64
+
+    steps:
+    - template: templates/e2e-clean-directory.yaml
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
 
 ################################################################################
@@ -121,7 +141,7 @@ jobs:
     variables:
       os: linux
       arch: amd64
-      artifactName: iotedged-ubuntu18.04-amd64
+      artifactName: iotedged-ubuntu20.04-amd64
       minimal: true
 
     steps:
@@ -168,47 +188,46 @@ jobs:
     - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
 
-# Disabling until falkiness is fixed on this platform
-# ################################################################################
-#   - job: windows_10ent
-# ################################################################################
-#     displayName: Windows 10 Enterprise (minimal)
+################################################################################
+  - job: windows_10ent
+################################################################################
+    displayName: Windows 10 Enterprise (minimal)
 
-#     pool:
-#       name: $(pool.windows.name)
-#       demands:
-#         - ImageOverride -equals agent-aziotedge-win10-entn2019-test
+    pool:
+      name: $(pool.windows.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-win10-entn2019-test
 
-#     variables:
-#       os: windows
-#       arch: amd64
-#       artifactName: iotedged-windows
-#       minimal: true
+    variables:
+      os: windows
+      arch: amd64
+      artifactName: iotedged-windows
+      minimal: true
 
-#     steps:
-#     - template: templates/e2e-setup.yaml
+    steps:
+    - template: templates/e2e-setup.yaml
 
-#     - pwsh: |
-#         $certBytes = [system.Text.Encoding]::UTF8.GetBytes($env:PACKAGE_SIGNING_CERT)
-#         $cert = [System.Security.Cryptography.X509Certificates.X509Certificate]::new($certBytes)
-#         $store = New-Object System.Security.Cryptography.X509Certificates.X509Store `
-#           -ArgumentList 'Root', 'LocalMachine'
-#         $store.Open('ReadWrite')
-#         $store.Add($cert)
-#       displayName: Install CAB signing root cert
-#       env:
-#         PACKAGE_SIGNING_CERT: $(TestIotedgedPackageRootSigningCert)
+    - pwsh: |
+        $certBytes = [system.Text.Encoding]::UTF8.GetBytes($env:PACKAGE_SIGNING_CERT)
+        $cert = [System.Security.Cryptography.X509Certificates.X509Certificate]::new($certBytes)
+        $store = New-Object System.Security.Cryptography.X509Certificates.X509Store `
+          -ArgumentList 'Root', 'LocalMachine'
+        $store.Open('ReadWrite')
+        $store.Add($cert)
+      displayName: Install CAB signing root cert
+      env:
+        PACKAGE_SIGNING_CERT: $(TestIotedgedPackageRootSigningCert)
 
-#     - pwsh: |
-#         Write-Output '>>> BEFORE:'
-#         netsh interface ipv6 show prefixpolicies
-#         netsh interface ipv6 set prefixpolicy ::ffff:0:0/96 45 4
-#         Write-Output '>>> AFTER:'
-#         netsh interface ipv6 show prefixpolicies
-#       displayName: Prefer IPv4
+    - pwsh: |
+        Write-Output '>>> BEFORE:'
+        netsh interface ipv6 show prefixpolicies
+        netsh interface ipv6 set prefixpolicy ::ffff:0:0/96 45 4
+        Write-Output '>>> AFTER:'
+        netsh interface ipv6 show prefixpolicies
+      displayName: Prefer IPv4
 
-#     - template: templates/e2e-clear-docker-cached-images.yaml
-#     - template: templates/e2e-run.yaml
+    - template: templates/e2e-clear-docker-cached-images.yaml
+    - template: templates/e2e-run.yaml
 
 ################################################################################
   - job: centos7_amd64

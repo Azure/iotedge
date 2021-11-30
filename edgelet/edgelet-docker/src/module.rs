@@ -144,7 +144,8 @@ pub fn runtime_state(
             .status()
             .and_then(|status| match status {
                 "created" | "paused" | "restarting" => Some(ModuleStatus::Stopped),
-                "removing" | "dead" | "exited" => status_from_exit_code(state.exit_code()),
+                "removing" | "exited" => status_from_exit_code(state.exit_code()),
+                "dead" => Some(ModuleStatus::Dead),
                 "running" => Some(ModuleStatus::Running),
                 _ => Some(ModuleStatus::Unknown),
             })
@@ -275,10 +276,10 @@ mod tests {
             ("paused", 0, ModuleStatus::Stopped),
             ("restarting", 0, ModuleStatus::Stopped),
             ("removing", 0, ModuleStatus::Stopped),
-            ("dead", 0, ModuleStatus::Stopped),
+            ("dead", 0, ModuleStatus::Dead),
             ("exited", 0, ModuleStatus::Stopped),
             ("removing", -1, ModuleStatus::Failed),
-            ("dead", -2, ModuleStatus::Failed),
+            ("dead", -2, ModuleStatus::Dead),
             ("exited", -42, ModuleStatus::Failed),
             ("running", 0, ModuleStatus::Running),
         ]
@@ -350,7 +351,7 @@ mod tests {
     }
 
     #[test]
-    fn module_runtime_state_failed_from_dead() {
+    fn module_runtime_state_dead() {
         let started_at = Utc::now().to_rfc3339();
         let finished_at = (Utc::now() + Duration::hours(1)).to_rfc3339();
         let docker_module = DockerModule::new(
@@ -375,7 +376,7 @@ mod tests {
             .block_on(docker_module.runtime_state())
             .unwrap();
 
-        assert_eq!(ModuleStatus::Failed, *runtime_state.status());
+        assert_eq!(ModuleStatus::Dead, *runtime_state.status());
         assert_eq!(10, runtime_state.exit_code().unwrap());
         assert_eq!(&"dead", &runtime_state.status_description().unwrap());
         assert_eq!(started_at, runtime_state.started_at().unwrap().to_rfc3339());

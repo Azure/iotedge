@@ -1,8 +1,0 @@
-# Seeds for failure cases proptest has generated in the past. It is
-# automatically read and these particular cases re-run before any
-# novel cases are generated.
-#
-# It is recommended to check this file in to source control so that
-# everyone who runs the test benefits from these saved cases.
-cc 5d9ed461cb653d7f728082d9c92bbab4ab710b76ee860c0fb718b2dffc6f9d47 # shrinks to ops = [AddFailpoint("filepersistor.store.symlink"), Store(BrokerState { retained: {}, sessions: [] })]
-cc 5dd4ab32a346d64d85a5ce3f1484976faad168110cadb2f213d1f499691cc185 # shrinks to ops = [Store(BrokerState { retained: {}, sessions: [] }), Store(BrokerState { retained: {}, sessions: [] }), Store(BrokerState { retained: {}, sessions: [] }), RemoveFailpoint("filepersistor.store.symlink"), AddFailpoint("filepersistor.store.readdir"), RemoveFailpoint("filepersistor.store.createdir"), Store(BrokerState { retained: {}, sessions: [] }), AddFailpoint("bincodeformat.store.serialize_into"), RemoveFailpoint("filepersistor.store.readdir"), Store(BrokerState { retained: {}, sessions: [] })]

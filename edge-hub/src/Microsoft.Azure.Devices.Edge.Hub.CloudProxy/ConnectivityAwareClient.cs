@@ -163,6 +163,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         await this.deviceConnectivityManager.CallTimedOut();
                     }
                 }
+                else if (ex.IsFailOver())
+                {
+                    Events.FailOverDetected(this.identity, operation, mappedException);
+                    if (useForConnectivityCheck)
+                    {
+                        await this.deviceConnectivityManager.CallTimedOut();
+                    }
+                }
                 else
                 {
                     Events.OperationFailed(this.identity, operation, mappedException);
@@ -199,7 +207,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 OperationTimedOut,
                 OperationFailed,
                 OperationSucceeded,
-                ChangingStatus
+                ChangingStatus,
+                FailOverDetected
             }
 
             public static void ReceivedDeviceSdkCallback(IIdentity identity, ConnectionStatus status, ConnectionStatusChangeReason reason)
@@ -225,6 +234,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             public static void ChangingStatus(AtomicBoolean isConnected, IIdentity identity)
             {
                 Log.LogInformation((int)EventIds.ChangingStatus, $"Cloud connection for {identity.Id} is {isConnected.Get()}");
+            }
+
+            public static void FailOverDetected(IIdentity identity, string operation, Exception ex)
+            {
+                Log.LogInformation((int)EventIds.FailOverDetected, ex, $"Operation {operation} failed for {identity.Id} because of fail-over");
             }
         }
     }

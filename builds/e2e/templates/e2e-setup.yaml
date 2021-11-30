@@ -22,8 +22,62 @@ steps:
       TestRootCaPassword,
       TestBlobStoreSas
 
+- pwsh: | 
+    try
+    {
+      Write-Host "Built Images Result is $(builtImages)"
+      Write-Host "Built Packages Result is $(builtPackages)"
+      $buildImages = "$(builtImages)"
+      $buildPackages = "$(builtPackages)"
+      if ($buildImages -eq 'Succeeded' -or $buildImages -eq 'SucceededWithIssues')
+      {
+        Write-Host "Use Pipeline Image Artifacts"
+        Write-Host "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]TRUE"
+      }     
+      else
+      {
+        Write-Host "Use Build Image Artifacts"
+        Write-Host "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]FALSE"
+      }
+      if ($buildPackages -eq 'Succeeded' -or $buildPackages -eq 'SucceededWithIssues')
+      {
+        Write-Host "Use Pipeline Package Artifacts"
+        Write-Host "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]TRUE"
+      }
+      else
+      {
+        Write-Host "Use Build Package Artifacts"
+        Write-Host "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]FALSE"
+      }
+    }
+    catch
+    {
+      Write-Host "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]FALSE"
+      Write-Host "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]FALSE"
+    }
+    
+  name: check_use_artifacts
+  displayName: Check Use Pipeline Image Artifacts
+
+- task: DownloadPipelineArtifact@2
+  displayName: Download Pipeline Build Images
+  condition: eq(variables['check_use_artifacts.UsePipelineImageArtifacts'],'true')
+  inputs:
+    source: 'current'
+    path: $(System.ArtifactsDirectory)
+    patterns: $(az.pipeline.images.artifacts)/artifactInfo.txt
+
+- task: DownloadPipelineArtifact@2
+  displayName: Download Pipeline Build Packages
+  condition: eq(variables['check_use_artifacts.UsePipelinePackageArtifacts'],'true')
+  inputs:
+    source: 'current'
+    path: $(System.ArtifactsDirectory)
+    patterns: $(artifactName)/*
+  
 - task: DownloadBuildArtifacts@0
-  displayName: Get Docker image info
+  displayName: Download Resource Build Images
+  condition: eq(variables['check_use_artifacts.UsePipelineImageArtifacts'],'false')
   inputs:
     buildType: specific
     project: $(resources.pipeline.images.projectID)
@@ -36,6 +90,7 @@ steps:
 
 - task: DownloadBuildArtifacts@0
   displayName: Download edgelet packages
+  condition: eq(variables['check_use_artifacts.UsePipelinePackageArtifacts'],'false')
   inputs:
     buildType: specific
     project: $(resources.pipeline.packages.projectID)
@@ -69,8 +124,9 @@ steps:
     $imageId = Get-Content -Encoding Utf8 `
       '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'
     $imageId = ($imageId -split '=')[1]
-    $imageTag = "$imageId-$(os)-$(arch)"
 
+    $imageTag = "$imageId-$(os)-$(arch)"
+    
     $context = @{
       dpsIdScope = '$(dps.idScope)'
       edgeAgentImage = "$imagePrefix-agent:$imageTag";
@@ -107,7 +163,7 @@ steps:
       $context['installerPath'] = Convert-Path '$(Build.SourcesDirectory)/scripts/windows/setup'
     }
 
-    if ('$(arch)' -eq 'arm32v7')
+    if (('$(arch)' -eq 'arm32v7') -or ('$(arch)' -eq 'arm64v8'))
     {
       $context['optimizeForPerformance'] = 'false'
       $context['setupTimeoutMinutes'] = 10
@@ -115,5 +171,7 @@ steps:
       $context['testTimeoutMinutes'] = 6
     }
 
+    Write-Host "Edge agent image: $imagePrefix-agent:$imageTag"
+    Write-Host "Edge hub image: $imagePrefix-hub:$imageTag"
     $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
   displayName: Create test arguments file (context.json)
