@@ -124,8 +124,9 @@ steps:
     $imageId = Get-Content -Encoding Utf8 `
       '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'
     $imageId = ($imageId -split '=')[1]
-    $imageTag = "$imageId-$(os)-$(arch)"
 
+    $imageTag = "$imageId-$(os)-$(arch)"
+    
     $context = @{
       dpsIdScope = '$(dps.idScope)'
       edgeAgentImage = "$imagePrefix-agent:$imageTag";
@@ -162,7 +163,7 @@ steps:
       $context['installerPath'] = Convert-Path '$(Build.SourcesDirectory)/scripts/windows/setup'
     }
 
-    if ('$(arch)' -eq 'arm32v7')
+    if (('$(arch)' -eq 'arm32v7') -or ('$(arch)' -eq 'arm64v8'))
     {
       $context['optimizeForPerformance'] = 'false'
       $context['setupTimeoutMinutes'] = 10
