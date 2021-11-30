@@ -20,14 +20,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             this.combinedConfigProvider = Preconditions.CheckNotNull(combinedConfigProvider, nameof(combinedConfigProvider));
         }
 
-        public Task<ICommand> CreateAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo) =>
-            Task.FromResult(
-                CreateOrUpdateCommand.BuildCreate(
-                    this.moduleManager,
-                    module.Module,
-                    module.ModuleIdentity,
-                    this.configSource,
-                    this.combinedConfigProvider.GetCombinedConfig(module.Module, runtimeInfo)) as ICommand);
+        public Task<ICommand> CreateAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
+        {
+            T config = this.combinedConfigProvider.GetCombinedConfig(module.Module, runtimeInfo);
+            return Task.FromResult(
+                new GroupCommand(
+                    new PrepareUpdateCommand(this.moduleManager, module.Module, config),
+                    CreateOrUpdateCommand.BuildCreate(
+                        this.moduleManager,
+                        module.Module,
+                        module.ModuleIdentity,
+                        this.configSource,
+                        config) as ICommand) as ICommand);
+        }
 
         public Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo) =>
             this.UpdateAsync(Option.Some(current), next, runtimeInfo, false);

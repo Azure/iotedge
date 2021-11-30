@@ -101,6 +101,8 @@ const EDGE_RUNTIME_MODULEID: &str = "$edgeAgent";
 const EDGE_RUNTIME_MODULE_NAME: &str = "edgeAgent";
 const AUTH_SCHEME: &str = "sasToken";
 
+const IOTEDGE_WORKLOAD_SOCKETS_ENABLE: &str = "IOTEDGE_WORKLOAD_SOCKETS_ENABLE";
+
 /// The following constants are all environment variables names injected into
 /// the Edge Agent container.
 ///
@@ -2074,11 +2076,14 @@ where
     );
 
     env.insert(WORKLOAD_URI_KEY.to_string(), workload_uri);
-    #[cfg(feature = "runtime-docker")]
-    env.insert(
-        WORKLOAD_LISTEN_MNT_URI.to_string(),
-        Listen::workload_mnt_uri(&home_dir),
-    );
+    if env::var(IOTEDGE_WORKLOAD_SOCKETS_ENABLE).unwrap_or_else(|_| "False".to_string()) == "True" {
+        #[cfg(feature = "runtime-docker")]
+        env.insert(
+            WORKLOAD_LISTEN_MNT_URI.to_string(),
+            Listen::workload_mnt_uri(&home_dir),
+        );
+    }
+
     env.insert(MANAGEMENT_URI_KEY.to_string(), management_uri);
     env.insert(AUTHSCHEME_KEY.to_string(), AUTH_SCHEME.to_string());
     env.insert(
