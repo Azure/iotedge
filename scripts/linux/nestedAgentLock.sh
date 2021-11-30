@@ -116,6 +116,7 @@ process_args()
     fi
 
     echo "Curl version: $(curl --version)"
+    echo
 }
 
 ###############################################################################
@@ -232,6 +233,21 @@ if ! command -v $CMD &>/dev/null; then
     sudo apt-get install -y $CMD
 fi
 echo "Done validating jq"
+echo
+
+echo "Validating devops API interface"
+echo "Checking for agents from the agent group $AGENT_GROUP..."
+agentsInfo=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents?includeCapabilities=true&api-version=$API_VER")
+agents=($(echo $agentsInfo | jq '.value | .[] | select(.userCapabilities."agent-group"=='\"$AGENT_GROUP\"') | .id' | tr -d '[], "'))
+echo ${#agents[@]}
+if [ ${#agents[@]} -eq 0 ]; then
+    echo "Problem interfacing with Devops API to retrieve agent data. Recommend checking PAT expiry."
+    exit 1
+else
+    echo "Successfully interfaced with Devops API to retrieve agent data."
+fi
+echo "Done validating devops API interface"
+echo
 
 startSeconds=$((SECONDS))
 endSeconds=$((SECONDS + $TIMEOUT_SECONDS))
