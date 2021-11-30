@@ -150,7 +150,7 @@ jobs:
     pool:
       name: $(pool.custom.name)
       demands: 
-        - agent-group -equals rpi3-e2e-aarch64-12
+        - agent-group -equals rpi3-e2e-aarch64
 
     variables:
       os: linux
