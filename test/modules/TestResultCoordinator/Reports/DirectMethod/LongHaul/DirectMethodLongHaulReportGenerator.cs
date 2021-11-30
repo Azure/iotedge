@@ -22,6 +22,8 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             string testDescription,
             string trackingId,
             string senderSource,
+            Topology topology,
+            bool mqttBrokerEnabled,
             IAsyncEnumerator<TestOperationResult> senderTestResults,
             string receiverSource,
             IAsyncEnumerator<TestOperationResult> receiverTestResults,
@@ -30,6 +32,8 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
+            this.Topology = topology;
+            this.MqttBrokerEnabled = mqttBrokerEnabled;
             this.SenderTestResults = Preconditions.CheckNotNull(senderTestResults, nameof(senderTestResults));
             this.ReceiverSource = receiverSource;
             this.ReceiverTestResults = receiverTestResults;
@@ -49,6 +53,10 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
         internal string TestDescription { get; }
 
         internal ITestResultComparer<TestOperationResult> TestResultComparer { get; }
+
+        internal Topology Topology { get; }
+
+        internal bool MqttBrokerEnabled { get; }
 
         public async Task<ITestResultReport> CreateReportAsync()
         {
@@ -115,6 +123,8 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
                 this.SenderSource,
                 this.ReceiverSource,
                 this.ResultType,
+                this.Topology,
+                this.MqttBrokerEnabled,
                 senderSuccesses,
                 receiverSuccesses,
                 statusCodeZero,

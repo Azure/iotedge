@@ -7,6 +7,7 @@ namespace TestResultCoordinator.Reports
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Json;
     using Newtonsoft.Json;
+    using Newtonsoft.Json.Converters;
 
     /// <summary>
     /// This is a counting report to show test result counts. It tracks a number
@@ -28,11 +29,13 @@ namespace TestResultCoordinator.Reports
     class CountingReport : TestResultReportBase
     {
         const string C2dTestDescription = "C2D";
-        const string GenericMqttTelemetryTestDescription = "messages | local | mqtt | generic";
+        const string GenericMqttTelemetryTestDescription = "mqtt | generic";
+        const string UpstreamMessagesTestDescription = "messages | upstream";
 
         public CountingReport(
             string testDescription,
             TestMode testMode,
+            bool mqttBrokerEnabled,
             string trackingId,
             string expectedSource,
             string actualSource,
@@ -51,6 +54,7 @@ namespace TestResultCoordinator.Reports
             : base(testDescription, trackingId, resultType)
         {
             this.TestMode = testMode;
+            this.MqttBrokerEnabled = mqttBrokerEnabled;
             this.ExpectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
             this.ActualSource = Preconditions.CheckNonWhiteSpace(actualSource, nameof(actualSource));
             this.TotalExpectCount = totalExpectCount;
@@ -67,7 +71,10 @@ namespace TestResultCoordinator.Reports
             this.LastActualResultTimestamp = lastActualResultTimestamp;
         }
 
+        [JsonConverter(typeof(StringEnumConverter))]
         public TestMode TestMode { get; }
+
+        public bool MqttBrokerEnabled { get; }
 
         public string ExpectedSource { get; }
 
@@ -115,19 +122,37 @@ namespace TestResultCoordinator.Reports
                 },
                 () =>
                 {
-                    // Product issue for C2D messages connected to edgehub over mqtt.
-                    // We should remove this failure tolerance when fixed.
-                    if (this.TestDescription.Contains(C2dTestDescription))
+                    if (this.TestMode == TestMode.Connectivity)
                     {
-                        return ((double)this.TotalMatchCount / this.TotalExpectCount) > .8d;
-                    }
-                    else if (this.TestDescription == GenericMqttTelemetryTestDescription && this.TestMode == TestMode.Connectivity)
-                    {
-                        return ((double)this.TotalMatchCount / this.TotalExpectCount) > .9d;
+                        // Product issue for C2D messages connected to edgehub.
+                        // We should remove this failure tolerance when fixed.
+                        if (this.TestDescription.Contains(C2dTestDescription))
+                        {
+                            return ((double)this.TotalMatchCount / this.TotalExpectCount) > .8d;
+                        }
+                        else if (this.TestDescription == GenericMqttTelemetryTestDescription)
+                        {
+                            return ((double)this.TotalMatchCount / this.TotalExpectCount) > .9d;
+                        }
+                        else
+                        {
+                            return this.TotalExpectCount == this.TotalMatchCount;
+                        }
                     }
                     else
                     {
-                        return this.TotalExpectCount == this.TotalMatchCount;
+                        if (this.TestDescription.Contains(GenericMqttTelemetryTestDescription))
+                        {
+                            return ((double)this.TotalMatchCount / this.TotalExpectCount) > .8d;
+                        }
+                        else if (this.MqttBrokerEnabled && this.TestDescription.Contains(UpstreamMessagesTestDescription))
+                        {
+                            return ((double)this.TotalMatchCount / this.TotalExpectCount) > .99d;
+                        }
+                        else
+                        {
+                            return this.TotalExpectCount == this.TotalMatchCount;
+                        }
                     }
                 });
         }

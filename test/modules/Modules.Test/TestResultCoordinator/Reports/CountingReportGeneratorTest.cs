@@ -49,6 +49,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [Fact]
         public void TestConstructorSuccess()
         {
+            bool brokerEnabled = false;
             string expectedSource = "expectedSource";
             string actualSource = "actualSource";
             int batchSize = 10;
@@ -62,6 +63,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
             var reportGenerator = new CountingReportGenerator(
                 TestDescription,
                 TestMode.Connectivity,
+                brokerEnabled,
                 Guid.NewGuid().ToString(),
                 expectedSource,
                 expectedResults.GetAsyncEnumerator(),
@@ -86,6 +88,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [InlineData("")]
         public void TestConstructorThrowsWhenTestDescriptionIsNotProvided(string testDescription)
         {
+            bool brokerEnabled = false;
             var mockExpectedResults = new Mock<IAsyncEnumerator<TestOperationResult>>();
             var mockActualStore = new Mock<IAsyncEnumerator<TestOperationResult>>();
 
@@ -93,6 +96,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 () => new CountingReportGenerator(
                     testDescription,
                     TestMode.Connectivity,
+                    brokerEnabled,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -111,6 +115,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [InlineData("")]
         public void TestConstructorThrowsWhenTrackingIdIsNotProvided(string trackingId)
         {
+            bool brokerEnabled = false;
             var mockExpectedResults = new Mock<IAsyncEnumerator<TestOperationResult>>();
             var mockActualStore = new Mock<IAsyncEnumerator<TestOperationResult>>();
 
@@ -118,6 +123,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 () => new CountingReportGenerator(
                     TestDescription,
                     TestMode.Connectivity,
+                    brokerEnabled,
                     trackingId,
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -136,6 +142,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [InlineData("")]
         public void TestConstructorThrowsWhenExpectedSourceIsNotProvided(string expectedSource)
         {
+            bool brokerEnabled = false;
             var mockExpectedResults = new Mock<IAsyncEnumerator<TestOperationResult>>();
             var mockActualStore = new Mock<IAsyncEnumerator<TestOperationResult>>();
 
@@ -143,6 +150,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 () => new CountingReportGenerator(
                     TestDescription,
                     TestMode.Connectivity,
+                    brokerEnabled,
                     Guid.NewGuid().ToString(),
                     expectedSource,
                     mockExpectedResults.Object,
@@ -159,12 +167,14 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [Fact]
         public void TestConstructorThrowsWhenExpectedStoreIsNotProvided()
         {
+            bool brokerEnabled = false;
             var mockActualStore = new Mock<IAsyncEnumerator<TestOperationResult>>();
 
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () => new CountingReportGenerator(
                     TestDescription,
                     TestMode.Connectivity,
+                    brokerEnabled,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     null,
@@ -183,6 +193,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [InlineData("")]
         public void TestConstructorThrowsWhenActualSourceIsNotProvided(string actualSource)
         {
+            bool brokerEnabled = false;
             var mockExpectedResults = new Mock<IAsyncEnumerator<TestOperationResult>>();
             var mockActualStore = new Mock<IAsyncEnumerator<TestOperationResult>>();
 
@@ -190,6 +201,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 () => new CountingReportGenerator(
                     TestDescription,
                     TestMode.Connectivity,
+                    brokerEnabled,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -206,12 +218,14 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [Fact]
         public void TestConstructorThrowsWhenActualStoreIsNotProvided()
         {
+            bool brokerEnabled = false;
             var mockExpectedResults = new Mock<IAsyncEnumerator<TestOperationResult>>();
 
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () => new CountingReportGenerator(
                     TestDescription,
                     TestMode.Connectivity,
+                    brokerEnabled,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -230,6 +244,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [InlineData("")]
         public void TestConstructorThrowsWhenResultTypeIsNotProvided(string resultType)
         {
+            bool brokerEnabled = false;
             var mockExpectedResults = new Mock<IAsyncEnumerator<TestOperationResult>>();
             var mockActualStore = new Mock<IAsyncEnumerator<TestOperationResult>>();
 
@@ -237,6 +252,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 () => new CountingReportGenerator(
                     TestDescription,
                     TestMode.Connectivity,
+                    brokerEnabled,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -253,6 +269,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [Fact]
         public void TestConstructorThrowsWhenTestResultComparerIsNotProvided()
         {
+            bool brokerEnabled = false;
             var mockExpectedResults = new Mock<IAsyncEnumerator<TestOperationResult>>();
             var mockActualStore = new Mock<IAsyncEnumerator<TestOperationResult>>();
 
@@ -260,6 +277,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 () => new CountingReportGenerator(
                     TestDescription,
                     TestMode.Connectivity,
+                    brokerEnabled,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -277,6 +295,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [InlineData(0)]
         public void TestConstructorThrowsWhenUnmatchedResultsMaxSizeIsNonPositive(ushort unmatchedResultsMaxSize)
         {
+            bool brokerEnabled = false;
             var mockExpectedResults = new Mock<IAsyncEnumerator<TestOperationResult>>();
             var mockActualStore = new Mock<IAsyncEnumerator<TestOperationResult>>();
 
@@ -284,6 +303,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 () => new CountingReportGenerator(
                     TestDescription,
                     TestMode.Connectivity,
+                    brokerEnabled,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -298,6 +318,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [Fact]
         public async Task TestCreateReportAsyncWithEmptyResults()
         {
+            bool brokerEnabled = false;
             string expectedSource = "expectedSource";
             string actualSource = "actualSource";
             int batchSize = 10;
@@ -310,6 +331,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
             var reportGenerator = new CountingReportGenerator(
                 TestDescription,
                 TestMode.Connectivity,
+                brokerEnabled,
                 Guid.NewGuid().ToString(),
                 expectedSource,
                 expectedResults.GetAsyncEnumerator(),
@@ -348,6 +370,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
             ulong expectedTotalMisorderedActualResultCount,
             ulong expectedMissingResultsCount)
         {
+            bool brokerEnabled = false;
+
             // give fake tracking id and batch id to mimic real scenario
             expectedStoreValues = expectedStoreValues.Select(v => "xx;yy;" + v);
             actualStoreValues = actualStoreValues.Select(v => "xx;yy;" + v);
@@ -364,6 +388,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
             var reportGenerator = new CountingReportGenerator(
                 TestDescription,
                 TestMode.Connectivity,
+                brokerEnabled,
                 Guid.NewGuid().ToString(),
                 expectedSource,
                 expectedResults.GetAsyncEnumerator(),
