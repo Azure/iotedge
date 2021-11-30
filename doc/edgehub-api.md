@@ -99,7 +99,7 @@ C2D messages are much like telemetry messages. A back-end application pushes a m
 
 This feedback can be 'completing' the message, 'rejecting' or 'Abandoning' it. Completing the message means that it was processed succesfully and no need for the message anymore, so IoT Hub deletes it. Rejecting the message means that the device does not want to process the message. In this case IoT Hub moves it in a dead letter queue where it is available for a while for a back end application. Abandoning means that the message cannot be processed right now. In this case IoT Hub puts it back the the queue and tries again later.
 
-If Edge Hub is between the device and Iot Hub, Edge Hub relays the messages and the feedbacks. It does not 'download' the C2D messages so it can forward them later. When the device signals Edge Hub that it is ready to receive C2D messages, Edge Hub signals in the name of the device that it is ready to receive C2D messages. When IoT Hub sends a C2D message, then Edge Hub  it to the device and waits for the feedback. When the feedback arrives, Edge Hub propagates it back to IoT Hub.
+If Edge Hub is between the device and Iot Hub, Edge Hub relays the messages and the feedbacks. It does not 'download' the C2D messages so it can forward them later. When the device signals Edge Hub that it is ready to receive C2D messages, Edge Hub signals in the name of the device that it is ready to receive C2D messages. When IoT Hub sends a C2D message, then Edge Hub sends it to the device and waits for the feedback. When the feedback arrives, Edge Hub propagates it back to IoT Hub.
 
 ## Direct-Method calls
 
