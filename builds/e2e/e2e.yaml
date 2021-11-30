@@ -160,6 +160,8 @@ jobs:
       identityServiceArtifactName: packages_ubuntu-20.04_aarch64
       identityServicePackageFilter: aziot-identity-service_*_arm64.deb
 
+    timeoutInMinutes: 120
+
     steps:
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
