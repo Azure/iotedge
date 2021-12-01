@@ -23,9 +23,9 @@ edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
 edgelet-http-workload = { path = "../edgelet-http-workload" }
 edgelet-settings = { path = "../edgelet-settings", features = ["settings-docker"] }
 
-aziot-identity-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-identity-client-async = { git = "https://github.com/nimanch/iot-identity-service", branch = "personal/nimanch/addtimeouttohubcalls" }
+aziot-identity-common = { git = "https://github.com/nimanch/iot-identity-service", branch = "personal/nimanch/addtimeouttohubcalls" }
+aziot-identity-common-http = { git = "https://github.com/nimanch/iot-identity-service", branch = "personal/nimanch/addtimeouttohubcalls" }
 
-http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-logger = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+http-common = { git = "https://github.com/nimanch/iot-identity-service", branch = "personal/nimanch/addtimeouttohubcalls" }
+logger = { git = "https://github.com/nimanch/iot-identity-service", branch = "personal/nimanch/addtimeouttohubcalls" }
