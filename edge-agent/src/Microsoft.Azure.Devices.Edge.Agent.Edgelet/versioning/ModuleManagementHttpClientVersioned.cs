@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
     using System.Collections.Generic;
     using System.Globalization;
     using System.IO;
+    using System.Net;
     using System.Net.Http;
     using System.Net.Sockets;
     using System.Runtime.InteropServices;
@@ -108,6 +109,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                     async () =>
                     {
                         HttpResponseMessage httpResponseMessage = await httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                        if (!httpResponseMessage.IsSuccessStatusCode)
+                        {
+                            switch (httpResponseMessage.StatusCode)
+                            {
+                                case HttpStatusCode.BadRequest:
+                                    throw new ArgumentException($"Request Returned Status Code {httpResponseMessage.StatusCode} with Message {await httpResponseMessage.Content.ReadAsStringAsync()}");
+                                default:
+                                    throw new EdgeletCommunicationException(await httpResponseMessage.Content.ReadAsStringAsync(), (int)httpResponseMessage.StatusCode);
+                            }
+                        }
+
                         return await httpResponseMessage.Content.ReadAsStreamAsync();
                     },
                     $"Get logs for {module}");
