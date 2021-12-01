@@ -150,7 +150,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                     productInfo += $"/{versionInfo}";
                 }
 
-                string additionalProductInfo = configuration.GetValue<string>(Constants.EdgeletProductInfoVariableName);
+                string additionalProductInfo = configuration.GetValue<string>(Constants.EdgeletProductInfoVariableName, "");
                 if (!string.IsNullOrEmpty(additionalProductInfo))
                 {
                     productInfo += $" {additionalProductInfo}";

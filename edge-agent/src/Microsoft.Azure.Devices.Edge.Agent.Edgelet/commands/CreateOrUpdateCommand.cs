@@ -145,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
 
             if (identity.ModuleId.Equals(Constants.EdgeAgentModuleIdentityName))
             {
-                string additionalProductInfo = configSource.Configuration.GetValue<string>(Constants.EdgeletProductInfoVariableName);
+                string additionalProductInfo = configSource.Configuration.GetValue<string>(Constants.EdgeletProductInfoVariableName, "");
                 if (!string.IsNullOrEmpty(additionalProductInfo) && !envVars.Exists(x => x.Key == Constants.EdgeletProductInfoVariableName))
                 {
                     envVars.Add(new EnvVar(Constants.EdgeletProductInfoVariableName, additionalProductInfo));
