@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
     {
         [Theory]
         [MemberData(nameof(TestDataCollection))]
-        public void VerfiyCreateOrUpdateCommand(CreateOrUpdateCommandTestData testData)
+        public void VerifyCreateOrUpdateCommand(CreateOrUpdateCommandTestData testData)
         {
             var mocks = new CreateOrUpdateCommandMocks(testData);
 
