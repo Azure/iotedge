@@ -20,8 +20,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
         readonly Lazy<string> id;
         readonly Operation operation;
 
-        static readonly ILogger Log = Logger.Factory.CreateLogger<CreateOrUpdateCommand>();
-
         CreateOrUpdateCommand(IModuleManager moduleManager, ModuleSpec moduleSpec, Operation operation)
         {
             this.moduleManager = Preconditions.CheckNotNull(moduleManager, nameof(moduleManager));
