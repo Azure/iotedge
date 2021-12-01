@@ -4,8 +4,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Commands;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
 
     public class EdgeletCommandFactory<T> : ICommandFactory
     {
@@ -13,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         readonly IModuleManager moduleManager;
         readonly ICombinedConfigProvider<T> combinedConfigProvider;
         readonly bool disableSeparePullFromCreateModule;
+        static readonly ILogger Log = Logger.Factory.CreateLogger<BackupConfigSource>();
 
         public EdgeletCommandFactory(IModuleManager moduleManager, IConfigSource configSource, ICombinedConfigProvider<T> combinedConfigProvider, bool disableSeparePullFromCreateModule)
         {
