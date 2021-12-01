@@ -12,26 +12,41 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         readonly IConfigSource configSource;
         readonly IModuleManager moduleManager;
         readonly ICombinedConfigProvider<T> combinedConfigProvider;
+        readonly bool disableSeparePullFromCreateModule;
 
-        public EdgeletCommandFactory(IModuleManager moduleManager, IConfigSource configSource, ICombinedConfigProvider<T> combinedConfigProvider)
+        public EdgeletCommandFactory(IModuleManager moduleManager, IConfigSource configSource, ICombinedConfigProvider<T> combinedConfigProvider, bool disableSeparePullFromCreateModule)
         {
             this.moduleManager = Preconditions.CheckNotNull(moduleManager, nameof(moduleManager));
             this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
             this.combinedConfigProvider = Preconditions.CheckNotNull(combinedConfigProvider, nameof(combinedConfigProvider));
+            this.disableSeparePullFromCreateModule = disableSeparePullFromCreateModule;
         }
 
         public Task<ICommand> CreateAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
         {
-            T config = this.combinedConfigProvider.GetCombinedConfig(module.Module, runtimeInfo);
-            return Task.FromResult(
-                new GroupCommand(
-                    new PrepareUpdateCommand(this.moduleManager, module.Module, config),
+            if (this.disableSeparePullFromCreateModule)
+            {
+                return Task.FromResult(
                     CreateOrUpdateCommand.BuildCreate(
                         this.moduleManager,
                         module.Module,
                         module.ModuleIdentity,
                         this.configSource,
-                        config) as ICommand) as ICommand);
+                        this.combinedConfigProvider.GetCombinedConfig(module.Module, runtimeInfo)) as ICommand);
+            }
+            else
+            {
+                T config = this.combinedConfigProvider.GetCombinedConfig(module.Module, runtimeInfo);
+                return Task.FromResult(
+                    new GroupCommand(
+                        new PrepareUpdateCommand(this.moduleManager, module.Module, config),
+                        CreateOrUpdateCommand.BuildCreate(
+                            this.moduleManager,
+                            module.Module,
+                            module.ModuleIdentity,
+                            this.configSource,
+                            config) as ICommand) as ICommand);
+            }
         }
 
         public Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo) =>

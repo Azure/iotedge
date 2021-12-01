@@ -45,6 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly TimeSpan performanceMetricsUpdateFrequency;
         readonly bool useServerHeartbeat;
         readonly string backupConfigFilePath;
+        readonly bool disableSeparePullFromCreateModule;
 
         public EdgeletModule(
             string iotHubHostname,
@@ -61,7 +62,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             TimeSpan idleTimeout,
             TimeSpan performanceMetricsUpdateFrequency,
             bool useServerHeartbeat,
-            string backupConfigFilePath)
+            string backupConfigFilePath,
+            bool disableSeparePullFromCreateModule)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.gatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
@@ -78,6 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.performanceMetricsUpdateFrequency = performanceMetricsUpdateFrequency;
             this.useServerHeartbeat = useServerHeartbeat;
             this.backupConfigFilePath = Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath));
+            this.disableSeparePullFromCreateModule = disableSeparePullFromCreateModule;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -129,7 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         var loggerFactory = c.Resolve<ILoggerFactory>();
                         IConfigSource configSource = await configSourceTask;
                         ICombinedConfigProvider<CombinedDockerConfig> combinedDockerConfigProvider = await combinedDockerConfigProviderTask;
-                        ICommandFactory factory = new EdgeletCommandFactory<CombinedDockerConfig>(moduleManager, configSource, combinedDockerConfigProvider);
+                        ICommandFactory factory = new EdgeletCommandFactory<CombinedDockerConfig>(moduleManager, configSource, combinedDockerConfigProvider, this.disableSeparePullFromCreateModule);
                         factory = new MetricsCommandFactory(factory, metricsProvider);
                         return new LoggingCommandFactory(factory, loggerFactory) as ICommandFactory;
                     })
