@@ -45,18 +45,20 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                         await NUnitLogs.CollectAsync(this.testStartTime, cts.Token);
                         if (Context.Current.GetSupportBundle)
                         {
-                            try
-                            {
-                                var supportBundlePath = Context.Current.LogFile.Match((file) => Path.GetDirectoryName(file), () => AppDomain.CurrentDomain.BaseDirectory);
-                                await Process.RunAsync(
-                                    "iotedge",
-                                    $"support-bundle -o {supportBundlePath}/supportbundle-{TestContext.CurrentContext.Test.Name} --since \"{this.testStartTime:yyyy-MM-ddTHH:mm:ssZ}\"",
-                                    cts.Token);
-                            }
-                            catch (Exception ex)
-                            {
-                                Log.Error($"Failed to Get Support Bundle  Log with Error:{ex}");
-                            }
+                            // If Behind a Proxy , Only Grab Support Bundle in Case of Failure
+                            if (!Context.Current.EdgeProxy.HasValue || TestContext.CurrentContext.Result.Outcome != ResultState.Success)
+                                try
+                                {
+                                    var supportBundlePath = Context.Current.LogFile.Match((file) => Path.GetDirectoryName(file), () => AppDomain.CurrentDomain.BaseDirectory);
+                                    await Process.RunAsync(
+                                        "iotedge",
+                                        $"support-bundle -o {supportBundlePath}/supportbundle-{TestContext.CurrentContext.Test.Name} --since \"{this.testStartTime:yyyy-MM-ddTHH:mm:ssZ}\"",
+                                        cts.Token);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Log.Error($"Failed to Get Support Bundle  Log with Error:{ex}");
+                                }
                         }
                     }
                 },
