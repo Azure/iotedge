@@ -7,7 +7,9 @@ jobs:
     displayName: linuxAPIProxy
     timeoutInMinutes: 120
     pool:
-      vmImage: 'ubuntu-18.04'
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
     steps:
       - bash: |
             if [ -z '$(version)' ]; then
@@ -53,7 +55,9 @@ jobs:
 ################################################################################
     displayName: Publish Manifest Images
     pool:
-      vmImage: 'ubuntu-18.04'
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
     dependsOn:
       - linux_API_proxy_module
     steps:
