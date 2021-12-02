@@ -165,7 +165,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                     case Constants.IotedgedMode:
                         string managementUri = configuration.GetValue<string>(Constants.EdgeletManagementUriVariableName);
                         string workloadUri = configuration.GetValue<string>(Constants.EdgeletWorkloadUriVariableName);
-                        bool checkImagePullBeforeModuleCreate = configuration.GetValue<bool>(Constants.CheckImagePullBeforeModuleCreate, false);
+                        bool checkImagePullBeforeModuleCreate = configuration.GetValue<bool>(Constants.CheckImagePullBeforeModuleCreate, true);
                         iothubHostname = configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
                         deviceId = configuration.GetValue<string>(Constants.DeviceIdVariableName);
                         string moduleId = configuration.GetValue(Constants.ModuleIdVariableName, Constants.EdgeAgentModuleIdentityName);
