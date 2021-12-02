@@ -6,9 +6,7 @@ jobs:
   - deployment: publishImages
     displayName: Publish Linux Images
     pool:
-        name: $(pool.linux.name)
-        demands:
-          - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+      vmImage: ubuntu-18.04
     workspace:
       clean: all
     environment: 'Azure-IoT-Edge-Core Release Env'
