@@ -104,7 +104,7 @@ namespace TestResultCoordinator.Reports.LegacyTwin
             }
             else
             {
-                List<int> statusCodes = (List<int>)results.Keys;
+                List<int> statusCodes = results.Keys.ToList();
                 IEnumerable<int> failingStatusCodes = statusCodes.Where(s =>
                 {
                     string statusCode = s.ToString();
