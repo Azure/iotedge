@@ -12,11 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
     public class EdgeHubCertificates
     {
-        // The private-key import on windows randomly seems failing, however according to the tests, the second time
-        // after a failure it usually works. The number below is just a "big enough" number randomly chosen for
-        // self-healing, but gives a limit to avoid endless try.
-        const int MaxCertImportRetryCount = 10;
-
         EdgeHubCertificates(X509Certificate2 serverCertificate, IList<X509Certificate2> certificateChain, IList<X509Certificate2> trustBundle, Option<X509Certificate2> manifestTrustBundle)
         {
             this.ServerCertificate = Preconditions.CheckNotNull(serverCertificate, nameof(serverCertificate));
@@ -37,91 +32,65 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         {
             Preconditions.CheckNotNull(configuration, nameof(configuration));
 
-            bool isServerCertReady;
-            int retryCount = 0;
-
             EdgeHubCertificates result;
-            do
+
+            string edgeHubDevCertPath = configuration.GetValue<string>(Constants.ConfigKey.EdgeHubDevServerCertificateFile);
+            string edgeHubDevPrivateKeyPath = configuration.GetValue<string>(Constants.ConfigKey.EdgeHubDevServerPrivateKeyFile);
+            string edgeHubDevTrustBundlePath = configuration.GetValue<string>(Constants.ConfigKey.EdgeHubDevTrustBundleFile);
+            string edgeHubDockerCertPFXPath = configuration.GetValue<string>(Constants.ConfigKey.EdgeHubServerCertificateFile);
+            string edgeHubDockerCaChainCertPath = configuration.GetValue<string>(Constants.ConfigKey.EdgeHubServerCAChainCertificateFile);
+            string edgeHubConnectionString = configuration.GetValue<string>(Constants.ConfigKey.IotHubConnectionString);
+
+            if (string.IsNullOrEmpty(edgeHubConnectionString))
             {
-                string edgeHubDevCertPath = configuration.GetValue<string>(Constants.ConfigKey.EdgeHubDevServerCertificateFile);
-                string edgeHubDevPrivateKeyPath = configuration.GetValue<string>(Constants.ConfigKey.EdgeHubDevServerPrivateKeyFile);
-                string edgeHubDevTrustBundlePath = configuration.GetValue<string>(Constants.ConfigKey.EdgeHubDevTrustBundleFile);
-                string edgeHubDockerCertPFXPath = configuration.GetValue<string>(Constants.ConfigKey.EdgeHubServerCertificateFile);
-                string edgeHubDockerCaChainCertPath = configuration.GetValue<string>(Constants.ConfigKey.EdgeHubServerCAChainCertificateFile);
-                string edgeHubConnectionString = configuration.GetValue<string>(Constants.ConfigKey.IotHubConnectionString);
+                // When connection string is not set it is edged mode as iotedgd is expected to set this.
+                // In this case we reach out to the iotedged via the workload interface.
+                (X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain) certificates;
 
-                if (string.IsNullOrEmpty(edgeHubConnectionString))
-                {
-                    // When connection string is not set it is edged mode as iotedgd is expected to set this.
-                    // In this case we reach out to the iotedged via the workload interface.
-                    (X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain) certificates;
+                var workloadUri = new Uri(configuration.GetValue<string>(Constants.ConfigKey.WorkloadUri));
+                string edgeHubHostname = configuration.GetValue<string>(Constants.ConfigKey.EdgeDeviceHostName);
+                string moduleId = configuration.GetValue<string>(Constants.ConfigKey.ModuleId);
+                string generationId = configuration.GetValue<string>(Constants.ConfigKey.ModuleGenerationId);
+                string edgeletApiVersion = configuration.GetValue<string>(Constants.ConfigKey.WorkloadAPiVersion);
+                DateTime expiration = DateTime.UtcNow.AddDays(Constants.CertificateValidityDays);
 
-                    var workloadUri = new Uri(configuration.GetValue<string>(Constants.ConfigKey.WorkloadUri));
-                    string edgeHubHostname = configuration.GetValue<string>(Constants.ConfigKey.EdgeDeviceHostName);
-                    string moduleId = configuration.GetValue<string>(Constants.ConfigKey.ModuleId);
-                    string generationId = configuration.GetValue<string>(Constants.ConfigKey.ModuleGenerationId);
-                    string edgeletApiVersion = configuration.GetValue<string>(Constants.ConfigKey.WorkloadAPiVersion);
-                    DateTime expiration = DateTime.UtcNow.AddDays(Constants.CertificateValidityDays);
+                certificates = await CertificateHelper.GetServerCertificatesFromEdgelet(workloadUri, edgeletApiVersion, Constants.WorkloadApiVersion, moduleId, generationId, edgeHubHostname, expiration, logger);
+                IEnumerable<X509Certificate2> trustBundle = await CertificateHelper.GetTrustBundleFromEdgelet(workloadUri, edgeletApiVersion, Constants.WorkloadApiVersion, moduleId, generationId);
+                Option<X509Certificate2> manifestTrustBundle = await CertificateHelper.GetManifestTrustBundleFromEdgelet(workloadUri, edgeletApiVersion, Constants.WorkloadApiVersion, moduleId, generationId);
 
-                    certificates = await CertificateHelper.GetServerCertificatesFromEdgelet(workloadUri, edgeletApiVersion, Constants.WorkloadApiVersion, moduleId, generationId, edgeHubHostname, expiration);
-                    IEnumerable<X509Certificate2> trustBundle = await CertificateHelper.GetTrustBundleFromEdgelet(workloadUri, edgeletApiVersion, Constants.WorkloadApiVersion, moduleId, generationId);
-                    Option<X509Certificate2> manifestTrustBundle = await CertificateHelper.GetManifestTrustBundleFromEdgelet(workloadUri, edgeletApiVersion, Constants.WorkloadApiVersion, moduleId, generationId);
-
-                    result = new EdgeHubCertificates(
-                        certificates.ServerCertificate,
-                        certificates.CertificateChain?.ToList(),
-                        trustBundle?.ToList(),
-                        manifestTrustBundle);
-                }
-                else if (!string.IsNullOrEmpty(edgeHubDevCertPath) &&
-                         !string.IsNullOrEmpty(edgeHubDevPrivateKeyPath) &&
-                         !string.IsNullOrEmpty(edgeHubDevTrustBundlePath))
-                {
-                    // If no connection string was set and we use iotedged workload style certificates for development
-                    (X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain) certificates;
-
-                    certificates = CertificateHelper.GetServerCertificateAndChainFromFile(edgeHubDevCertPath, edgeHubDevPrivateKeyPath);
-                    IEnumerable<X509Certificate2> trustBundle = CertificateHelper.ParseTrustedBundleFromFile(edgeHubDevTrustBundlePath);
-
-                    result = new EdgeHubCertificates(
-                        certificates.ServerCertificate,
-                        certificates.CertificateChain?.ToList(),
-                        trustBundle?.ToList(),
-                        Option.None<X509Certificate2>());
-                }
-                else if (!string.IsNullOrEmpty(edgeHubDockerCertPFXPath) &&
-                         !string.IsNullOrEmpty(edgeHubDockerCaChainCertPath))
-                {
-                    // If no connection string was set and we use iotedge devdiv style certificates for development
-                    List<X509Certificate2> certificateChain = CertificateHelper.GetServerCACertificatesFromFile(edgeHubDockerCaChainCertPath)?.ToList();
-                    result = new EdgeHubCertificates(new X509Certificate2(edgeHubDockerCertPFXPath), certificateChain, new List<X509Certificate2>(), Option.None<X509Certificate2>());
-                }
-                else
-                {
-                    throw new InvalidOperationException("Edge Hub certificate files incorrectly configured");
-                }
-
-                // On Windows, from time to time the private key cannot be accessed and kestrel fails accepting connections
-                // without the private key. Testing the private key here and if it fails, retry the entire cert import.
-                // The second try usually works.
-                try
-                {
-                    _ = result.ServerCertificate.PrivateKey;
-                    isServerCertReady = true;
-                }
-                catch
-                {
-                    if (++retryCount > MaxCertImportRetryCount)
-                    {
-                        throw new InvalidOperationException("Cannot import server certificate, giving up");
-                    }
-
-                    isServerCertReady = false;
-                    logger.LogWarning("Error importing server certificate, retrying");
-                    await Task.Delay(TimeSpan.FromSeconds(1)); // Do not spam the log
-                }
+                result = new EdgeHubCertificates(
+                    certificates.ServerCertificate,
+                    certificates.CertificateChain?.ToList(),
+                    trustBundle?.ToList(),
+                    manifestTrustBundle);
             }
-            while (!isServerCertReady);
+            else if (!string.IsNullOrEmpty(edgeHubDevCertPath) &&
+                        !string.IsNullOrEmpty(edgeHubDevPrivateKeyPath) &&
+                        !string.IsNullOrEmpty(edgeHubDevTrustBundlePath))
+            {
+                // If no connection string was set and we use iotedged workload style certificates for development
+                (X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain) certificates;
+
+                certificates = CertificateHelper.GetServerCertificateAndChainFromFile(edgeHubDevCertPath, edgeHubDevPrivateKeyPath, logger);
+                IEnumerable<X509Certificate2> trustBundle = CertificateHelper.ParseTrustedBundleFromFile(edgeHubDevTrustBundlePath);
+
+                result = new EdgeHubCertificates(
+                    certificates.ServerCertificate,
+                    certificates.CertificateChain?.ToList(),
+                    trustBundle?.ToList(),
+                    Option.None<X509Certificate2>());
+            }
+            else if (!string.IsNullOrEmpty(edgeHubDockerCertPFXPath) &&
+                        !string.IsNullOrEmpty(edgeHubDockerCaChainCertPath))
+            {
+                // If no connection string was set and we use iotedge devdiv style certificates for development
+                List<X509Certificate2> certificateChain = CertificateHelper.GetServerCACertificatesFromFile(edgeHubDockerCaChainCertPath)?.ToList();
+                result = new EdgeHubCertificates(new X509Certificate2(edgeHubDockerCertPFXPath), certificateChain, new List<X509Certificate2>(), Option.None<X509Certificate2>());
+            }
+            else
+            {
+                throw new InvalidOperationException("Edge Hub certificate files incorrectly configured");
+            }
 
             CertificateHelper.InstallCertificates(result.CertificateChain, logger);
             CertificateHelper.InstallCertificates(result.TrustBundle, logger);
