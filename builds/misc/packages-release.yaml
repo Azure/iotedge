@@ -7,7 +7,9 @@ jobs:
 ################################################################################
     displayName: Linux
     pool:
-      vmImage: 'ubuntu-18.04'
+        name: $(pool.linux.name)
+        demands:
+          - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
     strategy:
       matrix:
         Centos75-amd64:
