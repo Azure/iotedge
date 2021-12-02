@@ -99,7 +99,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
 
             if (!this.MqttBrokerEnabled && this.Topology == Topology.SingleNode)
             {
-                deviceNotFoundThreshold = (double)allStatusCount / 1000;
+                deviceNotFoundThreshold = (double)allStatusCount / 1600;
             }
             else if (!this.MqttBrokerEnabled && this.Topology == Topology.Nested && this.TestDescription.Contains("mqtt"))
             {
