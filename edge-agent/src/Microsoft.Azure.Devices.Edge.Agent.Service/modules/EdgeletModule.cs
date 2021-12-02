@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly TimeSpan performanceMetricsUpdateFrequency;
         readonly bool useServerHeartbeat;
         readonly string backupConfigFilePath;
-        readonly bool disableSeparePullFromCreateModule;
+        readonly bool checkImagePullBeforeModuleCreate;
 
         public EdgeletModule(
             string iotHubHostname,
@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             TimeSpan performanceMetricsUpdateFrequency,
             bool useServerHeartbeat,
             string backupConfigFilePath,
-            bool disableSeparePullFromCreateModule)
+            bool checkImagePullBeforeModuleCreate)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.gatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.performanceMetricsUpdateFrequency = performanceMetricsUpdateFrequency;
             this.useServerHeartbeat = useServerHeartbeat;
             this.backupConfigFilePath = Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath));
-            this.disableSeparePullFromCreateModule = disableSeparePullFromCreateModule;
+            this.checkImagePullBeforeModuleCreate = checkImagePullBeforeModuleCreate;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -132,7 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         var loggerFactory = c.Resolve<ILoggerFactory>();
                         IConfigSource configSource = await configSourceTask;
                         ICombinedConfigProvider<CombinedDockerConfig> combinedDockerConfigProvider = await combinedDockerConfigProviderTask;
-                        ICommandFactory factory = new EdgeletCommandFactory<CombinedDockerConfig>(moduleManager, configSource, combinedDockerConfigProvider, this.disableSeparePullFromCreateModule);
+                        ICommandFactory factory = new EdgeletCommandFactory<CombinedDockerConfig>(moduleManager, configSource, combinedDockerConfigProvider, this.checkImagePullBeforeModuleCreate);
                         factory = new MetricsCommandFactory(factory, metricsProvider);
                         return new LoggingCommandFactory(factory, loggerFactory) as ICommandFactory;
                     })
