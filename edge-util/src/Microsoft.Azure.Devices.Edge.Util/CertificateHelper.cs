@@ -448,14 +448,18 @@ namespace Microsoft.Azure.Devices.Edge.Util
                     // The second try usually works.
                     try
                     {
-                        _ = cert.PrivateKey;
-                        return (cert, certsChain);
+                        if (cert.HasPrivateKey)
+                        {
+                            return (cert, certsChain);
+                        }
                     }
                     catch
                     {
-                        logger?.LogWarning("Error importing certificate, retrying");
-                        Thread.Sleep(TimeSpan.FromSeconds(1)); // Do not spam the log
+                        // swallow
                     }
+
+                    logger?.LogWarning("Error importing certificate, retrying");
+                    Thread.Sleep(TimeSpan.FromSeconds(1)); // Do not spam the log
                 }
             }
 
