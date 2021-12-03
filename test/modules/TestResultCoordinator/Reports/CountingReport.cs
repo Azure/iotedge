@@ -30,7 +30,7 @@ namespace TestResultCoordinator.Reports
     {
         const string C2dTestDescription = "C2D";
         const string GenericMqttTelemetryTestDescription = "mqtt | generic";
-        const string UpstreamMessagesTestDescription = "messages | upstream";
+        const string MessagesTestDescription = "messages";
 
         public CountingReport(
             string testDescription,
@@ -145,7 +145,7 @@ namespace TestResultCoordinator.Reports
                         {
                             return ((double)this.TotalMatchCount / this.TotalExpectCount) > .8d;
                         }
-                        else if (this.MqttBrokerEnabled && this.TestDescription.Contains(UpstreamMessagesTestDescription))
+                        else if (this.MqttBrokerEnabled && this.TestDescription.Contains(MessagesTestDescription))
                         {
                             return ((double)this.TotalMatchCount / this.TotalExpectCount) > .99d;
                         }
