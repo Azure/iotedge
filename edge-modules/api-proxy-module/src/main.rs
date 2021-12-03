@@ -19,6 +19,7 @@ use tokio::{
     process::{Child, Command},
     sync::Notify,
     task::JoinHandle,
+    time,
 };
 
 use api_proxy_module::{
@@ -27,6 +28,8 @@ use api_proxy_module::{
     utils::{shutdown, shutdown_handle},
 };
 use shutdown_handle::ShutdownHandle;
+
+const MAX_LOOP_INTERVAL_SECONDS: tokio::time::Duration = tokio::time::Duration::from_secs(1);
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -188,6 +191,10 @@ pub fn nginx_controller_start(
                         return Ok(());
                     }
                 }
+
+                // This delay controls how fast the main loop can reconnect once nginx crashed.
+                // Without this, nginx crashes and restart continuously. Rapidly increasing the size of the logs.
+                time::sleep(MAX_LOOP_INTERVAL_SECONDS);
             }
         }
     });
