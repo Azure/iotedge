@@ -354,6 +354,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             int retryCount = 0;
             while (retryCount++ < MaxCertImportRetryCount)
             {
+                bool isEcKey = false;
                 IEnumerable<string> pemCerts = ParsePemCerts(certificateWithChain);
 
                 if (pemCerts.FirstOrDefault() == null)
@@ -392,6 +393,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                     else if (certObject is ECPrivateKeyParameters ecParameters)
                     {
                         keyParams = ecParameters;
+                        isEcKey = true;
                     }
 
                     certObject = pemReader.ReadObject();
@@ -416,6 +418,15 @@ namespace Microsoft.Azure.Devices.Edge.Util
                     {
                         if (cert.HasPrivateKey)
                         {
+                            if (isEcKey)
+                            {
+                                _ = cert.GetECDsaPrivateKey();
+                            }
+                            else
+                            {
+                                _ = cert.GetRSAPrivateKey();
+                            }
+
                             return (cert, certsChain);
                         }
                     }
