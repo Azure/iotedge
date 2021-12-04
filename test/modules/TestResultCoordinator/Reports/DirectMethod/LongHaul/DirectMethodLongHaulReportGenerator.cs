@@ -66,6 +66,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             long deviceNotFound = 0;
             long transientError = 0;
             long resourceError = 0;
+            long notImplemented = 0;
             long receiverSuccesses = 0;
             Dictionary<HttpStatusCode, long> other = new Dictionary<HttpStatusCode, long>();
             while (await this.SenderTestResults.MoveNextAsync())
@@ -92,6 +93,9 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
                         break;
                     case 503:
                         resourceError++;
+                        break;
+                    case 501:
+                        notImplemented++;
                         break;
                     default:
                         if (other.ContainsKey(statusCode))
@@ -132,6 +136,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
                 deviceNotFound,
                 transientError,
                 resourceError,
+                notImplemented,
                 other);
         }
 

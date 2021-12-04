@@ -25,6 +25,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             long deviceNotFound,
             long transientError,
             long resourceError,
+            long notImplemented,
             Dictionary<HttpStatusCode, long> other)
             : base(testDescription, trackingId, resultType)
         {
@@ -39,6 +40,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             this.DeviceNotFound = deviceNotFound;
             this.TransientError = transientError;
             this.ResourceError = resourceError;
+            this.NotImplemented = notImplemented;
             this.Other = other;
         }
 
@@ -65,6 +67,8 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
 
         public long ResourceError { get; }
 
+        public long NotImplemented { get; }
+
         public Dictionary<HttpStatusCode, long> Other { get; }
 
         public override string Title => $"DirectMethod LongHaul Report for [{this.SenderSource}] and [{this.ReceiverSource}] ({this.ResultType})";
@@ -87,6 +91,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             double deviceNotFoundThreshold;
             double transientErrorThreshold;
             double resourceErrorThreshold;
+            double notImplementedThreshold;
 
             // The SDK does not allow edgehub to de-register from iothub subscriptions, which results in DirectMethod clients sometimes receiving status code 0.
             // Github issue: https://github.com/Azure/iotedge/issues/681
@@ -96,6 +101,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             unauthorizedThreshold = (double)allStatusCount / 1000;
             transientErrorThreshold = (double)allStatusCount / 1000;
             resourceErrorThreshold = (double)allStatusCount / 1000;
+            notImplementedThreshold = (double)allStatusCount / 1000;
 
             if (!this.MqttBrokerEnabled && this.Topology == Topology.SingleNode)
             {
@@ -115,9 +121,10 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             bool deviceNotFoundBelowThreshold = (this.DeviceNotFound == 0) || (this.DeviceNotFound < deviceNotFoundThreshold);
             bool transientErrorBelowThreshold = (this.TransientError == 0) || (this.TransientError < transientErrorThreshold);
             bool resourceErrorBelowThreshold = (this.ResourceError == 0) || (this.ResourceError < resourceErrorThreshold);
+            bool notImplementedBelowThreshold = (this.NotImplemented == 0) || (this.NotImplemented < notImplementedThreshold);
 
             // Pass if below the thresholds, and sender and receiver got same amount of successess (or receiver has no results)
-            return statusCodeZeroBelowThreshold && unauthorizedBelowThreshold && deviceNotFoundBelowThreshold && transientErrorBelowThreshold && senderAndReceiverSuccessesPass;
+            return statusCodeZeroBelowThreshold && unauthorizedBelowThreshold && deviceNotFoundBelowThreshold && transientErrorBelowThreshold && senderAndReceiverSuccessesPass && notImplementedBelowThreshold;
         }
     }
 }
