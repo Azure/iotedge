@@ -31,6 +31,7 @@ parameters:
   customEdgeHub.image: ''
   test.runtimeLogLevel: ''
   connectivity.nested: 'false'
+  trackingId: ''
 
 steps:
   - task: CopyFiles@2
@@ -144,6 +145,7 @@ steps:
           -testInfo "$testInfo" \
           -repoPath "${{ parameters['build.repo.path'] }}" \
           -waitForTestComplete \
+          -trackingId "${{ parameters['trackingId'] }}" \
           -cleanAll
 
         scriptExitCode=$?
