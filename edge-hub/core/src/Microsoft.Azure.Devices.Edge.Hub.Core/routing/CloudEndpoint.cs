@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using System.Diagnostics;
     using System.IO;
     using System.Linq;
     using System.Threading;
@@ -31,7 +32,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
         readonly int maxBatchSize;
         readonly bool trackDeviceState;
-
         public CloudEndpoint(
             string id,
             Func<string, Task<Try<ICloudProxy>>> cloudProxyGetterFunc,
@@ -216,25 +216,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     var cp = cloudProxy.Value;
                     try
                     {
-                            List<IMessage> messages = routingMessages
-                                .Select(r => this.cloudEndpoint.messageConverter.ToMessage(r))
-                                .ToList();
-
-                            if (messages.Count == 1)
-                            {
-                                await cp.SendMessageAsync(messages[0]);
-                            }
-                            else
-                            {
-                                await cp.SendMessageBatchAsync(messages);
-                            }
-
-                            return new SinkResult<IRoutingMessage>(routingMessages);
-                        }
-                        catch (Exception ex)
+                        List<IMessage> messages = routingMessages
+                            .Select(r => this.cloudEndpoint.messageConverter.ToMessage(r))
+                            .ToList();
+                        foreach (var message in messages)
                         {
-                            return this.HandleException(ex, id, routingMessages);
+                            var parentContext = TracingInformation.Propagator.Extract(
+                                                            default,
+                                                            message.Properties,
+                                                            TracingInformation.ExtractTraceContextFromCarrier);
+                            using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("RouteCloudMessage", ActivityKind.Consumer, parentContext.ActivityContext);
+                            activity?.SetTag("ClientId", id);
                         }
+
+                        if (messages.Count == 1)
+                        {
+                            await cp.SendMessageAsync(messages[0]);
+                        }
+                        else
+                        {
+                            await cp.SendMessageBatchAsync(messages);
+                        }
+
+                        return new SinkResult<IRoutingMessage>(routingMessages);
+                    }
+                    catch (Exception ex)
+                    {
+                        return this.HandleException(ex, id, routingMessages);
+                    }
                 }
                 else
                 {

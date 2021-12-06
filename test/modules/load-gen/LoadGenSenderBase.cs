@@ -2,6 +2,7 @@
 namespace LoadGen
 {
     using System;
+    using System.Diagnostics;
     using System.Net;
     using System.Text;
     using System.Threading;
@@ -12,6 +13,8 @@ namespace LoadGen
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
+    using OpenTelemetry;
+    using OpenTelemetry.Context.Propagation;
 
     public abstract class LoadGenSenderBase
     {
@@ -37,6 +40,8 @@ namespace LoadGen
 
         public abstract Task RunAsync(CancellationTokenSource cts, DateTime testStartAt);
 
+        private readonly TextMapPropagator propagator = Propagators.DefaultTextMapPropagator;
+
         protected async Task SendEventAsync(long messageId, string outputName)
         {
             var random = new Random();
@@ -44,6 +49,8 @@ namespace LoadGen
 
             using (Buffer data = bufferPool.AllocBuffer(Settings.Current.MessageSizeInBytes))
             {
+                using var activity = Settings.activitySource.StartActivity("SendEventAsync", ActivityKind.Producer);
+                activity?.SetTag(nameof(messageId), messageId);
                 // generate some bytes
                 random.NextBytes(data.Data);
 
@@ -53,6 +60,10 @@ namespace LoadGen
                 message.Properties.Add(TestConstants.Message.SequenceNumberPropertyName, messageId.ToString());
                 message.Properties.Add(TestConstants.Message.BatchIdPropertyName, this.BatchId.ToString());
                 message.Properties.Add(TestConstants.Message.TrackingIdPropertyName, this.TrackingId);
+
+                // Inject Context for Distributed Tracing
+                propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), message.Properties,
+                TracingInformation.InjectTraceContextIntoCarrier);
 
                 // sending the result via edgeHub
                 await this.Client.SendEventAsync(outputName, message);

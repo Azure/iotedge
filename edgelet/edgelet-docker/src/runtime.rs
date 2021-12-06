@@ -1,5 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use opentelemetry::{
+    global,
+    trace::{FutureExt, Span, TraceContextExt, Tracer, TracerProvider},
+    Context,
+};
 use std::collections::{BTreeMap, HashMap};
 use std::convert::TryInto;
 use std::path::{Path, PathBuf};
@@ -211,7 +216,7 @@ impl ModuleRegistry for DockerModuleRuntime {
 
         let creds = match config.auth() {
             Some(a) => {
-                let json = serde_json::to_string(&a).with_context(|_| {
+                let json = ResultExt::with_context(serde_json::to_string(&a), |_| {
                     ErrorKind::RegistryOperation(RegistryOperation::PullImage(image.clone()))
                 })?;
                 base64::encode_config(&json, base64::URL_SAFE)
@@ -464,7 +469,9 @@ impl ModuleRuntime for DockerModuleRuntime {
 
     async fn get(&self, id: &str) -> Result<(Self::Module, ModuleRuntimeState)> {
         debug!("Getting module {}...", id);
-
+        let tracer_provider = global::tracer_provider();
+        let tracer = tracer_provider.tracer("aziot-edged", Some(env!("CARGO_PKG_VERSION")));
+        let mut span = tracer.start("DockerModuleRuntime:get");
         ensure_not_empty_with_context(id, || {
             ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.to_owned()))
         })
@@ -518,11 +525,12 @@ impl ModuleRuntime for DockerModuleRuntime {
             config = config.with_image_hash(image_hash.to_string());
         }
 
-        let module = DockerModule::new(self.client.clone(), name, config).with_context(|_| {
-            ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.to_string()))
-        })?;
+        let module =
+            ResultExt::with_context(DockerModule::new(self.client.clone(), name, config), |_| {
+                ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.to_string()))
+            })?;
         let state = runtime_state(response.id(), response.state());
-
+        span.end();
         Ok((module, state))
     }
 
@@ -793,7 +801,9 @@ impl ModuleRuntime for DockerModuleRuntime {
 
     async fn list(&self) -> Result<Vec<Self::Module>> {
         debug!("Listing modules...");
-
+        let tracer_provider = global::tracer_provider();
+        let tracer = tracer_provider.tracer("aziot-edged", Some(env!("CARGO_PKG_VERSION")));
+        let mut span = tracer.start("DockerModuleRuntime:list");
         let mut filters = HashMap::new();
         filters.insert("label", LABELS);
         let filters = serde_json::to_string(&filters)
@@ -852,19 +862,24 @@ impl ModuleRuntime for DockerModuleRuntime {
                 )
             })
             .collect();
-
+        span.end();
         Ok(result)
     }
 
     async fn list_with_details(&self) -> Result<Vec<(Self::Module, ModuleRuntimeState)>> {
+        let tracer_provider = global::tracer_provider();
+        let tracer = tracer_provider.tracer("aziot-edged", Some(env!("CARGO_PKG_VERSION")));
+        let span = tracer.start("DockerModuleRuntime:list_with_details");
+        let cx = Context::current_with_span(span);
         let mut result = Vec::new();
         for module in self.list().await? {
             // Note, if error calling just drop module from list
-            if let Ok(module_with_details) = self.get(module.name()).await {
+            if let Ok(module_with_details) =
+                FutureExt::with_context(self.get(module.name()), cx.clone()).await
+            {
                 result.push(module_with_details);
             }
         }
-
         Ok(result)
     }
 
@@ -941,9 +956,10 @@ impl ModuleRuntime for DockerModuleRuntime {
             err
         })?;
 
-        let pids = parse_top_response::<Deserializer>(&top_response).with_context(|_| {
-            ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id.to_owned()))
-        })?;
+        let pids =
+            ResultExt::with_context(parse_top_response::<Deserializer>(&top_response), |_| {
+                ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id.to_owned()))
+            })?;
 
         Ok(pids)
     }

@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using System.Diagnostics;
     using System.Globalization;
     using System.Linq;
     using System.Threading;
@@ -11,6 +12,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Extensions.Logging;
 
     public class Router : IDisposable
@@ -222,8 +224,17 @@ namespace Microsoft.Azure.Devices.Routing.Core
         Task RouteInternalAsync(IMessage message)
         {
             ISet<RouteResult> results = this.evaluator.Evaluate(message);
-
+            var parentContext = TracingInformation.Propagator.Extract(
+             default,
+             message.Properties,
+             TracingInformation.ExtractTraceContextFromCarrier);
             Events.MessageEvaluation(this.iotHubName, message, results);
+            using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("RouteMessage", ActivityKind.Consumer, parentContext.ActivityContext);
+            if (message.MessageSource is BaseMessageSource)
+            {
+                activity?.SetTag("RoutingSource", (message.MessageSource as BaseMessageSource).Source);
+                activity?.SetTag("RoutingDestination", results.Select(x => x.Endpoint.Name).ToList().Join(","));
+            }
 
             return this.dispatcher.DispatchAsync(message, results);
         }

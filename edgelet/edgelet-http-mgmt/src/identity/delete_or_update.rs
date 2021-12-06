@@ -1,5 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use opentelemetry::{
+    global,
+    trace::{Span, Tracer, TracerProvider},
+};
 use std::convert::TryFrom;
 
 #[cfg(not(test))]
@@ -59,13 +63,22 @@ where
 
     type DeleteBody = serde::de::IgnoredAny;
     async fn delete(self, _body: Option<Self::DeleteBody>) -> http_common::server::RouteResponse {
+        let tracer_provider = global::tracer_provider();
+        let tracer = tracer_provider.tracer("aziot-edged", Some(env!("CARGO_PKG_VERSION")));
+        let mut span = tracer.start("identity:delete");
         edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
         let client = self.client.lock().await;
 
         match client.delete_identity(&self.module_id).await {
-            Ok(_) => Ok(http_common::server::response::no_content()),
-            Err(err) => Err(edgelet_http::error::server_error(err.to_string())),
+            Ok(_) => {
+                span.end();
+                Ok(http_common::server::response::no_content())
+            }
+            Err(err) => {
+                span.end();
+                Err(edgelet_http::error::server_error(err.to_string()))
+            }
         }
     }
 
@@ -73,6 +86,9 @@ where
 
     type PutBody = serde::de::IgnoredAny;
     async fn put(self, _body: Self::PutBody) -> http_common::server::RouteResponse {
+        let tracer_provider = global::tracer_provider();
+        let tracer = tracer_provider.tracer("aziot-edged", Some(env!("CARGO_PKG_VERSION")));
+        let mut span = tracer.start("identity:put");
         edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
         let client = self.client.lock().await;
@@ -80,12 +96,13 @@ where
         let identity = match client.update_module_identity(&self.module_id).await {
             Ok(identity) => crate::identity::Identity::try_from(identity)?,
             Err(err) => {
+                span.end();
                 return Err(edgelet_http::error::server_error(err.to_string()));
             }
         };
 
         let res = http_common::server::response::json(hyper::StatusCode::OK, &identity);
-
+        span.end();
         Ok(res)
     }
 }

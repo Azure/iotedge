@@ -3,6 +3,8 @@ namespace LoadGen
 {
     using System;
     using System.Collections.Generic;
+    using System.Reflection;
+    using System.Diagnostics;
     using System.IO;
     using System.Linq;
     using Microsoft.Azure.Devices.Client;
@@ -12,6 +14,10 @@ namespace LoadGen
     class Settings
     {
         internal static Settings Current = Create();
+
+        internal const string SourceName = "load-gen";
+
+        internal static ActivitySource activitySource = new ActivitySource(SourceName, Assembly.GetExecutingAssembly().ImageRuntimeVersion);
 
         Settings(
             TimeSpan messageFrequency,
@@ -27,7 +33,8 @@ namespace LoadGen
             Option<List<int>> priorities,
             Option<List<int>> ttls,
             Option<int> ttlThresholdSecs,
-            Option<string> modelId)
+            Option<string> modelId,
+            Option<string> otelCollectorEndpoint)
         {
             Preconditions.CheckRange(messageFrequency.Ticks, 0);
             Preconditions.CheckRange(testStartDelay.Ticks, 0);
@@ -48,6 +55,7 @@ namespace LoadGen
             this.Ttls = ttls;
             this.TtlThresholdSecs = ttlThresholdSecs;
             this.ModelId = modelId;
+            this.OtelCollectorEndpoint = otelCollectorEndpoint;
         }
 
         static Settings Create()
@@ -107,7 +115,8 @@ namespace LoadGen
                 Option.Maybe(priorities),
                 Option.Maybe(ttls),
                 ttlThresholdSecs,
-                Option.Maybe(configuration.GetValue<string>("modelId")));
+                Option.Maybe(configuration.GetValue<string>("modelId")),
+                Option.Maybe(configuration.GetValue<string>("OTEL_COLLECTOR_ENDPOINT")));
         }
 
         public TimeSpan MessageFrequency { get; }
@@ -138,6 +147,8 @@ namespace LoadGen
 
         public Option<string> ModelId { get; }
 
+        public Option<string> OtelCollectorEndpoint { get; }
+
         public override string ToString()
         {
             // serializing in this pattern so that secrets don't accidentally get added anywhere in the future
@@ -159,6 +170,7 @@ namespace LoadGen
             this.Ttls.ForEach(t => fields.Add(nameof(this.Ttls), t.ToString()));
             this.TtlThresholdSecs.ForEach(t => fields.Add(nameof(this.TtlThresholdSecs), t.ToString()));
             this.ModelId.ForEach(m => fields.Add(nameof(this.ModelId), m));
+            this.OtelCollectorEndpoint.ForEach(e => fields.Add(nameof(OtelCollectorEndpoint), e));
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
         }

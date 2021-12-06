@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using System.Diagnostics;
     using System.IO;
     using System.Linq;
     using System.Threading;
@@ -91,6 +92,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 // TODO - Add more info to this log message
                 Log.LogWarning((int)EventIds.InvalidMessage, ex, Invariant($"Non retryable exception occurred while sending message."));
             }
+
+            internal static void LogNullActivity()
+            {
+                Log.LogInformation((int)EventIds.InvalidMessage, Invariant($"Got Null Activity!!!!"));
+            }
         }
 
         class ModuleMessageProcessor : IProcessor
@@ -103,6 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             };
 
             readonly ModuleEndpoint moduleEndpoint;
+
             Util.Option<IDeviceProxy> devicePoxy = Option.None<IDeviceProxy>();
 
             public ModuleMessageProcessor(ModuleEndpoint endpoint)
@@ -159,6 +166,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 foreach (IRoutingMessage routingMessage in routingMessages)
                 {
                     IMessage message = this.moduleEndpoint.messageConverter.ToMessage(routingMessage);
+                    var parentContext = TracingInformation.Propagator.Extract(
+                                                           default,
+                                                           message.Properties,
+                                                           TracingInformation.ExtractTraceContextFromCarrier);
+                    using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("ProcessModuleMessage", ActivityKind.Consumer, parentContext.ActivityContext);
+                    message.Properties.Inject(activity?.Context);
                     try
                     {
                         if (failed.Count == 0)

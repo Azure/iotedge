@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using System;
     using System.Collections;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.IO;
     using System.Linq;
     using System.Net;
@@ -26,6 +27,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
+    using OpenTelemetry;
+    using OpenTelemetry.Resources;
+    using OpenTelemetry.Trace;
     using Constants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
     using K8sConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
     using KubernetesModule = Microsoft.Azure.Devices.Edge.Agent.Service.Modules.KubernetesModule;
@@ -72,6 +76,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             {
                 logger.LogInformation($"Version - {versionInfo.ToString(true)}");
             }
+
+#if ENABLE_TRACE
+            AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+            Activity.DefaultIdFormat = ActivityIdFormat.W3C;
+            var endpoint = new Uri("http://host.docker.internal:4317");
+            logger.LogInformation($"Created Trace Provider with Endpoint : {endpoint.ToString()}");
+            using TracerProvider tracerProvider = Sdk.CreateTracerProviderBuilder()
+            .AddHttpClientInstrumentation()
+            .AddAspNetCoreInstrumentation()
+            .AddSource("Microsoft.Azure.Devices.Edge.Agent.Core.Agent")
+            .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("EdgeAgent"))
+            .AddOtlpExporter(opt => opt.Endpoint = endpoint)
+            .Build();
+#endif
 
             LogLogo(logger);
 

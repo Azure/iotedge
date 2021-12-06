@@ -145,6 +145,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             Preconditions.CheckNotNull(inputMessage, nameof(inputMessage));
             IMessageConverter<Message> converter = this.messageConverterProvider.Get<Message>();
+            var parentContext = TracingInformation.Propagator.Extract(
+                                                   default,
+                                                   inputMessage.Properties,
+                                                   TracingInformation.ExtractTraceContextFromCarrier);
+            using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("CloudProxySendMessage", ActivityKind.Consumer, parentContext.ActivityContext);
+            activity?.SetTag("ClientId", this.clientId);
             Message message = converter.FromMessage(inputMessage);
             await this.ResetTimerAsync();
             try
@@ -173,6 +179,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             IList<Message> messages = Preconditions.CheckNotNull(inputMessages, nameof(inputMessages))
                 .Select(inputMessage =>
                 {
+                    var parentContext = TracingInformation.Propagator.Extract(
+                                                  default,
+                                                  inputMessage.Properties,
+                                                  TracingInformation.ExtractTraceContextFromCarrier);
+                    using var activity = TracingInformation.EdgeHubActivitySource.StartActivity("CloudProxySendMessages", ActivityKind.Consumer, parentContext.ActivityContext);
+                    activity?.SetTag("ClientId", this.clientId);
                     metricOutputRoute = metricOutputRoute ?? inputMessage.GetOutput();
                     Metrics.MessageProcessingLatency(this.clientId, inputMessage);
                     return converter.FromMessage(inputMessage);

@@ -4,6 +4,7 @@ namespace Relayer
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
     using System.Net;
     using System.Text;
@@ -15,6 +16,11 @@ namespace Relayer
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
+    using OpenTelemetry;
+    using OpenTelemetry.Context.Propagation;
+    using OpenTelemetry.Resources;
+    using OpenTelemetry.Trace;
+
 
     /*
      * Module for relaying messages. It receives a message and passes it on.
@@ -25,6 +31,8 @@ namespace Relayer
         static volatile bool isFinished = false;
         static ConcurrentBag<string> resultsReceived = new ConcurrentBag<string>();
 
+        static TextMapPropagator propagator = new TraceContextPropagator();
+
         static async Task Main(string[] args)
         {
             Logger.LogInformation($"Starting Relayer with the following settings: \r\n{Settings.Current}");
@@ -32,6 +40,19 @@ namespace Relayer
 
             try
             {
+
+#if ENABLE_TRACE
+                AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport",
+              true);
+                var endpoint = new Uri(Settings.Current.OtelCollectorEndpoint.GetOrElse("http://host.docker.internal:4317"));
+                Logger.LogInformation($"Created Trace Provider with Endpoint : {endpoint.ToString()}");
+                using TracerProvider tracerProvider = Sdk.CreateTracerProviderBuilder()
+                .AddSource(Settings.SourceName)
+                .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(Settings.SourceName))
+                .AddOtlpExporter(opt => opt.Endpoint = endpoint)
+                .Build();
+#endif
+
                 moduleClient = await ModuleUtil.CreateModuleClientAsync(
                     Settings.Current.TransportType,
                     new ClientOptions(),
@@ -67,7 +88,12 @@ namespace Relayer
         static async Task<MessageResponse> ProcessAndSendMessageAsync(Message message, object userContext)
         {
             Logger.LogInformation($"Received message from device: {message.ConnectionDeviceId}, module: {message.ConnectionModuleId}");
+            var parentContext = propagator.Extract(
+              default,
+              message.Properties,
+              TracingInformation.ExtractTraceContextFromCarrier);
 
+            using var activity = Settings.activitySource.StartActivity("ReceivedMessage", ActivityKind.Consumer, parentContext.ActivityContext);
             var testResultCoordinatorUrl = Option.None<Uri>();
 
             if (Settings.Current.EnableTrcReporting)
@@ -144,8 +170,13 @@ namespace Relayer
                     byte[] messageBytes = message.GetBytes();
                     var messageCopy = new Message(messageBytes);
                     messageProperties.ForEach(kvp => messageCopy.Properties.Add(kvp));
+                    using var upstreamActivity = Settings.activitySource.StartActivity("RelayUpstream", ActivityKind.Producer);
+                    // Inject Context for Distributed Tracing
+                    var contextToInject = Activity.Current.Context;
+                    propagator.Inject(new PropagationContext(contextToInject, Baggage.Current), messageCopy.Properties,
+                                    TracingInformation.InjectTraceContextIntoCarrier);
                     await moduleClient.SendEventAsync(Settings.Current.OutputName, messageCopy);
-                    Logger.LogInformation($"Message relayed upstream for device: {message.ConnectionDeviceId}, module: {message.ConnectionModuleId}");
+                    Logger.LogInformation($"Sent Message relayed upstream for device: {message.ConnectionDeviceId}, module: {message.ConnectionModuleId}");
 
                     if (Settings.Current.EnableTrcReporting)
                     {
@@ -181,6 +212,16 @@ namespace Relayer
             }
 
             return MessageResponse.Completed;
+        }
+
+        private static IEnumerable<string> ExtractTraceContextFromBasicProperties(Message message, string key)
+        {
+            if (message.Properties.TryGetValue(key, out var value))
+            {
+                return new[] { value };
+            }
+
+            return Enumerable.Empty<string>();
         }
 
         private static async Task SetIsFinishedDirectMethodAsync(ModuleClient client)

@@ -8,12 +8,16 @@ edition = "2018"
 [dependencies]
 async-trait = "0.1"
 base64 = "0.13"
+cfg-if = "1.0"
 chrono = "0.4"
 futures-util = "0.3"
 http = "0.2"
 hyper = "0.14"
 log = "0.4"
 libc = "0.2"
+opentelemetry = { version = "0.16", features = ["rt-tokio", "metrics", "serialize"] }
+opentelemetry-http = { version = "0.5"}
+opentelemetry-otlp = { version = "0.9", features = ["tonic", "metrics"]}
 openssl = "0.10"
 percent-encoding = "2"
 regex = "1"
@@ -23,25 +27,28 @@ tokio = "1"
 url = "2"
 
 edgelet-core = { path = "../edgelet-core" }
-edgelet-http = { path = "../edgelet-http" }
+edgelet-http = { path = "../edgelet-http", features = ["otel"] }
 edgelet-settings = { path = "../edgelet-settings" }
 
-aziot-key-client = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-openssl-engine = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-key-client = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master" }
+aziot-key-client-async = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master" }
+aziot-key-common = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master" }
+aziot-key-common-http = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master" }
+aziot-key-openssl-engine = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master" }
 
-aziot-cert-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-cert-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-cert-client-async = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master" }
+aziot-cert-common-http = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master" }
 
-aziot-identity-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-identity-client-async = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master" }
+aziot-identity-common = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master" }
+aziot-identity-common-http = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master" }
 
-http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+http-common = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master", features = ["otel"] }
 
 [dev-dependencies]
 nix = "0.22"
 
 edgelet-test-utils = { path = "../edgelet-test-utils" }
+
+[features]
+otel = []

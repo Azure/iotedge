@@ -10,6 +10,8 @@ base64 = "0.13"
 clap = "2.33"
 futures-util = "0.3"
 log = "0.4"
+opentelemetry = { version = "0.16", features = ["rt-tokio", "metrics", "serialize"] }
+opentelemetry-otlp = { version = "0.9", features = ["tonic", "metrics"] }
 serde_json = "1"
 sha2 = "0.9"
 serde = "1"
@@ -17,15 +19,18 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "syn
 url = "2"
 
 edgelet-core = { path = "../edgelet-core" }
-edgelet-docker = { path = "../edgelet-docker" }
-edgelet-http = { path = "../edgelet-http" }
-edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
-edgelet-http-workload = { path = "../edgelet-http-workload" }
+edgelet-docker = { path = "../edgelet-docker", features = ["otel"] }
+edgelet-http = { path = "../edgelet-http", features = ["otel"] }
+edgelet-http-mgmt = { path = "../edgelet-http-mgmt", features = ["otel"] }
+edgelet-http-workload = { path = "../edgelet-http-workload", features = ["otel"] }
 edgelet-settings = { path = "../edgelet-settings", features = ["settings-docker"] }
 
-aziot-identity-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-identity-client-async = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master" }
+aziot-identity-common = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master" }
+aziot-identity-common-http = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master" }
 
-http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-logger = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+http-common = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master", features = ["otel"] }
+logger = { git = "https://github.com/nlcamp/iot-identity-service", branch = "edge-tracer-hackathon2021-master" }
+
+[features]
+otel = []

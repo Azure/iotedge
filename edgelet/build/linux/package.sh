@@ -254,6 +254,8 @@ case "$PACKAGE_OS" in
     *)
         case "$PACKAGE_ARCH" in
             amd64)
+                #Gives a fakeroot not found error during packaging, Investigate later
+                #MAKE_FLAGS="'FEATURES=--features otel'"
                 ;;
             arm32v7)
                 MAKE_FLAGS="'CARGOFLAGS=--target armv7-unknown-linux-gnueabihf'"
