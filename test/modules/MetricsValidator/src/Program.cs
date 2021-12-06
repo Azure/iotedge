@@ -51,12 +51,18 @@ namespace MetricsValidator
                     Logger.LogInformation("Open Async");
                     await moduleClient.OpenAsync();
 
+                    SemaphoreSlim directMethodProcessingLock = new SemaphoreSlim(1, 1);
+
                     Logger.LogInformation("Set method handler");
                     await moduleClient.SetMethodHandlerAsync(
                         "ValidateMetrics",
                         async (MethodRequest methodRequest, object _) =>
                         {
-                            Logger.LogInformation("Validating metrics");
+                            Logger.LogInformation("Received method call to validate metrics");
+                            await directMethodProcessingLock.WaitAsync();
+                            await Task.Delay(TimeSpan.FromSeconds(5));
+
+                            Logger.LogInformation("Starting metrics validation");
 
                             TestReporter testReporter = new TestReporter("Metrics Validation");
                             List<TestBase> tests = new List<TestBase>
@@ -73,7 +79,9 @@ namespace MetricsValidator
 
                             var result = new MethodResponse(Encoding.UTF8.GetBytes(testReporter.ReportResults()), (int)HttpStatusCode.OK);
 
+                            directMethodProcessingLock.Release();
                             Logger.LogInformation($"Finished validating metrics. Result size: {result.Result.Length}");
+
                             return result;
                         },
                         null);
