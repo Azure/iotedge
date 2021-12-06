@@ -45,17 +45,17 @@ async fn translation_twin_retrieve() {
         .subscribe("$iothub/twin/res/#", QoS::AtLeastOnce)
         .await;
     device_1
-        .publish_qos1("$iothub/twin/GET/?rid=10", "", false)
+        .publish_qos1("$iothub/twin/GET/?$rid=10", "", false)
         .await;
 
     // Core receives request
-    receive_with_topic(&mut edge_hub_core, "$edgehub/device_1/twin/get/?rid=10").await;
+    receive_with_topic(&mut edge_hub_core, "$edgehub/device_1/twin/get/?$rid=10").await;
     edge_hub_core
-        .publish_qos1("$edgehub/device_1/twin/res/200/?rid=10", "", false)
+        .publish_qos1("$edgehub/device_1/twin/res/200/?$rid=10", "", false)
         .await;
 
     // device receives response
-    receive_with_topic(&mut device_1, "$iothub/twin/res/200/?rid=10").await;
+    receive_with_topic(&mut device_1, "$iothub/twin/res/200/?$rid=10").await;
 
     edge_hub_core.shutdown().await;
     device_1.shutdown().await;
@@ -90,21 +90,21 @@ async fn translation_twin_update() {
         .subscribe("$iothub/twin/res/#", QoS::AtLeastOnce)
         .await;
     device_1
-        .publish_qos1("$iothub/twin/PATCH/properties/reported/?rid=20", "", false)
+        .publish_qos1("$iothub/twin/PATCH/properties/reported/?$rid=20", "", false)
         .await;
 
     // Core receives request
     receive_with_topic(
         &mut edge_hub_core,
-        "$edgehub/device_1/twin/reported/?rid=20",
+        "$edgehub/device_1/twin/reported/?$rid=20",
     )
     .await;
     edge_hub_core
-        .publish_qos1("$edgehub/device_1/twin/res/200/?rid=20", "", false)
+        .publish_qos1("$edgehub/device_1/twin/res/200/?$rid=20", "", false)
         .await;
 
     // device receives response
-    receive_with_topic(&mut device_1, "$iothub/twin/res/200/?rid=20").await;
+    receive_with_topic(&mut device_1, "$iothub/twin/res/200/?$rid=20").await;
 
     edge_hub_core.shutdown().await;
     device_1.shutdown().await;
@@ -184,22 +184,22 @@ async fn translation_direct_method_response() {
     // Core calls method
     edge_hub_core
         .publish_qos1(
-            "$edgehub/device_1/methods/post/my_cool_method/?rid=7",
+            "$edgehub/device_1/methods/post/my_cool_method/?$rid=7",
             "",
             false,
         )
         .await;
 
     // device receives call and responds
-    receive_with_topic(&mut device_1, "$iothub/methods/POST/my_cool_method/?rid=7").await;
+    receive_with_topic(&mut device_1, "$iothub/methods/POST/my_cool_method/?$rid=7").await;
     device_1
-        .publish_qos1("$iothub/methods/res/200/?rid=7", "", false)
+        .publish_qos1("$iothub/methods/res/200/?$rid=7", "", false)
         .await;
 
     // Core receives response
     receive_with_topic(
         &mut edge_hub_core,
-        "$edgehub/device_1/methods/res/200/?rid=7",
+        "$edgehub/device_1/methods/res/200/?$rid=7",
     )
     .await;
 
@@ -270,25 +270,25 @@ async fn test_twin_with_client_id(client_id: &str) {
     .await;
 
     device_1
-        .publish_qos1("$iothub/twin/GET/?rid=10", "", false)
+        .publish_qos1("$iothub/twin/GET/?$rid=10", "", false)
         .await;
 
     // Core receives request
     receive_with_topic(
         &mut edge_hub_core,
-        &format!("$edgehub/{}/twin/get/?rid=10", client_id),
+        &format!("$edgehub/{}/twin/get/?$rid=10", client_id),
     )
     .await;
     edge_hub_core
         .publish_qos1(
-            format!("$edgehub/{}/twin/res/200/?rid=10", client_id),
+            format!("$edgehub/{}/twin/res/200/?$rid=10", client_id),
             "",
             false,
         )
         .await;
 
     // device receives response
-    receive_with_topic(&mut device_1, "$iothub/twin/res/200/?rid=10").await;
+    receive_with_topic(&mut device_1, "$iothub/twin/res/200/?$rid=10").await;
 
     edge_hub_core.shutdown().await;
     device_1.shutdown().await;
