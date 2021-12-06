@@ -190,6 +190,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
                     request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
                     PrepareRequest(client_, request_, url_);
 
+                    if (activity != null)
+                    {
+                        _propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), request_.Headers, InjectTraceContextIntoBasicProperties);
+                    }
                     var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
                     try
                     {
@@ -276,7 +280,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
                     request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
                     PrepareRequest(client_, request_, url_);
 
-                    // _propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), message, InjectTraceContextIntoBasicProperties);
+                    if (activity != null)
+                    {
+                        _propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), request_.Headers, InjectTraceContextIntoBasicProperties);
+                    }
                     var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
                     try
                     {
@@ -339,6 +346,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
         public async System.Threading.Tasks.Task<ModuleDetails> UpdateModuleAsync(string api_version, string name, bool? start, ModuleSpec module, System.Threading.CancellationToken cancellationToken)
         {
+            using var activity = Agent.Source.StartActivity("EdgeletHttpClient:UpdateModuleAsync", ActivityKind.Client);
             if (name == null)
                 throw new System.ArgumentNullException("name");
 
@@ -374,6 +382,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
                     request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
                     PrepareRequest(client_, request_, url_);
 
+                    if (activity != null)
+                    {
+                        _propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), request_.Headers, InjectTraceContextIntoBasicProperties);
+                    }
                     var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
                     try
                     {
@@ -434,6 +446,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
         public async System.Threading.Tasks.Task DeleteModuleAsync(string api_version, string name, System.Threading.CancellationToken cancellationToken)
         {
+            using var activity = Agent.Source.StartActivity("EdgeletHttpClient:DeleteModuleAsync", ActivityKind.Client);            
             if (name == null)
                 throw new System.ArgumentNullException("name");
 
@@ -458,6 +471,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
                     request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
                     PrepareRequest(client_, request_, url_);
 
+                    if (activity != null)
+                    {
+                        _propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), request_.Headers, InjectTraceContextIntoBasicProperties);
+                    }
                     var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
                     try
                     {
@@ -606,6 +623,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
         public async System.Threading.Tasks.Task StartModuleAsync(string api_version, string name, System.Threading.CancellationToken cancellationToken)
         {
+            using var activity = Agent.Source.StartActivity("EdgeletHttpClient:StartModuleAsync", ActivityKind.Client);
             if (name == null)
                 throw new System.ArgumentNullException("name");
 
@@ -631,6 +649,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
                     request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
                     PrepareRequest(client_, request_, url_);
 
+                    if (activity != null)
+                    {
+                        _propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), request_.Headers, InjectTraceContextIntoBasicProperties);
+                    }
                     var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
                     try
                     {
@@ -696,6 +718,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
         public async System.Threading.Tasks.Task StopModuleAsync(string api_version, string name, System.Threading.CancellationToken cancellationToken)
         {
+            using var activity = Agent.Source.StartActivity("EdgeletHttpClient:StopModuleAsync", ActivityKind.Client);
             if (name == null)
                 throw new System.ArgumentNullException("name");
 
@@ -721,6 +744,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
                     request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
                     PrepareRequest(client_, request_, url_);
 
+                    if (activity != null)
+                    {
+                        _propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), request_.Headers, InjectTraceContextIntoBasicProperties);
+                    }
                     var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
                     try
                     {
@@ -786,6 +813,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
         public async System.Threading.Tasks.Task RestartModuleAsync(string api_version, string name, System.Threading.CancellationToken cancellationToken)
         {
+            using var activity = Agent.Source.StartActivity("EdgeletHttpClient:RestartModuleAsync", ActivityKind.Client);            
             if (name == null)
                 throw new System.ArgumentNullException("name");
 
@@ -811,6 +839,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
                     request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
                     PrepareRequest(client_, request_, url_);
 
+                    if (activity != null)
+                    {
+                        _propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), request_.Headers, InjectTraceContextIntoBasicProperties);
+                    }
                     var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
                     try
                     {
@@ -985,60 +1017,67 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
         public async System.Threading.Tasks.Task<IdentityList> ListIdentitiesAsync(string api_version, System.Threading.CancellationToken cancellationToken)
         {
-            if (api_version == null)
-                throw new System.ArgumentNullException("api_version");
-
-            var urlBuilder_ = new System.Text.StringBuilder();
-            urlBuilder_.Append(BaseUrl != null ? BaseUrl.TrimEnd('/') : "").Append("/identities/?");
-            urlBuilder_.Append(System.Net.WebUtility.UrlEncode("api-version") + "=").Append(System.Net.WebUtility.UrlEncode(ConvertToString(api_version, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
-            urlBuilder_.Length--;
-
-            var client_ = _httpClient;
-            try
+            using (Activity activity = Agent.Source.StartActivity("EdgeletHttpClient:ListIdentitiesAsync", ActivityKind.Client))
             {
-                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                if (api_version == null)
+                    throw new System.ArgumentNullException("api_version");
+
+                var urlBuilder_ = new System.Text.StringBuilder();
+                urlBuilder_.Append(BaseUrl != null ? BaseUrl.TrimEnd('/') : "").Append("/identities/?");
+                urlBuilder_.Append(System.Net.WebUtility.UrlEncode("api-version") + "=").Append(System.Net.WebUtility.UrlEncode(ConvertToString(api_version, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
+                urlBuilder_.Length--;
+
+                var client_ = _httpClient;
+                try
                 {
-                    request_.Method = new System.Net.Http.HttpMethod("GET");
-                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
-
-                    PrepareRequest(client_, request_, urlBuilder_);
-                    var url_ = urlBuilder_.ToString();
-                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
-                    PrepareRequest(client_, request_, url_);
-
-                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
-                    try
+                    using (var request_ = new System.Net.Http.HttpRequestMessage())
                     {
-                        var headers_ = System.Linq.Enumerable.ToDictionary(response_.Headers, h_ => h_.Key, h_ => h_.Value);
-                        if (response_.Content != null && response_.Content.Headers != null)
-                        {
-                            foreach (var item_ in response_.Content.Headers)
-                                headers_[item_.Key] = item_.Value;
-                        }
+                        request_.Method = new System.Net.Http.HttpMethod("GET");
+                        request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
-                        ProcessResponse(client_, response_);
+                        PrepareRequest(client_, request_, urlBuilder_);
+                        var url_ = urlBuilder_.ToString();
+                        request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+                        PrepareRequest(client_, request_, url_);
 
-                        var status_ = ((int)response_.StatusCode).ToString();
-                        if (status_ == "200")
+                        if (activity != null)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<IdentityList>(response_, headers_).ConfigureAwait(false);
-                            return objectResponse_.Object;
+                            _propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), request_.Headers, InjectTraceContextIntoBasicProperties);
                         }
-                        else
+                        var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                        try
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<ErrorResponse>(response_, headers_).ConfigureAwait(false);
-                            throw new SwaggerException<ErrorResponse>("Error", (int)response_.StatusCode, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            var headers_ = System.Linq.Enumerable.ToDictionary(response_.Headers, h_ => h_.Key, h_ => h_.Value);
+                            if (response_.Content != null && response_.Content.Headers != null)
+                            {
+                                foreach (var item_ in response_.Content.Headers)
+                                    headers_[item_.Key] = item_.Value;
+                            }
+
+                            ProcessResponse(client_, response_);
+
+                            var status_ = ((int)response_.StatusCode).ToString();
+                            if (status_ == "200")
+                            {
+                                var objectResponse_ = await ReadObjectResponseAsync<IdentityList>(response_, headers_).ConfigureAwait(false);
+                                return objectResponse_.Object;
+                            }
+                            else
+                            {
+                                var objectResponse_ = await ReadObjectResponseAsync<ErrorResponse>(response_, headers_).ConfigureAwait(false);
+                                throw new SwaggerException<ErrorResponse>("Error", (int)response_.StatusCode, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            }
                         }
-                    }
-                    finally
-                    {
-                        if (response_ != null)
-                            response_.Dispose();
+                        finally
+                        {
+                            if (response_ != null)
+                                response_.Dispose();
+                        }
                     }
                 }
-            }
-            finally
-            {
+                finally
+                {
+                }
             }
         }
 
@@ -1087,6 +1126,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
                         request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
                         PrepareRequest(client_, request_, url_);
 
+                        if (activity != null)
+                        {
+                            _propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), request_.Headers, InjectTraceContextIntoBasicProperties);
+                        }
                         var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
                         try
                         {
@@ -1142,6 +1185,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
         public async System.Threading.Tasks.Task<Identity> UpdateIdentityAsync(string api_version, string name, UpdateIdentity updateinfo, System.Threading.CancellationToken cancellationToken)
         {
+            using var activity = Agent.Source.StartActivity("EdgeletHttpClient:UpdateIdentityAsync", ActivityKind.Client);
             if (name == null)
                 throw new System.ArgumentNullException("name");
 
@@ -1173,6 +1217,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
                     request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
                     PrepareRequest(client_, request_, url_);
 
+                    if (activity != null)
+                    {
+                        _propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), request_.Headers, InjectTraceContextIntoBasicProperties);
+                    }
                     var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
                     try
                     {
@@ -1227,6 +1275,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
         public async System.Threading.Tasks.Task DeleteIdentityAsync(string api_version, string name, System.Threading.CancellationToken cancellationToken)
         {
+            using var activity = Agent.Source.StartActivity("EdgeletHttpClient:DeleteIdentityAsync", ActivityKind.Client);
             if (name == null)
                 throw new System.ArgumentNullException("name");
 
@@ -1251,6 +1300,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
                     request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
                     PrepareRequest(client_, request_, url_);
 
+                    if (activity != null)
+                    {
+                        _propagator.Inject(new PropagationContext(activity.Context, Baggage.Current), request_.Headers, InjectTraceContextIntoBasicProperties);
+                    }
                     var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
                     try
                     {
