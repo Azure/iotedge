@@ -12,9 +12,9 @@ Telemetry messages, or sometimes called device-to-cloud messages, carry custom d
 The structure of the message and the type of system properties can be added is described on the [IoT Hub documentation](https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-devguide-messages-construct).
 Telemetry messages are subject to [Routing](https://docs.microsoft.com/en-us/azure/iot-edge/module-composition?view=iotedge-2020-11#declare-routes). When telemetry messages are routed to an [Edge Module](https://docs.microsoft.com/en-us/azure/iot-edge/module-development?view=iotedge-2020-11), we are talking about Module-to-Module messages.
 
-If Edge Hub is between IoT Hub and a device/module, Edge Hub acts as a buffer and router. It does not just relay the messages. When a device/module sends a message, Edge Hub takes it and acknowledges it even if it cannot forward the message to IoT Hub or to another module immediately. Depending on the settings, Edge Hub stores the message in a persistent store or just holds it in memory.
+If Edge Hub is between IoT Hub and a device/module, Edge Hub acts as a buffer and router. It does not just relay the messages. When a device/module sends a message, Edge Hub takes it and acknowledges it even [if it cannot forward the message to IoT Hub](https://docs.microsoft.com/en-us/azure/iot-edge/offline-capabilities) or to another module immediately. Depending on the settings, Edge Hub stores the message in a persistent store (which is the default behavior) or holds it in memory. 
 
-Then Edge Hub runs the message through its routing, and depending on the routing rules it tries to forward the message to IoT Hub or another module. If it is not possible, because Edge Hub is not in connection to IoT Hub, or the module is off, then the message stays stored and will be delivered next time it is possible.
+After receiving a message, Edge Hub runs the message through its routing, and depending on the routing rules Edge Hub tries to forward the message to IoT Hub or another module. If it is not possible, because Edge Hub is not in connection to IoT Hub, or the module is off, then the message stays stored and will be delivered next time it is possible.
 ## Twin
 [Twins](https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-devguide-device-twins) are basically a combination of configuration and status information. To understand the term "Twin" and the role of this construct, let's say that we want to control a beverage cooler and we want its temperature to set 5 Celsius.
 
@@ -91,6 +91,8 @@ To avoid missing patches, the recommended way of using twins is the following:
 - Subscribe for desired property changes
 - Pull the entire twin, parse the desired property changes section and store the $version
 - Going forward check the $version propery of every incoming patch. If the version number incremented by more then one, there are odds that a patch was missed, so pull the entire twin.
+
+Edge Hub - like in case of other operations - hides disconnections from connected devices/modules. If Edge Hub got disconnected from IoT Hub for any reason, after reconnection it pulls the twins for those connected modules/devices that have twin subscriptions. Then it checks the content of the twins with its own stored replicas. When Edge Hub detects any changes, it generates a patch and sends it to the devices/modules.
 
 ## Cloud-to-Device messages
 Twin is a simple way to send configuration to a device or module, but it is not feasible to send complex information or data with bigger size. If that is a requirement, [cloud-to-device](https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-devguide-messages-c2d) or C2D messages can be used to send arbitrary data, however these can be sent only to devices, not modules.
@@ -293,15 +295,17 @@ When the client processed the direct method call, it can send back a payload and
 $iothub/methods/res/200/?$rid=505e09bb-0076-4b9f-b4a3-529430f1593f
 ```
 There is a configurable time limit the device/module needs to answer, which is 30 seconds by default, but can be set from 5 to 300 seconds.
-## Edge Hub 1.2 MQTT Endpoint Extensions
-Edge Hub 1.2 runs a full-fledged MQTT broker if that experimental feature is turned on. In that case the operations discussed above can be also accessed by a different set of MQTT topics. One limitation of the existing topic structure is that many operations do not contain device/module id. IoT Hub and Edge Hub know from the connection which device needs to receive a message and they send directly to that specific device, regardless of the subscription of other devices.
+## Edge Hub MQTT Endpoint Extensions
+Edge Hub runs a full-fledged MQTT broker. **This is an experimental feature** and [needs to be turned on in order to use](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-publish-subscribe?view=iotedge-2020-11#prerequisites). Also, **the MQTT broker related extensions are subject to change.**
+
+If the MQTT Broker experimental feature is turned on, then the operations discussed above can be also accessed by a different set of MQTT topics. One limitation of the existing topic structure is that many operations do not contain device/module id. IoT Hub and Edge Hub know from the connection which device needs to receive a message and they send directly to that specific device, regardless of the subscription of other devices.
 
 If there are two devices, device_a and device_b, and both subscribed to $iothub/twin/res/#, then device_a requests a twin, it will not be forwarded to device_b, even if the response is published on a topic starting with $iothub/twin/res/, and device_b is subscribed to that topic.
 
-Edge Hub 1.2 uses a set of topics which includes device/module ids. This allows some scenarios not possible with legacy topics and can be useful for identity translation. Twins can be requested for example on a topic strucure '$iothub/{device_id}/twin/get/?$rid=1234'. Let's say that there are 5 different devices that too simple to be able to programmable to communicate using IoT Hub protocols. In this case it is still prossible to write a module that takes over IoT Hub communication and it is able to request the twin of any of those devices just changing the device_id part of the twin request topic - given that the authorization settings allow to do that.
+Edge Hub MQTT extension uses a set of topics which includes device/module ids. This allows some scenarios not possible with legacy topics and can be useful for identity translation. Twins can be requested for example on a topic strucure '$iothub/{device_id}/twin/get/?$rid=1234'. Let's say that there are 5 different devices that too simple to be able to programmable to communicate using IoT Hub protocols. In this case it is still prossible to write a module that takes over IoT Hub communication and it is able to request the twin of any of those devices just changing the device_id part of the twin request topic - given that the authorization settings allow to do that.
 
 ### Telemetry messages
-In case of devices, a telemetry message can be sent to Edge Hub 1.2 if the MQTT broker is turned on using the following topics:
+In case of devices, a telemetry message can be sent to Edge Hub if the MQTT broker is turned on using the following topics:
 
 If the client is a device:
 ```
@@ -386,22 +390,55 @@ In response the client needs to publish on the following topic:
 $iothub/some_device/some_module/methods/res/200/?$rid=1234
 ```
 ## Edge Hub HTTPS Endpoint
-Edge Hub opens up port 443 for HTTPS communication. This port servers three different public operations:
+Edge Hub opens up port 443 for HTTPS communication. This port serves three different public operations:
 - Amqp communication over WebSocket
 - MQTT communication over WebSocket
 - Direct Method calls
 
 The WebSocket communication is based on [rfc6455](https://datatracker.ietf.org/doc/html/rfc6455). After the connecting client established an https connection and played the WebSocket handshake described in the RFC, Edge Hub routes the traffic to the appropriate (Ampq or Mqtt) protocol head.
 
-In case of Direct Method calls, Edge Hub emulates the IoT [Hub functionality](https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-devguide-direct-methods) with some restrictions: the caller can be only a module from the edge device.
+### Direct Method Call
+In case of Direct Method calls, Edge Hub emulates the IoT [Hub functionality](https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-devguide-direct-methods) with some restrictions: the caller can be only a module from the edge device. The specification of the request/response is the following:
 
+#### Request
+```
+POST /twins/{device-id}/methods?api-version={version}
+
+Headers:
+    x-ms-edge-moduleId : {caller module-id}
+    Authorization : {generated sas-token of the caller}
+    Content-Type : application/json
+
+Request Body:
+    {
+        "methodName": {method-name to be called},
+        "responseTimeoutInSeconds": {integer value},
+        "payload": json-object
+    }
+```
+
+#### Response
+```
+Response Codes:
+    200 - Successful call
+    404 - Invalid devic-id or the device is offline
+    504 - Timeout
+
+Response Body:
+    {
+        "status" : {integer value sent by the called device},
+        "payload" : json-object
+    }
+
+```
+#### Example
 To call the endpoint, a module first needs to generate a SAS token for the caller. The following example shows it using [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) with [IoT Extension](https://github.com/Azure/azure-iot-cli-extension):
 
 ```
 az iot hub generate-sas-token -n test-srv -d TestEdgeDevice -m TestCallerModule --key-type primary --du 360000
 ```
 
-Using the SAS token, the following example shows a call to the 443 port for direct methods:
+Using the SAS token, the following shows a call to the 443 port for direct methods:
 
 ```
 curl -X POST 
@@ -415,12 +452,7 @@ curl -X POST
 
 ```
 
-There are three items needed in the HTTP POST header:
-- The module id of the caller in 'x-ms-edge-moduleId'
-- The SAS token in 'Authentication'
-- And the content type indicating json
-
-The payload of the direct method call is different to that when the direct method call is done e.g. from azure portal: it needs to specify the method name to be called and the response timeout.
+The payload of the direct method call is different to that when the call is made e.g. from azure portal: it needs to specify the method name to be called and the response timeout.
 
 The response of the call is also an extended json document compared to when only the payload travells: it contains a status information with HTTP status codes. The response to the call above can be like the following:
 
