@@ -20,6 +20,7 @@ pub struct Reconciler<D, M, R> {
     deployment_provider: Arc<Mutex<D>>,
     runtime: M,
     registry: R,
+    previous_config: HashMap<String, ModuleConfig>,
 }
 
 impl<D, M, R> Reconciler<D, M, R>
@@ -33,10 +34,11 @@ where
             deployment_provider,
             runtime,
             registry,
+            previous_config: HashMap::new(),
         }
     }
 
-    pub async fn reconcile(&self) -> Result<()> {
+    pub async fn reconcile(&mut self) -> Result<()> {
         println!("Starting Reconcile");
 
         let differance = self.get_differance().await?;
@@ -52,7 +54,7 @@ where
         Ok(())
     }
 
-    async fn get_differance(&self) -> Result<ModuleDifference> {
+    async fn get_differance(&mut self) -> Result<ModuleDifference> {
         let mut current_modules = self.get_current_modules().await?;
         let desired_modules = self.get_desired_modules().await?;
         log::debug!("Got current modules:\n{:?}", current_modules);
@@ -68,8 +70,13 @@ where
             if let Some((_, current)) = current_modules.remove_entry(&desired.name) {
                 // Module with same name exists, check if should be modified.
 
-                let desired_config: DockerConfig = desired.config.clone().try_into()?;
-                if desired_config == current.config {
+                // let desired_config: DockerConfig = desired.config.clone().try_into()?;
+                if self
+                    .previous_config
+                    .entry(desired.name.clone())
+                    .or_insert_with(|| desired.config.clone())
+                    == &desired.config
+                {
                     // Module config matches, check if state matches
                     match desired.config.status {
                         DeploymentModuleStatus::Running => {
@@ -419,7 +426,7 @@ mod tests {
             };
             let registry = TestModuleRegistry::<DockerConfig>::default();
 
-            let reconciler = Reconciler::new(provider, runtime, registry);
+            let mut reconciler = Reconciler::new(provider, runtime, registry);
             reconciler
                 .reconcile()
                 .await
@@ -442,7 +449,7 @@ mod tests {
             };
             let registry = TestModuleRegistry::<DockerConfig>::default();
 
-            let reconciler = Reconciler::new(provider, &runtime, &registry);
+            let mut reconciler = Reconciler::new(provider, &runtime, &registry);
             reconciler
                 .reconcile()
                 .await
@@ -510,7 +517,7 @@ mod tests {
                 module_details: vec![(sim_temp_module, sim_temp_state)],
                 ..Default::default()
             };
-            let reconciler = Reconciler::new(provider, &runtime, &registry);
+            let mut reconciler = Reconciler::new(provider, &runtime, &registry);
             let difference = reconciler
                 .get_differance()
                 .await
@@ -530,7 +537,7 @@ mod tests {
                 module_details: vec![],
                 ..Default::default()
             };
-            let reconciler = Reconciler::new(provider.clone(), &runtime, &registry);
+            let mut reconciler = Reconciler::new(provider.clone(), &runtime, &registry);
             let difference = reconciler
                 .get_differance()
                 .await
@@ -553,7 +560,7 @@ mod tests {
                 module_details: vec![(sim_temp_module, stop_sim_temp_state)],
                 ..Default::default()
             };
-            let reconciler = Reconciler::new(provider, &runtime, &registry);
+            let mut reconciler = Reconciler::new(provider, &runtime, &registry);
             let difference = reconciler
                 .get_differance()
                 .await
@@ -584,7 +591,7 @@ mod tests {
                 module_details: vec![(sim_temp_module, sim_temp_state)],
                 ..Default::default()
             };
-            let reconciler = Reconciler::new(provider, &runtime, &registry);
+            let mut reconciler = Reconciler::new(provider, &runtime, &registry);
             let difference = reconciler
                 .get_differance()
                 .await
@@ -616,7 +623,7 @@ mod tests {
                 module_details: vec![(image_change_module, sim_temp_state)],
                 ..Default::default()
             };
-            let reconciler = Reconciler::new(provider, &runtime, &registry);
+            let mut reconciler = Reconciler::new(provider, &runtime, &registry);
             let difference = reconciler
                 .get_differance()
                 .await
@@ -662,7 +669,7 @@ mod tests {
                 module_details: vec![(docker_config_change_module, sim_temp_state)],
                 ..Default::default()
             };
-            let reconciler = Reconciler::new(provider, &runtime, &registry);
+            let mut reconciler = Reconciler::new(provider, &runtime, &registry);
             let difference = reconciler
                 .get_differance()
                 .await
@@ -718,7 +725,7 @@ mod tests {
                 module_details: vec![(sim_temp_module, sim_temp_state)],
                 ..Default::default()
             };
-            let reconciler = Reconciler::new(provider, &runtime, &registry);
+            let mut reconciler = Reconciler::new(provider, &runtime, &registry);
             let difference = reconciler
                 .get_differance()
                 .await
@@ -774,7 +781,7 @@ mod tests {
                 module_details: vec![(remove_env_module, sim_temp_state)],
                 ..Default::default()
             };
-            let reconciler = Reconciler::new(provider, &runtime, &registry);
+            let mut reconciler = Reconciler::new(provider, &runtime, &registry);
             let difference = reconciler
                 .get_differance()
                 .await
@@ -813,7 +820,7 @@ mod tests {
                 module_details: vec![(env_module, sim_temp_state)],
                 ..Default::default()
             };
-            let reconciler = Reconciler::new(provider, &runtime, &registry);
+            let mut reconciler = Reconciler::new(provider, &runtime, &registry);
             let difference = reconciler
                 .get_differance()
                 .await

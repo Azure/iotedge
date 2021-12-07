@@ -34,7 +34,7 @@ where
     pub fn start(self) {
         let Self {
             frequency,
-            reconciler,
+            mut reconciler,
         } = self;
 
         tokio::spawn(async move {
