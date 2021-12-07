@@ -23,7 +23,7 @@ impl Checker for ProxySettings {
 
 impl ProxySettings{
     async fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
-        let settings = if let Some(settings) = &mut check.settings {            
+        let settings = if let Some(settings) = &mut check.settings {
             settings
         } else {
             return Ok(CheckResult::Skipped);
@@ -38,18 +38,18 @@ impl ProxySettings{
 
         if edge_agent_proxy_uri.is_some() && moby_proxy_uri.is_some() && edge_daemon_proxy_uri.is_some() &&
             edge_agent_proxy_uri == moby_proxy_uri.as_ref() && edge_agent_proxy_uri == edge_daemon_proxy_uri.as_ref() {
-            Ok(CheckResult::Ok)                    
+            Ok(CheckResult::Ok)
         } else if edge_agent_proxy_uri.is_none() && moby_proxy_uri.is_none() && edge_daemon_proxy_uri.is_none() {
             Ok(CheckResult::Ok)
         } else {
             return Err(Context::new(
                 format!(
-                    "The proxy setting for IoT Edge Agent {:?}, IoT Edge Daemon {:?} and Moby {:?} must be identical.", 
-                    edge_agent_proxy_uri, 
-                    edge_daemon_proxy_uri, 
+                    "The proxy setting for IoT Edge Agent {:?}, IoT Edge Daemon {:?} and Moby {:?} must be identical.",
+                    edge_agent_proxy_uri,
+                    edge_daemon_proxy_uri,
                     moby_proxy_uri
                 )
             ).into());
-        }    
+        }
     }
 }

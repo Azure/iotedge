@@ -712,12 +712,12 @@ mod tests {
     }
 
     async fn proxy_settings_test(
-        moby_proxy_set: bool, 
+        moby_proxy_set: bool,
         edge_daemon_proxy_set: bool,
         edge_agent_proxy_set: bool,
         mismatching_proxy_settings: bool,
         expected_result_is_success: bool
-    ) {    
+    ) {
         // Grab an env lock since we are going to be mucking with the environment.
         let _env_lock = ENV_LOCK.lock().await;
         let config_toml_filename = if edge_agent_proxy_set == true {
@@ -725,7 +725,7 @@ mod tests {
         } else {
             "sample_settings.toml"
         };
-    
+
         // Unset var to make sure we have a clean start
         std::env::remove_var("AZIOT_EDGED_CONFIG");
         std::env::remove_var("AZIOT_EDGED_CONFIG_DIR");
@@ -739,7 +739,7 @@ mod tests {
                 config_toml_filename,
             ),
         );
-    
+
         std::env::set_var(
             "AZIOT_EDGED_CONFIG_DIR",
             format!(
@@ -748,7 +748,7 @@ mod tests {
                 "config.d",
             ),
         );
-    
+
         // Create an empty check
         let mut check = super::Check::new(
             "daemon.json".into(), // unused for this test
@@ -764,21 +764,21 @@ mod tests {
             None,                      // unused for this test
             None,                      // unused for this test
         );
-    
+
         let settings = match Settings::new() {
             Ok(settings) => settings,
             Err(err) => panic!("Unable to create settings object, error {:?}", err),
         };
-    
+
         check.settings = Some(settings);
-    
+
         // Set proxy for Moby and for IoT Edge Daemon
         let env_proxy_uri = if mismatching_proxy_settings == false {
             "https://config:123"
         } else {
             "https://config:456"
         };
-    
+
         if edge_daemon_proxy_set == true {
             check.aziot_edge_proxy = Some(env_proxy_uri.to_string());
         }
@@ -798,7 +798,7 @@ mod tests {
                 check_result => panic!("proxy settings check returned {:?}", check_result),
             }
         }
-    
+
         std::env::remove_var("AZIOT_EDGED_CONFIG");
         std::env::remove_var("AZIOT_EDGED_CONFIG_DIR");
     }
@@ -1115,7 +1115,7 @@ mod tests {
         // [x] Moby Daemon
         // [x] IoT Edge Agent
         // [x] IoT Edge Daemon
-        
+
         proxy_settings_test(true, true, true, true, false).await;
     }
 
@@ -1126,7 +1126,7 @@ mod tests {
         // [x] Moby Daemon
         // [x] IoT Edge Agent
         // [x] IoT Edge Daemon
-        
+
         proxy_settings_test(true, true, true, false, true).await;
     }
 
@@ -1137,7 +1137,7 @@ mod tests {
         // [ ] Moby Daemon
         // [ ] IoT Edge Agent
         // [ ] IoT Edge Daemon
-        
+
         proxy_settings_test(false, false, false, false, true).await;
     }
 }
