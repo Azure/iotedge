@@ -305,6 +305,43 @@ stages:
 
     - template: templates/build-broker-watchdog.yaml
 
+################################################################################
+  - stage: BuildRocksDB
+################################################################################
+    displayName: Build RocksDB
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+    jobs: 
+    - job: BuildRocksDB
+      displayName: Build Rocks DB
+      strategy:
+        matrix:
+          RocksDbAmd64:
+            arch: amd64
+            postfix: amd64
+          RocksDbArm32:
+            arch: arm32v7
+            postfix: armhf
+          RocksDbArm64:
+            arch: arm64v8
+            postfix: arm64
+      steps:
+      - bash: |
+          build_image=rocksdb-build:master-$(postfix)-$(Build.BuildNumber) && \
+          mkdir -p $(Build.ArtifactStagingDirectory)/librocksdb && \
+          cd $(System.DefaultWorkingDirectory)/edge-util/docker/linux/$(arch) && \
+          docker build --tag ${build_image} . && \
+          docker run --rm -v $(Build.ArtifactStagingDirectory)/librocksdb:/artifacts \
+            ${build_image} cp /publish/librocksdb.so.$(postfix) /artifacts
+        displayName: Build and copy out rocksdb lib
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifacts to VSTS'
+        inputs:
+          PathtoPublish: '$(Build.ArtifactStagingDirectory)/librocksdb'
+          artifactName: 'librocksdb'
+
 # This stage first downloads the dotnet and rust artifacts from the previous stage, then
 # copies the mqtt and watchdog artifacts into the appropriate directories 
 # required by consolidate-build-artifacts.sh. It then runs consolidate-build-artifacts.sh,
@@ -321,7 +358,7 @@ stages:
       name: $(pool.linux.name)
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker  
-    dependsOn: BuildExecutables
+    dependsOn: [BuildExecutables, BuildRocksDB]
     jobs:
     - job: ConsolidateAndPublishArtifacts
       steps:
@@ -395,7 +432,14 @@ stages:
         inputs:
           pathToPublish: '$(Build.BinariesDirectory)/publish'
           artifactName: 'consolidated_artifacts'
-          StoreAsTar: true    
+          StoreAsTar: true   
+
+      - task: CopyFiles@2
+        displayName: Copy rocksdb libs
+        inputs:
+          sourceFolder: '$(Build.ArtifactStagingDirectory)/librocksdb'
+          contents: '**'
+          targetFolder: '$(Build.BinariesDirectory)/publish/librocksdb' 
 
 ################################################################################
   - stage:  BuildImages
@@ -416,6 +460,8 @@ stages:
           project: edge-hub
           version: $(version)
           bin_dir: '$(Build.BinariesDirectory)'
+          buildx_flag: 'true'
+          use_rocksdb: true
     - job: BuildImageEdgeAgent
       steps:        
       - template: templates/image-linux.yaml
@@ -425,6 +471,8 @@ stages:
           project: Microsoft.Azure.Devices.Edge.Agent.Service
           version: $(version)
           bin_dir: '$(Build.BinariesDirectory)'
+          buildx_flag: 'true'
+          use_rocksdb: true
     - job: BuildImageTemperatureSensor
       steps:        
       - template: templates/image-linux.yaml
@@ -434,6 +482,7 @@ stages:
           project: SimulatedTemperatureSensor
           version: $(version)
           bin_dir: '$(Build.BinariesDirectory)'
+          buildx_flag: 'true'
     - job: BuildImageDiagnostics
       steps:        
       - template: templates/image-linux.yaml
@@ -443,6 +492,7 @@ stages:
           project: IotedgeDiagnosticsDotnet
           version: $(version)
           bin_dir: '$(Build.BinariesDirectory)'
+          buildx_flag: 'true'
 
 ################################################################################
   - stage: PublishManifests
