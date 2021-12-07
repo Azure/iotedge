@@ -78,7 +78,7 @@ async fn pub_sub_not_allowed_identity_not_in_cache() {
                 false,
             ),
             retain: false,
-            topic_name: "$edgehub/device-1/twin/get?rid=42".into(),
+            topic_name: "$edgehub/device-1/twin/get?$rid=42".into(),
             payload: Bytes::from("qos 1"),
         })
         .await;

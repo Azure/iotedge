@@ -351,22 +351,22 @@ mod tests {
 
         // Twin d2c
         assert_eq!(
-            d2c.to_internal("$iothub/twin/PATCH/properties/reported/?rid=1", &device_1),
-            Some("$edgehub/device_1/twin/reported/?rid=1".to_owned())
+            d2c.to_internal("$iothub/twin/PATCH/properties/reported/?$rid=1", &device_1),
+            Some("$edgehub/device_1/twin/reported/?$rid=1".to_owned())
         );
         assert_eq!(
-            d2c.to_internal("$iothub/twin/GET/?rid=2", &device_1),
-            Some("$edgehub/device_1/twin/get/?rid=2".to_owned())
+            d2c.to_internal("$iothub/twin/GET/?$rid=2", &device_1),
+            Some("$edgehub/device_1/twin/get/?$rid=2".to_owned())
         );
 
         // Twin c2d
         assert_eq!(
-            c2d.to_internal("$iothub/twin/PATCH/properties/desired/?rid=1", &device_1),
-            Some("$edgehub/device_1/twin/desired/?rid=1".to_owned())
+            c2d.to_internal("$iothub/twin/PATCH/properties/desired/?$rid=1", &device_1),
+            Some("$edgehub/device_1/twin/desired/?$rid=1".to_owned())
         );
         assert_eq!(
-            c2d.to_external("$edgehub/module_a/twin/desired/?rid=1"),
-            Some("$iothub/twin/PATCH/properties/desired/?rid=1".to_owned())
+            c2d.to_external("$edgehub/module_a/twin/desired/?$rid=1"),
+            Some("$iothub/twin/PATCH/properties/desired/?$rid=1".to_owned())
         );
 
         assert_eq!(
@@ -374,14 +374,14 @@ mod tests {
             Some("$edgehub/device_1/twin/res/#".to_owned())
         );
         assert_eq!(
-            c2d.to_external("$edgehub/module_a/twin/res/?rid=3"),
-            Some("$iothub/twin/res/?rid=3".to_owned())
+            c2d.to_external("$edgehub/module_a/twin/res/?$rid=3"),
+            Some("$iothub/twin/res/?$rid=3".to_owned())
         );
 
         // Direct Method d2c
         assert_eq!(
-            d2c.to_internal("$iothub/methods/res/200/?rid=4", &device_1),
-            Some("$edgehub/device_1/methods/res/200/?rid=4".to_owned())
+            d2c.to_internal("$iothub/methods/res/200/?$rid=4", &device_1),
+            Some("$edgehub/device_1/methods/res/200/?$rid=4".to_owned())
         );
 
         // Direct Method c2d
@@ -390,8 +390,8 @@ mod tests {
             Some("$edgehub/device_1/methods/post/#".to_owned())
         );
         assert_eq!(
-            c2d.to_external("$edgehub/device_1/methods/post/my_method/?rid=5"),
-            Some("$iothub/methods/POST/my_method/?rid=5".to_owned())
+            c2d.to_external("$edgehub/device_1/methods/post/my_method/?$rid=5"),
+            Some("$iothub/methods/POST/my_method/?$rid=5".to_owned())
         );
     }
 
@@ -462,22 +462,22 @@ mod tests {
 
         // Twin d2c
         assert_eq!(
-            d2c.to_internal("$iothub/twin/PATCH/properties/reported/?rid=1", &client_id),
-            Some("$edgehub/device_1/module_a/twin/reported/?rid=1".to_owned())
+            d2c.to_internal("$iothub/twin/PATCH/properties/reported/?$rid=1", &client_id),
+            Some("$edgehub/device_1/module_a/twin/reported/?$rid=1".to_owned())
         );
         assert_eq!(
-            d2c.to_internal("$iothub/twin/GET/?rid=2", &client_id),
-            Some("$edgehub/device_1/module_a/twin/get/?rid=2".to_owned())
+            d2c.to_internal("$iothub/twin/GET/?$rid=2", &client_id),
+            Some("$edgehub/device_1/module_a/twin/get/?$rid=2".to_owned())
         );
 
         // Twin c2d
         assert_eq!(
-            c2d.to_internal("$iothub/twin/PATCH/properties/desired/?rid=1", &client_id),
-            Some("$edgehub/device_1/module_a/twin/desired/?rid=1".to_owned())
+            c2d.to_internal("$iothub/twin/PATCH/properties/desired/?$rid=1", &client_id),
+            Some("$edgehub/device_1/module_a/twin/desired/?$rid=1".to_owned())
         );
         assert_eq!(
-            c2d.to_external("$edgehub/device_1/module_a/twin/desired/?rid=1"),
-            Some("$iothub/twin/PATCH/properties/desired/?rid=1".to_owned())
+            c2d.to_external("$edgehub/device_1/module_a/twin/desired/?$rid=1"),
+            Some("$iothub/twin/PATCH/properties/desired/?$rid=1".to_owned())
         );
 
         assert_eq!(
@@ -485,14 +485,14 @@ mod tests {
             Some("$edgehub/device_1/module_a/twin/res/#".to_owned())
         );
         assert_eq!(
-            c2d.to_external("$edgehub/device_1/module_a/twin/res/?rid=3"),
-            Some("$iothub/twin/res/?rid=3".to_owned())
+            c2d.to_external("$edgehub/device_1/module_a/twin/res/?$rid=3"),
+            Some("$iothub/twin/res/?$rid=3".to_owned())
         );
 
         // Direct Method d2c
         assert_eq!(
-            d2c.to_internal("$iothub/methods/res/200/?rid=4", &client_id),
-            Some("$edgehub/device_1/module_a/methods/res/200/?rid=4".to_owned())
+            d2c.to_internal("$iothub/methods/res/200/?$rid=4", &client_id),
+            Some("$edgehub/device_1/module_a/methods/res/200/?$rid=4".to_owned())
         );
 
         // Direct Method c2d
@@ -501,8 +501,8 @@ mod tests {
             Some("$edgehub/device_1/module_a/methods/post/#".to_owned())
         );
         assert_eq!(
-            c2d.to_external("$edgehub/device_1/module_a/methods/post/my_method/?rid=5"),
-            Some("$iothub/methods/POST/my_method/?rid=5".to_owned())
+            c2d.to_external("$edgehub/device_1/module_a/methods/post/my_method/?$rid=5"),
+            Some("$iothub/methods/POST/my_method/?$rid=5".to_owned())
         );
 
         // M2M subscription
