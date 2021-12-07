@@ -35,6 +35,7 @@ namespace TestResultCoordinator.Reports
         public CountingReport(
             string testDescription,
             TestMode testMode,
+            Topology topology,
             bool mqttBrokerEnabled,
             string trackingId,
             string expectedSource,
@@ -54,6 +55,7 @@ namespace TestResultCoordinator.Reports
             : base(testDescription, trackingId, resultType)
         {
             this.TestMode = testMode;
+            this.Topology = topology;
             this.MqttBrokerEnabled = mqttBrokerEnabled;
             this.ExpectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
             this.ActualSource = Preconditions.CheckNonWhiteSpace(actualSource, nameof(actualSource));
@@ -73,6 +75,8 @@ namespace TestResultCoordinator.Reports
 
         [JsonConverter(typeof(StringEnumConverter))]
         public TestMode TestMode { get; }
+
+        public Topology Topology { get; }
 
         public bool MqttBrokerEnabled { get; }
 
@@ -125,12 +129,12 @@ namespace TestResultCoordinator.Reports
                     if (this.TestMode == TestMode.Connectivity)
                     {
                         // Product issue for C2D messages connected to edgehub.
-                        // We should remove this failure tolerance when fixed.
                         if (this.TestDescription.Contains(C2dTestDescription))
                         {
                             return ((double)this.TotalMatchCount / this.TotalExpectCount) > .8d;
                         }
-                        else if (this.TestDescription == GenericMqttTelemetryTestDescription)
+                        // Product issue for custom mqtt telemetry.
+                        else if (this.Topology == Topology.Nested && this.TestDescription == GenericMqttTelemetryTestDescription)
                         {
                             return ((double)this.TotalMatchCount / this.TotalExpectCount) > .9d;
                         }
@@ -141,11 +145,13 @@ namespace TestResultCoordinator.Reports
                     }
                     else
                     {
-                        if (this.TestDescription.Contains(GenericMqttTelemetryTestDescription))
+                        // Product issue for custom mqtt telemetry.
+                        if (this.Topology == Topology.Nested && this.MqttBrokerEnabled && this.TestDescription.Contains(GenericMqttTelemetryTestDescription))
                         {
                             return ((double)this.TotalMatchCount / this.TotalExpectCount) > .8d;
                         }
-                        else if (this.MqttBrokerEnabled && this.TestDescription.Contains(MessagesTestDescription))
+                        // Product issue for messages when broker is enabled.
+                        else if (this.Topology == Topology.Nested && this.MqttBrokerEnabled && this.TestDescription.Contains(MessagesTestDescription))
                         {
                             return ((double)this.TotalMatchCount / this.TotalExpectCount) > .99d;
                         }

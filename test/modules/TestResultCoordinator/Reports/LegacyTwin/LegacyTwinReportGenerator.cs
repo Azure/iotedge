@@ -77,34 +77,28 @@ namespace TestResultCoordinator.Reports.LegacyTwin
         }
 
         // See TwinTester/StatusCode.cs for reference.
-        bool IsPassed(IDictionary<int, int> results)
+        bool IsPassed(IDictionary<int, int> statusCodesToCount)
         {
             bool isPassed = true;
-            int totalResults = results.Sum(x => x.Value);
+            int totalResults = statusCodesToCount.Sum(x => x.Value);
 
             if (totalResults == 0)
             {
                 return false;
             }
 
-            if (this.Topology == Topology.Nested)
+            // Product issue where:
+            // 1) We don't receive some desired properties in module-registered twin desired property callback
+            // 1) Module cannot make reported property update
+            if (this.Topology == Topology.Nested && this.MqttBrokerEnabled)
             {
-                if (this.MqttBrokerEnabled || this.TestDescription.Contains("amqp"))
-                {
-                    int[] bigToleranceStatusCodes = { };
-                    int[] littleToleranceStatusCodes = { 501, 504 };
-                    isPassed = this.GeneratePassResult(results, bigToleranceStatusCodes, littleToleranceStatusCodes);
-                }
-                else
-                {
-                    int[] bigToleranceStatusCodes = { 505, 503, 506 };
-                    int[] littleToleranceStatusCodes = { 501, 502, 504 };
-                    isPassed = this.GeneratePassResult(results, bigToleranceStatusCodes, littleToleranceStatusCodes);
-                }
+                int[] bigToleranceStatusCodes = { };
+                int[] littleToleranceStatusCodes = { 501, 504 };
+                isPassed = this.GeneratePassResult(statusCodesToCount, bigToleranceStatusCodes, littleToleranceStatusCodes);
             }
             else
             {
-                List<int> statusCodes = results.Keys.ToList();
+                List<int> statusCodes = statusCodesToCount.Keys.ToList();
                 IEnumerable<int> failingStatusCodes = statusCodes.Where(s =>
                 {
                     string statusCode = s.ToString();
@@ -117,10 +111,10 @@ namespace TestResultCoordinator.Reports.LegacyTwin
             return isPassed;
         }
 
-        bool GeneratePassResult(IDictionary<int, int> results, int[] bigToleranceStatusCodes, int[] littleToleranceStatusCodes)
+        bool GeneratePassResult(IDictionary<int, int> statusCodesToCount, int[] bigToleranceStatusCodes, int[] littleToleranceStatusCodes)
         {
-            int totalResults = results.Sum(x => x.Value);
-            foreach (KeyValuePair<int, int> statusCodeToCount in results)
+            int totalResults = statusCodesToCount.Sum(x => x.Value);
+            foreach (KeyValuePair<int, int> statusCodeToCount in statusCodesToCount)
             {
                 int statusCode = statusCodeToCount.Key;
                 int statusCodeCount = statusCodeToCount.Value;

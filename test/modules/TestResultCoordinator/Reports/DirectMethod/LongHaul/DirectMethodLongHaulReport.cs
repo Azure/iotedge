@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
@@ -84,7 +85,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             }
 
             bool senderAndReceiverSuccessesPass = this.SenderSuccesses <= this.ReceiverSuccesses;
-            long allStatusCount = this.SenderSuccesses + this.StatusCodeZero + this.Other.Sum(x => x.Value);
+            long allStatusCount = this.SenderSuccesses + this.StatusCodeZero + this.Unauthorized + this.DeviceNotFound + this.TransientError + this.ResourceError + this.NotImplemented + this.Other.Sum(x => x.Value);
 
             double statusCodeZeroThreshold;
             double unauthorizedThreshold;
@@ -98,16 +99,34 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             // We expect to get this status sometimes because of edgehub restarts, but if we receive too many we should fail the tests.
             // TODO: When the SDK allows edgehub to de-register from subscriptions and we make the fix in edgehub, then we can fail tests for any status code 0.
             statusCodeZeroThreshold = (double)allStatusCount / 1000;
-            unauthorizedThreshold = (double)allStatusCount / 1000;
+
+            // Sometimes transient network/resource errors are caught necessitating a tolerance.
             transientErrorThreshold = (double)allStatusCount / 1000;
             resourceErrorThreshold = (double)allStatusCount / 1000;
-            notImplementedThreshold = (double)allStatusCount / 1000;
 
-            if (!this.MqttBrokerEnabled && this.Topology == Topology.SingleNode)
+            // Sometimes iothub returns Unauthorized or NotImplemented that then later recovers.
+            // Only occurs with broker enabled, so only apply tolerance in this case.
+            if (this.MqttBrokerEnabled)
+            {
+                unauthorizedThreshold = (double)allStatusCount / 1000;
+                notImplementedThreshold = (double)allStatusCount / 1000;
+            }
+            else
+            {
+                unauthorizedThreshold = (double)allStatusCount / double.MaxValue;
+                notImplementedThreshold = (double)allStatusCount / double.MaxValue;
+            }
+
+            // DeviceNotFound typically happens when EdgeHub restarts and is offline.
+            // For different test suites this happens at different rates.
+            // 1) Single node runs arm devices, so this tolerance is a bit lenient.
+            // 2) Nested non-broker has some product issue where we need some tolerance.
+            // 3) Nested broker-enabled is the most stable.
+            if (this.Topology == Topology.SingleNode && !this.MqttBrokerEnabled)
             {
                 deviceNotFoundThreshold = (double)allStatusCount / 200;
             }
-            else if (!this.MqttBrokerEnabled && this.Topology == Topology.Nested && this.TestDescription.Contains("mqtt"))
+            else if (this.Topology == Topology.Nested && !this.MqttBrokerEnabled)
             {
                 deviceNotFoundThreshold = (double)allStatusCount / 250;
             }

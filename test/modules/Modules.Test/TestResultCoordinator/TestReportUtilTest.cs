@@ -543,6 +543,7 @@ namespace Modules.Test.TestResultCoordinator
                 return Task.FromResult<ITestResultReport>(new CountingReport(
                   "mock",
                   TestMode.Connectivity,
+                  Topology.SingleNode,
                   false,
                   "mock",
                   "mock",

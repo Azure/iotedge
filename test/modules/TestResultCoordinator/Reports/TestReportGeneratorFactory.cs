@@ -56,6 +56,7 @@ namespace TestResultCoordinator.Reports
                         return new CountingReportGenerator(
                             metadata.TestDescription,
                             Settings.Current.TestMode,
+                            Settings.Current.Topology,
                             Settings.Current.MqttBrokerEnabled,
                             trackingId,
                             metadata.ExpectedSource,

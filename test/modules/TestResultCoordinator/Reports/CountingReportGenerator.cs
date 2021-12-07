@@ -23,6 +23,7 @@ namespace TestResultCoordinator.Reports
         internal CountingReportGenerator(
             string testDescription,
             TestMode testMode,
+            Topology topology,
             bool mqttBrokerEnabled,
             string trackingId,
             string expectedSource,
@@ -36,6 +37,7 @@ namespace TestResultCoordinator.Reports
         {
             this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
             this.TestMode = testMode;
+            this.Topology = topology;
             this.MqttBrokerEnabled = mqttBrokerEnabled;
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.ExpectedTestResults = Preconditions.CheckNotNull(expectedTestResults, nameof(expectedTestResults));
@@ -49,6 +51,8 @@ namespace TestResultCoordinator.Reports
         }
 
         internal TestMode TestMode { get; }
+
+        internal Topology Topology { get; }
 
         internal bool MqttBrokerEnabled { get; }
 
@@ -240,6 +244,7 @@ namespace TestResultCoordinator.Reports
             return new CountingReport(
                 this.TestDescription,
                 this.TestMode,
+                this.Topology,
                 this.MqttBrokerEnabled,
                 this.trackingId,
                 this.ExpectedSource,

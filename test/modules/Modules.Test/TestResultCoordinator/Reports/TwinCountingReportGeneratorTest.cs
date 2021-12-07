@@ -194,6 +194,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 () => new CountingReportGenerator(
                     TestDescription,
                     TestMode.Connectivity,
+                    Topology.SingleNode,
                     brokerEnabled,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
@@ -267,6 +268,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
             var reportGenerator = new CountingReportGenerator(
                 TestDescription,
                 TestMode.Connectivity,
+                Topology.SingleNode,
                 brokerEnabled,
                 Guid.NewGuid().ToString(),
                 expectedSource,
