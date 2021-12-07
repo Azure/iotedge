@@ -11,8 +11,6 @@ namespace TestResultCoordinator.Reports.LegacyTwin
 
     sealed class LegacyTwinReportGenerator : ITestResultReportGenerator
     {
-        const double BigToleranceProportion = .005;
-        const double LittleToleranceProportion = .001;
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(LegacyTwinReportGenerator));
         readonly string trackingId;
 
