@@ -664,10 +664,7 @@ fn write_lines<'a>(
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        checks::{ContainerEngineIsMoby, WellFormedConfig},
-        Check, CheckResult, Checker,
-    };
+    use super::{checks::WellFormedConfig, Check, CheckResult, Checker};
 
     lazy_static::lazy_static! {
         static ref ENV_LOCK: std::sync::Mutex<()> = Default::default();
@@ -709,17 +706,6 @@ mod tests {
                 CheckResult::Ok => (),
                 check_result => panic!("parsing {} returned {:?}", filename, check_result),
             }
-
-            // Pretend it's Moby
-            check.docker_server_version = Some("19.03.12+azure".to_owned());
-
-            match ContainerEngineIsMoby::default().execute(&mut check, &mut runtime) {
-                CheckResult::Ok => (),
-                check_result => panic!(
-                    "checking moby_runtime.uri in {} returned {:?}",
-                    filename, check_result
-                ),
-            }
         }
     }
 
@@ -758,17 +744,6 @@ mod tests {
             match WellFormedConfig::default().execute(&mut check, &mut runtime) {
                 CheckResult::Ok => (),
                 check_result => panic!("parsing {} returned {:?}", filename, check_result),
-            }
-
-            // Pretend it's Moby
-            check.docker_server_version = Some("3.0.3".to_owned());
-
-            match ContainerEngineIsMoby::default().execute(&mut check, &mut runtime) {
-                CheckResult::Ok => (),
-                check_result => panic!(
-                    "checking moby_runtime.uri in {} returned {:?}",
-                    filename, check_result
-                ),
             }
         }
     }
@@ -848,25 +823,6 @@ mod tests {
         match WellFormedConfig::default().execute(&mut check, &mut runtime) {
             CheckResult::Ok => (),
             check_result => panic!("parsing {} returned {:?}", filename, check_result),
-        }
-
-        // Pretend it's Docker
-        check.docker_server_version = Some("19.03.12".to_owned());
-
-        match ContainerEngineIsMoby::default().execute(&mut check, &mut runtime) {
-            CheckResult::Warning(warning) => assert!(
-                warning.to_string().contains(
-                    "Device is not using a production-supported container engine (moby-engine)."
-                ),
-                "checking moby_runtime.uri in {} failed with an unexpected warning: {}",
-                filename,
-                warning
-            ),
-
-            check_result => panic!(
-                "checking moby_runtime.uri in {} returned {:?}",
-                filename, check_result
-            ),
         }
     }
 }
