@@ -5,21 +5,48 @@ parameters:
   project: ''
   version: ''
   buildx_flag: ''
+  bin_dir: ''
 
 steps:
+  - task: DownloadBuildArtifacts@0
+    inputs:
+      buildType: 'current'
+      downloadPath: '$(Build.ArtifactStagingDirectory)'
+      downloadType: 'single'
+      artifactName: 'consolidated_artifacts'
+      extractTars: true
+
+  - task: CopyFiles@2
+    displayName: Copy Artifacts
+    inputs:
+      sourceFolder: '$(Agent.TempDirectory)/extracted_tars/consolidated_artifacts'
+      contents: '**'
+      targetFolder: '$(Build.BinariesDirectory)/publish'          
+
+  - task: Docker@2
+    displayName: Docker login edgebuilds
+    inputs:
+      command: login
+      containerRegistry: iotedge-edgebuilds-acr
+  - task: Docker@2
+    displayName: Docker login edgerelease
+    inputs:
+      command: login
+      containerRegistry: iotedge-release-acr      
+
   - task: Bash@3
     displayName: Build Image - ${{ parameters.name }} - amd64
     inputs:
       filePath: scripts/linux/buildImage.sh
-      arguments: -r "$(registry.address)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }}"
+      arguments: -r "$(registry.address)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }}" --bin-dir "${{ parameters.bin_dir }}"
   - task: Bash@3
     displayName: Build Image - ${{ parameters.name }} - arm32
     inputs:
       filePath: scripts/linux/buildImage.sh
-      arguments: -r "$(registry.address)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }}" --target-arch armv7l --buildx_flag ${{ parameters.buildx_flag }}  
+      arguments: -r "$(registry.address)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }}" --target-arch armv7l --bin-dir "${{ parameters.bin_dir }}" --buildx_flag ${{ parameters.buildx_flag }}  
   - task: Bash@3
     displayName: Build Image - ${{ parameters.name }} - arm64 
     condition: and(ne('${{ parameters.name }}', 'Functions Sample'), succeeded())
     inputs:
       filePath: scripts/linux/buildImage.sh
-      arguments: -r "$(registry.address)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }}" --target-arch aarch64 --buildx_flag ${{ parameters.buildx_flag }}
+      arguments: -r "$(registry.address)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }}" --target-arch aarch64 --bin-dir "${{ parameters.bin_dir }}" --buildx_flag ${{ parameters.buildx_flag }}

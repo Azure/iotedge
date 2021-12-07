@@ -74,12 +74,17 @@ impl CertClient {
 
         let csr = openssl::x509::X509Req::from_pem(csr).unwrap();
         let csr_pubkey = csr.public_key().unwrap();
+        let csr_extensions = csr.extensions().unwrap();
         assert!(csr.verify(&csr_pubkey).unwrap());
 
         let mut cert = openssl::x509::X509::builder().unwrap();
         cert.set_subject_name(csr.subject_name()).unwrap();
         cert.set_issuer_name(&issuer_name).unwrap();
         cert.set_pubkey(&csr_pubkey).unwrap();
+
+        for extension in csr_extensions.iter() {
+            cert.append_extension2(extension).unwrap();
+        }
 
         let not_before = openssl::asn1::Asn1Time::from_unix(0).unwrap();
         let not_after = openssl::asn1::Asn1Time::days_from_now(30).unwrap();

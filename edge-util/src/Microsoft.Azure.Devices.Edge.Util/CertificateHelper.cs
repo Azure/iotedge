@@ -291,7 +291,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
             chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
             chain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
-
             return chain.Build(signerCertificate);
         }
 

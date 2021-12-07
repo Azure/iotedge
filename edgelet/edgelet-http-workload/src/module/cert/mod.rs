@@ -133,22 +133,6 @@ impl CertApi {
     }
 }
 
-/// DNS names must conform to following rules per RFC 1035:
-///  - Length less than 64 characters
-///  - Contains only lowercase alphanumeric characters or '-'
-///  - Starts and ends with an alphanumeric character
-///
-/// This function removes illegal characters from a given DNS name and trims it to 63 characters.
-pub fn sanitize_dns_name(name: String) -> String {
-    name.trim_start_matches(|c: char| !c.is_ascii_alphabetic())
-        .trim_end_matches(|c: char| !c.is_ascii_alphanumeric())
-        .to_lowercase()
-        .chars()
-        .filter(|c| c.is_ascii_alphanumeric() || c == &'-')
-        .take(63)
-        .collect::<String>()
-}
-
 fn new_keys() -> Result<
     (
         openssl::pkey::PKey<openssl::pkey::Private>,
@@ -274,7 +258,7 @@ pub(crate) async fn check_edge_ca(
             .map_err(|_| edgelet_http::error::server_error("failed to generate edge ca csr"))?;
 
         cert_client
-            .create_cert(edge_ca_cert, &csr, Some((edge_ca_cert, key_handle)))
+            .create_cert(edge_ca_cert, &csr, None)
             .await
             .map_err(|_| edgelet_http::error::server_error("failed to create edge ca cert"))?;
 

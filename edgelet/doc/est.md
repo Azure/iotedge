@@ -103,9 +103,6 @@ id_scope = "0ab1234C5D6"
 method = "x509"
 registration_id = "my-device"
 
-[provisioning.authentication]
-method = "x509"
-
 [provisioning.attestation.identity_cert]
 # Identifies this certificate as being issued over EST.
 method = "est"

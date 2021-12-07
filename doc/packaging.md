@@ -11,7 +11,7 @@ In anticipation of these large-scale changes we've made the current `iotedge` Li
 - `aziot-identity-service`: This package installs daemon's that are responsible for provisioning the device, managing module identities, and managing cryptographic keys and certificates. 
 ## Comparing Packages
 
-A comparison of the contents of each package is below. For more in-depth discussion of the `aziot-identity-service` package, refer to its documentation on [Packaging](https://azure.github.io/iot-identity-service/packaging.html).
+A comparison of the contents of each package is below. For more in-depth discussion of the `aziot-identity-service` package, refer to its documentation on [Packaging](https://github.com/Azure/iot-identity-service/blob/main/docs-dev/packaging.md).
 
 <table>
 <thead>
@@ -271,7 +271,7 @@ The provided `config.toml.template` is a template for configuration values that 
 
 ## Installation
 
-For full documentation refer to the official documentation to [Install or uninstall Azure IoT Edge for Linux](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-edge?view=iotedge-2020-11). What follows is a brief summary with accompanying notes. It assumes you have already installed a compatible container engine.
+For full documentation refer to the official documentation to [Install or uninstall Azure IoT Edge for Linux](https://docs.microsoft.com/azure/iot-edge/how-to-install-iot-edge). What follows is a brief summary with accompanying notes. It assumes you have already installed a compatible container engine.
 
 ```sh
 apt install aziot-edge

@@ -85,7 +85,7 @@ where
                             && self.resource_matcher.do_match( // only then check that matches
                                 request,
                                 &request.resource,
-                                &resource,
+                                resource,
                             )
                         {
                             result = Some(*effect);

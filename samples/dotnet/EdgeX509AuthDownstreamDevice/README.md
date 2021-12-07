@@ -6,7 +6,7 @@ using a protocol of your choices as a parameter.
 
 ## Build the sample
 
-As a prerequisite you will need the [DotNet Core SDK](https://docs.microsoft.com/en-us/dotnet/core/sdk) installed on your dev box.
+As a prerequisite you will need the [DotNet Core SDK](https://docs.microsoft.com/dotnet/core/sdk) installed on your dev box.
 To build the sample, copy the contents of this directory on your dev box and follow the instructions below.
 
 ```

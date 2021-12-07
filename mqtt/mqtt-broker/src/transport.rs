@@ -333,7 +333,7 @@ impl GetPeerInfo for StreamSelector {
 
     fn peer_addr(&self) -> Result<SocketAddr, Error> {
         let stream = match self {
-            Self::Tcp(stream) => &stream,
+            Self::Tcp(stream) => stream,
             Self::Tls(stream) => stream.get_ref(),
         };
 

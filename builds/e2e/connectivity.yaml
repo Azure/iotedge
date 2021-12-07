@@ -18,7 +18,6 @@ schedules:
   always: true
 
 variables:
-  NugetSecurityAnalysisWarningLevel: warn
   images.artifact.name.linux: 'core-linux'
 
 resources:
@@ -88,12 +87,9 @@ jobs:
           testrun.network.runProfile: "Cellular3G"
           testrun.duration: "01:00:00"
     pool:
-      name: $(pool.name)
+      name: $(pool.linux.name)
       demands:
-        - agent-group -equals $(agent.group)
-        - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals X64
-        - run-connectivity -equals true
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu18.04-amd64'
       aziotis.artifact.name: 'packages_ubuntu-18.04_amd64'

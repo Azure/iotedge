@@ -3,24 +3,29 @@
 # Licensed under the MIT License. See https://go.microsoft.com/fwlink/?linkid=2090316 for license information.
 #-------------------------------------------------------------------------------------------------------------
 
-FROM alpine:3.13.6
+FROM alpine:3.14.0
 WORKDIR /app
 
-RUN adduser -Ds /bin/sh nginx 
+RUN	apk update && \
+    apk add --no-cache libcap
+
+ENV NGINXUSER_ID ${NGINXUSER_ID:-13624}
+RUN adduser -Ds /bin/sh -u ${NGINXUSER_ID} nginx 
+
 RUN chown -R nginx:nginx /app   
 
 COPY ./docker/linux/amd64/api-proxy-module .
 COPY ./docker/linux/amd64/templates .
 
 RUN	apk update && \
-    apk add nginx && \
-	mkdir /run/nginx
+    apk add --no-cache nginx && \
+	mkdir -p /run/nginx
+RUN setcap 'cap_net_bind_service=+ep' /usr/sbin/nginx
 
 RUN chown -R nginx:nginx /app && \
     mkdir /var/cache/nginx && \
     chown -R nginx:nginx /var/cache/nginx && \
-    chown -R nginx:nginx /var/log/nginx && \
-    chown -R nginx:nginx /etc/nginx/conf.d
+    chown -R nginx:nginx /var/log/nginx
 RUN touch /var/run/nginx/nginx.pid && \
         chown -R nginx:nginx /var/run/nginx/nginx.pid 
         

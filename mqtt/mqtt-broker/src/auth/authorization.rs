@@ -92,7 +92,7 @@ impl Activity {
     }
 
     pub fn client_id(&self) -> &ClientId {
-        &self.client_info.client_id()
+        self.client_info.client_id()
     }
 
     pub fn client_info(&self) -> &ClientInfo {

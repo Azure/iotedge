@@ -138,7 +138,7 @@ impl ConnectionSettings {
             .iter()
             .filter_map(|sub| match sub {
                 Direction::In(topic) | Direction::Both(topic) => Some(topic.clone()),
-                _ => None,
+                Direction::Out(_) => None,
             })
             .collect()
     }
@@ -148,7 +148,7 @@ impl ConnectionSettings {
             .iter()
             .filter_map(|sub| match sub {
                 Direction::Out(topic) | Direction::Both(topic) => Some(topic.clone()),
-                _ => None,
+                Direction::In(_) => None,
             })
             .collect()
     }

@@ -1,8 +1,22 @@
 trigger: none
 pr: none
 
+# Test schedule the same between master and release/1.2, but offset 12 hours.
+schedules:
+- cron: "0 0 * * *"
+  displayName: Daily build master
+  branches:
+    include:
+    - master
+  always: true
+- cron: "0 12 * * *"
+  displayName: Daily build release/1.2
+  branches:
+    include:
+    - release/1.2
+  always: true
+
 variables:
-  NugetSecurityAnalysisWarningLevel: warn
   itProxy: http://10.16.8.4:3128
   otProxy: http://10.16.5.4:3128 
   ressourceGroup: nested-edge-isa95 
@@ -12,24 +26,15 @@ resources:
   - pipeline: images
     source: 'Azure-IoT-Edge-Core Build Images'
     branch: 'master'
-    trigger:
-      branches:
-      - master
-      - release/*
   - pipeline: packages
     source: 'Azure-IoT-Edge-Core Edgelet Packages'
     branch: 'master'
-    trigger:
-      branches:
-      - master
-      - release/*
 
 stages:
 - stage: LockAgents 
   jobs:
   - job:  LockAgents
-    displayName: Lock agents
-    timeoutInMinutes: 3    
+    displayName: Lock agents   
     pool:
       name: $(pool.name)
       demands:
@@ -40,7 +45,7 @@ stages:
       - template: templates/nested-get-secrets.yaml
       - script: scripts/linux/nestedAgentLock.sh -a "$(agent.group)" -b "$(Build.BuildId)" -n 1 -u "amqp"
         env:
-          PAT: "$(edgebuild-1-PAT)"
+          PAT: "$(IotEdge1-PAT-msazure)"
         displayName: Lock agents for nested topology
         name: lock_test_agent
       
@@ -68,6 +73,7 @@ stages:
         - Agent.OSArchitecture -equals X64
         - level -equals 5
     steps:
+      - template: templates/clean-drive-and-images.yaml  
       - template: templates/nested-get-secrets.yaml
       - template: templates/e2e-clean-directory.yaml            
       - template: templates/nested-get-root-ca.yaml       
@@ -103,6 +109,7 @@ stages:
        - Agent.OSArchitecture -equals X64
        - level -equals 4    
     steps:
+      - template: templates/clean-drive-and-images.yaml    
       - template: templates/nested-get-secrets.yaml  
       - template: templates/e2e-clean-directory.yaml                
       - template: templates/nested-get-root-ca.yaml         
@@ -139,6 +146,7 @@ stages:
        - Agent.OSArchitecture -equals X64
        - level -equals 3    
     steps:
+      - template: templates/clean-drive-and-images.yaml  
       - template: templates/nested-get-secrets.yaml  
       - template: templates/e2e-clean-directory.yaml                
       - template: templates/nested-get-root-ca.yaml         
@@ -219,7 +227,7 @@ stages:
   jobs:
   - job:  Unlock_agents
     displayName: Unlock agents
-    timeoutInMinutes: 3    
+    timeoutInMinutes: 10    
     pool:
       name: $(pool.name)
       demands:
@@ -232,7 +240,7 @@ stages:
 
   - job:  Clean_up_identities
     displayName: Clean up identities
-    timeoutInMinutes: 3    
+    timeoutInMinutes: 10    
     variables:    
       deviceLvl5DeviceId: $[ stageDependencies.RunISA95Tests.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ] 
       deviceLvl4DeviceId: $[ stageDependencies.RunISA95Tests.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
