@@ -83,7 +83,6 @@ namespace MetricsValidator
 
                                 var result = new MethodResponse(Encoding.UTF8.GetBytes(testReporter.ReportResults()), (int)HttpStatusCode.OK);
 
-                                directMethodProcessingLock.Release();
                                 Logger.LogInformation($"Finished validating metrics. Result size: {result.Result.Length}");
 
                                 return result;
