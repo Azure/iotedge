@@ -732,9 +732,19 @@ mod tests {
                 "SimulatedTemperatureSensor"
             );
             // The new env should be set
-            let expected: BTreeMap<String, EnvValue> = [
-                ("Variable1".to_owned(), EnvValue::Number(5.0)),
-                ("Variable2".to_owned(), EnvValue::String("Hello".to_owned())),
+            let expected: BTreeMap<String, EnvHolder> = [
+                (
+                    "Variable1".to_owned(),
+                    EnvHolder {
+                        value: EnvValue::Number(5.0),
+                    },
+                ),
+                (
+                    "Variable2".to_owned(),
+                    EnvHolder {
+                        value: EnvValue::String("Hello".to_owned()),
+                    },
+                ),
             ]
             .iter()
             .cloned()

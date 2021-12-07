@@ -40,7 +40,7 @@ pub struct ModuleConfig {
     pub image_pull_policy: edgelet_settings::module::ImagePullPolicy,
     pub version: Option<String>,
     #[serde(default)]
-    pub env: BTreeMap<String, EnvValue>,
+    pub env: BTreeMap<String, EnvHolder>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
@@ -172,7 +172,7 @@ impl TryFrom<ModuleConfig> for edgelet_settings::DockerConfig {
         let create_options = settings.create_option.create_options.unwrap_or_default();
         let env = env
             .iter()
-            .map(|(k, v)| (k.clone(), v.to_string()))
+            .map(|(k, v)| (k.clone(), v.value.to_string()))
             .collect();
         let env = docker::utils::merge_env(create_options.env(), &env);
 
@@ -272,6 +272,11 @@ impl serde::Serialize for CreateOption {
             serializer.serialize_none()
         }
     }
+}
+
+#[derive(Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+pub struct EnvHolder {
+    pub value: EnvValue,
 }
 
 #[derive(Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]

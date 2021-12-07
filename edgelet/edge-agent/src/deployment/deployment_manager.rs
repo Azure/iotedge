@@ -223,17 +223,21 @@ mod tests {
                             env: [
                                 (
                                     "Variable1".to_owned(),
-                                    EnvValue::Number(5.0),
+                                    EnvHolder {
+                                        value: EnvValue::Number(5.0),
+                                    },
                                 ),
                                 (
                                     "Variable2".to_owned(),
-                                    EnvValue::String(
-                                        "Hello".to_owned(),
-                                    ),
+                                    EnvHolder {
+                                        value: EnvValue::String("Hello".to_owned()),
+                                    },
                                 ),
                                 (
                                     "Variable3".to_owned(),
-                                    EnvValue::Bool(true),
+                                    EnvHolder {
+                                        value: EnvValue::Bool(true),
+                                    },
                                 ),
                             ]
                             .iter()

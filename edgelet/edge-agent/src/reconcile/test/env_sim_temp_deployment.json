@@ -13,8 +13,12 @@
                     "imagePullPolicy": "on-create",
                     "version": "1.0",
                     "env": {
-                        "Variable1": 5,
-                        "Variable2": "Hello"
+                        "Variable1": {
+                            "value": 5
+                        },
+                        "Variable2": {
+                            "value": "Hello"
+                        }
                     }
                 }
             },
