@@ -32,19 +32,19 @@ variables:
 jobs:
 
 ################################################################################
-  - job: linux_arm32v7
+  - job: debian_11_arm32v7
 ################################################################################
-    displayName: Linux arm32v7
+    displayName: Debian 11 arm32v7
 
     pool:
       name: $(pool.custom.name)
-      demands: rpi3-e2e-tests
+      demands: deb11-e2e-tests
 
     variables:
       os: linux
       arch: arm32v7
-      artifactName: iotedged-debian9-arm32v7
-      identityServiceArtifactName: packages_debian-9-slim_arm32v7
+      artifactName: iotedged-debian11-arm32v7
+      identityServiceArtifactName: packages_debian-11-slim_arm32v7
       identityServicePackageFilter: aziot-identity-service_*_armhf.deb
 
     timeoutInMinutes: 120
