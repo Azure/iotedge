@@ -74,7 +74,7 @@ where
                 if self
                     .previous_config
                     .entry(desired.name.clone())
-                    .or_insert_with(|| desired.config.clone())
+                    .or_default()
                     == &desired.config
                 {
                     // Module config matches, check if state matches
@@ -120,6 +120,9 @@ where
                         }
                     }
                 } else {
+                    self.previous_config
+                        .insert(desired.name.clone(), desired.config.clone());
+
                     // Module should be modified to match desired, and the change requires a new container
                     state_change_modules.push(StateChangeModule {
                         module: desired,
