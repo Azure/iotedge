@@ -59,30 +59,39 @@ namespace MetricsValidator
                         async (MethodRequest methodRequest, object _) =>
                         {
                             Logger.LogInformation("Received method call to validate metrics");
-                            await directMethodProcessingLock.WaitAsync();
-                            await Task.Delay(TimeSpan.FromSeconds(5));
-
-                            Logger.LogInformation("Starting metrics validation");
-
-                            TestReporter testReporter = new TestReporter("Metrics Validation");
-                            List<TestBase> tests = new List<TestBase>
+                            try
                             {
-                                new ValidateMessages(testReporter, scraper, moduleClient, transportType),
-                                new ValidateDocumentedMetrics(testReporter, scraper, moduleClient),
-                                // new ValidateHostRanges(testReporter, scraper, moduleClient),
-                            };
+                                await directMethodProcessingLock.WaitAsync();
 
-                            using (testReporter.MeasureDuration())
-                            {
-                                await Task.WhenAll(tests.Select(test => test.Start(cts.Token)));
+                                // Delay to give buffer between potentially repeated direct method calls
+                                await Task.Delay(TimeSpan.FromSeconds(5));
+
+                                Logger.LogInformation("Starting metrics validation");
+
+                                TestReporter testReporter = new TestReporter("Metrics Validation");
+                                List<TestBase> tests = new List<TestBase>
+                                {
+                                    new ValidateMessages(testReporter, scraper, moduleClient, transportType),
+                                    new ValidateDocumentedMetrics(testReporter, scraper, moduleClient),
+                                    // new ValidateHostRanges(testReporter, scraper, moduleClient),
+                                };
+
+                                using (testReporter.MeasureDuration())
+                                {
+                                    await Task.WhenAll(tests.Select(test => test.Start(cts.Token)));
+                                }
+
+                                var result = new MethodResponse(Encoding.UTF8.GetBytes(testReporter.ReportResults()), (int)HttpStatusCode.OK);
+
+                                directMethodProcessingLock.Release();
+                                Logger.LogInformation($"Finished validating metrics. Result size: {result.Result.Length}");
+
+                                return result;
                             }
-
-                            var result = new MethodResponse(Encoding.UTF8.GetBytes(testReporter.ReportResults()), (int)HttpStatusCode.OK);
-
-                            directMethodProcessingLock.Release();
-                            Logger.LogInformation($"Finished validating metrics. Result size: {result.Result.Length}");
-
-                            return result;
+                            finally
+                            {
+                                directMethodProcessingLock.Release();
+                            }
                         },
                         null);
 
