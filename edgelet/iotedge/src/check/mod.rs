@@ -700,6 +700,8 @@ fn get_local_service_proxy_setting(svc_name: &str) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
+    use edgelet_settings::docker::Settings;
+
     use super::{
         checks::{ContainerEngineIsMoby, WellFormedConfig, ProxySettings},
         Check, CheckResult, Checker,
@@ -707,6 +709,98 @@ mod tests {
 
     lazy_static::lazy_static! {
         static ref ENV_LOCK: tokio::sync::Mutex<()> = Default::default();
+    }
+
+    async fn proxy_settings_test(
+        moby_proxy_set: bool, 
+        edge_daemon_proxy_set: bool,
+        edge_agent_proxy_set: bool,
+        mismatching_proxy_settings: bool,
+        expected_result_is_success: bool
+    ) {    
+        // Grab an env lock since we are going to be mucking with the environment.
+        let _env_lock = ENV_LOCK.lock().await;
+        let config_toml_filename = if edge_agent_proxy_set == true {
+            "sample_settings_with_proxy_uri.toml"
+        } else {
+            "sample_settings.toml"
+        };
+    
+        // Unset var to make sure we have a clean start
+        std::env::remove_var("AZIOT_EDGED_CONFIG");
+        std::env::remove_var("AZIOT_EDGED_CONFIG_DIR");
+                
+        // Set proxy for IoT Edge Agent in config.toml
+        std::env::set_var(
+            "AZIOT_EDGED_CONFIG",
+            format!(
+                "{}/../edgelet-settings/test-files/{}",
+                env!("CARGO_MANIFEST_DIR"),
+                config_toml_filename,
+            ),
+        );
+    
+        std::env::set_var(
+            "AZIOT_EDGED_CONFIG_DIR",
+            format!(
+                "{}/../edgelet-settings/test-files/{}",
+                env!("CARGO_MANIFEST_DIR"),
+                "config.d",
+            ),
+        );
+    
+        // Create an empty check
+        let mut check = super::Check::new(
+            "daemon.json".into(), // unused for this test
+            "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+            Default::default(),        // unused for this test
+            Some("1.0.0".to_owned()),  // unused for this test
+            Some("1.0.0".to_owned()),  // unused for this test
+            "aziot-edged".into(),      // unused for this test
+            super::OutputFormat::Text, // unused for this test
+            false,                     // unused for this test
+            false,                     // unused for this test
+            "".into(), // unused for this test
+            None,                      // unused for this test
+            None,                      // unused for this test
+        );
+    
+        let settings = match Settings::new() {
+            Ok(settings) => settings,
+            Err(err) => panic!("Unable to create settings object, error {:?}", err),
+        };
+    
+        check.settings = Some(settings);
+    
+        // Set proxy for Moby and for IoT Edge Daemon
+        let env_proxy_uri = if mismatching_proxy_settings == false {
+            "https://config:123"
+        } else {
+            "https://config:456"
+        };
+    
+        if edge_daemon_proxy_set == true {
+            check.aziot_edge_proxy = Some(env_proxy_uri.to_string());
+        }
+    
+        if moby_proxy_set == true {
+            check.docker_proxy = Some(env_proxy_uri.to_string());
+        }
+    
+        if expected_result_is_success == true {
+            match ProxySettings::default().execute(&mut check).await {
+                CheckResult::Ok => (),
+                check_result => panic!("proxy settings check returned {:?}", check_result),
+            }
+        } else {
+            match ProxySettings::default().execute(&mut check).await {
+                CheckResult::Failed(_) => (),
+                check_result => panic!("proxy settings check returned {:?}", check_result),
+            }
+        }
+    
+        std::env::remove_var("AZIOT_EDGED_CONFIG");
+        std::env::remove_var("AZIOT_EDGED_CONFIG_DIR");
     }
 
     #[tokio::test]
@@ -989,36 +1083,7 @@ mod tests {
         // [ ] IoT Edge Agent
         // [x] IoT Edge Daemon
 
-        let env_proxy_uri = "http://10.16.5.4:3128";
-
-        // Call the proxy settings check
-        let mut check = super::Check::new(
-            "daemon.json".into(), // unused for this test
-            "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
-            Default::default(),        // unused for this test
-            Some("1.0.0".to_owned()),  // unused for this test
-            Some("1.0.0".to_owned()),  // unused for this test
-            "aziot-edged".into(),      // unused for this test
-            super::OutputFormat::Text, // unused for this test
-            false,                     // unused for this test
-            false,                     // unused for this test
-            "".into(), // unused for this test
-            None,                      // unused for this test
-            None,                      // unused for this test
-        );
-
-        //TODO: instantiate settings
-        //check.settings.base.agent().env().set("https_proxy") = env_proxy_uri.clone();
-        
-        // Set proxy for IoT Edge Daemon in https_proxy environment var
-        check.aziot_edge_proxy = Some(env_proxy_uri.to_string());
-        // Set proxy for Moby in HTTPS_PROXY environment var
-        check.docker_proxy = Some(env_proxy_uri.to_string());
-
-        match ProxySettings::default().execute(&mut check).await {
-            CheckResult::Failed(_) => (),
-            check_result => panic!("proxy settings check returned {:?}", check_result),
-        }
+        proxy_settings_test(true, true, false, false, false).await;       
     }
 
     #[tokio::test]
@@ -1029,65 +1094,7 @@ mod tests {
         // [x] IoT Edge Agent
         // [ ] IoT Edge Daemon
 
-        // grab an env lock since we are going to be mucking with the environment.
-        let _env_lock = ENV_LOCK.lock().await;
-
-        // unset var to make sure we have a clean start
-        std::env::remove_var("AZIOT_EDGED_CONFIG");
-            
-        // Set proxy for IoT Edge Agent in config.toml
-        std::env::set_var(
-            "AZIOT_EDGED_CONFIG",
-            format!(
-                "{}/../edgelet-settings/test-files/{}",
-                env!("CARGO_MANIFEST_DIR"),
-                "sample_settings_with_proxy_uri.toml",
-            ),
-        );
-
-        // Call the proxy settings check
-        let mut check = super::Check::new(
-            "daemon.json".into(), // unused for this test
-            "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
-            Default::default(),        // unused for this test
-            Some("1.0.0".to_owned()),  // unused for this test
-            Some("1.0.0".to_owned()),  // unused for this test
-            "aziot-edged".into(),      // unused for this test
-            super::OutputFormat::Text, // unused for this test
-            false,                     // unused for this test
-            false,                     // unused for this test
-            "".into(), // unused for this test
-            None,                      // unused for this test
-            None,                      // unused for this test
-        );
-
-        // Set proxy for Moby in HTTPS_PROXY environment var
-        let env_proxy_uri = "http://10.16.5.4:3128";
-        check.docker_proxy = Some(env_proxy_uri.to_string());
-
-        // Call the proxy settings check
-        let mut check = super::Check::new(
-            "daemon.json".into(), // unused for this test
-            "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
-            Default::default(),
-            Some("1.0.0".to_owned()),  // unused for this test
-            Some("1.0.0".to_owned()),  // unused for this test
-            "aziot-edged".into(),      // unused for this test
-            super::OutputFormat::Text, // unused for this test
-            false,
-            false,
-            "".into(), // unused for this test
-            None,
-            None,
-        );
-
-        match ProxySettings::default().execute(&mut check).await {
-            CheckResult::Failed(_) => (),
-            check_result => panic!("proxy settings check returned {:?}", check_result),
-        }
-
-        // clean up the env
-        std::env::remove_var("AZIOT_EDGED_CONFIG");
+        proxy_settings_test(true, false, true, false, false).await;
     }
 
     #[tokio::test]
@@ -1098,66 +1105,18 @@ mod tests {
         // [x] IoT Edge Agent
         // [x] IoT Edge Daemon
 
-        // grab an env lock since we are going to be mucking with the environment.
-        let _env_lock = ENV_LOCK.lock().await;
+        proxy_settings_test(false, true, true, false, false).await;
+    }
 
-        // unset var to make sure we have a clean start
-        std::env::remove_var("AZIOT_EDGED_CONFIG");
-            
-        // Set proxy for IoT Edge Agent in config.toml
-        std::env::set_var(
-            "AZIOT_EDGED_CONFIG",
-            format!(
-                "{}/../edgelet-settings/test-files/{}",
-                env!("CARGO_MANIFEST_DIR"),
-                "sample_settings_with_proxy_uri.toml",
-            ),
-        );
-
-        // Call the proxy settings check
-        let mut check = super::Check::new(
-            "daemon.json".into(), // unused for this test
-            "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
-            Default::default(),        // unused for this test
-            Some("1.0.0".to_owned()),  // unused for this test
-            Some("1.0.0".to_owned()),  // unused for this test
-            "aziot-edged".into(),      // unused for this test
-            super::OutputFormat::Text, // unused for this test
-            false,                     // unused for this test
-            false,                     // unused for this test
-            "".into(), // unused for this test
-            None,                      // unused for this test
-            None,                      // unused for this test
-        );
-
-        // Set proxy for IoT Edge Daemon in https_proxy environment var
-        let env_proxy_uri = "http://10.16.5.4:3128";
-        check.aziot_edge_proxy = Some(env_proxy_uri.to_string());
-
-        // Call the proxy settings check
-        let mut check = super::Check::new(
-            "daemon.json".into(), // unused for this test
-            "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
-            Default::default(),
-            Some("1.0.0".to_owned()),  // unused for this test
-            Some("1.0.0".to_owned()),  // unused for this test
-            "aziot-edged".into(),      // unused for this test
-            super::OutputFormat::Text, // unused for this test
-            false,
-            false,
-            "".into(), // unused for this test
-            None,
-            None,
-        );
-
-        match ProxySettings::default().execute(&mut check).await {
-            CheckResult::Failed(_) => (),
-            check_result => panic!("proxy settings check returned {:?}", check_result),
-        }
-
-        // clean up the env
-        std::env::remove_var("AZIOT_EDGED_CONFIG");
-        std::env::remove_var("https_proxy");
+    #[tokio::test]
+    async fn proxy_settings_mismatching_values_should_fail_test() {
+        // Proxy needs to be set in 3 places, otherwise proxy_settings check will fail
+        // This test covers the following configuration
+        // [x] Moby Daemon
+        // [x] IoT Edge Agent
+        // [x] IoT Edge Daemon
+        
+        proxy_settings_test(true, true, true, true, false).await;
     }
 
     #[tokio::test]
@@ -1167,68 +1126,18 @@ mod tests {
         // [x] Moby Daemon
         // [x] IoT Edge Agent
         // [x] IoT Edge Daemon
-
-        // grab an env lock since we are going to be mucking with the environment.
-        let _env_lock = ENV_LOCK.lock().await;
-
-        // unset var to make sure we have a clean start
-        std::env::remove_var("AZIOT_EDGED_CONFIG");
-            
-        // Set proxy for IoT Edge Agent in config.toml
-        std::env::set_var(
-            "AZIOT_EDGED_CONFIG",
-            format!(
-                "{}/../edgelet-settings/test-files/{}",
-                env!("CARGO_MANIFEST_DIR"),
-                "sample_settings_with_proxy_uri.toml",
-            ),
-        );
-
-        let env_proxy_uri = "http://10.16.5.4:3128";
-
-        // Call the proxy settings check
-        let mut check = super::Check::new(
-            "daemon.json".into(), // unused for this test
-            "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
-            Default::default(),        // unused for this test
-            Some("1.0.0".to_owned()),  // unused for this test
-            Some("1.0.0".to_owned()),  // unused for this test
-            "aziot-edged".into(),      // unused for this test
-            super::OutputFormat::Text, // unused for this test
-            false,                     // unused for this test
-            false,                     // unused for this test
-            "".into(), // unused for this test
-            None,                      // unused for this test
-            None,                      // unused for this test
-        );
         
-        // Set proxy for IoT Edge Daemon in https_proxy environment var
-        check.aziot_edge_proxy = Some(env_proxy_uri.to_string());
-        // Set proxy for Moby in HTTPS_PROXY environment var
-        check.docker_proxy = Some(env_proxy_uri.to_string());
+        proxy_settings_test(true, true, true, false, true).await;
+    }
 
-        // Call the proxy settings check
-        let mut check = super::Check::new(
-            "daemon.json".into(), // unused for this test
-            "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
-            Default::default(),
-            Some("1.0.0".to_owned()),  // unused for this test
-            Some("1.0.0".to_owned()),  // unused for this test
-            "aziot-edged".into(),      // unused for this test
-            super::OutputFormat::Text, // unused for this test
-            false,
-            false,
-            "".into(), // unused for this test
-            None,
-            None,
-        );
-
-        match ProxySettings::default().execute(&mut check).await {
-            CheckResult::Ok => (),
-            check_result => panic!("proxy settings check returned {:?}", check_result),
-        }
-
-        // clean up the env
-        std::env::remove_var("AZIOT_EDGED_CONFIG");
+    #[tokio::test]
+    async fn proxy_settings_none_set_should_succeed_test() {
+        // Proxy needs to be set in 3 places, otherwise proxy_settings check will fail
+        // This test covers the following configuration
+        // [ ] Moby Daemon
+        // [ ] IoT Edge Agent
+        // [ ] IoT Edge Daemon
+        
+        proxy_settings_test(false, false, false, false, true).await;
     }
 }

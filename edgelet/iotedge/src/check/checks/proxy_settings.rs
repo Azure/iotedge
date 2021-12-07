@@ -36,17 +36,20 @@ impl ProxySettings{
         let moby_proxy_uri = check.docker_proxy.clone();
         let edge_daemon_proxy_uri = check.aziot_edge_proxy.clone();
 
-        println!("edge agent: {:?}", edge_agent_proxy_uri);
-        println!("moby: {:?}", moby_proxy_uri);
-        println!("edge daemon: {:?}", edge_daemon_proxy_uri);
-
-        if edge_agent_proxy_uri.is_some() && moby_proxy_uri.is_some() && edge_daemon_proxy_uri.is_some() {
-            Ok(CheckResult::Ok)
+        if edge_agent_proxy_uri.is_some() && moby_proxy_uri.is_some() && edge_daemon_proxy_uri.is_some() &&
+            edge_agent_proxy_uri == moby_proxy_uri.as_ref() && edge_agent_proxy_uri == edge_daemon_proxy_uri.as_ref() {
+            Ok(CheckResult::Ok)                    
         } else if edge_agent_proxy_uri.is_none() && moby_proxy_uri.is_none() && edge_daemon_proxy_uri.is_none() {
             Ok(CheckResult::Ok)
         } else {
-            // to do break down the error to say which setting is off
-            return Err(Context::new("The proxy setting for IoT Edge Agent or IoT Edge Daemon or Moby is inconsistent.").into());
-        }
+            return Err(Context::new(
+                format!(
+                    "The proxy setting for IoT Edge Agent {:?}, IoT Edge Daemon {:?} and Moby {:?} must be identical.", 
+                    edge_agent_proxy_uri, 
+                    edge_daemon_proxy_uri, 
+                    moby_proxy_uri
+                )
+            ).into());
+        }    
     }
 }
