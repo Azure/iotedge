@@ -399,6 +399,9 @@
               },
               "testMode": {
                 "value": "<TestMode>"
+              },
+              "topology": {
+                "value": "Nested"
               }
             },
             "settings": {

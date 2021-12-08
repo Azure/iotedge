@@ -176,6 +176,7 @@ stages:
           aziotis.package.filter: '$(aziotis.package.filter)'
           connectivity.nested: 'true'
           testInfo.testName: '$(testInfo.testName)'
+          topology: 'Nested'
 
 
 - stage: Cleanup 
