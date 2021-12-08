@@ -56,6 +56,8 @@ namespace TestResultCoordinator.Reports
                         return new CountingReportGenerator(
                             metadata.TestDescription,
                             Settings.Current.TestMode,
+                            Settings.Current.Topology,
+                            Settings.Current.MqttBrokerEnabled,
                             trackingId,
                             metadata.ExpectedSource,
                             expectedTestResults.GetAsyncEnumerator(),
@@ -75,7 +77,7 @@ namespace TestResultCoordinator.Reports
 
                         return new TwinCountingReportGenerator(
                             metadata.TestDescription,
-                            metadata.Topology,
+                            Settings.Current.Topology,
                             trackingId,
                             metadata.ExpectedSource,
                             expectedTestResults.GetAsyncEnumerator(),
@@ -96,6 +98,8 @@ namespace TestResultCoordinator.Reports
                             trackingId,
                             testReportMetadata.TestOperationResultType.ToString(),
                             metadata.SenderSource,
+                            Settings.Current.Topology,
+                            Settings.Current.MqttBrokerEnabled,
                             testResults.GetAsyncEnumerator());
                     }
 
@@ -125,7 +129,7 @@ namespace TestResultCoordinator.Reports
 
                         return new DirectMethodConnectivityReportGenerator(
                             metadata.TestDescription,
-                            metadata.Topology,
+                            Settings.Current.Topology,
                             trackingId,
                             metadata.SenderSource,
                             senderTestResults.GetAsyncEnumerator(),
@@ -153,6 +157,8 @@ namespace TestResultCoordinator.Reports
                             metadata.TestDescription,
                             trackingId,
                             metadata.SenderSource,
+                            Settings.Current.Topology,
+                            Settings.Current.MqttBrokerEnabled,
                             senderTestResults.GetAsyncEnumerator(),
                             metadata.ReceiverSource,
                             receiverTestResults.GetAsyncEnumerator(),

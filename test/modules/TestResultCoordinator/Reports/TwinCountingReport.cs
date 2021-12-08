@@ -2,7 +2,9 @@
 namespace TestResultCoordinator.Reports
 {
     using System.Collections.ObjectModel;
+    using System.Text.Json.Serialization;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Newtonsoft.Json.Converters;
 
     class TwinCountingReport : TestResultReportBase
     {
@@ -19,6 +21,7 @@ namespace TestResultCoordinator.Reports
             this.UnmatchedResults = unmatchedResults;
         }
 
+        [JsonConverter(typeof(StringEnumConverter))]
         public Topology Topology { get; }
 
         public string ExpectedSource { get; }
