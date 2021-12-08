@@ -117,6 +117,13 @@ namespace TestResultCoordinator.Reports
 
         public override bool IsPassed => this.IsPassedHelper();
 
+        // Tolerances are needed due to a combination of false-positive failures and real product-issues.
+        // Connectivity tolerances:
+        // - [All-Cases]: Fail the tests if we have > 20% missing C2D messages
+        // - [Nested-Edge] [Broker-Enabled]: Fail tests if we have > 10% missing custom mqtt messages
+        // Longhaul tolerances:
+        // - [Nested-Edge] [Broker-Enabled]: Fail the tests if we have > 20% missing custom mqtt messages
+        // - [Nested-Edge] [Broker-Enabled]: Fail the tests if we have > 1% missing iothub messages
         bool IsPassedHelper()
         {
             return this.TotalExpectCount > 0 && this.TotalDuplicateExpectedResultCount == 0 && this.EventHubSpecificReportComponents.Match(
@@ -134,7 +141,7 @@ namespace TestResultCoordinator.Reports
                             return ((double)this.TotalMatchCount / this.TotalExpectCount) > .8d;
                         }
                         // Product issue for custom mqtt telemetry.
-                        else if (this.Topology == Topology.Nested && this.TestDescription == GenericMqttTelemetryTestDescription)
+                        else if (this.Topology == Topology.Nested && this.MqttBrokerEnabled && this.TestDescription == GenericMqttTelemetryTestDescription)
                         {
                             return ((double)this.TotalMatchCount / this.TotalExpectCount) > .9d;
                         }

@@ -76,6 +76,16 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
 
         public override bool IsPassed => this.IsPassedHelper();
 
+        // Tolerances are needed because sometimes test has a combination of false-positive failures.
+        // Here is a description of these tolerances:
+        // - [All-Cases] Status code 0: Fail the tests if we get > 1 in 1000 direct methods with status code 0.
+        // - [All-Cases] Resource error: Fail the tests if we get > 1 in 1000 direct methods with resource error.
+        // - [All-Cases] Unauthorized: Fail the tests if we get > 1 in 1000 direct methods with resource error.
+        // - [All-Cases] Transient error: Fail the tests if we get > 1 in 1000 direct methods with transient error.
+        // - [All-Cases] NotImplemented: Fail the tests if we get > 1 in 1000 direct methods with NotImplemented error.
+        // - [Nested-Edge] [Broker-Enabled] DeviceNotFound: Fail the tests if we get > 1 in 400 direct methods with DeviceNotFound
+        // - [Nested-Edge] [Non-Broker] DeviceNotFound: Fail the tests if we get > 1 in 250 direct methods with DeviceNotFound
+        // - [Single-Node] DeviceNotFound: Fail the tests if we get > 1 in 200 direct methods with DeviceNotFound
         bool IsPassedHelper()
         {
             if (this.Other.Sum(x => x.Value) > 0)

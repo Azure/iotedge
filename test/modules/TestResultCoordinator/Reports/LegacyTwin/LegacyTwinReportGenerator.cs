@@ -76,7 +76,11 @@ namespace TestResultCoordinator.Reports.LegacyTwin
             return report;
         }
 
-        // See TwinTester/StatusCode.cs for reference.
+        // Tolerances are needed due to a combination of false-positive failures and real product-issues.
+        // - [Nested-Edge] [Broker-Enabled]: Sometimes we get an excessive amount of 501 and 504 status codes.
+        //   Fail the tests if we have > 0.5% of either code.
+        //     + (501) We don't receive some desired properties in module-registered twin desired property callback
+        //     + (504) Module cannot make reported property update
         bool IsPassed(IDictionary<int, int> statusCodesToCount)
         {
             bool isPassed = true;
@@ -87,11 +91,9 @@ namespace TestResultCoordinator.Reports.LegacyTwin
                 return false;
             }
 
-            // Product issue where:
-            // 1) (501) We don't receive some desired properties in module-registered twin desired property callback
-            // 1) (504) Module cannot make reported property update
             if (this.Topology == Topology.Nested && this.MqttBrokerEnabled)
             {
+                // See TwinTester/StatusCode.cs for reference.
                 int[] bigToleranceStatusCodes = { };
                 int[] littleToleranceStatusCodes = { 501, 504 };
                 isPassed = this.GeneratePassResult(statusCodesToCount, bigToleranceStatusCodes, littleToleranceStatusCodes);
