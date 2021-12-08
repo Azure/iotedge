@@ -408,6 +408,12 @@
               },
               "testMode": {
                 "value": "<TestMode>"
+              },
+              "topology": {
+                "value": "Nested"
+              },
+              "mqttBrokerEnabled": {
+                "value": "true"
               }
             },
             "settings": {

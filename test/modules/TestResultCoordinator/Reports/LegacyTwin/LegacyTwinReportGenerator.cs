@@ -2,6 +2,7 @@
 namespace TestResultCoordinator.Reports.LegacyTwin
 {
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -11,7 +12,6 @@ namespace TestResultCoordinator.Reports.LegacyTwin
     sealed class LegacyTwinReportGenerator : ITestResultReportGenerator
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(LegacyTwinReportGenerator));
-
         readonly string trackingId;
 
         internal LegacyTwinReportGenerator(
@@ -19,6 +19,8 @@ namespace TestResultCoordinator.Reports.LegacyTwin
             string trackingId,
             string resultType,
             string senderSource,
+            Topology topology,
+            bool mqttBrokerEnabled,
             IAsyncEnumerator<TestOperationResult> senderTestResults)
         {
             this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
@@ -26,6 +28,7 @@ namespace TestResultCoordinator.Reports.LegacyTwin
             this.ResultType = Preconditions.CheckNonWhiteSpace(resultType, nameof(resultType));
             this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
             this.SenderTestResults = Preconditions.CheckNotNull(senderTestResults, nameof(senderTestResults));
+            this.Topology = topology;
         }
 
         internal string TestDescription { get; }
@@ -35,6 +38,10 @@ namespace TestResultCoordinator.Reports.LegacyTwin
         internal string SenderSource { get; }
 
         internal IAsyncEnumerator<TestOperationResult> SenderTestResults { get; }
+
+        internal Topology Topology { get; }
+
+        internal bool MqttBrokerEnabled { get; }
 
         public async Task<ITestResultReport> CreateReportAsync()
         {
