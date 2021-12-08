@@ -675,8 +675,8 @@ fn write_lines<'a>(
     Ok(())
 }
 
-fn get_local_service_proxy_setting(svc_name: &str) -> Option<String> {    
-    const PROXY_KEY: &str = "https_proxy";    
+fn get_local_service_proxy_setting(svc_name: &str) -> Option<String> {
+    const PROXY_KEY: &str = "https_proxy";
     let output = 
         Command::new("sh")
             .arg("-c")
@@ -685,17 +685,28 @@ fn get_local_service_proxy_setting(svc_name: &str) -> Option<String> {
             .expect("failed to execute process");
     let stdout = String::from_utf8_lossy(&output.stdout);
   
-    let mut svc_proxy = None;    
+    let mut svc_proxy = None;
     let vars = stdout.trim_start_matches("Environment=");
-    for var in vars.split(' ') {        
-        let mut parts = var.split('=');      
-        match parts.next() {                
-            Some(PROXY_KEY) => svc_proxy = parts.next().map(String::from),
-            _ => (), // Ignore remaining variables
-        }
+    for var in vars.split(' ') {
+        let mut parts = var.split('=');
+        if let Some(PROXY_KEY) = parts.next() {
+            svc_proxy = parts.next().map(String::from);
+
+            let mut s = match svc_proxy {
+                Some(svc_proxy) => svc_proxy,
+                _ => return svc_proxy
+            };
+        
+            // Remove newline
+            if s.ends_with('\n') {
+                s.pop();
+            }
+
+            return Some(s);
+        } // Ignore remaining variables
     }
 
-    return svc_proxy;    
+    svc_proxy
 }
 
 #[cfg(test)]
