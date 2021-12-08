@@ -17,7 +17,6 @@ mod well_formed_config;
 
 pub(crate) use self::aziot_edged_version::AziotEdgedVersion;
 pub(crate) use self::check_agent_image::CheckAgentImage;
-pub(crate) use self::proxy_settings::ProxySettings;
 pub(crate) use self::connect_management_uri::ConnectManagementUri;
 pub(crate) use self::container_connect_upstream::get_host_container_upstream_tests;
 pub(crate) use self::container_engine_dns::ContainerEngineDns;
@@ -28,6 +27,7 @@ pub(crate) use self::container_engine_logrotate::ContainerEngineLogrotate;
 pub(crate) use self::container_local_time::ContainerLocalTime;
 pub(crate) use self::container_resolve_parent_hostname::ContainerResolveParentHostname;
 pub(crate) use self::parent_hostname::ParentHostname;
+pub(crate) use self::proxy_settings::ProxySettings;
 pub(crate) use self::storage_mounted_from_host::{EdgeAgentStorageMounted, EdgeHubStorageMounted};
 pub(crate) use self::up_to_date_config::UpToDateConfig;
 pub(crate) use self::well_formed_config::WellFormedConfig;

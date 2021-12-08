@@ -10,7 +10,8 @@ impl Checker for ProxySettings {
     fn meta(&self) -> CheckerMeta {
         CheckerMeta {
             id: "proxy-settings",
-            description: "proxy settings are consistent in aziot-edged, moby daemon and config.toml",
+            description:
+                "proxy settings are consistent in aziot-edged, moby daemon and config.toml",
         }
     }
 
@@ -21,7 +22,7 @@ impl Checker for ProxySettings {
     }
 }
 
-impl ProxySettings{
+impl ProxySettings {
     async fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
         let settings = if let Some(settings) = &mut check.settings {
             settings
@@ -47,9 +48,11 @@ impl ProxySettings{
             None => "".into(),
         };
 
-        if edge_agent_proxy_uri.eq(&moby_proxy_uri) && edge_agent_proxy_uri.eq(&edge_daemon_proxy_uri) {
+        if edge_agent_proxy_uri.eq(&moby_proxy_uri)
+            && edge_agent_proxy_uri.eq(&edge_daemon_proxy_uri)
+        {
             Ok(CheckResult::Ok)
-        }  else {
+        } else {
             return Err(Context::new(
                 format!(
                     "The proxy setting for IoT Edge Agent {:?}, IoT Edge Daemon {:?} and Moby {:?} must be identical.",

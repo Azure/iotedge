@@ -677,14 +677,13 @@ fn write_lines<'a>(
 
 fn get_local_service_proxy_setting(svc_name: &str) -> Option<String> {
     const PROXY_KEY: &str = "https_proxy";
-    let output = 
-        Command::new("sh")
-            .arg("-c")
-            .arg("sudo systemctl show --property=Environment ".to_owned() + svc_name)
-            .output()
-            .expect("failed to execute process");
+    let output = Command::new("sh")
+        .arg("-c")
+        .arg("sudo systemctl show --property=Environment ".to_owned() + svc_name)
+        .output()
+        .expect("failed to execute process");
     let stdout = String::from_utf8_lossy(&output.stdout);
-  
+
     let mut svc_proxy = None;
     let vars = stdout.trim_start_matches("Environment=");
     for var in vars.split(' ') {
@@ -694,9 +693,9 @@ fn get_local_service_proxy_setting(svc_name: &str) -> Option<String> {
 
             let mut s = match svc_proxy {
                 Some(svc_proxy) => svc_proxy,
-                _ => return svc_proxy
+                _ => return svc_proxy,
             };
-        
+
             // Remove newline
             if s.ends_with('\n') {
                 s.pop();
@@ -714,7 +713,7 @@ mod tests {
     use edgelet_settings::docker::Settings;
 
     use super::{
-        checks::{ContainerEngineIsMoby, WellFormedConfig, ProxySettings},
+        checks::{ContainerEngineIsMoby, ProxySettings, WellFormedConfig},
         Check, CheckResult, Checker,
     };
 
@@ -727,7 +726,7 @@ mod tests {
         edge_daemon_proxy_set: bool,
         edge_agent_proxy_set: bool,
         mismatching_proxy_settings: bool,
-        expected_result_is_success: bool
+        expected_result_is_success: bool,
     ) {
         // Grab an env lock since we are going to be mucking with the environment.
         let _env_lock = ENV_LOCK.lock().await;
@@ -740,7 +739,7 @@ mod tests {
         // Unset var to make sure we have a clean start
         std::env::remove_var("AZIOT_EDGED_CONFIG");
         std::env::remove_var("AZIOT_EDGED_CONFIG_DIR");
-                
+
         // Set proxy for IoT Edge Agent in config.toml
         std::env::set_var(
             "AZIOT_EDGED_CONFIG",
@@ -764,16 +763,16 @@ mod tests {
         let mut check = super::Check::new(
             "daemon.json".into(), // unused for this test
             "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
-            Default::default(),        // unused for this test
-            Some("1.0.0".to_owned()),  // unused for this test
-            Some("1.0.0".to_owned()),  // unused for this test
-            "aziot-edged".into(),      // unused for this test
+            Default::default(),   // unused for this test
+            Some("1.0.0".to_owned()), // unused for this test
+            Some("1.0.0".to_owned()), // unused for this test
+            "aziot-edged".into(), // unused for this test
             super::OutputFormat::Text, // unused for this test
-            false,                     // unused for this test
-            false,                     // unused for this test
-            "".into(), // unused for this test
-            None,                      // unused for this test
-            None,                      // unused for this test
+            false,                // unused for this test
+            false,                // unused for this test
+            "".into(),            // unused for this test
+            None,                 // unused for this test
+            None,                 // unused for this test
         );
 
         let settings = match Settings::new() {
@@ -793,11 +792,11 @@ mod tests {
         if edge_daemon_proxy_set == true {
             check.aziot_edge_proxy = Some(env_proxy_uri.to_string());
         }
-    
+
         if moby_proxy_set == true {
             check.docker_proxy = Some(env_proxy_uri.to_string());
         }
-    
+
         if expected_result_is_success == true {
             match ProxySettings::default().execute(&mut check).await {
                 CheckResult::Ok => (),
@@ -1094,7 +1093,7 @@ mod tests {
         // [ ] IoT Edge Agent
         // [x] IoT Edge Daemon
 
-        proxy_settings_test(true, true, false, false, false).await;       
+        proxy_settings_test(true, true, false, false, false).await;
     }
 
     #[tokio::test]
