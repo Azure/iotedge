@@ -11,8 +11,10 @@ jobs:
     # This means we have to toggle back and forth between primary dotnet installations for the sign and build.
     # TODO: Investigate why we have to toggle primary installs on linux, but not on windows.
     displayName: LinuxDotnet
-    pool: 
-      vmImage: ubuntu-18.04
+    pool:
+        name: $(pool.linux.name)
+        demands:
+          - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
     steps: 
       # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
       - task: Docker@2
@@ -599,7 +601,9 @@ jobs:
 ################################################################################
     displayName: Publish Manifest Images
     pool:
-      vmImage: ubuntu-18.04
+        name: $(pool.linux.name)
+        demands:
+          - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
     dependsOn:
       - linux_dotnet_projects
       - windows
