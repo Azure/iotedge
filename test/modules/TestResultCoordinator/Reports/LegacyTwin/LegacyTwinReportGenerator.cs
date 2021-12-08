@@ -88,8 +88,8 @@ namespace TestResultCoordinator.Reports.LegacyTwin
             }
 
             // Product issue where:
-            // 1) We don't receive some desired properties in module-registered twin desired property callback
-            // 1) Module cannot make reported property update
+            // 1) (501) We don't receive some desired properties in module-registered twin desired property callback
+            // 1) (504) Module cannot make reported property update
             if (this.Topology == Topology.Nested && this.MqttBrokerEnabled)
             {
                 int[] bigToleranceStatusCodes = { };

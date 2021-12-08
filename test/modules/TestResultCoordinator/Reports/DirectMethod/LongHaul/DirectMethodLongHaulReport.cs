@@ -132,7 +132,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             }
             else
             {
-                deviceNotFoundThreshold = (double)allStatusCount / 100;
+                deviceNotFoundThreshold = (double)allStatusCount / 400;
             }
 
             bool statusCodeZeroBelowThreshold = (this.StatusCodeZero == 0) || (this.StatusCodeZero < statusCodeZeroThreshold);
