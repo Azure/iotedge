@@ -1,10 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
+    using System.Text.Json.Serialization;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Newtonsoft.Json.Converters;
 
     class DirectMethodLongHaulReport : TestResultReportBase
     {
@@ -14,6 +17,8 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             string senderSource,
             string receiverSource,
             string resultType,
+            Topology topology,
+            bool mqttBrokerEnabled,
             long senderSuccesses,
             long receiverSuccesses,
             long statusCodeZero,
@@ -21,10 +26,13 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             long deviceNotFound,
             long transientError,
             long resourceError,
+            long notImplemented,
             Dictionary<HttpStatusCode, long> other)
             : base(testDescription, trackingId, resultType)
         {
             this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
+            this.Topology = topology;
+            this.MqttBrokerEnabled = mqttBrokerEnabled;
             this.ReceiverSource = receiverSource;
             this.SenderSuccesses = senderSuccesses;
             this.ReceiverSuccesses = receiverSuccesses;
@@ -33,18 +41,35 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             this.DeviceNotFound = deviceNotFound;
             this.TransientError = transientError;
             this.ResourceError = resourceError;
+            this.NotImplemented = notImplemented;
             this.Other = other;
         }
 
         public string SenderSource { get; }
+
+        [JsonConverter(typeof(StringEnumConverter))]
+        public Topology Topology { get; }
+
+        public bool MqttBrokerEnabled { get; }
+
         public string ReceiverSource { get; }
+
         public long SenderSuccesses { get; }
+
         public long ReceiverSuccesses { get; }
+
         public long StatusCodeZero { get; }
+
         public long Unauthorized { get; }
+
         public long DeviceNotFound { get; }
+
         public long TransientError { get; }
+
         public long ResourceError { get; }
+
+        public long NotImplemented { get; }
+
         public Dictionary<HttpStatusCode, long> Other { get; }
 
         public override string Title => $"DirectMethod LongHaul Report for [{this.SenderSource}] and [{this.ReceiverSource}] ({this.ResultType})";
