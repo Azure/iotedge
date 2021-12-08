@@ -47,6 +47,7 @@ pub struct Check {
 
     // These optional fields are populated by the checks
     aziot_edge_proxy: Option<String>,
+    aziot_identity_proxy: Option<String>,
     iothub_hostname: Option<String>, // populated by `aziot check`
     proxy_uri: Option<String>,       // populated by `aziot check`
     parent_hostname: Option<String>, // populated by `aziot check`
@@ -92,6 +93,7 @@ impl Check {
             additional_info: AdditionalInfo::new(),
 
             aziot_edge_proxy: get_local_service_proxy_setting("aziot-edged.service"),
+            aziot_identity_proxy: get_local_service_proxy_setting("aziot-identityd.service"),
             iothub_hostname,
             proxy_uri: get_proxy_uri(proxy_uri),
             parent_hostname: None,
@@ -731,6 +733,11 @@ mod tests {
         NotSet,
     }
 
+    enum IdentityDaemonProxyState {
+        Set,
+        NotSet,
+    }
+
     enum EdgeAgentProxyState {
         Set,
         NotSet,
@@ -749,6 +756,7 @@ mod tests {
     async fn proxy_settings_test(
         moby_proxy_state: MobyProxyState,
         edge_daemon_proxy_state: EdgeDaemonProxyState,
+        identity_daemon_proxy_state: IdentityDaemonProxyState,
         edge_agent_proxy_state: EdgeAgentProxyState,
         proxy_settings_values: ProxySettingsValues,
         expected_check_result: ExpectedCheckResult,
@@ -814,6 +822,10 @@ mod tests {
 
         if let EdgeDaemonProxyState::Set = edge_daemon_proxy_state {
             check.aziot_edge_proxy = Some(env_proxy_uri.to_string());
+        };
+
+        if let IdentityDaemonProxyState::Set = identity_daemon_proxy_state {
+            check.aziot_identity_proxy = Some(env_proxy_uri.to_string());
         };
 
         if let MobyProxyState::Set = moby_proxy_state {
@@ -1113,15 +1125,17 @@ mod tests {
 
     #[tokio::test]
     async fn proxy_settings_iot_edge_agent_not_set_should_fail_test() {
-        // Proxy needs to be set in 3 places, otherwise proxy_settings check will fail
+        // Proxy needs to be set in 4 places, otherwise proxy_settings check will fail
         // This test covers the following configuration
         // [x] Moby Daemon
         // [ ] IoT Edge Agent
         // [x] IoT Edge Daemon
+        // [x] IoT Identity Daemon
 
         proxy_settings_test(
             MobyProxyState::Set,
             EdgeDaemonProxyState::Set,
+            IdentityDaemonProxyState::Set,
             EdgeAgentProxyState::NotSet,
             ProxySettingsValues::Matching,
             ExpectedCheckResult::Failure,
@@ -1131,15 +1145,17 @@ mod tests {
 
     #[tokio::test]
     async fn proxy_settings_iot_edge_deamon_not_set_should_fail_test() {
-        // Proxy needs to be set in 3 places, otherwise proxy_settings check will fail
+        // Proxy needs to be set in 4 places, otherwise proxy_settings check will fail
         // This test covers the following configuration
         // [x] Moby Daemon
         // [x] IoT Edge Agent
         // [ ] IoT Edge Daemon
+        // [x] IoT Identity Daemon
 
         proxy_settings_test(
             MobyProxyState::Set,
             EdgeDaemonProxyState::NotSet,
+            IdentityDaemonProxyState::Set,
             EdgeAgentProxyState::Set,
             ProxySettingsValues::Matching,
             ExpectedCheckResult::Failure,
@@ -1149,15 +1165,37 @@ mod tests {
 
     #[tokio::test]
     async fn proxy_settings_moby_deamon_not_set_should_fail_test() {
-        // Proxy needs to be set in 3 places, otherwise proxy_settings check will fail
+        // Proxy needs to be set in 4 places, otherwise proxy_settings check will fail
         // This test covers the following configuration
         // [ ] Moby Daemon
         // [x] IoT Edge Agent
         // [x] IoT Edge Daemon
+        // [x] IoT Identity Daemon
 
         proxy_settings_test(
             MobyProxyState::NotSet,
             EdgeDaemonProxyState::Set,
+            IdentityDaemonProxyState::Set,
+            EdgeAgentProxyState::Set,
+            ProxySettingsValues::Matching,
+            ExpectedCheckResult::Failure,
+        )
+        .await;
+    }
+
+    #[tokio::test]
+    async fn proxy_settings_identity_deamon_not_set_should_fail_test() {
+        // Proxy needs to be set in 4 places, otherwise proxy_settings check will fail
+        // This test covers the following configuration
+        // [x] Moby Daemon
+        // [x] IoT Edge Agent
+        // [x] IoT Edge Daemon
+        // [ ] IoT Identity Daemon
+
+        proxy_settings_test(
+            MobyProxyState::Set,
+            EdgeDaemonProxyState::Set,
+            IdentityDaemonProxyState::NotSet,
             EdgeAgentProxyState::Set,
             ProxySettingsValues::Matching,
             ExpectedCheckResult::Failure,
@@ -1167,15 +1205,17 @@ mod tests {
 
     #[tokio::test]
     async fn proxy_settings_mismatching_values_should_fail_test() {
-        // Proxy needs to be set in 3 places, otherwise proxy_settings check will fail
+        // Proxy needs to be set in 4 places, otherwise proxy_settings check will fail
         // This test covers the following configuration
         // [x] Moby Daemon
         // [x] IoT Edge Agent
         // [x] IoT Edge Daemon
+        // [x] IoT Identity Daemon
 
         proxy_settings_test(
             MobyProxyState::Set,
             EdgeDaemonProxyState::Set,
+            IdentityDaemonProxyState::Set,
             EdgeAgentProxyState::Set,
             ProxySettingsValues::Mismatching,
             ExpectedCheckResult::Failure,
@@ -1185,15 +1225,17 @@ mod tests {
 
     #[tokio::test]
     async fn proxy_settings_all_set_should_succeed_test() {
-        // Proxy needs to be set in 3 places, otherwise proxy_settings check will fail
+        // Proxy needs to be set in 4 places, otherwise proxy_settings check will fail
         // This test covers the following configuration
         // [x] Moby Daemon
         // [x] IoT Edge Agent
         // [x] IoT Edge Daemon
+        // [x] IoT Identity Daemon
 
         proxy_settings_test(
             MobyProxyState::Set,
             EdgeDaemonProxyState::Set,
+            IdentityDaemonProxyState::Set,
             EdgeAgentProxyState::Set,
             ProxySettingsValues::Matching,
             ExpectedCheckResult::Success,
@@ -1203,15 +1245,17 @@ mod tests {
 
     #[tokio::test]
     async fn proxy_settings_none_set_should_succeed_test() {
-        // Proxy needs to be set in 3 places, otherwise proxy_settings check will fail
+        // Proxy needs to be set in 4 places, otherwise proxy_settings check will fail
         // This test covers the following configuration
         // [ ] Moby Daemon
         // [ ] IoT Edge Agent
         // [ ] IoT Edge Daemon
+        // [ ] IoT Identity Daemon
 
         proxy_settings_test(
             MobyProxyState::NotSet,
             EdgeDaemonProxyState::NotSet,
+            IdentityDaemonProxyState::NotSet,
             EdgeAgentProxyState::NotSet,
             ProxySettingsValues::Matching,
             ExpectedCheckResult::Success,

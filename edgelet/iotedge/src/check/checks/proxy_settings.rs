@@ -11,7 +11,7 @@ impl Checker for ProxySettings {
         CheckerMeta {
             id: "proxy-settings",
             description:
-                "proxy settings are consistent in aziot-edged, moby daemon and config.toml",
+                "proxy settings are consistent in aziot-edged, aziot-identityd, moby daemon and config.toml",
         }
     }
 
@@ -37,7 +37,7 @@ impl ProxySettings {
             None => "".into(),
         };
 
-        // Pull local service env variables for Moby and Edge Daemon
+        // Pull local service env variables for Moby, Identity Daemon and Edge Daemon
         let moby_proxy_uri = match check.docker_proxy.clone() {
             Some(moby_proxy_uri) => moby_proxy_uri,
             None => "".into(),
@@ -48,16 +48,23 @@ impl ProxySettings {
             None => "".into(),
         };
 
+        let identity_daemon_proxy_uri = match check.aziot_identity_proxy.clone() {
+            Some(identity_daemon_proxy_uri) => identity_daemon_proxy_uri,
+            None => "".into(),
+        };
+
         if edge_agent_proxy_uri.eq(&moby_proxy_uri)
             && edge_agent_proxy_uri.eq(&edge_daemon_proxy_uri)
+            && edge_agent_proxy_uri.eq(&identity_daemon_proxy_uri)
         {
             Ok(CheckResult::Ok)
         } else {
             return Err(Context::new(
                 format!(
-                    "The proxy setting for IoT Edge Agent {:?}, IoT Edge Daemon {:?} and Moby {:?} must be identical.",
+                    "The proxy setting for IoT Edge Agent {:?}, IoT Edge Daemon {:?}, IoT Identity Daemon {:?}, and Moby {:?} must be identical.",
                     edge_agent_proxy_uri,
                     edge_daemon_proxy_uri,
+                    identity_daemon_proxy_uri,
                     moby_proxy_uri
                 )
             ).into());
