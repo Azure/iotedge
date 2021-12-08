@@ -26,7 +26,7 @@ async fn main() {
     if let Err(ref error) = run().await {
         let fail: &dyn Fail = error;
 
-        eprintln!("{}", error.to_string());
+        eprintln!("{}", error);
 
         for cause in fail.iter_causes() {
             eprintln!("\tcaused by: {}", cause);
@@ -507,7 +507,7 @@ async fn run() -> Result<(), Error> {
                 .expect("arg has a default value");
             let since = args
                 .value_of("since")
-                .map(|s| parse_since(s))
+                .map(parse_since)
                 .transpose()
                 .context(ErrorKind::BadSinceParameter)?
                 .expect("arg has a default value");
@@ -517,7 +517,7 @@ async fn run() -> Result<(), Error> {
                 .with_since(since);
             if let Some(until) = args
                 .value_of("until")
-                .map(|s| parse_since(s))
+                .map(parse_since)
                 .transpose()
                 .context(ErrorKind::BadSinceParameter)?
             {
@@ -552,7 +552,7 @@ async fn run() -> Result<(), Error> {
             let location = args.value_of_os("output").expect("arg has a default value");
             let since = args
                 .value_of("since")
-                .map(|s| parse_since(s))
+                .map(parse_since)
                 .transpose()
                 .context(ErrorKind::BadSinceParameter)?
                 .expect("arg has a default value");
@@ -562,7 +562,7 @@ async fn run() -> Result<(), Error> {
                 .with_since(since);
             if let Some(until) = args
                 .value_of("until")
-                .map(|s| parse_since(s))
+                .map(parse_since)
                 .transpose()
                 .context(ErrorKind::BadSinceParameter)?
             {
