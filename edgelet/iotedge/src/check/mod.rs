@@ -812,15 +812,13 @@ mod tests {
             ProxySettingsValues::Mismatching => "https://config:456",
         };
 
-        match edge_daemon_proxy_state {
-            EdgeDaemonProxyState::Set => check.aziot_edge_proxy = Some(env_proxy_uri.to_string()),
-            _ => (),
-        }
+        if let EdgeDaemonProxyState::Set = edge_daemon_proxy_state {
+            check.aziot_edge_proxy = Some(env_proxy_uri.to_string())
+        };
 
-        match moby_proxy_state {
-            MobyProxyState::Set => check.docker_proxy = Some(env_proxy_uri.to_string()),
-            _ => (),
-        }
+        if let MobyProxyState::Set = moby_proxy_state {
+            check.docker_proxy = Some(env_proxy_uri.to_string())
+        };
 
         match expected_check_result {
             ExpectedCheckResult::Success => {
