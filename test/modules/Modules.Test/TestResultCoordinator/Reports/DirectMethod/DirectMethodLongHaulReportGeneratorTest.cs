@@ -6,6 +6,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
     using System.Linq;
     using System.Net;
     using System.Threading.Tasks;
+    using global::TestResultCoordinator;
     using global::TestResultCoordinator.Reports;
     using global::TestResultCoordinator.Reports.DirectMethod.LongHaul;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
@@ -36,6 +37,8 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 TestDescription,
                 Guid.NewGuid().ToString(),
                 senderSource,
+                Topology.SingleNode,
+                false,
                 senderResults.GetAsyncEnumerator(),
                 receiverSource,
                 receiverResults.GetAsyncEnumerator(),
@@ -64,6 +67,8 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     testDescription,
                     Guid.NewGuid().ToString(),
                     "senderSource",
+                    Topology.SingleNode,
+                    false,
                     mockSenderResults.Object,
                     "receiverSource",
                     receiverResults.GetAsyncEnumerator(),
@@ -87,6 +92,8 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     TestDescription,
                     trackingId,
                     "senderSource",
+                    Topology.SingleNode,
+                    false,
                     mockSenderResults.Object,
                     "receiverSource",
                     receiverResults.GetAsyncEnumerator(),
@@ -110,6 +117,8 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     TestDescription,
                     Guid.NewGuid().ToString(),
                     senderSource,
+                    Topology.SingleNode,
+                    false,
                     mockSenderResults.Object,
                     "receiverSource",
                     receiverResults.GetAsyncEnumerator(),
@@ -130,6 +139,8 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     TestDescription,
                     Guid.NewGuid().ToString(),
                     "senderSource",
+                    Topology.SingleNode,
+                    false,
                     null,
                     "receiverSource",
                     receiverResults.GetAsyncEnumerator(),
@@ -153,6 +164,8 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     TestDescription,
                     Guid.NewGuid().ToString(),
                     "senderSource",
+                    Topology.SingleNode,
+                    false,
                     mockSenderResults.Object,
                     "receiverSource",
                     receiverResults.GetAsyncEnumerator(),
@@ -191,6 +204,8 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 TestDescription,
                 Guid.NewGuid().ToString(),
                 senderSource,
+                Topology.SingleNode,
+                false,
                 senderResults.GetAsyncEnumerator(),
                 receiverSource,
                 receiverResults.GetAsyncEnumerator(),
@@ -254,6 +269,8 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 TestDescription,
                 Guid.NewGuid().ToString(),
                 senderSource,
+                Topology.SingleNode,
+                false,
                 senderResults.GetAsyncEnumerator(),
                 receiverSource,
                 receiverResults.GetAsyncEnumerator(),
@@ -303,6 +320,8 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 TestDescription,
                 Guid.NewGuid().ToString(),
                 senderSource,
+                Topology.SingleNode,
+                false,
                 senderResults.GetAsyncEnumerator(),
                 receiverSource,
                 receiverResults.GetAsyncEnumerator(),

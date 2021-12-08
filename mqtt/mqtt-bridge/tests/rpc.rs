@@ -67,7 +67,7 @@ async fn get_twin_update_via_rpc() {
     // edgehub makes a request to get a twin for the leaf device
     let payload = command(
         "pub",
-        "$iothub/device-1/twin/get/?rid=1",
+        "$iothub/device-1/twin/get/?$rid=1",
         Some(Vec::default()),
     );
     edgehub
@@ -76,15 +76,15 @@ async fn get_twin_update_via_rpc() {
     assert_matches!(edgehub.publications().next().await, Some(ReceivedPublication {topic_name, ..}) if topic_name == "$downstream/rpc/ack/2");
 
     // upstream client awaits on twin request and responds with twin message
-    assert_matches!(upstream.publications().next().await, Some(ReceivedPublication {topic_name, ..}) if topic_name == "$iothub/device-1/twin/get/?rid=1");
+    assert_matches!(upstream.publications().next().await, Some(ReceivedPublication {topic_name, ..}) if topic_name == "$iothub/device-1/twin/get/?$rid=1");
 
     let twin = "device-1 twin";
     upstream
-        .publish_qos1("$iothub/device-1/twin/res/200/?rid=1", twin, false)
+        .publish_qos1("$iothub/device-1/twin/res/200/?$rid=1", twin, false)
         .await;
 
     // edgehub verifies it received a twin response
-    assert_matches!(edgehub.publications().next().await, Some(ReceivedPublication {topic_name, ..}) if topic_name == "$downstream/device-1/twin/res/200/?rid=1");
+    assert_matches!(edgehub.publications().next().await, Some(ReceivedPublication {topic_name, ..}) if topic_name == "$downstream/device-1/twin/res/200/?$rid=1");
 
     // edgehub unsubscribes from twin response
     let payload = command("unsub", "$iothub/device-1/twin/res/#", None);
