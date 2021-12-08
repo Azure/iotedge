@@ -2,7 +2,6 @@
 namespace TestResultCoordinator
 {
     using System;
-    using System.Collections;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
@@ -52,6 +51,8 @@ namespace TestResultCoordinator
             ushort unmatchedResultsMaxSize,
             string testInfo,
             TestMode testMode,
+            Topology topology,
+            bool mqttBrokerEnabled,
             TimeSpan unmatchedResultTolerance,
             TimeSpan eventHubDelayTolerance)
         {
@@ -118,6 +119,8 @@ namespace TestResultCoordinator
             this.TestInfo = ModuleUtil.ParseKeyValuePairs(testInfo, Logger, true);
             this.TestInfo.Add("DeviceId", this.DeviceId);
             this.TestMode = testMode;
+            this.Topology = topology;
+            this.MqttBrokerEnabled = mqttBrokerEnabled;
         }
 
         private NetworkControllerType GetNetworkControllerType(string networkControllerRunProfileName)
@@ -166,6 +169,8 @@ namespace TestResultCoordinator
                 configuration.GetValue<ushort>("UNMATCHED_RESULTS_MAX_SIZE", DefaultUnmatchedResultsMaxSize),
                 configuration.GetValue<string>("TEST_INFO"),
                 configuration.GetValue("testMode", TestMode.Connectivity),
+                configuration.GetValue("topology", Topology.SingleNode),
+                configuration.GetValue("mqttBrokerEnabled", false),
                 configuration.GetValue("unmatchedResultTolerance", TimeSpan.FromMinutes(1)),
                 configuration.GetValue("eventHubDelayTolerance", TimeSpan.FromHours(1)));
         }
@@ -204,6 +209,10 @@ namespace TestResultCoordinator
 
         public TestMode TestMode { get; }
 
+        public Topology Topology { get; }
+
+        public bool MqttBrokerEnabled { get; }
+
         public override string ToString()
         {
             // serializing in this pattern so that secrets don't accidentally get added anywhere in the future
@@ -218,7 +227,9 @@ namespace TestResultCoordinator
                 { nameof(this.TestStartDelay), this.TestStartDelay.ToString() },
                 { nameof(this.NetworkControllerType), this.NetworkControllerType.ToString() },
                 { nameof(this.TestInfo), JsonConvert.SerializeObject(this.TestInfo) },
-                { nameof(this.TestMode), this.TestMode.ToString() }
+                { nameof(this.TestMode), this.TestMode.ToString() },
+                { nameof(this.Topology), this.Topology.ToString() },
+                { nameof(this.MqttBrokerEnabled), this.MqttBrokerEnabled.ToString() }
             };
 
             this.TestResultEventReceivingServiceSettings.ForEach(settings => fields.Add(nameof(settings.ConsumerGroupName), settings.ConsumerGroupName));
