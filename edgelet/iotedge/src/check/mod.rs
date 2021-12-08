@@ -721,19 +721,43 @@ mod tests {
         static ref ENV_LOCK: tokio::sync::Mutex<()> = Default::default();
     }
 
+    enum MobyProxyState {
+        Set,
+        NotSet,
+    }
+
+    enum EdgeDaemonProxyState {
+        Set,
+        NotSet,
+    }
+
+    enum EdgeAgentProxyState {
+        Set,
+        NotSet,
+    }
+
+    enum ProxySettingsValues {
+        Mismatching,
+        Matching,
+    }
+
+    enum ExpectedCheckResult {
+        Success,
+        Failure,
+    }
+
     async fn proxy_settings_test(
-        moby_proxy_set: bool,
-        edge_daemon_proxy_set: bool,
-        edge_agent_proxy_set: bool,
-        mismatching_proxy_settings: bool,
-        expected_result_is_success: bool,
+        moby_proxy_state: MobyProxyState,
+        edge_daemon_proxy_state: EdgeDaemonProxyState,
+        edge_agent_proxy_state: EdgeAgentProxyState,
+        proxy_settings_values: ProxySettingsValues,
+        expected_check_result: ExpectedCheckResult,
     ) {
         // Grab an env lock since we are going to be mucking with the environment.
         let _env_lock = ENV_LOCK.lock().await;
-        let config_toml_filename = if edge_agent_proxy_set == true {
-            "sample_settings_with_proxy_uri.toml"
-        } else {
-            "sample_settings.toml"
+        let config_toml_filename = match edge_agent_proxy_state {
+            EdgeAgentProxyState::Set => "sample_settings_with_proxy_uri.toml",
+            EdgeAgentProxyState::NotSet => "sample_settings.toml",
         };
 
         // Unset var to make sure we have a clean start
@@ -783,29 +807,33 @@ mod tests {
         check.settings = Some(settings);
 
         // Set proxy for Moby and for IoT Edge Daemon
-        let env_proxy_uri = if mismatching_proxy_settings == false {
-            "https://config:123"
-        } else {
-            "https://config:456"
+        let env_proxy_uri = match proxy_settings_values {
+            ProxySettingsValues::Matching => "https://config:123",
+            ProxySettingsValues::Mismatching => "https://config:456",
         };
 
-        if edge_daemon_proxy_set == true {
-            check.aziot_edge_proxy = Some(env_proxy_uri.to_string());
+        match edge_daemon_proxy_state {
+            EdgeDaemonProxyState::Set => check.aziot_edge_proxy = Some(env_proxy_uri.to_string()),
+            _ => (),
         }
 
-        if moby_proxy_set == true {
-            check.docker_proxy = Some(env_proxy_uri.to_string());
+        match moby_proxy_state {
+            MobyProxyState::Set => check.docker_proxy = Some(env_proxy_uri.to_string()),
+            _ => (),
         }
 
-        if expected_result_is_success == true {
-            match ProxySettings::default().execute(&mut check).await {
-                CheckResult::Ok => (),
-                check_result => panic!("proxy settings check returned {:?}", check_result),
+        match expected_check_result {
+            ExpectedCheckResult::Success => {
+                match ProxySettings::default().execute(&mut check).await {
+                    CheckResult::Ok => (),
+                    check_result => panic!("proxy settings check returned {:?}", check_result),
+                }
             }
-        } else {
-            match ProxySettings::default().execute(&mut check).await {
-                CheckResult::Failed(_) => (),
-                check_result => panic!("proxy settings check returned {:?}", check_result),
+            ExpectedCheckResult::Failure => {
+                match ProxySettings::default().execute(&mut check).await {
+                    CheckResult::Failed(_) => (),
+                    check_result => panic!("proxy settings check returned {:?}", check_result),
+                }
             }
         }
 
@@ -1093,7 +1121,14 @@ mod tests {
         // [ ] IoT Edge Agent
         // [x] IoT Edge Daemon
 
-        proxy_settings_test(true, true, false, false, false).await;
+        proxy_settings_test(
+            MobyProxyState::Set,
+            EdgeDaemonProxyState::Set,
+            EdgeAgentProxyState::NotSet,
+            ProxySettingsValues::Matching,
+            ExpectedCheckResult::Failure,
+        )
+        .await;
     }
 
     #[tokio::test]
@@ -1104,7 +1139,14 @@ mod tests {
         // [x] IoT Edge Agent
         // [ ] IoT Edge Daemon
 
-        proxy_settings_test(true, false, true, false, false).await;
+        proxy_settings_test(
+            MobyProxyState::Set,
+            EdgeDaemonProxyState::NotSet,
+            EdgeAgentProxyState::Set,
+            ProxySettingsValues::Matching,
+            ExpectedCheckResult::Failure,
+        )
+        .await;
     }
 
     #[tokio::test]
@@ -1115,7 +1157,14 @@ mod tests {
         // [x] IoT Edge Agent
         // [x] IoT Edge Daemon
 
-        proxy_settings_test(false, true, true, false, false).await;
+        proxy_settings_test(
+            MobyProxyState::NotSet,
+            EdgeDaemonProxyState::Set,
+            EdgeAgentProxyState::Set,
+            ProxySettingsValues::Matching,
+            ExpectedCheckResult::Failure,
+        )
+        .await;
     }
 
     #[tokio::test]
@@ -1126,7 +1175,14 @@ mod tests {
         // [x] IoT Edge Agent
         // [x] IoT Edge Daemon
 
-        proxy_settings_test(true, true, true, true, false).await;
+        proxy_settings_test(
+            MobyProxyState::Set,
+            EdgeDaemonProxyState::Set,
+            EdgeAgentProxyState::Set,
+            ProxySettingsValues::Mismatching,
+            ExpectedCheckResult::Failure,
+        )
+        .await;
     }
 
     #[tokio::test]
@@ -1137,7 +1193,14 @@ mod tests {
         // [x] IoT Edge Agent
         // [x] IoT Edge Daemon
 
-        proxy_settings_test(true, true, true, false, true).await;
+        proxy_settings_test(
+            MobyProxyState::Set,
+            EdgeDaemonProxyState::Set,
+            EdgeAgentProxyState::Set,
+            ProxySettingsValues::Matching,
+            ExpectedCheckResult::Success,
+        )
+        .await;
     }
 
     #[tokio::test]
@@ -1148,6 +1211,13 @@ mod tests {
         // [ ] IoT Edge Agent
         // [ ] IoT Edge Daemon
 
-        proxy_settings_test(false, false, false, false, true).await;
+        proxy_settings_test(
+            MobyProxyState::NotSet,
+            EdgeDaemonProxyState::NotSet,
+            EdgeAgentProxyState::NotSet,
+            ProxySettingsValues::Matching,
+            ExpectedCheckResult::Success,
+        )
+        .await;
     }
 }
