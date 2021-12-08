@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
 
         public string Id => $"PrepareUpdateCommand({this.module.Name})";
 
-        public string Show() => $"Prepare update module {this.module.Name}";
+        public string Show() => $"Prepare module {this.module.Name}";
 
         public Task ExecuteAsync(CancellationToken token)
         {
