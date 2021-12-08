@@ -1,61 +1,122 @@
 name: $(version)
 
-jobs:
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
+
+stages:
 ################################################################################
-  - job: linux_API_proxy_module
+- stage: BuildExecutables
 ################################################################################
-    displayName: linuxAPIProxy
-    timeoutInMinutes: 120
-    pool:
-      vmImage: 'ubuntu-18.04'
+  displayName: Build Excecutables
+  pool:
+    name: $(pool.linux.name)
+    demands:
+      - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker  
+  dependsOn: []
+  jobs:
+  # Build API Proxy executable
+  - template: templates/build-api-proxy.yaml
+
+# TODO: Consider removing this consolidate stage, which is here mostly for
+# consistency with images.yaml and images-release.yaml.
+################################################################################
+- stage: ConsolidateAndPubishArtifacts
+################################################################################
+  displayName: Consolidate And Publish Artifacts
+  pool:
+    name: $(pool.linux.name)
+    demands:
+      - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker  
+  dependsOn: BuildExecutables
+  jobs:
+  - job: ConsolidateAndPublishArtifacts
     steps:
-      - bash: |
-            if [ -z '$(version)' ]; then
-              echo '##vso[task.setvariable variable=buildVersion]$(Build.BuildNumber)'
-            else
-              echo '##vso[task.setvariable variable=buildVersion]$(version)'
-            fi
-            sudo apt-get update && sudo apt-get -y install qemu binfmt-support qemu-user-static && \
-            docker run --rm --privileged multiarch/qemu-user-static --reset -p yes && \
-            docker buildx rm  mbuilder || true  && \
-            docker buildx create --name mbuilder  || true  && \
-            docker buildx use mbuilder
-            docker -v
-        displayName: 'Set build version'
-      # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
-      - task: Docker@2
-        displayName: Docker login edgebuilds
-        inputs:
-          command: login
-          containerRegistry: iotedge-edgebuilds-acr
-      - task: Docker@2
-        displayName: Docker login edgerelease
-        inputs:
-          command: login
-          containerRegistry: iotedge-release-acr
-      # Build API Proxy executable
-      - template: templates/build-api-proxy.yaml
-      # Build API Proxy Image
-      - template: templates/image-linux.yaml
-        parameters:
-          name: API Proxy
-          imageName: azureiotedge-api-proxy
-          project: api-proxy-module
-          version: $(buildVersion)
-          buildx_flag: false
-      # Check API proxy
-      - task: ComponentGovernanceComponentDetection@0
-        inputs:
-          dockerImagesToScan: '$(registry.address)/microsoft/azureiotedge-api-proxy:$(buildVersion)-linux-amd64,$(registry.address)/microsoft/azureiotedge-api-proxy:$(buildVersion)-linux-arm32v7,$(registry.address)/microsoft/azureiotedge-api-proxy:$(buildVersion)-linux-arm64v8'
+    - task: DownloadBuildArtifacts@0
+      displayName: Download Artifacts
+      inputs:
+        buildType: 'current'
+        downloadPath: '$(Build.ArtifactStagingDirectory)'
+        downloadType: specific
+        extractTars: true
+
+    - task: CopyFiles@2
+      displayName: Copy API Proxy Artifacts (amd64)
+      inputs:
+        sourceFolder: '$(Agent.TempDirectory)/extracted_tars/api_proxy_x86_64'
+        contents: '**'
+        targetFolder: '$(Build.BinariesDirectory)/publish'       
+
+    - task: CopyFiles@2
+      displayName: Copy API Proxy Artifacts (arm32)
+      inputs:
+        sourceFolder: '$(Agent.TempDirectory)/extracted_tars/api_proxy_armv7l'
+        contents: '**'
+        targetFolder: '$(Build.BinariesDirectory)/publish'    
+
+    - task: CopyFiles@2
+      displayName: Copy API Proxy Artifacts (arm64)
+      inputs:
+        sourceFolder: '$(Agent.TempDirectory)/extracted_tars/api_proxy_aarch64'
+        contents: '**'
+        targetFolder: '$(Build.BinariesDirectory)/publish'         
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Artifacts'
+      inputs:
+        pathToPublish: '$(Build.BinariesDirectory)/publish'
+        artifactName: 'consolidated_artifacts'
+        StoreAsTar: true
 
 ################################################################################
-  - job: manifest
+- stage:  BuildImages
 ################################################################################
-    displayName: Publish Manifest Images
-    pool:
-      vmImage: 'ubuntu-18.04'
-    dependsOn:
-      - linux_API_proxy_module
+  displayName: Build Images
+  pool:
+    name: $(pool.linux.name)
+    demands:
+      - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+  dependsOn: ConsolidateAndPubishArtifacts
+  jobs:
+  - job: BuildImageApiProxy
+    steps:
+    - bash: |
+        if [ -z '$(version)' ]; then
+          echo '##vso[task.setvariable variable=buildVersion]$(Build.BuildNumber)'
+        else
+          echo '##vso[task.setvariable variable=buildVersion]$(version)'
+        fi
+        sudo apt-get update && sudo apt-get -y install qemu binfmt-support qemu-user-static && \
+        docker run --rm --privileged multiarch/qemu-user-static --reset -p yes && \
+        docker buildx rm  mbuilder || true  && \
+        docker buildx create --name mbuilder  || true  && \
+        docker buildx use mbuilder
+        docker -v
+      displayName: 'Set build version'
+    - template: templates/image-linux.yaml
+      parameters:
+        name: API Proxy
+        imageName: azureiotedge-api-proxy
+        project: api-proxy-module
+        buildx_flag: false
+        version: $(buildVersion)
+        bin_dir: '$(Build.BinariesDirectory)'      
+
+################################################################################
+- stage: PublishManifests
+################################################################################
+  displayName: Publish Manifests
+  pool:
+    name: $(pool.linux.name)
+    demands:
+      - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+  dependsOn: BuildImages
+  jobs:
+  - job: PublishManifest
+    displayName: Publish Manifest
+    strategy:
+      matrix:
+        ApiProxy:
+           manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/api-proxy-module/docker/manifest.yaml.template'
     steps:
     # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
     - task: Docker@2
@@ -69,11 +130,23 @@ jobs:
         command: login
         containerRegistry: iotedge-release-acr
     - bash: |
-          if [ -z '$(version)' ]; then
-            echo '##vso[task.setvariable variable=buildVersion]$(Build.BuildNumber)'
-          else
-            echo '##vso[task.setvariable variable=buildVersion]$(version)'
-          fi
-      displayName: 'Set build version'
-    - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(buildVersion) -t $(System.DefaultWorkingDirectory)/edge-modules/api-proxy-module/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
-      displayName: 'Publish azureiotedge-api-proxy Manifest'
+        if [ -z '$(version)' ]; then
+          echo '##vso[task.setvariable variable=buildVersion]$(Build.BuildNumber)'
+        else
+          echo '##vso[task.setvariable variable=buildVersion]$(version)'
+        fi
+      displayName: 'Set build version'     
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(buildVersion) -t $(manifestFilePath) -n microsoft --tags "$(tags)"
+
+  - job: ComponentGovernance
+    steps:
+    - bash: |
+        if [ -z '$(version)' ]; then
+          echo '##vso[task.setvariable variable=buildVersion]$(Build.BuildNumber)'
+        else
+          echo '##vso[task.setvariable variable=buildVersion]$(version)'
+        fi
+      displayName: 'Set build version'        
+    - task: ComponentGovernanceComponentDetection@0
+      inputs:
+        dockerImagesToScan: '$(registry.address)/microsoft/azureiotedge-api-proxy:$(buildVersion)-linux-amd64,$(registry.address)/microsoft/azureiotedge-api-proxy:$(buildVersion)-linux-arm32v7,$(registry.address)/microsoft/azureiotedge-api-proxy:$(buildVersion)-linux-arm64v8'
