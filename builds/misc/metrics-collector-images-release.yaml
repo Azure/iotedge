@@ -37,6 +37,11 @@ jobs:
           PathtoPublish: '$(Build.BinariesDirectory)/publish'
           ArtifactName: 'core-linux'
 
+      - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
+        displayName: 'SBOM Generation Task'
+        inputs:
+            BuildDropPath: '$(Build.BinariesDirectory)/publish'          
+
       - template: templates/image-linux.yaml
         parameters:
           name: Metrics Collector (customer-facing)
@@ -76,6 +81,11 @@ jobs:
         inputs:
           PathtoPublish: '$(Build.BinariesDirectory)/publish'
           ArtifactName: 'core-windows'
+
+      - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
+        displayName: 'SBOM Generation Task'
+        inputs:
+            BuildDropPath: '$(Build.BinariesDirectory)/publish'          
 
       - template: templates/image-windows.yaml
         parameters:
