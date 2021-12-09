@@ -17,7 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
     {
         [Test]
         [Category("CentOsSafe")]
-        [Category("FlakyOnArm")]
         public async Task IoTEdge_check()
         {
             CancellationToken token = this.TestToken;
