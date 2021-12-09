@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
 {
+    using System.Text.Json.Serialization;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Newtonsoft.Json.Converters;
     using TestResultCoordinator.Reports;
 
     /// <summary>
@@ -39,6 +41,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
             this.MismatchFailure = mismatchFailure;
         }
 
+        [JsonConverter(typeof(StringEnumConverter))]
         public Topology Topology { get; }
 
         public string SenderSource { get; }

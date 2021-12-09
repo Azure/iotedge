@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             Action<EdgeConfigBuilder> addMqttBrokerConfig = MqttBrokerUtil.BuildAddBrokerToDeployment(false);
             Action<EdgeConfigBuilder> addNetworkControllerConfig = TestResultCoordinatorUtil.BuildAddNetworkControllerConfig(trackingId, networkControllerImage);
-            Action<EdgeConfigBuilder> addTestResultCoordinatorConfig = TestResultCoordinatorUtil.BuildAddTestResultCoordinatorConfig(trackingId, trcImage, GenericMqttInitiatorModuleName, GenericMqttInitiatorModuleName);
+            Action<EdgeConfigBuilder> addTestResultCoordinatorConfig = TestResultCoordinatorUtil.BuildAddTestResultCoordinatorConfig(trackingId, trcImage, GenericMqttInitiatorModuleName, GenericMqttInitiatorModuleName, true);
             Action<EdgeConfigBuilder> addGenericMqttTesterConfig = this.BuildAddGenericMqttTesterConfig(trackingId, trcImage, genericMqttTesterImage);
             Action<EdgeConfigBuilder> config = addMqttBrokerConfig + addNetworkControllerConfig + addTestResultCoordinatorConfig + addGenericMqttTesterConfig;
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(config, token, Context.Current.NestedEdge);
