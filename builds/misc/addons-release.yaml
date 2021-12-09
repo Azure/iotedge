@@ -58,7 +58,12 @@ stages:
       inputs:
         sourceFolder: '$(Agent.TempDirectory)/extracted_tars/api_proxy_aarch64'
         contents: '**'
-        targetFolder: '$(Build.BinariesDirectory)/publish'         
+        targetFolder: '$(Build.BinariesDirectory)/publish'
+        
+    - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
+      displayName: 'SBOM Generation Task'
+      inputs:
+          BuildDropPath: '$(Build.BinariesDirectory)/publish'
 
     - task: PublishBuildArtifacts@1
       displayName: 'Publish Artifacts'
