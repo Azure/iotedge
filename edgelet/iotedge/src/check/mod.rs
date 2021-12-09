@@ -750,7 +750,7 @@ mod tests {
 
     enum ExpectedCheckResult {
         Success,
-        Failure,
+        Warning,
     }
 
     async fn proxy_settings_test(
@@ -839,9 +839,9 @@ mod tests {
                     check_result => panic!("proxy settings check returned {:?}", check_result),
                 }
             }
-            ExpectedCheckResult::Failure => {
+            ExpectedCheckResult::Warning => {
                 match ProxySettings::default().execute(&mut check).await {
-                    CheckResult::Failed(_) => (),
+                    CheckResult::Warning(_) => (),
                     check_result => panic!("proxy settings check returned {:?}", check_result),
                 }
             }
@@ -1138,7 +1138,7 @@ mod tests {
             IdentityDaemonProxyState::Set,
             EdgeAgentProxyState::NotSet,
             ProxySettingsValues::Matching,
-            ExpectedCheckResult::Failure,
+            ExpectedCheckResult::Warning,
         )
         .await;
     }
@@ -1158,7 +1158,7 @@ mod tests {
             IdentityDaemonProxyState::Set,
             EdgeAgentProxyState::Set,
             ProxySettingsValues::Matching,
-            ExpectedCheckResult::Failure,
+            ExpectedCheckResult::Warning,
         )
         .await;
     }
@@ -1178,7 +1178,7 @@ mod tests {
             IdentityDaemonProxyState::Set,
             EdgeAgentProxyState::Set,
             ProxySettingsValues::Matching,
-            ExpectedCheckResult::Failure,
+            ExpectedCheckResult::Warning,
         )
         .await;
     }
@@ -1198,7 +1198,7 @@ mod tests {
             IdentityDaemonProxyState::NotSet,
             EdgeAgentProxyState::Set,
             ProxySettingsValues::Matching,
-            ExpectedCheckResult::Failure,
+            ExpectedCheckResult::Warning,
         )
         .await;
     }
@@ -1218,7 +1218,7 @@ mod tests {
             IdentityDaemonProxyState::Set,
             EdgeAgentProxyState::Set,
             ProxySettingsValues::Mismatching,
-            ExpectedCheckResult::Failure,
+            ExpectedCheckResult::Warning,
         )
         .await;
     }
