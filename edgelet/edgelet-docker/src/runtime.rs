@@ -409,11 +409,11 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         unset_privileged(
             self.allow_elevated_docker_permissions,
-            &mut module.config_mut().create_options_mut(),
+            module.config_mut().create_options_mut(),
         );
         drop_unsafe_privileges(
             self.allow_elevated_docker_permissions,
-            &mut module.config_mut().create_options_mut(),
+            module.config_mut().create_options_mut(),
         );
 
         let (image, is_content_trust_enabled) =
@@ -727,7 +727,7 @@ impl ModuleRuntime for DockerModuleRuntime {
             .map(|id| {
                 system_resources
                     .get_process(id)
-                    .map(|p| p.start_time())
+                    .map(ProcessExt::start_time)
                     .unwrap_or_default()
             })
             .unwrap_or_default();
