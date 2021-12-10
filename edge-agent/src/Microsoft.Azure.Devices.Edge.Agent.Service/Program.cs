@@ -374,7 +374,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                             logger.LogWarning(AgentEventIds.Agent, ex, "Agent reconcile concluded with errors.");
                         }
 
-                        await Task.Delay(TimeSpan.FromSeconds(5), cts.Token);
+                        await Task.Delay(TimeSpan.FromSeconds(0.5), cts.Token);
                     }
 
                     logger.LogInformation("Closing module management agent.");
