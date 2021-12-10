@@ -13,6 +13,7 @@ mod host_local_time;
 mod hostname;
 mod identity_certificate_expiry;
 mod iotedged_version;
+mod proxy_settings;
 mod storage_mounted_from_host;
 mod well_formed_config;
 mod well_formed_connection_string;
@@ -34,6 +35,8 @@ pub(crate) use self::host_local_time::HostLocalTime;
 pub(crate) use self::hostname::Hostname;
 pub(crate) use self::identity_certificate_expiry::IdentityCertificateExpiry;
 pub(crate) use self::iotedged_version::IotedgedVersion;
+#[cfg(unix)]
+pub(crate) use self::proxy_settings::ProxySettings;
 pub(crate) use self::storage_mounted_from_host::{EdgeAgentStorageMounted, EdgeHubStorageMounted};
 pub(crate) use self::well_formed_config::WellFormedConfig;
 pub(crate) use self::well_formed_connection_string::WellFormedConnectionString;

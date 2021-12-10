@@ -4,6 +4,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
 use std::path::PathBuf;
 
+#[cfg(unix)]
+use std::process::Command;
+
 use failure::Fail;
 use failure::{self, ResultExt};
 use futures::{future, Future, Stream};
@@ -35,6 +38,9 @@ use checks::{
     WellFormedConfig, WellFormedConnectionString, WindowsHostVersion,
 };
 
+#[cfg(unix)]
+use checks::ProxySettings;
+
 #[cfg(windows)]
 use checks::ContainerEngineIsMoby;
 
@@ -55,8 +61,10 @@ pub struct Check {
     iothub_hostname: Option<String>,
 
     // These optional fields are populated by the checks
+    aziot_edge_proxy: Option<String>,
     settings: Option<Settings>,
     docker_host_arg: Option<String>,
+    docker_proxy: Option<String>,
     docker_server_version: Option<String>,
     device_ca_cert_path: Option<PathBuf>,
 }
@@ -213,8 +221,10 @@ impl Check {
 
                 additional_info: AdditionalInfo::new(),
 
+                aziot_edge_proxy: get_local_service_proxy_setting("iotedge"),
                 settings: None,
                 docker_host_arg: None,
+                docker_proxy: get_local_service_proxy_setting("docker"),
                 docker_server_version: None,
                 iothub_hostname,
                 device_ca_cert_path: None,
@@ -246,6 +256,8 @@ impl Check {
                     Box::new(ContainerEngineLogrotate::default()),
                     Box::new(EdgeAgentStorageMounted::default()),
                     Box::new(EdgeHubStorageMounted::default()),
+                    #[cfg(unix)]
+                    Box::new(ProxySettings::default()),
                 ],
             ),
             ("Connectivity checks", {
@@ -621,14 +633,169 @@ struct CheckOutputSerializable {
     additional_info: serde_json::Value,
 }
 
+fn get_local_service_proxy_setting(_svc_name: &str) -> Option<String> {
+
+    #[cfg(unix)] {
+        const PROXY_KEY: &str = "https_proxy";
+        let output = Command::new("sh")
+            .arg("-c")
+            .arg("sudo systemctl show --property=Environment ".to_owned() + _svc_name)
+            .output()
+            .expect("failed to execute process");
+        let stdout = String::from_utf8_lossy(&output.stdout);
+
+        let mut svc_proxy = None;
+        let vars = stdout.trim_start_matches("Environment=");
+        for var in vars.split(' ') {
+            let mut parts = var.split('=');
+            if let Some(PROXY_KEY) = parts.next() {
+                svc_proxy = parts.next().map(String::from);
+
+                let mut s = match svc_proxy {
+                    Some(svc_proxy) => svc_proxy,
+                    _ => return svc_proxy,
+                };
+
+                // Remove newline
+                if s.ends_with('\n') {
+                    s.pop();
+                }
+
+                return Some(s);
+            } // Ignore remaining variables
+        }
+
+        return svc_proxy;
+    }
+
+    #[cfg(windows)]
+    Option::None
+}
+
 #[cfg(test)]
 mod tests {
+    #[cfg(unix)]
+    use std::path::Path;
+
+    #[cfg(unix)]
+    use edgelet_docker::Settings;
+
     use super::{
         Check, CheckResult, Checker, Hostname, WellFormedConfig, WellFormedConnectionString,
     };
 
+    #[cfg(unix)]
+    use super::ProxySettings;
+
     #[cfg(windows)]
     use super::ContainerEngineIsMoby;
+
+    #[cfg(unix)]
+    enum MobyProxyState {
+        Set,
+        NotSet,
+    }
+
+    #[cfg(unix)]
+    enum EdgeDaemonProxyState {
+        Set,
+        NotSet,
+    }
+
+    #[cfg(unix)]
+    enum EdgeAgentProxyState {
+        Set,
+        NotSet,
+    }
+
+    #[cfg(unix)]
+    enum ProxySettingsValues {
+        Mismatching,
+        Matching,
+    }
+
+    #[cfg(unix)]
+    enum ExpectedCheckResult {
+        Success,
+        Warning,
+    }
+
+    #[cfg(unix)]
+    fn proxy_settings_test(
+        moby_proxy_state: MobyProxyState,
+        edge_daemon_proxy_state: EdgeDaemonProxyState,
+        edge_agent_proxy_state: EdgeAgentProxyState,
+        proxy_settings_values: ProxySettingsValues,
+        expected_check_result: ExpectedCheckResult,
+    ) {
+        let mut runtime = tokio::runtime::Runtime::new().unwrap();
+
+        let config_filename = match edge_agent_proxy_state {
+            EdgeAgentProxyState::Set => "sample_settings_with_proxy_uri.yaml",
+            EdgeAgentProxyState::NotSet => "sample_settings.yaml",
+        };
+
+        // Set proxy for IoT Edge Agent in config.yaml
+        let config_file = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("edgelet-docker")
+            .join("test")
+            .join("linux")
+            .join(config_filename);
+
+        // Create an empty check
+        let mut check = runtime
+                .block_on(Check::new(
+                    config_file.clone(),
+                    "daemon.json".into(), // unused for this test
+                    "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                    Default::default(),
+                    Some("1.0.0".to_owned()),      // unused for this test
+                    "iotedged".into(),             // unused for this test
+                    None,                          // unused for this test
+                    "pool.ntp.org:123".to_owned(), // unused for this test
+                    super::OutputFormat::Text,     // unused for this test
+                    false,
+                    false,
+                ))
+                .unwrap();
+
+        let settings = match Settings::new(&config_file) {
+            Ok(settings) => settings,
+            Err(err) => panic!("Unable to create settings object, error {:?}", err),
+        };
+
+        check.settings = Some(settings);
+
+        // Set proxy for Moby and for IoT Edge Daemon
+        let env_proxy_uri = match proxy_settings_values {
+            ProxySettingsValues::Matching => "https://config:123",
+            ProxySettingsValues::Mismatching => "https://config:456",
+        };
+
+        if let EdgeDaemonProxyState::Set = edge_daemon_proxy_state {
+            check.aziot_edge_proxy = Some(env_proxy_uri.to_string());
+        };
+
+        if let MobyProxyState::Set = moby_proxy_state {
+            check.docker_proxy = Some(env_proxy_uri.to_string());
+        };
+
+        match expected_check_result {
+            ExpectedCheckResult::Success => {
+                match ProxySettings::default().execute(&mut check, &mut runtime) {
+                    CheckResult::Ok => (),
+                    check_result => panic!("proxy settings check returned {:?}", check_result),
+                }
+            }
+            ExpectedCheckResult::Warning => {
+                match ProxySettings::default().execute(&mut check, &mut runtime) {
+                    CheckResult::Warning(_) => (),
+                    check_result => panic!("proxy settings check returned {:?}", check_result),
+                }
+            }
+        }
+    }
 
     #[test]
     fn config_file_checks_ok() {
@@ -1071,5 +1238,113 @@ mod tests {
             CheckResult::Ok => (),
             check_result => panic!("parsing {} returned {:?}", filename, check_result),
         }
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn proxy_settings_iot_edge_agent_not_set_should_fail_test() {
+        // Proxy needs to be set in 3 places, otherwise proxy_settings check will fail
+        // This test covers the following configuration
+        // [x] Moby Daemon
+        // [ ] IoT Edge Agent
+        // [x] IoT Edge Daemon
+
+        proxy_settings_test(
+            MobyProxyState::Set,
+            EdgeDaemonProxyState::Set,
+            EdgeAgentProxyState::NotSet,
+            ProxySettingsValues::Matching,
+            ExpectedCheckResult::Warning,
+        );
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn proxy_settings_iot_edge_deamon_not_set_should_fail_test() {
+        // Proxy needs to be set in 3 places, otherwise proxy_settings check will fail
+        // This test covers the following configuration
+        // [x] Moby Daemon
+        // [x] IoT Edge Agent
+        // [ ] IoT Edge Daemon
+
+        proxy_settings_test(
+            MobyProxyState::Set,
+            EdgeDaemonProxyState::NotSet,
+            EdgeAgentProxyState::Set,
+            ProxySettingsValues::Matching,
+            ExpectedCheckResult::Warning,
+        );
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn proxy_settings_moby_deamon_not_set_should_fail_test() {
+        // Proxy needs to be set in 3 places, otherwise proxy_settings check will fail
+        // This test covers the following configuration
+        // [ ] Moby Daemon
+        // [x] IoT Edge Agent
+        // [x] IoT Edge Daemon
+
+        proxy_settings_test(
+            MobyProxyState::NotSet,
+            EdgeDaemonProxyState::Set,
+            EdgeAgentProxyState::Set,
+            ProxySettingsValues::Matching,
+            ExpectedCheckResult::Warning,
+        );
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn proxy_settings_mismatching_values_should_fail_test() {
+        // Proxy needs to be set in 3 places, otherwise proxy_settings check will fail
+        // This test covers the following configuration
+        // [x] Moby Daemon
+        // [x] IoT Edge Agent
+        // [x] IoT Edge Daemon
+
+        proxy_settings_test(
+            MobyProxyState::Set,
+            EdgeDaemonProxyState::Set,
+            EdgeAgentProxyState::Set,
+            ProxySettingsValues::Mismatching,
+            ExpectedCheckResult::Warning,
+        );
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn proxy_settings_all_set_should_succeed_test() {
+        // Proxy needs to be set in 3 places, otherwise proxy_settings check will fail
+        // This test covers the following configuration
+        // [x] Moby Daemon
+        // [x] IoT Edge Agent
+        // [x] IoT Edge Daemon
+
+        proxy_settings_test(
+            MobyProxyState::Set,
+            EdgeDaemonProxyState::Set,
+            EdgeAgentProxyState::Set,
+            ProxySettingsValues::Matching,
+            ExpectedCheckResult::Success,
+        );
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn proxy_settings_none_set_should_succeed_test() {
+        // Proxy needs to be set in 3 places, otherwise proxy_settings check will fail
+        // This test covers the following configuration
+        // [ ] Moby Daemon
+        // [ ] IoT Edge Agent
+        // [ ] IoT Edge Daemon
+
+        proxy_settings_test(
+            MobyProxyState::NotSet,
+            EdgeDaemonProxyState::NotSet,
+            EdgeAgentProxyState::NotSet,
+            ProxySettingsValues::Matching,
+            ExpectedCheckResult::Success,
+        );
     }
 }
