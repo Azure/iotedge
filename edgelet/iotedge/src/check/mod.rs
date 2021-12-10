@@ -714,7 +714,7 @@ fn get_local_service_proxy_setting(svc_name: &str) -> Option<String> {
 mod tests {
     use edgelet_settings::docker::Settings;
 
-    use super::{checks::WellFormedConfig, checks::ProxySettings, Check, CheckResult, Checker};
+    use super::{checks::ProxySettings, checks::WellFormedConfig, Check, CheckResult, Checker};
 
     lazy_static::lazy_static! {
         static ref ENV_LOCK: tokio::sync::Mutex<()> = Default::default();
