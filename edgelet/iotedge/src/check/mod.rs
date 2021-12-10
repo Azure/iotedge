@@ -714,10 +714,7 @@ fn get_local_service_proxy_setting(svc_name: &str) -> Option<String> {
 mod tests {
     use edgelet_settings::docker::Settings;
 
-    use super::{
-        checks::{ContainerEngineIsMoby, ProxySettings, WellFormedConfig},
-        Check, CheckResult, Checker,
-    };
+    use super::{checks::WellFormedConfig, checks::ProxySettings, Check, CheckResult, Checker};
 
     lazy_static::lazy_static! {
         static ref ENV_LOCK: tokio::sync::Mutex<()> = Default::default();
@@ -884,64 +881,6 @@ mod tests {
                 CheckResult::Ok => (),
                 check_result => panic!("parsing {} returned {:?}", filename, check_result),
             }
-
-            // Pretend it's Moby
-            check.docker_server_version = Some("19.03.12+azure".to_owned());
-
-            match ContainerEngineIsMoby::default().execute(&mut check).await {
-                CheckResult::Ok => (),
-                check_result => panic!(
-                    "checking moby_runtime.uri in {} returned {:?}",
-                    filename, check_result
-                ),
-            }
-        }
-    }
-
-    #[tokio::test]
-    async fn config_file_checks_ok_old_moby() {
-        for filename in &["sample_settings.toml", "sample_settings.tg.filepaths.toml"] {
-            let _env_lock = ENV_LOCK.lock().await;
-
-            std::env::set_var(
-                "AZIOT_EDGED_CONFIG",
-                format!(
-                    "{}/../edgelet-settings/test-files/{}",
-                    env!("CARGO_MANIFEST_DIR"),
-                    filename,
-                ),
-            );
-
-            let mut check = Check::new(
-                "daemon.json".into(), // unused for this test
-                "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
-                Default::default(),
-                Some("1.0.0".to_owned()),  // unused for this test
-                Some("1.0.0".to_owned()),  // unused for this test
-                "aziot-edged".into(),      // unused for this test
-                super::OutputFormat::Text, // unused for this test
-                false,
-                false,
-                "".into(), // unused for this test
-                None,
-                None,
-            );
-
-            match WellFormedConfig::default().execute(&mut check).await {
-                CheckResult::Ok => (),
-                check_result => panic!("parsing {} returned {:?}", filename, check_result),
-            }
-
-            // Pretend it's Moby
-            check.docker_server_version = Some("3.0.3".to_owned());
-
-            match ContainerEngineIsMoby::default().execute(&mut check).await {
-                CheckResult::Ok => (),
-                check_result => panic!(
-                    "checking moby_runtime.uri in {} returned {:?}",
-                    filename, check_result
-                ),
-            }
         }
     }
 
@@ -978,61 +917,6 @@ mod tests {
         match WellFormedConfig::default().execute(&mut check).await {
             CheckResult::Failed(_) => (),
             check_result => panic!("parsing {} returned {:?}", filename, check_result),
-        }
-    }
-
-    #[tokio::test]
-    async fn moby_runtime_uri_wants_moby_based_on_server_version() {
-        let filename = "sample_settings.toml";
-
-        let _env_lock = ENV_LOCK.lock().await;
-
-        std::env::set_var(
-            "AZIOT_EDGED_CONFIG",
-            format!(
-                "{}/../edgelet-settings/test-files/{}",
-                env!("CARGO_MANIFEST_DIR"),
-                filename,
-            ),
-        );
-
-        let mut check = super::Check::new(
-            "daemon.json".into(), // unused for this test
-            "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
-            Default::default(),
-            Some("1.0.0".to_owned()),  // unused for this test
-            Some("1.0.0".to_owned()),  // unused for this test
-            "aziot-edged".into(),      // unused for this test
-            super::OutputFormat::Text, // unused for this test
-            false,
-            false,
-            "".into(), // unused for this test
-            None,
-            None,
-        );
-
-        match WellFormedConfig::default().execute(&mut check).await {
-            CheckResult::Ok => (),
-            check_result => panic!("parsing {} returned {:?}", filename, check_result),
-        }
-
-        // Pretend it's Docker
-        check.docker_server_version = Some("19.03.12".to_owned());
-
-        match ContainerEngineIsMoby::default().execute(&mut check).await {
-            CheckResult::Warning(warning) => assert!(
-                warning.to_string().contains(
-                    "Device is not using a production-supported container engine (moby-engine)."
-                ),
-                "checking moby_runtime.uri in {} failed with an unexpected warning: {}",
-                filename,
-                warning
-            ),
-
-            check_result => panic!(
-                "checking moby_runtime.uri in {} returned {:?}",
-                filename, check_result
-            ),
         }
     }
 
