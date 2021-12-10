@@ -317,11 +317,15 @@ jobs:
           name: "Diagnostics Module"
           project: IotedgeDiagnosticsDotnet
           version: $(version)
+      - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
+        displayName: 'SBOM Generation Task'
+        inputs:
+            BuildDropPath: '$(Build.BinariesDirectory)/publish'             
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifacts to VSTS'
         inputs:
           PathtoPublish: '$(Build.BinariesDirectory)/publish'
-          ArtifactName: 'publish-linux'
+          ArtifactName: 'publish-linux'          
 ################################################################################
   - job: windows
 ################################################################################
@@ -591,11 +595,15 @@ jobs:
           arguments: "-Name 'azureiotedge-diagnostics' -Project 'IotedgeDiagnosticsDotnet' -Version '$(version)' -Registry '$(registry.address)' -Namespace '$(namespace)' -Push"
           filePath: ./scripts/windows/build/Publish-DockerImage.ps1
           targetType: filePath
+      - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
+        displayName: 'SBOM Generation Task'
+        inputs:
+            BuildDropPath: '$(Build.BinariesDirectory)/publish'            
       - task: PublishBuildArtifacts@1
         displayName: "Publish Artifacts to VSTS"
         inputs: 
           ArtifactName: publish-win
-          PathtoPublish: $(Build.BinariesDirectory)\publish
+          PathtoPublish: $(Build.BinariesDirectory)\publish           
 ################################################################################
   - job: manifest
 ################################################################################
