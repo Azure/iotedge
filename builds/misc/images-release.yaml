@@ -322,6 +322,10 @@ jobs:
         inputs:
           PathtoPublish: '$(Build.BinariesDirectory)/publish'
           ArtifactName: 'publish-linux'
+      - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
+        displayName: 'SBOM Generation Task'
+        inputs:
+            BuildDropPath: '$(Build.BinariesDirectory)/publish'             
 ################################################################################
   - job: windows
 ################################################################################
@@ -596,6 +600,10 @@ jobs:
         inputs: 
           ArtifactName: publish-win
           PathtoPublish: $(Build.BinariesDirectory)\publish
+      - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
+        displayName: 'SBOM Generation Task'
+        inputs:
+            BuildDropPath: '$(Build.BinariesDirectory)/publish'             
 ################################################################################
   - job: manifest
 ################################################################################
