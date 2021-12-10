@@ -31,16 +31,16 @@ jobs:
         name: build
         displayName: Build ($(Build.Configuration))
 
+      - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
+        displayName: 'SBOM Generation Task'
+        inputs:
+            BuildDropPath: '$(Build.BinariesDirectory)/publish'           
+
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifacts'
         inputs:
           PathtoPublish: '$(Build.BinariesDirectory)/publish'
-          ArtifactName: 'core-linux'
-
-      - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
-        displayName: 'SBOM Generation Task'
-        inputs:
-            BuildDropPath: '$(Build.BinariesDirectory)/publish'          
+          ArtifactName: 'core-linux'       
 
       - template: templates/image-linux.yaml
         parameters:
@@ -75,17 +75,17 @@ jobs:
       - powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration:"$(Build.Configuration)" -PublishTests:$False -UpdateVersion
         name: build
         displayName: Build ($(Build.Configuration))
+        
+      - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
+        displayName: 'SBOM Generation Task'
+        inputs:
+            BuildDropPath: '$(Build.BinariesDirectory)/publish'          
 
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifacts'
         inputs:
           PathtoPublish: '$(Build.BinariesDirectory)/publish'
-          ArtifactName: 'core-windows'
-
-      - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
-        displayName: 'SBOM Generation Task'
-        inputs:
-            BuildDropPath: '$(Build.BinariesDirectory)/publish'          
+          ArtifactName: 'core-windows'        
 
       - template: templates/image-windows.yaml
         parameters:
