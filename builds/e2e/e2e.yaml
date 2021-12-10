@@ -56,6 +56,31 @@ jobs:
     - template: templates/e2e-run.yaml
 
 ################################################################################
+  - job: debian_9_arm32v7
+################################################################################
+    displayName: Debian 9 arm32v7 (minimal)
+
+    pool:
+      name: $(pool.custom.name)
+      demands: deb9-e2e-tests
+
+    variables:
+      os: linux
+      arch: arm32v7
+      artifactName: iotedged-debian9-arm32v7
+      identityServiceArtifactName: packages_debian-9-slim_arm32v7
+      identityServicePackageFilter: aziot-identity-service_*_armhf.deb
+      minimal: true
+
+    timeoutInMinutes: 120
+
+    steps:
+    - template: templates/e2e-clean-directory.yaml
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-clear-docker-cached-images.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################
   - job: ubuntu_1804_msmoby
 ################################################################################
     displayName: Ubuntu 18.04 with iotedge-moby
