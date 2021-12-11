@@ -744,12 +744,12 @@ mod tests {
     }
 
     fn proxy_settings_test(
-        moby_proxy_state: MobyProxyState,
-        edge_daemon_proxy_state: EdgeDaemonProxyState,
-        identity_daemon_proxy_state: IdentityDaemonProxyState,
-        edge_agent_proxy_state: EdgeAgentProxyState,
-        proxy_settings_values: ProxySettingsValues,
-        expected_check_result: ExpectedCheckResult,
+        moby_proxy_state: &MobyProxyState,
+        edge_daemon_proxy_state: &EdgeDaemonProxyState,
+        identity_daemon_proxy_state: &IdentityDaemonProxyState,
+        edge_agent_proxy_state: &EdgeAgentProxyState,
+        proxy_settings_values: &ProxySettingsValues,
+        expected_check_result: &ExpectedCheckResult,
     ) {
         let mut runtime = tokio::runtime::Runtime::new().unwrap();
 
