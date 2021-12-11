@@ -57,7 +57,7 @@ impl ProxySettings {
         {
             Ok(CheckResult::Ok)
         } else {
-            return Ok(CheckResult::Warning(Context::new(
+            Ok(CheckResult::Warning(Context::new(
                 format!(
                     "The proxy setting for IoT Edge Agent {:?}, IoT Edge Daemon {:?}, IoT Identity Daemon {:?}, and Moby {:?} may need to be identical.",
                     edge_agent_proxy_uri,
@@ -65,7 +65,7 @@ impl ProxySettings {
                     identity_daemon_proxy_uri,
                     moby_proxy_uri
                 )
-            ).into()));
+            ).into()))
         }
     }
 }
