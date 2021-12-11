@@ -933,12 +933,12 @@ mod tests {
         // [x] IoT Identity Daemon
 
         proxy_settings_test(
-            MobyProxyState::Set,
-            EdgeDaemonProxyState::Set,
-            IdentityDaemonProxyState::Set,
-            EdgeAgentProxyState::NotSet,
-            ProxySettingsValues::Matching,
-            ExpectedCheckResult::Warning,
+            &MobyProxyState::Set,
+            &EdgeDaemonProxyState::Set,
+            &IdentityDaemonProxyState::Set,
+            &EdgeAgentProxyState::NotSet,
+            &ProxySettingsValues::Matching,
+            &ExpectedCheckResult::Warning,
         );
     }
 
@@ -952,12 +952,12 @@ mod tests {
         // [x] IoT Identity Daemon
 
         proxy_settings_test(
-            MobyProxyState::Set,
-            EdgeDaemonProxyState::NotSet,
-            IdentityDaemonProxyState::Set,
-            EdgeAgentProxyState::Set,
-            ProxySettingsValues::Matching,
-            ExpectedCheckResult::Warning,
+            &MobyProxyState::Set,
+            &EdgeDaemonProxyState::NotSet,
+            &IdentityDaemonProxyState::Set,
+            &EdgeAgentProxyState::Set,
+            &ProxySettingsValues::Matching,
+            &ExpectedCheckResult::Warning,
         );
     }
 
@@ -971,12 +971,12 @@ mod tests {
         // [x] IoT Identity Daemon
 
         proxy_settings_test(
-            MobyProxyState::NotSet,
-            EdgeDaemonProxyState::Set,
-            IdentityDaemonProxyState::Set,
-            EdgeAgentProxyState::Set,
-            ProxySettingsValues::Matching,
-            ExpectedCheckResult::Warning,
+            &MobyProxyState::NotSet,
+            &EdgeDaemonProxyState::Set,
+            &IdentityDaemonProxyState::Set,
+            &EdgeAgentProxyState::Set,
+            &ProxySettingsValues::Matching,
+            &ExpectedCheckResult::Warning,
         );
     }
 
@@ -990,12 +990,12 @@ mod tests {
         // [ ] IoT Identity Daemon
 
         proxy_settings_test(
-            MobyProxyState::Set,
-            EdgeDaemonProxyState::Set,
-            IdentityDaemonProxyState::NotSet,
-            EdgeAgentProxyState::Set,
-            ProxySettingsValues::Matching,
-            ExpectedCheckResult::Warning,
+            &MobyProxyState::Set,
+            &EdgeDaemonProxyState::Set,
+            &IdentityDaemonProxyState::NotSet,
+            &EdgeAgentProxyState::Set,
+            &ProxySettingsValues::Matching,
+            &ExpectedCheckResult::Warning,
         );
     }
 
@@ -1009,12 +1009,12 @@ mod tests {
         // [x] IoT Identity Daemon
 
         proxy_settings_test(
-            MobyProxyState::Set,
-            EdgeDaemonProxyState::Set,
-            IdentityDaemonProxyState::Set,
-            EdgeAgentProxyState::Set,
-            ProxySettingsValues::Mismatching,
-            ExpectedCheckResult::Warning,
+            &MobyProxyState::Set,
+            &EdgeDaemonProxyState::Set,
+            &IdentityDaemonProxyState::Set,
+            &EdgeAgentProxyState::Set,
+            &ProxySettingsValues::Mismatching,
+            &ExpectedCheckResult::Warning,
         );
     }
 
@@ -1028,12 +1028,12 @@ mod tests {
         // [x] IoT Identity Daemon
 
         proxy_settings_test(
-            MobyProxyState::Set,
-            EdgeDaemonProxyState::Set,
-            IdentityDaemonProxyState::Set,
-            EdgeAgentProxyState::Set,
-            ProxySettingsValues::Matching,
-            ExpectedCheckResult::Success,
+            &MobyProxyState::Set,
+            &EdgeDaemonProxyState::Set,
+            &IdentityDaemonProxyState::Set,
+            &EdgeAgentProxyState::Set,
+            &ProxySettingsValues::Matching,
+            &ExpectedCheckResult::Success,
         );
     }
 
@@ -1047,12 +1047,12 @@ mod tests {
         // [ ] IoT Identity Daemon
 
         proxy_settings_test(
-            MobyProxyState::NotSet,
-            EdgeDaemonProxyState::NotSet,
-            IdentityDaemonProxyState::NotSet,
-            EdgeAgentProxyState::NotSet,
-            ProxySettingsValues::Matching,
-            ExpectedCheckResult::Success,
+            &MobyProxyState::NotSet,
+            &EdgeDaemonProxyState::NotSet,
+            &IdentityDaemonProxyState::NotSet,
+            &EdgeAgentProxyState::NotSet,
+            &ProxySettingsValues::Matching,
+            &ExpectedCheckResult::Success,
         );
     }
 }
