@@ -688,7 +688,7 @@ fn get_local_service_proxy_setting(svc_name: &str) -> Option<String> {
 
             let mut s = match svc_proxy {
                 Some(svc_proxy) => svc_proxy,
-                _ => return svc_proxy,
+                None => return svc_proxy,
             };
 
             // Remove newline
