@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
     using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
     using System.Text;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
     using Microsoft.Extensions.Logging;
@@ -21,6 +22,11 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
     public static class CertificateHelper
     {
+        // The private-key import on windows randomly seems failing, however according to the tests, the second time
+        // after a failure it usually works. The number below is just a "big enough" number randomly chosen for
+        // self-healing, but gives a limit to avoid endless try.
+        const int MaxCertImportRetryCount = 10;
+
         public static string GetSha256Thumbprint(X509Certificate2 cert)
         {
             Preconditions.CheckNotNull(cert);
@@ -250,7 +256,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 .Select(c => new X509Certificate2(c))
                 .ToList();
 
-        public static async Task<(X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain)> GetServerCertificatesFromEdgelet(Uri workloadUri, string workloadApiVersion, string workloadClientApiVersion, string moduleId, string moduleGenerationId, string edgeHubHostname, DateTime expiration)
+        public static async Task<(X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain)> GetServerCertificatesFromEdgelet(Uri workloadUri, string workloadApiVersion, string workloadClientApiVersion, string moduleId, string moduleGenerationId, string edgeHubHostname, DateTime expiration, ILogger logger)
         {
             if (string.IsNullOrEmpty(edgeHubHostname))
             {
@@ -258,7 +264,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
 
             ServerCertificateResponse response = await new WorkloadClient(workloadUri, workloadApiVersion, workloadClientApiVersion, moduleId, moduleGenerationId).CreateServerCertificateAsync(edgeHubHostname, expiration);
-            return ParseCertificateResponse(response);
+            return ParseCertificateResponse(response, logger);
         }
 
         public static async Task<IEnumerable<X509Certificate2>> GetTrustBundleFromEdgelet(Uri workloadUri, string workloadApiVersion, string workloadClientApiVersion, string moduleId, string moduleGenerationId)
@@ -267,7 +273,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return ParseTrustedBundleCerts(response);
         }
 
-        public static (X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain) GetServerCertificateAndChainFromFile(string serverWithChainFilePath, string serverPrivateKeyFilePath)
+        public static (X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain) GetServerCertificateAndChainFromFile(string serverWithChainFilePath, string serverPrivateKeyFilePath, ILogger logger = null)
         {
             string cert, privateKey;
 
@@ -291,7 +297,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 privateKey = sr.ReadToEnd();
             }
 
-            return ParseCertificateAndKey(cert, privateKey);
+            return ParseCertificateAndKey(cert, privateKey, logger);
         }
 
         public static IEnumerable<X509Certificate2> GetServerCACertificatesFromFile(string chainPath)
@@ -340,67 +346,103 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return GetCertificatesFromPem(ParsePemCerts(trustedCACerts));
         }
 
-        internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateResponse(ServerCertificateResponse response) =>
-            ParseCertificateAndKey(response.Certificate, response.PrivateKey);
+        internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateResponse(ServerCertificateResponse response, ILogger logger = null) =>
+            ParseCertificateAndKey(response.Certificate, response.PrivateKey, logger);
 
-        internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateAndKey(string certificateWithChain, string privateKey)
+        internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateAndKey(string certificateWithChain, string privateKey, ILogger logger = null)
         {
-            IEnumerable<string> pemCerts = ParsePemCerts(certificateWithChain);
+            int retryCount = 0;
 
-            if (pemCerts.FirstOrDefault() == null)
+            while (retryCount++ < MaxCertImportRetryCount)
             {
-                throw new InvalidOperationException("Certificate is required");
-            }
+                bool isEcKey = false;
 
-            IEnumerable<X509Certificate2> certsChain = GetCertificatesFromPem(pemCerts.Skip(1));
+                IEnumerable<string> pemCerts = ParsePemCerts(certificateWithChain);
 
-            Pkcs12Store store = new Pkcs12StoreBuilder().Build();
-            IList<X509CertificateEntry> chain = new List<X509CertificateEntry>();
-
-            // note: the seperator between the certificate and private key is added for safety to delinate the cert and key boundary
-            var sr = new StringReader(pemCerts.First() + "\r\n" + privateKey);
-            var pemReader = new PemReader(sr);
-
-            AsymmetricKeyParameter keyParams = null;
-            object certObject = pemReader.ReadObject();
-            while (certObject != null)
-            {
-                if (certObject is X509Certificate x509Cert)
+                if (pemCerts.FirstOrDefault() == null)
                 {
-                    chain.Add(new X509CertificateEntry(x509Cert));
+                    throw new InvalidOperationException("Certificate is required");
                 }
 
-                // when processing certificates generated via openssl certObject type is of AsymmetricCipherKeyPair
-                if (certObject is AsymmetricCipherKeyPair keyPair)
+                IEnumerable<X509Certificate2> certsChain = GetCertificatesFromPem(pemCerts.Skip(1));
+
+                Pkcs12Store store = new Pkcs12StoreBuilder().Build();
+                IList<X509CertificateEntry> chain = new List<X509CertificateEntry>();
+
+                // note: the seperator between the certificate and private key is added for safety to delinate the cert and key boundary
+                var sr = new StringReader(pemCerts.First() + "\r\n" + privateKey);
+                var pemReader = new PemReader(sr);
+
+                AsymmetricKeyParameter keyParams = null;
+                object certObject = pemReader.ReadObject();
+                while (certObject != null)
                 {
-                    certObject = keyPair.Private;
+                    if (certObject is X509Certificate x509Cert)
+                    {
+                        chain.Add(new X509CertificateEntry(x509Cert));
+                    }
+
+                    // when processing certificates generated via openssl certObject type is of AsymmetricCipherKeyPair
+                    if (certObject is AsymmetricCipherKeyPair keyPair)
+                    {
+                        certObject = keyPair.Private;
+                    }
+
+                    if (certObject is RsaPrivateCrtKeyParameters rsaParameters)
+                    {
+                        keyParams = rsaParameters;
+                    }
+                    else if (certObject is ECPrivateKeyParameters ecParameters)
+                    {
+                        isEcKey = true;
+                        keyParams = ecParameters;
+                    }
+
+                    certObject = pemReader.ReadObject();
                 }
 
-                if (certObject is RsaPrivateCrtKeyParameters rsaParameters)
+                if (keyParams == null)
                 {
-                    keyParams = rsaParameters;
-                }
-                else if (certObject is ECPrivateKeyParameters ecParameters)
-                {
-                    keyParams = ecParameters;
+                    throw new InvalidOperationException("Private key is required");
                 }
 
-                certObject = pemReader.ReadObject();
+                store.SetKeyEntry("Edge", new AsymmetricKeyEntry(keyParams), chain.ToArray());
+                using (var p12File = new MemoryStream())
+                {
+                    store.Save(p12File, new char[] { }, new SecureRandom());
+
+                    var cert = new X509Certificate2(p12File.ToArray());
+
+                    // On Windows, from time to time the private key cannot be accessed and kestrel fails accepting connections
+                    // without the private key. Testing the private key here and if it fails, retry the entire cert import.
+                    // The second try usually works.
+                    try
+                    {
+                        if (cert.HasPrivateKey)
+                        {
+                            if (isEcKey)
+                            {
+                                _ = cert.GetECDsaPrivateKey();
+                            }
+                            else
+                            {
+                                _ = cert.GetRSAPrivateKey();
+                            }
+
+                            return (cert, certsChain);
+                        }
+                    }
+                    catch
+                    {
+                        // swallow
+                    }
+
+                    logger?.LogWarning("Error importing certificate, retrying");
+                    Thread.Sleep(TimeSpan.FromSeconds(1)); // Do not spam the log
+                }
             }
 
-            if (keyParams == null)
-            {
-                throw new InvalidOperationException("Private key is required");
-            }
-
-            store.SetKeyEntry("Edge", new AsymmetricKeyEntry(keyParams), chain.ToArray());
-            using (var p12File = new MemoryStream())
-            {
-                store.Save(p12File, new char[] { }, new SecureRandom());
-
-                var cert = new X509Certificate2(p12File.ToArray());
-                return (cert, certsChain);
-            }
+            throw new InvalidOperationException("Cannot import server certificate, giving up");
         }
 
         static string ToHexString(byte[] bytes)
