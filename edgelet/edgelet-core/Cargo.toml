@@ -3,7 +3,7 @@ name = "edgelet-core"
 version = "0.1.0"
 authors = ["Azure IoT Edge Devs"]
 publish = false
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 async-trait = "0.1"

@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 await this.runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
             }
 
-            var result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("Ping", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)), token);
+            var result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("Ping", TimeSpan.FromSeconds(120), TimeSpan.FromSeconds(60)), token);
 
             Assert.AreEqual((int)HttpStatusCode.OK, result.Status);
             Assert.AreEqual("null", result.GetPayloadAsJson());
@@ -56,18 +56,56 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Context.Current.NestedEdge);
             await Task.Delay(30000);
 
+            // Verify RFC3339 Operation
             string since = DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd'T'HH:mm:ssZ");
             string until = DateTime.Now.AddDays(+1).ToString("yyyy-MM-dd'T'HH:mm:ssZ");
 
             var request = new ModuleLogsRequest("1.0", new List<LogRequestItem> { new LogRequestItem(moduleName, new ModuleLogFilter(Option.Some(10), Option.Some(since), Option.Some(until), Option.None<int>(), Option.None<bool>(), Option.None<string>())) }, LogsContentEncoding.None, LogsContentType.Text);
 
-            var result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetModuleLogs", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(request)), token);
+            var result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetModuleLogs", TimeSpan.FromSeconds(120), TimeSpan.FromSeconds(60)).SetPayloadJson(JsonConvert.SerializeObject(request)), token);
 
             Assert.AreEqual((int)HttpStatusCode.OK, result.Status);
 
             string expected = string.Join('\n', Enumerable.Range(0, count)) + "\n";
             LogResponse response = JsonConvert.DeserializeObject<LogResponse[]>(result.GetPayloadAsJson()).Single();
             Assert.AreEqual(expected, response.Payload);
+
+            // Verify Unix Time Operation
+            since = DateTime.Now.AddDays(-1).ToUnixTimestamp().ToString();
+            until = DateTime.Now.AddDays(+1).ToUnixTimestamp().ToString();
+
+            request = new ModuleLogsRequest("1.0", new List<LogRequestItem> { new LogRequestItem(moduleName, new ModuleLogFilter(Option.Some(10), Option.Some(since), Option.Some(until), Option.None<int>(), Option.None<bool>(), Option.None<string>())) }, LogsContentEncoding.None, LogsContentType.Text);
+
+            result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetModuleLogs", TimeSpan.FromSeconds(120), TimeSpan.FromSeconds(60)).SetPayloadJson(JsonConvert.SerializeObject(request)), token);
+
+            Assert.AreEqual((int)HttpStatusCode.OK, result.Status);
+
+            expected = string.Join('\n', Enumerable.Range(0, count)) + "\n";
+            response = JsonConvert.DeserializeObject<LogResponse[]>(result.GetPayloadAsJson()).Single();
+            Assert.AreEqual(expected, response.Payload);
+
+            // Verify Human Readable Time Operation
+            since = "1 hour".ToString();
+            until = "1 second".ToString();
+
+            request = new ModuleLogsRequest("1.0", new List<LogRequestItem> { new LogRequestItem(moduleName, new ModuleLogFilter(Option.Some(10), Option.Some(since), Option.Some(until), Option.None<int>(), Option.None<bool>(), Option.None<string>())) }, LogsContentEncoding.None, LogsContentType.Text);
+
+            result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetModuleLogs", TimeSpan.FromSeconds(120), TimeSpan.FromSeconds(60)).SetPayloadJson(JsonConvert.SerializeObject(request)), token);
+
+            Assert.AreEqual((int)HttpStatusCode.OK, result.Status);
+
+            expected = string.Join('\n', Enumerable.Range(0, count)) + "\n";
+            response = JsonConvert.DeserializeObject<LogResponse[]>(result.GetPayloadAsJson()).Single();
+            Assert.AreEqual(expected, response.Payload);
+
+            // Verify Incorrect Timestamp gives correct error
+            since = DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd'T'HH:mm");
+            until = DateTime.Now.AddDays(+1).ToString("yyyy-MM-dd'T'HH:mm");
+
+            request = new ModuleLogsRequest("1.0", new List<LogRequestItem> { new LogRequestItem(moduleName, new ModuleLogFilter(Option.Some(10), Option.Some(since), Option.Some(until), Option.None<int>(), Option.None<bool>(), Option.None<string>())) }, LogsContentEncoding.None, LogsContentType.Text);
+
+            result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetModuleLogs", TimeSpan.FromSeconds(120), TimeSpan.FromSeconds(60)).SetPayloadJson(JsonConvert.SerializeObject(request)), token);
+            Assert.AreEqual((int)HttpStatusCode.BadRequest, result.Status);
         }
 
         [Test]
@@ -90,7 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             var request = new ModuleLogsRequest("1.0", new List<LogRequestItem> { new LogRequestItem(moduleName, new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.None<int>(), Option.None<bool>(), Option.None<string>())) }, LogsContentEncoding.None, LogsContentType.Text);
 
-            var result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetModuleLogs", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(request)), token);
+            var result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetModuleLogs", TimeSpan.FromSeconds(120), TimeSpan.FromSeconds(60)).SetPayloadJson(JsonConvert.SerializeObject(request)), token);
 
             Assert.AreEqual((int)HttpStatusCode.OK, result.Status);
 
@@ -119,7 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             // restart module
             var restartRequest = new RestartRequest("1.0", moduleName);
-            var result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("RestartModule", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(restartRequest)), token);
+            var result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("RestartModule", TimeSpan.FromSeconds(120), TimeSpan.FromSeconds(60)).SetPayloadJson(JsonConvert.SerializeObject(restartRequest)), token);
 
             Assert.AreEqual((int)HttpStatusCode.OK, result.Status);
             Assert.AreEqual("null", result.GetPayloadAsJson());
@@ -127,7 +165,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             // check it restarted
             var logsRequest = new ModuleLogsRequest("1.0", new List<LogRequestItem> { new LogRequestItem(moduleName, new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.None<int>(), Option.None<bool>(), Option.None<string>())) }, LogsContentEncoding.None, LogsContentType.Text);
-            result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetModuleLogs", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(logsRequest)), token);
+            result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetModuleLogs", TimeSpan.FromSeconds(120), TimeSpan.FromSeconds(60)).SetPayloadJson(JsonConvert.SerializeObject(logsRequest)), token);
 
             Assert.AreEqual((int)HttpStatusCode.OK, result.Status);
 
@@ -170,7 +208,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             var payload = JsonConvert.SerializeObject(request);
 
-            CloudToDeviceMethodResult result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("UploadModuleLogs", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(payload), token);
+            CloudToDeviceMethodResult result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("UploadModuleLogs", TimeSpan.FromSeconds(120), TimeSpan.FromSeconds(60)).SetPayloadJson(payload), token);
 
             var response = JsonConvert.DeserializeObject<TaskStatusResponse>(result.GetPayloadAsJson());
             await this.WaitForTaskCompletion(response.CorrelationId, token);
@@ -205,7 +243,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             var payload = JsonConvert.SerializeObject(request);
 
-            CloudToDeviceMethodResult result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("UploadSupportBundle", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(payload), token);
+            CloudToDeviceMethodResult result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("UploadSupportBundle", TimeSpan.FromSeconds(120), TimeSpan.FromSeconds(60)).SetPayloadJson(payload), token);
 
             var response = JsonConvert.DeserializeObject<TaskStatusResponse>(result.GetPayloadAsJson());
             await this.WaitForTaskCompletion(response.CorrelationId, token);
@@ -221,7 +259,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     correlationId
                 };
 
-                var result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetTaskStatus", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(request)), token);
+                var result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetTaskStatus", TimeSpan.FromSeconds(120), TimeSpan.FromSeconds(60)).SetPayloadJson(JsonConvert.SerializeObject(request)), token);
 
                 Assert.AreEqual((int)HttpStatusCode.OK, result.Status);
                 var response = JsonConvert.DeserializeObject<TaskStatusResponse>(result.GetPayloadAsJson());

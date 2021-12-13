@@ -22,6 +22,8 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             string testDescription,
             string trackingId,
             string senderSource,
+            Topology topology,
+            bool mqttBrokerEnabled,
             IAsyncEnumerator<TestOperationResult> senderTestResults,
             string receiverSource,
             IAsyncEnumerator<TestOperationResult> receiverTestResults,
@@ -30,6 +32,8 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
+            this.Topology = topology;
+            this.MqttBrokerEnabled = mqttBrokerEnabled;
             this.SenderTestResults = Preconditions.CheckNotNull(senderTestResults, nameof(senderTestResults));
             this.ReceiverSource = receiverSource;
             this.ReceiverTestResults = receiverTestResults;
@@ -50,6 +54,10 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
 
         internal ITestResultComparer<TestOperationResult> TestResultComparer { get; }
 
+        internal Topology Topology { get; }
+
+        internal bool MqttBrokerEnabled { get; }
+
         public async Task<ITestResultReport> CreateReportAsync()
         {
             long statusCodeZero = 0;
@@ -58,6 +66,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             long deviceNotFound = 0;
             long transientError = 0;
             long resourceError = 0;
+            long notImplemented = 0;
             long receiverSuccesses = 0;
             Dictionary<HttpStatusCode, long> other = new Dictionary<HttpStatusCode, long>();
             while (await this.SenderTestResults.MoveNextAsync())
@@ -84,6 +93,9 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
                         break;
                     case 503:
                         resourceError++;
+                        break;
+                    case 501:
+                        notImplemented++;
                         break;
                     default:
                         if (other.ContainsKey(statusCode))
@@ -115,6 +127,8 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
                 this.SenderSource,
                 this.ReceiverSource,
                 this.ResultType,
+                this.Topology,
+                this.MqttBrokerEnabled,
                 senderSuccesses,
                 receiverSuccesses,
                 statusCodeZero,
@@ -122,6 +136,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
                 deviceNotFound,
                 transientError,
                 resourceError,
+                notImplemented,
                 other);
         }
 
