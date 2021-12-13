@@ -1,0 +1,5 @@
+# /etc/aziot/edged/config.d might not be available for all users (e.g. permissions issues).
+# To prevent tests from failing when trying to access /etc/aziot/edged/config.d, we will use
+# this directory as AZIOT_EDGED_CONFIG_DIR.
+
+# Git doesn't allow empty directories to be committed, so add this empty config file.
