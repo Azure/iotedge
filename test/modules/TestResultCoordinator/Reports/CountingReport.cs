@@ -7,6 +7,7 @@ namespace TestResultCoordinator.Reports
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Json;
     using Newtonsoft.Json;
+    using Newtonsoft.Json.Converters;
 
     /// <summary>
     /// This is a counting report to show test result counts. It tracks a number
@@ -28,11 +29,14 @@ namespace TestResultCoordinator.Reports
     class CountingReport : TestResultReportBase
     {
         const string C2dTestDescription = "C2D";
-        const string GenericMqttTelemetryTestDescription = "messages | local | mqtt | generic";
+        const string GenericMqttTelemetryTestDescription = "mqtt | generic";
+        const string MessagesTestDescription = "messages";
 
         public CountingReport(
             string testDescription,
             TestMode testMode,
+            Topology topology,
+            bool mqttBrokerEnabled,
             string trackingId,
             string expectedSource,
             string actualSource,
@@ -51,6 +55,8 @@ namespace TestResultCoordinator.Reports
             : base(testDescription, trackingId, resultType)
         {
             this.TestMode = testMode;
+            this.Topology = topology;
+            this.MqttBrokerEnabled = mqttBrokerEnabled;
             this.ExpectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
             this.ActualSource = Preconditions.CheckNonWhiteSpace(actualSource, nameof(actualSource));
             this.TotalExpectCount = totalExpectCount;
@@ -67,7 +73,12 @@ namespace TestResultCoordinator.Reports
             this.LastActualResultTimestamp = lastActualResultTimestamp;
         }
 
+        [JsonConverter(typeof(StringEnumConverter))]
         public TestMode TestMode { get; }
+
+        public Topology Topology { get; }
+
+        public bool MqttBrokerEnabled { get; }
 
         public string ExpectedSource { get; }
 

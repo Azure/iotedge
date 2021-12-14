@@ -100,25 +100,17 @@ where
         write_logs(runtime, &module_name, &log_options, &mut zip_writer).await?;
 
         // write module inspect
-        write_inspect(&module_name, &mut zip_writer, &file_options, verbose).await?;
+        write_inspect(&module_name, zip_writer, &file_options, verbose).await?;
     }
 
     // Get all docker network inspects
     for network_name in get_docker_networks().await? {
-        write_network_inspect(&network_name, &mut zip_writer, &file_options, verbose).await?;
+        write_network_inspect(&network_name, zip_writer, &file_options, verbose).await?;
     }
 
     // Get logs for system modules
     for (name, unit) in SYSTEM_MODULES {
-        write_system_log(
-            name,
-            unit,
-            &log_options,
-            &mut zip_writer,
-            &file_options,
-            verbose,
-        )
-        .await?;
+        write_system_log(name, unit, &log_options, zip_writer, &file_options, verbose).await?;
     }
 
     // Finilize buffer and set cursur to 0 for reading.

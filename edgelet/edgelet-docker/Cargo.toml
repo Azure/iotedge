@@ -1,6 +1,6 @@
 [package]
 authors = ["Azure IoT Edge Devs"]
-edition = "2018"
+edition = "2021"
 name = "edgelet-docker"
 publish = false
 version = "0.1.0"

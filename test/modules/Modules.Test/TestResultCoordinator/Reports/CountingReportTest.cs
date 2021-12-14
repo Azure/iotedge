@@ -21,6 +21,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
             var report = new CountingReport(
                 TestDescription,
                 TestMode.Connectivity,
+                Topology.SingleNode,
+                false,
                 "trackingId123",
                 "expectedSource",
                 "actualSource",
@@ -77,6 +79,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 () => new CountingReport(
                     testDescription,
                     TestMode.Connectivity,
+                    Topology.SingleNode,
+                    false,
                     "trackingId123",
                     "expectedSource",
                     "actualSource",
@@ -109,6 +113,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 () => new CountingReport(
                     TestDescription,
                     TestMode.Connectivity,
+                    Topology.SingleNode,
+                    false,
                     trackingId,
                     "expectedSource",
                     "actualSource",
@@ -141,6 +147,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 () => new CountingReport(
                     TestDescription,
                     TestMode.Connectivity,
+                    Topology.SingleNode,
+                    false,
                     "trackingId-23434",
                     expectedSource,
                     "actualSource",
@@ -173,6 +181,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 () => new CountingReport(
                     TestDescription,
                     TestMode.Connectivity,
+                    Topology.SingleNode,
+                    false,
                     "trackingId-23434",
                     "expectedSource",
                     actualSource,
@@ -205,6 +215,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 () => new CountingReport(
                     TestDescription,
                     TestMode.Connectivity,
+                    Topology.SingleNode,
+                    false,
                     "trackingId-23434",
                     "expectedSource",
                     "actualSource",

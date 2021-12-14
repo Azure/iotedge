@@ -7,7 +7,6 @@ namespace TestResultCoordinator.Reports
     {
         public TwinCountingReportMetadata(
             string testDescription,
-            Topology topology,
             string expectedSource,
             string actualSource,
             TestReportType testReportType,
@@ -15,10 +14,8 @@ namespace TestResultCoordinator.Reports
             : base(testDescription, expectedSource, actualSource, TestOperationResultType.Twin, testReportType, false)
         {
             this.TwinTestPropertyType = twinTestPropertyType;
-            this.Topology = topology;
         }
 
         public TwinTestPropertyType TwinTestPropertyType { get; }
-        public Topology Topology { get; }
     }
 }

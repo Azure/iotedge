@@ -177,6 +177,7 @@ source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#223
 dependencies = [
  "aziot-cert-common-http",
  "aziot-identity-common",
+ "aziot-identityd-config",
  "aziot-key-common",
  "http-common",
  "serde",
