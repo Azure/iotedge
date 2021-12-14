@@ -634,8 +634,8 @@ struct CheckOutputSerializable {
 }
 
 fn get_local_service_proxy_setting(_svc_name: &str) -> Option<String> {
-
-    #[cfg(unix)] {
+    #[cfg(unix)]
+    {
         const PROXY_KEY: &str = "https_proxy";
         let output = Command::new("sh")
             .arg("-c")
@@ -745,20 +745,20 @@ mod tests {
 
         // Create an empty check
         let mut check = runtime
-                .block_on(Check::new(
-                    config_file.clone(),
-                    "daemon.json".into(), // unused for this test
-                    "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
-                    Default::default(),
-                    Some("1.0.0".to_owned()),      // unused for this test
-                    "iotedged".into(),             // unused for this test
-                    None,                          // unused for this test
-                    "pool.ntp.org:123".to_owned(), // unused for this test
-                    super::OutputFormat::Text,     // unused for this test
-                    false,
-                    false,
-                ))
-                .unwrap();
+            .block_on(Check::new(
+                config_file.clone(),
+                "daemon.json".into(), // unused for this test
+                "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                Default::default(),
+                Some("1.0.0".to_owned()),      // unused for this test
+                "iotedged".into(),             // unused for this test
+                None,                          // unused for this test
+                "pool.ntp.org:123".to_owned(), // unused for this test
+                super::OutputFormat::Text,     // unused for this test
+                false,
+                false,
+            ))
+            .unwrap();
 
         let settings = match Settings::new(&config_file) {
             Ok(settings) => settings,
