@@ -721,11 +721,11 @@ mod tests {
 
     #[cfg(unix)]
     fn proxy_settings_test(
-        moby_proxy_state: MobyProxyState,
-        edge_daemon_proxy_state: EdgeDaemonProxyState,
-        edge_agent_proxy_state: EdgeAgentProxyState,
-        proxy_settings_values: ProxySettingsValues,
-        expected_check_result: ExpectedCheckResult,
+        moby_proxy_state: &MobyProxyState,
+        edge_daemon_proxy_state: &EdgeDaemonProxyState,
+        edge_agent_proxy_state: &EdgeAgentProxyState,
+        proxy_settings_values: &ProxySettingsValues,
+        expected_check_result: &ExpectedCheckResult,
     ) {
         let mut runtime = tokio::runtime::Runtime::new().unwrap();
 
