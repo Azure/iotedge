@@ -13,6 +13,7 @@ mod host_local_time;
 mod hostname;
 mod identity_certificate_expiry;
 mod iotedged_version;
+#[cfg(unix)]
 mod proxy_settings;
 mod storage_mounted_from_host;
 mod well_formed_config;
