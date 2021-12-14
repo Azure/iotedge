@@ -665,7 +665,7 @@ fn get_local_service_proxy_setting(_svc_name: &str) -> Option<String> {
             } // Ignore remaining variables
         }
 
-        return svc_proxy;
+        svc_proxy
     }
 
     #[cfg(windows)]

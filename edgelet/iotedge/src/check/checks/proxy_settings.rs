@@ -52,14 +52,14 @@ impl ProxySettings {
         {
             Ok(CheckResult::Ok)
         } else {
-            return Ok(CheckResult::Warning(Context::new(
+            Ok(CheckResult::Warning(Context::new(
                 format!(
                     "The proxy setting for IoT Edge Agent {:?}, IoT Edge Daemon {:?}, and Moby {:?} may need to be identical.",
                     edge_agent_proxy_uri,
                     edge_daemon_proxy_uri,
                     moby_proxy_uri
                 )
-            ).into()));
+            ).into()))
         }
     }
 }
