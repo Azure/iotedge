@@ -61,9 +61,11 @@ pub struct Check {
     iothub_hostname: Option<String>,
 
     // These optional fields are populated by the checks
+    #[cfg(unix)]
     aziot_edge_proxy: Option<String>,
     settings: Option<Settings>,
     docker_host_arg: Option<String>,
+    #[cfg(unix)]
     docker_proxy: Option<String>,
     docker_server_version: Option<String>,
     device_ca_cert_path: Option<PathBuf>,
@@ -221,9 +223,11 @@ impl Check {
 
                 additional_info: AdditionalInfo::new(),
 
+                #[cfg(unix)]
                 aziot_edge_proxy: get_local_service_proxy_setting("iotedge"),
                 settings: None,
                 docker_host_arg: None,
+                #[cfg(unix)]
                 docker_proxy: get_local_service_proxy_setting("docker"),
                 docker_server_version: None,
                 iothub_hostname,
@@ -633,43 +637,39 @@ struct CheckOutputSerializable {
     additional_info: serde_json::Value,
 }
 
-fn get_local_service_proxy_setting(_svc_name: &str) -> Option<String> {
-    #[cfg(unix)]
-    {
-        const PROXY_KEY: &str = "https_proxy";
-        let output = Command::new("sh")
-            .arg("-c")
-            .arg("sudo systemctl show --property=Environment ".to_owned() + _svc_name)
-            .output()
-            .expect("failed to execute process");
-        let stdout = String::from_utf8_lossy(&output.stdout);
+#[cfg(unix)]
+fn get_local_service_proxy_setting(svc_name: &str) -> Option<String> {
 
-        let mut svc_proxy = None;
-        let vars = stdout.trim_start_matches("Environment=");
-        for var in vars.split(' ') {
-            let mut parts = var.split('=');
-            if let Some(PROXY_KEY) = parts.next() {
-                svc_proxy = parts.next().map(String::from);
+    const PROXY_KEY: &str = "https_proxy";
+    let output = Command::new("sh")
+        .arg("-c")
+        .arg("sudo systemctl show --property=Environment ".to_owned() + svc_name)
+        .output()
+        .expect("failed to execute process");
+    let stdout = String::from_utf8_lossy(&output.stdout);
 
-                let mut s = match svc_proxy {
-                    Some(svc_proxy) => svc_proxy,
-                    _ => return svc_proxy,
-                };
+    let mut svc_proxy = None;
+    let vars = stdout.trim_start_matches("Environment=");
+    for var in vars.split(' ') {
+        let mut parts = var.split('=');
+        if let Some(PROXY_KEY) = parts.next() {
+            svc_proxy = parts.next().map(String::from);
 
-                // Remove newline
-                if s.ends_with('\n') {
-                    s.pop();
-                }
+            let mut s = match svc_proxy {
+                Some(svc_proxy) => svc_proxy,
+                None => return svc_proxy,
+            };
 
-                return Some(s);
-            } // Ignore remaining variables
-        }
+            // Remove newline
+            if s.ends_with('\n') {
+                s.pop();
+            }
 
-        svc_proxy
+            return Some(s);
+        } // Ignore remaining variables
     }
 
-    #[cfg(windows)]
-    Option::None
+    svc_proxy
 }
 
 #[cfg(test)]
