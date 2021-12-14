@@ -639,7 +639,6 @@ struct CheckOutputSerializable {
 
 #[cfg(unix)]
 fn get_local_service_proxy_setting(svc_name: &str) -> Option<String> {
-
     const PROXY_KEY: &str = "https_proxy";
     let output = Command::new("sh")
         .arg("-c")
