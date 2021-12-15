@@ -106,6 +106,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         async Task HandleDirectSubscriptionChanges(Option<string> deviceId, Option<string> moduleId, List<string> subscriptionList)
         {
+            if (this.HasMixedIdentities(deviceId, moduleId, subscriptionList))
+            {
+                await this.HandleNestedSubscriptionChanges(subscriptionList);
+                return;
+            }
+
             var identity = moduleId.Match(
                                mod => deviceId.Match(
                                          dev => this.identityProvider.Create(dev, mod),
@@ -148,6 +154,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 if (IsMatchingIds(subscribedDevId, subscribedModId, deviceId, moduleId))
                 {
                     return true;
+                }
+            }
+
+            return false;
+        }
+
+        bool HasMixedIdentities(Option<string> deviceId, Option<string> moduleId, List<string> subscriptionList)
+        {
+            foreach (var subscriptionPattern in this.subscriptionPatterns)
+            {
+                foreach (var subscription in subscriptionList)
+                {
+                    var subscriptionMatch = Regex.Match(subscription, subscriptionPattern.Pattern);
+                    if (subscriptionMatch.Success)
+                    {
+                        var subscribedDevId = subscriptionMatch.Groups["id1"].Success ? Option.Some<string>(subscriptionMatch.Groups["id1"].Value) : Option.None<string>();
+                        var subscribedModId = subscriptionMatch.Groups["id2"].Success ? Option.Some<string>(subscriptionMatch.Groups["id2"].Value) : Option.None<string>();
+
+                        if (!IsMatchingIds(subscribedDevId, subscribedModId, deviceId, moduleId))
+                        {
+                            return true;
+                        }
+                    }
                 }
             }
 
