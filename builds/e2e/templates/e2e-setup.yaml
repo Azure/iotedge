@@ -23,7 +23,13 @@ steps:
       TestRootCaPassword,
       TestBlobStoreSas
 
-- bash: | 
+- bash: |
+    curl https://packages.microsoft.com/config/ubuntu/18.04/multiarch/packages-microsoft-prod.deb > ./packages-microsoft-prod.deb
+    apt install ./packages-microsoft-prod.deb
+  
+  displayName: Access the Microsoft installation packages
+
+- bash: |
     echo "Built Images Result is $(builtImages)"
     
     if [[ ! -z $(builtImages) && ( $(builtImages) == 'Succeeded' || $(builtImages) == 'SucceededWithIssues') ]]
