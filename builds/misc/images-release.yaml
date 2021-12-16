@@ -467,15 +467,35 @@ stages:
           Diagnostics:
             manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template'
       steps:
-      # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
-      - task: Docker@2
-        displayName: Docker login edgebuilds
-        inputs:
-          command: login
-          containerRegistry: iotedge-edgebuilds-acr
       - task: Docker@2
         displayName: Docker login edgerelease
         inputs:
           command: login
           containerRegistry: iotedge-release-acr
       - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(version) -t $(manifestFilePath) -n '$(namespace)' --tags "$(tags)"
+
+################################################################################
+  - stage: RunE2ETest
+################################################################################
+    displayName: End-to-End Test
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
+    dependsOn:
+      - PublishManifests
+    condition: in(dependencies.PublishManifests.result, 'Succeeded','Skipped', 'SucceededWithIssues')
+    jobs:
+      - job: ubuntu_2004_msmoby
+        displayName: Ubuntu 20.04 with iotedge-moby
+        variables:
+          verbose: false
+          os: linux
+          arch: amd64
+          artifactName: iotedged-ubuntu20.04-amd64
+          identityServiceArtifactName: packages_ubuntu-20.04_amd64
+          identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+          builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
+        steps:
+        - template: ../e2e/templates/e2e-setup.yaml
+        - template: ../e2e/templates/e2e-run.yaml

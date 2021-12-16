@@ -11,7 +11,7 @@ steps:
     azureSubscription: $(az.subscription)
     keyVaultName: $(kv.name)
     secretsFilter: >-
-      TestContainerRegistryPassword,
+      ReleaseContainerRegistryPassword,
       TestDpsGroupKeySymmetric,
       TestEventHubCompatibleEndpoint,
       TestGitHubAccessToken,
@@ -25,80 +25,26 @@ steps:
 
 - bash: | 
     echo "Built Images Result is $(builtImages)"
-    echo "Built Packages Result is $(builtPackages)"
+    
     if [[ ! -z $(builtImages) && ( $(builtImages) == 'Succeeded' || $(builtImages) == 'SucceededWithIssues') ]]
     then
       echo "Use Pipeline Image Artifacts"
       echo "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]TRUE"
     else
-      echo "Use Build Image Artifacts"
+      echo "images-release.yaml did not succeed in the 'Publish Manifests' step, so e2e-setup.yaml is unable to download artifacts"
       echo "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]FALSE"
     fi
-    if [[ ! -z $(builtPackages) && ( $(builtPackages) == 'Succeeded' || $(builtPackages) == 'SucceededWithIssues') ]]
-    then
-      echo "Use Pipeline Package Artifacts"
-      echo "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]TRUE"
-    else
-      echo "Use Build Package Artifacts"
-      echo "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]FALSE"
-    fi
+    
   name: check_use_artifacts
-  displayName: Check Use Pipeline Image Artifacts
+  displayName: Check if Manifest published successfully
 
 - task: DownloadPipelineArtifact@2
-  displayName: Download Pipeline Build Images
+  displayName: Download Current Pipeline Artifacts (downloads everything except Build Images)
   condition: eq(variables['check_use_artifacts.UsePipelineImageArtifacts'],'true')
   inputs:
     source: 'current'
-    path: $(System.ArtifactsDirectory)
-    patterns: $(az.pipeline.images.artifacts)/artifactInfo.txt
+    targetpath: $(System.ArtifactsDirectory)
 
-- task: DownloadPipelineArtifact@2
-  displayName: Download Pipeline Build Packages
-  condition: eq(variables['check_use_artifacts.UsePipelinePackageArtifacts'],'true')
-  inputs:
-    source: 'current'
-    path: $(System.ArtifactsDirectory)
-    patterns: $(artifactName)/*.deb
-
-- task: DownloadBuildArtifacts@0
-  displayName: Download Resource Build Images
-  condition: eq(variables['check_use_artifacts.UsePipelineImageArtifacts'],'false')
-  inputs:  
-    buildType: specific
-    project: $(resources.pipeline.images.projectID)
-    pipeline: $(resources.pipeline.images.pipelineName)
-    buildVersionToDownload: specific
-    buildId: $(resources.pipeline.images.runID)
-    downloadType: single
-    artifactName: $(az.pipeline.images.artifacts)
-    allowPartiallySucceededBuilds: true
-    itemPattern: $(az.pipeline.images.artifacts)/artifactInfo.txt
-    
-- task: DownloadBuildArtifacts@0
-  displayName: Download edgelet packages
-  condition: eq(variables['check_use_artifacts.UsePipelinePackageArtifacts'],'false')
-  inputs:
-    buildType: specific
-    project: $(resources.pipeline.packages.projectID)
-    pipeline: $(resources.pipeline.packages.pipelineName)
-    buildVersionToDownload: specific
-    buildId: $(resources.pipeline.packages.runID)
-    downloadType: single
-    artifactName: $(artifactName)
-    allowPartiallySucceededBuilds: true
-
-- task: PowerShell@2
-  displayName: 'Download aziot-identity-service'
-  inputs:
-    filePath: $(Build.SourcesDirectory)/scripts/local/test/DownloadIdentityService.ps1
-    workingDirectory: $(Build.SourcesDirectory)
-  env:
-    GITHUB_TOKEN: $(TestGitHubAccessToken)
-    ARTIFACT_NAME: $(identityServiceArtifactName)
-    PACKAGE_FILTER: $(identityServicePackageFilter)
-    DOWNLOAD_PATH: $(System.ArtifactsDirectory)/$(artifactName)
-    IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
 - pwsh: |
     $certsDir = '$(System.ArtifactsDirectory)/certs'
     New-Item "$certsDir" -ItemType Directory -Force | Out-Null
@@ -114,7 +60,7 @@ steps:
     $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
     dotnet build $testDir
 
-    $binDir = Convert-Path "$testDir/bin/Debug/netcoreapp3.1"
+    $binDir = Convert-Path "$testDir/bin/Release/netcoreapp3.1"
     Write-Output "##vso[task.setvariable variable=binDir]$binDir"
   env:
     http_proxy: $(Agent.ProxyUrl)
@@ -122,44 +68,27 @@ steps:
   displayName: Build tests
 
 - pwsh: |
-    $imageId = Get-Content -Encoding Utf8 `
-      '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'
-    $imageId = ($imageId -split '=')[1]
-    $imageTag = "$imageId-$(os)-$(arch)"
-
     if ('$(nestededge)' -eq 'true')
     {
       $nestededge = "true"
-      $imagePrefix = '$upstream:443/$(cr.labelPrefix)azureiotedge'
-      $diagnosticImagePrefix ='$(parentName):443/$(cr.labelPrefix)azureiotedge'
+      $imagePrefix = '$upstream:443/microsoft/azureiotedge'
+      $diagnosticImagePrefix ='$(parentName):443/microsoft/azureiotedge'
       $caCertScriptPath = Convert-Path "/certs"
       $rootCaCertificatePath = Convert-Path "/certs/certs/azure-iot-test-only.root.ca.cert.pem"
       $rootCaPrivateKeyPath = Convert-Path "/certs/private/azure-iot-test-only.root.ca.key.pem"
     }else
     {
       $nestededge = "false"
-      $imagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge'
-      $diagnosticImagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge'
+      $imagePrefix = '$(registry.address)/microsoft/azureiotedge'
+      $diagnosticImagePrefix = '$(registry.address)/microsoft/azureiotedge'
       $caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates'
       $rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
       $rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
     }
 
-    if ('$(customEdgeAgent.image)')
-    {
-      $edgeAgentImage = "$(customEdgeAgent.image)"; 
-    }else
-    {
-      $edgeAgentImage = "$imagePrefix-agent:$imageTag";
-    }
-
-    if ('$(customEdgeHub.image)')
-    {
-      $edgeHubImage = "$(customEdgeHub.image)";
-    }else
-    {
-      $edgeHubImage = "$imagePrefix-hub:$imageTag";
-    }
+    $versionInfo = "$(version)-$(os)-$(arch)"
+    $edgeAgentImage = "$imagePrefix-agent:$versionInfo";
+    $edgeHubImage = "$imagePrefix-hub:$versionInfo";
 
     echo "Edge agent image: $edgeAgentImage"
     echo "Edge hub image: $edgeHubImage"
@@ -170,24 +99,24 @@ steps:
       isa95Tag = 'false';
       edgeAgentImage = "$edgeAgentImage";
       edgeHubImage = "$edgeHubImage";
-      diagnosticsImage = "$diagnosticImagePrefix-diagnostics:$imageTag";
-      tempFilterFuncImage = "$imagePrefix-functions-filter:$imageTag";
-      tempFilterImage = "$imagePrefix-temperature-filter:$imageTag";
-      tempSensorImage = "$imagePrefix-simulated-temperature-sensor:$imageTag";
-      methodSenderImage = "$imagePrefix-direct-method-sender:$imageTag";
-      methodReceiverImage = "$imagePrefix-direct-method-receiver:$imageTag";
-      loadGenImage = "$imagePrefix-load-gen:$imageTag";
-      relayerImage = "$imagePrefix-relayer:$imageTag";
-      networkControllerImage = "$imagePrefix-network-controller:$imageTag";
-      testResultCoordinatorImage = "$imagePrefix-test-result-coordinator:$imageTag";
-      metricsValidatorImage = "$imagePrefix-metrics-validator:$imageTag";
-      numberLoggerImage = "$imagePrefix-number-logger:$imageTag";
+      diagnosticsImage = "$diagnosticImagePrefix-diagnostics:$versionInfo";
+      tempFilterFuncImage = "$imagePrefix-functions-filter:$versionInfo";
+      tempFilterImage = "$imagePrefix-temperature-filter:$versionInfo";
+      tempSensorImage = "$imagePrefix-simulated-temperature-sensor:$versionInfo";
+      methodSenderImage = "$imagePrefix-direct-method-sender:$versionInfo";
+      methodReceiverImage = "$imagePrefix-direct-method-receiver:$versionInfo";
+      loadGenImage = "$imagePrefix-load-gen:$versionInfo";
+      relayerImage = "$imagePrefix-relayer:$versionInfo";
+      networkControllerImage = "$imagePrefix-network-controller:$versionInfo";
+      testResultCoordinatorImage = "$imagePrefix-test-result-coordinator:$versionInfo";
+      metricsValidatorImage = "$imagePrefix-metrics-validator:$versionInfo";
+      numberLoggerImage = "$imagePrefix-number-logger:$versionInfo";
       edgeAgentBootstrapImage = "$imagePrefix-agent-bootstrap-e2e-$(os)-$(arch)";
-      genericMqttTesterImage = "$imagePrefix-generic-mqtt-tester:$imageTag"
+      genericMqttTesterImage = "$imagePrefix-generic-mqtt-tester:$versionInfo"
       registries = @(
         @{
-          address = '$(cr.address)';
-          username = '$(cr.username)';
+          address = '$(registry.address)';
+          username = '$(registry.username)';
         }
       );
       packagePath = Convert-Path '$(System.ArtifactsDirectory)/$(artifactName)';
@@ -228,4 +157,5 @@ steps:
     }
 
     $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
+    Get-Content -Path '$(binDir)/context.json'
   displayName: Create test arguments file (context.json)
