@@ -26,7 +26,7 @@ steps:
 - bash: |
     curl https://packages.microsoft.com/config/ubuntu/18.04/multiarch/packages-microsoft-prod.deb > ./packages-microsoft-prod.deb
     sudo apt install -y ./packages-microsoft-prod.deb
-    sudo apt get update
+    sudo apt-get update
   
   displayName: Access the Microsoft installation packages
 
