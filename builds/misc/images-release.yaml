@@ -492,7 +492,7 @@ stages:
           verbose: false
           os: linux
           arch: amd64
-          artifactName: aziot-edge_*_ubuntu18.04_amd64
+          artifactName: iotedged-ubuntu18.04-amd64
           identityServiceArtifactName: packages_ubuntu-18.04_amd64
           identityServicePackageFilter: aziot-identity-service_*_amd64.deb
           builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
