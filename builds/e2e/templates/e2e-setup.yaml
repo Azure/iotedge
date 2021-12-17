@@ -29,7 +29,7 @@ steps:
    # sudo apt-get update
     #sudo apt-get install -y aziot-edge aziot-identity-service
   
-  displayName: Access the Microsoft installation packages
+  #displayName: Access the Microsoft installation packages
 
 - bash: |
     echo "Built Images Result is $(builtImages)"
