@@ -23,11 +23,11 @@ steps:
       TestRootCaPassword,
       TestBlobStoreSas
 
-- bash: |
-    curl https://packages.microsoft.com/config/ubuntu/18.04/multiarch/packages-microsoft-prod.deb > ./packages-microsoft-prod.deb
-    sudo apt install -y ./packages-microsoft-prod.deb
-    sudo apt-get update
-    sudo apt-get install -y aziot-edge aziot-identity-service
+#- bash: |
+ #   curl https://packages.microsoft.com/config/ubuntu/18.04/multiarch/packages-microsoft-prod.deb > ./packages-microsoft-prod.deb
+  #  sudo apt install -y ./packages-microsoft-prod.deb
+   # sudo apt-get update
+    #sudo apt-get install -y aziot-edge aziot-identity-service
   
   displayName: Access the Microsoft installation packages
 
@@ -127,6 +127,7 @@ steps:
           username = '$(registry.username)';
         }
       );
+      packagePath = Convert-Path '$(System.ArtifactsDirectory)/$(artifactName)';
       caCertScriptPath = "$caCertScriptPath";
       rootCaCertificatePath = "$rootCaCertificatePath";
       rootCaPrivateKeyPath = "$rootCaPrivateKeyPath";
