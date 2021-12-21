@@ -443,6 +443,39 @@ stages:
           project: IotedgeDiagnosticsDotnet
           version: $(version)
           bin_dir: '$(Build.BinariesDirectory)'
+    # for E2E tests
+    - job: BuildImageMetricsValidator
+      steps:
+      - template: image-linux.yaml
+        parameters:
+          name: Metrics Validator
+          imageName: azureiotedge-metrics-validator
+          project: MetricsValidator
+          bin_dir: '$(Build.BinariesDirectory)'
+    - job: BuildImageDirectMethodSender
+      steps:
+      - template: image-linux.yaml
+        parameters:
+          name: Direct Method Sender
+          imageName: azureiotedge-direct-method-sender
+          project: DirectMethodSender
+          bin_dir: '$(Build.BinariesDirectory)'
+    - job: BuildImageDirectMethodReceiver
+      steps:
+      - template: image-linux.yaml
+        parameters:
+          name: Direct Method Receiver
+          imageName: azureiotedge-direct-method-receiver
+          project: DirectMethodReceiver
+          bin_dir: '$(Build.BinariesDirectory)'
+    - job: BuildImageNumberLogger
+      steps:
+      - template: image-linux.yaml
+        parameters:
+          name: Number Logger
+          imageName: azureiotedge-number-logger
+          project: NumberLogger
+          bin_dir: '$(Build.BinariesDirectory)'
 
 ################################################################################
   - stage: PublishManifests
