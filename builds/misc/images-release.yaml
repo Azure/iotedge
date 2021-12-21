@@ -446,7 +446,7 @@ stages:
     # for E2E tests
     - job: BuildImageMetricsValidator
       steps:
-      - template: image-linux.yaml
+      - template: templates/image-linux.yaml
         parameters:
           name: Metrics Validator
           imageName: azureiotedge-metrics-validator
@@ -454,7 +454,7 @@ stages:
           bin_dir: '$(Build.BinariesDirectory)'
     - job: BuildImageDirectMethodSender
       steps:
-      - template: image-linux.yaml
+      - template: templates/image-linux.yaml
         parameters:
           name: Direct Method Sender
           imageName: azureiotedge-direct-method-sender
@@ -462,7 +462,7 @@ stages:
           bin_dir: '$(Build.BinariesDirectory)'
     - job: BuildImageDirectMethodReceiver
       steps:
-      - template: image-linux.yaml
+      - template: templates/image-linux.yaml
         parameters:
           name: Direct Method Receiver
           imageName: azureiotedge-direct-method-receiver
@@ -470,7 +470,7 @@ stages:
           bin_dir: '$(Build.BinariesDirectory)'
     - job: BuildImageNumberLogger
       steps:
-      - template: image-linux.yaml
+      - template: templates/image-linux.yaml
         parameters:
           name: Number Logger
           imageName: azureiotedge-number-logger
