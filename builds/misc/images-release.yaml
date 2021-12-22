@@ -494,7 +494,7 @@ stages:
           bin_dir: '$(Build.BinariesDirectory)'
     - job: BuildImageTestResultCoordinator
       steps:
-      - template: remplates/image-linux.yaml
+      - template: templates/image-linux.yaml
         parameters:
           name: TestResultCoordinator
           imageName: azureiotedge-test-result-coordinator
