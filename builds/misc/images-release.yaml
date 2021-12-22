@@ -476,6 +476,14 @@ stages:
           imageName: azureiotedge-number-logger
           project: NumberLogger
           bin_dir: '$(Build.BinariesDirectory)'
+    - job: BuildImageTemperatureFilter
+      steps:
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Temperature Filter
+          imageName: azureiotedge-temperature-filter
+          project: TemperatureFilter
+          bin_dir: '$(Build.BinariesDirectory)'
 
 ################################################################################
   - stage: PublishManifests
