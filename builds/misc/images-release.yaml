@@ -484,6 +484,22 @@ stages:
           imageName: azureiotedge-temperature-filter
           project: TemperatureFilter
           bin_dir: '$(Build.BinariesDirectory)'
+    - job: BuildImageLoadGen
+      steps:
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Load Gen
+          imageName: azureiotedge-load-gen
+          project: load-gen
+          bin_dir: '$(Build.BinariesDirectory)'
+    - job: BuildImageTestResultCoordinator
+      steps:
+      - template: remplates/image-linux.yaml
+        parameters:
+          name: TestResultCoordinator
+          imageName: azureiotedge-test-result-coordinator
+          project: TestResultCoordinator
+          bin_dir: '$(Build.BinariesDirectory)'
 
 ################################################################################
   - stage: PublishManifests
