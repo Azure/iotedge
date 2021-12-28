@@ -427,19 +427,19 @@ stages:
         inputs:
             BuildDropPath: '$(Build.BinariesDirectory)/publish'               
 
-      - task: PublishBuildArtifacts@1
-        displayName: 'Publish Artifacts'
-        inputs:
-          pathToPublish: '$(Build.BinariesDirectory)/publish'
-          artifactName: 'consolidated_artifacts'
-          StoreAsTar: true   
-
       - task: CopyFiles@2
         displayName: Copy rocksdb libs
         inputs:
           sourceFolder: '$(Build.ArtifactStagingDirectory)/librocksdb'
           contents: '**'
           targetFolder: '$(Build.BinariesDirectory)/publish/librocksdb' 
+
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifacts'
+        inputs:
+          pathToPublish: '$(Build.BinariesDirectory)/publish'
+          artifactName: 'consolidated_artifacts'
+          StoreAsTar: true   
 
 ################################################################################
   - stage:  BuildImages
