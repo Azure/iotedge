@@ -274,7 +274,7 @@ stages:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
     dependsOn: ConsolidateAndPubishArtifacts
     jobs:
     - job: BuildImageEdgeAgent
@@ -497,10 +497,6 @@ stages:
       steps:
       - bash: |
           sudo apt-get update && sudo apt-get -y install qemu binfmt-support qemu-user-static && \
-          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes && \
-          docker buildx rm  mbuilder || true  && \
-          docker buildx create --name mbuilder  || true  && \
-          docker buildx use mbuilder
           docker -v
       - template: image-linux.yaml
         parameters:

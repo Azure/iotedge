@@ -42,16 +42,6 @@ steps:
     inputs:
       command: login
       containerRegistry: iotedge-release-acr      
-  - bash: |
-      if docker buildx ls | grep arm; \
-      then \
-        echo "Buildx flag is set, and docker buildx arm support is installed"; \
-      else \
-        sudo apt-get update && sudo apt-get -y install qemu binfmt-support qemu-user-static && \
-        docker run --rm --privileged multiarch/qemu-user-static --reset -p yes; \
-      fi
-    displayName: Activate binary compatibility for buildx
-    condition: and(succeeded(), eq('${{ parameters.buildx_flag }}', 'true'))
   - task: Bash@3
     displayName: Build Image - ${{ parameters.name }} - amd64
     inputs:
