@@ -1,5 +1,4 @@
 ﻿ARG base_tag=3.1.19-alpine3.14
-FROM azureiotedge/azureiotedge-runtime-base:1.2-linux-amd64 as builder
 
 FROM mcr.microsoft.com/dotnet/aspnet:${base_tag}
 
@@ -12,7 +11,9 @@ RUN apk update && \
     apk add --no-cache snappy libcap	
 
 # Add an unprivileged user account for running Edge Hub	
-ARG EDGEHUBUSER_ID=1000	
+# value was chosen as a large value to avoid a typical regular uid
+ARG EDGEHUBUSER_ID	
+ENV EDGEHUBUSER_ID ${EDGEHUBUSER_ID:-1000}
 RUN adduser -Ds /bin/sh -u ${EDGEHUBUSER_ID} edgehubuser 	
 
 # Add the CAP_NET_BIND_SERVICE capability to the dotnet binary because	
@@ -20,7 +21,7 @@ RUN adduser -Ds /bin/sh -u ${EDGEHUBUSER_ID} edgehubuser
 RUN setcap 'cap_net_bind_service=+ep' /usr/share/dotnet/dotnet	
 
 # Install RocksDB	
-COPY --from=builder publish/* /usr/local/lib/	
+COPY $EXE_DIR/librocksdb/librocksdb.so.amd64 /usr/local/lib/librocksdb.so
 
 WORKDIR /app	
 
