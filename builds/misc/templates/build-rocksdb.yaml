@@ -1,3 +1,5 @@
+parameters:
+  dependency: ""
 stages: 
 ################################################################################
   - stage: BuildRocksDB
@@ -7,7 +9,7 @@ stages:
       name: $(pool.linux.name)
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
-    dependsOn: []
+    dependsOn: [ ${{ parameters.dependency}} ]
     jobs: 
     - job: BuildRocksDB
       displayName: Build Rocks DB
