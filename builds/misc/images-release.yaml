@@ -308,7 +308,6 @@ stages:
 # This stage builds Rocks DB and adds the files to staging directory
 ################################################################################
   - template: templates/build-rocksdb.yaml
-    parameters: 
 ################################################################################
 
 # This stage first downloads the dotnet and rust artifacts from the previous stage, then
