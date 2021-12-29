@@ -8,6 +8,8 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # create a user to allow agent to optionally run as non-root
+# value was chosen as a large value to avoid a typical regular uid, 
+# and matches the "edgeagentuser" created in install packages.
 ARG EDGEAGENTUSER_ID
 ENV EDGEAGENTUSER_ID ${EDGEAGENTUSER_ID:-13622}
 RUN useradd -ms /bin/bash -u ${EDGEAGENTUSER_ID} edgeagentuser 

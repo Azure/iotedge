@@ -305,42 +305,10 @@ stages:
 
     - template: templates/build-broker-watchdog.yaml
 
+# This stage builds Rocks DB and adds the files to staging directory
 ################################################################################
-  - stage: BuildRocksDB
+  - template: templates/build-rocksdb.yaml
 ################################################################################
-    displayName: Build RocksDB
-    pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
-    jobs: 
-    - job: BuildRocksDB
-      displayName: Build Rocks DB
-      strategy:
-        matrix:
-          RocksDbAmd64:
-            arch: amd64
-            postfix: amd64
-          RocksDbArm32:
-            arch: arm32v7
-            postfix: armhf
-          RocksDbArm64:
-            arch: arm64v8
-            postfix: arm64
-      steps:
-      - bash: |
-          build_image=rocksdb-build:master-$(postfix)-$(Build.BuildNumber) && \
-          mkdir -p $(Build.ArtifactStagingDirectory)/librocksdb && \
-          cd $(System.DefaultWorkingDirectory)/edge-util/docker/linux/$(arch) && \
-          docker build --tag ${build_image} . && \
-          docker run --rm -v $(Build.ArtifactStagingDirectory)/librocksdb:/artifacts \
-            ${build_image} cp /publish/librocksdb.so.$(postfix) /artifacts
-        displayName: Build and copy out rocksdb lib
-      - task: PublishBuildArtifacts@1
-        displayName: 'Publish Artifacts to VSTS'
-        inputs:
-          PathtoPublish: '$(Build.ArtifactStagingDirectory)/librocksdb'
-          artifactName: 'librocksdb'
 
 # This stage first downloads the dotnet and rust artifacts from the previous stage, then
 # copies the mqtt and watchdog artifacts into the appropriate directories 

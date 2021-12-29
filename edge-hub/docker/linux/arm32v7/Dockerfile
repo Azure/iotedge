@@ -2,6 +2,7 @@ ARG base_tag=3.1.19-bionic-arm32v7
 FROM mcr.microsoft.com/dotnet/aspnet:${base_tag}
 
 # Add an unprivileged user account for running Edge Hub
+# value was chosen as a large value to avoid a typical regular uid
 ARG EDGEHUBUSER_ID=13623
 RUN useradd -ms /bin/bash -u ${EDGEHUBUSER_ID} edgehubuser
 ENV EdgeHubUser=edgehubuser
