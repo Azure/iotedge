@@ -7,6 +7,7 @@ stages:
       name: $(pool.linux.name)
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+    dependsOn: []
     jobs: 
     - job: BuildRocksDB
       displayName: Build Rocks DB
