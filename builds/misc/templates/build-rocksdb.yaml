@@ -1,4 +1,13 @@
-
+parameters: 
+stages: 
+################################################################################
+  - stage: BuildRocksDB
+################################################################################
+    displayName: Build RocksDB
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
     jobs: 
     - job: BuildRocksDB
       displayName: Build Rocks DB

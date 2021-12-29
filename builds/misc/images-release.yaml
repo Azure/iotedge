@@ -307,14 +307,8 @@ stages:
 
 # This stage builds Rocks DB and adds the files to staging directory
 ################################################################################
-  - stage: BuildRocksDB
-################################################################################
-    displayName: Build RocksDB
-    pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
   - template: templates/build-rocksdb.yaml
+    parameters: 
 ################################################################################
 
 # This stage first downloads the dotnet and rust artifacts from the previous stage, then
