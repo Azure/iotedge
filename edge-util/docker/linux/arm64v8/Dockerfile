@@ -1,5 +1,5 @@
 ﻿# docker file for azureiotedge/azureiotedge-runtime-base:1.2-linux-arm64v8
-FROM ubuntu:20.04
+FROM ubuntu:18.04
 
 ARG num_procs=4
 
