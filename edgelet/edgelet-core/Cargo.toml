@@ -28,7 +28,7 @@ tokio-util = { version = "0.6", features = ["codec"] }
 url = { version = "2", features = ["serde"] }
 
 # aziotctl-common = { git = "https://github.com/Azure/iot-identity-service.git", branch = "main" }
-aziotctl-common = { path = "/home/onalante/workspace/iot-identity-service/aziotctl/aziotctl-common" }
+aziotctl-common = { git = "https://github.com/onalante-msft/iot-identity-service.git", branch = "prod_info" }
 edgelet-settings = { path = "../edgelet-settings" }
 
 [dev-dependencies]
