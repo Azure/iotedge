@@ -305,6 +305,11 @@ stages:
 
     - template: templates/build-broker-watchdog.yaml
 
+# This stage builds Rocks DB and adds the files to staging directory
+################################################################################
+  - template: templates/build-rocksdb.yaml
+################################################################################
+
 # This stage first downloads the dotnet and rust artifacts from the previous stage, then
 # copies the mqtt and watchdog artifacts into the appropriate directories 
 # required by consolidate-build-artifacts.sh. It then runs consolidate-build-artifacts.sh,
@@ -321,7 +326,7 @@ stages:
       name: $(pool.linux.name)
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker  
-    dependsOn: BuildExecutables
+    dependsOn: [BuildExecutables, BuildRocksDB]
     jobs:
     - job: ConsolidateAndPublishArtifacts
       steps:
@@ -390,12 +395,19 @@ stages:
         inputs:
             BuildDropPath: '$(Build.BinariesDirectory)/publish'               
 
+      - task: CopyFiles@2
+        displayName: Copy rocksdb libs
+        inputs:
+          sourceFolder: '$(Build.ArtifactStagingDirectory)/librocksdb'
+          contents: '**'
+          targetFolder: '$(Build.BinariesDirectory)/publish/librocksdb' 
+
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifacts'
         inputs:
           pathToPublish: '$(Build.BinariesDirectory)/publish'
           artifactName: 'consolidated_artifacts'
-          StoreAsTar: true    
+          StoreAsTar: true   
 
 ################################################################################
   - stage:  BuildImages
@@ -404,7 +416,7 @@ stages:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
     dependsOn: ConsolidateAndPubishArtifacts
     jobs:
     - job: BuildImageEdgeHub
@@ -416,6 +428,8 @@ stages:
           project: edge-hub
           version: $(version)
           bin_dir: '$(Build.BinariesDirectory)'
+          buildx_flag: 'true'
+          use_rocksdb: true
     - job: BuildImageEdgeAgent
       steps:        
       - template: templates/image-linux.yaml
@@ -425,6 +439,8 @@ stages:
           project: Microsoft.Azure.Devices.Edge.Agent.Service
           version: $(version)
           bin_dir: '$(Build.BinariesDirectory)'
+          buildx_flag: 'true'
+          use_rocksdb: true
     - job: BuildImageTemperatureSensor
       steps:        
       - template: templates/image-linux.yaml
@@ -434,6 +450,7 @@ stages:
           project: SimulatedTemperatureSensor
           version: $(version)
           bin_dir: '$(Build.BinariesDirectory)'
+          buildx_flag: 'true'
     - job: BuildImageDiagnostics
       steps:        
       - template: templates/image-linux.yaml
@@ -443,6 +460,7 @@ stages:
           project: IotedgeDiagnosticsDotnet
           version: $(version)
           bin_dir: '$(Build.BinariesDirectory)'
+          buildx_flag: 'true'
 
 ################################################################################
   - stage: PublishManifests
