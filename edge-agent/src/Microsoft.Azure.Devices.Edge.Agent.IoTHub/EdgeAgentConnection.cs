@@ -568,14 +568,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 bool signatureVerified = false;
                 using (IDisposable verificationTimer = this.deploymentMetrics.StartTwinSignatureTimer())
                 {
-                    // Currently not verifying the chaining as Manifest signer client already does that.
-                    // There is known bug in which the certs are not processed correctly which breaks the chaining verification.
-                    /* if (!CertificateHelper.VerifyManifestTrustBunldeCertificateChaining(signerCert, intermediatecacert, manifestTrustBundleRootCertificate))
-                    {
-                        throw new ManifestTrustBundleChainingFailedException("The signer cert with or without the intermediate CA cert in the twin does not chain up to the Manifest Trust Bundle Root CA configured in the device");
-                    }
-                    */
-
                     signatureVerified = SignatureValidator.VerifySignature(desiredProperties.ToString(), header.ToString(), signatureBytes, signerCert, algoResult.Key, algoResult.Value);
                 }
 
