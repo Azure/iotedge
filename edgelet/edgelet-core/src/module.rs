@@ -283,7 +283,7 @@ pub struct SystemInfo {
 
     pub architecture: String,
     pub cpus: i32,
-    pub virtualized: Option<bool>,
+    pub virtualized: String,
     pub host_os_sku: Option<String>,
 
     pub board_name: Option<String>,
@@ -313,7 +313,11 @@ impl SystemInfo {
 
             architecture: os.arch.to_owned(),
             cpus: num_cpus::get() as i32,
-            virtualized: crate::virtualization::is_virtualized_env()?,
+            virtualized: match crate::virtualization::is_virtualized_env() {
+                Ok(Some(true)) => "yes",
+                Ok(Some(false)) => "no",
+                _ => "unknown"
+            }.to_owned(),
             host_os_sku: None,
 
             board_name: dmi.board,
@@ -338,7 +342,7 @@ impl SystemInfo {
                 if let Ok(line) = &line {
                     match aziotctl_common::host_info::parse_shell_line(line) {
                         Some(("HOST_OS_SKU_ID", value)) => {
-                            res.virtualized = Some(true);
+                            res.virtualized = "yes".to_owned();
                             res.host_os_sku = Some(value.to_owned());
                         },
                         Some(("MANUFACTURER", value)) => {
