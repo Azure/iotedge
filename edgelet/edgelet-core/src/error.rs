@@ -99,9 +99,6 @@ pub enum ErrorKind {
     #[fail(display = "Signing error occurred. Invalid key length: {}", _0)]
     SignInvalidKeyLength(usize),
 
-    #[fail(display = "An error occurred when loading /etc/product-info: {}", _0)]
-    ProductInfo(String),
-
     #[fail(display = "The workload manager encountered an error")]
     WorkloadManager,
 }
