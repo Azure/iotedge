@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using System;
     using System.Collections.Generic;
     using System.Net;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
@@ -84,14 +85,74 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         {
             // IModuleClientProvider
             builder.Register(
-                    c => new ModuleClientProvider(
-                        c.Resolve<ISdkModuleClientProvider>(),
-                        this.upstreamProtocol,
-                        this.proxy,
-                        this.productInfo,
-                        this.closeOnIdleTimeout,
-                        this.idleTimeout,
-                        this.useServerHeartbeat))
+                    c => {
+                        IModuleManager m = c.Resolve<IModuleManager>();
+
+                        // NOTE: Deadlock risk
+                        SystemInfo system = m.GetSystemInfoAsync(CancellationToken.None)
+                            .ConfigureAwait(false)
+                            .GetAwaiter()
+                            .GetResult();
+
+                        StringBuilder b = new StringBuilder(this.productInfo);
+
+                        if (!string.IsNullOrEmpty(system.Kernel))
+                        {
+                            b.Append($" {system.Kernel}");
+                            if (!string.IsNullOrEmpty(system.KernelRelease))
+                            {
+                                b.Append($"/{system.KernelRelease}");
+                            }
+                            if (!string.IsNullOrEmpty(system.KernelVersion))
+                            {
+                                b.Append(" ({system.KernelVersion})");
+                            }
+                        }
+
+                        if (!string.IsNullOrEmpty(system.OperatingSystem))
+                        {
+                            b.Append($" {system.OperatingSystem}");
+                            if (!string.IsNullOrEmpty(system.OperatingSystemVersion))
+                            {
+                                b.Append($"/{system.OperatingSystemVersion}");
+                            }
+                        }
+
+                        if (!string.IsNullOrEmpty(system.ProductName))
+                        {
+                            b.Append($" {system.ProductName}");
+                            if (!string.IsNullOrEmpty(system.ProductVersion))
+                            {
+                                b.Append($"/{system.ProductVersion}");
+                            }
+                            if (!string.IsNullOrEmpty(system.ProductSku))
+                            {
+                                b.Append($" ({system.ProductSku})");
+                            }
+                        }
+
+                        if (!string.IsNullOrEmpty(system.SystemFamily))
+                        {
+                            b.Append($" {system.SystemFamily}");
+                            if (!string.IsNullOrEmpty(system.BoardName))
+                            {
+                                b.Append($"/{system.BoardName}");
+                            }
+                            if (!string.IsNullOrEmpty(system.SystemVendor))
+                            {
+                                b.Append($" ({system.SystemVendor})");
+                            }
+                        }
+
+                        return new ModuleClientProvider(
+                            c.Resolve<ISdkModuleClientProvider>(),
+                            this.upstreamProtocol,
+                            this.proxy,
+                            b.ToString(),
+                            this.closeOnIdleTimeout,
+                            this.idleTimeout,
+                            this.useServerHeartbeat);
+                    })
                 .As<IModuleClientProvider>()
                 .SingleInstance();
 

@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             return new KubernetesEnvironmentProvider(
                 runtimeInfoProvider,
                 store,
-                systemInfo.OperatingSystemType,
+                systemInfo.Kernel,
                 systemInfo.Architecture,
                 systemInfo.Version);
         }

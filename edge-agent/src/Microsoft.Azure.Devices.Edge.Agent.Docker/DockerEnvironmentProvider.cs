@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 runtimeInfoProvider,
                 store,
                 restartPolicyManager,
-                systemInfo.OperatingSystemType,
+                systemInfo.Kernel,
                 systemInfo.Architecture,
                 systemInfo.Version);
         }
