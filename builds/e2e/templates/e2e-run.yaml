@@ -19,7 +19,7 @@ steps:
     $test_type = '${{ parameters.test_type }}'
 
     # Filter out flaky tests.
-    $filter = 'Category!=Flaky&Category=contenttrust'
+    $filter = 'Category!=Flaky'
     if ('$(minimal)' -eq 'true')
     {
       $filter += '&Name~TempSensor'
