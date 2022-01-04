@@ -150,7 +150,7 @@ jobs:
     displayName: Ubuntu 20.04 with arm64v8
     pool:
       name: $(pool.custom.name)
-      demands:
+      demands: 
         - agent-group -equals rpi3-e2e-aarch64
 
     variables:

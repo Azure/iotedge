@@ -285,11 +285,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         }
 
         public void RemoveManifestTrustBundle() => this.config[Service.Certd].Document.RemoveIfExists("preloaded_certs.aziot-edged-manifest-trust-bundle");
-        public void RemoveContentTrustCerts()
-        {
-            this.config[Service.Edged].Document.RemoveIfExists("moby_runtime.content_trust.ca_certs");
-            this.config[Service.Certd].Document.RemoveIfExists("preloaded_certs");
-        }
 
         public void AddIdentityPrincipal(string name, uint uid, string[] type = null, Dictionary<string, string> opts = null)
         {
