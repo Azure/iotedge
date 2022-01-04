@@ -26,6 +26,14 @@ stages:
               fi
             displayName: Check changes in runtime sources
             name: check_files
+
+# This stage builds Rocks DB and adds the files to staging directory
+################################################################################
+  - template: build-rocksdb.yaml
+    parameters:
+      dependency: [ CheckBuildImages ]
+################################################################################
+
 ################################################################################
   - stage: BuildExecutables
 ################################################################################
@@ -39,8 +47,8 @@ stages:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker  
-    dependsOn: CheckBuildImages
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker  
+    dependsOn: BuildRocksDB
     jobs:
       - job: linux_dotnet_projects
         displayName: LinuxDotnet
@@ -57,7 +65,20 @@ stages:
   
         - script: scripts/linux/createArtifactInfo.sh --output-folder '$(Build.BinariesDirectory)/publish' --build-number $(Build.BuildNumber)
           displayName: 'Create Artifact Info File'
-  
+
+        - task: DownloadPipelineArtifact@2
+          inputs:
+            artifact: 'librocksdb'
+            # place in '$(Pipeline.Workspace)/librocksdb'
+            path: '$(Pipeline.Workspace)/librocksdb'
+
+        - task: CopyFiles@2
+          displayName: Copy rocksdb libs
+          inputs:
+            sourceFolder: '$(Pipeline.Workspace)/librocksdb'
+            contents: '**'
+            targetFolder: '$(Build.BinariesDirectory)/publish/librocksdb'
+
         - task: PublishBuildArtifacts@1
           displayName: 'Publish Artifacts'
           inputs:
@@ -70,6 +91,8 @@ stages:
             name: Edge Agent
             imageName: azureiotedge-agent
             project: Microsoft.Azure.Devices.Edge.Agent.Service
+            buildx_flag: 'true'
+            use_rocksdb: true
   
         # Edge Hub
         - template: image-linux.yaml
@@ -77,6 +100,8 @@ stages:
             name: Edge Hub
             imageName: azureiotedge-hub
             project: Microsoft.Azure.Devices.Edge.Hub.Service
+            buildx_flag: 'true'
+            use_rocksdb: true
   
         # Simulated Temperature Sensor
         - template: image-linux.yaml
@@ -84,6 +109,7 @@ stages:
             name: Temperature Sensor
             imageName: azureiotedge-simulated-temperature-sensor
             project: SimulatedTemperatureSensor
+            buildx_flag: 'true'
   
         # Dotnet Diagnostics Module
         - template: image-linux.yaml
@@ -91,6 +117,7 @@ stages:
             name: Diagnostics
             imageName: azureiotedge-diagnostics
             project: IotedgeDiagnosticsDotnet
+            buildx_flag: 'true'
   
         # Temperature Filter
         - template: image-linux.yaml
@@ -98,6 +125,7 @@ stages:
             name: Temperature Filter
             imageName: azureiotedge-temperature-filter
             project: TemperatureFilter
+            buildx_flag: 'true'
   
         # Load Gen
         - template: image-linux.yaml
@@ -105,6 +133,7 @@ stages:
             name: Load Gen
             imageName: azureiotedge-load-gen
             project: load-gen
+            buildx_flag: 'true'
   
         # Test Analyzer
         - template: image-linux.yaml
@@ -112,6 +141,8 @@ stages:
             name: Test Analyzer
             imageName: azureiotedge-analyzer
             project: TestAnalyzer
+            buildx_flag: 'true'
+            use_rocksdb: true
   
         # Functions Sample - Not supported on linux arm64
         - template: image-linux.yaml
@@ -126,6 +157,7 @@ stages:
             name: Direct Method Sender
             imageName: azureiotedge-direct-method-sender
             project: DirectMethodSender
+            buildx_flag: 'true'
   
         # Direct Method Receiver
         - template: image-linux.yaml
@@ -133,6 +165,7 @@ stages:
             name: Direct Method Receiver
             imageName: azureiotedge-direct-method-receiver
             project: DirectMethodReceiver
+            buildx_flag: 'true'
   
         # Metrics Validator
         - template: image-linux.yaml
@@ -140,6 +173,7 @@ stages:
             name: Metrics Validator
             imageName: azureiotedge-metrics-validator
             project: MetricsValidator
+            buildx_flag: 'true'
   
         # Number Logger
         - template: image-linux.yaml
@@ -147,6 +181,7 @@ stages:
             name: Number Logger
             imageName: azureiotedge-number-logger
             project: NumberLogger
+            buildx_flag: 'true'
   
        # Module Restarter
         - template: image-linux.yaml
@@ -154,6 +189,7 @@ stages:
             name: Module Restarter
             imageName: azureiotedge-module-restarter
             project: ModuleRestarter
+            buildx_flag: 'true'
   
        # Twin Tester
         - template: image-linux.yaml
@@ -161,6 +197,8 @@ stages:
             name: TwinTester
             imageName: azureiotedge-twin-tester
             project: TwinTester
+            buildx_flag: 'true'
+            use_rocksdb: true
   
        # Relayer
         - template: image-linux.yaml
@@ -168,6 +206,7 @@ stages:
             name: Relayer
             imageName: azureiotedge-relayer
             project: Relayer
+            buildx_flag: 'true'
   
       # Network Controller
         - template: image-linux.yaml
@@ -175,13 +214,17 @@ stages:
             name: Network Controller
             imageName: azureiotedge-network-controller
             project: NetworkController
-  
+            buildx_flag: 'true'
+            use_rocksdb: true
+
        # TestResultCoordinator
         - template: image-linux.yaml
           parameters:
             name: TestResultCoordinator
             imageName: azureiotedge-test-result-coordinator
             project: TestResultCoordinator
+            buildx_flag: 'true'
+            use_rocksdb: true
   
        # Metrics Collector (test-only)
         - template: image-linux.yaml
@@ -189,6 +232,7 @@ stages:
             name: Metrics Collector (test-only)
             imageName: azureiotedge-test-metrics-collector
             project: MetricsCollector
+            buildx_flag: 'true'
   
        # Deployment Tester
         - template: image-linux.yaml
@@ -196,6 +240,7 @@ stages:
             name: DeploymentTester
             imageName: azureiotedge-deployment-tester
             project: DeploymentTester
+            buildx_flag: 'true'
   
        # EdgeHub Restart Tester
         - template: image-linux.yaml
@@ -203,6 +248,7 @@ stages:
             name: EdgeHubRestartTester
             imageName: azureiotedge-edgehub-restart-tester
             project: EdgeHubRestartTester
+            buildx_flag: 'true'
   
        # Cloud To Device Message Tester
         - template: image-linux.yaml
@@ -210,6 +256,7 @@ stages:
             name: Cloud To Device Message Tester
             imageName: azureiotedge-c2dmessage-tester
             project: CloudToDeviceMessageTester
+            buildx_flag: 'true'
   
        # Metrics Collector (customer-facing)
         - template: image-linux.yaml
@@ -217,6 +264,7 @@ stages:
             name: Metrics Collector (customer-facing)
             imageName: azureiotedge-metrics-collector
             project: Microsoft.Azure.Devices.Edge.Azure.Monitor
+            buildx_flag: 'true'
   
 ################################################################################
   # linux - Rust amd64
