@@ -18,6 +18,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
         readonly ISystemTime systemTime;
         long lastDeploymentId;
 
+        static readonly ILogger Log = Logger.Factory.CreateLogger<OrderedRetryPlanRunner>();
+
         public OrderedRetryPlanRunner(int maxRunCount, int coolOffTimeUnitInSeconds, ISystemTime systemTime)
         {
             this.maxRunCount = Preconditions.CheckRange(
@@ -43,15 +45,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
             {
                 Events.PlanExecStarted(deploymentId);
 
+                Log.LogInformation($"entering ExecuteAsync, last deployment id [{this.lastDeploymentId}], current [{deploymentId}]");
+
                 // if this is a new deployment we haven't seen before then clear the
                 // saved command run status values
                 if (this.lastDeploymentId != -1 && this.lastDeploymentId != deploymentId)
                 {
+                    Log.LogInformation($"clearing command run status");
                     Events.NewDeployment(deploymentId);
                     this.commandRunStatus.Clear();
                 }
                 else
                 {
+                    Log.LogInformation($"NOT clearing command run status");
                     if (this.lastDeploymentId != -1)
                     {
                         Events.OldDeployment(deploymentId);
@@ -86,6 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
                             // run status
                             if (this.commandRunStatus.ContainsKey(command.Id))
                             {
+                                Log.LogInformation($"storing command run status for [{command.Id}], because it has been executed");
                                 this.commandRunStatus[command.Id] = CommandRunStats.Default;
                             }
                         }
@@ -100,12 +107,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
                         Events.PlanExecStepFailed(deploymentId, command, coolOffPeriod, elapsedTime);
                         if (!failures.HasValue)
                         {
+                            Log.LogInformation($"exception with command [{command.Id}], creating new failures list");
                             failures = Option.Some(new List<Exception>());
                         }
 
                         failures.ForEach(f => f.Add(ex));
 
                         // since this command failed, record its status
+                        Log.LogInformation($"storing command run status for [{command.Id}], because of failure");
                         int newRunCount = this.commandRunStatus.ContainsKey(command.Id) ? this.commandRunStatus[command.Id].RunCount : 0;
                         this.commandRunStatus[command.Id] = new CommandRunStats(newRunCount + 1, this.systemTime.UtcNow, ex);
                     }
@@ -122,21 +131,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
             // the command should be run if there's no entry for it in our status dictionary
             if (this.commandRunStatus.ContainsKey(command.Id) == false)
             {
+                Log.LogInformation($"Command run status does not have key for command [{command.Id}]");
                 return (true, -1, TimeSpan.MinValue, TimeSpan.MinValue);
             }
 
+            Log.LogInformation($"Storing command run status for command [{command.Id}]");
             CommandRunStats commandRunStatus = this.commandRunStatus[command.Id];
 
             // if this command has been run maxRunCount times already then don't
             // run it anymore
             if (commandRunStatus.RunCount == this.maxRunCount)
             {
+                Log.LogInformation($"reached maximum count for command [{command.Id}]");
                 return (false, commandRunStatus.RunCount, TimeSpan.MinValue, TimeSpan.MinValue);
             }
 
             TimeSpan coolOffPeriod = TimeSpan.FromSeconds(
                 this.coolOffTimeUnitInSeconds * Math.Pow(2, commandRunStatus.RunCount));
             TimeSpan elapsedTime = this.systemTime.UtcNow - commandRunStatus.LastRunTimeUtc;
+
+            Log.LogInformation($"calculated cooloff for command [{command.Id}]: cool off [{coolOffPeriod}], elapsed [{elapsedTime}]");
 
             return (elapsedTime > coolOffPeriod, commandRunStatus.RunCount, coolOffPeriod, elapsedTime);
         }
