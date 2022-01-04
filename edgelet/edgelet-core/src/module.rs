@@ -2,6 +2,8 @@
 
 use std::default::Default;
 use std::fmt;
+use std::fs::File;
+use std::io::{BufRead as _, BufReader};
 use std::result::Result;
 use std::str::FromStr;
 use std::string::ToString;
@@ -10,7 +12,9 @@ use std::time::Duration;
 use chrono::prelude::*;
 use failure::{Fail, ResultExt};
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 
+use aziotctl_common::host_info::{DmiInfo, OsInfo};
 use edgelet_settings::module::Settings as ModuleSpec;
 use edgelet_settings::RuntimeSettings;
 use tokio::sync::mpsc::UnboundedSender;
@@ -266,21 +270,101 @@ pub trait ModuleRegistry {
     async fn remove(&self, name: &str) -> Result<(), Self::Error>;
 }
 
-#[derive(Debug, Default, Deserialize, PartialEq, Serialize)]
+#[skip_serializing_none]
+#[derive(Debug, Default, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SystemInfo {
-    /// OS Type of the Host. Example of value expected: \"linux\" and \"windows\".
-    #[serde(rename = "osType")]
-    pub os_type: String,
-    /// Hardware architecture of the host. Example of value expected: arm32, x86, amd64
+    pub kernel: String,
+    pub kernel_release: String,
+    pub kernel_version: String,
+
+    pub operating_system: Option<String>,
+    pub operating_system_version: Option<String>,
+
     pub architecture: String,
-    /// iotedge version string
+    pub cpus: i32,
+    pub virtualized: Option<bool>,
+    pub host_os_sku: Option<String>,
+
+    pub board_name: Option<String>,
+    pub product_name: Option<String>,
+    pub product_sku: Option<String>,
+    pub product_version: Option<String>,
+    pub system_family: Option<String>,
+    pub system_vendor: Option<String>,
+
     pub version: String,
     pub provisioning: ProvisioningInfo,
-    pub server_version: String,
-    pub kernel_version: String,
-    pub operating_system: String,
-    pub cpus: i32,
-    pub virtualized: String,
+}
+
+impl SystemInfo {
+    #[allow(dead_code)]
+    fn from_system() -> Result<Self, Error> {
+        let kernel = nix::sys::utsname::uname();
+        let dmi = DmiInfo::default();
+        let os = OsInfo::default();
+
+        let mut res = Self {
+            kernel: kernel.sysname().to_owned(),
+            kernel_release: kernel.release().to_owned(),
+            kernel_version: kernel.version().to_owned(),
+
+            operating_system: os.id,
+            operating_system_version: os.version_id,
+
+            architecture: os.arch.to_owned(),
+            cpus: num_cpus::get() as i32,
+            virtualized: crate::virtualization::is_virtualized_env()?,
+            host_os_sku: None,
+
+            board_name: dmi.board,
+            product_name: dmi.product,
+            product_sku: dmi.sku,
+            product_version: dmi.version,
+            system_family: dmi.family,
+            system_vendor: dmi.vendor,
+
+            version: crate::version_with_source_version(),
+            provisioning: ProvisioningInfo {
+                r#type: "ProvisioningType".into(),
+                dynamic_reprovisioning: false,
+                always_reprovision_on_startup: false,
+            },
+        };
+
+        if let Ok(product_info) = File::open("/etc/product-info") {
+            let product_info = BufReader::new(product_info);
+
+            for line in product_info.lines() {
+                if let Ok(line) = &line {
+                    match aziotctl_common::host_info::parse_shell_line(line) {
+                        Some(("HOST_OS_SKU_ID", value)) => {
+                            res.virtualized = Some(true);
+                            res.host_os_sku = Some(value.to_owned());
+                        },
+                        Some(("MANUFACTURER", value)) => {
+                            res.system_vendor = Some(value.to_owned());
+                        },
+                        Some(("SYSTEM_FAMILY", value)) => {
+                            res.system_family = Some(value.to_owned());
+                        },
+                        Some(("PRODUCT_NAME", value)) => {
+                            res.product_name = Some(value.to_owned());
+                        },
+                        Some(("BASE_BOARD", value)) => {
+                            res.board_name = Some(value.to_owned());
+                        },
+                        Some(("SKU_NUMBER", value)) => {
+                            res.product_sku = Some(value.to_owned());
+                        },
+                        _ => ()
+                    }
+                }
+            }
+        }
+
+        Ok(res)
+    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
