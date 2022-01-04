@@ -4,25 +4,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     public class SystemInfo
     {
-        public SystemInfo(
-            string kernel, string kernelRelease, string kernelVersion,
-            string operatingSystem, string operatingSystemVersion,
-            string architecture, int numCpus, string virtualized, string hostOsSku,
-            string boardName, string productName, string productSku, string productVersion, string systemFamily, string systemVendor,
-            string version, ProvisioningInfo provisioning
-        )
+        public SystemInfo(string kernel, string kernelRelease, string kernelVersion, string operatingSystem, string operatingSystemVersion, string architecture, int numCpus, string virtualized, string hostOsSku, string boardName, string productName, string productSku, string productVersion, string systemFamily, string systemVendor, string version, ProvisioningInfo provisioning)
         {
-
         }
 
         public SystemInfo(string operatingSystemType, string architecture, string version, ProvisioningInfo provisioning, string _serverVersion, string kernelVersion, string operatingSystem, int numCpus, string virtualized)
-            : this(
-                operatingSystemType, kernelVersion, string.Empty,
-                operatingSystem, string.Empty,
-                architecture, numCpus, virtualized, string.Empty,
-                string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty,
-                version, provisioning
-            )
+            : this(operatingSystemType, kernelVersion, string.Empty, operatingSystem, string.Empty, architecture, numCpus, virtualized, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, version, provisioning)
         {
         }
 
