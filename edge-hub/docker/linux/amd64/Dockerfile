@@ -11,7 +11,6 @@ RUN apk update && \
     apk add --no-cache snappy libcap	
 
 # Add an unprivileged user account for running Edge Hub	
-# value was chosen as a large value to avoid a typical regular uid
 ARG EDGEHUBUSER_ID	
 ENV EDGEHUBUSER_ID ${EDGEHUBUSER_ID:-1000}
 RUN adduser -Ds /bin/sh -u ${EDGEHUBUSER_ID} edgehubuser 	

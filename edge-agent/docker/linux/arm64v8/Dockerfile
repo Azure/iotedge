@@ -14,8 +14,6 @@ RUN apt-get update && \
     ln -s /lib/aarch64-linux-gnu/libc.so.6 /usr/lib/aarch64-linux-gnu/libc.so.6
 
 # create a user to allow agent to optionally run as non-root
-# value was chosen as a large value to avoid a typical regular uid, 
-# and matches the "edgeagentuser" created in install packages.
 ARG EDGEAGENTUSER_ID
 ENV EDGEAGENTUSER_ID ${EDGEAGENTUSER_ID:-1000}
 RUN useradd -ms /bin/bash -u ${EDGEAGENTUSER_ID} edgeagentuser 
