@@ -308,7 +308,11 @@ impl SystemInfo {
 
             architecture: os.arch.to_owned(),
             cpus: num_cpus::get() as i32,
-            virtualized: crate::virtualization::is_virtualized_env()?,
+            virtualized: match crate::virtualization::is_virtualized_env() {
+                Ok(Some(true)) => "yes",
+                Ok(Some(false)) => "no",
+                _ => "unknown"
+            }.to_owned(),
 
             product_name: dmi.product,
             system_vendor: dmi.vendor,
