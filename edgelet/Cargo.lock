@@ -142,7 +142,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "tokio 1.12.0",
+ "tokio 1.15.0",
  "url 2.2.2",
 ]
 
@@ -717,7 +717,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "test-case",
- "tokio 1.12.0",
+ "tokio 1.15.0",
  "tokio-util",
  "url 2.2.2",
 ]
@@ -752,7 +752,7 @@ dependencies = [
  "tempdir",
  "tempfile",
  "time",
- "tokio 1.12.0",
+ "tokio 1.15.0",
  "typed-headers",
  "url 2.2.2",
 ]
@@ -774,7 +774,7 @@ dependencies = [
  "percent-encoding 2.1.0",
  "serde",
  "serde_json",
- "tokio 1.12.0",
+ "tokio 1.15.0",
 ]
 
 [[package]]
@@ -801,7 +801,7 @@ dependencies = [
  "serde",
  "serde_json",
  "support-bundle",
- "tokio 1.12.0",
+ "tokio 1.15.0",
  "url 2.2.2",
 ]
 
@@ -838,7 +838,7 @@ dependencies = [
  "regex 1.5.4",
  "serde",
  "serde_json",
- "tokio 1.12.0",
+ "tokio 1.15.0",
  "url 2.2.2",
 ]
 
@@ -885,7 +885,7 @@ dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
- "tokio 1.12.0",
+ "tokio 1.15.0",
  "yaml-rust",
 ]
 
@@ -1173,7 +1173,7 @@ dependencies = [
  "http 0.2.5",
  "indexmap",
  "slab",
- "tokio 1.12.0",
+ "tokio 1.15.0",
  "tokio-util",
  "tracing",
 ]
@@ -1296,7 +1296,7 @@ dependencies = [
  "percent-encoding 2.1.0",
  "serde",
  "serde_json",
- "tokio 1.12.0",
+ "tokio 1.15.0",
  "tracing",
  "url 2.2.2",
 ]
@@ -1367,7 +1367,7 @@ dependencies = [
  "itoa",
  "pin-project-lite",
  "socket2",
- "tokio 1.12.0",
+ "tokio 1.15.0",
  "tower-service",
  "tracing",
  "want 0.3.0",
@@ -1386,7 +1386,7 @@ dependencies = [
  "openssl",
  "openssl-sys",
  "parking_lot 0.11.2",
- "tokio 1.12.0",
+ "tokio 1.15.0",
  "tokio-openssl",
  "tower-layer",
 ]
@@ -1420,7 +1420,7 @@ dependencies = [
  "http 0.2.5",
  "hyper 0.14.14",
  "openssl",
- "tokio 1.12.0",
+ "tokio 1.15.0",
  "tokio-openssl",
  "tower-service",
 ]
@@ -1535,7 +1535,7 @@ dependencies = [
  "tabwriter",
  "tempfile",
  "termcolor 0.3.6",
- "tokio 1.12.0",
+ "tokio 1.15.0",
  "toml",
  "typed-headers",
  "url 2.2.2",
@@ -2501,7 +2501,7 @@ dependencies = [
  "hyper 0.14.14",
  "regex 1.5.4",
  "tempfile",
- "tokio 1.12.0",
+ "tokio 1.15.0",
  "zip",
 ]
 
@@ -2690,11 +2690,10 @@ dependencies = [
 
 [[package]]
 name = "tokio"
-version = "1.12.0"
+version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2c2416fdedca8443ae44b4527de1ea633af61d8f7169ffa6e72c5b53d24efcc"
+checksum = "fbbf1c778ec206785635ce8ad57fe52b3009ae9e0c9f574a728f3049d3e55838"
 dependencies = [
- "autocfg",
  "bytes 1.1.0",
  "libc",
  "memchr",
@@ -2751,9 +2750,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-macros"
-version = "1.5.0"
+version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2dd85aeaba7b68df939bd357c6afb36c87951be9e80bf9c859f2fc3e9fca0fd"
+checksum = "b557f72f448c511a979e2564e55d74e6c4432fc96ff4f6241bc6bded342643b7"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2769,7 +2768,7 @@ dependencies = [
  "futures-util",
  "openssl",
  "openssl-sys",
- "tokio 1.12.0",
+ "tokio 1.15.0",
 ]
 
 [[package]]
@@ -2866,7 +2865,7 @@ dependencies = [
  "futures-sink",
  "log",
  "pin-project-lite",
- "tokio 1.12.0",
+ "tokio 1.15.0",
 ]
 
 [[package]]
