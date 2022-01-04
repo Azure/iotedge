@@ -250,8 +250,11 @@ stages:
           project: IotedgeDiagnosticsDotnet
           bin_dir: '$(Build.BinariesDirectory)'   
           buildx_flag: 'true'
+
+    - job: BuildImageTemperatureFilter
       steps:
       - template: image-linux.yaml
+        parameters:
           name: Temperature Filter
           imageName: azureiotedge-temperature-filter
           project: TemperatureFilter
@@ -317,13 +320,16 @@ stages:
           project: MetricsValidator
           bin_dir: '$(Build.BinariesDirectory)'   
           buildx_flag: 'true'
+    - job: BuildImageNumberLogger
       steps:
       - template: image-linux.yaml
+        parameters:
           name: Number Logger
           imageName: azureiotedge-number-logger
           project: NumberLogger
           bin_dir: '$(Build.BinariesDirectory)'      
-          buildx_flag: 'true'   
+          buildx_flag: 'true'
+
     - job: BuildImageModuleRestarter
       steps:
       - template: image-linux.yaml
