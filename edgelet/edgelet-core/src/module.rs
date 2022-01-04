@@ -298,8 +298,7 @@ pub struct SystemInfo {
 }
 
 impl SystemInfo {
-    #[allow(dead_code)]
-    fn from_system() -> Result<Self, Error> {
+    pub fn from_system() -> Result<Self, Error> {
         let kernel = nix::sys::utsname::uname();
         let dmi = DmiInfo::default();
         let os = OsInfo::default();
