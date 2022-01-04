@@ -281,7 +281,7 @@ pub struct SystemInfo {
 
     pub architecture: String,
     pub cpus: i32,
-    pub virtualized: Option<bool>,
+    pub virtualized: String,
 
     pub product_name: Option<String>,
     pub system_vendor: Option<String>,
