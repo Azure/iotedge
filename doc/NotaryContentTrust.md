@@ -71,9 +71,9 @@ Important Note:
 Notary initializes the TUF trust collection for each image in the Container Registry. 
 
 ##### a. Notary Installation
-Notary client can be installed with `wget` command for `amd64` target platform and avoid installing using `sudo apt-get install notary`
+Notary client can be installed with `wget` command for `amd64` target platform and avoid installing using `sudo apt-get install notary` as it installs the latest version which has known bugs.
 
-`wget https://github.com/theupdateframework/notary/releases/download/v0.6.1/notary-Linux-amd64`
+`wget https://github.com/theupdateframework/notary/releases/download/v0.6.0/notary-Linux-amd64` (Note: 0.6.1 version has bugs on `notary lookup` operation. so please install the version specified.)
 
 Rename `notary-Linux-amd64` to `notary` and change the permissions by `chmod +x notary` and place the binary in `/usr/bin/notary`
 
@@ -133,7 +133,7 @@ The root CA of each Container Registry i.e `root_ca_exampleregistry.crt` must be
 
 In the `config.yaml`, in the Moby runtime section, content trust can be enabled by specifiying the registry server name and certificate ID of the root CA as shown in [sample](https://github.com/Azure/iotedge/blob/master/edgelet/iotedge/test-files/init/import/moby-runtime-content-trust/edged.yaml)
 
-In the `certd.toml`, under `preloaded_certs`, the mapping of the certificate ID and file path of the root CA must be configured as shown in [sample](https://github.com/Azure/iotedge/blob/master/edgelet/iotedge/test-files/config/moby-runtime-content-trust/certd.toml)
+In the `super-config.toml`, under `moby_runtime.content_trust.ca_certs`, the mapping of the certificate ID and file path of the root CA must be configured as shown in [sample](https://github.com/Azure/iotedge/blob/master/edgelet/iotedge/test-files/config/moby-runtime-content-trust/super-config.toml#L56)
 
 Recommendation is to create another Service Principal with Pull access for the edge device and ensure the login credentials are applied in the deployment manifest. 
 
