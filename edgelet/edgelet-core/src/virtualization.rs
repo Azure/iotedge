@@ -10,10 +10,7 @@ pub fn is_virtualized_env() -> Result<Option<bool>, Error> {
             .status()
             .context(ErrorKind::GetVirtualizationStatus)?;
 
-        match status.code() {
-            Some(0) => Ok(Some(true)),
-            _ => Ok(Some(false)),
-        }
+        Ok(Some(status.code() == Some(0)))
     } else {
         Ok(None)
     }

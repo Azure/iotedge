@@ -10,7 +10,9 @@ use std::time::Duration;
 use chrono::prelude::*;
 use failure::{Fail, ResultExt};
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 
+use aziotctl_common::host_info::{DmiInfo, OsInfo};
 use edgelet_settings::module::Settings as ModuleSpec;
 use edgelet_settings::RuntimeSettings;
 use tokio::sync::mpsc::UnboundedSender;
@@ -266,21 +268,62 @@ pub trait ModuleRegistry {
     async fn remove(&self, name: &str) -> Result<(), Self::Error>;
 }
 
-#[derive(Debug, Default, Deserialize, PartialEq, Serialize)]
+#[skip_serializing_none]
+#[derive(Debug, Default, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SystemInfo {
-    /// OS Type of the Host. Example of value expected: \"linux\" and \"windows\".
-    #[serde(rename = "osType")]
-    pub os_type: String,
-    /// Hardware architecture of the host. Example of value expected: arm32, x86, amd64
+    pub kernel: String,
+    pub kernel_release: String,
+    pub kernel_version: String,
+
+    pub operating_system: Option<String>,
+    pub operating_system_version: Option<String>,
+
     pub architecture: String,
-    /// iotedge version string
+    pub cpus: i32,
+    pub virtualized: Option<bool>,
+
+    pub product_name: Option<String>,
+    pub system_vendor: Option<String>,
+
     pub version: String,
     pub provisioning: ProvisioningInfo,
-    pub server_version: String,
-    pub kernel_version: String,
-    pub operating_system: String,
-    pub cpus: i32,
-    pub virtualized: String,
+}
+
+impl SystemInfo {
+    #[allow(dead_code)]
+    fn from_system() -> Result<Self, Error> {
+        let kernel = nix::sys::utsname::uname();
+        let dmi = DmiInfo::default();
+        let os = OsInfo::default();
+
+        let mut res = Self {
+            kernel: kernel.sysname().to_owned(),
+            kernel_release: kernel.release().to_owned(),
+            kernel_version: kernel.version().to_owned(),
+
+            operating_system: os.id,
+            operating_system_version: os.version_id,
+            operating_system_variant: os.variant_id,
+            operating_system_build: os.build_id,
+
+            architecture: os.arch.to_owned(),
+            cpus: num_cpus::get() as i32,
+            virtualized: crate::virtualization::is_virtualized_env()?,
+
+            product_name: dmi.product,
+            system_vendor: dmi.vendor,
+
+            version: crate::version_with_source_version(),
+            provisioning: ProvisioningInfo {
+                r#type: "ProvisioningType".into(),
+                dynamic_reprovisioning: false,
+                always_reprovision_on_startup: false,
+            },
+        };
+
+        Ok(res)
+    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
