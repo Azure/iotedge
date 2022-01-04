@@ -568,6 +568,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 bool signatureVerified = false;
                 using (IDisposable verificationTimer = this.deploymentMetrics.StartTwinSignatureTimer())
                 {
+                    // Currently not verifying the chaining as Manifest signer client already does that.
+                    // There is known bug in which the certs are not processed correctly which breaks the chaining verification.
                     signatureVerified = SignatureValidator.VerifySignature(desiredProperties.ToString(), header.ToString(), signatureBytes, signerCert, algoResult.Key, algoResult.Value);
                 }
 
