@@ -1,0 +1,112 @@
+# Required variable from pipeline:
+#    from.registry.address: ''
+#    from.registry.namespace: ''
+#    to.registry.address: ''
+#    to.registry.namespace: ''
+#    pool.linux.name: ''
+#    pool.windows.name: ''
+
+variables:
+- name: az.pipeline.images.artifacts
+  value: 'publish-linux'
+  readonly: true
+- name: az.azureNugetSubscription
+  value: 'azure-iot-edge-azuresdkpartnerdrops'
+  readonly: true
+
+
+trigger: none
+pr: none
+
+resources:
+  pipelines:
+  - pipeline: images
+    source: 'Azure-IoT-Edge-Core Images Release YAML'
+    branch: 'release/1.2'
+
+jobs:
+################################################################################
+  - deployment: safe_guard
+################################################################################
+    timeoutInMinutes: 180
+    displayName: Safe Guards
+    #environment: 'Azure-IoT-Edge-Core Release Env'
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - checkout: self
+              clean: true
+              fetchDepth: 100
+
+            - bash: |
+                VERSION=$(cat $BUILD_SOURCESDIRECTORY/versionInfo.json | grep -oP '^\s*\"version\":\s*\"\K(?<version>\d*\.\d*\.\d*)')
+                
+                if [[ "$(resources.pipeline.images.runName)" == "$VERSION" ]]; then
+                  echo "Input image build has the same version as the targetting release tags."
+                  echo "    Input Image Build Version: $(resources.pipeline.images.runName)"
+                  echo "    Targeting Release Version: $VERSION"
+                else
+                  echo "Input image build has a differnt version as the targetting release tags."
+                  echo "Please make sure the input image resource is correctly selected."
+                  echo "    Input Image Build Version: $(resources.pipeline.images.runName)"
+                  echo "    Targeting Release Version: $VERSION"
+                  exit 1;
+                fi
+              displayName: Verify Input Images Version
+
+################################################################################
+  - deployment: publish_linux_images
+################################################################################
+    timeoutInMinutes: 180
+    displayName: Publish Linux Images
+    dependsOn: safe_guard
+    environment: 'Azure-IoT-Edge-Core Release Env'
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - checkout: self
+              clean: true
+              fetchDepth: 100
+
+            - task: DownloadBuildArtifacts@0
+              displayName: Download Resource Build Images
+              inputs:  
+                buildType: specific
+                project: $(resources.pipeline.images.projectID)
+                pipeline: $(resources.pipeline.images.pipelineName)
+                buildVersionToDownload: specific
+                buildId: $(resources.pipeline.images.runID)
+                downloadType: single
+                artifactName: 'publish-linux'
+                allowPartiallySucceededBuilds: true
+                itemPattern: '*.nupkg'
+
+            # - pwsh: |
+            #     $imageId = Get-Content -Encoding Utf8 `
+            #       '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'
+            #     $imageId = ($imageId -split '=')[1]
+            #     $imageTag = "$imageId-$(os)-$(arch)"
+    
+            - task: AzureFileCopy@4
+              inputs:
+                sourcePath: '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/*'
+                azureSubscription: '$(az.azureNugetSubscription)'
+                destination: 'AzureBlob'
+                storage: 
+                containerName: 'drops'
+                blobPrefix: 'azure-iot-edge'
+                #resourceGroup: # Required when destination == AzureVMs
+                #additionalArgumentsForBlobCopy: # Optional
+                copyFilesInParallel: true
+                cleanTargetBeforeCopy: false
+                skipCACheck: true
