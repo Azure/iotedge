@@ -766,21 +766,21 @@
             "SenderSource": "directMethodSender1.send",
             "ReceiverSource": "directMethodReceiver1.receive",
             "TolerancePeriod": "00:03:00",
-            "TestDescription": "direct method | cloud | amqp",
+            "TestDescription": "direct method | cloud | amqp"
           },
           "reportMetadata11": {
             "TestReportType": "DirectMethodConnectivityReport",
             "SenderSource": "directMethodSender2.send",
             "ReceiverSource": "directMethodReceiver2.receive",
             "TolerancePeriod": "00:03:00",
-            "TestDescription": "direct method | cloud | mqtt",
+            "TestDescription": "direct method | cloud | mqtt"
 
           },
           "reportMetadata12": {
             "TestReportType": "DirectMethodConnectivityReport",
             "SenderSource": "directMethodSender3.send",
             "TolerancePeriod": "00:03:00",
-            "TestDescription": "edge agent ping",
+            "TestDescription": "edge agent ping"
           },
           "reportMetadata15": {
             "TestReportType": "NetworkControllerReport",
