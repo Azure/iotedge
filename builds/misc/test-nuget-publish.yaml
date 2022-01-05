@@ -7,13 +7,15 @@
 #    pool.windows.name: ''
 
 variables:
-- name: az.pipeline.images.artifacts
+- name: 'az.pipeline.images.artifacts'
   value: 'publish-linux'
   readonly: true
-- name: az.azureNugetSubscription
+- name: 'az.azureNugetSubscription'
   value: 'azure-iot-edge-azuresdkpartnerdrops'
   readonly: true
-
+- name: 'pool.linux.name'
+  value: 'Azure-IoT-Edge-1ES-Hosted-Linux'
+  readonly: true
 
 trigger: none
 pr: none
@@ -60,10 +62,10 @@ jobs:
               displayName: Verify Input Images Version
 
 ################################################################################
-  - deployment: publish_linux_images
+  - deployment: staging_nuget_package
 ################################################################################
     timeoutInMinutes: 180
-    displayName: Publish Linux Images
+    displayName: Staging the Nuget package to drop
     dependsOn: safe_guard
     environment: 'Azure-IoT-Edge-Core Release Env'
     pool:
