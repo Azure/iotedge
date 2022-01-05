@@ -128,24 +128,33 @@ stages:
           Debian9-arm32v7:
             os: debian9
             artifactName: iotedged-debian9-arm32v7
+            identityServiceArtifactName: packages_debian-9-slim_arm32v7
+            identityServicePackageFilter: aziot-identity-service_*_armhf.deb
           Ubuntu1804-amd64:
             os: ubuntu18.04
             artifactName: iotedged-ubuntu18.04-amd64
+            identityServiceArtifactName: packages_ubuntu-18.04_amd64
+            identityServicePackageFilter: aziot-identity-service_*_amd64.deb
           Ubuntu1804-arm32v7:
             os: ubuntu18.04
             artifactName: iotedged-ubuntu18.04-arm32v7
+            identityServiceArtifactName: packages_ubuntu-18.04_arm32v7
+            identityServicePackageFilter: aziot-identity-service_*_armhf.deb
           Ubuntu1804-aarch64:
             os: ubuntu18.04
             artifactName: iotedged-ubuntu18.04-aarch64
+            identityServiceArtifactName: packages_ubuntu-18.04_aarch64
+            identityServicePackageFilter: aziot-identity-service_*_aarch64.deb
           Ubuntu2004-amd64:
             os: ubuntu20.04
             artifactName: iotedged-ubuntu20.04-amd64
-          Ubuntu2004-arm32v7:
-            os: ubuntu20.04
-            artifactName: iotedged-ubuntu20.04-arm32v7
+            identityServiceArtifactName: packages_ubuntu-20.04_amd64
+            identityServicePackageFilter: aziot-identity-service_*_amd64.deb
           Ubuntu2004-aarch64:
             os: ubuntu20.04
             artifactName: iotedged-ubuntu20.04-aarch64
+            identityServiceArtifactName: packages_ubuntu-20.04_amd64
+            identityServicePackageFilter: aziot-identity-service_*_aarch64.deb
       steps:
         - task: Bash@3
           displayName: 'Az login'
@@ -178,6 +187,13 @@ stages:
             PACKAGE_FILTER: $(identityServicePackageFilter)
             DOWNLOAD_PATH: $(System.ArtifactsDirectory)/$(artifactName)
             IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
+        - task: Bash@3
+          displayName: 'Debug View'
+          inputs:
+            targetType: inline
+            script: |
+              find $(System.ArtifactsDirectory) | sed -e "s/[^-][^\/]*\// |/g" -e "s/|\([^ ]\)/|-\1/"
+        
       
           
 
