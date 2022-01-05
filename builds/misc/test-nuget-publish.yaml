@@ -30,7 +30,7 @@ jobs:
 ################################################################################
     timeoutInMinutes: 180
     displayName: Safe Guards
-    environment: 'Azure-IoT-Edge-Core Dev Env'
+    environment: 'Azure-IoT-Edge-Core Release Env'
     pool:
       name: $(pool.linux.name)
       demands:
@@ -65,7 +65,7 @@ jobs:
     timeoutInMinutes: 180
     displayName: Publish Linux Images
     dependsOn: safe_guard
-    environment: 'Azure-IoT-Edge-Core Dev Env'
+    environment: 'Azure-IoT-Edge-Core Release Env'
     pool:
       name: $(pool.linux.name)
       demands:
