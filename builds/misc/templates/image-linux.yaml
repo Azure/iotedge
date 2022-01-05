@@ -6,6 +6,7 @@ parameters:
   version: ''
   buildx_flag: ''
   bin_dir: ''
+  use_rocksdb: false
 
 steps:
   - task: DownloadBuildArtifacts@0
@@ -23,6 +24,14 @@ steps:
       contents: '**'
       targetFolder: '$(Build.BinariesDirectory)/publish'          
 
+  - task: CopyFiles@2
+    displayName: Copy RocksDB libs into project
+    condition: and(succeeded(), eq('${{ parameters.use_rocksdb }}', 'true'))
+    inputs:
+      sourceFolder: '$(Build.BinariesDirectory)/publish/librocksdb'
+      contents: '**'
+      targetFolder: '$(Build.BinariesDirectory)/publish/${{ parameters.project }}/librocksdb'          
+
   - task: Docker@2
     displayName: Docker login edgebuilds
     inputs:
@@ -33,7 +42,6 @@ steps:
     inputs:
       command: login
       containerRegistry: iotedge-release-acr      
-
   - task: Bash@3
     displayName: Build Image - ${{ parameters.name }} - amd64
     inputs:
