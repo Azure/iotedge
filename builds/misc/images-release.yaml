@@ -524,6 +524,8 @@ stages:
           imageName: azureiotedge-test-result-coordinator
           project: TestResultCoordinator
           bin_dir: '$(Build.BinariesDirectory)'
+          buildx_flag: 'true'
+          use_rocksdb: true
     - job: BuildImageRelayer
       steps:
       - template: templates/image-linux.yaml
