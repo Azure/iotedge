@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
@@ -14,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using NUnit.Framework;
 
     [EndToEnd]
-    public class ManifestSigning : ManifestSigningSetupFixture
+    public class ManifestSigning : ManifestTrustSetupFixture
     {
         const string SensorName = "tempSensor";
         const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
@@ -22,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         EdgeModule sensor;
         DateTime startTime;
 
-        async Task SetConfigToEdgeDaemon(Option<string> rootCaPath, CancellationToken token)
+        async Task SetConfigToEdgeDaemon(Option<string> manifestTrustBundle, CancellationToken token)
         {
             // This is a temporary solution see ticket: 9288683
             if (!Context.Current.ISA95Tag)
@@ -34,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 await this.ConfigureDaemonAsync(
                     config =>
                     {
-                        testCerts.AddCertsToConfigForManifestSigning(config, rootCaPath);
+                        testCerts.AddCertsToConfigForManifestTrust(config, manifestTrustBundle, Option.None<Dictionary<string, string>>());
 
                         config.SetManualSasProvisioning(this.IotHub.Hostname, Context.Current.ParentHostname, this.device.Id, this.device.SharedAccessKey);
 
