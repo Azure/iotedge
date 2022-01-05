@@ -451,16 +451,16 @@ stages:
           version: $(version)
           bin_dir: '$(Build.BinariesDirectory)'
           buildx_flag: 'true'
-    - job: BuildImageDiagnostics
-      steps:        
-      - template: templates/image-linux.yaml
-        parameters:
-          imageName: azureiotedge-diagnostics
-          name: "Diagnostics Module"
-          project: IotedgeDiagnosticsDotnet
-          version: $(version)
-          bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
+    #- job: BuildImageDiagnostics
+    #  steps:
+    #  - template: templates/image-linux.yaml
+    #    parameters:
+    #      imageName: azureiotedge-diagnostics
+    #      name: "Diagnostics Module"
+    #      project: IotedgeDiagnosticsDotnet
+    #      version: $(version)
+    #      bin_dir: '$(Build.BinariesDirectory)'
+    #      buildx_flag: 'true'
     # for E2E tests
     - job: BuildImageMetricsValidator
       steps:
@@ -565,8 +565,8 @@ stages:
             manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-hub/docker/manifest.yaml.template'
           SimulatedTemperatureSensor:
             manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template'
-          Diagnostics:
-            manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template'
+          #Diagnostics:
+           # manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template'
       steps:
       - task: Docker@2
         displayName: Docker login edgerelease
