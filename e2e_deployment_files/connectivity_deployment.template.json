@@ -33,7 +33,7 @@
               "ExperimentalFeatures__EnableUploadLogs": {
                 "value": "true"
               },
-              "RuntimeLogLevel" : {
+              "RuntimeLogLevel": {
                 "value": "debug"
               }
             },
@@ -399,6 +399,9 @@
               },
               "TEST_INFO": {
                 "value": "<TestInfo>"
+              },
+              "topology": {
+                "value": "<Topology>"
               }
             },
             "settings": {

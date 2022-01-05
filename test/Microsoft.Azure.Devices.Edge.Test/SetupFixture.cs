@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Net;
     using System.Text;
     using System.Text.RegularExpressions;
@@ -114,7 +115,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 edgeAgent = Regex.Replace(edgeAgent, @"\$upstream", parentHostname);
                             });
 
-                            config.SetEdgeAgentImage(edgeAgent, Context.Current.Registries);
+                            // The first element corresponds to the registry credentials for edge agent image
+                            config.SetEdgeAgentImage(edgeAgent, Context.Current.Registries.Take(1));
 
                             Context.Current.EdgeProxy.ForEach(proxy =>
                             {
@@ -229,7 +231,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             config.SetCertificates(new CaCertificates(certPath, keyPath, trustBundlePath));
         }
 
-        public void AddCertsToConfigForManifestSigning(DaemonConfiguration config, Option<string> inputManifestSigningTrustBundlePath)
+        public void AddCertsToConfigForManifestTrust(DaemonConfiguration config, Option<string> inputManifestSigningTrustBundlePath, Option<Dictionary<string, string>> contentTrustInputs)
         {
             string path = Path.Combine(FixedPaths.E2E_TEST_DIR, this.deviceId);
             string certPath = Path.Combine(path, "device_ca_cert.pem");
@@ -251,7 +253,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 OsPlatform.Current.SetOwner(manifestSigningTrustBundlePath, "aziotcs", "644");
             }
 
-            config.SetCertificates(new CaCertificates(certPath, keyPath, trustBundlePath, manifestSigningTrustBundlePath));
+            config.SetCertificates(new CaCertificates(certPath, keyPath, trustBundlePath, manifestSigningTrustBundlePath, contentTrustInputs.OrDefault()));
         }
     }
 }

@@ -79,7 +79,7 @@ namespace Modules.Test.TestResultCoordinator
 
             string trackingId = "fakeTrackingId";
             var countingReportMetadata = new CountingReportMetadata(TestDescription, "CountingExpectedSource", "CountingAcutalSource", TestOperationResultType.Messages, TestReportType.CountingReport, false);
-            var twinCountingReportMetadata = new TwinCountingReportMetadata(TestDescription, Topology.SingleNode, "TwinExpectedSource", "TwinActualSource", TestReportType.TwinCountingReport, TwinTestPropertyType.Desired);
+            var twinCountingReportMetadata = new TwinCountingReportMetadata(TestDescription, "TwinExpectedSource", "TwinActualSource", TestReportType.TwinCountingReport, TwinTestPropertyType.Desired);
             var deploymentReportMetadata = new DeploymentTestReportMetadata(TestDescription, "DeploymentExpectedSource", "DeploymentActualSource");
             var directMethodConnectivityReportMetadata = new DirectMethodConnectivityReportMetadata(TestDescription, "DirectMethodSenderSource", new TimeSpan(0, 0, 0, 0, 5), "DirectMethodReceiverSource");
             var directMethodConnectivityReportMetadataWithoutReceiverSource = new DirectMethodConnectivityReportMetadata(TestDescription, "DirectMethodSenderSource", new TimeSpan(0, 0, 0, 0, 5), "DirectMethodReceiverSource");
@@ -543,6 +543,8 @@ namespace Modules.Test.TestResultCoordinator
                 return Task.FromResult<ITestResultReport>(new CountingReport(
                   "mock",
                   TestMode.Connectivity,
+                  Topology.SingleNode,
+                  false,
                   "mock",
                   "mock",
                   "mock",
