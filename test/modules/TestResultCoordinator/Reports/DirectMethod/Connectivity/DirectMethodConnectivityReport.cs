@@ -87,18 +87,13 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
             {
                 return false;
             }
-            else if (this.Topology == Topology.Nested)
-            {
-                // This tolerance is needed because sometimes we see large numbers of NetworkOnFailures.
-                // Also, sometimes we observe 1 NetworkOffFailure and a lot of mismatched results. The
-                // mismatched results are likely a test logic issue that needs further investigation.
-                return totalSuccessful > 1;
-            }
+
             else
             {
-                // This tolerance is needed because sometimes we see a few one off NetworkOnFailures
+                // This tolerance is needed because sometimes we see a few one-off NetworkOnFailures
                 // When this product issue is resolved, we can remove this failure tolerance.
-                bool areNetworkOnFailuresWithinThreshold = ((double)this.NetworkOnFailure / totalResults) > .99d;
+                ulong totalNetworkOn = this.NetworkOnSuccess + this.NetworkOnFailure;;
+                bool areNetworkOnFailuresWithinThreshold = ((double)this.NetworkOnFailure / totalNetworkOn) < .01d;
                 return this.MismatchFailure == 0 && this.NetworkOffFailure == 0 && areNetworkOnFailuresWithinThreshold && (this.NetworkOnSuccess + this.NetworkOffSuccess + this.NetworkOnToleratedSuccess + this.NetworkOffToleratedSuccess > 0);
             }
         }
