@@ -96,10 +96,10 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
             }
             else
             {
-                // This tolerance is needed because sometimes we see large numbers of NetworkOnFailures.
+                // This tolerance is needed because sometimes we see a few one off Network On Failures
                 // When this product issue is resolved, we can remove this failure tolerance.
-                bool areNetworkOnFailuresWithinThreshold = ((double)this.NetworkOnFailure / totalResults) < .30d;
-                return this.MismatchFailure == 0 && this.NetworkOffFailure == 0 && areNetworkOnFailuresWithinThreshold && (this.NetworkOnSuccess + this.NetworkOffSuccess + this.NetworkOnToleratedSuccess + this.NetworkOffToleratedSuccess > 0);
+                bool areNetworkOnFailuresWithinThreshold = ((double)this.NetworkOnFailure / totalResults) > .99d;
+                return this.MismatchFailure == 0 && this.NetworkOffFailure == 0 && areNetworkOffFailuresWithinThreshold && (this.NetworkOnSuccess + this.NetworkOffSuccess + this.NetworkOnToleratedSuccess + this.NetworkOffToleratedSuccess > 0);
             }
         }
     }
