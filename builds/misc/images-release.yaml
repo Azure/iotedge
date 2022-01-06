@@ -421,8 +421,6 @@ stages:
     jobs:
     - job: BuildImageEdgeHub
       steps:
-      - checkout: none
-        clean: boolean
       - bash: |
           oldTag=$(git tag -l 1.2.* | awk 'END { print; }') && \
           oldPatch=$(echo $oldTag | cut -d "." -f3) && \
