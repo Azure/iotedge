@@ -74,7 +74,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
         public override string Title => this.ReceiverSource.HasValue ?
             $"DirectMethod Connectivity Report for [{this.SenderSource}] and [{this.ReceiverSource.OrDefault()}] ({this.ResultType})" : $"DirectMethod Report for [{this.SenderSource}] ({this.ResultType})";
 
-         public override bool IsPassed => this.IsPassedHelper();
+        public override bool IsPassed => this.IsPassedHelper();
 
         bool IsPassedHelper()
         {
