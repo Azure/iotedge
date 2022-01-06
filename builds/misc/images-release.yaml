@@ -14,6 +14,7 @@ stages:
       - job: UpdateCOMMITID
         steps:
         - bash: |
+            echo "Old COMMITID: " $COMMITID && \
             oldTag=$(git tag -l 1.2.* | awk 'END { print; }') && \
             echo "Old Tag: " $oldTag && \
             oldPatch=$(echo $oldTag | cut -d "." -f3) && \
@@ -38,7 +39,7 @@ stages:
       name: $(pool.linux.name)
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
-    dependsOn: []
+    dependsOn: [UpdateCOMMITID]
     jobs:
     - job: BuildDotnetComponents
       # This job is run on a hosted linux agent, which needs dotnet 2 and 3 installed as a manual step. 
