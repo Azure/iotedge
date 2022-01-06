@@ -49,13 +49,13 @@ jobs:
   - deployment: staging_nuget_package
 ################################################################################
     timeoutInMinutes: 180
-    displayName: Staging the Nuget package to drop
+    displayName: Staging the Nuget package to "drop"
     dependsOn: safe_guard
     environment: 'Azure-IoT-Edge-Core Release Env'
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+        - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
     strategy:
       runOnce:
         deploy:
