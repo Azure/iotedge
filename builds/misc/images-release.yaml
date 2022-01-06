@@ -9,25 +9,26 @@ stages:
       name: $(pool.linux.name)
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
-      jobs:
-        - job: Update COMMITID
-          steps:
-          - bash: |
-              oldTag=$(git tag -l 1.2.* | awk 'END { print; }') && \
-              echo "Old Tag: " $oldTag && \
-              oldPatch=$(echo $oldTag | cut -d "." -f3) && \
-              newPatch=$(($(echo $oldTag | cut -d "." -f3)+1)) && \
-              newTag=$(echo $oldTag | sed "s:$oldPatch:$newPatch:") && \
-              echo "New Tag: " $newTag && \
-              sed "s:$oldTag:$newTag:" versionInfo.json > new_versionInfo.json && \
-              mv -f new_versionInfo.json versionInfo.json && \
-              git checkout tags/$oldTag -b release-$newTag && \
-              sed "s:$oldTag:$newTag:" versionInfo.json > new_versionInfo.json && \
-              mv -f new_versionInfo.json versionInfo.json && \
-              cat versionInfo.json && \
-              git commit -a -m "Updated Release version but not commit ID" && \
-              COMMITID=$(git log -1 --oneline | cut -d " " -f1) && \
-              echo "New COMMITID: " $COMMITID
+    dependsOn: []
+    jobs:
+      - job: Update COMMITID
+        steps:
+        - bash: |
+            oldTag=$(git tag -l 1.2.* | awk 'END { print; }') && \
+            echo "Old Tag: " $oldTag && \
+            oldPatch=$(echo $oldTag | cut -d "." -f3) && \
+            newPatch=$(($(echo $oldTag | cut -d "." -f3)+1)) && \
+            newTag=$(echo $oldTag | sed "s:$oldPatch:$newPatch:") && \
+            echo "New Tag: " $newTag && \
+            sed "s:$oldTag:$newTag:" versionInfo.json > new_versionInfo.json && \
+            mv -f new_versionInfo.json versionInfo.json && \
+            git checkout tags/$oldTag -b release-$newTag && \
+            sed "s:$oldTag:$newTag:" versionInfo.json > new_versionInfo.json && \
+            mv -f new_versionInfo.json versionInfo.json && \
+            cat versionInfo.json && \
+            git commit -a -m "Updated Release version but not commit ID" && \
+            COMMITID=$(git log -1 --oneline | cut -d " " -f1) && \
+            echo "New COMMITID: " $COMMITID
 
 ################################################################################
   - stage: BuildExecutables
