@@ -68,12 +68,6 @@ stages:
             identityServiceArtifactName: packages_ubuntu-20.04_amd64
             identityServicePackageFilter: aziot-identity-service_*_amd64.deb
       steps:
-        - task: Bash@3
-          displayName: 'Az login'
-          inputs:
-            targetType: inline
-            script: |
-              az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
         - task: AzureKeyVault@1
           displayName: Get secrets
           inputs:
@@ -81,6 +75,13 @@ stages:
             keyVaultName: $(kv.name)
             secretsFilter: >-
               TestGitHubAccessToken,
+              edgebuild-service-principal-secret
+        - task: Bash@3
+          displayName: 'Az login'
+          inputs:
+            targetType: inline
+            script: |
+              az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
         - task: DownloadPipelineArtifact@2
           displayName: Download Pipeline Build Packages
           condition: eq(variables['check_use_artifacts.UsePipelinePackageArtifacts'],'true')
@@ -105,6 +106,11 @@ stages:
             targetType: inline
             script: |
               find $(System.ArtifactsDirectory) | sed -e "s/[^-][^\/]*\// |/g" -e "s/|\([^ ]\)/|-\1/"
+        - task: Bash@3
+          displayName: Publish
+          inputs:
+            filePath: $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh
+            arguments: -p $(os) -d $(System.ArtifactsDirectory)/$(artifactName)/
         
       
           
