@@ -11,7 +11,7 @@ stages:
         - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
     dependsOn: []
     jobs:
-      - job: Update COMMITID
+      - job: UpdateCOMMITID
         steps:
         - bash: |
             oldTag=$(git tag -l 1.2.* | awk 'END { print; }') && \
