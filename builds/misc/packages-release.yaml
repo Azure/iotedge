@@ -92,6 +92,11 @@ stages:
         #     PACKAGE_FILTER: $(identityServicePackageFilter)
         #     DOWNLOAD_PATH: $(System.ArtifactsDirectory)/$(artifactName)
         #     IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
+        - task: Docker@2
+          displayName: Docker login edgebuilds
+          inputs:
+            command: login
+            containerRegistry: iotedge-msinternal-mcr
         - task: AzureCLI@2
           displayName: Publish Packages
           inputs:
