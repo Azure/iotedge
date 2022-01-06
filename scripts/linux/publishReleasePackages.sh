@@ -82,7 +82,7 @@ sudo rm -rf $OS_NAME-$OS_VERSION-multi-aad.json || true
 # sudo apt-key add tux-devrepo.asc
 # echo "deb [arch=amd64] http://tux-devrepo.corp.microsoft.com/repos/tux-dev/ xenial main" | sudo tee /etc/apt/sources.list.d/tuxdev.list
 # sudo apt-get install -y --no-install-recommends azure-repoapi-client
-git clone https://microsoft.visualstudio.com/DefaultCollection/OSGCXE/_git/csd.apt.linux
+echo $(python --version)
 
 #Download Secrets - Requires az login and proper subscription to be selected
 az keyvault secret download --vault-name iotedge-packages -n private-key-pem -f private-key.pem
