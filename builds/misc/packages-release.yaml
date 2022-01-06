@@ -75,13 +75,6 @@ stages:
             keyVaultName: $(kv.name)
             secretsFilter: >-
               GitHubAccessToken,
-              edgebuild-service-principal-secret
-        # - task: Bash@3
-        #   displayName: 'Az login'
-        #   inputs:
-        #     targetType: inline
-        #     script: |
-        #       az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
         # - task: DownloadPipelineArtifact@2
         #   displayName: Download Pipeline Build Packages
         #   inputs:
@@ -99,12 +92,6 @@ stages:
         #     PACKAGE_FILTER: $(identityServicePackageFilter)
         #     DOWNLOAD_PATH: $(System.ArtifactsDirectory)/$(artifactName)
         #     IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
-        # - task: Bash@3
-        #   displayName: 'Debug View'
-        #   inputs:
-        #     targetType: inline
-        #     script: |
-        #       find $(System.ArtifactsDirectory) | sed -e "s/[^-][^\/]*\// |/g" -e "s/|\([^ ]\)/|-\1/"
         - task: AzureCLI@2
           displayName: Publish Packages
           inputs:
