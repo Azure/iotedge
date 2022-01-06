@@ -39,7 +39,7 @@ stages:
       name: $(pool.linux.name)
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
-    dependsOn: [UpdateCOMMITID]
+    dependsOn: [Bash]
     jobs:
     - job: BuildDotnetComponents
       # This job is run on a hosted linux agent, which needs dotnet 2 and 3 installed as a manual step. 
