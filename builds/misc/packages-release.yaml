@@ -1,52 +1,52 @@
 trigger: none
 pr: none
 stages:
-################################################################################
-  - stage: BuildPackages
-################################################################################
-    displayName: Build Packages
-    pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
-    jobs:
-    - job: linux
-      displayName: Linux
-      strategy:
-        matrix:
-          Ubuntu2004-amd64:
-            arch: amd64
-            os: ubuntu20.04
-            target.iotedged: edgelet/target/release
-      steps:
-        - bash: |
-            BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
-            VERSION="$BASE_VERSION"
-            echo "##vso[task.setvariable variable=VERSION;]$VERSION"
+# ################################################################################
+#   - stage: BuildPackages
+# ################################################################################
+#     displayName: Build Packages
+#     pool:
+#       name: $(pool.linux.name)
+#       demands:
+#         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+#     jobs:
+#     - job: linux
+#       displayName: Linux
+#       strategy:
+#         matrix:
+#           Ubuntu2004-amd64:
+#             arch: amd64
+#             os: ubuntu20.04
+#             target.iotedged: edgelet/target/release
+#       steps:
+#         - bash: |
+#             BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
+#             VERSION="$BASE_VERSION"
+#             echo "##vso[task.setvariable variable=VERSION;]$VERSION"
 
-            echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
-            echo "##vso[task.setvariable variable=PACKAGE_OS;]$(os)"
-          displayName: Set Version
-        - script: edgelet/build/linux/package.sh
-          displayName: Create iotedged packages
-        - task: CopyFiles@2
-          displayName: Copy iotedged Files to Artifact Staging
-          inputs:
-            SourceFolder: $(target.iotedged)
-            Contents: |
-              *.deb
-              *.rpm
-            TargetFolder: '$(build.artifactstagingdirectory)'
-        - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
-          displayName: 'SBOM Generation Task'
-          inputs:
-              BuildDropPath: '$(build.artifactstagingdirectory)'             
-        - task: PublishBuildArtifacts@1
-          displayName: Publish Artifacts
-          inputs:
-            PathtoPublish: '$(build.artifactstagingdirectory)'
-            ArtifactName: 'iotedged-$(os)-$(arch)'
-          condition: succeededOrFailed()
+#             echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
+#             echo "##vso[task.setvariable variable=PACKAGE_OS;]$(os)"
+#           displayName: Set Version
+#         - script: edgelet/build/linux/package.sh
+#           displayName: Create iotedged packages
+#         - task: CopyFiles@2
+#           displayName: Copy iotedged Files to Artifact Staging
+#           inputs:
+#             SourceFolder: $(target.iotedged)
+#             Contents: |
+#               *.deb
+#               *.rpm
+#             TargetFolder: '$(build.artifactstagingdirectory)'
+#         - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
+#           displayName: 'SBOM Generation Task'
+#           inputs:
+#               BuildDropPath: '$(build.artifactstagingdirectory)'             
+#         - task: PublishBuildArtifacts@1
+#           displayName: Publish Artifacts
+#           inputs:
+#             PathtoPublish: '$(build.artifactstagingdirectory)'
+#             ArtifactName: 'iotedged-$(os)-$(arch)'
+#           condition: succeededOrFailed()
 
 ################################################################################
   - stage: PublishPackages
@@ -76,41 +76,43 @@ stages:
             secretsFilter: >-
               GitHubAccessToken,
               edgebuild-service-principal-secret
-        - task: Bash@3
-          displayName: 'Az login'
+        # - task: Bash@3
+        #   displayName: 'Az login'
+        #   inputs:
+        #     targetType: inline
+        #     script: |
+        #       az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
+        # - task: DownloadPipelineArtifact@2
+        #   displayName: Download Pipeline Build Packages
+        #   inputs:
+        #     source: 'current'
+        #     path: $(System.ArtifactsDirectory)
+        #     patterns: $(artifactName)/*.deb
+        # - task: PowerShell@2
+        #   displayName: 'Download aziot-identity-service'
+        #   inputs:
+        #     filePath: $(Build.SourcesDirectory)/scripts/local/test/DownloadIdentityService.ps1
+        #     workingDirectory: $(Build.SourcesDirectory)
+        #   env:
+        #     GITHUB_TOKEN: $(GitHubAccessToken)
+        #     ARTIFACT_NAME: $(identityServiceArtifactName)
+        #     PACKAGE_FILTER: $(identityServicePackageFilter)
+        #     DOWNLOAD_PATH: $(System.ArtifactsDirectory)/$(artifactName)
+        #     IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
+        # - task: Bash@3
+        #   displayName: 'Debug View'
+        #   inputs:
+        #     targetType: inline
+        #     script: |
+        #       find $(System.ArtifactsDirectory) | sed -e "s/[^-][^\/]*\// |/g" -e "s/|\([^ ]\)/|-\1/"
+        - task: AzureCLI@2
+          displayName: Publish Packages
           inputs:
-            targetType: inline
-            script: |
-              az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
-        - task: DownloadPipelineArtifact@2
-          displayName: Download Pipeline Build Packages
-          inputs:
-            source: 'current'
-            path: $(System.ArtifactsDirectory)
-            patterns: $(artifactName)/*.deb
-        - task: PowerShell@2
-          displayName: 'Download aziot-identity-service'
-          inputs:
-            filePath: $(Build.SourcesDirectory)/scripts/local/test/DownloadIdentityService.ps1
-            workingDirectory: $(Build.SourcesDirectory)
-          env:
-            GITHUB_TOKEN: $(GitHubAccessToken)
-            ARTIFACT_NAME: $(identityServiceArtifactName)
-            PACKAGE_FILTER: $(identityServicePackageFilter)
-            DOWNLOAD_PATH: $(System.ArtifactsDirectory)/$(artifactName)
-            IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
-        - task: Bash@3
-          displayName: 'Debug View'
-          inputs:
-            targetType: inline
-            script: |
-              find $(System.ArtifactsDirectory) | sed -e "s/[^-][^\/]*\// |/g" -e "s/|\([^ ]\)/|-\1/"
-        - task: Bash@3
-          displayName: Publish
-          inputs:
-            filePath: $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh
-            arguments: -p $(os) -d $(System.ArtifactsDirectory)/$(artifactName)/
-        
+            azureSubscription: $(az.subscription)
+            scriptType: bash
+            scriptPath: $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh
+            arguments: -p $(os) -d $(System.ArtifactsDirectory)/
+
       
           
 
