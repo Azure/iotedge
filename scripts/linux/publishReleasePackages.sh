@@ -83,7 +83,7 @@ sudo apt-key add tux-devrepo.asc
 echo "deb [arch=amd64] http://tux-devrepo.corp.microsoft.com/repos/tux-dev/ xenial main" | sudo tee /etc/apt/sources.list.d/tuxdev.list
 sudo apt-get install -y --no-install-recommends azure-repoapi-client
 
-#Download Secrets - Requires az login and proper subscription to be selecte
+#Download Secrets - Requires az login and proper subscription to be selected
 az keyvault secret download --vault-name iotedge-packages -n private-key-pem -f private-key.pem
 az keyvault secret download --vault-name iotedge-packages -n $OS_NAME-$OS_VERSION-multi-aad -f $OS_NAME-$OS_VERSION-multi-aad.json
 echo $(cat $OS_NAME-$OS_VERSION-multi-aad.json | jq '.AADClientCertificate="private-key.pem"') >$OS_NAME-$OS_VERSION-multi-aad.json

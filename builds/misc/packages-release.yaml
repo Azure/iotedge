@@ -74,7 +74,7 @@ stages:
             azureSubscription: $(az.subscription)
             keyVaultName: $(kv.name)
             secretsFilter: >-
-              TestGitHubAccessToken,
+              GitHubAccessToken,
               edgebuild-service-principal-secret
         - task: Bash@3
           displayName: 'Az login'
@@ -95,7 +95,7 @@ stages:
             filePath: $(Build.SourcesDirectory)/scripts/local/test/DownloadIdentityService.ps1
             workingDirectory: $(Build.SourcesDirectory)
           env:
-            GITHUB_TOKEN: $(TestGitHubAccessToken)
+            GITHUB_TOKEN: $(GitHubAccessToken)
             ARTIFACT_NAME: $(identityServiceArtifactName)
             PACKAGE_FILTER: $(identityServicePackageFilter)
             DOWNLOAD_PATH: $(System.ArtifactsDirectory)/$(artifactName)
