@@ -84,7 +84,6 @@ stages:
               az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
         - task: DownloadPipelineArtifact@2
           displayName: Download Pipeline Build Packages
-          condition: eq(variables['check_use_artifacts.UsePipelinePackageArtifacts'],'true')
           inputs:
             source: 'current'
             path: $(System.ArtifactsDirectory)
