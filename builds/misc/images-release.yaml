@@ -421,6 +421,22 @@ stages:
     jobs:
     - job: BuildImageEdgeHub
       steps:
+      - checkout: none
+        clean: boolean
+      - bash: |
+          oldTag=$(git tag -l 1.2.* | awk 'END { print; }') && \
+          oldPatch=$(echo $oldTag | cut -d "." -f3) && \
+          newPatch=$(($(echo $oldTag | cut -d "." -f3)+1)) && \
+          newTag=$(echo $oldTag | sed "s:$oldPatch:$newPatch:") && \
+          sed "s:$oldTag:$newTag:" versionInfo.json > new_versionInfo.json && \
+          mv -f new_versionInfo.json versionInfo.json && \
+          git checkout tags/$oldTag -b release-$newTag && \
+          sed "s:$oldTag:$newTag:" versionInfo.json > new_versionInfo.json && \
+          mv -f new_versionInfo.json versionInfo.json && \
+          cat versionInfo.json && \
+          git commit -a -m "Updated Release version but not commit ID" && \
+          COMMITID=$(git log -1 --oneline | cut -d " " -f1) && \
+          echo "New COMMITID: " $COMMITID
       - template: templates/image-linux.yaml
         parameters: 
           imageName: azureiotedge-hub
@@ -451,16 +467,6 @@ stages:
           version: $(version)
           bin_dir: '$(Build.BinariesDirectory)'
           buildx_flag: 'true'
-    #- job: BuildImageDiagnostics
-    #  steps:
-    #  - template: templates/image-linux.yaml
-    #    parameters:
-    #      imageName: azureiotedge-diagnostics
-    #      name: "Diagnostics Module"
-    #      project: IotedgeDiagnosticsDotnet
-    #      version: $(version)
-    #      bin_dir: '$(Build.BinariesDirectory)'
-    #      buildx_flag: 'true'
     # for E2E tests
     - job: BuildImageMetricsValidator
       steps:
@@ -565,9 +571,7 @@ stages:
           EdgeHub:
             manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-hub/docker/manifest.yaml.template'
           SimulatedTemperatureSensor:
-            manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template'
-          #Diagnostics:
-           # manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template'
+            manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template''
       steps:
       - task: Docker@2
         displayName: Docker login edgerelease
