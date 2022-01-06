@@ -8,7 +8,7 @@ stages:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
     dependsOn: []
     jobs:
     - job: BuildDotnetComponents
@@ -325,7 +325,7 @@ stages:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker  
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker  
     dependsOn: [BuildExecutables, BuildRocksDB]
     jobs:
     - job: ConsolidateAndPublishArtifacts
@@ -469,7 +469,7 @@ stages:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
     dependsOn: BuildImages
     jobs:
     - job: PublishManifest
