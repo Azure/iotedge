@@ -16,6 +16,9 @@ variables:
 - name: 'pool.linux.name'
   value: 'Azure-IoT-Edge-1ES-Hosted-Linux'
   readonly: true
+- name: 'pool.windows.name'
+  value: 'Azure-IoT-Edge-1ES-Hosted-Windows'
+  readonly: true
 
 trigger: none
 pr: none
@@ -49,11 +52,11 @@ jobs:
   - deployment: staging_nuget_package
 ################################################################################
     timeoutInMinutes: 180
-    displayName: Staging the Nuget package to "drop"
+    displayName: Staging the Nuget package to Partner's "drop"
     dependsOn: safe_guard
     environment: 'Azure-IoT-Edge-Core Release Env'
     pool:
-      name: $(pool.linux.name)
+      name: $(pool.windows.name)
       demands:
         - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
     strategy:
