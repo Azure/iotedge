@@ -52,7 +52,7 @@ stages:
   - stage: PublishPackages
 ################################################################################
     displayName: Publish Packages
-    dependsOn: [BuildPackages]
+    #dependsOn: [BuildPackages]
     pool:
       name: $(pool.linux.name)
       demands:
