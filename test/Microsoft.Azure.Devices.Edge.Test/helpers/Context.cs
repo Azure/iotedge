@@ -129,6 +129,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.ManifestSigningLaunchSettingsPath = Option.Maybe(Get("manifestSigningLaunchSettingsPath"));
             this.ManifestSignerClientDirectory = Option.Maybe(Get("manifestSignerClientDirectory"));
             this.ManifestSignerClientProjectPath = Option.Maybe(Get("manifestSignerClientProjectPath"));
+            this.ContentTrustRootCaPath = Option.Maybe(Get("contentTrustRootCaPath"));
+            this.ContentTrustRegistryName = Option.Maybe(Get("contentTrustRegistryName"));
+            this.ContentTrustSignedImage = Option.Maybe(Get("contentTrustSignedImage"));
+            this.ContentTrustUnsignedImage = Option.Maybe(Get("contentTrustUnsignedImage"));
             this.GetSupportBundle = context.GetValue("getSupportBundle", false);
         }
 
@@ -233,6 +237,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public Option<string> ManifestSignerClientDirectory { get; }
 
         public Option<string> ManifestSignerClientProjectPath { get; }
+
+        public Option<string> ContentTrustRootCaPath { get; }
+
+        public Option<string> ContentTrustRegistryName { get; }
+
+        public Option<string> ContentTrustSignedImage { get; }
+
+        public Option<string> ContentTrustUnsignedImage { get; }
+
         public bool GetSupportBundle { get; }
     }
 }

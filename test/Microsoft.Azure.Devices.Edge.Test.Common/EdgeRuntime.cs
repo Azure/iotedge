@@ -11,7 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
-    using Newtonsoft.Json.Linq;
 
     public class EdgeRuntime
     {

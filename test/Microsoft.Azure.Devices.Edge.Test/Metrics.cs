@@ -31,6 +31,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
             var agent = new EdgeAgent(this.runtime.DeviceId, this.IotHub);
             await agent.PingAsync(token);
 
+            // This method can take a long time to process in the nested case.
+            // So have a long response timeout but short connection timeout.
             var result = await this.IotHub.InvokeMethodAsync(
                 this.runtime.DeviceId,
                 ModuleName,

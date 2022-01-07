@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
     public class TelemetryTest
     {
-        [Theory]
+        [Theory(Skip = "Flaky")]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
         async Task SendTelemetryTest(ITransportSettings[] transportSettings)
         {

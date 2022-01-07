@@ -140,35 +140,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             await Process.RunAsync("systemctl", "start aziot-keyd aziot-certd aziot-identityd aziot-edged", token);
             await WaitForStatusAsync(ServiceControllerStatus.Running, token);
 
-            // Waiting for the processes to enter the "Running" state doesn't guarantee that
-            // they are fully started and ready to accept requests. Therefore, this function
-            // must wait until a request can be processed.
-            while (true)
+            try
             {
-                var processInfo = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "iotedge",
-                    Arguments = "list",
-                    RedirectStandardOutput = true
-                };
-                var request = System.Diagnostics.Process.Start(processInfo);
-
-                if (request.WaitForExit(1000))
-                {
-                    if (request.ExitCode == 0)
-                    {
-                        request.Close();
-                        Log.Verbose("aziot-edged ready for requests");
-                        break;
-                    }
-                }
-                else
-                {
-                    request.Kill(true);
-                    request.WaitForExit();
-                    request.Close();
-                    Log.Verbose("aziot-edged not yet ready");
-                }
+                string[] output = await Process.RunAsync("iotedge", "list", token);
+            }
+            catch (Exception e)
+            {
+                Log.Warning($"Failed to run aziot-edge \nexception: {e.ToString()}");
             }
         }
 
