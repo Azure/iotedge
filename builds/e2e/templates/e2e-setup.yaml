@@ -38,6 +38,7 @@ steps:
 
     $RegistryPassword=$(TestContainerRegistryPassword)
     if [ $(Build.Configuration) == 'Release' ]
+    then
       $RegistryPassword=$(ReleaseContainerRegistryPassword)
     fi
     
