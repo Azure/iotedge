@@ -137,6 +137,8 @@ REPOTOOLCMD="docker run -v $WDIR:$CONFIG_DIR -v $DIR:$PACKAGE_DIR --rm msint.azu
 #Wait upto 10 Minutes to see if package uploaded
 end_time=$((SECONDS + 600))
 uploaded=false
+
+#TODO: Remove this hardcoded value after test. Just to make sure YAML Build can reach service
 submission_id=61d7d691ea3a771e261fd598
 while [[ $SECONDS -lt $end_time ]]; do
     #Check for Successful Upload of Each of the Packages
