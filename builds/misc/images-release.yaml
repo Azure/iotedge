@@ -564,9 +564,11 @@ stages:
           containerRegistry: iotedge-release-acr
       - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(version) -t $(manifestFilePath) -n '$(namespace)' --tags "$(tags)"
 
-################################################################################################################################################################
+################################################################################
   - stage: RunE2ETest
 ################################################################################
+    dependsOn: PublishManifests
+    condition: in(dependencies.PublishManifests.result, 'Succeeded', 'SucceededWithIssues')
     jobs:
     ################################################################################
       - job: linux_arm32v7
@@ -583,6 +585,7 @@ stages:
           artifactName: iotedged-debian9-arm32v7
           identityServiceArtifactName: packages_debian-9-slim_arm32v7
           identityServicePackageFilter: aziot-identity-service_*_armhf.deb
+          builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
 
         timeoutInMinutes: 120
 
@@ -608,6 +611,7 @@ stages:
           artifactName: iotedged-ubuntu18.04-amd64
           identityServiceArtifactName: packages_ubuntu-18.04_amd64
           identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+          builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
 
         steps:
         - template: ../e2e/templates/e2e-setup.yaml
@@ -629,6 +633,7 @@ stages:
           artifactName: iotedged-ubuntu18.04-amd64
           identityServiceArtifactName: packages_ubuntu-18.04_amd64
           identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+          builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
           minimal: true
 
         steps:
@@ -651,6 +656,7 @@ stages:
           artifactName: iotedged-ubuntu20.04-amd64
           identityServiceArtifactName: packages_ubuntu-20.04_amd64
           identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+          builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
 
         steps:
         - template: ../e2e/templates/e2e-setup.yaml
@@ -672,6 +678,7 @@ stages:
           artifactName: iotedged-ubuntu20.04-amd64
           identityServiceArtifactName: packages_ubuntu-20.04_amd64
           identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+          builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
           minimal: true
 
         timeoutInMinutes: 90
@@ -695,6 +702,7 @@ stages:
           artifactName: iotedged-ubuntu20.04-aarch64
           identityServiceArtifactName: packages_ubuntu-20.04_aarch64
           identityServicePackageFilter: aziot-identity-service_*_arm64.deb
+          builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
 
         timeoutInMinutes: 120
 
@@ -720,6 +728,7 @@ stages:
           artifactName: iotedged-centos7-amd64
           identityServiceArtifactName: packages_centos-7_amd64
           identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
+          builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
 
         timeoutInMinutes: 90
 
@@ -744,6 +753,7 @@ stages:
           artifactName: iotedged-ubuntu18.04-amd64
           identityServiceArtifactName: packages_ubuntu-18.04_amd64
           identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+          builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
           # workaround, see https://github.com/Microsoft/azure-pipelines-agent/issues/2138#issuecomment-470166671
           'agent.disablelogplugin.testfilepublisherplugin': true
           'agent.disablelogplugin.testresultlogplugin': true

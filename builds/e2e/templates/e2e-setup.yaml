@@ -11,6 +11,7 @@ steps:
     azureSubscription: $(az.subscription)
     keyVaultName: $(kv.name)
     secretsFilter: >-
+      TestContainerRegistryPassword,
       ReleaseContainerRegistryPassword,
       TestDpsGroupKeySymmetric,
       TestEventHubCompatibleEndpoint,
@@ -33,6 +34,11 @@ steps:
     else
       echo "images-release.yaml did not succeed in the 'Publish Manifests' step, so e2e-setup.yaml is unable to download artifacts"
       echo "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]FALSE"
+    fi
+
+    $RegistryPassword=$(TestContainerRegistryPassword)
+    if [ $(Build.Configuration) == 'Release' ]
+      $RegistryPassword=$(ReleaseContainerRegistryPassword)
     fi
     
   name: check_use_artifacts
