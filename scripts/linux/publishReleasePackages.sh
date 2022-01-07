@@ -103,7 +103,8 @@ echo "Work Dir is $WDIR"
 echo "Package OS DIR is $DIR"
 
 #Debug View of Package Dir Path
-find $DIR | sed -e "s/[^-][^\/]*\// |/g" -e "s/|\([^ ]\)/|-\1/"
+#find $DIR | sed -e "s/[^-][^\/]*\// |/g" -e "s/|\([^ ]\)/|-\1/"
+ls -al $DIR 
 
 #Cleanup
 sudo rm -rf $WDIR/private-key.pem || true
