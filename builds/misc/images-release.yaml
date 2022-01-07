@@ -2,36 +2,6 @@ name: $(version)
 
 stages:
 ################################################################################
-  - stage:  Bash
-################################################################################
-    displayName: Update Version Info
-    pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
-    dependsOn: []
-    jobs:
-      - job: UpdateCOMMITID
-        steps:
-        - bash: |
-            echo "Old COMMITID: " $COMMITID && \
-            oldTag=$(git tag -l 1.2.* | awk 'END { print; }') && \
-            echo "Old Tag: " $oldTag && \
-            oldPatch=$(echo $oldTag | cut -d "." -f3) && \
-            newPatch=$(($(echo $oldTag | cut -d "." -f3)+1)) && \
-            newTag=$(echo $oldTag | sed "s:$oldPatch:$newPatch:") && \
-            echo "New Tag: " $newTag && \
-            sed "s:$oldTag:$newTag:" versionInfo.json > new_versionInfo.json && \
-            mv -f new_versionInfo.json versionInfo.json && \
-            git checkout tags/$oldTag -b release-$newTag && \
-            sed "s:$oldTag:$newTag:" versionInfo.json > new_versionInfo.json && \
-            mv -f new_versionInfo.json versionInfo.json && \
-            cat versionInfo.json && \
-            git commit -a -m "Updated Release version but not commit ID" && \
-            COMMITID=$(git log -1 --oneline | cut -d " " -f1) && \
-            echo "New COMMITID: " $COMMITID
-
-################################################################################
   - stage: BuildExecutables
 ################################################################################
     displayName: Build Executables
@@ -39,7 +9,7 @@ stages:
       name: $(pool.linux.name)
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
-    dependsOn: [Bash]
+    dependsOn: []
     jobs:
     - job: BuildDotnetComponents
       # This job is run on a hosted linux agent, which needs dotnet 2 and 3 installed as a manual step. 
@@ -595,27 +565,5 @@ stages:
       - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(version) -t $(manifestFilePath) -n '$(namespace)' --tags "$(tags)"
 
 ################################################################################
-  - stage: RunE2ETest
+  - template: ../e2e/e2e.yaml
 ################################################################################
-    displayName: End-to-End Test
-    pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
-    dependsOn:
-      - PublishManifests
-    condition: in(dependencies.PublishManifests.result, 'Succeeded','Skipped', 'SucceededWithIssues')
-    jobs:
-      - job: ubuntu_1804_msmoby
-        displayName: Ubuntu 18.04 with iotedge-moby
-        variables:
-          verbose: false
-          os: linux
-          arch: amd64
-          artifactName: iotedged-ubuntu18.04-amd64
-          identityServiceArtifactName: packages_ubuntu-18.04_amd64
-          identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-          builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
-        steps:
-        - template: ../e2e/templates/e2e-setup.yaml
-        - template: ../e2e/templates/e2e-run.yaml
