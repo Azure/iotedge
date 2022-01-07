@@ -1,5 +1,8 @@
 #! /bin/bash
 
+
+CONFIG_DIR="/root/.repoclient/configs"
+PACKAGE_DIR="/root/.repoclient/packages"
 ###############################################################################
 # Print usage information pertaining to this script and exit
 ###############################################################################
@@ -10,11 +13,13 @@ function usage() {
     echo " -h,  --help                   Print this help and exit."
     echo " -p,  --packageos              packageos: ubuntu18.04|ubuntu20.04|debian9"
     echo " -d,  --dir                    package directory to publish"
+    echo " -w,  --wdir                   working directory for secrets.Default is $(pwd)."
+    echo " -s,  --server                 server name for package upload"
     exit 1
 }
 
 ###############################################################################
-# Function to obtain the underlying OS and check if supported
+# Functions
 ###############################################################################
 check_os() {
     if [[ "$PACKAGE_OS" == "ubuntu18.04" ]]; then
@@ -32,16 +37,24 @@ check_os() {
     fi
 }
 
-###############################################################################
-# Function to check if the directory for packages exist
-###############################################################################
 check_dir() {
     if [[ ! -d $DIR ]]; then
         echo "Directory $DIR does not exist"
         exit 1
     fi
+
+    if [[ ! -d $WDIR ]]; then
+        WDIR=$(pwd)
+    fi
 }
 
+check_server() {
+    if [[ -z $SERVER ]]; then
+        echo "Server Not Provided"
+        exit 1
+    fi
+
+}
 ###############################################################################
 # Obtain and validate the options supported by this script
 ###############################################################################
@@ -54,11 +67,19 @@ process_args() {
         elif [ $save_next_arg -eq 2 ]; then
             DIR="$arg"
             save_next_arg=0
+        elif [ $save_next_arg -eq 3 ]; then
+            WDIR="$arg"
+            save_next_arg=0
+        elif [ $save_next_arg -eq 4 ]; then
+            SERVER="$arg"
+            save_next_arg=0
         else
             case "$arg" in
             "-h" | "--help") usage ;;
             "-p" | "--packageos") save_next_arg=1 ;;
             "-d" | "--dir") save_next_arg=2 ;;
+            "-w" | "--wdir") save_next_arg=3 ;;
+            "-s" | "--server") save_next_arg=4 ;;
             *) usage ;;
             esac
         fi
@@ -72,45 +93,48 @@ process_args() {
 process_args "$@"
 check_os
 check_dir
+check_server
+echo "OS is $OS_NAME"
+echo "Version is $OS_VERSION"
+echo "Work Dir is $WDIR"
+echo "Package OS DIR is $DIR"
+find $DIR | sed -e "s/[^-][^\/]*\// |/g" -e "s/|\([^ ]\)/|-\1/"
 
 #Cleanup
-sudo rm -rf private-key.pem || true
-sudo rm -rf $OS_NAME-$OS_VERSION-multi-aad.json || true
-
-#Install Repo-Client Tool - Requires Corpnet Connected Machine
-# sudo curl http://tux-devrepo.corp.microsoft.com/keys/tux-devrepo.asc >tux-devrepo.asc
-# sudo apt-key add tux-devrepo.asc
-# echo "deb [arch=amd64] http://tux-devrepo.corp.microsoft.com/repos/tux-dev/ xenial main" | sudo tee /etc/apt/sources.list.d/tuxdev.list
-# sudo apt-get install -y --no-install-recommends azure-repoapi-client
-
-docker run --rm msint.azurecr.io/linuxrepos/repoclient:latest repoclient [...]
+sudo rm -rf $WDIR/private-key.pem || true
+sudo rm -rf $WDIR/$OS_NAME-$OS_VERSION-multi-aad.json || true
 
 #Download Secrets - Requires az login and proper subscription to be selected
-az keyvault secret download --vault-name iotedge-packages -n private-key-pem -f private-key.pem
-az keyvault secret download --vault-name iotedge-packages -n $OS_NAME-$OS_VERSION-multi-aad -f $OS_NAME-$OS_VERSION-multi-aad.json
-echo $(cat $OS_NAME-$OS_VERSION-multi-aad.json | jq '.AADClientCertificate="private-key.pem"') >$OS_NAME-$OS_VERSION-multi-aad.json
+az keyvault secret download --vault-name iotedge-packages -n private-key-pem -f $WDIR/private-key.pem
+az keyvault secret download --vault-name iotedge-packages -n $OS_NAME-$OS_VERSION-multi-aad -f $WDIR/$OS_NAME-$OS_VERSION-multi-aad.json
 
-#Upload packages
-output=$(repoclient -c $OS_NAME-$OS_VERSION-multi-aad.json -v v3 package add $DIR/)
-echo $output
-status=$(echo $output | jq '.status_code')
-submission_id=$(echo $output | jq '.message.submissionId')
-echo "StatusCode: $status"
+#Replace Server Name and Absolute Path of Private-key.pem and replace json
+echo $(cat $WDIR/$OS_NAME-$OS_VERSION-multi-aad.json | jq '.AADClientCertificate='\"$CONFIG_DIR/private-key.pem\"'' | jq '.server='\"$SERVER\"'') >$WDIR/$OS_NAME-$OS_VERSION-multi-aad.json
 
-submission_id=$(echo $submission_id | tr -d '"')
-echo "Submission ID: $submission_id"
+REPOTOOLCMD="docker run -v $WDIR:$CONFIG_DIR -v $DIR:$PACKAGE_DIR --rm msint.azurecr.io/linuxrepos/repoclient:latest repoclient"
 
-if [[ $status != "202" ]]; then
-    echo "Received Incorrect Upload Status: $status"
-    exit 1
-fi
+# #Upload packages
+# output=$($REPOTOOLCMD -c $CONFIG_DIR/$OS_NAME-$OS_VERSION-multi-aad.json -v v3 package add $PACKAGE_DIR/)
+# echo $output
+# status=$(echo $output | jq '.status_code')
+# submission_id=$(echo $output | jq '.message.submissionId')
+# echo "StatusCode: $status"
+
+# submission_id=$(echo $submission_id | tr -d '"')
+# echo "Submission ID: $submission_id"
+
+# if [[ $status != "202" ]]; then
+#     echo "Received Incorrect Upload Status: $status"
+#     exit 1
+# fi
 
 #Wait upto 10 Minutes to see if package uploaded
 end_time=$((SECONDS + 600))
 uploaded=false
+submission_id=61d7d691ea3a771e261fd598
 while [[ $SECONDS -lt $end_time ]]; do
     #Check for Successful Upload of Each of the Packages
-    output=($(repoclient -c $OS_NAME-$OS_VERSION-multi-aad.json -v v3 request check $submission_id | jq '.message.packages[].status'))
+    output=($($REPOTOOLCMD -c $CONFIG_DIR/$OS_NAME-$OS_VERSION-multi-aad.json -v v3 request check $submission_id | jq '.message.packages[].status'))
     for item in "${output[@]}"; do
         if [[ $item != "\"Success\"" ]]; then
             echo "Package Not Uploaded Yet, Status : $item"
