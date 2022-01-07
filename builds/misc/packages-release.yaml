@@ -122,15 +122,15 @@ stages:
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
     jobs:
-    # - deployment: safe_guard
-    #   environment: 'Azure-IoT-Edge-Core Release Env'
-    #   displayName: Get Approval
-    #   strategy:
-    #     runOnce:
-    #       deploy:
-    #         steps:
-    #           - bash: |
-    #               echo "Approval Complete"   
+    - deployment: safe_guard
+      environment: 'Azure-IoT-Edge-Core Release Env'
+      displayName: Get Approval
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - bash: |
+                  echo "Approval Complete"   
     - job: linux
       displayName: Linux
       strategy:
