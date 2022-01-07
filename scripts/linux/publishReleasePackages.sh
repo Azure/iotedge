@@ -1,5 +1,8 @@
 #! /bin/bash
 
+#Pre-Requisites For Running Locally
+#Docker Connection to MSINT
+#AZ CLI LOGIN
 
 CONFIG_DIR="/root/.repoclient/configs"
 PACKAGE_DIR="/root/.repoclient/packages"

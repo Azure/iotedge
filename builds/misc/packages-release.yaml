@@ -1,63 +1,72 @@
 trigger: none
 pr: none
 stages:
-################################################################################
-  - stage: BuildPackages
-################################################################################
-    displayName: Build Packages
-    pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
-    jobs:
-    - job: linux
-      displayName: Linux
-      strategy:
-        matrix:
-          Ubuntu2004-amd64:
-            arch: amd64
-            os: ubuntu20.04
-            target.iotedged: edgelet/target/release
-      steps:
-        - bash: |
-            BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
-            VERSION="$BASE_VERSION"
-            echo "##vso[task.setvariable variable=VERSION;]$VERSION"
+# ################################################################################
+#   - stage: BuildPackages
+# ################################################################################
+#     displayName: Build Packages
+#     pool:
+#       name: $(pool.linux.name)
+#       demands:
+#         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+#     jobs:
+#     - job: linux
+#       displayName: Linux
+#       strategy:
+#         matrix:
+#           Ubuntu2004-amd64:
+#             arch: amd64
+#             os: ubuntu20.04
+#             target.iotedged: edgelet/target/release
+#       steps:
+#         - bash: |
+#             BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
+#             VERSION="$BASE_VERSION"
+#             echo "##vso[task.setvariable variable=VERSION;]$VERSION"
 
-            echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
-            echo "##vso[task.setvariable variable=PACKAGE_OS;]$(os)"
-          displayName: Set Version
-        - script: edgelet/build/linux/package.sh
-          displayName: Create iotedged packages
-        - task: CopyFiles@2
-          displayName: Copy iotedged Files to Artifact Staging
-          inputs:
-            SourceFolder: $(target.iotedged)
-            Contents: |
-              *.deb
-              *.rpm
-            TargetFolder: '$(build.artifactstagingdirectory)'
-        - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
-          displayName: 'SBOM Generation Task'
-          inputs:
-              BuildDropPath: '$(build.artifactstagingdirectory)'             
-        - task: PublishBuildArtifacts@1
-          displayName: Publish Artifacts
-          inputs:
-            PathtoPublish: '$(build.artifactstagingdirectory)'
-            ArtifactName: 'iotedged-$(os)-$(arch)'
-          condition: succeededOrFailed()
+#             echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
+#             echo "##vso[task.setvariable variable=PACKAGE_OS;]$(os)"
+#           displayName: Set Version
+#         - script: edgelet/build/linux/package.sh
+#           displayName: Create iotedged packages
+#         - task: CopyFiles@2
+#           displayName: Copy iotedged Files to Artifact Staging
+#           inputs:
+#             SourceFolder: $(target.iotedged)
+#             Contents: |
+#               *.deb
+#               *.rpm
+#             TargetFolder: '$(build.artifactstagingdirectory)'
+#         - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
+#           displayName: 'SBOM Generation Task'
+#           inputs:
+#               BuildDropPath: '$(build.artifactstagingdirectory)'             
+#         - task: PublishBuildArtifacts@1
+#           displayName: Publish Artifacts
+#           inputs:
+#             PathtoPublish: '$(build.artifactstagingdirectory)'
+#             ArtifactName: 'iotedged-$(os)-$(arch)'
+#           condition: succeededOrFailed()
 
 ################################################################################
   - stage: PublishPackages
 ################################################################################
     displayName: Publish Packages
-    dependsOn: [BuildPackages]
+    # dependsOn: [BuildPackages]
     pool:
       name: $(pool.linux.name)
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
-    jobs:   
+    jobs:
+    - deployment: safe_guard
+      environment: 'Azure-IoT-Edge-Core Release Env'
+      displayName: Get Approval
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - bash: |
+                  echo "Approval Complete"   
     - job: linux
       displayName: Linux
       strategy:
