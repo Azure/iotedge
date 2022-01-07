@@ -118,20 +118,21 @@ echo $(cat $WDIR/$OS_NAME-$OS_VERSION-multi-aad.json | jq '.AADClientCertificate
 
 REPOTOOLCMD="docker run -v $WDIR:$CONFIG_DIR -v $DIR:$PACKAGE_DIR --rm msint.azurecr.io/linuxrepos/repoclient:latest repoclient"
 
-#Upload packages
-output=$($REPOTOOLCMD -c $CONFIG_DIR/$OS_NAME-$OS_VERSION-multi-aad.json -v v3 package add $PACKAGE_DIR/)
-echo $output
-status=$(echo $output | jq '.status_code')
-submission_id=$(echo $output | jq '.message.submissionId')
-echo "StatusCode: $status"
+#TODO: Enable After Testing
+# #Upload packages
+# output=$($REPOTOOLCMD -c $CONFIG_DIR/$OS_NAME-$OS_VERSION-multi-aad.json -v v3 package add $PACKAGE_DIR/)
+# echo $output
+# status=$(echo $output | jq '.status_code')
+# submission_id=$(echo $output | jq '.message.submissionId')
+# echo "StatusCode: $status"
 
-submission_id=$(echo $submission_id | tr -d '"')
-echo "Submission ID: $submission_id"
+# submission_id=$(echo $submission_id | tr -d '"')
+# echo "Submission ID: $submission_id"
 
-if [[ $status != "202" ]]; then
-    echo "Received Incorrect Upload Status: $status"
-    exit 1
-fi
+# if [[ $status != "202" ]]; then
+#     echo "Received Incorrect Upload Status: $status"
+#     exit 1
+# fi
 
 #Wait upto 10 Minutes to see if package uploaded
 end_time=$((SECONDS + 600))
