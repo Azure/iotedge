@@ -122,15 +122,15 @@ stages:
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
     jobs:
-    - deployment: safe_guard
-      environment: 'Azure-IoT-Edge-Core Release Env'
-      displayName: Get Approval
-      strategy:
-        runOnce:
-          deploy:
-            steps:
-              - bash: |
-                  echo "Approval Complete"   
+    # - deployment: safe_guard
+    #   environment: 'Azure-IoT-Edge-Core Release Env'
+    #   displayName: Get Approval
+    #   strategy:
+    #     runOnce:
+    #       deploy:
+    #         steps:
+    #           - bash: |
+    #               echo "Approval Complete"   
     - job: linux
       displayName: Linux
       strategy:
@@ -154,7 +154,7 @@ stages:
             os: ubuntu18.04
             artifactName: iotedged-ubuntu18.04-aarch64
             identityServiceArtifactName: packages_ubuntu-18.04_aarch64
-            identityServicePackageFilter: aziot-identity-service_*_aarch64.deb
+            identityServicePackageFilter: aziot-identity-service_*_arm64.deb
           Ubuntu2004-amd64:
             os: ubuntu20.04
             artifactName: iotedged-ubuntu20.04-amd64
@@ -163,8 +163,8 @@ stages:
           Ubuntu2004-aarch64:
             os: ubuntu20.04
             artifactName: iotedged-ubuntu20.04-aarch64
-            identityServiceArtifactName: packages_ubuntu-20.04_amd64
-            identityServicePackageFilter: aziot-identity-service_*_aarch64.deb
+            identityServiceArtifactName: packages_ubuntu-20.04_aarch64
+            identityServicePackageFilter: aziot-identity-service_*_arm64.deb
       steps:
         - task: AzureKeyVault@1
           displayName: Get secrets
