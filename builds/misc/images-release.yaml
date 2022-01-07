@@ -587,10 +587,10 @@ stages:
         timeoutInMinutes: 120
 
         steps:
-        - template: templates/e2e-clean-directory.yaml
-        - template: templates/e2e-setup.yaml
-        - template: templates/e2e-clear-docker-cached-images.yaml
-        - template: templates/e2e-run.yaml
+        - template: ../e2e/templates/e2e-clean-directory.yaml
+        - template: ../e2e/templates/e2e-setup.yaml
+        - template: ../e2e/templates/e2e-clear-docker-cached-images.yaml
+        - template: ../e2e/templates/e2e-run.yaml
 
     ################################################################################
       - job: ubuntu_1804_msmoby
@@ -610,8 +610,8 @@ stages:
           identityServicePackageFilter: aziot-identity-service_*_amd64.deb
 
         steps:
-        - template: templates/e2e-setup.yaml
-        - template: templates/e2e-run.yaml
+        - template: ../e2e/templates/e2e-setup.yaml
+        - template: ../e2e/templates/e2e-run.yaml
 
     ################################################################################
       - job: ubuntu_1804_docker
@@ -632,8 +632,8 @@ stages:
           minimal: true
 
         steps:
-        - template: templates/e2e-setup.yaml
-        - template: templates/e2e-run.yaml
+        - template: ../e2e/templates/e2e-setup.yaml
+        - template: ../e2e/templates/e2e-run.yaml
 
     ################################################################################
       - job: ubuntu_2004_msmoby
@@ -653,8 +653,8 @@ stages:
           identityServicePackageFilter: aziot-identity-service_*_amd64.deb
 
         steps:
-        - template: templates/e2e-setup.yaml
-        - template: templates/e2e-run.yaml
+        - template: ../e2e/templates/e2e-setup.yaml
+        - template: ../e2e/templates/e2e-run.yaml
 
     ################################################################################
       - job: ubuntu_2004_docker
@@ -677,8 +677,8 @@ stages:
         timeoutInMinutes: 90
 
         steps:
-        - template: templates/e2e-setup.yaml
-        - template: templates/e2e-run.yaml
+        - template: ../e2e/templates/e2e-setup.yaml
+        - template: ../e2e/templates/e2e-run.yaml
 
     ################################################################################
       - job: ubuntu_2004_arm64v8
@@ -686,7 +686,7 @@ stages:
         displayName: Ubuntu 20.04 with arm64v8
         pool:
           name: $(pool.custom.name)
-          demands:
+          demands: 
             - agent-group -equals rpi3-e2e-aarch64
 
         variables:
@@ -699,10 +699,10 @@ stages:
         timeoutInMinutes: 120
 
         steps:
-        - template: templates/e2e-clean-directory.yaml
-        - template: templates/e2e-setup.yaml
-        - template: templates/e2e-clear-docker-cached-images.yaml
-        - template: templates/e2e-run.yaml
+        - template: ../e2e/templates/e2e-clean-directory.yaml
+        - template: ../e2e/templates/e2e-setup.yaml
+        - template: ../e2e/templates/e2e-clear-docker-cached-images.yaml
+        - template: ../e2e/templates/e2e-run.yaml
 
     ################################################################################
       - job: centos7_amd64
@@ -724,10 +724,10 @@ stages:
         timeoutInMinutes: 90
 
         steps:
-        - template: templates/e2e-clean-directory.yaml
-        - template: templates/e2e-setup.yaml
-        - template: templates/e2e-clear-docker-cached-images.yaml
-        - template: templates/e2e-run.yaml
+        - template: ../e2e/templates/e2e-clean-directory.yaml
+        - template: ../e2e/templates/e2e-setup.yaml
+        - template: ../e2e/templates/e2e-clear-docker-cached-images.yaml
+        - template: ../e2e/templates/e2e-run.yaml
 
     ################################################################################
       - job: linux_amd64_proxy
@@ -753,9 +753,9 @@ stages:
         timeoutInMinutes: 120
 
         steps:
-        - template: templates/e2e-clean-directory.yaml
-        - template: templates/e2e-setup.yaml
-        - template: templates/e2e-clear-docker-cached-images.yaml
-        - template: templates/e2e-run.yaml
+        - template: ../e2e/templates/e2e-clean-directory.yaml
+        - template: ../e2e/templates/e2e-setup.yaml
+        - template: ../e2e/templates/e2e-clear-docker-cached-images.yaml
+        - template: ../e2e/templates/e2e-run.yaml
           parameters:
             test_type: http_proxy
