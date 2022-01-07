@@ -36,10 +36,10 @@ steps:
       echo "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]FALSE"
     fi
 
-    $RegistryPassword=$(TestContainerRegistryPassword)
+    RegistryPassword=$(TestContainerRegistryPassword)
     if [ $(Build.Configuration) == 'Release' ]
     then
-      $RegistryPassword=$(ReleaseContainerRegistryPassword)
+      RegistryPassword=$(ReleaseContainerRegistryPassword)
     fi
     
   name: check_use_artifacts
