@@ -93,7 +93,7 @@ steps:
     E2E_DPS_GROUP_KEY: $(TestDpsGroupKeySymmetric)
     E2E_EVENT_HUB_ENDPOINT: ${{ parameters['EventHubCompatibleEndpoint'] }}
     E2E_IOT_HUB_CONNECTION_STRING: ${{ parameters['IotHubConnectionString'] }}
-    E2E_REGISTRIES__0__PASSWORD: $(RegistryPassword)
+    E2E_REGISTRIES__0__PASSWORD: $RegistryPassword
     E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
     E2E_BLOB_STORE_SAS: $(TestBlobStoreSas)
 
