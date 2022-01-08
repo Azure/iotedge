@@ -608,7 +608,7 @@ stages:
         - template: ../e2e/templates/e2e-clean-directory.yaml
         - template: ../e2e/templates/e2e-setup-base-image-update-release.yaml
         - template: ../e2e/templates/e2e-clear-docker-cached-images.yaml
-        - template: ../e2e/templates/e2e-run.yaml
+        - template: ../e2e/templates/e2e-run-base-image-update.yaml
 
     ################################################################################
       - job: ubuntu_1804_msmoby
@@ -630,7 +630,7 @@ stages:
 
         steps:
         - template: ../e2e/templates/e2e-setup-base-image-update-release.yaml
-        - template: ../e2e/templates/e2e-run.yaml
+        - template: ../e2e/templates/e2e-run-base-image-update.yaml
 
     ################################################################################
       - job: ubuntu_1804_docker
@@ -653,7 +653,7 @@ stages:
 
         steps:
         - template: ../e2e/templates/e2e-setup-base-image-update-release.yaml
-        - template: ../e2e/templates/e2e-run.yaml
+        - template: ../e2e/templates/e2e-run-base-image-update.yaml
 
     ################################################################################
       - job: ubuntu_2004_msmoby
@@ -675,7 +675,7 @@ stages:
 
         steps:
         - template: ../e2e/templates/e2e-setup-base-image-update-release.yaml
-        - template: ../e2e/templates/e2e-run.yaml
+        - template: ../e2e/templates/e2e-run-base-image-update.yaml
 
     ################################################################################
       - job: ubuntu_2004_docker
@@ -700,7 +700,7 @@ stages:
 
         steps:
         - template: ../e2e/templates/e2e-setup-base-image-update-release.yaml
-        - template: ../e2e/templates/e2e-run.yaml
+        - template: ../e2e/templates/e2e-run-base-image-update.yaml
 
     ################################################################################
       - job: ubuntu_2004_arm64v8
@@ -730,7 +730,7 @@ stages:
         - template: ../e2e/templates/e2e-clean-directory.yaml
         - template: ../e2e/templates/e2e-setup-base-image-update-release.yaml
         - template: ../e2e/templates/e2e-clear-docker-cached-images.yaml
-        - template: ../e2e/templates/e2e-run.yaml
+        - template: ../e2e/templates/e2e-run-base-image-update.yaml
 
     ################################################################################
       - job: centos7_amd64
@@ -761,7 +761,7 @@ stages:
         - template: ../e2e/templates/e2e-clean-directory.yaml
         - template: ../e2e/templates/e2e-setup-base-image-update-release.yaml
         - template: ../e2e/templates/e2e-clear-docker-cached-images.yaml
-        - template: ../e2e/templates/e2e-run.yaml
+        - template: ../e2e/templates/e2e-run-base-image-update.yaml
 
     ################################################################################
       - job: linux_amd64_proxy
@@ -796,6 +796,6 @@ stages:
         - template: ../e2e/templates/e2e-clean-directory.yaml
         - template: ../e2e/templates/e2e-setup-base-image-update-release.yaml
         - template: ../e2e/templates/e2e-clear-docker-cached-images.yaml
-        - template: ../e2e/templates/e2e-run.yaml
+        - template: ../e2e/templates/e2e-run-base-image-update.yaml
           parameters:
             test_type: http_proxy
