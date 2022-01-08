@@ -158,3 +158,13 @@ steps:
     $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
     Get-Content -Path '$(binDir)/context.json'
   displayName: Create test arguments file (context.json)
+
+jobs:
+- job: KVRegistryPassword
+  variables:
+    RegistryPassword: '-'
+  steps:
+  - checkout: none
+  - pwsh: |
+      echo "##vso[task.setvariable variable=RegistryPassword;isOutput=true]$ReleaseContainerRegistryPassword"
+  name: KVPasswdVar

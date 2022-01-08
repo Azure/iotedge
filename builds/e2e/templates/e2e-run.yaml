@@ -3,6 +3,16 @@ parameters:
   IotHubConnectionString: '$(TestIotHubConnectionString)'
   test_type: '' 
 
+jobs:
+- job: GetKVRegistryPassword
+  dependsOn: KVRegistryPassword
+  variables:
+    RegistryPassword: $[dependencies.KVRegistryPassword.outputs['KVPasswdVar.RegistryPassword']]
+  steps:
+  - checkout: none
+  - pwsh: |
+      Write-Host "$(RegistryPassword)"
+    name: KVPasswdVar
 # This E2E test pipeline uses the following filters in order to skip certain tests:
 #   Flaky: Flaky on multiple platforms
 #   FlakyOnArm: Flaky only on arm
