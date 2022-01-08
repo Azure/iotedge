@@ -42,12 +42,6 @@ steps:
       echo "Use Build Package Artifacts"
       echo "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]FALSE"
     fi
-    
-    RegistryPassword=$(TestContainerRegistryPassword)
-    if [ $(Build.Configuration) == 'Release' ]
-    then
-      RegistryPassword=$(ReleaseContainerRegistryPassword)
-    fi
   name: check_use_artifacts
   displayName: Check Use Pipeline Image Artifacts
 
@@ -204,6 +198,12 @@ steps:
       verbose = '$(verbose)';
       getSupportBundle = 'true'
     }
+
+    $RegistryPassword=$(TestContainerRegistryPassword)
+    if ('$(Build.Configuration)' -eq 'Release')
+    then
+      $RegistryPassword=$(ReleaseContainerRegistryPassword)
+    fi
 
     if ('$(nestededge)' -eq 'true')
     {
