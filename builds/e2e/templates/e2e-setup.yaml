@@ -199,8 +199,6 @@ steps:
       getSupportBundle = 'true'
     }
 
-    $RegistryPassword=$TestContainerRegistryPassword
-
     if ('$(nestededge)' -eq 'true')
     {
       $context['hostname'] = '$(deviceName)'
