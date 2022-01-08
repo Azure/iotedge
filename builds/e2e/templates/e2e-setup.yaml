@@ -199,10 +199,10 @@ steps:
       getSupportBundle = 'true'
     }
 
-    $RegistryPassword=$(TestContainerRegistryPassword)
+    $RegistryPassword=$TestContainerRegistryPassword
     if ('$(Build.Configuration)' -eq 'Release')
     {
-      $RegistryPassword=$(ReleaseContainerRegistryPassword)
+      $RegistryPassword=$ReleaseContainerRegistryPassword
     }
 
     if ('$(nestededge)' -eq 'true')
