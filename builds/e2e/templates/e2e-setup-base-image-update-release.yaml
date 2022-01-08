@@ -1,165 +1,165 @@
-
-steps:
-- checkout: self
-  clean: true
-  fetchDepth: 100
-  submodules: recursive
-
-- task: AzureKeyVault@1
-  displayName: Get secrets
-  inputs:
-    azureSubscription: $(az.subscription)
-    keyVaultName: $(kv.name)
-    secretsFilter: >-
-      ReleaseContainerRegistryPassword,
-      TestDpsGroupKeySymmetric,
-      TestEventHubCompatibleEndpoint,
-      TestGitHubAccessToken,
-      TestPreviewEventHubCompatibleEndpoint,
-      TestIotedgedPackageRootSigningCert,
-      TestIotHubConnectionString,
-      TestRootCaCertificate,
-      TestRootCaKey,
-      TestRootCaPassword,
-      TestBlobStoreSas
-
-- bash: |
-    echo "Built Images Result is $(builtImages)"
-    
-    if [[ ! -z $(builtImages) && ( $(builtImages) == 'Succeeded' || $(builtImages) == 'SucceededWithIssues') ]]
-    then
-      echo "Use Pipeline Image Artifacts"
-      echo "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]TRUE"
-    else
-      echo "images-release.yaml did not succeed in the 'Publish Manifests' step, so e2e-setup.yaml is unable to download artifacts"
-      echo "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]FALSE"
-    fi
-
-  name: check_use_artifacts
-  displayName: Check if Manifest published successfully
-
-- task: DownloadPipelineArtifact@2
-  displayName: Download Current Pipeline Artifacts (downloads everything except Build Images)
-  condition: eq(variables['check_use_artifacts.UsePipelineImageArtifacts'],'true')
-  inputs:
-    source: 'current'
-    targetpath: $(System.ArtifactsDirectory)
-
-- pwsh: |
-    $certsDir = '$(System.ArtifactsDirectory)/certs'
-    New-Item "$certsDir" -ItemType Directory -Force | Out-Null
-    $env:ROOT_CERT | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.cert.pem"
-    $env:ROOT_KEY | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.key.pem"
-    Write-Output "##vso[task.setvariable variable=certsDir]$certsDir"
-  displayName: Install CA keys
-  env:
-    ROOT_CERT: $(TestRootCaCertificate)
-    ROOT_KEY: $(TestRootCaKey)
-
-- pwsh: |
-    $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
-    dotnet build $testDir
-
-    $binDir = Convert-Path "$testDir/bin/Release/netcoreapp3.1"
-    Write-Output "##vso[task.setvariable variable=binDir]$binDir"
-  env:
-    http_proxy: $(Agent.ProxyUrl)
-    https_proxy: $(Agent.ProxyUrl)
-  displayName: Build tests
-
-- pwsh: |
-    if ('$(nestededge)' -eq 'true')
-    {
-      $nestededge = "true"
-      $imagePrefix = '$upstream:443/microsoft/azureiotedge'
-      $diagnosticImagePrefix ='$(parentName):443/microsoft/azureiotedge'
-      $caCertScriptPath = Convert-Path "/certs"
-      $rootCaCertificatePath = Convert-Path "/certs/certs/azure-iot-test-only.root.ca.cert.pem"
-      $rootCaPrivateKeyPath = Convert-Path "/certs/private/azure-iot-test-only.root.ca.key.pem"
-    }else
-    {
-      $nestededge = "false"
-      $imagePrefix = '$(registry.address)/microsoft/azureiotedge'
-      $diagnosticImagePrefix = '$(registry.address)/microsoft/azureiotedge'
-      $caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates'
-      $rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
-      $rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
-    }
-
-    $versionInfo = "$(version)-$(os)-$(arch)"
-    $edgeAgentImage = "$imagePrefix-agent:$versionInfo";
-    $edgeHubImage = "$imagePrefix-hub:$versionInfo";
-
-    echo "Edge agent image: $edgeAgentImage"
-    echo "Edge hub image: $edgeHubImage"
-
-    $context = @{
-      nestededge = "$nestededge";
-      dpsIdScope = '$(dps.idScope)';
-      isa95Tag = 'false';
-      edgeAgentImage = "$edgeAgentImage";
-      edgeHubImage = "$edgeHubImage";
-      diagnosticsImage = "$diagnosticImagePrefix-diagnostics:$versionInfo";
-      tempFilterFuncImage = "$imagePrefix-functions-filter:$versionInfo";
-      tempFilterImage = "$imagePrefix-temperature-filter:$versionInfo";
-      tempSensorImage = "$imagePrefix-simulated-temperature-sensor:$versionInfo";
-      methodSenderImage = "$imagePrefix-direct-method-sender:$versionInfo";
-      methodReceiverImage = "$imagePrefix-direct-method-receiver:$versionInfo";
-      loadGenImage = "$imagePrefix-load-gen:$versionInfo";
-      relayerImage = "$imagePrefix-relayer:$versionInfo";
-      networkControllerImage = "$imagePrefix-network-controller:$versionInfo";
-      testResultCoordinatorImage = "$imagePrefix-test-result-coordinator:$versionInfo";
-      metricsValidatorImage = "$imagePrefix-metrics-validator:$versionInfo";
-      numberLoggerImage = "$imagePrefix-number-logger:$versionInfo";
-      edgeAgentBootstrapImage = "$imagePrefix-agent-bootstrap-e2e-$(os)-$(arch)";
-      genericMqttTesterImage = "$imagePrefix-generic-mqtt-tester:$versionInfo"
-      registries = @(
-        @{
-          address = '$(registry.address)';
-          username = '$(registry.username)';
-        }
-      );
-      caCertScriptPath = "$caCertScriptPath";
-      rootCaCertificatePath = "$rootCaCertificatePath";
-      rootCaPrivateKeyPath = "$rootCaPrivateKeyPath";
-      logFile = Join-Path '$(binDir)' 'testoutput.log';
-      verbose = '$(verbose)';
-      getSupportBundle = 'true'
-    }
-
-    if ('$(nestededge)' -eq 'true')
-    {
-      $context['hostname'] = '$(deviceName)'
-      $context['parentHostname'] = '$(parentName)'
-      $context['parentDeviceId'] = '$(parentDeviceId)'
-
-      if ('$(test_type)' -eq 'nestededge_isa95')
-      {
-        $context['deviceId'] = '$(Lvl3DeviceId)'
-        $context['edgeProxy'] = '$(proxyAddress)'
-        $context['isa95Tag'] = 'true'
-      }
-    }
-
-    if ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
-    {
-      $context['optimizeForPerformance'] = 'false'
-      $context['setupTimeoutMinutes'] = 10
-      $context['teardownTimeoutMinutes'] = 10
-      $context['testTimeoutMinutes'] = 10
-    }
-
-    if ($env:AGENT_PROXYURL)
-    {
-      $context['testRunnerProxy'] = $env:AGENT_PROXYURL
-      $context['edgeProxy'] = $env:AGENT_PROXYURL
-    }
-
-    $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
-    Get-Content -Path '$(binDir)/context.json'
-  displayName: Create test arguments file (context.json)
-
 jobs:
+- job: E2ESetup
+  steps:
+  - checkout: self
+    clean: true
+    fetchDepth: 100
+    submodules: recursive
+
+  - task: AzureKeyVault@1
+    displayName: Get secrets
+    inputs:
+      azureSubscription: $(az.subscription)
+      keyVaultName: $(kv.name)
+      secretsFilter: >-
+        ReleaseContainerRegistryPassword,
+        TestDpsGroupKeySymmetric,
+        TestEventHubCompatibleEndpoint,
+        TestGitHubAccessToken,
+        TestPreviewEventHubCompatibleEndpoint,
+        TestIotedgedPackageRootSigningCert,
+        TestIotHubConnectionString,
+        TestRootCaCertificate,
+        TestRootCaKey,
+        TestRootCaPassword,
+        TestBlobStoreSas
+
+  - bash: |
+      echo "Built Images Result is $(builtImages)"
+      
+      if [[ ! -z $(builtImages) && ( $(builtImages) == 'Succeeded' || $(builtImages) == 'SucceededWithIssues') ]]
+      then
+        echo "Use Pipeline Image Artifacts"
+        echo "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]TRUE"
+      else
+        echo "images-release.yaml did not succeed in the 'Publish Manifests' step, so e2e-setup.yaml is unable to download artifacts"
+        echo "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]FALSE"
+      fi
+
+    name: check_use_artifacts
+    displayName: Check if Manifest published successfully
+
+  - task: DownloadPipelineArtifact@2
+    displayName: Download Current Pipeline Artifacts (downloads everything except Build Images)
+    condition: eq(variables['check_use_artifacts.UsePipelineImageArtifacts'],'true')
+    inputs:
+      source: 'current'
+      targetpath: $(System.ArtifactsDirectory)
+
+  - pwsh: |
+      $certsDir = '$(System.ArtifactsDirectory)/certs'
+      New-Item "$certsDir" -ItemType Directory -Force | Out-Null
+      $env:ROOT_CERT | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.cert.pem"
+      $env:ROOT_KEY | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.key.pem"
+      Write-Output "##vso[task.setvariable variable=certsDir]$certsDir"
+    displayName: Install CA keys
+    env:
+      ROOT_CERT: $(TestRootCaCertificate)
+      ROOT_KEY: $(TestRootCaKey)
+
+  - pwsh: |
+      $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
+      dotnet build $testDir
+
+      $binDir = Convert-Path "$testDir/bin/Release/netcoreapp3.1"
+      Write-Output "##vso[task.setvariable variable=binDir]$binDir"
+    env:
+      http_proxy: $(Agent.ProxyUrl)
+      https_proxy: $(Agent.ProxyUrl)
+    displayName: Build tests
+
+  - pwsh: |
+      if ('$(nestededge)' -eq 'true')
+      {
+        $nestededge = "true"
+        $imagePrefix = '$upstream:443/microsoft/azureiotedge'
+        $diagnosticImagePrefix ='$(parentName):443/microsoft/azureiotedge'
+        $caCertScriptPath = Convert-Path "/certs"
+        $rootCaCertificatePath = Convert-Path "/certs/certs/azure-iot-test-only.root.ca.cert.pem"
+        $rootCaPrivateKeyPath = Convert-Path "/certs/private/azure-iot-test-only.root.ca.key.pem"
+      }else
+      {
+        $nestededge = "false"
+        $imagePrefix = '$(registry.address)/microsoft/azureiotedge'
+        $diagnosticImagePrefix = '$(registry.address)/microsoft/azureiotedge'
+        $caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates'
+        $rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
+        $rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
+      }
+
+      $versionInfo = "$(version)-$(os)-$(arch)"
+      $edgeAgentImage = "$imagePrefix-agent:$versionInfo";
+      $edgeHubImage = "$imagePrefix-hub:$versionInfo";
+
+      echo "Edge agent image: $edgeAgentImage"
+      echo "Edge hub image: $edgeHubImage"
+
+      $context = @{
+        nestededge = "$nestededge";
+        dpsIdScope = '$(dps.idScope)';
+        isa95Tag = 'false';
+        edgeAgentImage = "$edgeAgentImage";
+        edgeHubImage = "$edgeHubImage";
+        diagnosticsImage = "$diagnosticImagePrefix-diagnostics:$versionInfo";
+        tempFilterFuncImage = "$imagePrefix-functions-filter:$versionInfo";
+        tempFilterImage = "$imagePrefix-temperature-filter:$versionInfo";
+        tempSensorImage = "$imagePrefix-simulated-temperature-sensor:$versionInfo";
+        methodSenderImage = "$imagePrefix-direct-method-sender:$versionInfo";
+        methodReceiverImage = "$imagePrefix-direct-method-receiver:$versionInfo";
+        loadGenImage = "$imagePrefix-load-gen:$versionInfo";
+        relayerImage = "$imagePrefix-relayer:$versionInfo";
+        networkControllerImage = "$imagePrefix-network-controller:$versionInfo";
+        testResultCoordinatorImage = "$imagePrefix-test-result-coordinator:$versionInfo";
+        metricsValidatorImage = "$imagePrefix-metrics-validator:$versionInfo";
+        numberLoggerImage = "$imagePrefix-number-logger:$versionInfo";
+        edgeAgentBootstrapImage = "$imagePrefix-agent-bootstrap-e2e-$(os)-$(arch)";
+        genericMqttTesterImage = "$imagePrefix-generic-mqtt-tester:$versionInfo"
+        registries = @(
+          @{
+            address = '$(registry.address)';
+            username = '$(registry.username)';
+          }
+        );
+        caCertScriptPath = "$caCertScriptPath";
+        rootCaCertificatePath = "$rootCaCertificatePath";
+        rootCaPrivateKeyPath = "$rootCaPrivateKeyPath";
+        logFile = Join-Path '$(binDir)' 'testoutput.log';
+        verbose = '$(verbose)';
+        getSupportBundle = 'true'
+      }
+
+      if ('$(nestededge)' -eq 'true')
+      {
+        $context['hostname'] = '$(deviceName)'
+        $context['parentHostname'] = '$(parentName)'
+        $context['parentDeviceId'] = '$(parentDeviceId)'
+
+        if ('$(test_type)' -eq 'nestededge_isa95')
+        {
+          $context['deviceId'] = '$(Lvl3DeviceId)'
+          $context['edgeProxy'] = '$(proxyAddress)'
+          $context['isa95Tag'] = 'true'
+        }
+      }
+
+      if ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
+      {
+        $context['optimizeForPerformance'] = 'false'
+        $context['setupTimeoutMinutes'] = 10
+        $context['teardownTimeoutMinutes'] = 10
+        $context['testTimeoutMinutes'] = 10
+      }
+
+      if ($env:AGENT_PROXYURL)
+      {
+        $context['testRunnerProxy'] = $env:AGENT_PROXYURL
+        $context['edgeProxy'] = $env:AGENT_PROXYURL
+      }
+
+      $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
+      Get-Content -Path '$(binDir)/context.json'
+    displayName: Create test arguments file (context.json)
+  
 - job: KVRegistryPassword
   variables:
     RegistryPassword: '-'
