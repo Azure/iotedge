@@ -600,6 +600,11 @@ stages:
         timeoutInMinutes: 120
 
         steps:
+        - task: Docker@2
+          displayName: Docker login edgerelease
+          inputs:
+          command: login
+          containerRegistry: iotedge-release-acr
         - template: ../e2e/templates/e2e-clean-directory.yaml
         - template: ../e2e/templates/e2e-setup-base-image-update-release.yaml
         - template: ../e2e/templates/e2e-clear-docker-cached-images.yaml
@@ -717,6 +722,11 @@ stages:
         timeoutInMinutes: 120
 
         steps:
+        - task: Docker@2
+          displayName: Docker login edgerelease
+          inputs:
+          command: login
+          containerRegistry: iotedge-release-acr
         - template: ../e2e/templates/e2e-clean-directory.yaml
         - template: ../e2e/templates/e2e-setup-base-image-update-release.yaml
         - template: ../e2e/templates/e2e-clear-docker-cached-images.yaml
@@ -743,6 +753,11 @@ stages:
         timeoutInMinutes: 90
 
         steps:
+        - task: Docker@2
+          displayName: Docker login edgerelease
+          inputs:
+          command: login
+          containerRegistry: iotedge-release-acr
         - template: ../e2e/templates/e2e-clean-directory.yaml
         - template: ../e2e/templates/e2e-setup-base-image-update-release.yaml
         - template: ../e2e/templates/e2e-clear-docker-cached-images.yaml
@@ -773,6 +788,11 @@ stages:
         timeoutInMinutes: 120
 
         steps:
+        - task: Docker@2
+          displayName: Docker login edgerelease
+          inputs:
+          command: login
+          containerRegistry: iotedge-release-acr
         - template: ../e2e/templates/e2e-clean-directory.yaml
         - template: ../e2e/templates/e2e-setup-base-image-update-release.yaml
         - template: ../e2e/templates/e2e-clear-docker-cached-images.yaml
