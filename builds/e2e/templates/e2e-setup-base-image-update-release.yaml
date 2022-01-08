@@ -130,9 +130,9 @@ steps:
 
     $RegistryPassword=$(TestContainerRegistryPassword)
     if ('$(Build.Configuration)' -eq 'Release')
-    then
+    {
       $RegistryPassword=$(ReleaseContainerRegistryPassword)
-    fi
+    }
 
     if ('$(nestededge)' -eq 'true')
     {
