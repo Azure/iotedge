@@ -122,7 +122,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                         new DateTime(2020, 1, 1, 9, 10, 24, 15)
                     },
                     7,
-                    true,
+                    false,
                     6, 0, 0, 0, 0, 1, 0
                 },
             new object[]
