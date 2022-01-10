@@ -10,4 +10,5 @@ EXPOSE 8883/tcp
 # Use an unprivileged user account from base image for running mqttd	
 USER edgehubuser
 
+ENV OptimizeForPerformance false
 ENTRYPOINT ["/usr/local/bin/mqttd"]
