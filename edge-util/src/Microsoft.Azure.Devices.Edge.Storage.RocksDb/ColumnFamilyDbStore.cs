@@ -76,9 +76,18 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             Action operation = () => this.db.Remove(key, this.Handle);
             await operation.ExecuteUntilCancelled(cancellationToken);
             // We don't want to wrap around the counter.
-            if (Interlocked.Read(ref this.count) > 0)
+            var currentCount = Interlocked.Read(ref this.count);
+            if (currentCount == 1)
+            {
+                Interlocked.CompareExchange(ref this.count, currentCount - 1, currentCount);
+            }
+            else if (currentCount > 1)
             {
                 Interlocked.Decrement(ref this.count);
+            }
+            else
+            {
+                // This should never happen. As we only allow reaching 0.
             }
         }
 
