@@ -42,10 +42,10 @@ stages:
           inputs:
             command: login
             containerRegistry: iotedge-release-acr
-        - template: ../templates/e2e-clean-directory.yaml
-        - template: ../templates/e2e-setup-base-image-update-release.yaml
-        - template: ../templates/e2e-clear-docker-cached-images.yaml
-        - template: ../templates/e2e-run-base-image-update.yaml
+        - template: templates/e2e-clean-directory.yaml
+        - template: templates/e2e-setup-base-image-update-release.yaml
+        - template: templates/e2e-clear-docker-cached-images.yaml
+        - template: templates/e2e-run-base-image-update.yaml
 
     ################################################################################
       - job: ubuntu_1804_msmoby
@@ -66,8 +66,8 @@ stages:
           builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
 
         steps:
-        - template: ../templates/e2e-setup-base-image-update-release.yaml
-        - template: ../templates/e2e-run-base-image-update.yaml
+        - template: templates/e2e-setup-base-image-update-release.yaml
+        - template: templates/e2e-run-base-image-update.yaml
 
     ################################################################################
       - job: ubuntu_1804_docker
@@ -89,8 +89,8 @@ stages:
           minimal: true
 
         steps:
-        - template: ../templates/e2e-setup-base-image-update-release.yaml
-        - template: ../templates/e2e-run-base-image-update.yaml
+        - template: templates/e2e-setup-base-image-update-release.yaml
+        - template: templates/e2e-run-base-image-update.yaml
 
     ################################################################################
       - job: ubuntu_2004_msmoby
@@ -111,8 +111,8 @@ stages:
           builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
 
         steps:
-        - template: ../templates/e2e-setup-base-image-update-release.yaml
-        - template: ../templates/e2e-run-base-image-update.yaml
+        - template: templates/e2e-setup-base-image-update-release.yaml
+        - template: templates/e2e-run-base-image-update.yaml
 
     ################################################################################
       - job: ubuntu_2004_docker
@@ -136,8 +136,8 @@ stages:
         timeoutInMinutes: 90
 
         steps:
-        - template: ../templates/e2e-setup-base-image-update-release.yaml
-        - template: ../templates/e2e-run-base-image-update.yaml
+        - template: templates/e2e-setup-base-image-update-release.yaml
+        - template: templates/e2e-run-base-image-update.yaml
 
     ################################################################################
       - job: ubuntu_2004_arm64v8
@@ -164,10 +164,10 @@ stages:
           inputs:
             command: login
             containerRegistry: iotedge-release-acr
-        - template: ../templates/e2e-clean-directory.yaml
-        - template: ../templates/e2e-setup-base-image-update-release.yaml
-        - template: ../templates/e2e-clear-docker-cached-images.yaml
-        - template: ../templates/e2e-run-base-image-update.yaml
+        - template: templates/e2e-clean-directory.yaml
+        - template: templates/e2e-setup-base-image-update-release.yaml
+        - template: templates/e2e-clear-docker-cached-images.yaml
+        - template: templates/e2e-run-base-image-update.yaml
 
   # 1) CentOS7 isn't Tier 1.
   # 2) Since there isn't a code change for this scenario, we probably don't need to test
@@ -198,10 +198,10 @@ stages:
     #       inputs:
     #         command: login
     #         containerRegistry: iotedge-release-acr
-    #     - template: ../templates/e2e-clean-directory.yaml
-    #     - template: ../templates/e2e-setup-base-image-update-release.yaml
-    #     - template: ../templates/e2e-clear-docker-cached-images.yaml
-    #     - template: ../templates/e2e-run-base-image-update.yaml
+    #     - template: templates/e2e-clean-directory.yaml
+    #     - template: templates/e2e-setup-base-image-update-release.yaml
+    #     - template: templates/e2e-clear-docker-cached-images.yaml
+    #     - template: templates/e2e-run-base-image-update.yaml
 
     # ################################################################################
     #   - job: linux_amd64_proxy
@@ -233,9 +233,9 @@ stages:
     #       inputs:
     #         command: login
     #         containerRegistry: iotedge-release-acr
-    #     - template: ../templates/e2e-clean-directory.yaml
-    #     - template: ../templates/e2e-setup-base-image-update-release.yaml
-    #     - template: ../templates/e2e-clear-docker-cached-images.yaml
-    #     - template: ../templates/e2e-run-base-image-update.yaml
+    #     - template: templates/e2e-clean-directory.yaml
+    #     - template: templates/e2e-setup-base-image-update-release.yaml
+    #     - template: templates/e2e-clear-docker-cached-images.yaml
+    #     - template: templates/e2e-run-base-image-update.yaml
     #       parameters:
     #         test_type: http_proxy
