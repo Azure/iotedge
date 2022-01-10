@@ -94,7 +94,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
             {
                 Assert.Equal(10ul, await columnFamilyDbStore.Count());
 
-                for (int i = 0; i < 10; i++)
+                // Using 11 (10 + 1) to make sure underflow is caught.
+                for (int i = 0; i < 11; i++)
                 {
                     string key = $"key{i}";
                     await columnFamilyDbStore.Remove(key.ToBytes());

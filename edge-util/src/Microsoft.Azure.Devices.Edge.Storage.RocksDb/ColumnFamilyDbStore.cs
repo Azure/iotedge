@@ -75,7 +75,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
             Action operation = () => this.db.Remove(key, this.Handle);
             await operation.ExecuteUntilCancelled(cancellationToken);
-            Interlocked.Decrement(ref this.count);
+            // We don't want to wrap around the counter.
+            if (Interlocked.Read(ref this.count) > 0)
+            {
+                Interlocked.Decrement(ref this.count);
+            }
         }
 
         public async Task<Option<(byte[] key, byte[] value)>> GetLastEntry(CancellationToken cancellationToken)
