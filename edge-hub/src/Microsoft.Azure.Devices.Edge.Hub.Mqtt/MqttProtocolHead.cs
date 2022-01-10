@@ -82,6 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         {
             try
             {
+                Thread.Sleep(120000);
                 this.logger.LogInformation("Starting MQTT head");
 
                 ServerBootstrap bootstrap = this.SetupServerBootstrap();
