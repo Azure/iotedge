@@ -12,15 +12,11 @@ stages:
     dependsOn: []
     jobs:
     - job: BuildDotnetComponents
-      # This job is run on a hosted linux agent, which needs dotnet 2 and 3 installed as a manual step. 
       # The code sign steps will fail unless we explicitly say to use dotnet 2 before.
       # This means we have to toggle back and forth between primary dotnet installations for the sign and build.
       # TODO: Investigate why we have to toggle primary installs on linux, when we didn't have to do this on windows (now removed).
       displayName: Build Dotnet Components
       steps: 
-        # Dotnet 2 needed for codesign
-        - template: ../templates/install-dotnet2.yaml
-        - template: ../templates/install-dotnet3.yaml
         - template: ../templates/dotnet3-globaljson.yaml # use dotnet 3 as primary install for build
         # Build
         - task: ShellScript@2
