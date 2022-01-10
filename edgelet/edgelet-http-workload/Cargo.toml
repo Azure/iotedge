@@ -42,6 +42,6 @@ aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-serv
 http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 
 [dev-dependencies]
-nix = "0.22"
+nix = "0.23"
 
 edgelet-test-utils = { path = "../edgelet-test-utils" }
