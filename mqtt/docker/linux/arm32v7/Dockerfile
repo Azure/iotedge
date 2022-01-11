@@ -5,7 +5,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:${base_tag}
 ADD ./armv7-unknown-linux-gnueabihf/release/mqttd /usr/local/bin/mqttd
 
 ARG EDGEHUBUSER_ID=1000 
-RUN useradd -ms /bin/bash -u ${EDGEHUBUSER_ID} edgehubuser 
+RUN adduser -Du ${EDGEHUBUSER_ID} edgehubuser
 ENV EdgeHubUser=edgehubuser
 
 EXPOSE 1883/tcp
