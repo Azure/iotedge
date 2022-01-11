@@ -23,11 +23,6 @@ steps:
       TestRootCaPassword,
       TestBlobStoreSas
 
-  env:
-    E2E_REGISTRIES__0__PASSWORD: $(TestContainerRegistryPassword)
-    E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
-    E2E_BLOB_STORE_SAS: $(TestBlobStoreSas)
-
 - bash: | 
     echo "Built Images Result is $(builtImages)"
     echo "Built Packages Result is $(builtPackages)"
