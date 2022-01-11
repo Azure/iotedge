@@ -399,6 +399,20 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 store.Save(p12File, new char[] { }, new SecureRandom());
 
                 var cert = new X509Certificate2(p12File.ToArray());
+
+                try
+                {
+                    _ = cert.PrivateKey;
+                }
+                catch
+                {
+                    using (var file = File.Create("pkcsdump.bin"))
+                    {
+                        var content = p12File.ToArray();
+                        file.Write(content, 0, content.Length);
+                    }
+                }
+
                 return (cert, certsChain);
             }
         }
