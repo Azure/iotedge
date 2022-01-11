@@ -48,6 +48,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 startTime = DateTime.Now;
             }
 
+            await Task.Delay(TimeSpan.FromSeconds(600));
+
             await sensor.WaitForEventsReceivedAsync(startTime, token);
         }
 
