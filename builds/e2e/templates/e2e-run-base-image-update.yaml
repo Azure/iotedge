@@ -1,0 +1,139 @@
+# This file is a copy of e2e-run.yaml.
+# The *only* difference is that a different E2E_REGISTRIES__0__PASSWORD is biing set here.
+# Passing variables across templates was proving tricky and needs some looking into. However,
+# since this change really needs to make it into 1.2.7, a copy is being made of the e2e-run.yaml
+# This file should go away completely after a minor refactor.
+
+parameters:
+  EventHubCompatibleEndpoint: '$(TestEventHubCompatibleEndpoint)'
+  IotHubConnectionString: '$(TestIotHubConnectionString)'
+  test_type: '' 
+
+# This E2E test pipeline uses the following filters in order to skip certain tests:
+#   Flaky: Flaky on multiple platforms
+#   FlakyOnArm: Flaky only on arm
+#   FlakyOnNested: Flaky only on nested
+#   CentOsSafe: Can be run on CentOs
+#   SingleNodeOnly: Only applies to single-node cases
+#   NestedEdgeOnly: Only applies to nested edge cases
+#   NestedEdgeAmqpOnly: Only applies to nested edge cases using amqp upstream protocol
+#   LegacyMqttRequired: Only applies to cases with the edgehub legacy mqtt protocol head
+#   BrokerRequired: Only applies to cases with the broker enabled
+steps:
+- pwsh: |
+    $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
+    $test_type = '${{ parameters.test_type }}'
+
+    # Filter out flaky tests.
+    $filter = 'Category!=Flaky'
+
+    if ('$(minimal)' -eq 'true')
+    {
+      $filter += '&Name~TempSensor'
+    }
+
+    if ('$(artifactName)'.Contains('centos'))
+    {
+      $filter += '&Category=CentOsSafe'
+    }
+    elseif ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
+    {
+      $filter += '&Category!=FlakyOnArm'
+    }
+    
+    if ($test_type -eq 'nestededge_mqtt')
+    {
+      $filter += '&Category!=SingleNodeOnly'
+      $filter += '&Category!=NestedEdgeAmqpOnly'
+      $filter += '&Category!=LegacyMqttRequired'
+    
+      $filter += '&Category!=FlakyOnNested'
+
+      # Below tests were disabled and marked for re-enable when a blocking item was resolved.
+      # When it was resolved the tests were never enabled. We need to re-enable these.
+      $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
+    }
+    elseif ($test_type -eq 'nestededge_amqp')
+    {
+      $filter += '&Category!=SingleNodeOnly'
+      $filter += '&Category!=BrokerRequired'
+
+      $filter += '&Category!=FlakyOnNested'
+
+      # Below tests were disabled and marked for re-enable when a blocking item was resolved.
+      # When it was resolved the tests were never enabled. We need to re-enable these.
+      $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
+    }
+    elseif ($test_type -eq 'nestededge_isa95')
+    {
+      $filter = 'Category=nestededge_isa95'
+    }
+    elseif ($test_type -eq 'http_proxy')
+    {
+      #Disable tests that don't work in proxy environment. Renable post-investigation.
+      $filter += '&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~ValidateMetrics'
+
+      #Disable tests that timeout in proxy self-host environment
+      $filter += '&FullyQualifiedName!~TestUploadSupportBundle'
+
+      #Disable nested edge tests
+      $filter += '&Category!=NestedEdgeOnly'
+    }
+    else
+    {
+      $filter += '&Category!=NestedEdgeOnly'
+    }
+    
+    #Dotnet SDK 3.1.415 package on Centos doesn't allow dotnet to be accessed via sudo command due to Path issues. Use the below workaround for centos only.
+    if ('$(artifactName)'.Contains('centos'))
+    {
+      sudo --preserve-env $(command -v dotnet) test $testFile --no-build --logger 'trx' --filter "$filter"
+    }
+    else
+    {
+      sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
+    }
+
+  displayName: Run tests ${{ parameters.test_type }}
+  env:
+    E2E_DPS_GROUP_KEY: $(TestDpsGroupKeySymmetric)
+    E2E_EVENT_HUB_ENDPOINT: ${{ parameters['EventHubCompatibleEndpoint'] }}
+    E2E_IOT_HUB_CONNECTION_STRING: ${{ parameters['IotHubConnectionString'] }}
+    E2E_REGISTRIES__0__PASSWORD: $(ReleaseContainerRegistryPassword)
+    E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
+    E2E_BLOB_STORE_SAS: $(TestBlobStoreSas)
+
+- task: PublishTestResults@2
+  displayName: Publish test results
+  inputs:
+    testRunner: vstest
+    testResultsFiles: '**/*.trx'
+    searchFolder: $(Build.SourcesDirectory)/TestResults
+    testRunTitle: End-to-end tests ($(Build.BuildNumber) $(System.JobDisplayName))
+    buildPlatform: $(arch)
+  # This task takes 15 min when behind a proxy, so disable it
+  # see https://github.com/microsoft/azure-pipelines-tasks/issues/11831
+  condition: and(succeededOrFailed(), not(variables['Agent.ProxyUrl']))
+
+- pwsh: |
+    $logDir = '$(Build.ArtifactStagingDirectory)/logs${{ parameters.test_type }}'
+    New-Item $logDir -ItemType Directory -Force | Out-Null
+    Out-File "$logDir/$(Build.DefinitionName)-$(Build.BuildNumber)"
+    Copy-Item "$(Build.SourcesDirectory)/TestResults" "$logDir/" -Recurse
+    # The setup fixtures run outside the scope of any test, so their logs (*-[test|device]-*.log)
+    # aren't included in the TRX. Copy them manually here.
+    Copy-Item "$(binDir)/*-test-*.log" "$logDir/"
+    Copy-Item "$(binDir)/*-device-*.log" "$logDir/"
+    Copy-Item "$(binDir)/testoutput.log" "$logDir/"
+    Copy-Item "$(binDir)/supportbundle*" "$logDir/"
+    $artifactSuffix = '$(Build.BuildNumber)-$(System.PhaseName)' -replace '_','-'
+    Write-Output "##vso[task.setvariable variable=artifactSuffix]$artifactSuffix"
+  displayName: Collect Logs
+  condition: succeededOrFailed()
+
+- task: PublishBuildArtifacts@1
+  displayName: Publish logs
+  inputs:
+    PathtoPublish: $(Build.ArtifactStagingDirectory)/logs${{ parameters.test_type }}
+    ArtifactName: logs-end-to-end-$(artifactSuffix)
+  condition: succeededOrFailed()
