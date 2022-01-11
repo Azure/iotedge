@@ -1,3 +1,12 @@
+# 1.2.7 (2021-01-19)
+## aziot-edge
+### Bug Fixes
+* Update vulnerable nix version ( [ca6958f](https://github.com/Azure/iotedge/commit/ca6958f7a3995c43973e4fbd006c1be737b60fe8))
+* New IoTedge check called proxy-settings which verifies proxy settings ([4983128](https://github.com/Azure/iotedge/commit/49831285a02de9189ac338237aaa0f529a72c559))
+* Removed Moby check ([27a14d8](https://github.com/Azure/iotedge/commit/27a14d817d8de78b562691945689fa4400de56b6))
+* Fix for workload socket issue for concurrent module creation ([5712dcc](https://github.com/Azure/iotedge/commit/5712dcc28498121d890082d5c884d9855cc40efd))
+* Addition of device ID to edge CA common name to support large number of devices ([6627c7a](https://github.com/Azure/iotedge/commit/6627c7a835ed6b252da00faa29b9d9b8e5cd501b))
+
 # 1.2.6 (2021-11-12)
 ## Edge Agent
 ### Bug Fixes
