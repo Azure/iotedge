@@ -22,6 +22,7 @@ function usage() {
     echo " -g,  --ghubpat                value of github pat. Required only if uploading to github"
     echo " -v,  --version                version of the release."
     echo " -u,  --skip-upload            Skips Upload and Only Creates Release for Github. Defaults to false"
+    echo " -b,  --branch-name            Git Branch Name"
     exit 1
 }
 
@@ -97,6 +98,9 @@ process_args() {
             save_next_arg=0   
         elif [ $save_next_arg -eq 7 ]; then
             SKIP_UPLOAD="$arg"
+            save_next_arg=0
+        elif [ $save_next_arg -eq 8 ]; then
+            BRANCH_NAME="$arg"
             save_next_arg=0   
         else
             case "$arg" in
@@ -108,6 +112,7 @@ process_args() {
             "-g" | "--ghubpat") save_next_arg=5 ;;
             "-v" | "--version") save_next_arg=6 ;;
             "-u" | "--skip-upload") save_next_arg=7 ;;
+            "-b" | "--branch-name") save_next_arg=8 ;;
             *) usage ;;
             esac
         fi
@@ -183,13 +188,18 @@ fi
 publish_to_github()
 {   
     #Investigate if this can be derived from a commit, Hardcode for now.
-    branch_name="release/1.2"
+    if [[ -z $BRANCH_NAME ]]; then
+        echo "No Branch Name Provided"
+        exit 1
+    fi
+    
+    branch_name=${BRANCH_NAME/"refs/heads/"/""}
+    echo "Branch Name is $branch_name"
      # Get the latest release from a given branch
     echo "Fetch the latest release: "
     url="https://api.github.com/repos/Azure/iotedge/releases"
     header_content="Accept:application/vnd.github.v3+json"
     header_auth="Authorization:token $GITHUB_PAT"
-    # header="{\"Accept\"= \"application/vnd.github.v3+json\" \"Authorization\"= \"token $GITHUB_PAT\"}"
     content=$(curl -X GET -H "$header_content" -H "$header_auth" "$url")
     latest_release=$(echo $content | jq --arg branch "$branch_name" '[.[] | select(.target_commitish==$branch)][0]' | jq '.name')
     echo "Latest Release is $latest_release"
