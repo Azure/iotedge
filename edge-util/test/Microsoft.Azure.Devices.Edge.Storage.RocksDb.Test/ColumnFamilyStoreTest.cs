@@ -135,22 +135,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
 
                 Assert.Equal(0ul, await columnFamilyDbStore.Count());
             }
-
-            // Verify with threads.
-
-            using (IDbStore columnFamilyDbStore = this.rocksDbStoreProvider.GetDbStore("test"))
-            {
-                for (int i = 0; i < 100; i++)
-                {
-                    var t = new Thread(async () =>
-                    {
-
-                        string key = $"key{0}";
-                        await columnFamilyDbStore.Remove(key.ToBytes());
-                        Assert.Equal(0ul, await columnFamilyDbStore.Count());
-                    });
-                }
-            }
         }
     }
 }
