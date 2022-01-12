@@ -3,7 +3,7 @@
 #Pre-Requisites For Running Locally
 #Docker Connection to MSINT
 #AZ CLI LOGIN
-SCRIPT_NAME="publishReleasePacakges.sh"
+SCRIPT_NAME=$(basename $0)
 CONFIG_DIR="/root/.repoclient/configs"
 PACKAGE_DIR="/root/.repoclient/packages"
 SKIP_UPLOAD="false"
