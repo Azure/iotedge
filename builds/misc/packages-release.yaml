@@ -231,7 +231,7 @@ stages:
               - bash: | #Create Release Page Before Publishing Artifacts in Parallel in the Next Job.
                   echo "Approval Complete, Creating Release Page"
                   BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
-                  $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh -p ubuntu20.04 -w $(Build.SourcesDirectory) -d $(Build.SourcesDirectory) -g  $(GitHubAccessToken) -v "$BASE_VERSION" -s "github.com" --skip-upload true        
+                  $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh -p ubuntu20.04 -w $(Build.SourcesDirectory) -d $(Build.SourcesDirectory) -g  $(GitHubAccessToken) -v "$BASE_VERSION" -s "github.com" -b  $(Build.SourceBranch) --skip-upload true        
     - job: linux
       displayName: Linux
       strategy:
@@ -350,7 +350,7 @@ stages:
             IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
         - bash: |
             BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
-            $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh -p $(os) -w $(System.ArtifactsDirectory) -d $(System.ArtifactsDirectory)/$(artifactName) -g  $(GitHubAccessToken) -v "$BASE_VERSION" -s "github.com"
+            $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh -p $(os) -w $(System.ArtifactsDirectory) -d $(System.ArtifactsDirectory)/$(artifactName) -g  $(GitHubAccessToken) -v "$BASE_VERSION" -s "github.com" -b $(Build.SourceBranch)
           name: publish_artifacts 
 
       
