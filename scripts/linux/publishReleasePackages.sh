@@ -38,6 +38,15 @@ check_os() {
     elif [[ "$PACKAGE_OS" == "debian9" ]]; then
         OS_NAME="debian"
         OS_VERSION="stretch"
+    elif [[ "$PACKAGE_OS" == "debian10" ]]; then
+        OS_NAME="debian"
+        OS_VERSION="buster"
+    elif [[ "$PACKAGE_OS" == "debian11" ]]; then
+        OS_NAME="debian"
+        OS_VERSION="bullseye"
+    elif [[ "$PACKAGE_OS" == "centos7" ]]; then
+        OS_NAME="centos"
+        OS_VERSION="7"
     else
         echo "Unsupported OS $PACKAGE_OS"
         exit 1
