@@ -173,7 +173,7 @@ fi
 
 publish_to_github()
 {   
-    branch_name=$(git rev-parse --abbrev-ref HEAD)
+    branch_name="release/1.2" #$(git rev-parse --abbrev-ref HEAD)
      # Get the latest release from a given branch
     echo "Fetch the latest release: "
     url="https://api.github.com/repos/Azure/iotedge/releases"
