@@ -182,8 +182,7 @@ fi
 
 publish_to_github()
 {   
-    #TODO: Change this back to Original
-    branch_name="release/1.2" #$(git rev-parse --abbrev-ref HEAD)
+    branch_name= $(git rev-parse --abbrev-ref HEAD)
      # Get the latest release from a given branch
     echo "Fetch the latest release: "
     url="https://api.github.com/repos/Azure/iotedge/releases"
@@ -216,9 +215,8 @@ publish_to_github()
                 
         echo "$(curl -X GET  -H "$header_content" -H "$header_auth" "$download_uri")" > $WDIR/content.txt
         
-        #TODO: Change this back to Original
         #Find Content of New Release between (# NEW_VERSION) and (# PREVIOUS_VERSION)
-        echo "$(sed -n "/# 1.2.6 /,/# 1.2.5/p" $WDIR/content.txt)" > $WDIR/content.txt
+        echo "$(sed -n "/# $VERSION /,/# $latest_release/p" $WDIR/content.txt)" > $WDIR/content.txt
 
         #Remove Last Line
         sed -i "$ d" $WDIR/content.txt

@@ -214,20 +214,24 @@ stages:
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
     jobs:
-    - job: safe_guard
-      displayName: Create Release Page
-      steps:
-      - task: AzureKeyVault@1
-        displayName: Get secrets
-        inputs:
-          azureSubscription: $(az.subscription)
-          keyVaultName: $(kv.name)
-          secretsFilter: >-
-            GitHubAccessToken,
-      - bash: |
-          echo "Approval Complete, Creating Release Page"
-          BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
-          $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh -p ubuntu20.04 -w $(Build.SourcesDirectory) -d $(Build.SourcesDirectory) -g  $(GitHubAccessToken) -v "$BASE_VERSION" -s "github.com" --skip-upload true    
+    - deployment: safe_guard
+      environment: 'Azure-IoT-Edge-Core Release Env'
+      displayName: Get Approval
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - task: AzureKeyVault@1
+                displayName: Get secrets
+                inputs:
+                  azureSubscription: $(az.subscription)
+                  keyVaultName: $(kv.name)
+                  secretsFilter: >-
+                    GitHubAccessToken,
+              - bash: | #Create Release Page Before Publishing Artifacts in Parallel in the Next Job.
+                  echo "Approval Complete, Creating Release Page"
+                  BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
+                  $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh -p ubuntu20.04 -w $(Build.SourcesDirectory) -d $(Build.SourcesDirectory) -g  $(GitHubAccessToken) -v "$BASE_VERSION" -s "github.com" --skip-upload true        
     - job: linux
       displayName: Linux
       strategy:
@@ -237,6 +241,7 @@ stages:
             artifactName: iotedged-centos7-amd64
             identityServiceArtifactName: packages_centos-7_amd64
             identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
+          
           Debian9-amd64:
             os: debian9
             artifactName: iotedged-debian9-amd64
@@ -344,10 +349,7 @@ stages:
             DOWNLOAD_PATH: $(System.ArtifactsDirectory)/$(artifactName)
             IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
         - bash: |
-            echo "Approval Complete, Creating Release Page"
             BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
-            VERSION="$BASE_VERSION"
-            echo "##vso[task.setvariable variable=VERSION;isOutput=true;]$VERSION"
             $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh -p $(os) -w $(System.ArtifactsDirectory) -d $(System.ArtifactsDirectory)/$(artifactName) -g  $(GitHubAccessToken) -v "$BASE_VERSION" -s "github.com"
           name: publish_artifacts 
 
