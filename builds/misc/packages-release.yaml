@@ -227,15 +227,9 @@ stages:
       - bash: |
           echo "Approval Complete, Creating Release Page"
           BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
-          VERSION="$BASE_VERSION"
-          echo "##vso[task.setvariable variable=VERSION;isOutput=true;]$VERSION"
-          $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh -p ubuntu20.04 -w $(Build.SourcesDirectory) -d $(Build.SourcesDirectory) -g  $(GitHubAccessToken) -v "$BASE_VERSION" -s "github.com" --skip-upload true
-        name: create_release    
+          $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh -p ubuntu20.04 -w $(Build.SourcesDirectory) -d $(Build.SourcesDirectory) -g  $(GitHubAccessToken) -v "$BASE_VERSION" -s "github.com" --skip-upload true    
     - job: linux
       displayName: Linux
-      dependsOn: ['safe_guard']
-      variables: 
-        VERSION: $[ dependencies.safe_guard.outputs['create_release.VERSION'] ]
       strategy:
         matrix:
           Centos75-amd64:
@@ -335,7 +329,9 @@ stages:
           inputs:
             source: 'current'
             path: $(System.ArtifactsDirectory)
-            patterns: $(artifactName)/*.(deb|rpm)
+            patterns: |
+                $(artifactName)/*.deb
+                $(artifactName)/*.rpm
         - task: PowerShell@2
           displayName: 'Download aziot-identity-service'
           inputs:
@@ -347,18 +343,13 @@ stages:
             PACKAGE_FILTER: $(identityServicePackageFilter)
             DOWNLOAD_PATH: $(System.ArtifactsDirectory)/$(artifactName)
             IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
-        - task: Docker@2
-          displayName: Docker login msinternal
-          inputs:
-            command: login
-            containerRegistry: iotedge-msinternal-mcr
-        - task: AzureCLI@2
-          displayName: Publish Packages
-          inputs:
-            azureSubscription: $(az.subscription)
-            scriptType: bash
-            scriptPath: $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh
-            arguments: -p $(os) -w $(System.ArtifactsDirectory) -d $(System.ArtifactsDirectory)/$(artifactName) -s "github.com" -g  $(GitHubAccessToken) -v "$(VERSION)"
+        - bash: |
+            echo "Approval Complete, Creating Release Page"
+            BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
+            VERSION="$BASE_VERSION"
+            echo "##vso[task.setvariable variable=VERSION;isOutput=true;]$VERSION"
+            $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh -p $(os) -w $(System.ArtifactsDirectory) -d $(System.ArtifactsDirectory)/$(artifactName) -g  $(GitHubAccessToken) -v "$BASE_VERSION" -s "github.com"
+          name: publish_artifacts 
 
       
           
