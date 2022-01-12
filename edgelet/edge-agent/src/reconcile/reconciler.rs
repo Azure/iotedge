@@ -38,6 +38,21 @@ where
         }
     }
 
+    pub async fn setup(&mut self) -> Result<()> {
+        // Seed the previous config values with the desired values on disk.
+        // This should be run before the twin is fetched from the cloud so
+        // the values are based on the old twin.
+        let previous_config = self
+            .get_desired_modules()
+            .await?
+            .into_iter()
+            .map(|m| (m.name, m.config))
+            .collect();
+
+        self.previous_config = previous_config;
+        Ok(())
+    }
+
     pub async fn reconcile(&mut self) -> Result<()> {
         println!("Starting Reconcile");
 

@@ -31,11 +31,15 @@ where
         }
     }
 
-    pub fn start(self) {
+    pub async fn start(self) {
         let Self {
             frequency,
             mut reconciler,
         } = self;
+
+        if let Err(e) = reconciler.setup().await {
+            log::debug!("Could not seed old module configs: {}", e);
+        }
 
         tokio::spawn(async move {
             println!("Started task Reconciliation");

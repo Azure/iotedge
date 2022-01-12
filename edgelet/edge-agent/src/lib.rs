@@ -65,8 +65,10 @@ where
         registry,
     );
 
+    // note reconcile should start before client, since reconciler needs to
+    // read the old environment variables before a new twin is pulled
+    reconcile_manager.start().await;
     client_manager.start();
-    reconcile_manager.start();
 
     println!("Started EdgeAgent");
     shutdown_rx.recv().await;
