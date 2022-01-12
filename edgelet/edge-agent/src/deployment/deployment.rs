@@ -168,7 +168,7 @@ impl TryFrom<ModuleConfig> for edgelet_settings::DockerConfig {
     fn try_from(config: ModuleConfig) -> Result<Self, Self::Error> {
         let ModuleConfig { settings, env, .. } = config;
 
-        // Merge env variables
+        // Merge env variables from edge list and docker list
         let create_options = settings.create_option.create_options.unwrap_or_default();
         let env = env
             .iter()

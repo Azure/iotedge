@@ -48,7 +48,7 @@ where
         self.create_modules(differance.modules_to_create).await?;
         self.set_modules_state(differance.state_change_modules)
             .await?;
-        self.handle_failed_modules(differance.failed_modules)
+        self.handle_failed_modules(differance.modules_to_restart)
             .await?;
 
         Ok(())
@@ -63,33 +63,36 @@ where
         let mut modules_to_create: Vec<DesiredModule> = Vec::new();
         let mut modules_to_delete: Vec<RunningModule> = Vec::new();
         let mut state_change_modules: Vec<StateChangeModule> = Vec::new();
-        let mut failed_modules: Vec<FailedModule> = Vec::new();
+        let mut modules_to_restart: Vec<FailedModule> = Vec::new();
 
         // This loop will remove all modules in desired modules from current modules, resulting in a list of modules to remove.
         for desired in desired_modules {
             if let Some((_, current)) = current_modules.remove_entry(&desired.name) {
                 // Module with same name exists, check if should be modified.
 
-                // let desired_config: DockerConfig = desired.config.clone().try_into()?;
                 if self
                     .previous_config
                     .entry(desired.name.clone())
                     .or_default()
                     == &desired.config
                 {
-                    // Module config matches, check if state matches
+                    // If the configuration has not changed since last deployment,
+                    // validate that the current state is correct
                     match desired.config.status {
                         DeploymentModuleStatus::Running => {
                             match current.state.status() {
                                 ModuleStatus::Running => { /* Do nothing, module is in correct state. */
                                 }
                                 ModuleStatus::Stopped => {
-                                    // Module is not stopped, module should be started
+                                    // Module should not be stopped, module should be started
                                     state_change_modules.push(StateChangeModule {
                                         module: desired,
                                         reset_container: false,
                                     });
                                 }
+                                // NOTE: this may be changed to determine if a module should be sent to the restart planner based on
+                                // if the previous desired was running. This is b/c module status might not be a good indicator.
+                                // For example, a crashing module might read as stopped, or a stopped module as failed.
                                 ModuleStatus::Failed
                                 | ModuleStatus::Unknown
                                 | ModuleStatus::Dead => {
@@ -102,8 +105,9 @@ where
                                         reset_container: false,
                                     });
 
-                                    failed_modules.push(FailedModule {
+                                    modules_to_restart.push(FailedModule {
                                         module: current,
+                                        should_start: true,
                                         restart_policy: desired.config.restart_policy,
                                     });
                                 }
@@ -117,6 +121,14 @@ where
                                     reset_container: false,
                                 });
                             }
+
+                            // Notify restart planner that the desired state is stopped.
+                            // This will prevent it from attempting to start a module that is desired to be stopped.
+                            modules_to_restart.push(FailedModule {
+                                module: current,
+                                should_start: false,
+                                restart_policy: Default::default(),
+                            });
                         }
                     }
                 } else {
@@ -136,13 +148,22 @@ where
         }
 
         // If a module is still in the current_modules list at this point, it should be deleted.
-        modules_to_delete.extend(current_modules.into_iter().map(|(_, m)| m));
+        // The restart planner must also be notified to possobly remove module from the queue
+        for (_module_name, module_to_delete) in current_modules {
+            modules_to_restart.push(FailedModule {
+                module: module_to_delete.clone(),
+                should_start: true,
+                restart_policy: Default::default(),
+            });
+
+            modules_to_delete.push(module_to_delete);
+        }
 
         let difference = ModuleDifference {
             modules_to_create,
             modules_to_delete,
             state_change_modules,
-            failed_modules,
+            modules_to_restart,
         };
         log::debug!("Found the following differences:\n{:?}", difference);
         Ok(difference)
@@ -332,7 +353,7 @@ where
         //     current.name,
         //     desired.config.restart_policy,
         // );
-        //             failed_modules.push(current);
+        //             modules_to_restart.push(current);
         //         }
         //         RestartPolicy::Never => {
         //             log::debug!(
@@ -351,10 +372,10 @@ struct ModuleDifference {
     modules_to_create: Vec<DesiredModule>,
     modules_to_delete: Vec<RunningModule>,
     state_change_modules: Vec<StateChangeModule>,
-    failed_modules: Vec<FailedModule>,
+    modules_to_restart: Vec<FailedModule>,
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 struct RunningModule {
     name: String,
     config: DockerConfig,
@@ -370,6 +391,7 @@ struct StateChangeModule {
 #[derive(Default, Debug)]
 struct FailedModule {
     module: RunningModule,
+    should_start: bool,
     restart_policy: RestartPolicy,
 }
 
@@ -529,7 +551,7 @@ mod tests {
             assert_eq!(difference.modules_to_create.len(), 1); // Edgehub
             assert_eq!(difference.modules_to_delete.len(), 0);
             assert_eq!(difference.state_change_modules.len(), 0);
-            assert_eq!(difference.failed_modules.len(), 0);
+            assert_eq!(difference.modules_to_restart.len(), 0);
         }
 
         #[tokio::test]
@@ -549,7 +571,7 @@ mod tests {
             assert_eq!(difference.modules_to_create.len(), 2); // Edgehub and Sim Temp
             assert_eq!(difference.modules_to_delete.len(), 0);
             assert_eq!(difference.state_change_modules.len(), 0);
-            assert_eq!(difference.failed_modules.len(), 0);
+            assert_eq!(difference.modules_to_restart.len(), 0);
         }
 
         #[tokio::test]
@@ -582,7 +604,7 @@ mod tests {
 
             assert_eq!(difference.modules_to_create.len(), 1); // Edgehub
             assert_eq!(difference.modules_to_delete.len(), 0);
-            assert_eq!(difference.failed_modules.len(), 0);
+            assert_eq!(difference.modules_to_restart.len(), 0);
         }
 
         #[tokio::test]
@@ -609,7 +631,7 @@ mod tests {
 
             assert_eq!(difference.modules_to_create.len(), 1); // Edgehub
             assert_eq!(difference.modules_to_delete.len(), 0);
-            assert_eq!(difference.failed_modules.len(), 0);
+            assert_eq!(difference.modules_to_restart.len(), 0);
         }
 
         #[tokio::test]
@@ -651,7 +673,7 @@ mod tests {
 
             assert_eq!(difference.modules_to_create.len(), 1); // Edgehub
             assert_eq!(difference.modules_to_delete.len(), 0);
-            assert_eq!(difference.failed_modules.len(), 0);
+            assert_eq!(difference.modules_to_restart.len(), 0);
         }
 
         #[tokio::test]
@@ -716,7 +738,7 @@ mod tests {
 
             assert_eq!(difference.modules_to_create.len(), 1); // Edgehub
             assert_eq!(difference.modules_to_delete.len(), 0);
-            assert_eq!(difference.failed_modules.len(), 0);
+            assert_eq!(difference.modules_to_restart.len(), 0);
         }
 
         #[tokio::test]
@@ -766,7 +788,7 @@ mod tests {
 
             assert_eq!(difference.modules_to_create.len(), 1); // Edgehub
             assert_eq!(difference.modules_to_delete.len(), 0);
-            assert_eq!(difference.failed_modules.len(), 0);
+            assert_eq!(difference.modules_to_restart.len(), 0);
         }
 
         #[tokio::test]
@@ -805,7 +827,7 @@ mod tests {
 
             assert_eq!(difference.modules_to_create.len(), 1); // Edgehub
             assert_eq!(difference.modules_to_delete.len(), 0);
-            assert_eq!(difference.failed_modules.len(), 0);
+            assert_eq!(difference.modules_to_restart.len(), 0);
         }
 
         #[tokio::test]
@@ -834,7 +856,7 @@ mod tests {
 
             assert_eq!(difference.modules_to_create.len(), 1); // Edgehub
             assert_eq!(difference.modules_to_delete.len(), 0);
-            assert_eq!(difference.failed_modules.len(), 0);
+            assert_eq!(difference.modules_to_restart.len(), 0);
         }
 
         fn setup(
