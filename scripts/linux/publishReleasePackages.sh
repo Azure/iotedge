@@ -182,7 +182,7 @@ fi
 
 publish_to_github()
 {   
-    branch_name= $(git rev-parse --abbrev-ref HEAD)
+    branch_name=$(git rev-parse --abbrev-ref HEAD)
      # Get the latest release from a given branch
     echo "Fetch the latest release: "
     url="https://api.github.com/repos/Azure/iotedge/releases"
@@ -190,7 +190,7 @@ publish_to_github()
     header_auth="Authorization:token $GITHUB_PAT"
     # header="{\"Accept\"= \"application/vnd.github.v3+json\" \"Authorization\"= \"token $GITHUB_PAT\"}"
     content=$(curl -X GET -H "$header_content" -H "$header_auth" "$url")
-    latest_release=$(echo $content | jq --arg branch $branch_name '[.[] | select(.target_commitish==$branch)][0]' | jq '.name')
+    latest_release=$(echo $content | jq --arg branch "$branch_name" '[.[] | select(.target_commitish==$branch)][0]' | jq '.name')
     echo "Latest Release is $latest_release"
 
     if [[ -z $latest_release ]];then
