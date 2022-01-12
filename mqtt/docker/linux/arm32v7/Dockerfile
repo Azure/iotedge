@@ -7,6 +7,8 @@ ARG EDGEUSER_ID
 ENV EDGEUSER_ID ${EDGEUSER_ID:-1000}
 RUN useradd -ms /bin/bash -u ${EDGEUSER_ID} edgeuser 
 
+#Nonsense
+
 ADD ./armv7-unknown-linux-gnueabihf/release/mqttd /usr/local/bin/mqttd
 
 EXPOSE 1883/tcp
