@@ -182,7 +182,8 @@ fi
 
 publish_to_github()
 {   
-    branch_name=$(git rev-parse --abbrev-ref HEAD)
+    #Investigate if this can be derived from a commit, Hardcode for now.
+    branch_name="release/1.2"
      # Get the latest release from a given branch
     echo "Fetch the latest release: "
     url="https://api.github.com/repos/Azure/iotedge/releases"
@@ -193,7 +194,7 @@ publish_to_github()
     latest_release=$(echo $content | jq --arg branch "$branch_name" '[.[] | select(.target_commitish==$branch)][0]' | jq '.name')
     echo "Latest Release is $latest_release"
 
-    if [[ -z $latest_release ]];then
+    if [[ -z $latest_release || $latest_release == null ]];then
         echo "Invalid Response when Querying for Last Release"
         exit
     fi
