@@ -226,7 +226,7 @@ stages:
       - bash: |
           echo "Approval Complete, Creating Release Page"
           BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
-          $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh -p ubuntu20.04 -w $(Build.SourcesDirectory) -d $(Build.SourcesDirectory) -g  $(GitHubAccessToken) -v "$BASE_VERSION" --skip-upload true    
+          $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh -p ubuntu20.04 -w $(Build.SourcesDirectory) -d $(Build.SourcesDirectory) -g  $(GitHubAccessToken) -v "$BASE_VERSION" -s "github.com" --skip-upload true    
     # - job: linux
     #   displayName: Linux
     #   strategy:
