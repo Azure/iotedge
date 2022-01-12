@@ -250,7 +250,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 .Select(c => new X509Certificate2(c))
                 .ToList();
 
-        public static async Task<(X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain)> GetServerCertificatesFromEdgelet(Uri workloadUri, string workloadApiVersion, string workloadClientApiVersion, string moduleId, string moduleGenerationId, string edgeHubHostname, DateTime expiration)
+        public static async Task<(X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain)> GetServerCertificatesFromEdgelet(Uri workloadUri, string workloadApiVersion, string workloadClientApiVersion, string moduleId, string moduleGenerationId, string edgeHubHostname, DateTime expiration, ILogger logger)
         {
             if (string.IsNullOrEmpty(edgeHubHostname))
             {
@@ -258,7 +258,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
 
             ServerCertificateResponse response = await new WorkloadClient(workloadUri, workloadApiVersion, workloadClientApiVersion, moduleId, moduleGenerationId).CreateServerCertificateAsync(edgeHubHostname, expiration);
-            return ParseCertificateResponse(response);
+            return ParseCertificateResponse(response, logger);
         }
 
         public static async Task<IEnumerable<X509Certificate2>> GetTrustBundleFromEdgelet(Uri workloadUri, string workloadApiVersion, string workloadClientApiVersion, string moduleId, string moduleGenerationId)
@@ -267,7 +267,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return ParseTrustedBundleCerts(response);
         }
 
-        public static (X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain) GetServerCertificateAndChainFromFile(string serverWithChainFilePath, string serverPrivateKeyFilePath)
+        public static (X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain) GetServerCertificateAndChainFromFile(string serverWithChainFilePath, string serverPrivateKeyFilePath, ILogger logger = null)
         {
             string cert, privateKey;
 
@@ -291,7 +291,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 privateKey = sr.ReadToEnd();
             }
 
-            return ParseCertificateAndKey(cert, privateKey);
+            return ParseCertificateAndKey(cert, privateKey, logger);
         }
 
         public static IEnumerable<X509Certificate2> GetServerCACertificatesFromFile(string chainPath)
@@ -340,10 +340,10 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return GetCertificatesFromPem(ParsePemCerts(trustedCACerts));
         }
 
-        internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateResponse(ServerCertificateResponse response) =>
-            ParseCertificateAndKey(response.Certificate, response.PrivateKey);
+        internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateResponse(ServerCertificateResponse response, ILogger logger = null) =>
+            ParseCertificateAndKey(response.Certificate, response.PrivateKey, logger);
 
-        internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateAndKey(string certificateWithChain, string privateKey)
+        internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateAndKey(string certificateWithChain, string privateKey, ILogger logger = null)
         {
             IEnumerable<string> pemCerts = ParsePemCerts(certificateWithChain);
 
@@ -408,8 +408,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 {
                     using (var file = File.Create("pkcsdump.bin"))
                     {
-                        var content = p12File.ToArray();
-                        file.Write(content, 0, content.Length);
+                        logger?.LogInformation(Convert.ToBase64String(p12File.ToArray()));
                     }
                 }
 
