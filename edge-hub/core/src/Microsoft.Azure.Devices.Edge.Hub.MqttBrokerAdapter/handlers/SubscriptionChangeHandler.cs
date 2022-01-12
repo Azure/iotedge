@@ -98,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             // slower method to reconcile so we handle the direct case separately with a faster method
             await moduleId.Filter(i => string.Equals(i, Constants.EdgeHubModuleId))
                      .Match(
-                        _ => this.HandleNestedSubscriptionChanges(subscriptionList),
+                        _ => this.HandleSubscriptionChanges(subscriptionList),
                         () => this.HandleDirectSubscriptionChanges(deviceId, moduleId, subscriptionList));
 
             return true;
@@ -108,7 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         {
             if (this.HasMixedIdentities(deviceId, moduleId, subscriptionList))
             {
-                await this.HandleNestedSubscriptionChanges(subscriptionList);
+                await this.HandleSubscriptionChanges(subscriptionList);
                 return;
             }
 
@@ -197,7 +197,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         // been seen before.
         // To solve 2), we need to take all known devices and unsubscribe from all topics not listed in the
         // current notification.
-        async Task HandleNestedSubscriptionChanges(List<string> subscriptionList)
+        async Task HandleSubscriptionChanges(List<string> subscriptionList)
         {
             // As a first step, go through the sent subscription list and subscribe to everything it says.
             // The call returns all clients that had a subscription and ans also returns their subscriptions.
