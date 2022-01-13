@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
 
             // NTP Server Sync Test intermittently fails on ARM. Disable that check for now.
-            else if (Context.Current.EdgeAgentImage.HasValue && Context.Current.EdgeAgentImage.GetOrElse("").Contains("arm"))
+            else if (Context.Current.EdgeAgentImage.GetOrElse("").Contains("arm"))
             {
                 args += string.Join(" ", new[]
                 {
