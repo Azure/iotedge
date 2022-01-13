@@ -211,27 +211,24 @@ stages:
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
     jobs:
-    - deployment: safe_guard
+    - job: safe_guard
       #TODO: Remove After Test
       #environment: 'Azure-IoT-Edge-Core Release Env'
       displayName: Get Approval
-      strategy:
-        runOnce:
-          deploy:
-            steps:
-              - task: AzureKeyVault@1
-                displayName: Get secrets
-                inputs:
-                  azureSubscription: $(az.subscription)
-                  keyVaultName: $(kv.name)
-                  secretsFilter: >-
-                    GitHubAccessToken
-              - bash: | #Create Release Page Before Publishing Artifacts in Parallel in the Next Job.
-                  echo "Approval Complete, Creating Release Page"
-                  BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
-                  $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh -p ubuntu20.04 -w $(Build.SourcesDirectory) -d $(Build.SourcesDirectory) -v "$BASE_VERSION" -s "github.com" -b  $(Build.SourceBranch) --skip-upload true
-                env:
-                  GITHUB_PAT: "$(GitHubAccessToken)"        
+      steps:
+        - task: AzureKeyVault@1
+          displayName: Get secrets
+          inputs:
+            azureSubscription: $(az.subscription)
+            keyVaultName: $(kv.name)
+            secretsFilter: >-
+              GitHubAccessToken
+        - bash: | #Create Release Page Before Publishing Artifacts in Parallel in the Next Job.
+            echo "Approval Complete, Creating Release Page"
+            BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
+            $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh -p ubuntu20.04 -w $(Build.SourcesDirectory) -d $(Build.SourcesDirectory) -v "$BASE_VERSION" -s "github.com" -b  $(Build.SourceBranch) --skip-upload true
+          env:
+            GITHUB_PAT: "$(GitHubAccessToken)"        
     - job: linux
       displayName: Linux
       strategy:
