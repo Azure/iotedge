@@ -32,7 +32,6 @@ jobs:
     pool:
       vmImage: ubuntu-18.04
     steps:
-      - template: ../templates/install-dotnet3.yaml
       - task: Bash@3
         displayName: Install Prerequisites
         inputs:
@@ -70,7 +69,6 @@ jobs:
       demands:
         - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
     steps:
-      - template: ../templates/install-dotnet3.yaml
       - task: PowerShell@2
         displayName: Build
         inputs:
