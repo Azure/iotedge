@@ -89,7 +89,9 @@ jobs:
     displayName: Windows
     timeoutInMinutes: 120
     pool:
-      vmImage: windows-2019
+      name: $(pool.windows.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
     variables:
       testEnvironment: windows
     steps:
