@@ -1,7 +1,4 @@
 # Variable 'NugetSecurityAnalysisWarningLevel' was defined in the Variables tab
-# Variable 'registry.address' was defined in the Variables tab
-# Variable 'registry.password' was defined in the Variables tab
-# Variable 'registry.user' was defined in the Variables tab
 # Variable 'REVISION' was defined in the Variables tab
 # Variable 'VERSION' was defined in the Variables tab
 # Variable 'VSTS_WORK' was defined in the Variables tab
@@ -359,11 +356,11 @@ jobs:
         echo '##vso[task.setvariable variable=PACKAGE_OS;]centos7'
 
         echo '##vso[task.setvariable variable=PACKAGE_ARCH;]amd64'
-  - task: Bash@3
-    displayName: Docker Login
+  - task: Docker@2
+    displayName: Docker login edgebuilds
     inputs:
-      targetType: inline
-      script: docker login $(registry.address) --username $(registry.user) --password $(registry.password)
+      command: login
+      containerRegistry: iotedge-edgebuilds-acr
   - task: ShellScript@2
     displayName: Create libiothsm and iotedged packages
     inputs:
