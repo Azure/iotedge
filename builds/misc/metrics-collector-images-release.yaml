@@ -16,9 +16,6 @@ jobs:
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
     steps:
-      - template: ../templates/install-dotnet2.yaml
-      - template: ../templates/install-dotnet3.yaml
-
       # If you need to test this job. Create a new Service Connection in the Project Settings (Azure DevOps)
       # and update the pipeline variable.
       - task: Docker@2
@@ -61,9 +58,6 @@ jobs:
     workspace:
       clean: all
     steps:
-      - template: ../templates/install-dotnet2.yaml
-      - template: ../templates/install-dotnet3.yaml
-
       # If you need to test this job. Create a new Service Connection in the Project Settings (Azure DevOps)
       # and update the pipeline variable.
       - task: Docker@2

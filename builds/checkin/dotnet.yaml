@@ -32,7 +32,6 @@ jobs:
     pool:
       vmImage: ubuntu-18.04
     steps:
-      - template: ../templates/install-dotnet3.yaml
       - task: Bash@3
         displayName: Install Prerequisites
         inputs:
@@ -66,9 +65,10 @@ jobs:
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
-      vmImage: "vs2017-win2016"
+      name: $(pool.windows.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
     steps:
-      - template: ../templates/install-dotnet3.yaml
       - task: PowerShell@2
         displayName: Build
         inputs:
