@@ -31,6 +31,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
         }
 
+        public bool VerifyDeviceIdentityStore()
+        {
+            return true;
+        }
+
         public Task RefreshServiceIdentities(IEnumerable<string> _) => Task.CompletedTask;
 
         public Task RefreshServiceIdentity(string _) => Task.CompletedTask;
