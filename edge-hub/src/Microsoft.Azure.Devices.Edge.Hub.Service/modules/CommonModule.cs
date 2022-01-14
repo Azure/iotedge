@@ -284,6 +284,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                     async c =>
                     {
+                        var loggerFactory = c.Resolve<ILoggerFactory>();
+                        ILogger logger = loggerFactory.CreateLogger("DeviceScope");
+
                         IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
                         if (this.authenticationMode == AuthenticationMode.CloudAndScope || this.authenticationMode == AuthenticationMode.Scope)
                         {
@@ -292,8 +295,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             IDeviceScopeApiClient securityScopesApiClient = new DeviceScopeApiClient(this.iothubHostName, this.edgeDeviceId, this.edgeHubModuleId, 10, edgeHubTokenProvider, proxy);
                             IServiceProxy serviceProxy = new ServiceProxy(securityScopesApiClient);
                             IKeyValueStore<string, string> encryptedStore = await GetEncryptedStore(c, "DeviceScopeCache");
-                            var loggerFactory = await c.Resolve<ILoggerFactory>();
-                            ILogger logger = loggerFactory.CreateLogger("DeviceScope");
+
                             logger.LogInformation(encryptedStore.ToString());
                             deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy, encryptedStore, this.scopeCacheRefreshRate);
                         }
