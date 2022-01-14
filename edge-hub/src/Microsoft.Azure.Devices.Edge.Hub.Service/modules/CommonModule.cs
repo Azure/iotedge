@@ -287,6 +287,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
                         if (this.authenticationMode == AuthenticationMode.CloudAndScope || this.authenticationMode == AuthenticationMode.Scope)
                         {
+                            var loggerFactory = c.Resolve<ILoggerFactory>();
+                            var logger = loggerFactory.CreateLogger<RoutingModule>();
                             var edgeHubTokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubServiceAuthTokenProvider");
                             var proxy = c.Resolve<Option<IWebProxy>>();
                             var storeProvider = await c.Resolve<Task<IStoreProvider>>();
@@ -296,6 +298,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy, encryptedStore, this.scopeCacheRefreshRate);
                             if (deviceScopeIdentitiesCache.VerifyDeviceIdentityStore())
                             {
+                                logger.LogInformation("Removing old store");
                                 await RemoveEncryptedStore(storeProvider, "DeviceScopeCache");
                             }
                         }

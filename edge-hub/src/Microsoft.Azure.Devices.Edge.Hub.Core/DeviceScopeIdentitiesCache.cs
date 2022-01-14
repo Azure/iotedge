@@ -214,6 +214,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Option<(string, string)> lastEntry = await encryptedStore.GetLastEntry();
             if (!firstEntry.HasValue && !lastEntry.HasValue)
             {
+                ILogger logger = Logger.Factory.CreateLogger<IDeviceScopeIdentitiesCache>();
+                logger.LogInformation("OUTDATED");
                 throw new Exception("Decryption failed due to outdated store");
             }
 
