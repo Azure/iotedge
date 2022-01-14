@@ -4,4 +4,4 @@ steps:
     displayName: 'Use dotnet 2'
     inputs:
       targetType: 'inline'
-      script: 'dotnet new globaljson --force --sdk-version 2.2.207'
+      script: 'dotnet new globaljson --force --sdk-version 2.1'

@@ -6,7 +6,6 @@ jobs:
 ################################################################################
   - job: linux_dotnet_projects
 ################################################################################
-    # This job is run on a hosted linux agent, which needs dotnet 2 and 3 installed as a manual step. 
     # The code sign steps will fail unless we explicitly say to use dotnet 2 before.
     # This means we have to toggle back and forth between primary dotnet installations for the sign and build.
     # TODO: Investigate why we have to toggle primary installs on linux, but not on windows.
@@ -27,9 +26,6 @@ jobs:
         inputs:
           command: login
           containerRegistry: iotedge-release-acr
-      # Dotnet 2 needed for codesign
-      - template: ../templates/install-dotnet2.yaml
-      - template: ../templates/install-dotnet3.yaml
       - template: ../templates/dotnet3-globaljson.yaml # use dotnet 3 as primary install for build
       - task: ShellScript@2
         displayName: "Build Azure-IoT-Edge-Core"
@@ -346,8 +342,6 @@ jobs:
         inputs:
           command: login
           containerRegistry: iotedge-release-acr
-      - template: ../templates/install-dotnet2.yaml
-      - template: ../templates/install-dotnet3.yaml
       - powershell: "scripts/windows/build/Publish-Branch.ps1 -Configuration:\"$(configuration)\" -PublishTests:$False -UpdateVersion"
         displayName: "Build ($(configuration))"
         name: build
