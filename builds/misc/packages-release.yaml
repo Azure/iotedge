@@ -1071,3 +1071,70 @@ stages:
           env:
             GITHUB_PAT: "$(GitHubAccessToken)"    
           name: publish_artifacts 
+
+################################################################################
+  - stage: PublishPackagesMicrosoft
+################################################################################
+    displayName: Publish Packages Microsoft
+    #dependsOn: [BuildPackages]
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+    jobs:
+    # - deployment: safe_guard
+    #   environment: 'Azure-IoT-Edge-Core Release Env'
+    #   displayName: Get Approval
+    #   strategy:
+    #     runOnce:
+    #       deploy:
+    #         steps:
+    #           - bash: |
+    #               echo "Approval Complete"   
+    - job: linux
+      displayName: Linux
+      strategy:
+        matrix:
+          Debian9-arm32v7:
+            os: debian9
+            artifactName: iotedged-debian9-arm32v7
+      
+          Ubuntu1804-amd64:
+            os: ubuntu18.04
+            artifactName: iotedged-ubuntu18.04-amd64
+          Ubuntu1804-aarch64:
+            os: ubuntu18.04
+            artifactName: iotedged-ubuntu18.04-aarch64
+        
+          Ubuntu2004-amd64:
+            os: ubuntu20.04
+            artifactName: iotedged-ubuntu20.04-amd64
+          Ubuntu2004-aarch64:
+            os: ubuntu20.04
+            artifactName: iotedged-ubuntu20.04-aarch64
+      steps:
+        - task: AzureKeyVault@1
+          displayName: Get secrets
+          inputs:
+            azureSubscription: $(az.subscription)
+            keyVaultName: $(kv.name)
+            secretsFilter: >-
+              GitHubAccessToken
+        - task: DownloadPipelineArtifact@2
+          displayName: Download Pipeline Build Packages
+          inputs:
+            source: 'current'
+            path: $(System.ArtifactsDirectory)
+            patterns: $(artifactName)/*.deb
+        - task: Docker@2
+          displayName: Docker login msinternal
+          inputs:
+            command: login
+            containerRegistry: iotedge-msinternal-mcr
+        - task: AzureCLI@2
+          displayName: Publish Packages
+          inputs:
+            azureSubscription: $(az.subscription)
+            scriptType: bash
+            scriptPath: $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh
+            arguments: -p $(os) -w $(System.ArtifactsDirectory) -d $(System.ArtifactsDirectory)/$(artifactName) -s $(package-server-name)
