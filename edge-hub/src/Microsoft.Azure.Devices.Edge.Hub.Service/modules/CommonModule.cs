@@ -285,7 +285,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     async c =>
                     {
                         var loggerFactory = c.Resolve<ILoggerFactory>();
-                        ILogger logger = loggerFactory.CreateLogger("DeviceScope");
+                        ILogger logger = loggerFactory.CreateLogger<RoutingModule>();
 
                         IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
                         if (this.authenticationMode == AuthenticationMode.CloudAndScope || this.authenticationMode == AuthenticationMode.Scope)
