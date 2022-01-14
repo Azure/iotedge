@@ -66,10 +66,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             Preconditions.CheckNotNull(serviceProxy, nameof(serviceProxy));
             Preconditions.CheckNotNull(encryptedStorage, nameof(encryptedStorage));
-            IDictionary<string, StoredServiceIdentity> cache = await ReadCacheFromStore(encryptedStorage);
-            var deviceScopeIdentitiesCache = new DeviceScopeIdentitiesCache(serviceProxy, encryptedStorage, cache, refreshRate, refreshDelay);
-            Events.Created();
-            return deviceScopeIdentitiesCache;
+            IDictionary<string, StoredServiceIdentity> cache = new Dictionary<string, StoredServiceIdentity>();
+            try
+            {
+                cache = await ReadCacheFromStore(encryptedStorage);
+                var deviceScopeIdentitiesCache = new DeviceScopeIdentitiesCache(serviceProxy, encryptedStorage, cache, refreshRate, refreshDelay);
+                Events.Created();
+                return deviceScopeIdentitiesCache;
+            }
+            catch (Exception)
+            {
+                encryptedStorage = new NullKeyValueStore<string, string>() as IKeyValueStore<string, string>;
+                var deviceScopeIdentitiesCache = new DeviceScopeIdentitiesCache(serviceProxy, encryptedStorage, cache, refreshRate, refreshDelay);
+                Events.Created();
+                return deviceScopeIdentitiesCache;
+            }
         }
 
         public void InitiateCacheRefresh()
@@ -192,6 +203,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         static async Task<IDictionary<string, StoredServiceIdentity>> ReadCacheFromStore(IKeyValueStore<string, string> encryptedStore)
         {
             IDictionary<string, StoredServiceIdentity> cache = new Dictionary<string, StoredServiceIdentity>();
+            Option<(string, string)> firstEntry = await encryptedStore.GetFirstEntry();
+            Option<(string, string)> lastEntry = await encryptedStore.GetLastEntry();
+            if (!firstEntry.HasValue && !lastEntry.HasValue)
+            {
+                throw new Exception("Decryption failed due to outdated store");
+            }
+
             await encryptedStore.IterateBatch(
                 int.MaxValue,
                 (key, value) =>
