@@ -289,13 +289,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         {
                             var edgeHubTokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubServiceAuthTokenProvider");
                             var proxy = c.Resolve<Option<IWebProxy>>();
+                            var storeProvider = await c.Resolve<Task<IStoreProvider>>();
                             IDeviceScopeApiClient securityScopesApiClient = new DeviceScopeApiClient(this.iothubHostName, this.edgeDeviceId, this.edgeHubModuleId, 10, edgeHubTokenProvider, proxy);
                             IServiceProxy serviceProxy = new ServiceProxy(securityScopesApiClient);
-                            IKeyValueStore<string, string> encryptedStore = await GetEncryptedStore(c, "DeviceScopeCache");
+                            IKeyValueStore<string, string> encryptedStore = await GetEncryptedStore(c, storeProvider, "DeviceScopeCache");
                             deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy, encryptedStore, this.scopeCacheRefreshRate);
                             if (deviceScopeIdentitiesCache.VerifyDeviceIdentityStore())
                             {
-                                var storeProvider = await c.Resolve<Task<IStoreProvider>>();
                                 await RemoveEncryptedStore(storeProvider, "DeviceScopeCache");
                             }
                         }
@@ -317,7 +317,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         ICredentialsCache underlyingCredentialsCache;
                         if (this.persistTokens)
                         {
-                            IKeyValueStore<string, string> encryptedStore = await GetEncryptedStore(c, "CredentialsCache");
+                            var storeProvider = await c.Resolve<Task<IStoreProvider>>();
+                            IKeyValueStore<string, string> encryptedStore = await GetEncryptedStore(c, storeProvider, "CredentialsCache");
                             return new PersistedTokenCredentialsCache(encryptedStore);
                         }
                         else
@@ -413,9 +414,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             return dbStoreProvider;
         }
 
-        static async Task<IKeyValueStore<string, string>> GetEncryptedStore(IComponentContext context, string entityName)
+        static async Task<IKeyValueStore<string, string>> GetEncryptedStore(IComponentContext context, IStoreProvider storeProvider, string entityName)
         {
-            var storeProvider = await context.Resolve<Task<IStoreProvider>>();
             Option<IEncryptionProvider> encryptionProvider = await context.Resolve<Task<Option<IEncryptionProvider>>>();
             IKeyValueStore<string, string> encryptedStore = encryptionProvider
                 .Map(
