@@ -293,6 +293,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             IServiceProxy serviceProxy = new ServiceProxy(securityScopesApiClient);
                             IKeyValueStore<string, string> encryptedStore = await GetEncryptedStore(c, "DeviceScopeCache");
                             deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy, encryptedStore, this.scopeCacheRefreshRate);
+                            if (deviceScopeIdentitiesCache.VerifyDeviceIdentityStore())
+                            {
+                                await RemoveEncryptedStore(c, encryptedStore);
+                            }
                         }
                         else
                         {
@@ -422,6 +426,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     })
                 .GetOrElse(() => new NullKeyValueStore<string, string>() as IKeyValueStore<string, string>);
             return encryptedStore;
+        }
+
+        static async Task RemoveEncryptedStore(IComponentContext context, IEntityStore<string, string> store)
+        {
+            var storeProvider = await context.Resolve<Task<IStoreProvider>>();
+            await storeProvider.RemoveStore(store);
         }
 
         async Task<IAuthenticator> GetCloudTokenAuthenticator(IComponentContext context)

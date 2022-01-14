@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly TimeSpan refreshDelay;
         readonly AsyncAutoResetEvent refreshCacheSignal = new AsyncAutoResetEvent();
         readonly object refreshCacheLock = new object();
-
+        readonly bool outdatedStore;
         Task refreshCacheTask;
 
         DeviceScopeIdentitiesCache(
@@ -36,13 +36,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             IKeyValueStore<string, string> encryptedStorage,
             IDictionary<string, StoredServiceIdentity> initialCache,
             TimeSpan refreshRate,
-            TimeSpan refreshDelay)
+            TimeSpan refreshDelay,
+            bool outdatedStore)
         {
             this.serviceProxy = serviceProxy;
             this.encryptedStore = encryptedStorage;
             this.serviceIdentityCache = initialCache;
             this.refreshRate = refreshRate;
             this.refreshDelay = refreshDelay;
+            this.outdatedStore = outdatedStore;
             this.refreshCacheTimer = new Timer(this.RefreshCache, null, TimeSpan.Zero, refreshRate);
         }
 
@@ -70,17 +72,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             try
             {
                 cache = await ReadCacheFromStore(encryptedStorage);
-                var deviceScopeIdentitiesCache = new DeviceScopeIdentitiesCache(serviceProxy, encryptedStorage, cache, refreshRate, refreshDelay);
+                var deviceScopeIdentitiesCache = new DeviceScopeIdentitiesCache(serviceProxy, encryptedStorage, cache, refreshRate, refreshDelay, false);
                 Events.Created();
                 return deviceScopeIdentitiesCache;
             }
             catch (Exception)
             {
                 encryptedStorage = new NullKeyValueStore<string, string>() as IKeyValueStore<string, string>;
-                var deviceScopeIdentitiesCache = new DeviceScopeIdentitiesCache(serviceProxy, encryptedStorage, cache, refreshRate, refreshDelay);
+                var deviceScopeIdentitiesCache = new DeviceScopeIdentitiesCache(serviceProxy, encryptedStorage, cache, refreshRate, refreshDelay, true);
                 Events.Created();
                 return deviceScopeIdentitiesCache;
             }
+        }
+
+        public bool VerifyDeviceIdentityStore()
+        {
+            return this.outdatedStore;
         }
 
         public void InitiateCacheRefresh()
