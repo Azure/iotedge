@@ -295,7 +295,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy, encryptedStore, this.scopeCacheRefreshRate);
                             if (deviceScopeIdentitiesCache.VerifyDeviceIdentityStore())
                             {
-                                await RemoveEncryptedStore(c, "DeviceScopeCache");
+                                var storeProvider = await c.Resolve<Task<IStoreProvider>>();
+                                await RemoveEncryptedStore(storeProvider, "DeviceScopeCache");
                             }
                         }
                         else
@@ -428,9 +429,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             return encryptedStore;
         }
 
-        static async Task RemoveEncryptedStore(IComponentContext context, string entityName)
+        static async Task RemoveEncryptedStore(IStoreProvider storeProvider, string entityName)
         {
-            var storeProvider = await context.Resolve<Task<IStoreProvider>>();
+            // var storeProvider = await context.Resolve<Task<IStoreProvider>>();
             IEntityStore<string, string> entityStore = storeProvider.GetEntityStore<string, string>(entityName);
             await storeProvider.RemoveStore(entityStore);
         }
