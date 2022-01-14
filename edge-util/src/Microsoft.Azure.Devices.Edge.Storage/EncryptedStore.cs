@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
 
     public class EncryptedStore<TK, TV> : IKeyValueStore<TK, TV>
     {
@@ -48,6 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                     async e =>
                     {
                         Option<string> decryptedValue = await this.DecryptValue(e);
+                        ILogger logger = Logger.Factory.CreateLogger<IKeyValueStore<TK, TV>>();
+                        logger.LogInformation("Decrypted first");
                         return decryptedValue.Map(d => d.FromJson<TV>());
                     })
                 .GetOrElse(() => Task.FromResult(Option.None<TV>()));
@@ -68,6 +71,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                     async e =>
                     {
                         Option<string> decryptedValue = await this.DecryptValue(e.value);
+                        ILogger logger = Logger.Factory.CreateLogger<IKeyValueStore<TK, TV>>();
+                        logger.LogInformation("Decrypted first");
                         return decryptedValue.Map(d => (e.key, d.FromJson<TV>()));
                     })
                 .GetOrElse(() => Task.FromResult(Option.None<(TK key, TV value)>()));

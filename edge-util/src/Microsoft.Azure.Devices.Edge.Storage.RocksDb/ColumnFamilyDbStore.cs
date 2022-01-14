@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     using App.Metrics;
     using App.Metrics.Timer;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
     using RocksDbSharp;
 
     class ColumnFamilyDbStore : IDbStore
@@ -105,6 +106,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
                 await operation.ExecuteUntilCancelled(cancellationToken);
                 if (iterator.Valid())
                 {
+                    ILogger logger = Logger.Factory.CreateLogger<IDbStore>();
+                    logger.LogInformation("GotEntry");
                     byte[] key = iterator.Key();
                     byte[] value = iterator.Value();
                     return Option.Some((key, value));
