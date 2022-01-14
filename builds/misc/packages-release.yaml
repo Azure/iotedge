@@ -280,6 +280,60 @@ jobs:
         sudo docker --version
 
         sudo apt-get --yes install $(System.ArtifactsDirectory)/iotedged-ubuntu20.04-amd64/*.deb
+
+- job: Job_15
+  displayName: Ubuntu 20.04 - arm32v7
+  pool:
+    name: Azure-IoT-Edge-1ES-Hosted-Linux
+    demands:
+      - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+  steps:
+  - checkout: self
+    submodules: recursive
+  - task: Bash@3
+    displayName: Set Environment
+    inputs:
+      targetType: inline
+      script: >-
+        echo "##vso[task.setvariable variable=RUSTUP_HOME;]$VSTS_WORK/rustup"
+
+        echo "##vso[task.setvariable variable=CARGO_HOME;]$VSTS_WORK/cargo"
+
+        echo "##vso[task.setvariable variable=PATH;]$VSTS_WORK/cargo/bin:$PATH"
+
+
+        echo '##vso[task.setvariable variable=PACKAGE_OS;]ubuntu20.04'
+
+        echo '##vso[task.setvariable variable=PACKAGE_ARCH;]arm32v7'
+  - task: ShellScript@2
+    displayName: Create libiothsm and iotedged packages
+    inputs:
+      scriptPath: edgelet/build/linux/package.sh
+  - task: CopyFiles@2
+    displayName: Copy libiothsm Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/hsm
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: CopyFiles@2
+    displayName: Copy iotedged Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/armv7-unknown-linux-gnueabihf/release
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: ManifestGeneratorTask@0
+    displayName: SBOM Generation Task
+    inputs:
+      BuildDropPath: $(build.artifactstagingdirectory)
+  - task: PublishBuildArtifacts@1
+    displayName: Publish Artifacts
+    condition: succeededOrFailed()
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+      ArtifactName: iotedged-ubuntu20.04-arm32v7
+      TargetPath: '\\my\share\$(Build.DefinitionName)\$(Build.BuildNumber)'
+
+
 - job: Job_11
   displayName: Ubuntu 20.04 - aarch64
   pool:
@@ -965,152 +1019,3 @@ jobs:
     inputs:
       PathtoPublish: $(build.artifactstagingdirectory)
       ArtifactName: iotedged-windows-amd64
-- job: Job_5
-  displayName: Windows Arm32
-  timeoutInMinutes: 90
-  cancelTimeoutInMinutes: 1
-  pool:
-    name: Azure-IoT-Edge-1ES-Hosted-Windows
-    demands:
-    - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
-  steps:
-  - checkout: self
-    submodules: recursive
-  - task: PowerShell@1
-    displayName: Install Rust
-    enabled: False
-    inputs:
-      scriptName: edgelet/build/windows/install.ps1
-      arguments: -arm
-      failOnStandardError: false
-  - task: PowerShell@1
-    displayName: Build
-    enabled: False
-    inputs:
-      scriptName: edgelet/build/windows/build.ps1
-      arguments: -Release -Arm
-      failOnStandardError: false
-  - task: CMake@1
-    displayName: Setup libiothsm
-    enabled: False
-    inputs:
-      cwd: edgelet/hsm-sys/azure-iot-hsm-c/build
-      cmakeArgs: -G "Visual Studio 15 2017 ARM" -DBUILD_SHARED=ON -Duse_emulator=OFF ..
-  - task: CMake@1
-    displayName: Build libiothsm
-    enabled: False
-    inputs:
-      cwd: edgelet/hsm-sys/azure-iot-hsm-c/build
-      cmakeArgs: --build . --config Release
-  - task: PowerShell@2
-    displayName: Override package version
-    enabled: False
-    inputs:
-      targetType: inline
-      filePath: '# Override the package version from WIN_PACKAGE_VERSION # This is required because the cab file needs a different version than the global version number to support pre-releases  Write-Host "##vso[task.setvariable variable=VERSION]$(WIN_PACKAGE_VERSION)"'
-      script: >-
-        # Override the package version from WIN_PACKAGE_VERSION
-
-        # This is required because the cab file needs a different version than the global version number to support pre-releases
-
-
-        Write-Host "##vso[task.setvariable variable=VERSION]$(WIN_PACKAGE_VERSION)"
-  - task: EsrpCodeSigning@1
-    displayName: ESRP Binary CodeSigning
-    enabled: False
-    inputs:
-      ConnectedServiceName: 6ee18517-6d66-4730-bffd-2858a151bf69
-      FolderPath: $(Build.SourcesDirectory)
-      Pattern: edgelet/hsm-sys/azure-iot-hsm-c/build/Release/iothsm.dll,edgelet/target/release/*.exe
-      CertificateId: 400
-      OpusName: Azure IoT Edge
-      OpusInfo: https://azure.microsoft.com/en-us/services/iot-edge/
-      SessionTimeout: 20
-  - task: PowerShell@2
-    displayName: Prepare package template
-    enabled: False
-    inputs:
-      filePath: edgelet/build/windows/package.ps1
-      arguments: -CreateTemplate -arm
-  - task: EsrpCodeSigning@1
-    displayName: ESRP Package Catalog and Setup Script CodeSigning
-    enabled: False
-    inputs:
-      ConnectedServiceName: 6ee18517-6d66-4730-bffd-2858a151bf69
-      FolderPath: $(Build.SourcesDirectory)
-      Pattern: Package-Template/update.cat,scripts/windows/setup/IotEdgeSecurityDaemon.ps1
-      signConfigType: inlineSignParams
-      inlineOperation: >-
-        [
-          {
-            "keyCode": "CP-229879",
-            "operationSetCode": "SigntoolSign",
-            "parameters": [
-              {
-                "parameterName": "OpusName",
-                "parameterValue": "Microsoft Windows"
-              },
-              {
-                "parameterName": "OpusInfo",
-                "parameterValue": "http://www.microsoft.com/windows"
-              },
-              {
-                "parameterName": "PageHash",
-                "parameterValue": "/NPH"
-              },
-              {
-                "parameterName": "FileDigest",
-                "parameterValue": "/fd sha256"
-              },
-              {
-                "parameterName": "TimeStamp",
-                "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
-              }
-            ],
-            "toolName": "signtool.exe",
-            "toolVersion": "6.2.9304.0"
-          }
-        ]
-      SessionTimeout: 20
-  - task: PowerShell@2
-    displayName: Generate CAB package
-    enabled: False
-    inputs:
-      filePath: edgelet/build/windows/package.ps1
-      arguments: -CreateCab -arm
-  - task: CopyFiles@2
-    displayName: Copy Package Artifact Staging
-    enabled: False
-    inputs:
-      SourceFolder: .
-      Contents: '*.cab'
-      TargetFolder: $(build.artifactstagingdirectory)
-  - task: CopyFiles@2
-    displayName: Copy Setup Script to Artifact Staging
-    enabled: False
-    inputs:
-      SourceFolder: scripts\windows\setup
-      Contents: IotEdgeSecurityDaemon.ps1
-      TargetFolder: $(build.artifactstagingdirectory)
-  - task: EsrpCodeSigning@1
-    displayName: ESRP Package CodeSigning
-    enabled: False
-    inputs:
-      ConnectedServiceName: 6ee18517-6d66-4730-bffd-2858a151bf69
-      FolderPath: $(build.artifactstagingdirectory)
-      Pattern: '*.cab'
-      CertificateId: 400
-      OpusName: Azure IoT Edge
-      OpusInfo: https://azure.microsoft.com/en-us/services/iot-edge/
-      SessionTimeout: 20
-  - task: ManifestGeneratorTask@0
-    displayName: SBOM Generation Task
-    enabled: False
-    inputs:
-      BuildDropPath: $(build.artifactstagingdirectory)
-  - task: PublishBuildArtifacts@1
-    displayName: 'Publish Artifact: iotedged-windows-arm32'
-    enabled: False
-    inputs:
-      ArtifactName: iotedged-windows-arm32
-...
