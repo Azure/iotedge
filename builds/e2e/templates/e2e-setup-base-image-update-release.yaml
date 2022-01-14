@@ -23,28 +23,6 @@ steps:
       TestRootCaPassword,
       TestBlobStoreSas
 
-- bash: |
-    echo "Built Images Result is $(builtImages)"
-    
-    if [[ ! -z $(builtImages) && ( $(builtImages) == 'Succeeded' || $(builtImages) == 'SucceededWithIssues') ]]
-    then
-      echo "Use Pipeline Image Artifacts"
-      echo "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]TRUE"
-    else
-      echo "images-release.yaml did not succeed in the 'Publish Manifests' step, so e2e-setup.yaml is unable to download artifacts"
-      echo "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]FALSE"
-    fi
-
-  name: check_use_artifacts
-  displayName: Check if Manifest published successfully
-
-- task: DownloadPipelineArtifact@2
-  displayName: Download Current Pipeline Artifacts (downloads everything except Build Images)
-  condition: eq(variables['check_use_artifacts.UsePipelineImageArtifacts'],'true')
-  inputs:
-    source: 'current'
-    targetpath: $(System.ArtifactsDirectory)
-
 - pwsh: |
     $certsDir = '$(System.ArtifactsDirectory)/certs'
     New-Item "$certsDir" -ItemType Directory -Force | Out-Null

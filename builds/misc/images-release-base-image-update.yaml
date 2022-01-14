@@ -8,7 +8,7 @@ stages:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
     dependsOn: []
     jobs:
     - job: BuildDotnetComponents
@@ -288,8 +288,8 @@ stages:
             signConfigType: inlineSignParams
         - bash: |
             mkdir $(Build.ArtifactStagingDirectory)/publish-linux && \
-            mv $(Build.BinariesDirectory)/publish/{CACertificates,e2e_deployment_files,e2e_test_files,\
-            scripts,IotEdgeQuickstart*,LeafDevice*,*.nupkg} $(Build.ArtifactStagingDirectory)/publish-linux
+            mv $(Build.BinariesDirectory)/publish/{CACertificates,scripts,*.nupkg} \
+            $(Build.ArtifactStagingDirectory)/publish-linux
           displayName: Move/stage test file artifacts
         - task: PublishBuildArtifacts@1
           displayName: 'Publish Artifacts to VSTS'
@@ -325,7 +325,7 @@ stages:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker  
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
     dependsOn: [BuildExecutables, BuildRocksDB]
     jobs:
     - job: ConsolidateAndPublishArtifacts
@@ -553,7 +553,7 @@ stages:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
     dependsOn: BuildImages
     jobs:
     - job: PublishManifest
