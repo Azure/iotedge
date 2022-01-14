@@ -964,7 +964,7 @@ stages:
   - stage: PublishPackagesGithub
   ##############################################################################
     displayName: Publish Packages Github
-    dependsOn: [BuildPackages]
+    #dependsOn: [BuildPackages]
     pool:
       name: $(pool.linux.name)
       demands:
