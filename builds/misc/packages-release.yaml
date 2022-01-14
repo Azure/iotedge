@@ -808,157 +808,157 @@ stages:
         inputs:
           PathtoPublish: $(build.artifactstagingdirectory)
           ArtifactName: iotedged-debian11-aarch64
-    # - job: Phase_3
-    #   displayName: Windows Amd64
-    #   cancelTimeoutInMinutes: 1
-    #   pool:
-    #     name: Azure-IoT-Edge-1ES-Hosted-Windows
-    #     demands:
-    #     - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
-    #   steps:
-    #   - checkout: self
-    #     submodules: recursive
-    #   - task: PowerShell@1
-    #     displayName: Install Rust
-    #     inputs:
-    #       scriptName: edgelet/build/windows/install.ps1
-    #       failOnStandardError: false
-    #   - task: PowerShell@1
-    #     displayName: Build
-    #     inputs:
-    #       scriptName: edgelet/build/windows/build.ps1
-    #       arguments: -Release
-    #       failOnStandardError: false
-    #   - task: CMake@1
-    #     displayName: Setup libiothsm
-    #     inputs:
-    #       cwd: edgelet/hsm-sys/azure-iot-hsm-c/build
-    #       cmakeArgs: -G "Visual Studio 15 2017 Win64" -DBUILD_SHARED=ON -Duse_emulator=OFF ..
-    #   - task: CMake@1
-    #     displayName: Build libiothsm
-    #     inputs:
-    #       cwd: edgelet/hsm-sys/azure-iot-hsm-c/build
-    #       cmakeArgs: --build . --config Release
-    #   - task: PowerShell@2
-    #     displayName: Override package version
-    #     inputs:
-    #       targetType: inline
-    #       script: >-
-    #         # Override the package version from WIN_PACKAGE_VERSION
+    - job: Phase_3
+      displayName: Windows Amd64
+      cancelTimeoutInMinutes: 1
+      pool:
+        name: Azure-IoT-Edge-1ES-Hosted-Windows
+        demands:
+        - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
+      steps:
+      - checkout: self
+        submodules: recursive
+      - task: PowerShell@1
+        displayName: Install Rust
+        inputs:
+          scriptName: edgelet/build/windows/install.ps1
+          failOnStandardError: false
+      - task: PowerShell@1
+        displayName: Build
+        inputs:
+          scriptName: edgelet/build/windows/build.ps1
+          arguments: -Release
+          failOnStandardError: false
+      - task: CMake@1
+        displayName: Setup libiothsm
+        inputs:
+          cwd: edgelet/hsm-sys/azure-iot-hsm-c/build
+          cmakeArgs: -G "Visual Studio 15 2017 Win64" -DBUILD_SHARED=ON -Duse_emulator=OFF ..
+      - task: CMake@1
+        displayName: Build libiothsm
+        inputs:
+          cwd: edgelet/hsm-sys/azure-iot-hsm-c/build
+          cmakeArgs: --build . --config Release
+      - task: PowerShell@2
+        displayName: Override package version
+        inputs:
+          targetType: inline
+          script: >-
+            # Override the package version from WIN_PACKAGE_VERSION
 
-    #         # This is required because the cab file needs a different version than the global version number to support pre-releases
-
-
-    #         Write-Host "##vso[task.setvariable variable=VERSION]$(WIN_PACKAGE_VERSION)"
-    #   - task: EsrpCodeSigning@1
-    #     displayName: ESRP Binary CodeSigning
-    #     inputs:
-    #       ConnectedServiceName: 6ee18517-6d66-4730-bffd-2858a151bf69
-    #       FolderPath: $(Build.SourcesDirectory)
-    #       Pattern: edgelet/hsm-sys/azure-iot-hsm-c/build/Release/iothsm.dll,edgelet/target/release/*.exe
-    #       CertificateId: 400
-    #       OpusName: Azure IoT Edge
-    #       OpusInfo: https://azure.microsoft.com/en-us/services/iot-edge/
-    #       SessionTimeout: 20
-    #   - task: PowerShell@2
-    #     displayName: Prepare package template
-    #     inputs:
-    #       filePath: edgelet/build/windows/package.ps1
-    #       arguments: -CreateTemplate
-    #       script: >-
-    #         # Write your powershell commands here.
+            # This is required because the cab file needs a different version than the global version number to support pre-releases
 
 
-    #         Write-Host "Hello World"
+            Write-Host "##vso[task.setvariable variable=VERSION]$(WIN_PACKAGE_VERSION)"
+      - task: EsrpCodeSigning@1
+        displayName: ESRP Binary CodeSigning
+        inputs:
+          ConnectedServiceName: 6ee18517-6d66-4730-bffd-2858a151bf69
+          FolderPath: $(Build.SourcesDirectory)
+          Pattern: edgelet/hsm-sys/azure-iot-hsm-c/build/Release/iothsm.dll,edgelet/target/release/*.exe
+          CertificateId: 400
+          OpusName: Azure IoT Edge
+          OpusInfo: https://azure.microsoft.com/en-us/services/iot-edge/
+          SessionTimeout: 20
+      - task: PowerShell@2
+        displayName: Prepare package template
+        inputs:
+          filePath: edgelet/build/windows/package.ps1
+          arguments: -CreateTemplate
+          script: >-
+            # Write your powershell commands here.
 
 
-    #         # Use the environment variables input below to pass secret variables to this script.
-    #   - task: EsrpCodeSigning@1
-    #     displayName: ESRP Package Catalog and Setup Script CodeSigning
-    #     inputs:
-    #       ConnectedServiceName: 6ee18517-6d66-4730-bffd-2858a151bf69
-    #       FolderPath: $(Build.SourcesDirectory)
-    #       Pattern: Package-Template/update.cat,scripts/windows/setup/IotEdgeSecurityDaemon.ps1
-    #       signConfigType: inlineSignParams
-    #       CertificateId: 401
-    #       OpusName: Azure IoT Edge
-    #       OpusInfo: https://azure.microsoft.com/en-us/services/iot-edge/
-    #       inlineOperation: >-
-    #         [
-    #           {
-    #             "keyCode": "CP-229879",
-    #             "operationSetCode": "SigntoolSign",
-    #             "parameters": [
-    #               {
-    #                 "parameterName": "OpusName",
-    #                 "parameterValue": "Microsoft Windows"
-    #               },
-    #               {
-    #                 "parameterName": "OpusInfo",
-    #                 "parameterValue": "http://www.microsoft.com/windows"
-    #               },
-    #               {
-    #                 "parameterName": "PageHash",
-    #                 "parameterValue": "/NPH"
-    #               },
-    #               {
-    #                 "parameterName": "FileDigest",
-    #                 "parameterValue": "/fd sha256"
-    #               },
-    #               {
-    #                 "parameterName": "TimeStamp",
-    #                 "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
-    #               }
-    #             ],
-    #             "toolName": "signtool.exe",
-    #             "toolVersion": "6.2.9304.0"
-    #           }
-    #         ]
-    #       SessionTimeout: 20
-    #   - task: PowerShell@2
-    #     displayName: Generate CAB package
-    #     inputs:
-    #       filePath: edgelet/build/windows/package.ps1
-    #       arguments: -CreateCab
-    #       script: >-
-    #         # Write your powershell commands here.
+            Write-Host "Hello World"
 
 
-    #         Write-Host "Hello World"
+            # Use the environment variables input below to pass secret variables to this script.
+      - task: EsrpCodeSigning@1
+        displayName: ESRP Package Catalog and Setup Script CodeSigning
+        inputs:
+          ConnectedServiceName: 6ee18517-6d66-4730-bffd-2858a151bf69
+          FolderPath: $(Build.SourcesDirectory)
+          Pattern: Package-Template/update.cat,scripts/windows/setup/IotEdgeSecurityDaemon.ps1
+          signConfigType: inlineSignParams
+          CertificateId: 401
+          OpusName: Azure IoT Edge
+          OpusInfo: https://azure.microsoft.com/en-us/services/iot-edge/
+          inlineOperation: >-
+            [
+              {
+                "keyCode": "CP-229879",
+                "operationSetCode": "SigntoolSign",
+                "parameters": [
+                  {
+                    "parameterName": "OpusName",
+                    "parameterValue": "Microsoft Windows"
+                  },
+                  {
+                    "parameterName": "OpusInfo",
+                    "parameterValue": "http://www.microsoft.com/windows"
+                  },
+                  {
+                    "parameterName": "PageHash",
+                    "parameterValue": "/NPH"
+                  },
+                  {
+                    "parameterName": "FileDigest",
+                    "parameterValue": "/fd sha256"
+                  },
+                  {
+                    "parameterName": "TimeStamp",
+                    "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
+                  }
+                ],
+                "toolName": "signtool.exe",
+                "toolVersion": "6.2.9304.0"
+              }
+            ]
+          SessionTimeout: 20
+      - task: PowerShell@2
+        displayName: Generate CAB package
+        inputs:
+          filePath: edgelet/build/windows/package.ps1
+          arguments: -CreateCab
+          script: >-
+            # Write your powershell commands here.
 
 
-    #         # Use the environment variables input below to pass secret variables to this script.
-    #   - task: CopyFiles@2
-    #     displayName: Copy Package Artifact Staging
-    #     inputs:
-    #       SourceFolder: .
-    #       Contents: '*.cab'
-    #       TargetFolder: $(build.artifactstagingdirectory)
-    #   - task: CopyFiles@2
-    #     displayName: Copy Setup Script to Artifact Staging
-    #     inputs:
-    #       SourceFolder: scripts\windows\setup
-    #       Contents: IotEdgeSecurityDaemon.ps1
-    #       TargetFolder: $(build.artifactstagingdirectory)
-    #   - task: EsrpCodeSigning@1
-    #     displayName: ESRP Package CodeSigning
-    #     inputs:
-    #       ConnectedServiceName: 6ee18517-6d66-4730-bffd-2858a151bf69
-    #       FolderPath: $(build.artifactstagingdirectory)
-    #       Pattern: '*.cab'
-    #       CertificateId: 400
-    #       OpusName: Azure IoT Edge
-    #       OpusInfo: https://azure.microsoft.com/en-us/services/iot-edge/
-    #       SessionTimeout: 20
-    #   - task: ManifestGeneratorTask@0
-    #     displayName: SBOM Generation Task
-    #     inputs:
-    #       BuildDropPath: $(build.artifactstagingdirectory)
-    #   - task: PublishBuildArtifacts@1
-    #     displayName: 'Publish Artifact: iotedged-windows-amd64'
-    #     inputs:
-    #       PathtoPublish: $(build.artifactstagingdirectory)
-    #       ArtifactName: iotedged-windows-amd64
+            Write-Host "Hello World"
+
+
+            # Use the environment variables input below to pass secret variables to this script.
+      - task: CopyFiles@2
+        displayName: Copy Package Artifact Staging
+        inputs:
+          SourceFolder: .
+          Contents: '*.cab'
+          TargetFolder: $(build.artifactstagingdirectory)
+      - task: CopyFiles@2
+        displayName: Copy Setup Script to Artifact Staging
+        inputs:
+          SourceFolder: scripts\windows\setup
+          Contents: IotEdgeSecurityDaemon.ps1
+          TargetFolder: $(build.artifactstagingdirectory)
+      - task: EsrpCodeSigning@1
+        displayName: ESRP Package CodeSigning
+        inputs:
+          ConnectedServiceName: 6ee18517-6d66-4730-bffd-2858a151bf69
+          FolderPath: $(build.artifactstagingdirectory)
+          Pattern: '*.cab'
+          CertificateId: 400
+          OpusName: Azure IoT Edge
+          OpusInfo: https://azure.microsoft.com/en-us/services/iot-edge/
+          SessionTimeout: 20
+      - task: ManifestGeneratorTask@0
+        displayName: SBOM Generation Task
+        inputs:
+          BuildDropPath: $(build.artifactstagingdirectory)
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifact: iotedged-windows-amd64'
+        inputs:
+          PathtoPublish: $(build.artifactstagingdirectory)
+          ArtifactName: iotedged-windows-amd64
 
   ##############################################################################
   - stage: PublishPackagesGithub
@@ -1086,15 +1086,15 @@ stages:
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
     jobs:
-    # - deployment: safe_guard
-    #   environment: 'Azure-IoT-Edge-Core Release Env'
-    #   displayName: Get Approval
-    #   strategy:
-    #     runOnce:
-    #       deploy:
-    #         steps:
-    #           - bash: |
-    #               echo "Approval Complete"   
+    - deployment: safe_guard
+      environment: 'Azure-IoT-Edge-Core Release Env'
+      displayName: Get Approval
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - bash: |
+                  echo "Approval Complete"   
     - job: linux
       displayName: Linux
       strategy:
