@@ -1,0 +1,1021 @@
+# Variable 'NugetSecurityAnalysisWarningLevel' was defined in the Variables tab
+# Variable 'REVISION' was defined in the Variables tab
+# Variable 'VERSION' was defined in the Variables tab
+# Variable 'VSTS_WORK' was defined in the Variables tab
+# Variable 'WIN_PACKAGE_VERSION' was defined in the Variables tab
+name: $(VERSION)
+resources:
+  repositories:
+  - repository: self
+    type: git
+    ref: master
+jobs:
+- job: Phase_1
+  displayName: Ubuntu 18.04 - amd64
+  cancelTimeoutInMinutes: 1
+  pool:
+    name: Azure-IoT-Edge-1ES-Hosted-Linux
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+  steps:
+  - checkout: self
+    submodules: recursive
+  - task: Bash@3
+    displayName: Set Environment
+    inputs:
+      targetType: inline
+      script: >-
+        echo "##vso[task.setvariable variable=RUSTUP_HOME;]$VSTS_WORK/rustup"
+
+        echo "##vso[task.setvariable variable=CARGO_HOME;]$VSTS_WORK/cargo"
+
+        echo "##vso[task.setvariable variable=PATH;]$VSTS_WORK/cargo/bin:$PATH"
+
+
+        echo '##vso[task.setvariable variable=PACKAGE_OS;]ubuntu18.04'
+
+        echo '##vso[task.setvariable variable=PACKAGE_ARCH;]amd64'
+  - task: ShellScript@2
+    name: ''
+    displayName: Create libiothsm and iotedged packages
+    inputs:
+      scriptPath: edgelet/build/linux/package.sh
+  - task: CopyFiles@2
+    displayName: Copy libiothsm Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/hsm
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: CopyFiles@2
+    displayName: Copy iotedged Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/release
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: ManifestGeneratorTask@0
+    displayName: SBOM Generation Task
+    inputs:
+      BuildDropPath: $(build.artifactstagingdirectory)
+  - task: PublishBuildArtifacts@1
+    name: ''
+    displayName: Publish Artifacts
+    condition: succeededOrFailed()
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+      ArtifactName: iotedged-ubuntu18.04-amd64
+      TargetPath: '\\my\share\$(Build.DefinitionName)\$(Build.BuildNumber)'
+- job: Phase_4
+  displayName: 'Test: Install Ubuntu 18.04 amd64 packages'
+  cancelTimeoutInMinutes: 1
+  dependsOn: Phase_1
+  pool:
+    name: Azure-IoT-Edge-1ES-Hosted-Linux
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+  steps:
+  - checkout: self
+    submodules: recursive
+  - task: DownloadBuildArtifacts@0
+    displayName: Download Build Artifacts
+    inputs:
+      artifactName: iotedged-ubuntu18.04-amd64
+      extractTars: false
+  - task: Bash@3
+    displayName: Install libiothsm-std and iotedge
+    inputs:
+      targetType: inline
+      script: >-
+        # Ensure docker group is created
+
+        if ! getent group iotedge >/dev/null; then
+            addgroup --system docker
+        fi
+
+
+        sudo docker --version
+
+        sudo apt-get --yes install $(System.ArtifactsDirectory)/iotedged-ubuntu18.04-amd64/*.deb
+- job: Phase_2
+  displayName: Ubuntu 18.04 - arm32v7
+  cancelTimeoutInMinutes: 1
+  pool:
+    name: Azure-IoT-Edge-1ES-Hosted-Linux
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+  steps:
+  - checkout: self
+    submodules: recursive
+  - task: Bash@3
+    displayName: Set Environment
+    inputs:
+      targetType: inline
+      script: >-
+        echo "##vso[task.setvariable variable=RUSTUP_HOME;]$VSTS_WORK/rustup"
+
+        echo "##vso[task.setvariable variable=CARGO_HOME;]$VSTS_WORK/cargo"
+
+        echo "##vso[task.setvariable variable=PATH;]$VSTS_WORK/cargo/bin:$PATH"
+
+
+        echo '##vso[task.setvariable variable=PACKAGE_OS;]ubuntu18.04'
+
+        echo '##vso[task.setvariable variable=PACKAGE_ARCH;]arm32v7'
+  - task: ShellScript@2
+    displayName: Create libiothsm and iotedged packages
+    inputs:
+      scriptPath: edgelet/build/linux/package.sh
+  - task: CopyFiles@2
+    displayName: Copy libiothsm Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/hsm
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: CopyFiles@2
+    displayName: Copy iotedged Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/armv7-unknown-linux-gnueabihf/release
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: ManifestGeneratorTask@0
+    displayName: SBOM Generation Task
+    inputs:
+      BuildDropPath: $(build.artifactstagingdirectory)
+  - task: PublishBuildArtifacts@1
+    displayName: Publish Artifacts
+    condition: succeededOrFailed()
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+      ArtifactName: iotedged-ubuntu18.04-arm32v7
+      TargetPath: '\\my\share\$(Build.DefinitionName)\$(Build.BuildNumber)'
+- job: Job_1
+  displayName: Ubuntu 18.04 - aarch64
+  pool:
+    name: Azure-IoT-Edge-1ES-Hosted-Linux
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+  steps:
+  - checkout: self
+    submodules: recursive
+  - task: Bash@3
+    displayName: Set Environment
+    inputs:
+      targetType: inline
+      script: >-
+        echo "##vso[task.setvariable variable=RUSTUP_HOME;]$VSTS_WORK/rustup"
+
+        echo "##vso[task.setvariable variable=CARGO_HOME;]$VSTS_WORK/cargo"
+
+        echo "##vso[task.setvariable variable=PATH;]$VSTS_WORK/cargo/bin:$PATH"
+
+
+        echo '##vso[task.setvariable variable=PACKAGE_OS;]ubuntu18.04'
+
+        echo '##vso[task.setvariable variable=PACKAGE_ARCH;]aarch64'
+  - task: ShellScript@2
+    displayName: Create libiothsm and iotedged packages
+    inputs:
+      scriptPath: edgelet/build/linux/package.sh
+  - task: CopyFiles@2
+    displayName: Copy libiothsm Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/hsm
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: CopyFiles@2
+    displayName: Copy iotedged Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/aarch64-unknown-linux-gnu/release
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: ManifestGeneratorTask@0
+    displayName: SBOM Generation Task
+    inputs:
+      BuildDropPath: $(build.artifactstagingdirectory)
+  - task: PublishBuildArtifacts@1
+    displayName: Publish Artifacts
+    condition: succeededOrFailed()
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+      ArtifactName: iotedged-ubuntu18.04-aarch64
+      TargetPath: '\\my\share\$(Build.DefinitionName)\$(Build.BuildNumber)'
+- job: Job_9
+  displayName: Ubuntu 20.04 - amd64
+  pool:
+    name: Azure-IoT-Edge-1ES-Hosted-Linux
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+  steps:
+  - checkout: self
+    submodules: recursive
+  - task: Bash@3
+    displayName: Set Environment
+    inputs:
+      targetType: inline
+      filePath: echo "##vso[task.setvariable variable=RUSTUP_HOME;]$VSTS_WORK/rustup" echo "##vso[task.setvariable variable=CARGO_HOME;]$VSTS_WORK/cargo" echo "##vso[task.setvariable variable=PATH;]$VSTS_WORK/cargo/bin:$PATH"  echo '##vso[task.setvariable variable=PACKAGE_OS;]ubuntu18.04' echo '##vso[task.setvariable variable=PACKAGE_ARCH;]amd64'
+      script: >-
+        echo "##vso[task.setvariable variable=RUSTUP_HOME;]$VSTS_WORK/rustup"
+
+        echo "##vso[task.setvariable variable=CARGO_HOME;]$VSTS_WORK/cargo"
+
+        echo "##vso[task.setvariable variable=PATH;]$VSTS_WORK/cargo/bin:$PATH"
+
+
+        echo '##vso[task.setvariable variable=PACKAGE_OS;]ubuntu20.04'
+
+        echo '##vso[task.setvariable variable=PACKAGE_ARCH;]amd64'
+  - task: ShellScript@2
+    displayName: Create libiothsm and iotedged packages
+    inputs:
+      scriptPath: edgelet/build/linux/package.sh
+  - task: CopyFiles@2
+    displayName: Copy libiothsm Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/hsm
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: CopyFiles@2
+    displayName: Copy iotedged Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/release
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: ManifestGeneratorTask@0
+    displayName: SBOM Generation Task
+    inputs:
+      BuildDropPath: $(build.artifactstagingdirectory)
+  - task: PublishBuildArtifacts@1
+    displayName: Publish Artifacts
+    condition: succeededOrFailed()
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+      ArtifactName: iotedged-ubuntu20.04-amd64
+      TargetPath: '\\my\share\$(Build.DefinitionName)\$(Build.BuildNumber)'
+- job: Job_10
+  displayName: 'Test: Install Ubuntu 20.04 amd64 packages'
+  dependsOn: Job_9
+  pool:
+    name: Azure-IoT-Edge-1ES-Hosted-Linux
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+  steps:
+  - checkout: self
+    submodules: recursive
+  - task: DownloadBuildArtifacts@0
+    displayName: Download Build Artifacts
+    inputs:
+      artifactName: iotedged-ubuntu20.04-amd64
+      extractTars: false
+  - task: Bash@3
+    displayName: Install libiothsm-std and iotedge
+    inputs:
+      targetType: inline
+      script: >-
+        # Ensure docker group is created
+
+        if ! getent group iotedge >/dev/null; then
+            addgroup --system docker
+        fi
+
+
+        sudo docker --version
+
+        sudo apt-get --yes install $(System.ArtifactsDirectory)/iotedged-ubuntu20.04-amd64/*.deb
+
+- job: Job_15
+  displayName: Ubuntu 20.04 - arm32v7
+  pool:
+    name: Azure-IoT-Edge-1ES-Hosted-Linux
+    demands:
+      - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+  steps:
+  - checkout: self
+    submodules: recursive
+  - task: Bash@3
+    displayName: Set Environment
+    inputs:
+      targetType: inline
+      script: >-
+        echo "##vso[task.setvariable variable=RUSTUP_HOME;]$VSTS_WORK/rustup"
+
+        echo "##vso[task.setvariable variable=CARGO_HOME;]$VSTS_WORK/cargo"
+
+        echo "##vso[task.setvariable variable=PATH;]$VSTS_WORK/cargo/bin:$PATH"
+
+
+        echo '##vso[task.setvariable variable=PACKAGE_OS;]ubuntu20.04'
+
+        echo '##vso[task.setvariable variable=PACKAGE_ARCH;]arm32v7'
+  - task: ShellScript@2
+    displayName: Create libiothsm and iotedged packages
+    inputs:
+      scriptPath: edgelet/build/linux/package.sh
+  - task: CopyFiles@2
+    displayName: Copy libiothsm Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/hsm
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: CopyFiles@2
+    displayName: Copy iotedged Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/armv7-unknown-linux-gnueabihf/release
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: ManifestGeneratorTask@0
+    displayName: SBOM Generation Task
+    inputs:
+      BuildDropPath: $(build.artifactstagingdirectory)
+  - task: PublishBuildArtifacts@1
+    displayName: Publish Artifacts
+    condition: succeededOrFailed()
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+      ArtifactName: iotedged-ubuntu20.04-arm32v7
+      TargetPath: '\\my\share\$(Build.DefinitionName)\$(Build.BuildNumber)'
+
+
+- job: Job_11
+  displayName: Ubuntu 20.04 - aarch64
+  pool:
+    name: Azure-IoT-Edge-1ES-Hosted-Linux
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+  steps:
+  - checkout: self
+    submodules: recursive
+  - task: Bash@3
+    displayName: Set Environment
+    inputs:
+      targetType: inline
+      script: >-
+        echo "##vso[task.setvariable variable=RUSTUP_HOME;]$VSTS_WORK/rustup"
+
+        echo "##vso[task.setvariable variable=CARGO_HOME;]$VSTS_WORK/cargo"
+
+        echo "##vso[task.setvariable variable=PATH;]$VSTS_WORK/cargo/bin:$PATH"
+
+
+        echo '##vso[task.setvariable variable=PACKAGE_OS;]ubuntu20.04'
+
+        echo '##vso[task.setvariable variable=PACKAGE_ARCH;]aarch64'
+  - task: ShellScript@2
+    displayName: Create libiothsm and iotedged packages
+    inputs:
+      scriptPath: edgelet/build/linux/package.sh
+  - task: CopyFiles@2
+    displayName: Copy libiothsm Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/hsm
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: CopyFiles@2
+    displayName: Copy iotedged Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/aarch64-unknown-linux-gnu/release
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: ManifestGeneratorTask@0
+    displayName: SBOM Generation Task
+    inputs:
+      BuildDropPath: $(build.artifactstagingdirectory)
+  - task: PublishBuildArtifacts@1
+    displayName: Publish Artifacts
+    condition: succeededOrFailed()
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+      ArtifactName: iotedged-ubuntu20.04-aarch64
+      TargetPath: '\\my\share\$(Build.DefinitionName)\$(Build.BuildNumber)'
+- job: Phase_6
+  displayName: Centos 7.5 - amd64
+  cancelTimeoutInMinutes: 1
+  pool:
+    name: Azure-IoT-Edge-1ES-Hosted-Linux
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+  steps:
+  - checkout: self
+    submodules: recursive
+  - task: Bash@3
+    displayName: Set Environment
+    inputs:
+      targetType: inline
+      script: >-
+        echo "##vso[task.setvariable variable=RUSTUP_HOME;]$VSTS_WORK/rustup"
+
+        echo "##vso[task.setvariable variable=CARGO_HOME;]$VSTS_WORK/cargo"
+
+        echo "##vso[task.setvariable variable=PATH;]$VSTS_WORK/cargo/bin:$PATH"
+
+
+        echo '##vso[task.setvariable variable=PACKAGE_OS;]centos7'
+
+        echo '##vso[task.setvariable variable=PACKAGE_ARCH;]amd64'
+  - task: Docker@2
+    displayName: Docker login edgebuilds
+    inputs:
+      command: login
+      containerRegistry: iotedge-edgebuilds-acr
+  - task: ShellScript@2
+    displayName: Create libiothsm and iotedged packages
+    inputs:
+      scriptPath: edgelet/build/linux/package.sh
+  - task: CopyFiles@2
+    displayName: Copy libiothsm Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/hsm
+      Contents: '*.rpm'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: CopyFiles@2
+    displayName: Copy iotedged Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/rpmbuild/RPMS/x86_64
+      Contents: '*.rpm'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: ManifestGeneratorTask@0
+    displayName: SBOM Generation Task
+    inputs:
+      BuildDropPath: $(build.artifactstagingdirectory)
+  - task: PublishBuildArtifacts@1
+    displayName: Publish Artifacts
+    condition: succeededOrFailed()
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+      ArtifactName: iotedged-centos7-amd64
+      TargetPath: '\\my\share\$(Build.DefinitionName)\$(Build.BuildNumber)'
+- job: Job_2
+  displayName: Debian 9 - amd64
+  pool:
+    name: Azure-IoT-Edge-1ES-Hosted-Linux
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+  steps:
+  - checkout: self
+    submodules: recursive
+  - task: Bash@3
+    displayName: Set Environment
+    inputs:
+      targetType: inline
+      script: >-
+        echo "##vso[task.setvariable variable=RUSTUP_HOME;]$VSTS_WORK/rustup"
+
+        echo "##vso[task.setvariable variable=CARGO_HOME;]$VSTS_WORK/cargo"
+
+        echo "##vso[task.setvariable variable=PATH;]$VSTS_WORK/cargo/bin:$PATH"
+
+
+        echo '##vso[task.setvariable variable=PACKAGE_OS;]debian9'
+
+        echo '##vso[task.setvariable variable=PACKAGE_ARCH;]amd64'
+  - task: Bash@3
+    displayName: Create libiothsm and iotedged packages
+    inputs:
+      filePath: edgelet/build/linux/package.sh
+  - task: CopyFiles@2
+    displayName: Copy libiothsm Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/hsm
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: CopyFiles@2
+    displayName: Copy iotedged Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/release
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: ManifestGeneratorTask@0
+    displayName: SBOM Generation Task
+    inputs:
+      BuildDropPath: $(build.artifactstagingdirectory)
+  - task: PublishBuildArtifacts@1
+    displayName: Publish Artifacts
+    condition: succeededOrFailed()
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+      ArtifactName: iotedged-debian9-amd64
+- job: Job_3
+  displayName: Debian 9 - arm32v7
+  pool:
+    name: Azure-IoT-Edge-1ES-Hosted-Linux
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+  steps:
+  - checkout: self
+    submodules: recursive
+  - task: Bash@3
+    displayName: Set Environment
+    inputs:
+      targetType: inline
+      script: >-
+        echo "##vso[task.setvariable variable=RUSTUP_HOME;]$VSTS_WORK/rustup"
+
+        echo "##vso[task.setvariable variable=CARGO_HOME;]$VSTS_WORK/cargo"
+
+        echo "##vso[task.setvariable variable=PATH;]$VSTS_WORK/cargo/bin:$PATH"
+
+
+        echo '##vso[task.setvariable variable=PACKAGE_OS;]debian9'
+
+        echo '##vso[task.setvariable variable=PACKAGE_ARCH;]arm32v7'
+  - task: Bash@3
+    displayName: Create libiothsm and iotedged packages
+    inputs:
+      filePath: edgelet/build/linux/package.sh
+  - task: CopyFiles@2
+    displayName: Copy libiothsm Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/hsm
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: CopyFiles@2
+    displayName: Copy iotedged Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/armv7-unknown-linux-gnueabihf/release
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: ManifestGeneratorTask@0
+    displayName: SBOM Generation Task
+    inputs:
+      BuildDropPath: $(build.artifactstagingdirectory)
+  - task: PublishBuildArtifacts@1
+    displayName: Publish Artifacts
+    condition: succeededOrFailed()
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+      ArtifactName: iotedged-debian9-arm32v7
+- job: Job_4
+  displayName: Debian 9 - aarch64
+  pool:
+    name: Azure-IoT-Edge-1ES-Hosted-Linux
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+  steps:
+  - checkout: self
+    submodules: recursive
+  - task: Bash@3
+    displayName: Set Environment
+    inputs:
+      targetType: inline
+      script: >-
+        echo "##vso[task.setvariable variable=RUSTUP_HOME;]$VSTS_WORK/rustup"
+
+        echo "##vso[task.setvariable variable=CARGO_HOME;]$VSTS_WORK/cargo"
+
+        echo "##vso[task.setvariable variable=PATH;]$VSTS_WORK/cargo/bin:$PATH"
+
+
+        echo '##vso[task.setvariable variable=PACKAGE_OS;]debian9'
+
+        echo '##vso[task.setvariable variable=PACKAGE_ARCH;]aarch64'
+  - task: Bash@3
+    displayName: Create libiothsm and iotedged packages
+    inputs:
+      filePath: edgelet/build/linux/package.sh
+  - task: CopyFiles@2
+    displayName: Copy libiothsm Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/hsm
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: CopyFiles@2
+    displayName: Copy iotedged Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/aarch64-unknown-linux-gnu/release
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: ManifestGeneratorTask@0
+    displayName: SBOM Generation Task
+    inputs:
+      BuildDropPath: $(build.artifactstagingdirectory)
+  - task: PublishBuildArtifacts@1
+    displayName: Publish Artifacts
+    condition: succeededOrFailed()
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+      ArtifactName: iotedged-debian9-aarch64
+- job: Job_12
+  displayName: Debian 10 - amd64
+  pool:
+    name: Azure-IoT-Edge-1ES-Hosted-Linux
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+  steps:
+  - checkout: self
+    submodules: recursive
+  - task: Bash@3
+    displayName: Set Environment
+    inputs:
+      targetType: inline
+      filePath: echo "##vso[task.setvariable variable=RUSTUP_HOME;]$VSTS_WORK/rustup" echo "##vso[task.setvariable variable=CARGO_HOME;]$VSTS_WORK/cargo" echo "##vso[task.setvariable variable=PATH;]$VSTS_WORK/cargo/bin:$PATH"  echo '##vso[task.setvariable variable=PACKAGE_OS;]debian9' echo '##vso[task.setvariable variable=PACKAGE_ARCH;]amd64'
+      script: >-
+        echo "##vso[task.setvariable variable=RUSTUP_HOME;]$VSTS_WORK/rustup"
+
+        echo "##vso[task.setvariable variable=CARGO_HOME;]$VSTS_WORK/cargo"
+
+        echo "##vso[task.setvariable variable=PATH;]$VSTS_WORK/cargo/bin:$PATH"
+
+
+        echo '##vso[task.setvariable variable=PACKAGE_OS;]debian10'
+
+        echo '##vso[task.setvariable variable=PACKAGE_ARCH;]amd64'
+  - task: Bash@3
+    displayName: Create libiothsm and iotedged packages
+    inputs:
+      filePath: edgelet/build/linux/package.sh
+  - task: CopyFiles@2
+    displayName: Copy libiothsm Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/hsm
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: CopyFiles@2
+    displayName: Copy iotedged Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/release
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: ManifestGeneratorTask@0
+    displayName: SBOM Generation Task
+    inputs:
+      BuildDropPath: $(build.artifactstagingdirectory)
+  - task: PublishBuildArtifacts@1
+    displayName: Publish Artifacts
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+      ArtifactName: iotedged-debian10-amd64
+- job: Job_13
+  displayName: Debian 10 - arm32v7
+  pool:
+    name: Azure-IoT-Edge-1ES-Hosted-Linux
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+  steps:
+  - checkout: self
+    submodules: recursive
+  - task: Bash@3
+    displayName: Set Environment
+    inputs:
+      targetType: inline
+      script: >-
+        echo "##vso[task.setvariable variable=RUSTUP_HOME;]$VSTS_WORK/rustup"
+
+        echo "##vso[task.setvariable variable=CARGO_HOME;]$VSTS_WORK/cargo"
+
+        echo "##vso[task.setvariable variable=PATH;]$VSTS_WORK/cargo/bin:$PATH"
+
+
+        echo '##vso[task.setvariable variable=PACKAGE_OS;]debian10'
+
+        echo '##vso[task.setvariable variable=PACKAGE_ARCH;]arm32v7'
+  - task: Bash@3
+    displayName: Create libiothsm and iotedged packages
+    inputs:
+      filePath: edgelet/build/linux/package.sh
+  - task: CopyFiles@2
+    displayName: Copy libiothsm Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/hsm
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: CopyFiles@2
+    displayName: Copy iotedged Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/armv7-unknown-linux-gnueabihf/release
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: ManifestGeneratorTask@0
+    displayName: SBOM Generation Task
+    inputs:
+      BuildDropPath: $(build.artifactstagingdirectory)
+  - task: PublishBuildArtifacts@1
+    displayName: Publish Artifacts
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+      ArtifactName: iotedged-debian10-arm32v7
+- job: Job_14
+  displayName: Debian 10 - aarch64
+  pool:
+    name: Azure-IoT-Edge-1ES-Hosted-Linux
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+  steps:
+  - checkout: self
+    submodules: recursive
+  - task: Bash@3
+    displayName: Set Environment
+    inputs:
+      targetType: inline
+      script: "echo \"##vso[task.setvariable variable=RUSTUP_HOME;]$VSTS_WORK/rustup\"\necho \"##vso[task.setvariable variable=CARGO_HOME;]$VSTS_WORK/cargo\"\necho \"##vso[task.setvariable variable=PATH;]$VSTS_WORK/cargo/bin:$PATH\"\n\necho '##vso[task.setvariable variable=PACKAGE_OS;]debian10'\necho '##vso[task.setvariable variable=PACKAGE_ARCH;]aarch64' "
+  - task: Bash@3
+    displayName: Create libiothsm and iotedged packages
+    inputs:
+      filePath: edgelet/build/linux/package.sh
+  - task: CopyFiles@2
+    displayName: Copy libiothsm Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/hsm
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: CopyFiles@2
+    displayName: Copy iotedged Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/aarch64-unknown-linux-gnu/release
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: ManifestGeneratorTask@0
+    displayName: SBOM Generation Task
+    inputs:
+      BuildDropPath: $(build.artifactstagingdirectory)
+  - task: PublishBuildArtifacts@1
+    displayName: Publish Artifacts
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+      ArtifactName: iotedged-debian10-aarch64
+- job: Job_6
+  displayName: Debian 11 - amd64
+  pool:
+    name: Azure-IoT-Edge-1ES-Hosted-Linux
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+  steps:
+  - checkout: self
+    submodules: recursive
+  - task: Bash@3
+    displayName: Set Environment
+    inputs:
+      targetType: inline
+      filePath: echo "##vso[task.setvariable variable=RUSTUP_HOME;]$VSTS_WORK/rustup" echo "##vso[task.setvariable variable=CARGO_HOME;]$VSTS_WORK/cargo" echo "##vso[task.setvariable variable=PATH;]$VSTS_WORK/cargo/bin:$PATH"  echo '##vso[task.setvariable variable=PACKAGE_OS;]debian9' echo '##vso[task.setvariable variable=PACKAGE_ARCH;]amd64'
+      script: >-
+        echo "##vso[task.setvariable variable=RUSTUP_HOME;]$VSTS_WORK/rustup"
+
+        echo "##vso[task.setvariable variable=CARGO_HOME;]$VSTS_WORK/cargo"
+
+        echo "##vso[task.setvariable variable=PATH;]$VSTS_WORK/cargo/bin:$PATH"
+
+
+        echo '##vso[task.setvariable variable=PACKAGE_OS;]debian11'
+
+        echo '##vso[task.setvariable variable=PACKAGE_ARCH;]amd64'
+  - task: Bash@3
+    displayName: Create libiothsm and iotedged packages
+    inputs:
+      filePath: edgelet/build/linux/package.sh
+  - task: CopyFiles@2
+    displayName: Copy libiothsm Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/hsm
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: CopyFiles@2
+    displayName: Copy iotedged Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/release
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: ManifestGeneratorTask@0
+    displayName: SBOM Generation Task
+    inputs:
+      BuildDropPath: $(build.artifactstagingdirectory)
+  - task: PublishBuildArtifacts@1
+    displayName: Publish Artifacts
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+      ArtifactName: iotedged-debian11-amd64
+- job: Job_7
+  displayName: Debian 11 - arm32v7
+  pool:
+    name: Azure-IoT-Edge-1ES-Hosted-Linux
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+  steps:
+  - checkout: self
+    submodules: recursive
+  - task: Bash@3
+    displayName: Set Environment
+    inputs:
+      targetType: inline
+      script: >-
+        echo "##vso[task.setvariable variable=RUSTUP_HOME;]$VSTS_WORK/rustup"
+
+        echo "##vso[task.setvariable variable=CARGO_HOME;]$VSTS_WORK/cargo"
+
+        echo "##vso[task.setvariable variable=PATH;]$VSTS_WORK/cargo/bin:$PATH"
+
+
+        echo '##vso[task.setvariable variable=PACKAGE_OS;]debian11'
+
+        echo '##vso[task.setvariable variable=PACKAGE_ARCH;]arm32v7'
+  - task: Bash@3
+    displayName: Create libiothsm and iotedged packages
+    inputs:
+      filePath: edgelet/build/linux/package.sh
+  - task: CopyFiles@2
+    displayName: Copy libiothsm Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/hsm
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: CopyFiles@2
+    displayName: Copy iotedged Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/armv7-unknown-linux-gnueabihf/release
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: ManifestGeneratorTask@0
+    displayName: SBOM Generation Task
+    inputs:
+      BuildDropPath: $(build.artifactstagingdirectory)
+  - task: PublishBuildArtifacts@1
+    displayName: Publish Artifacts
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+      ArtifactName: iotedged-debian11-arm32v7
+- job: Job_8
+  displayName: Debian 11 - aarch64
+  pool:
+    name: Azure-IoT-Edge-1ES-Hosted-Linux
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+  steps:
+  - checkout: self
+    submodules: recursive
+  - task: Bash@3
+    displayName: Set Environment
+    inputs:
+      targetType: inline
+      script: "echo \"##vso[task.setvariable variable=RUSTUP_HOME;]$VSTS_WORK/rustup\"\necho \"##vso[task.setvariable variable=CARGO_HOME;]$VSTS_WORK/cargo\"\necho \"##vso[task.setvariable variable=PATH;]$VSTS_WORK/cargo/bin:$PATH\"\n\necho '##vso[task.setvariable variable=PACKAGE_OS;]debian11'\necho '##vso[task.setvariable variable=PACKAGE_ARCH;]aarch64' "
+  - task: Bash@3
+    displayName: Create libiothsm and iotedged packages
+    inputs:
+      filePath: edgelet/build/linux/package.sh
+  - task: CopyFiles@2
+    displayName: Copy libiothsm Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/hsm
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: CopyFiles@2
+    displayName: Copy iotedged Files to Artifact Staging
+    inputs:
+      SourceFolder: edgelet/target/aarch64-unknown-linux-gnu/release
+      Contents: '*.deb'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: ManifestGeneratorTask@0
+    displayName: SBOM Generation Task
+    inputs:
+      BuildDropPath: $(build.artifactstagingdirectory)
+  - task: PublishBuildArtifacts@1
+    displayName: Publish Artifacts
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+      ArtifactName: iotedged-debian11-aarch64
+- job: Phase_3
+  displayName: Windows Amd64
+  cancelTimeoutInMinutes: 1
+  pool:
+    name: Azure-IoT-Edge-1ES-Hosted-Windows
+    demands:
+    - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
+  steps:
+  - checkout: self
+    submodules: recursive
+  - task: PowerShell@1
+    displayName: Install Rust
+    inputs:
+      scriptName: edgelet/build/windows/install.ps1
+      failOnStandardError: false
+  - task: PowerShell@1
+    displayName: Build
+    inputs:
+      scriptName: edgelet/build/windows/build.ps1
+      arguments: -Release
+      failOnStandardError: false
+  - task: CMake@1
+    displayName: Setup libiothsm
+    inputs:
+      cwd: edgelet/hsm-sys/azure-iot-hsm-c/build
+      cmakeArgs: -G "Visual Studio 15 2017 Win64" -DBUILD_SHARED=ON -Duse_emulator=OFF ..
+  - task: CMake@1
+    displayName: Build libiothsm
+    inputs:
+      cwd: edgelet/hsm-sys/azure-iot-hsm-c/build
+      cmakeArgs: --build . --config Release
+  - task: PowerShell@2
+    displayName: Override package version
+    inputs:
+      targetType: inline
+      script: >-
+        # Override the package version from WIN_PACKAGE_VERSION
+
+        # This is required because the cab file needs a different version than the global version number to support pre-releases
+
+
+        Write-Host "##vso[task.setvariable variable=VERSION]$(WIN_PACKAGE_VERSION)"
+  - task: EsrpCodeSigning@1
+    displayName: ESRP Binary CodeSigning
+    inputs:
+      ConnectedServiceName: 6ee18517-6d66-4730-bffd-2858a151bf69
+      FolderPath: $(Build.SourcesDirectory)
+      Pattern: edgelet/hsm-sys/azure-iot-hsm-c/build/Release/iothsm.dll,edgelet/target/release/*.exe
+      CertificateId: 400
+      OpusName: Azure IoT Edge
+      OpusInfo: https://azure.microsoft.com/en-us/services/iot-edge/
+      SessionTimeout: 20
+  - task: PowerShell@2
+    displayName: Prepare package template
+    inputs:
+      filePath: edgelet/build/windows/package.ps1
+      arguments: -CreateTemplate
+      script: >-
+        # Write your powershell commands here.
+
+
+        Write-Host "Hello World"
+
+
+        # Use the environment variables input below to pass secret variables to this script.
+  - task: EsrpCodeSigning@1
+    displayName: ESRP Package Catalog and Setup Script CodeSigning
+    inputs:
+      ConnectedServiceName: 6ee18517-6d66-4730-bffd-2858a151bf69
+      FolderPath: $(Build.SourcesDirectory)
+      Pattern: Package-Template/update.cat,scripts/windows/setup/IotEdgeSecurityDaemon.ps1
+      signConfigType: inlineSignParams
+      CertificateId: 401
+      OpusName: Azure IoT Edge
+      OpusInfo: https://azure.microsoft.com/en-us/services/iot-edge/
+      inlineOperation: >-
+        [
+          {
+            "keyCode": "CP-229879",
+            "operationSetCode": "SigntoolSign",
+            "parameters": [
+              {
+                "parameterName": "OpusName",
+                "parameterValue": "Microsoft Windows"
+              },
+              {
+                "parameterName": "OpusInfo",
+                "parameterValue": "http://www.microsoft.com/windows"
+              },
+              {
+                "parameterName": "PageHash",
+                "parameterValue": "/NPH"
+              },
+              {
+                "parameterName": "FileDigest",
+                "parameterValue": "/fd sha256"
+              },
+              {
+                "parameterName": "TimeStamp",
+                "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
+              }
+            ],
+            "toolName": "signtool.exe",
+            "toolVersion": "6.2.9304.0"
+          }
+        ]
+      SessionTimeout: 20
+  - task: PowerShell@2
+    displayName: Generate CAB package
+    inputs:
+      filePath: edgelet/build/windows/package.ps1
+      arguments: -CreateCab
+      script: >-
+        # Write your powershell commands here.
+
+
+        Write-Host "Hello World"
+
+
+        # Use the environment variables input below to pass secret variables to this script.
+  - task: CopyFiles@2
+    displayName: Copy Package Artifact Staging
+    inputs:
+      SourceFolder: .
+      Contents: '*.cab'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: CopyFiles@2
+    displayName: Copy Setup Script to Artifact Staging
+    inputs:
+      SourceFolder: scripts\windows\setup
+      Contents: IotEdgeSecurityDaemon.ps1
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: EsrpCodeSigning@1
+    displayName: ESRP Package CodeSigning
+    inputs:
+      ConnectedServiceName: 6ee18517-6d66-4730-bffd-2858a151bf69
+      FolderPath: $(build.artifactstagingdirectory)
+      Pattern: '*.cab'
+      CertificateId: 400
+      OpusName: Azure IoT Edge
+      OpusInfo: https://azure.microsoft.com/en-us/services/iot-edge/
+      SessionTimeout: 20
+  - task: ManifestGeneratorTask@0
+    displayName: SBOM Generation Task
+    inputs:
+      BuildDropPath: $(build.artifactstagingdirectory)
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Artifact: iotedged-windows-amd64'
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+      ArtifactName: iotedged-windows-amd64
