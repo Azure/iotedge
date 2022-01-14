@@ -987,125 +987,87 @@ stages:
             $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh -p ubuntu20.04 -w $(Build.SourcesDirectory) -d $(Build.SourcesDirectory) -v "$BASE_VERSION" -s "github.com" -b  $(Build.SourceBranch) --skip-upload true
           env:
             GITHUB_PAT: "$(GitHubAccessToken)"        
-    # - job: linux
-    #   displayName: Linux
-    #   strategy:
-    #     matrix:
-    #       Centos75-amd64:
-    #         os: centos7
-    #         artifactName: iotedged-centos7-amd64
-    #         identityServiceArtifactName: packages_centos-7_amd64
-    #         identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
+    - job: linux
+      displayName: Linux
+      strategy:
+        matrix:
+          Centos75-amd64:
+            os: centos7
+            artifactName: iotedged-centos7-amd64
+      
+          Debian9-amd64:
+            os: debian9
+            artifactName: iotedged-debian9-amd64
+          Debian9-arm32v7:
+            os: debian9
+            artifactName: iotedged-debian9-arm32v7          
+          Debian9-aarch64:
+            os: debian9
+            artifactName: iotedged-debian9-aarch64
+           
           
-    #       Debian9-amd64:
-    #         os: debian9
-    #         artifactName: iotedged-debian9-amd64
-    #         identityServiceArtifactName: packages_debian-9-slim_amd64
-    #         identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-    #       Debian9-arm32v7:
-    #         os: debian9
-    #         artifactName: iotedged-debian9-arm32v7
-    #         identityServiceArtifactName: packages_debian-9-slim_arm32v7
-    #         identityServicePackageFilter: aziot-identity-service_*_armhf.deb
-    #       Debian9-aarch64:
-    #         os: debian9
-    #         artifactName: iotedged-debian9-aarch64
-    #         identityServiceArtifactName: packages_debian-9-slim_aarch64
-    #         identityServicePackageFilter: aziot-identity-service_*_arm64.deb
+          Debian10-amd64:
+            os: debian10
+            artifactName: iotedged-debian10-amd64       
+          Debian10-arm32v7:
+            os: debian10
+            artifactName: iotedged-debian10-arm32v7         
+          Debian10-aarch64:
+            os: debian10
+            artifactName: iotedged-debian10-aarch64
           
-    #       Debian10-amd64:
-    #         os: debian10
-    #         artifactName: iotedged-debian10-amd64
-    #         identityServiceArtifactName: packages_debian-10-slim_amd64
-    #         identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-    #       Debian10-arm32v7:
-    #         os: debian10
-    #         artifactName: iotedged-debian10-arm32v7
-    #         identityServiceArtifactName: packages_debian-10-slim_arm32v7
-    #         identityServicePackageFilter: aziot-identity-service_*_armhf.deb
-    #       Debian10-aarch64:
-    #         os: debian10
-    #         artifactName: iotedged-debian10-aarch64
-    #         identityServiceArtifactName: packages_debian-10-slim_aarch64
-    #         identityServicePackageFilter: aziot-identity-service_*_arm64.deb
 
-    #       Debian11-amd64:
-    #         os: debian11
-    #         artifactName: iotedged-debian11-amd64
-    #         identityServiceArtifactName: packages_debian-11-slim_amd64
-    #         identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-    #       Debian11-arm32v7:
-    #         os: debian11
-    #         artifactName: iotedged-debian11-arm32v7
-    #         identityServiceArtifactName: packages_debian-11-slim_arm32v7
-    #         identityServicePackageFilter: aziot-identity-service_*_armhf.deb
-    #       Debian11-aarch64:
-    #         os: debian11
-    #         artifactName: iotedged-debian11-aarch64
-    #         identityServiceArtifactName: packages_debian-11-slim_aarch64
-    #         identityServicePackageFilter: aziot-identity-service_*_arm64.deb
+          Debian11-amd64:
+            os: debian11
+            artifactName: iotedged-debian11-amd64         
+          Debian11-arm32v7:
+            os: debian11
+            artifactName: iotedged-debian11-arm32v7         
+          Debian11-aarch64:
+            os: debian11
+            artifactName: iotedged-debian11-aarch64
+          
 
-    #       Ubuntu1804-amd64:
-    #         os: ubuntu18.04
-    #         artifactName: iotedged-ubuntu18.04-amd64
-    #         identityServiceArtifactName: packages_ubuntu-18.04_amd64
-    #         identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-    #       Ubuntu1804-arm32v7:
-    #         os: ubuntu18.04
-    #         artifactName: iotedged-ubuntu18.04-arm32v7
-    #         identityServiceArtifactName: packages_ubuntu-18.04_arm32v7
-    #         identityServicePackageFilter: aziot-identity-service_*_armhf.deb
-    #       Ubuntu1804-aarch64:
-    #         os: ubuntu18.04
-    #         artifactName: iotedged-ubuntu18.04-aarch64
-    #         identityServiceArtifactName: packages_ubuntu-18.04_aarch64
-    #         identityServicePackageFilter: aziot-identity-service_*_arm64.deb
-
-    #       Ubuntu2004-amd64:
-    #         os: ubuntu20.04
-    #         artifactName: iotedged-ubuntu20.04-amd64
-    #         identityServiceArtifactName: packages_ubuntu-20.04_amd64
-    #         identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-    #       Ubuntu2004-arm32v7:
-    #         os: ubuntu20.04
-    #         artifactName: iotedged-ubuntu20.04-arm32v7
-    #         identityServiceArtifactName: packages_ubuntu-20.04_arm32v7
-    #         identityServicePackageFilter: aziot-identity-service_*_armhf.deb
-    #       Ubuntu2004-aarch64:
-    #         os: ubuntu20.04
-    #         artifactName: iotedged-ubuntu20.04-aarch64
-    #         identityServiceArtifactName: packages_ubuntu-20.04_aarch64
-    #         identityServicePackageFilter: aziot-identity-service_*_arm64.deb
-    #   steps:
-    #     - task: AzureKeyVault@1
-    #       displayName: Get secrets
-    #       inputs:
-    #         azureSubscription: $(az.subscription)
-    #         keyVaultName: $(kv.name)
-    #         secretsFilter: >-
-    #           GitHubAccessToken
-    #     - task: DownloadPipelineArtifact@2
-    #       displayName: Download Pipeline Build Packages
-    #       inputs:
-    #         source: 'current'
-    #         path: $(System.ArtifactsDirectory)
-    #         patterns: |
-    #             $(artifactName)/*.deb
-    #             $(artifactName)/*.rpm
-    #     - task: PowerShell@2
-    #       displayName: 'Download aziot-identity-service'
-    #       inputs:
-    #         filePath: $(Build.SourcesDirectory)/scripts/local/test/DownloadIdentityService.ps1
-    #         workingDirectory: $(Build.SourcesDirectory)
-    #       env:
-    #         GITHUB_TOKEN: $(GitHubAccessToken)
-    #         ARTIFACT_NAME: $(identityServiceArtifactName)
-    #         PACKAGE_FILTER: $(identityServicePackageFilter)
-    #         DOWNLOAD_PATH: $(System.ArtifactsDirectory)/$(artifactName)
-    #         IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
-    #     - bash: |
-    #         BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
-    #         $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh -p $(os) -w $(System.ArtifactsDirectory) -d $(System.ArtifactsDirectory)/$(artifactName) -v "$BASE_VERSION" -s "github.com" -b $(Build.SourceBranch)
-    #       env:
-    #         GITHUB_PAT: "$(GitHubAccessToken)"    
-    #       name: publish_artifacts 
+          Ubuntu1804-amd64:
+            os: ubuntu18.04
+            artifactName: iotedged-ubuntu18.04-amd64        
+          Ubuntu1804-arm32v7:
+            os: ubuntu18.04
+            artifactName: iotedged-ubuntu18.04-arm32v7          
+          Ubuntu1804-aarch64:
+            os: ubuntu18.04
+            artifactName: iotedged-ubuntu18.04-aarch64
+         
+          Ubuntu2004-amd64:
+            os: ubuntu20.04
+            artifactName: iotedged-ubuntu20.04-amd64       
+          Ubuntu2004-arm32v7:
+            os: ubuntu20.04
+            artifactName: iotedged-ubuntu20.04-arm32v7       
+          Ubuntu2004-aarch64:
+            os: ubuntu20.04
+            artifactName: iotedged-ubuntu20.04-aarch64
+           
+      steps:
+        - task: AzureKeyVault@1
+          displayName: Get secrets
+          inputs:
+            azureSubscription: $(az.subscription)
+            keyVaultName: $(kv.name)
+            secretsFilter: >-
+              GitHubAccessToken
+        - task: DownloadPipelineArtifact@2
+          displayName: Download Pipeline Build Packages
+          inputs:
+            source: 'current'
+            path: $(System.ArtifactsDirectory)
+            patterns: |
+                $(artifactName)/*.deb
+                $(artifactName)/*.rpm
+        - bash: |
+            BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
+            sudo chmod +x $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh 
+            $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh -p $(os) -w $(System.ArtifactsDirectory) -d $(System.ArtifactsDirectory)/$(artifactName) -v "$BASE_VERSION" -s "github.com" -b $(Build.SourceBranch)
+          env:
+            GITHUB_PAT: "$(GitHubAccessToken)"    
+          name: publish_artifacts 
