@@ -983,6 +983,7 @@ stages:
         - bash: | #Create Release Page Before Publishing Artifacts in Parallel in the Next Job.
             echo "Approval Complete, Creating Release Page"
             BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
+            sudo chmod +x $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh 
             $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh -p ubuntu20.04 -w $(Build.SourcesDirectory) -d $(Build.SourcesDirectory) -v "$BASE_VERSION" -s "github.com" -b  $(Build.SourceBranch) --skip-upload true
           env:
             GITHUB_PAT: "$(GitHubAccessToken)"        
