@@ -14,7 +14,7 @@ const AZIOT_EDGED_HOMEDIR_PATH: &str = "/var/lib/aziot/edged";
 const TRUST_BUNDLE_USER_ALIAS: &str = "trust-bundle-user";
 
 // TODO: Dedupe this with edgelet-http-workload
-const IOTEDGED_COMMONNAME_PREFIX: &str = "iotedged workload ca";
+const IOTEDGED_COMMONNAME_PREFIX: &str = "aziot-edge CA";
 
 pub fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>> {
     // In production, running as root is the easiest way to guarantee the tool has write access to every service's config file.
