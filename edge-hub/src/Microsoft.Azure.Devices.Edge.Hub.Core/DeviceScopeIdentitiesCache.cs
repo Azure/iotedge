@@ -215,6 +215,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 return cache;
             }
+
             Option<(string, string)> firstEntry = await encryptedStore.GetFirstEntry();
             Option<(string, string)> lastEntry = await encryptedStore.GetLastEntry();
             if (!firstEntry.HasValue && !lastEntry.HasValue)
