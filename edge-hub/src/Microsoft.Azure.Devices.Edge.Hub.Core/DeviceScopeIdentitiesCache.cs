@@ -210,7 +210,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         static async Task<IDictionary<string, StoredServiceIdentity>> ReadCacheFromStore(IKeyValueStore<string, string> encryptedStore)
         {
             IDictionary<string, StoredServiceIdentity> cache = new Dictionary<string, StoredServiceIdentity>();
-            /*
+            ulong count = await encryptedStore.Count();
+            if (count.Equals(0))
+            {
+                return cache;
+            }
             Option<(string, string)> firstEntry = await encryptedStore.GetFirstEntry();
             Option<(string, string)> lastEntry = await encryptedStore.GetLastEntry();
             if (!firstEntry.HasValue && !lastEntry.HasValue)
@@ -219,7 +223,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 logger.LogInformation("OUTDATED");
                 throw new Exception("Decryption failed due to outdated store");
             }
-            */
+            
             await encryptedStore.IterateBatch(
                 int.MaxValue,
                 (key, value) =>
