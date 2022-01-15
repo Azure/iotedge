@@ -224,7 +224,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 logger.LogInformation("OUTDATED");
                 throw new Exception("Decryption failed due to outdated store");
             }
-            
+
             await encryptedStore.IterateBatch(
                 int.MaxValue,
                 (key, value) =>
