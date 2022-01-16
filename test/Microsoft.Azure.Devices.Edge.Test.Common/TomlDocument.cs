@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             return this.document.ToString();
         }
 
-        void AddTable<T>(string tableName, string key, T value)
+        public void AddTable<T>(string tableName, string key, T value)
         {
             string v = value is string ? $"\"{value}\"" : value.ToString().ToLower();
 
@@ -85,6 +85,24 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 this.document.ToString() + "\n" +
                 $"[{tableName}]\n" +
                 $"{key} = {v}\n");
+        }
+
+        public void AddToTableWithExistingEntry<T>(string tableName, string key, T value)
+        {
+            // Split the TOML table contents on tablename to check for an already existing entry.
+            string bracketTableName = "[" + tableName + "]";
+            string[] segments = this.document.ToString().Split(bracketTableName);
+            if (segments.Length > 1)
+            {
+                string v = value is string ? $"\"{value}\"" : value.ToString().ToLower();
+                string addedString = $"[{tableName}]\n" + $"{key} = {v}";
+                string finalString = "\n" + segments[0] + addedString + segments[1];
+                this.document = Toml.ReadString(finalString);
+            }
+            else
+            {
+                this.AddTable(tableName, key, value);
+            }
         }
     }
 }

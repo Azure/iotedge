@@ -22,7 +22,6 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
 
         internal DirectMethodConnectivityReportGenerator(
             string testDescription,
-            Topology topology,
             string trackingId,
             string senderSource,
             IAsyncEnumerator<TestOperationResult> senderTestResults,
@@ -38,7 +37,6 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
             }
 
             this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
-            this.Topology = topology;
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
             this.SenderTestResults = Preconditions.CheckNotNull(senderTestResults, nameof(senderTestResults));
@@ -60,8 +58,6 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
         internal string ResultType { get; }
 
         internal string TestDescription { get; }
-
-        internal Topology Topology { get; }
 
         internal ITestResultComparer<TestOperationResult> TestResultComparer { get; }
 
@@ -89,7 +85,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
             while (hasSenderResult)
             {
                 this.ValidateDataSource(this.SenderTestResults.Current, this.SenderSource);
-                (NetworkControllerStatus networkControllerStatus, bool isWithinTolerancePeriod) =
+                (NetworkControllerStatus networkControllerStatus, bool isWithinTolerancePeriod, TimeSpan delay) =
                     this.NetworkStatusTimeline.GetNetworkControllerStatusAndWithinToleranceAt(this.SenderTestResults.Current.CreatedAt);
                 this.ValidateNetworkControllerStatus(networkControllerStatus);
                 DirectMethodTestResult dmSenderTestResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(this.SenderTestResults.Current.Result);
@@ -108,7 +104,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
                     }
                 }
 
-                reportGeneratorMetadata = await this.ProcessSenderTestResults(dmSenderTestResult, networkControllerStatus, isWithinTolerancePeriod, this.SenderTestResults);
+                reportGeneratorMetadata = await this.ProcessSenderTestResults(dmSenderTestResult, networkControllerStatus, isWithinTolerancePeriod, this.SenderTestResults, delay);
                 networkOnSuccess += reportGeneratorMetadata.NetworkOnSuccess;
                 networkOffSuccess += reportGeneratorMetadata.NetworkOffSuccess;
                 networkOnToleratedSuccess += reportGeneratorMetadata.NetworkOnToleratedSuccess;
@@ -128,7 +124,6 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
             Logger.LogInformation($"Successfully finished creating {nameof(DirectMethodConnectivityReport)} for Sources [{this.SenderSource}] and [{this.ReceiverSource}]");
             return new DirectMethodConnectivityReport(
                 this.TestDescription,
-                this.Topology,
                 this.trackingId,
                 this.SenderSource,
                 this.ReceiverSource,
@@ -162,24 +157,11 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
                     $"{dmSenderTestResult.GetFormattedResult()}. ReceiverTestResult: {dmReceiverTestResult.GetFormattedResult()}");
             }
 
-            bool didFindMatch = false;
             if (dmSenderTestResult.SequenceNumber == dmReceiverTestResult.SequenceNumber)
             {
-                dmReceiverTestResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(receiverTestResults.Current.Result);
-                didFindMatch = true;
-
-                ulong receiverSequenceNumber = dmReceiverTestResult.SequenceNumber;
-                while (hasReceiverResult && dmSenderTestResult.SequenceNumber == receiverSequenceNumber)
-                {
-                    hasReceiverResult = await receiverTestResults.MoveNextAsync();
-                    if (hasReceiverResult)
-                    {
-                        receiverSequenceNumber = JsonConvert.DeserializeObject<DirectMethodTestResult>(receiverTestResults.Current.Result).SequenceNumber;
-                    }
-                }
+                hasReceiverResult = await receiverTestResults.MoveNextAsync();
             }
-
-            if (!didFindMatch)
+            else
             {
                 if (dmSenderTestResult.SequenceNumber > dmReceiverTestResult.SequenceNumber)
                 {
@@ -241,7 +223,8 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
             DirectMethodTestResult dmSenderTestResult,
             NetworkControllerStatus networkControllerStatus,
             bool isWithinTolerancePeriod,
-            IAsyncEnumerator<TestOperationResult> senderTestResults)
+            IAsyncEnumerator<TestOperationResult> senderTestResults,
+            TimeSpan delay)
         {
             ulong networkOnSuccess = 0;
             ulong networkOffSuccess = 0;
@@ -258,6 +241,8 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
                 }
                 else
                 {
+                    Logger.LogError($"Error: Type {this.NetworkControllerType}, statusCode {statusCode}, " +
+                    $"Controller Status {networkControllerStatus}, iswithin tol {isWithinTolerancePeriod}, delay {delay}");
                     networkOnFailure++;
                 }
             }
@@ -275,13 +260,15 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
                     }
                     else
                     {
+                        Logger.LogError($"Error: Type {this.NetworkControllerType}, statusCode {statusCode}, " +
+                        $"Controller Status {networkControllerStatus}, iswithin tol {isWithinTolerancePeriod}, delay {delay}");
                         networkOnFailure++;
                     }
                 }
             }
             else if (NetworkControllerStatus.Enabled.Equals(networkControllerStatus))
             {
-                if (HttpStatusCode.NotFound.Equals(statusCode) || HttpStatusCode.FailedDependency.Equals(statusCode))
+                if (HttpStatusCode.NotFound.Equals(statusCode))
                 {
                     networkOffSuccess++;
                 }
@@ -293,11 +280,15 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
                     }
                     else
                     {
+                        Logger.LogError($"Error: Type {this.NetworkControllerType}, statusCode {statusCode}, " +
+                        $"Controller Status {networkControllerStatus}, iswithin tol {isWithinTolerancePeriod}, delay {delay}");
                         networkOffFailure++;
                     }
                 }
                 else
                 {
+                    Logger.LogError($"Error: Type {this.NetworkControllerType}, statusCode {statusCode}, " +
+                    $"Controller Status {networkControllerStatus}, iswithin tol {isWithinTolerancePeriod}, delay {delay}");
                     networkOffFailure++;
                 }
             }

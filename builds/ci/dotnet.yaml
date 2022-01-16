@@ -30,7 +30,6 @@ jobs:
             IotDevice3ConnStr2,
             IotHubConnStr2,
             IotHubMqttHeadCert
-      - template: ../templates/install-dotnet3.yaml
       - task: Bash@3
         displayName: Install Prerequisites
         inputs:

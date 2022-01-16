@@ -247,7 +247,7 @@ pub(crate) async fn check_edge_ca(
     if should_renew(&cert_client, edge_ca_cert).await? {
         log::info!("Requesting new Edge CA certificate...");
 
-        let common_name = format!("iotedged workload ca {}", device_id);
+        let common_name = format!("aziot-edge CA {}", device_id);
         let keys = edge_ca_keys(key_connector, key_handle)?;
 
         let extensions = edge_ca_extensions().map_err(|_| {

@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
     {
         public string TrustedCertificatesPath { get; }
         public Option<string> ManifestTrustedCertificatesPath { get; }
+        public Option<Dictionary<string, string>> ContentTrustInputs { get; }
 
         public IEnumerable<X509Certificate2> TrustedCertificates =>
             new[]
@@ -46,10 +47,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
             this.TrustedCertificatesPath = trustedCertsPath;
         }
 
-        public CaCertificates(string certificatePath, string keyPath, string trustedCertsPath, string manifestSigningTrustBundlePath)
+        public CaCertificates(string certificatePath, string keyPath, string trustedCertsPath, string manifestSigningTrustBundlePath, Dictionary<string, string> contentTrustInputs)
             : this(certificatePath, keyPath, trustedCertsPath)
         {
             this.ManifestTrustedCertificatesPath = Option.Maybe(manifestSigningTrustBundlePath);
+            this.ContentTrustInputs = Option.Maybe(contentTrustInputs);
         }
     }
 }
