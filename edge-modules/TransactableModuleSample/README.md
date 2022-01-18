@@ -31,11 +31,13 @@ Here's a list of features that are supported. We have tested each of the feature
 
 This private preview runs from **January to March 2022**.
 
-## Step 1: Get onboarded to the preview
+## Step 1: Get added to allow-lists
 
-**IoT Hub**: please send your non-production IoT hub name to edgetransactablemodulespreview@service.microsoft.com and we will add it to the private preview allow list. This allows the billing usage to flow from the IoT Hub to Microsoft's commerce system.
-
-**Partner Center**: in the same emailedgetransactablemodulespreview@service.microsoft.com, include your partner center account ID. It also needs to be allow-listed
+The first step is to email us the relevant info so we can add you to the correct allow-lists to proceed with the preview. You should've already received an email asking you to reply with the information. If not, send an email to edgetransactablemodulespreview@service.microsoft.com in the following format:
+- **Title**: "[Company name]: onboard to transactable Edge modules private preview"
+- **Body**: please send us
+    - **IoT hub name** - we recommend creating a new IoT hub dedicated for the preview.
+    - **Seller ID** of the account you'll use - you can find your seller ID in [Partner Center -> Account Settings -> Legal Info -> Developer](https://partner.microsoft.com/en-us/dashboard/account/v3/organization/legalinfo#developer) It's a 8-digit numeric ID.
 
 **IoT Edge**: please download the preview version of IoT Edge here <link TBD> and install it on a non-production device. Please set EXPERIMENTAL_FEATURE = TRUE
 
@@ -44,6 +46,8 @@ This private preview runs from **January to March 2022**.
 ## Step 2: Preparing your IoT Edge modules
 
 To prepare the IoT Edge module to be transactable, it must use a new EdgeHub API to get the transaction information. Keep in mind that while Microsoft handles the usage pipeline and the billing for the offer, each instance of a transactable module is responsible for enforcing the transaction information. Specifically, the module calls the EdgeHub API, which in turn calls IoT Hub to get the source of truth (“what the customer is paying for”), and the returned information is useful for the module to decide on what to do.
+
+![image](https://user-images.githubusercontent.com/2320572/149997134-77419272-c1e4-4856-a37e-be66c9652f97.png)
 
 SDK support for this new API isn't available in the private preview, so the steps to integrate with this API involve more manual steps. In essence, you'll need to:
 
@@ -79,19 +83,21 @@ Returned result:
 
 ## Step 3: Publishing the modules in Partner Center
 
-First, use this special link to visit the partner center <link TBD>
+This section shows steps to create a new transactable Edge module offer. For the private preview, the offer *must be live* to be deployable to an Edge device. To hide the offer from the public, ensure that each *plan* you create is hidden.
 
-Then, create a new IoT Edge module offer:
-
-![image](https://user-images.githubusercontent.com/2320572/149595393-ea0daddd-4161-4593-93ad-258ee9c59e3c.png)
-
-During the creation wizard, note that you can now set a price for your offer. We recommend setting it to something very low for purpose of testing. Lastly, click publish.
-
-Create a plan with a very low cost and point it to your transatable module image.
-
-Click Hide plan
-
-Click publish and Go Live. In your description to the certification team, let them know that the offer is for private testing only.
+1. If you haven't done so, email edgetransactablemodulespreview@service.microsoft.com your MPN ID. Wait for a positive confirmation before proceeding.
+1. Visit [Partner Center - Commercial Marketplace Overview](https://partner.microsoft.com/en-us/dashboard/commercial-marketplace/overview)
+1. Click **+ New offer** and select **IoT Edge module**
+1. Give the new offer a descriptive name and alias, then click **Create**
+1. In the refreshed page, click **Plan overview** and **+ Create new plan**
+1. Give the plan a descriptive name and ID, then click **Create**
+1. In **Pricing and availability**, adjust the **available markets**, set your **pricing** (we recommend using the smallest possible amount for private preview), ande **hide** the plan
+    ![image](https://user-images.githubusercontent.com/2320572/150000980-ba938e01-cead-4cfe-ad95-234062b3d5f8.png)
+1. Complete the offer configuration as you normally would, including updating descritpion, uploading a picture, setting EULA, and specifying a container image.
+1. Click **Review and publish**
+1. Under **Notes for certification**, include a message to indicate that "this offer is created for the transactable edmodule private preview". The certification team will contact us to approve the offer.
+1. Now that the offer is configured, email edgetransactablemodulespreview@service.microsoft.com again with the offer ID and publisher ID to get it allow-listed.
+1. Once certification and allow-listing is complete, click **Go live**. The offer must be live in order for module deployment to work.
 
 ## Step 4: Give user "IoT Hub Data Contributor" role
 
