@@ -13,6 +13,7 @@ use crate::deployment::{
     deployment::{ModuleConfig, ModuleStatus as DeploymentModuleStatus, RestartPolicy},
     DeploymentProvider,
 };
+use crate::reconcile::module_start_planner::ModuleStartPlanner;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync + 'static>>;
 
@@ -21,6 +22,7 @@ pub struct Reconciler<D, M, R> {
     runtime: M,
     registry: R,
     previous_config: HashMap<String, ModuleConfig>,
+    start_planner: ModuleStartPlanner,
 }
 
 impl<D, M, R> Reconciler<D, M, R>
@@ -35,6 +37,7 @@ where
             runtime,
             registry,
             previous_config: HashMap::new(),
+            start_planner: ModuleStartPlanner::new(),
         }
     }
 
@@ -59,12 +62,20 @@ where
         let differance = self.get_differance().await?;
 
         // Note delete should come first, since hub has a limit of 50 identities
-        self.delete_modules(differance.modules_to_delete).await?;
+        self.delete_modules(&differance.modules_to_delete).await?;
         self.create_modules(differance.modules_to_create).await?;
-        self.set_modules_state(differance.state_change_modules)
-            .await?;
-        self.handle_failed_modules(differance.modules_to_restart)
-            .await?;
+        self.stop_modules(&differance.modules_to_stop).await?;
+
+        // use start planner to only apply backoff on restarting modules
+        let removed_modules: Vec<String> = differance
+            .modules_to_delete
+            .into_iter()
+            .chain(differance.modules_to_stop.into_iter())
+            .collect();
+        let modules_to_start = self
+            .start_planner
+            .get_modules_to_start(&differance.modules_to_start, &removed_modules);
+        self.start_modules(&modules_to_start).await?;
 
         Ok(())
     }
@@ -75,10 +86,10 @@ where
         log::debug!("Got current modules:\n{:?}", current_modules);
         log::debug!("Got desired modules:\n{:?}", desired_modules);
 
+        let mut modules_to_delete: Vec<String> = Vec::new();
         let mut modules_to_create: Vec<DesiredModule> = Vec::new();
-        let mut modules_to_delete: Vec<RunningModule> = Vec::new();
-        let mut state_change_modules: Vec<StateChangeModule> = Vec::new();
-        let mut modules_to_restart: Vec<FailedModule> = Vec::new();
+        let mut modules_to_stop: Vec<String> = Vec::new();
+        let mut modules_to_start: Vec<String> = Vec::new();
 
         // This loop will remove all modules in desired modules from current modules, resulting in a list of modules to remove.
         for desired in desired_modules {
@@ -98,63 +109,31 @@ where
                             match current.state.status() {
                                 ModuleStatus::Running => { /* Do nothing, module is in correct state. */
                                 }
-                                ModuleStatus::Stopped => {
-                                    // Module should not be stopped, module should be started
-                                    state_change_modules.push(StateChangeModule {
-                                        module: desired,
-                                        reset_container: false,
-                                    });
-                                }
-                                // NOTE: this may be changed to determine if a module should be sent to the restart planner based on
-                                // if the previous desired was running. This is b/c module status might not be a good indicator.
-                                // For example, a crashing module might read as stopped, or a stopped module as failed.
-                                ModuleStatus::Failed
+                                // Module that should be running is not. This should be marked
+                                ModuleStatus::Stopped
+                                | ModuleStatus::Failed
                                 | ModuleStatus::Unknown
                                 | ModuleStatus::Dead => {
                                     // Module is in a bad state, send to restart planner
-
-                                    // TODO: Implement restart planner.
-                                    // Once this is done no longer add this to state change
-                                    state_change_modules.push(StateChangeModule {
-                                        module: desired.clone(),
-                                        reset_container: false,
-                                    });
-
-                                    modules_to_restart.push(FailedModule {
-                                        module: current,
-                                        should_start: true,
-                                        restart_policy: desired.config.restart_policy,
-                                    });
+                                    modules_to_start.push(current.name);
                                 }
                             }
                         }
                         DeploymentModuleStatus::Stopped => {
                             if current.state.status() == &ModuleStatus::Running {
                                 // Set Module to stopped. It doesn't matter if module is failed, since we're stopping it anyway
-                                state_change_modules.push(StateChangeModule {
-                                    module: desired,
-                                    reset_container: false,
-                                });
+                                modules_to_stop.push(current.name);
                             }
-
-                            // Notify restart planner that the desired state is stopped.
-                            // This will prevent it from attempting to start a module that is desired to be stopped.
-                            modules_to_restart.push(FailedModule {
-                                module: current,
-                                should_start: false,
-                                restart_policy: Default::default(),
-                            });
                         }
                     }
                 } else {
+                    // Config has changed, module must be re-created
                     self.previous_config
                         .insert(desired.name.clone(), desired.config.clone());
 
                     // Module should be modified to match desired, and the change requires a new container
-                    state_change_modules.push(StateChangeModule {
-                        module: desired,
-                        reset_container: true,
-                    });
+                    modules_to_delete.push(current.name);
+                    modules_to_create.push(desired);
                 }
             } else {
                 // Module doesn't exist, create it.
@@ -163,22 +142,16 @@ where
         }
 
         // If a module is still in the current_modules list at this point, it should be deleted.
-        // The restart planner must also be notified to possobly remove module from the queue
-        for (_module_name, module_to_delete) in current_modules {
-            modules_to_restart.push(FailedModule {
-                module: module_to_delete.clone(),
-                should_start: true,
-                restart_policy: Default::default(),
-            });
-
-            modules_to_delete.push(module_to_delete);
+        // This is because we have removed all desired modules from the list in the above loop.
+        for (name, _) in current_modules {
+            modules_to_delete.push(name.to_owned());
         }
 
         let difference = ModuleDifference {
             modules_to_create,
             modules_to_delete,
-            state_change_modules,
-            modules_to_restart,
+            modules_to_stop,
+            modules_to_start,
         };
         log::debug!("Found the following differences:\n{:?}", difference);
         Ok(difference)
@@ -239,6 +212,24 @@ where
         Ok(modules)
     }
 
+    async fn delete_modules(&self, modules_to_delete: &[String]) -> Result<()> {
+        log::debug!(
+            "Deleting {} modules: {}",
+            modules_to_delete.len(),
+            modules_to_delete.join(", ")
+        );
+        for module in modules_to_delete {
+            // TODO: Delete identity in hub
+
+            self.runtime
+                .remove(&module)
+                .await
+                .map_err(|e| format!("Error deleting container {}: {:?}", module, e))?;
+        }
+
+        Ok(())
+    }
+
     async fn create_modules(&self, modules_to_create: Vec<DesiredModule>) -> Result<()> {
         log::debug!(
             "Creating {} modules: {}",
@@ -251,8 +242,37 @@ where
         );
         for module in modules_to_create {
             // TODO: Create identity in hub
+
             self.pull_and_make_module(module.clone()).await?;
             self.set_module_state(&module.name, &module.config.status)
+                .await?;
+        }
+
+        Ok(())
+    }
+
+    async fn stop_modules(&self, modules_to_stop: &[String]) -> Result<()> {
+        log::debug!(
+            "Stopping {} modules: {}",
+            modules_to_stop.len(),
+            modules_to_stop.join(", ")
+        );
+        for module in modules_to_stop {
+            self.set_module_state(&module, &DeploymentModuleStatus::Stopped)
+                .await?;
+        }
+
+        Ok(())
+    }
+
+    async fn start_modules(&self, modules_to_start: &[String]) -> Result<()> {
+        log::debug!(
+            "Starting {} modules: {}",
+            modules_to_start.len(),
+            modules_to_start.join(", ")
+        );
+        for module in modules_to_start {
+            self.set_module_state(&module, &DeploymentModuleStatus::Running)
                 .await?;
         }
 
@@ -282,58 +302,6 @@ where
         Ok(())
     }
 
-    async fn delete_modules(&self, modules_to_delete: Vec<RunningModule>) -> Result<()> {
-        log::debug!(
-            "Deleting {} modules: {}",
-            modules_to_delete.len(),
-            modules_to_delete
-                .iter()
-                .map(|m| m.name.clone())
-                .collect::<Vec<String>>()
-                .join(", ")
-        );
-        for module in modules_to_delete {
-            // TODO: Delete identity in hub
-
-            self.runtime
-                .remove(&module.name)
-                .await
-                .map_err(|e| format!("Error deleting container {}: {:?}", module.name, e))?;
-        }
-
-        Ok(())
-    }
-
-    async fn set_modules_state(&self, state_change_modules: Vec<StateChangeModule>) -> Result<()> {
-        log::debug!(
-            "Changing state for {} modules: {}",
-            state_change_modules.len(),
-            state_change_modules
-                .iter()
-                .map(|m| m.module.name.clone())
-                .collect::<Vec<String>>()
-                .join(", ")
-        );
-        for state_change_module in state_change_modules {
-            let name = &state_change_module.module.name.clone();
-            if state_change_module.reset_container {
-                // Module must be removed and restarted
-                self.runtime
-                    .remove(name)
-                    .await
-                    .map_err(|e| format!("Error deleting container {}: {:?}", name, e))?;
-
-                self.pull_and_make_module(state_change_module.module.clone())
-                    .await?;
-            }
-
-            self.set_module_state(name, &state_change_module.module.config.status)
-                .await?;
-        }
-
-        Ok(())
-    }
-
     async fn set_module_state(
         &self,
         id: &str,
@@ -358,36 +326,66 @@ where
         Ok(())
     }
 
-    async fn handle_failed_modules(&self, _failed_modules: Vec<FailedModule>) -> Result<()> {
-        //     match desired.config.restart_policy {
-        //         RestartPolicy::Always
-        //         | RestartPolicy::OnFailure
-        //         | RestartPolicy::OnUnhealthy => {
-        //             log::debug!(
-        //     "Module {} failed with restart policy {}. Adding to health monitor.",
-        //     current.name,
-        //     desired.config.restart_policy,
-        // );
-        //             modules_to_restart.push(current);
-        //         }
-        //         RestartPolicy::Never => {
-        //             log::debug!(
-        //                 r#"Module {} failed but has restart policy "never". No restart will occur."#,
-        //                 current.name
-        //             );
-        //         }
-        //     }
-        // }
-        Ok(())
-    }
+    // async fn set_modules_state(&self, modules_to_stop: Vec<StateChangeModule>) -> Result<()> {
+    //     log::debug!(
+    //         "Changing state for {} modules: {}",
+    //         modules_to_stop.len(),
+    //         modules_to_stop
+    //             .iter()
+    //             .map(|m| m.module.name.clone())
+    //             .collect::<Vec<String>>()
+    //             .join(", ")
+    //     );
+    //     for state_change_module in modules_to_stop {
+    //         let name = &state_change_module.module.name.clone();
+    //         if state_change_module.reset_container {
+    //             // Module must be removed and restarted
+    //             self.runtime
+    //                 .remove(name)
+    //                 .await
+    //                 .map_err(|e| format!("Error deleting container {}: {:?}", name, e))?;
+
+    //             self.pull_and_make_module(state_change_module.module.clone())
+    //                 .await?;
+    //         }
+
+    //         self.set_module_state(name, &state_change_module.module.config.status)
+    //             .await?;
+    //     }
+
+    //     Ok(())
+    // }
+
+    // async fn handle_modules_to_start(&self, _modules_to_start: Vec<FailedModule>) -> Result<()> {
+    //     match desired.config.restart_policy {
+    //         RestartPolicy::Always
+    //         | RestartPolicy::OnFailure
+    //         | RestartPolicy::OnUnhealthy => {
+    //             log::debug!(
+    //     "Module {} failed with restart policy {}. Adding to health monitor.",
+    //     current.name,
+    //     desired.config.restart_policy,
+    // );
+    //             modules_to_start.push(current);
+    //         }
+    //         RestartPolicy::Never => {
+    //             log::debug!(
+    //                 r#"Module {} failed but has restart policy "never". No restart will occur."#,
+    //                 current.name
+    //             );
+    //         }
+    //     }
+    // }
+    //     Ok(())
+    // }
 }
 
 #[derive(Default, Debug)]
 struct ModuleDifference {
     modules_to_create: Vec<DesiredModule>,
-    modules_to_delete: Vec<RunningModule>,
-    state_change_modules: Vec<StateChangeModule>,
-    modules_to_restart: Vec<FailedModule>,
+    modules_to_delete: Vec<String>,
+    modules_to_stop: Vec<String>,
+    modules_to_start: Vec<String>,
 }
 
 #[derive(Default, Debug, Clone)]
@@ -565,8 +563,8 @@ mod tests {
 
             assert_eq!(difference.modules_to_create.len(), 1); // Edgehub
             assert_eq!(difference.modules_to_delete.len(), 0);
-            assert_eq!(difference.state_change_modules.len(), 0);
-            assert_eq!(difference.modules_to_restart.len(), 0);
+            assert_eq!(difference.modules_to_stop.len(), 0);
+            assert_eq!(difference.modules_to_start.len(), 0);
         }
 
         #[tokio::test]
@@ -585,8 +583,8 @@ mod tests {
 
             assert_eq!(difference.modules_to_create.len(), 2); // Edgehub and Sim Temp
             assert_eq!(difference.modules_to_delete.len(), 0);
-            assert_eq!(difference.state_change_modules.len(), 0);
-            assert_eq!(difference.modules_to_restart.len(), 0);
+            assert_eq!(difference.modules_to_stop.len(), 0);
+            assert_eq!(difference.modules_to_start.len(), 0);
         }
 
         #[tokio::test]
@@ -606,20 +604,20 @@ mod tests {
                 .await
                 .expect("Error getting difference");
 
-            assert_eq!(difference.state_change_modules.len(), 1);
-            assert_eq!(difference.state_change_modules[0].reset_container, false);
+            assert_eq!(difference.modules_to_stop.len(), 1);
+            assert_eq!(difference.modules_to_stop[0].reset_container, false);
             assert_eq!(
-                &difference.state_change_modules[0].module.name,
+                &difference.modules_to_stop[0].module.name,
                 "SimulatedTemperatureSensor"
             );
             assert_eq!(
-                difference.state_change_modules[0].module.config.status,
+                difference.modules_to_stop[0].module.config.status,
                 DeploymentModuleStatus::Running,
             );
 
             assert_eq!(difference.modules_to_create.len(), 1); // Edgehub
             assert_eq!(difference.modules_to_delete.len(), 0);
-            assert_eq!(difference.modules_to_restart.len(), 0);
+            assert_eq!(difference.modules_to_start.len(), 0);
         }
 
         #[tokio::test]
@@ -637,16 +635,16 @@ mod tests {
                 .await
                 .expect("Error getting difference");
 
-            assert_eq!(difference.state_change_modules.len(), 1);
-            assert_eq!(difference.state_change_modules[0].reset_container, false);
+            assert_eq!(difference.modules_to_stop.len(), 1);
+            assert_eq!(difference.modules_to_stop[0].reset_container, false);
             assert_eq!(
-                &difference.state_change_modules[0].module.name,
+                &difference.modules_to_stop[0].module.name,
                 "SimulatedTemperatureSensor"
             );
 
             assert_eq!(difference.modules_to_create.len(), 1); // Edgehub
             assert_eq!(difference.modules_to_delete.len(), 0);
-            assert_eq!(difference.modules_to_restart.len(), 0);
+            assert_eq!(difference.modules_to_start.len(), 0);
         }
 
         #[tokio::test]
@@ -669,26 +667,22 @@ mod tests {
                 .await
                 .expect("Error getting difference");
 
-            assert_eq!(difference.state_change_modules.len(), 1);
+            assert_eq!(difference.modules_to_stop.len(), 1);
             // Since a container config value was changed, the container must be reset
-            assert_eq!(difference.state_change_modules[0].reset_container, true);
+            assert_eq!(difference.modules_to_stop[0].reset_container, true);
             assert_eq!(
-                &difference.state_change_modules[0].module.name,
+                &difference.modules_to_stop[0].module.name,
                 "SimulatedTemperatureSensor"
             );
             // The image should have been replaced with the image in the basic_sim_temp_deployment.json
             assert_eq!(
-                &difference.state_change_modules[0]
-                    .module
-                    .config
-                    .settings
-                    .image,
+                &difference.modules_to_stop[0].module.config.settings.image,
                 "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0"
             );
 
             assert_eq!(difference.modules_to_create.len(), 1); // Edgehub
             assert_eq!(difference.modules_to_delete.len(), 0);
-            assert_eq!(difference.modules_to_restart.len(), 0);
+            assert_eq!(difference.modules_to_start.len(), 0);
         }
 
         #[tokio::test]
@@ -715,16 +709,16 @@ mod tests {
                 .await
                 .expect("Error getting difference");
 
-            assert_eq!(difference.state_change_modules.len(), 1);
+            assert_eq!(difference.modules_to_stop.len(), 1);
             // Since a container config value was changed, the container must be reset
-            assert_eq!(difference.state_change_modules[0].reset_container, true);
+            assert_eq!(difference.modules_to_stop[0].reset_container, true);
             assert_eq!(
-                &difference.state_change_modules[0].module.name,
+                &difference.modules_to_stop[0].module.name,
                 "SimulatedTemperatureSensor"
             );
             // The binds should be set to empty like in the deployment
             assert_eq!(
-                difference.state_change_modules[0]
+                difference.modules_to_stop[0]
                     .module
                     .config
                     .settings
@@ -738,7 +732,7 @@ mod tests {
                 None
             );
             // The port bindings should be have the new deployments value
-            difference.state_change_modules[0]
+            difference.modules_to_stop[0]
                 .module
                 .config
                 .settings
@@ -753,7 +747,7 @@ mod tests {
 
             assert_eq!(difference.modules_to_create.len(), 1); // Edgehub
             assert_eq!(difference.modules_to_delete.len(), 0);
-            assert_eq!(difference.modules_to_restart.len(), 0);
+            assert_eq!(difference.modules_to_start.len(), 0);
         }
 
         #[tokio::test]
@@ -771,11 +765,11 @@ mod tests {
                 .await
                 .expect("Error getting difference");
 
-            assert_eq!(difference.state_change_modules.len(), 1);
+            assert_eq!(difference.modules_to_stop.len(), 1);
             // Since a container config value was changed, the container must be reset
-            assert_eq!(difference.state_change_modules[0].reset_container, true);
+            assert_eq!(difference.modules_to_stop[0].reset_container, true);
             assert_eq!(
-                &difference.state_change_modules[0].module.name,
+                &difference.modules_to_stop[0].module.name,
                 "SimulatedTemperatureSensor"
             );
             // The new env should be set
@@ -796,14 +790,11 @@ mod tests {
             .iter()
             .cloned()
             .collect();
-            assert_eq!(
-                difference.state_change_modules[0].module.config.env,
-                expected
-            );
+            assert_eq!(difference.modules_to_stop[0].module.config.env, expected);
 
             assert_eq!(difference.modules_to_create.len(), 1); // Edgehub
             assert_eq!(difference.modules_to_delete.len(), 0);
-            assert_eq!(difference.modules_to_restart.len(), 0);
+            assert_eq!(difference.modules_to_start.len(), 0);
         }
 
         #[tokio::test]
@@ -827,22 +818,22 @@ mod tests {
                 .await
                 .expect("Error getting difference");
 
-            assert_eq!(difference.state_change_modules.len(), 1);
+            assert_eq!(difference.modules_to_stop.len(), 1);
             // Since a container config value was changed, the container must be reset
-            assert_eq!(difference.state_change_modules[0].reset_container, true);
+            assert_eq!(difference.modules_to_stop[0].reset_container, true);
             assert_eq!(
-                &difference.state_change_modules[0].module.name,
+                &difference.modules_to_stop[0].module.name,
                 "SimulatedTemperatureSensor"
             );
             // The old env should be removed
             assert_eq!(
-                difference.state_change_modules[0].module.config.env,
+                difference.modules_to_stop[0].module.config.env,
                 Default::default()
             );
 
             assert_eq!(difference.modules_to_create.len(), 1); // Edgehub
             assert_eq!(difference.modules_to_delete.len(), 0);
-            assert_eq!(difference.modules_to_restart.len(), 0);
+            assert_eq!(difference.modules_to_start.len(), 0);
         }
 
         #[tokio::test]
@@ -867,11 +858,11 @@ mod tests {
                 .expect("Error getting difference");
 
             // State should not change since deployment matches running
-            assert_eq!(difference.state_change_modules.len(), 0);
+            assert_eq!(difference.modules_to_stop.len(), 0);
 
             assert_eq!(difference.modules_to_create.len(), 1); // Edgehub
             assert_eq!(difference.modules_to_delete.len(), 0);
-            assert_eq!(difference.modules_to_restart.len(), 0);
+            assert_eq!(difference.modules_to_start.len(), 0);
         }
 
         fn setup(

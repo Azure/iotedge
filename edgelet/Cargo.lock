@@ -764,6 +764,7 @@ dependencies = [
  "aziot-key-common",
  "azure-iot-mqtt",
  "base64 0.13.0",
+ "chrono",
  "docker",
  "edgelet-core",
  "edgelet-settings",

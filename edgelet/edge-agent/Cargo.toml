@@ -3,9 +3,11 @@ edition = "2018"
 name = "edge-agent"
 version = "0.1.0"
 
+# TODO: clean this up
 [dependencies]
 async-trait = "0.1"
 base64 = "0.13"
+chrono = "0.4.19"
 futures-core = "0.3"
 futures-util = "0.3"
 json-patch = "0.2.6"
