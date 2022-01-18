@@ -135,24 +135,24 @@ echo $(cat $WDIR/$OS_NAME-$OS_VERSION-multi-aad.json | jq '.AADClientCertificate
 REPOTOOLCMD="docker run -v $WDIR:$CONFIG_DIR -v $DIR:$PACKAGE_DIR --rm msint.azurecr.io/linuxrepos/repoclient:latest repoclient"
 
 #Upload packages
-output=$($REPOTOOLCMD -c $CONFIG_DIR/$OS_NAME-$OS_VERSION-multi-aad.json -v v3 package add $PACKAGE_DIR/)
-echo $output
-status=$(echo $output | jq '.status_code')
-submission_id=$(echo $output | jq '.message.submissionId')
-echo "StatusCode: $status"
+# output=$($REPOTOOLCMD -c $CONFIG_DIR/$OS_NAME-$OS_VERSION-multi-aad.json -v v3 package add $PACKAGE_DIR/)
+# echo $output
+# status=$(echo $output | jq '.status_code')
+# submission_id=$(echo $output | jq '.message.submissionId')
+# echo "StatusCode: $status"
 
-submission_id=$(echo $submission_id | tr -d '"')
-echo "Submission ID: $submission_id"
+# submission_id=$(echo $submission_id | tr -d '"')
+# echo "Submission ID: $submission_id"
 
-if [[ $status != "202" ]]; then
-    echo "Received Incorrect Upload Status: $status"
-    exit 1
-fi
+# if [[ $status != "202" ]]; then
+#     echo "Received Incorrect Upload Status: $status"
+#     exit 1
+# fi
 
 #Wait upto 10 Minutes to see if package uploaded
 end_time=$((SECONDS + 600))
 uploaded=false
-
+submission_id=61e05643ea3a7717fd1fdc18
 while [[ $SECONDS -lt $end_time ]]; do
     #Check for Successful Upload of Each of the Packages
     output=($($REPOTOOLCMD -c $CONFIG_DIR/$OS_NAME-$OS_VERSION-multi-aad.json -v v3 request check $submission_id | jq '.message.packages[].status'))
@@ -194,6 +194,7 @@ publish_to_github()
     fi
     
     branch_name=${BRANCH_NAME/"refs/heads/"/""}
+    branch_name="release/1.2"
     echo "Branch Name is $branch_name"
     
      # Get the latest release from a given branch
@@ -229,7 +230,9 @@ publish_to_github()
         
         #Find Content of New Release between (# NEW_VERSION) and (# PREVIOUS_VERSION)
         
-        echo "$(sed -n "/# $VERSION/,/# $latest_release/p" $WDIR/content.txt)" > $WDIR/content.txt
+        # echo "$(sed -n "/# $VERSION/,/# $latest_release/p" $WDIR/content.txt)" > $WDIR/content.txt
+
+        echo "$(sed -n "/# 1.2.7/,/# 1.2.6/p" $WDIR/content.txt)" > $WDIR/content.txt
         
         #Remove Last Line
         sed -i "$ d" $WDIR/content.txt
