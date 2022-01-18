@@ -9,7 +9,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
     public enum SupportedPackageExtension
     {
         Deb,
-        Rpm
+        RpmCentOS,
+        RpmMariner
     }
 
     public class PackageManagement
@@ -47,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     $"apt-get install -y {string.Join(' ', packages)}",
                     $"apt-get install -f"
                 },
-                SupportedPackageExtension.Rpm => new[]
+                SupportedPackageExtension.RpmCentOS || SupportedPackageExtension.RpmMariner => new[]
                 {
                     "set -e",
                     $"rpm --nodeps -i {string.Join(' ', packages)}",
@@ -79,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     $"apt-get update",
                     $"apt-get install --yes aziot-edge"
                 },
-                SupportedPackageExtension.Rpm => new[]
+                SupportedPackageExtension.RpmCentOS => new[]
                 {
                     $"rpm -iv --replacepkgs https://packages.microsoft.com/config/{this.os}/{this.version}/packages-microsoft-prod.rpm",
                     $"yum updateinfo",
@@ -103,12 +104,20 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 "dpkg --purge libiothsm-std",
                 "systemctl restart docker" // we can remove after this is fixed (https://github.com/moby/moby/issues/23302)
             },
-            SupportedPackageExtension.Rpm => new[]
+            SupportedPackageExtension.RpmCentOS => new[]
             {
                 "yum remove -y --remove-leaves aziot-edge",
                 "yum remove -y --remove-leaves aziot-identity-service",
                 "yum remove -y --remove-leaves iotedge",
                 "yum remove -y --remove-leaves libiothsm-std",
+                "systemctl restart docker" // we can remove after this is fixed (https://github.com/moby/moby/issues/23302)
+            },
+            SupportedPackageExtension.RpmMariner => new[]
+            {
+                "if rpm -qa azure-iotedge | grep -q azure-iotedge; then rpm -e azure-iotedge; fi",
+                "if rpm -qa aziot-identity-service | grep -q aziot-identity-service; then rpm -e aziot-identity-service; fi",
+                "if rpm -qa iotedge | grep -q iotedge; then rpm -e iotedge; fi",
+                "if rpm -qa libiothsm-std | grep -q libiothsm-std; then rpm -e libiothsm-std; fi",
                 "systemctl restart docker" // we can remove after this is fixed (https://github.com/moby/moby/issues/23302)
             },
             _ => throw new NotImplementedException($"Don't know how to uninstall daemon on for '.{this.packageExtension}'")

@@ -222,3 +222,31 @@ jobs:
     - template: templates/e2e-run.yaml
       parameters:
         test_type: http_proxy
+
+################################################################################
+  - job: EFLOW_amd64
+################################################################################
+    displayName: EFLOW amd64
+
+    pool:
+      name: $(pool.custom.name)
+      demands:
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+        - run-new-e2e-tests -equals true
+        - eflow -equals true
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-mariner-amd64
+      identityServiceArtifactName: packages_mariner_amd64
+      identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
+
+    timeoutInMinutes: 90
+
+    steps:
+    - template: templates/e2e-clean-directory.yaml
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-clear-docker-cached-images.yaml
+    - template: templates/e2e-run.yaml

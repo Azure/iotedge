@@ -18,9 +18,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public static async Task<EdgeDaemon> CreateAsync(CancellationToken token)
         {
+            SupportedPackageExtension packageExtension;
+            string os, version;
             string[] platformInfo = await Process.RunAsync("cat", @"/etc/os-release", token);
-            string os = Array.Find(platformInfo, element => element.StartsWith("ID="));
-            string version = Array.Find(platformInfo, element => element.StartsWith("VERSION_ID="));
+            os = Array.Find(platformInfo, element => element.StartsWith("ID="));
+            version = Array.Find(platformInfo, element => element.StartsWith("VERSION_ID="));
 
             // VERSION_ID is desired but it is an optional field
             if (version == null)
@@ -39,8 +41,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             // Split potential version description (in case VERSION_ID was not available, the VERSION line can contain e.g. '7 (Core)')
             version = version.Split('=').Last().Split(' ').First().Trim(trimChr);
 
-            SupportedPackageExtension packageExtension;
-
             switch (os)
             {
                 case "ubuntu":
@@ -53,13 +53,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     break;
                 case "centos":
                     version = version.Split('.')[0];
-                    packageExtension = SupportedPackageExtension.Rpm;
+                    packageExtension = SupportedPackageExtension.RpmCentOS;
 
                     if (version != "7")
                     {
                         throw new NotImplementedException($"Don't know how to install daemon on operating system '{os} {version}'");
                     }
 
+                    break;
+                case "mariner":
+                    packageExtension = SupportedPackageExtension.RpmMariner;
                     break;
                 default:
                     throw new NotImplementedException($"Don't know how to install daemon on operating system '{os}'");
