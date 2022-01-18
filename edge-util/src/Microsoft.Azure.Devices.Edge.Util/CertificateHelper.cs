@@ -393,7 +393,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 throw new InvalidOperationException("Private key is required");
             }
 
-            store.SetKeyEntry("Edge", new AsymmetricKeyEntry(keyParams), chain.ToArray());
+            store.SetKeyEntry("Edge_" + Guid.NewGuid(), new AsymmetricKeyEntry(keyParams), chain.ToArray());
             using (var p12File = new MemoryStream())
             {
                 store.Save(p12File, new char[] { }, new SecureRandom());
