@@ -119,12 +119,6 @@ jobs:
       - bash: edgelet/build/linux/clippy.sh
         displayName: Clippy
 
-# The CI VMs encounter
-#
-# >ld returned 1 exit status
-#
-# ... when running this job for no obvious reason.
-#
 ################################################################################
   - job: code_coverage
 ################################################################################
