@@ -302,6 +302,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             {
                                 logger.LogInformation("Removing old store");
                                 await RemoveEncryptedStore(storeProvider, "DeviceScopeCache");
+                                await RemoveEncryptedStore(storeProvider, "CredentialsCache");
                             }
                         }
                         else
