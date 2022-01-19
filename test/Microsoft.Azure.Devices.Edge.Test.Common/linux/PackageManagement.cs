@@ -48,7 +48,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     $"apt-get install -y {string.Join(' ', packages)}",
                     $"apt-get install -f"
                 },
-                SupportedPackageExtension.RpmCentOS || SupportedPackageExtension.RpmMariner => new[]
+                SupportedPackageExtension.RpmCentOS => new[]
+                {
+                    "set -e",
+                    $"rpm --nodeps -i {string.Join(' ', packages)}",
+                    "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
+                    "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
+                    "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
+                    "sudo systemctl daemon-reload"
+                },
+                SupportedPackageExtension.RpmMariner => new[]
                 {
                     "set -e",
                     $"rpm --nodeps -i {string.Join(' ', packages)}",
