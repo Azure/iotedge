@@ -96,12 +96,17 @@ where
             if let Some((_, current)) = current_modules.remove_entry(&desired.name) {
                 // Module with same name exists, check if should be modified.
 
+                // ================================================================================================================================
+                // TODO:
+                // This comparison is currently broken. More work is needed to correctly detect when a config change has occured.
                 if self
                     .previous_config
                     .entry(desired.name.clone())
                     .or_default()
                     == &desired.config
                 {
+                    // ===========================================================================================================================
+
                     // If the configuration has not changed since last deployment,
                     // validate that the current state is correct
                     match desired.config.status {
@@ -488,6 +493,8 @@ mod tests {
             let registry = TestModuleRegistry::<DockerConfig>::default();
 
             let mut reconciler = Reconciler::new(provider, &runtime, &registry);
+            reconciler.setup().await.unwrap();
+
             reconciler
                 .reconcile()
                 .await
@@ -556,6 +563,8 @@ mod tests {
                 ..Default::default()
             };
             let mut reconciler = Reconciler::new(provider, &runtime, &registry);
+            reconciler.setup().await.unwrap();
+
             let difference = reconciler
                 .get_differance()
                 .await
@@ -599,6 +608,8 @@ mod tests {
                 ..Default::default()
             };
             let mut reconciler = Reconciler::new(provider, &runtime, &registry);
+            reconciler.setup().await.unwrap();
+
             let difference = reconciler
                 .get_differance()
                 .await
@@ -625,6 +636,8 @@ mod tests {
                 ..Default::default()
             };
             let mut reconciler = Reconciler::new(provider, &runtime, &registry);
+            reconciler.setup().await.unwrap();
+
             let difference = reconciler
                 .get_differance()
                 .await
@@ -653,6 +666,8 @@ mod tests {
                 ..Default::default()
             };
             let mut reconciler = Reconciler::new(provider, &runtime, &registry);
+            reconciler.setup().await.unwrap();
+
             let difference = reconciler
                 .get_differance()
                 .await
@@ -694,6 +709,8 @@ mod tests {
                 ..Default::default()
             };
             let mut reconciler = Reconciler::new(provider, &runtime, &registry);
+            reconciler.setup().await.unwrap();
+
             let difference = reconciler
                 .get_differance()
                 .await
@@ -747,6 +764,8 @@ mod tests {
                 ..Default::default()
             };
             let mut reconciler = Reconciler::new(provider, &runtime, &registry);
+            reconciler.setup().await.unwrap();
+
             let difference = reconciler
                 .get_differance()
                 .await
@@ -799,6 +818,8 @@ mod tests {
                 ..Default::default()
             };
             let mut reconciler = Reconciler::new(provider, &runtime, &registry);
+            reconciler.setup().await.unwrap();
+
             let difference = reconciler
                 .get_differance()
                 .await
@@ -837,6 +858,8 @@ mod tests {
                 ..Default::default()
             };
             let mut reconciler = Reconciler::new(provider, &runtime, &registry);
+            reconciler.setup().await.unwrap();
+
             let difference = reconciler
                 .get_differance()
                 .await
