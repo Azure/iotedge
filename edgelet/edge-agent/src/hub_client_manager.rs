@@ -56,8 +56,15 @@ impl ClientManager {
                         name,
                         payload,
                         request_id,
-                    }) => log::debug!("Got direct method request: {}, {:?}, {}", name, payload, request_id),
-                    Ok(Message::ReportedTwinState(size)) => log::debug!("Got twin change ack: {:?}", size),
+                    }) => log::debug!(
+                        "Got direct method request: {}, {:?}, {}",
+                        name,
+                        payload,
+                        request_id
+                    ),
+                    Ok(Message::ReportedTwinState(size)) => {
+                        log::debug!("Got twin change ack: {:?}", size)
+                    }
                     Ok(Message::TwinInitial(twin_initial)) => {
                         log::debug!("Got initial Twin: {:?}", twin_initial);
                         let mut deployment_manager = self.deployment_manager.lock().await;
