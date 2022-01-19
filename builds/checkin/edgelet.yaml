@@ -169,7 +169,7 @@ jobs:
       - script: edgelet/build/linux/install.sh
         displayName: Install Rust
       - script: |
-          $CARGO install cargo-tarpaulin
+          $CARGO install cargo-tarpaulin --version '^0.18'
         workingDirectory: edgelet
         displayName: Install Cargo Tarpaulin
       - script: |
