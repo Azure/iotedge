@@ -2,14 +2,29 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
+    using System.Collections.Generic;
+
     public class SystemInfo
     {
-        public SystemInfo(string kernel, string kernelRelease, string kernelVersion, string operatingSystem, string operatingSystemVersion, string architecture, int numCpus, string virtualized, string hostOsSku, string boardName, string productName, string productSku, string productVersion, string systemFamily, string systemVendor, string version, ProvisioningInfo provisioning)
+        public SystemInfo(string kernel, string kernelRelease, string kernelVersion, string operatingSystem, string operatingSystemVersion, string architecture, int numCpus, string virtualized, string productName, string systemVendor, string version, ProvisioningInfo provisioning, IDictionary<string, string> additionalProperties)
         {
+            this.Kernel = kernel;
+            this.KernelRelease = kernelRelease;
+            this.KernelVersion = kernelVersion;
+            this.OperatingSystem = operatingSystem;
+            this.OperatingSystemVersion = operatingSystemVersion;
+            this.Architecture = architecture;
+            this.NumCpus = numCpus;
+            this.Virtualized = virtualized;
+            this.ProductName = productName;
+            this.SystemVendor = systemVendor;
+            this.Version = version;
+            this.Provisioning = provisioning;
+            this.AdditionalProperties = additionalProperties;
         }
 
         public SystemInfo(string operatingSystemType, string architecture, string version, ProvisioningInfo provisioning, string _serverVersion, string kernelVersion, string operatingSystem, int numCpus, string virtualized)
-            : this(operatingSystemType, kernelVersion, string.Empty, operatingSystem, string.Empty, architecture, numCpus, virtualized, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, version, provisioning)
+            : this(operatingSystemType, kernelVersion, string.Empty, operatingSystem, string.Empty, architecture, numCpus, virtualized, string.Empty, string.Empty, version, provisioning, new Dictionary<string, string>())
         {
         }
 
@@ -34,23 +49,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public string Virtualized { get; }
 
-        public string HostOsSku { get; }
-
-        public string BoardName { get; }
-
         public string ProductName { get; }
-
-        public string ProductSku { get; }
-
-        public string ProductVersion { get; }
-
-        public string SystemFamily { get; }
 
         public string SystemVendor { get; }
 
         public string Version { get; }
 
         public ProvisioningInfo Provisioning { get; }
+
+        public IDictionary<string, string> AdditionalProperties { get; }
 
         static SystemInfo Empty { get; } = new SystemInfo(string.Empty, string.Empty, string.Empty);
     }

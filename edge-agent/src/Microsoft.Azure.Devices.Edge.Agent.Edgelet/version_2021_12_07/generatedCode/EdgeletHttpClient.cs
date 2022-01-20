@@ -6,6 +6,7 @@
 
 // Note: Code manually changed to replace System.Uri.EscapeDataString with System.Net.WebUtility.UrlEncode
 // Note: GetSupportBundleAsync manually modified to correctly return stream
+// Note: SystemInfo.AdditionalProperties manually modified to correctly have type IDictionary<string, string>
 
 #pragma warning disable 108 // Disable "CS0108 '{derivedDto}.ToJson()' hides inherited member '{dtoBase}.ToJson()'. Use the new keyword if hiding was intended."
 #pragma warning disable 114 // Disable "CS0114 '{derivedDto}.RaisePropertyChanged(String)' hides inherited member 'dtoBase.RaisePropertyChanged(String)'. To make the current member override that implementation, add the override keyword. Otherwise add the new keyword."
@@ -2129,23 +2130,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2021_12_07.Generate
         [Newtonsoft.Json.JsonProperty("virtualized", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public string Virtualized { get; set; }
 
-        [Newtonsoft.Json.JsonProperty("hostOsSku", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
-        public string HostOsSku { get; set; }
-
-        [Newtonsoft.Json.JsonProperty("boardName", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
-        public string BoardName { get; set; }
-
         [Newtonsoft.Json.JsonProperty("productName", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public string ProductName { get; set; }
-
-        [Newtonsoft.Json.JsonProperty("productSku", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
-        public string ProductSku { get; set; }
-
-        [Newtonsoft.Json.JsonProperty("productVersion", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
-        public string ProductVersion { get; set; }
-
-        [Newtonsoft.Json.JsonProperty("systemFamily", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
-        public string SystemFamily { get; set; }
 
         [Newtonsoft.Json.JsonProperty("systemVendor", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public string SystemVendor { get; set; }
@@ -2155,6 +2141,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2021_12_07.Generate
 
         [Newtonsoft.Json.JsonProperty("provisioning", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public ProvisioningInfo Provisioning { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, string> _additionalProperties = new System.Collections.Generic.Dictionary<string, string>();
+
+        [Newtonsoft.Json.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, string> AdditionalProperties
+        {
+            get { return _additionalProperties; }
+            set { _additionalProperties = value; }
+        }
 
     }
 

@@ -96,54 +96,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
                         StringBuilder b = new StringBuilder(this.productInfo);
 
-                        if (!string.IsNullOrEmpty(system.Kernel))
-                        {
-                            b.Append($" {system.Kernel}");
-                            if (!string.IsNullOrEmpty(system.KernelRelease))
-                            {
-                                b.Append($"/{system.KernelRelease}");
-                            }
-                            if (!string.IsNullOrEmpty(system.KernelVersion))
-                            {
-                                b.Append(" ({system.KernelVersion})");
-                            }
-                        }
-
-                        if (!string.IsNullOrEmpty(system.OperatingSystem))
-                        {
-                            b.Append($" {system.OperatingSystem}");
-                            if (!string.IsNullOrEmpty(system.OperatingSystemVersion))
-                            {
-                                b.Append($"/{system.OperatingSystemVersion}");
-                            }
-                        }
-
-                        if (!string.IsNullOrEmpty(system.ProductName))
-                        {
-                            b.Append($" {system.ProductName}");
-                            if (!string.IsNullOrEmpty(system.ProductVersion))
-                            {
-                                b.Append($"/{system.ProductVersion}");
-                            }
-                            if (!string.IsNullOrEmpty(system.ProductSku))
-                            {
-                                b.Append($" ({system.ProductSku})");
-                            }
-                        }
-
-                        if (!string.IsNullOrEmpty(system.SystemFamily))
-                        {
-                            b.Append($" {system.SystemFamily}");
-                            if (!string.IsNullOrEmpty(system.BoardName))
-                            {
-                                b.Append($"/{system.BoardName}");
-                            }
-                            if (!string.IsNullOrEmpty(system.SystemVendor))
-                            {
-                                b.Append($" ({system.SystemVendor})");
-                            }
-                        }
-
                         return new ModuleClientProvider(
                             c.Resolve<ISdkModuleClientProvider>(),
                             this.upstreamProtocol,
