@@ -282,7 +282,7 @@ pub struct SystemInfo {
     pub operating_system_build: Option<String>,
 
     pub architecture: String,
-    pub cpus: i32,
+    pub cpus: usize,
     pub virtualized: String,
 
     pub product_name: Option<String>,
@@ -310,7 +310,7 @@ impl SystemInfo {
             operating_system_build: os.build_id,
 
             architecture: os.arch.to_owned(),
-            cpus: num_cpus::get() as i32,
+            cpus: num_cpus::get(),
             virtualized: match crate::virtualization::is_virtualized_env() {
                 Ok(Some(true)) => "yes",
                 Ok(Some(false)) => "no",
