@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using System;
     using System.Collections.Generic;
     using System.Net;
-    using System.Reflection;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -24,6 +23,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Extensions.Logging;
     using ModuleIdentityLifecycleManager = Microsoft.Azure.Devices.Edge.Agent.Edgelet.ModuleIdentityLifecycleManager;
+
+    using static System.Net.WebUtility;
 
     /// <summary>
     /// Initializes Edgelet specific types.
@@ -95,8 +96,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             .GetAwaiter()
                             .GetResult();
 
+                        // NOTE (from author): Disgusting, but works™️
                         StringBuilder b = new StringBuilder(this.productInfo)
-                            .Append(" (");
+                            .Append(" (")
+                            .Append($"kernel_name={UrlEncode(system.Kernel ?? string.Empty)};") 
+                            .Append($"kernel_release={UrlEncode(system.KernelRelease ?? string.Empty)};") 
+                            .Append($"kernel_version={UrlEncode(system.KernelVersion ?? string.Empty)};") 
+                            .Append($"os_name={UrlEncode(system.OperatingSystem ?? string.Empty)};")
+                            .Append($"os_version={UrlEncode(system.OperatingSystemVersion ?? string.Empty)};")
+                            .Append($"os_variant={UrlEncode(system.OperatingSystemVariant ?? string.Empty)};")
+                            .Append($"os_build_id={UrlEncode(system.OperatingSystemBuild ?? string.Empty)};")
+                            .Append($"cpu_architecture={UrlEncode(system.Architecture ?? string.Empty)};")
+                            .Append($"product_name={UrlEncode(system.ProductName ?? string.Empty)};")
+                            .Append($"product_vendor={UrlEncode(system.SystemVendor ?? string.Empty)};");
+
+                        foreach ((string k, string v) in system.AdditionalProperties)
+                        {
+                            if (!string.IsNullOrEmpty(k))
+                            {
+                                b.Append($"{UrlEncode(k)}={UrlEncode(v ?? string.Empty)};");
+                            }
+                        }
+
+                        b.Append(")");
 
                         return new ModuleClientProvider(
                             c.Resolve<ISdkModuleClientProvider>(),
