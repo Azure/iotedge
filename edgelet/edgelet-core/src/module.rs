@@ -278,6 +278,8 @@ pub struct SystemInfo {
 
     pub operating_system: Option<String>,
     pub operating_system_version: Option<String>,
+    pub operating_system_variant: Option<String>,
+    pub operating_system_build: Option<String>,
 
     pub architecture: String,
     pub cpus: i32,
@@ -296,7 +298,7 @@ impl SystemInfo {
         let dmi = DmiInfo::default();
         let os = OsInfo::default();
 
-        let mut res = Self {
+        let res = Self {
             kernel: kernel.sysname().to_owned(),
             kernel_release: kernel.release().to_owned(),
             kernel_version: kernel.version().to_owned(),
