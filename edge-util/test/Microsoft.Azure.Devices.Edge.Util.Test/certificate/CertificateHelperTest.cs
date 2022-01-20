@@ -245,7 +245,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
         {
             (X509Certificate2 cert, IEnumerable<X509Certificate2> chain) = CertificateHelper.ParseCertificateAndKey(TestCertificateHelper.ECCCertificatePem, TestCertificateHelper.ECCPrivateKeyPem);
 
-            var expected = new X509Certificate2(Encoding.UTF8.GetBytes(TestCertificateHelper.CertificatePem));
             Assert.True(cert.HasPrivateKey);
             Assert.Empty(chain);
         }

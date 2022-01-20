@@ -12,15 +12,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
     using Microsoft.Extensions.Logging;
-    using Org.BouncyCastle.Crypto;
-    using Org.BouncyCastle.Crypto.Parameters;
-    using Org.BouncyCastle.OpenSsl;
-    using Org.BouncyCastle.Pkcs;
-    using Org.BouncyCastle.Security;
-    using X509Certificate = Org.BouncyCastle.X509.X509Certificate;
 
     public static class CertificateHelper
     {
+        private static Oid oidRsaEncryption = Oid.FromFriendlyName("RSA", OidGroup.All);
+        private static Oid oidEcPublicKey = Oid.FromFriendlyName("ECC", OidGroup.All);
+
         public static string GetSha256Thumbprint(X509Certificate2 cert)
         {
             Preconditions.CheckNotNull(cert);
@@ -387,53 +384,33 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
             IEnumerable<X509Certificate2> certsChain = GetCertificatesFromPem(pemCerts.Skip(1));
 
-            Pkcs12Store store = new Pkcs12StoreBuilder().Build();
-            IList<X509CertificateEntry> chain = new List<X509CertificateEntry>();
+            // First we import the certificate with no key. Later we need to use CopyWithPrivateKey on it, but
+            // for that we need to know whether it is rsa or ec
+            var certWithNoKey = new X509Certificate2(Encoding.UTF8.GetBytes(pemCerts.First()));
+            var certWithPrivateKey = default(X509Certificate2);
 
-            // note: the seperator between the certificate and private key is added for safety to delinate the cert and key boundary
-            var sr = new StringReader(pemCerts.First() + "\r\n" + privateKey);
-            var pemReader = new PemReader(sr);
+            // The imported certificate has information about the algorithm the key can be used for, but it is an object id.
+            // Get the object id and compare with those we can handle. FIXME: is this all we support?
+            var certKeyAlgorithm = certWithNoKey.GetKeyAlgorithm();
 
-            AsymmetricKeyParameter keyParams = null;
-            object certObject = pemReader.ReadObject();
-            while (certObject != null)
+            if (oidRsaEncryption.Value == certKeyAlgorithm)
             {
-                if (certObject is X509Certificate x509Cert)
-                {
-                    chain.Add(new X509CertificateEntry(x509Cert));
-                }
-
-                // when processing certificates generated via openssl certObject type is of AsymmetricCipherKeyPair
-                if (certObject is AsymmetricCipherKeyPair keyPair)
-                {
-                    certObject = keyPair.Private;
-                }
-
-                if (certObject is RsaPrivateCrtKeyParameters rsaParameters)
-                {
-                    keyParams = rsaParameters;
-                }
-                else if (certObject is ECPrivateKeyParameters ecParameters)
-                {
-                    keyParams = ecParameters;
-                }
-
-                certObject = pemReader.ReadObject();
+                var key = RSA.Create();
+                key.ImportRSAPrivateKey(UndressPrivateKey(privateKey), out int bytesRead);
+                certWithPrivateKey = certWithNoKey.CopyWithPrivateKey(key);
+            }
+            else if (oidEcPublicKey.Value == certKeyAlgorithm)
+            {
+                var key = ECDsa.Create();
+                key.ImportECPrivateKey(UndressPrivateKey(privateKey), out int bytesRead);
+                certWithPrivateKey = certWithNoKey.CopyWithPrivateKey(key);
+            }
+            else
+            {
+                // FIXME some error
             }
 
-            if (keyParams == null)
-            {
-                throw new InvalidOperationException("Private key is required");
-            }
-
-            store.SetKeyEntry("Edge", new AsymmetricKeyEntry(keyParams), chain.ToArray());
-            using (var p12File = new MemoryStream())
-            {
-                store.Save(p12File, new char[] { }, new SecureRandom());
-
-                var cert = new X509Certificate2(p12File.ToArray());
-                return (cert, certsChain);
-            }
+            return (certWithPrivateKey, certsChain);
         }
 
         static string ToHexString(byte[] bytes)
@@ -461,6 +438,19 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
 
             return commonName;
+        }
+
+        static byte[] UndressPrivateKey(string key)
+        {
+            // FIXME: quick and dirty way to remove the header
+            var nakedKey = key.Replace("-----BEGIN PRIVATE KEY-----", string.Empty)
+                              .Replace("-----END PRIVATE KEY-----", string.Empty)
+                              .Replace("-----BEGIN RSA PRIVATE KEY-----", string.Empty)
+                              .Replace("-----END RSA PRIVATE KEY-----", string.Empty)
+                              .Replace("-----BEGIN EC PRIVATE KEY-----", string.Empty)
+                              .Replace("-----END EC PRIVATE KEY-----", string.Empty);
+
+            return Convert.FromBase64String(nakedKey);
         }
     }
 }
