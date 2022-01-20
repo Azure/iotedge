@@ -44,6 +44,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
 
         public void RemoveDbStore(string partitionName) => throw new NotImplementedException();
 
+        public void RemoveAllStores() => throw new NotImplementedException();
+
         public void RemoveDbStore() => throw new NotImplementedException();
 
         public Task CloseAsync()

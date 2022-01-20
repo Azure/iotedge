@@ -69,6 +69,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return Task.CompletedTask;
         }
 
+        public Task RemoveAllStores()
+        {
+            this.dbStoreProvider.RemoveAllStores();
+            return Task.CompletedTask;
+        }
+
         public void Dispose() => this.Dispose(true);
 
         protected virtual void Dispose(bool disposing)

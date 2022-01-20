@@ -4,8 +4,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Text;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Extensions.Logging;
     using RocksDbSharp;
 
     /// <summary>
@@ -77,9 +79,17 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             Preconditions.CheckNonWhiteSpace(path, nameof(path));
             // ListColumnFamilies will throw if the DB doesn't exist yet, so wrap it in a try catch.
             IEnumerable<string> columnFamilies = null;
+            ILogger logger = Logger.Factory.CreateLogger<IRocksDb>();
             try
             {
                 columnFamilies = RocksDb.ListColumnFamilies(dbOptions, path);
+                var sb = new StringBuilder();
+                foreach (var val in columnFamilies)
+                {
+                    sb.Append(val);
+                }
+
+                logger.LogInformation(sb.ToString());
             }
             catch
             {

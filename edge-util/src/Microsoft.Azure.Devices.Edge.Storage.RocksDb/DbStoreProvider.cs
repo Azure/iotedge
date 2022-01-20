@@ -45,6 +45,17 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             return dbStore;
         }
 
+        public void RemoveAllStores()
+        {
+            IEnumerable<string> columnFamiliesList = this.db.ListColumnFamilies();
+            ILogger logger = Logger.Factory.CreateLogger<IRocksDb>();
+            foreach (string columnFamilyName in columnFamiliesList)
+            {
+                this.RemoveDbStore(columnFamilyName);
+                logger.LogInformation(columnFamilyName + "dropped");
+            }
+        }
+
         public IDbStore GetDbStore(string partitionName)
         {
             Preconditions.CheckNonWhiteSpace(partitionName, nameof(partitionName));

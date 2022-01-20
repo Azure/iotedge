@@ -20,5 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         Task RemoveStore<T>(ISequentialStore<T> sequentialStore);
 
         Task RemoveStore<TK, TV>(IEntityStore<TK, TV> entityStore);
+
+        Task RemoveAllStores();
     }
 }

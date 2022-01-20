@@ -292,19 +292,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             var edgeHubTokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubServiceAuthTokenProvider");
                             var proxy = c.Resolve<Option<IWebProxy>>();
                             var storeProvider = await c.Resolve<Task<IStoreProvider>>();
-                            var dbStoreProvider = await c.Resolve<Task<IDbStoreProvider>>();
                             IDeviceScopeApiClient securityScopesApiClient = new DeviceScopeApiClient(this.iothubHostName, this.edgeDeviceId, this.edgeHubModuleId, 10, edgeHubTokenProvider, proxy);
                             IServiceProxy serviceProxy = new ServiceProxy(securityScopesApiClient);
                             IKeyValueStore<string, string> encryptedStore = await GetEncryptedStore(c, storeProvider, "DeviceScopeCache");
                             ulong count = await encryptedStore.Count();
                             logger.LogInformation(count.ToString());
+                            logger.LogInformation(this.storagePath);
                             deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy, encryptedStore, this.scopeCacheRefreshRate);
                             if (deviceScopeIdentitiesCache.VerifyDeviceIdentityStore())
                             {
-                                dbStoreProvider.CleanupAllStorage(this.storagePath);
+                                await storeProvider.RemoveAllStores();
                                 logger.LogInformation("Removing old store");
+                                /*
                                 await RemoveEncryptedStore(storeProvider, "DeviceScopeCache");
                                 await RemoveEncryptedStore(storeProvider, "CredentialsCache");
+                                */
                             }
                         }
                         else
