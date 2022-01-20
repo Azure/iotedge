@@ -384,31 +384,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
             IEnumerable<X509Certificate2> certsChain = GetCertificatesFromPem(pemCerts.Skip(1));
 
-            // First we import the certificate with no key. Later we need to use CopyWithPrivateKey on it, but
-            // for that we need to know whether it is rsa or ec
             var certWithNoKey = new X509Certificate2(Encoding.UTF8.GetBytes(pemCerts.First()));
-            var certWithPrivateKey = default(X509Certificate2);
-
-            // The imported certificate has information about the algorithm the key can be used for, but it is an object id.
-            // Get the object id and compare with those we can handle. FIXME: is this all we support?
-            var certKeyAlgorithm = certWithNoKey.GetKeyAlgorithm();
-
-            if (oidRsaEncryption.Value == certKeyAlgorithm)
-            {
-                var key = RSA.Create();
-                key.ImportRSAPrivateKey(UndressPrivateKey(privateKey), out int bytesRead);
-                certWithPrivateKey = certWithNoKey.CopyWithPrivateKey(key);
-            }
-            else if (oidEcPublicKey.Value == certKeyAlgorithm)
-            {
-                var key = ECDsa.Create();
-                key.ImportECPrivateKey(UndressPrivateKey(privateKey), out int bytesRead);
-                certWithPrivateKey = certWithNoKey.CopyWithPrivateKey(key);
-            }
-            else
-            {
-                // FIXME some error
-            }
+            var certWithPrivateKey = AttachPrivateKey(certWithNoKey, privateKey);
 
             return (certWithPrivateKey, certsChain);
         }
@@ -440,17 +417,104 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return commonName;
         }
 
-        static byte[] UndressPrivateKey(string key)
+        static X509Certificate2 AttachPrivateKey(X509Certificate2 certificate, string pemEncodedKey)
         {
-            // FIXME: quick and dirty way to remove the header
-            var nakedKey = key.Replace("-----BEGIN PRIVATE KEY-----", string.Empty)
-                              .Replace("-----END PRIVATE KEY-----", string.Empty)
-                              .Replace("-----BEGIN RSA PRIVATE KEY-----", string.Empty)
-                              .Replace("-----END RSA PRIVATE KEY-----", string.Empty)
-                              .Replace("-----BEGIN EC PRIVATE KEY-----", string.Empty)
-                              .Replace("-----END EC PRIVATE KEY-----", string.Empty);
+            string pkcs8Label = "PRIVATE KEY";
+            string rsaLabel = "RSA PRIVATE KEY";
+            string ecLabel = "EC PRIVATE KEY";
 
-            return Convert.FromBase64String(nakedKey);
+            var keyAlgorithm = certificate.GetKeyAlgorithm();
+
+            X509Certificate2 result = null;
+
+            // First try with pkcs8
+            if (pemEncodedKey.IndexOf(Header(pkcs8Label)) >= 0)
+            {
+                var decodedKey = UnwrapPrivateKey(pemEncodedKey, pkcs8Label);
+
+                try
+                {
+                    if (oidRsaEncryption.Value == keyAlgorithm)
+                    {
+                        var key = RSA.Create();
+                        key.ImportPkcs8PrivateKey(decodedKey, out int bytesRead);
+                        result = certificate.CopyWithPrivateKey(key);
+                    }
+                    else if (oidEcPublicKey.Value == keyAlgorithm)
+                    {
+                        var key = ECDsa.Create();
+                        key.ImportPkcs8PrivateKey(decodedKey, out int bytesRead);
+                        result = certificate.CopyWithPrivateKey(key);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException("Cannot import private key", ex);
+                }
+            }
+            else
+            {
+                // at this point the key must be pkcs1
+                try
+                {
+                    if (oidRsaEncryption.Value == keyAlgorithm)
+                    {
+                        var decodedKey = UnwrapPrivateKey(pemEncodedKey, rsaLabel);
+
+                        var key = RSA.Create();
+                        key.ImportRSAPrivateKey(decodedKey, out _);
+
+                        result = certificate.CopyWithPrivateKey(key);
+                    }
+                    else if (oidEcPublicKey.Value == keyAlgorithm)
+                    {
+                        var decodedKey = UnwrapPrivateKey(pemEncodedKey, ecLabel);
+
+                        var key = ECDsa.Create();
+                        key.ImportECPrivateKey(decodedKey, out _);
+                        result = certificate.CopyWithPrivateKey(key);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException("Cannot import private key", ex);
+                }
+            }
+
+            if (result == null)
+            {
+                throw new InvalidOperationException($"Cannot use certificate, not supported key algorithm: ${keyAlgorithm}");
+            }
+
+            return result;
         }
+
+        static byte[] UnwrapPrivateKey(string pemEncodedKey, string algoLabel)
+        {
+            var headerIndex = pemEncodedKey.IndexOf(Header(algoLabel));
+            var footerIndex = pemEncodedKey.IndexOf(Footer(algoLabel));
+
+            if (headerIndex < 0 || footerIndex < 0)
+            {
+                throw new InvalidOperationException($"Certificate key algorithm indicates {algoLabel}, but cannot unwrap key - headers not found");
+            }
+
+            byte[] decodedKey;
+
+            try
+            {
+                var dataIndex = headerIndex + Header(algoLabel).Length;
+                decodedKey = Convert.FromBase64String(pemEncodedKey.Substring(dataIndex, footerIndex - dataIndex));
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Cannot decode private key: base64 decoding failed after removing headers", ex);
+            }
+
+            return decodedKey;
+        }
+
+        static string Header(string label) => $"-----BEGIN {label}-----";
+        static string Footer(string label) => $"-----END {label}-----";
     }
 }
