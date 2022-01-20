@@ -667,17 +667,7 @@ definitions:
         type: integer
       virtualized:
         type: string
-      hostOsSku:
-        type: string
-      boardName:
-        type: string
       productName:
-        type: string
-      productSku:
-        type: string
-      productVersion:
-        type: string
-      systemFamily:
         type: string
       systemVendor:
         type: string
@@ -685,6 +675,8 @@ definitions:
         type: string
       provisioning:
         type: '#/definitions/Provisioning'
+    additionalProperties:
+      type: string
     required:
       - kernel
       - kernelRelease
