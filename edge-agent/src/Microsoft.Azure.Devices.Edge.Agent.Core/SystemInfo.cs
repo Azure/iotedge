@@ -85,11 +85,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 .Append($"product_name={UrlEncode(this.ProductName ?? string.Empty)};")
                 .Append($"product_vendor={UrlEncode(this.SystemVendor ?? string.Empty)};");
 
-            foreach ((string k, string v) in this.AdditionalProperties)
+            if (this.AdditionalProperties != null)
             {
-                if (!string.IsNullOrEmpty(k))
+                foreach ((string k, string v) in this.AdditionalProperties)
                 {
-                    b.Append($"{UrlEncode(k)}={UrlEncode(v ?? string.Empty)};");
+                    if (!string.IsNullOrEmpty(k))
+                    {
+                        b.Append($"{UrlEncode(k)}={UrlEncode(v ?? string.Empty)};");
+                    }
                 }
             }
 
