@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 new Dictionary<string, IModule>(),
                 null);
 
-            var environment = new DockerEnvironment(runtimeInfoProvider, deploymentConfig, moduleStateStore, restartPolicyManager, systemInfo.OperatingSystemType, systemInfo.Architecture, systemInfo.Version);
+            var environment = new DockerEnvironment(runtimeInfoProvider, deploymentConfig, moduleStateStore, restartPolicyManager, systemInfo.Kernel, systemInfo.Architecture, systemInfo.Version);
 
             // act
             IRuntimeInfo reportedRuntimeInfo = await environment.GetRuntimeInfoAsync();
