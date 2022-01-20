@@ -67,6 +67,63 @@ namespace IotEdgeQuickstart.Details
         }
     }
 
+    interface ILinuxPackageInstall
+    {
+        public Task Install();
+    }
+
+    class LinuxPackageInstallDep : ILinuxPackageInstall
+    {
+        readonly string archivePath;
+        public LinuxPackageInstallDep(string archivePath)
+        {
+            this.archivePath = archivePath;
+        }
+
+        public Task Install()
+        {
+            string[] packages = Directory.GetFiles(this.archivePath, "*.deb");
+
+            foreach (string package in packages)
+            {
+                Console.WriteLine($"Will install {package}");
+            }
+
+            string packageArguments = string.Join(" ", packages);
+
+            return Process.RunAsync(
+                "apt-get",
+                $"install -y {packageArguments}",
+                300); // 5 min timeout because install can be slow on raspberry pi
+        }
+    }
+
+    class LinuxPackageInstallRPM : ILinuxPackageInstall
+    {
+        readonly string archivePath;
+        public LinuxPackageInstallRPM(string archivePath)
+        {
+            this.archivePath = archivePath;
+        }
+
+        public Task Install()
+        {
+            return Process.RunAsync(
+                    "rpm",
+                    $"-Uhv {this.archivePath}/*.rpm --force",
+                    300);
+        }
+    }
+
+    class LinuxPackageNonInstall : ILinuxPackageInstall
+    {
+        public Task Install()
+        {
+            Console.WriteLine("Skipping installation of aziot-edge and aziot-identity-service.");
+            return Task.CompletedTask;
+        }
+    }
+
     class IotedgedLinux : IBootstrapper
     {
         const string KEYD = "/etc/aziot/keyd/config.toml";
@@ -80,8 +137,9 @@ namespace IotEdgeQuickstart.Details
         readonly UriSocks uriSocks;
         readonly Option<string> proxy;
         readonly Option<UpstreamProtocolType> upstreamProtocol;
-        readonly bool requireEdgeInstallation;
         readonly bool overwritePackages;
+
+        ILinuxPackageInstall installCommands;
 
         private struct Config
         {
@@ -91,7 +149,7 @@ namespace IotEdgeQuickstart.Details
             public TomlDocument Document;
         }
 
-        public IotedgedLinux(string archivePath, Option<RegistryCredentials> credentials, Option<HttpUris> httpUris, UriSocks uriSocks, Option<string> proxy, Option<UpstreamProtocolType> upstreamProtocol, bool requireEdgeInstallation, bool overwritePackages)
+        public IotedgedLinux(string archivePath, Option<RegistryCredentials> credentials, Option<HttpUris> httpUris, UriSocks uriSocks, Option<string> proxy, Option<UpstreamProtocolType> upstreamProtocol, bool overwritePackages, ILinuxPackageInstall installCommands)
         {
             this.archivePath = archivePath;
             this.credentials = credentials;
@@ -99,8 +157,8 @@ namespace IotEdgeQuickstart.Details
             this.uriSocks = uriSocks;
             this.proxy = proxy;
             this.upstreamProtocol = upstreamProtocol;
-            this.requireEdgeInstallation = requireEdgeInstallation;
             this.overwritePackages = overwritePackages;
+            this.installCommands = installCommands;
         }
 
         public async Task UpdatePackageState()
@@ -186,28 +244,7 @@ namespace IotEdgeQuickstart.Details
 
         public Task Install()
         {
-            if (this.requireEdgeInstallation)
-            {
-                string[] packages = Directory.GetFiles(this.archivePath, "*.deb");
-
-                foreach (string package in packages)
-                {
-                    Console.WriteLine($"Will install {package}");
-                }
-
-                string packageArguments = string.Join(" ", packages);
-
-                return Process.RunAsync(
-                    "apt-get",
-                    $"install -y {packageArguments}",
-                    300); // 5 min timeout because install can be slow on raspberry pi
-            }
-            else
-            {
-                Console.WriteLine("Skipping installation of aziot-edge and aziot-identity-service.");
-
-                return Task.CompletedTask;
-            }
+            return this.installCommands.Install();
         }
 
         private static async Task<Config> InitConfig(string template, string owner)

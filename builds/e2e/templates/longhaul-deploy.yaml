@@ -34,6 +34,11 @@ parameters:
   test.deploymentFileName: ''
   testResultCoordinator.storageAccountConnectionString: ''
   clientModuleTransportType: ''
+  connectManagementUri: ''
+  connectWorkloadUri: ''
+  listenManagementUri: ''
+  listenWorkloadUri: ''
+  packageType: 'dep'
 
 steps:
   - task: Bash@3
@@ -100,6 +105,7 @@ steps:
             -testName "$testName" \
             -repoPath "${{ parameters['build.repo.path'] }}" \
             -clientModuleTransportType "${{ parameters['clientModuleTransportType'] }}" \
+            -packageType "${{ parameters['packageType'] }}" \
             -waitForTestComplete \
             -cleanAll
         else
@@ -110,6 +116,10 @@ steps:
             -releaseLabel "${{ parameters['release.label'] }}" \
             -artifactImageBuildNumber "$BuildNumber" \
             -testName "$testName" \
+            -connectManagementUri "${{ parameters['connectManagementUri'] }}" \
+            -connectWorkloadUri "${{ parameters['connectWorkloadUri'] }}" \
+            -listenManagementUri "${{ parameters['listenManagementUri'] }}" \
+            -listenWorkloadUri "${{ parameters['listenWorkloadUri'] }}" \
             -containerRegistry "${{ parameters['container.registry'] }}" \
             -containerRegistryUsername "${{ parameters['container.registry.username'] }}" \
             -containerRegistryPassword "${{ parameters['container.registry.password'] }}" \
@@ -135,6 +145,7 @@ steps:
             -testInfo "$testInfo" \
             -testStartDelay "${{ parameters['test.startDelay'] }}" \
             -runtimeLogLevel "${{ parameters['test.runtimeLogLevel'] }}" \
+            -packageType "${{ parameters['packageType'] }}" \
             -cleanAll
         fi
       workingDirectory: "$(Agent.HomeDirectory)/.."
