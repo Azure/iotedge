@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
     using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
     using System.Text;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
     using Microsoft.Extensions.Logging;
@@ -482,21 +483,30 @@ namespace Microsoft.Azure.Devices.Edge.Util
                     throw new InvalidOperationException($"Cannot use certificate, not supported key algorithm: ${keyAlgorithm}");
                 }
 
-                // Reading the private key to see if the import was successful. On Windows it fails sometimes,
-                // the root cause is unknown.
-                if (result.HasPrivateKey)
+                try
                 {
-                    if (oidEcPublicKey.Value == keyAlgorithm)
+                    // Reading the private key to see if the import was successful. On Windows it fails sometimes,
+                    // the root cause is unknown.
+                    if (result.HasPrivateKey)
                     {
-                        _ = result.GetECDsaPrivateKey();
-                    }
-                    else
-                    {
-                        _ = result.GetRSAPrivateKey();
-                    }
+                        if (oidEcPublicKey.Value == keyAlgorithm)
+                        {
+                            _ = result.GetECDsaPrivateKey();
+                        }
+                        else
+                        {
+                            _ = result.GetRSAPrivateKey();
+                        }
 
-                    return result;
+                        return result;
+                    }
                 }
+                catch
+                {
+                    // swallow
+                }
+
+                Thread.Sleep(TimeSpan.FromSeconds(1));
             }
 
             throw new InvalidOperationException("Cannot import certificate with private key, giving up");
