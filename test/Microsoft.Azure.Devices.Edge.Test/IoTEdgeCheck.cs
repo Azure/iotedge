@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
     using NUnit.Framework;
     using Serilog;
@@ -63,6 +64,16 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     "container-default-connect-upstream-amqp",
                     "host-connect-iothub-mqtt",
                     "host-connect-iothub-amqp"
+                });
+            }
+
+            // NTP Server Sync Test intermittently fails on ARM. Disable that check for now.
+            else if (Context.Current.EdgeAgentImage.GetOrElse(string.Empty).Contains("arm"))
+            {
+                args += string.Join(" ", new[]
+                {
+                    " --dont-run",
+                    "container-local-time",
                 });
             }
 
