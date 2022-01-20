@@ -137,6 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
+        [Repeat(50)]
         public async Task TestUploadModuleLogs()
         {
             string moduleName = "NumberLogger";
@@ -193,7 +194,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         .WithEnvironment(new[] { ("Count", count.ToString()) });
                 }, token,
                 Context.Current.NestedEdge);
-            await Task.Delay(10000);
+            await Task.Delay(30000);
 
             var request = new
             {
