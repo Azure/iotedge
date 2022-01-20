@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -115,6 +116,36 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
         public void RemoveDbStore() => this.RemoveDbStore(DefaultPartitionName);
 
+        public void CleanupAllStorage(string storagePath)
+        {
+            DirectoryInfo storDirInfo = new DirectoryInfo(storagePath);
+            foreach (FileInfo file in storDirInfo.GetFiles())
+            {
+                try
+                {
+                    file.Delete();
+                }
+                catch (Exception ex)
+                {
+                    Events.DeletionError(file.FullName, ex);
+                }
+            }
+
+            foreach (DirectoryInfo dir in storDirInfo.GetDirectories())
+            {
+                try
+                {
+                    dir.Delete(true);
+                }
+                catch (Exception ex)
+                {
+                    Events.DeletionError(dir.FullName, ex);
+                }
+            }
+
+            Events.AllStorageDeleted();
+        }
+
         static class Events
         {
             // Use an ID not used by other components
@@ -125,6 +156,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             {
                 StartingCompaction = IdStart,
                 StoreCompaction,
+                DeletionError,
+                AllStorageDeleted,
             }
 
             internal static void StartingCompaction()
@@ -135,6 +168,16 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             internal static void CompactingStore(string storeName)
             {
                 Log.LogInformation((int)EventIds.StoreCompaction, $"Starting compaction of store {storeName}");
+            }
+
+            internal static void DeletionError(string artifact, Exception ex)
+            {
+                Log.LogError((int)EventIds.DeletionError, $"An error occurred while deleting '{artifact}': {ex}");
+            }
+
+            internal static void AllStorageDeleted()
+            {
+                Log.LogInformation((int)EventIds.AllStorageDeleted, "All existing storage has been deleted.");
             }
         }
     }

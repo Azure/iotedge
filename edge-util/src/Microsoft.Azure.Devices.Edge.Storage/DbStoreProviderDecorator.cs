@@ -49,6 +49,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return this.dbStoreProvider.GetDbStore();
         }
 
+        public virtual void CleanupAllStorage(string path)
+        {
+            this.dbStoreProvider.CleanupAllStorage(path);
+        }
+
         public virtual void RemoveDbStore(string partitionName)
         {
             this.dbStoreProvider.RemoveDbStore(partitionName);

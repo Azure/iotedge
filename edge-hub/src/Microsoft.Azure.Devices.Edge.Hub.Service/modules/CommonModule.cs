@@ -300,6 +300,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy, encryptedStore, this.scopeCacheRefreshRate);
                             if (deviceScopeIdentitiesCache.VerifyDeviceIdentityStore())
                             {
+                                var dbStoreProvider = await c.Resolve<Task<IDbStoreProvider>>();
+                                dbStoreProvider.CleanupAllStorage(this.storagePath);
                                 logger.LogInformation("Removing old store");
                                 await RemoveEncryptedStore(storeProvider, "DeviceScopeCache");
                                 await RemoveEncryptedStore(storeProvider, "CredentialsCache");

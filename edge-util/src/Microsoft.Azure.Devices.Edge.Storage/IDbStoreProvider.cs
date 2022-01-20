@@ -20,6 +20,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         void RemoveDbStore();
 
+        void CleanupAllStorage(string path);
+
         Task CloseAsync();
     }
 }

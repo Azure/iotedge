@@ -55,6 +55,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             // No-op
         }
 
+        public void CleanupAllStorage(string path)
+        {
+            // No-op
+        }
+
         public void RemoveDbStore() => this.RemoveDbStore(DefaultPartitionName);
 
         public Task CloseAsync()
