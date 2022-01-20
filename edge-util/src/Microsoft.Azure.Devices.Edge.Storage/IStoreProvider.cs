@@ -21,6 +21,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         Task RemoveStore<TK, TV>(IEntityStore<TK, TV> entityStore);
 
-        Task RemoveAllStores();
+        Task RebuildAllStores();
     }
 }
