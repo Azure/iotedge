@@ -273,10 +273,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
             var (connectionRegistry, identityProvider) = GetHandlerDependencies(listenerCapture: listenerCapture);
 
-            Mock.Get(connectionRegistry)
-                .Setup(cr => cr.GetNestedConnectionsAsync())
-                .Returns(() => Task.FromResult<IReadOnlyList<IIdentity>>(new List<IIdentity>() { (IIdentity)new ModuleIdentity("host", "device_id", "module_id") }));
-
             var sut = new SubscriptionChangeHandler(
                             cloud2DeviceMessageHandler,
                             moduleToModuleMessageHandler,
@@ -289,6 +285,46 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
             Assert.Equal(DeviceSubscription.C2D, listenerCapture.Captured.AddedSubscription);
             Assert.Equal(DeviceSubscription.Methods, listenerCapture.Captured.RemovedSubscription);
+        }
+
+        [Fact]
+        public async Task TurnsOnOffSubscriptionsForMixedIdentities()
+        {
+            var listenerCapture = new MultiDeviceListenerCapture();
+
+            var publishInfo = new MqttPublishInfo("$edgehub/device_id/module_id/subscriptions", Encoding.UTF8.GetBytes("[\"$edgehub/device_id/module_id/MatchingPattern\", \"$edgehub/device_id/module_id_2/MatchingPattern\"]"));
+            var (_, moduleToModuleMessageHandler, directMethodHandler, twinHandler) = GetSubscriptionWatchers();
+
+            var cloud2DeviceMessageHandler = Mock.Of<ICloud2DeviceMessageHandler>();
+            Mock.Get(cloud2DeviceMessageHandler)
+                .Setup(sw => sw.WatchedSubscriptions)
+                .Returns(() => new List<SubscriptionPattern>()
+                    {
+                        new SubscriptionPattern(@"(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/patternX", DeviceSubscription.Methods),
+                        new SubscriptionPattern(@"(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/MatchingPattern", DeviceSubscription.C2D),
+                    });
+
+            var (connectionRegistry, identityProvider) = GetHandlerDependencies(listenerCapture: listenerCapture);
+
+            var sut = new SubscriptionChangeHandler(
+                            cloud2DeviceMessageHandler,
+                            moduleToModuleMessageHandler,
+                            directMethodHandler,
+                            twinHandler,
+                            connectionRegistry,
+                            identityProvider);
+
+            _ = await sut.HandleAsync(publishInfo);
+
+            var listener = listenerCapture.Captured.Where(l => l.Identity.Id == "device_id/module_id").First();
+
+            Assert.Equal(DeviceSubscription.C2D, listener.AddedSubscription);
+            Assert.Equal(DeviceSubscription.Methods, listener.RemovedSubscription);
+
+            listener = listenerCapture.Captured.Where(l => l.Identity.Id == "device_id/module_id_2").First();
+
+            Assert.Equal(DeviceSubscription.C2D, listener.AddedSubscription);
+            Assert.Equal(DeviceSubscription.Methods, listener.RemovedSubscription);
         }
 
         public static IEnumerable<object[]> NonSubscriptionTopics()
@@ -338,7 +374,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             return (cloud2DeviceMessageHandler, moduleToModuleMessageHandler, directMethodHandler, twinHandler);
         }
 
-        (IConnectionRegistry, IIdentityProvider) GetHandlerDependencies(bool shouldFindProxy = true, DeviceListenerCapture listenerCapture = null)
+        (IConnectionRegistry, IIdentityProvider) GetHandlerDependencies(bool shouldFindProxy = true, IListenerCapture listenerCapture = null)
         {
             var connectionRegistry = Mock.Of<IConnectionRegistry>();
             var identityProvider = Mock.Of<IIdentityProvider>();
@@ -354,11 +390,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
             Mock.Get(connectionRegistry)
                 .Setup(cr => cr.GetOrCreateDeviceListenerAsync(It.IsAny<IIdentity>(), It.IsAny<bool>()))
-                .Returns((IIdentity i, bool _) => CreateListenerFromIdentity(i));
+                .Returns((IIdentity i, bool d) => CreateListenerFromIdentity(i, d));
+
+            Mock.Get(connectionRegistry)
+                .Setup(cr => cr.GetNestedConnectionsAsync())
+                .Returns(() =>Task.FromResult((IReadOnlyList<IIdentity>)createdListeners.Where(l => !l.Value.IsDirect).Select(dl => dl.Key).ToList()));
 
             return (connectionRegistry, identityProvider);
 
-            Task<Option<IDeviceListener>> CreateListenerFromIdentity(IIdentity identity)
+            Task<Option<IDeviceListener>> CreateListenerFromIdentity(IIdentity identity, bool directOnCreation)
             {
                 var listener = default(TestDeviceListener);
 
@@ -366,7 +406,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 {
                     if (!createdListeners.TryGetValue(identity, out listener))
                     {
-                        listener = new TestDeviceListener(identity);
+                        listener = new TestDeviceListener(identity, directOnCreation);
                         createdListeners[identity] = listener;
                     }
                     
@@ -382,25 +422,41 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        class DeviceListenerCapture
+        interface IListenerCapture
+        {
+            void Capture(TestDeviceListener testListener);
+        }
+
+        class DeviceListenerCapture : IListenerCapture
         {
             public TestDeviceListener Captured { get; private set; }
             public void Capture(TestDeviceListener testListener) => this.Captured = testListener;
         }
 
+        class MultiDeviceListenerCapture : IListenerCapture
+        {
+            readonly HashSet<TestDeviceListener> listeners = new HashSet<TestDeviceListener>();
+
+            public IEnumerable<TestDeviceListener> Captured => listeners;
+            public void Capture(TestDeviceListener testListener) => this.listeners.Add(testListener);
+        }
+
         class TestDeviceListener : IDeviceListener
         {
-            public TestDeviceListener(IIdentity identity)
+            public TestDeviceListener(IIdentity identity, bool directOnCreation)
             {
                 this.Identity = identity;
                 this.AddedSubscription = DeviceSubscription.Unknown;
                 this.RemovedSubscription = DeviceSubscription.Unknown;
+                this.IsDirect = directOnCreation;
             }
 
             public DeviceSubscription AddedSubscription { get; private set; }
             public DeviceSubscription RemovedSubscription { get; private set; }
 
             public IIdentity Identity { get; }
+
+            public bool IsDirect { get; }
 
             public Task AddDesiredPropertyUpdatesSubscription(string correlationId) => Task.CompletedTask;
             
