@@ -16,8 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 + "os_name=;os_version=;os_variant=;os_build_id=;"
                 + "cpu_architecture=;"
                 + "product_name=;product_vendor=;",
-                new SystemInfo(null, null, null, null, null, null, null, null, 0, null, null, null, null, null, null).ToQueryString()
-            );
+                new SystemInfo(null, null, null, null, null, null, null, null, 0, null, null, null, null, null, null).ToQueryString());
         }
 
         [Fact]
@@ -29,8 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 + "os_name=D;os_version=E;os_variant=F;os_build_id=G;"
                 + "cpu_architecture=H;"
                 + "product_name=J;product_vendor=K;",
-                new SystemInfo("A", "B", "C", "D", "E", "F", "G", "H", 0, "I", "J", "K", "L", null, null).ToQueryString()
-            );
+                new SystemInfo("A", "B", "C", "D", "E", "F", "G", "H", 0, "I", "J", "K", "L", null, null).ToQueryString());
         }
 
         [Fact]
@@ -42,8 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 + "os_name=D%2BD;os_version=E+E;os_variant=F%2BF;os_build_id=G+G;"
                 + "cpu_architecture=H%2BH;"
                 + "product_name=J%2BJ;product_vendor=K+K;",
-                new SystemInfo("A A", "B+B", "C C", "D+D", "E E", "F+F", "G G", "H+H", 0, "I I", "J+J", "K K", "L+L", null, null).ToQueryString()
-            );
+                new SystemInfo("A A", "B+B", "C C", "D+D", "E E", "F+F", "G G", "H+H", 0, "I I", "J+J", "K K", "L+L", null, null).ToQueryString());
         }
 
         [Fact]
@@ -62,8 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 + "cpu_architecture=H;"
                 + "product_name=J;product_vendor=K;"
                 + "first=1;second=2;third=3;",
-                new SystemInfo("A", "B", "C", "D", "E", "F", "G", "H", 0, "I", "J", "K", "L", null, properties).ToQueryString()
-            );
+                new SystemInfo("A", "B", "C", "D", "E", "F", "G", "H", 0, "I", "J", "K", "L", null, properties).ToQueryString());
         }
 
         [Fact]
@@ -73,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             Dictionary<string, string> properties = new Dictionary<string, string>();
 
             properties.Add("first", "1");
-            properties.Add("", "foo");
+            properties.Add(string.Empty, "foo");
             properties.Add("second", "2");
             properties.Add("third", "3");
 
@@ -83,8 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 + "cpu_architecture=H;"
                 + "product_name=J;product_vendor=K;"
                 + "first=1;second=2;third=3;",
-                new SystemInfo("A", "B", "C", "D", "E", "F", "G", "H", 0, "I", "J", "K", "L", null, properties).ToQueryString()
-            );
+                new SystemInfo("A", "B", "C", "D", "E", "F", "G", "H", 0, "I", "J", "K", "L", null, properties).ToQueryString());
         }
 
         [Fact]
@@ -103,8 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 + "cpu_architecture=H;"
                 + "product_name=J;product_vendor=K;"
                 + "first=1;second=;third=3;",
-                new SystemInfo("A", "B", "C", "D", "E", "F", "G", "H", 0, "I", "J", "K", "L", null, properties).ToQueryString()
-            );
+                new SystemInfo("A", "B", "C", "D", "E", "F", "G", "H", 0, "I", "J", "K", "L", null, properties).ToQueryString());
         }
 
         [Fact]
@@ -123,8 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 + "cpu_architecture=H;"
                 + "product_name=J;product_vendor=K;"
                 + "first+first=1%2B1;second%2Bsecond=2+2;third+third=3%2B3;",
-                new SystemInfo("A", "B", "C", "D", "E", "F", "G", "H", 0, "I", "J", "K", "L", null, properties).ToQueryString()
-            );
+                new SystemInfo("A", "B", "C", "D", "E", "F", "G", "H", 0, "I", "J", "K", "L", null, properties).ToQueryString());
         }
     }
 }

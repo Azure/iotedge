@@ -85,7 +85,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         {
             // IModuleClientProvider
             builder.Register(
-                    c => {
+                    c =>
+                    {
                         IModuleManager m = c.Resolve<IModuleManager>();
 
                         // NOTE: Deadlock risk
