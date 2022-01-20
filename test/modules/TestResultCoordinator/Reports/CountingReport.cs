@@ -106,6 +106,13 @@ namespace TestResultCoordinator.Reports
 
         public override bool IsPassed => this.IsPassedHelper();
 
+        // Tolerances are needed due to a combination of false-positive failures and real product-issues.
+        // Connectivity tolerances:
+        // - [All-Cases]: Fail the tests if we have > 20% missing C2D messages
+        // - [Nested-Edge] [Broker-Enabled]: Fail tests if we have > 10% missing custom mqtt messages
+        // Longhaul tolerances:
+        // - [Nested-Edge] [Broker-Enabled]: Fail the tests if we have > 20% missing custom mqtt messages
+        // - [Nested-Edge] [Broker-Enabled]: Fail the tests if we have > 1% missing iothub messages
         bool IsPassedHelper()
         {
             return this.TotalExpectCount > 0 && this.TotalDuplicateExpectedResultCount == 0 && this.EventHubSpecificReportComponents.Match(
@@ -115,19 +122,39 @@ namespace TestResultCoordinator.Reports
                 },
                 () =>
                 {
-                    // Product issue for C2D messages connected to edgehub over mqtt.
-                    // We should remove this failure tolerance when fixed.
-                    if (this.TestDescription.Contains(C2dTestDescription))
+                    if (this.TestMode == TestMode.Connectivity)
                     {
-                        return ((double)this.TotalMatchCount / this.TotalExpectCount) > .8d;
-                    }
-                    else if (this.TestDescription == GenericMqttTelemetryTestDescription && this.TestMode == TestMode.Connectivity)
-                    {
-                        return ((double)this.TotalMatchCount / this.TotalExpectCount) > .9d;
+                        // Product issue for C2D messages connected to edgehub.
+                        if (this.TestDescription.Contains(C2dTestDescription))
+                        {
+                            return ((double)this.TotalMatchCount / this.TotalExpectCount) > .8d;
+                        }
+                        // Product issue for custom mqtt telemetry.
+                        else if (this.Topology == Topology.Nested && this.MqttBrokerEnabled && this.TestDescription == GenericMqttTelemetryTestDescription)
+                        {
+                            return ((double)this.TotalMatchCount / this.TotalExpectCount) > .9d;
+                        }
+                        else
+                        {
+                            return this.TotalExpectCount == this.TotalMatchCount;
+                        }
                     }
                     else
                     {
-                        return this.TotalExpectCount == this.TotalMatchCount;
+                        // Product issue for custom mqtt telemetry.
+                        if (this.Topology == Topology.Nested && this.MqttBrokerEnabled && this.TestDescription.Contains(GenericMqttTelemetryTestDescription))
+                        {
+                            return ((double)this.TotalMatchCount / this.TotalExpectCount) > .8d;
+                        }
+                        // Product issue for messages when broker is enabled.
+                        else if (this.Topology == Topology.Nested && this.MqttBrokerEnabled && this.TestDescription.Contains(MessagesTestDescription))
+                        {
+                            return ((double)this.TotalMatchCount / this.TotalExpectCount) > .99d;
+                        }
+                        else
+                        {
+                            return this.TotalExpectCount == this.TotalMatchCount;
+                        }
                     }
                 });
         }
