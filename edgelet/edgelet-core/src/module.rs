@@ -313,8 +313,9 @@ impl SystemInfo {
             virtualized: match crate::virtualization::is_virtualized_env() {
                 Ok(Some(true)) => "yes",
                 Ok(Some(false)) => "no",
-                _ => "unknown"
-            }.to_owned(),
+                _ => "unknown",
+            }
+            .to_owned(),
 
             product_name: dmi.product,
             system_vendor: dmi.vendor,
