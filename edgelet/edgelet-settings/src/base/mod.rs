@@ -72,6 +72,7 @@ pub struct Settings<ModuleConfig> {
     pub endpoints: aziot::Endpoints,
 
     /// Additional system information
+    #[serde(default)]
     pub additional_info: std::collections::BTreeMap<String, String>,
 }
 
