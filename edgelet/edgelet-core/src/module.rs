@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::collections::BTreeMap;
 use std::default::Default;
 use std::fmt;
 use std::result::Result;
@@ -290,6 +291,9 @@ pub struct SystemInfo {
 
     pub version: String,
     pub provisioning: ProvisioningInfo,
+
+    #[serde(default, flatten)]
+    pub additional_properties: BTreeMap<String, String>,
 }
 
 impl SystemInfo {
@@ -305,7 +309,6 @@ impl SystemInfo {
 
             operating_system: os.id,
             operating_system_version: os.version_id,
-            // TODO: Remove comments after https://github.com/Azure/iot-identity-service/pull/355 is merged
             operating_system_variant: os.variant_id,
             operating_system_build: os.build_id,
 
@@ -327,9 +330,40 @@ impl SystemInfo {
                 dynamic_reprovisioning: false,
                 always_reprovision_on_startup: false,
             },
+
+            additional_properties: BTreeMap::new(),
         };
 
         Ok(res)
+    }
+
+    pub fn merge_additional(&mut self, mut additional_info: BTreeMap<String, String>) -> &Self {
+        macro_rules! remove_assign {
+            ($src:literal, $dest:ident) => {
+                if let Some((_, x)) = additional_info.remove_entry($src) {
+                    self.$dest = x.into();
+                }
+            };
+        }
+
+        remove_assign!("kernel_name", kernel);
+        remove_assign!("kernel_release", kernel_release);
+        remove_assign!("kernel_version", kernel_version);
+
+        remove_assign!("os_name", operating_system);
+        remove_assign!("os_version", operating_system_version);
+        remove_assign!("os_variant", operating_system_variant);
+        remove_assign!("os_build", operating_system_build);
+
+        remove_assign!("cpu_architecture", architecture);
+
+        remove_assign!("product_name", product_name);
+        remove_assign!("product_vendor", system_vendor);
+
+        self.additional_properties
+            .extend(additional_info.into_iter());
+
+        self
     }
 }
 

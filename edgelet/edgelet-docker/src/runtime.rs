@@ -49,6 +49,7 @@ pub struct DockerModuleRuntime {
     notary_lock: Arc<Mutex<BTreeMap<String, String>>>,
     create_socket_channel: UnboundedSender<ModuleAction>,
     allow_elevated_docker_permissions: bool,
+    additional_info: BTreeMap<String, String>,
 }
 
 impl DockerModuleRuntime {
@@ -288,6 +289,7 @@ impl MakeModuleRuntime for DockerModuleRuntime {
             notary_lock: Arc::new(Mutex::new(BTreeMap::new())),
             create_socket_channel,
             allow_elevated_docker_permissions: settings.allow_elevated_docker_permissions(),
+            additional_info: settings.additional_info().clone(),
         };
 
         Ok(runtime)
@@ -658,8 +660,10 @@ impl ModuleRuntime for DockerModuleRuntime {
     async fn system_info(&self) -> Result<CoreSystemInfo> {
         info!("Querying system info...");
 
-        let system_info = CoreSystemInfo::from_system()
+        let mut system_info = CoreSystemInfo::from_system()
             .map_err(|_| ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))?;
+
+        system_info.merge_additional(self.additional_info.clone());
 
         info!("Successfully queried system info");
         Ok(system_info)
