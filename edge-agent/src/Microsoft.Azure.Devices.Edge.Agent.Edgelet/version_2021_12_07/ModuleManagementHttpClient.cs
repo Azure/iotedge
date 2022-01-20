@@ -132,7 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2021_12_07
                 var provisioning = new ProvisioningInfo(systemInfo.Provisioning.Type, systemInfo.Provisioning.DynamicReprovisioning, systemInfo.Provisioning.AlwaysReprovisionOnStartup ?? true);
                 return new SystemInfo(
                     systemInfo.Kernel, systemInfo.KernelRelease, systemInfo.KernelVersion,
-                    systemInfo.OperatingSystem, systemInfo.OperatingSystemVersion,
+                    systemInfo.OperatingSystem, systemInfo.OperatingSystemVersion, systemInfo.OperatingSystemVariant, systemInfo.OperatingSystemBuild,
                     systemInfo.Architecture, systemInfo.Cpus, systemInfo.Virtualized,
                     systemInfo.ProductName, systemInfo.SystemVendor,
                     systemInfo.Version, provisioning,

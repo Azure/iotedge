@@ -661,6 +661,10 @@ definitions:
         type: string
       operatingSystemVersion:
         type: string
+      operatingSystemVariant:
+        type: string
+      operatingSystemBuild:
+        type: string
       architecture:
         type: string
       cpus:

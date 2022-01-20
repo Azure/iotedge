@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using System;
     using System.Collections.Generic;
     using System.Net;
+    using System.Reflection;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -94,7 +95,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             .GetAwaiter()
                             .GetResult();
 
-                        StringBuilder b = new StringBuilder(this.productInfo);
+                        StringBuilder b = new StringBuilder(this.productInfo)
+                            .Append(" (");
 
                         return new ModuleClientProvider(
                             c.Resolve<ISdkModuleClientProvider>(),

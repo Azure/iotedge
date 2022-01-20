@@ -2121,6 +2121,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2021_12_07.Generate
         [Newtonsoft.Json.JsonProperty("operatingSystemVersion", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public string OperatingSystemVersion { get; set; }
 
+        [Newtonsoft.Json.JsonProperty("operatingSystemVariant", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string OperatingSystemVariant { get; set; }
+
+        [Newtonsoft.Json.JsonProperty("operatingSystemBuild", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string OperatingSystemBuild { get; set; }
+
         [Newtonsoft.Json.JsonProperty("architecture", Required = Newtonsoft.Json.Required.Always)]
         public string Architecture { get; set; }
 
