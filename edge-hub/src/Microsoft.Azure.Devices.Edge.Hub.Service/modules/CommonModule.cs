@@ -301,7 +301,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy, encryptedStore, this.scopeCacheRefreshRate);
                             if (deviceScopeIdentitiesCache.VerifyDeviceIdentityStore())
                             {
-                                await storeProvider.RemoveAllStores();
+                                await storeProvider.RebuildAllStores();
                                 logger.LogInformation("Removing old store");
                                 /*
                                 await RemoveEncryptedStore(storeProvider, "DeviceScopeCache");

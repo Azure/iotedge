@@ -69,9 +69,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return Task.CompletedTask;
         }
 
-        public Task RemoveAllStores()
+        public Task RebuildAllStores()
         {
-            this.dbStoreProvider.RemoveAllStores();
+            this.dbStoreProvider.RebuildAllStores();
             return Task.CompletedTask;
         }
 

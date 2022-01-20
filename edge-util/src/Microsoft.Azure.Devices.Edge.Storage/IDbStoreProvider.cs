@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         void RemoveDbStore();
 
-        void RemoveAllStores();
+        void RebuildAllStores();
 
         void CleanupAllStorage(string path);
 

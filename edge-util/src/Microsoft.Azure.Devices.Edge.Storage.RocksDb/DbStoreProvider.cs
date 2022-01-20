@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             return dbStore;
         }
 
-        public void RemoveAllStores()
+        public void RebuildAllStores()
         {
             IEnumerable<string> columnFamiliesList = this.db.ListColumnFamilies();
             ILogger logger = Logger.Factory.CreateLogger<IRocksDb>();
@@ -53,6 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             {
                 this.RemoveDbStore(columnFamilyName);
                 logger.LogInformation(columnFamilyName + "dropped");
+                this.db.CreateColumnFamily(this.optionsProvider.GetColumnFamilyOptions(), columnFamilyName);
             }
         }
 

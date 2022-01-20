@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             this.partitionDbStoreDictionary.TryRemove(partitionName, out IDbStore _);
         }
 
-        public void RemoveAllStores()
+        public void RebuildAllStores()
         {
             // No-op
         }
