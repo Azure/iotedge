@@ -674,7 +674,7 @@ fn get_local_service_proxy_setting(svc_name: &str) -> Option<String> {
     const PROXY_KEY: &str = "https_proxy";
     let output = Command::new("sh")
         .arg("-c")
-        .arg("sudo systemctl show --property=Environment ".to_owned() + svc_name)
+        .arg("systemctl show --property=Environment ".to_owned() + svc_name)
         .output()
         .expect("failed to execute process");
     let stdout = String::from_utf8_lossy(&output.stdout);
