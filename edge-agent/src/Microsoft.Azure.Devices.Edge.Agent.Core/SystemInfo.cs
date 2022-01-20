@@ -74,9 +74,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             // - Disgusting, but works™️
             // - Reflection will not work due to name mappings
             StringBuilder b = new StringBuilder()
-                .Append($"kernel_name={UrlEncode(this.Kernel ?? string.Empty)};") 
-                .Append($"kernel_release={UrlEncode(this.KernelRelease ?? string.Empty)};") 
-                .Append($"kernel_version={UrlEncode(this.KernelVersion ?? string.Empty)};") 
+                .Append($"kernel_name={UrlEncode(this.Kernel ?? string.Empty)};")
+                .Append($"kernel_release={UrlEncode(this.KernelRelease ?? string.Empty)};")
+                .Append($"kernel_version={UrlEncode(this.KernelVersion ?? string.Empty)};")
                 .Append($"os_name={UrlEncode(this.OperatingSystem ?? string.Empty)};")
                 .Append($"os_version={UrlEncode(this.OperatingSystemVersion ?? string.Empty)};")
                 .Append($"os_variant={UrlEncode(this.OperatingSystemVariant ?? string.Empty)};")
