@@ -2,7 +2,17 @@ trigger: none
 pr: none
 
 name: $(version)
-jobs: 
+
+stages:
+# This stage builds Rocks DB and adds the files to staging directory
+################################################################################
+- template: templates/build-rocksdb.yaml
+################################################################################
+
+- stage: BuildReleaseImages
+  dependsOn: [ BuildRocksDB ]
+
+  jobs: 
 ################################################################################
   - job: linux_dotnet_projects
 ################################################################################
@@ -13,7 +23,7 @@ jobs:
     pool:
         name: $(pool.linux.name)
         demands:
-          - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+          - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
     steps: 
       # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
       - task: Docker@2
@@ -289,30 +299,51 @@ jobs:
                 }
               ]
           signConfigType: inlineSignParams
+
+      - task: DownloadPipelineArtifact@2
+        inputs:
+          artifact: 'librocksdb'
+          # place in '$(Pipeline.Workspace)/librocksdb'
+          path: '$(Pipeline.Workspace)/librocksdb'
+
+      - task: CopyFiles@2
+        displayName: Copy rocksdb libs
+        inputs:
+          sourceFolder: '$(Pipeline.Workspace)/librocksdb'
+          contents: '**'
+          targetFolder: '$(Build.BinariesDirectory)/publish/librocksdb'
+
       - template: templates/image-linux.yaml
         parameters: 
           imageName: azureiotedge-agent
           name: "Edge Agent"
           project: Microsoft.Azure.Devices.Edge.Agent.Service
           version: $(version)
+          buildx_flag: 'true'
+          use_rocksdb: true
       - template: templates/image-linux.yaml
         parameters: 
           imageName: azureiotedge-hub
           name: "Edge Hub"
           project: Microsoft.Azure.Devices.Edge.Hub.Service
           version: $(version)
+          buildx_flag: 'true'
+          use_rocksdb: true
       - template: templates/image-linux.yaml
         parameters: 
           imageName: azureiotedge-simulated-temperature-sensor
           name: "Temperature Sensor"
           project: SimulatedTemperatureSensor
           version: $(version)
+          buildx_flag: 'true'
       - template: templates/image-linux.yaml
         parameters:
           imageName: azureiotedge-diagnostics
           name: "Diagnostics Module"
           project: IotedgeDiagnosticsDotnet
           version: $(version)
+          buildx_flag: 'true'
+
       - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
         displayName: 'SBOM Generation Task'
         inputs:
@@ -322,6 +353,7 @@ jobs:
         inputs:
           PathtoPublish: '$(Build.BinariesDirectory)/publish'
           ArtifactName: 'publish-linux'          
+
 ################################################################################
   - job: windows
 ################################################################################
