@@ -340,7 +340,7 @@
 # # Optional EST configuration for issuing the Edge CA certificate below.
 # # If not set, the defaults in [cert_issuance.est] will be used.
 #
-# common_name = "iotedged workload ca"
+# common_name = "aziot-edge CA"
 # expiry_days = 90
 # url = "https://example.org/.well-known/est"
 #
@@ -368,7 +368,7 @@
 #
 # # Optional configuration below.
 #
-# common_name = "iotedged workload ca"
+# common_name = "aziot-edge CA"
 # expiry_days = 90
 
 # ==============================================================================
