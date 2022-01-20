@@ -425,60 +425,48 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
             var keyAlgorithm = certificate.GetKeyAlgorithm();
 
+            bool isPkcs8 = pemEncodedKey.IndexOf(Header(pkcs8Label)) >= 0;
+
             X509Certificate2 result = null;
 
-            // First try with pkcs8
-            if (pemEncodedKey.IndexOf(Header(pkcs8Label)) >= 0)
+            try
             {
-                var decodedKey = UnwrapPrivateKey(pemEncodedKey, pkcs8Label);
+                if (oidRsaEncryption.Value == keyAlgorithm)
+                {
+                    var decodedKey = UnwrapPrivateKey(pemEncodedKey, isPkcs8 ? pkcs8Label : rsaLabel);
+                    var key = RSA.Create();
 
-                try
-                {
-                    if (oidRsaEncryption.Value == keyAlgorithm)
+                    if (isPkcs8)
                     {
-                        var key = RSA.Create();
-                        key.ImportPkcs8PrivateKey(decodedKey, out int bytesRead);
-                        result = certificate.CopyWithPrivateKey(key);
+                        key.ImportPkcs8PrivateKey(decodedKey, out _);
                     }
-                    else if (oidEcPublicKey.Value == keyAlgorithm)
+                    else
                     {
-                        var key = ECDsa.Create();
-                        key.ImportPkcs8PrivateKey(decodedKey, out int bytesRead);
-                        result = certificate.CopyWithPrivateKey(key);
+                        key.ImportRSAPrivateKey(decodedKey, out _);
                     }
+
+                    result = certificate.CopyWithPrivateKey(key);
                 }
-                catch (Exception ex)
+                else if (oidEcPublicKey.Value == keyAlgorithm)
                 {
-                    throw new InvalidOperationException("Cannot import private key", ex);
+                    var decodedKey = UnwrapPrivateKey(pemEncodedKey, isPkcs8 ? pkcs8Label : ecLabel);
+                    var key = ECDsa.Create();
+
+                    if (isPkcs8)
+                    {
+                        key.ImportPkcs8PrivateKey(decodedKey, out _);
+                    }
+                    else
+                    {
+                        key.ImportECPrivateKey(decodedKey, out _);
+                    }
+
+                    result = certificate.CopyWithPrivateKey(key);
                 }
             }
-            else
+            catch (Exception ex)
             {
-                // at this point the key must be pkcs1
-                try
-                {
-                    if (oidRsaEncryption.Value == keyAlgorithm)
-                    {
-                        var decodedKey = UnwrapPrivateKey(pemEncodedKey, rsaLabel);
-
-                        var key = RSA.Create();
-                        key.ImportRSAPrivateKey(decodedKey, out _);
-
-                        result = certificate.CopyWithPrivateKey(key);
-                    }
-                    else if (oidEcPublicKey.Value == keyAlgorithm)
-                    {
-                        var decodedKey = UnwrapPrivateKey(pemEncodedKey, ecLabel);
-
-                        var key = ECDsa.Create();
-                        key.ImportECPrivateKey(decodedKey, out _);
-                        result = certificate.CopyWithPrivateKey(key);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidOperationException("Cannot import private key", ex);
-                }
+                throw new InvalidOperationException("Cannot import private key", ex);
             }
 
             if (result == null)
