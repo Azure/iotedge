@@ -306,8 +306,8 @@ impl SystemInfo {
             operating_system: os.id,
             operating_system_version: os.version_id,
             // TODO: Remove comments after https://github.com/Azure/iot-identity-service/pull/355 is merged
-            operating_system_variant: None, // os.variant_id,
-            operating_system_build: None,   // os.build_id,
+            operating_system_variant: os.variant_id,
+            operating_system_build: os.build_id,
 
             architecture: os.arch.to_owned(),
             cpus: num_cpus::get() as i32,
