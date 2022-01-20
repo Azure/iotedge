@@ -3,6 +3,9 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     using System.Collections.Generic;
+    using System.Text;
+
+    using static System.Net.WebUtility;
 
     public class SystemInfo
     {
@@ -64,6 +67,34 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public ProvisioningInfo Provisioning { get; }
 
         public IDictionary<string, string> AdditionalProperties { get; }
+
+        public string ToQueryString()
+        {
+            // NOTE (from author):
+            // - Disgusting, but works™️
+            // - Reflection will not work due to name mappings
+            StringBuilder b = new StringBuilder()
+                .Append($"kernel_name={UrlEncode(this.Kernel ?? string.Empty)};") 
+                .Append($"kernel_release={UrlEncode(this.KernelRelease ?? string.Empty)};") 
+                .Append($"kernel_version={UrlEncode(this.KernelVersion ?? string.Empty)};") 
+                .Append($"os_name={UrlEncode(this.OperatingSystem ?? string.Empty)};")
+                .Append($"os_version={UrlEncode(this.OperatingSystemVersion ?? string.Empty)};")
+                .Append($"os_variant={UrlEncode(this.OperatingSystemVariant ?? string.Empty)};")
+                .Append($"os_build_id={UrlEncode(this.OperatingSystemBuild ?? string.Empty)};")
+                .Append($"cpu_architecture={UrlEncode(this.Architecture ?? string.Empty)};")
+                .Append($"product_name={UrlEncode(this.ProductName ?? string.Empty)};")
+                .Append($"product_vendor={UrlEncode(this.SystemVendor ?? string.Empty)};");
+
+            foreach ((string k, string v) in this.AdditionalProperties)
+            {
+                if (!string.IsNullOrEmpty(k))
+                {
+                    b.Append($"{UrlEncode(k)}={UrlEncode(v ?? string.Empty)};");
+                }
+            }
+
+            return b.ToString();
+        }
 
         static SystemInfo Empty { get; } = new SystemInfo(string.Empty, string.Empty, string.Empty);
     }
