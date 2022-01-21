@@ -1,3 +1,22 @@
+# 1.1.9 (2022-01-28)
+## iotedged
+### Bug Fixes
+* Fix moby check [53157f2](https://github.com/Azure/iotedge/commit/dc6cee24e6b7b9b5380e5a6f6e5da28344e0e33c)
+* Removing moby check for non-windows [1baad81](https://github.com/Azure/iotedge/commit/b71b828f0304dace8c2c1225e8c29eced9ab285c)
+
+
+## Edge Agent
+### Bug Fixes
+* Fix for concurrent module creation with workload socket [9efa300](https://github.com/Azure/iotedge/commit/1a30568e55790011919295e23938f5b1cef2dc14)
+* Update Base Images for a Security Patch [7b689b3](https://github.com/Azure/iotedge/commit/7b689b3d58f2b732f7ff5138ba36c9c331449322)
+
+
+## Edge Hub
+### Bug Fixes
+* Fix for Edge hub queue length counting metric [a346b3b](https://github.com/Azure/iotedge/commit/32fbcfe8e477b5c593bba5660fd8044031703742)
+* Update Base Images for a Security Patch [7b689b3](https://github.com/Azure/iotedge/commit/7b689b3d58f2b732f7ff5138ba36c9c331449322)
+
+
 # 1.1.8 (2021-11-02)
 ## iotedged
 ### Bug Fixes
