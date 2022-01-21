@@ -1,6 +1,4 @@
-﻿ARG base_tag=3.1.19-alpine3.14
-FROM azureiotedge/azureiotedge-runtime-base:1.2-linux-amd64 as builder
-
+ARG base_tag=3.1-alpine
 FROM mcr.microsoft.com/dotnet/aspnet:${base_tag}
 
 ARG EXE_DIR=.
@@ -15,7 +13,7 @@ ENV EDGEAGENTUSER_ID ${EDGEAGENTUSER_ID:-1000}
 RUN adduser -Ds /bin/sh -u ${EDGEAGENTUSER_ID} edgeagentuser 
 
 # Install RocksDB
-COPY --from=builder publish/* /usr/local/lib/
+COPY $EXE_DIR/librocksdb/librocksdb.so.amd64 /usr/local/lib/librocksdb.so
 
 WORKDIR /app
 

@@ -1,5 +1,5 @@
-ARG base_tag=1.0.6.15-linux-arm64v8
-FROM azureiotedge/azureiotedge-module-base:${base_tag}
+ARG base_tag=3.1-bionic-arm64v8
+FROM mcr.microsoft.com/dotnet/runtime:${base_tag}
 
 ARG EXE_DIR=.
 

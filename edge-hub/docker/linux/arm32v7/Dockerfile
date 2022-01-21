@@ -1,5 +1,21 @@
-ARG base_tag=1.0.6.15-linux-arm32v7
-FROM azureiotedge/azureiotedge-hub-base:${base_tag}
+ARG base_tag=3.1-bionic-arm32v7
+FROM mcr.microsoft.com/dotnet/aspnet:${base_tag}
+
+# Add an unprivileged user account for running Edge Hub
+ARG EDGEHUBUSER_ID=1000
+RUN useradd -ms /bin/bash -u ${EDGEHUBUSER_ID} edgehubuser
+ENV EdgeHubUser=edgehubuser
+
+RUN apt-get update && apt-get install -y libcap2-bin libsnappy1v5 && \
+    ln -s /lib/arm-linux-gnueabihf/libdl.so.2 /usr/lib/arm-linux-gnueabihf/libdl.so && \
+    ln -s /lib/arm-linux-gnueabihf/libc.so.6 /usr/lib/arm-linux-gnueabihf/libc.so && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY $EXE_DIR/librocksdb/librocksdb.so.armhf /usr/lib/librocksdb.so
+
+# add the CAP_NET_BIND_SERVICE capability to the dotnet binary because
+# we are starting edge hub as a non-root user
+RUN setcap 'cap_net_bind_service=+ep' /usr/share/dotnet/dotnet
 
 ADD ./watchdog/armv7-unknown-linux-gnueabihf/release/watchdog /usr/local/bin/watchdog
 ADD ./mqtt/armv7-unknown-linux-gnueabihf/release/mqttd /usr/local/bin/mqttd
