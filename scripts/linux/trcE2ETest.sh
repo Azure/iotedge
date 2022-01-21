@@ -456,6 +456,9 @@ function process_args() {
         elif [ $saveNextArg -eq 47 ]; then
             TRACKING_ID="$arg"
             saveNextArg=0;
+        elif [ $saveNextArg -eq 48 ]; then
+            PACKAGE_TYPE="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -506,6 +509,7 @@ function process_args() {
                 '-repoPath' ) saveNextArg=45;;
                 '-clientModuleTransportType' ) saveNextArg=46;;
                 '-trackingId' ) saveNextArg=47;;
+                '-packageType' ) saveNextArg=48;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
 
@@ -651,6 +655,7 @@ function run_connectivity_test() {
             --trusted_ca_certs "$TRUSTED_CA_CERTS" \
             --runtime-log-level "$TEST_RUNTIME_LOG_LEVEL" \
             --no-verify \
+            --package-type="$PACKAGE_TYPE" \
             --overwrite-packages && funcRet=$? || funcRet=$?
     fi
 
@@ -805,6 +810,7 @@ function run_longhaul_test() {
             --device_ca_pk "$DEVICE_CA_PRIVATE_KEY" \
             --trusted_ca_certs "$TRUSTED_CA_CERTS" \
             $BYPASS_EDGE_INSTALLATION \
+            --package-type="$PACKAGE_TYPE" \
             --no-verify && ret=$? || ret=$?
     fi
 

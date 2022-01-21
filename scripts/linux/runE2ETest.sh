@@ -444,7 +444,7 @@ function process_args() {
             RUNTIME_LOG_LEVEL="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 45 ]; then
-             ="$arg"
+            CONNECT_MANAGEMENT_URI="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 46 ]; then
             CONNECT_WORKLOAD_URI="$arg"
