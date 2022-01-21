@@ -14,7 +14,7 @@ jobs:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
     steps:
       # If you need to test this job. Create a new Service Connection in the Project Settings (Azure DevOps)
       # and update the pipeline variable.
@@ -95,7 +95,7 @@ jobs:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby 
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby 
     dependsOn:
       - MetricsCollector_Linux
       - MetricsCollector_Windows
