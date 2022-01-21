@@ -16,7 +16,7 @@ stages:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
     jobs:
     - job: Phase_1
       displayName: Ubuntu 18.04 - amd64
@@ -968,7 +968,7 @@ stages:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
     jobs:
     - deployment: safe_guard
       environment: 'Azure-IoT-Edge-Core Release Env'
@@ -1084,7 +1084,7 @@ stages:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
     jobs:
     - deployment: safe_guard
       environment: 'Azure-IoT-Edge-Core Release Env'
