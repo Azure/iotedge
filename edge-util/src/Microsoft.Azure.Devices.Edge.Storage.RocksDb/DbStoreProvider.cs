@@ -57,6 +57,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
                     this.RemoveDbStore(columnFamilyName);
                     logger.LogInformation(columnFamilyName + "dropped");
                     this.db.CreateColumnFamily(this.optionsProvider.GetColumnFamilyOptions(), columnFamilyName);
+                    ColumnFamilyHandle handle = db.GetColumnFamily(columnFamilyName);
+                    var dbStorePartition = new ColumnFamilyDbStore(db, handle);
+                    entityDbStoreDictionary[columnFamilyName] = dbStorePartition;
                 }
             }
         }
