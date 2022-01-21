@@ -655,7 +655,7 @@ function run_connectivity_test() {
             --trusted_ca_certs "$TRUSTED_CA_CERTS" \
             --runtime-log-level "$TEST_RUNTIME_LOG_LEVEL" \
             --no-verify \
-            --package-type="$PACKAGE_TYPE" \
+            $PACKAGE_TYPE_ARG \
             --overwrite-packages && funcRet=$? || funcRet=$?
     fi
 
@@ -810,7 +810,7 @@ function run_longhaul_test() {
             --device_ca_pk "$DEVICE_CA_PRIVATE_KEY" \
             --trusted_ca_certs "$TRUSTED_CA_CERTS" \
             $BYPASS_EDGE_INSTALLATION \
-            --package-type="$PACKAGE_TYPE" \
+            $PACKAGE_TYPE_ARG \
             --no-verify && ret=$? || ret=$?
     fi
 
@@ -927,6 +927,10 @@ TEST_INFO="$TEST_INFO,UpstreamProtocol=$UPSTREAM_PROTOCOL"
 TEST_INFO="$TEST_INFO,NetworkControllerOfflineFrequency=${NETWORK_CONTROLLER_FREQUENCIES[0]}"
 TEST_INFO="$TEST_INFO,NetworkControllerOnlineFrequency=${NETWORK_CONTROLLER_FREQUENCIES[1]}"
 TEST_INFO="$TEST_INFO,NetworkControllerRunsCount=${NETWORK_CONTROLLER_FREQUENCIES[2]}"
+
+if [ ! -z $PACKAGE_TYPE ]; then
+    PACKAGE_TYPE_ARG=--package-type="$PACKAGE_TYPE"
+fi
 
 testRet=0
 if [[ "${TEST_NAME,,}" == "${LONGHAUL_TEST_NAME,,}" ]]; then

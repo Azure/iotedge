@@ -31,6 +31,11 @@ parameters:
   customEdgeHub.image: ''
   test.runtimeLogLevel: ''
   connectivity.nested: 'false'
+  connectManagementUri: ''
+  connectWorkloadUri: ''
+  listenManagementUri: ''
+  listenWorkloadUri: ''
+  packageType: 'dep'
 
 steps:
   - task: CopyFiles@2
@@ -117,6 +122,10 @@ steps:
           -containerRegistry "${{ parameters['container.registry'] }}" \
           -containerRegistryUsername "${{ parameters['container.registry.username'] }}" \
           -containerRegistryPassword "${{ parameters['container.registry.password'] }}" \
+          -connectManagementUri "${{ parameters['connectManagementUri'] }}" \
+          -connectWorkloadUri "${{ parameters['connectWorkloadUri'] }}" \
+          -listenManagementUri "${{ parameters['listenManagementUri'] }}" \
+          -listenWorkloadUri "${{ parameters['listenWorkloadUri'] }}" \
           -iotHubConnectionString "${{ parameters['iotHub.connectionString'] }}" \
           -eventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" \
           -upstreamProtocol "${{ parameters['upstream.protocol'] }}" \
@@ -143,6 +152,7 @@ steps:
           -testRuntimeLogLevel "${{ parameters['test.runtimeLogLevel'] }}" \
           -testInfo "$testInfo" \
           -repoPath "${{ parameters['build.repo.path'] }}" \
+          -packageType "${{ parameters['packageType'] }}" \
           -waitForTestComplete \
           -cleanAll
 

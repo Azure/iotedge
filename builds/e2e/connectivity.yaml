@@ -580,3 +580,8 @@ jobs:
           customEdgeHub.image: '$(customEdgeHub.image)'
           test.runtimeLogLevel: '$(test.runtimeLogLevel)'
           testInfo.testName: '$(testInfo.testName)'
+          connectManagementUri: 'unix:///var/lib/iotedge/mgmt.sock'
+          connectWorkloadUri: 'unix:///var/lib/iotedge/workload.sock'
+          listenManagementUri: 'unix:///var/lib/iotedge/mgmt.sock'
+          listenWorkloadUri: 'unix:///var/lib/iotedge/workload.sock'
+          packageType: 'rpm'

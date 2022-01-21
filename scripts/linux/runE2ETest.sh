@@ -832,7 +832,7 @@ function run_longhaul_test() {
             --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
             --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
             --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
-            --package-type="$PACKAGE_TYPE" \
+            $PACKAGE_TYPE_ARG \
             $BYPASS_EDGE_INSTALLATION \
             --no-verify && ret=$? || ret=$?
     fi
@@ -1283,6 +1283,10 @@ optimize_for_performance=true
 if [ "$image_architecture_label" = 'arm32v7' ] ||
    [ "$image_architecture_label" = 'arm64v8' ]; then
     optimize_for_performance=false
+fi
+
+if [ ! -z $PACKAGE_TYPE ]; then
+    PACKAGE_TYPE_ARG=--package-type="$PACKAGE_TYPE"
 fi
 
 iotedged_artifact_folder="$(get_iotedged_artifact_folder)"
