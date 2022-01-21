@@ -58,6 +58,9 @@ steps:
       ls -l /usr/bin
     name: install_notary_for_content_trust
     displayName: Install Notary for Content Trust
+    env:
+      http_proxy: $(Agent.ProxyUrl)
+      https_proxy: $(Agent.ProxyUrl)
 
   - task: DownloadPipelineArtifact@2
     displayName: Download Pipeline Build Images
