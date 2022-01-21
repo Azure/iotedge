@@ -48,12 +48,16 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         public void RebuildAllStores()
         {
             IEnumerable<string> columnFamiliesList = this.db.ListColumnFamilies();
+
             ILogger logger = Logger.Factory.CreateLogger<IRocksDb>();
             foreach (string columnFamilyName in columnFamiliesList)
             {
-                this.RemoveDbStore(columnFamilyName);
-                logger.LogInformation(columnFamilyName + "dropped");
-                this.db.CreateColumnFamily(this.optionsProvider.GetColumnFamilyOptions(), columnFamilyName);
+                if (!columnFamilyName.Equals(DefaultPartitionName, StringComparison.OrdinalIgnoreCase))
+                {
+                    this.RemoveDbStore(columnFamilyName);
+                    logger.LogInformation(columnFamilyName + "dropped");
+                    this.db.CreateColumnFamily(this.optionsProvider.GetColumnFamilyOptions(), columnFamilyName);
+                }
             }
         }
 
