@@ -239,7 +239,7 @@ Defaults:
                             ILinuxPackageInstall installMethod;
                             if (!this.BypassEdgeInstallation)
                             {
-                                if (this.PackageType.ToLower().Equals("rpm"))
+                                if (!string.IsNullOrEmpty(hostname) && this.PackageType.ToLower().Equals("rpm"))
                                 {
                                     installMethod = new LinuxPackageInstallRPM(this.BootstrapperArchivePath);
                                 }
