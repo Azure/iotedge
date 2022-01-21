@@ -483,12 +483,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
                     throw new InvalidOperationException($"Cannot use certificate, not supported key algorithm: ${keyAlgorithm}");
                 }
 
-                // On Windows the certificate in 'result' gives an error when used with kestrel: "No credentials are available in the security"
-                // This is a suggested workaround that seems working (https://github.com/dotnet/runtime/issues/45680)
-                result = new X509Certificate2(result.Export(X509ContentType.Pkcs12));
-
                 try
                 {
+                    // On Windows the certificate in 'result' gives an error when used with kestrel: "No credentials are available in the security"
+                    // This is a suggested workaround that seems working (https://github.com/dotnet/runtime/issues/45680)
+                    result = new X509Certificate2(result.Export(X509ContentType.Pkcs12));
+
                     // Reading the private key to see if the import was successful. On Windows it fails sometimes,
                     // the root cause is unknown.
                     if (result.HasPrivateKey)
