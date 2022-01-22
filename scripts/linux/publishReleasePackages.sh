@@ -201,7 +201,7 @@ publish_to_github()
     header_content="Accept:application/vnd.github.v3+json"
     header_auth="Authorization:token $GITHUB_PAT"
     content=$(curl -X GET -H "$header_content" -H "$header_auth" "$url")
-    latest_release=$(echo $content | jq --arg branch "$branch_name" '[.[] | select(.target_commitish==$branch)][0]' | jq '.name')
+    latest_release=$(echo $content | jq --arg branch "$branch_name" '[.[] | select(.target_commitish==$branch)][0]' | jq '.name' | tr -d '"')
     echo "Latest Release is $latest_release"
 
     if [[ -z $latest_release || $latest_release == null ]];then
