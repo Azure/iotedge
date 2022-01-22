@@ -1,7 +1,6 @@
 # 1.1.9 (2022-01-28)
 ## iotedged
 ### Bug Fixes
-* Fix moby check [dc6cee2](https://github.com/Azure/iotedge/commit/dc6cee24e6b7b9b5380e5a6f6e5da28344e0e33c)
 * Removing moby check for non-windows [b71b828](https://github.com/Azure/iotedge/commit/b71b828f0304dace8c2c1225e8c29eced9ab285c)
 
 
