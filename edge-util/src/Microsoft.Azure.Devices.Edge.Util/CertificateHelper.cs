@@ -16,13 +16,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
     public static class CertificateHelper
     {
-        // The private-key import on windows randomly seems failing, however according to the tests, the second time
-        // after a failure it usually works. The number below is just a "big enough" number randomly chosen for
-        // self-healing, but gives a limit to avoid endless try.
-        const int MaxCertImportRetryCount = 10;
-
-        private static Oid oidRsaEncryption = Oid.FromFriendlyName("RSA", OidGroup.All);
-        private static Oid oidEcPublicKey = Oid.FromFriendlyName("ECC", OidGroup.All);
+        static Oid oidRsaEncryption = Oid.FromFriendlyName("RSA", OidGroup.All);
+        static Oid oidEcPublicKey = Oid.FromFriendlyName("ECC", OidGroup.All);
 
         public static string GetSha256Thumbprint(X509Certificate2 cert)
         {
@@ -425,95 +420,60 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         static X509Certificate2 AttachPrivateKey(X509Certificate2 certificate, string pemEncodedKey)
         {
-            int retryCount = 0;
-            while (retryCount++ < MaxCertImportRetryCount)
+            var pkcs8Label = "PRIVATE KEY";
+            var rsaLabel = "RSA PRIVATE KEY";
+            var ecLabel = "EC PRIVATE KEY";
+            var keyAlgorithm = certificate.GetKeyAlgorithm();
+            var isPkcs8 = pemEncodedKey.IndexOf(Header(pkcs8Label)) >= 0;
+
+            X509Certificate2 result = null;
+
+            try
             {
-                string pkcs8Label = "PRIVATE KEY";
-                string rsaLabel = "RSA PRIVATE KEY";
-                string ecLabel = "EC PRIVATE KEY";
-
-                var keyAlgorithm = certificate.GetKeyAlgorithm();
-
-                bool isPkcs8 = pemEncodedKey.IndexOf(Header(pkcs8Label)) >= 0;
-
-                X509Certificate2 result = null;
-
-                try
+                if (oidRsaEncryption.Value == keyAlgorithm)
                 {
-                    if (oidRsaEncryption.Value == keyAlgorithm)
+                    var decodedKey = UnwrapPrivateKey(pemEncodedKey, isPkcs8 ? pkcs8Label : rsaLabel);
+                    var key = RSA.Create();
+
+                    if (isPkcs8)
                     {
-                        var decodedKey = UnwrapPrivateKey(pemEncodedKey, isPkcs8 ? pkcs8Label : rsaLabel);
-                        var key = RSA.Create();
-
-                        if (isPkcs8)
-                        {
-                            key.ImportPkcs8PrivateKey(decodedKey, out _);
-                        }
-                        else
-                        {
-                            key.ImportRSAPrivateKey(decodedKey, out _);
-                        }
-
-                        result = certificate.CopyWithPrivateKey(key);
+                        key.ImportPkcs8PrivateKey(decodedKey, out _);
                     }
-                    else if (oidEcPublicKey.Value == keyAlgorithm)
+                    else
                     {
-                        var decodedKey = UnwrapPrivateKey(pemEncodedKey, isPkcs8 ? pkcs8Label : ecLabel);
-                        var key = ECDsa.Create();
-
-                        if (isPkcs8)
-                        {
-                            key.ImportPkcs8PrivateKey(decodedKey, out _);
-                        }
-                        else
-                        {
-                            key.ImportECPrivateKey(decodedKey, out _);
-                        }
-
-                        result = certificate.CopyWithPrivateKey(key);
+                        key.ImportRSAPrivateKey(decodedKey, out _);
                     }
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidOperationException("Cannot import private key", ex);
-                }
 
-                if (result == null)
-                {
-                    throw new InvalidOperationException($"Cannot use certificate, not supported key algorithm: ${keyAlgorithm}");
+                    result = certificate.CopyWithPrivateKey(key);
                 }
-
-                try
+                else if (oidEcPublicKey.Value == keyAlgorithm)
                 {
-                    // On Windows the certificate in 'result' gives an error when used with kestrel: "No credentials are available in the security"
-                    // This is a suggested workaround that seems working (https://github.com/dotnet/runtime/issues/45680)
-                    result = new X509Certificate2(result.Export(X509ContentType.Pkcs12));
+                    var decodedKey = UnwrapPrivateKey(pemEncodedKey, isPkcs8 ? pkcs8Label : ecLabel);
+                    var key = ECDsa.Create();
 
-                    // Reading the private key to see if the import was successful. On Windows it fails sometimes,
-                    // the root cause is unknown.
-                    if (result.HasPrivateKey)
+                    if (isPkcs8)
                     {
-                        if (oidEcPublicKey.Value == keyAlgorithm)
-                        {
-                            _ = result.GetECDsaPrivateKey();
-                        }
-                        else
-                        {
-                            _ = result.GetRSAPrivateKey();
-                        }
-
-                        return result;
+                        key.ImportPkcs8PrivateKey(decodedKey, out _);
                     }
-                }
-                catch
-                {
-                    // swallow
-                }
+                    else
+                    {
+                        key.ImportECPrivateKey(decodedKey, out _);
+                    }
 
-                Thread.Sleep(TimeSpan.FromSeconds(1));
+                    result = certificate.CopyWithPrivateKey(key);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Cannot import private key", ex);
             }
 
-            throw new InvalidOperationException("Cannot import certificate with private key, giving up");
+            if (result == null)
+            {
+                throw new InvalidOperationException($"Cannot use certificate, not supported key algorithm: ${keyAlgorithm}");
+            }
+
+            return result;
         }
 
         static byte[] UnwrapPrivateKey(string pemEncodedKey, string algoLabel)
