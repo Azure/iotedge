@@ -192,7 +192,7 @@ jobs:
    - template: templates/e2e-run.yaml
 
 ################################################################################
-  - job: linux_amd64_proxy
+ - job: linux_amd64_proxy
 ################################################################################
     displayName: Linux amd64 behind a proxy
 
