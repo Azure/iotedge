@@ -1,108 +1,356 @@
 trigger: none
 pr: none
-jobs:
-
+stages:
+  
 ################################################################################
-  - job: linux
+  - stage: BuildPackages
 ################################################################################
-    displayName: Linux
+    displayName: Build Packages
     pool:
-      vmImage: 'ubuntu-18.04'
-    strategy:
-      matrix:
-        Centos75-amd64:
-          arch: amd64
-          os: centos7
-          target.iotedged: edgelet/target/rpmbuild/RPMS/x86_64
-        Debian9-amd64:
-          os: debian9
-          arch: amd64
-          target.iotedged: edgelet/target/release
-        Debian9-arm32v7:
-          os: debian9
-          arch: arm32v7
-          target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
-        Debian9-aarch64:
-          os: debian9
-          arch: aarch64
-          target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+    jobs:
+    - job: linux
+      displayName: Linux
+      pool:
+        vmImage: 'ubuntu-18.04'
+      strategy:
+        matrix:
+          Centos75-amd64:
+            arch: amd64
+            os: centos7
+            target.iotedged: edgelet/target/rpmbuild/RPMS/x86_64
+          Debian9-amd64:
+            os: debian9
+            arch: amd64
+            target.iotedged: edgelet/target/release
+          Debian9-arm32v7:
+            os: debian9
+            arch: arm32v7
+            target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+          Debian9-aarch64:
+            os: debian9
+            arch: aarch64
+            target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
 
-        Debian10-amd64:
-          os: debian10
-          arch: amd64
-          target.iotedged: edgelet/target/release
-        Debian10-arm32v7:
-          os: debian10
-          arch: arm32v7
-          target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
-        Debian10-aarch64:
-          os: debian10
-          arch: aarch64
-          target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+          Debian10-amd64:
+            os: debian10
+            arch: amd64
+            target.iotedged: edgelet/target/release
+          Debian10-arm32v7:
+            os: debian10
+            arch: arm32v7
+            target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+          Debian10-aarch64:
+            os: debian10
+            arch: aarch64
+            target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
 
-        Debian11-amd64:
-          os: debian11
-          arch: amd64
-          target.iotedged: edgelet/target/release
-        Debian11-arm32v7:
-          os: debian11
-          arch: arm32v7
-          target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
-        Debian11-aarch64:
-          os: debian11
-          arch: aarch64
-          target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+          Debian11-amd64:
+            os: debian11
+            arch: amd64
+            target.iotedged: edgelet/target/release
+          Debian11-arm32v7:
+            os: debian11
+            arch: arm32v7
+            target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+          Debian11-aarch64:
+            os: debian11
+            arch: aarch64
+            target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+            
+          Ubuntu1804-amd64:
+            os: ubuntu18.04
+            arch: amd64
+            target.iotedged: edgelet/target/release
+          Ubuntu1804-arm32v7:
+            os: ubuntu18.04
+            arch: arm32v7
+            target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+          Ubuntu1804-aarch64:
+            os: ubuntu18.04
+            arch: aarch64
+            target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+          Ubuntu2004-amd64:
+            arch: amd64
+            os: ubuntu20.04
+            target.iotedged: edgelet/target/release
+          Ubuntu2004-arm32v7:
+            arch: arm32v7
+            os: ubuntu20.04
+            target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+          Ubuntu2004-aarch64:
+            arch: aarch64
+            os: ubuntu20.04
+            target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+      steps:
+        - bash: |
+            BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
+            VERSION="$BASE_VERSION"
+            echo "##vso[task.setvariable variable=VERSION;]$VERSION"
+
+            echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
+            echo "##vso[task.setvariable variable=PACKAGE_OS;]$(os)"
+          displayName: Set Version
+        - script: edgelet/build/linux/package.sh
+          displayName: Create iotedged packages
+        - task: CopyFiles@2
+          displayName: Copy iotedged Files to Artifact Staging
+          inputs:
+            SourceFolder: $(target.iotedged)
+            Contents: |
+              *.deb
+              *.rpm
+            TargetFolder: '$(build.artifactstagingdirectory)'
+        - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
+          displayName: 'SBOM Generation Task'
+          inputs:
+              BuildDropPath: '$(build.artifactstagingdirectory)'             
+        - task: PublishBuildArtifacts@1
+          displayName: Publish Artifacts
+          inputs:
+            PathtoPublish: '$(build.artifactstagingdirectory)'
+            ArtifactName: 'iotedged-$(os)-$(arch)'
+          condition: succeededOrFailed()
+
+################################################################################
+  - stage: PublishPackagesMicrosoft
+################################################################################
+    displayName: Publish Packages Microsoft
+    dependsOn: [BuildPackages]
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+    jobs:
+    - deployment: safe_guard
+      environment: 'Azure-IoT-Edge-Core Release Env'
+      displayName: Get Approval
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - bash: |
+                  echo "Approval Complete"   
+    - job: linux
+      displayName: Linux
+      strategy:
+        matrix:
+          Debian9-arm32v7:
+            os: debian9
+            artifactName: iotedged-debian9-arm32v7
+            identityServiceArtifactName: packages_debian-9-slim_arm32v7
+            identityServicePackageFilter: aziot-identity-service_*_armhf.deb
           
-        Ubuntu1804-amd64:
-          os: ubuntu18.04
-          arch: amd64
-          target.iotedged: edgelet/target/release
-        Ubuntu1804-arm32v7:
-          os: ubuntu18.04
-          arch: arm32v7
-          target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
-        Ubuntu1804-aarch64:
-          os: ubuntu18.04
-          arch: aarch64
-          target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
-        Ubuntu2004-amd64:
-          arch: amd64
-          os: ubuntu20.04
-          target.iotedged: edgelet/target/release
-        Ubuntu2004-arm32v7:
-          arch: arm32v7
-          os: ubuntu20.04
-          target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
-        Ubuntu2004-aarch64:
-          arch: aarch64
-          os: ubuntu20.04
-          target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
-    steps:
-      - bash: |
-          BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
-          VERSION="$BASE_VERSION"
-          echo "##vso[task.setvariable variable=VERSION;]$VERSION"
+          Ubuntu1804-amd64:
+            os: ubuntu18.04
+            artifactName: iotedged-ubuntu18.04-amd64
+            identityServiceArtifactName: packages_ubuntu-18.04_amd64
+            identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+          Ubuntu1804-aarch64:
+            os: ubuntu18.04
+            artifactName: iotedged-ubuntu18.04-aarch64
+            identityServiceArtifactName: packages_ubuntu-18.04_aarch64
+            identityServicePackageFilter: aziot-identity-service_*_arm64.deb
+          
+          Ubuntu2004-amd64:
+            os: ubuntu20.04
+            artifactName: iotedged-ubuntu20.04-amd64
+            identityServiceArtifactName: packages_ubuntu-20.04_amd64
+            identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+          Ubuntu2004-aarch64:
+            os: ubuntu20.04
+            artifactName: iotedged-ubuntu20.04-aarch64
+            identityServiceArtifactName: packages_ubuntu-20.04_aarch64
+            identityServicePackageFilter: aziot-identity-service_*_arm64.deb
+      steps:
+        - task: AzureKeyVault@1
+          displayName: Get secrets
+          inputs:
+            azureSubscription: $(az.subscription)
+            keyVaultName: $(kv.name)
+            secretsFilter: >-
+              GitHubAccessToken
+        - task: DownloadPipelineArtifact@2
+          displayName: Download Pipeline Build Packages
+          inputs:
+            source: 'current'
+            path: $(System.ArtifactsDirectory)
+            patterns: $(artifactName)/*.deb
+        - task: PowerShell@2
+          displayName: 'Download aziot-identity-service'
+          inputs:
+            filePath: $(Build.SourcesDirectory)/scripts/local/test/DownloadIdentityService.ps1
+            workingDirectory: $(Build.SourcesDirectory)
+          env:
+            GITHUB_TOKEN: $(GitHubAccessToken)
+            ARTIFACT_NAME: $(identityServiceArtifactName)
+            PACKAGE_FILTER: $(identityServicePackageFilter)
+            DOWNLOAD_PATH: $(System.ArtifactsDirectory)/$(artifactName)
+            IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
+        - task: Docker@2
+          displayName: Docker login msinternal
+          inputs:
+            command: login
+            containerRegistry: iotedge-msinternal-mcr
+        - task: AzureCLI@2
+          displayName: Publish Packages
+          inputs:
+            azureSubscription: $(az.subscription)
+            scriptType: bash
+            scriptPath: $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh
+            arguments: -p $(os) -w $(System.ArtifactsDirectory) -d $(System.ArtifactsDirectory)/$(artifactName) -s $(package-server-name)
+            
+##############################################################################
+  - stage: PublishPackagesGithub
+##############################################################################
+    displayName: Publish Packages Github
+    dependsOn: [BuildPackages]
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+    jobs:
+    - deployment: safe_guard
+      environment: 'Azure-IoT-Edge-Core Release Env'
+      displayName: Get Approval
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - task: AzureKeyVault@1
+                displayName: Get secrets
+                inputs:
+                  azureSubscription: $(az.subscription)
+                  keyVaultName: $(kv.name)
+                  secretsFilter: >-
+                    GitHubAccessToken
+              - bash: | #Create Release Page Before Publishing Artifacts in Parallel in the Next Job.
+                  echo "Approval Complete, Creating Release Page"
+                  BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
+                  $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh -p ubuntu20.04 -w $(Build.SourcesDirectory) -d $(Build.SourcesDirectory) -v "$BASE_VERSION" -s "github.com" -b  $(Build.SourceBranch) --skip-upload true
+                env:
+                  GITHUB_PAT: "$(GitHubAccessToken)"        
+    - job: linux
+      displayName: Linux
+      strategy:
+        matrix:
+          Centos75-amd64:
+            os: centos7
+            artifactName: iotedged-centos7-amd64
+            identityServiceArtifactName: packages_centos-7_amd64
+            identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
+          
+          Debian9-amd64:
+            os: debian9
+            artifactName: iotedged-debian9-amd64
+            identityServiceArtifactName: packages_debian-9-slim_amd64
+            identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+          Debian9-arm32v7:
+            os: debian9
+            artifactName: iotedged-debian9-arm32v7
+            identityServiceArtifactName: packages_debian-9-slim_arm32v7
+            identityServicePackageFilter: aziot-identity-service_*_armhf.deb
+          Debian9-aarch64:
+            os: debian9
+            artifactName: iotedged-debian9-aarch64
+            identityServiceArtifactName: packages_debian-9-slim_aarch64
+            identityServicePackageFilter: aziot-identity-service_*_arm64.deb
+          
+          Debian10-amd64:
+            os: debian10
+            artifactName: iotedged-debian10-amd64
+            identityServiceArtifactName: packages_debian-10-slim_amd64
+            identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+          Debian10-arm32v7:
+            os: debian10
+            artifactName: iotedged-debian10-arm32v7
+            identityServiceArtifactName: packages_debian-10-slim_arm32v7
+            identityServicePackageFilter: aziot-identity-service_*_armhf.deb
+          Debian10-aarch64:
+            os: debian10
+            artifactName: iotedged-debian10-aarch64
+            identityServiceArtifactName: packages_debian-10-slim_aarch64
+            identityServicePackageFilter: aziot-identity-service_*_arm64.deb
+  
+          Debian11-amd64:
+            os: debian11
+            artifactName: iotedged-debian11-amd64
+            identityServiceArtifactName: packages_debian-11-slim_amd64
+            identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+          Debian11-arm32v7:
+            os: debian11
+            artifactName: iotedged-debian11-arm32v7
+            identityServiceArtifactName: packages_debian-11-slim_arm32v7
+            identityServicePackageFilter: aziot-identity-service_*_armhf.deb
+          Debian11-aarch64:
+            os: debian11
+            artifactName: iotedged-debian11-aarch64
+            identityServiceArtifactName: packages_debian-11-slim_aarch64
+            identityServicePackageFilter: aziot-identity-service_*_arm64.deb
 
-          echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
-          echo "##vso[task.setvariable variable=PACKAGE_OS;]$(os)"
-        displayName: Set Version
-      - script: edgelet/build/linux/package.sh
-        displayName: Create iotedged packages
-      - task: CopyFiles@2
-        displayName: Copy iotedged Files to Artifact Staging
-        inputs:
-          SourceFolder: $(target.iotedged)
-          Contents: |
-            *.deb
-            *.rpm
-          TargetFolder: '$(build.artifactstagingdirectory)'
-      - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
-        displayName: 'SBOM Generation Task'
-        inputs:
-            BuildDropPath: '$(build.artifactstagingdirectory)'             
-      - task: PublishBuildArtifacts@1
-        displayName: Publish Artifacts
-        inputs:
-          PathtoPublish: '$(build.artifactstagingdirectory)'
-          ArtifactName: 'iotedged-$(os)-$(arch)'
-        condition: succeededOrFailed()
+          Ubuntu1804-amd64:
+            os: ubuntu18.04
+            artifactName: iotedged-ubuntu18.04-amd64
+            identityServiceArtifactName: packages_ubuntu-18.04_amd64
+            identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+          Ubuntu1804-arm32v7:
+            os: ubuntu18.04
+            artifactName: iotedged-ubuntu18.04-arm32v7
+            identityServiceArtifactName: packages_ubuntu-18.04_arm32v7
+            identityServicePackageFilter: aziot-identity-service_*_armhf.deb
+          Ubuntu1804-aarch64:
+            os: ubuntu18.04
+            artifactName: iotedged-ubuntu18.04-aarch64
+            identityServiceArtifactName: packages_ubuntu-18.04_aarch64
+            identityServicePackageFilter: aziot-identity-service_*_arm64.deb
+
+          Ubuntu2004-amd64:
+            os: ubuntu20.04
+            artifactName: iotedged-ubuntu20.04-amd64
+            identityServiceArtifactName: packages_ubuntu-20.04_amd64
+            identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+          Ubuntu2004-arm32v7:
+            os: ubuntu20.04
+            artifactName: iotedged-ubuntu20.04-arm32v7
+            identityServiceArtifactName: packages_ubuntu-20.04_arm32v7
+            identityServicePackageFilter: aziot-identity-service_*_armhf.deb
+          Ubuntu2004-aarch64:
+            os: ubuntu20.04
+            artifactName: iotedged-ubuntu20.04-aarch64
+            identityServiceArtifactName: packages_ubuntu-20.04_aarch64
+            identityServicePackageFilter: aziot-identity-service_*_arm64.deb
+      steps:
+        - task: AzureKeyVault@1
+          displayName: Get secrets
+          inputs:
+            azureSubscription: $(az.subscription)
+            keyVaultName: $(kv.name)
+            secretsFilter: >-
+              GitHubAccessToken
+        - task: DownloadPipelineArtifact@2
+          displayName: Download Pipeline Build Packages
+          inputs:
+            source: 'current'
+            path: $(System.ArtifactsDirectory)
+            patterns: |
+                $(artifactName)/*.deb
+                $(artifactName)/*.rpm
+        - task: PowerShell@2
+          displayName: 'Download aziot-identity-service'
+          inputs:
+            filePath: $(Build.SourcesDirectory)/scripts/local/test/DownloadIdentityService.ps1
+            workingDirectory: $(Build.SourcesDirectory)
+          env:
+            GITHUB_TOKEN: $(GitHubAccessToken)
+            ARTIFACT_NAME: $(identityServiceArtifactName)
+            PACKAGE_FILTER: $(identityServicePackageFilter)
+            DOWNLOAD_PATH: $(System.ArtifactsDirectory)/$(artifactName)
+            IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
+        - bash: |
+            BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
+            $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh -p $(os) -w $(System.ArtifactsDirectory) -d $(System.ArtifactsDirectory)/$(artifactName) -v "$BASE_VERSION" -s "github.com" -b $(Build.SourceBranch)
+          env:
+            GITHUB_PAT: "$(GitHubAccessToken)"    
+          name: publish_artifacts 

@@ -12,7 +12,7 @@ futures = "0.3"
 futures-util = "0.3"
 http = "0.2"
 hyper = "0.14"
-nix = "0.22"
+nix = "0.23"
 openssl = "0.10"
 serde = "1"
 

@@ -129,7 +129,6 @@ namespace TestResultCoordinator.Reports
 
                         return new DirectMethodConnectivityReportGenerator(
                             metadata.TestDescription,
-                            Settings.Current.Topology,
                             trackingId,
                             metadata.SenderSource,
                             senderTestResults.GetAsyncEnumerator(),

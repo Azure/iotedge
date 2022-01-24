@@ -98,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             // slower method to reconcile so we handle the direct case separately with a faster method
             await moduleId.Filter(i => string.Equals(i, Constants.EdgeHubModuleId))
                      .Match(
-                        _ => this.HandleNestedSubscriptionChanges(subscriptionList),
+                        _ => this.HandleSubscriptionChanges(subscriptionList),
                         () => this.HandleDirectSubscriptionChanges(deviceId, moduleId, subscriptionList));
 
             return true;
@@ -106,6 +106,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         async Task HandleDirectSubscriptionChanges(Option<string> deviceId, Option<string> moduleId, List<string> subscriptionList)
         {
+            if (this.HasMixedIdentities(deviceId, moduleId, subscriptionList))
+            {
+                await this.HandleSubscriptionChanges(subscriptionList);
+                return;
+            }
+
             var identity = moduleId.Match(
                                mod => deviceId.Match(
                                          dev => this.identityProvider.Create(dev, mod),
@@ -154,6 +160,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return false;
         }
 
+        bool HasMixedIdentities(Option<string> deviceId, Option<string> moduleId, List<string> subscriptionList)
+        {
+            foreach (var subscriptionPattern in this.subscriptionPatterns)
+            {
+                foreach (var subscription in subscriptionList)
+                {
+                    var subscriptionMatch = Regex.Match(subscription, subscriptionPattern.Pattern);
+                    if (subscriptionMatch.Success)
+                    {
+                        var subscribedDevId = subscriptionMatch.Groups["id1"].Success ? Option.Some<string>(subscriptionMatch.Groups["id1"].Value) : Option.None<string>();
+                        var subscribedModId = subscriptionMatch.Groups["id2"].Success ? Option.Some<string>(subscriptionMatch.Groups["id2"].Value) : Option.None<string>();
+
+                        if (!IsMatchingIds(subscribedDevId, subscribedModId, deviceId, moduleId))
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
         // A connection is nested when happens through a lower level edge device. In this case the
         // current level learns about the connections by 'sidechannels', e.g. when an nested client
         // subscribes to a topic. The notification of the subscription is assigned to $edgeHub and
@@ -168,7 +197,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         // been seen before.
         // To solve 2), we need to take all known devices and unsubscribe from all topics not listed in the
         // current notification.
-        async Task HandleNestedSubscriptionChanges(List<string> subscriptionList)
+        async Task HandleSubscriptionChanges(List<string> subscriptionList)
         {
             // As a first step, go through the sent subscription list and subscribe to everything it says.
             // The call returns all clients that had a subscription and ans also returns their subscriptions.
