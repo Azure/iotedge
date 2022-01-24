@@ -58,7 +58,7 @@ steps:
     elseif ($test_type -eq 'http_proxy')
     {
       #Disable tests that don't work in proxy environment. Renable post-investigation.
-      $filter += '&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~ValidateMetrics'
+      $filter += '&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~ValidateMetrics&FullyQualifiedName!~contenttrust'
       #Disable nested edge tests
       $filter += '&Category!=NestedEdgeOnly'
     }
