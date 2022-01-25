@@ -72,7 +72,7 @@ pub struct Settings<ModuleConfig> {
     pub endpoints: aziot::Endpoints,
 
     /// Additional system information
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
     pub additional_info: std::collections::BTreeMap<String, String>,
 }
 
