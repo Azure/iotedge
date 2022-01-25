@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
             this.cts = new CancellationTokenSource();
 
-            TimeSpan timeToExpire = TimeSpan.FromMinutes(30);
+            TimeSpan timeToExpire = TimeSpan.FromMinutes(10);
             this.timer = new Timer(this.Callback, null, timeToExpire, Timeout.InfiniteTimeSpan);
         }
 
@@ -56,29 +56,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         void Callback(object _state)
         {
             this.cts.Cancel();
-
-            // TimeSpan timeToExpire = this.certificates.ServerCertificate.NotAfter - DateTime.UtcNow;
-            // if (timeToExpire > TimeBuffer)
-            // {
-            //     // Timer has expired but is not within the time window for renewal
-            //     // Reschedule the timer.
-
-            //     // Clamp the renew time to TimeSpan.FromMilliseconds(Int32.MaxValue)
-            //     // This is the maximum value for the timer (~24 days)
-            //     // Math.Min unfortunately doesn't work with TimeSpans so we need to do the check manually
-            //     TimeSpan renewAfter = timeToExpire - (TimeBuffer / 2);
-            //     TimeSpan clamped = renewAfter > MaxRenewAfter
-            //         ? MaxRenewAfter
-            //         : renewAfter;
-            //     this.logger.LogDebug("Scheduling server certificate renewal timer for {0}.", DateTime.UtcNow.Add(clamped).ToString("o"));
-            //     this.timer.Change(clamped, Timeout.InfiniteTimeSpan);
-            // }
-            // else
-            // {
-            //     this.logger.LogInformation("Restarting process to perform server certificate renewal.");
-            //     this.cts.Cancel();
-            //     this.timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
-            // }
         }
     }
 }
