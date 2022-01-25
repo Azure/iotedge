@@ -87,7 +87,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                     c =>
                     {
-                        /*
                         IModuleManager m = c.Resolve<IModuleManager>();
 
                         // NOTE: Deadlock risk
@@ -95,13 +94,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             .ConfigureAwait(false)
                             .GetAwaiter()
                             .GetResult();
-                        */
 
                         return new ModuleClientProvider(
                             c.Resolve<ISdkModuleClientProvider>(),
                             this.upstreamProtocol,
                             this.proxy,
-                            $"{this.productInfo} (THIS_IS_A_TEST)",
+                            $"{this.productInfo} ({system.ToQueryString()})",
                             this.closeOnIdleTimeout,
                             this.idleTimeout,
                             this.useServerHeartbeat);
