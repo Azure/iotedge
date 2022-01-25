@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             this.cts = new CancellationTokenSource();
 
             TimeSpan timeToExpire = TimeSpan.FromMinutes(30);
-            this.timer = new Timer(this.Callback, null, clamped, Timeout.InfiniteTimeSpan);
+            this.timer = new Timer(this.Callback, null, timeToExpire, Timeout.InfiniteTimeSpan);
         }
 
         /// <summary>
