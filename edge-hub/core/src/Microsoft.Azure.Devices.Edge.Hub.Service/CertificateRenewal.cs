@@ -22,25 +22,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
             this.cts = new CancellationTokenSource();
 
-            TimeSpan timeToExpire = certificates.ServerCertificate.NotAfter - DateTime.UtcNow;
-            if (timeToExpire > TimeBuffer)
-            {
-                // Clamp the renew time to TimeSpan.FromMilliseconds(Int32.MaxValue)
-                // This is the maximum value for the timer (~24 days)
-                // Math.Min unfortunately doesn't work with TimeSpans so we need to do the check manually
-                TimeSpan renewAfter = timeToExpire - (TimeBuffer / 2);
-                TimeSpan clamped = renewAfter > MaxRenewAfter
-                    ? MaxRenewAfter
-                    : renewAfter;
-                logger.LogInformation("Scheduling server certificate renewal for {0}.", DateTime.UtcNow.Add(renewAfter).ToString("o"));
-                logger.LogDebug("Scheduling server certificate renewal timer for {0} (clamped to Int32.MaxValue).", DateTime.UtcNow.Add(clamped).ToString("o"));
-                this.timer = new Timer(this.Callback, null, clamped, Timeout.InfiniteTimeSpan);
-            }
-            else
-            {
-                logger.LogWarning("Server certificate is expired ({0}). Not scheduling renewal.", timeToExpire.ToString("c"));
-                this.timer = new Timer(this.Callback, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
-            }
+            TimeSpan timeToExpire = TimeSpan.FromMinutes(30);
+            this.timer = new Timer(this.Callback, null, clamped, Timeout.InfiniteTimeSpan);
         }
 
         /// <summary>
@@ -72,28 +55,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         void Callback(object _state)
         {
-            TimeSpan timeToExpire = this.certificates.ServerCertificate.NotAfter - DateTime.UtcNow;
-            if (timeToExpire > TimeBuffer)
-            {
-                // Timer has expired but is not within the time window for renewal
-                // Reschedule the timer.
+            this.cts.Cancel();
 
-                // Clamp the renew time to TimeSpan.FromMilliseconds(Int32.MaxValue)
-                // This is the maximum value for the timer (~24 days)
-                // Math.Min unfortunately doesn't work with TimeSpans so we need to do the check manually
-                TimeSpan renewAfter = timeToExpire - (TimeBuffer / 2);
-                TimeSpan clamped = renewAfter > MaxRenewAfter
-                    ? MaxRenewAfter
-                    : renewAfter;
-                this.logger.LogDebug("Scheduling server certificate renewal timer for {0}.", DateTime.UtcNow.Add(clamped).ToString("o"));
-                this.timer.Change(clamped, Timeout.InfiniteTimeSpan);
-            }
-            else
-            {
-                this.logger.LogInformation("Restarting process to perform server certificate renewal.");
-                this.cts.Cancel();
-                this.timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
-            }
+            // TimeSpan timeToExpire = this.certificates.ServerCertificate.NotAfter - DateTime.UtcNow;
+            // if (timeToExpire > TimeBuffer)
+            // {
+            //     // Timer has expired but is not within the time window for renewal
+            //     // Reschedule the timer.
+
+            //     // Clamp the renew time to TimeSpan.FromMilliseconds(Int32.MaxValue)
+            //     // This is the maximum value for the timer (~24 days)
+            //     // Math.Min unfortunately doesn't work with TimeSpans so we need to do the check manually
+            //     TimeSpan renewAfter = timeToExpire - (TimeBuffer / 2);
+            //     TimeSpan clamped = renewAfter > MaxRenewAfter
+            //         ? MaxRenewAfter
+            //         : renewAfter;
+            //     this.logger.LogDebug("Scheduling server certificate renewal timer for {0}.", DateTime.UtcNow.Add(clamped).ToString("o"));
+            //     this.timer.Change(clamped, Timeout.InfiniteTimeSpan);
+            // }
+            // else
+            // {
+            //     this.logger.LogInformation("Restarting process to perform server certificate renewal.");
+            //     this.cts.Cancel();
+            //     this.timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+            // }
         }
     }
 }
