@@ -168,23 +168,23 @@ To run `aziot-edged` locally:
     - Linux / macOS
 
         ```sh
-        export IOTEDGE_HOMEDIR=~/iotedge
-        mkdir -p "$IOTEDGE_HOMEDIR"
+        export AZIOT_EDGED_CONFIG_DIR=~/iotedge
+        mkdir -p "$AZIOT_EDGED_CONFIG_DIR"
         ```
 
     - Windows
 
         ```powershell
-        $env:IOTEDGE_HOMEDIR = Resolve-Path ~/iotedge
-        New-Item -Type Directory -Force $env:IOTEDGE_HOMEDIR
+        $env:AZIOT_EDGED_CONFIG_DIR = Resolve-Path ~/iotedge
+        New-Item -Type Directory -Force $env:AZIOT_EDGED_CONFIG_DIR
         ```
 
-1. Create a `config.yaml`. It's okay to create this under the `IOTEDGE_HOMEDIR` directory.
+1. Create a `config.toml`. It's okay to create this under the `AZIOT_EDGED_CONFIG_DIR` directory.
 
-1. Run the daemon with the `IOTEDGE_HOMEDIR` environment variable set and with the path to the `config.yaml`
+1. Run the daemon with the `AZIOT_EDGED_CONFIG_DIR` environment variable set and with the path to the `config.toml`
 
     ```sh
-    cargo run -p aziot-edged -- -c /absolute/path/to/config.yaml
+    cargo run -p aziot-edged -- -c /absolute/path/to/config.toml
     ```
 
 
