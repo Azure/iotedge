@@ -235,6 +235,7 @@ jobs:
         - Agent.OSArchitecture -equals X64
         - run-new-e2e-tests -equals true
         - eflow -equals true
+        - eflow-version -equals 1.2
 
     variables:
       os: linux
