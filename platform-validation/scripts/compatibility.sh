@@ -334,14 +334,14 @@ perform_capability_check_host(){
         #TODO Check Mark Failed in Red
         wrap_debug "Failed to Set Capability on Host Container"
         wrap_fail "Capability_Check_Host" "Fail"
-        exit 1
+        return
     fi
 
     contains=$(sudo getcap cap.txt | grep 'cap_net_bind_service+ep')
     if [[ $? != 0 && contains != "*cap_net_bind_service+ep*" ]]; then
         wrap_debug "Failed to Verify Set Capability on Host Container"
         wrap_fail "Capability_Check_Host" "Fail"
-        exit 1
+        return
     fi
 
     wrap_pass "Capability_Check_Host" "Pass"
@@ -383,7 +383,7 @@ perform_capability_check_container(){
             #TODO Check Mark Failed in Red
             wrap_debug "Failed to Check Capability in Container, Check Failed"
             wrap_fail "Capability_Check_Container" "Fail"
-            exit 1
+            return
         fi
         wrap_pass "Capability_Check_Container" "Pass"
     fi
