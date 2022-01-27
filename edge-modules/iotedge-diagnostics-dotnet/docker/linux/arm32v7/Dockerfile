@@ -1,4 +1,4 @@
-ARG base_tag=3.1.19-bionic-arm32v7
+ARG base_tag=3.1-bionic-arm32v7
 FROM mcr.microsoft.com/dotnet/runtime:${base_tag}
 
 ARG EXE_DIR=.
