@@ -39,7 +39,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 .GetFiles(path, $"*.{this.packageExtension.ToString().ToLower()}")
                 .Where(p => !p.Contains("debug") && !p.Contains("devel"))
                 .ToArray();
-
+            Console.WriteLine("Packages " + packages.ToString());
+            Console.WriteLine("Path " + path);
             return this.packageExtension switch
             {
                 SupportedPackageExtension.Deb => new[]
