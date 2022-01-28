@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             // we really support only two options for now.
             string repository = this.os.ToLower() switch
             {
-                "ubuntu" => $"https://packages.microsoft.com/config/ubuntu/18.04/multiarch/prod.list",
+                "ubuntu" => this.version == "18.04" ? "https://packages.microsoft.com/config/ubuntu/18.04/multiarch/prod.list" : "https://packages.microsoft.com/config/ubuntu/20.04/prod.list",
                 "debian" => $"https://packages.microsoft.com/config/debian/stretch/multiarch/prod.list",
                 _ => throw new NotImplementedException($"Don't know how to install daemon for '{this.os}'"),
             };
