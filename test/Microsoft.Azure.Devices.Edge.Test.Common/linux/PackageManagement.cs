@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
     using System.IO;
     using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Serilog;
 
     public enum SupportedPackageExtension
     {
@@ -39,8 +40,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 .GetFiles(path, $"*.{this.packageExtension.ToString().ToLower()}")
                 .Where(p => !p.Contains("debug") && !p.Contains("devel"))
                 .ToArray();
-            Console.WriteLine("Packages " + packages.ToString());
-            Console.WriteLine("Path " + path);
+            Log.Verbose("packages " + packages);
+            Log.Verbose("path" + path);
             return this.packageExtension switch
             {
                 SupportedPackageExtension.Deb => new[]
