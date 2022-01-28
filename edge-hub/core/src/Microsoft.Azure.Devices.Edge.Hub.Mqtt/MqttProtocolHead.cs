@@ -50,6 +50,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         IChannel serverChannel;
         IEventLoopGroup eventLoopGroup;
+        IEventLoopGroup wsEventLoopGroup;
+
+        IEventLoopGroup parentEventLoopGroup;
 
         public MqttProtocolHead(
             ISettingsProvider settingsProvider,
@@ -110,6 +113,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
                 await (this.serverChannel?.CloseAsync() ?? TaskEx.Done);
                 await (this.eventLoopGroup?.ShutdownGracefullyAsync() ?? TaskEx.Done);
+                await (this.parentEventLoopGroup?.ShutdownGracefullyAsync() ?? TaskEx.Done);
+                await (this.wsEventLoopGroup?.ShutdownGracefullyAsync() ?? TaskEx.Done);
                 // TODO: gracefully shutdown the MultithreadEventLoopGroup in MqttWebSocketListener?
                 // TODO: this.webSocketListenerRegistry.TryUnregister("mqtts")?
                 this.logger.LogInformation("Stopped");
@@ -123,7 +128,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         public void Dispose()
         {
             this.mqttConnectionProvider.Dispose();
-            this.CloseAsync(CancellationToken.None).Wait();
         }
 
         ServerBootstrap SetupServerBootstrap()
@@ -141,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             IEventLoopGroup parentEventLoopGroup = new MultithreadEventLoopGroup(parentEventLoopCount);
             // multithreaded event loop (worker) that handles the traffic of the accepted connections
             this.eventLoopGroup = new MultithreadEventLoopGroup(threadCount);
-
+            this.parentEventLoopGroup = parentEventLoopGroup;
             bootstrap.Group(parentEventLoopGroup, this.eventLoopGroup)
                 .Option(ChannelOption.SoBacklog, listenBacklogSize)
                 // Allow listening socket to force bind to port if previous socket is still in TIME_WAIT
@@ -185,6 +189,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                                     bridgeFactory));
                         }));
 
+            this.wsEventLoopGroup = new MultithreadEventLoopGroup(Environment.ProcessorCount);
             var mqttWebSocketListener = new MqttWebSocketListener(
                 settings,
                 bridgeFactory,
@@ -192,7 +197,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 this.usernameParser,
                 this.clientCredentialsFactory,
                 () => this.sessionProvider,
-                new MultithreadEventLoopGroup(Environment.ProcessorCount),
+                this.wsEventLoopGroup,
                 this.byteBufferAllocator,
                 AutoRead,
                 maxInboundMessageSize,
