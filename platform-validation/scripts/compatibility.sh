@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env sh
 
 ###############################################################################
 # This script checks whether IoT Edge Runtime can run on a target OS
@@ -52,10 +52,10 @@ wrap_debug(){
 }
 
 wrap_pass() {
-	echo "$(printf '\u2714') $(wrap_color "$1" white) $(wrap_color "$2" green)"
+	echo "$(wrap_color "$1" white) $(wrap_color "$2" green)"
 }
 wrap_fail() {
-	echo "$(printf '\u274c') $(wrap_color "$1" bold) $(wrap_color "$2" bold red)"
+	echo "$(wrap_color "$1" bold) $(wrap_color "$2" bold red)"
 }
 wrap_warning() {
 	wrap_color >&2 "$*" red
@@ -64,11 +64,12 @@ wrap_warning() {
 
 # ------------------------------------------------------------------------------
 #  Retrieve OS TYPE AND ARCHITECTURE (Required for Getting IoT)
-#  Copied from https://sh.rustup.rs 
+#  Derived from https://sh.rustup.rs 
 # ------------------------------------------------------------------------------
 need_cmd() {
     if ! check_cmd "$1"; then
-     err "need '$1' (command not found)"
+     wrap_warning "need '$1' (command not found)"
+     exit 1
     fi
 }
 
@@ -78,7 +79,6 @@ check_cmd() {
 
 get_gnu_musl_glibc() {
   need_cmd ldd
-  need_cmd bc
   need_cmd awk
   # Detect both gnu and musl
   # Also detect glibc versions older than 2.18 and return musl for these
@@ -87,17 +87,18 @@ get_gnu_musl_glibc() {
   local _ldd_version
   local _glibc_version
   _ldd_version=$(ldd --version 2>&1)
-  if [[ $_ldd_version =~ "GNU" ]] || [[ $_ldd_version =~ "GLIBC" ]]; then
+  if [ -z "${_ldd_version##*GNU*}" ] || [ -z "${_ldd_version##*GLIBC*}" ]; then
     _glibc_version=$(echo "$_ldd_version" | awk '/ldd/{print $NF}')
-    if [ 1 -eq "$(echo "${_glibc_version} < 2.18" | bc)" ]; then
-      echo "musl"
+    version_check=$(echo $_glibc_version 2.18 | awk '{if ($1 < $2) print 1; else print 0}')
+    if [ version_check -eq 1 ]; then
+      wrap_debug "musl"
     else
-      echo "gnu"
+      wrap_debug "gnu"
     fi
-  elif [[ $_ldd_version =~ "musl" ]]; then
-    echo "musl"
+  elif [ -z "${_ldd_version##*musl*}" ]; then
+    wrap_debug "musl"
   else
-    err "Unknown architecture from ldd: ${_ldd_version}"
+    wrap_debug "Unknown architecture from ldd: ${_ldd_version}"
   fi
 }
 
@@ -329,16 +330,16 @@ perform_capability_check_host(){
     
     wrap_debug "Checking Set Cap Capability on Host.."
     touch cap.txt
-    sudo setcap "cap_net_bind_service=+ep" cap.txt
-    if [[ $? != 0 ]]; then
+    setcap "cap_net_bind_service=+ep" cap.txt
+    if [ $? != 0 ]; then
         #TODO Check Mark Failed in Red
         wrap_debug "Failed to Set Capability on Host Container"
         wrap_fail "Capability_Check_Host" "Fail"
         return
     fi
 
-    contains=$(sudo getcap cap.txt | grep 'cap_net_bind_service+ep')
-    if [[ $? != 0 && contains != "*cap_net_bind_service+ep*" ]]; then
+    contains=$(getcap cap.txt | grep 'cap_net_bind_service+ep')
+    if [ $? != 0 ] && [ -z "${contains##*cap_net_bind_service+ep*}" ]; then
         wrap_debug "Failed to Verify Set Capability on Host Container"
         wrap_fail "Capability_Check_Host" "Fail"
         return
@@ -350,43 +351,35 @@ perform_capability_check_host(){
 perform_capability_check_container(){
     #Check For Docker
     wrap_debug "Checking Set Cap Capability on Container.."
-    docker 1>/dev/null 2>&1
-    if [[ $? != 0 ]];then
-        wrap_warning "Docker Not Found, Skipping Capability Check on Container Level"
-    else
-        DOCKER_VOLUME_MOUNTS=''
-        DOCKER_IMAGE="ubuntu:18.04"
-        #TODO: Use different images based on platform and arch
-        docker run --rm \
-        --user root \
-        -e 'USER=root' \
-        -i \
-        $DOCKER_VOLUME_MOUNTS \
-        "$DOCKER_IMAGE" \
-        /bin/bash -c "
-            export DEBIAN_FRONTEND=noninteractive
-            set -e &&
-            apt-get update 1>/dev/null 2>&1 &&
-            apt-get install -y libcap2-bin 1>/dev/null 2>&1
-            touch cap.txt
-            setcap 'cap_net_bind_service=+ep' cap.txt
-            if [[ $? != 0 ]]; then
-                exit 1
-            fi
-            getcap cap.txt 1>/dev/null 2>&1
-            if [[ $? != 0  || '$(getcap cap.txt)' != 'cap.txt = cap_net_bind_service+ep' ]]; then
-                echo 'Failed to Verify Capability Set $(getcap cap.txt)'
-                exit 1
-            fi
-        "
-        if [[ $? != 0 ]]; then
-            #TODO Check Mark Failed in Red
-            wrap_debug "Failed to Check Capability in Container, Check Failed"
-            wrap_fail "Capability_Check_Container" "Fail"
-            return
+    need_cmd docker
+    CAP_CMD="getcap cap.txt"
+    DOCKER_VOLUME_MOUNTS=''
+    DOCKER_IMAGE="ubuntu:18.04"
+    #TODO: Use different images based on platform and arch
+    docker run --rm \
+    --user root \
+    -e 'USER=root' \
+    -i \
+    $DOCKER_VOLUME_MOUNTS \
+    "$DOCKER_IMAGE" \
+    sh -c "
+        export DEBIAN_FRONTEND=noninteractive
+        set -e &&
+        apt-get update 1>/dev/null 2>&1 &&
+        apt-get install -y libcap2-bin 1>/dev/null 2>&1
+        touch cap.txt
+        setcap 'cap_net_bind_service=+ep' cap.txt
+        if [ $? != 0 ]; then
+            exit 1
         fi
-        wrap_pass "Capability_Check_Container" "Pass"
+    "
+    if [ $? != 0 ]; then
+        #TODO Check Mark Failed in Red
+        wrap_debug "Failed to Check Capability in Container, Check Failed"
+        wrap_fail "Capability_Check_Container" "Fail"
+        return
     fi
+    wrap_pass "Capability_Check_Container" "Pass"
 }
 
 
