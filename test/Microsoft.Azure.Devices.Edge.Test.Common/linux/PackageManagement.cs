@@ -123,7 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             },
             SupportedPackageExtension.RpmMariner => new[]
             {
-                "if rpm -qa azure-iotedge | grep -q azure-iotedge; then rpm -e azure-iotedge; fi",
+                "if rpm -qa aziot-edge | grep -q aziot-edge; then rpm -e aziot-edge; fi",
                 "if rpm -qa aziot-identity-service | grep -q aziot-identity-service; then rpm -e aziot-identity-service; fi",
                 "if rpm -qa iotedge | grep -q iotedge; then rpm -e iotedge; fi",
                 "if rpm -qa libiothsm-std | grep -q libiothsm-std; then rpm -e libiothsm-std; fi",
