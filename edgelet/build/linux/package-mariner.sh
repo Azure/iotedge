@@ -89,5 +89,9 @@ pushd toolkit
 
 # Build Mariner RPM packages
 sudo make build-packages PACKAGE_BUILD_LIST="aziot-edge" SRPM_FILE_SIGNATURE_HANDLING=update CONFIG_FILE= -j$(nproc)
+
 popd
 popd
+
+# removed IIS RPM after building
+rm ${MARINER_BUILD_ROOT}/out/RPMS/${MARINER_ARCH}/aziot-identity-service-*.cm1.${MARINER_ARCH}.rpm
