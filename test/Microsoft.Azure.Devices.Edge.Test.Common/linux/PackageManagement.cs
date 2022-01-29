@@ -40,6 +40,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 .GetFiles(path, $"*.{this.packageExtension.ToString().ToLower()}")
                 .Where(p => !p.Contains("debug") && !p.Contains("devel"))
                 .ToArray();
+
+            if (this.packageExtension == SupportedPackageExtension.RpmCentOS || this.packageExtension == SupportedPackageExtension.RpmMariner)
+            {
+                packages = Directory
+                .GetFiles(path, $"*.rpm")
+                .Where(p => !p.Contains("debug") && !p.Contains("devel"))
+                .ToArray();
+            }
+
             Log.Verbose("packages " + string.Join(' ', packages));
             Log.Verbose("path" + path);
             return this.packageExtension switch
