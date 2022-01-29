@@ -197,7 +197,7 @@ stages:
             inputs:
               SourceFolder: builds/mariner/build/logs/pkggen/rpmbuilding/
               Contents: |
-                **/aziot-edge-*.rpm.log
+                **/*.rpm.log
               TargetFolder: '$(build.artifactstagingdirectory)'
             condition: succeededOrFailed()
           - task: CopyFiles@2
@@ -205,9 +205,15 @@ stages:
             inputs:
               SourceFolder: $(target.iotedged)/$(mariner_arch)
               Contents: |
-                aziot-edge-*.rpm
+                *.rpm
               TargetFolder: '$(build.artifactstagingdirectory)'
             condition: succeededOrFailed()
+          - task: DeleteFiles@1
+            displayName: 'Remove IIS files'
+            SourceFolder: '$(build.artifactstagingdirectory)'
+            inputs:
+              contents: |
+                aziot-identity-service*
           - task: PublishBuildArtifacts@1
             displayName: Publish Artifacts
             inputs:
