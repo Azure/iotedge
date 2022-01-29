@@ -92,6 +92,3 @@ sudo make build-packages PACKAGE_BUILD_LIST="aziot-edge" SRPM_FILE_SIGNATURE_HAN
 
 popd
 popd
-
-# removed IIS RPM after building
-rm ${MARINER_BUILD_ROOT}/out/RPMS/${MARINER_ARCH}/aziot-identity-service-*

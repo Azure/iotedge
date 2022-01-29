@@ -197,7 +197,7 @@ stages:
             inputs:
               SourceFolder: builds/mariner/build/logs/pkggen/rpmbuilding/
               Contents: |
-                **/*.rpm.log
+                **/aziot-edge-*.rpm.log
               TargetFolder: '$(build.artifactstagingdirectory)'
             condition: succeededOrFailed()
           - task: CopyFiles@2
@@ -205,7 +205,7 @@ stages:
             inputs:
               SourceFolder: $(target.iotedged)/$(mariner_arch)
               Contents: |
-                *.rpm
+                aziot-edge-*.rpm
               TargetFolder: '$(build.artifactstagingdirectory)'
             condition: succeededOrFailed()
           - task: PublishBuildArtifacts@1
