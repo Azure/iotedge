@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 .GetFiles(path, $"*.{this.packageExtension.ToString().ToLower()}")
                 .Where(p => !p.Contains("debug") && !p.Contains("devel"))
                 .ToArray();
-            Log.Verbose("packages " + packages);
+            Log.Verbose("packages " + string.Join(' ', packages));
             Log.Verbose("path" + path);
             return this.packageExtension switch
             {
