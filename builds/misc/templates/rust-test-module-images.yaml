@@ -10,50 +10,53 @@ steps:
     downloadPath: '$(Build.ArtifactStagingDirectory)'
     downloadType: specific
     extractTars: true
+# Setup:
+#   binaries:
+#   rust/publish/<module.path>/<target>/release
+#   dockerfiles:
+#   rust/publish/<module.path>/docker/...
+# This setup allows us to call buildImage.sh with bin-dir of "rust" and project of "<module.path>"
+- task: DeleteFiles@1
+  inputs:
+    SourceFolder: rust/publish
+    Contents: '**/*' 
 - task: CopyFiles@2
   inputs:
     sourceFolder: $(Agent.TempDirectory)/extracted_tars/${{ parameters['module.name'] }}_amd64
     contents: '**'
-    targetFolder: ${{ parameters['module.path'] }}/target/x86_64-unknown-linux-gnu/release
+    targetFolder: rust/publish/${{ parameters['module.path'] }}/x86_64-unknown-linux-gnu/release
 - task: CopyFiles@2
   inputs:
     sourceFolder: $(Agent.TempDirectory)/extracted_tars/${{ parameters['module.name'] }}_arm32v7
     contents: '**'
-    targetFolder: ${{ parameters['module.path'] }}/target/armv7-unknown-linux-gnueabihf/release
+    targetFolder: rust/publish/${{ parameters['module.path'] }}/armv7-unknown-linux-gnueabihf/release
 - task: CopyFiles@2
   inputs:
     sourceFolder: $(Agent.TempDirectory)/extracted_tars/${{ parameters['module.name'] }}_aarch64
     contents: '**'
-    targetFolder: ${{ parameters['module.path'] }}/target/aarch64-unknown-linux-gnu/release    
+    targetFolder: rust/publish/${{ parameters['module.path'] }}/aarch64-unknown-linux-gnu/release    
+- task: CopyFiles@2
+  inputs:
+    sourceFolder: ${{ parameters['module.path'] }}/docker
+    contents: '**'
+    targetFolder: rust/publish/${{ parameters['module.path'] }}/docker
 - task: Docker@2
   displayName: Docker login edgebuilds
   inputs:
     command: login
     containerRegistry: iotedge-edgebuilds-acr  
-- task: Docker@2
-  displayName: Build amd64 image for ${{ parameters['module.name'] }}
+- task: Bash@3
+  displayName: Build Image - ${{ parameters['module.path'] }} - amd64
   inputs:
-    repository: microsoft/azureiotedge-${{ parameters['module.name'] }}
-    command: buildAndPush
-    containerRegistry: iotedge-edgebuilds-acr
-    Dockerfile: ${{ parameters['module.path'] }}/docker/${{ parameters['os'] }}/amd64/Dockerfile
-    buildContext: ${{ parameters['module.path'] }}/target
-    tags: $(Build.BuildNumber)-linux-amd64
-- task: Docker@2
-  displayName: Build arm32 image for ${{ parameters['module.name'] }}
+    filePath: scripts/linux/buildImage.sh
+    arguments: -r "$(registry.address)" -i "azureiotedge-${{ parameters['module.name'] }}" -n "microsoft" -P "${{ parameters['module.path'] }}" --bin-dir rust
+- task: Bash@3
+  displayName: Build Image - ${{ parameters['module.path'] }} - arm32
   inputs:
-    repository: microsoft/azureiotedge-${{ parameters['module.name'] }}
-    command: buildAndPush
-    containerRegistry: iotedge-edgebuilds-acr
-    Dockerfile: ${{ parameters['module.path'] }}/docker/${{ parameters['os'] }}/arm32v7/Dockerfile
-    buildContext: ${{ parameters['module.path'] }}/target
-    tags: $(Build.BuildNumber)-linux-arm32v7
-- task: Docker@2
-  displayName: Build arm64 image for ${{ parameters['module.name'] }}
+    filePath: scripts/linux/buildImage.sh
+    arguments: -r "$(registry.address)" -i "azureiotedge-${{ parameters['module.name'] }}" -n "microsoft" -P "${{ parameters['module.path'] }}" --target-arch armv7l --bin-dir rust --buildx_flag true  
+- task: Bash@3
+  displayName: Build Image - ${{ parameters['module.path'] }} - arm64 
   inputs:
-    repository: microsoft/azureiotedge-${{ parameters['module.name'] }}
-    command: buildAndPush
-    containerRegistry: iotedge-edgebuilds-acr
-    Dockerfile: ${{ parameters['module.path'] }}/docker/${{ parameters['os'] }}/arm64v8/Dockerfile
-    buildContext: ${{ parameters['module.path'] }}/target
-    tags: $(Build.BuildNumber)-linux-arm64v8    
+    filePath: scripts/linux/buildImage.sh
+    arguments: -r "$(registry.address)" -i "azureiotedge-${{ parameters['module.name'] }}" -n "microsoft" -P "${{ parameters['module.path'] }}" --target-arch aarch64 --bin-dir rust --buildx_flag true
