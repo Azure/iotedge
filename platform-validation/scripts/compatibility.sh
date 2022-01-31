@@ -52,13 +52,13 @@ wrap_debug(){
 }
 
 wrap_pass() {
-	echo "$(wrap_color "$1" white) $(wrap_color "$2" green)"
+	echo "$(wrap_color "$1 - OK" green)"
 }
 wrap_fail() {
-	echo "$(wrap_color "$1" bold) $(wrap_color "$2" bold red)"
+	echo "$(wrap_color "$1 - Error" bold red)"
 }
 wrap_warning() {
-	wrap_color >&2 "$*" red
+	wrap_color >&2 "$*" yellow
 }
 
 
