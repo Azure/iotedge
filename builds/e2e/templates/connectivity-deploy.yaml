@@ -30,6 +30,7 @@ parameters:
   customEdgeAgent.image: ''
   customEdgeHub.image: ''
   test.runtimeLogLevel: ''
+  topology: ''
   connectivity.nested: 'false'
 
 steps:
@@ -143,6 +144,7 @@ steps:
           -testRuntimeLogLevel "${{ parameters['test.runtimeLogLevel'] }}" \
           -testInfo "$testInfo" \
           -repoPath "${{ parameters['build.repo.path'] }}" \
+          -topology "${{ parameters['topology'] }}" \
           -waitForTestComplete \
           -cleanAll
 
