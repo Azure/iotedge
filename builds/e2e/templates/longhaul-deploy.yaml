@@ -81,6 +81,10 @@ steps:
             -testDir "$(Agent.HomeDirectory)/.." \
             -releaseLabel "${{ parameters['release.label'] }}" \
             -artifactImageBuildNumber "$BuildNumber" \
+            -connectManagementUri "${{ parameters['connectManagementUri'] }}" \
+            -connectWorkloadUri "${{ parameters['connectWorkloadUri'] }}" \
+            -listenManagementUri "${{ parameters['listenManagementUri'] }}" \
+            -listenWorkloadUri "${{ parameters['listenWorkloadUri'] }}" \
             -containerRegistry "${{ parameters['container.registry'] }}" \
             -containerRegistryUsername "${{ parameters['container.registry.username'] }}" \
             -containerRegistryPassword "${{ parameters['container.registry.password'] }}" \
