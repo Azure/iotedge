@@ -239,15 +239,12 @@ Defaults:
                             ILinuxPackageInstall installMethod;
                             if (!this.BypassEdgeInstallation)
                             {
-                                Console.WriteLine("here");
                                 if (!string.IsNullOrEmpty(this.PackageType) && this.PackageType.ToLower().Equals("rpm"))
                                 {
-                                    Console.WriteLine("rpm");
                                     installMethod = new LinuxPackageInstallRPM(this.BootstrapperArchivePath);
                                 }
                                 else
                                 {
-                                    Console.WriteLine("deb");
                                     installMethod = new LinuxPackageInstallDep(this.BootstrapperArchivePath);
                                 }
                             }
