@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         public string[] GetPackages(string path)
         {
             return Directory
-                .GetFiles(path, $"*.{this.ExtensionName.ToString().ToLower()}")
+                .GetFiles(path, $"*.{this.ExtensionName.ToLower()}")
                 .Where(p => !p.Contains("debug") && !p.Contains("devel"))
                 .ToArray();
         }
@@ -49,10 +49,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         }
     }
 
-    public class DepPackageCommands : PackageManagement
+    public class DebPackageCommands : PackageManagement
     {
-        public DepPackageCommands(string os, string version)
-            : base("dep", os, version)
+        public DebPackageCommands(string os, string version)
+            : base("deb", os, version)
         {
         }
 
@@ -100,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
     public class NoPackageManagerRpmPackageCommands : PackageManagement
     {
         public NoPackageManagerRpmPackageCommands(string os, string version)
-            : base(".rpm", os, version)
+            : base("rpm", os, version)
         {
         }
 
@@ -138,7 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
     public class YumPackageManagerRpmPackagesCommands : PackageManagement
     {
         public YumPackageManagerRpmPackagesCommands(string os, string version)
-            : base(".rpm", os, version)
+            : base("rpm", os, version)
         {
         }
 

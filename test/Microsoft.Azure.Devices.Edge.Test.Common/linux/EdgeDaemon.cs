@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             switch (os)
             {
                 case "ubuntu":
-                    packageManagement = new DepPackageCommands(os, version);
+                    packageManagement = new DebPackageCommands(os, version);
                     break;
                 case "raspbian":
                     os = "debian";
