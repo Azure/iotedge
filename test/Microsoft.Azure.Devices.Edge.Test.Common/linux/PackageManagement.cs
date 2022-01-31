@@ -11,14 +11,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
     {
         public readonly string Os;
         public readonly string Version;
-        readonly string extensionName;
+        public readonly string ExtensionName;
         public string IotedgeServices { get; }
 
         public PackageManagement(string extensionName, string os, string version)
         {
             this.Os = os;
             this.Version = version;
-            this.extensionName = extensionName;
+            this.ExtensionName = extensionName;
             this.IotedgeServices = string.Join(
                 " ",
                 "aziot-keyd.service",
@@ -34,14 +34,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         public string[] GetPackages(string path)
         {
             return Directory
-                .GetFiles(path, $"*.{this.extensionName.ToString().ToLower()}")
+                .GetFiles(path, $"*.{this.ExtensionName.ToString().ToLower()}")
                 .Where(p => !p.Contains("debug") && !p.Contains("devel"))
                 .ToArray();
         }
 
         public string[] GetInstallCommandsFromLocal(string path)
         {
+            Log.Verbose("path set to" + path);
             string[] packages = this.GetPackages(path);
+            Log.Verbose("packages set to" + string.Join(' ', packages));
             return this.GetInstallCommandsFromLocalWithPackages(packages);
         }
     }
