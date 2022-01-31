@@ -89,8 +89,8 @@ function get_artifact_file() {
 
     local filter
     case "$fileType" in
-        'aziot_edge' ) filter='aziot-edge_*.deb';;
-        'aziot_is' ) filter='aziot-identity-service_*.deb';;
+        'aziot_edge' ) filter="aziot-edge_*.$PACKAGE_TYPE";;
+        'aziot_is' ) filter="aziot-identity-service_*.$PACKAGE_TYPE";;
         'quickstart' ) filter='core-linux/IotEdgeQuickstart.linux*.tar.gz';;
         *) print_error "Unknown file type: $fileType"; exit 1;;
     esac
@@ -930,6 +930,8 @@ TEST_INFO="$TEST_INFO,NetworkControllerRunsCount=${NETWORK_CONTROLLER_FREQUENCIE
 
 if [ ! -z $PACKAGE_TYPE ]; then
     PACKAGE_TYPE_ARG=--package-type="$PACKAGE_TYPE"
+else
+    $PACKAGE_TYPE="deb"
 fi
 
 testRet=0
