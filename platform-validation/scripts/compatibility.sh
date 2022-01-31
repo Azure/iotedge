@@ -368,6 +368,7 @@ perform_capability_check_container(){
     fi
     CAP_CMD="getcap cap.txt"
     DOCKER_VOLUME_MOUNTS=''
+    #Todo: Look into replacing this with alpine
     DOCKER_IMAGE="ubuntu:18.04"
     docker run --rm \
     --user root \
