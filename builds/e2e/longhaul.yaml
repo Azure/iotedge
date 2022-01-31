@@ -356,6 +356,7 @@ jobs:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
         - eflow -equals true
+        - eflow-version -equals 1.2
         - run-long-haul -equals true
     steps:
       - template: templates/longhaul-setup.yaml

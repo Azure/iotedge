@@ -227,7 +227,7 @@ jobs:
   - job: EFLOW_amd64
 ################################################################################
     displayName: EFLOW amd64
-
+    condition: eq(variables['run.EFLOW.amd64'], 'true')
     pool:
       name: $(pool.custom.name)
       demands:
