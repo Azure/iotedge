@@ -41,10 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public string[] GetInstallCommandsFromLocal(string path)
         {
-            Log.Verbose("extension set to" + this.ExtensionName);
-            Log.Verbose("path set to" + path);
             string[] packages = this.GetPackages(path);
-            Log.Verbose("packages set to" + string.Join(' ', packages));
             return this.GetInstallCommandsFromLocalWithPackages(packages);
         }
     }
