@@ -366,7 +366,6 @@ perform_capability_check_container(){
         wrap_fail "capability_check_container" "Fail"
         return
     fi
-    
     CAP_CMD="getcap cap.txt"
     DOCKER_VOLUME_MOUNTS=''
     DOCKER_IMAGE="ubuntu:18.04"
@@ -383,12 +382,10 @@ perform_capability_check_container(){
         apt-get install -y libcap2-bin 1>/dev/null 2>&1
         touch cap.txt
         setcap 'cap_net_bind_service=+ep' cap.txt
-        if [ $? != 0 ]; then
-            exit $?
-        fi
     "
-    if [ $? != 0 ]; then
-        wrap_debug "setcap 'cap_net_bind_service=+ep' on container returned error code $?"
+    ret=$?
+    if [ $ret != 0 ]; then
+        wrap_debug "setcap 'cap_net_bind_service=+ep' on container returned error code $ret"
         wrap_fail "capability_check_container" "Fail"
         return
     fi
