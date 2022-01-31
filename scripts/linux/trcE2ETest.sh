@@ -50,6 +50,7 @@ function usage() {
     echo ' -restartIntervalInMins                   Value for long haul specifying how often a random module will restart. If specified, then "desiredModulesToRestartCSV" must be specified as well.'
     echo ' -sendReportFrequency                     Value for long haul specifying how often TRC will send reports to LogAnalytics.'
     echo " -testMode                                Test mode for TestResultCoordinator to start up with correct settings. Value is either 'LongHaul' or 'Connectivity'."
+    echo " -topology                                Configuration telling the TRC which topology tests are running in."
     echo " -repoPath                                Path of the checked-out iotedge repository for getting the deployment file."
     echo " -clientModuleTransportType               Value for contrained long haul specifying transport type for all client modules."
     echo " -trackingId                              Tracking id used to tag test events. Needed if running nested tests and test events are sent to TRC from L4 node. Otherwise generated."
@@ -211,6 +212,7 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<NetworkController.RunsCount0>@${NETWORK_CONTROLLER_FREQUENCIES[2]}@g" "$deployment_working_file"
 
     sed -i -e "s@<TestMode>@$TEST_MODE@g" "$deployment_working_file"
+    sed -i -e "s@<Topology>@$TOPOLOGY@g" "$deployment_working_file"
 
     sed -i -e "s@<LogRotationMaxFile>@$log_rotation_max_file@g" "$deployment_working_file"
     sed -i -e "s@<LogRotationMaxFileEdgeHub>@$log_rotation_max_file_edgehub@g" "$deployment_working_file"
@@ -457,6 +459,9 @@ function process_args() {
             TRACKING_ID="$arg"
             saveNextArg=0;
         elif [ $saveNextArg -eq 48 ]; then
+            TOPOLOGY="$arg"
+            saveNextArg=0;
+        elif [ $saveNextArg -eq 49 ]; then
             PACKAGE_TYPE="$arg"
             saveNextArg=0
         else
@@ -509,7 +514,8 @@ function process_args() {
                 '-repoPath' ) saveNextArg=45;;
                 '-clientModuleTransportType' ) saveNextArg=46;;
                 '-trackingId' ) saveNextArg=47;;
-                '-packageType' ) saveNextArg=48;;
+                '-topology' ) saveNextArg=48;;
+                '-packageType' ) saveNextArg=49;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
 

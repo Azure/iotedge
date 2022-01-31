@@ -218,6 +218,7 @@ jobs:
           customEdgeHub.image: '$(customEdgeHub.image)'
           test.runtimeLogLevel: '$(test.runtimeLogLevel)'
           testInfo.testName: '$(testInfo.testName)'
+          topology: 'SingleNode'
 
 
 ################################################################################
@@ -399,6 +400,7 @@ jobs:
           test.runtimeLogLevel: '$(test.runtimeLogLevel)'
           connectivity.nested: 'false'
           testInfo.testName: '$(testInfo.testName)'
+          topology: 'SingleNode'
 
 ################################################################################
   - job: eflow_amd64
