@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 ###############################################################################
-# This script checks whether IoT Edge Runtime can run on a target OS
+# This script checks whether IoT Edge can run on a target OS
 ###############################################################################
 
 #Variables
@@ -68,8 +68,8 @@ wrap_warning() {
 # ------------------------------------------------------------------------------
 need_cmd() {
     if ! check_cmd "$1"; then
-     wrap_warning "need '$1' (command not found)"
-     exit 1
+        wrap_warning "'$1' (command not found)"
+        exit 1
     fi
 }
 
@@ -77,7 +77,7 @@ check_cmd() {
     command -v "$1" > /dev/null 2>&1
 }
 
-get_gnu_musl_glibc() {
+get_libc() {
   need_cmd ldd
   need_cmd awk
   # Detect both gnu and musl
@@ -85,12 +85,12 @@ get_gnu_musl_glibc() {
   # Required until we identify minimum supported version
   # TODO: https://github.com/vectordotdev/vector/issues/10807
   local _ldd_version
-  local _glibc_version
+  local _libc_version
   _ldd_version=$(ldd --version 2>&1)
   if [ -z "${_ldd_version##*GNU*}" ] || [ -z "${_ldd_version##*GLIBC*}" ]; then
-    _glibc_version=$(echo "$_ldd_version" | awk '/ldd/{print $NF}')
-    version_check=$(echo $_glibc_version 2.18 | awk '{if ($1 < $2) print 1; else print 0}')
-    if [ version_check -eq 1 ]; then
+    _libc_version=$(echo "$_ldd_version" | awk '/ldd/{print $NF}')
+    version_check=$(echo $_libc_version 2.18 | awk '{if ($1 < $2) print 1; else print 0}')
+    if [ $version_check -eq 1 ]; then
       wrap_debug "musl"
     else
       wrap_debug "gnu"
@@ -98,7 +98,7 @@ get_gnu_musl_glibc() {
   elif [ -z "${_ldd_version##*musl*}" ]; then
     wrap_debug "musl"
   else
-    wrap_debug "Unknown architecture from ldd: ${_ldd_version}"
+    wrap_err "Unknown implementation of libc. ldd --version returns: ${_ldd_version}"
   fi
 }
 
@@ -117,7 +117,7 @@ get_bitness() {
     elif [ "$_current_exe_head" = "$(printf '\177ELF\002')" ]; then
         echo 64
     else
-        err "unknown platform bitness"
+        wrap_err "Unknown platform bitness"
     fi
 }
 
@@ -137,7 +137,7 @@ get_endianness() {
     elif [ "$_current_exe_endianness" = "$(printf '\002')" ]; then
         echo "${cputype}${suffix_eb}"
     else
-        err "unknown platform endianness"
+        wrap_err "Unknown platform endianness"
     fi
 }
 
@@ -166,7 +166,7 @@ get_architecture() {
             ;;
 
         Linux)
-            case $(get_gnu_musl_glibc) in
+            case $(get_libc) in
               "musl")
                 _ostype=unknown-linux-musl
                 ;;
@@ -275,7 +275,7 @@ get_architecture() {
             ;;
 
         *)
-            err "unknown CPU type: $_cputype"
+            err "Unknown CPU type: $_cputype"
 
     esac
 
@@ -327,31 +327,47 @@ perform_cleanup(){
 # for Azure IoT Edge Operation
 # ------------------------------------------------------------------------------
 perform_capability_check_host(){
+    wrap_debug "Setting the CAP_NET_BIND_SERVICE capability on the host..."
     
-    wrap_debug "Checking Set Cap Capability on Host.."
+      # Check dependencies
+    ret=$(need_cmd setcap)
+    if [ $? != 0 ]; then 
+        wrap_fail "capability_check_host" "Fail"
+        return
+    fi
+    
     touch cap.txt
     setcap "cap_net_bind_service=+ep" cap.txt
-    if [ $? != 0 ]; then
+    ret=$?
+    if [ $ret != 0 ]; then
         #TODO Check Mark Failed in Red
-        wrap_debug "Failed to Set Capability on Host Container"
-        wrap_fail "Capability_Check_Host" "Fail"
+        wrap_debug "setcap 'cap_net_bind_service=+ep' returned $ret"
+        wrap_fail "capability_check_host" "Fail"
         return
     fi
 
     contains=$(getcap cap.txt | grep 'cap_net_bind_service+ep')
+    ret=$?
     if [ $? != 0 ] && [ -z "${contains##*cap_net_bind_service+ep*}" ]; then
-        wrap_debug "Failed to Verify Set Capability on Host Container"
-        wrap_fail "Capability_Check_Host" "Fail"
+        wrap_debug "setcap 'cap_net_bind_service=+ep' returned 0, but did not set the capability"
+        wrap_fail "capability_check_host" "Fail"
         return
     fi
 
-    wrap_pass "Capability_Check_Host" "Pass"
+    wrap_pass "capability_check_host" "Pass"
 }
 
 perform_capability_check_container(){
     #Check For Docker
-    wrap_debug "Checking Set Cap Capability on Container.."
-    need_cmd docker
+    wrap_debug "Setting the CAP_NET_BIND_SERVICE capability in a container..."
+    
+    # Check dependencies
+    ret=$(need_cmd docker)
+    if [ $? != 0 ]; then 
+        wrap_fail "capability_check_container" "Fail"
+        return
+    fi
+    
     CAP_CMD="getcap cap.txt"
     DOCKER_VOLUME_MOUNTS=''
     DOCKER_IMAGE="ubuntu:18.04"
@@ -370,21 +386,18 @@ perform_capability_check_container(){
         touch cap.txt
         setcap 'cap_net_bind_service=+ep' cap.txt
         if [ $? != 0 ]; then
-            exit 1
+            exit $?
         fi
     "
     if [ $? != 0 ]; then
-        #TODO Check Mark Failed in Red
-        wrap_debug "Failed to Check Capability in Container, Check Failed"
-        wrap_fail "Capability_Check_Container" "Fail"
+        wrap_debug "setcap 'cap_net_bind_service=+ep' on container returned error code $?"
+        wrap_fail "capability_check_container" "Fail"
         return
     fi
-    wrap_pass "Capability_Check_Container" "Pass"
+    wrap_pass "capability_check_container" "Pass"
 }
 
-
-echo "Running IoT Edge Compatibility Tool"
-get_architecture || exit 1
+get_architecture
 echo "Architecture:$ARCH"
 echo "OS Type:$OSTYPE"
 
@@ -409,6 +422,7 @@ echo "IoT Edge Compatibility Tool Check Complete"
 ## Checks
 #Fails on The Following Checks
 #Run Moby Config Checks as part of the script and ensure configs present to install docker (Maybe Separate run)
+#Check CONFIG_DEFAULT_MMAP_MIN_ADDR is set to a 32768 or lower on ARM Platforms
 #Compare IoTEdge Daemon , IIS Shared Libraries with Target OS
 #compare Memory and CPU usage (Varies for each ARCH/OS)
 
