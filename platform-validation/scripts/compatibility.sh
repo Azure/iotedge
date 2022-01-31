@@ -340,7 +340,6 @@ perform_capability_check_host(){
     setcap "cap_net_bind_service=+ep" cap.txt
     ret=$?
     if [ $ret != 0 ]; then
-        #TODO Check Mark Failed in Red
         wrap_debug "setcap 'cap_net_bind_service=+ep' returned $ret"
         wrap_fail "capability_check_host" "Fail"
         return
@@ -371,7 +370,6 @@ perform_capability_check_container(){
     CAP_CMD="getcap cap.txt"
     DOCKER_VOLUME_MOUNTS=''
     DOCKER_IMAGE="ubuntu:18.04"
-    #TODO: Use different images based on platform and arch
     docker run --rm \
     --user root \
     -e 'USER=root' \
