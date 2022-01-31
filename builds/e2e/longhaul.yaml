@@ -403,6 +403,7 @@ jobs:
           metricsCollector.hostPlatform: 'EFLOW_amd64'
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
+          test.deploymentFileName: 'long_haul_deployment.template.json'
           testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
           clientModuleTransportType: 'All'
           connectManagementUri: 'unix:///var/lib/iotedge/mgmt.sock'
