@@ -651,50 +651,22 @@ definitions:
   SystemInfo:
     type: object
     properties:
-      kernel:
-        type: string
-      kernelRelease:
-        type: string
-      kernelVersion:
-        type: string
-      operatingSystem:
-        type: string
-      operatingSystemVersion:
-        type: string
-      operatingSystemVariant:
-        type: string
-      operatingSystemBuild:
+      osType: # kernel type
         type: string
       architecture:
         type: string
-      cpus:
-        type: integer
-      virtualized:
-        type: string
-      productName:
-        type: string
-      systemVendor:
-        type: string
       version:
         type: string
-      provisioning:
-        type: '#/definitions/Provisioning'
+      serverVersion: # for compatibility
+        type: string
     additionalProperties:
       type: string
     required:
-      - kernel
-      - kernelRelease
-      - kernelVersion
+      - osType
       - architecture
-      - cpus
-      - version
     example:
-      kernel: "Linux"
-      kernelRelease: "5.10.60.1-microsoft-standard-WSL2"
-      kernelVersion: "#1 SMP Wed Aug 25 23:20:18 UTC 2021"
-      architecture: "arm/amd64/x86"
-      cpus: 8
-      version: "1.2.0~dev"
+      osType: "Linux"
+      architecture: "arm,amd64"
   SystemResources:
     type: object
     properties:

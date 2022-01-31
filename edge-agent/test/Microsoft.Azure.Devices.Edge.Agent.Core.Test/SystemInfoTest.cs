@@ -12,11 +12,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public void NullEntryTest()
         {
             Assert.Equal(
-                "kernel_name=;kernel_release=;kernel_version=;"
-                + "os_name=;os_version=;os_variant=;os_build_id=;"
-                + "cpu_architecture=;"
-                + "product_name=;product_vendor=;",
-                new SystemInfo(null, null, null, null, null, null, null, null, 0, null, null, null, null, null, null).ToQueryString());
+                "kernel_name=;cpu_architecture=;",
+                new SystemInfo(null, null, null, null).ToQueryString());
         }
 
         [Fact]
@@ -24,11 +21,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public void BasicValueTest()
         {
             Assert.Equal(
-                "kernel_name=A;kernel_release=B;kernel_version=C;"
-                + "os_name=D;os_version=E;os_variant=F;os_build_id=G;"
-                + "cpu_architecture=H;"
-                + "product_name=J;product_vendor=K;",
-                new SystemInfo("A", "B", "C", "D", "E", "F", "G", "H", 0, "I", "J", "K", "L", null, null).ToQueryString());
+                "kernel_name=A;cpu_architecture=B;",
+                new SystemInfo("A", "B", "C").ToQueryString());
         }
 
         [Fact]
@@ -36,11 +30,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public void EncodedValueTest()
         {
             Assert.Equal(
-                "kernel_name=A+A;kernel_release=B%2BB;kernel_version=C+C;"
-                + "os_name=D%2BD;os_version=E+E;os_variant=F%2BF;os_build_id=G+G;"
-                + "cpu_architecture=H%2BH;"
-                + "product_name=J%2BJ;product_vendor=K+K;",
-                new SystemInfo("A A", "B+B", "C C", "D+D", "E E", "F+F", "G G", "H+H", 0, "I I", "J+J", "K K", "L+L", null, null).ToQueryString());
+                "kernel_name=A+A;cpu_architecture=B%2BB;",
+                new SystemInfo("A A", "B+B", "C C", null).ToQueryString());
         }
 
         [Fact]
@@ -54,12 +45,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             properties.Add("third", "3");
 
             Assert.Equal(
-                "kernel_name=A;kernel_release=B;kernel_version=C;"
-                + "os_name=D;os_version=E;os_variant=F;os_build_id=G;"
-                + "cpu_architecture=H;"
-                + "product_name=J;product_vendor=K;"
+                "kernel_name=A;cpu_architecture=B;"
                 + "first=1;second=2;third=3;",
-                new SystemInfo("A", "B", "C", "D", "E", "F", "G", "H", 0, "I", "J", "K", "L", null, properties).ToQueryString());
+                new SystemInfo("A", "B", "C", properties).ToQueryString());
         }
 
         [Fact]
@@ -74,12 +62,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             properties.Add("third", "3");
 
             Assert.Equal(
-                "kernel_name=A;kernel_release=B;kernel_version=C;"
-                + "os_name=D;os_version=E;os_variant=F;os_build_id=G;"
-                + "cpu_architecture=H;"
-                + "product_name=J;product_vendor=K;"
+                "kernel_name=A;cpu_architecture=B;"
                 + "first=1;second=2;third=3;",
-                new SystemInfo("A", "B", "C", "D", "E", "F", "G", "H", 0, "I", "J", "K", "L", null, properties).ToQueryString());
+                new SystemInfo("A", "B", "C", properties).ToQueryString());
         }
 
         [Fact]
@@ -93,12 +78,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             properties.Add("third", "3");
 
             Assert.Equal(
-                "kernel_name=A;kernel_release=B;kernel_version=C;"
-                + "os_name=D;os_version=E;os_variant=F;os_build_id=G;"
-                + "cpu_architecture=H;"
-                + "product_name=J;product_vendor=K;"
+                "kernel_name=A;cpu_architecture=B;"
                 + "first=1;second=;third=3;",
-                new SystemInfo("A", "B", "C", "D", "E", "F", "G", "H", 0, "I", "J", "K", "L", null, properties).ToQueryString());
+                new SystemInfo("A", "B", "C", properties).ToQueryString());
         }
 
         [Fact]
@@ -112,12 +94,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             properties.Add("third third", "3+3");
 
             Assert.Equal(
-                "kernel_name=A;kernel_release=B;kernel_version=C;"
-                + "os_name=D;os_version=E;os_variant=F;os_build_id=G;"
-                + "cpu_architecture=H;"
-                + "product_name=J;product_vendor=K;"
+                "kernel_name=A;cpu_architecture=B;"
                 + "first+first=1%2B1;second%2Bsecond=2+2;third+third=3%2B3;",
-                new SystemInfo("A", "B", "C", "D", "E", "F", "G", "H", 0, "I", "J", "K", "L", null, properties).ToQueryString());
+                new SystemInfo("A", "B", "C", properties).ToQueryString());
         }
     }
 }

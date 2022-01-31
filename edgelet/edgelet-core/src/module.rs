@@ -271,8 +271,8 @@ pub trait ModuleRegistry {
 
 #[skip_serializing_none]
 #[derive(Debug, Default, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct SystemInfo {
+    #[serde(rename = "osType")]
     pub kernel: String,
     pub kernel_release: String,
     pub kernel_version: String,
@@ -290,7 +290,6 @@ pub struct SystemInfo {
     pub system_vendor: Option<String>,
 
     pub version: String,
-    pub provisioning: ProvisioningInfo,
 
     #[serde(default, flatten)]
     pub additional_properties: BTreeMap<String, String>,

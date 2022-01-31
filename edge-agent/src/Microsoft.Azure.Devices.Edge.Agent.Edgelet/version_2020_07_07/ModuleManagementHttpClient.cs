@@ -129,8 +129,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07
                 GeneratedCode.SystemInfo systemInfo = await this.Execute(
                     () => edgeletHttpClient.GetSystemInfoAsync(this.Version.Name, cancellationToken),
                     "Getting System Info");
-                var provisioning = new ProvisioningInfo(systemInfo.Provisioning.Type, systemInfo.Provisioning.DynamicReprovisioning, systemInfo.Provisioning.AlwaysReprovisionOnStartup ?? true);
-                return new SystemInfo(systemInfo.OsType, systemInfo.Architecture, systemInfo.Version, provisioning, systemInfo.Server_version, systemInfo.Kernel_version, systemInfo.Operating_system, systemInfo.Cpus ?? 0, systemInfo.Virtualized);
+
+                return new SystemInfo(systemInfo.OsType, systemInfo.Architecture, systemInfo.Version);
             }
         }
 

@@ -662,6 +662,7 @@ definitions:
     required:
       - osType
       - architecture
+      - version
     example:
       osType: "linux/windows"
       architecture: "arm/amd64/x86"
