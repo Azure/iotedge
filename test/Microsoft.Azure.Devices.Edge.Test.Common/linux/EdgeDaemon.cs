@@ -90,7 +90,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             string[] commands = packagesPath.Match(
                 p => this.packageManagement.GetInstallCommandsFromLocal(p),
                 () => this.packageManagement.GetInstallCommandsFromMicrosoftProd());
-
+            string appendcommands = string.Join(' ', commands);
+            Log.Verbose("command set to  + appendcommands");
             await Profiler.Run(
                 async () =>
                 {

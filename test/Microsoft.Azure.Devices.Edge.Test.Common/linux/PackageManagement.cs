@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 "aziot-edged.service");
         }
 
-        public abstract string[] GetInstallCommandsFromLocal(string[] packages);
+        public abstract string[] GetInstallCommandsFromLocalWithPackages(string[] packages);
         public abstract string[] GetInstallCommandsFromMicrosoftProd();
         public abstract string[] GetUninstallCommands();
 
@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         public string[] GetInstallCommandsFromLocal(string path)
         {
             string[] packages = this.GetPackages(path);
-            return this.GetInstallCommandsFromLocal(packages);
+            return this.GetInstallCommandsFromLocalWithPackages(packages);
         }
     }
 
@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         {
         }
 
-        public override string[] GetInstallCommandsFromLocal(string[] packages)
+        public override string[] GetInstallCommandsFromLocalWithPackages(string[] packages)
         {
             return new[]
             {
@@ -101,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         {
         }
 
-        public override string[] GetInstallCommandsFromLocal(string[] packages)
+        public override string[] GetInstallCommandsFromLocalWithPackages(string[] packages)
         {
             return new[]
             {
@@ -139,7 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         {
         }
 
-        public override string[] GetInstallCommandsFromLocal(string[] packages)
+        public override string[] GetInstallCommandsFromLocalWithPackages(string[] packages)
         {
             return new[]
             {
