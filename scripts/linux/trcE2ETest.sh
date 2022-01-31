@@ -89,8 +89,8 @@ function get_artifact_file() {
 
     local filter
     case "$fileType" in
-        'aziot_edge' ) filter="aziot-edge_*.$PACKAGE_TYPE";;
-        'aziot_is' ) filter="aziot-identity-service_*.$PACKAGE_TYPE";;
+        'aziot_edge' ) filter="aziot-edge*.$PACKAGE_TYPE";;
+        'aziot_is' ) filter="aziot-identity-service*.$PACKAGE_TYPE";;
         'quickstart' ) filter='core-linux/IotEdgeQuickstart.linux*.tar.gz';;
         *) print_error "Unknown file type: $fileType"; exit 1;;
     esac
