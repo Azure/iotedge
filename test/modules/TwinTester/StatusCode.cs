@@ -14,6 +14,6 @@ namespace TwinTester
         ReportedPropertyUpdateCallFailure = 504,
         ReportedPropertyUpdateNotInCloudTwin = 505,
         ReportedPropertyUpdateNotInCloudTwinAfterCleanUpThreshold = 506,
-        ReportedPropertyReceivedAfterThreshold = 507,
+        ReportedPropertyReceivedAfterThreshold = 205,
     }
 }

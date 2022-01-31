@@ -185,6 +185,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [InlineData("")]
         public void TestConstructorThrowsWhenResultTypeIsNotProvided(string resultType)
         {
+            bool brokerEnabled = false;
+
             var mockExpectedResults = new Mock<IAsyncEnumerator<TestOperationResult>>();
             var mockActualStore = new Mock<IAsyncEnumerator<TestOperationResult>>();
 
@@ -192,6 +194,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 () => new CountingReportGenerator(
                     TestDescription,
                     TestMode.Connectivity,
+                    Topology.SingleNode,
+                    brokerEnabled,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -251,6 +255,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [Fact]
         public async Task TestCreateReportAsyncWithEmptyResults()
         {
+            bool brokerEnabled = false;
             string expectedSource = "expectedSource";
             string actualSource = "actualSource";
             int batchSize = 10;
@@ -263,6 +268,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
             var reportGenerator = new CountingReportGenerator(
                 TestDescription,
                 TestMode.Connectivity,
+                Topology.SingleNode,
+                brokerEnabled,
                 Guid.NewGuid().ToString(),
                 expectedSource,
                 expectedResults.GetAsyncEnumerator(),
