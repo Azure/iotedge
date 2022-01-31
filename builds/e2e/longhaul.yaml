@@ -361,7 +361,7 @@ jobs:
     steps:
       - template: templates/longhaul-setup.yaml
         parameters:
-          edgelet.artifact.name: 'iotedged-ubuntu18.04-amd64'
+          edgelet.artifact.name: 'iotedged-mariner-amd64'
           images.artifact.name: '$(images.artifact.name.linux)'
           aziotis.artifact.name: 'packages_mariner_amd64'
           aziotis.package.filter: 'aziot-identity-service-*.x86_64.rpm'
