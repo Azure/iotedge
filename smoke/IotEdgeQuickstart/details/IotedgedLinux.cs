@@ -108,9 +108,11 @@ namespace IotEdgeQuickstart.Details
 
         public Task Install()
         {
+            string[] packages = Directory.GetFiles(this.archivePath, "*.rpm");
+
             return Process.RunAsync(
                     "rpm",
-                    $"-Uhv {this.archivePath}/*.rpm --force",
+                    $"--nodeps -i {string.Join(' ', packages)}",
                     300);
         }
     }
