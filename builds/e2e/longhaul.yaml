@@ -357,7 +357,7 @@ jobs:
         - Agent.OSArchitecture -equals X64
         - eflow -equals true
         - eflow-version -equals 1.2
-        - run-long-haul -equals true
+        - run-long-haul-eflow -equals true
     steps:
       - template: templates/longhaul-setup.yaml
         parameters:

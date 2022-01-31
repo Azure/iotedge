@@ -233,7 +233,7 @@ jobs:
       demands:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - run-new-e2e-tests -equals true
+        - run-new-e2e-tests-eflow -equals true
         - eflow -equals true
         - eflow-version -equals 1.2
 
