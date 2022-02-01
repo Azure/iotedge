@@ -1,6 +1,11 @@
 trigger: none
 pr: none
 
+variables:
+- name: GDN_CODESIGN_TARGETDIRECTORY
+  value: '$(Build.BinariesDirectory)/publish'
+  readonly: true
+
 name: $(version)
 
 stages:
@@ -347,7 +352,7 @@ stages:
       - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
         displayName: 'SBOM Generation Task'
         inputs:
-            BuildDropPath: '$(Build.BinariesDirectory)/publish'             
+            BuildDropPath: '$(Build.BinariesDirectory)/publish'
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifacts to VSTS'
         inputs:
@@ -624,7 +629,7 @@ stages:
       - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
         displayName: 'SBOM Generation Task'
         inputs:
-            BuildDropPath: '$(Build.BinariesDirectory)/publish'            
+            BuildDropPath: '$(Build.BinariesDirectory)/publish'
       - task: PublishBuildArtifacts@1
         displayName: "Publish Artifacts to VSTS"
         inputs: 
