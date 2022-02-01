@@ -51,7 +51,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         IChannel serverChannel;
         IEventLoopGroup eventLoopGroup;
         IEventLoopGroup wsEventLoopGroup;
-
         IEventLoopGroup parentEventLoopGroup;
 
         public MqttProtocolHead(
@@ -142,11 +141,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
             var bootstrap = new ServerBootstrap();
             // multithreaded event loop that handles the incoming connection
-            IEventLoopGroup parentEventLoopGroup = new MultithreadEventLoopGroup(parentEventLoopCount);
+            this.parentEventLoopGroup = new MultithreadEventLoopGroup(parentEventLoopCount);
             // multithreaded event loop (worker) that handles the traffic of the accepted connections
             this.eventLoopGroup = new MultithreadEventLoopGroup(threadCount);
-            this.parentEventLoopGroup = parentEventLoopGroup;
-            bootstrap.Group(parentEventLoopGroup, this.eventLoopGroup)
+            bootstrap.Group(this.parentEventLoopGroup, this.eventLoopGroup)
                 .Option(ChannelOption.SoBacklog, listenBacklogSize)
                 // Allow listening socket to force bind to port if previous socket is still in TIME_WAIT
                 // Fixes "address is already in use" errors

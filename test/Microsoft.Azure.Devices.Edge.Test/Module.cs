@@ -19,6 +19,44 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         [Test]
         [Category("CentOsSafe")]
+        public async Task CertRenew()
+        {
+            CancellationToken token = this.TestToken;
+
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
+                    builder =>
+                    {
+                         builder.GetModule("$edgeHub").WithEnvironment(("ServerCertificateMaxRenewAfterInMs", "6000"));
+                    },
+                    token,
+                    Context.Current.NestedEdge);
+
+            EdgeModule edgeHub = deployment.Modules[ModuleName.EdgeHub];
+            await edgeHub.WaitForStatusAsync(EdgeModuleStatus.Running, token);
+            EdgeModule edgeAgent = deployment.Modules[ModuleName.EdgeAgent];
+            // certificate renew should stop edgeHub and then it should be started by edgeAgent
+            await edgeAgent.WaitForReportedPropertyUpdatesAsync(
+                new
+                {
+                    properties = new
+                    {
+                        reported = new
+                        {
+                            systemModules = new
+                            {
+                                edgeHub = new
+                                {
+                                    restartCount = 1
+                                }
+                            }
+                        }
+                    }
+                },
+                token);
+        }
+
+        [Test]
+        [Category("CentOsSafe")]
         [Category("nestededge_isa95")]
         public async Task TempSensor()
         {
