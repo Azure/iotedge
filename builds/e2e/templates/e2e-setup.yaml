@@ -74,31 +74,7 @@ steps:
     artifactName: $(az.pipeline.images.artifacts)
     allowPartiallySucceededBuilds: true
     itemPattern: $(az.pipeline.images.artifacts)/artifactInfo.txt
-    
-- task: DownloadBuildArtifacts@0
-  displayName: Download edgelet packages
-  condition: eq(variables['check_use_artifacts.UsePipelinePackageArtifacts'],'false')
-  inputs:
-    buildType: specific
-    project: $(resources.pipeline.packages.projectID)
-    pipeline: $(resources.pipeline.packages.pipelineName)
-    buildVersionToDownload: specific
-    buildId: $(resources.pipeline.packages.runID)
-    downloadType: single
-    artifactName: $(artifactName)
-    allowPartiallySucceededBuilds: true
 
-- task: PowerShell@2
-  displayName: 'Download aziot-identity-service'
-  inputs:
-    filePath: $(Build.SourcesDirectory)/scripts/local/test/DownloadIdentityService.ps1
-    workingDirectory: $(Build.SourcesDirectory)
-  env:
-    GITHUB_TOKEN: $(TestGitHubAccessToken)
-    ARTIFACT_NAME: $(identityServiceArtifactName)
-    PACKAGE_FILTER: $(identityServicePackageFilter)
-    DOWNLOAD_PATH: $(System.ArtifactsDirectory)/$(artifactName)
-    IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
 - pwsh: |
     $certsDir = '$(System.ArtifactsDirectory)/certs'
     New-Item "$certsDir" -ItemType Directory -Force | Out-Null
