@@ -39,9 +39,9 @@ jobs:
       name: $(pool.custom.name)
       demands:
         - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals ARM64
         - run-new-e2e-tests-eflow -equals true
         - eflow -equals true
+        - arm64 -equals true
 
     variables:
       os: linux
