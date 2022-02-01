@@ -3,16 +3,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Shared;
+    using Microsoft.Extensions.Logging;
 
     class ModuleClientWrapper : IClient
     {
         readonly ModuleClient underlyingModuleClient;
         readonly AtomicBoolean isActive;
+
+        static readonly ILogger Log = Logger.Factory.CreateLogger<ModuleClientWrapper>();
 
         public ModuleClientWrapper(ModuleClient moduleClient)
         {
@@ -24,14 +28,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public Task AbandonAsync(string messageId) => this.underlyingModuleClient.AbandonAsync(messageId);
 
-        public Task CloseAsync()
+        public async Task CloseAsync()
         {
             if (this.isActive.GetAndSet(false))
             {
-                this.underlyingModuleClient?.Dispose();
-            }
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
 
-            return Task.CompletedTask;
+                try
+                {
+                    await this.underlyingModuleClient?.CloseAsync(cts.Token);
+                }
+                catch (Exception ex)
+                {
+                    Log.LogError(ex, "Could not close DeviceClient");
+                }
+
+                try
+                {
+                    this.underlyingModuleClient?.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    Log.LogError(ex, "Could not close DeviceClient");
+                }
+            }
         }
 
         public Task RejectAsync(string messageId) => throw new InvalidOperationException("Reject is not supported for modules.");

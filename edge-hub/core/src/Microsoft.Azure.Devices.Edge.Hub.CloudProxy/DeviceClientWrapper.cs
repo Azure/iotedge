@@ -3,16 +3,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Shared;
+    using Microsoft.Extensions.Logging;
 
     class DeviceClientWrapper : IClient
     {
         readonly DeviceClient underlyingDeviceClient;
         readonly AtomicBoolean isActive;
+
+        static readonly ILogger Log = Logger.Factory.CreateLogger<DeviceClientWrapper>();
 
         public DeviceClientWrapper(DeviceClient deviceClient)
         {
@@ -24,14 +28,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public Task AbandonAsync(string messageId) => this.underlyingDeviceClient.AbandonAsync(messageId);
 
-        public Task CloseAsync()
+        public async Task CloseAsync()
         {
             if (this.isActive.GetAndSet(false))
             {
-                this.underlyingDeviceClient?.Dispose();
-            }
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
 
-            return Task.CompletedTask;
+                try
+                {
+                    await this.underlyingDeviceClient?.CloseAsync(cts.Token);
+                }
+                catch (Exception ex)
+                {
+                    Log.LogError(ex, "Could not close DeviceClient");
+                }
+
+                try
+                {
+                    this.underlyingDeviceClient?.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    Log.LogError(ex, "Could not close DeviceClient");
+                }
+            }
         }
 
         public Task CompleteAsync(string messageId) => this.underlyingDeviceClient.CompleteAsync(messageId);
