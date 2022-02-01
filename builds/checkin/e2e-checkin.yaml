@@ -56,6 +56,7 @@ stages:
           identityServicePackageFilter: aziot-identity-service_*_amd64.deb
           builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
           builtPackages: $[ stageDependencies.BuildPackages.linux.result ]
+          skip_notary: false
         steps:
         - template: ../e2e/templates/e2e-setup.yaml
         - template: ../e2e/templates/e2e-run.yaml
