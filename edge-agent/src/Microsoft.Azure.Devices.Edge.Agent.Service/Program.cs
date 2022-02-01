@@ -111,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 storagePath = GetOrCreateDirectoryPath(configuration.GetValue<string>("StorageFolder"), EdgeAgentStorageFolder);
                 if (!ValidateStorageIdentity(storagePath, configuration))
                 {
-                    ClearAndRecreateDirectory(storagePath);
+                    ClearDirectoryAndRecreateIdentity(storagePath, configuration);
                 }
 
                 enableNonPersistentStorageBackup = configuration.GetValue("EnableNonPersistentStorageBackup", false);
