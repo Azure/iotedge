@@ -109,6 +109,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
                 // Note: Keep in sync with iotedge-check's edge-agent-storage-mounted-from-host check (edgelet/iotedge/src/check/checks/storage_mounted_from_host.rs)
                 storagePath = GetOrCreateDirectoryPath(configuration.GetValue<string>("StorageFolder"), EdgeAgentStorageFolder);
+                if (!ValidateStorageIdentity(storagePath, configuration))
+                {
+                    ClearAndRecreateDirectory(storagePath);
+                }
+
                 enableNonPersistentStorageBackup = configuration.GetValue("EnableNonPersistentStorageBackup", false);
 
                 if (enableNonPersistentStorageBackup)
@@ -438,6 +443,54 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 logger.LogError(AgentEventIds.Agent, ex, "Error on shutdown");
                 return Task.CompletedTask;
             }
+        }
+
+        static bool ValidateStorageIdentity(string storagePath, IConfiguration configuration)
+        {
+            // just testing out the base idea
+            string[] metadata = new string[4];
+            metadata[0] = configuration.GetValue(Constants.ModuleIdVariableName, Constants.EdgeAgentModuleIdentityName);
+            metadata[1] = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
+            metadata[2] = configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
+            metadata[3] = configuration.GetValue<string>(Constants.DeviceIdVariableName);
+            try
+            {
+                string file = Directory.GetFiles("DEVICE_IDENTITY")[0];
+                int counter = 0;
+                foreach (string line in File.ReadLines(file))
+                {
+                    if (!line.Equals(metadata[counter]))
+                    {
+                        return false;
+                    }
+
+                    counter++;
+                }
+            }
+            catch
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        static void ClearDirectoryAndRecreateIdentity(string storagePath, IConfiguration configuration)
+        {
+            foreach (string file in Directory.GetFiles(storagePath))
+            {
+                File.Delete(file);
+            }
+
+            string[] metadata = new string[4];
+            metadata[0] = configuration.GetValue(Constants.ModuleIdVariableName, Constants.EdgeAgentModuleIdentityName);
+            metadata[1] = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
+            metadata[2] = configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
+            metadata[3] = configuration.GetValue<string>(Constants.DeviceIdVariableName);
+
+            string identityfile = Path.Combine(storagePath, "DEVICE_IDENTITY");
+            File.Create(identityfile);
+            File.WriteAllLines(identityfile, metadata);
         }
 
         static string GetOrCreateDirectoryPath(string baseDirectoryPath, string directoryName)
