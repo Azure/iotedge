@@ -166,6 +166,7 @@ steps:
           username = '$(cr.username)';
         }
       );
+      packagePath = Convert-Path '/home/iotedge-user/rpms';
       caCertScriptPath = "$caCertScriptPath";
       rootCaCertificatePath = "$rootCaCertificatePath";
       rootCaPrivateKeyPath = "$rootCaPrivateKeyPath";
