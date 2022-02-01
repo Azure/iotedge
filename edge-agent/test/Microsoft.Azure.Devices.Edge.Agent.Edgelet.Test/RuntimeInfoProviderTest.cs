@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
 
             // Assert
             Assert.NotNull(systemInfo);
-            Assert.Equal("linux", systemInfo.Kernel);
+            Assert.Equal("linux", systemInfo.OperatingSystemType);
             Assert.Equal("x86", systemInfo.Architecture);
             Assert.Equal("1", systemInfo.Version);
         }

@@ -52,12 +52,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 RuntimeInfoProvider runtimeInfoProvider = await RuntimeInfoProvider.CreateAsync(Client);
 
                 // Act
-                SystemInfo recivedSystemInfo = await runtimeInfoProvider.GetSystemInfo(CancellationToken.None);
+                SystemInfo receivedSystemInfo = await runtimeInfoProvider.GetSystemInfo(CancellationToken.None);
 
                 // Assert
-                Assert.Equal(systemInfo.OSType, recivedSystemInfo.Kernel);
-                Assert.Equal(systemInfo.Architecture, recivedSystemInfo.Architecture);
-                Assert.Equal(systemInfo.ServerVersion, recivedSystemInfo.Version);
+                Assert.Equal(systemInfo.OSType, receivedSystemInfo.OperatingSystemType);
+                Assert.Equal(systemInfo.Architecture, receivedSystemInfo.Architecture);
+                Assert.Equal(systemInfo.ServerVersion, receivedSystemInfo.Version);
             }
         }
 
@@ -253,7 +253,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
             // Assert
             Assert.NotNull(systemInfo);
-            Assert.Equal(systemInfo.Kernel, systemInfoResponse.OSType);
+            Assert.Equal(systemInfo.OperatingSystemType, systemInfoResponse.OSType);
             Assert.Equal(systemInfo.Architecture, systemInfoResponse.Architecture);
         }
 

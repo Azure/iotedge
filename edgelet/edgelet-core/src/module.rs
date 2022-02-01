@@ -291,6 +291,8 @@ pub struct SystemInfo {
 
     pub version: String,
 
+    pub provisioning: ProvisioningInfo,
+
     #[serde(default, flatten)]
     pub additional_properties: BTreeMap<String, String>,
 }

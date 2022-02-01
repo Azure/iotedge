@@ -2,6 +2,7 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
+    using System;
     using System.Collections.Generic;
     using System.Text;
 
@@ -49,6 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 }
             }
 
+            Console.WriteLine(b.ToString());
             return b.ToString();
         }
 
