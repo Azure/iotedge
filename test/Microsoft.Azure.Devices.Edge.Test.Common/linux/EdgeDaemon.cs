@@ -94,6 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             await Profiler.Run(
                 async () =>
                 {
+                    Log.Verbose($"About to run'{commands}'");
                     await Process.RunAsync("bash", $"-c \"{string.Join(" || exit $?; ", commands)}\"", token);
                     await this.InternalStopAsync(token);
                 },
@@ -205,6 +206,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     {
                         try
                         {
+                            Log.Verbose($"About to run'{command}'");
                             await Process.RunAsync("bash", $"-c \"{string.Join(" || exit $?; ", command)}\"", token);
                         }
                         catch (Win32Exception e)
