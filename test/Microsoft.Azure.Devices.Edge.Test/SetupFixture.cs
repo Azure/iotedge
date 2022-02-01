@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         }
                     }
 
-                    await this.daemon.InstallAsync(Context.Current.PackagePath, Context.Current.EdgeProxy, token);
+                    // await this.daemon.InstallAsync(Context.Current.PackagePath, Context.Current.EdgeProxy, token);
 
                     // Clean the directory for test certs, keys, etc.
                     if (Directory.Exists(FixedPaths.E2E_TEST_DIR))
