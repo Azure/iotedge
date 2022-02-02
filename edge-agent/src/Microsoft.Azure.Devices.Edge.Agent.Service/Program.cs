@@ -484,8 +484,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             metadata[3] = configuration.GetValue<string>(Constants.DeviceIdVariableName);
 
             string identityfile = Path.Combine(storagePath, "DEVICE_IDENTITY");
-            File.Create(identityfile);
-            File.WriteAllLines(identityfile, metadata);
+            using (var file = File.Create(identityfile))
+            {
+                File.WriteAllLines(identityfile, metadata);
+            }
         }
 
         static string GetOrCreateDirectoryPath(string baseDirectoryPath, string directoryName)
