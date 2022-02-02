@@ -105,7 +105,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         {
             return new[]
             {
-                $"rpm --nodeps -i {string.Join(' ', packages)}"
+                $"rpm --nodeps -i {string.Join(' ', packages)}",
+                "chmod a+rx -R /etc/aziot/e2e_tests"
             };
         }
 
