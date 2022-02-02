@@ -141,6 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         async Task InternalStartAsync(CancellationToken token)
         {
+            Log.Information("InternalStartAsync");
             await Process.RunAsync("systemctl", "start aziot-keyd aziot-certd aziot-identityd aziot-edged", token);
             await WaitForStatusAsync(ServiceControllerStatus.Running, token);
 
@@ -182,6 +183,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         async Task InternalStopAsync(CancellationToken token)
         {
+            Log.Information("InternalStopAsync");
             await Process.RunAsync("systemctl", $"stop {this.packageManagement.IotedgeServices}", token);
             await WaitForStatusAsync(ServiceControllerStatus.Stopped, token);
         }
