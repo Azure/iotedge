@@ -172,7 +172,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     request.Kill(true);
                     request.WaitForExit();
                     request.Close();
-                    Log.Verbose("aziot-edged not yet ready");
+                    Log.Information("aziot-edged not yet ready");
                 }
             }
         }
@@ -246,6 +246,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     }
 
                     await Task.Delay(250, token).ConfigureAwait(false);
+
+                    Log.Information($"WaitForStatusAsync: waiting for {process}");
                 }
             }
         }
