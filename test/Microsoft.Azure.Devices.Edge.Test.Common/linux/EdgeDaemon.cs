@@ -110,6 +110,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             return Profiler.Run(
                 async () =>
                 {
+                    await Process.RunAsync("bash", $"-c \"chmod a+rw /etc/aziot/e2e_tests\"", token);
+
                     await this.InternalStopAsync(token);
 
                     ConfigFilePaths paths = new ConfigFilePaths
