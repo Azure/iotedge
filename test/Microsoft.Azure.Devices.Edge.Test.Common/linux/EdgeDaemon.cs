@@ -90,12 +90,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             string[] commands = packagesPath.Match(
                 p => this.packageManagement.GetInstallCommandsFromLocal(p),
                 () => this.packageManagement.GetInstallCommandsFromMicrosoftProd());
-            string appendcommands = string.Join(';', commands);
+            string appendcommands = string.Join(" || exit $?; ", commands);
             await Profiler.Run(
                 async () =>
                 {
                     Log.Information($"About to run'{appendcommands}'");
-                    await Process.RunAsync("bash", $"-c \"{string.Join(" || exit $?; ", appendcommands)}\"", token);
+                    await Process.RunAsync("bash", $"-c \"{string.Join(" || exit $?; ", commands)}\"", token);
                     await this.InternalStopAsync(token);
                 },
                 message,

@@ -144,11 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             return new[]
             {
                 "set -e",
-                $"rpm --nodeps -i {string.Join(' ', packages)}",
-                "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
-                "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
-                "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
-                "sudo systemctl daemon-reload"
+                $"rpm --nodeps -i {string.Join(' ', packages)}"
             };
         }
 
