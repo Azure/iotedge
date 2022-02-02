@@ -94,8 +94,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             await Profiler.Run(
                 async () =>
                 {
-                    Log.Information($"About to run'{commands}'");
-                    await Process.RunAsync("bash", $"-c \"{string.Join(" || exit $?; ", commands)}\"", token);
+                    Log.Information($"About to run'{appendcommands}'");
+                    await Process.RunAsync("bash", $"-c \"{string.Join(" || exit $?; ", appendcommands)}\"", token);
                     await this.InternalStopAsync(token);
                 },
                 message,
