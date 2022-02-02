@@ -31,14 +31,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         {
             Assert.Equal(
                 "kernel_name=A+A;cpu_architecture=B%2BB;",
-                new SystemInfo("A A", "B+B", "C C", null).ToQueryString());
+                new SystemInfo("A A", "B+B", "C C").ToQueryString());
         }
 
         [Fact]
         [Unit]
         public void BasicEntryTest()
         {
-            Dictionary<string, string> properties = new Dictionary<string, string>();
+            Dictionary<string, object> properties = new Dictionary<string, object>();
 
             properties.Add("first", "1");
             properties.Add("second", "2");
@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Unit]
         public void NullOrEmptyKeyTest()
         {
-            Dictionary<string, string> properties = new Dictionary<string, string>();
+            Dictionary<string, object> properties = new Dictionary<string, object>();
 
             properties.Add("first", "1");
             properties.Add(string.Empty, "foo");
@@ -71,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Unit]
         public void NullValueTest()
         {
-            Dictionary<string, string> properties = new Dictionary<string, string>();
+            Dictionary<string, object> properties = new Dictionary<string, object>();
 
             properties.Add("first", "1");
             properties.Add("second", null);
@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Unit]
         public void EncodedEntryTest()
         {
-            IDictionary<string, string> properties = new Dictionary<string, string>();
+            IDictionary<string, object> properties = new Dictionary<string, object>();
 
             properties.Add("first first", "1+1");
             properties.Add("second+second", "2 2");

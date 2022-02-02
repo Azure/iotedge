@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             this.Architecture = architecture;
             this.Version = version;
 
-            this.AdditionalProperties = additionalProperties.ToDictionary(entry => entry.Key, entry => entry.Value.ToString());
+            this.AdditionalProperties = additionalProperties?.ToDictionary(entry => entry.Key, entry => entry.Value?.ToString());
         }
 
         public SystemInfo(string operatingSystemType, string architecture, string version)
