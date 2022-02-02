@@ -10,8 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
         public static readonly ApiVersion Version20191022 = new ApiVersion(3, "2019-10-22");
         public static readonly ApiVersion Version20191105 = new ApiVersion(4, "2019-11-05");
         public static readonly ApiVersion Version20200707 = new ApiVersion(5, "2020-07-07");
-        public static readonly ApiVersion Version20201010 = new ApiVersion(6, "2020-10-10");
-        public static readonly ApiVersion Version20211207 = new ApiVersion(7, "2021-12-07");
+        public static readonly ApiVersion Version20211207 = new ApiVersion(6, "2021-12-07");
         public static readonly ApiVersion VersionUnknown = new ApiVersion(100, "Unknown");
 
         static readonly Dictionary<string, ApiVersion> Instance = new Dictionary<string, ApiVersion>
@@ -21,7 +20,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
             { Version20191022.Name, Version20191022 },
             { Version20191105.Name, Version20191105 },
             { Version20200707.Name, Version20200707 },
-            { Version20201010.Name, Version20201010 },
             { Version20211207.Name, Version20211207 }
         };
 

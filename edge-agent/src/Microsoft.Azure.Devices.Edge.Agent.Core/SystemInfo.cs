@@ -4,23 +4,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Text;
 
     using static System.Net.WebUtility;
 
     public class SystemInfo
     {
-        public SystemInfo(string operatingSystemType, string architecture, string version, IDictionary<string, string> additionalProperties)
+        public SystemInfo(string operatingSystemType, string architecture, string version, IDictionary<string, object> additionalProperties)
         {
             this.OperatingSystemType = operatingSystemType;
             this.Architecture = architecture;
             this.Version = version;
 
-            this.AdditionalProperties = additionalProperties;
+            this.AdditionalProperties = additionalProperties.ToDictionary(entry => entry.Key, entry => entry.Value.ToString());
         }
 
         public SystemInfo(string operatingSystemType, string architecture, string version)
-            : this(operatingSystemType, architecture, version, new Dictionary<string, string>())
+            : this(operatingSystemType, architecture, version, new Dictionary<string, object>())
         {
         }
 
@@ -50,7 +51,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 }
             }
 
-            Console.WriteLine(b.ToString());
             return b.ToString();
         }
 

@@ -564,13 +564,14 @@ impl fmt::Display for RuntimeOperation {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     use std::collections::BTreeMap;
     use std::str::FromStr;
     use std::string::ToString;
 
     use edgelet_settings::module::ImagePullPolicy;
 
-    use super::ModuleSpec;
     use crate::module::ModuleStatus;
 
     fn get_inputs() -> Vec<(&'static str, ModuleStatus)> {
@@ -649,5 +650,79 @@ mod tests {
             ImagePullPolicy::default(),
         )
         .unwrap_err();
+    }
+
+    #[test]
+    fn system_info_merge() {
+        let mut base = SystemInfo {
+            kernel: "FOO".into(),
+            kernel_release: "BAR".into(),
+            kernel_version: "BAZ".into(),
+
+            operating_system: "A".to_owned().into(),
+            operating_system_version: "B".to_owned().into(),
+            operating_system_variant: "C".to_owned().into(),
+            operating_system_build: "D".to_owned().into(),
+
+            architecture: "ARCH".into(),
+            cpus: 0,
+            virtualized: "UNKNOWN".into(),
+
+            product_name: None,
+            system_vendor: None,
+
+            version: crate::version_with_source_version(),
+            provisioning: ProvisioningInfo {
+                r#type: "ProvisioningType".into(),
+                dynamic_reprovisioning: false,
+                always_reprovision_on_startup: false,
+            },
+
+            additional_properties: BTreeMap::new(),
+        };
+
+        let additional = BTreeMap::from([
+            ("kernel_name".to_owned(), "linux".to_owned()),
+            ("kernel_release".to_owned(), "5.0".to_owned()),
+            ("kernel_version".to_owned(), "1".to_owned()),
+            ("os_name".to_owned(), "OS".to_owned()),
+            ("foo".to_owned(), "foofoo".to_owned()),
+            ("bar".to_owned(), "barbar".to_owned()),
+        ]);
+
+        base.merge_additional(additional);
+
+        assert_eq!(&base.kernel, "linux");
+        assert_eq!(&base.kernel_release, "5.0");
+        assert_eq!(&base.kernel_version, "1");
+
+        assert_eq!(base.operating_system.as_deref(), Some("OS"));
+        assert_eq!(base.operating_system_version.as_deref(), Some("B"));
+        assert_eq!(base.operating_system_variant.as_deref(), Some("C"));
+        assert_eq!(base.operating_system_build.as_deref(), Some("D"));
+
+        assert_eq!(base.cpus, 0);
+        assert_eq!(&base.virtualized, "UNKNOWN");
+
+        assert!(base.product_name.is_none());
+        assert!(base.system_vendor.is_none());
+
+        assert_eq!(base.version, crate::version_with_source_version());
+        assert_eq!(
+            base.provisioning,
+            ProvisioningInfo {
+                r#type: "ProvisioningType".into(),
+                dynamic_reprovisioning: false,
+                always_reprovision_on_startup: false
+            }
+        );
+
+        assert_eq!(
+            base.additional_properties,
+            BTreeMap::from([
+                ("foo".to_owned(), "foofoo".to_owned()),
+                ("bar".to_owned(), "barbar".to_owned())
+            ])
+        );
     }
 }
