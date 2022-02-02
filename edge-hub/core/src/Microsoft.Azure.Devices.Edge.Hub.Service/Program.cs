@@ -61,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             SslProtocols sslProtocols = SslProtocolsHelper.Parse(sslProtocolsConfig, DefaultSslProtocols, logger);
             logger.LogInformation($"Enabling SSL protocols: {sslProtocols.Print()}");
 
-            IDependencyManager dependencyManager = new DependencyManager(configuration, certificates.ServerCertificate, certificates.TrustBundle, sslProtocols);
+            IDependencyManager dependencyManager = new DependencyManager(configuration, certificates.ServerCertificate, certificates.TrustBundle, certificates.ManifestTrustBundle, sslProtocols);
             Hosting hosting = Hosting.Initialize(configuration, certificates.ServerCertificate, dependencyManager, clientCertAuthEnabled, sslProtocols);
             IContainer container = hosting.Container;
 
@@ -70,6 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             LogVersionInfo(logger);
             logger.LogInformation($"OptimizeForPerformance={configuration.GetValue("OptimizeForPerformance", true)}");
             logger.LogInformation($"MessageAckTimeoutSecs={configuration.GetValue("MessageAckTimeoutSecs", 30)}");
+            logger.LogInformation("Loaded server certificate with expiration date of {0}", certificates.ServerCertificate.NotAfter.ToString("o"));
             logger.LogInformation("Loaded server certificate with expiration date of {0}", certificates.ServerCertificate.NotAfter.ToString("o"));
 
             var metricsProvider = container.Resolve<IMetricsProvider>();
