@@ -42,7 +42,7 @@ jobs:
 
     variables:
       os: linux
-      arch: arm64
+      arch: arm64v8
       artifactName: iotedged-mariner-arm64
       identityServiceArtifactName: packages_mariner_amd64
       identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
