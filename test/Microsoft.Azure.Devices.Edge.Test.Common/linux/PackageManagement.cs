@@ -105,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         {
             return new[]
             {
-                $"sudo rpm --nodeps -i {string.Join(' ', packages)}"
+                $"rpm --nodeps -i {string.Join(' ', packages)}"
             };
         }
 
@@ -138,7 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         {
             return new[]
             {
-                $"sudo rpm --nodeps -i {string.Join(' ', packages)}"
+                $"rpm --nodeps -i {string.Join(' ', packages)}"
             };
         }
 
