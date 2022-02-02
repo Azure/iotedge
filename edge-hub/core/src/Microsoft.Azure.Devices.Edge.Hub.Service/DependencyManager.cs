@@ -339,6 +339,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             // Note: Keep in sync with iotedge-check's edge-hub-storage-mounted-from-host check (edgelet/iotedge/src/check/checks/storage_mounted_from_host.rs)
             string storagePath = GetOrCreateDirectoryPath(this.configuration.GetValue<string>("StorageFolder"), Constants.EdgeHubStorageFolder);
+            if (!this.ValidateStorageIdentity(storagePath))
+            {
+                this.ClearDirectoryAndRecreateIdentity(storagePath);
+            }
             bool storeAndForwardEnabled = this.configuration.GetValue<bool>("storeAndForwardEnabled");
             Option<ulong> storageMaxTotalWalSize = this.GetConfigIfExists<ulong>(Constants.ConfigKey.StorageMaxTotalWalSize, this.configuration);
             Option<ulong> storageMaxManifestFileSize = this.GetConfigIfExists<ulong>(Constants.ConfigKey.StorageMaxManifestFileSize, this.configuration);
@@ -376,6 +380,53 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
 
             return EqualityComparer<T>.Default.Equals(storageParamValue, default(T)) ? Option.None<T>() : Option.Some(storageParamValue);
+        }
+
+        bool ValidateStorageIdentity(string storagePath)
+        {
+            // just testing out the base idea
+            string[] metadata = new string[4];
+            metadata[0] = this.edgeModuleId;
+            metadata[2] = this.iotHubHostname;
+            metadata[3] = this.edgeDeviceId;
+
+            try
+            {
+                string file = Directory.GetFiles(storagePath, "DEVICE_IDENTITY")[0];
+                int counter = 0;
+                foreach (string line in File.ReadLines(file))
+                {
+                    if (!line.Equals(metadata[counter]))
+                    {
+                        return false;
+                    }
+
+                    counter++;
+                }
+            }
+            catch
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        void ClearDirectoryAndRecreateIdentity(string storagePath)
+        {
+            foreach (string file in Directory.GetFiles(storagePath))
+            {
+                File.Delete(file);
+            }
+
+            string[] metadata = new string[4];
+            metadata[0] = this.edgeModuleId;
+            metadata[2] = this.iotHubHostname;
+            metadata[3] = this.edgeDeviceId;
+
+            string identityfile = Path.Combine(storagePath, "DEVICE_IDENTITY");
+            File.Create(identityfile).Close();
+            File.WriteAllLines(identityfile, metadata);
         }
 
         static string GetOrCreateDirectoryPath(string baseDirectoryPath, string directoryName)

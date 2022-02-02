@@ -108,9 +108,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
                 // Note: Keep in sync with iotedge-check's edge-agent-storage-mounted-from-host check (edgelet/iotedge/src/check/checks/storage_mounted_from_host.rs)
                 storagePath = GetOrCreateDirectoryPath(configuration.GetValue<string>("StorageFolder"), EdgeAgentStorageFolder);
-                if (!ValidateStorageIdentity(storagePath, configuration))
+                if (!ValidateStorageIdentity(storagePath, configuration, logger))
                 {
-                    ClearDirectoryAndRecreateIdentity(storagePath, configuration);
+                    ClearDirectoryAndRecreateIdentity(storagePath, configuration, logger);
                 }
 
                 enableNonPersistentStorageBackup = configuration.GetValue("EnableNonPersistentStorageBackup", false);
@@ -440,7 +440,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             }
         }
 
-        static bool ValidateStorageIdentity(string storagePath, IConfiguration configuration)
+        static bool ValidateStorageIdentity(string storagePath, IConfiguration configuration, ILogger logger)
         {
             // just testing out the base idea
             string[] metadata = new string[4];
@@ -450,12 +450,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             metadata[3] = configuration.GetValue<string>(Constants.DeviceIdVariableName);
             try
             {
-                string file = Directory.GetFiles("DEVICE_IDENTITY")[0];
+                string file = Directory.GetFiles(storagePath, "DEVICE_IDENTITY")[0];
                 int counter = 0;
                 foreach (string line in File.ReadLines(file))
                 {
                     if (!line.Equals(metadata[counter]))
                     {
+                        logger.LogInformation("Different Device Identity. Purging local storage.");
                         return false;
                     }
 
@@ -464,19 +465,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             }
             catch
             {
+                logger.LogInformation("Different Device Identity. Purging local storage.");
                 return false;
             }
-
+            logger.LogInformation("Same Device Identity");
             return true;
         }
 
-        static void ClearDirectoryAndRecreateIdentity(string storagePath, IConfiguration configuration)
+        static void ClearDirectoryAndRecreateIdentity(string storagePath, IConfiguration configuration, ILogger logger)
         {
             foreach (string file in Directory.GetFiles(storagePath))
             {
                 File.Delete(file);
             }
 
+            logger.LogInformation("Deleted old files.");
             string[] metadata = new string[4];
             metadata[0] = configuration.GetValue(Constants.ModuleIdVariableName, Constants.EdgeAgentModuleIdentityName);
             metadata[1] = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
@@ -486,6 +489,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             string identityfile = Path.Combine(storagePath, "DEVICE_IDENTITY");
             File.Create(identityfile).Close();
             File.WriteAllLines(identityfile, metadata);
+            logger.LogInformation("Created new Identity file.");
+
         }
 
         static string GetOrCreateDirectoryPath(string baseDirectoryPath, string directoryName)
