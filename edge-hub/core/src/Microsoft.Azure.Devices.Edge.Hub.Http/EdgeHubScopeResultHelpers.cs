@@ -1,13 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 {
-    using System.Collections.Generic;
-    using System.Linq;
-    using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using System;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
-    using Org.BouncyCastle.Security;
 
     public static class EdgeHubScopeResultHelpers
     {
@@ -30,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
         {
             Preconditions.CheckNotNull(identity);
             Preconditions.CheckArgument(identity.IsModule);
-            string moduleId = identity.ModuleId.Expect(() => new InvalidParameterException($"ModuleId shouldn't be empty when ServiceIdentity is a module: {identity.Id}"));
+            string moduleId = identity.ModuleId.Expect(() => new InvalidOperationException($"ModuleId shouldn't be empty when ServiceIdentity is a module: {identity.Id}"));
 
             return new EdgeHubScopeModule(
                 Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId)),
@@ -53,13 +50,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             {
                 case ServiceAuthenticationType.SymmetricKey:
                     authentication.Type = AuthenticationType.Sas;
-                    var sasKey = serviceAuth.SymmetricKey.Expect(() => new InvalidParameterException("SAS key shouldn't be empty when auth type is SymmetricKey"));
+                    var sasKey = serviceAuth.SymmetricKey.Expect(() => new InvalidOperationException("SAS key shouldn't be empty when auth type is SymmetricKey"));
                     authentication.SymmetricKey = new SymmetricKey() { PrimaryKey = sasKey.PrimaryKey, SecondaryKey = sasKey.SecondaryKey };
                     break;
 
                 case ServiceAuthenticationType.CertificateThumbprint:
                     authentication.Type = AuthenticationType.SelfSigned;
-                    var x509Thumbprint = serviceAuth.X509Thumbprint.Expect(() => new InvalidParameterException("X509 thumbprint shouldn't be empty when auth type is CertificateThumbPrint"));
+                    var x509Thumbprint = serviceAuth.X509Thumbprint.Expect(() => new InvalidOperationException("X509 thumbprint shouldn't be empty when auth type is CertificateThumbPrint"));
                     authentication.X509Thumbprint = new X509Thumbprint() { PrimaryThumbprint = x509Thumbprint.PrimaryThumbprint, SecondaryThumbprint = x509Thumbprint.SecondaryThumbprint };
                     break;
 
@@ -72,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                     break;
 
                 default:
-                    throw new InvalidParameterException($"Unexpected ServiceAuthenticationType: {serviceAuth.Type}");
+                    throw new InvalidOperationException($"Unexpected ServiceAuthenticationType: {serviceAuth.Type}");
             }
 
             return authentication;
