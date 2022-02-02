@@ -343,6 +343,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             {
                 this.ClearDirectoryAndRecreateIdentity(storagePath);
             }
+
             bool storeAndForwardEnabled = this.configuration.GetValue<bool>("storeAndForwardEnabled");
             Option<ulong> storageMaxTotalWalSize = this.GetConfigIfExists<ulong>(Constants.ConfigKey.StorageMaxTotalWalSize, this.configuration);
             Option<ulong> storageMaxManifestFileSize = this.GetConfigIfExists<ulong>(Constants.ConfigKey.StorageMaxManifestFileSize, this.configuration);

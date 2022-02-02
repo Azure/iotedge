@@ -468,6 +468,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 logger.LogInformation("Different Device Identity. Purging local storage.");
                 return false;
             }
+
             logger.LogInformation("Same Device Identity");
             return true;
         }
@@ -490,7 +491,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             File.Create(identityfile).Close();
             File.WriteAllLines(identityfile, metadata);
             logger.LogInformation("Created new Identity file.");
-
         }
 
         static string GetOrCreateDirectoryPath(string baseDirectoryPath, string directoryName)
