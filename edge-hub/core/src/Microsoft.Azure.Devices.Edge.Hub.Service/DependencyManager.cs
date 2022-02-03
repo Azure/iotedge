@@ -386,14 +386,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         bool ValidateStorageIdentity(string storagePath)
         {
             // just testing out the base idea
-            string[] metadata = new string[4];
+            string[] metadata = new string[3];
             metadata[0] = this.edgeModuleId;
-            metadata[2] = this.iotHubHostname;
-            metadata[3] = this.edgeDeviceId;
+            metadata[1] = this.iotHubHostname;
+            metadata[2] = this.edgeDeviceId;
 
+            string file = Directory.GetFiles(storagePath, "DEVICE_IDENTITY")[0];
             try
             {
-                string file = Directory.GetFiles(storagePath, "DEVICE_IDENTITY")[0];
                 int counter = 0;
                 foreach (string line in File.ReadLines(file))
                 {
@@ -405,9 +405,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     counter++;
                 }
             }
-            catch
+            catch (FileNotFoundException)
             {
-                return false;
+                File.Create(file).Close();
+                File.WriteAllLines(file, metadata);
             }
 
             return true;
@@ -420,10 +421,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 File.Delete(file);
             }
 
-            string[] metadata = new string[4];
+            string[] metadata = new string[3];
             metadata[0] = this.edgeModuleId;
-            metadata[2] = this.iotHubHostname;
-            metadata[3] = this.edgeDeviceId;
+            metadata[1] = this.iotHubHostname;
+            metadata[2] = this.edgeDeviceId;
 
             string identityfile = Path.Combine(storagePath, "DEVICE_IDENTITY");
             File.Create(identityfile).Close();

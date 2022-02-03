@@ -448,9 +448,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             metadata[1] = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
             metadata[2] = configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
             metadata[3] = configuration.GetValue<string>(Constants.DeviceIdVariableName);
+            string file = Directory.GetFiles(storagePath, "DEVICE_IDENTITY")[0];
             try
             {
-                string file = Directory.GetFiles(storagePath, "DEVICE_IDENTITY")[0];
                 int counter = 0;
                 foreach (string line in File.ReadLines(file))
                 {
@@ -463,10 +463,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                     counter++;
                 }
             }
-            catch
+            catch (FileNotFoundException)
             {
-                logger.LogInformation("Different Device Identity. Purging local storage.");
-                return false;
+                logger.LogInformation("No Device Identity File. Creating file.");
+                File.Create(file).Close();
+                File.WriteAllLines(file, metadata);
             }
 
             logger.LogInformation("Same Device Identity");
