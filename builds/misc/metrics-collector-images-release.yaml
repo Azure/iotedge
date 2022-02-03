@@ -52,7 +52,6 @@ stages:
         - task: DownloadPipelineArtifact@2
           inputs:
             artifact: 'librocksdb'
-            # place in '$(Pipeline.Workspace)/librocksdb'
             path: '$(Pipeline.Workspace)/librocksdb'
 
         - task: CopyFiles@2
@@ -178,8 +177,8 @@ stages:
         displayName: Docker login edgerelease
         inputs:
           command: login
-          containerRegistry: $(service.connection)
-      - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(version) -t $(System.DefaultWorkingDirectory)/edge-modules/azure-monitor/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+          containerRegistry: "$(service.connection)"
+      - script: scripts/linux/buildManifest.sh -r "$(registry.address)" -v "$(version)" -t "$(System.DefaultWorkingDirectory)"/edge-modules/azure-monitor/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
         displayName: 'Publish Metrics Collector Manifest'
 
 ################################################################################
