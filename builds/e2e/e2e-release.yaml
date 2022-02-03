@@ -236,29 +236,6 @@ stages:
         - template: templates/e2e-clear-docker-cached-images.yaml
         - template: templates/e2e-run-base-image-update.yaml
 
-    # CentOS 7 is tier 2
-    # ################################################################################
-    #   - job: centos7_amd64
-    # ################################################################################
-    #     displayName: CentOs7 amd64
-
-    #     pool:
-    #       name: $(pool.linux.name)
-    #       demands:
-    #         - ImageOverride -equals agent-aziotedge-centos-7-msmoby
-
-    #     variables:
-    #       os: linux
-    #       arch: amd64
-    #       artifactName: iotedged-centos7-amd64
-    #       builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
-
-    #     steps:
-    #     - template: templates/e2e-clean-directory.yaml
-    #     - template: templates/e2e-setup-base-image-update-release.yaml
-    #     - template: templates/e2e-clear-docker-cached-images.yaml
-    #     - template: templates/e2e-run-base-image-update.yaml
-
     # Disabling until EFLOW agent hardware issues are resolved
     # ################################################################################
     #   - job: EFLOW_amd64
