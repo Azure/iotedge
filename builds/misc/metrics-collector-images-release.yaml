@@ -7,6 +7,7 @@ variables:
 
 stages:
 # This stage builds Rocks DB and adds the files to staging directory
+# It's only needed for building E2E test images and not needed for the Metrics Collector
 ################################################################################
 - template: templates/build-rocksdb.yaml
 ################################################################################
@@ -67,6 +68,8 @@ stages:
             imageName: azureiotedge-metrics-collector
             project: Microsoft.Azure.Devices.Edge.Azure.Monitor
             version: $(version)
+
+        # for E2E tests only
         - template: templates/image-linux.yaml
           parameters:
             imageName: azureiotedge-agent
@@ -132,6 +135,8 @@ stages:
             imageName: azureiotedge-metrics-collector
             project: Microsoft.Azure.Devices.Edge.Azure.Monitor
             version: $(version)
+
+        # for E2E tests only
         - template: templates/image-windows.yaml
           parameters:
             imageName: azureiotedge-agent
