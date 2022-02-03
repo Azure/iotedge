@@ -25,13 +25,7 @@ stages:
             arch: arm64v8
             postfix: arm64
       steps:
-      - bash: |
-          build_image=rocksdb-build:master-$(postfix)-$(Build.BuildNumber) && \
-          mkdir -p $(Build.ArtifactStagingDirectory)/librocksdb && \
-          cd $(System.DefaultWorkingDirectory)/edge-util/docker/linux/$(arch) && \
-          docker build --tag ${build_image} . && \
-          docker run --rm -v $(Build.ArtifactStagingDirectory)/librocksdb:/artifacts \
-            ${build_image} cp /publish/librocksdb.so.$(postfix) /artifacts
+      - script: scripts/linux/buildRocksDb.sh --working-dir $(Build.AtifactsStagingDirectory) --postfix $(postfix) --build-number $(Build.BuildNumber) --arch $(arch)
         displayName: Build and copy out rocksdb lib
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifacts to VSTS'
