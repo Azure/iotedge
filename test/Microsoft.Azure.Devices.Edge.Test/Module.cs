@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                     builder =>
                     {
-                         builder.GetModule("$edgeHub").WithEnvironment(("ServerCertificateMaxRenewAfterInMs", "6000"));
+                         builder.GetModule("$edgeHub").WithEnvironment(("ServerCertificateRenewAfterInMs", "6000"));
                     },
                     token,
                     Context.Current.NestedEdge);
