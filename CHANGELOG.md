@@ -1,3 +1,14 @@
+# 1.1.10 (2022-02-03)
+## Edge Agent
+### Bug Fixes
+* Update Base Images for a Security Patch [0ac3602](https://github.com/Azure/iotedge/commit/0ac3602f2fa5dd08b20826f68394a59f9434a691)
+
+
+## Edge Hub
+### Bug Fixes
+* Update Base Images for a Security Patch [0ac3602](https://github.com/Azure/iotedge/commit/0ac3602f2fa5dd08b20826f68394a59f9434a691)
+
+
 # 1.1.9 (2022-01-28)
 ## iotedged
 ### Bug Fixes
