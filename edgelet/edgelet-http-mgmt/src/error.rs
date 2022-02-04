@@ -127,26 +127,27 @@ impl IntoResponse for Error {
         }
 
         // Specialize status code based on the underlying docker runtime error, if any
-        let status_code =
-            if let Some(cause) = <dyn Fail>::find_root_cause(&self).downcast_ref::<DockerErrorKind>() {
-                match cause {
-                    DockerErrorKind::NotFound(_) => StatusCode::NOT_FOUND,
-                    DockerErrorKind::Conflict => StatusCode::CONFLICT,
-                    DockerErrorKind::NotModified => StatusCode::NOT_MODIFIED,
-                    _ => StatusCode::INTERNAL_SERVER_ERROR,
+        let status_code = if let Some(cause) =
+            <dyn Fail>::find_root_cause(&self).downcast_ref::<DockerErrorKind>()
+        {
+            match cause {
+                DockerErrorKind::NotFound(_) => StatusCode::NOT_FOUND,
+                DockerErrorKind::Conflict => StatusCode::CONFLICT,
+                DockerErrorKind::NotModified => StatusCode::NOT_MODIFIED,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            }
+        } else {
+            match self.kind() {
+                ErrorKind::InvalidApiVersion(_)
+                | ErrorKind::MalformedRequestBody
+                | ErrorKind::MalformedRequestParameter(_)
+                | ErrorKind::MissingRequiredParameter(_) => StatusCode::BAD_REQUEST,
+                _ => {
+                    error!("Internal server error: {}", message);
+                    StatusCode::INTERNAL_SERVER_ERROR
                 }
-            } else {
-                match self.kind() {
-                    ErrorKind::InvalidApiVersion(_)
-                    | ErrorKind::MalformedRequestBody
-                    | ErrorKind::MalformedRequestParameter(_)
-                    | ErrorKind::MissingRequiredParameter(_) => StatusCode::BAD_REQUEST,
-                    _ => {
-                        error!("Internal server error: {}", message);
-                        StatusCode::INTERNAL_SERVER_ERROR
-                    }
-                }
-            };
+            }
+        };
 
         // Per the RFC, status code NotModified should not have a body
         let body = if status_code == StatusCode::NOT_MODIFIED {
