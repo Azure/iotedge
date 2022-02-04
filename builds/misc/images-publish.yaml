@@ -15,9 +15,10 @@ variables:
 resources:
   pipelines:
   - pipeline: images
-    source: >-
-      'Azure-IoT-Edge-Core Images Release YAML',
-      'Azure-IoT-Edge Base Image Update (Release 1.1)'
+    source: 'Azure-IoT-Edge-Core Images Release YAML'
+    branch: 'release/1.1'
+  - pipeline: images
+    source: 'Azure-IoT-Edge Base Image Update (Release 1.1)'
     branch: 'release/1.1'
 
 jobs:
