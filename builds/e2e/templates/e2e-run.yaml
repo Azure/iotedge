@@ -84,8 +84,8 @@ steps:
       sudo --preserve-env $(command -v dotnet) test $testFile --no-build --logger 'trx' --filter "$filter"
     }
     else
-    {  $filter ='&FullQualifiedName=Microsoft.Azure.Devices.Edge.Test.IoTEdgeCheck.IoTEdge_check'
-      sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
+    {  
+      sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "FullQualifiedName=Microsoft.Azure.Devices.Edge.Test.IoTEdgeCheck.IoTEdge_check"
     }
 
   displayName: Run tests ${{ parameters.test_type }}
