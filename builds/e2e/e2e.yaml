@@ -310,6 +310,7 @@ jobs:
         rm microsoft-prod.list microsoft.gpg
         sudo apt-get update
         sudo apt-get install -y moby-engine
+        sudo usermod -aG docker $USER
       displayName: Install moby
 
     - template: templates/e2e-clean-directory.yaml
