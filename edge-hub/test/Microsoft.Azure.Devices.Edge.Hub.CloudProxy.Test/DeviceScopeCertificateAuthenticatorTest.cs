@@ -236,8 +236,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             var notBefore = DateTime.Now.Subtract(TimeSpan.FromDays(2));
             var notAfter = DateTime.Now.AddYears(1);
-            var (caCert, caKeyPair) = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
-            var (issuedClientCert, issuedClientKeyPair) = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, caKeyPair, false, null, null);
+            var caCert = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
+            var issuedClientCert = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, false, null, null);
             IList<X509Certificate2> issuedClientCertChain = new List<X509Certificate2>() { caCert };
             IList<X509Certificate2> trustBundle = new List<X509Certificate2>() { caCert };
             string deviceId = "MyIssuedTestClient";
@@ -266,8 +266,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             var notBefore = DateTime.Now.Subtract(TimeSpan.FromDays(2));
             var notAfter = DateTime.Now.AddYears(1);
-            var (caCert, caKeyPair) = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
-            var (issuedClientCert, issuedClientKeyPair) = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, caKeyPair, false, null, null);
+            var caCert = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
+            var issuedClientCert = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, false, null, null);
             IList<X509Certificate2> issuedClientCertChain = new List<X509Certificate2>() { caCert };
             IList<X509Certificate2> trustBundle = new List<X509Certificate2>() { caCert };
             string deviceId = "MyIssuedTestClient";
@@ -297,8 +297,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             var notBefore = DateTime.Now.Subtract(TimeSpan.FromDays(2));
             var notAfter = DateTime.Now.Subtract(TimeSpan.FromDays(1));
-            var (caCert, caKeyPair) = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
-            var (issuedClientCert, issuedClientKeyPair) = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, caKeyPair, false, null, null);
+            var caCert = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
+            var issuedClientCert = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, false, null, null);
             IList<X509Certificate2> issuedClientCertChain = new List<X509Certificate2>() { caCert };
             IList<X509Certificate2> trustBundle = new List<X509Certificate2>() { caCert };
             string deviceId = "MyIssuedTestClient";
@@ -328,8 +328,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var notBefore = DateTime.Now.AddYears(1);
             var notAfter = DateTime.Now.AddYears(2);
 
-            var (caCert, caKeyPair) = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
-            var (issuedClientCert, issuedClientKeyPair) = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, caKeyPair, false, null, null);
+            var caCert = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
+            var issuedClientCert = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, false, null, null);
             IList<X509Certificate2> issuedClientCertChain = new List<X509Certificate2>() { caCert };
             IList<X509Certificate2> trustBundle = new List<X509Certificate2>() { caCert };
             string deviceId = "MyIssuedTestClient";
@@ -359,8 +359,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var notBefore = DateTime.Now.Subtract(TimeSpan.FromDays(2));
             var notAfter = DateTime.Now.AddYears(1);
 
-            var (caCert, caKeyPair) = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
-            var (issuedClientCert, issuedClientKeyPair) = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, caKeyPair, true, null, null);
+            var caCert = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
+            var issuedClientCert = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, true, null, null);
             IList<X509Certificate2> issuedClientCertChain = new List<X509Certificate2>() { caCert };
             IList<X509Certificate2> trustBundle = new List<X509Certificate2>() { caCert };
             string deviceId = "MyIssuedTestClient";
@@ -389,8 +389,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             var notBefore = DateTime.Now.Subtract(TimeSpan.FromDays(2));
             var notAfter = DateTime.Now.AddYears(1);
-            var (caCert, caKeyPair) = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
-            var (issuedClientCert, issuedClientKeyPair) = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, caKeyPair, false, null, null);
+            var caCert = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
+            var issuedClientCert = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, false, null, null);
             IList<X509Certificate2> issuedClientCertChain = new List<X509Certificate2>() { caCert };
             IList<X509Certificate2> trustBundle = new List<X509Certificate2>() { caCert };
             string deviceId = "different from CN";
@@ -419,8 +419,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             var notBefore = DateTime.Now.Subtract(TimeSpan.FromDays(2));
             var notAfter = DateTime.Now.AddYears(1);
-            var (caCert, caKeyPair) = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
-            var (issuedClientCert, issuedClientKeyPair) = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, caKeyPair, false, null, null);
+            var caCert = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
+            var issuedClientCert = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, false, null, null);
             IList<X509Certificate2> issuedClientCertChain = new List<X509Certificate2>() { }; // empty chain supplied
             IList<X509Certificate2> trustBundle = new List<X509Certificate2>() { caCert };
             string deviceId = "different from CN";
@@ -449,9 +449,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             var notBefore = DateTime.Now.Subtract(TimeSpan.FromDays(2));
             var notAfter = DateTime.Now.AddYears(1);
-            var (caCert, caKeyPair) = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
-            var (otherCaCert, otherCaKeyPair) = TestCertificateHelper.GenerateSelfSignedCert("MyOtherTestCA", notBefore, notAfter, true);
-            var (issuedClientCert, issuedClientKeyPair) = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, caKeyPair, false, null, null);
+            var caCert = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
+            var otherCaCert = TestCertificateHelper.GenerateSelfSignedCert("MyOtherTestCA", notBefore, notAfter, true);
+            var issuedClientCert = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, false, null, null);
             IList<X509Certificate2> issuedClientCertChain = new List<X509Certificate2>() { otherCaCert }; // invalid chain supplied
             IList<X509Certificate2> trustBundle = new List<X509Certificate2>() { caCert };
             string deviceId = "different from CN";
@@ -524,8 +524,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             var notBefore = DateTime.Now.Subtract(TimeSpan.FromDays(2));
             var notAfter = DateTime.Now.AddYears(1);
-            var (caCert, caKeyPair) = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
-            var (issuedClientCert, issuedClientKeyPair) = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, caKeyPair, false, null, null);
+            var caCert = TestCertificateHelper.GenerateSelfSignedCert("MyTestCA", notBefore, notAfter, true);
+            var issuedClientCert = TestCertificateHelper.GenerateCertificate("MyIssuedTestClient", notBefore, notAfter, caCert, false, null, null);
             IList<X509Certificate2> issuedClientCertChain = new List<X509Certificate2>() { caCert };
             IList<X509Certificate2> trustBundle = new List<X509Certificate2>() { caCert };
             string deviceId = "d1";
