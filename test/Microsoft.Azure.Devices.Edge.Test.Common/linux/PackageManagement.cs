@@ -81,7 +81,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public string[] GetInstallCommandsFromMicrosoftProd()
         {
-            // we really support only two options for now.
             string repository = this.os.ToLower() switch
             {
                 "ubuntu" => this.version == "18.04" ? "https://packages.microsoft.com/config/ubuntu/18.04/multiarch/prod.list" : "https://packages.microsoft.com/config/ubuntu/20.04/prod.list",
