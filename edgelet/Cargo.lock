@@ -25,18 +25,9 @@ checksum = "aae1277d39aeec15cb388266ecc24b11c80469deae6067e17a1a7aa9e5c1f234"
 
 [[package]]
 name = "aho-corasick"
-version = "0.6.10"
+version = "0.7.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81ce3d38065e618af2d7b77e10c5ad9a069859b4be3c2250f674af3840d9c8a5"
-dependencies = [
- "memchr",
-]
-
-[[package]]
-name = "aho-corasick"
-version = "0.7.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "043164d8ba5c4c3035fec9bbee8647c0261d788f3474306f93bb65901cae0e86"
+checksum = "1e37cfd5e7657ada45f742d6e99ca5788580b5c529dc78faf11ece6dc702656f"
 dependencies = [
  "memchr",
 ]
@@ -99,7 +90,7 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 [[package]]
 name = "aziot-cert-common-http"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#fb2770eb60f7d87f4f6c6dc1ea51bdff1bf74e1c"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#0181b9d153e721e5a1a8665a671a8f765df7fca2"
 dependencies = [
  "aziot-key-common",
  "serde",
@@ -108,7 +99,7 @@ dependencies = [
 [[package]]
 name = "aziot-certd-config"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#fb2770eb60f7d87f4f6c6dc1ea51bdff1bf74e1c"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#0181b9d153e721e5a1a8665a671a8f765df7fca2"
 dependencies = [
  "hex 0.4.2",
  "http-common",
@@ -170,7 +161,7 @@ dependencies = [
 [[package]]
 name = "aziot-identity-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#fb2770eb60f7d87f4f6c6dc1ea51bdff1bf74e1c"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#0181b9d153e721e5a1a8665a671a8f765df7fca2"
 dependencies = [
  "aziot-key-common",
  "http-common",
@@ -180,7 +171,7 @@ dependencies = [
 [[package]]
 name = "aziot-identity-common-http"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#fb2770eb60f7d87f4f6c6dc1ea51bdff1bf74e1c"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#0181b9d153e721e5a1a8665a671a8f765df7fca2"
 dependencies = [
  "aziot-cert-common-http",
  "aziot-identity-common",
@@ -193,7 +184,7 @@ dependencies = [
 [[package]]
 name = "aziot-identityd-config"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#fb2770eb60f7d87f4f6c6dc1ea51bdff1bf74e1c"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#0181b9d153e721e5a1a8665a671a8f765df7fca2"
 dependencies = [
  "aziot-identity-common",
  "http-common",
@@ -205,7 +196,7 @@ dependencies = [
 [[package]]
 name = "aziot-key-client"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#fb2770eb60f7d87f4f6c6dc1ea51bdff1bf74e1c"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#0181b9d153e721e5a1a8665a671a8f765df7fca2"
 dependencies = [
  "aziot-key-common",
  "aziot-key-common-http",
@@ -220,7 +211,7 @@ dependencies = [
 [[package]]
 name = "aziot-key-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#fb2770eb60f7d87f4f6c6dc1ea51bdff1bf74e1c"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#0181b9d153e721e5a1a8665a671a8f765df7fca2"
 dependencies = [
  "serde",
 ]
@@ -228,7 +219,7 @@ dependencies = [
 [[package]]
 name = "aziot-key-common-http"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#fb2770eb60f7d87f4f6c6dc1ea51bdff1bf74e1c"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#0181b9d153e721e5a1a8665a671a8f765df7fca2"
 dependencies = [
  "aziot-key-common",
  "http-common",
@@ -238,7 +229,7 @@ dependencies = [
 [[package]]
 name = "aziot-key-openssl-engine"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#fb2770eb60f7d87f4f6c6dc1ea51bdff1bf74e1c"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#0181b9d153e721e5a1a8665a671a8f765df7fca2"
 dependencies = [
  "aziot-key-client",
  "aziot-key-common",
@@ -256,7 +247,7 @@ dependencies = [
 [[package]]
 name = "aziot-keyd-config"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#fb2770eb60f7d87f4f6c6dc1ea51bdff1bf74e1c"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#0181b9d153e721e5a1a8665a671a8f765df7fca2"
 dependencies = [
  "http-common",
  "libc",
@@ -266,7 +257,7 @@ dependencies = [
 [[package]]
 name = "aziot-keys-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#fb2770eb60f7d87f4f6c6dc1ea51bdff1bf74e1c"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#0181b9d153e721e5a1a8665a671a8f765df7fca2"
 dependencies = [
  "pkcs11",
  "serde",
@@ -276,7 +267,7 @@ dependencies = [
 [[package]]
 name = "aziot-tpmd-config"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#fb2770eb60f7d87f4f6c6dc1ea51bdff1bf74e1c"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#0181b9d153e721e5a1a8665a671a8f765df7fca2"
 dependencies = [
  "http-common",
  "serde",
@@ -285,7 +276,7 @@ dependencies = [
 [[package]]
 name = "aziotctl-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#fb2770eb60f7d87f4f6c6dc1ea51bdff1bf74e1c"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#0181b9d153e721e5a1a8665a671a8f765df7fca2"
 dependencies = [
  "anyhow",
  "aziot-certd-config",
@@ -299,6 +290,7 @@ dependencies = [
  "nix",
  "serde",
  "serde_json",
+ "serde_with",
  "url 2.1.1",
 ]
 
@@ -510,7 +502,7 @@ dependencies = [
 [[package]]
 name = "config-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#fb2770eb60f7d87f4f6c6dc1ea51bdff1bf74e1c"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#0181b9d153e721e5a1a8665a671a8f765df7fca2"
 dependencies = [
  "serde",
  "toml",
@@ -710,7 +702,7 @@ dependencies = [
  "humantime 2.1.0",
  "lazy_static",
  "log",
- "regex 0.2.11",
+ "regex",
  "serde",
  "serde_derive",
  "serde_json",
@@ -779,7 +771,7 @@ dependencies = [
  "openssl",
  "percent-encoding 2.1.0",
  "rand 0.4.6",
- "regex 0.2.11",
+ "regex",
  "serde",
  "serde_derive",
  "serde_json",
@@ -897,7 +889,7 @@ dependencies = [
  "atty",
  "humantime 1.3.0",
  "log",
- "regex 1.3.9",
+ "regex",
  "termcolor 1.1.0",
 ]
 
@@ -1150,7 +1142,7 @@ dependencies = [
 [[package]]
 name = "http-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#fb2770eb60f7d87f4f6c6dc1ea51bdff1bf74e1c"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#0181b9d153e721e5a1a8665a671a8f765df7fca2"
 dependencies = [
  "async-trait",
  "base64 0.13.0",
@@ -1361,7 +1353,7 @@ dependencies = [
  "native-tls",
  "nix",
  "openssl",
- "regex 0.2.11",
+ "regex",
  "serde",
  "serde_derive",
  "serde_json",
@@ -1475,9 +1467,9 @@ checksum = "60302e4db3a61da70c0cb7991976248362f30319e88850c487b9b95bbf059e00"
 
 [[package]]
 name = "memchr"
-version = "2.3.3"
+version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3728d817d99e5ac407411fa471ff9800a778d88a24685968b36824eaf4bee400"
+checksum = "308cc39be01b73d0d18f82a0e7b2a3df85245f84af96fdddc5d202d27e47b86a"
 
 [[package]]
 name = "memoffset"
@@ -1709,7 +1701,7 @@ dependencies = [
 [[package]]
 name = "openssl-build"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#fb2770eb60f7d87f4f6c6dc1ea51bdff1bf74e1c"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#0181b9d153e721e5a1a8665a671a8f765df7fca2"
 dependencies = [
  "cc",
 ]
@@ -1746,7 +1738,7 @@ dependencies = [
 [[package]]
 name = "openssl-sys2"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#fb2770eb60f7d87f4f6c6dc1ea51bdff1bf74e1c"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#0181b9d153e721e5a1a8665a671a8f765df7fca2"
 dependencies = [
  "openssl-build",
  "openssl-sys",
@@ -1755,7 +1747,7 @@ dependencies = [
 [[package]]
 name = "openssl2"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#fb2770eb60f7d87f4f6c6dc1ea51bdff1bf74e1c"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#0181b9d153e721e5a1a8665a671a8f765df7fca2"
 dependencies = [
  "foreign-types",
  "foreign-types-shared",
@@ -1818,7 +1810,7 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 [[package]]
 name = "pkcs11"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#fb2770eb60f7d87f4f6c6dc1ea51bdff1bf74e1c"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#0181b9d153e721e5a1a8665a671a8f765df7fca2"
 dependencies = [
  "foreign-types-shared",
  "lazy_static",
@@ -1835,7 +1827,7 @@ dependencies = [
 [[package]]
 name = "pkcs11-sys"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#fb2770eb60f7d87f4f6c6dc1ea51bdff1bf74e1c"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#0181b9d153e721e5a1a8665a671a8f765df7fca2"
 
 [[package]]
 name = "pkg-config"
@@ -2009,43 +2001,20 @@ checksum = "41cc0f7e4d5d4544e8861606a285bb08d3e70712ccc7d2b84d7c0ccfaf4b05ce"
 
 [[package]]
 name = "regex"
-version = "0.2.11"
+version = "1.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9329abc99e39129fcceabd24cf5d85b4671ef7c29c50e972bc5afe32438ec384"
+checksum = "d07a8629359eb56f1e2fb1652bb04212c072a87ba68546a04065d525673ac461"
 dependencies = [
- "aho-corasick 0.6.10",
+ "aho-corasick",
  "memchr",
- "regex-syntax 0.5.6",
- "thread_local 0.3.6",
- "utf8-ranges",
-]
-
-[[package]]
-name = "regex"
-version = "1.3.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c3780fcf44b193bc4d09f36d2a3c87b251da4a046c87795a0d35f4f927ad8e6"
-dependencies = [
- "aho-corasick 0.7.13",
- "memchr",
- "regex-syntax 0.6.18",
- "thread_local 1.0.1",
+ "regex-syntax",
 ]
 
 [[package]]
 name = "regex-syntax"
-version = "0.5.6"
+version = "0.6.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d707a4fa2637f2dca2ef9fd02225ec7661fe01a53623c1e6515b6916511f7a7"
-dependencies = [
- "ucd-util",
-]
-
-[[package]]
-name = "regex-syntax"
-version = "0.6.18"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "26412eb97c6b088a6997e05f69403a802a92d520de2f8e63c2b65f9e0f47c4e8"
+checksum = "f497285884f3fcff424ffc933e56d7cbca511def0c9831a7f9b5f6153e3cc89b"
 
 [[package]]
 name = "remove_dir_all"
@@ -2276,7 +2245,7 @@ dependencies = [
  "edgelet-test-utils",
  "failure",
  "futures",
- "regex 0.2.11",
+ "regex",
  "tempfile",
  "tokio",
  "zip",
@@ -2421,24 +2390,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "thread_local"
-version = "0.3.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c6b53e329000edc2b34dbe8545fd20e55a333362d0a321909685a19bd28c3f1b"
-dependencies = [
- "lazy_static",
-]
-
-[[package]]
-name = "thread_local"
-version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d40c6d1b69745a6ec6fb1ca717914848da4b44ae29d9b3080cbee91d72a69b14"
-dependencies = [
- "lazy_static",
 ]
 
 [[package]]
@@ -2766,12 +2717,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "373c8a200f9e67a0c95e62a4f52fbf80c23b4381c05a17845531982fa99e6b33"
 
 [[package]]
-name = "ucd-util"
-version = "0.1.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c85f514e095d348c279b1e5cd76795082cf15bd59b93207832abe0b1d8fed236"
-
-[[package]]
 name = "unicode-bidi"
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2833,12 +2778,6 @@ dependencies = [
  "serde",
  "url 1.7.2",
 ]
-
-[[package]]
-name = "utf8-ranges"
-version = "1.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4ae116fef2b7fea257ed6440d3cfcff7f190865f170cdad00bb6465bf18ecba"
 
 [[package]]
 name = "vcpkg"
