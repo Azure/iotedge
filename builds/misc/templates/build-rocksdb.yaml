@@ -25,7 +25,7 @@ stages:
             arch: arm64v8
             postfix: arm64
       steps:
-      - script: scripts/linux/buildRocksDb.sh --output-dir $(Build.AtifactsStagingDirectory) --postfix $(postfix) --build-number $(Build.BuildNumber) --arch $(arch)
+      - script: scripts/linux/buildRocksDb.sh --output-dir $(Build.AtifactStagingDirectory) --postfix $(postfix) --build-number $(Build.BuildNumber) --arch $(arch)
         displayName: Build and copy out rocksdb lib
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifacts to VSTS'
