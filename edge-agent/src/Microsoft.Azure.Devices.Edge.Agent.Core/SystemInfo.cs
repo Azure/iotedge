@@ -2,7 +2,6 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
-    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Text;
