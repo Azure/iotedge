@@ -66,7 +66,7 @@ function process_args() {
 
 process_args "$@"
 
-build_image=rocksdb-build:master-$POSTFIX-$BUILD_NUMBER
+build_image=rocksdb-build:$POSTFIX-$BUILD_NUMBER
 mkdir -p $OUTPUT_DIR/librocksdb
 cd $BUILD_REPOSITORY_LOCALPATH/edge-util/docker/linux/$ARCH
 docker build --tag ${build_image} .
