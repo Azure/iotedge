@@ -70,17 +70,9 @@ The end-to-end tests are documented [here](../test/README.md).
 
 ## Build Edge Hub Container Locally
 
-Sometimes it is useful to build the Edge Hub container locally.The script will build and push the container image to a registry of your choice. If you want to do so you can run the below set of scripts:
+Sometimes it is useful to build the Edge Hub container locally. If you want to do so you can run the below script:
 ```
-scripts/linux/buildBranch.sh
-scripts/linux/cross-platform-rust-build.sh --os alpine --arch amd64 --build-path mqtt/mqttd
-scripts/linux/cross-platform-rust-build.sh --os alpine --arch amd64 --build-path edge-hub/watchdog
-scripts/linux/consolidate-build-artifacts.sh --artifact-name "edge-hub"
-
-#Make sure to use docker login to Login to the Registry Below Prior to running the command below.
-scripts/linux/buildImage.sh -r "<Registry Address>" -i "edge-hub" -n "microsoft" -P "edge-hub" -v "<version>" --bin-dir target"
-
-#example : scripts/linux/buildImage.sh -r "testregistry" -i "edge-hub" -v <Version> -n "microsoft" -P "edge-hub" --bin-dir target  
+./scripts/linux/buildLocalEdgeHub.sh --registry-address "$(registry.address)" --version "$(version)"
 ```
 After the image has been pushed to the registry, you can follow instructions [here](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-update-iot-edge?view=iotedge-2020-11&tabs=linux#update-a-specific-tag-image) to use azure portal to point to the registry and update the edgeHub and edgeAgent.
 
