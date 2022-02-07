@@ -360,7 +360,7 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                                 .base
                                 .allow_elevated_docker_permissions,
                             create_socket_channel,
-                            additional_info: settings.base.additional_info
+                            additional_info: settings.base.additional_info,
                         }
                     });
                 future::Either::A(fut)
@@ -805,7 +805,7 @@ impl ModuleRuntime for DockerModuleRuntime {
 
     fn system_info(&self) -> Self::SystemInfoFuture {
         info!("Querying system info...");
-    
+
         Box::new(match CoreSystemInfo::from_system() {
             Ok(mut system_info) => {
                 system_info.merge_additional(self.additional_info.clone());

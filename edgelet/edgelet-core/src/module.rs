@@ -932,20 +932,28 @@ mod tests {
                 always_reprovision_on_startup: false,
             },
 
-            additional_properties: BTreeMap::from_iter([
-                ("foo".to_owned(), "foofoo".to_owned()),
-                ("bar".to_owned(), "barbar".to_owned())
-            ].iter().cloned()),
+            additional_properties: BTreeMap::from_iter(
+                [
+                    ("foo".to_owned(), "foofoo".to_owned()),
+                    ("bar".to_owned(), "barbar".to_owned()),
+                ]
+                .iter()
+                .cloned(),
+            ),
         };
 
-        let additional = BTreeMap::from_iter([
-            ("kernel_name".to_owned(), "linux".to_owned()),
-            ("kernel_release".to_owned(), "5.0".to_owned()),
-            ("kernel_version".to_owned(), "1".to_owned()),
-            ("os_name".to_owned(), "OS".to_owned()),
-            ("foo".to_owned(), "foofoo".to_owned()),
-            ("bar".to_owned(), "barbar".to_owned()),
-        ].iter().cloned());
+        let additional = BTreeMap::from_iter(
+            [
+                ("kernel_name".to_owned(), "linux".to_owned()),
+                ("kernel_release".to_owned(), "5.0".to_owned()),
+                ("kernel_version".to_owned(), "1".to_owned()),
+                ("os_name".to_owned(), "OS".to_owned()),
+                ("foo".to_owned(), "foofoo".to_owned()),
+                ("bar".to_owned(), "barbar".to_owned()),
+            ]
+            .iter()
+            .cloned(),
+        );
 
         base.merge_additional(additional);
 
