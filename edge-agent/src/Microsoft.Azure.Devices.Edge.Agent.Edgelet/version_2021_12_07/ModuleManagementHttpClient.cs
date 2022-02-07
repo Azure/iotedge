@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07
+namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2021_12_07
 {
     using System;
     using System.Collections.Generic;
@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.GeneratedCode;
+    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2021_12_07.GeneratedCode;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07
         }
 
         internal ModuleManagementHttpClient(Uri managementUri, Option<TimeSpan> operationTimeout)
-            : base(managementUri, ApiVersion.Version20200707, new ErrorDetectionStrategy(), operationTimeout)
+            : base(managementUri, ApiVersion.Version20211207, new ErrorDetectionStrategy(), operationTimeout)
         {
         }
 
@@ -129,7 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07
                 GeneratedCode.SystemInfo systemInfo = await this.Execute(
                     () => edgeletHttpClient.GetSystemInfoAsync(this.Version.Name, cancellationToken),
                     "Getting System Info");
-                return new SystemInfo(systemInfo.OsType, systemInfo.Architecture, systemInfo.Version);
+                return new SystemInfo(systemInfo.OsType, systemInfo.Architecture, systemInfo.Version, systemInfo.AdditionalProperties);
             }
         }
 
