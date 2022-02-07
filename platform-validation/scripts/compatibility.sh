@@ -362,7 +362,7 @@ check_net_cap_bind_host(){
       # Check dependencies
     ret=$(need_cmd setcap)
     if [ $? != 0 ]; then 
-        wrap_fail "capability_check_host"
+        wrap_fail "check_net_cap_bind_host"
         return
     fi
     
@@ -371,7 +371,7 @@ check_net_cap_bind_host(){
     ret=$?
     if [ $ret != 0 ]; then
         wrap_debug "setcap 'cap_net_bind_service=+ep' returned $ret"
-        wrap_fail "capability_check_host"
+        wrap_fail "check_net_cap_bind_host"
         return
     fi
 
@@ -379,11 +379,11 @@ check_net_cap_bind_host(){
     ret=$?
     if [ $? != 0 ] && [ -z "${contains##*cap_net_bind_service+ep*}" ]; then
         wrap_debug "setcap 'cap_net_bind_service=+ep' returned 0, but did not set the capability"
-        wrap_fail "capability_check_host"
+        wrap_fail "check_net_cap_bind_host"
         return
     fi
 
-    wrap_pass "capability_check_host" "Pass"
+    wrap_pass "check_net_cap_bind_host" "Pass"
 }
 
 check_net_cap_bind_container(){
@@ -393,7 +393,7 @@ check_net_cap_bind_container(){
     # Check dependencies
     ret=$(need_cmd docker)
     if [ $? != 0 ]; then 
-        wrap_fail "capability_check_container" "Fail"
+        wrap_fail "check_net_cap_bind_container" "Fail"
         return
     fi
     CAP_CMD="getcap cap.txt"
@@ -417,10 +417,10 @@ check_net_cap_bind_container(){
     ret=$?
     if [ $ret != 0 ]; then
         wrap_debug "setcap 'cap_net_bind_service=+ep' on container returned error code $ret"
-        wrap_fail "capability_check_container" "Fail"
+        wrap_fail "check_net_cap_bind_container" "Fail"
         return
     fi
-    wrap_pass "capability_check_container" "Pass"
+    wrap_pass "check_net_cap_bind_container" "Pass"
 }
 
 # bits of this were adapted from moby check-config.shells
