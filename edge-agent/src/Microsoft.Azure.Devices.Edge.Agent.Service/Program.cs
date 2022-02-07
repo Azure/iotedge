@@ -456,7 +456,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 {
                     if (!line.Equals(metadata[counter]))
                     {
-                        logger.LogInformation("Different Device Identity. Purging local storage.");
+                        logger.LogInformation("Different Device Identity. Deleting local storage.");
                         return false;
                     }
 
@@ -465,12 +465,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             }
             catch (FileNotFoundException)
             {
-                logger.LogInformation("No Device Identity File. Creating file.");
                 File.Create(file).Close();
                 File.WriteAllLines(file, metadata);
             }
 
-            logger.LogInformation("Same Device Identity");
             return true;
         }
 
@@ -481,7 +479,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 File.Delete(file);
             }
 
-            logger.LogInformation("Deleted old files.");
             string[] metadata = new string[4];
             metadata[0] = configuration.GetValue(Constants.ModuleIdVariableName, Constants.EdgeAgentModuleIdentityName);
             metadata[1] = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
@@ -491,7 +488,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             string identityfile = Path.Combine(storagePath, "DEVICE_IDENTITY");
             File.Create(identityfile).Close();
             File.WriteAllLines(identityfile, metadata);
-            logger.LogInformation("Created new Identity file.");
         }
 
         static string GetOrCreateDirectoryPath(string baseDirectoryPath, string directoryName)
