@@ -84,14 +84,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         {
             // IModuleClientProvider
             builder.Register(
-                    c => new ModuleClientProvider(
-                        c.Resolve<ISdkModuleClientProvider>(),
-                        this.upstreamProtocol,
-                        this.proxy,
-                        this.productInfo,
-                        this.closeOnIdleTimeout,
-                        this.idleTimeout,
-                        this.useServerHeartbeat))
+                    c =>
+                    {
+                        IModuleManager m = c.Resolve<IModuleManager>();
+
+                        // NOTE: Deadlock risk
+                        SystemInfo system = m.GetSystemInfoAsync(CancellationToken.None)
+                            .ConfigureAwait(false)
+                            .GetAwaiter()
+                            .GetResult();
+
+                        return new ModuleClientProvider(
+                            c.Resolve<ISdkModuleClientProvider>(),
+                            this.upstreamProtocol,
+                            this.proxy,
+                            $"{this.productInfo} ({system.ToQueryString()})",
+                            this.closeOnIdleTimeout,
+                            this.idleTimeout,
+                            this.useServerHeartbeat);
+                    })
                 .As<IModuleClientProvider>()
                 .SingleInstance();
 
