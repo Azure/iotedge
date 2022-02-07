@@ -3,7 +3,7 @@
 use std::fmt;
 use std::str::FromStr;
 
-pub const API_VERSION: Version = Version::Version2020_07_07;
+pub const API_VERSION: Version = Version::Version2021_12_07;
 
 #[derive(Clone, Copy, Debug, PartialOrd, PartialEq)]
 pub enum Version {
