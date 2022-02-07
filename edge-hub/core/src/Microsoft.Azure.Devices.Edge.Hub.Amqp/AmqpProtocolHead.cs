@@ -116,7 +116,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         public void Dispose()
         {
-            this.CloseAsync(CancellationToken.None).Wait();
         }
 
         void OnAcceptTransport(TransportListener transportListener, TransportAsyncCallbackArgs args)
