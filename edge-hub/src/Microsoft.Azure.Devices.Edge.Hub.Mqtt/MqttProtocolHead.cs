@@ -49,6 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         IChannel serverChannel;
         IEventLoopGroup eventLoopGroup;
+        IEventLoopGroup wsEventLoopGroup;
+        IEventLoopGroup parentEventLoopGroup;
 
         public MqttProtocolHead(
             ISettingsProvider settingsProvider,
@@ -107,6 +109,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
                 await (this.serverChannel?.CloseAsync() ?? TaskEx.Done);
                 await (this.eventLoopGroup?.ShutdownGracefullyAsync() ?? TaskEx.Done);
+                await (this.parentEventLoopGroup?.ShutdownGracefullyAsync() ?? TaskEx.Done);
+                await (this.wsEventLoopGroup?.ShutdownGracefullyAsync() ?? TaskEx.Done);
                 // TODO: gracefully shutdown the MultithreadEventLoopGroup in MqttWebSocketListener?
                 // TODO: this.webSocketListenerRegistry.TryUnregister("mqtts")?
                 this.logger.LogInformation("Stopped");
@@ -120,7 +124,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         public void Dispose()
         {
             this.mqttConnectionProvider.Dispose();
-            this.CloseAsync(CancellationToken.None).Wait();
         }
 
         ServerBootstrap SetupServerBootstrap()
@@ -135,7 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
             var bootstrap = new ServerBootstrap();
             // multithreaded event loop that handles the incoming connection
-            IEventLoopGroup parentEventLoopGroup = new MultithreadEventLoopGroup(parentEventLoopCount);
+            this.parentEventLoopGroup = new MultithreadEventLoopGroup(parentEventLoopCount);
             // multithreaded event loop (worker) that handles the traffic of the accepted connections
             this.eventLoopGroup = new MultithreadEventLoopGroup(threadCount);
 
@@ -181,13 +184,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                                     bridgeFactory));
                         }));
 
+            this.wsEventLoopGroup = new MultithreadEventLoopGroup(Environment.ProcessorCount);
             var mqttWebSocketListener = new MqttWebSocketListener(
                 settings,
                 bridgeFactory,
                 this.authenticator,
                 this.clientCredentialsFactory,
                 () => this.sessionProvider,
-                new MultithreadEventLoopGroup(Environment.ProcessorCount),
+                this.wsEventLoopGroup,
                 this.byteBufferAllocator,
                 AutoRead,
                 maxInboundMessageSize,
