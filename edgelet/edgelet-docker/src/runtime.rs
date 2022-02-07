@@ -25,8 +25,8 @@ use docker::models::{ContainerCreateBody, HostConfig, InlineResponse200, Ipam, N
 use edgelet_core::{
     AuthId, Authenticator, Ipam as CoreIpam, LogOptions, MakeModuleRuntime, MobyNetwork, Module,
     ModuleAction, ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    ProvisioningInfo, RegistryOperation, RuntimeOperation, RuntimeSettings,
-    SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
+    RegistryOperation, RuntimeOperation, RuntimeSettings, SystemInfo as CoreSystemInfo,
+    SystemResources, UrlExt,
 };
 use edgelet_http::{Pid, UrlConnector};
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
@@ -70,6 +70,7 @@ pub struct DockerModuleRuntime {
     notary_lock: tokio::sync::lock::Lock<BTreeMap<String, String>>,
     allow_elevated_docker_permissions: bool,
     create_socket_channel: UnboundedSender<ModuleAction>,
+    additional_info: BTreeMap<String, String>,
 }
 
 impl DockerModuleRuntime {
@@ -359,6 +360,7 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                                 .base
                                 .allow_elevated_docker_permissions,
                             create_socket_channel,
+                            additional_info: settings.base.additional_info
                         }
                     });
                 future::Either::A(fut)
@@ -803,64 +805,15 @@ impl ModuleRuntime for DockerModuleRuntime {
 
     fn system_info(&self) -> Self::SystemInfoFuture {
         info!("Querying system info...");
+    
+        Box::new(match CoreSystemInfo::from_system() {
+            Ok(mut system_info) => {
+                system_info.merge_additional(self.additional_info.clone());
 
-        // Provisioning information is no longer available in aziot-edged. This information should
-        // be emitted from Identity Service
-        let provisioning = ProvisioningInfo {
-            r#type: "ProvisioningType".into(),
-            dynamic_reprovisioning: false,
-            always_reprovision_on_startup: false,
-        };
-
-        Box::new(
-            self.client
-                .system_api()
-                .system_info()
-                .then(move |result| match result {
-                    Ok(system_info) => {
-                        let system_info = CoreSystemInfo {
-                            os_type: system_info
-                                .os_type()
-                                .unwrap_or(&String::from("Unknown"))
-                                .to_string(),
-                            architecture: system_info
-                                .architecture()
-                                .unwrap_or(&String::from("Unknown"))
-                                .to_string(),
-                            version: edgelet_core::version_with_source_version(),
-                            provisioning,
-                            cpus: system_info.NCPU().unwrap_or_default(),
-                            virtualized: match edgelet_core::is_virtualized_env() {
-                                Ok(Some(true)) => "yes",
-                                Ok(Some(false)) => "no",
-                                Ok(None) | Err(_) => "unknown",
-                            },
-                            kernel_version: system_info
-                                .kernel_version()
-                                .map(std::string::ToString::to_string)
-                                .unwrap_or_default(),
-                            operating_system: system_info
-                                .operating_system()
-                                .map(std::string::ToString::to_string)
-                                .unwrap_or_default(),
-                            server_version: system_info
-                                .server_version()
-                                .map(std::string::ToString::to_string)
-                                .unwrap_or_default(),
-                        };
-                        info!("Successfully queried system info");
-                        Ok(system_info)
-                    }
-                    Err(err) => {
-                        let err = Error::from_docker_error(
-                            err,
-                            ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo),
-                        );
-                        log_failure(Level::Warn, &err);
-                        Err(err)
-                    }
-                }),
-        )
+                future::ok(system_info)
+            }
+            Err(_) => future::err(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo).into()),
+        })
     }
 
     fn system_resources(&self) -> Self::SystemResourcesFuture {
@@ -1693,6 +1646,10 @@ mod tests {
         }
 
         fn endpoints(&self) -> &Endpoints {
+            unimplemented!()
+        }
+
+        fn additional_info(&self) -> &BTreeMap<String, String> {
             unimplemented!()
         }
 

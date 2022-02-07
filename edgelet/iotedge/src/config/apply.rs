@@ -180,6 +180,7 @@ fn execute_inner(
         allow_elevated_docker_permissions,
         auto_reprovisioning_mode,
         imported_master_encryption_key,
+        additional_info,
         aziot,
         agent,
         connect,
@@ -387,6 +388,15 @@ fn execute_inner(
         aziot_certd_config::PreloadedCert::Ids(trust_bundle_certs),
     );
 
+    let additional_info = if let Some(path) = additional_info {
+        let lossy = path.to_string_lossy();
+        let bytes = std::fs::read(&path)
+            .map_err(|e| format!("failed to read additional_info from {}: {:?}", lossy, e))?;
+        toml::de::from_slice(&bytes).map_err(|e| format!("invalid toml at {}: {:?}", lossy, e))?
+    } else {
+        std::collections::BTreeMap::new()
+    };
+
     let edged_config = edgelet_docker::Settings {
         base: edgelet_core::Settings {
             hostname: identityd_config.hostname.clone(),
@@ -394,6 +404,7 @@ fn execute_inner(
             edge_ca_cert,
             edge_ca_key,
             trust_bundle_cert: Some(edgelet_core::TRUST_BUNDLE_ALIAS.to_owned()),
+            additional_info,
 
             auto_reprovisioning_mode,
 
