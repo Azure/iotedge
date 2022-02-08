@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             // get by module name without $ because the system modules dictionary is created without $
             EdgeModule edgeHub = deployment.Modules[ModuleName.EdgeHub.Substring(1)];
             await edgeHub.WaitForStatusAsync(EdgeModuleStatus.Running, token);
-            
+
             // certificate renew should stop edgeHub and then it should be started by edgeAgent
             await new EdgeModule(ModuleName.EdgeAgent, this.runtime.DeviceId, this.iotHub).WaitForReportedPropertyUpdatesAsync(
                 new
