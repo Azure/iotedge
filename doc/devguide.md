@@ -97,13 +97,9 @@ reportgenerator "-reports:TestResults\*\*.coveragexml" "-targetdir:report"
 
 ## Build Edge Hub Container Locally
 
-Sometimes it is useful to build the Edge Hub container locally. If you want to do so you can run the below set of scripts:
+Sometimes it is useful to build the Edge Hub container locally. If you want to do so you can run the below script:
 ```
-scripts/linux/buildBranch.sh
-scripts/linux/cross-platform-rust-build.sh --os alpine --arch amd64 --build-path mqtt/mqttd
-scripts/linux/cross-platform-rust-build.sh --os alpine --arch amd64 --build-path edge-hub/watchdog
-scripts/linux/consolidate-build-artifacts.sh --artifact-name "edge-hub"
-scripts/linux/buildImage.sh -r "$(registry.address)" -u "$(registry.user)" -p "$(registry.password)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }} --bin-dir target"
+./scripts/linux/buildLocalEdgeHub.sh --registry-address "$(registry.address)" --version "$(version)"
 ```
 
 ## Build Manifest Image
