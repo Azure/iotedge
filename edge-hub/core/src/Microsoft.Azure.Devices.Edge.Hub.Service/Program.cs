@@ -124,9 +124,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 TimeSpan shutdownWaitPeriod = TimeSpan.FromSeconds(configuration.GetValue("ShutdownWaitPeriod", DefaultShutdownWaitPeriod));
                 (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(shutdownWaitPeriod, logger);
 
+                double renewAfter = configuration.GetValue("ServerCertificateRenewAfterInMs", int.MaxValue);
+                renewAfter = renewAfter > int.MaxValue ? int.MaxValue : renewAfter;
+                TimeSpan maxRenewAfter = TimeSpan.FromMilliseconds(renewAfter);
                 using (IProtocolHead mqttBrokerProtocolHead = await GetMqttBrokerProtocolHeadAsync(experimentalFeatures, container))
                 using (IProtocolHead edgeHubProtocolHead = await GetEdgeHubProtocolHeadAsync(logger, configuration, experimentalFeatures, container, hosting))
-                using (var renewal = new CertificateRenewal(certificates, logger))
+                using (var renewal = new CertificateRenewal(certificates, logger, maxRenewAfter))
                 {
                     try
                     {
