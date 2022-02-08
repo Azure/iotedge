@@ -247,7 +247,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 .Select(c => new X509Certificate2(c))
                 .ToList();
 
-        public static async Task<(X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain)> GetServerCertificatesFromEdgelet(Uri workloadUri, string workloadApiVersion, string workloadClientApiVersion, string moduleId, string moduleGenerationId, string edgeHubHostname, DateTime expiration)
+        public static async Task<(X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain)> GetServerCertificatesFromEdgelet(Uri workloadUri, string workloadApiVersion, string workloadClientApiVersion, string moduleId, string moduleGenerationId, string edgeHubHostname, DateTime expiration, ILogger logger)
         {
             if (string.IsNullOrEmpty(edgeHubHostname))
             {
@@ -255,7 +255,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
 
             ServerCertificateResponse response = await new WorkloadClient(workloadUri, workloadApiVersion, workloadClientApiVersion, moduleId, moduleGenerationId).CreateServerCertificateAsync(edgeHubHostname, expiration);
-            return ParseCertificateResponse(response);
+            return ParseCertificateResponse(response, logger);
         }
 
         public static async Task<IEnumerable<X509Certificate2>> GetTrustBundleFromEdgelet(Uri workloadUri, string workloadApiVersion, string workloadClientApiVersion, string moduleId, string moduleGenerationId)
@@ -292,7 +292,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return chain.Build(signerCertificate);
         }
 
-        public static (X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain) GetServerCertificateAndChainFromFile(string serverWithChainFilePath, string serverPrivateKeyFilePath)
+        public static (X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain) GetServerCertificateAndChainFromFile(string serverWithChainFilePath, string serverPrivateKeyFilePath, ILogger logger = null)
         {
             string cert, privateKey;
 
@@ -316,7 +316,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 privateKey = sr.ReadToEnd();
             }
 
-            return ParseCertificateAndKey(cert, privateKey);
+            return ParseCertificateAndKey(cert, privateKey, logger);
         }
 
         public static IEnumerable<X509Certificate2> GetServerCACertificatesFromFile(string chainPath)
@@ -371,10 +371,10 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return GetCertificatesFromPem(ParsePemCerts(manifestTrustedCACerts)).FirstOrDefault();
         }
 
-        internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateResponse(ServerCertificateResponse response) =>
-            ParseCertificateAndKey(response.Certificate, response.PrivateKey);
+        internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateResponse(ServerCertificateResponse response, ILogger logger = null) =>
+            ParseCertificateAndKey(response.Certificate, response.PrivateKey, logger);
 
-        internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateAndKey(string certificateWithChain, string privateKey)
+        internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateAndKey(string certificateWithChain, string privateKey, ILogger logger = null)
         {
             IEnumerable<string> pemCerts = ParsePemCerts(certificateWithChain);
 
@@ -386,7 +386,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             IEnumerable<X509Certificate2> certsChain = GetCertificatesFromPem(pemCerts.Skip(1));
 
             var certWithNoKey = new X509Certificate2(Encoding.UTF8.GetBytes(pemCerts.First()));
-            var certWithPrivateKey = AttachPrivateKey(certWithNoKey, privateKey);
+            var certWithPrivateKey = AttachPrivateKey(certWithNoKey, privateKey, logger);
 
             return (certWithPrivateKey, certsChain);
         }
@@ -418,7 +418,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return commonName;
         }
 
-        static X509Certificate2 AttachPrivateKey(X509Certificate2 certificate, string pemEncodedKey)
+        static X509Certificate2 AttachPrivateKey(X509Certificate2 certificate, string pemEncodedKey, ILogger logger)
         {
             var pkcs8Label = "PRIVATE KEY";
             var rsaLabel = "RSA PRIVATE KEY";
@@ -432,6 +432,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
             {
                 if (oidRsaEncryption.Value == keyAlgorithm)
                 {
+                    logger?.LogDebug("Importing RSA private key");
+
                     var decodedKey = UnwrapPrivateKey(pemEncodedKey, isPkcs8 ? pkcs8Label : rsaLabel);
                     var key = RSA.Create();
 
@@ -445,9 +447,13 @@ namespace Microsoft.Azure.Devices.Edge.Util
                     }
 
                     result = certificate.CopyWithPrivateKey(key);
+
+                    logger?.LogDebug("RSA private key has been imported and assigned to certificate");
                 }
                 else if (oidEcPublicKey.Value == keyAlgorithm)
                 {
+                    logger?.LogDebug("Importing ECC private key");
+
                     var decodedKey = UnwrapPrivateKey(pemEncodedKey, isPkcs8 ? pkcs8Label : ecLabel);
                     var key = ECDsa.Create();
 
@@ -461,16 +467,22 @@ namespace Microsoft.Azure.Devices.Edge.Util
                     }
 
                     result = certificate.CopyWithPrivateKey(key);
+
+                    logger?.LogDebug("ECC private key has been imported and assigned to certificate");
                 }
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException("Cannot import private key", ex);
+                var errorMessage = "Cannot import private key";
+                logger?.LogError(ex, errorMessage);
+                throw new InvalidOperationException(errorMessage, ex);
             }
 
             if (result == null)
             {
-                throw new InvalidOperationException($"Cannot use certificate, not supported key algorithm: ${keyAlgorithm}");
+                var errorMessage = $"Cannot use certificate, not supported key algorithm: ${keyAlgorithm}";
+                logger?.LogError(errorMessage);
+                throw new InvalidOperationException(errorMessage);
             }
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
