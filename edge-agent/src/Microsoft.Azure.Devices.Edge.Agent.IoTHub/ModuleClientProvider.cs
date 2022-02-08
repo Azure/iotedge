@@ -6,11 +6,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using System.ComponentModel;
     using System.Net;
     using System.Runtime.ExceptionServices;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Edgelet;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
@@ -34,6 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly bool closeOnIdleTimeout;
         readonly TimeSpan idleTimeout;
         readonly ISdkModuleClientProvider sdkModuleClientProvider;
+        readonly Option<IModuleManager> moduleManager;
         readonly bool useServerHeartbeat;
 
         public ModuleClientProvider(
@@ -45,25 +48,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout,
             bool useServerHeartbeat)
-            : this(Option.Maybe(connectionString), sdkModuleClientProvider, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, useServerHeartbeat)
+            : this(Option.Maybe(connectionString), sdkModuleClientProvider, Option.None<IModuleManager>(), upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, useServerHeartbeat)
         {
         }
 
         public ModuleClientProvider(
             ISdkModuleClientProvider sdkModuleClientProvider,
+            IModuleManager moduleManager,
             Option<UpstreamProtocol> upstreamProtocol,
             Option<IWebProxy> proxy,
             string productInfo,
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout,
             bool useServerHeartbeat)
-            : this(Option.None<string>(), sdkModuleClientProvider, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, useServerHeartbeat)
+            : this(Option.None<string>(), sdkModuleClientProvider, Option.Maybe(moduleManager), upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, useServerHeartbeat)
         {
         }
 
         ModuleClientProvider(
             Option<string> connectionString,
             ISdkModuleClientProvider sdkModuleClientProvider,
+            Option<IModuleManager> moduleManager,
             Option<UpstreamProtocol> upstreamProtocol,
             Option<IWebProxy> proxy,
             string productInfo,
@@ -73,6 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         {
             this.connectionString = connectionString;
             this.sdkModuleClientProvider = sdkModuleClientProvider;
+            this.moduleManager = moduleManager;
             this.upstreamProtocol = upstreamProtocol;
             this.productInfo = Preconditions.CheckNotNull(productInfo, nameof(productInfo));
             this.proxy = proxy;
@@ -208,7 +214,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 .Map(cs => Task.FromResult(this.sdkModuleClientProvider.GetSdkModuleClient(cs, settings)))
                 .GetOrElse(this.sdkModuleClientProvider.GetSdkModuleClient(settings));
 
-            moduleClient.SetProductInfo(this.productInfo);
+            string productInfo = await this.moduleManager
+                .Map(async mm =>
+                {
+                    SystemInfo systemInfo = await mm.GetSystemInfoAsync(CancellationToken.None);
+
+                    return $"{this.productInfo} ({systemInfo.ToQueryString()})";
+                })
+                .GetOrElse(Task.FromResult(this.productInfo));
+            moduleClient.SetProductInfo(productInfo);
 
             // note: it's important to set the status-changed handler and
             // timeout value *before* we open a connection to the hub
