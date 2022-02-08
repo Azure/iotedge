@@ -161,33 +161,66 @@ This will create `aziot-edged` and `iotedge` binaries under `edgelet/target/debu
 
 ### Run
 
-To run `aziot-edged` locally:
-
-1. Create a directory that it will use as its home directory, such as `~/iotedge`
-
-    - Linux / macOS
-
-        ```sh
-        export AZIOT_EDGED_CONFIG_DIR=~/iotedge
-        mkdir -p "$AZIOT_EDGED_CONFIG_DIR"
-        ```
-
-    - Windows
-
-        ```powershell
-        $env:AZIOT_EDGED_CONFIG_DIR = Resolve-Path ~/iotedge
-        New-Item -Type Directory -Force $env:AZIOT_EDGED_CONFIG_DIR
-        ```
-
-1. Create a `config.toml`. It's okay to create this under the `AZIOT_EDGED_CONFIG_DIR` directory.
-
-1. Run the daemon with the `AZIOT_EDGED_CONFIG_DIR` environment variable set and with the path to the `config.toml`
+In order to locally run aziot-edged, there is a dependency on running azure identity service.The following instruction can be used to run aziot-edged locally:
+1. Clone the [aziot-iis repo](https://github.com/Azure/iot-identity-service)
+2. Build IIS Binaries using [these build steps](https://github.com/Azure/iot-identity-service/blob/main/docs-dev/building.md)
+3. Make directories and chown them to your user
+    ```sh
+    mkdir -p /run/aziot /var/lib/aziot/{keyd,certd,identityd,edged} /var/lib/iotedge /etc/aziot/{keyd,certd,identityd,edged}/config.d
+    ```
+4. Copy Provisioning File and Fill out the provisioning parameters. Example : For Provisioning via Symmetric Keys Use [these instructions](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-provision-single-device-linux-symmetric?view=iotedge-2020-11&tabs=azure-portal%2Cubuntu)
 
     ```sh
-    cargo run -p aziot-edged -- -c /absolute/path/to/config.toml
+      cp edgelet/contrib/config/linux/template.toml /etc/aziot/config.toml
     ```
+5. Modify the Daemon configuration section in /etc/aziot/config.toml to match this
+    ```toml
+      [connect]
+      workload_uri = "unix:///var/run/iotedge/workload.sock"
+      management_uri = "unix:///var/run/iotedge/management.sock"
 
+    
+      [listen]
+      workload_uri = "unix:///var/run/iotedge/workload.sock"
+      management_uri = "unix:///var/run/iotedge/management.sock"
+      min_tls_version = "tls1.0"
+    ```
+   This is because when running locally or without systemd, LISTEN_FDNAMES environment variable is not passed to aziot-edged and hence we explicitly need to specify the listen sockets.
 
+6. Create Users for IIS Components
+    ```sh
+     <IISRepoPath>/contrib/debian/preinst install
+    ```
+7. Create Users for aziot-edge Components
+     ```sh
+     edgelet/contrib/debian/preinst install
+    ```
+8. Apply Config.
+    ```sh
+        cd edgelet
+        cargo run -p iotedge -- config apply
+    ```
+9. Run keyd service in a separate shell
+    ```sh
+       cd <IISRepoPath>
+       cargo run --target x86_64-unknown-linux-gnu -p aziotd -- aziot-keyd
+    ```
+10. Run Identityd service in a separate shell
+     ```sh
+       cd <IISRepoPath>
+       cargo run --target x86_64-unknown-linux-gnu -p aziotd -- aziot-keyd
+    ```
+11. Run Certd Service in a separate shell
+    ```sh
+       cd <IISRepoPath>
+       cargo run --target x86_64-unknown-linux-gnu -p aziotd -- aziot-certd
+    ```
+12. Finally, Run aziot-edged in a separate shell
+    ```sh
+       cd edgelet
+       cargo run -p aziot-edged
+    ```
+13. When stopping the service, stop aziot-edged, identityd, keyd and certd, in that order.
 ### Run tests
 
 ```sh
