@@ -26,15 +26,16 @@ namespace Microsoft.Azure.Devices.Edge.Test
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                     builder =>
                     {
-                         builder.GetModule("$edgeHub").WithEnvironment(("ServerCertificateRenewAfterInMs", "6000"));
+                         builder.GetModule(ModuleName.EdgeHub).WithEnvironment(("ServerCertificateRenewAfterInMs", "6000"));
                     },
                     token);
 
-            EdgeModule edgeHub = deployment.Modules[ModuleName.EdgeHub];
+            // get by module name without $ because the system modules dictionary is created without $
+            EdgeModule edgeHub = deployment.Modules[ModuleName.EdgeHub.Substring(1)];
             await edgeHub.WaitForStatusAsync(EdgeModuleStatus.Running, token);
-            EdgeModule edgeAgent = deployment.Modules[ModuleName.EdgeAgent];
+            
             // certificate renew should stop edgeHub and then it should be started by edgeAgent
-            await edgeAgent.WaitForReportedPropertyUpdatesAsync(
+            await new EdgeModule(ModuleName.EdgeAgent, this.runtime.DeviceId, this.iotHub).WaitForReportedPropertyUpdatesAsync(
                 new
                 {
                     properties = new
