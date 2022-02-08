@@ -38,7 +38,7 @@ steps:
     searchFolder: $(Build.SourcesDirectory)/TestResults
     testRunTitle: End-to-end tests ($(Build.BuildNumber) $(System.JobDisplayName))
     buildPlatform: $(arch)
-  condition: succeededOrFailed()
+  condition: always()
 
 - pwsh: |
     $logDir = '$(Build.ArtifactStagingDirectory)/logs'
@@ -54,11 +54,11 @@ steps:
     $artifactSuffix = '$(Build.BuildNumber)-$(System.PhaseName)' -replace '_','-'
     Write-Output "##vso[task.setvariable variable=artifactSuffix]$artifactSuffix"
   displayName: Collect Logs
-  condition: succeededOrFailed()
+  condition: always()
 
 - task: PublishBuildArtifacts@1
   displayName: Publish logs
   inputs:
     PathtoPublish: $(Build.ArtifactStagingDirectory)/logs
     ArtifactName: logs-end-to-end-$(Build.BuildNumber)-$(artifactSuffix)
-  condition: succeededOrFailed()
+  condition: always()
