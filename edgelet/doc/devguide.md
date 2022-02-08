@@ -166,7 +166,7 @@ In order to locally run aziot-edged, there is a dependency on running azure iden
 2. Build IIS Binaries using [these build steps](https://github.com/Azure/iot-identity-service/blob/main/docs-dev/building.md)
 3. Make directories and chown them to your user
     ```sh
-    mkdir -p /run/aziot /var/lib/aziot/{keyd,certd,identityd,edged} /var/lib/iotedge /etc/aziot/{keyd,certd,identityd,edged}/config.d
+    mkdir -p /run/aziot /var/lib/aziot/{keyd,certd,identityd,edged} /var/lib/iotedge /etc/aziot/{keyd,certd,identityd,tpm,edged}/config.d
     ```
 4. Copy Provisioning File and Fill out the provisioning parameters. Example : For Provisioning via Symmetric Keys Use [these instructions](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-provision-single-device-linux-symmetric?view=iotedge-2020-11&tabs=azure-portal%2Cubuntu)
 
@@ -208,7 +208,7 @@ In order to locally run aziot-edged, there is a dependency on running azure iden
 10. Run Identityd service in a separate shell
      ```sh
        cd <IISRepoPath>
-       cargo run --target x86_64-unknown-linux-gnu -p aziotd -- aziot-keyd
+       cargo run --target x86_64-unknown-linux-gnu -p aziotd -- aziot-identityd
     ```
 11. Run Certd Service in a separate shell
     ```sh
