@@ -191,7 +191,7 @@ Depending on the routing settings, the routing may define an [input name](https:
 ```
 devices/TestEdgeDevice/modules/TestModule/inputs/TestInput/%24.cdid=TestEdgeDevice&%24.cmid=SenderModule
 ```
-M2M routing also can define an [output name](https://docs.microsoft.com/en-us/azure/iot-edge/module-composition?view=iotedge-2020-11#source). Output names help when messages from a module need to be routed to different destinations. When a module wants to send a message on a specific output, it sends the message as an regular telemetry message, except that it adds an additional system property to it. This system property is '\$.on'. The '\$' sign needs to be url encoded and it becomes %24 in the topic name. The following example shows a telemetry message sent with the output name 'alert':
+Modules can also send messages on a specific [output name](https://docs.microsoft.com/en-us/azure/iot-edge/module-composition?view=iotedge-2020-11#source). Output names help when messages from a module need to be routed to different destinations. When a module wants to send a message on a specific output, it sends the message as an regular telemetry message, except that it adds an additional system property to it. This system property is '\$.on'. The '\$' sign needs to be url encoded and it becomes %24 in the topic name. The following example shows a telemetry message sent with the output name 'alert':
 ```
 devices/TestEdgeDevice/modules/TestModule/messages/events/%24.on=alert/
 ```
