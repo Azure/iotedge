@@ -142,7 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             // multithreaded event loop (worker) that handles the traffic of the accepted connections
             this.eventLoopGroup = new MultithreadEventLoopGroup(threadCount);
 
-            bootstrap.Group(parentEventLoopGroup, this.eventLoopGroup)
+            bootstrap.Group(this.parentEventLoopGroup, this.eventLoopGroup)
                 .Option(ChannelOption.SoBacklog, listenBacklogSize)
                 // Allow listening socket to force bind to port if previous socket is still in TIME_WAIT
                 // Fixes "address is already in use" errors
