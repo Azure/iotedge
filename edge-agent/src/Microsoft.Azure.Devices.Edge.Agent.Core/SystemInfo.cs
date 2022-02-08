@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public class SystemInfo
     {
-        public SystemInfo(string operatingSystemType, string architecture, string version, IDictionary<string, object> additionalProperties)
+        public SystemInfo(string operatingSystemType, string architecture, string version, IReadOnlyDictionary<string, object> additionalProperties)
         {
             this.OperatingSystemType = operatingSystemType;
             this.Architecture = architecture;
@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public string Version { get; }
 
-        public IDictionary<string, string> AdditionalProperties { get; }
+        public IReadOnlyDictionary<string, string> AdditionalProperties { get; }
 
         public string ToQueryString()
         {

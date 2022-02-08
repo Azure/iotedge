@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
     using System.Collections.Generic;
+    using System.Collections.ObjectModel;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
@@ -47,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             Assert.Equal(
                 "kernel_name=A;cpu_architecture=B;"
                 + "first=1;second=2;third=3;",
-                new SystemInfo("A", "B", "C", properties).ToQueryString());
+                new SystemInfo("A", "B", "C", new ReadOnlyDictionary<string, object>(properties)).ToQueryString());
         }
 
         [Fact]
@@ -64,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             Assert.Equal(
                 "kernel_name=A;cpu_architecture=B;"
                 + "first=1;second=2;third=3;",
-                new SystemInfo("A", "B", "C", properties).ToQueryString());
+                new SystemInfo("A", "B", "C", new ReadOnlyDictionary<string, object>(properties)).ToQueryString());
         }
 
         [Fact]
@@ -80,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             Assert.Equal(
                 "kernel_name=A;cpu_architecture=B;"
                 + "first=1;second=;third=3;",
-                new SystemInfo("A", "B", "C", properties).ToQueryString());
+                new SystemInfo("A", "B", "C", new ReadOnlyDictionary<string, object>(properties)).ToQueryString());
         }
 
         [Fact]
@@ -96,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             Assert.Equal(
                 "kernel_name=A;cpu_architecture=B;"
                 + "first+first=1%2B1;second%2Bsecond=2+2;third+third=3%2B3;",
-                new SystemInfo("A", "B", "C", properties).ToQueryString());
+                new SystemInfo("A", "B", "C", new ReadOnlyDictionary<string, object>(properties)).ToQueryString());
         }
     }
 }
