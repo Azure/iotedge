@@ -51,74 +51,83 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             ILogger logger = Logger.Factory.CreateLogger("EdgeHub");
 
-            EdgeHubCertificates certificates = await EdgeHubCertificates.LoadAsync(configuration, logger);
-            bool clientCertAuthEnabled = configuration.GetValue(Constants.ConfigKey.EdgeHubClientCertAuthEnabled, false);
-
-            string sslProtocolsConfig = configuration.GetValue(Constants.ConfigKey.SslProtocols, string.Empty);
-            SslProtocols sslProtocols = SslProtocolsHelper.Parse(sslProtocolsConfig, DefaultSslProtocols, logger);
-            logger.LogInformation($"Enabling SSL protocols: {sslProtocols.Print()}");
-
-            IDependencyManager dependencyManager = new DependencyManager(configuration, certificates.ServerCertificate, certificates.TrustBundle, sslProtocols);
-            Hosting hosting = Hosting.Initialize(configuration, certificates.ServerCertificate, dependencyManager, clientCertAuthEnabled, sslProtocols);
-            IContainer container = hosting.Container;
-
-            logger.LogInformation("Initializing Edge Hub");
-            LogLogo(logger);
-            LogVersionInfo(logger);
-            logger.LogInformation($"OptimizeForPerformance={configuration.GetValue("OptimizeForPerformance", true)}");
-            logger.LogInformation($"MessageAckTimeoutSecs={configuration.GetValue("MessageAckTimeoutSecs", 30)}");
-            logger.LogInformation("Loaded server certificate with expiration date of {0}", certificates.ServerCertificate.NotAfter.ToString("o"));
-
-            var metricsProvider = container.Resolve<IMetricsProvider>();
-            Metrics.InitWithAspNet(metricsProvider, logger); // Note this requires App.UseMetricServer() to be called in Startup.cs
-
-            // EdgeHub and CloudConnectionProvider have a circular dependency. So need to Bind the EdgeHub to the CloudConnectionProvider.
-            IEdgeHub edgeHub = await container.Resolve<Task<IEdgeHub>>();
-            ICloudConnectionProvider cloudConnectionProvider = await container.Resolve<Task<ICloudConnectionProvider>>();
-            cloudConnectionProvider.BindEdgeHub(edgeHub);
-
-            // EdgeHub cloud proxy and DeviceConnectivityManager have a circular dependency,
-            // so the cloud proxy has to be set on the DeviceConnectivityManager after both have been initialized.
-            var deviceConnectivityManager = container.Resolve<IDeviceConnectivityManager>();
-            IConnectionManager connectionManager = await container.Resolve<Task<IConnectionManager>>();
-            (deviceConnectivityManager as DeviceConnectivityManager)?.SetConnectionManager(connectionManager);
-
-            // Register EdgeHub credentials
-            var edgeHubCredentials = container.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
-            ICredentialsCache credentialsCache = await container.Resolve<Task<ICredentialsCache>>();
-            await credentialsCache.Add(edgeHubCredentials);
-
-            // Initializing configuration
-            logger.LogInformation("Initializing configuration");
-            IConfigSource configSource = await container.Resolve<Task<IConfigSource>>();
-            ConfigUpdater configUpdater = await container.Resolve<Task<ConfigUpdater>>();
-            await configUpdater.Init(configSource);
-
-            if (!Enum.TryParse(configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode)
-                || authenticationMode != AuthenticationMode.Cloud)
+            try
             {
-                ConnectionReauthenticator connectionReauthenticator = await container.Resolve<Task<ConnectionReauthenticator>>();
-                connectionReauthenticator.Init();
+                EdgeHubCertificates certificates = await EdgeHubCertificates.LoadAsync(configuration, logger);
+                bool clientCertAuthEnabled = configuration.GetValue(Constants.ConfigKey.EdgeHubClientCertAuthEnabled, false);
+
+                string sslProtocolsConfig = configuration.GetValue(Constants.ConfigKey.SslProtocols, string.Empty);
+                SslProtocols sslProtocols = SslProtocolsHelper.Parse(sslProtocolsConfig, DefaultSslProtocols, logger);
+                logger.LogInformation($"Enabling SSL protocols: {sslProtocols.Print()}");
+
+                IDependencyManager dependencyManager = new DependencyManager(configuration, certificates.ServerCertificate, certificates.TrustBundle, sslProtocols);
+                Hosting hosting = Hosting.Initialize(configuration, certificates.ServerCertificate, dependencyManager, clientCertAuthEnabled, sslProtocols);
+                IContainer container = hosting.Container;
+
+                logger.LogInformation("Initializing Edge Hub");
+                LogLogo(logger);
+                LogVersionInfo(logger);
+                logger.LogInformation($"OptimizeForPerformance={configuration.GetValue("OptimizeForPerformance", true)}");
+                logger.LogInformation($"MessageAckTimeoutSecs={configuration.GetValue("MessageAckTimeoutSecs", 30)}");
+                logger.LogInformation("Loaded server certificate with expiration date of {0}", certificates.ServerCertificate.NotAfter.ToString("o"));
+
+                var metricsProvider = container.Resolve<IMetricsProvider>();
+                Metrics.InitWithAspNet(metricsProvider, logger); // Note this requires App.UseMetricServer() to be called in Startup.cs
+
+                // EdgeHub and CloudConnectionProvider have a circular dependency. So need to Bind the EdgeHub to the CloudConnectionProvider.
+                IEdgeHub edgeHub = await container.Resolve<Task<IEdgeHub>>();
+                ICloudConnectionProvider cloudConnectionProvider = await container.Resolve<Task<ICloudConnectionProvider>>();
+                cloudConnectionProvider.BindEdgeHub(edgeHub);
+
+                // EdgeHub cloud proxy and DeviceConnectivityManager have a circular dependency,
+                // so the cloud proxy has to be set on the DeviceConnectivityManager after both have been initialized.
+                var deviceConnectivityManager = container.Resolve<IDeviceConnectivityManager>();
+                IConnectionManager connectionManager = await container.Resolve<Task<IConnectionManager>>();
+                (deviceConnectivityManager as DeviceConnectivityManager)?.SetConnectionManager(connectionManager);
+
+                // Register EdgeHub credentials
+                var edgeHubCredentials = container.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
+                ICredentialsCache credentialsCache = await container.Resolve<Task<ICredentialsCache>>();
+                await credentialsCache.Add(edgeHubCredentials);
+
+                // Initializing configuration
+                logger.LogInformation("Initializing configuration");
+                IConfigSource configSource = await container.Resolve<Task<IConfigSource>>();
+                ConfigUpdater configUpdater = await container.Resolve<Task<ConfigUpdater>>();
+                await configUpdater.Init(configSource);
+
+                if (!Enum.TryParse(configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode)
+                    || authenticationMode != AuthenticationMode.Cloud)
+                {
+                    ConnectionReauthenticator connectionReauthenticator = await container.Resolve<Task<ConnectionReauthenticator>>();
+                    connectionReauthenticator.Init();
+                }
+
+                TimeSpan shutdownWaitPeriod = TimeSpan.FromSeconds(configuration.GetValue("ShutdownWaitPeriod", DefaultShutdownWaitPeriod));
+                (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(shutdownWaitPeriod, logger);
+
+                using (IProtocolHead protocolHead = await GetEdgeHubProtocolHeadAsync(logger, configuration, container, hosting))
+                using (var renewal = new CertificateRenewal(certificates, logger))
+                {
+                    await protocolHead.StartAsync();
+                    await Task.WhenAny(cts.Token.WhenCanceled(), renewal.Token.WhenCanceled());
+                    logger.LogInformation("Stopping the protocol heads...");
+                    await protocolHead.CloseAsync(CancellationToken.None);
+                    logger.LogInformation("Protocol heads stopped.");
+
+                    await CloseDbStoreProviderAsync(container);
+                }
+
+                completed.Set();
+                handler.ForEach(h => GC.KeepAlive(h));
+                logger.LogInformation("Shutdown complete.");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Stopping with exception");
+                throw;
             }
 
-            TimeSpan shutdownWaitPeriod = TimeSpan.FromSeconds(configuration.GetValue("ShutdownWaitPeriod", DefaultShutdownWaitPeriod));
-            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(shutdownWaitPeriod, logger);
-
-            using (IProtocolHead protocolHead = await GetEdgeHubProtocolHeadAsync(logger, configuration, container, hosting))
-            using (var renewal = new CertificateRenewal(certificates, logger))
-            {
-                await protocolHead.StartAsync();
-                await Task.WhenAny(cts.Token.WhenCanceled(), renewal.Token.WhenCanceled());
-                logger.LogInformation("Stopping the protocol heads...");
-                await protocolHead.CloseAsync(CancellationToken.None);
-                logger.LogInformation("Protocol heads stopped.");
-
-                await CloseDbStoreProviderAsync(container);
-            }
-
-            completed.Set();
-            handler.ForEach(h => GC.KeepAlive(h));
-            logger.LogInformation("Shutdown complete.");
             return 0;
         }
 
