@@ -46,6 +46,8 @@ jobs:
       artifactName: iotedged-debian9-arm32v7
       identityServiceArtifactName: packages_debian-9-slim_arm32v7
       identityServicePackageFilter: aziot-identity-service_*_armhf.deb
+      # skip notary installation as it is not supported for ARM platforms
+      skip_notary: true
 
     timeoutInMinutes: 120
 
@@ -72,6 +74,7 @@ jobs:
       artifactName: iotedged-ubuntu18.04-amd64
       identityServiceArtifactName: packages_ubuntu-18.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+      skip_notary: false
 
     steps:
     - template: templates/e2e-setup.yaml
@@ -95,6 +98,7 @@ jobs:
       identityServiceArtifactName: packages_ubuntu-18.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
       minimal: true
+      skip_notary: false
 
     steps:
     - template: templates/e2e-setup.yaml
@@ -117,6 +121,7 @@ jobs:
       artifactName: iotedged-ubuntu20.04-amd64
       identityServiceArtifactName: packages_ubuntu-20.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+      skip_notary: false
 
     steps:
     - template: templates/e2e-setup.yaml
@@ -139,6 +144,7 @@ jobs:
       identityServiceArtifactName: packages_ubuntu-20.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
       minimal: true
+      skip_notary: false
 
     steps:
     - template: templates/e2e-setup.yaml
@@ -159,6 +165,8 @@ jobs:
       artifactName: iotedged-ubuntu20.04-aarch64
       identityServiceArtifactName: packages_ubuntu-20.04_aarch64
       identityServicePackageFilter: aziot-identity-service_*_arm64.deb
+      # skip notary installation as it is not supported for ARM platforms
+      skip_notary: true
 
     timeoutInMinutes: 120
 
@@ -184,6 +192,7 @@ jobs:
       artifactName: iotedged-centos7-amd64
       identityServiceArtifactName: packages_centos-7_amd64
       identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
+      skip_notary: false
 
     steps:
     - template: templates/e2e-clean-directory.yaml
@@ -213,6 +222,8 @@ jobs:
       verbose: true
       # skip component governance detection to avoid proxy issues. It is checked in the other jobs.
       skipComponentGovernanceDetection: true
+      # skip notary installation as it has known issues working with proxy
+      skip_notary: true
 
     timeoutInMinutes: 120
 
