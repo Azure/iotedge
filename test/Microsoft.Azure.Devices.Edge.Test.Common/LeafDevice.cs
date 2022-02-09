@@ -131,7 +131,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 });
 
             // @To Remove this is a hack to be able to create lea. See PBI: 9171870
-            string hostname = iotHub.Hostname;
+            string hostname = "40.64.134.3"; //iotHub.Hostname;
             if (nestedEdge)
             {
                 hostname = edgeHostname;
