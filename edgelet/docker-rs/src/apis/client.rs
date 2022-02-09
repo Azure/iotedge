@@ -6,24 +6,26 @@ use futures::{Future, Stream};
 use serde_json;
 use typed_headers::{self, mime, HeaderMapExt};
 
-use http_common::{request_with_headers, request_with_headers_no_content, Connector};
+use http_common::{Connector, ErrorBody, HttpRequest};
 use hyper::{Body, Client, Uri};
 
 use super::configuration::Configuration;
 use super::ApiError;
 
+use crate::models;
+
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 #[derive(Clone)]
 pub struct DockerApiClient {
-    client: Arc<Client<Connector, Body>>,
+    connector: Connector,
     configuration: Arc<Configuration>,
 }
 
 impl DockerApiClient {
-    pub fn new(client: Client<Connector, Body>) -> Self {
+    pub fn new(connector: Connector) -> Self {
         Self {
-            client: Arc::new(client),
+            connector,
             configuration: Arc::new(Configuration::default()),
         }
     }
@@ -33,62 +35,13 @@ impl DockerApiClient {
         self
     }
 
-    async fn request<TRequest, TResponse>(
-        &self,
-        method: hyper::http::Method,
-        uri: Uri,
-        headers: Option<Vec<(&str, &str)>>,
-        body: Option<&TRequest>,
-    ) -> Result<TResponse>
+    fn add_user_agent<TBody>(&self, request: &mut HttpRequest<TBody, Connector>) -> Result<()>
     where
-        TRequest: serde::Serialize,
-        TResponse: serde::de::DeserializeOwned,
+        TBody: serde::Serialize,
     {
-        let headers = if let Some(user_agent) = self.configuration.user_agent.as_ref() {
-            let mut headers = headers.unwrap_or_else(Vec::new);
-            headers.push((hyper::header::USER_AGENT.as_str(), &user_agent));
-            Some(headers)
-        } else {
-            headers
-        };
-
-        let response = request_with_headers(
-            &self.client,
-            method,
-            uri,
-            headers.as_ref().map(|h| -> &[_] { &*h }), // Convert Option<Vec> in to Option<&[]>
-            body,
-        )
-        .await?;
-        Ok(response)
-    }
-
-    async fn request_no_content<TRequest>(
-        &self,
-        method: hyper::http::Method,
-        uri: Uri,
-        headers: Option<Vec<(&str, &str)>>,
-        body: Option<&TRequest>,
-    ) -> Result<()>
-    where
-        TRequest: serde::Serialize,
-    {
-        let headers = if let Some(user_agent) = self.configuration.user_agent.as_ref() {
-            let mut headers = headers.unwrap_or_else(Vec::new);
-            headers.push((hyper::header::USER_AGENT.as_str(), &user_agent));
-            Some(headers)
-        } else {
-            headers
-        };
-
-        request_with_headers_no_content(
-            &self.client,
-            method,
-            uri,
-            headers.as_ref().map(|h| -> &[_] { &*h }), // Convert Option<Vec> in to Option<&[]>
-            body,
-        )
-        .await?;
+        if let Some(user_agent) = &self.configuration.user_agent {
+            request.add_header(hyper::header::USER_AGENT, user_agent)?;
+        }
 
         Ok(())
     }
@@ -96,7 +49,7 @@ impl DockerApiClient {
 
 #[async_trait::async_trait]
 pub trait DockerApi {
-    async fn system_info(&self) -> Result<crate::models::SystemInfo>;
+    async fn system_info(&self) -> Result<models::SystemInfo>;
 
     async fn image_create(
         &self,
@@ -114,21 +67,17 @@ pub trait DockerApi {
         name: &str,
         force: bool,
         noprune: bool,
-    ) -> Result<Vec<crate::models::ImageDeleteResponseItem>>;
+    ) -> Result<Vec<models::ImageDeleteResponseItem>>;
 
     async fn container_create(
         &self,
-        body: crate::models::ContainerCreateBody,
+        body: models::ContainerCreateBody,
         name: &str,
-    ) -> Result<crate::models::InlineResponse201>;
+    ) -> Result<models::InlineResponse201>;
 
     async fn container_delete(&self, id: &str, v: bool, force: bool, link: bool) -> Result<()>;
 
-    async fn container_inspect(
-        &self,
-        id: &str,
-        size: bool,
-    ) -> Result<crate::models::InlineResponse200>;
+    async fn container_inspect(&self, id: &str, size: bool) -> Result<models::InlineResponse200>;
 
     async fn container_list(
         &self,
@@ -136,17 +85,13 @@ pub trait DockerApi {
         limit: i32,
         size: bool,
         filters: &str,
-    ) -> Result<Vec<crate::models::ContainerSummary>>;
+    ) -> Result<Vec<models::ContainerSummary>>;
 
     async fn container_restart(&self, id: &str, t: Option<i32>) -> Result<()>;
     async fn container_start(&self, id: &str, detach_keys: &str) -> Result<()>;
     async fn container_stats(&self, id: &str, stream: bool) -> Result<serde_json::Value>;
     async fn container_stop(&self, id: &str, t: Option<i32>) -> Result<()>;
-    async fn container_top(
-        &self,
-        id: &str,
-        ps_args: &str,
-    ) -> Result<crate::models::InlineResponse2001>;
+    async fn container_top(&self, id: &str, ps_args: &str) -> Result<models::InlineResponse2001>;
 
     async fn container_logs(
         &self,
@@ -162,20 +107,26 @@ pub trait DockerApi {
 
     async fn network_create(
         &self,
-        network_config: crate::models::NetworkConfig,
-    ) -> Result<crate::models::InlineResponse2011>;
+        network_config: models::NetworkConfig,
+    ) -> Result<models::InlineResponse2011>;
 
-    async fn network_list(&self, filters: &str) -> Result<Vec<crate::models::Network>>;
+    async fn network_list(&self, filters: &str) -> Result<Vec<models::Network>>;
 }
 
 #[async_trait::async_trait]
 impl DockerApi for DockerApiClient {
-    async fn system_info(&self) -> Result<crate::models::SystemInfo> {
-        let method = hyper::Method::GET;
+    async fn system_info(&self) -> Result<models::SystemInfo> {
         let uri_str = format!("/info");
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
+        let uri = uri.to_string();
 
-        self.request(method, uri, None, None::<&()>).await
+        let mut request: HttpRequest<(), _> = HttpRequest::get(self.connector.clone(), &uri);
+        self.add_user_agent(&mut request)?;
+
+        let response = request.json_response().await?;
+        let response = response.parse_expect_ok::<models::SystemInfo, ErrorBody<'_>>()?;
+
+        Ok(response)
     }
 
     async fn image_create(
@@ -188,8 +139,6 @@ impl DockerApi for DockerApiClient {
         x_registry_auth: &str,
         platform: &str,
     ) -> Result<()> {
-        let method = hyper::Method::POST;
-
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("fromImage", &from_image.to_string())
             .append_pair("fromSrc", &from_src.to_string())
@@ -199,14 +148,26 @@ impl DockerApi for DockerApiClient {
             .finish();
         let uri_str = format!("/images/create?{}", query);
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
+        let uri = uri.to_string();
 
-        let headers = vec![("X-Registry-Auth", x_registry_auth)];
+        let mut request = HttpRequest::post(self.connector.clone(), &uri, Some(input_image));
+        request.add_header(
+            hyper::header::HeaderName::from_static("x-registry-auth"),
+            x_registry_auth,
+        )?;
+        self.add_user_agent(&mut request)?;
 
-        self.request_no_content(method, uri, Some(headers), Some(&input_image))
+        let response = request
+            .response(false)
             .await
             .map_err(ApiError::with_context("Could not create image."))?;
+        let (status, _) = response.into_parts();
 
-        Ok(())
+        if status == hyper::StatusCode::OK {
+            Ok(())
+        } else {
+            Err(ApiError::with_message(format!("Bad status code: {}", status)).into())
+        }
     }
 
     async fn image_delete(
@@ -214,48 +175,55 @@ impl DockerApi for DockerApiClient {
         name: &str,
         force: bool,
         noprune: bool,
-    ) -> Result<Vec<crate::models::ImageDeleteResponseItem>> {
-        let method = hyper::Method::DELETE;
-
+    ) -> Result<Vec<models::ImageDeleteResponseItem>> {
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("force", &force.to_string())
             .append_pair("noprune", &noprune.to_string())
             .finish();
         let uri_str = format!("/images/{name}?{}", query, name = name);
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
+        let uri = uri.to_string();
 
-        let result = self
-            .request(method, uri, None, None::<&()>)
+        let mut request: HttpRequest<(), _> =
+            HttpRequest::delete(self.connector.clone(), &uri, None);
+        self.add_user_agent(&mut request)?;
+
+        let response = request
+            .json_response()
             .await
             .map_err(ApiError::with_context("Could not delete image."))?;
+        let response =
+            response.parse_expect_ok::<Vec<models::ImageDeleteResponseItem>, ErrorBody<'_>>()?;
 
-        Ok(result)
+        Ok(response)
     }
 
     async fn container_create(
         &self,
-        body: crate::models::ContainerCreateBody,
+        body: models::ContainerCreateBody,
         name: &str,
-    ) -> Result<crate::models::InlineResponse201> {
-        let method = hyper::Method::POST;
-
+    ) -> Result<models::InlineResponse201> {
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("name", &name.to_string())
             .finish();
         let uri_str = format!("/containers/create?{}", query);
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
+        let uri = uri.to_string();
 
-        let result = self
-            .request(method, uri, None, Some(&body))
+        let mut request = HttpRequest::post(self.connector.clone(), &uri, Some(body));
+        self.add_user_agent(&mut request)?;
+
+        let response = request
+            .json_response()
             .await
             .map_err(ApiError::with_context("Could not create container."))?;
+        let response = response
+            .parse::<models::InlineResponse201, ErrorBody<'_>>(&[hyper::StatusCode::ACCEPTED])?;
 
-        Ok(result)
+        Ok(response)
     }
 
     async fn container_delete(&self, id: &str, v: bool, force: bool, link: bool) -> Result<()> {
-        let method = hyper::Method::DELETE;
-
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("v", &v.to_string())
             .append_pair("force", &force.to_string())
@@ -263,14 +231,21 @@ impl DockerApi for DockerApiClient {
             .finish();
         let uri_str = format!("/containers/{id}?{}", query, id = id);
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
+        let uri = uri.to_string();
 
-        self.request_no_content(method, uri, None, None::<&()>)
+        let mut request: HttpRequest<(), _> =
+            HttpRequest::delete(self.connector.clone(), &uri, None);
+        self.add_user_agent(&mut request)?;
+
+        request
+            .no_content_response()
             .await
+            .map_err(ApiError::with_context("Could not delete container."))?;
+
+        Ok(())
     }
 
     async fn container_restart(&self, id: &str, t: Option<i32>) -> Result<()> {
-        let method = hyper::Method::POST;
-
         let query = t.map_or(std::borrow::Cow::Borrowed(""), |t| {
             std::borrow::Cow::Owned(
                 ::url::form_urlencoded::Serializer::new(String::new())
@@ -280,33 +255,37 @@ impl DockerApi for DockerApiClient {
         });
         let uri_str = format!("/containers/{id}/restart?{}", query, id = id);
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
+        let uri = uri.to_string();
 
-        self.request_no_content(method, uri, None, None::<&()>)
+        let mut request: HttpRequest<(), _> = HttpRequest::post(self.connector.clone(), &uri, None);
+        self.add_user_agent(&mut request)?;
+
+        request
+            .no_content_response()
             .await
-            .map_err(ApiError::with_context("Could not delete container."))?;
+            .map_err(ApiError::with_context("Could not restart container."))?;
 
         Ok(())
     }
 
-    async fn container_inspect(
-        &self,
-        id: &str,
-        size: bool,
-    ) -> Result<crate::models::InlineResponse200> {
-        let method = hyper::Method::GET;
-
+    async fn container_inspect(&self, id: &str, size: bool) -> Result<models::InlineResponse200> {
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("size", &size.to_string())
             .finish();
         let uri_str = format!("/containers/{id}/json?{}", query, id = id);
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
+        let uri = uri.to_string();
 
-        let result = self
-            .request(method, uri, None, None::<&()>)
+        let mut request: HttpRequest<(), _> = HttpRequest::get(self.connector.clone(), &uri);
+        self.add_user_agent(&mut request)?;
+
+        let response = request
+            .json_response()
             .await
             .map_err(ApiError::with_context("Could not inspect container."))?;
+        let response = response.parse_expect_ok::<models::InlineResponse200, ErrorBody<'_>>()?;
 
-        Ok(result)
+        Ok(response)
     }
 
     async fn container_list(
@@ -315,9 +294,7 @@ impl DockerApi for DockerApiClient {
         limit: i32,
         size: bool,
         filters: &str,
-    ) -> Result<Vec<crate::models::ContainerSummary>> {
-        let method = hyper::Method::GET;
-
+    ) -> Result<Vec<models::ContainerSummary>> {
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("all", &all.to_string())
             .append_pair("limit", &limit.to_string())
@@ -326,51 +303,66 @@ impl DockerApi for DockerApiClient {
             .finish();
         let uri_str = format!("/containers/json?{}", query);
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
+        let uri = uri.to_string();
 
-        let result = self
-            .request(method, uri, None, None::<&()>)
+        let mut request: HttpRequest<(), _> = HttpRequest::get(self.connector.clone(), &uri);
+        self.add_user_agent(&mut request)?;
+
+        let response = request
+            .json_response()
             .await
             .map_err(ApiError::with_context("Could not list containers."))?;
+        let response =
+            response.parse_expect_ok::<Vec<models::ContainerSummary>, ErrorBody<'_>>()?;
 
-        Ok(result)
+        Ok(response)
     }
 
     async fn container_start(&self, id: &str, detach_keys: &str) -> Result<()> {
-        let method = hyper::Method::POST;
-
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("detachKeys", &detach_keys.to_string())
             .finish();
         let uri_str = format!("/containers/{id}/start?{}", query, id = id);
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
+        let uri = uri.to_string();
 
-        self.request_no_content(method, uri, None, None::<&()>)
+        let mut request: HttpRequest<(), _> = HttpRequest::post(self.connector.clone(), &uri, None);
+        self.add_user_agent(&mut request)?;
+
+        let response = request
+            .response(false)
             .await
             .map_err(ApiError::with_context("Could not start container."))?;
+        let (status, _) = response.into_parts();
 
-        Ok(())
+        if status == hyper::StatusCode::NO_CONTENT || status == hyper::StatusCode::NOT_MODIFIED {
+            Ok(())
+        } else {
+            Err(ApiError::with_message(format!("Bad status code: {}", status)).into())
+        }
     }
 
     async fn container_stats(&self, id: &str, stream: bool) -> Result<serde_json::Value> {
-        let method = hyper::Method::GET;
-
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("stream", &stream.to_string())
             .finish();
         let uri_str = format!("/containers/{id}/stats?{}", query, id = id);
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
+        let uri = uri.to_string();
 
-        let result = self
-            .request(method, uri, None, None::<&()>)
+        let mut request: HttpRequest<(), _> = HttpRequest::get(self.connector.clone(), &uri);
+        self.add_user_agent(&mut request)?;
+
+        let response = request
+            .json_response()
             .await
             .map_err(ApiError::with_context("Could not collect container stats."))?;
+        let response = response.parse_expect_ok::<serde_json::Value, ErrorBody<'_>>()?;
 
-        Ok(result)
+        Ok(response)
     }
 
     async fn container_stop(&self, id: &str, t: Option<i32>) -> Result<()> {
-        let method = hyper::Method::POST;
-
         let query = t.map_or(std::borrow::Cow::Borrowed(""), |t| {
             std::borrow::Cow::Owned(
                 ::url::form_urlencoded::Serializer::new(String::new())
@@ -380,35 +372,44 @@ impl DockerApi for DockerApiClient {
         });
         let uri_str = format!("/containers/{id}/stop?{}", query, id = id);
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
+        let uri = uri.to_string();
 
-        self.request_no_content(method, uri, None, None::<&()>)
+        let mut request: HttpRequest<(), _> = HttpRequest::post(self.connector.clone(), &uri, None);
+        self.add_user_agent(&mut request)?;
+
+        let response = request
+            .response(false)
             .await
             .map_err(ApiError::with_context("Could not stop container."))?;
+        let (status, _) = response.into_parts();
 
-        Ok(())
+        if status == hyper::StatusCode::NO_CONTENT || status == hyper::StatusCode::NOT_MODIFIED {
+            Ok(())
+        } else {
+            Err(ApiError::with_message(format!("Bad status code: {}", status)).into())
+        }
     }
 
-    async fn container_top(
-        &self,
-        id: &str,
-        ps_args: &str,
-    ) -> Result<crate::models::InlineResponse2001> {
-        let method = hyper::Method::GET;
-
+    async fn container_top(&self, id: &str, ps_args: &str) -> Result<models::InlineResponse2001> {
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("ps_args", &ps_args.to_string())
             .finish();
         let uri_str = format!("/containers/{id}/top?{}", query, id = id);
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
+        let uri = uri.to_string();
 
-        let result =
-            self.request(method, uri, None, None::<&()>)
-                .await
-                .map_err(ApiError::with_context(
-                    "Could not list container processes.",
-                ))?;
+        let mut request: HttpRequest<(), _> = HttpRequest::get(self.connector.clone(), &uri);
+        self.add_user_agent(&mut request)?;
 
-        Ok(result)
+        let response = request
+            .json_response()
+            .await
+            .map_err(ApiError::with_context(
+                "Could not list container processes.",
+            ))?;
+        let response = response.parse_expect_ok::<models::InlineResponse2001, ErrorBody<'_>>()?;
+
+        Ok(response)
     }
 
     async fn container_logs(
@@ -422,8 +423,6 @@ impl DockerApi for DockerApiClient {
         timestamps: bool,
         tail: &str,
     ) -> Result<hyper::Body> {
-        let method = hyper::Method::GET;
-
         let query = {
             let mut serializer = ::url::form_urlencoded::Serializer::new(String::new());
             serializer
@@ -443,12 +442,17 @@ impl DockerApi for DockerApiClient {
 
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
 
-        let req = hyper::Request::builder().method(method).uri(uri);
+        let mut req = hyper::Request::builder()
+            .method(hyper::Method::GET)
+            .uri(uri);
 
-        let req = if let Some(ref user_agent) = self.configuration.user_agent {
-            req.header(hyper::header::USER_AGENT, &**user_agent)
-        } else {
-            req
+        let headers = req.headers_mut().expect("new request is invalid");
+
+        if let Some(user_agent) = &self.configuration.user_agent {
+            let user_agent = hyper::header::HeaderValue::from_str(user_agent)
+                .map_err(|_| ApiError::with_message("Invalid user agent"))?;
+
+            headers.insert(hyper::header::USER_AGENT, user_agent);
         };
 
         let req = req
@@ -456,7 +460,8 @@ impl DockerApi for DockerApiClient {
             .expect("could not build hyper::Request");
 
         // send request
-        let resp = self.client.request(req).await?;
+        let client = self.connector.clone().into_client();
+        let resp = client.request(req).await?;
         let (hyper::http::response::Parts { status, .. }, body) = resp.into_parts();
         if status.is_success() {
             Ok(body)
@@ -470,35 +475,43 @@ impl DockerApi for DockerApiClient {
 
     async fn network_create(
         &self,
-        network_config: crate::models::NetworkConfig,
-    ) -> Result<crate::models::InlineResponse2011> {
-        let method = hyper::Method::POST;
-
+        network_config: models::NetworkConfig,
+    ) -> Result<models::InlineResponse2011> {
         let uri_str = format!("/networks/create");
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
+        let uri = uri.to_string();
 
-        let result = self
-            .request(method, uri, None, Some(&network_config))
+        let mut request = HttpRequest::post(self.connector.clone(), &uri, Some(network_config));
+        self.add_user_agent(&mut request)?;
+
+        let response = request
+            .json_response()
             .await
             .map_err(ApiError::with_context("Could not create network."))?;
 
-        Ok(result)
+        let response = response
+            .parse::<models::InlineResponse2011, ErrorBody<'_>>(&[hyper::StatusCode::ACCEPTED])?;
+
+        Ok(response)
     }
 
-    async fn network_list(&self, filters: &str) -> Result<Vec<crate::models::Network>> {
-        let method = hyper::Method::GET;
-
+    async fn network_list(&self, filters: &str) -> Result<Vec<models::Network>> {
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("filters", &filters.to_string())
             .finish();
         let uri_str = format!("/networks?{}", query);
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
+        let uri = uri.to_string();
 
-        let result = self
-            .request(method, uri, None, None::<&()>)
+        let mut request: HttpRequest<(), _> = HttpRequest::get(self.connector.clone(), &uri);
+        self.add_user_agent(&mut request)?;
+
+        let response = request
+            .json_response()
             .await
             .map_err(ApiError::with_context("Could not list networks."))?;
+        let response = response.parse_expect_ok::<Vec<models::Network>, ErrorBody<'_>>()?;
 
-        Ok(result)
+        Ok(response)
     }
 }
