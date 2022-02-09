@@ -33,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         readonly string edgeDeviceId;
         readonly string edgeModuleId;
         readonly string edgeDeviceHostName;
+        readonly string edgeModuleGenerationId;
         readonly Option<string> connectionString;
         readonly VersionInfo versionInfo;
         readonly SslProtocols sslProtocols;
@@ -84,6 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             this.gatewayHostname = Option.Maybe(this.configuration.GetValue<string>(Constants.ConfigKey.GatewayHostname));
             string edgeHubConnectionString = this.configuration.GetValue<string>(Constants.ConfigKey.IotHubConnectionString);
+            this.edgeModuleGenerationId = this.configuration.GetValue<string>(Constants.ConfigKey.ModuleGenerationId);
             if (!string.IsNullOrWhiteSpace(edgeHubConnectionString))
             {
                 IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeHubConnectionString);
@@ -339,10 +341,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             // Note: Keep in sync with iotedge-check's edge-hub-storage-mounted-from-host check (edgelet/iotedge/src/check/checks/storage_mounted_from_host.rs)
             string storagePath = GetOrCreateDirectoryPath(this.configuration.GetValue<string>("StorageFolder"), Constants.EdgeHubStorageFolder);
-            if (!this.ValidateStorageIdentity(storagePath))
-            {
-                this.ClearDirectoryAndRecreateIdentity(storagePath);
-            }
+            this.ValidateStorageIdentity(storagePath);
 
             bool storeAndForwardEnabled = this.configuration.GetValue<bool>("storeAndForwardEnabled");
             Option<ulong> storageMaxTotalWalSize = this.GetConfigIfExists<ulong>(Constants.ConfigKey.StorageMaxTotalWalSize, this.configuration);
@@ -383,13 +382,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             return EqualityComparer<T>.Default.Equals(storageParamValue, default(T)) ? Option.None<T>() : Option.Some(storageParamValue);
         }
 
-        bool ValidateStorageIdentity(string storagePath)
+        void ValidateStorageIdentity(string storagePath)
         {
-            // just testing out the base idea
-            string[] metadata = new string[3];
+            string[] metadata = new string[4];
             metadata[0] = this.edgeModuleId;
             metadata[1] = this.iotHubHostname;
             metadata[2] = this.edgeDeviceId;
+            metadata[3] = this.edgeModuleGenerationId;
 
             string file = Directory.GetFiles(storagePath, "DEVICE_IDENTITY")[0];
             try
@@ -399,7 +398,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 {
                     if (!line.Equals(metadata[counter]))
                     {
-                        return false;
+                        ClearDirectoryAndRecreateIdentity(storagePath, metadata);
                     }
 
                     counter++;
@@ -410,21 +409,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 File.Create(file).Close();
                 File.WriteAllLines(file, metadata);
             }
-
-            return true;
         }
 
-        void ClearDirectoryAndRecreateIdentity(string storagePath)
+        static void ClearDirectoryAndRecreateIdentity(string storagePath, string[] metadata)
         {
             foreach (string file in Directory.GetFiles(storagePath))
             {
                 File.Delete(file);
             }
-
-            string[] metadata = new string[3];
-            metadata[0] = this.edgeModuleId;
-            metadata[1] = this.iotHubHostname;
-            metadata[2] = this.edgeDeviceId;
 
             string identityfile = Path.Combine(storagePath, "DEVICE_IDENTITY");
             File.Create(identityfile).Close();

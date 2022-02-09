@@ -108,11 +108,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
                 // Note: Keep in sync with iotedge-check's edge-agent-storage-mounted-from-host check (edgelet/iotedge/src/check/checks/storage_mounted_from_host.rs)
                 storagePath = GetOrCreateDirectoryPath(configuration.GetValue<string>("StorageFolder"), EdgeAgentStorageFolder);
-                if (!ValidateStorageIdentity(storagePath, configuration, logger))
-                {
-                    ClearDirectoryAndRecreateIdentity(storagePath, configuration, logger);
-                }
-
                 enableNonPersistentStorageBackup = configuration.GetValue("EnableNonPersistentStorageBackup", false);
 
                 if (enableNonPersistentStorageBackup)
@@ -164,6 +159,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 Option<StorageLogLevel> storageLogLevel = GetConfigIfExists<StorageLogLevel>(Constants.StorageLogLevel, configuration, logger);
                 string iothubHostname;
                 string deviceId;
+                string moduleId;
                 string apiVersion = "2018-06-28";
 
                 switch (mode.ToLowerInvariant())
@@ -174,6 +170,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         IotHubConnectionStringBuilder connectionStringParser = IotHubConnectionStringBuilder.Create(deviceConnectionString);
                         deviceId = connectionStringParser.DeviceId;
                         iothubHostname = connectionStringParser.HostName;
+                        moduleId = connectionStringParser.ModuleId;
+                        ValidateStorageIdentity(storagePath, deviceId, iothubHostname, moduleId, logger);
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, enableNonPersistentStorageBackup, storageBackupPath, storageTotalMaxWalSize, storageMaxManifestFileSize, storageMaxOpenFiles, storageLogLevel));
                         builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, useServerHeartbeat, backupConfigFilePath));
                         break;
@@ -184,10 +182,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         bool checkImagePullBeforeModuleCreate = configuration.GetValue<bool>(Constants.CheckImagePullBeforeModuleCreate, true);
                         iothubHostname = configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
                         deviceId = configuration.GetValue<string>(Constants.DeviceIdVariableName);
-                        string moduleId = configuration.GetValue(Constants.ModuleIdVariableName, Constants.EdgeAgentModuleIdentityName);
+                        moduleId = configuration.GetValue(Constants.ModuleIdVariableName, Constants.EdgeAgentModuleIdentityName);
                         string moduleGenerationId = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
                         apiVersion = configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
                         TimeSpan performanceMetricsUpdateFrequency = configuration.GetTimeSpan("PerformanceMetricsUpdateFrequency", TimeSpan.FromMinutes(5));
+                        ValidateStorageIdentity(storagePath, deviceId, iothubHostname, moduleId, logger, moduleGenerationId);
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), enableNonPersistentStorageBackup, storageBackupPath, storageTotalMaxWalSize, storageMaxManifestFileSize, storageMaxOpenFiles, storageLogLevel));
                         builder.RegisterModule(new EdgeletModule(iothubHostname, deviceId, new Uri(managementUri), new Uri(workloadUri), apiVersion, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, performanceMetricsUpdateFrequency, useServerHeartbeat, backupConfigFilePath, checkImagePullBeforeModuleCreate));
                         IEnumerable<X509Certificate2> trustBundle =
@@ -225,7 +224,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                             configuration.GetValue<string>(K8sConstants.EdgeK8sObjectOwnerNameKey),
                             configuration.GetValue<string>(K8sConstants.EdgeK8sObjectOwnerUidKey));
                         bool runAsNonRoot = configuration.GetValue<bool>(K8sConstants.RunAsNonRootKey);
-
+                        ValidateStorageIdentity(storagePath, deviceId, iothubHostname, moduleId, logger, moduleGenerationId);
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), enableNonPersistentStorageBackup, storageBackupPath, storageTotalMaxWalSize, storageMaxManifestFileSize, storageMaxOpenFiles, storageLogLevel));
                         builder.RegisterModule(
                             new KubernetesModule(
@@ -440,14 +439,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             }
         }
 
-        static bool ValidateStorageIdentity(string storagePath, IConfiguration configuration, ILogger logger)
+        static void ValidateStorageIdentity(string storagePath, string deviceId, string iotHubHostname, string moduleId, ILogger logger, string moduleGenerationId = "")
         {
-            // just testing out the base idea
             string[] metadata = new string[4];
-            metadata[0] = configuration.GetValue(Constants.ModuleIdVariableName, Constants.EdgeAgentModuleIdentityName);
-            metadata[1] = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
-            metadata[2] = configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
-            metadata[3] = configuration.GetValue<string>(Constants.DeviceIdVariableName);
+            metadata[0] = deviceId;
+            metadata[1] = iotHubHostname;
+            metadata[2] = moduleId;
+            metadata[3] = moduleGenerationId;
             string file = Directory.GetFiles(storagePath, "DEVICE_IDENTITY")[0];
             try
             {
@@ -457,7 +455,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                     if (!line.Equals(metadata[counter]))
                     {
                         logger.LogInformation("Different Device Identity. Deleting local storage.");
-                        return false;
+                        ClearDirectoryAndRecreateIdentity(storagePath, metadata);
                     }
 
                     counter++;
@@ -468,22 +466,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 File.Create(file).Close();
                 File.WriteAllLines(file, metadata);
             }
-
-            return true;
         }
 
-        static void ClearDirectoryAndRecreateIdentity(string storagePath, IConfiguration configuration, ILogger logger)
+        static void ClearDirectoryAndRecreateIdentity(string storagePath, string[] metadata)
         {
             foreach (string file in Directory.GetFiles(storagePath))
             {
                 File.Delete(file);
             }
-
-            string[] metadata = new string[4];
-            metadata[0] = configuration.GetValue(Constants.ModuleIdVariableName, Constants.EdgeAgentModuleIdentityName);
-            metadata[1] = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
-            metadata[2] = configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
-            metadata[3] = configuration.GetValue<string>(Constants.DeviceIdVariableName);
 
             string identityfile = Path.Combine(storagePath, "DEVICE_IDENTITY");
             File.Create(identityfile).Close();
