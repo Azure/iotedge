@@ -1,0 +1,4 @@
+# Enable aziot-edged to start automatically. The service should start if data is written to socket.
+
+enable aziot-edged.mgmt.socket
+enable aziot-edged.workload.socket
