@@ -493,7 +493,7 @@ echo "OS Type:$OSTYPE"
 
 #TODO : Do we need to check in both host and container?
 check_net_cap_bind_host
-#check_net_cap_bind_container
+check_net_cap_bind_container
 check_cgroup_heirachy
 check_systemd
 perform_cleanup
