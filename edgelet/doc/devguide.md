@@ -177,15 +177,15 @@ In order to locally run aziot-edged, there is a dependency on running Azure IoT 
     ```
 5. Modify the Daemon configuration section in /etc/aziot/config.toml to match this
     ```toml
-      [connect]
-      workload_uri = "unix:///var/run/iotedge/workload.sock"
-      management_uri = "unix:///var/run/iotedge/management.sock"
+    [connect]
+    workload_uri = "unix:///var/run/iotedge/workload.sock"
+    management_uri = "unix:///var/run/iotedge/management.sock"
 
-    
-      [listen]
-      workload_uri = "unix:///var/run/iotedge/workload.sock"
-      management_uri = "unix:///var/run/iotedge/management.sock"
-      min_tls_version = "tls1.0"
+
+    [listen]
+    workload_uri = "unix:///var/run/iotedge/workload.sock"
+    management_uri = "unix:///var/run/iotedge/management.sock"
+    min_tls_version = "tls1.0"
     ```
    This is because when running locally or without systemd, LISTEN_FDNAMES environment variable is not passed to aziot-edged and hence we explicitly need to specify the listen sockets.
 
