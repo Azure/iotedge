@@ -19,6 +19,45 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         [Test]
         [Category("CentOsSafe")]
+        public async Task CertRenew()
+        {
+            CancellationToken token = this.TestToken;
+
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
+                    builder =>
+                    {
+                         builder.GetModule(ModuleName.EdgeHub).WithEnvironment(("ServerCertificateRenewAfterInMs", "6000"));
+                    },
+                    token);
+
+            // get by module name without $ because the system modules dictionary is created without $
+            EdgeModule edgeHub = deployment.Modules[ModuleName.EdgeHub.Substring(1)];
+            await edgeHub.WaitForStatusAsync(EdgeModuleStatus.Running, token);
+
+            // certificate renew should stop edgeHub and then it should be started by edgeAgent
+            await new EdgeModule(ModuleName.EdgeAgent, this.runtime.DeviceId, this.iotHub).WaitForReportedPropertyUpdatesAsync(
+                new
+                {
+                    properties = new
+                    {
+                        reported = new
+                        {
+                            systemModules = new
+                            {
+                                edgeHub = new
+                                {
+                                    restartCount = 1
+                                }
+                            }
+                        }
+                    }
+                },
+                token);
+        }
+
+        [Test]
+        [Category("CentOsSafe")]
+        [Category("nestededge_isa95")]
         // This test should be disabled on windows until the following is resolved:
         // https://github.com/Azure/azure-iot-sdk-csharp/issues/2223
         [Category("FlakyOnWindows")]
