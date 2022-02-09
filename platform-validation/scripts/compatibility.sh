@@ -470,40 +470,6 @@ check_cgroup_heirachy()
     fi
 }
 
-
-#Todo : Auto-update these as part of build pipeline.
-#Represent the highest loading address using by iotedge components(edged + iis + dotnet components)
-
-mmap_aziotedge_aarch64=63856
-mmap_aziotedge_x86_64=68136
-mmap_aziotedge_armv7=60592
-
-check_mmap_min_addr(){
-    lowest_loading_addr=$(sysctl -n vm.mmap_min_addr)
-    if [ -z $lowest_loading_addr ]; then
-        wrap_fail "check_mmap_min_addr"
-        return
-    fi
-
-    highest_addr_app=$(eval echo \$mmap_aziotedge_${ARCH})
-    if [ -z $highest_addr_app ]; then
-        wrap_warning "Loading address of azure iot edge does not exist for architecture $ARCH"
-        wrap_fail "check_mmap_min_addr"
-        return
-    fi
-    
-    #The address of the application should be above the mmap min addr. See : https://wiki.debian.org/mmap_min_addr
-    if [ $highest_addr_app -lt $lowest_loading_addr ]; then
-        #Todo : Define Remediation Function
-        wrap_warning "The IoT Edge application requires a minimum loading address of $highest_addr_app"
-        wrap_fail "check_mmap_min_addr"
-    else
-        wrap_pass "check_mmap_min_addr"
-    fi
-}
-
-
-
 get_architecture
 echo "Architecture:$ARCH"
 echo "OS Type:$OSTYPE"
@@ -511,9 +477,7 @@ echo "OS Type:$OSTYPE"
 #TODO : Do we need to check in both host and container?
 check_net_cap_bind_host
 check_net_cap_bind_container
-
 check_cgroup_heirachy
-check_mmap_min_addr
 perform_cleanup
 echo "IoT Edge Compatibility Tool Check Complete"
 
