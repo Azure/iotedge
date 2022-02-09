@@ -78,7 +78,7 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 [[package]]
 name = "aziot-cert-client-async"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#d2085af2b2ade790d30775437f978822d6bb3b7e"
+source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#8ca41fa44c4cec641b5128368fcb29aa83d32558"
 dependencies = [
  "aziot-cert-common-http",
  "aziot-key-common",
@@ -91,7 +91,7 @@ dependencies = [
 [[package]]
 name = "aziot-cert-common-http"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#d2085af2b2ade790d30775437f978822d6bb3b7e"
+source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#8ca41fa44c4cec641b5128368fcb29aa83d32558"
 dependencies = [
  "aziot-key-common",
  "serde",
@@ -100,7 +100,7 @@ dependencies = [
 [[package]]
 name = "aziot-certd-config"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#d2085af2b2ade790d30775437f978822d6bb3b7e"
+source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#8ca41fa44c4cec641b5128368fcb29aa83d32558"
 dependencies = [
  "hex 0.4.3",
  "http-common",
@@ -140,7 +140,7 @@ dependencies = [
 [[package]]
 name = "aziot-identity-client-async"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#d2085af2b2ade790d30775437f978822d6bb3b7e"
+source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#8ca41fa44c4cec641b5128368fcb29aa83d32558"
 dependencies = [
  "aziot-cert-common-http",
  "aziot-identity-common",
@@ -154,7 +154,7 @@ dependencies = [
 [[package]]
 name = "aziot-identity-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#d2085af2b2ade790d30775437f978822d6bb3b7e"
+source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#8ca41fa44c4cec641b5128368fcb29aa83d32558"
 dependencies = [
  "aziot-key-common",
  "http-common",
@@ -164,7 +164,7 @@ dependencies = [
 [[package]]
 name = "aziot-identity-common-http"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#d2085af2b2ade790d30775437f978822d6bb3b7e"
+source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#8ca41fa44c4cec641b5128368fcb29aa83d32558"
 dependencies = [
  "aziot-cert-common-http",
  "aziot-identity-common",
@@ -178,7 +178,7 @@ dependencies = [
 [[package]]
 name = "aziot-identityd-config"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#d2085af2b2ade790d30775437f978822d6bb3b7e"
+source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#8ca41fa44c4cec641b5128368fcb29aa83d32558"
 dependencies = [
  "aziot-identity-common",
  "http-common",
@@ -190,7 +190,7 @@ dependencies = [
 [[package]]
 name = "aziot-key-client"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#d2085af2b2ade790d30775437f978822d6bb3b7e"
+source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#8ca41fa44c4cec641b5128368fcb29aa83d32558"
 dependencies = [
  "aziot-key-common",
  "aziot-key-common-http",
@@ -205,7 +205,7 @@ dependencies = [
 [[package]]
 name = "aziot-key-client-async"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#d2085af2b2ade790d30775437f978822d6bb3b7e"
+source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#8ca41fa44c4cec641b5128368fcb29aa83d32558"
 dependencies = [
  "aziot-key-common",
  "aziot-key-common-http",
@@ -218,7 +218,7 @@ dependencies = [
 [[package]]
 name = "aziot-key-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#d2085af2b2ade790d30775437f978822d6bb3b7e"
+source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#8ca41fa44c4cec641b5128368fcb29aa83d32558"
 dependencies = [
  "serde",
 ]
@@ -226,7 +226,7 @@ dependencies = [
 [[package]]
 name = "aziot-key-common-http"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#d2085af2b2ade790d30775437f978822d6bb3b7e"
+source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#8ca41fa44c4cec641b5128368fcb29aa83d32558"
 dependencies = [
  "aziot-key-common",
  "http-common",
@@ -236,7 +236,7 @@ dependencies = [
 [[package]]
 name = "aziot-key-openssl-engine"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#d2085af2b2ade790d30775437f978822d6bb3b7e"
+source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#8ca41fa44c4cec641b5128368fcb29aa83d32558"
 dependencies = [
  "aziot-key-client",
  "aziot-key-common",
@@ -254,7 +254,7 @@ dependencies = [
 [[package]]
 name = "aziot-keyd-config"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#d2085af2b2ade790d30775437f978822d6bb3b7e"
+source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#8ca41fa44c4cec641b5128368fcb29aa83d32558"
 dependencies = [
  "http-common",
  "libc",
@@ -264,7 +264,7 @@ dependencies = [
 [[package]]
 name = "aziot-keys-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#d2085af2b2ade790d30775437f978822d6bb3b7e"
+source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#8ca41fa44c4cec641b5128368fcb29aa83d32558"
 dependencies = [
  "pkcs11",
  "serde",
@@ -274,7 +274,7 @@ dependencies = [
 [[package]]
 name = "aziot-tpmd-config"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#d2085af2b2ade790d30775437f978822d6bb3b7e"
+source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#8ca41fa44c4cec641b5128368fcb29aa83d32558"
 dependencies = [
  "http-common",
  "serde",
@@ -283,7 +283,7 @@ dependencies = [
 [[package]]
 name = "aziotctl-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#d2085af2b2ade790d30775437f978822d6bb3b7e"
+source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#8ca41fa44c4cec641b5128368fcb29aa83d32558"
 dependencies = [
  "anyhow",
  "aziot-certd-config",
@@ -434,7 +434,7 @@ dependencies = [
  "num-integer",
  "num-traits",
  "serde",
- "time",
+ "time 0.1.43",
  "winapi",
 ]
 
@@ -476,7 +476,7 @@ dependencies = [
 [[package]]
 name = "config-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#d2085af2b2ade790d30775437f978822d6bb3b7e"
+source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#8ca41fa44c4cec641b5128368fcb29aa83d32558"
 dependencies = [
  "serde",
  "toml",
@@ -670,7 +670,7 @@ dependencies = [
  "sysinfo",
  "tempdir",
  "tempfile",
- "time",
+ "time 0.1.43",
  "tokio",
  "typed-headers",
  "url 2.2.2",
@@ -1142,7 +1142,7 @@ dependencies = [
 [[package]]
 name = "http-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#d2085af2b2ade790d30775437f978822d6bb3b7e"
+source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#8ca41fa44c4cec641b5128368fcb29aa83d32558"
 dependencies = [
  "async-trait",
  "base64 0.13.0",
@@ -1427,7 +1427,7 @@ dependencies = [
 [[package]]
 name = "logger"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#d2085af2b2ade790d30775437f978822d6bb3b7e"
+source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#8ca41fa44c4cec641b5128368fcb29aa83d32558"
 dependencies = [
  "env_logger",
  "log",
@@ -1532,6 +1532,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "num-bigint"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f93ab6289c7b344a8a9f60f88d80aa20032336fe78da341afc91c8a2341fc75f"
+dependencies = [
+ "autocfg",
+ "num-integer",
+ "num-traits",
+]
+
+[[package]]
 name = "num-integer"
 version = "0.1.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1557,6 +1568,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "05499f3756671c15885fee9034446956fff3f243d6077b91e5767df161f766b3"
 dependencies = [
  "hermit-abi",
+ "libc",
+]
+
+[[package]]
+name = "num_threads"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97ba99ba6393e2c3734791401b66902d981cb03bf190af674ca69949b6d5fb15"
+dependencies = [
  "libc",
 ]
 
@@ -1598,7 +1618,7 @@ dependencies = [
 [[package]]
 name = "openssl-build"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#d2085af2b2ade790d30775437f978822d6bb3b7e"
+source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#8ca41fa44c4cec641b5128368fcb29aa83d32558"
 dependencies = [
  "cc",
 ]
@@ -1629,7 +1649,7 @@ dependencies = [
 [[package]]
 name = "openssl-sys2"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#d2085af2b2ade790d30775437f978822d6bb3b7e"
+source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#8ca41fa44c4cec641b5128368fcb29aa83d32558"
 dependencies = [
  "openssl-build",
  "openssl-sys",
@@ -1638,7 +1658,7 @@ dependencies = [
 [[package]]
 name = "openssl2"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#d2085af2b2ade790d30775437f978822d6bb3b7e"
+source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#8ca41fa44c4cec641b5128368fcb29aa83d32558"
 dependencies = [
  "foreign-types",
  "foreign-types-shared",
@@ -1646,6 +1666,7 @@ dependencies = [
  "openssl-build",
  "openssl-sys",
  "openssl-sys2",
+ "simple_asn1",
 ]
 
 [[package]]
@@ -1700,7 +1721,7 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 [[package]]
 name = "pkcs11"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#d2085af2b2ade790d30775437f978822d6bb3b7e"
+source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#8ca41fa44c4cec641b5128368fcb29aa83d32558"
 dependencies = [
  "foreign-types-shared",
  "lazy_static",
@@ -1717,7 +1738,7 @@ dependencies = [
 [[package]]
 name = "pkcs11-sys"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#d2085af2b2ade790d30775437f978822d6bb3b7e"
+source = "git+https://github.com/Azure/iot-identity-service?branch=dps_certs#8ca41fa44c4cec641b5128368fcb29aa83d32558"
 
 [[package]]
 name = "pkg-config"
@@ -1750,6 +1771,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2f84e92c0f7c9d58328b85a78557813e4bd845130db68d7184635344399423b1"
 dependencies = [
  "unicode-xid",
+]
+
+[[package]]
+name = "quickcheck"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "588f6378e4dd99458b60ec275b4477add41ce4fa9f64dcba6f15adccb19b50d6"
+dependencies = [
+ "rand 0.8.4",
 ]
 
 [[package]]
@@ -2018,6 +2048,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "simple_asn1"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4a762b1c38b9b990c694b9c2f8abe3372ce6a9ceaae6bca39cfc46e054f45745"
+dependencies = [
+ "num-bigint",
+ "num-traits",
+ "thiserror",
+ "time 0.3.7",
+]
+
+[[package]]
 name = "slab"
 version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2213,6 +2255,25 @@ dependencies = [
  "libc",
  "winapi",
 ]
+
+[[package]]
+name = "time"
+version = "0.3.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "004cbc98f30fa233c61a38bc77e96a9106e65c88f2d3bef182ae952027e5753d"
+dependencies = [
+ "itoa 1.0.1",
+ "libc",
+ "num_threads",
+ "quickcheck",
+ "time-macros",
+]
+
+[[package]]
+name = "time-macros"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25eb0ca3468fc0acc11828786797f6ef9aa1555e4a211a60d64cc8e4d1be47d6"
 
 [[package]]
 name = "tinyvec"
@@ -2508,5 +2569,5 @@ dependencies = [
  "crc32fast",
  "flate2",
  "thiserror",
- "time",
+ "time 0.1.43",
 ]
