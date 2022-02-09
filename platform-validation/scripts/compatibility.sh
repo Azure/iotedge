@@ -88,6 +88,11 @@ wrap_pass() {
 wrap_fail() {
 	echo "$(wrap_color "$1 - Error" bold red)"
 }
+
+wrap_warn(){
+    echo "$(wrap_color "$1 - Warning!!" yellow)"
+}
+
 wrap_warning() {
 	wrap_color >&2 "$*" yellow
 }
@@ -470,14 +475,27 @@ check_cgroup_heirachy()
     fi
 }
 
+
+check_systemd(){
+
+    if [ -z "$(pidof systemd)" ]; then
+        wrap_warn "check_systemd"
+        wrap_debug "Systemd is not present on this device, As a result azure iot edge services will need to be run and managed independently.
+        For instructions on running azure iot edge without systemd, visit: https://github.com/Azure/iotedge/blob/master/edgelet/doc/devguide.md#run"
+    else
+        wrap_pass "check_systemd"
+    fi
+}
+
 get_architecture
 echo "Architecture:$ARCH"
 echo "OS Type:$OSTYPE"
 
 #TODO : Do we need to check in both host and container?
 check_net_cap_bind_host
-check_net_cap_bind_container
+#check_net_cap_bind_container
 check_cgroup_heirachy
+check_systemd
 perform_cleanup
 echo "IoT Edge Compatibility Tool Check Complete"
 
