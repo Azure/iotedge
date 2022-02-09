@@ -173,7 +173,8 @@ In order to locally run aziot-edged, there is a dependency on running Azure IoT 
 4. Copy Provisioning File and Fill out the provisioning parameters. Example : For Provisioning via Symmetric Keys Use [these instructions](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-provision-single-device-linux-symmetric?view=iotedge-2020-11&tabs=azure-portal%2Cubuntu)
 
     ```sh
-      cp edgelet/contrib/config/linux/template.toml /etc/aziot/config.toml
+      cd <iot-edge-path>/edgelet
+      cp contrib/config/linux/template.toml /etc/aziot/config.toml
     ```
 5. Modify the Daemon configuration section in /etc/aziot/config.toml to match this
     ```toml
@@ -191,7 +192,7 @@ In order to locally run aziot-edged, there is a dependency on running Azure IoT 
 
 6. Apply Config.
     ```sh
-        cd edgelet
+        cd <iot-edge-path>/edgelet
         cargo run -p iotedge -- config apply
     ```
 7. Run keyd service in a separate shell
@@ -211,7 +212,7 @@ In order to locally run aziot-edged, there is a dependency on running Azure IoT 
     ```
 10. Finally, Run aziot-edged in a separate shell
     ```sh
-       cd edgelet
+       cd <iot-edge-path>/edgelet
        cargo run -p aziot-edged
     ```
 11. When stopping the service, stop aziot-edged, identityd, keyd and certd, in that order.
