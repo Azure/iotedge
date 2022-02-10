@@ -158,7 +158,7 @@ impl DockerApi for DockerApiClient {
         self.add_user_agent(&mut request)?;
 
         let response = request
-            .response(false)
+            .response(true)
             .await
             .map_err(ApiError::with_context("Could not create image."))?;
         let (status, _) = response.into_parts();
@@ -218,7 +218,7 @@ impl DockerApi for DockerApiClient {
             .await
             .map_err(ApiError::with_context("Could not create container."))?;
         let response = response
-            .parse::<models::InlineResponse201, ErrorBody<'_>>(&[hyper::StatusCode::ACCEPTED])?;
+            .parse::<models::InlineResponse201, ErrorBody<'_>>(&[hyper::StatusCode::CREATED])?;
 
         Ok(response)
     }
@@ -490,7 +490,7 @@ impl DockerApi for DockerApiClient {
             .map_err(ApiError::with_context("Could not create network."))?;
 
         let response = response
-            .parse::<models::InlineResponse2011, ErrorBody<'_>>(&[hyper::StatusCode::ACCEPTED])?;
+            .parse::<models::InlineResponse2011, ErrorBody<'_>>(&[hyper::StatusCode::CREATED])?;
 
         Ok(response)
     }
