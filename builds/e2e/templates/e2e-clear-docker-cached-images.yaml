@@ -2,11 +2,9 @@ steps:
 - pwsh: |
     if ($IsWindows)
     {
-        $app = Get-Command docker -ErrorAction SilentlyContinue
+        Get-Service
+        Get-Command docker -ErrorAction SilentlyContinue
         if ($?) {
-            Write-Output $app
-            Write-Output $(Get-Service)
-
             $moby = Get-Service 'iotedge-moby' -ErrorAction SilentlyContinue
             if (($moby -ne $null) -and ($moby.Status -eq 'Running')) {
                 exit 0
