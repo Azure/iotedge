@@ -14,7 +14,7 @@ keys = ["aziot_identityd_master_id", "aziot-dps-identity-cert-key", "device-id"]
 
 [[principal]]
 uid = 5555
-keys = ["local-ca"]
+keys = ["aziot-dps-identity-cert-key", "local-ca"]
 
 [[principal]]
 uid = 5558
