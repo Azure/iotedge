@@ -11,11 +11,11 @@ use aziot_identity_client_async::Client as IdentityClient;
 use aziot_key_client_async::Client as KeyClient;
 
 #[cfg(test)]
-use edgelet_test_utils::clients::CertClient;
+use test_common::client::CertClient;
 #[cfg(test)]
-use edgelet_test_utils::clients::IdentityClient;
+use test_common::client::IdentityClient;
 #[cfg(test)]
-use edgelet_test_utils::clients::KeyClient;
+use test_common::client::KeyClient;
 
 #[derive(Clone)]
 pub struct Service<M>
@@ -108,13 +108,13 @@ where
         let key_connector = url::Url::parse("unix:///tmp/test.sock").unwrap();
         let key_connector = http_common::Connector::new(&key_connector).unwrap();
 
-        let key_client = edgelet_test_utils::clients::KeyClient::default();
+        let key_client = KeyClient::default();
         let key_client = std::sync::Arc::new(futures_util::lock::Mutex::new(key_client));
 
-        let cert_client = edgelet_test_utils::clients::CertClient::default();
+        let cert_client = CertClient::default();
         let cert_client = std::sync::Arc::new(futures_util::lock::Mutex::new(cert_client));
 
-        let identity_client = edgelet_test_utils::clients::IdentityClient::default();
+        let identity_client = IdentityClient::default();
         let identity_client = std::sync::Arc::new(futures_util::lock::Mutex::new(identity_client));
 
         let runtime = std::sync::Arc::new(futures_util::lock::Mutex::new(runtime));
