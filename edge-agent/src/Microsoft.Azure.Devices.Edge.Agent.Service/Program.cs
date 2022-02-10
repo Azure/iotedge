@@ -456,6 +456,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                     {
                         logger.LogInformation("Different Device Identity. Deleting local storage.");
                         ClearDirectoryAndRecreateIdentity(storagePath, metadata);
+                        break;
                     }
 
                     counter++;

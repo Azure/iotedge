@@ -399,6 +399,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     if (!line.Equals(metadata[counter]))
                     {
                         ClearDirectoryAndRecreateIdentity(storagePath, metadata);
+                        break;
                     }
 
                     counter++;
