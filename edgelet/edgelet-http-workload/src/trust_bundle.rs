@@ -139,42 +139,20 @@ mod tests {
 
     /// Generate a self-signed CA certificate for testing.
     fn new_cert(common_name: &str) -> String {
-        let rsa = openssl::rsa::Rsa::generate(2048).unwrap();
-        let private_key = openssl::pkey::PKey::from_rsa(rsa).unwrap();
+        let (cert, _) = test_common::credential::test_certificate(
+            common_name,
+            Some(|cert| {
+                let mut basic_constraints = openssl::x509::extension::BasicConstraints::new();
+                basic_constraints.ca().critical().pathlen(0);
+                let basic_constraints = basic_constraints.build().unwrap();
 
-        let public_key = private_key.public_key_to_pem().unwrap();
-        let public_key = openssl::pkey::PKey::public_key_from_pem(&public_key).unwrap();
+                cert.append_extension(basic_constraints).unwrap();
+            }),
+        );
 
-        let mut builder = openssl::x509::X509Builder::new().unwrap();
-        builder.set_version(2).unwrap();
-
-        let not_before = openssl::asn1::Asn1Time::days_from_now(0).unwrap();
-        let not_after = openssl::asn1::Asn1Time::days_from_now(30).unwrap();
-        builder.set_not_before(&not_before).unwrap();
-        builder.set_not_after(&not_after).unwrap();
-
-        let mut name = openssl::x509::X509NameBuilder::new().unwrap();
-        name.append_entry_by_text("CN", common_name).unwrap();
-        let name = name.build();
-
-        builder.set_issuer_name(&name).unwrap();
-        builder.set_subject_name(&name).unwrap();
-
-        let mut basic_constraints = openssl::x509::extension::BasicConstraints::new();
-        basic_constraints.ca().critical().pathlen(0);
-        let basic_constraints = basic_constraints.build().unwrap();
-        builder.append_extension(basic_constraints).unwrap();
-
-        builder.set_pubkey(&public_key).unwrap();
-        builder
-            .sign(&private_key, openssl::hash::MessageDigest::sha256())
-            .unwrap();
-
-        let cert = builder.build();
         let cert = cert.to_pem().unwrap();
-        let cert = std::str::from_utf8(&cert).unwrap().to_string();
 
-        cert
+        String::from_utf8(cert).unwrap()
     }
 
     /// Check a string of certificates where the order doesn't matter.
