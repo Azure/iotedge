@@ -4,7 +4,7 @@
 use aziot_cert_client_async::Client as CertClient;
 
 #[cfg(test)]
-use edgelet_test_utils::clients::CertClient;
+use test_common::client::CertClient;
 
 pub(crate) struct Route<M>
 where

@@ -45,3 +45,4 @@ http-common = { git = "https://github.com/Azure/iot-identity-service", branch = 
 nix = "0.23"
 
 edgelet-test-utils = { path = "../edgelet-test-utils" }
+test-common = { git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs" }
