@@ -6,9 +6,9 @@ use aziot_identity_client_async::Client as IdentityClient;
 use aziot_key_client_async::Client as KeyClient;
 
 #[cfg(test)]
-use edgelet_test_utils::clients::IdentityClient;
+use test_common::client::IdentityClient;
 #[cfg(test)]
-use edgelet_test_utils::clients::KeyClient;
+use test_common::client::KeyClient;
 
 pub(crate) struct Route<M>
 where
@@ -211,7 +211,7 @@ mod tests {
     #[tokio::test]
     async fn get_module_key() {
         // Identity doesn't exist: fail
-        let client = edgelet_test_utils::clients::IdentityClient::default();
+        let client = super::IdentityClient::default();
         let client = std::sync::Arc::new(futures_util::lock::Mutex::new(client));
 
         let response = super::get_module_key(client, "invalid").await.unwrap_err();
@@ -230,7 +230,7 @@ mod tests {
             },
         });
 
-        let client = edgelet_test_utils::clients::IdentityClient::default();
+        let client = super::IdentityClient::default();
 
         {
             let identities = client.identities.lock().await;
@@ -256,7 +256,7 @@ mod tests {
         );
 
         // Identity missing auth: fail
-        let client = edgelet_test_utils::clients::IdentityClient::default();
+        let client = super::IdentityClient::default();
 
         {
             let identities = client.identities.lock().await;
@@ -288,7 +288,7 @@ mod tests {
         );
 
         // Identity missing key: fail
-        let client = edgelet_test_utils::clients::IdentityClient::default();
+        let client = super::IdentityClient::default();
 
         {
             let identities = client.identities.lock().await;
@@ -323,7 +323,7 @@ mod tests {
         );
 
         // Valid identity: succeed
-        let client = edgelet_test_utils::clients::IdentityClient::default();
+        let client = super::IdentityClient::default();
         let client = std::sync::Arc::new(futures_util::lock::Mutex::new(client));
 
         let response = super::get_module_key(client, "testModule").await.unwrap();
