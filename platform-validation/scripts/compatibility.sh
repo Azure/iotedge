@@ -13,7 +13,7 @@ ARCH=""
 #  Derived from : https://github.com/moby/moby/blob/master/contrib/check-config.sh
 # ------------------------------------------------------------------------------
 
-possibleConfigs="
+POSSIBLE_CONFIGS="
 	/proc/config.gz
 	/boot/config-$(uname -r)
 	/usr/src/linux-$(uname -r)/.config
@@ -361,6 +361,7 @@ perform_cleanup(){
 # ------------------------------------------------------------------------------
 # Check whether the Target Device can be used to set capability. EdgeHub   Runtime component sets CAP_NET_BIND which is Required for Azure IoT Edge Operation.
 # ------------------------------------------------------------------------------
+
 check_net_cap_bind_host(){
     wrap_debug "Setting the CAP_NET_BIND_SERVICE capability on the host..."
     
@@ -431,8 +432,10 @@ check_net_cap_bind_container(){
 # bits of this were adapted from moby check-config.shells
 # See https://github.com/moby/moby/blob/master/contrib/check-config.sh
 
-check_cgroup_heirachy()
-{   
+
+#Reference Issue : https://github.com/Azure/iotedge/issues/5812
+check_cgroup_heirachy(){   
+    wrap_debug "Checking cgroup hierarchy..."
     EXITCODE=0
     if [ "$(stat -f -c %t /sys/fs/cgroup 2> /dev/null)" = '63677270' ]; then
 	wrap_good 'cgroup hierarchy' 'cgroupv2'
@@ -477,7 +480,7 @@ check_cgroup_heirachy()
 
 
 check_systemd(){
-
+    wrap_debug "Checking presence of systemd..."
     if [ -z "$(pidof systemd)" ]; then
         wrap_warn "check_systemd"
         wrap_debug "Systemd is not present on this device, As a result azure iot edge services will need to be run and managed independently.
