@@ -4,7 +4,7 @@
 use aziot_key_client_async::Client as KeyClient;
 
 #[cfg(test)]
-use edgelet_test_utils::clients::KeyClient;
+use test_common::client::KeyClient;
 
 pub(crate) struct Route<M>
 where
