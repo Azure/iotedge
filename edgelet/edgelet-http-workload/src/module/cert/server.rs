@@ -2,21 +2,12 @@
 
 use std::str::FromStr;
 
-use aziot_identity_common_http::get_provisioning_info::Response as ProvisioningInfo;
-
-#[cfg(not(test))]
-use aziot_identity_client_async::Client as IdentityClient;
-
-#[cfg(test)]
-use edgelet_test_utils::clients::IdentityClient;
-
 pub(crate) struct Route<M>
 where
     M: edgelet_core::ModuleRuntime + Send + Sync,
 {
     module_id: String,
     gen_id: String,
-    identity_client: std::sync::Arc<futures_util::lock::Mutex<IdentityClient>>,
     pid: libc::pid_t,
     api: super::CertApi,
     runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
@@ -76,7 +67,6 @@ where
         Some(Route {
             module_id: module_id.into_owned(),
             gen_id: gen_id.into_owned(),
-            identity_client: service.identity_client.clone(),
             pid,
             api,
             runtime: service.runtime.clone(),
@@ -112,15 +102,6 @@ where
         let module_id_san = super::SubjectAltName::Dns(self.module_id);
 
         let subject_alt_names = vec![common_name_san, module_id_san];
-
-        // Check if a policy for issuing server certificates is available in Identity Service.
-        let identity_client = self.identity_client.lock().await;
-
-        if let Ok(provisioning_info) = identity_client.get_provisioning_info().await {
-            if let ProvisioningInfo::Dps { cert_policy, .. } = provisioning_info {
-
-            }
-        }
 
         let csr_extensions = server_cert_extensions().map_err(|_| {
             edgelet_http::error::server_error("failed to set server csr extensions")
