@@ -40,49 +40,6 @@ enum SubjectAltName {
     Ip(String),
 }
 
-enum KeyType {
-    Rsa(u32),
-}
-
-impl Default for KeyType {
-    fn default() -> Self {
-        KeyType::Rsa(2048)
-    }
-}
-
-impl KeyType {
-    pub fn from_policy(key_curve: Option<String>, key_length: u32) -> Self {
-        match key_curve {
-            None => KeyType::Rsa(key_length),
-            _ => KeyType::default(),
-        }
-    }
-
-    pub fn generate(
-        self,
-    ) -> Result<
-        (
-            openssl::pkey::PKey<openssl::pkey::Private>,
-            openssl::pkey::PKey<openssl::pkey::Public>,
-        ),
-        openssl::error::ErrorStack,
-    > {
-        let (private_key, public_key) = match self {
-            KeyType::Rsa(length) => {
-                let rsa = openssl::rsa::Rsa::generate(length)?;
-                let private_key = openssl::pkey::PKey::from_rsa(rsa)?;
-
-                let public_key = private_key.public_key_to_pem()?;
-                let public_key = openssl::pkey::PKey::public_key_from_pem(&public_key)?;
-
-                (private_key, public_key)
-            }
-        };
-
-        Ok((private_key, public_key))
-    }
-}
-
 struct CertApi {
     key_connector: http_common::Connector,
     key_client: std::sync::Arc<futures_util::lock::Mutex<KeyClient>>,
@@ -113,15 +70,12 @@ impl CertApi {
     pub async fn issue_cert(
         self,
         cert_id: String,
-        key_type: KeyType,
         common_name: String,
         subject_alt_names: Vec<SubjectAltName>,
         extensions: openssl::stack::Stack<openssl::x509::X509Extension>,
     ) -> Result<hyper::Response<hyper::Body>, http_common::server::Error> {
-        let keys = key_type
-            .generate()
+        let keys = new_keys()
             .map_err(|_| edgelet_http::error::server_error("failed to generate csr keys"))?;
-
         let private_key = key_to_pem(&keys.0);
 
         let csr = new_csr(common_name, keys, subject_alt_names, extensions)
@@ -177,6 +131,22 @@ impl CertApi {
 
         Ok(cert.to_string())
     }
+}
+
+fn new_keys() -> Result<
+    (
+        openssl::pkey::PKey<openssl::pkey::Private>,
+        openssl::pkey::PKey<openssl::pkey::Public>,
+    ),
+    openssl::error::ErrorStack,
+> {
+    let rsa = openssl::rsa::Rsa::generate(2048)?;
+    let private_key = openssl::pkey::PKey::from_rsa(rsa)?;
+
+    let public_key = private_key.public_key_to_pem()?;
+    let public_key = openssl::pkey::PKey::public_key_from_pem(&public_key)?;
+
+    Ok((private_key, public_key))
 }
 
 fn new_csr(
