@@ -1,5 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::str::FromStr;
+
 use aziot_identity_common_http::get_provisioning_info::Response as ProvisioningInfo;
 
 #[cfg(not(test))]
