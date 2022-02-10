@@ -719,6 +719,7 @@ dependencies = [
  "serde",
  "serde_json",
  "support-bundle",
+ "test-common",
  "tokio",
  "url 2.2.2",
 ]
@@ -2165,6 +2166,24 @@ dependencies = [
  "quote",
  "syn",
  "version_check",
+]
+
+[[package]]
+name = "test-common"
+version = "0.1.0"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#df090ae512a0e223117b4062b2783ad36a2751cb"
+dependencies = [
+ "aziot-identity-common",
+ "aziot-identity-common-http",
+ "aziot-key-client",
+ "aziot-key-common",
+ "futures-core",
+ "futures-util",
+ "http-common",
+ "hyper",
+ "openssl",
+ "tokio",
+ "tokio-openssl",
 ]
 
 [[package]]
