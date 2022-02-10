@@ -113,21 +113,24 @@ where
 
         let subject_alt_names = vec![common_name_san, module_id_san];
 
-        // Check if a policy for issuing server certificates is available in Identity Service.
-        let identity_client = self.identity_client.lock().await;
-
-        if let Ok(provisioning_info) = identity_client.get_provisioning_info().await {
-            if let ProvisioningInfo::Dps { cert_policy, .. } = provisioning_info {
-
-            }
-        }
-
         let csr_extensions = server_cert_extensions().map_err(|_| {
             edgelet_http::error::server_error("failed to set server csr extensions")
         })?;
 
+        let key_type = {
+            let identity_client = self.identity_client.lock().await;
+
+            server_cert_key_type(&identity_client).await
+        };
+
         self.api
-            .issue_cert(cert_id, common_name, subject_alt_names, csr_extensions)
+            .issue_cert(
+                cert_id,
+                key_type,
+                common_name,
+                subject_alt_names,
+                csr_extensions,
+            )
             .await
     }
 
@@ -145,6 +148,31 @@ fn server_cert_extensions(
     csr_extensions.push(ext_key_usage)?;
 
     Ok(csr_extensions)
+}
+
+async fn server_cert_key_type(identity_client: &IdentityClient) -> super::KeyType {
+    let provisioning_info =
+        if let Ok(provisioning_info) = identity_client.get_provisioning_info().await {
+            provisioning_info
+        } else {
+            return Default::default();
+        };
+
+    let cert_policy = if let ProvisioningInfo::Dps { cert_policy, .. } = provisioning_info {
+        if let Some(cert_policy) = cert_policy {
+            cert_policy
+        } else {
+            return Default::default();
+        }
+    } else {
+        return Default::default();
+    };
+
+    if cert_policy.cert_type != aziot_identity_common::CertType::Server {
+        return Default::default();
+    }
+
+    super::KeyType::from_policy(cert_policy.key_curve, cert_policy.key_length)
 }
 
 #[cfg(test)]

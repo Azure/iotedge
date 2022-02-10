@@ -78,7 +78,13 @@ where
         })?;
 
         self.api
-            .issue_cert(cert_id, self.module_id, subject_alt_names, csr_extensions)
+            .issue_cert(
+                cert_id,
+                super::KeyType::default(),
+                self.module_id,
+                subject_alt_names,
+                csr_extensions,
+            )
             .await
     }
 
