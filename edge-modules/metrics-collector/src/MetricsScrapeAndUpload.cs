@@ -15,12 +15,14 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
     {
         private readonly MetricsScraper scraper;
         private readonly IMetricsPublisher publisher;
+        private readonly Func<Tuple<Metric, string>, Tuple<Metric, string>> adjustMetric;
         private PeriodicTask periodicScrapeAndUpload;
 
-        public MetricsScrapeAndUpload(MetricsScraper scraper, IMetricsPublisher publisher)
+        public MetricsScrapeAndUpload(MetricsScraper scraper, IMetricsPublisher publisher, Func<Tuple<Metric, string>, Tuple<Metric, string>> adjustMetric = null)
         {
             this.scraper = Preconditions.CheckNotNull(scraper);
             this.publisher = Preconditions.CheckNotNull(publisher);
+            this.adjustMetric = adjustMetric;
         }
 
         public void Start(TimeSpan scrapeAndUploadInterval)
@@ -37,16 +39,20 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
         {
             try
             {
-                IEnumerable<Metric> metrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
+                var metrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
 
                 // filter metrics
                 // if the allowed list is non-empty then only accept metrics on the allow list
                 if (!Settings.Current.AllowedMetrics.Empty)
-                    metrics = metrics.Where(x => Settings.Current.AllowedMetrics.Matches(x));
+                    metrics = metrics.Where(x => Settings.Current.AllowedMetrics.Matches(x.Item1));
                 // always use the disallow list
-                metrics = metrics.Where(x => !Settings.Current.BlockedMetrics.Matches(x));
+                metrics = metrics.Where(x => !Settings.Current.BlockedMetrics.Matches(x.Item1));
 
-                await this.publisher.PublishAsync(metrics, cancellationToken);
+                if (this.adjustMetric != null) {
+                    metrics = metrics.Select(x => this.adjustMetric(x));
+                }
+
+                await this.publisher.PublishAsync(metrics.Select(x => x.Item1), cancellationToken);
             }
             catch (Exception e)
             {

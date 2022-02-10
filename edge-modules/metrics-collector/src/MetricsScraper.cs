@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
         /// <summary>
         /// Scrapes metrics from all endpoints
         /// </summary>
-        public Task<IEnumerable<Metric>> ScrapeEndpointsAsync(CancellationToken cancellationToken)
+        public Task<IEnumerable<Tuple<Metric, String>>> ScrapeEndpointsAsync(CancellationToken cancellationToken)
         {
             return SelectManyAsync(this.endpoints, async endpoint =>
             {
@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                 string metricsData = await this.ScrapeEndpoint(endpoint, cancellationToken);
                 IEnumerable<Metric> parsedMetrics = PrometheusMetricsParser.ParseMetrics(this.systemTime.UtcNow, metricsData, endpoint: endpoint);
                 LoggerUtil.Writer.LogInformation($"Scraping finished, received {parsedMetrics.Count()} metrics from endpoint {endpoint}");
-                return parsedMetrics;
+                return parsedMetrics.Select(x => Tuple.Create(x, endpoint));
             });
         }
 

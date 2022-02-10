@@ -26,6 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             UploadTarget uploadTarget,
             bool compressForUpload,
             bool transformForIoTCentral,
+            bool addIdentifyingTags,
             string allowedMetrics,
             string blockedMetrics,
             string resourceId,
@@ -60,6 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             this.ScrapeFrequencySecs = Preconditions.CheckRange(scrapeFrequencySecs, 1);
             this.CompressForUpload = compressForUpload;
             this.TransformForIoTCentral = transformForIoTCentral;
+            this.AddIdentifyingTags = addIdentifyingTags;
 
             // Create list of allowed metrics. If this list is not empty then any metrics not on it should be discarded.
             this.AllowedMetrics = new MetricFilter(allowedMetrics);
@@ -88,6 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                     configuration.GetValue<UploadTarget>("UploadTarget", UploadTarget.AzureMonitor),
                     configuration.GetValue<bool>("CompressForUpload", true),
                     configuration.GetValue<bool>("TransformForIoTCentral", false),
+                    configuration.GetValue<bool>("AddIdentifyingTags", false),
                     configuration.GetValue<string>("AllowedMetrics", ""),
                     configuration.GetValue<string>("BlockedMetrics", ""),
                     configuration.GetValue<string>("ResourceID", ""),
@@ -119,6 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                 settings.UploadTarget,
                 settings.CompressForUpload,
                 settings.TransformForIoTCentral,
+                settings.AddIdentifyingTags,
                 settings.AllowedMetrics.ToString(),
                 settings.BlockedMetrics.ToString(),
                 regex.Replace(settings.ResourceId, "$1" + "XXX" + "$3" + "XXX" + "$5"),
@@ -140,6 +144,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
         public bool CompressForUpload { get; }
 
         public bool TransformForIoTCentral { get; }
+
+        public bool AddIdentifyingTags { get; }
 
         public MetricFilter AllowedMetrics { get; }
 
@@ -164,6 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                 { nameof(this.UploadTarget), Enum.GetName(typeof(UploadTarget), this.UploadTarget) },
                 { nameof(this.CompressForUpload), this.CompressForUpload.ToString() },
                 { nameof(this.TransformForIoTCentral), this.TransformForIoTCentral.ToString() },
+                { nameof(this.AddIdentifyingTags), this.AddIdentifyingTags.ToString() },
                 { nameof(this.AllowedMetrics), string.Join(",", this.AllowedMetrics.ToString()) },
                 { nameof(this.BlockedMetrics), string.Join(",", this.BlockedMetrics.ToString()) },
                 { nameof(this.ResourceId), this.ResourceId ?? string.Empty },
