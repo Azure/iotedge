@@ -23,9 +23,9 @@ edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
 edgelet-http-workload = { path = "../edgelet-http-workload" }
 edgelet-settings = { path = "../edgelet-settings", features = ["settings-docker"] }
 
-aziot-identity-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs" }
-aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs" }
-aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs" }
+aziot-identity-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/dps_certs" }
+aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/dps_certs" }
+aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/dps_certs" }
 
-http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs" }
-logger = { git = "https://github.com/Azure/iot-identity-service", branch = "dps_certs" }
+http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/dps_certs" }
+logger = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/dps_certs" }
