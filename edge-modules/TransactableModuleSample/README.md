@@ -158,7 +158,7 @@ The deployment manifest `contoso.deployment.json` requires a special section to 
 
 Inside the same sample deployment file, you might notice that the EdgeHub container image points to `iotedgebilling.azurecr.io/microsoft/azureiotedge-hub:20220210.2-linux-amd64` instead of the usual location. This special EdgeHub image has the API to send offer/plan info to a module that asks for it (from Step 2). Without it, the API wouldn't work.
 
-Lastly, the the manifest deploys a module from `iotedgebilling.azurecr.io/microsoft/transactable-module-0210`. We prepared this sample transactable module in case you haven't prepared your own. Feel free to use it to kickstart your testing while development for your own module is ongoing
+Lastly, the the manifest deploys a module from `iotedgebilling.azurecr.io/microsoft/transactable-module-0210`. This module's only job is to get the offer and plan info, then print it to console ([source code](https://github.com/Azure/iotedge/blob/feature/billing/edge-modules/TransactableModuleSample/src/Program.cs)). We prepared this sample transactable module in case you haven't prepared your own yet. Feel free to use it to kickstart your testing while development for your own module is ongoing.
 
 ## Step 6: Validate everything works as you'd expect
 
@@ -167,6 +167,8 @@ Now that the module is deployed, wait an up to 36 hours for the usage to flow th
 ![image](https://user-images.githubusercontent.com/2320572/149595711-86e1caed-6d82-4212-89a7-8d9ca03e7fb9.png)
 
 Other places you can check includes the monthly invoice, which should show something like this:
+
+![image](https://user-images.githubusercontent.com/2320572/153516259-fe5d4bcb-4443-4dd5-909e-db556828fc39.png)
 
 ## Something doesn't work or doesn't make sense?
 
@@ -177,4 +179,3 @@ Other places you can check includes the monthly invoice, which should show somet
 - IoT Hub name cannot contain any dashes `-`.
 - In Cost Management, usage records shows up weirdly with weird resource IDs (instead of a link to the IoT Hub) and service name "IoT Service" instead of something more appropriate like "IoT Edge Module".
 - There's no easy way to directly query the IoT Hub to see which offers are deployed to what module.
-
