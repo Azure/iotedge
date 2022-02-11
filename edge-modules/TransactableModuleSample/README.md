@@ -37,16 +37,16 @@ This private preview runs from **February to May 2022**.
 **Allow-listing**: Email us the relevant info so we can add you to the correct allow-lists to proceed with the preview. You should've already received an email asking you to reply with the information. If not, send an email to edgetransactablemodulespreview@service.microsoft.com in the following format:
 - **Title**: "[Company name]: onboard to transactable Edge modules private preview"
 - **Body**: please send us
-    - **IoT hub name** - we recommend creating a new IoT hub dedicated for the preview. For this preview, don't inlcude any dashes ("-") in the IoT hub name.
+    - **IoT hub name** - we recommend creating a new IoT hub dedicated for the preview. For this preview, don't include any dashes ("-") in the IoT hub name.
     - **Seller ID** of the account you'll use - you can find your seller ID in [Partner Center -> Account Settings -> Legal Info -> Developer](https://partner.microsoft.com/en-us/dashboard/account/v3/organization/legalinfo#developer) It's a 8-digit numeric ID.
 
-**IoT Edge**: please prepare a working IoT Edge device (VM or physical) that runs **Linux on AMD64** architecture. We recommend using an Ubunto 18.04 VM.
+**IoT Edge**: please prepare a working IoT Edge device (VM or physical) that runs **Linux on AMD64** architecture. We recommend using an Ubuntu 18.04 VM.
 
-## Step 2: Prepare your IoT Edge modules
+## Step 2: Prepare your IoT Edge modules to enforce SKU
 
-**Note**: to quickly get things going while full development is ongoing, start with our [sample code](https://github.com/Azure/iotedge/tree/feature/billing/edge-modules/TransactableModuleSample). To preview offer purchase and module deplpoyment (without SKU enforcement), it might be easier to start with the container image that we built, linked from the [sample deployment manifest](./contoso.deployment.json). More info in Step 3 and onwards.
+**Note**: to quickly get things going while full development is ongoing, start with our [sample code](https://github.com/Azure/iotedge/tree/feature/billing/edge-modules/TransactableModuleSample). To preview offer purchase and module deployment (without SKU enforcement described in this section), it might be easier to start with the container image that we built, linked from the [sample deployment manifest](./contoso.deployment.json). More info in Step 3 and onwards.
 
-A transactable IoT Edge module should use a new EdgeHub API to get the offer and plan it's running with. Specifically, the module calls the EdgeHub API, which in turn calls IoT Hub to get the source of truth ("what the customer is paying for"), and the returned information is useful for the module to decide on what to do. Keep in mind that while Microsoft handles the usage pipeline and the billing for the offer, each instance of a transactable module is responsible for enforcing the SKU. For example, you might want to set a limit in the module to only support 100 tags if the customer is on a basic plan. In this case, the module should have logic to enforce that limit based on the the offer and plan in the response of the API call.
+A transactable IoT Edge module should use a new EdgeHub API to get the offer and plan it's running with. Specifically, the module calls the EdgeHub API, which in turn calls IoT Hub to get the source of truth ("what the customer is paying for"), and the returned information is useful for the module to decide on what to do. Keep in mind that while Microsoft handles the usage pipeline and the billing for the offer, each instance of a transactable module is responsible for enforcing the SKU. For example, you might want to set a limit in the module to only support 100 tags if the customer is on a basic plan. In this case, the module should have logic to enforce that limit based on the offer and plan in the response of the API call.
 
 ![image](https://user-images.githubusercontent.com/2320572/149997134-77419272-c1e4-4856-a37e-be66c9652f97.png)
 
@@ -74,11 +74,11 @@ Returned result:
 
 ```json
 {
-    "purchaseStatus": "completed",
-    "publisherId": "contoso" ,
-    "offerId": "moduleoffer" ,
-    "planId": "premium" ,
-    "validationTime": "2022-04-23T13:22:32.123Z"
+	"purchaseStatus": "completed",
+	"publisherId": "contoso",
+	"offerId": "moduleoffer",
+	"planId": "premium",
+	"validationTime": "2022-04-23T13:22:32.123Z"
 }
 ```
 
@@ -92,11 +92,11 @@ This section shows steps to create a new transactable Edge module offer. For the
 1. Give the new offer a descriptive name and alias, then click **Create**
 1. In the refreshed page, click **Plan overview** and **+ Create new plan**
 1. Give the plan a descriptive name and ID, then click **Create**
-1. In **Pricing and availability**, adjust the **available markets**, set your **pricing** (we recommend using the smallest possible amount, like $0.01/module/hour for private preview), ande **hide** the plan
+1. In **Pricing and availability**, adjust the **available markets**, set your **pricing** (we recommend using the smallest possible amount, like $0.01/module/hour for private preview), and **hide** the plan
     ![image](https://user-images.githubusercontent.com/2320572/150000980-ba938e01-cead-4cfe-ad95-234062b3d5f8.png)
 1. Complete the offer configuration as you normally would, including updating description, uploading a picture, setting EULA, and specifying a container image (with the module you prepared in Step 2).
 1. Click **Review and publish**
-1. Under **Notes for certification**, include a message to indicate that "this offer is created for the transactable edmodule private preview, please allow list this offer ID to make it transactable". The certification team will contact us to approve the offer.
+1. Under **Notes for certification**, include a message to indicate that "this offer is created for the transactable edge module private preview, please allow list this offer ID to make it transactable". The certification team will contact us to approve the offer.
 1. Once certification and allow-listing is complete, click **Go live**. The offer must be live in order for module deployment to work.
 
 ## Step 4: Give user "IoT Hub Data Contributor" role
@@ -136,16 +136,16 @@ These commands are similar and built upon the existing marketplace terms of use 
     ```
     az iot edge image terms accept --publisher contoso --offer tempsensor --plan payg
     ```
-1. Once the terms of use is accepted, deploy the module on an IoT Edge device. Here, the `--auth-type login` is important as deployment must be done with AAD authentication:
+1. Once the terms of use are accepted, deploy the module on an IoT Edge device. Here, the `--auth-type login` is important as deployment must be done with AAD authentication:
 
     ```
     az iot edge deployment create --hub-name myIoTHub --deployment-id contosoDeployment ---content ./contoso.deployment.json --target-condition "deviceId='myEdgeDevice'" --priority 10 --auth-type login
     ```
 1. And here's where we should talk about the deployment manifest.
 
-### The sample deployment manifest 
+### The deployment manifest 
 
-The deployment manifest `contoso.deployment.json` requires a special section to indicate the module offer. Click [here](./contoso.deployment.json) to see a sample json file. The important section is to add a `modulesPurchase` at the end of the dpeloyment manifest, like this:
+The deployment manifest `contoso.deployment.json` requires a special section to indicate the module offer. Click [here](./contoso.deployment.json) to see a sample json file. The important section is to add a `modulesPurchase` at the end of the deployment manifest, like this:
 
 ```json
     "modulesPurchase": {
@@ -159,7 +159,7 @@ The deployment manifest `contoso.deployment.json` requires a special section to 
 
 Inside the same sample deployment file, you might notice that the EdgeHub container image points to `iotedgebilling.azurecr.io/microsoft/azureiotedge-hub:20220210.2-linux-amd64` instead of the usual location. This special EdgeHub image has the API to send offer/plan info to a module that asks for it (from Step 2). Without it, the API wouldn't work.
 
-Lastly, the the manifest deploys a module from `iotedgebilling.azurecr.io/microsoft/transactable-module-0210`. This module's only job is to get the offer and plan info, then print it to console ([source code](https://github.com/Azure/iotedge/blob/feature/billing/edge-modules/TransactableModuleSample/src/Program.cs)). We prepared this sample transactable module in case you haven't prepared your own yet. Feel free to use it to kickstart your testing while development for your own module is ongoing.
+Lastly, the manifest deploys a module from `iotedgebilling.azurecr.io/microsoft/transactable-module-0210`. This module's only job is to get the offer and plan info, then print it to console ([source code](https://github.com/Azure/iotedge/blob/feature/billing/edge-modules/TransactableModuleSample/src/Program.cs)). We prepared this sample transactable module in case you haven't prepared your own yet. Feel free to use it to kickstart your testing while development for your own module is ongoing.
 
 ## Step 6: Validate everything works as you'd expect
 
@@ -178,5 +178,5 @@ Other places you can check includes the monthly invoice, which should show somet
 ### Known issues
 
 - IoT Hub name cannot contain any dashes `-`.
-- In Cost Management, usage records shows up weirdly with weird resource IDs (instead of a link to the IoT Hub) and service name "IoT Service" instead of something more appropriate like "IoT Edge Module".
+- In Cost Management, usage records show up weirdly with weird resource IDs (instead of a link to the IoT Hub) and service name "IoT Service" instead of something more appropriate like "IoT Edge Module".
 - There's no easy way to directly query the IoT Hub to see which offers are deployed to what module.
