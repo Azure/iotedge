@@ -168,7 +168,7 @@ steps:
       $context['optimizeForPerformance'] = 'false'
       $context['setupTimeoutMinutes'] = 10
       $context['teardownTimeoutMinutes'] = 5
-      $context['testTimeoutMinutes'] = 6
+      $context['testTimeoutMinutes'] = 8 
     }
 
     Write-Host "Edge agent image: $imagePrefix-agent:$imageTag"
