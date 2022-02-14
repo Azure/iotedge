@@ -211,15 +211,15 @@ bootstrap_identity_cert = "file:///path/to/file.pem"
 bootstrap_identity_pk = "file:///path/to/file.pem"
 ```
 
-After modifying the config file, run `iotedge config apply` to apply the changes and restart Edge.
+After modifying the config file, run `sudo iotedge config apply` to apply the changes and restart Edge.
 
 If you have run Edge previously, delete any existing certificates and keys before running `iotedge config apply` to immediately reissue the device identity and Edge CA certificates.
 
 ```sh
-iotedge system stop
+sudo iotedge system stop
 
-sh -c "rm /var/lib/aziot/certd/certs/*"
-sh -c "rm /var/lib/aziot/keyd/keys/*"
+sudo sh -c "rm /var/lib/aziot/certd/certs/*"
+sudo sh -c "rm /var/lib/aziot/keyd/keys/*"
 
-iotedge config apply
+sudo iotedge config apply
 ```
