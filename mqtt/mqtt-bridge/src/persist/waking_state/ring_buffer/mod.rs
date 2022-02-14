@@ -981,11 +981,10 @@ mod tests {
 
             for (key, _) in batch.drain(..) {
                 let removed = rb.pop().expect("unable to pop publication");
-                assert!(
-                    removed == key,
+                assert_eq!(
+                    removed, key,
                     "invalid publication removed {} but expected {}",
-                    removed,
-                    key
+                    removed, key
                 );
             }
 
