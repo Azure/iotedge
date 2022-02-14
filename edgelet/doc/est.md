@@ -218,8 +218,8 @@ If you have run Edge previously, delete any existing certificates and keys befor
 ```sh
 iotedge system stop
 
-rm -rf /var/lib/aziot/certd/certs/*
-rm -rf /var/lib/aziot/keyd/keys/*
+sh -c "rm /var/lib/aziot/certd/certs/*"
+sh -c "rm /var/lib/aziot/keyd/keys/*"
 
 iotedge config apply
 ```
