@@ -49,7 +49,7 @@ function install_rust()
     # but it's simpler to just always `update` whatever toolchain it is. `update` installs the toolchain
     # if it hasn't already been installed, so this also works for pinned versions.
     source $HOME/.cargo/env
-    ( cd $PROJECT_ROOT; rustup show active-toolchain )
+    rustup show active-toolchain
 }
 
 ###############################################################################
