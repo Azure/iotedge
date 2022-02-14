@@ -213,7 +213,7 @@ bootstrap_identity_pk = "file:///path/to/file.pem"
 
 After modifying the config file, run `sudo iotedge config apply` to apply the changes and restart Edge.
 
-If you have run Edge previously, delete any existing certificates and keys before running `iotedge config apply` to immediately reissue the device identity and Edge CA certificates.
+If you have run Edge previously, delete any existing certificates and keys before running `sudo iotedge config apply` to immediately reissue the device identity and Edge CA certificates.
 
 ```sh
 sudo iotedge system stop
