@@ -12,6 +12,30 @@ ARCH=""
 #  Text Formatting
 #  Derived from : https://github.com/moby/moby/blob/master/contrib/check-config.sh
 # ------------------------------------------------------------------------------
+
+POSSIBLE_CONFIGS="
+	/proc/config.gz
+	/boot/config-$(uname -r)
+	/usr/src/linux-$(uname -r)/.config
+	/usr/src/linux/.config
+"
+
+if [ $# -gt 0 ]; then
+	CONFIG="$1"
+else
+	: "${CONFIG:=/proc/config.gz}"
+fi
+
+if ! command -v zgrep > /dev/null 2>&1; then
+	zgrep() {
+		zcat "$2" | grep "$1"
+	}
+fi
+
+is_set() {
+	zgrep "CONFIG_$1=[y|m]" "$CONFIG" > /dev/null
+}
+
 color() {
 	codes=
 	if [ "$1" = 'bold' ]; then
@@ -47,6 +71,13 @@ wrap_color() {
 	echo
 }
 
+wrap_good() {
+	echo "$(wrap_color "$1" white): $(wrap_color "$2" green)"
+}
+wrap_bad() {
+	echo "$(wrap_color "$1" bold): $(wrap_color "$2" bold red)"
+}
+
 wrap_debug(){
     echo "$(wrap_color "$1" white)"
 }
@@ -57,6 +88,11 @@ wrap_pass() {
 wrap_fail() {
 	echo "$(wrap_color "$1 - Error" bold red)"
 }
+
+wrap_warn(){
+    echo "$(wrap_color "$1 - Warning!!" yellow)"
+}
+
 wrap_warning() {
 	wrap_color >&2 "$*" yellow
 }
@@ -91,12 +127,12 @@ get_libc() {
     _libc_version=$(echo "$_ldd_version" | awk '/ldd/{print $NF}')
     version_check=$(echo $_libc_version 2.18 | awk '{if ($1 < $2) print 1; else print 0}')
     if [ $version_check -eq 1 ]; then
-      wrap_debug "musl"
+      echo "musl"
     else
-      wrap_debug "gnu"
+      echo "gnu"
     fi
   elif [ -z "${_ldd_version##*musl*}" ]; then
-    wrap_debug "musl"
+    echo "musl"
   else
     wrap_err "Unknown implementation of libc. ldd --version returns: ${_ldd_version}"
   fi
@@ -323,16 +359,16 @@ perform_cleanup(){
 
 
 # ------------------------------------------------------------------------------
-# Check whether the Target Device can be used to set capability. EdgeHub Runtime component sets CAP_NET_BIND which is Required
-# for Azure IoT Edge Operation
+# Check whether the Target Device can be used to set capability. EdgeHub   Runtime component sets CAP_NET_BIND which is Required for Azure IoT Edge Operation.
 # ------------------------------------------------------------------------------
-perform_capability_check_host(){
+
+check_net_cap_bind_host(){
     wrap_debug "Setting the CAP_NET_BIND_SERVICE capability on the host..."
     
       # Check dependencies
     ret=$(need_cmd setcap)
     if [ $? != 0 ]; then 
-        wrap_fail "capability_check_host" "Fail"
+        wrap_fail "check_net_cap_bind_host"
         return
     fi
     
@@ -341,7 +377,7 @@ perform_capability_check_host(){
     ret=$?
     if [ $ret != 0 ]; then
         wrap_debug "setcap 'cap_net_bind_service=+ep' returned $ret"
-        wrap_fail "capability_check_host" "Fail"
+        wrap_fail "check_net_cap_bind_host"
         return
     fi
 
@@ -349,21 +385,21 @@ perform_capability_check_host(){
     ret=$?
     if [ $? != 0 ] && [ -z "${contains##*cap_net_bind_service+ep*}" ]; then
         wrap_debug "setcap 'cap_net_bind_service=+ep' returned 0, but did not set the capability"
-        wrap_fail "capability_check_host" "Fail"
+        wrap_fail "check_net_cap_bind_host"
         return
     fi
 
-    wrap_pass "capability_check_host" "Pass"
+    wrap_pass "check_net_cap_bind_host" "Pass"
 }
 
-perform_capability_check_container(){
+check_net_cap_bind_container(){
     #Check For Docker
     wrap_debug "Setting the CAP_NET_BIND_SERVICE capability in a container..."
     
     # Check dependencies
     ret=$(need_cmd docker)
     if [ $? != 0 ]; then 
-        wrap_fail "capability_check_container" "Fail"
+        wrap_fail "check_net_cap_bind_container" "Fail"
         return
     fi
     CAP_CMD="getcap cap.txt"
@@ -387,42 +423,82 @@ perform_capability_check_container(){
     ret=$?
     if [ $ret != 0 ]; then
         wrap_debug "setcap 'cap_net_bind_service=+ep' on container returned error code $ret"
-        wrap_fail "capability_check_container" "Fail"
+        wrap_fail "check_net_cap_bind_container" "Fail"
         return
     fi
-    wrap_pass "capability_check_container" "Pass"
+    wrap_pass "check_net_cap_bind_container" "Pass"
+}
+
+# bits of this were adapted from moby check-config.shells
+# See https://github.com/moby/moby/blob/master/contrib/check-config.sh
+
+
+#Reference Issue : https://github.com/Azure/iotedge/issues/5812
+check_cgroup_heirachy(){   
+    wrap_debug "Checking cgroup hierarchy..."
+    EXITCODE=0
+    if [ "$(stat -f -c %t /sys/fs/cgroup 2> /dev/null)" = '63677270' ]; then
+	wrap_good 'cgroup hierarchy' 'cgroupv2'
+	cgroupv2ControllerFile='/sys/fs/cgroup/cgroup.controllers'
+	if [ -f "$cgroupv2ControllerFile" ]; then
+		echo '  Controllers:'
+		for controller in cpu cpuset io memory pids; do
+			if grep -qE '(^| )'"$controller"'($| )' "$cgroupv2ControllerFile"; then
+				echo "  - $(wrap_good "$controller" 'available')"
+			else
+				echo "  - $(wrap_bad "$controller" 'missing')"
+                EXITCODE=1
+			fi
+		done
+	else
+		wrap_bad "$cgroupv2ControllerFile" 'nonexistent??'
+        EXITCODE=1
+	fi
+	# TODO find an efficient way to check if cgroup.freeze exists in subdir
+    else
+        cgroupSubsystemDir="$(sed -rne '/^[^ ]+ ([^ ]+) cgroup ([^ ]*,)?(cpu|cpuacct|cpuset|devices|freezer|memory)[, ].*$/ { s//\1/p; q }' /proc/mounts)"
+        cgroupDir="$(dirname "$cgroupSubsystemDir")"
+        if [ -d "$cgroupDir/cpu" ] || [ -d "$cgroupDir/cpuacct" ] || [ -d "$cgroupDir/cpuset" ] || [ -d "$cgroupDir/devices" ] || [ -d "$cgroupDir/freezer" ] || [ -d "$cgroupDir/memory" ]; then
+            echo "$(wrap_good 'cgroup hierarchy' 'properly mounted') [$cgroupDir]"
+        else
+            if [ "$cgroupSubsystemDir" ]; then
+                echo "$(wrap_bad 'cgroup hierarchy' 'single mountpoint!') [$cgroupSubsystemDir]"
+            else
+                wrap_bad 'cgroup hierarchy' 'nonexistent??'
+            fi
+            EXITCODE=1
+            echo "    $(wrap_color '(see https://github.com/tianon/cgroupfs-mount)' yellow)"
+        fi
+    fi
+    
+    if [ $EXITCODE -eq 0 ]; then
+        wrap_pass "check_cgroup_heirachy"
+    else
+        wrap_fail "check_cgroup_heirachy"
+    fi
+}
+
+
+check_systemd(){
+    wrap_debug "Checking presence of systemd..."
+    if [ -z "$(pidof systemd)" ]; then
+        wrap_warn "check_systemd"
+        wrap_debug "Systemd is not present on this device, As a result azure iot edge services will need to be run and managed independently.
+        For instructions on running azure iot edge without systemd, visit: https://github.com/Azure/iotedge/blob/master/edgelet/doc/devguide.md#run"
+    else
+        wrap_pass "check_systemd"
+    fi
 }
 
 get_architecture
 echo "Architecture:$ARCH"
 echo "OS Type:$OSTYPE"
 
-#TODO : Do we need both?
-perform_capability_check_host
-perform_capability_check_container
+#TODO : Do we need to check in both host and container?
+check_net_cap_bind_host
+check_net_cap_bind_container
+check_cgroup_heirachy
+check_systemd
 perform_cleanup
 echo "IoT Edge Compatibility Tool Check Complete"
-
-
-
-##TODO: Implement Below Checks/Functions
-
-## System Identification
-#Function to find out System Memory and Storage Capacity
-#Function to find out Libraries present in the Target OS
-
-#IoT Edge System Inputs
-# Target Memory and CPU (Varies by Release/ARCH/OS)
-# Dependent Libraries(Varies by Release/ARCH/OS)
-
-## Checks
-#Fails on The Following Checks
-#Run Moby Config Checks as part of the script and ensure configs present to install docker (Maybe Separate run)
-#Check CONFIG_DEFAULT_MMAP_MIN_ADDR is set to a 32768 or lower on ARM Platforms
-#Compare IoTEdge Daemon , IIS Shared Libraries with Target OS
-#compare Memory and CPU usage (Varies for each ARCH/OS)
-
-##Warnings
-# Check if Compatible Package Manager is installed
-# Check if Docker is present or not
 
