@@ -66,7 +66,7 @@ where
 
         let identity_connector = http_common::Connector::new(endpoints.aziot_identityd_url())?;
         let identity_client = aziot_identity_client_async::Client::new(
-            aziot_identity_common_http::ApiVersion::V2020_09_01,
+            aziot_identity_common_http::ApiVersion::V2021_12_01,
             identity_connector,
             1,
         );

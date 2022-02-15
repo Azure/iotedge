@@ -244,6 +244,8 @@ impl CertApi {
                 })?
         };
 
+        // TODO: need to renew DPS identity cert if expired.
+
         Ok((cert, private_key))
     }
 }
