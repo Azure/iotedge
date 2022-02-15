@@ -62,7 +62,7 @@ impl<'a> TryFrom<StateChange<'a>> for proto::Publication {
                 let payload = subscriptions
                     .map(|subscriptions| serde_json::to_string(&subscriptions))
                     .transpose()?
-                    .map(|json| json.into())
+                    .map(Into::into)
                     .unwrap_or_default();
 
                 proto::Publication {
