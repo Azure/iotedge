@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 pub struct Settings {
-    pub homedir: std::path::PathBuf,
-
     pub edge_ca_cert: Option<String>,
     pub edge_ca_key: Option<String>,
 
@@ -14,7 +12,6 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Settings {
-            homedir: std::path::PathBuf::from("/var/lib/aziot/edged"),
             edge_ca_cert: None,
             edge_ca_key: None,
             trust_bundle: None,
@@ -26,10 +23,6 @@ impl Default for Settings {
 
 impl edgelet_settings::RuntimeSettings for Settings {
     type ModuleConfig = crate::runtime::Config;
-
-    fn homedir(&self) -> &std::path::Path {
-        self.homedir.as_path()
-    }
 
     fn edge_ca_cert(&self) -> Option<&str> {
         self.edge_ca_cert.as_deref()
@@ -52,6 +45,10 @@ impl edgelet_settings::RuntimeSettings for Settings {
     }
 
     // The functions below aren't used in tests.
+
+    fn homedir(&self) -> &std::path::Path {
+        unimplemented!()
+    }
 
     fn hostname(&self) -> &str {
         unimplemented!()

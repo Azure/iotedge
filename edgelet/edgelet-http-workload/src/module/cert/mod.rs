@@ -117,8 +117,6 @@ impl CertApi {
         self,
         policy: aziot_identity_common_http::get_provisioning_info::Response,
     ) -> Result<hyper::Response<hyper::Body>, http_common::server::Error> {
-        // Check for existing DPS server certificate. If it does not exist, issue a new one.
-
         let registration_id = {
             if let ProvisioningInfo::Dps {
                 registration_id, ..
