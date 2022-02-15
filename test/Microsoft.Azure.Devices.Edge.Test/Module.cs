@@ -17,16 +17,18 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string SensorName = "tempSensor";
         const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
 
-        [Test]
+        [TestCase(Protocol.Mqtt)]
+        [TestCase(Protocol.Amqp)]
         [Category("CentOsSafe")]
-        public async Task CertRenew()
+        public async Task CertRenew(Protocol protocol)
         {
             CancellationToken token = this.TestToken;
 
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                     builder =>
                     {
-                         builder.GetModule("$edgeHub").WithEnvironment(("ServerCertificateRenewAfterInMs", "6000"));
+                         builder.GetModule(ModuleName.EdgeHub).WithEnvironment(("ServerCertificateRenewAfterInMs", "6000"));
+                         builder.GetModule(ModuleName.EdgeHub).WithEnvironment(new[] { ("UpstreamProtocol", protocol.ToString()) });
                     },
                     token,
                     Context.Current.NestedEdge);
