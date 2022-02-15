@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#[derive(Default)]
 pub struct Settings {
+    pub homedir: std::path::PathBuf,
+
     pub edge_ca_cert: Option<String>,
     pub edge_ca_key: Option<String>,
 
@@ -10,8 +11,25 @@ pub struct Settings {
     pub dps_trust_bundle: String,
 }
 
+impl Default for Settings {
+    fn default() -> Self {
+        Settings {
+            homedir: std::path::PathBuf::from("/var/lib/aziot/edged"),
+            edge_ca_cert: None,
+            edge_ca_key: None,
+            trust_bundle: None,
+            manifest_trust_bundle: None,
+            dps_trust_bundle: "aziot-dps-trust-bundle".to_string(),
+        }
+    }
+}
+
 impl edgelet_settings::RuntimeSettings for Settings {
     type ModuleConfig = crate::runtime::Config;
+
+    fn homedir(&self) -> &std::path::Path {
+        self.homedir.as_path()
+    }
 
     fn edge_ca_cert(&self) -> Option<&str> {
         self.edge_ca_cert.as_deref()
@@ -40,10 +58,6 @@ impl edgelet_settings::RuntimeSettings for Settings {
     }
 
     fn auto_reprovisioning_mode(&self) -> edgelet_settings::aziot::AutoReprovisioningMode {
-        unimplemented!()
-    }
-
-    fn homedir(&self) -> &std::path::Path {
         unimplemented!()
     }
 

@@ -78,7 +78,7 @@ where
         })?;
 
         self.api
-            .issue_cert(cert_id, self.module_id, subject_alt_names, csr_extensions)
+            .cert_from_edge_ca(cert_id, self.module_id, subject_alt_names, csr_extensions)
             .await
     }
 

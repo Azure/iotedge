@@ -17,6 +17,9 @@ use test_common::client::IdentityClient;
 #[cfg(test)]
 use test_common::client::KeyClient;
 
+#[cfg(test)]
+use aziot_identity_common_http::get_provisioning_info::Response as ProvisioningInfo;
+
 #[derive(Clone)]
 pub struct Service<M>
 where
@@ -114,7 +117,20 @@ where
         let cert_client = CertClient::default();
         let cert_client = std::sync::Arc::new(futures_util::lock::Mutex::new(cert_client));
 
-        let identity_client = IdentityClient::default();
+        let identity_client = {
+            let mut identity_client = IdentityClient::default();
+
+            // Don't use cert_policy in tests.
+            identity_client.provisioning_info = ProvisioningInfo::Dps {
+                auth: "x509".to_string(),
+                endpoint: "localhost".to_string(),
+                scope_id: "scope".to_string(),
+                registration_id: "registrationId".to_string(),
+                cert_policy: None,
+            };
+
+            identity_client
+        };
         let identity_client = std::sync::Arc::new(futures_util::lock::Mutex::new(identity_client));
 
         let runtime = std::sync::Arc::new(futures_util::lock::Mutex::new(runtime));
@@ -124,6 +140,9 @@ where
             device_id: "test-device".to_string(),
             trust_bundle: "test-trust-bundle".to_string(),
             manifest_trust_bundle: "test-manifest-trust-bundle".to_string(),
+            dps_server_cert_key: std::path::PathBuf::from(
+                "/var/lib/aziot/edged/dps_server_cert_key.pem",
+            ),
             dps_trust_bundle: "test-dps-trust-bundle".to_string(),
             edge_ca_cert: "test-ca-cert".to_string(),
             edge_ca_key: "test-ca-key".to_string(),
@@ -170,7 +189,9 @@ struct WorkloadConfig {
 
     trust_bundle: String,
     manifest_trust_bundle: String,
+
     dps_trust_bundle: String,
+    dps_server_cert_key: std::path::PathBuf,
 
     edge_ca_cert: String,
     edge_ca_key: String,
@@ -191,6 +212,9 @@ impl WorkloadConfig {
             .unwrap_or(edgelet_settings::MANIFEST_TRUST_BUNDLE_ALIAS)
             .to_string();
 
+        let mut dps_server_cert_key = settings.homedir().to_owned();
+        dps_server_cert_key.push("dps_server_cert_key.pem");
+
         let edge_ca_cert = settings
             .edge_ca_cert()
             .unwrap_or(edgelet_settings::AZIOT_EDGED_CA_ALIAS)
@@ -206,7 +230,9 @@ impl WorkloadConfig {
 
             trust_bundle,
             manifest_trust_bundle,
+
             dps_trust_bundle: settings.dps_trust_bundle().to_string(),
+            dps_server_cert_key,
 
             edge_ca_cert,
             edge_ca_key,
@@ -238,7 +264,11 @@ mod tests {
 
                 trust_bundle: edgelet_settings::TRUST_BUNDLE_ALIAS.to_string(),
                 manifest_trust_bundle: edgelet_settings::MANIFEST_TRUST_BUNDLE_ALIAS.to_string(),
+
                 dps_trust_bundle: settings.dps_trust_bundle,
+                dps_server_cert_key: std::path::PathBuf::from(
+                    "/var/lib/aziot/edged/dps_server_cert_key.pem"
+                ),
 
                 edge_ca_cert: edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_string(),
                 edge_ca_key: edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_string(),
@@ -259,6 +289,7 @@ mod tests {
         };
 
         let settings = edgelet_test_utils::Settings {
+            homedir: std::path::PathBuf::from("/var/lib/aziot/edged"),
             edge_ca_cert: Some("test-ca-cert".to_string()),
             edge_ca_key: Some("test-ca-key".to_string()),
             trust_bundle: Some("test-trust-bundle".to_string()),
@@ -275,7 +306,11 @@ mod tests {
 
                 trust_bundle: "test-trust-bundle".to_string(),
                 manifest_trust_bundle: "test-manifest-trust-bundle".to_string(),
+
                 dps_trust_bundle: "test-dps-trust-bundle".to_string(),
+                dps_server_cert_key: std::path::PathBuf::from(
+                    "/var/lib/aziot/edged/dps_server_cert_key.pem"
+                ),
 
                 edge_ca_cert: "test-ca-cert".to_string(),
                 edge_ca_key: "test-ca-key".to_string(),

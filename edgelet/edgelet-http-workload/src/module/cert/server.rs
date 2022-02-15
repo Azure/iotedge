@@ -2,6 +2,12 @@
 
 use std::str::FromStr;
 
+#[cfg(not(test))]
+use aziot_identity_client_async::Client as IdentityClient;
+
+#[cfg(test)]
+use test_common::client::IdentityClient;
+
 pub(crate) struct Route<M>
 where
     M: edgelet_core::ModuleRuntime + Send + Sync,
@@ -9,6 +15,7 @@ where
     module_id: String,
     gen_id: String,
     pid: libc::pid_t,
+    identity_client: std::sync::Arc<futures_util::lock::Mutex<IdentityClient>>,
     api: super::CertApi,
     runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
 }
@@ -68,6 +75,7 @@ where
             module_id: module_id.into_owned(),
             gen_id: gen_id.into_owned(),
             pid,
+            identity_client: service.identity_client.clone(),
             api,
             runtime: service.runtime.clone(),
         })
@@ -107,9 +115,25 @@ where
             edgelet_http::error::server_error("failed to set server csr extensions")
         })?;
 
-        self.api
-            .issue_cert(cert_id, common_name, subject_alt_names, csr_extensions)
+        // Check for server certificate DPS policy.
+        let policy = {
+            let identity_client = self.identity_client.lock().await;
+
+            crate::module::cert::dps_policy::check_policy(
+                &identity_client,
+                aziot_identity_common::CertType::Server,
+            )
             .await
+        };
+
+        // Issue server certificate based on policy.
+        if let Some(policy) = policy {
+            self.api.cert_from_dps(policy).await
+        } else {
+            self.api
+                .cert_from_edge_ca(cert_id, common_name, subject_alt_names, csr_extensions)
+                .await
+        }
     }
 
     type PutBody = serde::de::IgnoredAny;
@@ -176,7 +200,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn verifysans() {
+    async fn verify_sans() {
         let route = edgelet_test_utils::test_route_ok!(TEST_PATH);
         {
             let pid = nix::unistd::getpid().as_raw();

@@ -19,6 +19,8 @@ use test_common::client::KeyClient;
 #[cfg(test)]
 use test_common::client::KeyEngine;
 
+use aziot_identity_common_http::get_provisioning_info::Response as ProvisioningInfo;
+
 #[derive(Debug, serde::Serialize)]
 #[cfg_attr(test, derive(serde::Deserialize))]
 #[serde(tag = "type")]
@@ -69,7 +71,7 @@ impl CertApi {
         }
     }
 
-    pub async fn issue_cert(
+    pub async fn cert_from_edge_ca(
         self,
         cert_id: String,
         common_name: String,
@@ -109,6 +111,30 @@ impl CertApi {
         let response = http_common::server::response::json(hyper::StatusCode::CREATED, &response);
 
         Ok(response)
+    }
+
+    pub async fn cert_from_dps(
+        self,
+        policy: aziot_identity_common_http::get_provisioning_info::Response,
+    ) -> Result<hyper::Response<hyper::Body>, http_common::server::Error> {
+        // Check for existing DPS server certificate. If it does not exist, issue a new one.
+
+        let registration_id = {
+            if let ProvisioningInfo::Dps {
+                registration_id, ..
+            } = policy
+            {
+                registration_id.to_string()
+            } else {
+                // This function is only called after DPS policy is checked.
+                unreachable!()
+            }
+        };
+
+        let keys = new_keys()
+            .map_err(|_| edgelet_http::error::server_error("failed to generate csr keys"))?;
+
+        todo!()
     }
 
     async fn create_cert(
@@ -468,7 +494,7 @@ mod tests {
         let extensions = super::edge_ca_extensions().unwrap();
 
         let response = api
-            .issue_cert(
+            .cert_from_edge_ca(
                 "testCertificate".to_string(),
                 "testCertificate".to_string(),
                 // This test won't check these fields, so it doesn't matter what's passed here.
