@@ -19,7 +19,6 @@ POSSIBLE_CONFIGS="
 	/usr/src/linux-$(uname -r)/.config
 	/usr/src/linux/.config
 "
-
 if [ $# -gt 0 ]; then
 	CONFIG="$1"
 else
@@ -94,7 +93,7 @@ wrap_warn(){
 }
 
 wrap_warning() {
-	wrap_color >&2 "$*" yellow
+	wrap_color >&2 "$*" magenta
 }
 
 
@@ -357,10 +356,52 @@ perform_cleanup(){
     #TODO : Cleanup docker images
 }
 
+check_kernel_file(){
+if [ ! -e "$CONFIG" ]; then
+	wrap_warning "warning: $CONFIG does not exist, searching other paths for kernel config ..."
+	for tryConfig in $POSSIBLE_CONFIGS; do
+		if [ -e "$tryConfig" ]; then
+			CONFIG="$tryConfig"
+			break
+		fi
+	done
+	if [ ! -e "$CONFIG" ]; then
+		wrap_warning "error: cannot find kernel config"
+		wrap_warning "  try running this script again, specifying the kernel config:"
+		wrap_warning "    CONFIG=/path/to/kernel/.config $0 or $0 /path/to/kernel/.config"
+		EXIT_CODE=1
+	fi
+fi
+}
+
 
 # ------------------------------------------------------------------------------
 # Check whether the Target Device can be used to set capability. EdgeHub   Runtime component sets CAP_NET_BIND which is Required for Azure IoT Edge Operation.
 # ------------------------------------------------------------------------------
+
+check_flag() {
+	if is_set "$1"; then
+		wrap_pass "CONFIG_$1"
+    else
+		wrap_fail "CONFIG_$1"
+	fi
+}
+
+check_kernel_flags(){
+    EXIT_CODE=0
+    check_kernel_file
+    if [ $EXIT_CODE != 0 ]; then 
+        wrap_fail "check_kernel_flags"
+        return
+    fi
+    EXIT_CODE=0
+    wrap_debug "Reading Kernel Config from $CONFIG"
+    for flag in "$@"; do
+		printf -- '- '
+		check_flag "$flag"
+	done
+
+}
 
 check_net_cap_bind_host(){
     wrap_debug "Setting the CAP_NET_BIND_SERVICE capability on the host..."
@@ -490,6 +531,7 @@ check_systemd(){
     fi
 }
 
+cat /etc/os-release
 get_architecture
 echo "Architecture:$ARCH"
 echo "OS Type:$OSTYPE"
@@ -498,6 +540,25 @@ echo "OS Type:$OSTYPE"
 check_net_cap_bind_host
 check_net_cap_bind_container
 check_cgroup_heirachy
+
+#Flags Required for setting elevated capabilities in a container.
+check_kernel_flags EXT4_FS_SECURITY
+
+#Check for Required Container Engine Flags if docker is not present
+check_kernel_flags \
+	NAMESPACES NET_NS PID_NS IPC_NS UTS_NS \
+	CGROUPS CGROUP_CPUACCT CGROUP_DEVICE CGROUP_FREEZER CGROUP_SCHED CPUSETS MEMCG \
+	KEYS \
+	VETH BRIDGE BRIDGE_NETFILTER \
+	IP_NF_FILTER IP_NF_TARGET_MASQUERADE \
+	NETFILTER_XT_MATCH_ADDRTYPE \
+	NETFILTER_XT_MATCH_CONNTRACK \
+	NETFILTER_XT_MATCH_IPVS \
+	NETFILTER_XT_MARK \
+	IP_NF_NAT NF_NAT \
+	POSIX_MQUEUE
+# (POSIX_MQUEUE is required for bind-mounting /dev/mqueue into containers)
+
 check_systemd
 perform_cleanup
 echo "IoT Edge Compatibility Tool Check Complete"
