@@ -35,6 +35,8 @@ aziot-key-openssl-engine = { git = "https://github.com/Azure/iot-identity-servic
 aziot-cert-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/dps_certs" }
 aziot-cert-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/dps_certs" }
 
+aziot-cloud-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/dps_certs" }
+
 aziot-identity-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/dps_certs" }
 aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/dps_certs" }
 aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/dps_certs" }

@@ -117,19 +117,16 @@ where
         let cert_client = CertClient::default();
         let cert_client = std::sync::Arc::new(futures_util::lock::Mutex::new(cert_client));
 
-        let identity_client = {
-            let mut identity_client = IdentityClient::default();
-
-            // Don't use cert_policy in tests.
-            identity_client.provisioning_info = ProvisioningInfo::Dps {
+        // Don't use cert_policy in tests.
+        let identity_client = IdentityClient {
+            provisioning_info: ProvisioningInfo::Dps {
                 auth: "x509".to_string(),
                 endpoint: "localhost".to_string(),
                 scope_id: "scope".to_string(),
                 registration_id: "registrationId".to_string(),
                 cert_policy: None,
-            };
-
-            identity_client
+            },
+            ..Default::default()
         };
         let identity_client = std::sync::Arc::new(futures_util::lock::Mutex::new(identity_client));
 

@@ -1,5 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+mod cert_key;
+use cert_key::CertKey;
+
 mod dps_policy;
 
 pub(crate) mod identity;
@@ -78,12 +81,16 @@ impl CertApi {
         subject_alt_names: Vec<SubjectAltName>,
         extensions: openssl::stack::Stack<openssl::x509::X509Extension>,
     ) -> Result<hyper::Response<hyper::Body>, http_common::server::Error> {
-        let keys = new_keys()
+        let keys = CertKey::Rsa(2048)
+            .generate()
             .map_err(|_| edgelet_http::error::server_error("failed to generate csr keys"))?;
         let private_key = key_to_pem(&keys.0);
 
         let csr = new_csr(common_name, keys, subject_alt_names, extensions)
             .map_err(|_| edgelet_http::error::server_error("failed to generate csr"))?;
+        let csr = csr
+            .to_pem()
+            .map_err(|_| edgelet_http::error::server_error("failed to serialize csr"))?;
 
         let edge_ca_key_handle =
             edge_ca_key_handle(self.key_client.clone(), &self.edge_ca_key).await?;
@@ -117,10 +124,12 @@ impl CertApi {
         self,
         policy: aziot_identity_common_http::get_provisioning_info::Response,
     ) -> Result<hyper::Response<hyper::Body>, http_common::server::Error> {
+        let (identity_cert, identity_private_key) = self.get_dps_credentials().await?;
+
         let registration_id = {
             if let ProvisioningInfo::Dps {
                 registration_id, ..
-            } = policy
+            } = &policy
             {
                 registration_id.to_string()
             } else {
@@ -129,10 +138,51 @@ impl CertApi {
             }
         };
 
-        let keys = new_keys()
+        // TODO: Decide whether keys and cert need to be persisted.
+        // TODO: Make key type configurable.
+        let keys = CertKey::Ec(openssl::nid::Nid::X9_62_PRIME256V1)
+            .generate()
             .map_err(|_| edgelet_http::error::server_error("failed to generate csr keys"))?;
+        let server_cert_private_key = key_to_pem(&keys.0);
 
-        todo!()
+        // DPS sets the certificate extensions and SANs. Therefore, these fields do not need
+        // to be in the CSR.
+        let csr = new_csr(
+            registration_id,
+            keys,
+            Vec::new(),
+            openssl::stack::Stack::new().expect("failed to create empty stack"),
+        )
+        .map_err(|_| edgelet_http::error::server_error("failed to generate csr"))?;
+
+        let dps_request = aziot_cloud_client_async::dps::IssueCert::new(
+            policy,
+            identity_cert,
+            identity_private_key,
+        );
+
+        let cert = dps_request.issue_server_cert(csr).await.map_err(|err| {
+            edgelet_http::error::server_error(format!(
+                "failed to issue server certificate from DPS: {}",
+                err
+            ))
+        })?;
+
+        let cert = String::from_utf8(cert).map_err(|_| {
+            edgelet_http::error::server_error("failed to parse server certificate as utf-8")
+        })?;
+        let expiration = get_expiration(&cert)?;
+
+        let response = CertificateResponse {
+            private_key: PrivateKey::Key {
+                bytes: server_cert_private_key,
+            },
+            certificate: cert,
+            expiration,
+        };
+        let response = http_common::server::response::json(hyper::StatusCode::CREATED, &response);
+
+        Ok(response)
     }
 
     async fn create_cert(
@@ -157,22 +207,45 @@ impl CertApi {
 
         Ok(cert.to_string())
     }
-}
 
-fn new_keys() -> Result<
-    (
-        openssl::pkey::PKey<openssl::pkey::Private>,
-        openssl::pkey::PKey<openssl::pkey::Public>,
-    ),
-    openssl::error::ErrorStack,
-> {
-    let rsa = openssl::rsa::Rsa::generate(2048)?;
-    let private_key = openssl::pkey::PKey::from_rsa(rsa)?;
+    async fn get_dps_credentials(
+        &self,
+    ) -> Result<(Vec<u8>, openssl::pkey::PKey<openssl::pkey::Private>), http_common::server::Error>
+    {
+        let private_key = {
+            let key_client = self.key_client.lock().await;
 
-    let public_key = private_key.public_key_to_pem()?;
-    let public_key = openssl::pkey::PKey::public_key_from_pem(&public_key)?;
+            let key_handle = key_client
+                .load_key_pair(aziot_identity_common::DPS_IDENTITY_CERT_KEY)
+                .await
+                .map_err(|err| {
+                    edgelet_http::error::server_error(format!(
+                        "failed to get DPS identity cert key: {}",
+                        err
+                    ))
+                })?;
 
-    Ok((private_key, public_key))
+            let (private_key, _) = keys_from_handle(self.key_connector.clone(), &key_handle)?;
+
+            private_key
+        };
+
+        let cert = {
+            let cert_client = self.cert_client.lock().await;
+
+            cert_client
+                .get_cert(aziot_identity_common::DPS_IDENTITY_CERT)
+                .await
+                .map_err(|err| {
+                    edgelet_http::error::server_error(format!(
+                        "failed to get DPS identity cert: {}",
+                        err
+                    ))
+                })?
+        };
+
+        Ok((cert, private_key))
+    }
 }
 
 fn new_csr(
@@ -183,7 +256,7 @@ fn new_csr(
     ),
     subject_alt_names: Vec<SubjectAltName>,
     mut extensions: openssl::stack::Stack<openssl::x509::X509Extension>,
-) -> Result<Vec<u8>, openssl::error::ErrorStack> {
+) -> Result<openssl::x509::X509Req, openssl::error::ErrorStack> {
     let private_key = keys.0;
     let public_key = keys.1;
 
@@ -215,7 +288,7 @@ fn new_csr(
 
     csr.sign(&private_key, openssl::hash::MessageDigest::sha256())?;
 
-    let csr = csr.build().to_pem()?;
+    let csr = csr.build();
 
     Ok(csr)
 }
@@ -274,7 +347,7 @@ pub(crate) async fn check_edge_ca(
         log::info!("Requesting new Edge CA certificate...");
 
         let common_name = format!("aziot-edge CA {}", device_id);
-        let keys = edge_ca_keys(key_connector, key_handle)?;
+        let keys = keys_from_handle(key_connector, key_handle)?;
 
         let extensions = edge_ca_extensions().map_err(|_| {
             edgelet_http::error::server_error("failed to set edge ca csr extensions")
@@ -282,6 +355,9 @@ pub(crate) async fn check_edge_ca(
 
         let csr = new_csr(common_name, keys, Vec::new(), extensions)
             .map_err(|_| edgelet_http::error::server_error("failed to generate edge ca csr"))?;
+        let csr = csr
+            .to_pem()
+            .map_err(|_| edgelet_http::error::server_error("failed to serialize csr"))?;
 
         cert_client
             .create_cert(edge_ca_cert, &csr, None)
@@ -320,7 +396,7 @@ async fn should_renew(
     }
 }
 
-fn edge_ca_keys(
+fn keys_from_handle(
     key_connector: http_common::Connector,
     key_handle: &aziot_key_common::KeyHandle,
 ) -> Result<
