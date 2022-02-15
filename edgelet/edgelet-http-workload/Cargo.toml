@@ -40,6 +40,7 @@ aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service",
 aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/dps_certs" }
 
 http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/dps_certs" }
+openssl2 = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/dps_certs" }
 
 [dev-dependencies]
 nix = "0.23"

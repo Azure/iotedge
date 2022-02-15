@@ -1,5 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+mod dps_policy;
+
 pub(crate) mod identity;
 pub(crate) mod server;
 

@@ -754,6 +754,7 @@ dependencies = [
  "log",
  "nix",
  "openssl",
+ "openssl2",
  "percent-encoding 2.1.0",
  "regex",
  "serde",
