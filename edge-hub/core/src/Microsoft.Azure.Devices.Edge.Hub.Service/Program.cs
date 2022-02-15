@@ -56,7 +56,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             try
             {
-
                 EdgeHubCertificates certificates = await EdgeHubCertificates.LoadAsync(configuration, logger);
                 bool clientCertAuthEnabled = configuration.GetValue(Constants.ConfigKey.EdgeHubClientCertAuthEnabled, false);
 
