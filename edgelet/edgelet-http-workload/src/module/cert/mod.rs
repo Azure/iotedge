@@ -11,11 +11,11 @@ use aziot_key_client_async::Client as KeyClient;
 use aziot_key_openssl_engine as KeyEngine;
 
 #[cfg(test)]
-use edgelet_test_utils::clients::CertClient;
+use test_common::client::CertClient;
 #[cfg(test)]
-use edgelet_test_utils::clients::KeyClient;
+use test_common::client::KeyClient;
 #[cfg(test)]
-use edgelet_test_utils::clients::KeyEngine;
+use test_common::client::KeyEngine;
 
 #[derive(Debug, serde::Serialize)]
 #[cfg_attr(test, derive(serde::Deserialize))]
@@ -353,10 +353,10 @@ mod tests {
         let key_connector = url::Url::parse("unix:///tmp/test.sock").unwrap();
         let key_connector = http_common::Connector::new(&key_connector).unwrap();
 
-        let key_client = edgelet_test_utils::clients::KeyClient::default();
+        let key_client = super::KeyClient::default();
         let key_client = std::sync::Arc::new(futures_util::lock::Mutex::new(key_client));
 
-        let cert_client = edgelet_test_utils::clients::CertClient::default();
+        let cert_client = super::CertClient::default();
         let cert_client = std::sync::Arc::new(futures_util::lock::Mutex::new(cert_client));
 
         super::CertApi {
@@ -377,7 +377,7 @@ mod tests {
         let test_certs = vec![
             // Expired certificate.
             (
-                edgelet_test_utils::test_certificate(
+                test_common::credential::test_certificate(
                     "testCertificate",
                     Some(|cert| {
                         let expired = openssl::asn1::Asn1Time::from_unix(1).unwrap();
@@ -388,7 +388,7 @@ mod tests {
             ),
             // Certificate that is near expiry.
             (
-                edgelet_test_utils::test_certificate(
+                test_common::credential::test_certificate(
                     "testCertificate",
                     Some(|cert| {
                         let now = std::time::SystemTime::now()
@@ -409,7 +409,7 @@ mod tests {
             ),
             // Certificate that is not near expiry.
             (
-                edgelet_test_utils::test_certificate("testCertificate", None),
+                test_common::credential::test_certificate("testCertificate", None),
                 false,
             ),
         ];

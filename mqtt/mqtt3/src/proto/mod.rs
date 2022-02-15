@@ -152,19 +152,10 @@ where
 /// These numbers are encoded with a variable-length scheme that uses the MSB of each byte as a continuation bit.
 ///
 /// Ref: 2.2.3 Remaining Length
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct RemainingLengthDecoder {
     result: usize,
     num_bytes_read: usize,
-}
-
-impl Default for RemainingLengthDecoder {
-    fn default() -> Self {
-        RemainingLengthDecoder {
-            result: 0,
-            num_bytes_read: 0,
-        }
-    }
 }
 
 impl tokio_util::codec::Decoder for RemainingLengthDecoder {

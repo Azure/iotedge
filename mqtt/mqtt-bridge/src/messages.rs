@@ -161,9 +161,7 @@ where
                     return match self.store.push(&publication) {
                         Ok(_) => Ok(Handled::Fully),
                         Err(
-                            err
-                            @
-                            PersistError::RingBuffer(RingBufferError::InsufficientSpace {
+                            err @ PersistError::RingBuffer(RingBufferError::InsufficientSpace {
                                 ..
                             }),
                         ) => {
