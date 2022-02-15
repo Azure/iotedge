@@ -223,6 +223,7 @@ fn execute_inner(
         uid: iotedge_uid.as_raw(),
         keys: vec![
             edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned(),
+            aziot_identity_common::DPS_IDENTITY_CERT_KEY.to_owned(),
             "iotedge_master_encryption_id".to_owned(),
         ],
     });
