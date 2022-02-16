@@ -38,9 +38,11 @@ This private preview runs from **February to May 2022**.
 - **Title**: "[Company name]: onboard to transactable Edge modules private preview"
 - **Body**: please send us
     - **IoT hub name** - we recommend creating a new IoT hub dedicated for the preview. For this preview, don't include any dashes ("-") in the IoT hub name.
-    - **Seller ID** of the account you'll use - you can find your seller ID in [Partner Center -> Account Settings -> Legal Info -> Developer](https://partner.microsoft.com/en-us/dashboard/account/v3/organization/legalinfo#developer) It's a 8-digit numeric ID.
+    - **Offer ID** - please create (but not publish) an IoT Edge module offer that you'll use for this preview using [Partner Center](https://partner.microsoft.com/en-us/dashboard/commercial-marketplace/overview). Don't create any plans yet.
 
 **IoT Edge**: please prepare a working IoT Edge device (VM or physical) that runs **Linux on AMD64** architecture. We recommend using an Ubuntu 18.04 VM.
+
+Once you have the prerequisites - as in we've confirmed the allow-list over email, proceed to next steps.
 
 ## Step 2: Prepare your IoT Edge modules to enforce SKU
 
@@ -86,18 +88,16 @@ Returned result:
 
 This section shows steps to create a new transactable Edge module offer. For the private preview, the offer *must be live* to be deployable to an Edge device. To hide the offer from the public, ensure that each *plan* you create is hidden.
 
-1. If you haven't done so, email edgetransactablemodulespreview@service.microsoft.com your seller ID. Wait for a positive confirmation before proceeding.
 1. Visit [Partner Center - Commercial Marketplace Overview](https://partner.microsoft.com/en-us/dashboard/commercial-marketplace/overview)
-1. Click **+ New offer** and select **IoT Edge module**
-1. Give the new offer a descriptive name and alias, then click **Create**
-1. In the refreshed page, click **Plan overview** and **+ Create new plan**
+1. Select the offer that you created earlier during for prerequisites. Only the allow-listed offer can have transactable plans.
+1. Click **Plan overview** and **+ Create new plan**
 1. Give the plan a descriptive name and ID, then click **Create**
 1. In **Pricing and availability**, adjust the **available markets**, set your **pricing**. **To minimize any financial impact, please use the smallest possible amount, like $0.01/module/hour. Higher pricing without a justification will lead to delay or rejection during certification**. 
 1. **Hide** the plan
     ![image](https://user-images.githubusercontent.com/2320572/150000980-ba938e01-cead-4cfe-ad95-234062b3d5f8.png)
 1. Complete the offer configuration as you normally would, including updating description, uploading a picture, setting EULA, and specifying a container image (with the module you prepared in Step 2).
 1. Click **Review and publish**
-1. Under **Notes for certification**, include a message to indicate that "this offer is created for the transactable edge module private preview, please allow list this offer ID to make it transactable". The certification team will contact us to approve the offer.
+1. Under **Notes for certification**, include a message to indicate that "this offer is created for the transactable edge module private preview". The certification team will contact us to approve the offer.
 1. Once certification and allow-listing is complete, click **Go live**. The offer must be live in order for module deployment to work.
 
 ## Step 4: Give user "IoT Hub Data Contributor" role
