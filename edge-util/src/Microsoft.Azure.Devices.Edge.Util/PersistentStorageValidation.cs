@@ -7,9 +7,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
     public static class PersistentStorageValidation
     {
-        public static void ValidateStorageIdentity(string storagePath, string deviceId, string iotHubHostname, string moduleId, Option<string> moduleGenerationId)
+        public static void ValidateStorageIdentity(string storagePath, string deviceId, string iotHubHostname, string moduleId, Option<string> moduleGenerationId, ILogger logger)
         {
-            ILogger logger = SetupLogger();
             DeviceIdentity currentIdentity = new DeviceIdentity(deviceId, iotHubHostname, moduleId, moduleGenerationId);
             string filepath = Path.Combine(storagePath, "DEVICE_IDENTITY");
             string json = JsonConvert.SerializeObject(currentIdentity);
@@ -22,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             {
                 DeviceIdentity savedIdentity = JsonConvert.DeserializeObject<DeviceIdentity>(File.ReadAllText(filepath));
 
-                if (currentIdentity.Equals(savedIdentity))
+                if (!currentIdentity.Equals(savedIdentity))
                 {
                     logger.LogInformation("Persistent storage is for a different device identity {actual}, then the current {current}. Deleting local storage.",  savedIdentity.DeviceId, currentIdentity.DeviceId);
                     Directory.Delete(storagePath, true);
@@ -30,13 +29,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
                     File.WriteAllText(filepath, json);
                 }
             }
-        }
-
-        static ILogger SetupLogger()
-        {
-            Logger.SetLogLevel("warning");
-            ILogger logger = default(ILogger);
-            return logger;
         }
 
         struct DeviceIdentity
