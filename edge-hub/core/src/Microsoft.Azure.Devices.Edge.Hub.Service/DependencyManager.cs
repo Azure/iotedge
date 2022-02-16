@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         readonly string edgeDeviceId;
         readonly string edgeModuleId;
         readonly string edgeDeviceHostName;
-        readonly string edgeModuleGenerationId;
+        readonly Option<string> edgeModuleGenerationId;
         readonly Option<string> connectionString;
         readonly VersionInfo versionInfo;
         readonly SslProtocols sslProtocols;
@@ -85,7 +85,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             this.gatewayHostname = Option.Maybe(this.configuration.GetValue<string>(Constants.ConfigKey.GatewayHostname));
             string edgeHubConnectionString = this.configuration.GetValue<string>(Constants.ConfigKey.IotHubConnectionString);
-            this.edgeModuleGenerationId = this.configuration.GetValue<string>(Constants.ConfigKey.ModuleGenerationId);
             if (!string.IsNullOrWhiteSpace(edgeHubConnectionString))
             {
                 IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeHubConnectionString);
@@ -101,6 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 this.edgeDeviceId = this.configuration.GetValue<string>(Constants.ConfigKey.DeviceId);
                 this.edgeModuleId = this.configuration.GetValue<string>(Constants.ConfigKey.ModuleId);
                 this.edgeDeviceHostName = this.configuration.GetValue<string>(Constants.ConfigKey.EdgeDeviceHostName);
+                this.edgeModuleGenerationId = Option.Maybe(this.configuration.GetValue<string>(Constants.ConfigKey.ModuleGenerationId));
                 this.connectionString = Option.None<string>();
             }
 
@@ -341,7 +341,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             // Note: Keep in sync with iotedge-check's edge-hub-storage-mounted-from-host check (edgelet/iotedge/src/check/checks/storage_mounted_from_host.rs)
             string storagePath = GetOrCreateDirectoryPath(this.configuration.GetValue<string>("StorageFolder"), Constants.EdgeHubStorageFolder);
-            this.ValidateStorageIdentity(storagePath);
+            PersistentStorageValidation.ValidateStorageIdentity(storagePath, this.edgeDeviceId, this.iotHubHostname, this.edgeModuleId, this.edgeModuleGenerationId);
 
             bool storeAndForwardEnabled = this.configuration.GetValue<bool>("storeAndForwardEnabled");
             Option<ulong> storageMaxTotalWalSize = this.GetConfigIfExists<ulong>(Constants.ConfigKey.StorageMaxTotalWalSize, this.configuration);
@@ -380,48 +380,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
 
             return EqualityComparer<T>.Default.Equals(storageParamValue, default(T)) ? Option.None<T>() : Option.Some(storageParamValue);
-        }
-
-        void ValidateStorageIdentity(string storagePath)
-        {
-            string[] metadata = new string[4];
-            metadata[0] = this.edgeModuleId;
-            metadata[1] = this.iotHubHostname;
-            metadata[2] = this.edgeDeviceId;
-            metadata[3] = this.edgeModuleGenerationId;
-
-            string file = Directory.GetFiles(storagePath, "DEVICE_IDENTITY")[0];
-            try
-            {
-                int counter = 0;
-                foreach (string line in File.ReadLines(file))
-                {
-                    if (!line.Equals(metadata[counter]))
-                    {
-                        ClearDirectoryAndRecreateIdentity(storagePath, metadata);
-                        break;
-                    }
-
-                    counter++;
-                }
-            }
-            catch (FileNotFoundException)
-            {
-                File.Create(file).Close();
-                File.WriteAllLines(file, metadata);
-            }
-        }
-
-        static void ClearDirectoryAndRecreateIdentity(string storagePath, string[] metadata)
-        {
-            foreach (string file in Directory.GetFiles(storagePath))
-            {
-                File.Delete(file);
-            }
-
-            string identityfile = Path.Combine(storagePath, "DEVICE_IDENTITY");
-            File.Create(identityfile).Close();
-            File.WriteAllLines(identityfile, metadata);
         }
 
         static string GetOrCreateDirectoryPath(string baseDirectoryPath, string directoryName)
