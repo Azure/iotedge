@@ -6,7 +6,7 @@ Thanks for joining us for the private preview for IoT Edge transactable modules,
 
 **Important**: As with any [private previews offered by Azure](https://azure.microsoft.com/support/legal/preview-supplemental-terms/), all features in this preview are subject to change and not available for production use. We'll do our best to keep things the same for later releases, but we cannot guarantee full compatibility. This means that the API could change, the offer specification could change, and that code and offers you create for this preview might not be supported in the future. If you feel comfortable, you could share this with a limited number of your own customers - but please share these caveats with them.
 
-Here's a list of features that are supported. We have tested each of the support features, but we haven't tested all the possible combinations in every possible order. Please try them out! If you find any bugs beyond, please send us an email at emailedgetransactablemodulespreview@service.microsoft.com. Please don't attempt any of the unsupported scenarios like moving your IoT hub resource. 
+Here's a list of features that are supported. We have tested each of the support features, but we haven't tested all the possible combinations in every possible order. Please try them out! If you find any bugs beyond, please send us an email at emailedgetransactablemodulespreview@service.microsoft.com. Please don't attempt any of the unsupported scenarios like moving your IoT Hub resource. 
 
 ## Features in this preview
 
@@ -92,7 +92,8 @@ This section shows steps to create a new transactable Edge module offer. For the
 1. Give the new offer a descriptive name and alias, then click **Create**
 1. In the refreshed page, click **Plan overview** and **+ Create new plan**
 1. Give the plan a descriptive name and ID, then click **Create**
-1. In **Pricing and availability**, adjust the **available markets**, set your **pricing** (we recommend using the smallest possible amount, like $0.01/module/hour for private preview), and **hide** the plan
+1. In **Pricing and availability**, adjust the **available markets**, set your **pricing**. **To minimize any financial impact, please use the smallest possible amount, like $0.01/module/hour. Higher pricing without a justification will lead to delay or rejection during certification**. 
+1. **Hide** the plan
     ![image](https://user-images.githubusercontent.com/2320572/150000980-ba938e01-cead-4cfe-ad95-234062b3d5f8.png)
 1. Complete the offer configuration as you normally would, including updating description, uploading a picture, setting EULA, and specifying a container image (with the module you prepared in Step 2).
 1. Click **Review and publish**
