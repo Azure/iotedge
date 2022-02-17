@@ -9,8 +9,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
     {
         public static void ValidateStorageIdentity(string storagePath, string deviceId, string iotHubHostname, string moduleId, Option<string> moduleGenerationId, ILogger logger)
         {
-            DeviceIdentity currentIdentity = new DeviceIdentity(deviceId, iotHubHostname, moduleId, moduleGenerationId);
-            string filepath = Path.Combine(storagePath, "DEVICE_IDENTITY");
+            DeviceIdentity currentIdentity = new DeviceIdentity(deviceId, iotHubHostname, moduleId, moduleGenerationId.OrDefault());
+            string filepath = Path.Combine(storagePath, "DEVICE_IDENTITY.json");
             string json = JsonConvert.SerializeObject(currentIdentity);
 
             if (!File.Exists(filepath))
@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
                 if (!currentIdentity.Equals(savedIdentity))
                 {
-                    logger.LogInformation("Persistent storage is for a different device identity {actual}, then the current {current}. Deleting local storage.",  savedIdentity.DeviceId, currentIdentity.DeviceId);
+                    logger.LogInformation("Persistent storage is for a different device identity {actual} than the current identity {current}. Deleting local storage.",  savedIdentity.DeviceId, currentIdentity.DeviceId);
                     Directory.Delete(storagePath, true);
                     Directory.CreateDirectory(storagePath);
                     File.WriteAllText(filepath, json);
@@ -33,20 +33,20 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         struct DeviceIdentity
         {
-            public string DeviceId { get; }
+            public string DeviceId { get; set; }
 
-            public string IotHubHostname { get; }
+            public string IotHubHostname { get; set; }
 
-            public string ModuleId { get; }
+            public string ModuleId { get; set; }
 
-            public string ModuleGenerationId { get; }
+            public string ModuleGenerationId { get; set; }
 
-            public DeviceIdentity(string devId, string iothubHostname, string moduleId, Option<string> moduleGenId)
+            public DeviceIdentity(string devId, string iothubHostname, string moduleId, string moduleGenId)
             {
                 this.DeviceId = devId;
                 this.IotHubHostname = iothubHostname;
                 this.ModuleId = moduleId;
-                this.ModuleGenerationId = moduleGenId.OrDefault();
+                this.ModuleGenerationId = moduleGenId;
             }
         }
     }
