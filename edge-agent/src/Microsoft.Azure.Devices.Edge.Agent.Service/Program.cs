@@ -83,6 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             int coolOffTimeUnitInSeconds;
             bool usePersistentStorage;
             string storagePath;
+            bool enableCleanupStateOnIdentityReset;
             bool enableNonPersistentStorageBackup;
             Option<string> storageBackupPath = Option.None<string>();
             string edgeDeviceHostName;
@@ -109,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 // Note: Keep in sync with iotedge-check's edge-agent-storage-mounted-from-host check (edgelet/iotedge/src/check/checks/storage_mounted_from_host.rs)
                 storagePath = GetOrCreateDirectoryPath(configuration.GetValue<string>("StorageFolder"), EdgeAgentStorageFolder);
                 enableNonPersistentStorageBackup = configuration.GetValue("EnableNonPersistentStorageBackup", false);
-
+                enableCleanupStateOnIdentityReset = configuration.GetValue("CleanupStateOnIdentityReset", true);
                 if (enableNonPersistentStorageBackup)
                 {
                     storageBackupPath = Option.Some(GetOrCreateDirectoryPath(configuration.GetValue<string>("BackupFolder"), EdgeAgentStorageBackupFolder));
@@ -171,7 +172,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         deviceId = connectionStringParser.DeviceId;
                         iothubHostname = connectionStringParser.HostName;
                         moduleId = connectionStringParser.ModuleId;
-                        PersistentStorageValidation.ValidateStorageIdentity(storagePath, deviceId, iothubHostname, moduleId, Option.None<string>(), logger);
+                        if (enableCleanupStateOnIdentityReset)
+                        {
+                            PersistentStorageValidation.ValidateStorageIdentity(storagePath, deviceId, iothubHostname, moduleId, Option.None<string>(), logger);
+                        }
+
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, enableNonPersistentStorageBackup, storageBackupPath, storageTotalMaxWalSize, storageMaxManifestFileSize, storageMaxOpenFiles, storageLogLevel));
                         builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, useServerHeartbeat, backupConfigFilePath));
                         break;
@@ -186,7 +191,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         apiVersion = configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
                         TimeSpan performanceMetricsUpdateFrequency = configuration.GetTimeSpan("PerformanceMetricsUpdateFrequency", TimeSpan.FromMinutes(5));
                         string moduleGenerationId = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
-                        PersistentStorageValidation.ValidateStorageIdentity(storagePath, deviceId, iothubHostname, moduleId, Option.Some(moduleGenerationId), logger);
+                        if (enableCleanupStateOnIdentityReset)
+                        {
+                            PersistentStorageValidation.ValidateStorageIdentity(storagePath, deviceId, iothubHostname, moduleId, Option.Some(moduleGenerationId), logger);
+                        }
+
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), enableNonPersistentStorageBackup, storageBackupPath, storageTotalMaxWalSize, storageMaxManifestFileSize, storageMaxOpenFiles, storageLogLevel));
                         builder.RegisterModule(new EdgeletModule(iothubHostname, deviceId, new Uri(managementUri), new Uri(workloadUri), apiVersion, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, performanceMetricsUpdateFrequency, useServerHeartbeat, backupConfigFilePath, checkImagePullBeforeModuleCreate));
                         IEnumerable<X509Certificate2> trustBundle =
@@ -224,7 +233,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                             configuration.GetValue<string>(K8sConstants.EdgeK8sObjectOwnerNameKey),
                             configuration.GetValue<string>(K8sConstants.EdgeK8sObjectOwnerUidKey));
                         bool runAsNonRoot = configuration.GetValue<bool>(K8sConstants.RunAsNonRootKey);
-                        PersistentStorageValidation.ValidateStorageIdentity(storagePath, deviceId, iothubHostname, moduleId, Option.Some(moduleGenerationId), logger);
+                        if (enableCleanupStateOnIdentityReset)
+                        {
+                            PersistentStorageValidation.ValidateStorageIdentity(storagePath, deviceId, iothubHostname, moduleId, Option.Some(moduleGenerationId), logger);
+                        }
+
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), enableNonPersistentStorageBackup, storageBackupPath, storageTotalMaxWalSize, storageMaxManifestFileSize, storageMaxOpenFiles, storageLogLevel));
                         builder.RegisterModule(
                             new KubernetesModule(
