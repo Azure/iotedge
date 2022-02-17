@@ -73,7 +73,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             Events.Closed();
         }
 
-        public void Dispose() => this.CloseAsync(CancellationToken.None).Wait();
+        public void Dispose()
+        {
+        }
 
         static class Events
         {
