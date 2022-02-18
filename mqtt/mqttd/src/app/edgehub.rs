@@ -68,8 +68,16 @@ impl Bootstrap for EdgeHubBootstrap {
 
         fs::create_dir_all(state_dir.clone())?;
         let mut persistor = FilePersistor::new(state_dir, VersionedFileFormat::default());
-        let state = persistor.load().await?;
-        info!("state loaded.");
+        let state = match persistor.load().await {
+            Ok(state) => {
+                info!("state loaded.");
+                state
+            }
+            Err(e) => {
+                error!("failed to load broker state, most likely the broker was forcefully shut down and state file is corrupted: {}", e);
+                None
+            }
+        };
 
         let device_id = env::var(DEVICE_ID_ENV).context(DEVICE_ID_ENV)?;
         let iothub_id = env::var(IOTHUB_HOSTNAME_ENV).context(IOTHUB_HOSTNAME_ENV)?;
