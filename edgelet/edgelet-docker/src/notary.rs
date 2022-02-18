@@ -177,36 +177,25 @@ pub fn notary_lookup(
         notary_cmd.env("NOTARY_AUTH", notary_auth);
     }
 
-    let (send, recv) = tokio::sync::oneshot::channel();
+    futures::future::poll_fn(move || {
+        tokio_threadpool::blocking(|| {
+            let std::process::Output { stdout, .. } = notary_cmd.output().with_context(|e| {
+                ErrorKind::LaunchNotary(format!("could not spawn notary process: {}", e))
+            })?;
+            let output_str = std::str::from_utf8(&stdout)
+                .with_context(|_| ErrorKind::LaunchNotary("received invalid utf8".to_owned()))?;
+            debug!("Notary output string is {}", output_str);
 
-    std::thread::spawn(move || {
-        send.send(
-            notary_cmd
-                .output()
-                .with_context(|e| {
-                    ErrorKind::LaunchNotary(format!("could not spawn notary process: {}", e))
+            output_str
+                .split_whitespace()
+                .nth(2)
+                .map(ToOwned::to_owned)
+                .ok_or_else(|| {
+                    ErrorKind::LaunchNotary("notary digest split array is empty".to_owned()).into()
                 })
-                .map_err(Error::from)
-                .and_then(|std::process::Output { stdout, .. }| {
-                    let output_str = std::str::from_utf8(&stdout).with_context(|_| {
-                        ErrorKind::LaunchNotary("received invalid utf8".to_owned())
-                    })?;
-                    debug!("Notary output string is {}", output_str);
-
-                    output_str
-                        .split_whitespace()
-                        .nth(2)
-                        .map(ToOwned::to_owned)
-                        .ok_or_else(|| {
-                            ErrorKind::LaunchNotary("notary digest split array is empty".to_owned())
-                                .into()
-                        })
-                }),
-        )
-        .unwrap()
-    });
-
-    recv.map_err(|e| ErrorKind::LaunchNotary(format!("failed to receive notary output: {}", e)))
-        .flatten()
-        .map(|output| (output, lock))
+        })
+    })
+    .map_err(|e| ErrorKind::LaunchNotary(format!("should run in thread pool: {}", e)))
+    .flatten()
+    .map(|output| (output, lock))
 }
