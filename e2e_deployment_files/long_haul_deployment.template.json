@@ -58,7 +58,7 @@
                 "value": "<LoadGen.MessageFrequency>"
               },
               "transportType": {
-                "value": "amqp"
+                "value": "mqtt"
               }
             },
             "settings": {
@@ -75,7 +75,7 @@
             "version": "1.0",
             "env": {
               "TransportType": {
-                "value": "amqp"
+                "value": "mqtt"
               },
               "ServiceClientConnectionString": {
                 "value": "<ServiceClientConnectionString>"
@@ -113,7 +113,7 @@
                 "value": "-1"
               },
               "ClientTransportType": {
-                "value": "Amqp_Tcp_Only"
+                "value": "Mqtt_Tcp_Only"
               }
             }
           },
@@ -127,7 +127,7 @@
                 "value": "19"
               },
               "ClientTransportType": {
-                "value": "Amqp_Tcp_Only"
+                "value": "Mqtt_Tcp_Only"
               }
             },
             "settings": {
@@ -198,7 +198,7 @@
             "restartPolicy": "always",
             "env": {
               "ClientTransportType": {
-                "value": "Amqp_Tcp_Only"
+                "value": "Mqtt_Tcp_Only"
               }
             },
             "settings": {
