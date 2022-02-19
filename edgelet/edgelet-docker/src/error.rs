@@ -160,7 +160,7 @@ impl From<Context<ErrorKind>> for Error {
 
 impl<'a> From<&'a Error> for ModuleRuntimeErrorReason {
     fn from(err: &'a Error) -> Self {
-        match Fail::find_root_cause(err).downcast_ref::<ErrorKind>() {
+        match <dyn Fail>::find_root_cause(err).downcast_ref::<ErrorKind>() {
             Some(ErrorKind::NotFound(_)) => ModuleRuntimeErrorReason::NotFound,
             _ => ModuleRuntimeErrorReason::Other,
         }

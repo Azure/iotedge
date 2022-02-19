@@ -4,9 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
-    using System.Diagnostics;
     using System.Linq;
-    using System.Runtime.CompilerServices;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Commands;
     using Microsoft.Azure.Devices.Edge.Storage;
@@ -14,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using Nito.AsyncEx;
-    using Org.BouncyCastle.Math.EC.Rfc7748;
     using DiffState = System.ValueTuple<
         // added modules
         System.Collections.Generic.IList<Microsoft.Azure.Devices.Edge.Agent.Core.IModule>,
