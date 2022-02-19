@@ -1,5 +1,9 @@
-ARG base_tag=1.0.5.14-linux-arm32v7
-FROM azureiotedge/azureiotedge-module-base-full:${base_tag}
+ARG base_tag=3.1-bionic-arm32v7
+FROM mcr.microsoft.com/dotnet/runtime:${base_tag}
+
+# Add an unprivileged user account for running the module
+RUN useradd -ms /bin/bash moduleuser
+USER moduleuser
 
 ARG EXE_DIR=.
 

@@ -35,7 +35,7 @@ jobs:
 
     pool:
       name: $(pool.custom.name)
-      demands: rpi3-e2e-tests-1.1
+      demands: rpi3-e2e-tests
 
     variables:
       os: linux
@@ -102,10 +102,30 @@ jobs:
     variables:
       os: linux
       arch: amd64
-      artifactName: iotedged-ubuntu18.04-amd64
+      artifactName: iotedged-ubuntu20.04-amd64
 
     steps:
     - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################
+  - job: ubuntu_2004_arm64v8
+################################################################################
+    displayName: Ubuntu 20.04 with arm64v8
+    pool:
+      name: $(pool.custom.name)
+      demands: 
+        - agent-group -equals rpi3-e2e-aarch64
+
+    variables:
+      os: linux
+      arch: arm64v8
+      artifactName: iotedged-ubuntu20.04-aarch64
+
+    steps:
+    - template: templates/e2e-clean-directory.yaml
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
 
 ################################################################################
@@ -121,7 +141,7 @@ jobs:
     variables:
       os: linux
       arch: amd64
-      artifactName: iotedged-ubuntu18.04-amd64
+      artifactName: iotedged-ubuntu20.04-amd64
       minimal: true
 
     steps:
@@ -142,6 +162,8 @@ jobs:
       os: windows
       arch: amd64
       artifactName: iotedged-windows
+
+    timeoutInMinutes: 120
 
     steps:
     - template: templates/e2e-setup.yaml

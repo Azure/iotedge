@@ -59,6 +59,7 @@ usage()
     echo "--base-tag            Override the tag of the base image (e.g., to use a different version of .NET Core)"
     echo "--bin-dir             Directory containing the output binaries. Either use this option or set env variable BUILD_BINARIESDIRECTORY"
     echo "--skip-push           Build images, but don't push them"
+    echo "-b, --buildx_flag     Use buildx to cross build images from amd64 to arm target"
     exit 1;
 }
 
@@ -101,6 +102,9 @@ process_args()
         elif [[ ${save_next_arg} -eq 8 ]]; then
             DOCKER_NAMESPACE="$arg"
             save_next_arg=0
+        elif [[ ${save_next_arg} -eq 9 ]]; then
+            DOCKER_USE_BUILDX="$arg"
+            save_next_arg=0       
         else
             case "$arg" in
                 "-h" | "--help" ) usage;;
@@ -112,6 +116,7 @@ process_args()
                 "-P" | "--project" ) save_next_arg=6;;
                 "-i" | "--image-name" ) save_next_arg=7;;
                 "-n" | "--namespace" ) save_next_arg=8;;
+                "-b" | "--buildx_flag" ) save_next_arg=9;;
                 "--skip-push" ) SKIP_PUSH=1 ;;
                 * ) usage;;
             esac
@@ -161,6 +166,13 @@ process_args()
         echo "No Dockerfile at $DOCKERFILE"
         print_help_and_exit
     fi
+    
+    if [[ -z ${DOCKER_USE_BUILDX} ]]; then
+        echo "Using regular docker feature to build docker image"
+        DOCKER_USE_BUILDX="false"
+    else
+        echo "Using experimental feature Buildx to build docker image"
+    fi
 }
 
 ###############################################################################
@@ -186,15 +198,40 @@ docker_build_and_tag_and_push()
         echo "Error: Arguments are invalid [$imagename] [$arch] [$context_path]"
         exit 1
     fi
-
     echo "Building and pushing Docker image $imagename for $arch"
-    docker_build_cmd="docker build --no-cache"
-    docker_build_cmd+=" -t $DOCKER_REGISTRY/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch"
-    if [[ -n "${dockerfile}" ]]; then
-        docker_build_cmd+=" --file $dockerfile"
-    fi
-    docker_build_cmd+=" $build_args $context_path"
+
+    if [[ $DOCKER_USE_BUILDX = "true" ]]; then
+        docker buildx ls
     
+        docker_build_cmd="docker buildx build --no-cache"
+
+        if [[ $arch = "amd64" ]]; then
+            docker_build_cmd+=" --platform linux/amd64"
+        fi
+        
+        if [[ $arch = "arm32v7" ]]; then
+            docker_build_cmd+=" --platform linux/arm/v7"
+        fi
+
+        if [[ $arch = "arm64v8" ]]; then
+            docker_build_cmd+=" --platform linux/arm64"
+        fi
+
+        docker_build_cmd+=" -t $DOCKER_REGISTRY/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch"
+        if [[ -n "${dockerfile}" ]]; then
+            docker_build_cmd+=" --file $dockerfile"
+        fi
+        docker_build_cmd+=" $build_args $context_path --load"
+    else
+        docker_build_cmd="docker build --no-cache"
+        docker_build_cmd+=" -t $DOCKER_REGISTRY/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch"
+
+        if [[ -n "${dockerfile}" ]]; then
+            docker_build_cmd+=" --file $dockerfile"
+        fi
+        docker_build_cmd+=" $build_args $context_path"
+    fi   
+
     echo "Running... $docker_build_cmd"
 
     ${docker_build_cmd}

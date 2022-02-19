@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
+    using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine;
     using Microsoft.Extensions.Logging;
     using Nito.AsyncEx;
@@ -163,6 +164,17 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                     // Create a checkpointer and a FSM for every message queue
                     ICheckpointer checkpointer = await this.checkpointerFactory.CreateAsync(id, this.Endpoint.Id, priority);
                     EndpointExecutorFsm fsm = new EndpointExecutorFsm(this.Endpoint, checkpointer, this.config);
+
+                    // Get current known count from offset and initialize the queue length count.
+                    // It is possible that there is no checkpoint for this priority yet, in which case
+                    // the value will be InvalidOffset, so we need to initialize the queue length to 0 in that case.
+                    var count = 0ul;
+                    if (checkpointer.Offset != Checkpointer.InvalidOffset)
+                    {
+                        count = await this.messageStore.GetMessageCountFromOffset(id, checkpointer.Offset);
+                    }
+
+                    Checkpointer.Metrics.SetQueueLength(count, this.Endpoint.Id, priority);
 
                     // Add it to our dictionary
                     updatedSnapshot.Add(priority, fsm);

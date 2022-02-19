@@ -17,8 +17,52 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string SensorName = "tempSensor";
         const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
 
+        [TestCase(Protocol.Mqtt)]
+        [TestCase(Protocol.Amqp)]
+        [Category("CentOsSafe")]
+        public async Task CertRenew(Protocol protocol)
+        {
+            CancellationToken token = this.TestToken;
+
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
+                    builder =>
+                    {
+                        builder.GetModule(ModuleName.EdgeHub).WithEnvironment(("ServerCertificateRenewAfterInMs", "6000"));
+                        builder.GetModule(ModuleName.EdgeHub).WithEnvironment(new[] { ("UpstreamProtocol", protocol.ToString()) });
+                    },
+                    token);
+
+            // get by module name without $ because the system modules dictionary is created without $
+            EdgeModule edgeHub = deployment.Modules[ModuleName.EdgeHub.Substring(1)];
+            await edgeHub.WaitForStatusAsync(EdgeModuleStatus.Running, token);
+
+            // certificate renew should stop edgeHub and then it should be started by edgeAgent
+            await new EdgeModule(ModuleName.EdgeAgent, this.runtime.DeviceId, this.iotHub).WaitForReportedPropertyUpdatesAsync(
+                new
+                {
+                    properties = new
+                    {
+                        reported = new
+                        {
+                            systemModules = new
+                            {
+                                edgeHub = new
+                                {
+                                    restartCount = 1
+                                }
+                            }
+                        }
+                    }
+                },
+                token);
+        }
+
         [Test]
         [Category("CentOsSafe")]
+        [Category("nestededge_isa95")]
+        // This test should be disabled on windows until the following is resolved:
+        // https://github.com/Azure/azure-iot-sdk-csharp/issues/2223
+        [Category("FlakyOnWindows")]
         public async Task TempSensor()
         {
             string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
@@ -148,41 +192,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             EdgeModule sender = deployment.Modules[methodSender];
             await sender.WaitForEventsReceivedAsync(deployment.StartTime, token);
-        }
-
-        [Test]
-        [Category("CentOsSafe")]
-        public async Task MetricsCollector()
-        {
-            const string metricsCollectorName = "metricsCollector";
-
-            string metricsCollectorImage = Context.Current.MetricsCollectorImage.Expect(() => new ArgumentException("metricsCollectorImage parameter is required for MetricsCollector test"));
-            string hubResourceId = Context.Current.HubResourceId.Expect(() => new ArgumentException("IOT_HUB_RESOURCE_ID is required for MetricsCollector test"));
-
-            CancellationToken token = this.TestToken;
-
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
-                builder =>
-                {
-                    builder.AddModule(metricsCollectorName, metricsCollectorImage)
-                        .WithEnvironment(new[]
-                        {
-                            ("UploadTarget", "IotMessage"),
-                            ("ResourceID", hubResourceId)
-                        });
-                    builder.GetModule(ModuleName.EdgeHub)
-                        .WithDesiredProperties(new Dictionary<string, object>
-                        {
-                            ["routes"] = new
-                            {
-                                AzureIotEdgeMetricsCollectorToCloud = $"FROM /messages/modules/{metricsCollectorName}/* INTO $upstream"
-                            }
-                        });
-                },
-                token);
-
-            EdgeModule azureIotEdgeMetricsCollector = deployment.Modules[metricsCollectorName];
-            await azureIotEdgeMetricsCollector.WaitForEventsReceivedAsync(deployment.StartTime, token);
         }
     }
 }

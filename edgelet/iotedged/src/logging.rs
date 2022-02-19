@@ -51,7 +51,7 @@ pub fn init() {
             }
         })
         .filter_level(LevelFilter::Info)
-        .parse(&env::var(ENV_LOG).unwrap_or_default())
+        .parse_filters(&env::var(ENV_LOG).unwrap_or_default())
         .init();
 }
 

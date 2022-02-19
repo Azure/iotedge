@@ -30,11 +30,13 @@ mod checks;
 use checks::{
     get_host_connect_iothub_tests, get_host_container_iothub_tests, CertificatesQuickstart,
     ConnectManagementUri, ContainerEngineDns, ContainerEngineIPv6, ContainerEngineInstalled,
-    ContainerEngineIsMoby, ContainerEngineLogrotate, ContainerLocalTime, EdgeAgentStorageMounted,
-    EdgeHubStorageMounted, HostConnectDpsEndpoint, HostLocalTime, Hostname,
-    IdentityCertificateExpiry, IotedgedVersion, WellFormedConfig, WellFormedConnectionString,
-    WindowsHostVersion,
+    ContainerEngineLogrotate, ContainerLocalTime, EdgeAgentStorageMounted, EdgeHubStorageMounted,
+    HostConnectDpsEndpoint, HostLocalTime, Hostname, IdentityCertificateExpiry, IotedgedVersion,
+    WellFormedConfig, WellFormedConnectionString, WindowsHostVersion,
 };
+
+#[cfg(windows)]
+use checks::ContainerEngineIsMoby;
 
 pub struct Check {
     config_file: PathBuf,
@@ -239,6 +241,7 @@ impl Check {
                     Box::new(ContainerEngineIPv6::default()),
                     Box::new(IdentityCertificateExpiry::default()),
                     Box::new(CertificatesQuickstart::default()),
+                    #[cfg(windows)]
                     Box::new(ContainerEngineIsMoby::default()),
                     Box::new(ContainerEngineLogrotate::default()),
                     Box::new(EdgeAgentStorageMounted::default()),
@@ -621,9 +624,11 @@ struct CheckOutputSerializable {
 #[cfg(test)]
 mod tests {
     use super::{
-        Check, CheckResult, Checker, ContainerEngineIsMoby, Hostname, WellFormedConfig,
-        WellFormedConnectionString,
+        Check, CheckResult, Checker, Hostname, WellFormedConfig, WellFormedConnectionString,
     };
+
+    #[cfg(windows)]
+    use super::ContainerEngineIsMoby;
 
     #[test]
     fn config_file_checks_ok() {
@@ -683,15 +688,18 @@ mod tests {
                 ),
             }
 
-            // Pretend it's Moby
-            check.docker_server_version = Some("19.03.12+azure".to_owned());
+            #[cfg(windows)]
+            {
+                // Pretend it's Moby
+                check.docker_server_version = Some("19.03.12+azure".to_owned());
 
-            match ContainerEngineIsMoby::default().execute(&mut check, &mut runtime) {
-                CheckResult::Ok => (),
-                check_result => panic!(
-                    "checking moby_runtime.uri in {} returned {:?}",
-                    filename, check_result
-                ),
+                match ContainerEngineIsMoby::default().execute(&mut check, &mut runtime) {
+                    CheckResult::Ok => (),
+                    check_result => panic!(
+                        "checking moby_runtime.uri in {} returned {:?}",
+                        filename, check_result
+                    ),
+                }
             }
         }
     }
@@ -750,17 +758,6 @@ mod tests {
                 }
                 check_result => panic!(
                     "checking hostname in {} returned {:?}",
-                    filename, check_result
-                ),
-            }
-
-            // Pretend it's Moby
-            check.docker_server_version = Some("3.0.3".to_owned());
-
-            match ContainerEngineIsMoby::default().execute(&mut check, &mut runtime) {
-                CheckResult::Ok => (),
-                check_result => panic!(
-                    "checking moby_runtime.uri in {} returned {:?}",
                     filename, check_result
                 ),
             }
@@ -1019,23 +1016,26 @@ mod tests {
             check_result => panic!("parsing {} returned {:?}", filename, check_result),
         }
 
-        // Pretend it's Moby even though named pipe indicates otherwise
-        check.docker_server_version = Some("19.03.12+azure".to_owned());
+        #[cfg(windows)]
+        {
+            // Pretend it's Moby even though named pipe indicates otherwise
+            check.docker_server_version = Some("19.03.12+azure".to_owned());
 
-        match ContainerEngineIsMoby::default().execute(&mut check, &mut runtime) {
-            CheckResult::Warning(warning) => assert!(
-                warning.to_string().contains(
-                    "Device is not using a production-supported container engine (moby-engine)."
+            match ContainerEngineIsMoby::default().execute(&mut check, &mut runtime) {
+                CheckResult::Warning(warning) => assert!(
+                    warning.to_string().contains(
+                        "Device is not using a production-supported container engine (moby-engine)."
+                    ),
+                    "checking moby_runtime.uri in {} failed with an unexpected warning: {}",
+                    filename,
+                    warning
                 ),
-                "checking moby_runtime.uri in {} failed with an unexpected warning: {}",
-                filename,
-                warning
-            ),
 
-            check_result => panic!(
-                "checking moby_runtime.uri in {} returned {:?}",
-                filename, check_result
-            ),
+                check_result => panic!(
+                    "checking moby_runtime.uri in {} returned {:?}",
+                    filename, check_result
+                ),
+            }
         }
     }
 
@@ -1070,25 +1070,6 @@ mod tests {
         match WellFormedConfig::default().execute(&mut check, &mut runtime) {
             CheckResult::Ok => (),
             check_result => panic!("parsing {} returned {:?}", filename, check_result),
-        }
-
-        // Pretend it's Docker
-        check.docker_server_version = Some("19.03.12".to_owned());
-
-        match ContainerEngineIsMoby::default().execute(&mut check, &mut runtime) {
-            CheckResult::Warning(warning) => assert!(
-                warning.to_string().contains(
-                    "Device is not using a production-supported container engine (moby-engine)."
-                ),
-                "checking moby_runtime.uri in {} failed with an unexpected warning: {}",
-                filename,
-                warning
-            ),
-
-            check_result => panic!(
-                "checking moby_runtime.uri in {} returned {:?}",
-                filename, check_result
-            ),
         }
     }
 }

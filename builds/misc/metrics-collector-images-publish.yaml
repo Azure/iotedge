@@ -12,7 +12,7 @@ jobs:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby    
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby    
     workspace:
       clean: all
     environment: 'Azure-IoT-Edge-Core Release Env'
@@ -89,7 +89,7 @@ jobs:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby 
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby 
     workspace:
       clean: all
     environment: 'Azure-IoT-Edge-Core Release Env'

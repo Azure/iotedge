@@ -24,6 +24,7 @@ pub(crate) use self::container_connect_iothub::get_host_container_iothub_tests;
 pub(crate) use self::container_engine_dns::ContainerEngineDns;
 pub(crate) use self::container_engine_installed::ContainerEngineInstalled;
 pub(crate) use self::container_engine_ipv6::ContainerEngineIPv6;
+#[cfg(windows)]
 pub(crate) use self::container_engine_is_moby::ContainerEngineIsMoby;
 pub(crate) use self::container_engine_logrotate::ContainerEngineLogrotate;
 pub(crate) use self::container_local_time::ContainerLocalTime;

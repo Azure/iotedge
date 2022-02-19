@@ -110,7 +110,9 @@ jobs:
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
-      vmImage: "vs2017-win2016"
+      name: $(pool.windows.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
     steps:
       - powershell: Write-Host ("##vso[task.setvariable variable=NO_VALGRIND;]true")
         displayName: Set env variables
@@ -167,7 +169,7 @@ jobs:
       - script: edgelet/build/linux/install.sh
         displayName: Install Rust
       - script: |
-          $CARGO install cargo-tarpaulin
+          $CARGO install cargo-tarpaulin --version '^0.18'
         workingDirectory: edgelet
         displayName: Install Cargo Tarpaulin
       - script: |
