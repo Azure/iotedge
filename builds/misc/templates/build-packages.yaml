@@ -248,7 +248,7 @@ stages:
           inputs:
             workingDirectory: 'edgelet/hsm-sys/azure-iot-hsm-c/build'
             cmakeArgs: '--build . --config Release'
-        - powershell: edgelet/build/windows/package.ps1 -CreateTemplate
+        - powershell: edgelet/build/windows/package.ps1 -CreateTemplate -SkipInstallCerts
           displayName: Prepare package template
         - powershell: edgelet/build/windows/package.ps1 -CreateCab
           displayName: Generate CAB package

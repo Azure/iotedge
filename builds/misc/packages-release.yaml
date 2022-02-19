@@ -864,7 +864,7 @@ stages:
         displayName: Prepare package template
         inputs:
           filePath: edgelet/build/windows/package.ps1
-          arguments: -CreateTemplate
+          arguments: -CreateTemplate -SkipInstallCerts
           script: >-
             # Write your powershell commands here.
 
