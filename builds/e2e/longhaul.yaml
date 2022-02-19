@@ -80,7 +80,8 @@ jobs:
           project: $(vsts.project)
           pipeline: $(edgelet.package.build)
           branchName: $(edgelet.package.branchName)
-          buildVersionToDownload: latestFromBranch
+          buildVersionToDownload: specific 
+          buildId: 51976812
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
       - task: DownloadBuildArtifacts@0
