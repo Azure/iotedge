@@ -223,10 +223,12 @@ stages:
           - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
       steps:
         - powershell: |
+            Write-Host "Looking for test signing cert..."
             #Thumbprint                                Subject
             #----------                                -------
             #3ec2a996bd5319d0f6137917a1678e785e69e350  CN=Windows OEM Test Cert 2017 (TEST ONLY), O=Microsoft Partner, OU=Windows, L=Redmond, S=Washington, C=US
             $signcerts = Get-ChildItem -Path cert: -CodeSigningCert -Recurse | where-object { $_.Thumbprint -ieq "3ec2a996bd5319d0f6137917a1678e785e69e350" }
+            Write-Host "Found cert? $($signcerts -ne $null)"
             Write-Host $signcerts
           displayName: Validate the test signing cert
         - powershell: |
