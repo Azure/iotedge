@@ -5,43 +5,43 @@ parameters:
 
 stages:
 
-################################################################################
-  - stage: CheckBuildPackages
-################################################################################
-    displayName: Check For Source Code Changes
-    pool:
-        name: $(pool.linux.name)
-        demands:
-          - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
-    dependsOn: []
-    jobs:
-      - job: check_source_change_edgelet
-        displayName: Check Source Changes Edgelet (changes ARE in builds or edgelet)
-        steps:
-          - bash: |
-              git log -m -1 --name-only --first-parent --pretty="" | egrep -i '^(builds|edgelet)'
-              if [[ $? == 0 ]]; then
-                echo "Detected changes inside builds or edgelet folders"
-                echo "##vso[task.setvariable variable=EDGELETCHANGES;isOutput=true]TRUE"
-              fi
-            displayName: Check changes in edgelet sources
-            name: check_files
+# ################################################################################
+#   - stage: CheckBuildPackages
+# ################################################################################
+#     displayName: Check For Source Code Changes
+#     pool:
+#         name: $(pool.linux.name)
+#         demands:
+#           - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+#     dependsOn: []
+#     jobs:
+#       - job: check_source_change_edgelet
+#         displayName: Check Source Changes Edgelet (changes ARE in builds or edgelet)
+#         steps:
+#           - bash: |
+#               git log -m -1 --name-only --first-parent --pretty="" | egrep -i '^(builds|edgelet)'
+#               if [[ $? == 0 ]]; then
+#                 echo "Detected changes inside builds or edgelet folders"
+#                 echo "##vso[task.setvariable variable=EDGELETCHANGES;isOutput=true]TRUE"
+#               fi
+#             displayName: Check changes in edgelet sources
+#             name: check_files
   
 ################################################################################
   - stage: BuildPackages
 ################################################################################
     displayName: Build Packages
-    condition: |
-      or
-      (
-        eq(${{ parameters['E2EBuild'] }}, false), 
-        eq(dependencies.CheckBuildPackages.outputs['check_source_change_edgelet.check_files.EDGELETCHANGES'], 'true')
-      )
+    # condition: |
+    #   or
+    #   (
+    #     eq(${{ parameters['E2EBuild'] }}, false), 
+    #     eq(dependencies.CheckBuildPackages.outputs['check_source_change_edgelet.check_files.EDGELETCHANGES'], 'true')
+    #   )
     pool:
       name: $(pool.linux.name)
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
-    dependsOn: CheckBuildPackages
+    # dependsOn: CheckBuildPackages
     jobs:
 # ################################################################################
 #     - job: linux
