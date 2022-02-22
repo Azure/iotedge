@@ -26,19 +26,19 @@
 			"type": "bool"
 		},
 		"linux_vm_creation_template_uri": {
-			"defaultValue": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/proxy/create-linux-vm-template.json",
+			"defaultValue": "https://raw.githubusercontent.com/Azure/iotedge/main/builds/e2e/proxy/create-linux-vm-template.json",
 			"type": "string"
 		},
 		"proxy_config_script_uri": {
-			"defaultValue": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/proxy/configure_proxy.sh",
+			"defaultValue": "https://raw.githubusercontent.com/Azure/iotedge/main/builds/e2e/proxy/configure_proxy.sh",
 			"type": "string"
 		},
 		"runner_config_script_uri": {
-			"defaultValue": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/proxy/configure_runner.sh",
+			"defaultValue": "https://raw.githubusercontent.com/Azure/iotedge/main/builds/e2e/proxy/configure_runner.sh",
 			"type": "string"
 		},
 		"create_ssh_keys_script_uri": {
-			"defaultValue": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/proxy/create_ssh_keys.sh",
+			"defaultValue": "https://raw.githubusercontent.com/Azure/iotedge/main/builds/e2e/proxy/create_ssh_keys.sh",
 			"type": "string"
 		}
 	},

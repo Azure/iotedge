@@ -108,7 +108,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
 
     alpine.amd64)
         RUST_TARGET='x86_64-unknown-linux-musl'
-        # The below SETUP was copied from https://github.com/emk/rust-musl-builder/blob/master/Dockerfile.
+        # The below SETUP was copied from https://github.com/emk/rust-musl-builder/blob/main/Dockerfile.
         SETUP_COMMAND=$'
             OPENSSL_VERSION=1.1.1i
             apt-get update && \
