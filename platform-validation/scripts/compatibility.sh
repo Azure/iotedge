@@ -536,14 +536,11 @@ get_architecture
 echo "Architecture:$ARCH"
 echo "OS Type:$OSTYPE"
 
-#TODO : Do we need to check in both host and container?
-check_net_cap_bind_host
-check_net_cap_bind_container
 check_cgroup_heirachy
-
 #Flags Required for setting elevated capabilities in a container.
 check_kernel_flags EXT4_FS_SECURITY
 
+#Todo : Only check if docker engine is not present?
 #Check for Required Container Engine Flags if docker is not present
 check_kernel_flags \
 	NAMESPACES NET_NS PID_NS IPC_NS UTS_NS \
