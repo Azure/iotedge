@@ -367,7 +367,7 @@ jobs:
           aziotis.package.filter: 'aziot-identity-service-*.x86_64.rpm'
           identityServiceArtifactName: packages_mariner_amd64
           quickstart.artifactName: 'IotEdgeQuickstart.linux-x64.tar.gz'
-      - task: DeleteFiles@2
+      - task: DeleteFiles@1
         inputs:
           SourceFolder: '$(Agent.HomeDirectory)/../artifacts/'
           contents: |
