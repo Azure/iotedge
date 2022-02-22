@@ -364,9 +364,14 @@ jobs:
           edgelet.artifact.name: 'iotedged-mariner-amd64'
           images.artifact.name: '$(images.artifact.name.linux)'
           aziotis.artifact.name: 'packages_mariner_amd64'
-          aziotis.package.filter: 'aziot-identity-service-[1-9]*.x86_64.rpm'
+          aziotis.package.filter: 'aziot-identity-service-*.x86_64.rpm'
           identityServiceArtifactName: packages_mariner_amd64
           quickstart.artifactName: 'IotEdgeQuickstart.linux-x64.tar.gz'
+      - task: DeleteFiles@2
+        inputs:
+          SourceFolder: '$(Agent.HomeDirectory)/../artifacts/'
+          contents: |
+            aziot-identity-service-devel-*.x86_64.rpm
       - template: templates/longhaul-deploy.yaml
         parameters:
           release.label: 'lh$(agent.group)'
