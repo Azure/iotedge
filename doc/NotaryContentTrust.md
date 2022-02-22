@@ -28,7 +28,7 @@ To publish signed images, following tools must be installed in a publisher's env
 3. Docker client - to sign the image and publish to the Container Registry
 
 ##### b. Generate Certificates 
-Follow instructions in [iotedge repository]([https://github.com/ggjjj/iotedge/blob/master/edgelet/doc/devguide.md](https://github.com/ggjjj/iotedge/blob/master/edgelet/doc/devguide.md)) to install OpenSSL. There are two types of certificates to be generated.
+Follow instructions in [iotedge repository]([https://github.com/Azure/iotedge/blob/main/edgelet/doc/devguide.md](https://github.com/Azure/iotedge/blob/main/edgelet/doc/devguide.md)) to install OpenSSL. There are two types of certificates to be generated.
 1. root CA for each container registry
 2. root certificate for each container image
 
@@ -131,9 +131,9 @@ To check if the image is signed or not, `az` tools can be used. Before that logi
 
 The root CA of each Container Registry i.e `root_ca_exampleregistry.crt` must be copied out of band into the device in a specific location.
 
-In the `config.yaml`, in the Moby runtime section, content trust can be enabled by specifiying the registry server name and certificate ID of the root CA as shown in [sample](https://github.com/Azure/iotedge/blob/master/edgelet/iotedge/test-files/init/import/moby-runtime-content-trust/edged.yaml)
+In the `config.yaml`, in the Moby runtime section, content trust can be enabled by specifiying the registry server name and certificate ID of the root CA as shown in [sample](https://github.com/Azure/iotedge/blob/main/edgelet/iotedge/test-files/init/import/moby-runtime-content-trust/edged.yaml)
 
-In the `super-config.toml`, under `moby_runtime.content_trust.ca_certs`, the mapping of the certificate ID and file path of the root CA must be configured as shown in [sample](https://github.com/Azure/iotedge/blob/master/edgelet/iotedge/test-files/config/moby-runtime-content-trust/super-config.toml#L56)
+In the `super-config.toml`, under `moby_runtime.content_trust.ca_certs`, the mapping of the certificate ID and file path of the root CA must be configured as shown in [sample](https://github.com/Azure/iotedge/blob/main/edgelet/iotedge/test-files/config/moby-runtime-content-trust/super-config.toml#L56)
 
 Recommendation is to create another Service Principal with Pull access for the edge device and ensure the login credentials are applied in the deployment manifest. 
 
