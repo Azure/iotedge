@@ -38,7 +38,7 @@ parameters:
   connectWorkloadUri: ''
   listenManagementUri: ''
   listenWorkloadUri: ''
-  packageType: 'dep'
+  packageType: 'deb'
 
 steps:
   - task: Bash@3
