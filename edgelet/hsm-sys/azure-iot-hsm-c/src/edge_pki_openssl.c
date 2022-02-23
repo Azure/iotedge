@@ -1613,6 +1613,8 @@ int generate_pki_cert_and_key
     }
     else
     {
+        serial_number &= ((unsigned long)-1) >> 1;
+
         result = generate_pki_cert_and_key_helper(cert_props_handle,
                                             serial_number,
                                             ca_path_len,
