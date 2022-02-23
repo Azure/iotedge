@@ -21,86 +21,85 @@ POSSIBLE_CONFIGS="
 "
 
 if [ $# -gt 0 ]; then
-	CONFIG="$1"
+    CONFIG="$1"
 else
-	: "${CONFIG:=/proc/config.gz}"
+    : "${CONFIG:=/proc/config.gz}"
 fi
 
-if ! command -v zgrep > /dev/null 2>&1; then
-	zgrep() {
-		zcat "$2" | grep "$1"
-	}
+if ! command -v zgrep >/dev/null 2>&1; then
+    zgrep() {
+        zcat "$2" | grep "$1"
+    }
 fi
 
 is_set() {
-	zgrep "CONFIG_$1=[y|m]" "$CONFIG" > /dev/null
+    zgrep "CONFIG_$1=[y|m]" "$CONFIG" >/dev/null
 }
 
 color() {
-	codes=
-	if [ "$1" = 'bold' ]; then
-		codes='1'
-		shift
-	fi
-	if [ "$#" -gt 0 ]; then
-		code=
-		case "$1" in
-			# see https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
-			black) code=30 ;;
-			red) code=31 ;;
-			green) code=32 ;;
-			yellow) code=33 ;;
-			blue) code=34 ;;
-			magenta) code=35 ;;
-			cyan) code=36 ;;
-			white) code=37 ;;
-		esac
-		if [ "$code" ]; then
-			codes="${codes:+$codes;}$code"
-		fi
-	fi
-	printf '\033[%sm' "$codes"
+    codes=
+    if [ "$1" = 'bold' ]; then
+        codes='1'
+        shift
+    fi
+    if [ "$#" -gt 0 ]; then
+        code=
+        case "$1" in
+        # see https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
+        black) code=30 ;;
+        red) code=31 ;;
+        green) code=32 ;;
+        yellow) code=33 ;;
+        blue) code=34 ;;
+        magenta) code=35 ;;
+        cyan) code=36 ;;
+        white) code=37 ;;
+        esac
+        if [ "$code" ]; then
+            codes="${codes:+$codes;}$code"
+        fi
+    fi
+    printf '\033[%sm' "$codes"
 }
 
 wrap_color() {
-	text="$1"
-	shift
-	color "$@"
-	printf '%s' "$text"
-	color reset
-	echo
+    text="$1"
+    shift
+    color "$@"
+    printf '%s' "$text"
+    color reset
+    echo
 }
 
 wrap_good() {
-	echo "$(wrap_color "$1" white): $(wrap_color "$2" green)"
+    echo "$(wrap_color "$1" white): $(wrap_color "$2" green)"
 }
 wrap_bad() {
-	echo "$(wrap_color "$1" bold): $(wrap_color "$2" bold red)"
+    echo "$(wrap_color "$1" bold): $(wrap_color "$2" bold red)"
 }
 
-wrap_debug(){
+wrap_debug() {
     echo "$(wrap_color "$1" white)"
 }
 
 wrap_pass() {
-	echo "$(wrap_color "$1 - OK" green)"
+    echo "$(wrap_color "$1 - OK" green)"
 }
 wrap_fail() {
-	echo "$(wrap_color "$1 - Error" bold red)"
+    echo "$(wrap_color "$1 - Error" bold red)"
 }
 
-wrap_warn(){
+wrap_warn() {
     echo "$(wrap_color "$1 - Warning!!" yellow)"
 }
 
 wrap_warning() {
-	wrap_color >&2 "$*" yellow
+    wrap_color >&2 "$*" yellow
 }
-
 
 # ------------------------------------------------------------------------------
 #  Retrieve OS TYPE AND ARCHITECTURE (Required for Getting IoT)
-#  Derived from https://sh.rustup.rs 
+#  Derived from https://sh.rustup.rs
 # ------------------------------------------------------------------------------
 need_cmd() {
     if ! check_cmd "$1"; then
@@ -110,32 +109,32 @@ need_cmd() {
 }
 
 check_cmd() {
-    command -v "$1" > /dev/null 2>&1
+    command -v "$1" >/dev/null 2>&1
 }
 
 get_libc() {
-  need_cmd ldd
-  need_cmd awk
-  # Detect both gnu and musl
-  # Also detect glibc versions older than 2.18 and return musl for these
-  # Required until we identify minimum supported version
-  # TODO: https://github.com/vectordotdev/vector/issues/10807
-  local _ldd_version
-  local _libc_version
-  _ldd_version=$(ldd --version 2>&1)
-  if [ -z "${_ldd_version##*GNU*}" ] || [ -z "${_ldd_version##*GLIBC*}" ]; then
-    _libc_version=$(echo "$_ldd_version" | awk '/ldd/{print $NF}')
-    version_check=$(echo $_libc_version 2.18 | awk '{if ($1 < $2) print 1; else print 0}')
-    if [ $version_check -eq 1 ]; then
-      echo "musl"
+    need_cmd ldd
+    need_cmd awk
+    # Detect both gnu and musl
+    # Also detect glibc versions older than 2.18 and return musl for these
+    # Required until we identify minimum supported version
+    # TODO: https://github.com/vectordotdev/vector/issues/10807
+    local _ldd_version
+    local _libc_version
+    _ldd_version=$(ldd --version 2>&1)
+    if [ -z "${_ldd_version##*GNU*}" ] || [ -z "${_ldd_version##*GLIBC*}" ]; then
+        _libc_version=$(echo "$_ldd_version" | awk '/ldd/{print $NF}')
+        version_check=$(echo $_libc_version 2.18 | awk '{if ($1 < $2) print 1; else print 0}')
+        if [ $version_check -eq 1 ]; then
+            echo "musl"
+        else
+            echo "gnu"
+        fi
+    elif [ -z "${_ldd_version##*musl*}" ]; then
+        echo "musl"
     else
-      echo "gnu"
+        wrap_err "Unknown implementation of libc. ldd --version returns: ${_ldd_version}"
     fi
-  elif [ -z "${_ldd_version##*musl*}" ]; then
-    echo "musl"
-  else
-    wrap_err "Unknown implementation of libc. ldd --version returns: ${_ldd_version}"
-  fi
 }
 
 get_bitness() {
@@ -147,7 +146,7 @@ get_bitness() {
     # The printf builtin on some shells like dash only supports octal
     # escape sequences, so we use those.
     local _current_exe_head
-    _current_exe_head=$(head -c 5 /proc/self/exe )
+    _current_exe_head=$(head -c 5 /proc/self/exe)
     if [ "$_current_exe_head" = "$(printf '\177ELF\001')" ]; then
         echo 32
     elif [ "$_current_exe_head" = "$(printf '\177ELF\002')" ]; then
@@ -197,75 +196,138 @@ get_architecture() {
 
     case "$_ostype" in
 
-        Android)
-            _ostype=linux-android
-            ;;
+    Android)
+        _ostype=linux-android
+        ;;
 
-        Linux)
-            case $(get_libc) in
-              "musl")
-                _ostype=unknown-linux-musl
-                ;;
-              "gnu")
-                _ostype=unknown-linux-gnu
-                ;;
-              # Fallback
-              *)
-                _ostype=unknown-linux-gnu
-                ;;
-            esac
-            _bitness=$(get_bitness)
+    Linux)
+        case $(get_libc) in
+        "musl")
+            _ostype=unknown-linux-musl
             ;;
-
-        FreeBSD)
-            _ostype=unknown-freebsd
+        "gnu")
+            _ostype=unknown-linux-gnu
             ;;
-
-        NetBSD)
-            _ostype=unknown-netbsd
-            ;;
-
-        DragonFly)
-            _ostype=unknown-dragonfly
-            ;;
-
-        Darwin)
-            _ostype=apple-darwin
-            ;;
-
-        MINGW* | MSYS* | CYGWIN*)
-            _ostype=pc-windows-gnu
-            ;;
-
+        # Fallback
         *)
-            err "unrecognized OS type: $_ostype"
+            _ostype=unknown-linux-gnu
             ;;
+        esac
+        _bitness=$(get_bitness)
+        ;;
+
+    FreeBSD)
+        _ostype=unknown-freebsd
+        ;;
+
+    NetBSD)
+        _ostype=unknown-netbsd
+        ;;
+
+    DragonFly)
+        _ostype=unknown-dragonfly
+        ;;
+
+    Darwin)
+        _ostype=apple-darwin
+        ;;
+
+    MINGW* | MSYS* | CYGWIN*)
+        _ostype=pc-windows-gnu
+        ;;
+
+    *)
+        err "unrecognized OS type: $_ostype"
+        ;;
 
     esac
 
     case "$_cputype" in
 
-        i386 | i486 | i686 | i786 | x86)
+    i386 | i486 | i686 | i786 | x86)
+        _cputype=i686
+        ;;
+
+    xscale | arm)
+        _cputype=arm
+        if [ "$_ostype" = "linux-android" ]; then
+            _ostype=linux-androideabi
+        fi
+        ;;
+
+    armv6l)
+        _cputype=arm
+        if [ "$_ostype" = "linux-android" ]; then
+            _ostype=linux-androideabi
+        else
+            _ostype="${_ostype}eabihf"
+        fi
+        ;;
+
+    armv7l | armv8l)
+        _cputype=armv7
+        if [ "$_ostype" = "linux-android" ]; then
+            _ostype=linux-androideabi
+        else
+            _ostype="${_ostype}eabihf"
+        fi
+        ;;
+
+    aarch64)
+        _cputype=aarch64
+        ;;
+
+    x86_64 | x86-64 | x64 | amd64)
+        _cputype=x86_64
+        ;;
+
+    mips)
+        _cputype=$(get_endianness mips '' el)
+        ;;
+
+    mips64)
+        if [ "$_bitness" -eq 64 ]; then
+            # only n64 ABI is supported for now
+            _ostype="${_ostype}abi64"
+            _cputype=$(get_endianness mips64 '' el)
+        fi
+        ;;
+
+    ppc)
+        _cputype=powerpc
+        ;;
+
+    ppc64)
+        _cputype=powerpc64
+        ;;
+
+    ppc64le)
+        _cputype=powerpc64le
+        ;;
+
+    s390x)
+        _cputype=s390x
+        ;;
+
+    *)
+        err "Unknown CPU type: $_cputype"
+        ;;
+
+    esac
+
+    # Detect 64-bit linux with 32-bit userland
+    if [ "${_ostype}" = unknown-linux-gnu ] && [ "${_bitness}" -eq 32 ]; then
+        case $_cputype in
+        x86_64)
             _cputype=i686
             ;;
-
-        xscale | arm)
-            _cputype=arm
-            if [ "$_ostype" = "linux-android" ]; then
-                _ostype=linux-androideabi
-            fi
+        mips64)
+            _cputype=$(get_endianness mips '' el)
             ;;
-
-        armv6l)
-            _cputype=arm
-            if [ "$_ostype" = "linux-android" ]; then
-                _ostype=linux-androideabi
-            else
-                _ostype="${_ostype}eabihf"
-            fi
+        powerpc64)
+            _cputype=powerpc
             ;;
-
-        armv7l | armv8l)
+        aarch64)
             _cputype=armv7
             if [ "$_ostype" = "linux-android" ]; then
                 _ostype=linux-androideabi
@@ -273,68 +335,6 @@ get_architecture() {
                 _ostype="${_ostype}eabihf"
             fi
             ;;
-
-        aarch64)
-            _cputype=aarch64
-            ;;
-
-        x86_64 | x86-64 | x64 | amd64)
-            _cputype=x86_64
-            ;;
-
-        mips)
-            _cputype=$(get_endianness mips '' el)
-            ;;
-
-        mips64)
-            if [ "$_bitness" -eq 64 ]; then
-                # only n64 ABI is supported for now
-                _ostype="${_ostype}abi64"
-                _cputype=$(get_endianness mips64 '' el)
-            fi
-            ;;
-
-        ppc)
-            _cputype=powerpc
-            ;;
-
-        ppc64)
-            _cputype=powerpc64
-            ;;
-
-        ppc64le)
-            _cputype=powerpc64le
-            ;;
-
-        s390x)
-            _cputype=s390x
-            ;;
-
-        *)
-            err "Unknown CPU type: $_cputype"
-
-    esac
-
-    # Detect 64-bit linux with 32-bit userland
-    if [ "${_ostype}" = unknown-linux-gnu ] && [ "${_bitness}" -eq 32 ]; then
-        case $_cputype in
-            x86_64)
-                _cputype=i686
-                ;;
-            mips64)
-                _cputype=$(get_endianness mips '' el)
-                ;;
-            powerpc64)
-                _cputype=powerpc
-                ;;
-            aarch64)
-                _cputype=armv7
-                if [ "$_ostype" = "linux-android" ]; then
-                    _ostype=linux-androideabi
-                else
-                    _ostype="${_ostype}eabihf"
-                fi
-                ;;
         esac
     fi
 
@@ -352,26 +352,25 @@ get_architecture() {
     ARCH=$_cputype
 }
 
-perform_cleanup(){
+perform_cleanup() {
     rm -rf cap.txt || true
     #TODO : Cleanup docker images
 }
-
 
 # ------------------------------------------------------------------------------
 # Check whether the Target Device can be used to set capability. EdgeHub   Runtime component sets CAP_NET_BIND which is Required for Azure IoT Edge Operation.
 # ------------------------------------------------------------------------------
 
-check_net_cap_bind_host(){
+check_net_cap_bind_host() {
     wrap_debug "Setting the CAP_NET_BIND_SERVICE capability on the host..."
-    
-      # Check dependencies
+
+    # Check dependencies
     ret=$(need_cmd setcap)
-    if [ $? != 0 ]; then 
+    if [ $? != 0 ]; then
         wrap_fail "check_net_cap_bind_host"
         return
     fi
-    
+
     touch cap.txt
     setcap "cap_net_bind_service=+ep" cap.txt
     ret=$?
@@ -392,13 +391,13 @@ check_net_cap_bind_host(){
     wrap_pass "check_net_cap_bind_host" "Pass"
 }
 
-check_net_cap_bind_container(){
+check_net_cap_bind_container() {
     #Check For Docker
     wrap_debug "Setting the CAP_NET_BIND_SERVICE capability in a container..."
-    
+
     # Check dependencies
     ret=$(need_cmd docker)
-    if [ $? != 0 ]; then 
+    if [ $? != 0 ]; then
         wrap_fail "check_net_cap_bind_container" "Fail"
         return
     fi
@@ -407,12 +406,12 @@ check_net_cap_bind_container(){
     #Todo: Look into replacing this with alpine
     DOCKER_IMAGE="ubuntu:18.04"
     docker run --rm \
-    --user root \
-    -e 'USER=root' \
-    -i \
-    $DOCKER_VOLUME_MOUNTS \
-    "$DOCKER_IMAGE" \
-    sh -c "
+        --user root \
+        -e 'USER=root' \
+        -i \
+        $DOCKER_VOLUME_MOUNTS \
+        "$DOCKER_IMAGE" \
+        sh -c "
         export DEBIAN_FRONTEND=noninteractive
         set -e &&
         apt-get update 1>/dev/null 2>&1 &&
@@ -432,29 +431,28 @@ check_net_cap_bind_container(){
 # bits of this were adapted from moby check-config.shells
 # See https://github.com/moby/moby/blob/master/contrib/check-config.sh
 
-
 #Reference Issue : https://github.com/Azure/iotedge/issues/5812
-check_cgroup_heirachy(){   
+check_cgroup_heirachy() {
     wrap_debug "Checking cgroup hierarchy..."
     EXITCODE=0
-    if [ "$(stat -f -c %t /sys/fs/cgroup 2> /dev/null)" = '63677270' ]; then
-	wrap_good 'cgroup hierarchy' 'cgroupv2'
-	cgroupv2ControllerFile='/sys/fs/cgroup/cgroup.controllers'
-	if [ -f "$cgroupv2ControllerFile" ]; then
-		echo '  Controllers:'
-		for controller in cpu cpuset io memory pids; do
-			if grep -qE '(^| )'"$controller"'($| )' "$cgroupv2ControllerFile"; then
-				echo "  - $(wrap_good "$controller" 'available')"
-			else
-				echo "  - $(wrap_bad "$controller" 'missing')"
-                EXITCODE=1
-			fi
-		done
-	else
-		wrap_bad "$cgroupv2ControllerFile" 'nonexistent??'
-        EXITCODE=1
-	fi
-	# TODO find an efficient way to check if cgroup.freeze exists in subdir
+    if [ "$(stat -f -c %t /sys/fs/cgroup 2>/dev/null)" = '63677270' ]; then
+        wrap_good 'cgroup hierarchy' 'cgroupv2'
+        cgroupv2ControllerFile='/sys/fs/cgroup/cgroup.controllers'
+        if [ -f "$cgroupv2ControllerFile" ]; then
+            echo '  Controllers:'
+            for controller in cpu cpuset io memory pids; do
+                if grep -qE '(^| )'"$controller"'($| )' "$cgroupv2ControllerFile"; then
+                    echo "  - $(wrap_good "$controller" 'available')"
+                else
+                    echo "  - $(wrap_bad "$controller" 'missing')"
+                    EXITCODE=1
+                fi
+            done
+        else
+            wrap_bad "$cgroupv2ControllerFile" 'nonexistent??'
+            EXITCODE=1
+        fi
+        # TODO find an efficient way to check if cgroup.freeze exists in subdir
     else
         cgroupSubsystemDir="$(sed -rne '/^[^ ]+ ([^ ]+) cgroup ([^ ]*,)?(cpu|cpuacct|cpuset|devices|freezer|memory)[, ].*$/ { s//\1/p; q }' /proc/mounts)"
         cgroupDir="$(dirname "$cgroupSubsystemDir")"
@@ -470,7 +468,7 @@ check_cgroup_heirachy(){
             echo "    $(wrap_color '(see https://github.com/tianon/cgroupfs-mount)' yellow)"
         fi
     fi
-    
+
     if [ $EXITCODE -eq 0 ]; then
         wrap_pass "check_cgroup_heirachy"
     else
@@ -478,8 +476,7 @@ check_cgroup_heirachy(){
     fi
 }
 
-
-check_systemd(){
+check_systemd() {
     wrap_debug "Checking presence of systemd..."
     if [ -z "$(pidof systemd)" ]; then
         wrap_warn "check_systemd"
@@ -490,15 +487,33 @@ check_systemd(){
     fi
 }
 
-get_architecture
-echo "Architecture:$ARCH"
-echo "OS Type:$OSTYPE"
+check_architecture() {
+
+    wrap_debug "Checking architecture Compatibility..."
+    get_architecture
+    wrap_debug "Architecture:$ARCH"
+
+    case $ARCH in
+    x86_64 | armv7 | aarch64)
+        wrap_pass "check_architecture"
+        ;;
+    arm)
+        wrap_fail "check_architecture"
+        wrap_bad "armv6 architecture is incompatible with IoT Edge due to .NET incompatibility. Please see : https://github.com/dotnet/runtime/issues/7764"
+        ;;
+    *)
+        wrap_warning "check_architecture"
+        wrap_warn "Compatibility for IoT Edge not known for architecture $ARCH"
+        ;;
+    esac
+
+}
 
 #TODO : Do we need to check in both host and container?
 check_net_cap_bind_host
 check_net_cap_bind_container
 check_cgroup_heirachy
 check_systemd
+check_architecture
 perform_cleanup
 echo "IoT Edge Compatibility Tool Check Complete"
-
