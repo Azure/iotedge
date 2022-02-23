@@ -342,9 +342,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             // Note: Keep in sync with iotedge-check's edge-hub-storage-mounted-from-host check (edgelet/iotedge/src/check/checks/storage_mounted_from_host.rs)
             string storagePath = GetOrCreateDirectoryPath(this.configuration.GetValue<string>("StorageFolder"), Constants.EdgeHubStorageFolder);
             bool enableCleanupStateOnIdentityReset = this.configuration.GetValue<bool>("CleanupStateOnIdentityReset", true);
+            PersistentStorageValidation storageValidator = new PersistentStorageValidation();
             if (enableCleanupStateOnIdentityReset)
             {
-                PersistentStorageValidation.ValidateStorageIdentity(storagePath, this.edgeDeviceId, this.iotHubHostname, this.edgeModuleId, this.edgeModuleGenerationId, Logger.Factory.CreateLogger("EdgeHub"));
+                storageValidator.ValidateStorageIdentity(storagePath, this.edgeDeviceId, this.iotHubHostname, this.edgeModuleId, this.edgeModuleGenerationId, Logger.Factory.CreateLogger("EdgeHub"));
             }
 
             bool storeAndForwardEnabled = this.configuration.GetValue<bool>("storeAndForwardEnabled");

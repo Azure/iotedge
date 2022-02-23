@@ -158,6 +158,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 Option<ulong> storageMaxManifestFileSize = GetConfigIfExists<ulong>(Constants.StorageMaxManifestFileSize, configuration, logger);
                 Option<int> storageMaxOpenFiles = GetConfigIfExists<int>(Constants.StorageMaxOpenFiles, configuration, logger);
                 Option<StorageLogLevel> storageLogLevel = GetConfigIfExists<StorageLogLevel>(Constants.StorageLogLevel, configuration, logger);
+                PersistentStorageValidation storageValidator = new PersistentStorageValidation();
                 string iothubHostname;
                 string deviceId;
                 string moduleId;
@@ -174,7 +175,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         moduleId = connectionStringParser.ModuleId;
                         if (enableCleanupStateOnIdentityReset)
                         {
-                            PersistentStorageValidation.ValidateStorageIdentity(storagePath, deviceId, iothubHostname, moduleId, Option.None<string>(), logger);
+                            storageValidator.ValidateStorageIdentity(storagePath, deviceId, iothubHostname, moduleId, Option.None<string>(), logger);
                         }
 
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, enableNonPersistentStorageBackup, storageBackupPath, storageTotalMaxWalSize, storageMaxManifestFileSize, storageMaxOpenFiles, storageLogLevel));
@@ -193,7 +194,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         string moduleGenerationId = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
                         if (enableCleanupStateOnIdentityReset)
                         {
-                            PersistentStorageValidation.ValidateStorageIdentity(storagePath, deviceId, iothubHostname, moduleId, Option.Some(moduleGenerationId), logger);
+                            storageValidator.ValidateStorageIdentity(storagePath, deviceId, iothubHostname, moduleId, Option.Some(moduleGenerationId), logger);
                         }
 
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), enableNonPersistentStorageBackup, storageBackupPath, storageTotalMaxWalSize, storageMaxManifestFileSize, storageMaxOpenFiles, storageLogLevel));
@@ -235,7 +236,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         bool runAsNonRoot = configuration.GetValue<bool>(K8sConstants.RunAsNonRootKey);
                         if (enableCleanupStateOnIdentityReset)
                         {
-                            PersistentStorageValidation.ValidateStorageIdentity(storagePath, deviceId, iothubHostname, moduleId, Option.Some(moduleGenerationId), logger);
+                            storageValidator.ValidateStorageIdentity(storagePath, deviceId, iothubHostname, moduleId, Option.Some(moduleGenerationId), logger);
                         }
 
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), enableNonPersistentStorageBackup, storageBackupPath, storageTotalMaxWalSize, storageMaxManifestFileSize, storageMaxOpenFiles, storageLogLevel));
