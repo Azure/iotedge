@@ -5,13 +5,13 @@ pr: none
 # Thus the schedules between these pipelines are offset by 6 hours.
 # This will ensure that enough agents are avaiable to service all tests.
 # 
-# Test schedule the same between master and release/1.2, but offset 12 hours.
+# Test schedule the same between main and release/1.2, but offset 12 hours.
 schedules:
 - cron: "0 0 * * *"
-  displayName: Daily build master
+  displayName: Daily build main
   branches:
     include:
-    - master
+    - main
   always: true
 - cron: "0 12 * * *"
   displayName: Daily build release/1.2
