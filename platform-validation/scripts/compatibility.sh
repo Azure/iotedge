@@ -509,11 +509,35 @@ check_architecture() {
 
 }
 
+#Todo : This will need to be checked here : https://github.com/Azure/iotedge/blob/main/edgelet/docker-rs/src/apis/configuration.rs#L14 for every build
+#to make sure we still support the version.
+MINIMUM_DOCKER_API_VERSION=1.34
+check_docker_api_version(){
+    # Check dependencies
+    if ! need_cmd docker; then
+        wrap_warning "check_docker_api_version"
+        wrap_warn "Docker Enginer does not exist on this device!!, Please follow instructions here on how to install a compatible container engine
+        https://docs.microsoft.com/en-us/azure/iot-edge/how-to-provision-single-device-linux-symmetric?view=iotedge-2020-11&tabs=azure-portal%2Cubuntu#install-a-container-engine"
+        return
+    fi
+
+    version=$(docker version -f '{{.Client.APIVersion}}')
+    version_check=$(echo "$version" $MINIMUM_DOCKER_API_VERSION | awk '{if ($1 < $2) print 1; else print 0}')
+    if [ "$version_check" -eq 0 ]; then
+        wrap_pass "check_docker_api_version"
+    else
+        wrap_fail "check_docker_api_version"
+        wrap_warning "Docker API Version on device $version is lower than Minumum API Version $MINIMUM_DOCKER_API_VERSION. Please upgrade docker engine."
+    fi
+
+}
+
 #TODO : Do we need to check in both host and container?
 check_net_cap_bind_host
 check_net_cap_bind_container
 check_cgroup_heirachy
 check_systemd
 check_architecture
+check_docker_api_version
 perform_cleanup
 echo "IoT Edge Compatibility Tool Check Complete"
