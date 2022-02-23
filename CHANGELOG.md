@@ -181,7 +181,7 @@ This release contains a significant refactoring to the IoT Edge security daemon.
 Every attempt has been made to ensure that the APIs on which Edge modules depend will remain unaffected and backward compatible. Issues affecting Edge modules will be treated with the highest priority.
 
 ### Impact to installing / configuring IoT Edge
-The refactoring does affect the packaging and installation of IoT Edge. While we've attempted to minimize the impact of these there are expected differences. For more details on these changes please refer to the discussion of [Packaging](https://github.com/Azure/iotedge/blob/master/doc/packaging.md).
+The refactoring does affect the packaging and installation of IoT Edge. While we've attempted to minimize the impact of these there are expected differences. For more details on these changes please refer to the discussion of [Packaging](https://github.com/Azure/iotedge/blob/main/doc/packaging.md).
 
 
 ## Edge Agent
@@ -265,7 +265,7 @@ This release contains a significant refactoring to the IoT Edge security daemon.
 Every attempt has been made to ensure that the APIs on which Edge modules depend will remain unaffected and backward compatible. Issues affecting Edge modules will be treated with the highest priority.
 
 ### Impact to installing / configuring IoT Edge
-The refactoring does affect the packaging and installation of IoT Edge. While we've attempted to minimize the impact of these there are expected differences. For more details on these changes please refer to the discussion of [Packaging](https://github.com/Azure/iotedge/blob/master/doc/packaging.md).
+The refactoring does affect the packaging and installation of IoT Edge. While we've attempted to minimize the impact of these there are expected differences. For more details on these changes please refer to the discussion of [Packaging](https://github.com/Azure/iotedge/blob/main/doc/packaging.md).
 
 
 ## Edge Agent
