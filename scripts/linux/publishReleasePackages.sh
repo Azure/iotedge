@@ -234,7 +234,7 @@ publish_to_github()
 
         #Create Release Page
         url="https://api.github.com/repos/Azure/azure-iotedge/releases"
-        body=$(jq -n --arg version "$VERSION" --arg body "$(cat $WDIR/content.txt)" '{tag_name: $version, name: $version, target_commitish:"master", body: $body}')
+        body=$(jq -n --arg version "$VERSION" --arg body "$(cat $WDIR/content.txt)" '{tag_name: $version, name: $version, target_commitish:"main", body: $body}')
         sudo rm -rf $WDIR/content.txt
         
         echo "Body for Release is $body"
