@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         ///
         /// tl;dr if there is more than one path-component, and the first component contains a '.' or ':' then
         /// it is a registry address.
-        /// For more information: https://github.com/docker/distribution/blob/master/reference/reference.go
+        /// For more information: https://github.com/docker/distribution/blob/main/reference/reference.go
         /// </summary>
         /// <param name="image">docker image tag</param>
         /// <param name="domain">docker domain</param>

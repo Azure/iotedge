@@ -5,17 +5,17 @@ resources:
   pipelines:
   - pipeline: images
     source: 'Azure-IoT-Edge-Core Build Images'
-    branch: 'master'
+    branch: 'main'
     trigger:
       branches:
-      - master
+      - main
       - release/*
   - pipeline: packages
     source: 'Azure-IoT-Edge-Core Edgelet Packages'
-    branch: 'master'
+    branch: 'main'
     trigger:
       branches:
-      - master
+      - main
       - release/*
 
 variables:

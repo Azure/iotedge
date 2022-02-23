@@ -13,7 +13,7 @@ resources:
   pipelines:
   - pipeline: images
     source: 'Azure-IoT-Edge-Core Images Release YAML'
-    branch: 'master'
+    branch: 'main'
 
 jobs:
 ################################################################################
