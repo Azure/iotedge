@@ -1613,6 +1613,10 @@ int generate_pki_cert_and_key
     }
     else
     {
+        // CAB Forum recommends serial to be non-negative for the sake of compatibility,
+        // so force the sign bit to be 0. We can't use `labs()` on the off-chance that
+        // `serial_number` is `LONG_MIN`, since `labs(LONG_MIN)` is undefined on Linux
+        // and returns `LONG_MIN` on other implementations.
         serial_number &= ((unsigned long)-1) >> 1;
 
         result = generate_pki_cert_and_key_helper(cert_props_handle,
