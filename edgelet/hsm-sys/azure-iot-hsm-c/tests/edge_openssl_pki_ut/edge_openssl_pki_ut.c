@@ -1360,6 +1360,7 @@ static void test_helper_cert_create_with_subject
     bool use_rsa,
     int key_len,
     CERTIFICATE_TYPE cert_type,
+    bool with_key_props,
     SUBJECT_FIELDS *set_return_subject,
     char *failed_function_list,
     size_t failed_function_size
@@ -1379,6 +1380,19 @@ static void test_helper_cert_create_with_subject
     }
 
     umock_c_reset_all_calls();
+
+    // generate_pki_cert_and_key calls generate_rand_buffer, which internally calls initialize_openssl() + RAND_bytes(),
+    // that generate_pki_cert_and_key_with_props does not.
+    if (!with_key_props)
+    {
+        EXPECTED_CALL(initialize_openssl());
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
+        i++;
+
+        STRICT_EXPECTED_CALL(RAND_bytes(IGNORED_PTR_ARG, sizeof(long)));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
+        i++;
+    }
 
     EXPECTED_CALL(initialize_openssl());
     ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
@@ -1491,7 +1505,16 @@ static void test_helper_cert_create_with_subject
     ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
     i++;
 
-    STRICT_EXPECTED_CALL(ASN1_INTEGER_set(TEST_ASN1_SERIAL_NUM, TEST_SERIAL_NUMBER));
+    // generate_pki_cert_and_key calls generate_rand_buffer to generate a serial number,
+    // whereas generate_pki_cert_and_key_with_props uses TEST_SERIAL_NUMBER.
+    if (with_key_props)
+    {
+        STRICT_EXPECTED_CALL(ASN1_INTEGER_set(TEST_ASN1_SERIAL_NUM, TEST_SERIAL_NUMBER));
+    }
+    else
+    {
+        STRICT_EXPECTED_CALL(ASN1_INTEGER_set(TEST_ASN1_SERIAL_NUM, IGNORED_NUM_ARG));
+    }
     ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
@@ -1900,12 +1923,13 @@ static void test_helper_cert_create
     bool use_rsa,
     int key_len,
     CERTIFICATE_TYPE cert_type,
+    bool with_key_props,
     char *failed_function_list,
     size_t failed_function_size
 )
 {
     test_helper_cert_create_with_subject(is_self_signed, use_rsa, key_len, cert_type,
-                                         NULL, failed_function_list, failed_function_size);
+                                         with_key_props, NULL, failed_function_list, failed_function_size);
 }
 
 static void test_helper_load_cert_file
@@ -2450,22 +2474,22 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         int status;
 
         // act, assert
-        status = generate_pki_cert_and_key(NULL, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
+        status = generate_pki_cert_and_key(NULL, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
         ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
 
-        status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, NULL, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
+        status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_PATH_LEN_NON_CA, NULL, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
         ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
 
-        status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, NULL, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
+        status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, NULL, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
         ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
 
-        status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, NULL, TEST_ISSUER_CERT_FILE);
+        status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, NULL, TEST_ISSUER_CERT_FILE);
         ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
 
-        status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, NULL);
+        status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, NULL);
         ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
 
-        status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, -1, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
+        status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, -1, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
         ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
 
         // cleanup
@@ -2483,7 +2507,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         STRICT_EXPECTED_CALL(get_validity_seconds(TEST_CERT_PROPS_HANDLE)).SetReturn(0);
 
         // act
-        status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
+        status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
         // assert
         ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
@@ -2503,7 +2527,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         STRICT_EXPECTED_CALL(get_common_name(TEST_CERT_PROPS_HANDLE)).SetReturn(NULL);
 
         // act
-        status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
+        status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
         // assert
         ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
@@ -2523,7 +2547,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         STRICT_EXPECTED_CALL(get_common_name(TEST_CERT_PROPS_HANDLE)).SetReturn("");
 
         // act
-        status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
+        status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
         // assert
         ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
@@ -2543,7 +2567,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         STRICT_EXPECTED_CALL(get_certificate_type(TEST_CERT_PROPS_HANDLE)).SetReturn(CERTIFICATE_TYPE_SERVER);
 
         // act
-        status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, 1, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
+        status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, 1, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
         // assert
         ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
@@ -2563,10 +2587,10 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
 
-        test_helper_cert_create(false, true, TEST_VALID_RSA_CA_CERT_KEY_LEN, CERTIFICATE_TYPE_CA, failed_function_list, failed_function_size);
+        test_helper_cert_create(false, true, TEST_VALID_RSA_CA_CERT_KEY_LEN, CERTIFICATE_TYPE_CA, false, failed_function_list, failed_function_size);
 
         // act
-        status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, 1, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
+        status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, 1, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
         // assert
         ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
@@ -2588,7 +2612,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
-        test_helper_cert_create(false, true, TEST_VALID_RSA_CA_CERT_KEY_LEN, CERTIFICATE_TYPE_CA, failed_function_list, failed_function_size);
+        test_helper_cert_create(false, true, TEST_VALID_RSA_CA_CERT_KEY_LEN, CERTIFICATE_TYPE_CA, false, failed_function_list, failed_function_size);
         umock_c_negative_tests_snapshot();
 
         for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
@@ -2599,7 +2623,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
             if (failed_function_list[i] == 1)
             {
                 // act
-                int status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, 1, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
+                int status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, 1, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
                 // assert
                 ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
@@ -2622,10 +2646,10 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
 
-        test_helper_cert_create(false, true, TEST_VALID_RSA_SERVER_KEY_LEN, CERTIFICATE_TYPE_SERVER, failed_function_list, failed_function_size);
+        test_helper_cert_create(false, true, TEST_VALID_RSA_SERVER_KEY_LEN, CERTIFICATE_TYPE_SERVER, false, failed_function_list, failed_function_size);
 
         // act
-        status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, 0, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
+        status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, 0, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
         // assert
         ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
@@ -2647,7 +2671,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
-        test_helper_cert_create(false, true, TEST_VALID_RSA_SERVER_KEY_LEN, CERTIFICATE_TYPE_SERVER, failed_function_list, failed_function_size);
+        test_helper_cert_create(false, true, TEST_VALID_RSA_SERVER_KEY_LEN, CERTIFICATE_TYPE_SERVER, false, failed_function_list, failed_function_size);
         umock_c_negative_tests_snapshot();
 
         for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
@@ -2658,7 +2682,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
             if (failed_function_list[i] == 1)
             {
                 // act
-                int status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, 0, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
+                int status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, 0, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
                 // assert
                 ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
@@ -2681,10 +2705,10 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
 
-        test_helper_cert_create(false, true, TEST_VALID_RSA_CLIENT_KEY_LEN, CERTIFICATE_TYPE_CLIENT, failed_function_list, failed_function_size);
+        test_helper_cert_create(false, true, TEST_VALID_RSA_CLIENT_KEY_LEN, CERTIFICATE_TYPE_CLIENT, false, failed_function_list, failed_function_size);
 
         // act
-        status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, 0, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
+        status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, 0, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
         // assert
         ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
@@ -2706,7 +2730,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
-        test_helper_cert_create(false, true, TEST_VALID_RSA_CLIENT_KEY_LEN, CERTIFICATE_TYPE_CLIENT, failed_function_list, failed_function_size);
+        test_helper_cert_create(false, true, TEST_VALID_RSA_CLIENT_KEY_LEN, CERTIFICATE_TYPE_CLIENT, false, failed_function_list, failed_function_size);
         umock_c_negative_tests_snapshot();
 
         for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
@@ -2717,7 +2741,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
             if (failed_function_list[i] == 1)
             {
                 // act
-                int status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, 0, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
+                int status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, 0, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
                 // assert
                 ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
@@ -2740,10 +2764,10 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
 
-        test_helper_cert_create(false, false, TEST_VALID_ECC_CA_CERT_KEY_LEN, CERTIFICATE_TYPE_CA, failed_function_list, failed_function_size);
+        test_helper_cert_create(false, false, TEST_VALID_ECC_CA_CERT_KEY_LEN, CERTIFICATE_TYPE_CA, false, failed_function_list, failed_function_size);
 
         // act
-        status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, 1, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
+        status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, 1, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
         // assert
         ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
@@ -2765,7 +2789,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
-        test_helper_cert_create(false, false, TEST_VALID_ECC_CA_CERT_KEY_LEN, CERTIFICATE_TYPE_CA, failed_function_list, failed_function_size);
+        test_helper_cert_create(false, false, TEST_VALID_ECC_CA_CERT_KEY_LEN, CERTIFICATE_TYPE_CA, false, failed_function_list, failed_function_size);
         umock_c_negative_tests_snapshot();
 
         for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
@@ -2776,7 +2800,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
             if (failed_function_list[i] == 1)
             {
                 // act
-                int status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, 1, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
+                int status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, 1, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
                 // assert
                 ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
@@ -2799,10 +2823,10 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
 
-        test_helper_cert_create(false, false, TEST_VALID_ECC_SERVER_KEY_LEN, CERTIFICATE_TYPE_SERVER, failed_function_list, failed_function_size);
+        test_helper_cert_create(false, false, TEST_VALID_ECC_SERVER_KEY_LEN, CERTIFICATE_TYPE_SERVER, false, failed_function_list, failed_function_size);
 
         // act
-        status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, 0, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
+        status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, 0, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
         // assert
         ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
@@ -2824,7 +2848,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
-        test_helper_cert_create(false, false, TEST_VALID_ECC_SERVER_KEY_LEN, CERTIFICATE_TYPE_SERVER, failed_function_list, failed_function_size);
+        test_helper_cert_create(false, false, TEST_VALID_ECC_SERVER_KEY_LEN, CERTIFICATE_TYPE_SERVER, false, failed_function_list, failed_function_size);
         umock_c_negative_tests_snapshot();
 
         for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
@@ -2835,7 +2859,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
             if (failed_function_list[i] == 1)
             {
                 // act
-                int status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, 0, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
+                int status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, 0, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
                 // assert
                 ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
@@ -2858,10 +2882,10 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
 
-        test_helper_cert_create(false, false, TEST_VALID_ECC_CLIENT_KEY_LEN, CERTIFICATE_TYPE_CLIENT, failed_function_list, failed_function_size);
+        test_helper_cert_create(false, false, TEST_VALID_ECC_CLIENT_KEY_LEN, CERTIFICATE_TYPE_CLIENT, false, failed_function_list, failed_function_size);
 
         // act
-        status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, 0, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
+        status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, 0, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
         // assert
         ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
@@ -2883,7 +2907,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
-        test_helper_cert_create(false, false, TEST_VALID_ECC_CLIENT_KEY_LEN, CERTIFICATE_TYPE_CLIENT, failed_function_list, failed_function_size);
+        test_helper_cert_create(false, false, TEST_VALID_ECC_CLIENT_KEY_LEN, CERTIFICATE_TYPE_CLIENT, false, failed_function_list, failed_function_size);
         umock_c_negative_tests_snapshot();
 
         for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
@@ -2894,7 +2918,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
             if (failed_function_list[i] == 1)
             {
                 // act
-                int status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, 0, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
+                int status = generate_pki_cert_and_key(TEST_CERT_PROPS_HANDLE, 0, TEST_KEY_FILE, TEST_CERT_FILE, TEST_ISSUER_KEY_FILE, TEST_ISSUER_CERT_FILE);
 
                 // assert
                 ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
@@ -3028,7 +3052,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
-        test_helper_cert_create(true, true, TEST_VALID_RSA_CA_CERT_KEY_LEN, CERTIFICATE_TYPE_CA, failed_function_list, failed_function_size);
+        test_helper_cert_create(true, true, TEST_VALID_RSA_CA_CERT_KEY_LEN, CERTIFICATE_TYPE_CA, true, failed_function_list, failed_function_size);
 
         // act
         status = generate_pki_cert_and_key_with_props(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_CA, TEST_KEY_FILE, TEST_CERT_FILE, &TEST_VALID_KEY_PROPS_RSA);
@@ -3053,7 +3077,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
-        test_helper_cert_create(true, true, TEST_VALID_RSA_CA_CERT_KEY_LEN, CERTIFICATE_TYPE_CA, failed_function_list, failed_function_size);
+        test_helper_cert_create(true, true, TEST_VALID_RSA_CA_CERT_KEY_LEN, CERTIFICATE_TYPE_CA, true, failed_function_list, failed_function_size);
 
         umock_c_negative_tests_snapshot();
 
@@ -3087,7 +3111,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
-        test_helper_cert_create(true, true, TEST_VALID_RSA_SERVER_KEY_LEN, CERTIFICATE_TYPE_SERVER, failed_function_list, failed_function_size);
+        test_helper_cert_create(true, true, TEST_VALID_RSA_SERVER_KEY_LEN, CERTIFICATE_TYPE_SERVER, true, failed_function_list, failed_function_size);
 
         // act
         status = generate_pki_cert_and_key_with_props(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, &TEST_VALID_KEY_PROPS_RSA);
@@ -3112,7 +3136,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
-        test_helper_cert_create(true, true, TEST_VALID_RSA_SERVER_KEY_LEN, CERTIFICATE_TYPE_SERVER, failed_function_list, failed_function_size);
+        test_helper_cert_create(true, true, TEST_VALID_RSA_SERVER_KEY_LEN, CERTIFICATE_TYPE_SERVER, true, failed_function_list, failed_function_size);
 
         umock_c_negative_tests_snapshot();
 
@@ -3146,7 +3170,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
-        test_helper_cert_create(true, true, TEST_VALID_RSA_CLIENT_KEY_LEN, CERTIFICATE_TYPE_CLIENT, failed_function_list, failed_function_size);
+        test_helper_cert_create(true, true, TEST_VALID_RSA_CLIENT_KEY_LEN, CERTIFICATE_TYPE_CLIENT, true, failed_function_list, failed_function_size);
 
         // act
         status = generate_pki_cert_and_key_with_props(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, &TEST_VALID_KEY_PROPS_RSA);
@@ -3171,7 +3195,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
-        test_helper_cert_create(true, true, TEST_VALID_RSA_CLIENT_KEY_LEN, CERTIFICATE_TYPE_CLIENT, failed_function_list, failed_function_size);
+        test_helper_cert_create(true, true, TEST_VALID_RSA_CLIENT_KEY_LEN, CERTIFICATE_TYPE_CLIENT, true, failed_function_list, failed_function_size);
 
         umock_c_negative_tests_snapshot();
 
@@ -3205,7 +3229,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
-        test_helper_cert_create(true, false, TEST_VALID_ECC_CA_CERT_KEY_LEN, CERTIFICATE_TYPE_CA, failed_function_list, failed_function_size);
+        test_helper_cert_create(true, false, TEST_VALID_ECC_CA_CERT_KEY_LEN, CERTIFICATE_TYPE_CA, true, failed_function_list, failed_function_size);
 
         // act
         status = generate_pki_cert_and_key_with_props(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_CA, TEST_KEY_FILE, TEST_CERT_FILE, &TEST_VALID_KEY_PROPS_ECC);
@@ -3230,7 +3254,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
-        test_helper_cert_create(true, false, TEST_VALID_ECC_CA_CERT_KEY_LEN, CERTIFICATE_TYPE_CA, failed_function_list, failed_function_size);
+        test_helper_cert_create(true, false, TEST_VALID_ECC_CA_CERT_KEY_LEN, CERTIFICATE_TYPE_CA, true, failed_function_list, failed_function_size);
 
         umock_c_negative_tests_snapshot();
 
@@ -3264,7 +3288,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
-        test_helper_cert_create(true, false, TEST_VALID_ECC_SERVER_KEY_LEN, CERTIFICATE_TYPE_SERVER, failed_function_list, failed_function_size);
+        test_helper_cert_create(true, false, TEST_VALID_ECC_SERVER_KEY_LEN, CERTIFICATE_TYPE_SERVER, true, failed_function_list, failed_function_size);
 
         // act
         status = generate_pki_cert_and_key_with_props(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, &TEST_VALID_KEY_PROPS_ECC);
@@ -3289,7 +3313,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
-        test_helper_cert_create(true, false, TEST_VALID_ECC_SERVER_KEY_LEN, CERTIFICATE_TYPE_SERVER, failed_function_list, failed_function_size);
+        test_helper_cert_create(true, false, TEST_VALID_ECC_SERVER_KEY_LEN, CERTIFICATE_TYPE_SERVER, true, failed_function_list, failed_function_size);
 
         umock_c_negative_tests_snapshot();
 
@@ -3323,7 +3347,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
-        test_helper_cert_create(true, false, TEST_VALID_ECC_CLIENT_KEY_LEN, CERTIFICATE_TYPE_CLIENT, failed_function_list, failed_function_size);
+        test_helper_cert_create(true, false, TEST_VALID_ECC_CLIENT_KEY_LEN, CERTIFICATE_TYPE_CLIENT, true, failed_function_list, failed_function_size);
 
         // act
         status = generate_pki_cert_and_key_with_props(TEST_CERT_PROPS_HANDLE, TEST_SERIAL_NUMBER, TEST_PATH_LEN_NON_CA, TEST_KEY_FILE, TEST_CERT_FILE, &TEST_VALID_KEY_PROPS_ECC);
@@ -3348,7 +3372,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
-        test_helper_cert_create(true, false, TEST_VALID_ECC_CLIENT_KEY_LEN, CERTIFICATE_TYPE_CLIENT, failed_function_list, failed_function_size);
+        test_helper_cert_create(true, false, TEST_VALID_ECC_CLIENT_KEY_LEN, CERTIFICATE_TYPE_CLIENT, true, failed_function_list, failed_function_size);
 
         umock_c_negative_tests_snapshot();
 
