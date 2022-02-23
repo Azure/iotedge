@@ -8,7 +8,7 @@ C# is a very broad, multi-paradigm language. It's done a good job over the years
 
 ### Baseline
 
-Our baseline C# Coding Style is defined [here](https://github.com/Azure/DotNetty/wiki/C#-Coding-Style). These guidelines are used by the broader IoT Hub team.  In order to enforce coding style, StyleCop (NuGet version) is used.  StyleCop will be run automatically during build except Debug configuration.  Some StyleCop rules are not applicable to IoT Edge, you can find out from [here](https://github.com/Azure/iotedge/blob/master/stylecop.ruleset). 
+Our baseline C# Coding Style is defined [here](https://github.com/Azure/DotNetty/wiki/C#-Coding-Style). These guidelines are used by the broader IoT Hub team.  In order to enforce coding style, StyleCop (NuGet version) is used.  StyleCop will be run automatically during build except Debug configuration.  Some StyleCop rules are not applicable to IoT Edge, you can find out from [here](https://github.com/Azure/iotedge/blob/main/stylecop.ruleset). 
 
 ### Resharper
 

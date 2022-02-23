@@ -267,7 +267,7 @@ ENV_VAR1 not defined, ENV_VAR2 defined:
 
 ### Upload blob
 
-This section describes how to use the [blob storage module](https://docs.microsoft.com/azure/iot-edge/how-to-store-data-blob) to [upload support bundle](https://github.com/Azure/iotedge/blob/master/doc/built-in-logs-pull.md). 
+This section describes how to use the [blob storage module](https://docs.microsoft.com/azure/iot-edge/how-to-store-data-blob) to [upload support bundle](https://github.com/Azure/iotedge/blob/main/doc/built-in-logs-pull.md). 
 It assumes that the blob storage module has already been deployed. Please follow this [link](https://docs.microsoft.com/azure/iot-edge/how-to-deploy-blob) for detail on how to deploy it. 
 
 >If you want to upload support bundle, currently, the only supported configuration is when the blob storage module is at the top level. To be able to upload a support bundle, a blob container needs to be created and as of now that is only possible when the blob storage module is at the top level.
@@ -328,7 +328,7 @@ These settings are set by default when deploying from the [Azure Marketplace](ht
 To upload the support bundle and/or log file to the blob module located at the root:
 1. First create a blob container, you can use azure storage explorer for that or the rest APIs (the process is described [here](https://docs.microsoft.com/azure/iot-edge/how-to-store-data-blob))
 
-2. follow the process described at this [link](https://github.com/Azure/iotedge/blob/master/doc/built-in-logs-pull.md) to request a log/bundle upload, but replace the address of the blob storage module by `$upstream`.
+2. follow the process described at this [link](https://github.com/Azure/iotedge/blob/main/doc/built-in-logs-pull.md) to request a log/bundle upload, but replace the address of the blob storage module by `$upstream`.
 For example:  
 ***UploadSupportBundle***
 ```json
