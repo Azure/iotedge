@@ -3,7 +3,7 @@
 //! Implements the daemon interface for socket activation.
 //! Provides two methods to get the resulting socket by name.
 //! Based off of [`systemd_socket`](https://github.com/viraptor/systemd_socket)
-//! and [`systemd-daemon`](https://github.com/systemd/systemd/tree/master/src/libsystemd/sd-daemon)
+//! and [`systemd-daemon`](https://github.com/systemd/systemd/tree/main/src/libsystemd/sd-daemon)
 
 use std::collections::{hash_map, HashMap};
 use std::env;
