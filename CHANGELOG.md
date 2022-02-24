@@ -3,7 +3,6 @@
 ### Bug Fixes
 * Fix underflow possibility on ColumnFamilyDbStore  ( [bc78f1c](https://github.com/Azure/iotedge/commit/bc78f1c0b0ab0dfa305b817c030b82cea035f6e0) )
 * Remove BouncyCastle dependency ( [403ca87](https://github.com/Azure/iotedge/commit/403ca87bc228421c8913c1431687267dee9112a7), [7589457](https://github.com/Azure/iotedge/commit/7589457deec0f2735711cb8973cac0f0e17046c1) )
-* Remove Remove k8s projects ( [32e96d6](https://github.com/Azure/iotedge/commit/32e96d684157fe65904baf8b6beba4505a8200ba) )
 * Update `Microsoft.Azure.Devices.Client` SDK ( [4b7570f](https://github.com/Azure/iotedge/commit/4b7570f12b2de0875e29b19964c935e693933e82) )
 
 
@@ -11,7 +10,6 @@
 ### Bug Fixes
 * Fix underflow possibility on ColumnFamilyDbStore  ( [bc78f1c](https://github.com/Azure/iotedge/commit/bc78f1c0b0ab0dfa305b817c030b82cea035f6e0) )
 * Remove BouncyCastle dependency ( [403ca87](https://github.com/Azure/iotedge/commit/403ca87bc228421c8913c1431687267dee9112a7), [7589457](https://github.com/Azure/iotedge/commit/7589457deec0f2735711cb8973cac0f0e17046c1) )
-* Remove Remove k8s projects ( [32e96d6](https://github.com/Azure/iotedge/commit/32e96d684157fe65904baf8b6beba4505a8200ba) )
 * Restart EdgeHub upon certificate renewal ( [c5e90a7](https://github.com/Azure/iotedge/commit/c5e90a75e9a89ff612ad8c60241b0039464c298d) )
 * Update `Microsoft.Azure.Devices.Client` SDK ( [4b7570f](https://github.com/Azure/iotedge/commit/4b7570f12b2de0875e29b19964c935e693933e82) )
 * Workaround for windows-certificate import problem for EdgeHub in Visual Studio debug runs ( [0ed0c71](https://github.com/Azure/iotedge/commit/0ed0c710e2fc38c6feda7c39cb71b6625e20e87d) )
