@@ -501,5 +501,4 @@ check_cgroup_heirachy
 check_systemd
 perform_cleanup
 echo "IoT Edge Compatibility Tool Check Complete"
-echo "hello"
 
