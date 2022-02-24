@@ -90,19 +90,19 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             return 0;
         }
 
-        private static Func<Tuple<Metric, string>, Tuple<Metric, string>> ProvideIdentifyingTags()
+        private static Func<(Metric metric, string endpoint), (Metric, string)> ProvideIdentifyingTags()
         {
             string edgeDevice = Environment.GetEnvironmentVariable("IOTEDGE_DEVICEID");
             string iothub = Environment.GetEnvironmentVariable("IOTEDGE_IOTHUBHOSTNAME");
-            return x =>
+            return t =>
             {
-                string moduleName = new Uri(x.Item2).Host;
-                Dictionary<string, string> metricTags = new Dictionary<string, string>(x.Item1.Tags);
+                string moduleName = new Uri(t.endpoint).Host;
+                Dictionary<string, string> metricTags = new Dictionary<string, string>(t.metric.Tags);
                 if (!metricTags.ContainsKey("edge_device")) metricTags["edge_device"] = edgeDevice;
                 if (!metricTags.ContainsKey("iothub")) metricTags["iothub"] = iothub;
                 if (!metricTags.ContainsKey("module_name")) metricTags["module_name"] = moduleName;
 
-                return Tuple.Create(new Metric(x.Item1.TimeGeneratedUtc, x.Item1.Name, x.Item1.Value, metricTags), x.Item2);
+                return (new Metric(t.metric.TimeGeneratedUtc, t.metric.Name, t.metric.Value, metricTags), t.endpoint);
             };
         }
     }

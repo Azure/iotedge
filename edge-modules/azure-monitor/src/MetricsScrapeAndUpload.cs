@@ -15,10 +15,10 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
     {
         private readonly MetricsScraper scraper;
         private readonly IMetricsPublisher publisher;
-        private readonly Func<Tuple<Metric, string>, Tuple<Metric, string>> adjustMetric;
+        private readonly Func<(Metric, string), (Metric, string)> adjustMetric;
         private PeriodicTask periodicScrapeAndUpload;
 
-        public MetricsScrapeAndUpload(MetricsScraper scraper, IMetricsPublisher publisher, Func<Tuple<Metric, string>, Tuple<Metric, string>> adjustMetric = null)
+        public MetricsScrapeAndUpload(MetricsScraper scraper, IMetricsPublisher publisher, Func<(Metric, string), (Metric, string)> adjustMetric = null)
         {
             this.scraper = Preconditions.CheckNotNull(scraper);
             this.publisher = Preconditions.CheckNotNull(publisher);
@@ -44,15 +44,15 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                 // filter metrics
                 // if the allowed list is non-empty then only accept metrics on the allow list
                 if (!Settings.Current.AllowedMetrics.Empty)
-                    metrics = metrics.Where(x => Settings.Current.AllowedMetrics.Matches(x.Item1));
+                    metrics = metrics.Where(t => Settings.Current.AllowedMetrics.Matches(t.metric));
                 // always use the disallow list
-                metrics = metrics.Where(x => !Settings.Current.BlockedMetrics.Matches(x.Item1));
+                metrics = metrics.Where(t => !Settings.Current.BlockedMetrics.Matches(t.metric));
 
                 if (this.adjustMetric != null) {
-                    metrics = metrics.Select(x => this.adjustMetric(x));
+                    metrics = metrics.Select(this.adjustMetric);
                 }
 
-                await this.publisher.PublishAsync(metrics.Select(x => x.Item1), cancellationToken);
+                await this.publisher.PublishAsync(metrics.Select(t => t.metric), cancellationToken);
             }
             catch (Exception e)
             {
