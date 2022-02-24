@@ -10,6 +10,7 @@ use failure::ResultExt;
 use futures::Future;
 use log::debug;
 use serde_json::json;
+use tokio_process::CommandExt;
 
 use crate::{Error, ErrorKind};
 
@@ -168,34 +169,33 @@ pub fn notary_lookup(
     Error = Error,
 > {
     let mut notary_cmd = Command::new("notary");
-
-    notary_cmd
-        .args(&["lookup", image_gun, tag, "-c"])
-        .arg(config_path);
-
     if let Some(notary_auth) = notary_auth {
         notary_cmd.env("NOTARY_AUTH", notary_auth);
     }
-
-    futures::future::poll_fn(move || {
-        tokio_threadpool::blocking(|| {
-            let std::process::Output { stdout, .. } = notary_cmd.output().with_context(|e| {
-                ErrorKind::LaunchNotary(format!("could not spawn notary process: {}", e))
+    notary_cmd
+        .arg("lookup")
+        .args(&[image_gun, tag])
+        .arg("-c")
+        .arg(config_path)
+        .output_async()
+        .then(|notary_output| {
+            let notary_output = notary_output.with_context(|_| {
+                ErrorKind::LaunchNotary("could not spawn notary process".to_owned())
             })?;
-            let output_str = std::str::from_utf8(&stdout)
-                .with_context(|_| ErrorKind::LaunchNotary("received invalid utf8".to_owned()))?;
-            debug!("Notary output string is {}", output_str);
+            let notary_output_string =
+                String::from_utf8(notary_output.stdout).with_context(|_| {
+                    ErrorKind::LaunchNotary("could not retrieve notary output as string".to_owned())
+                })?;
+            debug!("Notary output string is {}", notary_output_string);
+            let split_array: Vec<&str> = notary_output_string.split_whitespace().collect();
+            if split_array.len() < 2 {
+                return Err(ErrorKind::LaunchNotary(
+                    "notary digest split array is empty".to_owned(),
+                )
+                .into());
+            }
 
-            output_str
-                .split_whitespace()
-                .nth(2)
-                .map(ToOwned::to_owned)
-                .ok_or_else(|| {
-                    ErrorKind::LaunchNotary("notary digest split array is empty".to_owned()).into()
-                })
+            // Notary Server output on lookup is of the format [tag, digest, bytes]
+            Ok((split_array[1].to_string(), lock))
         })
-    })
-    .map_err(|e| ErrorKind::LaunchNotary(format!("should run in thread pool: {}", e)))
-    .flatten()
-    .map(|output| (output, lock))
 }
