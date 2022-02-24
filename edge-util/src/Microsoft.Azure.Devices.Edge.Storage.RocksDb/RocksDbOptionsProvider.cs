@@ -8,9 +8,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     public class RocksDbOptionsProvider : IRocksDbOptionsProvider
     {
         // Some explanations from
-        // https://github.com/facebook/rocksdb/blob/master/include/rocksdb/options.h
+        // https://github.com/facebook/rocksdb/blob/main/include/rocksdb/options.h
         // and
-        // https://github.com/facebook/rocksdb/blob/master/include/rocksdb/advanced_options.h
+        // https://github.com/facebook/rocksdb/blob/main/include/rocksdb/advanced_options.h
         // These defaults were taken from ColumnFamilyOptions::OptimizeForSmallDb()
 
         // write_buffer_size = 2M (bytes) per column family

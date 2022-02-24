@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
         //
         // - https://prometheus.io/docs/concepts/data_model/
         // - https://prometheus.io/docs/instrumenting/exposition_formats/
-        // - https://github.com/prometheus/common/blob/master/expfmt/text_parse.go
+        // - https://github.com/prometheus/common/blob/main/expfmt/text_parse.go
         //
         // Example:
         //

@@ -26,7 +26,7 @@ stages:
             postfix: arm64
       steps:
       - bash: |
-          build_image=rocksdb-build:master-$(postfix)-$(Build.BuildNumber) && \
+          build_image=rocksdb-build:main-$(postfix)-$(Build.BuildNumber) && \
           mkdir -p $(Build.ArtifactStagingDirectory)/librocksdb && \
           cd $(System.DefaultWorkingDirectory)/edge-util/docker/linux/$(arch) && \
           docker build --tag ${build_image} . && \
