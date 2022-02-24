@@ -981,12 +981,11 @@ mod tests {
 
             for (key, _) in batch.drain(..) {
                 let removed = rb.pop().expect("unable to pop publication");
-                if removed != key {
-                    panic!(
-                        "invalid publication removed {} but expected {}",
-                        removed, key
-                    );
-                }
+                assert_eq!(
+                    removed, key,
+                    "invalid publication removed {} but expected {}",
+                    removed, key
+                );
             }
 
             read = rb.metadata.file_pointers.read_begin;

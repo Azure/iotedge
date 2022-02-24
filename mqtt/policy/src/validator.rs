@@ -25,7 +25,7 @@ impl PolicyValidator for DefaultValidator {
         let errors = definition
             .statements()
             .iter()
-            .flat_map(|statement| visit_statement(statement))
+            .flat_map(visit_statement)
             .collect::<Vec<_>>();
 
         if !errors.is_empty() {
