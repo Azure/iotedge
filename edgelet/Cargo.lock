@@ -1105,7 +1105,7 @@ dependencies = [
 [[package]]
 name = "hyperlocal-windows"
 version = "0.1.0"
-source = "git+https://github.com/Azure/hyperlocal-windows#2bd432bbbfb5b1cf38429733dd9a593c7b97a850"
+source = "git+https://github.com/Azure/hyperlocal-windows?branch=main#bb68309f77bd6c821d6ff371d4b0f73a39059a93"
 dependencies = [
  "futures",
  "hex",
@@ -1529,7 +1529,7 @@ dependencies = [
 [[package]]
 name = "mio-uds-windows"
 version = "0.1.0"
-source = "git+https://github.com/Azure/mio-uds-windows.git#87a4a9970e668fdbe9205f4039967e175182c70e"
+source = "git+https://github.com/Azure/mio-uds-windows.git?branch=main#87a4a9970e668fdbe9205f4039967e175182c70e"
 dependencies = [
  "iovec",
  "kernel32-sys",
@@ -2556,7 +2556,7 @@ dependencies = [
 [[package]]
 name = "tokio-uds-windows"
 version = "0.1.0"
-source = "git+https://github.com/Azure/tokio-uds-windows.git#b689a914dbaa905f359f89200c01fed7a6c8df3f"
+source = "git+https://github.com/Azure/tokio-uds-windows.git?branch=main#e652c8425785448316b1b930bdc3c22226342da7"
 dependencies = [
  "bytes 0.4.12",
  "futures",
