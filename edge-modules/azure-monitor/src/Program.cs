@@ -66,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                     publisher = new IotHubMetricsUpload.IotHubMetricsUpload(moduleClientWrapper);
                 }
 
-                using (MetricsScrapeAndUpload metricsScrapeAndUpload = new MetricsScrapeAndUpload(scraper, publisher, Settings.Current.AddIdentifyingTags ? ProvideIdentifyingTags() : null))
+                using (MetricsScrapeAndUpload metricsScrapeAndUpload = new MetricsScrapeAndUpload(scraper, publisher))
                 {
                     TimeSpan scrapeAndUploadInterval = TimeSpan.FromSeconds(Settings.Current.ScrapeFrequencySecs);
                     metricsScrapeAndUpload.Start(scrapeAndUploadInterval);
@@ -88,22 +88,6 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 
             LoggerUtil.Writer.LogInformation("MetricsCollector Main() finished.");
             return 0;
-        }
-
-        private static Func<(Metric metric, string endpoint), (Metric, string)> ProvideIdentifyingTags()
-        {
-            string edgeDevice = Environment.GetEnvironmentVariable("IOTEDGE_DEVICEID");
-            string iothub = Environment.GetEnvironmentVariable("IOTEDGE_IOTHUBHOSTNAME");
-            return t =>
-            {
-                string moduleName = new Uri(t.endpoint).Host;
-                Dictionary<string, string> metricTags = new Dictionary<string, string>(t.metric.Tags);
-                if (!metricTags.ContainsKey("edge_device")) metricTags["edge_device"] = edgeDevice;
-                if (!metricTags.ContainsKey("iothub")) metricTags["iothub"] = iothub;
-                if (!metricTags.ContainsKey("module_name")) metricTags["module_name"] = moduleName;
-
-                return (new Metric(t.metric.TimeGeneratedUtc, t.metric.Name, t.metric.Value, metricTags), t.endpoint);
-            };
         }
     }
 }
