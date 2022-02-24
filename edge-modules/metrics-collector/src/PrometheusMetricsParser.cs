@@ -143,6 +143,13 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                         timeGeneratedUtc = MetricTimestampEpoch + TimeSpan.FromMilliseconds(metricTimestamp);
                     }
 
+                    if (Settings.Current.AddIdentifyingTags)
+                    {
+                        if (!tags.ContainsKey("edge_device")) tags["edge_device"] = Environment.GetEnvironmentVariable("IOTEDGE_DEVICEID");
+                        if (!tags.ContainsKey("iothub")) tags["iothub"] = Environment.GetEnvironmentVariable("IOTEDGE_IOTHUBHOSTNAME");
+                        if (!tags.ContainsKey("module_name") && endpoint != null) tags["module_name"] = new Uri(endpoint).Host;
+                    }
+
                     yield return new Metric(
                         timeGeneratedUtc,
                         metricName,
