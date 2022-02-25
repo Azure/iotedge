@@ -397,7 +397,14 @@ fn execute_inner(
         edgelet_settings::MANIFEST_TRUST_BUNDLE_ALIAS.to_owned()
     });
 
-    let additional_info = if let Some(path) = additional_info {
+    let additional_info = if let Some(additional_info) = additional_info {
+        let scheme = additional_info.scheme();
+        if scheme != "file" {
+            return Err(format!("unsupported additional_info scheme: {}", scheme).into());
+        }
+        let path = additional_info
+            .to_file_path()
+            .map_err(|_| "additional_info is an invalid URI")?;
         let lossy = path.to_string_lossy();
         let bytes = std::fs::read(&path)
             .map_err(|e| format!("failed to read additional_info from {}: {:?}", lossy, e))?;

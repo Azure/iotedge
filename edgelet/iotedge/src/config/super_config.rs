@@ -33,7 +33,7 @@ pub struct Config {
     pub manifest_trust_bundle_cert: Option<Url>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub additional_info: Option<std::path::PathBuf>,
+    pub additional_info: Option<Url>,
 
     #[serde(flatten)]
     pub aziot: aziotctl_common::config::super_config::Config,
