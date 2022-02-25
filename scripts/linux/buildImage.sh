@@ -217,19 +217,19 @@ docker_build_and_tag_and_push()
             docker_build_cmd+=" --platform=linux/arm64"
         fi
 
-        docker_build_cmd+=" -t $DOCKER_REGISTRY/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch"
+        docker_build_cmd+=" -t \"$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch\""
         if [[ -n "${dockerfile}" ]]; then
-            docker_build_cmd+=" --file $dockerfile"
+            docker_build_cmd+=" --file \"$dockerfile\""
         fi
-        docker_build_cmd+=" $build_args $context_path --load"
+        docker_build_cmd+=" $build_args \"$context_path\" --load"
     else
         docker_build_cmd="docker build --no-cache"
-        docker_build_cmd+=" -t $DOCKER_REGISTRY/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch"
+        docker_build_cmd+=" -t \"$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch\""
 
         if [[ -n "${dockerfile}" ]]; then
-            docker_build_cmd+=" --file $dockerfile"
+            docker_build_cmd+=" --file \"$dockerfile\""
         fi
-        docker_build_cmd+=" $build_args $context_path"
+        docker_build_cmd+=" $build_args \"$context_path\""
         fi   
 
 
