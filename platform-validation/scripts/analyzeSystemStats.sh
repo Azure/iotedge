@@ -84,7 +84,7 @@ store_stats() {
 
 process_args "$@"
 echo "Running Usage Test for $SECONDS_TO_RUN seconds"
-FILE="$STORAGE_PATH/usage-$(uname-m).txt"
+FILE="$STORAGE_PATH/usage-$(uname -m).txt"
 echo "Storing Data at $FILE"
 
 end_time=$((SECONDS + SECONDS_TO_RUN))
