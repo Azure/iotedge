@@ -351,11 +351,6 @@ get_architecture() {
     ARCH=$_cputype
 }
 
-perform_cleanup() {
-    rm -rf cap.txt || true
-    #TODO : Cleanup docker images
-}
-
 check_kernel_file() {
     if [ ! -e "$CONFIG" ]; then
         wrap_warning "warning: $CONFIG does not exist, searching other paths for kernel config ..."
@@ -374,10 +369,6 @@ check_kernel_file() {
     fi
 }
 
-# ------------------------------------------------------------------------------
-# Check whether the Target Device can be used to set capability. EdgeHub   Runtime component sets CAP_NET_BIND which is Required for Azure IoT Edge Operation.
-# ------------------------------------------------------------------------------
-
 check_flag() {
     if is_set "$1"; then
         wrap_pass "CONFIG_$1"
@@ -385,6 +376,12 @@ check_flag() {
         wrap_fail "CONFIG_$1"
     fi
 }
+
+# ------------------------------------------------------------------------------
+#
+#  Compatibility Tool Checks
+#
+# ------------------------------------------------------------------------------
 
 check_kernel_flags() {
     EXIT_CODE=0
@@ -404,7 +401,6 @@ check_kernel_flags() {
 
 # bits of this were adapted from moby check-config.shells
 # See https://github.com/moby/moby/blob/master/contrib/check-config.sh
-
 #Reference Issue : https://github.com/Azure/iotedge/issues/5812
 check_cgroup_heirachy() {
     wrap_debug "Checking cgroup hierarchy..."
@@ -461,10 +457,121 @@ check_systemd() {
     fi
 }
 
-cat /etc/os-release
-get_architecture
-echo "Architecture:$ARCH"
-echo "OS Type:$OSTYPE"
+check_architecture() {
+
+    wrap_debug "Checking architecture Compatibility..."
+    get_architecture
+    wrap_debug "Architecture:$ARCH"
+
+    case $ARCH in
+    x86_64 | armv7 | aarch64)
+        wrap_pass "check_architecture"
+        ;;
+    arm)
+        wrap_fail "check_architecture"
+        wrap_bad "armv6 architecture is incompatible with IoT Edge due to .NET incompatibility. Please see : https://github.com/dotnet/runtime/issues/7764"
+        ;;
+    *)
+        wrap_warning "check_architecture"
+        wrap_warn "Compatibility for IoT Edge not known for architecture $ARCH"
+        ;;
+    esac
+
+}
+
+#Todo : This will need to be checked here : https://github.com/Azure/iotedge/blob/main/edgelet/docker-rs/src/apis/configuration.rs#L14 for every build
+#to make sure we still support the version.
+MINIMUM_DOCKER_API_VERSION=1.34
+check_docker_api_version() {
+    # Check dependencies
+    if ! need_cmd docker; then
+        wrap_warning "check_docker_api_version"
+        wrap_warn "Docker Enginer does not exist on this device!!, Please follow instructions here on how to install a compatible container engine
+        https://docs.microsoft.com/en-us/azure/iot-edge/how-to-provision-single-device-linux-symmetric?view=iotedge-2020-11&tabs=azure-portal%2Cubuntu#install-a-container-engine"
+        return
+    fi
+
+    version=$(docker version -f '{{.Client.APIVersion}}')
+    version_check=$(echo "$version" $MINIMUM_DOCKER_API_VERSION | awk '{if ($1 < $2) print 1; else print 0}')
+    if [ "$version_check" -eq 0 ]; then
+        wrap_pass "check_docker_api_version"
+    else
+        wrap_fail "check_docker_api_version"
+        wrap_warning "Docker API Version on device $version is lower than Minumum API Version $MINIMUM_DOCKER_API_VERSION. Please upgrade docker engine."
+    fi
+
+}
+
+check_shared_library_dependency() {
+    wrap_debug "Checking shared library dependency for aziot-edged and aziot-identityd"
+
+    # set the crucial libaries in the variable
+    # IOTEDGE_COMMON_SHARED_LIBRARIES is for both aziot-edged and aziot-identityd
+    IOTEDGE_COMMON_LIBRARIES="libssl.so.1.1 libcrypto.so.1.1 libdl.so.2 librt.so.1 libpthread.so.0 libc.so.6 libm.so.6 libgcc_s.so.1"
+    for lib in $IOTEDGE_COMMON_LIBRARIES; do
+        check_shared_library_dependency_core_util "$lib"
+    done
+
+    if [ $ARCH = x86_64 ]; then
+        check_shared_library_dependency_core_util "ld-linux-x86-64.so.2"
+    elif [ $ARCH = aarch64 ]; then
+        check_shared_library_dependency_core_util "ld-linux-aarch64.so.1"
+    elif [ $ARCH = armv7 ]; then
+        check_shared_library_dependency_core_util "ld-linux-armhf.so.3"
+    fi
+}
+
+check_shared_library_dependency_core_util() {
+
+    # setting share library path
+    if [ $# -gt 1 ]; then
+        SHARED_LIB_PATH="$2"
+    else
+        SHARED_LIB_PATH="/usr /lib /lib32 /lib64"
+    fi
+
+    # check dependencies for `ldconfig` and fall back to `find` when its not possible
+    if [ "$(id -u)" -ne 0 ] && [ "$(need_cmd ldconfig)" != 0 ]; then
+        decision=0
+        for path in $SHARED_LIB_PATH; do
+            if [ ! "$(find "$path" -name "$1" | grep .)" ]; then
+                decision=$((decision + 1))
+            else
+                wrap_pass "$1"
+                break
+            fi
+        done
+        # if the libraries are not present in all 4 paths, it is considered to be missing.
+        if [ $decision -eq 4 ]; then
+            check_shared_library_dependency_display_util "$1"
+        fi
+        return
+    else
+        ret=$(ldconfig -p | grep "$1")
+        if [ -z "$ret" ]; then
+            check_shared_library_dependency_display_util "$1"
+        else
+            wrap_pass "$1"
+        fi
+    fi
+}
+
+check_shared_library_dependency_display_util() {
+    case $1 in
+    "libssl.so.1.1" | "libcrypto.so.1.1")
+        wrap_warning "$lib is missing. Please install openssl and libssl-dev for your OS distribution."
+        ;;
+    "libdl.so.2" | "librt.so.1" | "libpthread.so.0" | "libc.so.6" | "libm.so.6")
+        wrap_warning "$lib is missing. Please install libc6-dev for your OS distribution."
+        ;;
+    "ld-linux-x86-64.so.2" | "ld-linux-aarch64.so.1" | "ld-linux-armhf.so.3")
+        wrap_warning "$lib is missing. Please install libc6 for your OS distribution."
+        ;;
+    "libgcc_s.so.1")
+        wrap_warning "$lib is missing. Please install gcc for your OS distribution."
+        ;;
+    esac
+}
 
 #Required for resource allocation for containers
 check_cgroup_heirachy
@@ -489,8 +596,9 @@ check_kernel_flags \
     POSIX_MQUEUE
 # (POSIX_MQUEUE is required for bind-mounting /dev/mqueue into containers)
 
+check_cgroup_heirachy
 check_systemd
 check_architecture
 check_docker_api_version
-perform_cleanup
+check_shared_library_dependency
 echo "IoT Edge Compatibility Tool Check Complete"
