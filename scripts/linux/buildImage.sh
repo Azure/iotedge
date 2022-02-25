@@ -262,6 +262,9 @@ docker_build_and_tag_and_push()
 check_arch
 process_args "$@"
 
+echo "BEARWASHERE -- ARCH=\"$ARCH\";"
+echo "BEARWASHERE -- DOCKERFILE=\"$DOCKERFILE\";"
+
 build_args=( "EXE_DIR=." )
 [[ -z "$BASE_TAG" ]] || build_args+=( "base_tag=$BASE_TAG" )
 
