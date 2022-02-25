@@ -732,7 +732,7 @@ static int cert_set_core_properties
     X509* x509_cert,
     KEY_HANDLE key,
     CERT_PROPS_HANDLE cert_props_handle,
-    int serial_num
+    long serial_num
 )
 {
     (void)cert_props_handle;
@@ -1324,7 +1324,7 @@ static int generate_evp_certificate
     X509* issuer_certificate,
     const char *issuer_certificate_file,
     CERT_PROPS_HANDLE cert_props_handle,
-    int serial_num,
+    long serial_num,
     int ca_path_len,
     const char *cert_file_name,
     X509** result_cert
@@ -1404,7 +1404,7 @@ static int generate_evp_certificate
 static int generate_pki_cert_and_key_helper
 (
     CERT_PROPS_HANDLE cert_props_handle,
-    int serial_number,
+    long serial_number,
     int ca_path_len,
     const char* key_file_name,
     const char* cert_file_name,
@@ -1558,10 +1558,11 @@ static int generate_pki_cert_and_key_helper
     return result;
 }
 
+// Only used in tests, to be able to force EC keys to be used.
 int generate_pki_cert_and_key_with_props
 (
     CERT_PROPS_HANDLE cert_props_handle,
-    int serial_number,
+    long serial_number,
     int ca_path_len,
     const char* key_file_name,
     const char* cert_file_name,
@@ -1595,7 +1596,6 @@ int generate_pki_cert_and_key_with_props
 int generate_pki_cert_and_key
 (
     CERT_PROPS_HANDLE cert_props_handle,
-    int serial_number,
     int ca_path_len,
     const char* key_file_name,
     const char* cert_file_name,
@@ -1603,7 +1603,23 @@ int generate_pki_cert_and_key
     const char* issuer_certificate_file
 )
 {
-    return generate_pki_cert_and_key_helper(cert_props_handle,
+    int result;
+
+    long serial_number;
+    if (generate_rand_buffer((unsigned char*)&serial_number, sizeof(serial_number)) != 0)
+    {
+        LOG_ERROR("could not generate serial number");
+        result = __FAILURE__;
+    }
+    else
+    {
+        // CAB Forum recommends serial to be non-negative for the sake of compatibility,
+        // so force the sign bit to be 0. We can't use `labs()` on the off-chance that
+        // `serial_number` is `LONG_MIN`, since `labs(LONG_MIN)` is undefined on Linux
+        // and returns `LONG_MIN` on other implementations.
+        serial_number &= ((unsigned long)-1) >> 1;
+
+        result = generate_pki_cert_and_key_helper(cert_props_handle,
                                             serial_number,
                                             ca_path_len,
                                             key_file_name,
@@ -1611,6 +1627,9 @@ int generate_pki_cert_and_key
                                             issuer_key_file,
                                             issuer_certificate_file,
                                             NULL);
+    }
+
+    return result;
 }
 
 KEY_HANDLE create_cert_key(const char* key_file_name)
