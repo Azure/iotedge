@@ -264,6 +264,10 @@ process_args "$@"
 
 echo "BEARWASHERE -- ARCH=\"$ARCH\";"
 echo "BEARWASHERE -- DOCKERFILE=\"$DOCKERFILE\";"
+echo $(head -n 1 $DOCKERFILE)
+echo " "
+find $EXE_DOCKER_DIR | sed -e "s/[^-][^\/]*\// |/g" -e "s/|\([^ ]\)/|-\1/"
+echo " "
 
 build_args=( "EXE_DIR=." )
 [[ -z "$BASE_TAG" ]] || build_args+=( "base_tag=$BASE_TAG" )
