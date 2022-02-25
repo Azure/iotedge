@@ -30,7 +30,7 @@ pub(super) struct Config {
     pub(super) imported_master_encryption_key: Option<std::path::PathBuf>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(super) additional_info: Option<std::path::PathBuf>,
+    pub(super) additional_info: Option<Url>,
 
     #[serde(flatten)]
     pub(super) aziot: aziotctl_common::config::super_config::Config,
