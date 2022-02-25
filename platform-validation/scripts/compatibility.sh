@@ -532,6 +532,75 @@ check_docker_api_version(){
 
 }
 
+check_shared_library_dependency(){
+    wrap_debug "Checking shared library dependency for aziot-edged and aziot-identityd"
+
+    # set the crucial libaries in the variable
+    # IOTEDGE_COMMON_SHARED_LIBRARIES is for both aziot-edged and aziot-identityd
+    IOTEDGE_COMMON_LIBRARIES="libssl.so.1.1 libcrypto.so.1.1 libdl.so.2 librt.so.1 libpthread.so.0 libc.so.6 libm.so.6 libgcc_s.so.1"
+    for lib in $IOTEDGE_COMMON_LIBRARIES
+    do
+        check_shared_library_dependency_core_util "$lib"
+    done
+
+    if [ $ARCH = x86_64 ]; then
+        check_shared_library_dependency_core_util "ld-linux-x86-64.so.2"
+    elif [ $ARCH = aarch64 ]; then
+        check_shared_library_dependency_core_util "ld-linux-aarch64.so.1"
+    elif [ $ARCH = armv7 ]; then
+        check_shared_library_dependency_core_util "ld-linux-armhf.so.3"
+    fi
+}
+
+check_shared_library_dependency_core_util(){
+
+    # setting share library path
+    if [ $# -gt 1 ]; then
+        SHARED_LIB_PATH="$2"
+    else
+        SHARED_LIB_PATH="/usr /lib /lib32 /lib64"
+    fi
+
+    # check dependencies for `ldconfig` and fall back to `find` when its not possible
+    if [ "$(id -u)" -ne 0 ] && [ "$(need_cmd ldconfig)" != 0 ]; then
+        decision=0
+        for path in $SHARED_LIB_PATH
+        do
+            if [ ! "$(find "$path" -name "$1" | grep .)" ]; then
+                decision=$((decision + 1))
+            else
+                wrap_pass "$1"
+                break
+            fi
+        done
+        # if the libraries are not present in all 4 paths, it is considered to be missing.
+        if [ $decision -eq 4 ]; then
+            check_shared_library_dependency_display_util "$1"
+        fi
+        return
+    else
+        ret=$(ldconfig -p | grep "$1")
+        if [ -z "$ret" ]; then
+            check_shared_library_dependency_display_util "$1"
+        else
+            wrap_pass "$1"
+        fi
+    fi
+}
+
+check_shared_library_dependency_display_util(){
+    case $1 in
+        "libssl.so.1.1" | "libcrypto.so.1.1") wrap_warning "$lib is missing. Please install openssl and libssl-dev for your OS distribution."
+        ;;
+        "libdl.so.2"| "librt.so.1" | "libpthread.so.0" | "libc.so.6" | "libm.so.6") wrap_warning "$lib is missing. Please install libc6-dev for your OS distribution."
+        ;;
+        "ld-linux-x86-64.so.2" | "ld-linux-aarch64.so.1" | "ld-linux-armhf.so.3" ) wrap_warning "$lib is missing. Please install libc6 for your OS distribution."
+        ;;
+        "libgcc_s.so.1") wrap_warning "$lib is missing. Please install gcc for your OS distribution."
+        ;;
+    esac
+}
+
 #TODO : Do we need to check in both host and container?
 check_net_cap_bind_host
 check_net_cap_bind_container
@@ -539,5 +608,6 @@ check_cgroup_heirachy
 check_systemd
 check_architecture
 check_docker_api_version
+check_shared_library_dependency
 perform_cleanup
 echo "IoT Edge Compatibility Tool Check Complete"
