@@ -2620,7 +2620,6 @@ static int edge_hsm_client_store_create_pki_cert_internal
                 // @note this will overwrite the older the certificate and private key
                 // files for the requested alias
                 result = generate_pki_cert_and_key(cert_props_handle,
-                                                   rand(), // todo check if rand is okay or if we need something stronger like a SHA1
                                                    ca_path_len,
                                                    alias_pk_path,
                                                    alias_cert_path,
