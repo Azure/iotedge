@@ -1,4 +1,5 @@
-FROM mcr.microsoft.com/dotnet/runtime:3.1-bionic-arm64v8
+ARG base_tag=3.1-bionic-arm64v8
+FROM mcr.microsoft.com/dotnet/runtime:${base_tag}
 
 ARG EXE_DIR=.
 

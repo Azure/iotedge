@@ -206,15 +206,15 @@ docker_build_and_tag_and_push()
         docker_build_cmd="docker buildx build --no-cache"
 
         if [[ $arch = "amd64" ]]; then
-            docker_build_cmd+=" --platform linux/amd64"
+            docker_build_cmd+=" --platform=linux/amd64"
         fi
         
         if [[ $arch = "arm32v7" ]]; then
-            docker_build_cmd+=" --platform linux/arm/v7"
+            docker_build_cmd+=" --platform=linux/arm/v7"
         fi
 
         if [[ $arch = "arm64v8" ]]; then
-            docker_build_cmd+=" --platform linux/arm64"
+            docker_build_cmd+=" --platform=linux/arm64"
         fi
 
         docker_build_cmd+=" -t $DOCKER_REGISTRY/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch"
