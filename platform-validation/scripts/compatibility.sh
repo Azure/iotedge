@@ -19,7 +19,6 @@ POSSIBLE_CONFIGS="
 	/usr/src/linux-$(uname -r)/.config
 	/usr/src/linux/.config
 "
-
 if [ $# -gt 0 ]; then
     CONFIG="$1"
 else
@@ -94,7 +93,7 @@ wrap_warn() {
 }
 
 wrap_warning() {
-    wrap_color >&2 "$*" yellow
+    wrap_color >&2 "$*" magenta
 }
 
 # ------------------------------------------------------------------------------
@@ -352,85 +351,56 @@ get_architecture() {
     ARCH=$_cputype
 }
 
-perform_cleanup() {
-    rm -rf cap.txt || true
-    #TODO : Cleanup docker images
+check_kernel_file() {
+    if [ ! -e "$CONFIG" ]; then
+        wrap_warning "warning: $CONFIG does not exist, searching other paths for kernel config ..."
+        for tryConfig in $POSSIBLE_CONFIGS; do
+            if [ -e "$tryConfig" ]; then
+                CONFIG="$tryConfig"
+                break
+            fi
+        done
+        if [ ! -e "$CONFIG" ]; then
+            wrap_warning "error: cannot find kernel config"
+            wrap_warning "  try running this script again, specifying the kernel config:"
+            wrap_warning "    CONFIG=/path/to/kernel/.config $0 or $0 /path/to/kernel/.config"
+            EXIT_CODE=1
+        fi
+    fi
+}
+
+check_flag() {
+    if is_set "$1"; then
+        wrap_pass "CONFIG_$1"
+    else
+        wrap_fail "CONFIG_$1"
+    fi
 }
 
 # ------------------------------------------------------------------------------
-# Check whether the Target Device can be used to set capability. EdgeHub   Runtime component sets CAP_NET_BIND which is Required for Azure IoT Edge Operation.
+#
+#  Compatibility Tool Checks
+#
 # ------------------------------------------------------------------------------
 
-check_net_cap_bind_host() {
-    wrap_debug "Setting the CAP_NET_BIND_SERVICE capability on the host..."
-
-    # Check dependencies
-    ret=$(need_cmd setcap)
-    if [ $? != 0 ]; then
-        wrap_fail "check_net_cap_bind_host"
+check_kernel_flags() {
+    EXIT_CODE=0
+    check_kernel_file
+    if [ $EXIT_CODE != 0 ]; then
+        wrap_fail "check_kernel_flags"
         return
     fi
+    EXIT_CODE=0
+    wrap_debug "Reading Kernel Config from $CONFIG"
+    for flag in "$@"; do
+        printf -- '- '
+        check_flag "$flag"
+    done
 
-    touch cap.txt
-    setcap "cap_net_bind_service=+ep" cap.txt
-    ret=$?
-    if [ $ret != 0 ]; then
-        wrap_debug "setcap 'cap_net_bind_service=+ep' returned $ret"
-        wrap_fail "check_net_cap_bind_host"
-        return
-    fi
-
-    contains=$(getcap cap.txt | grep 'cap_net_bind_service+ep')
-    ret=$?
-    if [ $? != 0 ] && [ -z "${contains##*cap_net_bind_service+ep*}" ]; then
-        wrap_debug "setcap 'cap_net_bind_service=+ep' returned 0, but did not set the capability"
-        wrap_fail "check_net_cap_bind_host"
-        return
-    fi
-
-    wrap_pass "check_net_cap_bind_host" "Pass"
-}
-
-check_net_cap_bind_container() {
-    #Check For Docker
-    wrap_debug "Setting the CAP_NET_BIND_SERVICE capability in a container..."
-
-    # Check dependencies
-    ret=$(need_cmd docker)
-    if [ $? != 0 ]; then
-        wrap_fail "check_net_cap_bind_container" "Fail"
-        return
-    fi
-    CAP_CMD="getcap cap.txt"
-    DOCKER_VOLUME_MOUNTS=''
-    #Todo: Look into replacing this with alpine
-    DOCKER_IMAGE="ubuntu:18.04"
-    docker run --rm \
-        --user root \
-        -e 'USER=root' \
-        -i \
-        $DOCKER_VOLUME_MOUNTS \
-        "$DOCKER_IMAGE" \
-        sh -c "
-        export DEBIAN_FRONTEND=noninteractive
-        set -e &&
-        apt-get update 1>/dev/null 2>&1 &&
-        apt-get install -y libcap2-bin 1>/dev/null 2>&1
-        touch cap.txt
-        setcap 'cap_net_bind_service=+ep' cap.txt
-    "
-    ret=$?
-    if [ $ret != 0 ]; then
-        wrap_debug "setcap 'cap_net_bind_service=+ep' on container returned error code $ret"
-        wrap_fail "check_net_cap_bind_container" "Fail"
-        return
-    fi
-    wrap_pass "check_net_cap_bind_container" "Pass"
 }
 
 # bits of this were adapted from moby check-config.shells
 # See https://github.com/moby/moby/blob/master/contrib/check-config.sh
-
 #Reference Issue : https://github.com/Azure/iotedge/issues/5812
 check_cgroup_heirachy() {
     wrap_debug "Checking cgroup hierarchy..."
@@ -512,7 +482,7 @@ check_architecture() {
 #Todo : This will need to be checked here : https://github.com/Azure/iotedge/blob/main/edgelet/docker-rs/src/apis/configuration.rs#L14 for every build
 #to make sure we still support the version.
 MINIMUM_DOCKER_API_VERSION=1.34
-check_docker_api_version(){
+check_docker_api_version() {
     # Check dependencies
     if ! need_cmd docker; then
         wrap_warning "check_docker_api_version"
@@ -532,14 +502,13 @@ check_docker_api_version(){
 
 }
 
-check_shared_library_dependency(){
+check_shared_library_dependency() {
     wrap_debug "Checking shared library dependency for aziot-edged and aziot-identityd"
 
     # set the crucial libaries in the variable
     # IOTEDGE_COMMON_SHARED_LIBRARIES is for both aziot-edged and aziot-identityd
     IOTEDGE_COMMON_LIBRARIES="libssl.so.1.1 libcrypto.so.1.1 libdl.so.2 librt.so.1 libpthread.so.0 libc.so.6 libm.so.6 libgcc_s.so.1"
-    for lib in $IOTEDGE_COMMON_LIBRARIES
-    do
+    for lib in $IOTEDGE_COMMON_LIBRARIES; do
         check_shared_library_dependency_core_util "$lib"
     done
 
@@ -552,7 +521,7 @@ check_shared_library_dependency(){
     fi
 }
 
-check_shared_library_dependency_core_util(){
+check_shared_library_dependency_core_util() {
 
     # setting share library path
     if [ $# -gt 1 ]; then
@@ -564,8 +533,7 @@ check_shared_library_dependency_core_util(){
     # check dependencies for `ldconfig` and fall back to `find` when its not possible
     if [ "$(id -u)" -ne 0 ] && [ "$(need_cmd ldconfig)" != 0 ]; then
         decision=0
-        for path in $SHARED_LIB_PATH
-        do
+        for path in $SHARED_LIB_PATH; do
             if [ ! "$(find "$path" -name "$1" | grep .)" ]; then
                 decision=$((decision + 1))
             else
@@ -588,26 +556,49 @@ check_shared_library_dependency_core_util(){
     fi
 }
 
-check_shared_library_dependency_display_util(){
+check_shared_library_dependency_display_util() {
     case $1 in
-        "libssl.so.1.1" | "libcrypto.so.1.1") wrap_warning "$lib is missing. Please install openssl and libssl-dev for your OS distribution."
+    "libssl.so.1.1" | "libcrypto.so.1.1")
+        wrap_warning "$lib is missing. Please install openssl and libssl-dev for your OS distribution."
         ;;
-        "libdl.so.2"| "librt.so.1" | "libpthread.so.0" | "libc.so.6" | "libm.so.6") wrap_warning "$lib is missing. Please install libc6-dev for your OS distribution."
+    "libdl.so.2" | "librt.so.1" | "libpthread.so.0" | "libc.so.6" | "libm.so.6")
+        wrap_warning "$lib is missing. Please install libc6-dev for your OS distribution."
         ;;
-        "ld-linux-x86-64.so.2" | "ld-linux-aarch64.so.1" | "ld-linux-armhf.so.3" ) wrap_warning "$lib is missing. Please install libc6 for your OS distribution."
+    "ld-linux-x86-64.so.2" | "ld-linux-aarch64.so.1" | "ld-linux-armhf.so.3")
+        wrap_warning "$lib is missing. Please install libc6 for your OS distribution."
         ;;
-        "libgcc_s.so.1") wrap_warning "$lib is missing. Please install gcc for your OS distribution."
+    "libgcc_s.so.1")
+        wrap_warning "$lib is missing. Please install gcc for your OS distribution."
         ;;
     esac
 }
 
-#TODO : Do we need to check in both host and container?
-check_net_cap_bind_host
-check_net_cap_bind_container
+#Required for resource allocation for containers
+check_cgroup_heirachy
+
+#Flags Required for setting elevated capabilities in a container. EdgeHub currently requires setting CAP_NET_BIND on dotnet binary.
+check_kernel_flags EXT4_FS_SECURITY
+
+# The Following kernel flags are required for running a container engine. For description on each of the config flags : Visit -https://www.kernelconfig.io/
+#Todo : Only check if docker engine is not present?
+#Check for Required Container Engine Flags if docker is not present
+check_kernel_flags \
+    NAMESPACES NET_NS PID_NS IPC_NS UTS_NS \
+    CGROUPS CGROUP_CPUACCT CGROUP_DEVICE CGROUP_FREEZER CGROUP_SCHED CPUSETS MEMCG \
+    KEYS \
+    VETH BRIDGE BRIDGE_NETFILTER \
+    IP_NF_FILTER IP_NF_TARGET_MASQUERADE \
+    NETFILTER_XT_MATCH_ADDRTYPE \
+    NETFILTER_XT_MATCH_CONNTRACK \
+    NETFILTER_XT_MATCH_IPVS \
+    NETFILTER_XT_MARK \
+    IP_NF_NAT NF_NAT \
+    POSIX_MQUEUE
+# (POSIX_MQUEUE is required for bind-mounting /dev/mqueue into containers)
+
 check_cgroup_heirachy
 check_systemd
 check_architecture
 check_docker_api_version
 check_shared_library_dependency
-perform_cleanup
 echo "IoT Edge Compatibility Tool Check Complete"
