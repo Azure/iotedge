@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Util.Test
 {
+    using System;
     using System.IO;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Json;
@@ -11,41 +12,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
     using Xunit;
 
     [Unit]
-    public class PersistentStorageValidationTest
+    public class PersistentStorageValidationTest : IDisposable
     {
-        public class FilesIOHelper : PersistentStorageValidation.IFilesIOHelper
-        {
-            private string savedidentity;
-            private bool identityExists;
-
-            public FilesIOHelper(DeviceIdentity identity, bool identityExists)
-            {
-                this.savedidentity = JsonConvert.SerializeObject(identity);
-                this.identityExists = identityExists;
-            }
-
-            public void DeleteAndCreateDirectory(string storagePath)
-            {
-                return;
-            }
-
-            public void WriteAllText(string filePath, string json)
-            {
-                this.savedidentity = json;
-            }
-
-            public string ReadAllText(string filePath)
-            {
-                return this.savedidentity;
-            }
-
-            public bool Exists(string filePath)
-            {
-                return this.identityExists;
-            }
-        }
-
-        public struct DeviceIdentity
+        struct DeviceIdentity
         {
             public string DeviceId { get; set; }
 
@@ -53,6 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
             public string ModuleId { get; set; }
 
+            [JsonProperty(Required = Required.AllowNull, PropertyName = "ModuleGenerationId")]
             [JsonConverter(typeof(OptionConverter<string>))]
             public Option<string> ModuleGenerationId { get; set; }
 
@@ -65,26 +35,37 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             }
         }
 
+        public void Dispose()
+        {
+            Directory.Delete("test", true);
+        }
+
         [Fact]
         public void ValidateStorageIdentityTest()
         {
             DeviceIdentity savedIdentity = new DeviceIdentity("dev1", "hub1", "mod1", Option.Some("modgen1"));
-            FilesIOHelper filehelper = new FilesIOHelper(savedIdentity, true);
-            ILogger<PersistentStorageValidation> mocklogger = Mock.Of<ILogger<PersistentStorageValidation>>();
-            PersistentStorageValidation validateStorage = new PersistentStorageValidation(filehelper);
+            Directory.CreateDirectory("test");
+            string filepath = Path.Combine("test", "DEVICE_IDENTITY.json");
+            string json = JsonConvert.SerializeObject(savedIdentity);
+            File.WriteAllText(filepath, json);
 
-            Assert.True(validateStorage.ValidateStorageIdentity("test", "dev1", "hub1", "mod1", Option.Some("modgen1"), mocklogger));
+            ILogger<PersistentStorageValidationTest> mocklogger = Mock.Of<ILogger<PersistentStorageValidationTest>>();
+
+            Assert.True(PersistentStorageValidation.ValidateStorageIdentity("test", "dev1", "hub1", "mod1", Option.Some("modgen1"), mocklogger));
         }
 
         [Fact]
         public void ValidateStorageIdentityTestDifferentIdentity()
         {
-            DeviceIdentity savedIdentity = new DeviceIdentity("dev2", "hub1", "mod1", Option.Some("modgen1"));
-            FilesIOHelper filehelper = new FilesIOHelper(savedIdentity, true);
-            ILogger<PersistentStorageValidation> mocklogger = Mock.Of<ILogger<PersistentStorageValidation>>();
-            PersistentStorageValidation validateStorage = new PersistentStorageValidation(filehelper);
+            DeviceIdentity savedIdentity = new DeviceIdentity("dev1", "hub1", "mod1", Option.Some("modgen2"));
+            Directory.CreateDirectory("test");
+            string filepath = Path.Combine("test", "DEVICE_IDENTITY.json");
+            string json = JsonConvert.SerializeObject(savedIdentity);
+            File.WriteAllText(filepath, json);
 
-            Assert.False(validateStorage.ValidateStorageIdentity("test", "dev1", "hub1", "mod1", Option.Some("modgen1"), mocklogger));
+            ILogger<PersistentStorageValidationTest> mocklogger = Mock.Of<ILogger<PersistentStorageValidationTest>>();
+
+            Assert.False(PersistentStorageValidation.ValidateStorageIdentity("test", "dev1", "hub1", "mod1", Option.Some("modgen3"), mocklogger));
         }
     }
 }
