@@ -16,11 +16,11 @@ jobs:
         submodules: false
         fetchDepth: 3
       - bash: |
-          git log -m -1 --name-only --first-parent --pretty="" | egrep -i '^(platform-validation/scripts/compatibility)'
+          git log -m -1 --name-only --first-parent --pretty="" | egrep -i '^(platform-validation/scripts/aziot-compatibility)'
           if [[ $? == 0 ]]; then
             echo "Detected changes in platform compatibility script tool"
             sudo apt update
             sudo apt install shellcheck
-            shellcheck --severity=error ./platform-validation/scripts/compatibility.sh
+            shellcheck --severity=error ./platform-validation/scripts/aziot-compatibility.sh
           fi
         displayName: Check changes in platform compatibility script tool and perform shellcheck
