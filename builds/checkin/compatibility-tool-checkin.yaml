@@ -10,7 +10,7 @@ jobs:
   ################################################################################
     displayName: Check pipeline preconditions (changes ARE in platform compatibility script tool)
     pool:
-      vmImage: "ubuntu-18.04"
+      vmImage: "ubuntu-20.04"
     steps:
       - checkout: self
         submodules: false
