@@ -94,6 +94,10 @@ echo "Binaries : $BINARIES"
 echo "Binary Locations : $BINARYLOCATIONS"
 echo "Containers: $CONTAINERS"
 
+echo "Runtime_Seconds=$SECONDS_TO_RUN" >>"$FILE"
+echo "OS=$(cat /etc/os-release | grep PRETTY_NAME | sed -r 's/^PRETTY_NAME=//g')" >>"$FILE"
+echo "ARCH=$(uname -m)" >>"$FILE"
+
 end_time=$((SECONDS + SECONDS_TO_RUN))
 
 while [[ $SECONDS -lt $end_time ]]; do
