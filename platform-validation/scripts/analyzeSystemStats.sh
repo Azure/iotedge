@@ -58,6 +58,12 @@ store_stats() {
      type=$2
      value=$3
 
+     #Check if value passed is not number
+     re='[A-Z]$'
+     if [[ $value =~ $re ]]; then
+          return
+     fi
+
      if [[ -f $FILE ]]; then
           stored_peak_stat="$(cat "$FILE" | grep "$binary"-peak-"$type" | sed -r "s/^$binary-peak-$type=//g")"
           stored_avg_stat="$(cat "$FILE" | grep "$binary"-avg-"$type" | sed -r "s/^$binary-avg-$type=//g")"
