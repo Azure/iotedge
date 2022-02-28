@@ -7,17 +7,17 @@ trigger: none
 pr:
   branches:
     include:
-      - master
+      - main
       - release/*
 
 resources:
   pipelines:
   - pipeline: images
     source: 'Azure-IoT-Edge-Core Build Images'
-    branch: 'master'
+    branch: 'main'
   - pipeline: packages
     source: 'Azure-IoT-Edge-Core Edgelet Packages'
-    branch: 'master'
+    branch: 'main'
 
 stages:
   

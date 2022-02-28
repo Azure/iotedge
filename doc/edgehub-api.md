@@ -150,7 +150,7 @@ SharedAccessSignature test-srv.azure-devices.net%2Fdevices%2Ftest_device&sig=Mzv
 The SAS token for a device or module can be generated several different ways:
 - Using Visual Studio Code with [Azure IoT Hub extension](https://marketplace.visualstudio.com/items?itemName=vsciot-vscode.azure-iot-toolkit), using [these steps](https://github.com/Microsoft/vscode-azure-iot-toolkit/wiki/Generate-SAS-Token-for-IoT-Hub)
 - Using [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) with [IoT Extension](https://github.com/Azure/azure-iot-cli-extension) a [generate-sas-token](https://docs.microsoft.com/en-us/cli/azure/iot/hub?view=azure-cli-latest#az_iot_hub_generate_sas_token) command is available
-- The token generation can be implemented by [program code](https://github.com/microsoft/azure-docs/blob/master/articles/iot-hub/iot-hub-dev-guide-sas.md)
+- The token generation can be implemented by [program code](https://github.com/microsoft/azure-docs/blob/main/articles/iot-hub/iot-hub-dev-guide-sas.md)
 
 If there is an MQTT client library where an MQTT client object has a Connect() method with the signature:
 ```
