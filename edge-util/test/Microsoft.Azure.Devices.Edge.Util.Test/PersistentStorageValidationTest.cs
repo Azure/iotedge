@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [Fact]
         public void ValidateStorageIdentityTest()
         {
-            PersistentStorageValidation.DeviceIdentity savedIdentity = new PersistentStorageValidation.DeviceIdentity("dev1", "hub1", "mod1", "modgen1");
+            PersistentStorageValidation.DeviceIdentity savedIdentity = new PersistentStorageValidation.DeviceIdentity("dev1", "hub1", "mod1", Option.Some("modgen1"));
             Directory.CreateDirectory("test");
             string filepath = Path.Combine("test", "DEVICE_IDENTITY.json");
             string json = JsonConvert.SerializeObject(savedIdentity);
@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [Fact]
         public void ValidateStorageIdentityTestDifferentIdentity()
         {
-            PersistentStorageValidation.DeviceIdentity savedIdentity = new PersistentStorageValidation.DeviceIdentity("dev1", "hub1", "mod1", "modgen2");
+            PersistentStorageValidation.DeviceIdentity savedIdentity = new PersistentStorageValidation.DeviceIdentity("dev1", "hub1", "mod1", Option.Some("modgen2"));
             Directory.CreateDirectory("test");
             string filepath = Path.Combine("test", "DEVICE_IDENTITY.json");
             string json = JsonConvert.SerializeObject(savedIdentity);
@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [Fact]
         public void ValidateStorageIdentityTestNoModuleGenId()
         {
-            PersistentStorageValidation.DeviceIdentity savedIdentity = new PersistentStorageValidation.DeviceIdentity("dev1", "hub1", "mod1", null);
+            PersistentStorageValidation.DeviceIdentity savedIdentity = new PersistentStorageValidation.DeviceIdentity("dev1", "hub1", "mod1", Option.None<string>());
             Directory.CreateDirectory("test");
             string filepath = Path.Combine("test", "DEVICE_IDENTITY.json");
             string json = JsonConvert.SerializeObject(savedIdentity);

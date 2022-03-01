@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
     {
         public static bool ValidateStorageIdentity(string storagePath, string deviceId, string iotHubHostname, string moduleId, Option<string> moduleGenerationId, ILogger logger)
         {
-            DeviceIdentity currentIdentity = new DeviceIdentity(deviceId, iotHubHostname, moduleId, moduleGenerationId.OrDefault());
+            DeviceIdentity currentIdentity = new DeviceIdentity(deviceId, iotHubHostname, moduleId, moduleGenerationId);
             string filepath = Path.Combine(storagePath, "DEVICE_IDENTITY.json");
             string json = JsonConvert.SerializeObject(currentIdentity);
 
@@ -48,14 +48,21 @@ namespace Microsoft.Azure.Devices.Edge.Util
             public string ModuleId { get; }
 
             [JsonProperty("moduleGenerationId")]
-            public string ModuleGenerationId { get; }
+            [JsonConverter(typeof(OptionConverter<string>), true)]
+            public Option<string> ModuleGenerationId { get; }
 
-            public DeviceIdentity(string deviceId, string iothubHostname, string moduleId, string moduleGenerationId)
+            public DeviceIdentity(string deviceId, string iothubHostname, string moduleId, Option<string> moduleGenerationId)
             {
                 this.DeviceId = deviceId;
                 this.IotHubHostname = iothubHostname;
                 this.ModuleId = moduleId;
                 this.ModuleGenerationId = moduleGenerationId;
+            }
+
+            [JsonConstructor]
+            DeviceIdentity(string deviceId, string iothubHostname, string moduleId, string moduleGenerationId)
+           : this(deviceId, iothubHostname, moduleId, Option.Maybe(moduleGenerationId))
+            {
             }
         }
     }
