@@ -14,29 +14,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
     [Unit]
     public class PersistentStorageValidationTest : IDisposable
     {
-        struct DeviceIdentity
-        {
-            [JsonProperty("deviceId")]
-            public string DeviceId { get; }
-
-            [JsonProperty("iotHubHostname")]
-            public string IotHubHostname { get; }
-
-            [JsonProperty("moduleId")]
-            public string ModuleId { get; }
-
-            [JsonProperty("moduleGenerationId")]
-            public string ModuleGenerationId { get; }
-
-            public DeviceIdentity(string deviceId, string iothubHostname, string moduleId, string moduleGenerationId)
-            {
-                this.DeviceId = deviceId;
-                this.IotHubHostname = iothubHostname;
-                this.ModuleId = moduleId;
-                this.ModuleGenerationId = moduleGenerationId;
-            }
-        }
-
         public void Dispose()
         {
             Directory.Delete("test", true);
@@ -45,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [Fact]
         public void ValidateStorageIdentityTest()
         {
-            DeviceIdentity savedIdentity = new DeviceIdentity("dev1", "hub1", "mod1", "modgen1");
+            PersistentStorageValidation.DeviceIdentity savedIdentity = new PersistentStorageValidation.DeviceIdentity("dev1", "hub1", "mod1", "modgen1");
             Directory.CreateDirectory("test");
             string filepath = Path.Combine("test", "DEVICE_IDENTITY.json");
             string json = JsonConvert.SerializeObject(savedIdentity);
@@ -59,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [Fact]
         public void ValidateStorageIdentityTestDifferentIdentity()
         {
-            DeviceIdentity savedIdentity = new DeviceIdentity("dev1", "hub1", "mod1", "modgen2");
+            PersistentStorageValidation.DeviceIdentity savedIdentity = new PersistentStorageValidation.DeviceIdentity("dev1", "hub1", "mod1", "modgen2");
             Directory.CreateDirectory("test");
             string filepath = Path.Combine("test", "DEVICE_IDENTITY.json");
             string json = JsonConvert.SerializeObject(savedIdentity);
@@ -73,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [Fact]
         public void ValidateStorageIdentityTestNoModuleGenId()
         {
-            DeviceIdentity savedIdentity = new DeviceIdentity("dev1", "hub1", "mod1", null);
+            PersistentStorageValidation.DeviceIdentity savedIdentity = new PersistentStorageValidation.DeviceIdentity("dev1", "hub1", "mod1", null);
             Directory.CreateDirectory("test");
             string filepath = Path.Combine("test", "DEVICE_IDENTITY.json");
             string json = JsonConvert.SerializeObject(savedIdentity);

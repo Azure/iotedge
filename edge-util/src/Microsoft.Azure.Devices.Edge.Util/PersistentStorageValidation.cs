@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
-        struct DeviceIdentity
+        internal struct DeviceIdentity
         {
             [JsonProperty("deviceId")]
             public string DeviceId { get; }
