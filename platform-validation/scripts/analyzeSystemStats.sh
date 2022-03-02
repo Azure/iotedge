@@ -70,8 +70,8 @@ store_stats() {
      fi
 
      if [[ -f $FILE ]]; then
-          stored_peak_stat="$(cat "$FILE" | grep "$binary"-peak-"$type" | sed -r "s/^$binary-peak-$type=//g")"
-          stored_avg_stat="$(cat "$FILE" | grep "$binary"-avg-"$type" | sed -r "s/^$binary-avg-$type=//g")"
+          stored_peak_stat="$(grep "$binary"-peak-"$type" <"$FILE" | sed -r "s/^$binary-peak-$type=//g")"
+          stored_avg_stat="$(grep "$binary"-avg-"$type" <"$FILE" | sed -r "s/^$binary-avg-$type=//g")"
      fi
 
      if [[ -n $value ]]; then
@@ -105,8 +105,8 @@ perform_analysis() {
 
      for binary in $BINARIES; do
           if [[ $binary =~ aziot-* ]]; then
-               binary_size="$(cat "$1" | grep "$binary"-size | sed -r "s/$binary-size=//g")"
-               memory_usage="$(cat "$1" | grep $binary-avg-memory | sed -r "s/$binary-avg-memory=//g")"
+               binary_size="$(grep "$binary"-size <"$1" | sed -r "s/$binary-size=//g")"
+               memory_usage="$(grep "$binary"-avg-memory <"$1" | sed -r "s/$binary-avg-memory=//g")"
                IOTEDGE_BINARIES_SIZE=$(echo "$IOTEDGE_BINARIES_SIZE" "$binary_size" | awk '{print $1 + $2}')
                IOTEDGE_BINARIES_MEMORY=$(echo "$IOTEDGE_BINARIES_MEMORY" "$memory_usage" | awk '{print $1 + $2}')
           fi
@@ -114,14 +114,14 @@ perform_analysis() {
 
      if [[ -n "$CONTAINERS" ]]; then
 
-          stored_total_container_size="$(cat "$1" | grep "total-container-size" | sed -r "s/total-container-size=//g")"
+          stored_total_container_size="$(grep "total-container-size" <"$1" | sed -r "s/total-container-size=//g")"
           if [[ -n $stored_total_container_size ]]; then
                for container in $CONTAINERS; do
                     if [[ $container =~ edgeHub ]] || [[ $container =~ edgeAgent ]]; then
-                         memory_usage="$(cat "$1" | grep "$container"-avg-memory | sed -r "s/$container-avg-memory=//g")"
+                         memory_usage="$(grep "$container"-avg-memory <"$1" | sed -r "s/$container-avg-memory=//g")"
                          IOTEDGE_CONTAINERS_MEMORY=$(echo "$IOTEDGE_CONTAINERS_MEMORY" "$memory_usage" | awk '{print $1 + $2}')
                     else
-                         nonruntime_container_size="$(cat "$1" | grep "$container"-size | sed -r "s/$container-size=//g")"
+                         nonruntime_container_size="$(grep "$container"-size <"$1" | sed -r "s/$container-size=//g")"
                          IOTEDGE_CONTAINERS_SIZE=$(echo "$stored_total_container_size" "$nonruntime_container_size" | awk '{print $1 - $2}')
                     fi
                done
@@ -155,7 +155,7 @@ echo "Binaries : $BINARIES"
 echo "Binary Locations : $BINARYLOCATIONS"
 echo "Containers: $CONTAINERS"
 echo "Runtime_Seconds=$SECONDS_TO_RUN"
-echo "OS=$(cat /etc/os-release | grep PRETTY_NAME | sed -r 's/^PRETTY_NAME=//g')"
+echo "OS=$(grep PRETTY_NAME <"/etc/os-release" | sed -r 's/^PRETTY_NAME=//g')"
 echo "ARCH=$(uname -m)"
 echo "Pruning all unused images"
 sudo docker system prune --all --force
@@ -173,7 +173,7 @@ while [[ $SECONDS -lt $end_time ]]; do
           if [[ -n $file_name ]]; then
                # We only need to store Size of binary once
                if [[ -f $FILE ]]; then
-                    stored_binary_size="$(cat "$FILE" | grep "$binary"-size | sed -r "s/^$binary-size=//g")"
+                    stored_binary_size="$(grep "$binary"-size <"$FILE" | sed -r "s/^$binary-size=//g")"
                fi
                if [[ -z "$stored_binary_size" ]]; then
                     file_size=$(stat -c%s "$(readlink -f "$file_name")")
@@ -199,8 +199,8 @@ while [[ $SECONDS -lt $end_time ]]; do
           imageId=$(docker inspect --format '{{.Image}}' "$container" 2>/dev/null | sed -r 's/sha256://g') #Split XXMiB / YY MiB Output to get XX
           if [[ -n $imageId ]]; then
                if [[ -f $FILE ]]; then
-                    stored_container_size="$(cat "$FILE" | grep "$container"-size | sed -r "s/^$container-size=//g")"
-                    stored_total_container_size="$(cat "$FILE" | grep "total-container-size" | sed -r "s/total-container-size=//g")"
+                    stored_container_size="$(grep "$container"-size <"$FILE" | sed -r "s/^$container-size=//g")"
+                    stored_total_container_size="$(grep "total-container-size" <"$FILE" | sed -r "s/total-container-size=//g")"
                fi
 
                # using r option here doesn't yield the desired result. Need to investigate why
@@ -219,7 +219,8 @@ while [[ $SECONDS -lt $end_time ]]; do
                fi
 
                if [[ -z "$stored_container_size" ]]; then
-                    imageId=$(echo ${imageId:0:12})
+                    imageId=${imageId:0:12}
+                    # r option here doesnt yield the correct result, need to investigate why
                     read -a container_image_size <<<"$(docker images --format '{{.ID}} {{.Size}}' | grep "$imageId")"
                     # Output of the form <sha> <size>MB
                     container_size=$(echo "${container_image_size[1]}" | sed -r 's/MB//g')
@@ -227,6 +228,7 @@ while [[ $SECONDS -lt $end_time ]]; do
                     echo "$container-size=$container_size" >>"$FILE"
                fi
 
+               # r option here doesnt yield the correct result, need to investigate why
                read -a container_memory <<<"$(docker stats --no-stream --format '{{.MemUsage}}' "$container")"
                memory=$(echo "${container_memory[0]}" | sed -r 's/MiB//g')
 
