@@ -22,6 +22,7 @@ function usage() {
      echo " -c,  --containers             list of container names to monitor, defaults to edge runtime containers"
      echo " -p,  --path                   path where memory file needs to be stored, defaults to script execution path"
      echo " -l,  --binaryLocations        location where binaries are present, defaults to /usr/bin /usr/libexe"
+     echo " -a    --analyze               Analyzes the Memory File"
      exit 1
 }
 
@@ -40,6 +41,9 @@ process_args() {
           elif [ $save_next_arg -eq 4 ]; then
                STORAGE_PATH="$arg"
                save_next_arg=0
+          elif [ $save_next_arg -eq 5 ]; then
+               MEMORY_FILE_PATH="$arg"
+               save_next_arg=0
           else
                case "$arg" in
                "-h" | "--help") usage ;;
@@ -47,6 +51,7 @@ process_args() {
                "-b" | "--binaries") save_next_arg=2 ;;
                "-c" | "--containers") save_next_arg=3 ;;
                "-p" | "--path") save_next_arg=4 ;;
+               "-a" | "--analyze") save_next_arg=5 ;;
                *) usage ;;
                esac
           fi
@@ -92,20 +97,70 @@ store_stats() {
 
 }
 
+perform_analysis() {
+     IOTEDGE_BINARIES_SIZE=0.0
+     IOTEDGE_BINARIES_MEMORY=0.0
+     IOTEDGE_CONTAINERS_SIZE=0.0
+     IOTEDGE_CONTAINERS_MEMORY=0.0
+
+     for binary in $BINARIES; do
+          if [[ $binary =~ aziot-* ]]; then
+               binary_size="$(cat "$1" | grep "$binary"-size | sed -r "s/$binary-size=//g")"
+               memory_usage="$(cat "$1" | grep $binary-avg-memory | sed -r "s/$binary-avg-memory=//g")"
+               IOTEDGE_BINARIES_SIZE=$(echo "$IOTEDGE_BINARIES_SIZE" "$binary_size" | awk '{print $1 + $2}')
+               IOTEDGE_BINARIES_MEMORY=$(echo "$IOTEDGE_BINARIES_MEMORY" "$memory_usage" | awk '{print $1 + $2}')
+          fi
+     done
+
+     if [[ -n "$CONTAINERS" ]]; then
+
+          stored_total_container_size="$(cat "$1" | grep "total-container-size" | sed -r "s/total-container-size=//g")"
+          if [[ -n $stored_total_container_size ]]; then
+               for container in $CONTAINERS; do
+                    if [[ $container =~ edgeHub ]] || [[ $container =~ edgeAgent ]]; then
+                         memory_usage="$(cat "$1" | grep "$container"-avg-memory | sed -r "s/$container-avg-memory=//g")"
+                         IOTEDGE_CONTAINERS_MEMORY=$(echo "$IOTEDGE_CONTAINERS_MEMORY" "$memory_usage" | awk '{print $1 + $2}')
+                    else
+                         nonruntime_container_size="$(cat "$1" | grep "$container"-size | sed -r "s/$container-size=//g")"
+                         IOTEDGE_CONTAINERS_SIZE=$(echo "$stored_total_container_size" "$nonruntime_container_size" | awk '{print $1 - $2}')
+                    fi
+               done
+          else
+               echo "Total Container Size should be present, exiting"
+               exit 1
+          fi
+     fi
+
+     echo "iotedge-binaries-size=$IOTEDGE_BINARIES_SIZE"
+     echo "iotedge-binaries-avg-memory=$IOTEDGE_BINARIES_MEMORY"
+     echo "iotedge-container-size=$IOTEDGE_CONTAINERS_SIZE"
+     echo "iotedge-container-memory=$IOTEDGE_CONTAINERS_MEMORY"
+}
+
 process_args "$@"
+if [[ -n $MEMORY_FILE_PATH ]]; then
+     if [[ -f $MEMORY_FILE_PATH ]]; then
+          perform_analysis "$MEMORY_FILE_PATH"
+          exit 0
+     else
+          echo "File $MEMORY_FILE_PATH does not exist"
+          exit 1
+     fi
+fi
+
 echo "Running Usage Test for $SECONDS_TO_RUN seconds"
 FILE="$STORAGE_PATH/usage-$(uname -m).txt"
 echo "Storing Data at $FILE"
 echo "Binaries : $BINARIES"
 echo "Binary Locations : $BINARYLOCATIONS"
 echo "Containers: $CONTAINERS"
-
-echo "Runtime_Seconds=$SECONDS_TO_RUN" >>"$FILE"
-echo "OS=$(cat /etc/os-release | grep PRETTY_NAME | sed -r 's/^PRETTY_NAME=//g')" >>"$FILE"
-echo "ARCH=$(uname -m)" >>"$FILE"
+echo "Runtime_Seconds=$SECONDS_TO_RUN"
+echo "OS=$(cat /etc/os-release | grep PRETTY_NAME | sed -r 's/^PRETTY_NAME=//g')"
+echo "ARCH=$(uname -m)"
+echo "Pruning all unused images"
+sudo docker system prune --all --force
 
 end_time=$((SECONDS + SECONDS_TO_RUN))
-
 while [[ $SECONDS -lt $end_time ]]; do
      for binary in $BINARIES; do
           for location in $BINARYLOCATIONS; do
@@ -145,7 +200,24 @@ while [[ $SECONDS -lt $end_time ]]; do
           if [[ -n $imageId ]]; then
                if [[ -f $FILE ]]; then
                     stored_container_size="$(cat "$FILE" | grep "$container"-size | sed -r "s/^$container-size=//g")"
+                    stored_total_container_size="$(cat "$FILE" | grep "total-container-size" | sed -r "s/total-container-size=//g")"
                fi
+
+               # using r option here doesn't yield the desired result. Need to investigate why
+               read -a total_size <<<"$(docker system df --format '{{.Size}}')"
+               total_container_size=$(echo "${total_size[0]}" | sed -r 's/MB//g')
+
+               if [[ -z $stored_total_container_size ]]; then
+                    echo "$(date): Total Container Size is $total_container_size"
+                    echo "total-container-size=$total_container_size" >>"$FILE"
+               else
+                    overwrite=$(echo "$stored_total_container_size" "$total_container_size" | awk '{if ($2 > $1) print 1; else print 0}')
+                    if [[ $overwrite -eq 1 ]]; then
+                         echo "$(date): Over-writing Total Container Size to $total_container_size"
+                         echo "total-container-size=$total_container_size" >>"$FILE"
+                    fi
+               fi
+
                if [[ -z "$stored_container_size" ]]; then
                     imageId=$(echo ${imageId:0:12})
                     read -a container_image_size <<<"$(docker images --format '{{.ID}} {{.Size}}' | grep "$imageId")"
@@ -168,5 +240,4 @@ while [[ $SECONDS -lt $end_time ]]; do
 
      done
 
-     sleep 5
 done
