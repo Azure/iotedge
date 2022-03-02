@@ -44,7 +44,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 });
         }
 
-        public static Action<EdgeConfigBuilder> BuildAddTestResultCoordinatorConfig(string trackingId, string trcImage, string expectedSourceModuleName, string actualSourceModuleName)
+        public static Action<EdgeConfigBuilder> BuildAddTestResultCoordinatorConfig(
+            string trackingId,
+            string trcImage,
+            string expectedSourceModuleName,
+            string actualSourceModuleName,
+            bool mqttBrokerEnabled)
         {
             return new Action<EdgeConfigBuilder>(
                 builder =>
@@ -61,7 +66,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                            ("testStartDelay", "00:00:00"),
                            ("verificationDelay", "00:00:00"),
                            ("NetworkControllerRunProfile", "Online"),
-                           ("TEST_INFO", "key=unnecessary")
+                           ("TEST_INFO", "key=unnecessary"),
+                           ("mqttBrokerEnabled", mqttBrokerEnabled.ToString())
                        })
                        .WithSettings(new[] { ("createOptions", "{\"HostConfig\": {\"PortBindings\": {\"5001/tcp\": [{\"HostPort\": \"5001\"}]}}}") })
 

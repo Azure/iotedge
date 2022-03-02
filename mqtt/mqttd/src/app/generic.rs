@@ -38,8 +38,16 @@ impl Bootstrap for GenericBootstrap {
 
         fs::create_dir_all(state_dir.clone())?;
         let mut persistor = FilePersistor::new(state_dir, VersionedFileFormat::default());
-        let state = persistor.load().await?;
-        info!("state loaded.");
+        let state = match persistor.load().await {
+            Ok(state) => {
+                info!("state loaded.");
+                state
+            }
+            Err(e) => {
+                error!("failed to load broker state, most likely the broker was forcefully shut down and state file is corrupted: {}", e);
+                None
+            }
+        };
 
         let broker = BrokerBuilder::default()
             .with_authorizer(AllowAll)

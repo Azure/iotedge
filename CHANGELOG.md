@@ -1,7 +1,53 @@
+# 1.2.8 (2021-02-24)
+## Edge Agent
+### Bug Fixes
+* Fix underflow possibility on ColumnFamilyDbStore  ( [bc78f1c](https://github.com/Azure/iotedge/commit/bc78f1c0b0ab0dfa305b817c030b82cea035f6e0) )
+* Remove BouncyCastle dependency ( [403ca87](https://github.com/Azure/iotedge/commit/403ca87bc228421c8913c1431687267dee9112a7), [7589457](https://github.com/Azure/iotedge/commit/7589457deec0f2735711cb8973cac0f0e17046c1) )
+* Update `Microsoft.Azure.Devices.Client` SDK ( [4b7570f](https://github.com/Azure/iotedge/commit/4b7570f12b2de0875e29b19964c935e693933e82) )
+
+
+## Edge Hub
+### Bug Fixes
+* Fix underflow possibility on ColumnFamilyDbStore  ( [bc78f1c](https://github.com/Azure/iotedge/commit/bc78f1c0b0ab0dfa305b817c030b82cea035f6e0) )
+* Remove BouncyCastle dependency ( [403ca87](https://github.com/Azure/iotedge/commit/403ca87bc228421c8913c1431687267dee9112a7), [7589457](https://github.com/Azure/iotedge/commit/7589457deec0f2735711cb8973cac0f0e17046c1) )
+* Restart EdgeHub upon certificate renewal ( [c5e90a7](https://github.com/Azure/iotedge/commit/c5e90a75e9a89ff612ad8c60241b0039464c298d) )
+* Update `Microsoft.Azure.Devices.Client` SDK ( [4b7570f](https://github.com/Azure/iotedge/commit/4b7570f12b2de0875e29b19964c935e693933e82) )
+* Workaround for windows-certificate import problem for EdgeHub in Visual Studio debug runs ( [0ed0c71](https://github.com/Azure/iotedge/commit/0ed0c710e2fc38c6feda7c39cb71b6625e20e87d) )
+
+
+## aziot-edge
+### Bug Fixes
+* Remove `sudo` from `iotedge check` for local proxy setting check ( [5976efb](https://github.com/Azure/iotedge/commit/5976efb411b3edfd860494e081ed835637c96529) )
+* Update vulnerable regex package ( [a34fd5b](https://github.com/Azure/iotedge/commit/a34fd5bca7e58c01819da56dd73df817fbefeb7e), [fe7de0b](https://github.com/Azure/iotedge/commit/fe7de0b45363594d1f23b575eddb2947d38ace6a) )
+
+
+# 1.2.7 (2021-01-19)
+## Edge Agent
+### Bug Fixes
+* Update base image for security patch ( [8194a93](https://github.com/Azure/iotedge/commit/8194a93ab147658ca545dd8da97c0088904f284d) )
+
+
+## Edge Hub
+### Bug Fixes
+* Update base image for security patch ( [8194a93](https://github.com/Azure/iotedge/commit/8194a93ab147658ca545dd8da97c0088904f284d) )
+* Update vulnerable nix version ( [ca6958f](https://github.com/Azure/iotedge/commit/ca6958f7a3995c43973e4fbd006c1be737b60fe8) )
+
+
+## aziot-edge
+### Bug Fixes
+* Removed Moby check ( [27a14d8](https://github.com/Azure/iotedge/commit/27a14d817d8de78b562691945689fa4400de56b6) )
+* Fix for workload socket issue for concurrent module creation ( [5712dcc](https://github.com/Azure/iotedge/commit/5712dcc28498121d890082d5c884d9855cc40efd) )
+* Addition of device ID to edge CA common name to support large number of devices ( [6627c7a](https://github.com/Azure/iotedge/commit/6627c7a835ed6b252da00faa29b9d9b8e5cd501b) )
+
+
+### Features
+* New IoTedge check called proxy-settings which verifies proxy settings ( [4983128](https://github.com/Azure/iotedge/commit/49831285a02de9189ac338237aaa0f529a72c559) )
+
+
 # 1.2.6 (2021-11-12)
 ## Edge Agent
 ### Bug Fixes
-* Revert [2677657](https://github.com/Azure/iotedge/commit/26776577a4eec9414108e29d2bb4263c9b2d8b76), which inadvertently disabled duration and Unix timestamp formats in the since and until arguments of GetModuleLogs and UploadModuleLogs direct methods ([f7f4b89](https://github.com/Azure/iotedge/commit/f7f4b89e697808365f81b7ada622bdb4bf87e722))
+* Revert [2677657](https://github.com/Azure/iotedge/commit/26776577a4eec9414108e29d2bb4263c9b2d8b76), which inadvertently disabled duration and Unix timestamp formats in the since and until arguments of GetModuleLogs and UploadModuleLogs direct methods ( [f7f4b89](https://github.com/Azure/iotedge/commit/f7f4b89e697808365f81b7ada622bdb4bf87e722) )
 
 # 1.2.5 (2021-11-09)
 ## Edge Agent
@@ -158,7 +204,7 @@ This release contains a significant refactoring to the IoT Edge security daemon.
 Every attempt has been made to ensure that the APIs on which Edge modules depend will remain unaffected and backward compatible. Issues affecting Edge modules will be treated with the highest priority.
 
 ### Impact to installing / configuring IoT Edge
-The refactoring does affect the packaging and installation of IoT Edge. While we've attempted to minimize the impact of these there are expected differences. For more details on these changes please refer to the discussion of [Packaging](https://github.com/Azure/iotedge/blob/master/doc/packaging.md).
+The refactoring does affect the packaging and installation of IoT Edge. While we've attempted to minimize the impact of these there are expected differences. For more details on these changes please refer to the discussion of [Packaging](https://github.com/Azure/iotedge/blob/main/doc/packaging.md).
 
 
 ## Edge Agent
@@ -242,7 +288,7 @@ This release contains a significant refactoring to the IoT Edge security daemon.
 Every attempt has been made to ensure that the APIs on which Edge modules depend will remain unaffected and backward compatible. Issues affecting Edge modules will be treated with the highest priority.
 
 ### Impact to installing / configuring IoT Edge
-The refactoring does affect the packaging and installation of IoT Edge. While we've attempted to minimize the impact of these there are expected differences. For more details on these changes please refer to the discussion of [Packaging](https://github.com/Azure/iotedge/blob/master/doc/packaging.md).
+The refactoring does affect the packaging and installation of IoT Edge. While we've attempted to minimize the impact of these there are expected differences. For more details on these changes please refer to the discussion of [Packaging](https://github.com/Azure/iotedge/blob/main/doc/packaging.md).
 
 
 ## Edge Agent
