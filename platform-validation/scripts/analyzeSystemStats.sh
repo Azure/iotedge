@@ -64,7 +64,7 @@ store_stats() {
      value=$3
 
      #Check if value passed is not number
-     re='[A-Z]$'
+     re='^[0-9]+$'
      if [[ $value =~ $re ]]; then
           return
      fi
