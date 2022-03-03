@@ -99,7 +99,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
                 return new Version_2019_11_05.ModuleManagementHttpClient(managementUri);
             }
 
-            // TODO: remove second condition when workload/management API versions decoupled.
             if (supportedVersion == ApiVersion.Version20200707)
             {
                 return new Version_2020_07_07.ModuleManagementHttpClient(managementUri);
