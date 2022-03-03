@@ -30,11 +30,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             ITransportSettings receivedTransportSettings = null;
 
             var sdkModuleClient = new Mock<ISdkModuleClient>();
-            var moduleManager = new Mock<IModuleManager>();
-            var systemInfo = new SystemInfo("foo", "bar", "baz");
+            var productInfoProvider = new Mock<IProductInfoProvider>();
 
-            moduleManager.Setup(mm => mm.GetSystemInfoAsync(CancellationToken.None))
-                .ReturnsAsync(systemInfo);
+            productInfoProvider.Setup(p => p.GetProductInfoAsync(CancellationToken.None, productInfo))
+                .ReturnsAsync($"{productInfo} (kernel_name=foo;cpu_architecture=bar;)");
 
             var sdkModuleClientProvider = new Mock<ISdkModuleClientProvider>();
             sdkModuleClientProvider.Setup(s => s.GetSdkModuleClient(It.IsAny<ITransportSettings>()))
@@ -48,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // Act
             var moduleClientProvider = new ModuleClientProvider(
                 sdkModuleClientProvider.Object,
-                moduleManager.Object,
+                productInfoProvider.Object,
                 upstreamProtocol,
                 webProxy,
                 productInfo,
@@ -104,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             ITransportSettings receivedTransportSettings = null;
 
             var sdkModuleClient = new Mock<ISdkModuleClient>();
-            var moduleManager = new Mock<IModuleManager>();
+            var productInfoProvider = new Mock<IProductInfoProvider>();
 
             var sdkModuleClientProvider = new Mock<ISdkModuleClientProvider>();
             sdkModuleClientProvider.Setup(s => s.GetSdkModuleClient(It.IsAny<ITransportSettings>()))
@@ -118,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // Assert
             Assert.Throws<ArgumentNullException>(() => new ModuleClientProvider(
                 sdkModuleClientProvider.Object,
-                moduleManager.Object,
+                productInfoProvider.Object,
                 Option.None<UpstreamProtocol>(),
                 Option.None<IWebProxy>(),
                 null,
