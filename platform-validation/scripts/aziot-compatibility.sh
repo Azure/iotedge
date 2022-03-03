@@ -19,11 +19,6 @@ POSSIBLE_CONFIGS="
 	/usr/src/linux-$(uname -r)/.config
 	/usr/src/linux/.config
 "
-if [ $# -gt 0 ]; then
-    CONFIG="$1"
-else
-    : "${CONFIG:=/proc/config.gz}"
-fi
 
 if ! command -v zgrep >/dev/null 2>&1; then
     zgrep() {
@@ -102,7 +97,6 @@ wrap_warning() {
 # ------------------------------------------------------------------------------
 need_cmd() {
     if ! check_cmd "$1"; then
-        wrap_warning "'$1' (command not found)"
         exit 1
     fi
 }
@@ -118,8 +112,8 @@ get_libc() {
     # Also detect glibc versions older than 2.18 and return musl for these
     # Required until we identify minimum supported version
     # TODO: https://github.com/vectordotdev/vector/issues/10807
-    local _ldd_version
-    local _libc_version
+    _ldd_version
+    _libc_version
     _ldd_version=$(ldd --version 2>&1)
     if [ -z "${_ldd_version##*GNU*}" ] || [ -z "${_ldd_version##*GLIBC*}" ]; then
         _libc_version=$(echo "$_ldd_version" | awk '/ldd/{print $NF}')
@@ -144,7 +138,7 @@ get_bitness() {
     #   0x02 for 64-bit.
     # The printf builtin on some shells like dash only supports octal
     # escape sequences, so we use those.
-    local _current_exe_head
+    _current_exe_head
     _current_exe_head=$(head -c 5 /proc/self/exe)
     if [ "$_current_exe_head" = "$(printf '\177ELF\001')" ]; then
         echo 32
@@ -156,15 +150,15 @@ get_bitness() {
 }
 
 get_endianness() {
-    local cputype=$1
-    local suffix_eb=$2
-    local suffix_el=$3
+    cputype=$1
+    suffix_eb=$2
+    suffix_el=$3
 
     # detect endianness without od/hexdump, like get_bitness() does.
     need_cmd head
     need_cmd tail
 
-    local _current_exe_endianness
+    _current_exe_endianness
     _current_exe_endianness="$(head -c 6 /proc/self/exe | tail -c 1)"
     if [ "$_current_exe_endianness" = "$(printf '\001')" ]; then
         echo "${cputype}${suffix_el}"
@@ -176,7 +170,7 @@ get_endianness() {
 }
 
 get_architecture() {
-    local _ostype _cputype _bitness _arch
+    _ostype _cputype _bitness _arch
     _ostype="$(uname -s)"
     _cputype="$(uname -m)"
 
@@ -363,7 +357,7 @@ check_kernel_file() {
         if [ ! -e "$CONFIG" ]; then
             wrap_warning "error: cannot find kernel config"
             wrap_warning "  try running this script again, specifying the kernel config:"
-            wrap_warning "    CONFIG=/path/to/kernel/.config $0 or $0 /path/to/kernel/.config"
+            wrap_warning "    CONFIG=/path/to/kernel/.config $0"
             EXIT_CODE=1
         fi
     fi
@@ -460,7 +454,6 @@ check_systemd() {
 check_architecture() {
 
     wrap_debug "Checking architecture Compatibility..."
-    get_architecture
     wrap_debug "Architecture:$ARCH"
 
     case $ARCH in
@@ -481,7 +474,7 @@ check_architecture() {
 
 #Todo : This will need to be checked here : https://github.com/Azure/iotedge/blob/main/edgelet/docker-rs/src/apis/configuration.rs#L14 for every build
 #to make sure we still support the version.
-MINIMUM_DOCKER_API_VERSION=1.34
+
 check_docker_api_version() {
     # Check dependencies
     if ! need_cmd docker; then
@@ -492,7 +485,7 @@ check_docker_api_version() {
     fi
 
     version=$(docker version -f '{{.Client.APIVersion}}')
-    version_check=$(echo "$version" $MINIMUM_DOCKER_API_VERSION | awk '{if ($1 < $2) print 1; else print 0}')
+    version_check=$(echo "$version" $1 | awk '{if ($1 < $2) print 1; else print 0}')
     if [ "$version_check" -eq 0 ]; then
         wrap_pass "check_docker_api_version"
     else
@@ -502,103 +495,164 @@ check_docker_api_version() {
 
 }
 
+SHARED_LIB_PATH="/usr /lib /lib32 /lib64"
 check_shared_library_dependency() {
-    wrap_debug "Checking shared library dependency for aziot-edged and aziot-identityd"
-
     # set the crucial libaries in the variable
     # IOTEDGE_COMMON_SHARED_LIBRARIES is for both aziot-edged and aziot-identityd
-    IOTEDGE_COMMON_LIBRARIES="libssl.so.1.1 libcrypto.so.1.1 libdl.so.2 librt.so.1 libpthread.so.0 libc.so.6 libm.so.6 libgcc_s.so.1"
-    for lib in $IOTEDGE_COMMON_LIBRARIES; do
-        check_shared_library_dependency_core_util "$lib"
-    done
-
-    if [ $ARCH = x86_64 ]; then
-        check_shared_library_dependency_core_util "ld-linux-x86-64.so.2"
-    elif [ $ARCH = aarch64 ]; then
-        check_shared_library_dependency_core_util "ld-linux-aarch64.so.1"
-    elif [ $ARCH = armv7 ]; then
-        check_shared_library_dependency_core_util "ld-linux-armhf.so.3"
-    fi
-}
-
-check_shared_library_dependency_core_util() {
-
-    # setting share library path
-    if [ $# -gt 1 ]; then
-        SHARED_LIB_PATH="$2"
-    else
-        SHARED_LIB_PATH="/usr /lib /lib32 /lib64"
-    fi
-
-    # check dependencies for `ldconfig` and fall back to `find` when its not possible
-    if [ "$(id -u)" -ne 0 ] && [ "$(need_cmd ldconfig)" != 0 ]; then
-        decision=0
-        for path in $SHARED_LIB_PATH; do
-            if [ ! "$(find "$path" -name "$1" | grep .)" ]; then
-                decision=$((decision + 1))
-            else
-                wrap_pass "$1"
-                break
+    for lib in $SHARED_LIBRARIES; do
+        # check dependencies for `ldconfig` and fall back to `find` when its not possible
+        if [ "$(id -u)" -ne 0 ] || [ "$(need_cmd ldconfig)" != 0 ]; then
+            found_library=0
+            for path in $SHARED_LIB_PATH; do
+                if [ ! -e "$path" ]; then
+                    wrap_warning "Path : $path does not exist, Searching for other paths"
+                    continue
+                else
+                    if [ ! "$(find "$path" -name "$lib" | grep .)" ]; then
+                        found_library=0
+                    else
+                        found_library=1
+                        wrap_pass "$lib"
+                        break
+                    fi
+                fi
+            done
+            if [ $found_library -eq 0 ]; then
+                wrap_fail "$lib"
+                check_shared_library_dependency_display_util "$lib"
             fi
-        done
-        # if the libraries are not present in all 4 paths, it is considered to be missing.
-        if [ $decision -eq 4 ]; then
-            check_shared_library_dependency_display_util "$1"
-        fi
-        return
-    else
-        ret=$(ldconfig -p | grep "$1")
-        if [ -z "$ret" ]; then
-            check_shared_library_dependency_display_util "$1"
         else
-            wrap_pass "$1"
+            ret=$(ldconfig -p | grep "$lib")
+            if [ -z "$ret" ]; then
+                check_shared_library_dependency_display_util "$lib"
+            else
+                wrap_pass "$lib"
+            fi
         fi
-    fi
+    done
 }
 
 check_shared_library_dependency_display_util() {
+
+    wrap_warning "error: cannot find Library $1 in $SHARED_LIB_PATH"
+    wrap_warning "  try running this script again, providing the shared library path for your distro"
+    wrap_warning "    SHARED_LIB_PATH=/path/to/shared_lib $0"
     case $1 in
     "libssl.so.1.1" | "libcrypto.so.1.1")
-        wrap_warning "$lib is missing. Please install openssl and libssl-dev for your OS distribution."
+        wrap_warning "If Problem still persists, Please install openssl and libssl-dev for your OS distribution."
         ;;
     "libdl.so.2" | "librt.so.1" | "libpthread.so.0" | "libc.so.6" | "libm.so.6")
-        wrap_warning "$lib is missing. Please install libc6-dev for your OS distribution."
+        wrap_warning "If Problem still persists, Please install libc6-dev for your OS distribution."
         ;;
     "ld-linux-x86-64.so.2" | "ld-linux-aarch64.so.1" | "ld-linux-armhf.so.3")
-        wrap_warning "$lib is missing. Please install libc6 for your OS distribution."
+        wrap_warning "If Problem still persists, Please install libc6 for your OS distribution."
         ;;
     "libgcc_s.so.1")
-        wrap_warning "$lib is missing. Please install gcc for your OS distribution."
+        wrap_warning "If Problem still persists, Please install gcc for your OS distribution."
         ;;
     esac
 }
 
-#Required for resource allocation for containers
-check_cgroup_heirachy
+aziotedge_check() {
 
-#Flags Required for setting elevated capabilities in a container. EdgeHub currently requires setting CAP_NET_BIND on dotnet binary.
-check_kernel_flags EXT4_FS_SECURITY
+    # Todo : As we add new versions, these checks will need to be changed. Keep a common check for now
+    case $APP_VERSION in
+    *) wrap_debug "Checking aziot-edge compatibility for Release 1.2" ;;
+    esac
 
-# The Following kernel flags are required for running a container engine. For description on each of the config flags : Visit -https://www.kernelconfig.io/
-#Todo : Only check if docker engine is not present?
-#Check for Required Container Engine Flags if docker is not present
-check_kernel_flags \
-    NAMESPACES NET_NS PID_NS IPC_NS UTS_NS \
-    CGROUPS CGROUP_CPUACCT CGROUP_DEVICE CGROUP_FREEZER CGROUP_SCHED CPUSETS MEMCG \
-    KEYS \
-    VETH BRIDGE BRIDGE_NETFILTER \
-    IP_NF_FILTER IP_NF_TARGET_MASQUERADE \
-    NETFILTER_XT_MATCH_ADDRTYPE \
-    NETFILTER_XT_MATCH_CONNTRACK \
-    NETFILTER_XT_MATCH_IPVS \
-    NETFILTER_XT_MARK \
-    IP_NF_NAT NF_NAT \
-    POSIX_MQUEUE
-# (POSIX_MQUEUE is required for bind-mounting /dev/mqueue into containers)
+    SHARED_LIBRARIES="libssl.so.1.1 libcrypto.so.1.1 libdl.so.2 librt.so.1 libpthread.so.0 libc.so.6 libm.so.6 libgcc_s.so.1"
+    MINIMUM_DOCKER_API_VERSION=1.34
+    #Required for resource allocation for containers
+    check_cgroup_heirachy
 
-check_cgroup_heirachy
-check_systemd
-check_architecture
-check_docker_api_version
-check_shared_library_dependency
-echo "IoT Edge Compatibility Tool Check Complete"
+    #Flags Required for setting elevated capabilities in a container. EdgeHub currently requires setting CAP_NET_BIND on dotnet binary.
+    check_kernel_flags EXT4_FS_SECURITY
+
+    # The Following kernel flags are required for running a container engine. For description on each of the config flags : Visit -https://www.kernelconfig.io/
+    #Todo : Only check if docker engine is not present?
+    #Check for Required Container Engine Flags if docker is not present
+    check_kernel_flags \
+        NAMESPACES NET_NS PID_NS IPC_NS UTS_NS \
+        CGROUPS CGROUP_CPUACCT CGROUP_DEVICE CGROUP_FREEZER CGROUP_SCHED CPUSETS MEMCG \
+        KEYS \
+        VETH BRIDGE BRIDGE_NETFILTER \
+        IP_NF_FILTER IP_NF_TARGET_MASQUERADE \
+        NETFILTER_XT_MATCH_ADDRTYPE \
+        NETFILTER_XT_MATCH_CONNTRACK \
+        NETFILTER_XT_MATCH_IPVS \
+        NETFILTER_XT_MARK \
+        IP_NF_NAT NF_NAT \
+        POSIX_MQUEUE
+    # (POSIX_MQUEUE is required for bind-mounting /dev/mqueue into containers)
+
+    check_cgroup_heirachy
+    check_systemd
+    check_architecture
+
+    check_docker_api_version $MINIMUM_DOCKER_API_VERSION
+
+    if [ $ARCH = x86_64 ]; then
+        SHARED_LIBRARIES="$(echo $SHARED_LIBRARIES "ld-linux-x86-64.so.2")"
+    elif [ $ARCH = aarch64 ]; then
+        SHARED_LIBRARIES="$(echo $SHARED_LIBRARIES "ld-linux-aarch64.so.1")"
+    elif [ $ARCH = armv7 ]; then
+        SHARED_LIBRARIES="$(echo $SHARED_LIBRARIES "ld-linux-armhf.so.3")"
+    fi
+    check_shared_library_dependency
+
+    echo "IoT Edge Compatibility Tool Check Complete"
+}
+
+list_apps() {
+    #Add Supported Applications here - Space delimited
+    echo "aziotedge"
+}
+
+###############################################################################
+# Print usage information pertaining to this script and exit
+###############################################################################
+usage() {
+    echo "$(basename "$0") [options]"
+    echo ""
+    echo "options"
+    echo " -a, --app-name              The name of the application to check for compatibility. Execute \"$(basename "$0")\" -l to get list of supported applications"
+    echo " -v, --app-version           The version of the application to check compatibility for. Defaults to latest version of the application."
+    echo " -l, --list-apps             List of application checks supported by the compatibility script"
+    echo " -h, --help                  Print this help and exit."
+    exit 1
+}
+
+process_args() {
+    save_next_arg=0
+    for arg in "$@"; do
+        if [ $save_next_arg -eq 1 ]; then
+            APP_NAME=$arg
+            save_next_arg=0
+        elif [ $save_next_arg -eq 2 ]; then
+            APP_VERSION=$arg
+            save_next_arg=0
+        else
+            case "$arg" in
+            "-h" | "--help") usage ;;
+            "-a" | "--app-name") save_next_arg=1 ;;
+            "-v" | "--app-version") save_next_arg=2 ;;
+            "-l" | "--list-apps") list_apps && exit 0 ;;
+            *) usage ;;
+            esac
+        fi
+    done
+}
+
+#LATEST VERSIONS
+process_args "$@"
+if [ -z "$APP_NAME" ]; then
+    wrap_bad "No Application Name Provided, Supported Applications : \"$(list_apps)\""
+    usage
+else
+    if [ -z "$(list_apps | grep "$APP_NAME")" ]; then
+        wrap_bad "Application $APP_NAME does not exist in Supported Applications : \"$(list_apps)\""
+        exit 1
+    fi
+fi
+get_architecture
+"$APP_NAME"_check
