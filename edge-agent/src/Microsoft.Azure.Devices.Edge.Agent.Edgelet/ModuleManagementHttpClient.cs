@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
 
-    public class ModuleManagementHttpClient : IModuleManager, IIdentityManager, IDeviceManager
+    public class ModuleManagementHttpClient : IModuleManager, IIdentityManager, IDeviceManager, IProductInfoProvider
     {
         const int MaxConcurrentRequests = 5;
 
@@ -67,6 +67,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         public Task<Stream> GetSupportBundle(Option<string> since, Option<string> until, Option<string> iothubHostname, Option<bool> edgeRuntimeOnly, CancellationToken token) =>
             this.Throttle(() => this.inner.GetSupportBundle(since, until, iothubHostname, edgeRuntimeOnly, token));
+
+        public async Task<string> GetProductInfoAsync(CancellationToken token, string baseProductInfo)
+        {
+            SystemInfo systemInfo = await this.GetSystemInfoAsync(token);
+
+            return $"{baseProductInfo} ({systemInfo.ToQueryString()})";
+        }
 
         internal static ModuleManagementHttpClientVersioned GetVersionedModuleManagement(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion)
         {

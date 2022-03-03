@@ -85,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             // IModuleClientProvider
             builder.Register(c => new ModuleClientProvider(
                     c.Resolve<ISdkModuleClientProvider>(),
-                    c.Resolve<IModuleManager>(),
+                    c.Resolve<IProductInfoProvider>(),
                     this.upstreamProtocol,
                     this.proxy,
                     this.productInfo,
@@ -100,6 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<IModuleManager>()
                 .As<IIdentityManager>()
                 .As<IDeviceManager>()
+                .As<IProductInfoProvider>()
                 .SingleInstance();
 
             // IModuleIdentityLifecycleManager
