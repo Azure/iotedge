@@ -90,7 +90,7 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 [[package]]
 name = "aziot-cert-common-http"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#ff90e7d71b08b8bd74a5c4adfd6b2d73fda39ac7"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#923d618a8187bfdf2cf748ed9893e5c39d54a6f3"
 dependencies = [
  "aziot-key-common",
  "serde",
@@ -99,7 +99,7 @@ dependencies = [
 [[package]]
 name = "aziot-certd-config"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#ff90e7d71b08b8bd74a5c4adfd6b2d73fda39ac7"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#923d618a8187bfdf2cf748ed9893e5c39d54a6f3"
 dependencies = [
  "hex 0.4.2",
  "http-common",
@@ -161,7 +161,7 @@ dependencies = [
 [[package]]
 name = "aziot-identity-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#ff90e7d71b08b8bd74a5c4adfd6b2d73fda39ac7"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#923d618a8187bfdf2cf748ed9893e5c39d54a6f3"
 dependencies = [
  "aziot-key-common",
  "http-common",
@@ -171,7 +171,7 @@ dependencies = [
 [[package]]
 name = "aziot-identity-common-http"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#ff90e7d71b08b8bd74a5c4adfd6b2d73fda39ac7"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#923d618a8187bfdf2cf748ed9893e5c39d54a6f3"
 dependencies = [
  "aziot-cert-common-http",
  "aziot-identity-common",
@@ -184,7 +184,7 @@ dependencies = [
 [[package]]
 name = "aziot-identityd-config"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#ff90e7d71b08b8bd74a5c4adfd6b2d73fda39ac7"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#923d618a8187bfdf2cf748ed9893e5c39d54a6f3"
 dependencies = [
  "aziot-identity-common",
  "http-common",
@@ -196,7 +196,7 @@ dependencies = [
 [[package]]
 name = "aziot-key-client"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#ff90e7d71b08b8bd74a5c4adfd6b2d73fda39ac7"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#923d618a8187bfdf2cf748ed9893e5c39d54a6f3"
 dependencies = [
  "aziot-key-common",
  "aziot-key-common-http",
@@ -211,7 +211,7 @@ dependencies = [
 [[package]]
 name = "aziot-key-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#ff90e7d71b08b8bd74a5c4adfd6b2d73fda39ac7"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#923d618a8187bfdf2cf748ed9893e5c39d54a6f3"
 dependencies = [
  "serde",
 ]
@@ -219,7 +219,7 @@ dependencies = [
 [[package]]
 name = "aziot-key-common-http"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#ff90e7d71b08b8bd74a5c4adfd6b2d73fda39ac7"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#923d618a8187bfdf2cf748ed9893e5c39d54a6f3"
 dependencies = [
  "aziot-key-common",
  "http-common",
@@ -229,7 +229,7 @@ dependencies = [
 [[package]]
 name = "aziot-key-openssl-engine"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#ff90e7d71b08b8bd74a5c4adfd6b2d73fda39ac7"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#923d618a8187bfdf2cf748ed9893e5c39d54a6f3"
 dependencies = [
  "aziot-key-client",
  "aziot-key-common",
@@ -247,7 +247,7 @@ dependencies = [
 [[package]]
 name = "aziot-keyd-config"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#ff90e7d71b08b8bd74a5c4adfd6b2d73fda39ac7"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#923d618a8187bfdf2cf748ed9893e5c39d54a6f3"
 dependencies = [
  "http-common",
  "libc",
@@ -257,7 +257,7 @@ dependencies = [
 [[package]]
 name = "aziot-keys-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#ff90e7d71b08b8bd74a5c4adfd6b2d73fda39ac7"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#923d618a8187bfdf2cf748ed9893e5c39d54a6f3"
 dependencies = [
  "pkcs11",
  "serde",
@@ -267,7 +267,7 @@ dependencies = [
 [[package]]
 name = "aziot-tpmd-config"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#ff90e7d71b08b8bd74a5c4adfd6b2d73fda39ac7"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#923d618a8187bfdf2cf748ed9893e5c39d54a6f3"
 dependencies = [
  "http-common",
  "serde",
@@ -276,7 +276,7 @@ dependencies = [
 [[package]]
 name = "aziotctl-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#ff90e7d71b08b8bd74a5c4adfd6b2d73fda39ac7"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#923d618a8187bfdf2cf748ed9893e5c39d54a6f3"
 dependencies = [
  "anyhow",
  "aziot-certd-config",
@@ -502,7 +502,7 @@ dependencies = [
 [[package]]
 name = "config-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#ff90e7d71b08b8bd74a5c4adfd6b2d73fda39ac7"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#923d618a8187bfdf2cf748ed9893e5c39d54a6f3"
 dependencies = [
  "serde",
  "toml",
@@ -541,12 +541,12 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-channel"
-version = "0.4.4"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b153fe7cbef478c567df0f972e02e6d736db11affe43dfc9c56a9374d1adfb87"
+checksum = "e54ea8bc3fb1ee042f5aace6e3c6e025d3874866da222930f70ce62aceba0bfa"
 dependencies = [
- "crossbeam-utils 0.7.2",
- "maybe-uninit",
+ "cfg-if 1.0.0",
+ "crossbeam-utils 0.8.7",
 ]
 
 [[package]]
@@ -555,9 +555,20 @@ version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c20ff29ded3204c5106278a81a38f4b482636ed4fa1e6cfbeef193291beb29ed"
 dependencies = [
- "crossbeam-epoch",
+ "crossbeam-epoch 0.8.2",
  "crossbeam-utils 0.7.2",
  "maybe-uninit",
+]
+
+[[package]]
+name = "crossbeam-deque"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6455c0ca19f0d2fbf751b908d5c55c1f5cbc65e03c4225427254b46890bdde1e"
+dependencies = [
+ "cfg-if 1.0.0",
+ "crossbeam-epoch 0.9.7",
+ "crossbeam-utils 0.8.7",
 ]
 
 [[package]]
@@ -576,12 +587,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "crossbeam-queue"
-version = "0.1.2"
+name = "crossbeam-epoch"
+version = "0.9.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c979cd6cfe72335896575c6b5688da489e420d36a27a0b9eb0c73db574b4a4b"
+checksum = "c00d6d2ea26e8b151d99093005cb442fb9a37aeaca582a03ec70946f49ab5ed9"
 dependencies = [
- "crossbeam-utils 0.6.6",
+ "cfg-if 1.0.0",
+ "crossbeam-utils 0.8.7",
+ "lazy_static",
+ "memoffset 0.6.5",
+ "scopeguard",
 ]
 
 [[package]]
@@ -597,22 +612,22 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-utils"
-version = "0.6.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04973fa96e96579258a5091af6003abde64af786b860f18622b82e026cca60e6"
-dependencies = [
- "cfg-if 0.1.10",
- "lazy_static",
-]
-
-[[package]]
-name = "crossbeam-utils"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3c7c73a2d1e9fc0886a08b93e98eb643461230d5f1925e4036204d5f2e261a8"
 dependencies = [
  "autocfg",
  "cfg-if 0.1.10",
+ "lazy_static",
+]
+
+[[package]]
+name = "crossbeam-utils"
+version = "0.8.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b5e5bed1f1c269533fa816a0a5492b3545209a205ca1a54842be180eb63a16a6"
+dependencies = [
+ "cfg-if 1.0.0",
  "lazy_static",
 ]
 
@@ -742,7 +757,7 @@ dependencies = [
  "tempfile",
  "time",
  "tokio",
- "tokio-process",
+ "tokio-threadpool",
  "typed-headers",
  "url 2.1.1",
  "url_serde",
@@ -1142,7 +1157,7 @@ dependencies = [
 [[package]]
 name = "http-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#ff90e7d71b08b8bd74a5c4adfd6b2d73fda39ac7"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#923d618a8187bfdf2cf748ed9893e5c39d54a6f3"
 dependencies = [
  "async-trait",
  "base64 0.13.0",
@@ -1526,22 +1541,10 @@ dependencies = [
  "kernel32-sys",
  "libc",
  "log",
- "miow 0.2.2",
+ "miow",
  "net2",
  "slab",
  "winapi 0.2.8",
-]
-
-[[package]]
-name = "mio-named-pipes"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0840c1c50fd55e521b247f949c241c9997709f23bd7f023b9762cd561e935656"
-dependencies = [
- "log",
- "mio",
- "miow 0.3.7",
- "winapi 0.3.9",
 ]
 
 [[package]]
@@ -1565,15 +1568,6 @@ dependencies = [
  "net2",
  "winapi 0.2.8",
  "ws2_32-sys",
-]
-
-[[package]]
-name = "miow"
-version = "0.3.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9f1c5b025cda876f66ef43a113f91ebc9f4ccef34843000e0adf6ebbab84e21"
-dependencies = [
- "winapi 0.3.9",
 ]
 
 [[package]]
@@ -1701,7 +1695,7 @@ dependencies = [
 [[package]]
 name = "openssl-build"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#ff90e7d71b08b8bd74a5c4adfd6b2d73fda39ac7"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#923d618a8187bfdf2cf748ed9893e5c39d54a6f3"
 dependencies = [
  "cc",
 ]
@@ -1738,7 +1732,7 @@ dependencies = [
 [[package]]
 name = "openssl-sys2"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#ff90e7d71b08b8bd74a5c4adfd6b2d73fda39ac7"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#923d618a8187bfdf2cf748ed9893e5c39d54a6f3"
 dependencies = [
  "openssl-build",
  "openssl-sys",
@@ -1747,7 +1741,7 @@ dependencies = [
 [[package]]
 name = "openssl2"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#ff90e7d71b08b8bd74a5c4adfd6b2d73fda39ac7"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#923d618a8187bfdf2cf748ed9893e5c39d54a6f3"
 dependencies = [
  "foreign-types",
  "foreign-types-shared",
@@ -1810,7 +1804,7 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 [[package]]
 name = "pkcs11"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#ff90e7d71b08b8bd74a5c4adfd6b2d73fda39ac7"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#923d618a8187bfdf2cf748ed9893e5c39d54a6f3"
 dependencies = [
  "foreign-types-shared",
  "lazy_static",
@@ -1827,7 +1821,7 @@ dependencies = [
 [[package]]
 name = "pkcs11-sys"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#ff90e7d71b08b8bd74a5c4adfd6b2d73fda39ac7"
+source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.2#923d618a8187bfdf2cf748ed9893e5c39d54a6f3"
 
 [[package]]
 name = "pkg-config"
@@ -1961,25 +1955,25 @@ dependencies = [
 
 [[package]]
 name = "rayon"
-version = "1.4.0"
+version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cfd016f0c045ad38b5251be2c9c0ab806917f82da4d36b2a327e5166adad9270"
+checksum = "c06aca804d41dbc8ba42dfd964f0d01334eceb64314b9ecf7c5fad5188a06d90"
 dependencies = [
  "autocfg",
- "crossbeam-deque",
+ "crossbeam-deque 0.8.1",
  "either",
  "rayon-core",
 ]
 
 [[package]]
 name = "rayon-core"
-version = "1.8.0"
+version = "1.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91739a34c4355b5434ce54c9086c5895604a9c278586d1f1aa95e04f66b525a0"
+checksum = "d78120e2c850279833f1dd3582f730c4ab53ed95aeaaaa862a2a5c71b1656d8e"
 dependencies = [
  "crossbeam-channel",
- "crossbeam-deque",
- "crossbeam-utils 0.7.2",
+ "crossbeam-deque 0.8.1",
+ "crossbeam-utils 0.8.7",
  "lazy_static",
  "num_cpus",
 ]
@@ -2498,25 +2492,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tokio-process"
-version = "0.2.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "382d90f43fa31caebe5d3bc6cfd854963394fff3b8cb59d5146607aaae7e7e43"
-dependencies = [
- "crossbeam-queue 0.1.2",
- "futures",
- "lazy_static",
- "libc",
- "log",
- "mio",
- "mio-named-pipes",
- "tokio-io",
- "tokio-reactor",
- "tokio-signal",
- "winapi 0.3.9",
-]
-
-[[package]]
 name = "tokio-reactor"
 version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2582,8 +2557,8 @@ version = "0.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df720b6581784c118f0eb4310796b12b1d242a7eb95f716a8367855325c25f89"
 dependencies = [
- "crossbeam-deque",
- "crossbeam-queue 0.2.3",
+ "crossbeam-deque 0.7.4",
+ "crossbeam-queue",
  "crossbeam-utils 0.7.2",
  "futures",
  "lazy_static",
