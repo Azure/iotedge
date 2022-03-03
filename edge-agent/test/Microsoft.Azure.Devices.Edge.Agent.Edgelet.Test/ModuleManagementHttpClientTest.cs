@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
     [Unit]
     public class ModuleManagementHttpClientTest : IClassFixture<EdgeletFixture>
     {
-        static readonly string[] Versions = new string[] { "2018-06-28", "2019-01-30", "2019-10-22", "2019-11-05", "2020-07-07", "2021-12-07" };
+        static readonly string[] Versions = new string[] { "2018-06-28", "2019-01-30", "2019-10-22", "2021-12-07" };
         readonly Uri serverUrl;
         readonly EdgeletFixture edgeletFixture;
 
