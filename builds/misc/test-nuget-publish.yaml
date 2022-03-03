@@ -86,16 +86,25 @@ jobs:
             #     $imageId = ($imageId -split '=')[1]
             #     $imageTag = "$imageId-$(os)-$(arch)"
     
-            - task: AzureFileCopy@4
+            # - task: AzureFileCopy@4
+            #   inputs:
+            #     sourcePath: '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/*.nupkg'
+            #     azureSubscription: '$(az.azureNugetSubscription)'
+            #     destination: 'AzureBlob'
+            #     storage: 
+            #     containerName: 'drops'
+            #     blobPrefix: 'azure-iot-edge'
+            #     #resourceGroup: # Required when destination == AzureVMs
+            #     #additionalArgumentsForBlobCopy: # Optional
+            #     copyFilesInParallel: true
+            #     cleanTargetBeforeCopy: false
+            #     skipCACheck: true
+
+            - task: AzureCLI@2
+              displayName: Azure CLI
               inputs:
-                sourcePath: '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/*.nupkg'
                 azureSubscription: '$(az.azureNugetSubscription)'
-                destination: 'AzureBlob'
-                storage: 
-                containerName: 'drops'
-                blobPrefix: 'azure-iot-edge'
-                #resourceGroup: # Required when destination == AzureVMs
-                #additionalArgumentsForBlobCopy: # Optional
-                copyFilesInParallel: true
-                cleanTargetBeforeCopy: false
-                skipCACheck: true
+                scriptType: ps
+                scriptLocation: inlineScript
+                inlineScript: |
+                  az storage blob upload -f "$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/*.nupkg" -c "drops" -n "azure-iot-edge"
