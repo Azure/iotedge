@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 {
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.IO;
     using System.Linq;
     using System.Text.RegularExpressions;
@@ -83,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                     }
 
                     double metricValue;
-                    if (!double.TryParse(match.Groups["metricvalue"]?.Value, out metricValue))
+                    if (!double.TryParse(match.Groups["metricvalue"]?.Value, NumberStyles.Float, NumberFormatInfo.InvariantInfo, out metricValue))
                     {
                         LoggerUtil.Writer.LogWarning($"Ignoring metric line because the metric value is malformed: [{line}]");
                         continue;
