@@ -12,7 +12,7 @@ stages:
     pool:
         name: $(pool.linux.name)
         demands:
-          - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+          - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
     dependsOn: []
     jobs:
       - job: check_source_change_edgelet
@@ -40,7 +40,7 @@ stages:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
     dependsOn: CheckBuildPackages
     jobs:
       - job: linux
@@ -143,3 +143,74 @@ stages:
               PathtoPublish: '$(build.artifactstagingdirectory)'
               ArtifactName: 'iotedged-$(os)-$(arch)'
             condition: or(eq(${{ parameters['E2EBuild'] }}, false), eq(variables.arch,'amd64'))
+
+      ################################################################################
+      - job: mariner_linux
+      ################################################################################
+        displayName: Mariner_Linux
+        pool:
+          vmImage: 'ubuntu-18.04'
+        variables:
+          NugetSecurityAnalysisWarningLevel: warn
+        strategy:
+          matrix:
+            CBL-Mariner1.0-amd64:
+              arch: amd64
+              os: mariner
+              mariner_release: 1.0-stable
+              target.iotedged: builds/mariner/out/RPMS
+        steps:
+          - bash: |
+              BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
+              VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"
+              echo "##vso[task.setvariable variable=VERSION;]$VERSION"
+              echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
+              echo "PACKAGE_OS=$(os)"
+              echo "##vso[task.setvariable variable=MARINER_RELEASE;]$(mariner_release)"
+              mariner_arch=$(arch)
+              if [ $mariner_arch == "amd64" ]; then
+                mariner_arch="x86_64"
+              fi
+              echo "##vso[task.setvariable variable=MARINER_ARCH;]$mariner_arch"
+            displayName: Set Version
+          - task: AzureKeyVault@1
+            displayName: 'Azure Key Vault: EdgeBuildkv'
+            inputs:
+              azureSubscription: $(az.subscription)
+              KeyVaultName: 'edgebuildkv'
+              SecretsFilter: >- 
+                IotEdge1-GitHub-PAT
+          - task: PowerShell@2
+            displayName: 'Download aziot-identity-service'
+            inputs:
+              filePath: scripts/local/test/DownloadIdentityService.ps1
+            env:
+              GITHUB_TOKEN: $(IotEdge1-GitHub-PAT)
+              ARTIFACT_NAME: 'packages_mariner_$(arch)'
+              PACKAGE_FILTER: 'aziot-identity-service-*.cm1.$(MARINER_ARCH).rpm'
+              DOWNLOAD_PATH: $(Build.StagingDirectory)
+              IDENTITY_SERVICE_COMMIT: 'fb2770eb60f7d87f4f6c6dc1ea51bdff1bf74e1c'
+          - script: edgelet/build/linux/package-mariner.sh
+            displayName: Create iotedged packages
+          - task: CopyFiles@2
+            displayName: Copy iotedged build logs to artifact staging
+            inputs:
+              SourceFolder: builds/mariner/build/logs/pkggen/rpmbuilding/
+              Contents: |
+                **/*.rpm.log
+              TargetFolder: '$(build.artifactstagingdirectory)'
+            condition: succeededOrFailed()
+          - task: CopyFiles@2
+            displayName: Copy iotedged Files to Artifact Staging
+            inputs:
+              SourceFolder: $(target.iotedged)/$(mariner_arch)
+              Contents: |
+                *.rpm
+              TargetFolder: '$(build.artifactstagingdirectory)'
+            condition: succeededOrFailed()
+          - task: PublishBuildArtifacts@1
+            displayName: Publish Artifacts
+            inputs:
+              PathtoPublish: '$(build.artifactstagingdirectory)'
+              ArtifactName: 'iotedged-$(os)-$(arch)'
+            condition: succeededOrFailed()

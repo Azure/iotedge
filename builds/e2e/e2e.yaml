@@ -8,14 +8,14 @@ resources:
     branch: 'release/1.2'
     trigger:
       branches:
-      - master
+      - main
       - release/*
   - pipeline: packages
     source: 'Azure-IoT-Edge-Core Edgelet Packages'
     branch: 'release/1.2'
     trigger:
       branches:
-      - master
+      - main
       - release/*
 
 variables:

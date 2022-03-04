@@ -2,7 +2,7 @@ trigger: none
 pr:
   branches:
     include:
-      - master
+      - main
       - release/*
 
 jobs:
@@ -32,7 +32,6 @@ jobs:
     pool:
       vmImage: "ubuntu-18.04"
     steps:
-      - template: ../templates/install-dotnet3.yaml
       - task: Bash@3
         displayName: Install Prerequisites
         inputs:
