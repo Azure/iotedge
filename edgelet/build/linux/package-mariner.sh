@@ -5,9 +5,23 @@ set -e
 # Get directory of running script
 DIR="$(cd "$(dirname "$0")" && pwd)"
 
+# need to use preview repo for the next 2 weeks untill mariner 2.0 gets moved to prod
+case "${MARINER_RELEASE}" in
+    '1.0-stable')
+        UsePreview=n
+        MarinerIdentity=mariner1
+        PackageExtension="cm1"
+        ;;
+    '2.0-stable')
+        UsePreview=y
+        MarinerIdentity=mariner2
+        PackageExtension="cm2"
+        ;;
+esac
+
 BUILD_REPOSITORY_LOCALPATH="$(realpath "${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}")"
 EDGELET_ROOT="${BUILD_REPOSITORY_LOCALPATH}/edgelet"
-MARINER_BUILD_ROOT="${BUILD_REPOSITORY_LOCALPATH}/builds/mariner"
+MARINER_BUILD_ROOT="${BUILD_REPOSITORY_LOCALPATH}/builds/${MarinerIdentity}"
 REVISION="${REVISION:-1}"
 
 # Get version from this file, but omit strings like "~dev" which are illegal in Mariner RPM versions.
@@ -78,9 +92,14 @@ popd
 sudo mv out/toolkit-*.tar.gz "${MARINER_BUILD_ROOT}/toolkit.tar.gz"
 popd
 
-#copy over IIS RPM
+# copy over IIS RPM
 mkdir -p ${MARINER_BUILD_ROOT}/out/RPMS/${MARINER_ARCH}
-cp aziot-identity-service/mariner/${PACKAGE_ARCH}/aziot-identity-service-*.cm1.${MARINER_ARCH}.rpm ${MARINER_BUILD_ROOT}/out/RPMS/${MARINER_ARCH}
+cp aziot-identity-service/${MarinerIdentity}/${PACKAGE_ARCH}/aziot-identity-service-*.$PackageExtension.${MARINER_ARCH}.rpm ${MARINER_BUILD_ROOT}/out/RPMS/${MARINER_ARCH}
+
+# copy Rust version
+pushd ${MARINER_BUILD_ROOT}/out/RPMS/${MARINER_ARCH}
+curl -o rust-1.47.0-3.x86_64.rpm https://packages.microsoft.com/cbl-mariner/1.0/prod/update/x86_64/rpms/rust-1.47.0-3.cm1.x86_64.rpm
+popd
 
 # Prepare toolkit
 pushd ${MARINER_BUILD_ROOT}
@@ -88,6 +107,6 @@ sudo tar xzf toolkit.tar.gz
 pushd toolkit
 
 # Build Mariner RPM packages
-sudo make build-packages PACKAGE_BUILD_LIST="aziot-edge" SRPM_FILE_SIGNATURE_HANDLING=update CONFIG_FILE= -j$(nproc)
+sudo make build-packages PACKAGE_BUILD_LIST="aziot-edge" SRPM_FILE_SIGNATURE_HANDLING=update USE_PREVIEW_REPO=$UsePreview CONFIG_FILE= -j$(nproc)
 popd
 popd

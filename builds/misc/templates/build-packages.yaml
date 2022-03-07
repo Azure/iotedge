@@ -156,9 +156,18 @@ stages:
           matrix:
             CBL-Mariner1.0-amd64:
               arch: amd64
-              os: mariner
+              os: mariner1
               mariner_release: 1.0-stable
-              target.iotedged: builds/mariner/out/RPMS
+              target.iotedged: builds/mariner1/out/RPMS
+              target.logs: builds/mariner1/build/logs/pkggen/rpmbuilding/
+              IISCommit: fb2770eb60f7d87f4f6c6dc1ea51bdff1bf74e1c
+            CBL-Mariner2.0-amd64:
+              arch: amd64
+              os: mariner2
+              mariner_release: 2.0-stable
+              target.iotedged: builds/mariner2/out/RPMS
+              target.logs: builds/mariner2/build/logs/pkggen/rpmbuilding/
+              IISCommit: fb2770eb60f7d87f4f6c6dc1ea51bdff1bf74e1c
         steps:
           - bash: |
               BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
@@ -189,13 +198,13 @@ stages:
               ARTIFACT_NAME: 'packages_mariner_$(arch)'
               PACKAGE_FILTER: 'aziot-identity-service-*.cm1.$(MARINER_ARCH).rpm'
               DOWNLOAD_PATH: $(Build.StagingDirectory)
-              IDENTITY_SERVICE_COMMIT: 'fb2770eb60f7d87f4f6c6dc1ea51bdff1bf74e1c'
+              IDENTITY_SERVICE_COMMIT: $(IISCommit)
           - script: edgelet/build/linux/package-mariner.sh
             displayName: Create iotedged packages
           - task: CopyFiles@2
             displayName: Copy iotedged build logs to artifact staging
             inputs:
-              SourceFolder: builds/mariner/build/logs/pkggen/rpmbuilding/
+              SourceFolder: $(target.logs)
               Contents: |
                 **/*.rpm.log
               TargetFolder: '$(build.artifactstagingdirectory)'
