@@ -112,8 +112,8 @@ get_libc() {
     # Also detect glibc versions older than 2.18 and return musl for these
     # Required until we identify minimum supported version
     # TODO: https://github.com/vectordotdev/vector/issues/10807
-    _ldd_version
-    _libc_version
+    _ldd_version=""
+    _libc_version=""
     _ldd_version=$(ldd --version 2>&1)
     if [ -z "${_ldd_version##*GNU*}" ] || [ -z "${_ldd_version##*GLIBC*}" ]; then
         _libc_version=$(echo "$_ldd_version" | awk '/ldd/{print $NF}')
@@ -138,7 +138,7 @@ get_bitness() {
     #   0x02 for 64-bit.
     # The printf builtin on some shells like dash only supports octal
     # escape sequences, so we use those.
-    _current_exe_head
+    _current_exe_head=""
     _current_exe_head=$(head -c 5 /proc/self/exe)
     if [ "$_current_exe_head" = "$(printf '\177ELF\001')" ]; then
         echo 32
@@ -170,7 +170,10 @@ get_endianness() {
 }
 
 get_architecture() {
-    _ostype _cputype _bitness _arch
+    _ostype=""
+    _cputype=""
+    _bitness=""
+    _arch=""
     _ostype="$(uname -s)"
     _cputype="$(uname -m)"
 
@@ -371,6 +374,49 @@ check_flag() {
     fi
 }
 
+legacy_find_and_report_libs() {
+    found_library=0
+    for path in $SHARED_LIB_PATH; do
+        if [ ! -e "$path" ]; then
+            wrap_warning "Path : $path does not exist, Searching for other paths"
+            continue
+        else
+            if [ ! "$(find "$path" -name "$1" | grep .)" ]; then
+                found_library=0
+            else
+                found_library=1
+                wrap_pass "$1"
+                break
+            fi
+        fi
+    done
+    if [ $found_library -eq 0 ]; then
+        wrap_fail "$1"
+        display_missing_library_warning "$1"
+    fi
+}
+
+display_missing_library_warning() {
+
+    wrap_warning "error: cannot find Library $1 in $SHARED_LIB_PATH"
+    wrap_warning "  try running this script again, providing the shared library path for your distro"
+    wrap_warning "    SHARED_LIB_PATH=/path/to/shared_lib $0"
+    case $1 in
+    "libssl.so.1.1" | "libcrypto.so.1.1")
+        wrap_warning "If Problem still persists, Please install openssl and libssl-dev for your OS distribution."
+        ;;
+    "libdl.so.2" | "librt.so.1" | "libpthread.so.0" | "libc.so.6" | "libm.so.6")
+        wrap_warning "If Problem still persists, Please install libc6-dev for your OS distribution."
+        ;;
+    "ld-linux-x86-64.so.2" | "ld-linux-aarch64.so.1" | "ld-linux-armhf.so.3")
+        wrap_warning "If Problem still persists, Please install libc6 for your OS distribution."
+        ;;
+    "libgcc_s.so.1")
+        wrap_warning "If Problem still persists, Please install gcc for your OS distribution."
+        ;;
+    esac
+}
+
 # ------------------------------------------------------------------------------
 #
 #  Compatibility Tool Checks
@@ -462,7 +508,7 @@ check_architecture() {
         ;;
     arm)
         wrap_fail "check_architecture"
-        wrap_bad "armv6 architecture is incompatible with IoT Edge due to .NET incompatibility. Please see : https://github.com/dotnet/runtime/issues/7764"
+        wrap_bad "armv6 architecture is incompatible with IoT Edge due to .NET incompatibility. Please see" "https://github.com/dotnet/runtime/issues/7764"
         ;;
     *)
         wrap_warning "check_architecture"
@@ -501,58 +547,63 @@ check_shared_library_dependency() {
     # IOTEDGE_COMMON_SHARED_LIBRARIES is for both aziot-edged and aziot-identityd
     for lib in $SHARED_LIBRARIES; do
         # check dependencies for `ldconfig` and fall back to `find` when its not possible
-        if [ "$(id -u)" -ne 0 ] || [ "$(need_cmd ldconfig)" != 0 ]; then
-            found_library=0
-            for path in $SHARED_LIB_PATH; do
-                if [ ! -e "$path" ]; then
-                    wrap_warning "Path : $path does not exist, Searching for other paths"
-                    continue
-                else
-                    if [ ! "$(find "$path" -name "$lib" | grep .)" ]; then
-                        found_library=0
-                    else
-                        found_library=1
-                        wrap_pass "$lib"
-                        break
-                    fi
-                fi
-            done
-            if [ $found_library -eq 0 ]; then
-                wrap_fail "$lib"
-                check_shared_library_dependency_display_util "$lib"
-            fi
+        if [ "$(id -u)" -ne 0 ]; then
+            legacy_find_and_report_libs "$lib"
         else
-            ret=$(ldconfig -p | grep "$lib")
-            if [ -z "$ret" ]; then
-                check_shared_library_dependency_display_util "$lib"
+            if ! need_cmd ldconfig; then
+                legacy_find_and_report_libs "$lib"
             else
-                wrap_pass "$lib"
+                ret=$(ldconfig -p | grep "$lib")
+                if [ -z "$ret" ]; then
+                    display_missing_library_warning "$lib"
+                else
+                    wrap_pass "$lib"
+                fi
             fi
         fi
     done
 }
 
-check_shared_library_dependency_display_util() {
+check_storage_space() {
+    storage_path=$1
+    application_size=$2
 
-    wrap_warning "error: cannot find Library $1 in $SHARED_LIB_PATH"
-    wrap_warning "  try running this script again, providing the shared library path for your distro"
-    wrap_warning "    SHARED_LIB_PATH=/path/to/shared_lib $0"
-    case $1 in
-    "libssl.so.1.1" | "libcrypto.so.1.1")
-        wrap_warning "If Problem still persists, Please install openssl and libssl-dev for your OS distribution."
-        ;;
-    "libdl.so.2" | "librt.so.1" | "libpthread.so.0" | "libc.so.6" | "libm.so.6")
-        wrap_warning "If Problem still persists, Please install libc6-dev for your OS distribution."
-        ;;
-    "ld-linux-x86-64.so.2" | "ld-linux-aarch64.so.1" | "ld-linux-armhf.so.3")
-        wrap_warning "If Problem still persists, Please install libc6 for your OS distribution."
-        ;;
-    "libgcc_s.so.1")
-        wrap_warning "If Problem still persists, Please install gcc for your OS distribution."
-        ;;
-    esac
+    if ! echo "$application_size" | grep -q '^[0-9]*.[0-9]*$'; then
+        wrap_bad "Invalid Application Size provided" "$application_size"
+        return 2
+    fi
+
+    if [ -z "$storage_path" ]; then
+        wrap_debug "No Storage Path Provided, Using Present working directory"
+        storage_path=$(pwd)
+    fi
+
+    available_storage=$(df . --output=avail --block-size=M | sed "s/[^0-9]//g" | tr -d '\n')
+    adequate_storage=$(echo "$available_storage" "$application_size" | awk '{if ($1 > $2) print 1; else print 0}')
+
+    if [ "$adequate_storage" -eq 1 ]; then
+        wrap_pass "check_storage_space"
+        return 0
+    else
+        wrap_fail "check_storage_space"
+        return 1
+    fi
+
 }
 
+#TODO : Update these numbers after Automated Run. The goal is that for every release, we would update these numbers
+armv7l_iotedge_binaries_size=36.68
+armv7l_iotedge_binaries_avg_memory=26.62
+armv7l_iotedge_container_size=322.6
+armv7l_iotedge_container_memory=154.53
+x86_64_iotedge_binaries_size=36.68
+x86_64_iotedge_binaries_avg_memory=26.62
+x86_64_iotedge_container_size=322.6
+x86_64_iotedge_container_memory=154.53
+aarch64_iotedge_binaries_size=36.68
+aarch64_iotedge_binaries_avg_memory=26.62
+aarch64_iotedge_container_size=322.6
+aarch64_iotedge_container_memory=154.53
 aziotedge_check() {
 
     # Todo : As we add new versions, these checks will need to be changed. Keep a common check for now
@@ -600,6 +651,23 @@ aziotedge_check() {
     fi
     check_shared_library_dependency
 
+    eval binary_size='$'"$(echo "$ARCH"_iotedge_binaries_size)"
+    eval container_size='$'"$(echo "$ARCH"_iotedge_container_size)"
+    TOTAL_SIZE=$(echo $binary_size $container_size | awk '{print $1 + $2}')
+
+    check_storage_space "$FILESYSTEM" "$TOTAL_SIZE"
+    ret="$?"
+    base_message="IoT Edge requires a minimum storage space of $binary_size MB for installing edge daemon and $container_size MB for installing runtime docker containers. We verified that the the device has $available_storage MB of available storage"
+
+    if [ $ret -eq 0 ]; then
+        wrap_warning "$base_message"
+        #TODO : Check with PM on messaging
+        wrap_warning "Additional storage space maybe required for based on usage of iotedge and has not been measured here.Please visit aka.ms/iotedge for more information"
+    elif [ $ret -eq 1 ]; then
+        wrap_warning "$base_message"
+        wrap_warning "Not Enough storage space"
+    fi
+
     echo "IoT Edge Compatibility Tool Check Complete"
 }
 
@@ -645,14 +713,17 @@ process_args() {
 
 #LATEST VERSIONS
 process_args "$@"
+get_architecture
 if [ -z "$APP_NAME" ]; then
-    wrap_bad "No Application Name Provided, Supported Applications : \"$(list_apps)\""
-    usage
+    wrap_warning "No Application Name Provided, Performing Check on all supported Applications"
+    for app in $(list_apps); do
+        wrap_debug "Performing Compatibility Check for Application: $app"
+        "$app"_check
+    done
 else
     if [ -z "$(list_apps | grep "$APP_NAME")" ]; then
-        wrap_bad "Application $APP_NAME does not exist in Supported Applications : \"$(list_apps)\""
+        wrap_bad "Application $APP_NAME does not exist in Supported Applications" "$(list_apps)"
         exit 1
     fi
+    "$APP_NAME"_check
 fi
-get_architecture
-"$APP_NAME"_check
