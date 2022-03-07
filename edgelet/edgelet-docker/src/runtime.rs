@@ -1022,14 +1022,16 @@ fn drop_unsafe_privileges(
     // These capabilities are provided by default and can be used to gain root access:
     // https://labs.f-secure.com/blog/helping-root-out-of-the-container/
     // They must be explicitly enabled
-    let mut caps_to_drop = vec!["CAP_CHOWN".to_owned(), "CAP_SETUID".to_owned()];
+    let mut caps_to_drop = vec!["CHOWN".to_owned(), "SETUID".to_owned()];
 
     // The suggested `Option::map_or_else` requires cloning `caps_to_drop`.
     #[allow(clippy::option_if_let_else)]
     let host_config = if let Some(config) = create_options.host_config() {
         // Don't drop caps that the user added explicitly
         if let Some(cap_add) = config.cap_add() {
-            caps_to_drop.retain(|cap_drop| !cap_add.contains(cap_drop));
+            caps_to_drop.retain(|cap_drop| {
+                !(cap_add.contains(cap_drop) || cap_add.contains(&format!("CAP_{}", cap_drop)))
+            });
         }
         // Add customer specified cap_drops
         if let Some(cap_drop) = config.cap_drop() {
@@ -1157,7 +1159,7 @@ mod tests {
         drop_unsafe_privileges(false, &mut create_options);
         assert_eq!(
             create_options.host_config().unwrap().cap_drop(),
-            Some(&vec!["CAP_CHOWN".to_owned(), "CAP_SETUID".to_owned()])
+            Some(&vec!["CHOWN".to_owned(), "SETUID".to_owned()])
         );
         // Doesn't drop caps if specified
         create_options
@@ -1165,7 +1167,16 @@ mod tests {
         drop_unsafe_privileges(false, &mut create_options);
         assert_eq!(
             create_options.host_config().unwrap().cap_drop(),
-            Some(&vec!["CAP_SETUID".to_owned()])
+            Some(&vec!["SETUID".to_owned()])
+        );
+
+        // Doesn't drop caps if specified without CAP_
+        create_options
+            .set_host_config(HostConfig::new().with_cap_add(vec!["CHOWN".to_owned()]));
+        drop_unsafe_privileges(false, &mut create_options);
+        assert_eq!(
+            create_options.host_config().unwrap().cap_drop(),
+            Some(&vec!["SETUID".to_owned()])
         );
     }
 }
