@@ -57,7 +57,7 @@ process_args() {
                "-c" | "--containers") save_next_arg=3 ;;
                "-p" | "--path") save_next_arg=4 ;;
                "-a" | "--analyze") save_next_arg=5 ;;
-               "-i" | "--interval") save_next_arg=5 ;;
+               "-i" | "--interval") save_next_arg=6 ;;
                *) usage ;;
                esac
           fi
