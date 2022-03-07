@@ -288,6 +288,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         {
             try
             {
+                this.receivingLink.DisposeMessage(message, AmqpConstants.AcceptedOutcome, true, message.Batchable);
                 (AmqpResponseStatusCode statusCode, string description) = await this.UpdateCbsToken(message);
                 await this.SendResponseAsync(message, statusCode, description);
             }
