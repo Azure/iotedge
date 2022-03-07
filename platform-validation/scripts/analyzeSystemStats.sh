@@ -138,10 +138,10 @@ perform_analysis() {
           fi
      fi
 
-     echo "iotedge-binaries-size=$IOTEDGE_BINARIES_SIZE"
-     echo "iotedge-binaries-avg-memory=$IOTEDGE_BINARIES_MEMORY"
-     echo "iotedge-container-size=$IOTEDGE_CONTAINERS_SIZE"
-     echo "iotedge-container-memory=$IOTEDGE_CONTAINERS_MEMORY"
+     echo "$(uname -m)-iotedge-binaries-size=$IOTEDGE_BINARIES_SIZE"
+     echo "$(uname -m)-iotedge-binaries-avg-memory=$IOTEDGE_BINARIES_MEMORY"
+     echo "$(uname -m)-iotedge-container-size=$IOTEDGE_CONTAINERS_SIZE"
+     echo "$(uname -m)-iotedge-container-memory=$IOTEDGE_CONTAINERS_MEMORY"
 }
 
 process_args "$@"
