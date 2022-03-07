@@ -129,7 +129,7 @@ perform_analysis() {
                          IOTEDGE_CONTAINERS_MEMORY=$(echo "$IOTEDGE_CONTAINERS_MEMORY" "$memory_usage" | awk '{print $1 + $2}')
                     else
                          nonruntime_container_size="$(grep "$container"-size <"$1" | sed -r "s/$container-size=//g")"
-                         IOTEDGE_CONTAINERS_SIZE=$(echo "$stored_total_container_size" "$nonruntime_container_size" | awk '{print $1 - $2}')
+                         IOTEDGE_CONTAINERS_SIZE=$(echo "$IOTEDGE_CONTAINERS_SIZE" "$nonruntime_container_size" | awk '{print $1 - $2}')
                     fi
                done
           else
