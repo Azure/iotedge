@@ -5,6 +5,7 @@ namespace MetricsCollector
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
+    using Akka.Event;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
@@ -27,7 +28,7 @@ namespace MetricsCollector
 
             Logger.LogInformation($"Starting metrics collector with the following settings:\r\n{Settings.Current}");
 
-            MqttTransportSettings mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
+            MqttTransportSettings mqttSetting = new MqttTransportSettings(Settings.Current.TransportType);
             ITransportSettings[] transportSettings = { mqttSetting };
             ModuleClient moduleClient = null;
             try
@@ -75,11 +76,10 @@ namespace MetricsCollector
             TwinCollection desiredProperties = twin.Properties.Desired;
             Logger.LogInformation($"Received {desiredProperties.Count} tags from module twin's desired properties that will be added to scraped metrics");
 
-            string additionalTagsPlaceholder = "additionalTags";
-            Dictionary<string, string> deserializedTwin = JsonConvert.DeserializeObject<Dictionary<string, string>>(twin.Properties.Desired.ToJson());
-            if (deserializedTwin.ContainsKey(additionalTagsPlaceholder))
+            string additionalTagsPlaceholder = "additionalTags";            
+            if (twin.Properties.Desired.Contains(additionalTagsPlaceholder))
             {
-                return Option.Some<SortedDictionary<string, string>>(ModuleUtil.ParseKeyValuePairs(deserializedTwin[additionalTagsPlaceholder], Logger, true));
+                return Option.Some<SortedDictionary<string, string>>(ModuleUtil.ParseKeyValuePairs(twin.Properties.Desired[additionalTagsPlaceholder].ToString(), Logger, true));
             }
 
             return Option.None<SortedDictionary<string, string>>();

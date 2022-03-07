@@ -5,6 +5,7 @@ namespace MetricsCollector
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
@@ -20,7 +21,8 @@ namespace MetricsCollector
             string endpoints,
             int scrapeFrequencySecs,
             UploadTarget uploadTarget,
-            string messageIdentifier)
+            string messageIdentifier,
+            TransportType transportType)
         {
             if (uploadTarget == UploadTarget.AzureLogAnalytics)
             {
@@ -49,6 +51,7 @@ namespace MetricsCollector
 
             this.ScrapeFrequencySecs = Preconditions.CheckRange(scrapeFrequencySecs, 1);
             this.UploadTarget = uploadTarget;
+            this.TransportType = transportType;
         }
 
         static Settings Create()
@@ -66,7 +69,8 @@ namespace MetricsCollector
                 configuration.GetValue<string>("MetricsEndpointsCSV", "http://edgeHub:9600/metrics,http://edgeAgent:9600/metrics"),
                 configuration.GetValue<int>("ScrapeFrequencyInSecs", 300),
                 configuration.GetValue<UploadTarget>("UploadTarget", UploadTarget.AzureLogAnalytics),
-                configuration.GetValue<string>("MessageIdentifier", "IoTEdgeMetrics"));
+                configuration.GetValue<string>("MessageIdentifier", "IoTEdgeMetrics"),
+                configuration.GetValue<TransportType>("TransportType", TransportType.Mqtt_Tcp_Only));
         }
 
         public string LogAnalyticsWorkspaceId { get; }
@@ -82,6 +86,8 @@ namespace MetricsCollector
         public UploadTarget UploadTarget { get; }
 
         public string MessageIdentifier { get; }
+
+        public TransportType TransportType { get; }
 
         public override string ToString()
         {

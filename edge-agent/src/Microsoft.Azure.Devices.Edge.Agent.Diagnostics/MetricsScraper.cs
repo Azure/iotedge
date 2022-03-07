@@ -66,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             var hostGroup = match.Groups["host"];
             string host = hostGroup.Value;
             var ipHostEntry = Dns.GetHostEntry(host);
-            var ipAddr = ipHostEntry.AddressList.Length > 0 ? ipHostEntry.AddressList[0].ToString() : string.Empty;
+            var ipAddr = ipHostEntry.AddressList.Length > 0 ? ipHostEntry.AddressList.Where(m=> m.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork).FirstOrDefault().ToString() : string.Empty;
             var builder = new UriBuilder(endpoint);
             builder.Host = ipAddr;
             string endpointWithIp = builder.Uri.ToString();
