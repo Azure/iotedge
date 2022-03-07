@@ -129,7 +129,16 @@ namespace TestResultCoordinator.Reports
             return this.TotalExpectCount > 0 && this.TotalDuplicateExpectedResultCount == 0 && this.EventHubSpecificReportComponents.Match(
                 eh =>
                 {
-                    return eh.AllActualResultsMatch && eh.StillReceivingFromEventHub;
+                    // Product issue for custom mqtt telemetry.
+                    if (this.Topology == Topology.Nested && this.MqttBrokerEnabled && this.TestDescription == GenericMqttTelemetryTestDescription)
+                    {
+                        bool matchWithinThreshold = ((double)this.TotalMatchCount / this.TotalExpectCount) > .9d;
+                        return matchWithinThreshold && eh.StillReceivingFromEventHub;
+                    }
+                    else
+                    {
+                        return eh.AllActualResultsMatch && eh.StillReceivingFromEventHub;
+                    }
                 },
                 () =>
                 {
@@ -139,11 +148,6 @@ namespace TestResultCoordinator.Reports
                         if (this.TestDescription.Contains(C2dTestDescription))
                         {
                             return ((double)this.TotalMatchCount / this.TotalExpectCount) > .8d;
-                        }
-                        // Product issue for custom mqtt telemetry.
-                        else if (this.Topology == Topology.Nested && this.MqttBrokerEnabled && this.TestDescription == GenericMqttTelemetryTestDescription)
-                        {
-                            return ((double)this.TotalMatchCount / this.TotalExpectCount) > .9d;
                         }
                         else
                         {
