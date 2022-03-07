@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
 
-    public class ModuleManagementHttpClient : IModuleManager, IIdentityManager, IDeviceManager, IProductInfoProvider
+    public class ModuleManagementHttpClient : IModuleManager, IIdentityManager, IDeviceManager
     {
         const int MaxConcurrentRequests = 5;
 
