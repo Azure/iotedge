@@ -7,6 +7,7 @@
 DIR="$(cd "$(dirname "$0")" && pwd)"
 STORAGE_PATH="$(realpath "${STORAGE_PATH:-$DIR}")"
 SECONDS_TO_RUN=${SECONDS_TO_RUN:-50}
+INTERVAL=${INTERVAL:0}
 
 BINARIES="aziot-edged aziot-identityd aziot-certd aziot-keyd dockerd containerd"
 BINARYLOCATIONS="/usr/bin /usr/libexec"
@@ -23,6 +24,7 @@ function usage() {
      echo " -p,  --path                   path where memory file needs to be stored, defaults to script execution path"
      echo " -l,  --binaryLocations        location where binaries are present, defaults to /usr/bin /usr/libexe"
      echo " -a    --analyze               Analyzes the Memory File"
+     echo " -i,  --interval              interval(in secs) to use for polling memory and cpu stats"
      exit 1
 }
 
@@ -44,6 +46,9 @@ process_args() {
           elif [ $save_next_arg -eq 5 ]; then
                MEMORY_FILE_PATH="$arg"
                save_next_arg=0
+          elif [ $save_next_arg -eq 6 ]; then
+               INTERVAL="$arg"
+               save_next_arg=0
           else
                case "$arg" in
                "-h" | "--help") usage ;;
@@ -52,6 +57,7 @@ process_args() {
                "-c" | "--containers") save_next_arg=3 ;;
                "-p" | "--path") save_next_arg=4 ;;
                "-a" | "--analyze") save_next_arg=5 ;;
+               "-i" | "--interval") save_next_arg=5 ;;
                *) usage ;;
                esac
           fi
@@ -116,6 +122,7 @@ perform_analysis() {
 
           stored_total_container_size="$(grep "total-container-size" <"$1" | sed -r "s/total-container-size=//g")"
           if [[ -n $stored_total_container_size ]]; then
+               IOTEDGE_CONTAINERS_SIZE="$stored_total_container_size"
                for container in $CONTAINERS; do
                     if [[ $container =~ edgeHub ]] || [[ $container =~ edgeAgent ]]; then
                          memory_usage="$(grep "$container"-avg-memory <"$1" | sed -r "s/$container-avg-memory=//g")"
@@ -148,7 +155,7 @@ if [[ -n $MEMORY_FILE_PATH ]]; then
      fi
 fi
 
-echo "Running Usage Test for $SECONDS_TO_RUN seconds"
+echo "Running Usage Test for $SECONDS_TO_RUN seconds with INTERVAL $INTERVAL seconds"
 FILE="$STORAGE_PATH/usage-$(uname -m).txt"
 echo "Storing Data at $FILE"
 echo "Binaries : $BINARIES"
@@ -241,5 +248,7 @@ while [[ $SECONDS -lt $end_time ]]; do
           fi
 
      done
+
+     sleep "$INTERVAL"
 
 done
