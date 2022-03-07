@@ -1171,8 +1171,7 @@ mod tests {
         );
 
         // Doesn't drop caps if specified without CAP_
-        create_options
-            .set_host_config(HostConfig::new().with_cap_add(vec!["CHOWN".to_owned()]));
+        create_options.set_host_config(HostConfig::new().with_cap_add(vec!["CHOWN".to_owned()]));
         drop_unsafe_privileges(false, &mut create_options);
         assert_eq!(
             create_options.host_config().unwrap().cap_drop(),
