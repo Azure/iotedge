@@ -65,7 +65,7 @@ steps:
     E2E_IOT_HUB_CONNECTION_STRING: $(TestIotHubConnectionString)
     E2E_IOT_HUB_RESOURCE_ID: $(TestIotHubResourceId)
     E2E_PREVIEW_IOT_HUB_CONNECTION_STRING: $(TestPreviewIotHubConnectionString)
-    E2E_REGISTRIES__0__PASSWORD: $(TestContainerRegistryPassword)
+    E2E_REGISTRIES__0__PASSWORD: $(ReleaseContainerRegistryPassword)
     E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
     E2E_BLOB_STORE_SAS: $(TestBlobStoreSas)
 

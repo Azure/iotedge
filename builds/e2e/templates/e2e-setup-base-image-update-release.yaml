@@ -1,0 +1,95 @@
+steps:
+- checkout: self
+  clean: true
+  fetchDepth: 100
+
+- task: AzureKeyVault@1
+  displayName: Get secrets
+  inputs:
+    azureSubscription: $(az.subscription)
+    keyVaultName: $(kv.name)
+    secretsFilter: >-
+      ReleaseContainerRegistryPassword,
+      TestDpsGroupKeySymmetric,
+      TestEventHubCompatibleEndpoint,
+      TestPreviewEventHubCompatibleEndpoint,
+      TestIotedgedPackageRootSigningCert,
+      TestIotHubConnectionString,
+      TestIotHubResourceId,
+      TestPreviewIotHubConnectionString,
+      TestRootCaCertificate,
+      TestRootCaKey,
+      TestRootCaPassword,
+      TestBlobStoreSas
+
+- pwsh: |
+    $certsDir = '$(System.ArtifactsDirectory)/certs'
+    New-Item "$certsDir" -ItemType Directory -Force | Out-Null
+    $env:ROOT_CERT | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.cert.pem"
+    $env:ROOT_KEY | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.key.pem"
+    Write-Output "##vso[task.setvariable variable=certsDir]$certsDir"
+  displayName: Install CA keys
+  env:
+    ROOT_CERT: $(TestRootCaCertificate)
+    ROOT_KEY: $(TestRootCaKey)
+
+- pwsh: |
+    $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
+    dotnet build $testDir
+
+    $binDir = Convert-Path "$testDir/bin/Debug/netcoreapp3.1"
+    Write-Output "##vso[task.setvariable variable=binDir]$binDir"
+  displayName: Build tests
+
+- pwsh: |
+    $imagePrefix = '$(registry.address)/microsoft/azureiotedge'
+    $versionInfo = "$(version)-$(os)-$(arch)"
+    
+    $context = @{
+      dpsIdScope = '$(dps.idScope)'
+      edgeAgentImage = "$imagePrefix-agent:$versionInfo";
+      edgeHubImage = "$imagePrefix-hub:$versionInfo";
+      tempFilterFuncImage = "$imagePrefix-functions-filter:$versionInfo";
+      tempFilterImage = "$imagePrefix-temperature-filter:$versionInfo";
+      tempSensorImage = "$imagePrefix-simulated-temperature-sensor:$versionInfo";
+      methodSenderImage = "$imagePrefix-direct-method-sender:$versionInfo";
+      methodReceiverImage = "$imagePrefix-direct-method-receiver:$versionInfo";
+      loadGenImage = "$imagePrefix-load-gen:$versionInfo";
+      relayerImage = "$imagePrefix-relayer:$versionInfo";
+      networkControllerImage = "$imagePrefix-network-controller:$versionInfo";
+      testResultCoordinatorImage = "$imagePrefix-test-result-coordinator:$versionInfo";
+      metricsValidatorImage = "$imagePrefix-metrics-validator:$versionInfo";
+      metricsCollectorImage = "$imagePrefix-metrics-collector:$versionInfo"
+      numberLoggerImage = "$imagePrefix-number-logger:$versionInfo";
+      edgeAgentBootstrapImage = "$imagePrefix-agent-bootstrap-e2e-$(os)-$(arch)";
+      registries = @(
+        @{
+          address = '$(registry.address)';
+          username = '$(registry.username)';
+        }
+      );
+      caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates';
+      rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
+      rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
+      logFile = Join-Path '$(binDir)' 'testoutput.log';
+      getSupportBundle = 'true'
+    }
+
+    if ($IsWindows)
+    {
+      $context['installerPath'] = Convert-Path '$(Build.SourcesDirectory)/scripts/windows/setup'
+    }
+
+    if (('$(arch)' -eq 'arm32v7') -or ('$(arch)' -eq 'arm64v8'))
+    {
+      $context['optimizeForPerformance'] = 'false'
+      $context['setupTimeoutMinutes'] = 10
+      $context['teardownTimeoutMinutes'] = 5
+      $context['testTimeoutMinutes'] = 6
+    }
+
+    Write-Host "Edge agent image: $imagePrefix-agent:$versionInfo"
+    Write-Host "Edge hub image: $imagePrefix-hub:$versionInfo"
+    $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
+    Get-Content -Path '$(binDir)/context.json'
+  displayName: Create test arguments file (context.json)

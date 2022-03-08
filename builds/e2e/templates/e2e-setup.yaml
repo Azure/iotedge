@@ -161,6 +161,7 @@ steps:
     if ($IsWindows)
     {
       $context['installerPath'] = Convert-Path '$(Build.SourcesDirectory)/scripts/windows/setup'
+      $context['testTimeoutMinutes'] = 8
     }
 
     if (('$(arch)' -eq 'arm32v7') -or ('$(arch)' -eq 'arm64v8'))
@@ -168,7 +169,7 @@ steps:
       $context['optimizeForPerformance'] = 'false'
       $context['setupTimeoutMinutes'] = 10
       $context['teardownTimeoutMinutes'] = 5
-      $context['testTimeoutMinutes'] = 6
+      $context['testTimeoutMinutes'] = 8
     }
 
     Write-Host "Edge agent image: $imagePrefix-agent:$imageTag"

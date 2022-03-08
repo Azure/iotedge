@@ -1,61 +1,22 @@
-# This E2E test pipeline uses the following filters in order to skip certain tests:
-#   Flaky: Flaky on multiple platforms
-#   FlakyOnArm: Flaky only on arm
-#   FlakyOnWindows: Flaky only on windows
-#   CentOsSafe: Can be run on CentOs
 steps:
 - pwsh: |
     $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
 
-    # Filter out flaky tests.
-    $filter = 'Category!=Flaky'
-
-    if ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
-    {
-      $filter += '&Category!=FlakyOnArm'
-    }
+    $filter = 'MetricsCollector'
 
     if ($IsWindows)
     {
-      $filter += '&Category!=FlakyOnWindows'
-
       # The windows installer script doesn't update the PATH in the current
       # terminal session, so add `iotedge` and `docker` CLIs manually
       $env:Path =
         $env:Path,
         $(Join-Path $env:ProgramFiles 'iotedge'),
         $(Join-Path $env:ProgramFiles 'iotedge-moby') -join ';'
-      if ('$(minimal)' -eq 'true')
-      {
-        # The minimal test suite on windows cannot use TempSensor test.
-        # Using another test for now until this issue is resolved:
-        # https://github.com/Azure/azure-iot-sdk-csharp/issues/2223
-        $filter += '&Name~TestPing'
-      }
-
       dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
     }
     else
     {
-      # Unfortunately CentOs has some failing test that need to be worked on.
-      if ('$(artifactName)'.Contains('centos'))
-      {
-        $filter += '&TestCategory=CentOsSafe'
-      }
-      elseif ('$(minimal)' -eq 'true')
-      {
-        $filter += '&Name~TempSensor'
-      }
-      
-      #Dotnet SDK 3.1.415 package on Centos doesn't allow dotnet to be accessed via sudo command due to Path issues. Use the below workaround for centos only.
-      if ('$(artifactName)'.Contains('centos'))
-      {
-        sudo --preserve-env $(command -v dotnet) test $testFile --no-build --logger 'trx' --filter "$filter"
-      }
-      else
-      {
-        sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
-      }
+      sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
     }
   displayName: Run tests
   env:
@@ -65,7 +26,7 @@ steps:
     E2E_IOT_HUB_CONNECTION_STRING: $(TestIotHubConnectionString)
     E2E_IOT_HUB_RESOURCE_ID: $(TestIotHubResourceId)
     E2E_PREVIEW_IOT_HUB_CONNECTION_STRING: $(TestPreviewIotHubConnectionString)
-    E2E_REGISTRIES__0__PASSWORD: $(TestContainerRegistryPassword)
+    E2E_REGISTRIES__0__PASSWORD: $(ReleaseContainerRegistryPassword)
     E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
     E2E_BLOB_STORE_SAS: $(TestBlobStoreSas)
 

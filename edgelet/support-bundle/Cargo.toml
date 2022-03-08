@@ -15,5 +15,5 @@ edgelet-core = { path = "../edgelet-core" }
 
 [dev-dependencies]
 edgelet-test-utils = { path = "../edgelet-test-utils" }
-regex = "0.2"
+regex = "1"
 tempfile = "3.1.0"

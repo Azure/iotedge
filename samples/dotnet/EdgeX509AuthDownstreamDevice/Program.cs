@@ -8,16 +8,12 @@ namespace Microsoft.Azure.Devices.Client.Samples
     using System.Linq;
     using System.Net.Security;
     using System.Runtime.InteropServices;
+    using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
     using System.Text;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
-    using Org.BouncyCastle.Crypto;
-    using Org.BouncyCastle.Crypto.Parameters;
-    using Org.BouncyCastle.OpenSsl;
-    using Org.BouncyCastle.Pkcs;
-    using Org.BouncyCastle.Security;
-    using X509Certificate = Org.BouncyCastle.X509.X509Certificate;
 
     class Program
     {
@@ -34,6 +30,8 @@ namespace Microsoft.Azure.Devices.Client.Samples
            5) Optionally, update MESSAGE_COUNT to indicate the number of telemetry messages to send
               to the Edge gateway. Default is 10. */
 
+        const int MaxCertImportRetryCount = 10;
+
         const int TEMPERATURE_THRESHOLD = 30;
         static readonly string IothubHostname = Environment.GetEnvironmentVariable("IOTHUB_HOSTNAME");
         static readonly string DownstreamDeviceId = Environment.GetEnvironmentVariable("DEVICE_ID");
@@ -44,6 +42,9 @@ namespace Microsoft.Azure.Devices.Client.Samples
         static readonly string ClientTransportType = Environment.GetEnvironmentVariable("DEVICE_CLIENT_PROTOCOL");
         static readonly string MessageCountEnv = Environment.GetEnvironmentVariable("MESSAGE_COUNT");
         static int messageCount = 10;
+
+        private static Oid oidRsaEncryption = Oid.FromFriendlyName("RSA", OidGroup.All);
+        private static Oid oidEcPublicKey = Oid.FromFriendlyName("ECC", OidGroup.All);
 
         public static IEnumerable<X509Certificate2> GetCertificatesFromPem(IEnumerable<string> rawPemCerts) =>
             rawPemCerts
@@ -92,53 +93,10 @@ namespace Microsoft.Azure.Devices.Client.Samples
 
             IEnumerable<X509Certificate2> certsChain = GetCertificatesFromPem(pemCerts.Skip(1));
 
-            Pkcs12Store store = new Pkcs12StoreBuilder().Build();
-            IList<X509CertificateEntry> chain = new List<X509CertificateEntry>();
+            var certWithNoKey = new X509Certificate2(Encoding.UTF8.GetBytes(pemCerts.First()));
+            var certWithPrivateKey = AttachPrivateKey(certWithNoKey, privateKey);
 
-            // note: the seperator between the certificate and private key is added for safety to delinate the cert and key boundary
-            var sr = new StringReader(pemCerts.First() + "\r\n" + privateKey);
-            var pemReader = new PemReader(sr);
-
-            AsymmetricKeyParameter keyParams = null;
-            object certObject = pemReader.ReadObject();
-            while (certObject != null)
-            {
-                if (certObject is X509Certificate x509Cert)
-                {
-                    chain.Add(new X509CertificateEntry(x509Cert));
-                }
-
-                // when processing certificates generated via openssl certObject type is of AsymmetricCipherKeyPair
-                if (certObject is AsymmetricCipherKeyPair keyPair)
-                {
-                    certObject = keyPair.Private;
-                }
-
-                if (certObject is RsaPrivateCrtKeyParameters rsaParameters)
-                {
-                    keyParams = rsaParameters;
-                }
-                else if (certObject is ECPrivateKeyParameters ecParameters)
-                {
-                    keyParams = ecParameters;
-                }
-
-                certObject = pemReader.ReadObject();
-            }
-
-            if (keyParams == null)
-            {
-                throw new InvalidOperationException("Private key is required");
-            }
-
-            store.SetKeyEntry("AzureIoTClient", new AsymmetricKeyEntry(keyParams), chain.ToArray());
-            using (var p12File = new MemoryStream())
-            {
-                store.Save(p12File, new char[] { }, new SecureRandom());
-
-                var cert = new X509Certificate2(p12File.ToArray());
-                return (cert, certsChain);
-            }
+            return (certWithPrivateKey, certsChain);
         }
 
         static (X509Certificate2 Certificate, IEnumerable<X509Certificate2> CertificateChain) GetClientCertificateAndChainFromFile(string certWithChainFilePath, string privateKeyFilePath)
@@ -201,6 +159,123 @@ namespace Microsoft.Azure.Devices.Client.Samples
 
             return transportSettings;
         }
+
+        static X509Certificate2 AttachPrivateKey(X509Certificate2 certificate, string pemEncodedKey)
+        {
+            int retryCount = 0;
+            while (retryCount++ < MaxCertImportRetryCount)
+            {
+                string pkcs8Label = "PRIVATE KEY";
+                string rsaLabel = "RSA PRIVATE KEY";
+                string ecLabel = "EC PRIVATE KEY";
+
+                var keyAlgorithm = certificate.GetKeyAlgorithm();
+
+                bool isPkcs8 = pemEncodedKey.IndexOf(Header(pkcs8Label)) >= 0;
+
+                X509Certificate2 result = null;
+
+                try
+                {
+                    if (oidRsaEncryption.Value == keyAlgorithm)
+                    {
+                        var decodedKey = UnwrapPrivateKey(pemEncodedKey, isPkcs8 ? pkcs8Label : rsaLabel);
+                        var key = RSA.Create();
+
+                        if (isPkcs8)
+                        {
+                            key.ImportPkcs8PrivateKey(decodedKey, out _);
+                        }
+                        else
+                        {
+                            key.ImportRSAPrivateKey(decodedKey, out _);
+                        }
+
+                        result = certificate.CopyWithPrivateKey(key);
+                    }
+                    else if (oidEcPublicKey.Value == keyAlgorithm)
+                    {
+                        var decodedKey = UnwrapPrivateKey(pemEncodedKey, isPkcs8 ? pkcs8Label : ecLabel);
+                        var key = ECDsa.Create();
+
+                        if (isPkcs8)
+                        {
+                            key.ImportPkcs8PrivateKey(decodedKey, out _);
+                        }
+                        else
+                        {
+                            key.ImportECPrivateKey(decodedKey, out _);
+                        }
+
+                        result = certificate.CopyWithPrivateKey(key);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException("Cannot import private key", ex);
+                }
+
+                if (result == null)
+                {
+                    throw new InvalidOperationException($"Cannot use certificate, not supported key algorithm: ${keyAlgorithm}");
+                }
+
+                try
+                {
+                    // Reading the private key to see if the import was successful. On Windows it fails sometimes,
+                    // the root cause is unknown.
+                    if (result.HasPrivateKey)
+                    {
+                        if (oidEcPublicKey.Value == keyAlgorithm)
+                        {
+                            _ = result.GetECDsaPrivateKey();
+                        }
+                        else
+                        {
+                            _ = result.GetRSAPrivateKey();
+                        }
+
+                        return result;
+                    }
+                }
+                catch
+                {
+                    // swallow
+                }
+
+                Thread.Sleep(TimeSpan.FromSeconds(1));
+            }
+
+            throw new InvalidOperationException("Cannot import certificate with private key, giving up");
+        }
+
+        static byte[] UnwrapPrivateKey(string pemEncodedKey, string algoLabel)
+        {
+            var headerIndex = pemEncodedKey.IndexOf(Header(algoLabel));
+            var footerIndex = pemEncodedKey.IndexOf(Footer(algoLabel));
+
+            if (headerIndex < 0 || footerIndex < 0)
+            {
+                throw new InvalidOperationException($"Certificate key algorithm indicates {algoLabel}, but cannot unwrap key - headers not found");
+            }
+
+            byte[] decodedKey;
+
+            try
+            {
+                var dataIndex = headerIndex + Header(algoLabel).Length;
+                decodedKey = Convert.FromBase64String(pemEncodedKey.Substring(dataIndex, footerIndex - dataIndex));
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Cannot decode private key: base64 decoding failed after removing headers", ex);
+            }
+
+            return decodedKey;
+        }
+
+        static string Header(string label) => $"-----BEGIN {label}-----";
+        static string Footer(string label) => $"-----END {label}-----";
 
         /// <summary>
         /// First install any CA certificate provided by the user to connect to the Edge device.
