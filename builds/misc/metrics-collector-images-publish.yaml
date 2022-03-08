@@ -117,4 +117,4 @@ jobs:
             inputs:
               targetType: filePath
               filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/buildManifest.sh'
-              arguments: '-r $(registry.address) -v $(version) -t $(System.DefaultWorkingDirectory)/edge-modules/azure-monitor/docker/manifest.yaml.template -n $(to.registry.namespace) --tags "$(tags)"'
+              arguments: '-r $(registry.address) -v $(version) -t $(System.DefaultWorkingDirectory)/edge-modules/metrics-collector/docker/manifest.yaml.template -n $(to.registry.namespace) --tags "$(tags)"'

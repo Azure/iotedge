@@ -226,12 +226,12 @@ stages:
             buildx_flag: 'true'
             use_rocksdb: true
   
-       # Metrics Collector (test-only)
+       # Test Metrics Collector
         - template: image-linux.yaml
           parameters:
-            name: Metrics Collector (test-only)
+            name: Test Metrics Collector
             imageName: azureiotedge-test-metrics-collector
-            project: MetricsCollector
+            project: TestMetricsCollector
             buildx_flag: 'true'
   
        # Deployment Tester
@@ -442,12 +442,12 @@ stages:
                 project: Relayer
                 version: $(Build.BuildNumber)
       
-          # Metrics Collector (test-only)
+          # Test Metrics Collector
             - template: image-windows.yaml
               parameters:
-                name: Metrics Collector (test-only)
+                name: Test Metrics Collector
                 imageName: azureiotedge-test-metrics-collector
-                project: MetricsCollector
+                project: TestMetricsCollector
                 version: $(Build.BuildNumber)
       
           # TestResultCoordinator
@@ -524,5 +524,5 @@ stages:
             displayName: 'Publish azureiotedge-diagnostics Manifest'
           - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edgelet/iotedge-proxy/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
             displayName: 'Publish azureiotedge-proxy Manifest'
-          - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/azure-monitor/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+          - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/metrics-collector/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
             displayName: 'Publish azureiotedge-metrics-collector Manifest'

@@ -178,7 +178,7 @@ stages:
         inputs:
           command: login
           containerRegistry: "$(service.connection)"
-      - script: scripts/linux/buildManifest.sh -r "$(registry.address)" -v "$(version)" -t "$(System.DefaultWorkingDirectory)"/edge-modules/azure-monitor/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+      - script: scripts/linux/buildManifest.sh -r "$(registry.address)" -v "$(version)" -t "$(System.DefaultWorkingDirectory)"/edge-modules/metrics-collector/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
         displayName: 'Publish Metrics Collector Manifest'
 
 ################################################################################
