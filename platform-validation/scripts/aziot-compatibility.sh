@@ -550,7 +550,8 @@ check_shared_library_dependency() {
         if [ "$(id -u)" -ne 0 ]; then
             legacy_find_and_report_libs "$lib"
         else
-            if ! need_cmd ldconfig; then
+            ret=$(need_cmd ldconfig)
+            if [ "$?" -ne 0 ]; then
                 legacy_find_and_report_libs "$lib"
             else
                 ret=$(ldconfig -p | grep "$lib")
@@ -568,12 +569,20 @@ check_storage_space() {
     storage_path=$1
     application_size=$2
 
+    # Check dependencies
+    if ! need_cmd df; then
+        wrap_warn "check_storage_space"
+        wrap_warning "Could not find df utility to calculate disk space, Skipping the check"
+        return
+    fi
+
     if ! echo "$application_size" | grep -q '^[0-9]*.[0-9]*$'; then
         wrap_bad "Invalid Application Size provided" "$application_size"
         return 2
     fi
 
-    available_storage=$(df "$storage_path" --output=avail --block-size=M | sed "s/[^0-9]//g" | tr -d '\n')
+    # Print storage space in pos
+    available_storage=$(df -P -m "$storage_path" | awk '{print $4}' | sed "s/[^0-9]//g" | tr -d '\n')
     adequate_storage=$(echo "$available_storage" "$application_size" | awk '{if ($1 > $2) print 1; else print 0}')
 
     if [ "$adequate_storage" -eq 1 ]; then
@@ -644,6 +653,7 @@ aziotedge_check() {
     elif [ $ARCH = armv7 ]; then
         SHARED_LIBRARIES="$(echo $SHARED_LIBRARIES "ld-linux-armhf.so.3")"
     fi
+
     check_shared_library_dependency
 
     eval binary_size='$'"$(echo "$ARCH"_iotedge_binaries_size)"
@@ -655,7 +665,7 @@ aziotedge_check() {
     fi
     check_storage_space "$MOUNTPOINT" "$TOTAL_SIZE"
     ret="$?"
-    base_message="IoT Edge requires a minimum storage space of $binary_size MB for installing edge daemon and $container_size MB for installing runtime docker containers. We verified that the the device has $available_storage MB of available storage for File System $(df "$MOUNTPOINT" --output=target)"
+    base_message="IoT Edge requires a minimum storage space of $binary_size MB for installing edge daemon and $container_size MB for installing runtime docker containers. We verified that the the device has $available_storage MB of available storage for File System $(df -P -m . | awk '{print $6}')"
 
     if [ $ret -eq 0 ]; then
         wrap_warning "$base_message"
