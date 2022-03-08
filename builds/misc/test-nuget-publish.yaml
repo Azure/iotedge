@@ -99,6 +99,13 @@ jobs:
             #     copyFilesInParallel: true
             #     cleanTargetBeforeCopy: false
             #     skipCACheck: true
+            - task: AzureKeyVault@1
+              displayName: Get secrets
+              inputs:
+                azureSubscription: '$(az.azureNugetSubscription)'
+                keyVaultName: 'azuresdkpartnerdrops-kv'
+                secretsFilter: >-
+                  azuresdkpartnerdrops-access-key
 
             - task: AzureCLI@2
               displayName: Azure CLI
@@ -107,4 +114,9 @@ jobs:
                 scriptType: ps
                 scriptLocation: inlineScript
                 inlineScript: |
-                  az storage blob upload -f "$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/*.nupkg" -c "drops" -n "azure-iot-edge"
+                  az storage blob upload `
+                    --account-key "$(azuresdkpartnerdrops-access-key)" `
+                    --subscription "$(az.azureNugetSubscription)" `
+                    --container-name "drops" `
+                    --name "azure-iot-edge" `
+                    --file "$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/*.nupkg"
