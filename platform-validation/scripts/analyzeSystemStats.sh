@@ -11,7 +11,7 @@ INTERVAL=${INTERVAL:-0}
 
 BINARIES="aziot-edged aziot-identityd aziot-certd aziot-keyd dockerd containerd"
 BINARYLOCATIONS="/usr/bin /usr/libexec"
-CONTAINERS="edgeHub edgeAgent SimulatedTemperatureSensor"
+CONTAINERS="edgeHub edgeAgent"
 
 function usage() {
      echo "$(basename "$0") [options]"
@@ -119,29 +119,29 @@ perform_analysis() {
      done
 
      if [[ -n "$CONTAINERS" ]]; then
+          for container in $CONTAINERS; do
+               if [[ $container =~ edgeAgent ]] || [[ $container =~ edgeHub ]]; then
+                    memory_usage="$(grep "$container"-avg-memory <"$1" | sed -r "s/$container-avg-memory=//g")"
+                    unique_container_size="$(grep "$container"-unique-size <"$1" | sed -r "s/$container-unique-size=//g")"
+                    shared_container_size="$(grep "$container"-shared-size <"$1" | sed -r "s/$container-shared-size=//g")"
+                    IOTEDGE_CONTAINERS_MEMORY=$(echo "$IOTEDGE_CONTAINERS_MEMORY" "$memory_usage" | awk '{print $1 + $2}')
 
-          stored_total_container_size="$(grep "total-container-size" <"$1" | sed -r "s/total-container-size=//g")"
-          if [[ -n $stored_total_container_size ]]; then
-               IOTEDGE_CONTAINERS_SIZE="$stored_total_container_size"
-               for container in $CONTAINERS; do
-                    if [[ $container =~ edgeHub ]] || [[ $container =~ edgeAgent ]]; then
-                         memory_usage="$(grep "$container"-avg-memory <"$1" | sed -r "s/$container-avg-memory=//g")"
-                         IOTEDGE_CONTAINERS_MEMORY=$(echo "$IOTEDGE_CONTAINERS_MEMORY" "$memory_usage" | awk '{print $1 + $2}')
+                    # Edge Agent and Edge Hub share a common layer and hence we only need to add the shared layer once
+                    # Todo : Is there a better way to do this? In future, they may not share a layer and we need to be careful about that.
+                    if [[ $container =~ edgeAgent ]]; then
+                         IOTEDGE_CONTAINERS_SIZE=$(echo "$IOTEDGE_CONTAINERS_SIZE" "$unique_container_size" "$shared_container_size" | awk '{print $1 + $2 + $3}')
                     else
-                         nonruntime_container_size="$(grep "$container"-size <"$1" | sed -r "s/$container-size=//g")"
-                         IOTEDGE_CONTAINERS_SIZE=$(echo "$IOTEDGE_CONTAINERS_SIZE" "$nonruntime_container_size" | awk '{print $1 - $2}')
+                         IOTEDGE_CONTAINERS_SIZE=$(echo "$IOTEDGE_CONTAINERS_SIZE" "$unique_container_size" | awk '{print $1 + $2 }')
                     fi
-               done
-          else
-               echo "Total Container Size should be present, exiting"
-               exit 1
-          fi
+
+               fi
+          done
      fi
 
-     echo "$(uname -m)-iotedge-binaries-size=$IOTEDGE_BINARIES_SIZE"
-     echo "$(uname -m)-iotedge-binaries-avg-memory=$IOTEDGE_BINARIES_MEMORY"
-     echo "$(uname -m)-iotedge-container-size=$IOTEDGE_CONTAINERS_SIZE"
-     echo "$(uname -m)-iotedge-container-memory=$IOTEDGE_CONTAINERS_MEMORY"
+     echo "$(uname -m)_iotedge_binaries_size=$IOTEDGE_BINARIES_SIZE"
+     echo "$(uname -m)_iotedge_binaries_avg_memory=$IOTEDGE_BINARIES_MEMORY"
+     echo "$(uname -m)_iotedge_container_size=$IOTEDGE_CONTAINERS_SIZE"
+     echo "$(uname -m)_iotedge_container_memory=$IOTEDGE_CONTAINERS_MEMORY"
 }
 
 process_args "$@"
@@ -206,33 +206,24 @@ while [[ $SECONDS -lt $end_time ]]; do
           imageId=$(docker inspect --format '{{.Image}}' "$container" 2>/dev/null | sed -r 's/sha256://g') #Split XXMiB / YY MiB Output to get XX
           if [[ -n $imageId ]]; then
                if [[ -f $FILE ]]; then
-                    stored_container_size="$(grep "$container"-size <"$FILE" | sed -r "s/^$container-size=//g")"
-                    stored_total_container_size="$(grep "total-container-size" <"$FILE" | sed -r "s/total-container-size=//g")"
+                    stored_unique_container_size="$(grep "$container"-unique-size <"$FILE" | sed -r "s/^$container-unique-size=//g")"
+                    stored_shared_container_size="$(grep "$container"-shared-size <"$FILE" | sed -r "s/^$container-shared-size=//g")"
                fi
 
-               # using r option here doesn't yield the desired result. Need to investigate why
-               read -a total_size <<<"$(docker system df --format '{{.Size}}')"
-               total_container_size=$(echo "${total_size[0]}" | sed -r 's/MB//g')
-
-               if [[ -z $stored_total_container_size ]]; then
-                    echo "$(date): Total Container Size is $total_container_size"
-                    echo "total-container-size=$total_container_size" >>"$FILE"
-               else
-                    overwrite=$(echo "$stored_total_container_size" "$total_container_size" | awk '{if ($2 > $1) print 1; else print 0}')
-                    if [[ $overwrite -eq 1 ]]; then
-                         echo "$(date): Over-writing Total Container Size to $total_container_size"
-                         echo "total-container-size=$total_container_size" >>"$FILE"
-                    fi
-               fi
-
-               if [[ -z "$stored_container_size" ]]; then
+               if [[ -z "$stored_unique_container_size" ]]; then
                     imageId=${imageId:0:12}
+
+                    # Because Layers can be overlapping, record the unique and shared layer sizes for each of the containers.
+
                     # r option here doesnt yield the correct result, need to investigate why
-                    read -a container_image_size <<<"$(docker images --format '{{.ID}} {{.Size}}' | grep "$imageId")"
+                    read -a container_size <<<"$(docker system df -v --format='{{range .Images}}{{printf "%s %s %s" .ID .SharedSize .UniqueSize}}{{println}}{{end}}' | grep "$imageId")"
+
+                    stored_shared_container_size=$(echo "${container_size[1]}" | sed -r 's/([^0-9)+(.[0-9])?//g')
+                    stored_unique_container_size=$(echo "${container_size[2]}" | sed -r 's/([^0-9)+(.[0-9])?//g')
                     # Output of the form <sha> <size>MB
-                    container_size=$(echo "${container_image_size[1]}" | sed -r 's/MB//g')
-                    echo "Writing Container Size for $container : $container_size"
-                    echo "$container-size=$container_size" >>"$FILE"
+                    echo "Writing Container Size for $container : Shared $stored_shared_container_size Unique : $stored_unique_container_size"
+                    echo "$container-unique-size=$stored_unique_container_size" >>"$FILE"
+                    echo "$container-shared-size=$stored_shared_container_size" >>"$FILE"
                fi
 
                # r option here doesnt yield the correct result, need to investigate why
