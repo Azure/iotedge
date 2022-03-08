@@ -602,14 +602,16 @@ armv7l_iotedge_binaries_size=36.68
 armv7l_iotedge_binaries_avg_memory=35.51
 armv7l_iotedge_container_size=322.98
 armv7l_iotedge_container_memory=164.53
-x86_64_iotedge_binaries_size=36.68
-x86_64_iotedge_binaries_avg_memory=26.62
-x86_64_iotedge_container_size=322.6
-x86_64_iotedge_container_memory=154.53
+x86_64_iotedge_binaries_size=42.39
+x86_64_iotedge_binaries_avg_memory=54.24
+x86_64_iotedge_container_size=254.96
+x86_64_iotedge_container_memory=245.5
 aarch64_iotedge_binaries_size=36.68
 aarch64_iotedge_binaries_avg_memory=26.62
 aarch64_iotedge_container_size=322.6
 aarch64_iotedge_container_memory=154.53
+iot_edge_size_buffer=50
+iot_edge_memory_buffer=50
 aziotedge_check() {
 
     # Todo : As we add new versions, these checks will need to be changed. Keep a common check for now
@@ -665,6 +667,14 @@ aziotedge_check() {
         wrap_debug "No Storage Path Provided, Using Present working directory"
         MOUNTPOINT=$(pwd)
     fi
+    if [ "$TOTAL_SIZE" -eq 0 ]; then
+        wrap_bad "Invalid size of iotedge binaries and containers"
+        exit 1
+    fi
+
+    #Provide a Buffer of 50MB to account for any additional log files and storage.
+    TOTAL_SIZE=$(echo "$TOTAL_SIZE" 50 | awk '{print $1 + $2}')
+
     check_storage_space "$MOUNTPOINT" "$TOTAL_SIZE"
     ret="$?"
     base_message="IoT Edge requires a minimum storage space of $binary_size MB for installing edge daemon and $container_size MB for installing runtime docker containers. We verified that the the device has $available_storage MB of available storage for File System $(df -P -m . | awk '{print $6}')"
