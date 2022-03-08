@@ -644,7 +644,6 @@ aziotedge_check() {
         POSIX_MQUEUE
     # (POSIX_MQUEUE is required for bind-mounting /dev/mqueue into containers)
 
-    check_cgroup_heirachy
     check_systemd
     check_architecture
 
