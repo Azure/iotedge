@@ -573,12 +573,7 @@ check_storage_space() {
         return 2
     fi
 
-    if [ -z "$storage_path" ]; then
-        wrap_debug "No Storage Path Provided, Using Present working directory"
-        storage_path=$(pwd)
-    fi
-
-    available_storage=$(df . --output=avail --block-size=M | sed "s/[^0-9]//g" | tr -d '\n')
+    available_storage=$(df "$storage_path" --output=avail --block-size=M | sed "s/[^0-9]//g" | tr -d '\n')
     adequate_storage=$(echo "$available_storage" "$application_size" | awk '{if ($1 > $2) print 1; else print 0}')
 
     if [ "$adequate_storage" -eq 1 ]; then
@@ -593,9 +588,9 @@ check_storage_space() {
 
 #TODO : Update these numbers after Automated Run. The goal is that for every release, we would update these numbers
 armv7l_iotedge_binaries_size=36.68
-armv7l_iotedge_binaries_avg_memory=26.62
-armv7l_iotedge_container_size=322.6
-armv7l_iotedge_container_memory=154.53
+armv7l_iotedge_binaries_avg_memory=35.51
+armv7l_iotedge_container_size=322.98
+armv7l_iotedge_container_memory=164.53
 x86_64_iotedge_binaries_size=36.68
 x86_64_iotedge_binaries_avg_memory=26.62
 x86_64_iotedge_container_size=322.6
@@ -654,10 +649,13 @@ aziotedge_check() {
     eval binary_size='$'"$(echo "$ARCH"_iotedge_binaries_size)"
     eval container_size='$'"$(echo "$ARCH"_iotedge_container_size)"
     TOTAL_SIZE=$(echo $binary_size $container_size | awk '{print $1 + $2}')
-
-    check_storage_space "$FILESYSTEM" "$TOTAL_SIZE"
+    if [ -z "$MOUNTPOINT" ]; then
+        wrap_debug "No Storage Path Provided, Using Present working directory"
+        MOUNTPOINT=$(pwd)
+    fi
+    check_storage_space "$MOUNTPOINT" "$TOTAL_SIZE"
     ret="$?"
-    base_message="IoT Edge requires a minimum storage space of $binary_size MB for installing edge daemon and $container_size MB for installing runtime docker containers. We verified that the the device has $available_storage MB of available storage"
+    base_message="IoT Edge requires a minimum storage space of $binary_size MB for installing edge daemon and $container_size MB for installing runtime docker containers. We verified that the the device has $available_storage MB of available storage for File System $(df "$MOUNTPOINT" --output=target)"
 
     if [ $ret -eq 0 ]; then
         wrap_warning "$base_message"
@@ -665,7 +663,7 @@ aziotedge_check() {
         wrap_warning "Additional storage space maybe required for based on usage of iotedge and has not been measured here.Please visit aka.ms/iotedge for more information"
     elif [ $ret -eq 1 ]; then
         wrap_warning "$base_message"
-        wrap_warning "Not Enough storage space"
+        wrap_warning "If you are planning to install iotedge on a different mountpoint, please run the script with MOUNTPOINT='<Path-to-mount>' $(basename "$0")"
     fi
 
     echo "IoT Edge Compatibility Tool Check Complete"
