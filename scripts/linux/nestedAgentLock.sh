@@ -155,6 +155,9 @@ function update_capabilities() {
 $newAgentUserCapabilities
 EOF
 ))
+
+    echo $responseCapabilities
+
     # Validate the capability update was successful
     responseUserCapabilities=$(echo $responseCapabilities | jq '.userCapabilities')
 
