@@ -12,20 +12,28 @@ stages:
     dependsOn: []
     jobs:
     - job: BuildDotnetComponents
-      # The code sign steps will fail unless we explicitly say to use dotnet 2 before.
-      # This means we have to toggle back and forth between primary dotnet installations for the sign and build.
-      # TODO: Investigate why we have to toggle primary installs on linux, when we didn't have to do this on windows (now removed).
       displayName: Build Dotnet Components
       steps: 
-        - template: ../templates/dotnet3-globaljson.yaml # use dotnet 3 as primary install for build
         # Build
         - task: ShellScript@2
-          displayName: "Build (Release) dotnet artifacts"
+          displayName: "Build .NET artifacts"
           inputs: 
             args: "-c Release"
             scriptPath: scripts/linux/buildBranch.sh
+        - task: DotNetCoreCLI@2
+          displayName: "Build Functions Binding nuget package"
+          inputs:
+            buildProperties: OutDir=$(Build.BinariesDirectory)/publish/Microsoft.Azure.WebJobs.Extensions.EdgeHub
+            command: pack
+            nobuild: true
+            packDirectory: $(Build.BinariesDirectory)/publish/
+            packagesToPack: "**/Microsoft.Azure.WebJobs.Extensions.EdgeHub.csproj"
+            versionEnvVar: version
+            versioningScheme: byEnvVar
+        # The code sign task requires .NET Core 2.1.
+        # TODO: Investigate why we have to toggle primary installs on linux, when we didn't have to do this on windows (now removed).
+        - template: ../templates/force-dotnet21.yaml
         # Code Sign
-        - template: ../templates/dotnet2-globaljson.yaml # switch to dotnet 2 as primary install for code sign
         - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
           displayName: "Edge Agent Code Sign"
           inputs: 
@@ -246,18 +254,6 @@ stages:
                   }
                 ]
             signConfigType: inlineSignParams
-        - template: ../templates/dotnet3-globaljson.yaml # switch to dotnet 3 as primary install for nuget package
-        - task: DotNetCoreCLI@2
-          displayName: "Functions Binding nuget package"
-          inputs:
-            buildProperties: OutDir=$(Build.BinariesDirectory)/publish/Microsoft.Azure.WebJobs.Extensions.EdgeHub
-            command: pack
-            nobuild: true
-            packDirectory: $(Build.BinariesDirectory)/publish/
-            packagesToPack: "**/Microsoft.Azure.WebJobs.Extensions.EdgeHub.csproj"
-            versionEnvVar: version
-            versioningScheme: byEnvVar
-        - template: ../templates/dotnet2-globaljson.yaml # switch to dotnet 2 as primary install for code sign
         - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
           displayName: "Functions Binding nuget package Sign"
           inputs:
@@ -282,6 +278,8 @@ stages:
                   }
                 ]
             signConfigType: inlineSignParams
+        # We're done with code signing, so remove dotnet version override
+        - template: ../templates/restore-default-dotnet.yaml
         - bash: |
             mkdir $(Build.ArtifactStagingDirectory)/publish-linux && \
             mv $(Build.BinariesDirectory)/publish/{CACertificates,e2e_deployment_files,e2e_test_files,\
