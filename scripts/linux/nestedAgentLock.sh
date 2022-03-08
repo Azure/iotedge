@@ -156,7 +156,7 @@ $newAgentUserCapabilities
 EOF
 ))
 
-    echo "$responseCapabilities"
+    echo "$responseCapabilities" | jq '.'
 
     # Validate the capability update was successful
     responseUserCapabilities=$(echo $responseCapabilities | jq '.userCapabilities')
