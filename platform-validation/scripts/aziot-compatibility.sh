@@ -261,7 +261,7 @@ get_architecture() {
         ;;
 
     armv7l | armv8l)
-        _cputype=armv7
+        _cputype=armv7l
         if [ "$_ostype" = "linux-android" ]; then
             _ostype=linux-androideabi
         else
@@ -324,7 +324,7 @@ get_architecture() {
             _cputype=powerpc
             ;;
         aarch64)
-            _cputype=armv7
+            _cputype=armv7l
             if [ "$_ostype" = "linux-android" ]; then
                 _ostype=linux-androideabi
             else
@@ -337,7 +337,7 @@ get_architecture() {
     # Detect armv7 but without the CPU features Rust needs in that build,
     # and fall back to arm.
     # See https://github.com/rust-lang/rustup.rs/issues/587.
-    if [ "$_ostype" = "unknown-linux-gnueabihf" ] && [ "$_cputype" = armv7 ]; then
+    if [ "$_ostype" = "unknown-linux-gnueabihf" ] && [ "$_cputype" = armv7l ]; then
         if ensure grep '^Features' /proc/cpuinfo | grep -q -v neon; then
             # At least one processor does not have NEON.
             _cputype=arm
@@ -503,7 +503,7 @@ check_architecture() {
     wrap_debug "Architecture:$ARCH"
 
     case $ARCH in
-    x86_64 | armv7 | aarch64)
+    x86_64 | armv7l | aarch64)
         wrap_pass "check_architecture"
         ;;
     arm)
@@ -581,6 +581,8 @@ check_storage_space() {
         return 2
     fi
 
+    wrap_debug "Application Size is $application_size"
+
     # Print storage space in pos
     available_storage=$(df -P -m "$storage_path" | awk '{print $4}' | sed "s/[^0-9]//g" | tr -d '\n')
     adequate_storage=$(echo "$available_storage" "$application_size" | awk '{if ($1 > $2) print 1; else print 0}')
@@ -650,7 +652,7 @@ aziotedge_check() {
         SHARED_LIBRARIES="$(echo $SHARED_LIBRARIES "ld-linux-x86-64.so.2")"
     elif [ $ARCH = aarch64 ]; then
         SHARED_LIBRARIES="$(echo $SHARED_LIBRARIES "ld-linux-aarch64.so.1")"
-    elif [ $ARCH = armv7 ]; then
+    elif [ $ARCH = armv7l ]; then
         SHARED_LIBRARIES="$(echo $SHARED_LIBRARIES "ld-linux-armhf.so.3")"
     fi
 
