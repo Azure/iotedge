@@ -2,6 +2,7 @@
 
 ### Bug Fixes
 - Update references to default branch [7e50406](https://github.com/Azure/iotedge/commit/7e504060261634582434c394639b738f620015e3)
+- Dotnet runtime security patch [patch](https://hub.docker.com/_/microsoft-dotnet-runtime)
 
 # 1.0.4 (2022-02-11)
 
