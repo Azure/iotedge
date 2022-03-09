@@ -162,7 +162,7 @@ EOF
     if [ "$responseUserCapabilities" != "$newAgentUserCapabilities" ]
     then
         echo "Capabilities were not updated properly. Dumping response below." >&2
-        echo "$responseCapabilities" | jq '.' >&2
+        echo "$responseCapabilities" >&2
     fi
 }
 
