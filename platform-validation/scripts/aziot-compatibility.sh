@@ -583,7 +583,6 @@ check_package_manager() {
 
     if [ "$not_found" -eq 1 ]; then
         wrap_warning "Install a package manager for your distribution."
-        CA_CERT_PATH="/etc/ca-certificates"
         if [ ! -d "/etc/ca-certificates" ]; then
             wrap_warning "Install CA certificates package" 
         fi
