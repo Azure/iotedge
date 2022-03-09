@@ -555,34 +555,24 @@ check_shared_library_dependency_display_util() {
 
 check_package_manager() {
     not_found=0
-    result="$(need_cmd apt-get)"
-    if [ $? != 0 ] ; then
-        wrap_debug "apt-get package manager is not present."
-        result="$(need_cmd dpkg)"
-        if [ $? != 0 ]; then
-            wrap_debug "dpkg package manager is not present."
-            result="$(need_cmd yum)"
-            if [ $? != 0 ]; then
-                wrap_debug "yum package manager is not present."
-                result="$(need_cmd rpm)"
-                if [ $? != 0 ]; then
-                    wrap_debug "rpm package manager is not present."
-                    not_found=1
-                else
-                    wrap_debug "rpm package manager is present."
-                fi
-            else
-                wrap_debug "yum package manager is present."
-            fi
+    package_managers="apt-get dpkg yum rpm"
+    for package in $package_managers; do
+    {
+        res="$(need_cmd $package)"
+        if [ $? -eq 0]; then
+            wrap_debug "$package package manager is present."
+            break;
         else
-            wrap_debug "dpkg package manager is present"
+            not_found=1
+            wrap_debug "$package package manager is not present."
         fi
-    else
-        wrap_debug "apt-get package manager is present"   
-    fi
-
+    }
+    done
     if [ "$not_found" -eq 1 ]; then
-        wrap_warning "Install a package manager for your distribution."
+        wrap_warning "IoT Edge supports the following package types [*deb, *rpm] and following package managers [apt-get].
+        We have identified that this device does not have support for the supported package type.
+        Please head to aka.ms/iotedge for instructions on how to build the iotedge binaries from source"
+
         if [ ! -d "/etc/ca-certificates" ]; then
             wrap_warning "Install CA certificates package" 
         fi
@@ -598,15 +588,15 @@ aziotedge_check() {
 
     SHARED_LIBRARIES="libssl.so.1.1 libcrypto.so.1.1 libdl.so.2 librt.so.1 libpthread.so.0 libc.so.6 libm.so.6 libgcc_s.so.1"
     MINIMUM_DOCKER_API_VERSION=1.34
-    # Required for resource allocation for containers
+    #Required for resource allocation for containers
     check_cgroup_heirachy
 
-    # Flags Required for setting elevated capabilities in a container. EdgeHub currently requires setting CAP_NET_BIND on dotnet binary.
+    #Flags Required for setting elevated capabilities in a container. EdgeHub currently requires setting CAP_NET_BIND on dotnet binary.
     check_kernel_flags EXT4_FS_SECURITY
 
     # The Following kernel flags are required for running a container engine. For description on each of the config flags : Visit -https://www.kernelconfig.io/
-    # Todo : Only check if docker engine is not present?
-    # Check for Required Container Engine Flags if docker is not present
+    #Todo : Only check if docker engine is not present?
+    #Check for Required Container Engine Flags if docker is not present
     check_kernel_flags \
         NAMESPACES NET_NS PID_NS IPC_NS UTS_NS \
         CGROUPS CGROUP_CPUACCT CGROUP_DEVICE CGROUP_FREEZER CGROUP_SCHED CPUSETS MEMCG \
