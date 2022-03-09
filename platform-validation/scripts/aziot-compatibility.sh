@@ -568,6 +568,7 @@ check_shared_library_dependency() {
 check_storage_space() {
     storage_path=$1
     application_size=$2
+    buffer=$3
 
     # Check dependencies
     if ! need_cmd df; then
@@ -576,11 +577,13 @@ check_storage_space() {
         return
     fi
 
-    if ! echo "$application_size" | grep -q '^[0-9]*.[0-9]*$'; then
+    if ! echo "$application_size" | grep -q '^[.0-9]*$'; then
         wrap_bad "Invalid Application Size provided" "$application_size"
         return 2
     fi
 
+    #Provide a Buffer of 50MB to account for any additional log files and storage.
+    application_size=$(echo "$application_size" "$buffer" | awk '{print $1 + $2}')
     wrap_debug "Application Size is $application_size"
 
     # Print storage space in pos
@@ -666,17 +669,11 @@ aziotedge_check() {
         wrap_debug "No Storage Path Provided, Using Present working directory"
         MOUNTPOINT=$(pwd)
     fi
-    if [ "$TOTAL_SIZE" -eq 0 ]; then
-        wrap_bad "Invalid size of iotedge binaries and containers"
-        exit 1
-    fi
 
-    #Provide a Buffer of 50MB to account for any additional log files and storage.
-    TOTAL_SIZE=$(echo "$TOTAL_SIZE" 50 | awk '{print $1 + $2}')
-
-    check_storage_space "$MOUNTPOINT" "$TOTAL_SIZE"
+    check_storage_space "$MOUNTPOINT" "$TOTAL_SIZE" "$iot_edge_size_buffer"
     ret="$?"
-    base_message="IoT Edge requires a minimum storage space of $binary_size MB for installing edge daemon and $container_size MB for installing runtime docker containers. We verified that the the device has $available_storage MB of available storage for File System $(df -P -m . | awk '{print $6}')"
+
+    base_message="IoT Edge requires a minimum storage space of $binary_size MB for installing edge daemon and $container_size MB for installing runtime docker containers. We verified that the the device has $available_storage MB of available storage for File System $(df -P -m "$MOUNTPOINT" | awk '{print $6}')"
 
     if [ $ret -eq 0 ]; then
         wrap_warning "$base_message"
