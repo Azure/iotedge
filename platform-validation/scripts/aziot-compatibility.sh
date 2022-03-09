@@ -599,15 +599,15 @@ aziotedge_check() {
 
     SHARED_LIBRARIES="libssl.so.1.1 libcrypto.so.1.1 libdl.so.2 librt.so.1 libpthread.so.0 libc.so.6 libm.so.6 libgcc_s.so.1"
     MINIMUM_DOCKER_API_VERSION=1.34
-    Required for resource allocation for containers
+    # Required for resource allocation for containers
     check_cgroup_heirachy
 
-    Flags Required for setting elevated capabilities in a container. EdgeHub currently requires setting CAP_NET_BIND on dotnet binary.
+    # Flags Required for setting elevated capabilities in a container. EdgeHub currently requires setting CAP_NET_BIND on dotnet binary.
     check_kernel_flags EXT4_FS_SECURITY
 
-    The Following kernel flags are required for running a container engine. For description on each of the config flags : Visit -https://www.kernelconfig.io/
-    Todo : Only check if docker engine is not present?
-    Check for Required Container Engine Flags if docker is not present
+    # The Following kernel flags are required for running a container engine. For description on each of the config flags : Visit -https://www.kernelconfig.io/
+    # Todo : Only check if docker engine is not present?
+    # Check for Required Container Engine Flags if docker is not present
     check_kernel_flags \
         NAMESPACES NET_NS PID_NS IPC_NS UTS_NS \
         CGROUPS CGROUP_CPUACCT CGROUP_DEVICE CGROUP_FREEZER CGROUP_SCHED CPUSETS MEMCG \
@@ -620,7 +620,7 @@ aziotedge_check() {
         NETFILTER_XT_MARK \
         IP_NF_NAT NF_NAT \
         POSIX_MQUEUE
-    (POSIX_MQUEUE is required for bind-mounting /dev/mqueue into containers)
+    # (POSIX_MQUEUE is required for bind-mounting /dev/mqueue into containers)
 
     check_cgroup_heirachy
     check_systemd
