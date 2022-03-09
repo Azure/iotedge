@@ -156,7 +156,6 @@ $newAgentUserCapabilities
 EOF
 ))
 
-    echo "DEBUG statement:"
     echo "$responseCapabilities" | jq '.'
 
     # Validate the capability update was successful
@@ -164,7 +163,8 @@ EOF
 
     if [ "$responseUserCapabilities" != "$newAgentUserCapabilities" ]
     then
-        echo "Capabilities were not updated properly."
+        echo "Capabilities were not updated properly. Dumping response below." >&2
+        echo "$responseCapabilities" | jq '.' >&2
     fi
 }
 
