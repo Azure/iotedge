@@ -553,52 +553,91 @@ check_shared_library_dependency_display_util() {
     esac
 }
 
+check_package_manager() {
+    not_found=0
+    result="$(need_cmd apt-get)"
+    if [ $? != 0 ] ; then
+        wrap_debug "apt-get package manager is not present."
+        result="$(need_cmd dpkg)"
+        if [ $? != 0 ]; then
+            wrap_debug "dpkg package manager is present."
+            result="$(need_cmd yum)"
+            if [ $? != 0 ]; then
+                wrap_debug "yum package manager is not present."
+                result="$(need_cmd rpm)"
+                if [ $? != 0 ]; then
+                    wrap_debug "rpm package manager is not present."
+                    not_found=1
+                else
+                    wrap_debug "rpm package manager is present."
+                fi
+            else
+                wrap_debug "yum package manager is present."
+            fi
+        else
+            wrap_debug "dpkg package manager is present"
+        fi
+    else
+        wrap_debug "apt-get package manager is not present"   
+    fi
+
+    if [ "$not_found" -eq 1 ]; then
+        wrap_warning "Install a package manager for your distribution."
+        CA_CERT_PATH="/etc/ca-certificates"
+        if [ ! -d "/etc/ca-certificates" ]; then
+            wrap_warning "Install CA certificates package" 
+        fi
+    fi
+}
+
 aziotedge_check() {
 
     # Todo : As we add new versions, these checks will need to be changed. Keep a common check for now
-    case $APP_VERSION in
-    *) wrap_debug "Checking aziot-edge compatibility for Release 1.2" ;;
-    esac
+    # case $APP_VERSION in
+    # *) wrap_debug "Checking aziot-edge compatibility for Release 1.2" ;;
+    # esac
 
-    SHARED_LIBRARIES="libssl.so.1.1 libcrypto.so.1.1 libdl.so.2 librt.so.1 libpthread.so.0 libc.so.6 libm.so.6 libgcc_s.so.1"
-    MINIMUM_DOCKER_API_VERSION=1.34
-    #Required for resource allocation for containers
-    check_cgroup_heirachy
+    # SHARED_LIBRARIES="libssl.so.1.1 libcrypto.so.1.1 libdl.so.2 librt.so.1 libpthread.so.0 libc.so.6 libm.so.6 libgcc_s.so.1"
+    # MINIMUM_DOCKER_API_VERSION=1.34
+    # Required for resource allocation for containers
+    # check_cgroup_heirachy
 
-    #Flags Required for setting elevated capabilities in a container. EdgeHub currently requires setting CAP_NET_BIND on dotnet binary.
-    check_kernel_flags EXT4_FS_SECURITY
+    # Flags Required for setting elevated capabilities in a container. EdgeHub currently requires setting CAP_NET_BIND on dotnet binary.
+    # check_kernel_flags EXT4_FS_SECURITY
 
     # The Following kernel flags are required for running a container engine. For description on each of the config flags : Visit -https://www.kernelconfig.io/
-    #Todo : Only check if docker engine is not present?
-    #Check for Required Container Engine Flags if docker is not present
-    check_kernel_flags \
-        NAMESPACES NET_NS PID_NS IPC_NS UTS_NS \
-        CGROUPS CGROUP_CPUACCT CGROUP_DEVICE CGROUP_FREEZER CGROUP_SCHED CPUSETS MEMCG \
-        KEYS \
-        VETH BRIDGE BRIDGE_NETFILTER \
-        IP_NF_FILTER IP_NF_TARGET_MASQUERADE \
-        NETFILTER_XT_MATCH_ADDRTYPE \
-        NETFILTER_XT_MATCH_CONNTRACK \
-        NETFILTER_XT_MATCH_IPVS \
-        NETFILTER_XT_MARK \
-        IP_NF_NAT NF_NAT \
-        POSIX_MQUEUE
+    # Todo : Only check if docker engine is not present?
+    # Check for Required Container Engine Flags if docker is not present
+    # check_kernel_flags \
+    #     NAMESPACES NET_NS PID_NS IPC_NS UTS_NS \
+    #     CGROUPS CGROUP_CPUACCT CGROUP_DEVICE CGROUP_FREEZER CGROUP_SCHED CPUSETS MEMCG \
+    #     KEYS \
+    #     VETH BRIDGE BRIDGE_NETFILTER \
+    #     IP_NF_FILTER IP_NF_TARGET_MASQUERADE \
+    #     NETFILTER_XT_MATCH_ADDRTYPE \
+    #     NETFILTER_XT_MATCH_CONNTRACK \
+    #     NETFILTER_XT_MATCH_IPVS \
+    #     NETFILTER_XT_MARK \
+    #     IP_NF_NAT NF_NAT \
+    #     POSIX_MQUEUE
     # (POSIX_MQUEUE is required for bind-mounting /dev/mqueue into containers)
 
-    check_cgroup_heirachy
-    check_systemd
-    check_architecture
+    # check_cgroup_heirachy
+    # check_systemd
+    # check_architecture
 
-    check_docker_api_version $MINIMUM_DOCKER_API_VERSION
+    # check_docker_api_version $MINIMUM_DOCKER_API_VERSION
 
-    if [ $ARCH = x86_64 ]; then
-        SHARED_LIBRARIES="$(echo $SHARED_LIBRARIES "ld-linux-x86-64.so.2")"
-    elif [ $ARCH = aarch64 ]; then
-        SHARED_LIBRARIES="$(echo $SHARED_LIBRARIES "ld-linux-aarch64.so.1")"
-    elif [ $ARCH = armv7 ]; then
-        SHARED_LIBRARIES="$(echo $SHARED_LIBRARIES "ld-linux-armhf.so.3")"
-    fi
-    check_shared_library_dependency
+    # if [ $ARCH = x86_64 ]; then
+    #     SHARED_LIBRARIES="$(echo $SHARED_LIBRARIES "ld-linux-x86-64.so.2")"
+    # elif [ $ARCH = aarch64 ]; then
+    #     SHARED_LIBRARIES="$(echo $SHARED_LIBRARIES "ld-linux-aarch64.so.1")"
+    # elif [ $ARCH = armv7 ]; then
+    #     SHARED_LIBRARIES="$(echo $SHARED_LIBRARIES "ld-linux-armhf.so.3")"
+    # fi
+    # check_shared_library_dependency
+    check_package_manager
+    # check_free_memory
 
     echo "IoT Edge Compatibility Tool Check Complete"
 }
