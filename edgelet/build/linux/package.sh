@@ -109,8 +109,8 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
 
     redhat8.amd64)
         SETUP_COMMAND=$'
-            yum update -y &&
-            yum install -y \
+            dnf distro-sync -y &&
+            dnf install -y \
                 curl git make rpm-build \
                 gcc gcc-c++ \
                 libcurl-devel libuuid-devel openssl-devel &&
@@ -283,16 +283,6 @@ case "$PACKAGE_OS" in
         case "$PACKAGE_ARCH" in
             amd64)
                 MAKE_TARGET_DIR='target/release'
-                ;;
-            arm32v7)
-                MAKE_TARGET_DIR="target/$RUST_TARGET/release"
-                CARGO_TARGET_FLAG="--target $RUST_TARGET"
-                RPMBUILD_TARGET_FLAG='--target armv7hl'
-                ;;
-            aarch64)
-                MAKE_TARGET_DIR="target/$RUST_TARGET/release"
-                CARGO_TARGET_FLAG="--target $RUST_TARGET"
-                RPMBUILD_TARGET_FLAG='--target aarch64'
                 ;;
         esac
 

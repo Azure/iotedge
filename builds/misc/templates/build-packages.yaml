@@ -55,7 +55,7 @@ stages:
               arch: amd64
               os: centos7
               target.iotedged: edgelet/target/rpmbuild/RPMS/x86_64
-            redhat8-amd64:
+            RedHat8-amd64:
               arch: amd64
               os: redhat8
               target.iotedged: edgelet/target/rpmbuild/RPMS/x86_64
