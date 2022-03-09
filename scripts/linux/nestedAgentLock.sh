@@ -156,6 +156,7 @@ $newAgentUserCapabilities
 EOF
 ))
 
+    echo "DEBUG statement:"
     echo "$responseCapabilities" | jq '.'
 
     # Validate the capability update was successful
