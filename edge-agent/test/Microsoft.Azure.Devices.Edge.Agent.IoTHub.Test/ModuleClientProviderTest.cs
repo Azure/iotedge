@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // Act
             var moduleClientProvider = new ModuleClientProvider(
                 sdkModuleClientProvider.Object,
-                runtimeInfoProvider.Object,
+                Task.FromResult(runtimeInfoProvider.Object),
                 upstreamProtocol,
                 webProxy,
                 productInfo,
@@ -118,7 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // Assert
             Assert.Throws<ArgumentNullException>(() => new ModuleClientProvider(
                 sdkModuleClientProvider.Object,
-                runtimeInfoProvider.Object,
+                Task.FromResult(runtimeInfoProvider.Object),
                 Option.None<UpstreamProtocol>(),
                 Option.None<IWebProxy>(),
                 null,
