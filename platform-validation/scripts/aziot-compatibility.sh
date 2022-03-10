@@ -543,8 +543,6 @@ check_docker_api_version() {
 
 SHARED_LIB_PATH="/usr /lib /lib32 /lib64"
 check_shared_library_dependency() {
-    # set the crucial libaries in the variable
-    # IOTEDGE_COMMON_SHARED_LIBRARIES is for both aziot-edged and aziot-identityd
     for lib in $SHARED_LIBRARIES; do
         # check dependencies for `ldconfig` and fall back to `find` when its not possible
         if [ "$(id -u)" -ne 0 ]; then
@@ -577,7 +575,7 @@ check_storage_space() {
         return
     fi
 
-    if ! echo "$application_size" | grep -Eq '^[0-9]+.?[0-9]+$'; then
+    if ! echo "$application_size" | grep -Eq '^[0-9]+\.?[0-9]+$'; then
         wrap_bad "Invalid Application Size provided" "$application_size"
         wrap_fail "check_storage_space"
         return 2
@@ -743,9 +741,4 @@ else
         exit 1
     fi
     "$APP_NAME"_check
-fi
-
-if ! echo "" | grep -E '^[0-9]+.?[0-9]+$'; then
-    echo "Invalid Application Size provided"
-    return 2
 fi
