@@ -566,8 +566,8 @@ aarch64_iotedge_binaries_size=36.68
 aarch64_iotedge_binaries_avg_memory=26.62
 aarch64_iotedge_container_size=322.6
 aarch64_iotedge_container_memory=154.53
-iot_edge_size_buffer=50
-iot_edge_memory_buffer=50
+iotedge_size_buffer=50
+iotedge_memory_buffer=50
 
 check_free_memory() {
     # Check dependencies
@@ -580,7 +580,7 @@ check_free_memory() {
 
     eval iotedge_binary_memory='$'"$(echo "$ARCH"_iotedge_binaries_avg_memory)"
     eval iotedge_container_memory='$'"$(echo "$ARCH"_iotedge_container_memory)"
-    total_iotedge_memory_size=$(echo $iotedge_binary_memory $iotedge_container_memory | awk '{print $1 + $2}')
+    total_iotedge_memory_size=$(echo $iotedge_binary_memory $iotedge_container_memory $iotedge_memory_buffer | awk '{print $1 + $2 + $3}')
     current_free_memory=$(free -m | awk '/^Mem/ {print $4}')
 
     res=$(echo $current_free_memory $total_iotedge_memory_size | awk '{if ($1 > $2) print 1; else print 0}')
