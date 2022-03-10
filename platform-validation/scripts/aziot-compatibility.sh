@@ -577,12 +577,12 @@ check_storage_space() {
         return
     fi
 
-    if ! echo "$application_size" | grep -q '^[.0-9]*$'; then
+    if ! echo "$application_size" | grep -E '^[0-9]+.?[0-9]+$'; then
         wrap_bad "Invalid Application Size provided" "$application_size"
         return 2
     fi
 
-    #Provide a Buffer of 50MB to account for any additional log files and storage.
+    #Provide a Buffer of $buffer to account for any additional log files and storage.
     application_size=$(echo "$application_size" "$buffer" | awk '{print $1 + $2}')
     wrap_debug "Application Size is $application_size"
 
