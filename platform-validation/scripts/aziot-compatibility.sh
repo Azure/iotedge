@@ -553,6 +553,45 @@ check_shared_library_dependency_display_util() {
     esac
 }
 
+#TODO : Update these numbers after Automated Run. The goal is that for every release, we would update these numbers
+armv7l_iotedge_binaries_size=36.68
+armv7l_iotedge_binaries_avg_memory=35.51
+armv7l_iotedge_container_size=322.98
+armv7l_iotedge_container_memory=164.53
+x86_64_iotedge_binaries_size=42.39
+x86_64_iotedge_binaries_avg_memory=54.24
+x86_64_iotedge_container_size=254.96
+x86_64_iotedge_container_memory=245.5
+aarch64_iotedge_binaries_size=36.68
+aarch64_iotedge_binaries_avg_memory=26.62
+aarch64_iotedge_container_size=322.6
+aarch64_iotedge_container_memory=154.53
+iot_edge_size_buffer=50
+iot_edge_memory_buffer=50
+
+check_free_memory() {
+    # Check dependencies
+    cmd_res="$(need_cmd free)"
+    if [ $? -ne 0 ]; then
+        wrap_warn "check_free_memory"
+        wrap_warning "Could not find free utility to calculate current free memory. Skipping the check"
+        return
+    fi
+
+    eval iotedge_binary_memory='$'"$(echo "$ARCH"_iotedge_binaries_avg_memory)"
+    eval iotedge_container_memory='$'"$(echo "$ARCH"_iotedge_container_memory)"
+    total_iotedge_memory_size=$(echo $iotedge_binary_memory $iotedge_container_memory | awk '{print $1 + $2}')
+    current_free_memory=$(free -m | awk '/^Mem/ {print $4}')
+
+    res=$(echo $current_free_memory $total_iotedge_memory_size | awk '{if ($1 > $2) print 1; else print 0}')
+    if [ $res -eq 1 ]; then
+        wrap_pass "check_free_memory"
+    else
+        # TODO: Need to refine this message
+        wrap_fail "Current available memory is $current_free_memory. Free up atleast $total_iotedge_memory_size MB to run IoT edge"
+    fi
+}
+
 aziotedge_check() {
 
     # Todo : As we add new versions, these checks will need to be changed. Keep a common check for now
@@ -599,6 +638,7 @@ aziotedge_check() {
         SHARED_LIBRARIES="$(echo $SHARED_LIBRARIES "ld-linux-armhf.so.3")"
     fi
     check_shared_library_dependency
+    check_free_memory
 
     echo "IoT Edge Compatibility Tool Check Complete"
 }
