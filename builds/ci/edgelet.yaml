@@ -54,7 +54,7 @@ jobs:
         inputs:
           filePath: scripts/linux/generic-rust/install.sh
           arguments: --project-root "edgelet"
-      - script: cargo install --git https://github.com/arsing/cross.git --branch set-path
+      - script: cargo install cross --version ^0.2
         displayName: Install cross (fork with docker fix)
       - task: Bash@3
         displayName: armv7-unknown-linux-gnueabihf build
