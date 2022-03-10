@@ -523,7 +523,8 @@ check_architecture() {
 
 check_docker_api_version() {
     # Check dependencies
-    if ! need_cmd docker; then
+    ret=$(need_cmd docker)
+    if [ "$?" -ne 0 ]; then
         wrap_warning "check_docker_api_version"
         wrap_warn "Docker Enginer does not exist on this device!!, Please follow instructions here on how to install a compatible container engine
         https://docs.microsoft.com/en-us/azure/iot-edge/how-to-provision-single-device-linux-symmetric?view=iotedge-2020-11&tabs=azure-portal%2Cubuntu#install-a-container-engine"
@@ -569,10 +570,11 @@ check_storage_space() {
     buffer=$3
 
     # Check dependencies
-    if ! need_cmd df; then
+    ret=$(need_cmd d1)
+    if [ "$?" -ne 0 ]; then
         wrap_warn "check_storage_space"
         wrap_warning "Could not find df utility to calculate disk space, Skipping the check"
-        return
+        return 2
     fi
 
     if ! echo "$application_size" | grep -Eq '^[0-9]+\.?[0-9]+$'; then
