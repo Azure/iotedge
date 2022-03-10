@@ -35,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Uds
         [Fact]
         public void TestSerializeRequest_MethodMissing_ShouldSerializeRequest()
         {
-            string expected = "GET /modules/testModule/sign?api-version=2018-06-28 HTTP/1.1\r\nHost: localhost:8081\r\nConnection: close\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\n";
+            string expected = $"GET /modules/testModule/sign?api-version=2018-06-28 HTTP/1.1\r\nHost: localhost:8081{Environment.NewLine}Connection: close{Environment.NewLine}Content-Type: application/json{Environment.NewLine}Content-Length: 100{Environment.NewLine}\r\n";
             var request = new HttpRequestMessage();
             request.RequestUri = new Uri("http://localhost:8081/modules/testModule/sign?api-version=2018-06-28", UriKind.Absolute);
             request.Version = Version.Parse("1.1");
@@ -51,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Uds
         [Fact]
         public void TestSerializeRequest_VersionMissing_ShouldSerializeRequest()
         {
-            string expected = "POST /modules/testModule/sign?api-version=2018-06-28 HTTP/1.1\r\nHost: localhost:8081\r\nConnection: close\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\n";
+            string expected = $"POST /modules/testModule/sign?api-version=2018-06-28 HTTP/1.1\r\nHost: localhost:8081{Environment.NewLine}Connection: close{Environment.NewLine}Content-Type: application/json{Environment.NewLine}Content-Length: 100{Environment.NewLine}\r\n";
             var request = new HttpRequestMessage();
             request.RequestUri = new Uri("http://localhost:8081/modules/testModule/sign?api-version=2018-06-28", UriKind.Absolute);
             request.Method = HttpMethod.Post;
@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Uds
         [Fact]
         public void TestSerializeRequest_ContentLengthMissing_ShouldSerializeRequest()
         {
-            string expected = "POST /modules/testModule/sign?api-version=2018-06-28 HTTP/1.1\r\nHost: localhost:8081\r\nConnection: close\r\nContent-Type: application/json\r\nContent-Length: 4\r\n\r\n";
+            string expected = $"POST /modules/testModule/sign?api-version=2018-06-28 HTTP/1.1\r\nHost: localhost:8081{Environment.NewLine}Connection: close{Environment.NewLine}Content-Type: application/json{Environment.NewLine}Content-Length: 4{Environment.NewLine}\r\n";
             var request = new HttpRequestMessage();
             request.RequestUri = new Uri("http://localhost:8081/modules/testModule/sign?api-version=2018-06-28", UriKind.Absolute);
             request.Method = HttpMethod.Post;
@@ -82,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Uds
         [Fact]
         public void TestSerializeRequest_ContentIsNull_ShouldSerializeRequest()
         {
-            string expected = "GET /modules/testModule/sign?api-version=2018-06-28 HTTP/1.1\r\nHost: localhost:8081\r\nConnection: close\r\n\r\n";
+            string expected = $"GET /modules/testModule/sign?api-version=2018-06-28 HTTP/1.1\r\nHost: localhost:8081{Environment.NewLine}Connection: close{Environment.NewLine}\r\n";
             var request = new HttpRequestMessage();
             request.RequestUri = new Uri("http://localhost:8081/modules/testModule/sign?api-version=2018-06-28", UriKind.Absolute);
             request.Method = HttpMethod.Get;
