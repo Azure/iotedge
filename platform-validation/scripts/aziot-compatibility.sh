@@ -577,8 +577,9 @@ check_storage_space() {
         return
     fi
 
-    if ! echo "$application_size" | grep -E '^[0-9]+.?[0-9]+$'; then
+    if ! echo "$application_size" | grep -Eq '^[0-9]+.?[0-9]+$'; then
         wrap_bad "Invalid Application Size provided" "$application_size"
+        wrap_fail "check_storage_space"
         return 2
     fi
 
@@ -742,4 +743,9 @@ else
         exit 1
     fi
     "$APP_NAME"_check
+fi
+
+if ! echo "" | grep -E '^[0-9]+.?[0-9]+$'; then
+    echo "Invalid Application Size provided"
+    return 2
 fi
