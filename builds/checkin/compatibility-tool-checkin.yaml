@@ -29,6 +29,7 @@ jobs:
 ##############################################################################
     displayName: Run Checks
     dependsOn: check_run_pipeline
+    condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
       vmImage: "ubuntu-20.04"
     steps:
@@ -44,7 +45,5 @@ jobs:
             shellcheck --severity=error ./platform-validation/scripts/aziot-compatibility.sh
           fi
         displayName: Perform Shell Check
-        condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
       - bash: platform-validation/scripts/aziot-compatibility.sh
         displayName: Run Compatibility Tool
-        condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
