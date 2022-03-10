@@ -55,7 +55,7 @@ jobs:
           filePath: scripts/linux/generic-rust/install.sh
           arguments: --project-root "edgelet"
       - script: cargo install cross --version ^0.2
-        displayName: Install cross (fork with docker fix)
+        displayName: Install cross
       - task: Bash@3
         displayName: armv7-unknown-linux-gnueabihf build
         inputs:

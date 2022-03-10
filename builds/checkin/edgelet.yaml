@@ -63,7 +63,7 @@ jobs:
       - bash: scripts/linux/generic-rust/install.sh --project-root "edgelet"
         displayName: Install Rust
       - script: "cargo install cross --version ^0.2"
-        displayName: "Install cross (fork with docker fix)"
+        displayName: "Install cross"
       - script: "cross build --target armv7-unknown-linux-gnueabihf"
         displayName: armv7-unknown-linux-gnueabihf build
         workingDirectory: $(Build.SourcesDirectory)/edgelet
@@ -92,7 +92,7 @@ jobs:
       - bash: scripts/linux/generic-rust/install.sh --project-root "edgelet"
         displayName: Install Rust
       - script: "cargo install cross --version ^0.2"
-        displayName: "Install cross (fork with docker fix)"
+        displayName: "Install cross"
       - script: "cross build --target aarch64-unknown-linux-gnu"
         displayName: aarch64-unknown-linux-gnu build
         workingDirectory: $(Build.SourcesDirectory)/edgelet
