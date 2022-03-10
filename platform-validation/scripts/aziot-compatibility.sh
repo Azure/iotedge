@@ -558,8 +558,9 @@ check_package_manager() {
     package_managers="apt-get dpkg yum rpm"
     for package in $package_managers; do
     {
-        res="$(need_cmd $package)"
-        if [ $? -eq 0]; then
+        res="$(need_cmd $package)"  
+        if [ $? -eq 0 ] ; then
+            not_found=0
             wrap_debug "$package package manager is present."
             break;
         else
@@ -569,10 +570,7 @@ check_package_manager() {
     }
     done
     if [ "$not_found" -eq 1 ]; then
-        wrap_warning "IoT Edge supports the following package types [*deb, *rpm] and following package managers [apt-get].
-        We have identified that this device does not have support for the supported package type.
-        Please head to aka.ms/iotedge for instructions on how to build the iotedge binaries from source"
-
+        wrap_warning "IoT Edge supports the following package types [*deb, *rpm] and following package managers [apt-get].We have identified that this device does not have support for the supported package type. Please head to aka.ms/iotedge for instructions on how to build the iotedge binaries from source"
         if [ ! -d "/etc/ca-certificates" ]; then
             wrap_warning "Install CA certificates package" 
         fi
