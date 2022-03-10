@@ -42,7 +42,7 @@ jobs:
             echo "Detected changes in platform compatibility script tool"
             sudo apt update
             sudo apt install shellcheck
-            shellcheck --severity=error ./platform-validation/scripts/aziot-compatibility.sh
+            shellcheck --severity=error ./platform-validation/scripts/aziot-compatibility.sh -a aziotedge
           fi
         displayName: Perform Shell Check
       - bash: platform-validation/scripts/aziot-compatibility.sh
