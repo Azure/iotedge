@@ -57,7 +57,7 @@ namespace SimulatedTemperatureSensor
                 .AddEnvironmentVariables()
                 .Build();
 
-            messageDelay = TimeSpan.FromMilliseconds(Rnd.Next(1,100)* 100);
+            messageDelay = TimeSpan.FromMilliseconds(Rnd.Next(1, 100) * 100);
             int messageCount = -1;
 
             Console.WriteLine(
@@ -175,10 +175,9 @@ namespace SimulatedTemperatureSensor
 
             while (!cts.Token.IsCancellationRequested && (SendUnlimitedMessages(messageCount) || messageCount >= count))
             {
-
                 if (sendData)
                 {
-                    var eventMessage = new Message(new byte[Rnd.Next(9,11) * 10000]);
+                    var eventMessage = new Message(new byte[Rnd.Next(9, 11) * 10000]);
                     eventMessage.Properties.Add("sequenceNumber", count.ToString());
                     eventMessage.Properties.Add("batchId", BatchId.ToString());
                     Console.WriteLine($"\t{DateTime.Now.ToLocalTime()}> Sending message: {count}");
@@ -265,6 +264,5 @@ namespace SimulatedTemperatureSensor
             [JsonProperty("command")]
             public ControlCommandEnum Command { get; set; }
         }
-
     }
 }
