@@ -5,9 +5,9 @@ pr:
       - main
 
 jobs:
-  ################################################################################
+  ##############################################################################
   - job: check_run_pipeline
-  ################################################################################
+  ##############################################################################
     displayName: Check pipeline preconditions (changes ARE in platform compatibility script tool)
     pool:
       vmImage: "ubuntu-20.04"
@@ -23,6 +23,18 @@ jobs:
           fi
         displayName: Check changes in platform compatibility script
         name: check_files
+
+##############################################################################
+  - job: run_checks
+##############################################################################
+    displayName: Run Checks
+    dependsOn: check_run_pipeline
+    pool:
+      vmImage: "ubuntu-20.04"
+    steps:
+      - checkout: self
+        submodules: false
+        fetchDepth: 3
       - bash: |
           git log -m -1 --name-only --first-parent --pretty="" | egrep -i '^(platform-validation/scripts/aziot-compatibility)'
           if [[ $? == 0 ]]; then
@@ -34,5 +46,5 @@ jobs:
         displayName: Perform Shell Check
         condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
       - bash: platform-validation/scripts/aziot-compatibility.sh
-        displayName: Run Shell Check
+        displayName: Run Compatibility Tool
         condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
