@@ -49,7 +49,7 @@ namespace SimulatedTemperatureSensor
 
         static async Task<int> MainAsync()
         {
-            Console.WriteLine("SimulatedTemperatureSensor Main() started.");
+            Console.WriteLine("Message Main() started.");
 
             IConfiguration configuration = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
@@ -57,24 +57,15 @@ namespace SimulatedTemperatureSensor
                 .AddEnvironmentVariables()
                 .Build();
 
-            messageDelay = configuration.GetValue("MessageDelay", TimeSpan.FromSeconds(5));
-            int messageCount = configuration.GetValue(MessageCountConfigKey, 500);
-            var simulatorParameters = new SimulatorParameters
-            {
-                MachineTempMin = configuration.GetValue<double>("machineTempMin", 21),
-                MachineTempMax = configuration.GetValue<double>("machineTempMax", 100),
-                MachinePressureMin = configuration.GetValue<double>("machinePressureMin", 1),
-                MachinePressureMax = configuration.GetValue<double>("machinePressureMax", 10),
-                AmbientTemp = configuration.GetValue<double>("ambientTemp", 21),
-                HumidityPercent = configuration.GetValue("ambientHumidity", 25)
-            };
+            messageDelay = TimeSpan.FromMilliseconds(Rnd.Next(1,100)* 100);
+            int messageCount = -1;
 
             Console.WriteLine(
-                $"Initializing simulated temperature sensor to send {(SendUnlimitedMessages(messageCount) ? "unlimited" : messageCount.ToString())} "
+                $"Initializing to send {(SendUnlimitedMessages(messageCount) ? "unlimited" : messageCount.ToString())} "
                 + $"messages, at an interval of {messageDelay.TotalSeconds} seconds.\n"
                 + $"To change this, set the environment variable {MessageCountConfigKey} to the number of messages that should be sent (set it to -1 to send unlimited messages).");
 
-            TransportType transportType = configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only);
+            TransportType transportType = configuration.GetValue("ClientTransportType", TransportType.Amqp_WebSocket_Only);
 
             ModuleClient moduleClient = await CreateModuleClientAsync(
                 transportType,
@@ -86,11 +77,12 @@ namespace SimulatedTemperatureSensor
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
 
             Twin currentTwinProperties = await moduleClient.GetTwinAsync();
+            /*
             if (currentTwinProperties.Properties.Desired.Contains(SendIntervalConfigKey))
             {
                 messageDelay = TimeSpan.FromSeconds((int)currentTwinProperties.Properties.Desired[SendIntervalConfigKey]);
             }
-
+            */
             if (currentTwinProperties.Properties.Desired.Contains(SendDataConfigKey))
             {
                 sendData = (bool)currentTwinProperties.Properties.Desired[SendDataConfigKey];
@@ -103,7 +95,7 @@ namespace SimulatedTemperatureSensor
             ModuleClient userContext = moduleClient;
             await moduleClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertiesUpdated, userContext);
             await moduleClient.SetInputMessageHandlerAsync("control", ControlMessageHandle, userContext);
-            await SendEvents(moduleClient, messageCount, simulatorParameters, cts);
+            await SendEvents(moduleClient, messageCount, cts);
             await cts.Token.WhenCanceled();
 
             completed.Set();
@@ -177,55 +169,23 @@ namespace SimulatedTemperatureSensor
         static async Task SendEvents(
             ModuleClient moduleClient,
             int messageCount,
-            SimulatorParameters sim,
             CancellationTokenSource cts)
         {
             int count = 1;
-            double currentTemp = sim.MachineTempMin;
-            double normal = (sim.MachinePressureMax - sim.MachinePressureMin) / (sim.MachineTempMax - sim.MachineTempMin);
 
             while (!cts.Token.IsCancellationRequested && (SendUnlimitedMessages(messageCount) || messageCount >= count))
             {
-                if (Reset)
-                {
-                    currentTemp = sim.MachineTempMin;
-                    Reset.Set(false);
-                }
-
-                if (currentTemp > sim.MachineTempMax)
-                {
-                    currentTemp += Rnd.NextDouble() - 0.5; // add value between [-0.5..0.5]
-                }
-                else
-                {
-                    currentTemp += -0.25 + (Rnd.NextDouble() * 1.5); // add value between [-0.25..1.25] - average +0.5
-                }
 
                 if (sendData)
                 {
-                    var tempData = new MessageBody
-                    {
-                        Machine = new Machine
-                        {
-                            Temperature = currentTemp,
-                            Pressure = sim.MachinePressureMin + ((currentTemp - sim.MachineTempMin) * normal),
-                        },
-                        Ambient = new Ambient
-                        {
-                            Temperature = sim.AmbientTemp + Rnd.NextDouble() - 0.5,
-                            Humidity = Rnd.Next(24, 27)
-                        },
-                        TimeCreated = DateTime.UtcNow
-                    };
-
-                    string dataBuffer = JsonConvert.SerializeObject(tempData);
-                    var eventMessage = new Message(Encoding.UTF8.GetBytes(dataBuffer));
+                    var eventMessage = new Message(new byte[Rnd.Next(9,11) * 10000]);
                     eventMessage.Properties.Add("sequenceNumber", count.ToString());
                     eventMessage.Properties.Add("batchId", BatchId.ToString());
-                    Console.WriteLine($"\t{DateTime.Now.ToLocalTime()}> Sending message: {count}, Body: [{dataBuffer}]");
+                    Console.WriteLine($"\t{DateTime.Now.ToLocalTime()}> Sending message: {count}");
 
                     await moduleClient.SendEventAsync("temperatureOutput", eventMessage);
                     count++;
+                    eventMessage.Dispose();
                 }
 
                 await Task.Delay(messageDelay, cts.Token);
@@ -306,19 +266,5 @@ namespace SimulatedTemperatureSensor
             public ControlCommandEnum Command { get; set; }
         }
 
-        class SimulatorParameters
-        {
-            public double MachineTempMin { get; set; }
-
-            public double MachineTempMax { get; set; }
-
-            public double MachinePressureMin { get; set; }
-
-            public double MachinePressureMax { get; set; }
-
-            public double AmbientTemp { get; set; }
-
-            public int HumidityPercent { get; set; }
-        }
     }
 }
