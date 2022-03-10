@@ -35,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly bool closeOnIdleTimeout;
         readonly TimeSpan idleTimeout;
         readonly ISdkModuleClientProvider sdkModuleClientProvider;
-        readonly Option<IRuntimeInfoProvider> runtimeInfoProvider;
+        readonly Option<Task<IRuntimeInfoProvider>> runtimeInfoProviderTask;
         readonly bool useServerHeartbeat;
 
         public ModuleClientProvider(
@@ -47,27 +47,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout,
             bool useServerHeartbeat)
-            : this(Option.Maybe(connectionString), sdkModuleClientProvider, Option.None<IRuntimeInfoProvider>(), upstreamProtocol, proxy, baseProductInfo, closeOnIdleTimeout, idleTimeout, useServerHeartbeat)
+            : this(Option.Maybe(connectionString), sdkModuleClientProvider, Option.None<Task<IRuntimeInfoProvider>>(), upstreamProtocol, proxy, baseProductInfo, closeOnIdleTimeout, idleTimeout, useServerHeartbeat)
         {
         }
 
         public ModuleClientProvider(
             ISdkModuleClientProvider sdkModuleClientProvider,
-            IRuntimeInfoProvider runtimeInfoProvider,
+            Task<IRuntimeInfoProvider> runtimeInfoProviderTask,
             Option<UpstreamProtocol> upstreamProtocol,
             Option<IWebProxy> proxy,
             string baseProductInfo,
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout,
             bool useServerHeartbeat)
-            : this(Option.None<string>(), sdkModuleClientProvider, Option.Maybe(runtimeInfoProvider), upstreamProtocol, proxy, baseProductInfo, closeOnIdleTimeout, idleTimeout, useServerHeartbeat)
+            : this(Option.None<string>(), sdkModuleClientProvider, Option.Maybe(runtimeInfoProviderTask), upstreamProtocol, proxy, baseProductInfo, closeOnIdleTimeout, idleTimeout, useServerHeartbeat)
         {
         }
 
         ModuleClientProvider(
             Option<string> connectionString,
             ISdkModuleClientProvider sdkModuleClientProvider,
-            Option<IRuntimeInfoProvider> runtimeInfoProvider,
+            Option<Task<IRuntimeInfoProvider>> runtimeInfoProviderTask,
             Option<UpstreamProtocol> upstreamProtocol,
             Option<IWebProxy> proxy,
             string baseProductInfo,
@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         {
             this.connectionString = connectionString;
             this.sdkModuleClientProvider = sdkModuleClientProvider;
-            this.runtimeInfoProvider = runtimeInfoProvider;
+            this.runtimeInfoProviderTask = runtimeInfoProviderTask;
             this.upstreamProtocol = upstreamProtocol;
             this.baseProductInfo = Preconditions.CheckNotNull(baseProductInfo, nameof(baseProductInfo));
             this.proxy = proxy;
@@ -213,9 +213,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 .Map(cs => Task.FromResult(this.sdkModuleClientProvider.GetSdkModuleClient(cs, settings)))
                 .GetOrElse(this.sdkModuleClientProvider.GetSdkModuleClient(settings));
 
-            string productInfo = await this.runtimeInfoProvider
-                .Map(async provider =>
+            string productInfo = await this.runtimeInfoProviderTask
+                .Map(async providerTask =>
                 {
+                    IRuntimeInfoProvider provider = await providerTask;
                     SystemInfo systemInfo = await provider.GetSystemInfo(CancellationToken.None);
                     return $"{this.baseProductInfo} ({systemInfo.ToQueryString()})";
                 })

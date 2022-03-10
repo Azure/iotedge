@@ -85,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             // IModuleClientProvider
             builder.Register(c => new ModuleClientProvider(
                     c.Resolve<ISdkModuleClientProvider>(),
-                    c.Resolve<IRuntimeInfoProvider>(),
+                    c.Resolve<Task<IRuntimeInfoProvider>>(),
                     this.upstreamProtocol,
                     this.proxy,
                     this.productInfo,
