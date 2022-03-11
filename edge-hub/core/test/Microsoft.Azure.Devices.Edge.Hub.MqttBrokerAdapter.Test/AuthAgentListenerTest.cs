@@ -59,6 +59,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 dynamic response = await PostAsync(content, this.url);
 
                 Assert.Equal(200, (int)response.result);
+
+                await sut.CloseAsync(CancellationToken.None);
             }
         }
 
@@ -71,6 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             {
                 await sut.StartAsync();
                 await Assert.ThrowsAsync<InvalidOperationException>(async () => await sut.StartAsync());
+                await sut.CloseAsync(CancellationToken.None);
             }
         }
 
@@ -90,6 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 dynamic response = await PostAsync(content, this.url);
 
                 Assert.Equal(403, (int)response.result);
+                await sut.CloseAsync(CancellationToken.None);
             }
         }
 
@@ -112,6 +116,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 dynamic response = await PostAsync(content, this.url);
 
                 Assert.Equal(403, (int)response.result);
+
+                await sut.CloseAsync(CancellationToken.None);
             }
         }
 
@@ -132,6 +138,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 dynamic response = await PostAsync(content, this.url);
 
                 Assert.Equal(403, (int)response.result);
+
+                await sut.CloseAsync(CancellationToken.None);
             }
         }
 
@@ -152,6 +160,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 dynamic response = await PostAsync(content, this.url);
 
                 Assert.Equal(403, (int)response.result);
+
+                await sut.CloseAsync(CancellationToken.None);
             }
         }
 
@@ -173,6 +183,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 dynamic response = await PostAsync(content, this.url);
 
                 Assert.Equal(403, (int)response.result);
+
+                await sut.CloseAsync(CancellationToken.None);
             }
         }
 
@@ -199,6 +211,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
                 response = await PostAsync(content, this.url);
                 Assert.Equal(200, (int)response.result);
+
+                await sut.CloseAsync(CancellationToken.None);
             }
         }
 
@@ -224,6 +238,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
                 response = await PostAsync(content, this.url);
                 Assert.Equal(200, (int)response.result);
+
+                await sut.CloseAsync(CancellationToken.None);
             }
         }
 
@@ -254,6 +270,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
                 response = await PostAsync(content, this.url);
                 Assert.Equal(200, (int)response.result);
+
+                await sut.CloseAsync(CancellationToken.None);
             }
         }
 
@@ -275,6 +293,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 var response = await PostAsync(content, this.url);
                 Assert.Equal(200, (int)response.result);
                 Assert.Equal("testhub/device", (string)response.identity);
+
+                await sut.CloseAsync(CancellationToken.None);
             }
         }
 
@@ -296,6 +316,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 var response = await PostAsync(content, this.url);
                 Assert.Equal(200, (int)response.result);
                 Assert.Equal("testhub/device/module", (string)response.identity);
+
+                await sut.CloseAsync(CancellationToken.None);
             }
         }
 
@@ -310,6 +332,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 var result = await SendDirectRequest(RequestBody);
 
                 Assert.StartsWith(@"{""result"":200,", result);
+
+                await sut.CloseAsync(CancellationToken.None);
             }
         }
 
@@ -324,6 +348,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 var result = await SendDirectRequest(RequestBody, withContentLength: false);
 
                 Assert.StartsWith(@"{""result"":200,", result);
+
+                await sut.CloseAsync(CancellationToken.None);
             }
         }
 
@@ -338,6 +364,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 var result = await SendDirectRequest(NonJSONRequestBody);
 
                 Assert.StartsWith(@"{""result"":403,", result);
+
+                await sut.CloseAsync(CancellationToken.None);
             }
         }
 
@@ -379,6 +407,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 var modelId = (await metadataStore.GetMetadata("device")).ModelId;
                 Assert.True(modelId.HasValue);
                 Assert.Equal(modelIdString, modelId.GetOrElse("impossibleValue"));
+
+                await sut.CloseAsync(CancellationToken.None);
             }
         }
 

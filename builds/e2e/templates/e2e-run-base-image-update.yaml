@@ -113,7 +113,7 @@ steps:
     buildPlatform: $(arch)
   # This task takes 15 min when behind a proxy, so disable it
   # see https://github.com/microsoft/azure-pipelines-tasks/issues/11831
-  condition: and(succeededOrFailed(), not(variables['Agent.ProxyUrl']))
+  condition: not(variables['Agent.ProxyUrl'])
 
 - pwsh: |
     $logDir = '$(Build.ArtifactStagingDirectory)/logs${{ parameters.test_type }}'
@@ -129,11 +129,11 @@ steps:
     $artifactSuffix = '$(Build.BuildNumber)-$(System.PhaseName)' -replace '_','-'
     Write-Output "##vso[task.setvariable variable=artifactSuffix]$artifactSuffix"
   displayName: Collect Logs
-  condition: succeededOrFailed()
+  condition: always()
 
 - task: PublishBuildArtifacts@1
   displayName: Publish logs
   inputs:
     PathtoPublish: $(Build.ArtifactStagingDirectory)/logs${{ parameters.test_type }}
     ArtifactName: logs-end-to-end-$(artifactSuffix)
-  condition: succeededOrFailed()
+  condition: always()

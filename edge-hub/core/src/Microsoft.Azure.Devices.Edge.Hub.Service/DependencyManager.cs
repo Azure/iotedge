@@ -33,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         readonly string edgeDeviceId;
         readonly string edgeModuleId;
         readonly string edgeDeviceHostName;
+        readonly Option<string> edgeModuleGenerationId;
         readonly Option<string> connectionString;
         readonly VersionInfo versionInfo;
         readonly SslProtocols sslProtocols;
@@ -99,6 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 this.edgeDeviceId = this.configuration.GetValue<string>(Constants.ConfigKey.DeviceId);
                 this.edgeModuleId = this.configuration.GetValue<string>(Constants.ConfigKey.ModuleId);
                 this.edgeDeviceHostName = this.configuration.GetValue<string>(Constants.ConfigKey.EdgeDeviceHostName);
+                this.edgeModuleGenerationId = Option.Maybe(this.configuration.GetValue<string>(Constants.ConfigKey.ModuleGenerationId));
                 this.connectionString = Option.None<string>();
             }
 
@@ -339,6 +341,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             // Note: Keep in sync with iotedge-check's edge-hub-storage-mounted-from-host check (edgelet/iotedge/src/check/checks/storage_mounted_from_host.rs)
             string storagePath = GetOrCreateDirectoryPath(this.configuration.GetValue<string>("StorageFolder"), Constants.EdgeHubStorageFolder);
+            bool enableCleanupStateOnIdentityReset = this.configuration.GetValue<bool>("CleanupStateOnIdentityReset", true);
+            if (enableCleanupStateOnIdentityReset)
+            {
+                PersistentStorageValidation.ValidateStorageIdentity(storagePath, this.edgeDeviceId, this.iotHubHostname, this.edgeModuleId, this.edgeModuleGenerationId, Logger.Factory.CreateLogger("EdgeHub"));
+            }
+
             bool storeAndForwardEnabled = this.configuration.GetValue<bool>("storeAndForwardEnabled");
             Option<ulong> storageMaxTotalWalSize = this.GetConfigIfExists<ulong>(Constants.ConfigKey.StorageMaxTotalWalSize, this.configuration);
             Option<ulong> storageMaxManifestFileSize = this.GetConfigIfExists<ulong>(Constants.ConfigKey.StorageMaxManifestFileSize, this.configuration);

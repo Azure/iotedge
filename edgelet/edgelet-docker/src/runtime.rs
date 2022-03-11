@@ -1052,7 +1052,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                     wait_before_kill,
                 )
                 .or_else(|err| {
-                    match Fail::find_root_cause(&err).downcast_ref::<ErrorKind>() {
+                    match <dyn Fail>::find_root_cause(&err).downcast_ref::<ErrorKind>() {
                         Some(ErrorKind::NotFound(_)) | Some(ErrorKind::NotModified) => Ok(()),
                         _ => Err(err),
                     }

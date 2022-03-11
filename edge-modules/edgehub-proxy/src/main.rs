@@ -201,7 +201,7 @@ fn run() -> Result<(), Error> {
 }
 
 fn client(url: &Url) -> Result<APIClient, Error> {
-    let hyper_client = Client::builder().build(UrlConnector::new(&url)?);
+    let hyper_client = Client::builder().build(UrlConnector::new(url)?);
     let base_path = get_base_path(url);
     let mut configuration = Configuration::new(hyper_client);
     configuration.base_path = base_path.to_string();
