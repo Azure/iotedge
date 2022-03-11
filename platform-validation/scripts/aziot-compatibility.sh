@@ -573,6 +573,7 @@ check_package_manager() {
     }
     done
     if [ "$not_found" -eq 1 ]; then
+        wrap_warn "check_package_manager"
         wrap_warning "IoT Edge supports the following package types [*deb, *rpm] and following package managers [apt-get].We have identified that this device does not have support for the supported package type. Please head to aka.ms/iotedge for instructions on how to build the iotedge binaries from source"
         check_ca_cert
     fi
