@@ -555,13 +555,16 @@ check_shared_library_dependency_display_util() {
 
 check_package_manager() {
     not_found=0
-    package_managers="apt-get dpkg yum rpm"
+    package_managers="apt-get dnf yum dpkg rpm"
     for package in $package_managers; do
     {
         res="$(need_cmd $package)"  
         if [ $? -eq 0 ] ; then
             not_found=0
             wrap_debug "$package package manager is present."
+            if [ $package = "dpkg" || $package = "rpm" ]; then
+                check_ca_cert
+            fi
             break;
         else
             not_found=1
@@ -571,12 +574,15 @@ check_package_manager() {
     done
     if [ "$not_found" -eq 1 ]; then
         wrap_warning "IoT Edge supports the following package types [*deb, *rpm] and following package managers [apt-get].We have identified that this device does not have support for the supported package type. Please head to aka.ms/iotedge for instructions on how to build the iotedge binaries from source"
-        if [ ! -d "/etc/ca-certificates" ]; then
-            wrap_warning "Install CA certificates package" 
-        fi
+        check_ca_cert
     fi
 }
 
+check_ca_cert() {
+    if [ ! -d "/etc/ca-certificate1s" ]; then
+        wrap_warn "Install ca-certificates package"
+    fi
+}
 aziotedge_check() {
 
     # Todo : As we add new versions, these checks will need to be changed. Keep a common check for now
