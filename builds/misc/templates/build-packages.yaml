@@ -208,6 +208,12 @@ stages:
                 *.rpm
               TargetFolder: '$(build.artifactstagingdirectory)'
             condition: succeededOrFailed()
+          - task: DeleteFiles@1
+            displayName: 'Remove IIS files'
+            inputs:
+              SourceFolder: '$(build.artifactstagingdirectory)'
+              contents: |
+                aziot-identity-service*
           - task: PublishBuildArtifacts@1
             displayName: Publish Artifacts
             inputs:
