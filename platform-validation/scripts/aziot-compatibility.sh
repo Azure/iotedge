@@ -555,20 +555,20 @@ check_shared_library_dependency_display_util() {
 
 check_package_manager() {
     not_found=0
-    package_managers="apt-get dnf yum dpkg rpm"
+    package_managers="apt-get dnf yum dpkg dpkg"
     for package in $package_managers; do
     {
         res="$(need_cmd $package)"  
         if [ $? -eq 0 ] ; then
             not_found=0
-            wrap_debug "$package package manager is present."
-            if [ $package = "dpkg" || $package = "rpm" ]; then
+            wrap_pass "Current target platform supports $package package manager"
+            if [ $package = "rpm" ] || [ $package = "dpkg" ]; then
                 check_ca_cert
             fi
             break;
         else
             not_found=1
-            wrap_debug "$package package manager is not present."
+            wrap_debug "Current target platform does not support $package package manager"
         fi
     }
     done
@@ -579,8 +579,10 @@ check_package_manager() {
 }
 
 check_ca_cert() {
-    if [ ! -d "/etc/ca-certificate1s" ]; then
+    if [ ! -d "/etc/ca-certificates" ]; then
         wrap_warn "Install ca-certificates package"
+    else
+        wrap_pass "ca-certificates package is installed"
     fi
 }
 aziotedge_check() {
