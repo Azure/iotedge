@@ -561,7 +561,8 @@ check_package_manager() {
         res="$(need_cmd $package)"  
         if [ $? -eq 0 ] ; then
             not_found=0
-            wrap_pass "Current target platform supports $package package manager"
+            wrap_debug "Current target platform supports $package package manager"
+            wrap_pass "check_package_manager"
             if [ $package = "rpm" ] || [ $package = "dpkg" ]; then
                 check_ca_cert
             fi
