@@ -555,7 +555,7 @@ check_shared_library_dependency_display_util() {
 
 check_package_manager() {
     not_found=0
-    package_managers="apt-get dnf yum dpkg dpkg"
+    package_managers="apt-get dnf yum dpkg rpm"
     for package in $package_managers; do
     {
         res="$(need_cmd $package)"  
