@@ -39,6 +39,7 @@ jobs:
       - bash: |
           sudo apt update
           sudo apt install shellcheck
+          sudo df -h
           shellcheck --severity=error ./platform-validation/scripts/aziot-compatibility.sh
         displayName: Perform Shell Check
       - bash: platform-validation/scripts/aziot-compatibility.sh -a aziotedge
