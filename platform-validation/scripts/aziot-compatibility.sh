@@ -582,7 +582,7 @@ check_ca_cert() {
     if [ ! -d "/etc/ca-certificates" ]; then
         wrap_warn "Install ca-certificates package"
     else
-        wrap_pass "ca-certificates package is installed"
+        wrap_pass "check_ca_cert"
     fi
 }
 aziotedge_check() {
