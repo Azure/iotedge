@@ -23,8 +23,10 @@ jobs:
       - bash: 'echo "##vso[task.setvariable variable=PATH;]${CARGO_HOME:-"$HOME/.cargo"}/bin:$PATH"'
         displayName: Modify path
 
-      - bash: 'cargo install --git https://github.com/arsing/cross.git --branch set-path'
-        displayName: 'Install cross (fork with docker fix)'
+      # TODO: Update this to cross 0.2 when a solution for using openssl
+      # in cross 0.2's builder image is found.
+      - bash: 'cargo install cross --version ^0.1'
+        displayName: 'Install cross'
       
       - template: build-edgelet-linux.yaml
         parameters:
