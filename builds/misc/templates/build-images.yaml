@@ -476,9 +476,6 @@ stages:
               - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
         dependsOn:
             - linux_dotnet_projects
-            - linux_rust_amd64
-            - linux_rust_arm32
-            - linux_rust_arm64
             - windows
         variables:
             tags: "['latest']"
