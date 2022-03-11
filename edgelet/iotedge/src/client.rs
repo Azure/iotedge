@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use failure::ResultExt;
-use hyper::{Body, Client, Uri};
+use hyper::Uri;
 use url::Url;
 
 use edgelet_core::{
@@ -10,7 +10,7 @@ use edgelet_core::{
 };
 use edgelet_http::{ListModulesResponse, ModuleDetails};
 use edgelet_settings::module::Settings as ModuleSpec;
-use http_common::{request_with_headers, request_with_headers_no_content, Connector};
+use http_common::{Connector, ErrorBody, HttpRequest};
 
 use crate::{Error, ErrorKind};
 type Result<T> = std::result::Result<T, Error>;
@@ -26,15 +26,14 @@ pub struct MgmtModule {
 }
 
 pub struct MgmtClient {
-    client: Client<Connector, Body>,
+    connector: Connector,
     host: String,
 }
 
 impl MgmtClient {
     pub fn new(url: &Url) -> Result<Self> {
-        let client: Client<_, Body> = Connector::new(url)
-            .map_err(|e| Error::from(ErrorKind::Misc(e.to_string())))?
-            .into_client();
+        let connector =
+            Connector::new(url).map_err(|e| Error::from(ErrorKind::Misc(e.to_string())))?;
 
         let base_path = url
             .to_base_path()
@@ -44,13 +43,14 @@ impl MgmtClient {
             .to_string();
         let host = hex::encode(base_path.as_bytes());
 
-        Ok(Self { client, host })
+        Ok(Self { connector, host })
     }
 
-    fn get_uri(&self, path: &str) -> Result<Uri> {
+    fn get_uri(&self, path: &str) -> Result<String> {
         let host_str = format!("unix://{}:0{}", self.host, path);
         let uri: std::result::Result<Uri, _> = host_str.parse();
         let uri = uri.context(ErrorKind::ModuleRuntime)?;
+        let uri = uri.to_string();
 
         Ok(uri)
     }
@@ -66,15 +66,13 @@ impl ModuleRuntime for MgmtClient {
     async fn restart(&self, id: &str) -> Result<()> {
         let path = format!("/modules/{}/restart?api-version={}", id, API_VERSION);
         let uri = self.get_uri(&path)?;
-        request_with_headers_no_content(
-            &self.client,
-            hyper::http::Method::POST,
-            uri,
-            None,
-            None::<&()>,
-        )
-        .await
-        .context(ErrorKind::ModuleRuntime)?;
+
+        let request: HttpRequest<(), _> = HttpRequest::post(self.connector.clone(), &uri, None);
+
+        request
+            .no_content_response()
+            .await
+            .context(ErrorKind::ModuleRuntime)?;
 
         Ok(())
     }
@@ -82,15 +80,16 @@ impl ModuleRuntime for MgmtClient {
     async fn list(&self) -> Result<Vec<Self::Module>> {
         let path = format!("/modules?api-version={}", API_VERSION);
         let uri = self.get_uri(&path)?;
-        let response: ListModulesResponse = request_with_headers(
-            &self.client,
-            hyper::http::Method::GET,
-            uri,
-            None,
-            None::<&()>,
-        )
-        .await
-        .context(ErrorKind::ModuleRuntime)?;
+
+        let request: HttpRequest<(), _> = HttpRequest::get(self.connector.clone(), &uri);
+
+        let response = request
+            .json_response()
+            .await
+            .context(ErrorKind::ModuleRuntime)?;
+        let response = response
+            .parse_expect_ok::<ListModulesResponse, ErrorBody<'_>>()
+            .context(ErrorKind::ModuleRuntime)?;
 
         let modules = response.modules.into_iter().map(MgmtModule::new).collect();
         Ok(modules)
@@ -129,8 +128,8 @@ impl ModuleRuntime for MgmtClient {
             .uri(uri)
             .body(hyper::Body::empty())
             .expect("could not build hyper::Request");
-        let resp = self
-            .client
+        let client = self.connector.clone().into_client();
+        let resp = client
             .request(req)
             .await
             .context(ErrorKind::ModuleRuntime)?;

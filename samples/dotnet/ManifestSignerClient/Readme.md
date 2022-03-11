@@ -14,7 +14,7 @@ Manifest Signer client gives a signed deployment JSON file as an end output.
 4. Configure the IoT edge Daemon to enable Manifest Signing
 
 ### Step 1: Certificate Generator
-OpenSSL is needed to generate the certificate. Please follow the instructions [here](https://github.com/Azure/iotedge/blob/master/edgelet/doc/devguide.md#windows-1).
+OpenSSL is needed to generate the certificate. Please follow the instructions [here](https://github.com/Azure/iotedge/blob/main/edgelet/doc/devguide.md#windows-1).
 Manifest signer client needs a root Certificate Authority and a signer cert. To achieve that Certificate Generator scripts will be used. There are two folders in the CertificateGenerator folder. One for Windows and other for Linux.
 
 Under Windows and Linux, there are two scripts with the naming for RSA and ECDsa.
@@ -59,6 +59,6 @@ Once the `launchSettings.json` file is configured, the solution can be built and
 ### Step 4. Configure the IoT edge daemon to enable Manifest Signing
 The root CA of the device as mentioned in `MANIFEST_TRUST_DEVICE_ROOT_CA_PATH` must be configured in the IoT edge Daemon to enable Manifest Signing.
 
-In the `certd.toml`, under `preloaded_certs`, the mapping of the Manifest Trust Bundke and file path of the root CA must be configured as shown in [sample](https://github.com/Azure/iotedge/blob/master/edgelet/iotedge/test-files/config/manifest-trust-bundle/certd.toml#L11)
+In the `certd.toml`, under `preloaded_certs`, the mapping of the Manifest Trust Bundke and file path of the root CA must be configured as shown in [sample](https://github.com/Azure/iotedge/blob/main/edgelet/iotedge/test-files/config/manifest-trust-bundle/certd.toml#L11)
 
 Once configured in IoT edge daemon, the device is now capable of verifying the signed manifest contents. Once a signed deployment manifest is deployed and the signature verification is successful, then the modules are deployed. If the signature fails, then the modules are not deployed. This way we only deploy the verified twin data and thereby offer data integrity of deployment manifest JSON.

@@ -8,7 +8,7 @@ pub(crate) mod sign;
 use aziot_key_client_async::Client as KeyClient;
 
 #[cfg(test)]
-use edgelet_test_utils::clients::KeyClient;
+use test_common::client::KeyClient;
 
 fn base64_decode(data: String) -> Result<Vec<u8>, http_common::server::Error> {
     base64::decode(data).map_err(|err| {

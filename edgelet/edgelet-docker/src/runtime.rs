@@ -9,7 +9,7 @@ use std::{mem, process, str};
 
 use edgelet_core::module::ModuleAction;
 use failure::ResultExt;
-use hyper::{Body, Client, Uri};
+use hyper::Uri;
 use log::{debug, error, info, warn, Level};
 use sysinfo::{DiskExt, ProcessExt, ProcessorExt, System, SystemExt};
 use tokio::sync::Mutex;
@@ -298,9 +298,8 @@ impl MakeModuleRuntime for DockerModuleRuntime {
 
 pub fn init_client(docker_url: &Url) -> Result<DockerApiClient> {
     // build the hyper client
-    let client: Client<_, Body> = Connector::new(docker_url)
-        .map_err(|e| Error::from(ErrorKind::Initialization(e.to_string())))?
-        .into_client();
+    let connector = Connector::new(docker_url)
+        .map_err(|e| Error::from(ErrorKind::Initialization(e.to_string())))?;
 
     // extract base path - the bit that comes after the scheme
     let base_path = docker_url
@@ -324,7 +323,7 @@ pub fn init_client(docker_url: &Url) -> Result<DockerApiClient> {
         ..Default::default()
     };
 
-    Ok(DockerApiClient::new(client).with_configuration(configuration))
+    Ok(DockerApiClient::new(connector).with_configuration(configuration))
 }
 
 async fn create_network_if_missing(settings: &Settings, client: &DockerApiClient) -> Result<()> {

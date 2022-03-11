@@ -6,7 +6,7 @@ use std::convert::TryFrom;
 use aziot_identity_client_async::Client as IdentityClient;
 
 #[cfg(test)]
-use edgelet_test_utils::clients::IdentityClient;
+use test_common::client::IdentityClient;
 
 pub(crate) struct Route<M>
 where
@@ -167,7 +167,7 @@ mod tests {
         let mut expected_identities = vec![];
 
         // The Identity Client needs to be persisted across API calls.
-        let client = edgelet_test_utils::clients::IdentityClient::default();
+        let client = super::IdentityClient::default();
         let client = std::sync::Arc::new(futures_util::lock::Mutex::new(client));
 
         // Create identities

@@ -1,6 +1,6 @@
 # IoT Edge
 
-[![Build Status](https://msazure.visualstudio.com/One/_apis/build/status/Custom/Azure/IoT/Edge/Core/Azure-IoT-Edge-Core%20CI?branchName=master)](https://msazure.visualstudio.com/One/_build/latest?definitionId=45137&branchName=master)
+[![Build Status](https://dev.azure.com/msazure/One/_apis/build/status/Custom/Azure/IoT/Edge/Core/Azure-IoT-Edge-Core%20CI?branchName=main)](https://dev.azure.com/msazure/One/_build/latest?definitionId=45137&branchName=main)
 
 Welcome to the home of IoT Edge.
 

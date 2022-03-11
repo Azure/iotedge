@@ -150,7 +150,7 @@ SharedAccessSignature test-srv.azure-devices.net%2Fdevices%2Ftest_device&sig=Mzv
 The SAS token for a device or module can be generated several different ways:
 - Using Visual Studio Code with [Azure IoT Hub extension](https://marketplace.visualstudio.com/items?itemName=vsciot-vscode.azure-iot-toolkit), using [these steps](https://github.com/Microsoft/vscode-azure-iot-toolkit/wiki/Generate-SAS-Token-for-IoT-Hub)
 - Using [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) with [IoT Extension](https://github.com/Azure/azure-iot-cli-extension) a [generate-sas-token](https://docs.microsoft.com/en-us/cli/azure/iot/hub?view=azure-cli-latest#az_iot_hub_generate_sas_token) command is available
-- The token generation can be implemented by [program code](https://github.com/microsoft/azure-docs/blob/master/articles/iot-hub/iot-hub-dev-guide-sas.md)
+- The token generation can be implemented by [program code](https://github.com/microsoft/azure-docs/blob/main/articles/iot-hub/iot-hub-dev-guide-sas.md)
 
 If there is an MQTT client library where an MQTT client object has a Connect() method with the signature:
 ```
@@ -187,9 +187,13 @@ If there is an Edge device called TestEdgeDevice and a module named TestModule w
 ```
 devices/TestEdgeDevice/modules/TestModule/#
 ```
-Depending on the routing settings, the routing may define an input name, which will be attached to the topic when a message is getting forwarded. Also, Edge Hub (and the original sender) adds parameters to the message which is encoded in the topic structure. The following example shows a message routed with input name "TestInput". This message was sent by a module called "SenderModule", which name is also encoded in the topic:
+Depending on the routing settings, the routing may define an [input name](https://docs.microsoft.com/en-us/azure/iot-edge/module-composition?view=iotedge-2020-11#sink), which will be attached to the topic when a message is getting forwarded. Also, Edge Hub (and the original sender) adds parameters to the message which is encoded in the topic structure. The following example shows a message routed with input name "TestInput". This message was sent by a module called "SenderModule", which name is also encoded in the topic:
 ```
 devices/TestEdgeDevice/modules/TestModule/inputs/TestInput/%24.cdid=TestEdgeDevice&%24.cmid=SenderModule
+```
+Modules can also send messages on a specific [output name](https://docs.microsoft.com/en-us/azure/iot-edge/module-composition?view=iotedge-2020-11#source). Output names help when messages from a module need to be routed to different destinations. When a module wants to send a message on a specific output, it sends the message as an regular telemetry message, except that it adds an additional system property to it. This system property is '\$.on'. The '\$' sign needs to be url encoded and it becomes %24 in the topic name. The following example shows a telemetry message sent with the output name 'alert':
+```
+devices/TestEdgeDevice/modules/TestModule/messages/events/%24.on=alert/
 ```
 ### Getting Full Twin
 Pulling the twin from IoT Hub/Edge Hub has a request/response pattern using MQTT. The request is a publication to a certain topic, where the topic name contains a Request Id encoded in it. When IoT Hub/Edge Hub provides the requested twin, it publishes it on a predefined topic, attaching the request id to the topic name.
