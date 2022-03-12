@@ -46,6 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly bool useServerHeartbeat;
         readonly string backupConfigFilePath;
         readonly bool checkImagePullBeforeModuleCreate;
+        readonly bool disableDeviceAnalyticsTelemetry;
 
         public EdgeletModule(
             string iotHubHostname,
@@ -62,7 +63,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             TimeSpan performanceMetricsUpdateFrequency,
             bool useServerHeartbeat,
             string backupConfigFilePath,
-            bool checkImagePullBeforeModuleCreate)
+            bool checkImagePullBeforeModuleCreate,
+            bool disableDeviceAnalyticsTelemetry)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
@@ -79,6 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.useServerHeartbeat = useServerHeartbeat;
             this.backupConfigFilePath = Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath));
             this.checkImagePullBeforeModuleCreate = checkImagePullBeforeModuleCreate;
+            this.disableDeviceAnalyticsTelemetry = disableDeviceAnalyticsTelemetry;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -86,7 +89,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             // IModuleClientProvider
             builder.Register(c => new ModuleClientProvider(
                     c.Resolve<ISdkModuleClientProvider>(),
-                    c.Resolve<Task<IRuntimeInfoProvider>>(),
+                    this.disableDeviceAnalyticsTelemetry ?
+                        Option.None<Task<IRuntimeInfoProvider>>() :
+                        Option.Some(c.Resolve<Task<IRuntimeInfoProvider>>()),
                     this.upstreamProtocol,
                     this.proxy,
                     this.productInfo,
