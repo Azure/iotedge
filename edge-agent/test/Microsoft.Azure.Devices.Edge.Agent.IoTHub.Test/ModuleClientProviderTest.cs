@@ -97,6 +97,43 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             sdkModuleClient.Verify(s => s.OpenAsync(), Times.Once);
         }
 
+        [Theory]
+        [MemberData(nameof(GetTestData))]
+        public async Task CreateFromEnvironment_NoRuntimeInfoProvider(
+            Option<UpstreamProtocol> upstreamProtocol,
+            Option<IWebProxy> webProxy,
+            string productInfo)
+        {
+            // Arrange
+            ITransportSettings receivedTransportSettings = null;
+
+            var sdkModuleClient = new Mock<ISdkModuleClient>();
+
+            var sdkModuleClientProvider = new Mock<ISdkModuleClientProvider>();
+            sdkModuleClientProvider.Setup(s => s.GetSdkModuleClient(It.IsAny<ITransportSettings>()))
+                .Callback<ITransportSettings>(t => receivedTransportSettings = t)
+                .ReturnsAsync(sdkModuleClient.Object);
+
+            bool closeOnIdleTimeout = false;
+            TimeSpan idleTimeout = TimeSpan.FromMinutes(5);
+            ConnectionStatusChangesHandler handler = (status, reason) => { };
+
+            // Act
+            var moduleClientProvider = new ModuleClientProvider(
+                sdkModuleClientProvider.Object,
+                Option.None<Task<IRuntimeInfoProvider>>(),
+                upstreamProtocol,
+                webProxy,
+                productInfo,
+                closeOnIdleTimeout,
+                idleTimeout,
+                false);
+            IModuleClient moduleClient = await moduleClientProvider.Create(handler);
+
+            // Write product info explicitly
+            sdkModuleClient.Verify(s => s.SetProductInfo($"{productInfo}"), Times.Once);
+        }
+
         [Fact]
         public void CreateFromEnvironment_NullProductInfo_ShouldThrow()
         {
