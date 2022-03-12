@@ -53,14 +53,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         public ModuleClientProvider(
             ISdkModuleClientProvider sdkModuleClientProvider,
-            Task<IRuntimeInfoProvider> runtimeInfoProviderTask,
+            Option<Task<IRuntimeInfoProvider>> runtimeInfoProviderTask,
             Option<UpstreamProtocol> upstreamProtocol,
             Option<IWebProxy> proxy,
             string baseProductInfo,
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout,
             bool useServerHeartbeat)
-            : this(Option.None<string>(), sdkModuleClientProvider, Option.Maybe(runtimeInfoProviderTask), upstreamProtocol, proxy, baseProductInfo, closeOnIdleTimeout, idleTimeout, useServerHeartbeat)
+            : this(Option.None<string>(), sdkModuleClientProvider, runtimeInfoProviderTask, upstreamProtocol, proxy, baseProductInfo, closeOnIdleTimeout, idleTimeout, useServerHeartbeat)
         {
         }
 
