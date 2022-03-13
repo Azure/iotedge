@@ -131,7 +131,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             IModuleClient moduleClient = await moduleClientProvider.Create(handler);
 
             // Write product info explicitly
-            sdkModuleClient.Verify(s => s.SetProductInfo($"{productInfo}"), Times.Once);
+            sdkModuleClient.Verify(s => s.SetProductInfo(productInfo), Times.Once);
         }
 
         [Fact]
