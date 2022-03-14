@@ -129,10 +129,9 @@ namespace TestResultCoordinator.Reports
             return this.TotalExpectCount > 0 && this.TotalDuplicateExpectedResultCount == 0 && this.EventHubSpecificReportComponents.Match(
                 eh =>
                 {
-                    // Product issue for custom mqtt telemetry.
-                    if (this.Topology == Topology.Nested && this.MqttBrokerEnabled && this.TestDescription == GenericMqttTelemetryTestDescription)
+                    if (this.Topology == Topology.Nested && this.MqttBrokerEnabled && this.TestDescription.Contains(MessagesTestDescription))
                     {
-                        bool matchWithinThreshold = ((double)this.TotalMatchCount / this.TotalExpectCount) > .9d;
+                        bool matchWithinThreshold = ((double)this.TotalMatchCount / this.TotalExpectCount) > .99d;
                         return matchWithinThreshold && eh.StillReceivingFromEventHub;
                     }
                     else
@@ -149,6 +148,11 @@ namespace TestResultCoordinator.Reports
                         {
                             return ((double)this.TotalMatchCount / this.TotalExpectCount) > .8d;
                         }
+                        // Product issue for custom mqtt telemetry.
+                        else if (this.Topology == Topology.Nested && this.MqttBrokerEnabled && this.TestDescription == GenericMqttTelemetryTestDescription)
+                        {
+                            return ((double)this.TotalMatchCount / this.TotalExpectCount) > .9d;
+                        }
                         else
                         {
                             return this.TotalExpectCount == this.TotalMatchCount;
@@ -160,11 +164,6 @@ namespace TestResultCoordinator.Reports
                         if (this.Topology == Topology.Nested && this.MqttBrokerEnabled && this.TestDescription.Contains(GenericMqttTelemetryTestDescription))
                         {
                             return ((double)this.TotalMatchCount / this.TotalExpectCount) > .8d;
-                        }
-                        // Product issue for messages when broker is enabled.
-                        else if (this.Topology == Topology.Nested && this.MqttBrokerEnabled && this.TestDescription.Contains(MessagesTestDescription))
-                        {
-                            return ((double)this.TotalMatchCount / this.TotalExpectCount) > .99d;
                         }
                         else
                         {
