@@ -601,6 +601,41 @@ check_storage_space() {
 
 }
 
+check_package_manager() {
+    not_found=0
+    package_managers="apt-get dnf yum dpkg rpm"
+    for package in $package_managers; do
+    {
+        res="$(need_cmd $package)"  
+        if [ $? -eq 0 ] ; then
+            not_found=0
+            wrap_debug "Current target platform supports $package package manager"
+            wrap_pass "check_package_manager"
+            if [ $package = "rpm" ] || [ $package = "dpkg" ]; then
+                check_ca_cert
+            fi
+            break;
+        else
+            not_found=1
+            wrap_debug "Current target platform does not support $package package manager"
+        fi
+    }
+    done
+    if [ "$not_found" -eq 1 ]; then
+        wrap_warn "check_package_manager"
+        wrap_warning "IoT Edge supports the following package types [*deb, *rpm] and following package managers [apt-get].We have identified that this device does not have support for the supported package type. Please head to aka.ms/iotedge for instructions on how to build the iotedge binaries from source"
+        check_ca_cert
+    fi
+}
+
+check_ca_cert() {
+    if [ ! -d "/etc/ca-certificates" ]; then
+        wrap_warn "Install ca-certificates package"
+    else
+        wrap_pass "check_ca_cert"
+    fi
+}
+
 #TODO : Update these numbers after Automated Run. The goal is that for every release, we would update these numbers
 armv7l_iotedge_binaries_size=36.68
 armv7l_iotedge_binaries_avg_memory=35.51
@@ -687,6 +722,7 @@ aziotedge_check() {
 
     check_shared_library_dependency
     check_free_memory
+    check_package_manager
 
     eval binary_size='$'"$(echo "$ARCH"_iotedge_binaries_size)"
     eval container_size='$'"$(echo "$ARCH"_iotedge_container_size)"
