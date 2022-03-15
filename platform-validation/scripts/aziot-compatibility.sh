@@ -664,7 +664,7 @@ check_free_memory() {
     eval iotedge_binary_memory='$'"$(echo "$ARCH"_iotedge_binaries_avg_memory)"
     eval iotedge_container_memory='$'"$(echo "$ARCH"_iotedge_container_memory)"
     total_iotedge_memory_size=$(echo $iotedge_binary_memory $iotedge_container_memory $iotedge_memory_buffer | awk '{print $1 + $2 + $3}')
-    current_free_memory=$(free -m | awk '/^Mem/ {print $4}')
+    current_free_memory=$(cat /proc/meminfo | grep "MemAvailable" | awk '{print $2}')
     
     #TODO: correct final link of aka.ms/iotedge with the setup info of memory analysis.
     base_message="IoT Edge requires a minimum memory of $total_iotedge_memory_size MB for running the default setup as described in aka.ms/iotedge. We verified that the the device has $current_free_memory MB of free memory"
