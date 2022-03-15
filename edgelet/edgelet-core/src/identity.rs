@@ -52,6 +52,7 @@ impl IdentitySpec {
         self.generation_id.as_ref().map(AsRef::as_ref)
     }
 
+    #[must_use]
     pub fn with_generation_id(mut self, generation_id: String) -> Self {
         self.generation_id = Some(generation_id);
         self
@@ -61,6 +62,7 @@ impl IdentitySpec {
         self.managed_by.as_ref().map(AsRef::as_ref)
     }
 
+    #[must_use]
     pub fn with_managed_by(mut self, managed_by: String) -> Self {
         self.managed_by = Some(managed_by);
         self
