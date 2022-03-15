@@ -605,21 +605,21 @@ check_package_manager() {
     not_found=0
     package_managers="apt-get dnf yum dpkg rpm"
     for package in $package_managers; do
-    {
-        res="$(need_cmd $package)"  
-        if [ $? -eq 0 ] ; then
-            not_found=0
-            wrap_debug "Current target platform supports $package package manager"
-            wrap_pass "check_package_manager"
-            if [ $package = "rpm" ] || [ $package = "dpkg" ]; then
-                check_ca_cert
+        {
+            res="$(need_cmd $package)"
+            if [ $? -eq 0 ]; then
+                not_found=0
+                wrap_debug "Current target platform supports $package package manager"
+                wrap_pass "check_package_manager"
+                if [ $package = "rpm" ] || [ $package = "dpkg" ]; then
+                    check_ca_cert
+                fi
+                break
+            else
+                not_found=1
+                wrap_debug "Current target platform does not support $package package manager"
             fi
-            break;
-        else
-            not_found=1
-            wrap_debug "Current target platform does not support $package package manager"
-        fi
-    }
+        }
     done
     if [ "$not_found" -eq 1 ]; then
         wrap_warn "check_package_manager"
@@ -644,7 +644,7 @@ armv7l_iotedge_container_memory=164.53
 x86_64_iotedge_binaries_size=42.39
 x86_64_iotedge_binaries_avg_memory=54.24
 x86_64_iotedge_container_size=254.96
-x86_64_iotedge_container_memory=245.5
+x86_64_iotedge_container_memory=175
 aarch64_iotedge_binaries_size=36.68
 aarch64_iotedge_binaries_avg_memory=26.62
 aarch64_iotedge_container_size=322.6
@@ -665,7 +665,7 @@ check_free_memory() {
     eval iotedge_container_memory='$'"$(echo "$ARCH"_iotedge_container_memory)"
     total_iotedge_memory_size=$(echo $iotedge_binary_memory $iotedge_container_memory $iotedge_memory_buffer | awk '{print $1 + $2 + $3}')
     current_free_memory=$(free -m | awk '/^Mem/ {print $4}')
-    
+
     #TODO: correct final link of aka.ms/iotedge with the setup info of memory analysis.
     base_message="IoT Edge requires a minimum memory of $total_iotedge_memory_size MB for running the default setup as described in aka.ms/iotedge. We verified that the the device has $current_free_memory MB of free memory"
 

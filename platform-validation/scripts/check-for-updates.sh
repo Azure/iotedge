@@ -62,7 +62,14 @@ compare_usage() {
     exceeds=$(echo "$stored_item" "$buffer" "$current_item" | awk '{if ($3 > ($1 + $2)) print 1; else print 0}')
 
     if [[ $exceeds -eq 1 ]]; then
-        echo "$item $type : Value $current_item Exceeds Stored Value in Platform Compatibility Tool, Please Update the tool"
+        echo "$item $type : Value $current_item Exceeds Stored Value in Platform Compatibility Tool by more than $buffer MB, Please Update the tool"
+        exit 1
+    fi
+
+    lower=$(echo "$stored_item" "$buffer" "$current_item" | awk '{if (($1 - $2) > $3) print 1; else print 0}')
+
+    if [[ $lower -eq 1 ]]; then
+        echo "$item $type : Value $current_item is Lower than Stored Value in Platform Compatibility Tool by $buffer, Please Update the tool"
         exit 1
     fi
 }
