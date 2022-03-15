@@ -114,10 +114,7 @@ fn agent_networking(settings: &mut crate::docker::Settings) {
 fn agent_labels(settings: &mut crate::docker::Settings) {
     let create_options = settings.agent().config().create_options().clone();
 
-    let mut labels = create_options
-        .labels()
-        .cloned()
-        .unwrap_or_default();
+    let mut labels = create_options.labels().cloned().unwrap_or_default();
 
     // IoT Edge reserves the label prefix "net.azure-devices.edge" for its own purposes
     // so we'll simply overwrite any matching labels created by the user.
