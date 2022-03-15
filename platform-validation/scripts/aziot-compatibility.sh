@@ -83,7 +83,7 @@ wrap_debug_message() {
 }
 
 wrap_warning_message() {
-    wrap_color >&2 "$*" magenta
+    echo "$(wrap_color "$1" magenta)"
 }
 
 wrap_pass() {
@@ -102,7 +102,8 @@ wrap_warning() {
 #  Derived from https://sh.rustup.rs
 # ------------------------------------------------------------------------------
 need_cmd() {
-    if ! check_cmd "$1"; then
+    ret=$($1 --help >/dev/null 2>&1)
+    if [ $? != 0 ]; then
         exit 1
     fi
 }
@@ -537,7 +538,7 @@ check_architecture() {
 
 check_docker_api_version() {
     # Check dependencies
-    ret=$(docker >/dev/null 2>&1)
+    ret=$(need_cmd docker)
     if [ "$?" -ne 0 ]; then
         wrap_warning "check_docker_api_version"
         wrap_warning_message "Docker Engine does not exist on this device!!, Please follow instructions here on how to install a compatible container engine
@@ -563,7 +564,7 @@ check_shared_library_dependency() {
         if [ "$(id -u)" -ne 0 ]; then
             legacy_find_and_report_libs "$lib"
         else
-            ret=$(ldconfig >/dev/null 2>&1)
+            ret=$(need_cmd ldconfig)
             if [ "$?" -ne 0 ]; then
                 legacy_find_and_report_libs "$lib"
             else
@@ -584,7 +585,7 @@ check_storage_space() {
     buffer=$3
 
     # Check dependencies
-    ret=$(df >/dev/null 2>&1)
+    ret=$(need_cmd df)
     if [ "$?" -ne 0 ]; then
         wrap_warning "check_storage_space"
         wrap_warning_message "Could not find df utility to calculate disk space, Skipping the check"
@@ -621,7 +622,7 @@ check_package_manager() {
     for package in $package_managers; do
         {
             # TODO : Is there a better way to do this?
-            res="$($package --help >/dev/null 2>&1)"
+            res="$(need_cmd $package)"
             if [ $? -eq 0 ]; then
                 not_found=0
                 wrap_debug_message "Current target platform supports $package package manager"
@@ -818,6 +819,7 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 process_args "$@"
 get_architecture
+wrap_debug_message "$(cat /etc/os-release)"
 if [ -z "$APP_NAME" ]; then
     wrap_debug_message "No Application Name Provided, Performing Check on all supported Applications"
     for app in $(list_apps); do
