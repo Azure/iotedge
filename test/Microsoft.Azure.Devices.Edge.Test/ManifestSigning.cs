@@ -70,6 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         [Test]
         [Category("FlakyOnArm")]
+        [Category("FlakyOnRelease")]
         public async Task TestIfSignedDeploymentIsSuccessful()
         {
             // Edge Daemon is configured with a good root CA and manifest is signed.
