@@ -8,7 +8,9 @@
 OSTYPE=""
 ARCH=""
 VERBOSE=0
-
+PASS=0
+FAILURES=0
+WARNINGS=0
 # ------------------------------------------------------------------------------
 #  Text Formatting
 #  Derived from : https://github.com/moby/moby/blob/master/contrib/check-config.sh
@@ -72,7 +74,7 @@ wrap_good() {
     fi
 }
 wrap_bad() {
-    echo "$(wrap_color "$1" bold): $(wrap_color "$2" bold red)"
+    echo "$(wrap_color "$1" bold red)"
 }
 
 wrap_debug_message() {
@@ -87,13 +89,16 @@ wrap_warning_message() {
 }
 
 wrap_pass() {
+    PASS=$((PASS + 1))
     echo "$(wrap_color "$1 - OK" green)"
 }
 wrap_fail() {
+    FAILURES=$((FAILURES + 1))
     echo "$(wrap_color "$1 - Error" bold red)"
 }
 
 wrap_warning() {
+    WARNINGS=$((WARNINGS + 1))
     echo "$(wrap_color "$1 - Warning!!" yellow)"
 }
 
@@ -469,12 +474,12 @@ check_cgroup_heirachy() {
                 if grep -qE '(^| )'"$controller"'($| )' "$cgroupv2ControllerFile"; then
                     wrap_good "$controller" 'available'
                 else
-                    wrap_bad "$controller" 'missing'
+                    wrap_bad "$controller missing"
                     EXITCODE=1
                 fi
             done
         else
-            wrap_bad "$cgroupv2ControllerFile" 'nonexistent??'
+            wrap_bad "$cgroupv2ControllerFile nonexistent??"
             EXITCODE=1
         fi
         # TODO find an efficient way to check if cgroup.freeze exists in subdir
@@ -485,9 +490,9 @@ check_cgroup_heirachy() {
             wrap_good "cgroup hierarchy at $cgroupDir" "properly mounted"
         else
             if [ "$cgroupSubsystemDir" ]; then
-                wrap_bad "cgroup hierarchy at $cgroupSubsystemDir" "single mountpoint!"
+                wrap_bad "cgroup hierarchy at $cgroupSubsystemDir single mountpoint!"
             else
-                wrap_bad 'cgroup hierarchy' 'nonexistent??'
+                wrap_bad "cgroup hierarchy nonexistent??"
             fi
             EXITCODE=1
             wrap_warning_message "See https://github.com/tianon/cgroupfs-mount"
@@ -600,7 +605,7 @@ check_storage_space() {
     fi
 
     if ! echo "$application_size" | grep -Eq '^[0-9]+\.?[0-9]+$'; then
-        wrap_bad "Invalid Application Size provided" "$application_size"
+        wrap_bad "Invalid Application Size provided $application_size"
         wrap_fail "check_storage_space"
         return 2
     fi
@@ -835,8 +840,18 @@ if [ -z "$APP_NAME" ]; then
     done
 else
     if [ -z "$(list_apps | grep "$APP_NAME")" ]; then
-        wrap_bad "Application $APP_NAME does not exist in Supported Applications" "$(list_apps)"
+        wrap_bad "Application $APP_NAME does not exist in Supported Applications $(list_apps)"
         exit 1
     fi
     "$APP_NAME"_check
+fi
+
+base_message="Azure IoT Compatibility Script had $FAILURES Errors $WARNINGS Warnings and $PASS Successful Checks"
+if [ $FAILURES -gt 0 ]; then
+    wrap_bad "$base_message"
+    exit 1
+elif [ $WARNINGS -gt 0 ]; then
+    wrap_warning_message "$base_message"
+else
+    wrap_good "$base_message"
 fi
