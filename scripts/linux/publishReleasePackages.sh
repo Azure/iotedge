@@ -48,6 +48,9 @@ check_os() {
     elif [[ "$PACKAGE_OS" == "centos7" ]]; then
         OS_NAME="centos"
         OS_VERSION="7"
+    elif [[ "$PACKAGE_OS" == "redhat8" ]]; then
+        OS_NAME="redhat"
+        OS_VERSION="8"
     else
         echo "Unsupported OS $PACKAGE_OS"
         exit 1
