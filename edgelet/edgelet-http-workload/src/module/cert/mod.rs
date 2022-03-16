@@ -377,20 +377,20 @@ mod tests {
         let test_certs = vec![
             // Expired certificate.
             (
-                test_common::credential::test_certificate(
+                test_common::credential::custom_test_certificate(
                     "testCertificate",
-                    Some(|cert| {
+                    |cert| {
                         let expired = openssl::asn1::Asn1Time::from_unix(1).unwrap();
                         cert.set_not_after(&expired).unwrap();
-                    }),
+                    },
                 ),
                 true,
             ),
             // Certificate that is near expiry.
             (
-                test_common::credential::test_certificate(
+                test_common::credential::custom_test_certificate(
                     "testCertificate",
-                    Some(|cert| {
+                    |cert| {
                         let now = std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
                             .unwrap();
@@ -403,13 +403,13 @@ mod tests {
 
                         let expiry_time = openssl::asn1::Asn1Time::from_unix(expiry_time).unwrap();
                         cert.set_not_after(&expiry_time).unwrap();
-                    }),
+                    },
                 ),
                 true,
             ),
             // Certificate that is not near expiry.
             (
-                test_common::credential::test_certificate("testCertificate", None),
+                test_common::credential::test_certificate("testCertificate"),
                 false,
             ),
         ];
