@@ -538,8 +538,9 @@ check_architecture() {
 
 check_docker_api_version() {
     # Check dependencies
-    ret=$(need_cmd docker)
-    if [ "$?" -ne 0 ]; then
+
+    #TODO : This is how we check  for a container engine in our packages. Is this the right way?
+    if ! /usr/bin/getent group docker >/dev/null; then
         wrap_warning "check_docker_api_version"
         wrap_warning_message "Docker Engine does not exist on this device!!, Please follow instructions here on how to install a compatible container engine
         https://docs.microsoft.com/en-us/azure/iot-edge/how-to-provision-single-device-linux-symmetric?view=iotedge-2020-11&tabs=azure-portal%2Cubuntu#install-a-container-engine"
@@ -547,6 +548,12 @@ check_docker_api_version() {
     fi
 
     version=$(docker version -f '{{.Client.APIVersion}}')
+    if [ $? != 0 ]; then
+        wrap_warning "check_docker_api_version"
+        wrap_warning_message "Could not get Docker Version"
+    fi
+
+    wrap_debug_message "Docker API Version is $version, Minimum Docker Version Required is $1"
     version_check=$(echo "$version" $1 | awk '{if ($1 < $2) print 1; else print 0}')
     if [ "$version_check" -eq 0 ]; then
         wrap_pass "check_docker_api_version"
