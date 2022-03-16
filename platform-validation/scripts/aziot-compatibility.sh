@@ -570,7 +570,7 @@ check_storage_space() {
     buffer=$3
 
     # Check dependencies
-    ret=$(need_cmd d1)
+    ret=$(need_cmd df)
     if [ "$?" -ne 0 ]; then
         wrap_warn "check_storage_space"
         wrap_warning "Could not find df utility to calculate disk space, Skipping the check"
@@ -649,8 +649,36 @@ aarch64_iotedge_binaries_size=36.68
 aarch64_iotedge_binaries_avg_memory=26.62
 aarch64_iotedge_container_size=322.6
 aarch64_iotedge_container_memory=154.53
-iot_edge_size_buffer=50
-iot_edge_memory_buffer=50
+iotedge_size_buffer=50
+iotedge_memory_buffer=50
+
+check_free_memory() {
+    # Check dependencies
+    cmd_res="$(need_cmd free)"
+    if [ $? -ne 0 ]; then
+        wrap_warn "check_free_memory"
+        wrap_warning "Could not find free utility to calculate current free memory. Skipping the check"
+        return
+    fi
+
+    eval iotedge_binary_memory='$'"$(echo "$ARCH"_iotedge_binaries_avg_memory)"
+    eval iotedge_container_memory='$'"$(echo "$ARCH"_iotedge_container_memory)"
+    total_iotedge_memory_size=$(echo $iotedge_binary_memory $iotedge_container_memory $iotedge_memory_buffer | awk '{print $1 + $2 + $3}')
+    current_free_memory=$(cat /proc/meminfo | grep "MemAvailable" | awk '{print $2/1024}')
+
+    #TODO: correct final link of aka.ms/iotedge with the setup info of memory analysis.
+    base_message="IoT Edge requires a minimum memory of $total_iotedge_memory_size MB for running the default setup as described in aka.ms/iotedge. We verified that the the device has $current_free_memory MB of free memory"
+
+    res=$(echo $current_free_memory $total_iotedge_memory_size | awk '{if ($1 > $2) print 1; else print 0}')
+    if [ $res -eq 1 ]; then
+        wrap_pass "check_free_memory"
+        wrap_warning "$base_message"
+    else
+        # TODO: Need to refine this message
+        wrap_fail "Current available memory is $current_free_memory. Free up atleast $total_iotedge_memory_size MB to run IoT edge"
+        wrap_warning "$base_message"
+    fi
+}
 
 aziotedge_check() {
 
@@ -698,6 +726,7 @@ aziotedge_check() {
     fi
 
     check_shared_library_dependency
+    check_free_memory
     check_package_manager
 
     eval binary_size='$'"$(echo "$ARCH"_iotedge_binaries_size)"
@@ -708,7 +737,7 @@ aziotedge_check() {
         MOUNTPOINT=$(pwd)
     fi
 
-    check_storage_space "$MOUNTPOINT" "$TOTAL_SIZE" "$iot_edge_size_buffer"
+    check_storage_space "$MOUNTPOINT" "$TOTAL_SIZE" "$iotedge_size_buffer"
     ret="$?"
 
     base_message="IoT Edge requires a minimum storage space of $binary_size MB for installing edge daemon and $container_size MB for installing runtime docker containers. We verified that the the device has $available_storage MB of available storage for File System $(df -P -m "$MOUNTPOINT" | awk '{print $6}')"
