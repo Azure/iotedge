@@ -606,14 +606,14 @@ check_storage_space() {
     fi
 
     if ! echo "$application_size" | grep -Eq '^[0-9]+\.?[0-9]+$'; then
-        wrap_bad "Invalid Application Size provided $application_size MB"
+        wrap_bad "Invalid Application Size provided $application_size"
         wrap_fail "check_storage_space"
         return 2
     fi
 
     #Provide a Buffer of $buffer to account for any additional log files and storage.
     application_size=$(echo "$application_size" "$buffer" | awk '{print $1 + $2}')
-    wrap_debug_message "Application Size is $application_size"
+    wrap_debug_message "Application Size is $application_size MB"
 
     # Print storage space in posix, Output is in Kb, conver to MB since our storage calculations are in MB
     available_storage=$(df -P "$storage_path" | awk '{print $4}' | sed "s/[^0-9]//g" | tr -d '\n' | awk '{print $1/1024}')
