@@ -424,16 +424,16 @@ display_missing_library_warning() {
     wrap_warning_message "    SHARED_LIB_PATH=/path/to/shared_lib $0"
     case $1 in
     "libssl.so.1.1" | "libcrypto.so.1.1")
-        wrap_warning_message "If Problem still persists, Please install openssl and libssl-dev for your OS distribution."
+        wrap_warning_message "If problem still persists, please install openssl and libssl-dev for your OS distribution."
         ;;
     "libdl.so.2" | "librt.so.1" | "libpthread.so.0" | "libc.so.6" | "libm.so.6")
-        wrap_warning_message "If Problem still persists, Please install libc6-dev for your OS distribution."
+        wrap_warning_message "If problem still persists, please install libc6-dev for your OS distribution."
         ;;
     "ld-linux-x86-64.so.2" | "ld-linux-aarch64.so.1" | "ld-linux-armhf.so.3")
-        wrap_warning_message "If Problem still persists, Please install libc6 for your OS distribution."
+        wrap_warning_message "If problem still persists, please install libc6 for your OS distribution."
         ;;
     "libgcc_s.so.1")
-        wrap_warning_message "If Problem still persists, Please install gcc for your OS distribution."
+        wrap_warning_message "If problem still persists, please install gcc for your OS distribution."
         ;;
     esac
 }
@@ -591,6 +591,7 @@ check_shared_library_dependency() {
     done
 }
 
+# Takes in a File System path , Size of Application in MB and Buffer Size in MB
 check_storage_space() {
     storage_path=$1
     application_size=$2
@@ -605,7 +606,7 @@ check_storage_space() {
     fi
 
     if ! echo "$application_size" | grep -Eq '^[0-9]+\.?[0-9]+$'; then
-        wrap_bad "Invalid Application Size provided $application_size"
+        wrap_bad "Invalid Application Size provided $application_size MB"
         wrap_fail "check_storage_space"
         return 2
     fi
@@ -614,8 +615,8 @@ check_storage_space() {
     application_size=$(echo "$application_size" "$buffer" | awk '{print $1 + $2}')
     wrap_debug_message "Application Size is $application_size"
 
-    # Print storage space in pos
-    available_storage=$(df -P -m "$storage_path" | awk '{print $4}' | sed "s/[^0-9]//g" | tr -d '\n')
+    # Print storage space in posix, Output is in Kb, conver to MB since our storage calculations are in MB
+    available_storage=$(df -P "$storage_path" | awk '{print $4}' | sed "s/[^0-9]//g" | tr -d '\n' | awk '{print $1/1024}')
     adequate_storage=$(echo "$available_storage" "$application_size" | awk '{if ($1 > $2) print 1; else print 0}')
 
     if [ "$adequate_storage" -eq 1 ]; then
@@ -651,7 +652,7 @@ check_package_manager() {
     done
     if [ "$not_found" -eq 1 ]; then
         wrap_warning "check_package_manager"
-        wrap_warning_message "IoT Edge supports the following package types [*deb, *rpm] and following package managers [apt-get].We have identified that this device does not have support for the supported package type. Please head to aka.ms/iotedge for instructions on how to build the iotedge binaries from source"
+        wrap_warning_message "IoT Edge supports the following package types [*deb, *rpm] and following package managers [apt-get]. We have identified that this device does not have support for the supported package type. Please head to aka.ms/iotedge for instructions on how to build the iotedge binaries from source"
         check_ca_cert
     fi
 }
@@ -693,6 +694,8 @@ check_free_memory() {
     eval iotedge_binary_memory='$'"$(echo "$ARCH"_iotedge_binaries_avg_memory)"
     eval iotedge_container_memory='$'"$(echo "$ARCH"_iotedge_container_memory)"
     total_iotedge_memory_size=$(echo $iotedge_binary_memory $iotedge_container_memory $iotedge_memory_buffer | awk '{print $1 + $2 + $3}')
+
+    # /proc/meminfo returns the memory size in KB, but our memory calculations are in MB, convert it to appropriate units
     current_free_memory=$(cat /proc/meminfo | grep "MemAvailable" | awk '{print $2/1024}')
 
     #TODO: correct final link of aka.ms/iotedge with the setup info of memory analysis.
@@ -763,8 +766,8 @@ aziotedge_check() {
     eval container_size='$'"$(echo "$ARCH"_iotedge_container_size)"
     TOTAL_SIZE=$(echo $binary_size $container_size | awk '{print $1 + $2}')
     if [ -z "$MOUNTPOINT" ]; then
-        wrap_debug_message "No Storage Path Provided, Using Present working directory"
         MOUNTPOINT=$(pwd)
+        wrap_debug_message "The Mountpoint where application is intented to be installed is unknown, using $MOUNTPOINT"
     fi
 
     check_storage_space "$MOUNTPOINT" "$TOTAL_SIZE" "$iotedge_size_buffer"
@@ -775,7 +778,7 @@ aziotedge_check() {
     if [ $ret -eq 0 ]; then
         wrap_warning_message "$base_message"
         #TODO : Check with PM on messaging
-        wrap_warning_message "Additional storage space maybe required for based on usage of iotedge and has not been measured here.Please visit aka.ms/iotedge for more information"
+        wrap_warning_message "Additional storage space maybe required for based on usage of iotedge and has not been measured here. Please visit aka.ms/iotedge for more information"
     elif [ $ret -eq 1 ]; then
         wrap_warning_message "$base_message"
         wrap_warning_message "If you are planning to install iotedge on a different mountpoint, please run the script with MOUNTPOINT='<Path-to-mount>' $(basename "$0")"
