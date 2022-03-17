@@ -144,7 +144,7 @@ jobs:
           -t 3600 \
           --edge-agent-image $edgeAgentImage \
           --edge-hub-image $edgeHubImage \
-          -temp-sensor-image $tempSensorImage 
+          --temp-sensor-image $tempSensorImage 
       displayName: Check Usage
       name: check_usage
       env:
