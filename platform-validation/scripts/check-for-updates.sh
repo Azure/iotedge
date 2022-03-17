@@ -82,9 +82,9 @@ check_shared_library() {
     EXPECTED_SHARED_LIB=""
 
     IOTEDGE_SHARED_LIB=$(readelf --dynamic /usr/bin/iotedge | grep "Shared library" | tr -d [] | awk '{print $5}')
-    echo "IoT edge shared dependent libraries: $IOTEDGE_SHARED_LIB"
+    echo "IoT Edge shared dependent libraries: $IOTEDGE_SHARED_LIB"
     IDENTITYD_SHARED_LIB=$(readelf --dynamic /usr/libexec/aziot-identity-service/aziot-identityd | grep "Shared library" | tr -d [] | awk '{print $5}')
-    echo "IoT edge shared dependent libraries: $IDENTITYD_SHARED_LIB"
+    echo "IoT Identity service shared dependent libraries: $IDENTITYD_SHARED_LIB"
 
     for iotedgelib in $IOTEDGE_SHARED_LIB; do
         for identitydlib in $IDENTITYD_SHARED_LIB; do
@@ -95,7 +95,7 @@ check_shared_library() {
         done
     done
 
-    echo "Expected common Shared libraries for the current IoT edge package: $EXPECTED_SHARED_LIB"
+    echo "Expected common shared libraries for the current IoT edge package: $EXPECTED_SHARED_LIB"
 
     ARCH=$(uname -m)
     if [ "$ARCH" = x86_64 ]; then
@@ -106,7 +106,7 @@ check_shared_library() {
         SHARED_LIBRARIES="$(echo $CURRENT_SHARED_LIBRARIES_BASE $CURRENT_SHARED_LIBRARIES_armv7l)"
     fi
 
-    echo "Shared libraries in check tool : $SHARED_LIBRARIES"
+    echo "Shared libraries in aziot-compatibility tool : $SHARED_LIBRARIES"
     for expectedlib in $EXPECTED_SHARED_LIB; do
         found=0
         for currentlib in $SHARED_LIBRARIES; do
@@ -116,7 +116,7 @@ check_shared_library() {
             fi
         done
         if [ $found != 1 ] ; then
-            echo "$expectedlib is not found in current shared library dependency check. Please update aziot-compatibility tool"
+            echo "$expectedlib is not checked in current aziot-compatibility tool. Please update aziot-compatibility tool"
             exit 1
         fi
     done
