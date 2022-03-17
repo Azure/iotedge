@@ -77,8 +77,8 @@ compare_usage() {
 function provision_edge_device() {
     # Provision w/ connection string
     DEVICE_ID=benchmark-device-$(echo $RANDOM | md5sum | head -c 10)
-    az iot hub device-identity create --device-id "$DEVICE_ID" --edge-enabled --hub-name "$IOT_HUB_NAME"
-    connection_string=$(az iot hub device-identity connection-string show --device-id "$DEVICE_ID" --hub-name "$IOT_HUB_NAME" -o tsv)
+    az iot hub device-identity create --device-id "$DEVICE_ID" --edge-enabled --hub-name "$IOTHUB_NAME"
+    connection_string=$(az iot hub device-identity connection-string show --device-id "$DEVICE_ID" --hub-name "$IOTHUB_NAME" -o tsv)
     sudo iotedge config mp --connection-string "$connection_string"
     sudo iotedge config apply
 }
@@ -93,17 +93,17 @@ function create_edge_deployment() {
     sed -i -e "s@<edgeAgentImage>@$EDGEAGENT_IMAGE@g" "$TEMP_DEPLOYMENT_FILE"
     sed -i -e "s@<edgeHubImage>@$EDGEHUB_IMAGE@g" "$TEMP_DEPLOYMENT_FILE"
     sed -i -e "s@<tempSensorImage>@$TEMPSENSOR_IMAGE@g" "$TEMP_DEPLOYMENT_FILE"
-    az iot edge deployment create --content "$TEMP_DEPLOYMENT_FILE" --deployment-id "$DEPLOYMENT_ID" --hub-name "$IOT_HUB_NAME" -t "deviceId='$DEVICE_ID'"
+    az iot edge deployment create --content "$TEMP_DEPLOYMENT_FILE" --deployment-id "$DEPLOYMENT_ID" --hub-name "$IOTHUB_NAME" -t "deviceId='$DEVICE_ID'"
 }
 
 function delete_edge_deployment() {
     echo "Removing IoT Edge Device Deployment"
-    az iot edge deployment delete --deployment-id $DEPLOYMENT_ID --hub-name $IOT_HUB_NAME
+    az iot edge deployment delete --deployment-id $DEPLOYMENT_ID --hub-name $IOTHUB_NAME
 }
 
 function delete_iot_hub_device_identity() {
     echo "Removing IoT Edge Device Identity"
-    az iot hub device-identity delete --device-id $DEVICE_ID --hub-name $IOT_HUB_NAME
+    az iot hub device-identity delete --device-id $DEVICE_ID --hub-name $IOTHUB_NAME
 }
 
 function delete_iot_edge() {
@@ -145,7 +145,7 @@ function process_args() {
             DEPLOYMENT_FILE_NAME=$arg
             save_next_arg=0
         elif [ ${save_next_arg} -eq 2 ]; then
-            IOT_HUB_NAME=$arg
+            IOTHUB_NAME=$arg
             save_next_arg=0
         elif [ ${save_next_arg} -eq 3 ]; then
             USAGE_SCRIPT_PATH=$arg
@@ -195,7 +195,7 @@ function print_error() {
 
 process_args "$@"
 
-[[ -z "$IOT_HUB_NAME" ]] && {
+[[ -z "$IOTHUB_NAME" ]] && {
     print_error 'IoT Hub name is required.'
     exit 1
 }

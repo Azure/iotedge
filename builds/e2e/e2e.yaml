@@ -138,7 +138,6 @@ jobs:
           echo "Edge Agent Image is $edgeAgentImage"
           $(Build.SourcesDirectory)/platform-validation/scripts/check-for-updates.sh \
           -f $(Build.SourcesDirectory)/platform-validation/deployment/platform-compatibility.json \
-          -n $(IOTHUB_NAME) \
           -u $(Build.SourcesDirectory)/platform-validation/scripts/analyzeSystemStats.sh \
           -c $(Build.SourcesDirectory)/platform-validation/scripts/aziot-compatibility.sh \
           -b $(System.ArtifactsDirectory)/$(artifactName) \
