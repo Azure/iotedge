@@ -141,6 +141,7 @@ function usage() {
 function process_args() {
     save_next_arg=0
     for arg in "$@"; do
+        echo "ARG is $arg"
         if [ ${save_next_arg} -eq 1 ]; then
             DEPLOYMENT_FILE_NAME=$arg
             save_next_arg=0
