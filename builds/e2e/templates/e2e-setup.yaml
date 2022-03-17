@@ -28,7 +28,6 @@ steps:
         TestManifestSigningBadRootCa,
         TestContentTrustRootCa,
         TestContentTrustRegistryPassword,
-        edgebuild-service-principal-secret,
 
   - bash: | 
       echo "Built Images Result is $(builtImages)"

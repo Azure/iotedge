@@ -130,6 +130,13 @@ jobs:
 
     steps:
     - template: templates/e2e-setup.yaml
+    - task: AzureKeyVault@1
+      displayName: 'Get Secret'
+      inputs:
+        azureSubscription: $(az.subscription)
+        KeyVaultName: 'edgebuildkv'
+        SecretsFilter: >-
+          edgebuild-service-principal-secret,
     - task: Bash@3
       displayName: 'Az login'
       inputs:
