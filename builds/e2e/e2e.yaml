@@ -136,18 +136,20 @@ jobs:
           edgeHubImage="$(cat $contextPath | jq '.edgeHubImage')"
           tempSensorImage="$(cat $contextPath | jq '.tempSensorImage')"
           echo "Edge Agent Image is $edgeAgentImage"
-          $(Build.SourcesDirectory)/platform-validation/scripts/check-for-updates.sh 
-          -f $(Build.SourcesDirectory)/platform-validation/deployment/platform-compatibility.json 
-          -n $IOT_HUB_NAME 
-          -u $(Build.SourcesDirectory)/platform-validation/scripts/analyzeSystemStats.sh 
-          -c $(Build.SourcesDirectory)/platform-validation/scripts/aziot-compatibility.sh
-          -b $(System.ArtifactsDirectory)/$(artifactName)
-          -t 3600
-          --edge-agent-image $edgeAgentImage
-          --edge-hub-image $edgeHubImage
-          -temp-sensor-image $tempSensorImage
-      displayName: Check changes in sources
+          $(Build.SourcesDirectory)/platform-validation/scripts/check-for-updates.sh \
+          -f $(Build.SourcesDirectory)/platform-validation/deployment/platform-compatibility.json \
+          -n $(IOTHUB_NAME) \
+          -u $(Build.SourcesDirectory)/platform-validation/scripts/analyzeSystemStats.sh \
+          -c $(Build.SourcesDirectory)/platform-validation/scripts/aziot-compatibility.sh \
+          -b $(System.ArtifactsDirectory)/$(artifactName) \
+          -t 3600 \
+          --edge-agent-image $edgeAgentImage \
+          --edge-hub-image $edgeHubImage \
+          -temp-sensor-image $tempSensorImage 
+      displayName: Check Usage
       name: check_usage
+      env:
+        IOTHUB_NAME: $(IOT_HUB_NAME)
 
 # ################################################################################
 #   - job: ubuntu_1804_docker
