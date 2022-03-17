@@ -31,81 +31,81 @@ variables:
 
 jobs:
 
-################################################################################
-  - job: debian_11_arm32v7
-################################################################################
-    displayName: Debian 11 arm32v7
+# ################################################################################
+#   - job: debian_11_arm32v7
+# ################################################################################
+#     displayName: Debian 11 arm32v7
 
-    pool:
-      name: $(pool.custom.name)
-      demands: deb11-e2e-tests
+#     pool:
+#       name: $(pool.custom.name)
+#       demands: deb11-e2e-tests
 
-    variables:
-      os: linux
-      arch: arm32v7
-      artifactName: iotedged-debian11-arm32v7
-      identityServiceArtifactName: packages_debian-11-slim_arm32v7
-      identityServicePackageFilter: aziot-identity-service_*_armhf.deb
-      # skip notary installation as it is not supported for ARM platforms
-      skip_notary: true
+#     variables:
+#       os: linux
+#       arch: arm32v7
+#       artifactName: iotedged-debian11-arm32v7
+#       identityServiceArtifactName: packages_debian-11-slim_arm32v7
+#       identityServicePackageFilter: aziot-identity-service_*_armhf.deb
+#       # skip notary installation as it is not supported for ARM platforms
+#       skip_notary: true
 
-    timeoutInMinutes: 120
+#     timeoutInMinutes: 120
 
-    steps:
-    - template: templates/e2e-clean-directory.yaml
-    - template: templates/e2e-setup.yaml
-    - template: templates/e2e-clear-docker-cached-images.yaml
-    - template: templates/e2e-run.yaml
+#     steps:
+#     - template: templates/e2e-clean-directory.yaml
+#     - template: templates/e2e-setup.yaml
+#     - template: templates/e2e-clear-docker-cached-images.yaml
+#     - template: templates/e2e-run.yaml
 
-################################################################################
-  - job: debian_10_arm32v7
-################################################################################
-    displayName: Debian 10 arm32v7 (minimal)
+# ################################################################################
+#   - job: debian_10_arm32v7
+# ################################################################################
+#     displayName: Debian 10 arm32v7 (minimal)
 
-    pool:
-      name: $(pool.custom.name)
-      demands: deb10-e2e-tests
+#     pool:
+#       name: $(pool.custom.name)
+#       demands: deb10-e2e-tests
 
-    variables:
-      os: linux
-      arch: arm32v7
-      artifactName: iotedged-debian10-arm32v7
-      identityServiceArtifactName: packages_debian-10-slim_arm32v7
-      identityServicePackageFilter: aziot-identity-service_*_armhf.deb
-      minimal: true
+#     variables:
+#       os: linux
+#       arch: arm32v7
+#       artifactName: iotedged-debian10-arm32v7
+#       identityServiceArtifactName: packages_debian-10-slim_arm32v7
+#       identityServicePackageFilter: aziot-identity-service_*_armhf.deb
+#       minimal: true
 
-    timeoutInMinutes: 120
+#     timeoutInMinutes: 120
 
-    steps:
-    - template: templates/e2e-clean-directory.yaml
-    - template: templates/e2e-setup.yaml
-    - template: templates/e2e-clear-docker-cached-images.yaml
-    - template: templates/e2e-run.yaml
+#     steps:
+#     - template: templates/e2e-clean-directory.yaml
+#     - template: templates/e2e-setup.yaml
+#     - template: templates/e2e-clear-docker-cached-images.yaml
+#     - template: templates/e2e-run.yaml
 
-################################################################################
-  - job: debian_9_arm32v7
-################################################################################
-    displayName: Debian 9 arm32v7 (minimal)
+# ################################################################################
+#   - job: debian_9_arm32v7
+# ################################################################################
+#     displayName: Debian 9 arm32v7 (minimal)
 
-    pool:
-      name: $(pool.custom.name)
-      demands: deb9-e2e-tests
+#     pool:
+#       name: $(pool.custom.name)
+#       demands: deb9-e2e-tests
 
-    variables:
-      os: linux
-      arch: arm32v7
-      artifactName: iotedged-debian9-arm32v7
-      identityServiceArtifactName: packages_debian-9-slim_arm32v7
-      identityServicePackageFilter: aziot-identity-service_*_armhf.deb
-      minimal: true
+#     variables:
+#       os: linux
+#       arch: arm32v7
+#       artifactName: iotedged-debian9-arm32v7
+#       identityServiceArtifactName: packages_debian-9-slim_arm32v7
+#       identityServicePackageFilter: aziot-identity-service_*_armhf.deb
+#       minimal: true
 
-    timeoutInMinutes: 120
+#     timeoutInMinutes: 120
 
-    steps:
-    - template: templates/e2e-clean-directory.yaml
-    - template: templates/e2e-setup.yaml
-    - template: templates/e2e-clear-docker-cached-images.yaml
-    - template: templates/e2e-run.yaml
+#     steps:
+#     - template: templates/e2e-clean-directory.yaml
+#     - template: templates/e2e-setup.yaml
+#     - template: templates/e2e-clear-docker-cached-images.yaml
+#     - template: templates/e2e-run.yaml
 
 
 ################################################################################
@@ -125,162 +125,181 @@ jobs:
       identityServiceArtifactName: packages_ubuntu-18.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
       skip_notary: false
-
-    steps:
-    - template: templates/e2e-setup.yaml
-    - template: templates/e2e-run.yaml
-
-################################################################################
-  - job: ubuntu_1804_docker
-################################################################################
-
-    displayName: Ubuntu 18.04 with Docker minimal
-
-    pool:
-      name: $(pool.linux.name)
-      demands:
-      - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
-
-    variables:
-      os: linux
-      arch: amd64
-      artifactName: iotedged-ubuntu18.04-amd64
-      identityServiceArtifactName: packages_ubuntu-18.04_amd64
-      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      minimal: true
-      skip_notary: false
-
-    steps:
-    - template: templates/e2e-setup.yaml
-    - template: templates/e2e-run.yaml
-
-
-################################################################################
-  - job: ubuntu_2004_msmoby
-################################################################################
-    displayName: Ubuntu 20.04 with iotedge-moby
-
-    pool:
-      name: $(pool.linux.name)
-      demands:
-      - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
-
-    variables:
-      os: linux
-      arch: amd64
-      artifactName: iotedged-ubuntu20.04-amd64
-      identityServiceArtifactName: packages_ubuntu-20.04_amd64
-      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      skip_notary: false
-
-    steps:
-    - template: templates/e2e-setup.yaml
-    - template: templates/e2e-run.yaml
-
-################################################################################
-  - job: ubuntu_2004_docker
-################################################################################
-    displayName: Ubuntu 20.04 with Docker minimal
-
-    pool:
-      name: $(pool.linux.name)
-      demands:
-      - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
-
-    variables:
-      os: linux
-      arch: amd64
-      artifactName: iotedged-ubuntu20.04-amd64
-      identityServiceArtifactName: packages_ubuntu-20.04_amd64
-      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      minimal: true
-      skip_notary: false
-
-    steps:
-    - template: templates/e2e-setup.yaml
-    - template: templates/e2e-run.yaml
-
-################################################################################
-  - job: ubuntu_2004_arm64v8
-################################################################################
-    displayName: Ubuntu 20.04 with arm64v8
-    pool:
-      name: $(pool.custom.name)
-      demands: 
-        - agent-group -equals rpi3-e2e-aarch64
-
-    variables:
-      os: linux
-      arch: arm64v8
-      artifactName: iotedged-ubuntu20.04-aarch64
-      identityServiceArtifactName: packages_ubuntu-20.04_aarch64
-      identityServicePackageFilter: aziot-identity-service_*_arm64.deb
-      # skip notary installation as it is not supported for ARM platforms
-      skip_notary: true
-
+    
     timeoutInMinutes: 120
 
     steps:
-    - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
-    - template: templates/e2e-clear-docker-cached-images.yaml
-    - template: templates/e2e-run.yaml
+    - bash: |
+          contextPath=$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp3.1/context.json
+          edgeAgentImage="$(cat $contextPath | jq '.edgeAgentImage')""
+          edgeHubImage="$(cat $contextPath | jq '.edgeHubImage')"
+          tempSensorImage="$(cat $contextPath | jq '.tempSensorImage')"
+          echo "Edge Agent Image is $edgeAgentImage"
+          $(Build.SourcesDirectory)/platform-validation/scripts/check-for-updates.sh 
+          -f $(Build.SourcesDirectory)/platform-validation/deployment/platform-compatibility.json 
+          -n $IOT_HUB_NAME 
+          -u $(Build.SourcesDirectory)/platform-validation/scripts/analyzeSystemStats.sh 
+          -c $(Build.SourcesDirectory)/platform-validation/scripts/aziot-compatibility.sh
+          -b $(System.ArtifactsDirectory)/$(artifactName)
+          -t 3600
+          --edge-agent-image $edgeAgentImage
+          --edge-hub-image $edgeHubImage
+          -temp-sensor-image $tempSensorImage
+      displayName: Check changes in sources
+      name: check_usage
 
-################################################################################
-  - job: centos7_amd64
-################################################################################
-    displayName: CentOs7 amd64
+# ################################################################################
+#   - job: ubuntu_1804_docker
+# ################################################################################
 
-    pool:
-      name: $(pool.linux.name)
-      demands:
-      - ImageOverride -equals agent-aziotedge-centos-7-msmoby
+#     displayName: Ubuntu 18.04 with Docker minimal
 
-    variables:
-      os: linux
-      arch: amd64
-      artifactName: iotedged-centos7-amd64
-      identityServiceArtifactName: packages_centos-7_amd64
-      identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
-      skip_notary: false
+#     pool:
+#       name: $(pool.linux.name)
+#       demands:
+#       - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
 
-    steps:
-    - template: templates/e2e-clean-directory.yaml
-    - template: templates/e2e-setup.yaml
-    - template: templates/e2e-clear-docker-cached-images.yaml
-    - template: templates/e2e-run.yaml
+#     variables:
+#       os: linux
+#       arch: amd64
+#       artifactName: iotedged-ubuntu18.04-amd64
+#       identityServiceArtifactName: packages_ubuntu-18.04_amd64
+#       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+#       minimal: true
+#       skip_notary: false
 
-################################################################################
-  - job: linux_amd64_proxy
-################################################################################
-    displayName: Linux amd64 behind a proxy
+#     steps:
+#     - template: templates/e2e-setup.yaml
+#     - template: templates/e2e-run.yaml
 
-    pool:
-      name: $(pool.custom.name)
-      demands: new-e2e-proxy
 
-    variables:
-      os: linux
-      arch: amd64
-      artifactName: iotedged-ubuntu18.04-amd64
-      identityServiceArtifactName: packages_ubuntu-18.04_amd64
-      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      # workaround, see https://github.com/Microsoft/azure-pipelines-agent/issues/2138#issuecomment-470166671
-      'agent.disablelogplugin.testfilepublisherplugin': true
-      'agent.disablelogplugin.testresultlogplugin': true
-      # because we aren't publishing test artifacts for this job, turn on verbose logging instead
-      verbose: true
-      # skip component governance detection to avoid proxy issues. It is checked in the other jobs.
-      skipComponentGovernanceDetection: true
-      # skip notary installation as it has known issues working with proxy
-      skip_notary: true
+# ################################################################################
+#   - job: ubuntu_2004_msmoby
+# ################################################################################
+#     displayName: Ubuntu 20.04 with iotedge-moby
 
-    timeoutInMinutes: 120
+#     pool:
+#       name: $(pool.linux.name)
+#       demands:
+#       - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
 
-    steps:
-    - template: templates/e2e-clean-directory.yaml
-    - template: templates/e2e-setup.yaml
-    - template: templates/e2e-clear-docker-cached-images.yaml
-    - template: templates/e2e-run.yaml
-      parameters:
-        test_type: http_proxy
+#     variables:
+#       os: linux
+#       arch: amd64
+#       artifactName: iotedged-ubuntu20.04-amd64
+#       identityServiceArtifactName: packages_ubuntu-20.04_amd64
+#       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+#       skip_notary: false
+
+#     steps:
+#     - template: templates/e2e-setup.yaml
+#     - template: templates/e2e-run.yaml
+
+# ################################################################################
+#   - job: ubuntu_2004_docker
+# ################################################################################
+#     displayName: Ubuntu 20.04 with Docker minimal
+
+#     pool:
+#       name: $(pool.linux.name)
+#       demands:
+#       - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+
+#     variables:
+#       os: linux
+#       arch: amd64
+#       artifactName: iotedged-ubuntu20.04-amd64
+#       identityServiceArtifactName: packages_ubuntu-20.04_amd64
+#       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+#       minimal: true
+#       skip_notary: false
+
+#     steps:
+#     - template: templates/e2e-setup.yaml
+#     - template: templates/e2e-run.yaml
+
+# ################################################################################
+#   - job: ubuntu_2004_arm64v8
+# ################################################################################
+#     displayName: Ubuntu 20.04 with arm64v8
+#     pool:
+#       name: $(pool.custom.name)
+#       demands: 
+#         - agent-group -equals rpi3-e2e-aarch64
+
+#     variables:
+#       os: linux
+#       arch: arm64v8
+#       artifactName: iotedged-ubuntu20.04-aarch64
+#       identityServiceArtifactName: packages_ubuntu-20.04_aarch64
+#       identityServicePackageFilter: aziot-identity-service_*_arm64.deb
+#       # skip notary installation as it is not supported for ARM platforms
+#       skip_notary: true
+
+#     timeoutInMinutes: 120
+
+#     steps:
+#     - template: templates/e2e-clean-directory.yaml
+#     - template: templates/e2e-setup.yaml
+#     - template: templates/e2e-clear-docker-cached-images.yaml
+#     - template: templates/e2e-run.yaml
+
+# ################################################################################
+#   - job: centos7_amd64
+# ################################################################################
+#     displayName: CentOs7 amd64
+
+#     pool:
+#       name: $(pool.linux.name)
+#       demands:
+#       - ImageOverride -equals agent-aziotedge-centos-7-msmoby
+
+#     variables:
+#       os: linux
+#       arch: amd64
+#       artifactName: iotedged-centos7-amd64
+#       identityServiceArtifactName: packages_centos-7_amd64
+#       identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
+#       skip_notary: false
+
+#     steps:
+#     - template: templates/e2e-clean-directory.yaml
+#     - template: templates/e2e-setup.yaml
+#     - template: templates/e2e-clear-docker-cached-images.yaml
+#     - template: templates/e2e-run.yaml
+
+# ################################################################################
+#   - job: linux_amd64_proxy
+# ################################################################################
+#     displayName: Linux amd64 behind a proxy
+
+#     pool:
+#       name: $(pool.custom.name)
+#       demands: new-e2e-proxy
+
+#     variables:
+#       os: linux
+#       arch: amd64
+#       artifactName: iotedged-ubuntu18.04-amd64
+#       identityServiceArtifactName: packages_ubuntu-18.04_amd64
+#       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+#       # workaround, see https://github.com/Microsoft/azure-pipelines-agent/issues/2138#issuecomment-470166671
+#       'agent.disablelogplugin.testfilepublisherplugin': true
+#       'agent.disablelogplugin.testresultlogplugin': true
+#       # because we aren't publishing test artifacts for this job, turn on verbose logging instead
+#       verbose: true
+#       # skip component governance detection to avoid proxy issues. It is checked in the other jobs.
+#       skipComponentGovernanceDetection: true
+#       # skip notary installation as it has known issues working with proxy
+#       skip_notary: true
+
+#     timeoutInMinutes: 120
+
+#     steps:
+#     - template: templates/e2e-clean-directory.yaml
+#     - template: templates/e2e-setup.yaml
+#     - template: templates/e2e-clear-docker-cached-images.yaml
+#     - template: templates/e2e-run.yaml
+#       parameters:
+#         test_type: http_proxy
