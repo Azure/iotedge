@@ -634,22 +634,20 @@ check_package_manager() {
     not_found=0
     package_managers="apt-get dnf yum dpkg rpm"
     for package in $package_managers; do
-        {
-            # TODO : Is there a better way to do this?
-            res="$(need_cmd $package)"
-            if [ $? -eq 0 ]; then
-                not_found=0
-                wrap_debug_message "Current target platform supports $package package manager"
-                wrap_pass "check_package_manager"
-                if [ $package = "rpm" ] || [ $package = "dpkg" ]; then
-                    check_ca_cert
-                fi
-                break
-            else
-                not_found=1
-                wrap_debug_message "Current target platform does not support $package package manager"
+        # TODO : Is there a better way to do this?
+        res="$(need_cmd $package)"
+        if [ $? -eq 0 ]; then
+            not_found=0
+            wrap_debug_message "Current target platform supports $package package manager"
+            wrap_pass "check_package_manager"
+            if [ $package = "rpm" ] || [ $package = "dpkg" ]; then
+                check_ca_cert
             fi
-        }
+            break
+        else
+            not_found=1
+            wrap_debug_message "Current target platform does not support $package package manager"
+        fi
     done
     if [ "$not_found" -eq 1 ]; then
         wrap_warning "check_package_manager"
@@ -675,7 +673,7 @@ armv7l_iotedge_container_memory=164.53
 x86_64_iotedge_binaries_size=42.39
 x86_64_iotedge_binaries_avg_memory=54.24
 x86_64_iotedge_container_size=254.96
-x86_64_iotedge_container_memory=245.5
+x86_64_iotedge_container_memory=175
 aarch64_iotedge_binaries_size=36.68
 aarch64_iotedge_binaries_avg_memory=26.62
 aarch64_iotedge_container_size=322.6
