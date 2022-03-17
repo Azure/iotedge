@@ -81,6 +81,8 @@ impl CertApi {
         subject_alt_names: Vec<SubjectAltName>,
         extensions: openssl::stack::Stack<openssl::x509::X509Extension>,
     ) -> Result<hyper::Response<hyper::Body>, http_common::server::Error> {
+        // In the future, we may need to support configurable key type. For now, default to
+        // RSA 2048 to maintain consistent behavior with prior versions of Edge.
         let keys = CertKey::Rsa(2048)
             .generate()
             .map_err(|_| edgelet_http::error::server_error("failed to generate csr keys"))?;
@@ -123,6 +125,8 @@ impl CertApi {
     pub async fn cert_from_dps(
         self,
         policy: aziot_identity_common_http::get_provisioning_info::Response,
+        subject_alt_names: Vec<SubjectAltName>,
+        extensions: openssl::stack::Stack<openssl::x509::X509Extension>,
     ) -> Result<hyper::Response<hyper::Body>, http_common::server::Error> {
         let (identity_cert, identity_private_key) = self.get_dps_credentials().await?;
 
@@ -138,8 +142,8 @@ impl CertApi {
             }
         };
 
-        // TODO: Decide whether keys and cert need to be persisted.
-        // TODO: Make key type configurable.
+        // In the future, we may need to support configurable key type. For now, default to
+        // EC P-256, which should be supported by all DPS-connected CAs.
         let keys = CertKey::Ec(openssl::nid::Nid::X9_62_PRIME256V1)
             .generate()
             .map_err(|_| edgelet_http::error::server_error("failed to generate csr keys"))?;
@@ -147,13 +151,8 @@ impl CertApi {
 
         // DPS sets the certificate extensions and SANs. Therefore, these fields do not need
         // to be in the CSR.
-        let csr = new_csr(
-            registration_id,
-            keys,
-            Vec::new(),
-            openssl::stack::Stack::new().expect("failed to create empty stack"),
-        )
-        .map_err(|_| edgelet_http::error::server_error("failed to generate csr"))?;
+        let csr = new_csr(registration_id, keys, subject_alt_names, extensions)
+            .map_err(|_| edgelet_http::error::server_error("failed to generate csr"))?;
 
         let dps_request = aziot_cloud_client_async::dps::IssueCert::new(
             policy,

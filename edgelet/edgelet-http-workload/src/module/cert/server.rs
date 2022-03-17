@@ -128,7 +128,9 @@ where
 
         // Issue server certificate based on policy.
         if let Some(policy) = policy {
-            self.api.cert_from_dps(policy).await
+            self.api
+                .cert_from_dps(policy, subject_alt_names, csr_extensions)
+                .await
         } else {
             self.api
                 .cert_from_edge_ca(cert_id, common_name, subject_alt_names, csr_extensions)
