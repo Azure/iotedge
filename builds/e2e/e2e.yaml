@@ -162,6 +162,9 @@ jobs:
       name: check_usage
       env:
         IOTHUB_NAME: $(IOT_HUB_NAME)
+        REGISTRY_ADDRESS: $(cr.address)
+        REGISTRY_USERNAME: $(cr.username)
+        REGISTRY_PASSWORD: $(cr.password)
 
 # ################################################################################
 #   - job: ubuntu_1804_docker
