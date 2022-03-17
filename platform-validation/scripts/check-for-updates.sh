@@ -74,6 +74,54 @@ compare_usage() {
     fi
 }
 
+check_shared_library() {
+    CURRENT_SHARED_LIBRARIES_BASE="$(grep "SHARED_LIBRARIES_BASE=" <"$COMPATIBILITY_TOOL_PATH" | sed -r "s/^SHARED_LIBRARIES_BASE=//g" | tr -d '"')"
+    CURRENT_SHARED_LIBRARIES_x86_64="$(grep "SHARED_LIBRARIES_x86_64=" <"$COMPATIBILITY_TOOL_PATH" | sed -r "s/^SHARED_LIBRARIES_x86_64=//g" | tr -d '"')"
+    CURRENT_SHARED_LIBRARIES_aarch64="$(grep "SHARED_LIBRARIES_aarch64=" <"$COMPATIBILITY_TOOL_PATH" | sed -r "s/^SHARED_LIBRARIES_aarch64=//g" | tr -d '"')"
+    CURRENT_SHARED_LIBRARIES_armv7l="$(grep "SHARED_LIBRARIES_armv7l=" <"$COMPATIBILITY_TOOL_PATH" | sed -r "s/^SHARED_LIBRARIES_armv7l=//g" | tr -d '"')"
+    EXPECTED_SHARED_LIB=""
+
+    IOTEDGE_SHARED_LIB=$(readelf --dynamic /usr/bin/iotedge | grep "Shared library" | tr -d [] | awk '{print $5}')
+    echo "IoT edge shared dependent libraries: $IOTEDGE_SHARED_LIB"
+    IDENTITYD_SHARED_LIB=$(readelf --dynamic /usr/libexec/aziot-identity-service/aziot-identityd | grep "Shared library" | tr -d [] | awk '{print $5}')
+    echo "IoT edge shared dependent libraries: $IDENTITYD_SHARED_LIB"
+
+    for iotedgelib in $IOTEDGE_SHARED_LIB; do
+        for identitydlib in $IDENTITYD_SHARED_LIB; do
+            if [ "$iotedgelib" = "$identitydlib" ]; then
+                EXPECTED_SHARED_LIB+="$identitydlib ";
+                break;
+            fi
+        done
+    done
+
+    echo "Expected common Shared libraries for the current IoT edge package: $EXPECTED_SHARED_LIB"
+
+    ARCH=$(uname -m)
+    if [ "$ARCH" = x86_64 ]; then
+        SHARED_LIBRARIES="$(echo $CURRENT_SHARED_LIBRARIES_BASE $CURRENT_SHARED_LIBRARIES_x86_64)"
+    elif [ "$ARCH" = aarch64 ]; then
+        SHARED_LIBRARIES="$(echo $CURRENT_SHARED_LIBRARIES_BASE $CURRENT_SHARED_LIBRARIES_aarch64)"
+    elif [ "$ARCH" = armv7l ]; then
+        SHARED_LIBRARIES="$(echo $CURRENT_SHARED_LIBRARIES_BASE $CURRENT_SHARED_LIBRARIES_armv7l)"
+    fi
+
+    echo "Shared libraries in check tool : $SHARED_LIBRARIES"
+    for expectedlib in $EXPECTED_SHARED_LIB; do
+        found=0
+        for currentlib in $SHARED_LIBRARIES; do
+            if [ "$expectedlib" = "$currentlib" ]; then
+                found=1
+                break;
+            fi
+        done
+        if [ $found != 1 ] ; then
+            echo "$expectedlib is not found in current shared library dependency check. Please update aziot-compatibility tool"
+            exit 1
+        fi
+    done
+}
+
 function provision_edge_device() {
     # Provision w/ connection string
     DEVICE_ID=benchmark-device-$(echo $RANDOM | md5sum | head -c 10)
@@ -250,6 +298,7 @@ sleep 60
 create_edge_deployment
 echo "Deployment Complete, Sleeping for $TIME_TO_RUN seconds"
 sleep "$TIME_TO_RUN"
+check_shared_library
 calculate_usage
 delete_edge_deployment
 delete_iot_hub_device_identity

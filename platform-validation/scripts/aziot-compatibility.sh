@@ -571,7 +571,19 @@ check_docker_api_version() {
 }
 
 SHARED_LIB_PATH="/usr /lib /lib32 /lib64"
+SHARED_LIBRARIES_BASE="libssl.so.1.1 libcrypto.so.1.1 libdl.so.2 librt.so.1 libpthread.so.0 libc.so.6 libm.so.6 libgcc_s.so.1"
+SHARED_LIBRARIES_x86_64="ld-linux-x86-64.so.2"
+SHARED_LIBRARIES_aarch64="ld-linux-aarch64.so.1"
+SHARED_LIBRARIES_armv7l="ld-linux-armhf.so.3"
 check_shared_library_dependency() {
+    if [ "$ARCH" = x86_64 ]; then
+        SHARED_LIBRARIES="$(echo $CURRENT_SHARED_LIBRARIES_BASE $CURRENT_SHARED_LIBRARIES_x86_64)"
+    elif [ "$ARCH" = aarch64 ]; then
+        SHARED_LIBRARIES="$(echo $CURRENT_SHARED_LIBRARIES_BASE $CURRENT_SHARED_LIBRARIES_aarch64)"
+    elif [ "$ARCH" = armv7l ]; then
+        SHARED_LIBRARIES="$(echo $CURRENT_SHARED_LIBRARIES_BASE $CURRENT_SHARED_LIBRARIES_armv7l)"
+    fi
+
     for lib in $SHARED_LIBRARIES; do
         # check dependencies for `ldconfig` and fall back to `find` when its not possible
         if [ "$(id -u)" -ne 0 ]; then
@@ -718,7 +730,6 @@ aziotedge_check() {
     *) wrap_debug_message "Checking aziot-edge compatibility for Release 1.2" ;;
     esac
 
-    SHARED_LIBRARIES="libssl.so.1.1 libcrypto.so.1.1 libdl.so.2 librt.so.1 libpthread.so.0 libc.so.6 libm.so.6 libgcc_s.so.1"
     MINIMUM_DOCKER_API_VERSION=1.34
     #Required for resource allocation for containers
     check_cgroup_heirachy
@@ -746,17 +757,7 @@ aziotedge_check() {
 
     check_systemd
     check_architecture
-
     check_docker_api_version $MINIMUM_DOCKER_API_VERSION
-
-    if [ $ARCH = x86_64 ]; then
-        SHARED_LIBRARIES="$(echo $SHARED_LIBRARIES "ld-linux-x86-64.so.2")"
-    elif [ $ARCH = aarch64 ]; then
-        SHARED_LIBRARIES="$(echo $SHARED_LIBRARIES "ld-linux-aarch64.so.1")"
-    elif [ $ARCH = armv7l ]; then
-        SHARED_LIBRARIES="$(echo $SHARED_LIBRARIES "ld-linux-armhf.so.3")"
-    fi
-
     check_shared_library_dependency
     check_free_memory
     check_package_manager
