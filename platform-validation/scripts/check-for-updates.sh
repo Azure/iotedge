@@ -87,6 +87,7 @@ function create_edge_deployment() {
     sudo apt-get install -y uuid
     DEPLOYMENT_ID=iotedge-benchmarking-$(uuidgen)
     cp "$DEPLOYMENT_FILE_NAME" $TEMP_DEPLOYMENT_FILE
+    cat $TEMP_DEPLOYMENT_FILE | jq
     sed -i -e "s@<CR.Address>@$REGISTRY_ADDRESS@g" "$TEMP_DEPLOYMENT_FILE"
     sed -i -e "s@<CR.Username>@$REGISTRY_USERNAME@g" "$TEMP_DEPLOYMENT_FILE"
     sed -i -e "s@<CR.Password>@$REGISTRY_PASSWORD@g" "$TEMP_DEPLOYMENT_FILE"
