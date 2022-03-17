@@ -177,7 +177,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NetworkController", "test\c
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Modules.Test", "test\modules\Modules.Test\Modules.Test.csproj", "{837F5563-BB1C-4A59-A506-07ED8458DB4E}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MetricsCollector", "edge-modules\MetricsCollector\MetricsCollector.csproj", "{4B0F95CF-E696-450F-B7F6-35E361C91777}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestMetricsCollector", "test\modules\TestMetricsCollector\TestMetricsCollector.csproj", "{4B0F95CF-E696-450F-B7F6-35E361C91777}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DirectMethodReceiver", "test\modules\DirectMethodReceiver\DirectMethodReceiver.csproj", "{8C964A2F-A163-421C-B262-BE9C81B555BC}"
 EndProject

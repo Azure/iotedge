@@ -7,4 +7,4 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
-CMD ["dotnet", "MetricsCollector.dll"]
+CMD ["dotnet", "TestMetricsCollector.dll"]

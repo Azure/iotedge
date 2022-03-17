@@ -51,8 +51,8 @@ jobs:
         displayName: Install Rust
         inputs:
           filePath: edgelet/build/linux/install.sh
-      - script: cargo install --git https://github.com/arsing/cross.git --branch set-path
-        displayName: Install cross (fork with docker fix)
+      - script: cargo install cross --version ^0.2
+        displayName: Install cross
       - task: Bash@3
         displayName: armv7-unknown-linux-gnueabihf build
         inputs:
