@@ -145,9 +145,9 @@ jobs:
           az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
     - bash: |
           contextPath=$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp3.1/context.json
-          edgeAgentImage="$(cat $contextPath | jq '.edgeAgentImage')" | tr -d '"'
-          edgeHubImage="$(cat $contextPath | jq '.edgeHubImage')" | tr -d '"'
-          tempSensorImage="$(cat $contextPath | jq '.tempSensorImage')" | tr -d '"'
+          edgeAgentImage="$(cat $contextPath | jq '.edgeAgentImage' | tr -d '"')" 
+          edgeHubImage="$(cat $contextPath | jq '.edgeHubImage' | tr -d '"')"
+          tempSensorImage="$(cat $contextPath | jq '.tempSensorImage' | tr -d '"')"
           echo "Temp Sensor Image is $tempSensorImage"
           az extension add --name azure-iot
           $(Build.SourcesDirectory)/platform-validation/scripts/check-for-updates.sh \
