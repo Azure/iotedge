@@ -148,6 +148,7 @@ jobs:
           edgeAgentImage="$(cat $contextPath | jq '.edgeAgentImage')"
           edgeHubImage="$(cat $contextPath | jq '.edgeHubImage')"
           tempSensorImage="$(cat $contextPath | jq '.tempSensorImage')"
+          echo "Temp Sensor Image is $tempSensorImage"
           az extension add --name azure-iot
           $(Build.SourcesDirectory)/platform-validation/scripts/check-for-updates.sh \
           -f $(Build.SourcesDirectory)/platform-validation/deployment/platform-compatibility.json \
