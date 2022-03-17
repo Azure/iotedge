@@ -27,7 +27,7 @@ steps:
         TestManifestSigningSignerKey,
         TestManifestSigningBadRootCa,
         TestContentTrustRootCa,
-        TestContentTrustRegistryPassword
+        TestContentTrustRegistryPassword,
         edgebuild-service-principal-secret,
 
   - bash: | 
