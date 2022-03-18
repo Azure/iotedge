@@ -3,6 +3,7 @@
 #Script to check for udpates required to aziot-compatibility.sh script
 #Assumes Moby-Engine/Docker is installed
 #Requires AZ Login and appropriate subscription to be selected
+#Requires Environment Variables REGISTRY_ADDRESS REGISTRY_USERNAME REGISTRY_PASSWORD to be set
 
 TEMP_DEPLOYMENT_FILE="deployment.json"
 BENCHMARK_OUTPUT_DIR="memory-usage-results"
@@ -88,13 +89,11 @@ function create_edge_deployment() {
     DEPLOYMENT_ID=iotedge-benchmarking-$(uuidgen)
     cp "$DEPLOYMENT_FILE_NAME" $TEMP_DEPLOYMENT_FILE
     sed -i -e "s@<CR.Address>@$REGISTRY_ADDRESS@g" "$TEMP_DEPLOYMENT_FILE"
-    sed -i -e "s@<CR.Username>@$REGISTRY_USERNAME@g" "$TEMP_DEPLOYMENT_FILE"
+    sed -i -e "s@<CR.UserName>@$REGISTRY_USERNAME@g" "$TEMP_DEPLOYMENT_FILE"
     sed -i -e "s@<CR.Password>@$REGISTRY_PASSWORD@g" "$TEMP_DEPLOYMENT_FILE"
     sed -i -e "s@<edgeAgentImage>@$EDGEAGENT_IMAGE@g" "$TEMP_DEPLOYMENT_FILE"
     sed -i -e "s@<edgeHubImage>@$EDGEHUB_IMAGE@g" "$TEMP_DEPLOYMENT_FILE"
     sed -i -e "s@<tempSensorImage>@$TEMPSENSOR_IMAGE@g" "$TEMP_DEPLOYMENT_FILE"
-    x=$(cat $TEMP_DEPLOYMENT_FILE)
-    echo "$x"
     az iot edge deployment create --content "$TEMP_DEPLOYMENT_FILE" --deployment-id "$DEPLOYMENT_ID" --hub-name "$IOTHUB_NAME" -t "deviceId='$DEVICE_ID'"
 }
 
