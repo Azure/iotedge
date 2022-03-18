@@ -35,9 +35,9 @@ steps:
 
 - pwsh: |
     $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
-    dotnet build $testDir
+    dotnet build -c $(Build.Configuration) $testDir
 
-    $binDir = Convert-Path "$testDir/bin/Debug/netcoreapp3.1"
+    $binDir = Convert-Path "$testDir/bin/$(Build.Configuration)/netcoreapp3.1"
     Write-Output "##vso[task.setvariable variable=binDir]$binDir"
   displayName: Build tests
 
