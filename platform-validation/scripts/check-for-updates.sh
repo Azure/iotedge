@@ -259,6 +259,7 @@ delete_iot_edge
 #Compare Usage and Exit if Current Usage exceeds recorded usage
 size_buffer="$(grep "iotedge_size_buffer=" <"$COMPATIBILITY_TOOL_PATH" | sed -r "s/^iotedge_size_buffer=//g")"
 memory_buffer="$(grep "iotedge_memory_buffer=" <"$COMPATIBILITY_TOOL_PATH" | sed -r "s/^iotedge_memory_buffer=//g")"
+cat "$BENCHMARK_OUTPUT_DIR/analyze-memory-logs.out"
 echo "Size buffer is $size_buffer"
 compare_usage container size "$size_buffer"
 compare_usage container memory "$memory_buffer"
