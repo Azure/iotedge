@@ -114,7 +114,7 @@ jobs:
         #AZ-CLI doesnt have package support : https://github.com/Azure/azure-cli/issues/7368
         set -e
         sudo apt-get update
-        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python3 python3-venv
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python3 python3-venv make
         echo "$(command -v python3)"
         $(command -v python3) -m venv azure-cli-env
         azure-cli-env/bin/python -m pip install --upgrade pip
