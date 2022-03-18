@@ -34,7 +34,7 @@ begin_benchmarking() {
     mkdir -p "$BENCHMARK_OUTPUT_DIR"
     echo "Starting Script for Analyzing IoT Edge Memory with Path $BENCHMARK_OUTPUT_DIR and Script $USAGE_SCRIPT_PATH"
     sudo chmod +x "$USAGE_SCRIPT_PATH"
-    "$USAGE_SCRIPT_PATH" -t "$1" -p "$BENCHMARK_OUTPUT_DIR" >&"$BENCHMARK_OUTPUT_DIR/analyze-memory-logs.out" &
+    "$USAGE_SCRIPT_PATH" -t "$1" -p "$BENCHMARK_OUTPUT_DIR" >"$BENCHMARK_OUTPUT_DIR/analyze-memory-logs.out" &
 }
 
 calculate_usage() {
@@ -241,9 +241,6 @@ process_args "$@"
 }
 
 cleanup_files
-export PATH=azure-cli-env/bin/:$PATH
-echo "Showing Path"
-ls -l azure-cli-env/bin || true
 #Start the Memory Usage Script so that we can capture startup memory usage
 begin_benchmarking "$TIME_TO_RUN"
 install_iotedge_local "$BINARIES_PATH"
