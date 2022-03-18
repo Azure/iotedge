@@ -113,18 +113,18 @@ jobs:
     - bash: |
         #AZ-CLI doesnt have package support : https://github.com/Azure/azure-cli/issues/7368
         sudo apt-get update
-        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python3 python3-pip
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python3 python3-venv
         python -m venv azure-cli-env
-        azure-cli-env\Scripts\python.exe -m pip install --upgrade pip
-        azure-cli-env\Scripts\python.exe -m pip install azure-cli
-        azure-cli-env\Scripts\az --version
+        azure-cli-env/bin/python -m pip install --upgrade pip
+        azure-cli-env/bin/python -m pip install azure-cli
+        azure-cli-env/bin/az --version
       displayName: Install AZ CLI
     - task: Bash@3
       displayName: 'Az login'
       inputs:
         targetType: inline
         script: |
-          azure-cli-env\Scripts\az --version login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
+          azure-cli-env/bin/az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
     - bash: |
           set -e
           # Install PowerShell dependencies
