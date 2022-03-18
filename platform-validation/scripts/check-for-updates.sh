@@ -241,7 +241,7 @@ process_args "$@"
 }
 
 cleanup_files
-echo "Path Inside Script is $PATH"
+export PATH=$PATH
 #Start the Memory Usage Script so that we can capture startup memory usage
 begin_benchmarking "$TIME_TO_RUN"
 install_iotedge_local "$BINARIES_PATH"
