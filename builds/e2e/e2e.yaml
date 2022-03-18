@@ -171,9 +171,12 @@ jobs:
     - template: templates/e2e-setup.yaml
     - bash: |
           set -e
-          export PATH=$(Build.SourcesDirectory)/azure-cli-env/bin/:$PATH
+          $(command -v python3) -m venv azure-cli-env
+          azure-cli-env/bin/python -m pip install --upgrade pip
+          azure-cli-env/bin/python -m pip install azure-cli
+          azure-cli-env/bin/az --version
+          export PATH=azure-cli-env/bin/:$PATH
           echo "Path is $PATH"
-          ls -l $(Build.SourcesDirectory)/azure-cli-env/bin
           az --version
           contextPath=$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp3.1/context.json
           edgeAgentImage="$(cat $contextPath | jq '.edgeAgentImage' | tr -d '"')" 
