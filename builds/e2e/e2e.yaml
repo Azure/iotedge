@@ -23,63 +23,63 @@ resources:
 jobs:
 
 
-################################################################################
-  - job: ubuntu_2004_msmoby
-################################################################################
-    displayName: Ubuntu 20.04 with iotedge-moby
+# ################################################################################
+#   - job: ubuntu_2004_msmoby
+# ################################################################################
+#     displayName: Ubuntu 20.04 with iotedge-moby
 
-    pool:
-      name: $(pool.linux.name)
-      demands:
-      - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
+#     pool:
+#       name: $(pool.linux.name)
+#       demands:
+#       - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
 
-    variables:
-        os: linux
-        arch: amd64
-        artifactName: iotedged-ubuntu20.04-amd64
-        identityServiceArtifactName: packages_ubuntu-20.04_amd64
-        identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-        skip_notary: true
+#     variables:
+#         os: linux
+#         arch: amd64
+#         artifactName: iotedged-ubuntu20.04-amd64
+#         identityServiceArtifactName: packages_ubuntu-20.04_amd64
+#         identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+#         skip_notary: true
     
-    timeoutInMinutes: 180
+#     timeoutInMinutes: 180
 
-    steps:
-    - template: templates/e2e-setup.yaml
-    - task: AzureKeyVault@1
-      displayName: 'Get Secret'
-      inputs:
-        azureSubscription: $(az.subscription)
-        KeyVaultName: $(az.keyvault)
-        SecretsFilter: >-
-          edgebuild-service-principal-secret,
-    - task: Bash@3
-      displayName: 'Az login'
-      inputs:
-        targetType: inline
-        script: |
-          az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
-    - bash: |
-          contextPath=$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp3.1/context.json
-          edgeAgentImage="$(cat $contextPath | jq '.edgeAgentImage' | tr -d '"')" 
-          edgeHubImage="$(cat $contextPath | jq '.edgeHubImage' | tr -d '"')"
-          tempSensorImage="$(cat $contextPath | jq '.tempSensorImage' | tr -d '"')"
-          az extension add --name azure-iot
-          $(Build.SourcesDirectory)/platform-validation/scripts/check-for-updates.sh \
-          -f $(Build.SourcesDirectory)/platform-validation/deployment/platform-compatibility.json \
-          -u $(Build.SourcesDirectory)/platform-validation/scripts/analyzeSystemStats.sh \
-          -c $(Build.SourcesDirectory)/platform-validation/scripts/aziot-compatibility.sh \
-          -b $(System.ArtifactsDirectory)/$(artifactName) \
-          -t $(TIME_TO_RUN_SECONDS) \
-          --edge-agent-image $edgeAgentImage \
-          --edge-hub-image $edgeHubImage \
-          --temp-sensor-image $tempSensorImage 
-      displayName: Check Usage
-      name: check_usage
-      env:
-        IOTHUB_NAME: $(IOT_HUB_NAME)
-        REGISTRY_ADDRESS: $(cr.address)
-        REGISTRY_USERNAME: $(cr.username)
-        REGISTRY_PASSWORD: $(cr.password)
+#     steps:
+#     - template: templates/e2e-setup.yaml
+#     - task: AzureKeyVault@1
+#       displayName: 'Get Secret'
+#       inputs:
+#         azureSubscription: $(az.subscription)
+#         KeyVaultName: $(az.keyvault)
+#         SecretsFilter: >-
+#           edgebuild-service-principal-secret,
+#     - task: Bash@3
+#       displayName: 'Az login'
+#       inputs:
+#         targetType: inline
+#         script: |
+#           az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
+#     - bash: |
+#           contextPath=$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp3.1/context.json
+#           edgeAgentImage="$(cat $contextPath | jq '.edgeAgentImage' | tr -d '"')" 
+#           edgeHubImage="$(cat $contextPath | jq '.edgeHubImage' | tr -d '"')"
+#           tempSensorImage="$(cat $contextPath | jq '.tempSensorImage' | tr -d '"')"
+#           az extension add --name azure-iot
+#           $(Build.SourcesDirectory)/platform-validation/scripts/check-for-updates.sh \
+#           -f $(Build.SourcesDirectory)/platform-validation/deployment/platform-compatibility.json \
+#           -u $(Build.SourcesDirectory)/platform-validation/scripts/analyzeSystemStats.sh \
+#           -c $(Build.SourcesDirectory)/platform-validation/scripts/aziot-compatibility.sh \
+#           -b $(System.ArtifactsDirectory)/$(artifactName) \
+#           -t $(TIME_TO_RUN_SECONDS) \
+#           --edge-agent-image $edgeAgentImage \
+#           --edge-hub-image $edgeHubImage \
+#           --temp-sensor-image $tempSensorImage 
+#       displayName: Check Usage
+#       name: check_usage
+#       env:
+#         IOTHUB_NAME: $(IOT_HUB_NAME)
+#         REGISTRY_ADDRESS: $(cr.address)
+#         REGISTRY_USERNAME: $(cr.username)
+#         REGISTRY_PASSWORD: $(cr.password)
 
 # TODO : Current 1ES Image for ARM64 requires some additional installation, We should add these to our 1ES Base Image
 ################################################################################
@@ -121,6 +121,7 @@ jobs:
         azure-cli-env/bin/python -m pip install azure-cli
         azure-cli-env/bin/az --version
         export PATH=$(realpath azure-cli-env/bin/):$PATH
+        echo "Path is $PATH"
         echo "PATH=$PATH" > ~/.bashrc
         . ~/.bashrc
       displayName: Install AZ CLI
