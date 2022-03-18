@@ -32,7 +32,7 @@ function install_iotedge_local() {
 
 begin_benchmarking() {
     mkdir -p "$BENCHMARK_OUTPUT_DIR"
-    echo "Starting Script for Analyzing Container Memory with Path $BENCHMARK_OUTPUT_DIR and Script $USAGE_SCRIPT_PATH"
+    echo "Starting Script for Analyzing IoT Edge Memory with Path $BENCHMARK_OUTPUT_DIR and Script $USAGE_SCRIPT_PATH"
     sudo chmod +x "$USAGE_SCRIPT_PATH"
     "$USAGE_SCRIPT_PATH" -t "$1" -p "$BENCHMARK_OUTPUT_DIR" >&"$BENCHMARK_OUTPUT_DIR/analyze-memory-logs.out" &
 }
