@@ -41,7 +41,7 @@ jobs:
         identityServicePackageFilter: aziot-identity-service_*_amd64.deb
         skip_notary: true
     
-    timeoutInMinutes: 120
+    timeoutInMinutes: 180
 
     steps:
     - template: templates/e2e-setup.yaml
@@ -100,7 +100,7 @@ jobs:
       identityServicePackageFilter: aziot-identity-service_*_arm64.deb
       skip_notary: true
     
-    timeoutInMinutes: 120
+    timeoutInMinutes: 180
 
     steps:
     - task: AzureKeyVault@1
@@ -111,7 +111,25 @@ jobs:
         SecretsFilter: >-
           edgebuild-service-principal-secret,
     - bash: |
-        curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+        sudo apt-get update
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            apt-transport-https \
+            ca-certificates \
+            curl \
+            gnupg \
+            lsb-release \
+            tzdata
+
+        curl -sL https://packages.microsoft.com/keys/microsoft.asc | \
+            gpg --dearmor | \
+            sudo tee /etc/apt/trusted.gpg.d/microsoft.gpg > /dev/null
+
+        AZ_REPO=$(lsb_release -cs)
+        echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli $AZ_REPO main" | \
+            sudo tee /etc/apt/sources.list.d/azure-cli.list
+
+        sudo apt-get update
+        sudo apt-get install -y azure-cli
       displayName: Install AZ CLI
     - task: Bash@3
       displayName: 'Az login'
