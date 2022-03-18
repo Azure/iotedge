@@ -12,7 +12,6 @@ set -e
 
 function install_iotedge_local() {
     directory="$1"
-    sudo apt-get update
     identityservicebinary="$(ls "$directory" | grep "aziot-identity-service")"
     if [[ -z $identityservicebinary ]]; then
         echo "No Identity Service Binary Found"
