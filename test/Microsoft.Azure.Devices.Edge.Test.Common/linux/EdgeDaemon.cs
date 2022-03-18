@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         throw new NotImplementedException($"Don't know how to install daemon on operating system '{os} {version}'");
                     }
 
-                    break;   
+                    break;
                 case "centos":
                     version = version.Split('.')[0];
                     packageExtension = SupportedPackageExtension.Rpm;
