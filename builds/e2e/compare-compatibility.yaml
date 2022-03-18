@@ -69,7 +69,7 @@ jobs:
           -u $(Build.SourcesDirectory)/platform-validation/scripts/analyzeSystemStats.sh \
           -c $(Build.SourcesDirectory)/platform-validation/scripts/aziot-compatibility.sh \
           -b $(System.ArtifactsDirectory)/$(artifactName) \
-          -t $(TIME_TO_RUN) \
+          -t $(TIME_TO_RUN_SECONDS) \
           --edge-agent-image $edgeAgentImage \
           --edge-hub-image $edgeHubImage \
           --temp-sensor-image $tempSensorImage 
@@ -167,7 +167,7 @@ jobs:
           -u $(Build.SourcesDirectory)/platform-validation/scripts/analyzeSystemStats.sh \
           -c $(Build.SourcesDirectory)/platform-validation/scripts/aziot-compatibility.sh \
           -b $(System.ArtifactsDirectory)/$(artifactName) \
-          -t $(TIME_TO_RUN) \
+          -t $(TIME_TO_RUN_SECONDS) \
           --edge-agent-image $edgeAgentImage \
           --edge-hub-image $edgeHubImage \
           --temp-sensor-image $tempSensorImage 
