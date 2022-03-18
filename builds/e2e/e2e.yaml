@@ -88,9 +88,9 @@ jobs:
     displayName: Ubuntu 20.04 with arm64v8
 
     pool:
-      name: $(pool.custom.name)
-      demands: 
-        - agent-group -equals rpi3-e2e-aarch64
+      name: 'Azure-IoT-Edge-1ES-Hosted-Linux-Arm64'
+      demands:
+      - ImageOverride -equals agent-aziotedge-ubuntu-20.04-arm64
 
     variables:
       os: linux
@@ -110,15 +110,58 @@ jobs:
         KeyVaultName: $(az.keyvault)
         SecretsFilter: >-
           edgebuild-service-principal-secret,
+    - bash: |
+        #AZ-CLI doesnt have package support : https://github.com/Azure/azure-cli/issues/7368
+        sudo apt-get update
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python3 python3-pip
+        pip install azure-cli
+      displayName: Install AZ CLI
     - task: Bash@3
       displayName: 'Az login'
       inputs:
         targetType: inline
         script: |
           az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
-    - template: templates/e2e-clean-directory.yaml
+    - bash: |
+          set -e
+          # Install PowerShell dependencies
+          sudo apt-get update
+          sudo apt-get install -y liblttng-ust0 jq
+          # Get the PowerShell tarball
+          release_id=$(curl -sSH 'Accept: application/vnd.github.v3+json' https://api.github.com/repos/powershell/powershell/releases/latest | jq '.id')
+          url=$(curl -sSH 'Accept: application/vnd.github.v3+json' https://api.github.com/repos/powershell/powershell/releases/$release_id/assets | jq -r ".[] | select(.name | contains(\"linux-arm64.tar.gz\")) | .browser_download_url")
+          echo "$release_id"
+          echo "$url"
+          file=$(basename $url)
+          curl -sSL $url -o /tmp/$file
+          # Install PowerShell
+          sudo mkdir -p /opt/microsoft/powershell/7
+          sudo tar zxf /tmp/$file -C /opt/microsoft/powershell/7
+          sudo chmod +x /opt/microsoft/powershell/7/pwsh
+          sudo ln -s /opt/microsoft/powershell/7/pwsh /usr/bin/pwsh
+      displayName: Install pwsh
+    - bash: |
+        set -e
+        # Install .NET Core dependencies
+        sudo apt-get update
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            libc6 libgcc1 libgssapi-krb5-2 libicu66 libssl1.1 libstdc++6 zlib1g
+        # Install .NET Core
+        curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 3.1
+        sudo ln -s $HOME/.dotnet/dotnet /usr/bin/dotnet
+      displayName: Install .NET Core
+    - bash: |
+        set -e
+        # Install Moby
+        curl https://packages.microsoft.com/config/ubuntu/20.04/prod.list > ./microsoft-prod.list
+        sudo cp ./microsoft-prod.list /etc/apt/sources.list.d/
+        curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
+        sudo cp ./microsoft.gpg /etc/apt/trusted.gpg.d/
+        rm microsoft-prod.list microsoft.gpg
+        sudo apt-get update
+        sudo apt-get install -y moby-engine
+      displayName: Install moby
     - template: templates/e2e-setup.yaml
-    - template: templates/e2e-clear-docker-cached-images.yaml
     - bash: |
           contextPath=$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp3.1/context.json
           edgeAgentImage="$(cat $contextPath | jq '.edgeAgentImage' | tr -d '"')" 
