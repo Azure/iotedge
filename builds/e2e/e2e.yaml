@@ -110,15 +110,15 @@ jobs:
         KeyVaultName: $(az.keyvault)
         SecretsFilter: >-
           edgebuild-service-principal-secret,
+    - bash: |
+        curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+      displayName: Install AZ CLI
     - task: Bash@3
       displayName: 'Az login'
       inputs:
         targetType: inline
         script: |
           az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
-    - bash: |
-          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-      displayName: Install AZ CLI
     - bash: |
           set -e
           # Install PowerShell dependencies
