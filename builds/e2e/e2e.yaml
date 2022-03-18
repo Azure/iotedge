@@ -168,7 +168,6 @@ jobs:
       displayName: Install moby
     - template: templates/e2e-setup.yaml
     - bash: |
-          export PATH=azure-cli-env/bin/:$PATH
           contextPath=$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp3.1/context.json
           edgeAgentImage="$(cat $contextPath | jq '.edgeAgentImage' | tr -d '"')" 
           edgeHubImage="$(cat $contextPath | jq '.edgeHubImage' | tr -d '"')"
