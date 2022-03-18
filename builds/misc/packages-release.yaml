@@ -1102,7 +1102,19 @@ stages:
           Debian9-arm32v7:
             os: debian9
             artifactName: iotedged-debian9-arm32v7
-      
+            identityServiceArtifactName: packages_debian-9-slim_arm32v7
+            identityServicePackageFilter: aziot-identity-service_*_armhf.deb
+          Debian10-arm32v7:
+            os: debian10
+            artifactName: iotedged-debian10-arm32v7
+            identityServiceArtifactName: packages_debian-10-slim_arm32v7
+            identityServicePackageFilter: aziot-identity-service_*_armhf.deb
+          Debian11-arm32v7:
+            os: debian11
+            artifactName: iotedged-debian11-arm32v7
+            identityServiceArtifactName: packages_debian-11-slim_arm32v7
+            identityServicePackageFilter: aziot-identity-service_*_armhf.deb
+          
           Ubuntu1804-amd64:
             os: ubuntu18.04
             artifactName: iotedged-ubuntu18.04-amd64
