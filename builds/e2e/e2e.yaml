@@ -122,7 +122,8 @@ jobs:
         azure-cli-env/bin/az --version
         export PATH=$(realpath azure-cli-env/bin/):$PATH
         echo "Path is $PATH"
-        echo "PATH=$PATH" > ~/.bashrc
+        echo "PATH=$PATH" >> ~/.bashrc
+        cat ~/.bashrc
         . ~/.bashrc
       displayName: Install AZ CLI
     - task: Bash@3
@@ -130,6 +131,7 @@ jobs:
       inputs:
         targetType: inline
         script: |
+          echo $PATH
           az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
     - bash: |
           set -e
