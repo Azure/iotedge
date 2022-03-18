@@ -33,13 +33,13 @@ jobs:
       demands:
       - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
 
-      variables:
-          os: linux
-          arch: amd64
-          artifactName: iotedged-ubuntu20.04-amd64
-          identityServiceArtifactName: packages_ubuntu-20.04_amd64
-          identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-          skip_notary: true
+    variables:
+        os: linux
+        arch: amd64
+        artifactName: iotedged-ubuntu20.04-amd64
+        identityServiceArtifactName: packages_ubuntu-20.04_amd64
+        identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+        skip_notary: true
     
     timeoutInMinutes: 120
 
@@ -88,17 +88,17 @@ jobs:
     displayName: Ubuntu 20.04 with arm64v8
 
     pool:
-      name: $(pool.linux.name)
+      name: 'Azure-IoT-Edge-1ES-Hosted-Linux-Arm64'
       demands:
       - ImageOverride -equals agent-aziotedge-ubuntu-20.04-arm64
 
-      variables:
-        os: linux
-        arch: arm64v8
-        artifactName: iotedged-ubuntu20.04-aarch64
-        identityServiceArtifactName: packages_ubuntu-20.04_aarch64
-        identityServicePackageFilter: aziot-identity-service_*_arm64.deb
-        skip_notary: true
+    variables:
+      os: linux
+      arch: arm64v8
+      artifactName: iotedged-ubuntu20.04-aarch64
+      identityServiceArtifactName: packages_ubuntu-20.04_aarch64
+      identityServicePackageFilter: aziot-identity-service_*_arm64.deb
+      skip_notary: true
     
     timeoutInMinutes: 120
 
@@ -116,6 +116,9 @@ jobs:
         targetType: inline
         script: |
           az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
+    - bash: |
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+      displayName: Install AZ CLI
     - bash: |
           set -e
           # Install PowerShell dependencies
