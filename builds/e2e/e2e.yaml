@@ -250,6 +250,28 @@ jobs:
     - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
 
+  ################################################################################
+  - job: reddhat8_amd64
+  ################################################################################
+    displayName: RedHat8 amd64
+
+    pool:
+      name: $(pool.linux.name)
+      demands:
+      - ImageOverride -equals agent-aziotedge-rhel-8-msmoby
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-redhat8-amd64
+      identityServiceArtifactName: packages_redhat-ubi8-latest_amd64
+      identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
+      skip_notary: false
+
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+      
 ################################################################################
   - job: linux_amd64_proxy
 ################################################################################
