@@ -88,7 +88,7 @@ jobs:
     displayName: Ubuntu 20.04 with arm64v8
 
     pool:
-      name: $(pool.linux.name)
+      name: 'Azure-IoT-Edge-1ES-Hosted-Linux-Arm64'
       demands:
       - ImageOverride -equals agent-aziotedge-ubuntu-20.04-arm64
 
