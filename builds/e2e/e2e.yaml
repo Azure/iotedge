@@ -111,25 +111,6 @@ jobs:
         SecretsFilter: >-
           edgebuild-service-principal-secret,
     - bash: |
-        #AZ-CLI doesnt have package support : https://github.com/Azure/azure-cli/issues/7368
-        set -e
-        sudo apt-get update
-        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python3 python3-venv make libsodium-dev python3-pip
-        SODIUM_INSTALL=system pip install pynacl
-        $(command -v python3) -m venv azure-cli-env
-        azure-cli-env/bin/python -m pip install --upgrade pip
-        azure-cli-env/bin/python -m pip install azure-cli
-        azure-cli-env/bin/az --version
-      displayName: Install AZ CLI
-    - task: Bash@3
-      displayName: 'Az login'
-      inputs:
-        targetType: inline
-        script: |
-          echo $(Build.SourcesDirectory)
-          export PATH=$(Build.SourcesDirectory)/azure-cli-env/bin/:$PATH
-          az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
-    - bash: |
           set -e
           # Install PowerShell dependencies
           sudo apt-get update
@@ -176,8 +157,8 @@ jobs:
           azure-cli-env/bin/python -m pip install azure-cli
           azure-cli-env/bin/az --version
           export PATH=azure-cli-env/bin/:$PATH
-          echo "Path is $PATH"
-          az --version
+          az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
+
           contextPath=$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp3.1/context.json
           edgeAgentImage="$(cat $contextPath | jq '.edgeAgentImage' | tr -d '"')" 
           edgeHubImage="$(cat $contextPath | jq '.edgeHubImage' | tr -d '"')"
