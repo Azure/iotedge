@@ -242,13 +242,13 @@ process_args "$@"
 
 cleanup_files
 #Start the Memory Usage Script so that we can capture startup memory usage
-begin_benchmarking "$TIME_TO_RUN"
 install_iotedge_local "$BINARIES_PATH"
 provision_edge_device
 echo "Provision Complete, Waiting 60 seconds"
 sleep 60
 create_edge_deployment
 echo "Deployment Complete, Sleeping for $TIME_TO_RUN seconds"
+begin_benchmarking "$TIME_TO_RUN"
 sleep "$TIME_TO_RUN"
 calculate_usage
 delete_edge_deployment
