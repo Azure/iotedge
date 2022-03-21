@@ -12,7 +12,6 @@ set -e
 
 function install_iotedge_local() {
     directory="$1"
-    sudo apt-get update
     identityservicebinary="$(ls "$directory" | grep "aziot-identity-service")"
     if [[ -z $identityservicebinary ]]; then
         echo "No Identity Service Binary Found"
@@ -33,9 +32,9 @@ function install_iotedge_local() {
 
 begin_benchmarking() {
     mkdir -p "$BENCHMARK_OUTPUT_DIR"
-    echo "Starting Script for Analyzing Container Memory with Path $BENCHMARK_OUTPUT_DIR and Script $USAGE_SCRIPT_PATH"
+    echo "Starting Script for Analyzing IoT Edge Memory with Path $BENCHMARK_OUTPUT_DIR and Script $USAGE_SCRIPT_PATH"
     sudo chmod +x "$USAGE_SCRIPT_PATH"
-    "$USAGE_SCRIPT_PATH" -t "$1" -p "$BENCHMARK_OUTPUT_DIR" >&"$BENCHMARK_OUTPUT_DIR/analyze-memory-logs.out" &
+    "$USAGE_SCRIPT_PATH" -t "$1" -p "$BENCHMARK_OUTPUT_DIR" >"$BENCHMARK_OUTPUT_DIR/analyze-memory-logs.out" &
 }
 
 calculate_usage() {
@@ -259,6 +258,7 @@ delete_iot_edge
 #Compare Usage and Exit if Current Usage exceeds recorded usage
 size_buffer="$(grep "iotedge_size_buffer=" <"$COMPATIBILITY_TOOL_PATH" | sed -r "s/^iotedge_size_buffer=//g")"
 memory_buffer="$(grep "iotedge_memory_buffer=" <"$COMPATIBILITY_TOOL_PATH" | sed -r "s/^iotedge_memory_buffer=//g")"
+cat "$BENCHMARK_OUTPUT_DIR/analyze-memory-logs.out"
 echo "Size buffer is $size_buffer"
 compare_usage container size "$size_buffer"
 compare_usage container memory "$memory_buffer"

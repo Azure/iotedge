@@ -41,7 +41,7 @@ jobs:
         identityServicePackageFilter: aziot-identity-service_*_amd64.deb
         skip_notary: true
     
-    timeoutInMinutes: 120
+    timeoutInMinutes: 180
 
     steps:
     - template: templates/e2e-setup.yaml
@@ -64,7 +64,7 @@ jobs:
           edgeHubImage="$(cat $contextPath | jq '.edgeHubImage' | tr -d '"')"
           tempSensorImage="$(cat $contextPath | jq '.tempSensorImage' | tr -d '"')"
           az extension add --name azure-iot
-          $(Build.SourcesDirectory)/platform-validation/scripts/check-for-updates.sh \
+          sudo --preserve-env $(Build.SourcesDirectory)/platform-validation/scripts/check-for-updates.sh \
           -f $(Build.SourcesDirectory)/platform-validation/deployment/platform-compatibility.json \
           -u $(Build.SourcesDirectory)/platform-validation/scripts/analyzeSystemStats.sh \
           -c $(Build.SourcesDirectory)/platform-validation/scripts/aziot-compatibility.sh \
@@ -100,7 +100,7 @@ jobs:
       identityServicePackageFilter: aziot-identity-service_*_arm64.deb
       skip_notary: true
     
-    timeoutInMinutes: 120
+    timeoutInMinutes: 180
 
     steps:
     - task: AzureKeyVault@1
@@ -110,15 +110,6 @@ jobs:
         KeyVaultName: $(az.keyvault)
         SecretsFilter: >-
           edgebuild-service-principal-secret,
-    - task: Bash@3
-      displayName: 'Az login'
-      inputs:
-        targetType: inline
-        script: |
-          az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
-    - bash: |
-          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-      displayName: Install AZ CLI
     - bash: |
           set -e
           # Install PowerShell dependencies
@@ -160,12 +151,23 @@ jobs:
       displayName: Install moby
     - template: templates/e2e-setup.yaml
     - bash: |
+          set -e
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python3 python3-venv make libsodium-dev pip
+          SODIUM_INSTALL=system pip install pynacl
+          $(command -v python3) -m venv azure-cli-env
+          azure-cli-env/bin/python -m pip install --upgrade pip
+          azure-cli-env/bin/python -m pip install azure-cli
+          azure-cli-env/bin/az --version
+          export PATH=azure-cli-env/bin/:$PATH
+          az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
+
           contextPath=$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp3.1/context.json
           edgeAgentImage="$(cat $contextPath | jq '.edgeAgentImage' | tr -d '"')" 
           edgeHubImage="$(cat $contextPath | jq '.edgeHubImage' | tr -d '"')"
           tempSensorImage="$(cat $contextPath | jq '.tempSensorImage' | tr -d '"')"
           az extension add --name azure-iot
-          $(Build.SourcesDirectory)/platform-validation/scripts/check-for-updates.sh \
+          sudo --preserve-env env "PATH=$PATH" $(Build.SourcesDirectory)/platform-validation/scripts/check-for-updates.sh \
           -f $(Build.SourcesDirectory)/platform-validation/deployment/platform-compatibility.json \
           -u $(Build.SourcesDirectory)/platform-validation/scripts/analyzeSystemStats.sh \
           -c $(Build.SourcesDirectory)/platform-validation/scripts/aziot-compatibility.sh \
