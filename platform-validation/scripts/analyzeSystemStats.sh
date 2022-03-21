@@ -190,11 +190,10 @@ while [[ $SECONDS -lt $end_time ]]; do
                     echo "$binary-size=$file_size" >>"$FILE"
                fi
 
-               memory=$(top -b -d 1 -n 1 | awk '{print $6, $9, $NF}' | grep "$binary$" | awk '{print $1}')
-               cpu=$(top -b -d 1 -n 1 | awk '{print $6, $9, $NF}' | grep "$binary$" | awk '{print $2}')
+               #Top doesn't seem to get Memory CPU in 1ES Agents, Use PS command to get RSS Memory and CPU%
+               memory=$(ps up "$(pgrep -f -n "$binary")" 2>/dev/null | awk '{print $6}' | sed -r 's/([^0-9)+(.[0-9])?//g')
+               cpu=$(ps -p "$(pgrep -f -n "$binary")" -o %cpu 2>/dev/null | sed -r 's/([^0-9)+(.[0-9])?//g')
 
-               test="$(ps up "$(pgrep -f -n "$binary")" | awk '{print $6}')"
-               echo "$test"
                #We get a Kb Output from top, convert it to Mb for consistency with container data set
                memory=$(echo "$memory" | awk '{printf "%.2f", $1/1024}')
                # echo "Writing memory usage for $binary , Value : $memory"
