@@ -45,20 +45,14 @@ jobs:
 
     steps:
     - template: templates/e2e-setup.yaml
-    - task: AzureKeyVault@1
-      displayName: 'Get Secret'
+    - task: AzureCLI@2
+      displayName: Check Usage
+      name: check_usage
       inputs:
         azureSubscription: $(az.subscription)
-        KeyVaultName: $(az.keyvault)
-        SecretsFilter: >-
-          edgebuild-service-principal-secret,
-    - task: Bash@3
-      displayName: 'Az login'
-      inputs:
-        targetType: inline
-        script: |
-          az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
-    - bash: |
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
           contextPath=$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp3.1/context.json
           edgeAgentImage="$(cat $contextPath | jq '.edgeAgentImage' | tr -d '"')" 
           edgeHubImage="$(cat $contextPath | jq '.edgeHubImage' | tr -d '"')"
@@ -73,13 +67,12 @@ jobs:
           --edge-agent-image $edgeAgentImage \
           --edge-hub-image $edgeHubImage \
           --temp-sensor-image $tempSensorImage 
-      displayName: Check Usage
-      name: check_usage
       env:
         IOTHUB_NAME: $(IOT_HUB_NAME)
         REGISTRY_ADDRESS: $(cr.address)
         REGISTRY_USERNAME: $(cr.username)
         REGISTRY_PASSWORD: $(cr.password)
+      
 
 # TODO : Current 1ES Image for ARM64 requires some additional installation, We should add these to our 1ES Base Image
 ################################################################################
@@ -100,22 +93,9 @@ jobs:
         identityServicePackageFilter: aziot-identity-service_*_arm64.deb
         skip_notary: true
     
-    timeoutInMinutes: 120
+    timeoutInMinutes: 180
 
     steps:
-    - task: AzureKeyVault@1
-      displayName: 'Get Secret'
-      inputs:
-        azureSubscription: $(az.subscription)
-        KeyVaultName: $(az.keyvault)
-        SecretsFilter: >-
-          edgebuild-service-principal-secret,
-    - task: Bash@3
-      displayName: 'Az login'
-      inputs:
-        targetType: inline
-        script: |
-          az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
     - bash: |
           set -e
           # Install PowerShell dependencies
@@ -156,7 +136,13 @@ jobs:
         sudo apt-get install -y moby-engine
       displayName: Install moby
     - template: templates/e2e-setup.yaml
-    - bash: |
+    - task: AzureCLI@2
+      displayName: Check Usage
+      inputs:
+        azureSubscription: $(az.subscription)
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
           contextPath=$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp3.1/context.json
           edgeAgentImage="$(cat $contextPath | jq '.edgeAgentImage' | tr -d '"')" 
           edgeHubImage="$(cat $contextPath | jq '.edgeHubImage' | tr -d '"')"
@@ -171,7 +157,6 @@ jobs:
           --edge-agent-image $edgeAgentImage \
           --edge-hub-image $edgeHubImage \
           --temp-sensor-image $tempSensorImage 
-      displayName: Check Usage
       name: check_usage
       env:
         IOTHUB_NAME: $(IOT_HUB_NAME)
