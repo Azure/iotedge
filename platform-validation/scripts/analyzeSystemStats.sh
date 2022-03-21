@@ -191,8 +191,10 @@ while [[ $SECONDS -lt $end_time ]]; do
                fi
 
                #Top doesn't seem to get Memory CPU in 1ES Agents, Use PS command to get RSS Memory and CPU%
-               memory=$(ps up "$(pgrep -f -n "$binary")" 2>/dev/null | awk '{print $6}' | sed -r 's/([^0-9)+(.[0-9])?//g')
-               cpu=$(ps -p "$(pgrep -f -n "$binary")" -o %cpu 2>/dev/null | sed -r 's/([^0-9)+(.[0-9])?//g')
+               memory="$(ps up "$(pgrep -f -n "$binary")" 2>/dev/null | awk '{print $6}' | sed -r 's/([^0-9)+(.[0-9])?//g' | tr -d '\n')"
+               cpu="$(ps -p "$(pgrep -f -n "$binary")" -o %cpu 2>/dev/null | sed -r 's/([^0-9)+(.[0-9])?//g' | tr -d '\n')"
+
+               echo "$binary CPU is $cpu Memory is $memory"
 
                #We get a Kb Output from top, convert it to Mb for consistency with container data set
                memory=$(echo "$memory" | awk '{printf "%.2f", $1/1024}')
