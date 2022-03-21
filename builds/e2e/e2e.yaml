@@ -167,7 +167,7 @@ jobs:
           edgeHubImage="$(cat $contextPath | jq '.edgeHubImage' | tr -d '"')"
           tempSensorImage="$(cat $contextPath | jq '.tempSensorImage' | tr -d '"')"
           az extension add --name azure-iot
-          sudo --preserve-env $(Build.SourcesDirectory)/platform-validation/scripts/check-for-updates.sh \
+          sudo --preserve-env env "PATH=$PATH" $(Build.SourcesDirectory)/platform-validation/scripts/check-for-updates.sh \
           -f $(Build.SourcesDirectory)/platform-validation/deployment/platform-compatibility.json \
           -u $(Build.SourcesDirectory)/platform-validation/scripts/analyzeSystemStats.sh \
           -c $(Build.SourcesDirectory)/platform-validation/scripts/aziot-compatibility.sh \
