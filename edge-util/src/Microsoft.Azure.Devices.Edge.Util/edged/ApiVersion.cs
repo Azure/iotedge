@@ -1,17 +1,18 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Util.Edged
 {
+    using System;
     using System.Collections.Generic;
 
-    public sealed class ApiVersion
+    public sealed class ApiVersion : IComparable<ApiVersion>
     {
+        public static readonly ApiVersion VersionUnknown = new ApiVersion(0, "Unknown");
         public static readonly ApiVersion Version20180628 = new ApiVersion(1, "2018-06-28");
         public static readonly ApiVersion Version20190130 = new ApiVersion(2, "2019-01-30");
         public static readonly ApiVersion Version20191022 = new ApiVersion(3, "2019-10-22");
         public static readonly ApiVersion Version20191105 = new ApiVersion(4, "2019-11-05");
         public static readonly ApiVersion Version20200707 = new ApiVersion(5, "2020-07-07");
         public static readonly ApiVersion Version20211207 = new ApiVersion(6, "2021-12-07");
-        public static readonly ApiVersion VersionUnknown = new ApiVersion(100, "Unknown");
 
         static readonly Dictionary<string, ApiVersion> Instance = new Dictionary<string, ApiVersion>
         {
@@ -32,6 +33,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
         public string Name { get; }
 
         public int Value { get; }
+
+        public int CompareTo(ApiVersion other)
+        {
+            return this.Value.CompareTo(other.Value);
+        }
 
         public static ApiVersion ParseVersion(string str)
         {
