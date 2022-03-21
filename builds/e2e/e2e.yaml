@@ -153,7 +153,7 @@ jobs:
     - bash: |
           set -e
           sudo apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python3 python3-venv make libsodium-dev
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python3 python3-venv make libsodium-dev pip
           SODIUM_INSTALL=system pip install pynacl
           $(command -v python3) -m venv azure-cli-env
           azure-cli-env/bin/python -m pip install --upgrade pip
