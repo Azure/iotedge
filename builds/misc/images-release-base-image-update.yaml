@@ -34,7 +34,7 @@ stages:
       - task: ShellScript@2
         displayName: "Build Azure-IoT-Edge-Core"
         inputs: 
-          args: "-c $(Build.Configuration)"
+          args: "-c Release"
           scriptPath: scripts/linux/buildBranch.sh
       - template: ../templates/dotnet2-globaljson.yaml # switch to dotnet 2 as primary install for code sign
       - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
