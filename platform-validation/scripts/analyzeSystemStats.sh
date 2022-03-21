@@ -9,7 +9,7 @@ STORAGE_PATH="$(realpath "${STORAGE_PATH:-$DIR}")"
 SECONDS_TO_RUN=${SECONDS_TO_RUN:-50}
 INTERVAL=${INTERVAL:-0}
 
-BINARIES="aziot-edged aziot-identityd aziot-certd aziot-keyd dockerd containerd"
+BINARIES="aziot-edged aziot-identityd aziot-certd aziot-keyd"
 BINARYLOCATIONS="/usr/bin /usr/libexec"
 CONTAINERS="edgeHub edgeAgent"
 
