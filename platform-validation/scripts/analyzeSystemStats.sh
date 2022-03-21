@@ -193,7 +193,7 @@ while [[ $SECONDS -lt $end_time ]]; do
                memory=$(top -b -d 1 -n 1 | awk '{print $6, $9, $NF}' | grep "$binary$" | awk '{print $1}')
                cpu=$(top -b -d 1 -n 1 | awk '{print $6, $9, $NF}' | grep "$binary$" | awk '{print $2}')
 
-               test="$(top -b -d 1 -n 1 | grep "$binary")"
+               test="$(ps up "$(pgrep -f -n "$binary")" | awk '{print $6}')"
                echo "$test"
                #We get a Kb Output from top, convert it to Mb for consistency with container data set
                memory=$(echo "$memory" | awk '{printf "%.2f", $1/1024}')
