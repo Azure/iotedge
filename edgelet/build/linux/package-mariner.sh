@@ -132,7 +132,7 @@ popd
 
 # copy over IIS RPM
 mkdir -p ${MARINER_BUILD_ROOT}/out/RPMS/${MARINER_ARCH}
-cp aziot-identity-service/${MarinerIdentity}/${ARCH}/aziot-identity-service-*.$PackageExtension.${MARINER_ARCH}.rpm ${MARINER_BUILD_ROOT}/out/RPMS/${MARINER_ARCH}
+cp /src/aziot-identity-service/${MarinerIdentity}/${ARCH}/aziot-identity-service-*.$PackageExtension.${MARINER_ARCH}.rpm ${MARINER_BUILD_ROOT}/out/RPMS/${MARINER_ARCH}
 
 # Prepare toolkit
 pushd ${MARINER_BUILD_ROOT}
