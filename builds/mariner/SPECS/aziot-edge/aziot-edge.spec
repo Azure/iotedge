@@ -16,7 +16,6 @@ URL:            https://github.com/azure/iotedge
 
 %{?systemd_requires}
 BuildRequires:  systemd
-BuildRequires:  rust = 1.47.0
 Requires(pre):  shadow-utils
 Requires:       openssl
 Requires:       aziot-identity-service
@@ -25,6 +24,7 @@ Requires:       moby-cli
 
 #Source0:       https://github.com/Azure/iotedge/archive/%{version}.tar.gz
 Source0:        %{name}-%{version}.tar.gz
+Source1: rust.tar.gz
 
 %description
 Azure IoT Edge Module Runtime
@@ -36,6 +36,15 @@ securely and at scale—whether in the cloud or offline.
 This package contains the IoT Edge daemon and CLI tool.
 
 %prep
+# include rust toolchain that matches the one from iot-identity-service's pipeline
+pushd ~
+tar xf %{SOURCE1} --no-same-owner --strip-components=1
+popd
+export CARGO_HOME=~/.cargo
+export PATH=$PATH:$CARGO_HOME/bin
+export RUSTUP_HOME=~/.rustup
+export RUSTUP_TOOLCHAIN=~/.rustup/toolchains/1.47-x86_64-unknown-linux-gnu
+
 %setup -q
 
 cd edgelet

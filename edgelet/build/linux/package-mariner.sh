@@ -74,12 +74,19 @@ echo "Creating source tarball aziot-edge-${VERSION}.tar.gz"
 tar -czvf aziot-edge-${VERSION}.tar.gz --transform s/./aziot-edge-${VERSION}/ -C "${BUILD_REPOSITORY_LOCALPATH}" .
 popd
 
-# Update expected tarball hash
 
 # Copy source tarball to expected locations
 mkdir -p "${MARINER_BUILD_ROOT}/SPECS/aziot-edge/SOURCES/"
 mv "${tmp_dir}/aziot-edge-${VERSION}.tar.gz" "${MARINER_BUILD_ROOT}/SPECS/aziot-edge/SOURCES/"
 rm -rf ${tmp_dir}
+
+tmp_dir=$(mktemp -d)
+pushd $tmp_dir
+mkdir "rust"
+cp -r ~/.cargo "rust"
+cp -r ~/.rustup "rust"
+tar cf "${MARINER_BUILD_ROOT}/SPECS/aziot-edge/SOURCES/rust.tar.gz" "rust"
+popd
 
 # Download Mariner repo and build toolkit
 echo "Cloning the \"${MARINER_RELEASE}\" tag of the CBL-Mariner repo."
@@ -95,11 +102,6 @@ popd
 # copy over IIS RPM
 mkdir -p ${MARINER_BUILD_ROOT}/out/RPMS/${MARINER_ARCH}
 cp aziot-identity-service/${MarinerIdentity}/${PACKAGE_ARCH}/aziot-identity-service-*.$PackageExtension.${MARINER_ARCH}.rpm ${MARINER_BUILD_ROOT}/out/RPMS/${MARINER_ARCH}
-
-# copy Rust version
-pushd ${MARINER_BUILD_ROOT}/out/RPMS/${MARINER_ARCH}
-curl -o rust-1.47.0-3.x86_64.rpm https://packages.microsoft.com/cbl-mariner/1.0/prod/update/x86_64/rpms/rust-1.47.0-3.cm1.x86_64.rpm
-popd
 
 # Prepare toolkit
 pushd ${MARINER_BUILD_ROOT}
