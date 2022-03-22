@@ -199,8 +199,6 @@ stages:
               PACKAGE_FILTER: 'aziot-identity-service-*.cm1.$(MARINER_ARCH).rpm'
               DOWNLOAD_PATH: $(Build.StagingDirectory)
               IDENTITY_SERVICE_COMMIT: $(IISCommit)
-          - script: edgelet/build/linux/package-mariner.sh
-            displayName: Create iotedged packages
           - bash: |
               docker run --rm \
                 -v "$GITHUB_WORKSPACE:/src" \
