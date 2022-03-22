@@ -202,7 +202,7 @@ stages:
           - bash: |
               docker run --rm \
                 -v "$GITHUB_WORKSPACE:/src" \
-                -e "ARCH=$ARCH" \
+                -e "ARCH=$arch" \
                 -e "OS=$OS" \
                 -e "MARINER_RELEASE=$MARINER_RELEASE" \
                 -e "MARINER_ARCH=$MARINER_ARCH" \
