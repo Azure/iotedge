@@ -28,7 +28,7 @@ echo 'Installing rustup'
 curl -sSLf https://sh.rustup.rs | sh -s -- -y
 . ~/.cargo/env
 
-if [$PACKAGE_ARCH == 'aarch64']; then
+if [$MARINER_ARCH == 'arm64']; then
     rustup target add aarch64-unknown-linux-gnu
 fi
 
@@ -124,7 +124,7 @@ popd
 
 # copy over IIS RPM
 mkdir -p ${MARINER_BUILD_ROOT}/out/RPMS/${MARINER_ARCH}
-cp aziot-identity-service/${MarinerIdentity}/${PACKAGE_ARCH}/aziot-identity-service-*.$PackageExtension.${MARINER_ARCH}.rpm ${MARINER_BUILD_ROOT}/out/RPMS/${MARINER_ARCH}
+cp aziot-identity-service/${MarinerIdentity}/${MARINER_ARCH}/aziot-identity-service-*.$PackageExtension.${MARINER_ARCH}.rpm ${MARINER_BUILD_ROOT}/out/RPMS/${MARINER_ARCH}
 
 # Prepare toolkit
 pushd ${MARINER_BUILD_ROOT}

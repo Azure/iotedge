@@ -205,7 +205,7 @@ stages:
                 -e "ARCH=$ARCH" \
                 -e "OS=$OS" \
                 -e "MARINER_RELEASE=$MARINER_RELEASE" \
-                -e "PACKAGE_ARCH=$PACKAGE_ARCH" \
+                -e "MARINER_ARCH=$MARINER_ARCH" \
                 -e "VERSION=$VERSION" \
                 --privileged \
                 "ubuntu:18.04" \
