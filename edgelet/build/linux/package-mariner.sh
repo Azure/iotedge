@@ -51,7 +51,7 @@ REVISION="${REVISION:-1}"
 pushd $EDGELET_ROOT
 case "${MARINER_ARCH}" in
     'x86_64')
-        rustup target add amd64-unknown-linux-gnu
+        rustup target add x86_64-unknown-linux-gnu
         ;;
     'arm64')
         rustup target add aarch64-unknown-linux-gnu
