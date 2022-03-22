@@ -201,7 +201,7 @@ stages:
               IDENTITY_SERVICE_COMMIT: $(IISCommit)
           - bash: |
               docker run --rm \
-                -v "$GITHUB_WORKSPACE:/src" \
+                -v "$(Build.StagingDirectory):/src" \
                 -e "ARCH=$arch" \
                 -e "OS=$OS" \
                 -e "MARINER_RELEASE=$MARINER_RELEASE" \
