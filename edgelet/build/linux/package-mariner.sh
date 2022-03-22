@@ -28,9 +28,6 @@ echo 'Installing rustup'
 curl -sSLf https://sh.rustup.rs | sh -s -- -y
 . ~/.cargo/env
 
-if [$MARINER_ARCH == 'arm64']; then
-    rustup target add aarch64-unknown-linux-gnu
-fi
 
 # need to use preview repo for the next 2 weeks untill mariner 2.0 gets moved to prod
 case "${MARINER_RELEASE}" in
@@ -50,6 +47,17 @@ BUILD_REPOSITORY_LOCALPATH="$(realpath "${BUILD_REPOSITORY_LOCALPATH:-$DIR/../..
 EDGELET_ROOT="${BUILD_REPOSITORY_LOCALPATH}/edgelet"
 MARINER_BUILD_ROOT="${BUILD_REPOSITORY_LOCALPATH}/builds/${MarinerIdentity}"
 REVISION="${REVISION:-1}"
+
+pushd $EDGELET_ROOT
+case "${MARINER_ARCH}" in
+    'x86_64')
+        rustup target add amd64-unknown-linux-gnu
+        ;;
+    'arm64')
+        rustup target add aarch64-unknown-linux-gnu
+        ;;
+esac
+popd
 
 # Update versions in specfiles
 pushd "${BUILD_REPOSITORY_LOCALPATH}"
