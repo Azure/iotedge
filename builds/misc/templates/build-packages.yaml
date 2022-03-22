@@ -201,8 +201,7 @@ stages:
               IDENTITY_SERVICE_COMMIT: $(IISCommit)
           - script: edgelet/build/linux/package-mariner.sh
             displayName: Create iotedged packages
-          - name: 'Create iotedged packages'
-            run: |
+          - bash: |
               docker run --rm \
                 -v "$GITHUB_WORKSPACE:/src" \
                 -e "ARCH=$ARCH" \
@@ -213,11 +212,6 @@ stages:
                 --privileged \
                 "ubuntu:18.04" \
                 '/src/edgelet/build/linux/package-mariner.sh'
-            env:
-              ARCH: "${{ matrix.arch }}"
-              OS: "${{ matrix.os }}"
-              PACKAGE_VERSION: '1.2.6'
-              PACKAGE_RELEASE: '1'
           - task: CopyFiles@2
             displayName: Copy iotedged build logs to artifact staging
             inputs:
