@@ -200,6 +200,9 @@ stages:
               DOWNLOAD_PATH: $(Build.StagingDirectory)
               IDENTITY_SERVICE_COMMIT: $(IISCommit)
           - bash: |
+              ls -a
+              echo "####test####"
+              ls -a $(Build.StagingDirectory)
               docker run --rm \
                 -v "$(Build.StagingDirectory):/src" \
                 -e "ARCH=$arch" \
