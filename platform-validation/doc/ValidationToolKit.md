@@ -38,8 +38,10 @@ graph TD
     B --> D[Build Binaries from Source]
     D --> E[Install Binaries]
     E --> H[Setup Socket and Folders]
-    F --> | iotedge check | G[Provisioning Stage]
-    H --> | iotedge check |G[Provisioning Stage]
+    F --> | iotedge check | G{Sucess?}
+    H --> | iotedge check |G
+    G --> I[Complete]
+    G --> J[Remediate Device]
 ```
 
 These are checks that would run after a user has installed/upgraded iot edge binaries/package on the device. 
@@ -55,6 +57,7 @@ An example could be std::fs::create_dir
 3. CURL calls to workload/management/identity/keyd/certd sockets to ensure they respond. Is there a generic call we can make to the sockets?
 4. Exercise sysinfo crate function calls to make sure they work: eg.- sysinfo::set_open_files_limit()
 5. Ensure that folders required by the IoT Edge daemon exists and have the required permissions. For eg: /var/lib/aziot/edged needs to exist and should be owned by iotedge user and have 755 ownership
+6. Ensure that we can use openssl crates used in iotedge to generate x509 certs
 
 
 
