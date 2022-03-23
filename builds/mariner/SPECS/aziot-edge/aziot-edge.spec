@@ -198,7 +198,7 @@ fi
 -   Update to run on iotedge pipeline.
 *   Wed May 05 2021 David Grob <grobdavid@microsoft.com> 1.2.0-3
 -   Update to version 1.2.0 and compress source files.
-*   Thr Apr 08 2021 Saravanan Somasundaram <sarsoma@microsoft.com> 1.2.0-2
+*   Thu Apr 08 2021 Saravanan Somasundaram <sarsoma@microsoft.com> 1.2.0-2
 -   Adding Azure IoT Edge Migration Service as a Dependency.
 *   Mon Mar 29 2021 David Grob <grobdavid@microsoft.com> 1.2.0-1
 -   Original aziot-edge version 1.2.0 post rc4 for Mariner.
