@@ -74,13 +74,16 @@ compare_usage() {
     fi
 }
 
-check_shared_library() {
+
+EXPECTED_SHARED_LIBRARIES=""
+SHARED_LIBRARIES=""
+find_shared_library() {
     CURRENT_SHARED_LIBRARIES_BASE="$(grep "SHARED_LIBRARIES_BASE=" <"$COMPATIBILITY_TOOL_PATH" | sed -r "s/^SHARED_LIBRARIES_BASE=//g" | tr -d '"')"
     CURRENT_SHARED_LIBRARIES_x86_64="$(grep "SHARED_LIBRARIES_x86_64=" <"$COMPATIBILITY_TOOL_PATH" | sed -r "s/^SHARED_LIBRARIES_x86_64=//g" | tr -d '"')"
     CURRENT_SHARED_LIBRARIES_aarch64="$(grep "SHARED_LIBRARIES_aarch64=" <"$COMPATIBILITY_TOOL_PATH" | sed -r "s/^SHARED_LIBRARIES_aarch64=//g" | tr -d '"')"
     CURRENT_SHARED_LIBRARIES_armv7l="$(grep "SHARED_LIBRARIES_armv7l=" <"$COMPATIBILITY_TOOL_PATH" | sed -r "s/^SHARED_LIBRARIES_armv7l=//g" | tr -d '"')"
-    EXPECTED_SHARED_LIB=""
 
+    INSTALL_READELF=$(sudo apt-get install binutils)
     IOTEDGE_SHARED_LIB=$(readelf --dynamic /usr/bin/iotedge | grep "Shared library" | tr -d [] | awk '{print $5}')
     echo "IoT Edge shared dependent libraries: $IOTEDGE_SHARED_LIB"
     IDENTITYD_SHARED_LIB=$(readelf --dynamic /usr/libexec/aziot-identity-service/aziot-identityd | grep "Shared library" | tr -d [] | awk '{print $5}')
@@ -89,13 +92,13 @@ check_shared_library() {
     for iotedgelib in $IOTEDGE_SHARED_LIB; do
         for identitydlib in $IDENTITYD_SHARED_LIB; do
             if [ "$iotedgelib" = "$identitydlib" ]; then
-                EXPECTED_SHARED_LIB+="$identitydlib ";
+                EXPECTED_SHARED_LIBRARIES+="$identitydlib ";
                 break;
             fi
         done
     done
 
-    echo "Expected common shared libraries for the current IoT edge package: $EXPECTED_SHARED_LIB"
+    echo "Expected common shared libraries for the current IoT edge package: $EXPECTED_SHARED_LIBRARIES"
 
     ARCH=$(uname -m)
     if [ "$ARCH" = x86_64 ]; then
@@ -107,7 +110,10 @@ check_shared_library() {
     fi
 
     echo "Shared libraries in aziot-compatibility tool : $SHARED_LIBRARIES"
-    for expectedlib in $EXPECTED_SHARED_LIB; do
+}
+
+check_shared_library() {
+    for expectedlib in $EXPECTED_SHARED_LIBRARIES; do
         found=0
         for currentlib in $SHARED_LIBRARIES; do
             if [ "$expectedlib" = "$currentlib" ]; then
@@ -298,7 +304,7 @@ sleep 60
 create_edge_deployment
 echo "Deployment Complete, Sleeping for $TIME_TO_RUN seconds"
 sleep "$TIME_TO_RUN"
-check_shared_library
+find_shared_library
 calculate_usage
 delete_edge_deployment
 delete_iot_hub_device_identity
@@ -313,3 +319,4 @@ compare_usage container size "$size_buffer"
 compare_usage container memory "$memory_buffer"
 compare_usage binaries size "$size_buffer"
 compare_usage binaries avg_memory "$memory_buffer"
+check_shared_library 
