@@ -24,7 +24,7 @@ Requires:       moby-cli
 
 #Source0:       https://github.com/Azure/iotedge/archive/%{version}.tar.gz
 Source0:        %{name}-%{version}.tar.gz
-Source1: rust.tar.gz
+Source1:        rust.tar.gz
 
 %description
 Azure IoT Edge Module Runtime

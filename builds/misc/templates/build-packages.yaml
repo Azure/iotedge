@@ -198,7 +198,7 @@ stages:
             env:
               GITHUB_TOKEN: $(IotEdge1-GitHub-PAT)
               ARTIFACT_NAME: 'packages_$(os)-$(os_version)_$(arch)'
-              PACKAGE_FILTER: 'aziot-identity-service-*.cm1.$(MARINER_ARCH).rpm'
+              PACKAGE_FILTER: 'aziot-identity-service-*.cm$(os_version).$(MARINER_ARCH).rpm'
               DOWNLOAD_PATH: $(Build.SourcesDirectory)
               IDENTITY_SERVICE_COMMIT: $(IISCommit)
           - bash: |
