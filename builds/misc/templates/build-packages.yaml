@@ -199,14 +199,15 @@ stages:
               GITHUB_TOKEN: $(IotEdge1-GitHub-PAT)
               ARTIFACT_NAME: 'packages_$(os)-$(os_version)_$(arch)'
               PACKAGE_FILTER: 'aziot-identity-service-*.cm1.$(MARINER_ARCH).rpm'
-              DOWNLOAD_PATH: $(Pipeline.Workspace)
+              DOWNLOAD_PATH: $(Build.SourcesDirectory)
               IDENTITY_SERVICE_COMMIT: $(IISCommit)
           - bash: |
               ls -a $(Pipeline.Workspace)
               echo "####test####"
-              ls -a $(Build.StagingDirectory)
+              ls -a $(Build.SourcesDirectory)
+              currentDir=$(pwd)
               docker run --rm \
-                -v "$(Pipeline.Workspace):/src" \
+                -v "$(Build.SourcesDirectory):/src" \
                 -e "ARCH=$arch" \
                 -e "OS=$OS" \
                 -e "MARINER_RELEASE=$MARINER_RELEASE" \
