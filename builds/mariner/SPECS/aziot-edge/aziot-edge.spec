@@ -36,7 +36,6 @@ securely and at scale—whether in the cloud or offline.
 This package contains the IoT Edge daemon and CLI tool.
 
 %prep
-
 %setup -q
 
 # include rust toolchain that matches the one from aziotedge's pipeline
@@ -46,7 +45,6 @@ popd
 export CARGO_HOME=~/.cargo
 export PATH=$PATH:$CARGO_HOME/bin
 export RUSTUP_HOME=~/.rustup
-export RUSTUP_TOOLCHAIN=~/.rustup/toolchains/1.47-x86_64-unknown-linux-gnu
 
 cd edgelet
 make \
@@ -59,6 +57,9 @@ make \
 %install
 IOTEDGE_HOST=unix:///var/lib/iotedge/mgmt.sock
 export IOTEDGE_HOST
+export CARGO_HOME=~/.cargo
+export PATH=$PATH:$CARGO_HOME/bin
+export RUSTUP_HOME=~/.rustup
 
 rm -rf $RPM_BUILD_ROOT
 cd edgelet
