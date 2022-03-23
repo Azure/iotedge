@@ -156,14 +156,16 @@ stages:
           matrix:
             CBL-Mariner1.0-amd64:
               arch: amd64
-              os: mariner-1
+              os: mariner
+              os_version: 1
               mariner_release: 1.0-stable
               target.iotedged: builds/mariner1/out/RPMS
               target.logs: builds/mariner1/build/logs/pkggen/rpmbuilding/
               IISCommit: 28e62ead559606efe8c1ced908889b950dc824af
             CBL-Mariner2.0-amd64:
               arch: amd64
-              os: mariner-2
+              os: mariner
+              os_version: 2
               mariner_release: 2.0-stable
               target.iotedged: builds/mariner2/out/RPMS
               target.logs: builds/mariner2/build/logs/pkggen/rpmbuilding/
@@ -195,9 +197,9 @@ stages:
               filePath: scripts/local/test/DownloadIdentityService.ps1
             env:
               GITHUB_TOKEN: $(IotEdge1-GitHub-PAT)
-              ARTIFACT_NAME: 'packages_$(os)_$(arch)'
+              ARTIFACT_NAME: 'packages_$(os)-$(os_version)_$(arch)'
               PACKAGE_FILTER: 'aziot-identity-service-*.cm1.$(MARINER_ARCH).rpm'
-              DOWNLOAD_PATH: $(Build.StagingDirectory)
+              DOWNLOAD_PATH: $(Pipeline.Workspace)
               IDENTITY_SERVICE_COMMIT: $(IISCommit)
           - bash: |
               ls -a $(Pipeline.Workspace)
