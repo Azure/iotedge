@@ -83,7 +83,9 @@ find_shared_library() {
     CURRENT_SHARED_LIBRARIES_aarch64="$(grep "SHARED_LIBRARIES_aarch64=" <"$COMPATIBILITY_TOOL_PATH" | sed -r "s/^SHARED_LIBRARIES_aarch64=//g" | tr -d '"')"
     CURRENT_SHARED_LIBRARIES_armv7l="$(grep "SHARED_LIBRARIES_armv7l=" <"$COMPATIBILITY_TOOL_PATH" | sed -r "s/^SHARED_LIBRARIES_armv7l=//g" | tr -d '"')"
 
-    INSTALL_READELF=$(sudo apt-get install binutils)
+    echo "Installing binutils for readelf command"
+    INSTALL_READELF=$(sudo apt-get -y install binutils)
+    echo "Successfully installed binutils"
     IOTEDGE_SHARED_LIB=$(readelf --dynamic /usr/bin/iotedge | grep "Shared library" | tr -d [] | awk '{print $5}')
     echo "IoT Edge shared dependent libraries: $IOTEDGE_SHARED_LIB"
     IDENTITYD_SHARED_LIB=$(readelf --dynamic /usr/libexec/aziot-identity-service/aziot-identityd | grep "Shared library" | tr -d [] | awk '{print $5}')
