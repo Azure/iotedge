@@ -202,10 +202,6 @@ stages:
               DOWNLOAD_PATH: $(Build.SourcesDirectory)
               IDENTITY_SERVICE_COMMIT: $(IISCommit)
           - bash: |
-              ls -a $(Pipeline.Workspace)
-              echo "####test####"
-              ls -a $(Build.SourcesDirectory)
-              currentDir=$(pwd)
               docker run --rm \
                 -v "$(Build.SourcesDirectory):/src" \
                 -e "ARCH=$arch" \

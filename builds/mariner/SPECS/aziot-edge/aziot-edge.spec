@@ -36,7 +36,10 @@ securely and at scale—whether in the cloud or offline.
 This package contains the IoT Edge daemon and CLI tool.
 
 %prep
-# include rust toolchain that matches the one from iot-identity-service's pipeline
+
+%setup -q
+
+# include rust toolchain that matches the one from aziotedge's pipeline
 pushd ~
 tar xf %{SOURCE1} --no-same-owner --strip-components=1
 popd
@@ -44,8 +47,6 @@ export CARGO_HOME=~/.cargo
 export PATH=$PATH:$CARGO_HOME/bin
 export RUSTUP_HOME=~/.rustup
 export RUSTUP_TOOLCHAIN=~/.rustup/toolchains/1.47-x86_64-unknown-linux-gnu
-
-%setup -q
 
 cd edgelet
 make \
@@ -196,7 +197,7 @@ fi
 -   Update to run on iotedge pipeline.
 *   Wed May 05 2021 David Grob <grobdavid@microsoft.com> 1.2.0-3
 -   Update to version 1.2.0 and compress source files.
-*   Fri Apr 08 2021 Saravanan Somasundaram <sarsoma@microsoft.com> 1.2.0-2
+*   Thr Apr 08 2021 Saravanan Somasundaram <sarsoma@microsoft.com> 1.2.0-2
 -   Adding Azure IoT Edge Migration Service as a Dependency.
 *   Mon Mar 29 2021 David Grob <grobdavid@microsoft.com> 1.2.0-1
 -   Original aziot-edge version 1.2.0 post rc4 for Mariner.
