@@ -80,3 +80,4 @@ These are checks that would run after the user has setup device provisioning inf
 4. If Device Identity Private Key is provided and is a file, Ensure that private key is owned by aziotks
 3. Ensure Docker Logs are Available via iotedge logs edgeAgent
 4. TPM Related Checks. If TPM is enabled, ensure that Kernel version > 4.12 since tpmr0 does not exist before that. Any additional requirements?
+5. If TPM is enabled, Ensure IoT Edge has access to TPM as illustrated [here](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-provision-devices-at-scale-linux-tpm?view=iotedge-2020-11&tabs=physical-device%2Cubuntu) 
