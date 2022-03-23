@@ -200,11 +200,11 @@ stages:
               DOWNLOAD_PATH: $(Build.StagingDirectory)
               IDENTITY_SERVICE_COMMIT: $(IISCommit)
           - bash: |
-              ls -a
+              ls -a $(Pipeline.Workspace)
               echo "####test####"
               ls -a $(Build.StagingDirectory)
               docker run --rm \
-                -v "$(Build.StagingDirectory):/src" \
+                -v "$(Pipeline.Workspace):/src" \
                 -e "ARCH=$arch" \
                 -e "OS=$OS" \
                 -e "MARINER_RELEASE=$MARINER_RELEASE" \
