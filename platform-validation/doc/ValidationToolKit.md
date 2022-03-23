@@ -12,7 +12,7 @@ graph LR
     C -->E[Remediate Device]
 ```
 
-These are checks that would run as part of [Azure IoT Compatibility Script](platform-validation/scripts/aziot-compatibility.sh) to determine whether or not IoT Edge can run on the device
+These are checks that would run as part of [Azure IoT Compatibility Script](https://github.com/Azure/iotedge/blob/main/platform-validation/scripts/aziot-compatibility.sh) to determine whether or not IoT Edge can run on the device
 
 Example Usage
 ```sh
