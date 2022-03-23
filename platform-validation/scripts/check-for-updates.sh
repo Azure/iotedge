@@ -3,6 +3,7 @@
 #Script to check for udpates required to aziot-compatibility.sh script
 #Assumes Moby-Engine/Docker is installed
 #Requires AZ Login and appropriate subscription to be selected
+#Requires Environment Variables REGISTRY_ADDRESS REGISTRY_USERNAME REGISTRY_PASSWORD to be set
 
 TEMP_DEPLOYMENT_FILE="deployment.json"
 BENCHMARK_OUTPUT_DIR="memory-usage-results"
@@ -11,7 +12,6 @@ set -e
 
 function install_iotedge_local() {
     directory="$1"
-    sudo apt-get update
     identityservicebinary="$(ls "$directory" | grep "aziot-identity-service")"
     if [[ -z $identityservicebinary ]]; then
         echo "No Identity Service Binary Found"
@@ -32,9 +32,9 @@ function install_iotedge_local() {
 
 begin_benchmarking() {
     mkdir -p "$BENCHMARK_OUTPUT_DIR"
-    echo "Starting Script for Analyzing Container Memory with Path $BENCHMARK_OUTPUT_DIR and Script $USAGE_SCRIPT_PATH"
+    echo "Starting Script for Analyzing IoT Edge Memory with Path $BENCHMARK_OUTPUT_DIR and Script $USAGE_SCRIPT_PATH"
     sudo chmod +x "$USAGE_SCRIPT_PATH"
-    "$USAGE_SCRIPT_PATH" -t "$1" -p "$BENCHMARK_OUTPUT_DIR" >&"$BENCHMARK_OUTPUT_DIR/analyze-memory-logs.out" &
+    "$USAGE_SCRIPT_PATH" -t "$1" -p "$BENCHMARK_OUTPUT_DIR" >"$BENCHMARK_OUTPUT_DIR/analyze-memory-logs.out" &
 }
 
 calculate_usage() {
@@ -125,8 +125,8 @@ check_shared_library() {
 function provision_edge_device() {
     # Provision w/ connection string
     DEVICE_ID=benchmark-device-$(echo $RANDOM | md5sum | head -c 10)
-    az iot hub device-identity create --device-id "$DEVICE_ID" --edge-enabled --hub-name "$IOT_HUB_NAME"
-    connection_string=$(az iot hub device-identity connection-string show --device-id "$DEVICE_ID" --hub-name "$IOT_HUB_NAME" -o tsv)
+    az iot hub device-identity create --device-id "$DEVICE_ID" --edge-enabled --hub-name "$IOTHUB_NAME"
+    connection_string=$(az iot hub device-identity connection-string show --device-id "$DEVICE_ID" --hub-name "$IOTHUB_NAME" -o tsv)
     sudo iotedge config mp --connection-string "$connection_string"
     sudo iotedge config apply
 }
@@ -136,22 +136,22 @@ function create_edge_deployment() {
     DEPLOYMENT_ID=iotedge-benchmarking-$(uuidgen)
     cp "$DEPLOYMENT_FILE_NAME" $TEMP_DEPLOYMENT_FILE
     sed -i -e "s@<CR.Address>@$REGISTRY_ADDRESS@g" "$TEMP_DEPLOYMENT_FILE"
-    sed -i -e "s@<CR.Username>@$REGISTRY_USERNAME@g" "$TEMP_DEPLOYMENT_FILE"
+    sed -i -e "s@<CR.UserName>@$REGISTRY_USERNAME@g" "$TEMP_DEPLOYMENT_FILE"
     sed -i -e "s@<CR.Password>@$REGISTRY_PASSWORD@g" "$TEMP_DEPLOYMENT_FILE"
     sed -i -e "s@<edgeAgentImage>@$EDGEAGENT_IMAGE@g" "$TEMP_DEPLOYMENT_FILE"
     sed -i -e "s@<edgeHubImage>@$EDGEHUB_IMAGE@g" "$TEMP_DEPLOYMENT_FILE"
     sed -i -e "s@<tempSensorImage>@$TEMPSENSOR_IMAGE@g" "$TEMP_DEPLOYMENT_FILE"
-    az iot edge deployment create --content "$TEMP_DEPLOYMENT_FILE" --deployment-id "$DEPLOYMENT_ID" --hub-name "$IOT_HUB_NAME" -t "deviceId='$DEVICE_ID'"
+    az iot edge deployment create --content "$TEMP_DEPLOYMENT_FILE" --deployment-id "$DEPLOYMENT_ID" --hub-name "$IOTHUB_NAME" -t "deviceId='$DEVICE_ID'"
 }
 
 function delete_edge_deployment() {
     echo "Removing IoT Edge Device Deployment"
-    az iot edge deployment delete --deployment-id $DEPLOYMENT_ID --hub-name $IOT_HUB_NAME
+    az iot edge deployment delete --deployment-id $DEPLOYMENT_ID --hub-name $IOTHUB_NAME
 }
 
 function delete_iot_hub_device_identity() {
     echo "Removing IoT Edge Device Identity"
-    az iot hub device-identity delete --device-id $DEVICE_ID --hub-name $IOT_HUB_NAME
+    az iot hub device-identity delete --device-id $DEVICE_ID --hub-name $IOTHUB_NAME
 }
 
 function delete_iot_edge() {
@@ -193,7 +193,7 @@ function process_args() {
             DEPLOYMENT_FILE_NAME=$arg
             save_next_arg=0
         elif [ ${save_next_arg} -eq 2 ]; then
-            IOT_HUB_NAME=$arg
+            IOTHUB_NAME=$arg
             save_next_arg=0
         elif [ ${save_next_arg} -eq 3 ]; then
             USAGE_SCRIPT_PATH=$arg
@@ -243,7 +243,7 @@ function print_error() {
 
 process_args "$@"
 
-[[ -z "$IOT_HUB_NAME" ]] && {
+[[ -z "$IOTHUB_NAME" ]] && {
     print_error 'IoT Hub name is required.'
     exit 1
 }
@@ -307,6 +307,7 @@ delete_iot_edge
 #Compare Usage and Exit if Current Usage exceeds recorded usage
 size_buffer="$(grep "iotedge_size_buffer=" <"$COMPATIBILITY_TOOL_PATH" | sed -r "s/^iotedge_size_buffer=//g")"
 memory_buffer="$(grep "iotedge_memory_buffer=" <"$COMPATIBILITY_TOOL_PATH" | sed -r "s/^iotedge_memory_buffer=//g")"
+cat "$BENCHMARK_OUTPUT_DIR/analyze-memory-logs.out"
 echo "Size buffer is $size_buffer"
 compare_usage container size "$size_buffer"
 compare_usage container memory "$memory_buffer"
