@@ -61,9 +61,9 @@ popd
 
 # Update versions in specfiles
 pushd "${BUILD_REPOSITORY_LOCALPATH}"
-sed -i "s/@@VERSION@@/${VERSION}/g" builds/mariner/SPECS/aziot-edge/aziot-edge.signatures.json
-sed -i "s/@@VERSION@@/${VERSION}/g" builds/mariner/SPECS/aziot-edge/aziot-edge.spec
-sed -i "s/@@RELEASE@@/${REVISION}/g" builds/mariner/SPECS/aziot-edge/aziot-edge.spec
+sed -i "s/@@VERSION@@/${VERSION}/g" ${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/aziot-edge/aziot-edge.signatures.json
+sed -i "s/@@VERSION@@/${VERSION}/g" ${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/aziot-edge/aziot-edge.spec
+sed -i "s/@@RELEASE@@/${REVISION}/g" ${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/aziot-edge/aziot-edge.spec
 popd
 
 pushd "${EDGELET_ROOT}"
@@ -110,6 +110,10 @@ popd
 mkdir -p "${MARINER_BUILD_ROOT}/SPECS/aziot-edge/SOURCES/"
 mv "${tmp_dir}/aziot-edge-${VERSION}.tar.gz" "${MARINER_BUILD_ROOT}/SPECS/aziot-edge/SOURCES/"
 rm -rf ${tmp_dir}
+
+# Copy spec files to expected locations
+cp "${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/aziot-edge/aziot-edge.signatures.json" "${MARINER_BUILD_ROOT}/SPECS/aziot-edge/"
+cp "${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/aziot-edge/aziot-edge.spec" "${MARINER_BUILD_ROOT}/SPECS/aziot-edge/"
 
 tmp_dir=$(mktemp -d)
 pushd $tmp_dir
