@@ -37,7 +37,6 @@ This package contains the IoT Edge daemon and CLI tool.
 
 %prep
 %setup -q
-
 # include rust toolchain that matches the one from aziotedge's pipeline
 pushd ~
 tar xf %{SOURCE1} --no-same-owner --strip-components=1
