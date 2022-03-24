@@ -232,5 +232,5 @@ stages:
             displayName: Publish Artifacts
             inputs:
               PathtoPublish: '$(build.artifactstagingdirectory)'
-              ArtifactName: 'iotedged-$(os)-$(os_version)-$(arch)'
+              ArtifactName: 'iotedged-$(os)$(os_version)-$(arch)'
             condition: succeededOrFailed()
