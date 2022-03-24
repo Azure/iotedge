@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using System.ComponentModel;
     using System.Net;
     using System.Runtime.ExceptionServices;
-    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Exceptions;
@@ -31,11 +30,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly Option<string> connectionString;
         readonly Option<UpstreamProtocol> upstreamProtocol;
         readonly Option<IWebProxy> proxy;
-        readonly string baseProductInfo;
+        readonly string productInfo;
         readonly bool closeOnIdleTimeout;
         readonly TimeSpan idleTimeout;
         readonly ISdkModuleClientProvider sdkModuleClientProvider;
-        readonly Option<Task<IRuntimeInfoProvider>> runtimeInfoProviderTask;
         readonly bool useServerHeartbeat;
 
         public ModuleClientProvider(
@@ -43,43 +41,40 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             ISdkModuleClientProvider sdkModuleClientProvider,
             Option<UpstreamProtocol> upstreamProtocol,
             Option<IWebProxy> proxy,
-            string baseProductInfo,
+            string productInfo,
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout,
             bool useServerHeartbeat)
-            : this(Option.Maybe(connectionString), sdkModuleClientProvider, Option.None<Task<IRuntimeInfoProvider>>(), upstreamProtocol, proxy, baseProductInfo, closeOnIdleTimeout, idleTimeout, useServerHeartbeat)
+            : this(Option.Maybe(connectionString), sdkModuleClientProvider, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, useServerHeartbeat)
         {
         }
 
         public ModuleClientProvider(
             ISdkModuleClientProvider sdkModuleClientProvider,
-            Option<Task<IRuntimeInfoProvider>> runtimeInfoProviderTask,
             Option<UpstreamProtocol> upstreamProtocol,
             Option<IWebProxy> proxy,
-            string baseProductInfo,
+            string productInfo,
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout,
             bool useServerHeartbeat)
-            : this(Option.None<string>(), sdkModuleClientProvider, runtimeInfoProviderTask, upstreamProtocol, proxy, baseProductInfo, closeOnIdleTimeout, idleTimeout, useServerHeartbeat)
+            : this(Option.None<string>(), sdkModuleClientProvider, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, useServerHeartbeat)
         {
         }
 
         ModuleClientProvider(
             Option<string> connectionString,
             ISdkModuleClientProvider sdkModuleClientProvider,
-            Option<Task<IRuntimeInfoProvider>> runtimeInfoProviderTask,
             Option<UpstreamProtocol> upstreamProtocol,
             Option<IWebProxy> proxy,
-            string baseProductInfo,
+            string productInfo,
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout,
             bool useServerHeartbeat)
         {
             this.connectionString = connectionString;
             this.sdkModuleClientProvider = sdkModuleClientProvider;
-            this.runtimeInfoProviderTask = runtimeInfoProviderTask;
             this.upstreamProtocol = upstreamProtocol;
-            this.baseProductInfo = Preconditions.CheckNotNull(baseProductInfo, nameof(baseProductInfo));
+            this.productInfo = Preconditions.CheckNotNull(productInfo, nameof(productInfo));
             this.proxy = proxy;
             this.closeOnIdleTimeout = closeOnIdleTimeout;
             this.idleTimeout = idleTimeout;
@@ -213,15 +208,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 .Map(cs => Task.FromResult(this.sdkModuleClientProvider.GetSdkModuleClient(cs, settings)))
                 .GetOrElse(this.sdkModuleClientProvider.GetSdkModuleClient(settings));
 
-            string productInfo = await this.runtimeInfoProviderTask
-                .Map(async providerTask =>
-                {
-                    IRuntimeInfoProvider provider = await providerTask;
-                    SystemInfo systemInfo = await provider.GetSystemInfo(CancellationToken.None);
-                    return $"{this.baseProductInfo} ({systemInfo.ToQueryString()})";
-                })
-                .GetOrElse(Task.FromResult(this.baseProductInfo));
-            moduleClient.SetProductInfo(productInfo);
+            moduleClient.SetProductInfo(this.productInfo);
 
             // note: it's important to set the status-changed handler and
             // timeout value *before* we open a connection to the hub

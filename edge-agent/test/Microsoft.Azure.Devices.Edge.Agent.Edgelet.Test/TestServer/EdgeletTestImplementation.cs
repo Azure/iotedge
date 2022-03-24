@@ -150,7 +150,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
 
         public Task ModuleLogsAsync(string api_version, string name, bool follow, string tail, int? since) => Task.CompletedTask;
 
-        public Task<SystemInfo> GetSystemInfoAsync(string api_version) => Task.FromResult(new SystemInfo { OsType = "foo", Architecture = "bar", Version = "baz" });
+        public Task<SystemInfo> GetSystemInfoAsync(string api_version) => Task.FromResult(new SystemInfo());
 
         public Task ReprovisionDeviceAsync(string api_version) => Task.CompletedTask;
     }

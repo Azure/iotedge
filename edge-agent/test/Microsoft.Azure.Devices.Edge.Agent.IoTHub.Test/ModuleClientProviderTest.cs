@@ -4,12 +4,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
     using System;
     using System.Collections.Generic;
     using System.Net;
-    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.Edgelet;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -30,11 +28,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             ITransportSettings receivedTransportSettings = null;
 
             var sdkModuleClient = new Mock<ISdkModuleClient>();
-            var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
-            var systemInfo = new SystemInfo("foo", "bar", "baz");
-
-            runtimeInfoProvider.Setup(p => p.GetSystemInfo(CancellationToken.None))
-                .ReturnsAsync(systemInfo);
 
             var sdkModuleClientProvider = new Mock<ISdkModuleClientProvider>();
             sdkModuleClientProvider.Setup(s => s.GetSdkModuleClient(It.IsAny<ITransportSettings>()))
@@ -48,7 +41,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // Act
             var moduleClientProvider = new ModuleClientProvider(
                 sdkModuleClientProvider.Object,
-                Option.Some(Task.FromResult(runtimeInfoProvider.Object)),
                 upstreamProtocol,
                 webProxy,
                 productInfo,
@@ -61,8 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Assert.NotNull(moduleClient);
             sdkModuleClientProvider.Verify(s => s.GetSdkModuleClient(It.IsAny<ITransportSettings>()), Times.Once);
 
-            // Write product info explicitly
-            sdkModuleClient.Verify(s => s.SetProductInfo($"{productInfo} (kernel_name=foo;cpu_architecture=bar;)"), Times.Once);
+            sdkModuleClient.Verify(s => s.SetProductInfo(productInfo), Times.Once);
 
             Assert.NotNull(receivedTransportSettings);
             UpstreamProtocol up = upstreamProtocol.GetOrElse(UpstreamProtocol.Amqp);
@@ -97,43 +88,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             sdkModuleClient.Verify(s => s.OpenAsync(), Times.Once);
         }
 
-        [Theory]
-        [MemberData(nameof(GetTestData))]
-        public async Task CreateFromEnvironment_NoRuntimeInfoProvider(
-            Option<UpstreamProtocol> upstreamProtocol,
-            Option<IWebProxy> webProxy,
-            string productInfo)
-        {
-            // Arrange
-            ITransportSettings receivedTransportSettings = null;
-
-            var sdkModuleClient = new Mock<ISdkModuleClient>();
-
-            var sdkModuleClientProvider = new Mock<ISdkModuleClientProvider>();
-            sdkModuleClientProvider.Setup(s => s.GetSdkModuleClient(It.IsAny<ITransportSettings>()))
-                .Callback<ITransportSettings>(t => receivedTransportSettings = t)
-                .ReturnsAsync(sdkModuleClient.Object);
-
-            bool closeOnIdleTimeout = false;
-            TimeSpan idleTimeout = TimeSpan.FromMinutes(5);
-            ConnectionStatusChangesHandler handler = (status, reason) => { };
-
-            // Act
-            var moduleClientProvider = new ModuleClientProvider(
-                sdkModuleClientProvider.Object,
-                Option.None<Task<IRuntimeInfoProvider>>(),
-                upstreamProtocol,
-                webProxy,
-                productInfo,
-                closeOnIdleTimeout,
-                idleTimeout,
-                false);
-            IModuleClient moduleClient = await moduleClientProvider.Create(handler);
-
-            // Write product info explicitly
-            sdkModuleClient.Verify(s => s.SetProductInfo(productInfo), Times.Once);
-        }
-
         [Fact]
         public void CreateFromEnvironment_NullProductInfo_ShouldThrow()
         {
@@ -141,7 +95,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             ITransportSettings receivedTransportSettings = null;
 
             var sdkModuleClient = new Mock<ISdkModuleClient>();
-            var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
 
             var sdkModuleClientProvider = new Mock<ISdkModuleClientProvider>();
             sdkModuleClientProvider.Setup(s => s.GetSdkModuleClient(It.IsAny<ITransportSettings>()))
@@ -155,7 +108,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // Assert
             Assert.Throws<ArgumentNullException>(() => new ModuleClientProvider(
                 sdkModuleClientProvider.Object,
-                Option.Some(Task.FromResult(runtimeInfoProvider.Object)),
                 Option.None<UpstreamProtocol>(),
                 Option.None<IWebProxy>(),
                 null,

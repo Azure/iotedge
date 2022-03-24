@@ -2,25 +2,23 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
-
-    using static System.Net.WebUtility;
-
     public class SystemInfo
     {
-        public SystemInfo(string operatingSystemType, string architecture, string version, IReadOnlyDictionary<string, object> additionalProperties)
+        public SystemInfo(string operatingSystemType, string architecture, string version, ProvisioningInfo provisioning, string serverVersion, string kernelVersion, string operatingSystem, int numCpus, string virtualized)
         {
             this.OperatingSystemType = operatingSystemType;
             this.Architecture = architecture;
             this.Version = version;
-
-            this.AdditionalProperties = additionalProperties?.ToDictionary(entry => entry.Key, entry => entry.Value?.ToString());
+            this.Provisioning = provisioning;
+            this.ServerVersion = serverVersion;
+            this.KernelVersion = kernelVersion;
+            this.OperatingSystem = operatingSystem;
+            this.NumCpus = numCpus;
+            this.Virtualized = virtualized;
         }
 
         public SystemInfo(string operatingSystemType, string architecture, string version)
-            : this(operatingSystemType, architecture, version, new Dictionary<string, object>())
+            : this(operatingSystemType, architecture, version, ProvisioningInfo.Empty, string.Empty, string.Empty, string.Empty, 0, string.Empty)
         {
         }
 
@@ -30,28 +28,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public string Version { get; }
 
-        public IReadOnlyDictionary<string, string> AdditionalProperties { get; }
+        public ProvisioningInfo Provisioning { get; }
 
-        public string ToQueryString()
-        {
-            // NOTE (from author): Reflection will not work due to name mappings
-            StringBuilder b = new StringBuilder()
-                .Append($"kernel_name={UrlEncode(this.OperatingSystemType ?? string.Empty)};")
-                .Append($"cpu_architecture={UrlEncode(this.Architecture ?? string.Empty)};");
+        public string ServerVersion { get; }
 
-            if (this.AdditionalProperties != null)
-            {
-                foreach ((string k, string v) in this.AdditionalProperties)
-                {
-                    if (!string.IsNullOrEmpty(k))
-                    {
-                        b.Append($"{UrlEncode(k)}={UrlEncode(v ?? string.Empty)};");
-                    }
-                }
-            }
+        public string KernelVersion { get; }
 
-            return b.ToString();
-        }
+        public string OperatingSystem { get; }
+
+        public int NumCpus { get; }
+
+        public string Virtualized { get; }
 
         static SystemInfo Empty { get; } = new SystemInfo(string.Empty, string.Empty, string.Empty);
     }
