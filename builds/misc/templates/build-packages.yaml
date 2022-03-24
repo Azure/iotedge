@@ -225,7 +225,7 @@ stages:
             inputs:
               SourceFolder: $(target.iotedged)/$(mariner_arch)
               Contents: |
-                *.rpm
+                aziot-edge-*.rpm
               TargetFolder: '$(build.artifactstagingdirectory)'
             condition: succeededOrFailed()
           - task: PublishBuildArtifacts@1
