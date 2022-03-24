@@ -199,7 +199,6 @@ aARcDu+dkQV2/Mq+s16Bz4dBE9PLdD2WrE+I4lnIuT3OhfrtxnW+uT2A
             {
                 return col[0];
             }
-
             return null;
         }
 

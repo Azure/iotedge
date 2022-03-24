@@ -21,6 +21,10 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
             Preconditions.CheckNonWhiteSpace(secret, nameof(secret));
             // Get the secret from the environment first, otherwise go to key vault
             string value = ConfigHelper.TestConfig[secret];
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                throw new ArgumentNullException($"Got value from env :{secret}");
+            }
             return string.IsNullOrWhiteSpace(value)
                 ? Uri.TryCreate(secret, UriKind.Absolute, out Uri secretUri)
                     ? KeyVaultHelperLazy.Value.GetSecret(secretUri.AbsoluteUri)
