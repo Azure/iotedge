@@ -202,6 +202,7 @@ docker_build_and_tag_and_push()
 
     if [[ $DOCKER_USE_BUILDX = "true" ]]; then
         docker buildx ls
+        docker buildx prune --all --force
     
         docker_build_cmd="docker buildx build --no-cache"
 

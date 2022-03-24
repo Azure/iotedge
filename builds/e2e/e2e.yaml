@@ -32,13 +32,62 @@ variables:
 jobs:
 
 ################################################################################
-  - job: linux_arm32v7
+  - job: debian_11_arm32v7
 ################################################################################
-    displayName: Linux arm32v7
+    displayName: Debian 11 arm32v7
 
     pool:
       name: $(pool.custom.name)
-      demands: rpi3-e2e-tests
+      demands: deb11-e2e-tests
+
+    variables:
+      os: linux
+      arch: arm32v7
+      artifactName: iotedged-debian11-arm32v7
+      identityServiceArtifactName: packages_debian-11-slim_arm32v7
+      identityServicePackageFilter: aziot-identity-service_*_armhf.deb
+
+    timeoutInMinutes: 120
+
+    steps:
+    - template: templates/e2e-clean-directory.yaml
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-clear-docker-cached-images.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################
+  - job: debian_10_arm32v7
+################################################################################
+    displayName: Debian 10 arm32v7 (minimal)
+
+    pool:
+      name: $(pool.custom.name)
+      demands: deb10-e2e-tests
+
+    variables:
+      os: linux
+      arch: arm32v7
+      artifactName: iotedged-debian10-arm32v7
+      identityServiceArtifactName: packages_debian-10-slim_arm32v7
+      identityServicePackageFilter: aziot-identity-service_*_armhf.deb
+      minimal: true
+
+    timeoutInMinutes: 120
+
+    steps:
+    - template: templates/e2e-clean-directory.yaml
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-clear-docker-cached-images.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################
+  - job: debian_9_arm32v7
+################################################################################
+    displayName: Debian 9 arm32v7 (minimal)
+
+    pool:
+      name: $(pool.custom.name)
+      demands: deb9-e2e-tests
 
     variables:
       os: linux
@@ -46,6 +95,7 @@ jobs:
       artifactName: iotedged-debian9-arm32v7
       identityServiceArtifactName: packages_debian-9-slim_arm32v7
       identityServicePackageFilter: aziot-identity-service_*_armhf.deb
+      minimal: true
 
     timeoutInMinutes: 120
 
@@ -146,11 +196,11 @@ jobs:
 ################################################################################
   - job: ubuntu_2004_arm64v8
 ################################################################################
-    displayName: Ubuntu 20.04 with arm64v8
+    displayName: Ubuntu 20.04 on arm64v8
     pool:
-      name: $(pool.custom.name)
-      demands: 
-        - agent-group -equals rpi3-e2e-aarch64
+      name: 'Azure-IoT-Edge-1ES-Hosted-Linux-Arm64'
+      demands:
+      - ImageOverride -equals agent-aziotedge-ubuntu-20.04-arm64
 
     variables:
       os: linux
@@ -162,6 +212,67 @@ jobs:
     timeoutInMinutes: 120
 
     steps:
+    - bash: |
+        set -e
+
+        # Install PowerShell dependencies
+        sudo apt-get update
+        sudo apt-get install -y liblttng-ust0 jq
+
+        # Get the PowerShell tarball
+        release_id=$(curl -sSH 'Accept: application/vnd.github.v3+json' https://api.github.com/repos/powershell/powershell/releases/latest | jq '.id')
+        url=$(curl -sSH 'Accept: application/vnd.github.v3+json' https://api.github.com/repos/powershell/powershell/releases/$release_id/assets | jq -r ".[] | select(.name | contains(\"linux-arm64.tar.gz\")) | .browser_download_url")
+        echo "$release_id"
+        echo "$url"
+        file=$(basename $url)
+        curl -sSL $url -o /tmp/$file
+
+        # Install PowerShell
+        sudo mkdir -p /opt/microsoft/powershell/7
+        sudo tar zxf /tmp/$file -C /opt/microsoft/powershell/7
+        sudo chmod +x /opt/microsoft/powershell/7/pwsh
+        sudo ln -s /opt/microsoft/powershell/7/pwsh /usr/bin/pwsh
+      displayName: Install pwsh
+
+    - bash: |
+        set -e
+
+        # Install .NET Core dependencies
+        sudo apt-get update
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            libc6 libgcc1 libgssapi-krb5-2 libicu66 libssl1.1 libstdc++6 zlib1g
+
+        # Install .NET Core
+        curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 3.1
+        sudo ln -s $HOME/.dotnet/dotnet /usr/bin/dotnet
+      displayName: Install .NET Core
+
+    - task: DownloadBuildArtifacts@0
+      displayName: Download Resource Build Images
+      inputs:  
+        buildType: specific
+        project: $(resources.pipeline.images.projectID)
+        pipeline: $(resources.pipeline.images.pipelineName)
+        buildVersionToDownload: specific
+        buildId: $(resources.pipeline.images.runID)
+        downloadType: single
+        artifactName: $(az.pipeline.images.artifacts)
+        allowPartiallySucceededBuilds: true
+        itemPattern: $(az.pipeline.images.artifacts)/artifactInfo.txt
+
+    - bash: |
+        set -e
+
+        # Install Moby
+        curl https://packages.microsoft.com/config/ubuntu/20.04/prod.list > ./microsoft-prod.list
+        sudo cp ./microsoft-prod.list /etc/apt/sources.list.d/
+        curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
+        sudo cp ./microsoft.gpg /etc/apt/trusted.gpg.d/
+        rm microsoft-prod.list microsoft.gpg
+        sudo apt-get update
+        sudo apt-get install -y moby-engine
+      displayName: Install moby
+
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-clear-docker-cached-images.yaml

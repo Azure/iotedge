@@ -103,7 +103,7 @@ mod tests {
                 let os_type = system_info.os_type();
                 let architecture = system_info.architecture();
 
-                assert_eq!("os_type_sample", os_type);
+                assert_eq!("linux", os_type);
                 assert_eq!("architecture_sample", architecture);
                 assert_eq!(
                     edgelet_core::version_with_source_version(),
