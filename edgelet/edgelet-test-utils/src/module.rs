@@ -114,6 +114,10 @@ impl RuntimeSettings for TestSettings {
         unimplemented!()
     }
 
+    fn additional_info(&self) -> &std::collections::BTreeMap<String, String> {
+        unimplemented!()
+    }
+
     fn edge_ca_cert(&self) -> Option<&str> {
         unimplemented!()
     }
@@ -381,19 +385,30 @@ where
     fn system_info(&self) -> Self::SystemInfoFuture {
         match self.module.as_ref().unwrap() {
             Ok(_) => future::ok(SystemInfo {
-                os_type: "os_type_sample".to_string(),
-                architecture: "architecture_sample".to_string(),
-                version: edgelet_core::version_with_source_version(),
+                kernel: "linux".to_owned(),
+                kernel_release: "5.0".to_owned(),
+                kernel_version: "1".to_owned(),
+
+                operating_system: "os".to_owned().into(),
+                operating_system_version: "version".to_owned().into(),
+                operating_system_variant: "variant".to_owned().into(),
+                operating_system_build: "1".to_owned().into(),
+
+                architecture: "architecture_sample".to_owned(),
+                cpus: 0,
+                virtualized: "test".to_owned(),
+
+                product_name: "product".to_owned().into(),
+                system_vendor: "vendor".to_owned().into(),
+
+                version: edgelet_core::version_with_source_version().to_owned(),
                 provisioning: ProvisioningInfo {
                     r#type: "test".to_string(),
                     dynamic_reprovisioning: false,
                     always_reprovision_on_startup: true,
                 },
-                cpus: 0,
-                virtualized: "test",
-                kernel_version: "test".to_string(),
-                operating_system: "test".to_string(),
-                server_version: "test".to_string(),
+
+                additional_properties: std::collections::BTreeMap::new(),
             }),
             Err(ref e) => future::err(e.clone()),
         }

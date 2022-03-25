@@ -132,6 +132,10 @@ impl RuntimeSettings for Settings {
         self.base.endpoints()
     }
 
+    fn additional_info(&self) -> &BTreeMap<String, String> {
+        self.base.additional_info()
+    }
+
     fn edge_ca_cert(&self) -> Option<&str> {
         self.base.edge_ca_cert()
     }
