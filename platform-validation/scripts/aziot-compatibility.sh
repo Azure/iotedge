@@ -689,7 +689,7 @@ x86_64_iotedge_container_memory=175
 aarch64_iotedge_binaries_size=36.68
 aarch64_iotedge_binaries_avg_memory=26.62
 aarch64_iotedge_container_size=322.6
-aarch64_iotedge_container_memory=154.53
+aarch64_iotedge_container_memory=210
 iotedge_size_buffer=50
 iotedge_memory_buffer=50
 

@@ -128,6 +128,7 @@ check_shared_library() {
             exit 1
         fi
     done
+    echo "Shared Library check is up to date in aziot-compatibility tool"
 }
 
 function provision_edge_device() {
