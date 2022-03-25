@@ -659,11 +659,25 @@ check_package_manager() {
 }
 
 check_ca_cert() {
-    if [ ! -d "/etc/ca-certificates" ]; then
-        wrap_warning "check_ca_cert"
-        wrap_warning_message "Could not find ca-certificates at /etc/ca-certificates, These are required for TLS Communication with IoT Hub"
+    find_openssl=$(openssl version >/dev/null 2>&1)
+    if [ "$?" -eq 0 ]; then
+        ca_cert_dir=$(openssl version -d | awk '{print $2}'| sed "s/\"//g" | tr -d " ")"/certs"
+        # Check first if the directory exists.
+        if [ ! -d "$ca_cert_dir" ]; then
+            echo "12"
+            wrap_warning "check_ca_cert"
+            wrap_warning_message "Could not find ca-certificates. These are required for TLS Communication with IoT Hub"
+        else
+            # Check if the directory is empty
+            if [ "$(ls -l $ca_cert_dir)" ]; then
+                wrap_warning "check_ca_cert"
+                wrap_warning_message "Could not find ca-certificates at $ca_cert_dir, These are required for TLS Communication with IoT Hub"
+            else
+                wrap_pass "check_ca_cert"
+            fi
+        fi
     else
-        wrap_pass "check_ca_cert"
+        echo "OpenSSL is not installed. Skipping CA cert check"
     fi
 }
 
