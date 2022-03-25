@@ -149,7 +149,9 @@ stages:
       ################################################################################
         displayName: Mariner_Linux
         pool:
-          vmImage: 'ubuntu-18.04'
+          name: $(pool.linux.name)
+          demands:
+          - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
         variables:
           NugetSecurityAnalysisWarningLevel: warn
         strategy:
