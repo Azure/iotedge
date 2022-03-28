@@ -8,8 +8,9 @@
 OSTYPE=""
 ARCH=""
 VERBOSE=0
-PASS=0
 FAILURES=0
+PASS=0
+SKIP=0
 WARNINGS=0
 # ------------------------------------------------------------------------------
 #  Text Formatting
@@ -92,6 +93,12 @@ wrap_pass() {
     PASS=$((PASS + 1))
     echo "$(wrap_color "$1 - OK" green)"
 }
+
+wrap_skip() {
+    SKIP=$((SKIP + 1))
+    echo "$(wrap_color "$1 - Skipped" white)"
+}
+
 wrap_fail() {
     FAILURES=$((FAILURES + 1))
     echo "$(wrap_color "$1 - Error" bold red)"
@@ -615,8 +622,8 @@ check_storage_space() {
     # Check dependencies
     ret=$(need_cmd df)
     if [ "$?" -ne 0 ]; then
-        wrap_warning "check_storage_space"
-        wrap_warning_message "Could not find df utility to calculate disk space, Skipping the check"
+        wrap_debug_message "Could not find df utility to calculate disk space, Skipping the check"
+        wrap_skip "check_storage_space"
         return 2
     fi
 
@@ -646,6 +653,7 @@ check_storage_space() {
 
 check_package_manager() {
     not_found=0
+    skip_ca_cert=0
     package_managers="apt-get dnf yum dpkg rpm"
     for package in $package_managers; do
         # TODO : Is there a better way to do this?
@@ -655,6 +663,7 @@ check_package_manager() {
             wrap_debug_message "Current target platform supports $package package manager"
             wrap_pass "check_package_manager"
             if [ $package = "rpm" ] || [ $package = "dpkg" ]; then
+                skip_ca_cert=1
                 check_ca_cert
             fi
             break
@@ -666,16 +675,36 @@ check_package_manager() {
     if [ "$not_found" -eq 1 ]; then
         wrap_warning "check_package_manager"
         wrap_warning_message "IoT Edge supports the following package types [*deb, *rpm] and following package managers [apt-get]. We have identified that this device does not have support for the supported package type. Please head to aka.ms/iotedge for instructions on how to build the iotedge binaries from source"
+        skip_ca_cert=1
         check_ca_cert
+    fi
+    if [ ! "$skip_ca_cert" -eq 1 ]; then
+        wrap_skip "check_ca_cert"
     fi
 }
 
 check_ca_cert() {
-    if [ ! -d "/etc/ca-certificates" ]; then
-        wrap_warning "check_ca_cert"
-        wrap_warning_message "Could not find ca-certificates at /etc/ca-certificates, These are required for TLS Communication with IoT Hub"
+    find_openssl=$(openssl version >/dev/null 2>&1)
+    if [ "$?" -eq 0 ]; then
+        ca_cert_dir=$(openssl version -d | awk '{print $2}'| sed "s/\"//g" | tr -d " ")"/certs"
+        wrap_debug_message "CA: cert directory $ca_cert_dir"
+        # Check first if the directory exists.
+        if [ ! -d "$ca_cert_dir" ]; then
+            wrap_warning "check_ca_cert"
+            wrap_warning_message "Could not find ca-certificates. These are required for TLS Communication with IoT Hub"
+        else
+            # Check if the directory has cert files
+            find_crt=$(find -L "$ca_cert_dir" -type f -name "*.pem" -o -name *.crt | grep .)
+            if [ "$?" -ne 0 ]; then
+                wrap_warning "check_ca_cert"
+                wrap_warning_message "Could not find ca-certificates at $ca_cert_dir, These are required for TLS Communication with IoT Hub"
+            else
+                wrap_pass "check_ca_cert"
+            fi
+        fi
     else
-        wrap_pass "check_ca_cert"
+        wrap_debug_message "OpenSSL is not installed"
+        wrap_skip "check_ca_cert"
     fi
 }
 
@@ -696,14 +725,11 @@ iotedge_size_buffer=50
 iotedge_memory_buffer=50
 
 check_free_memory() {
-    # Check dependencies
-    cmd_res="$(need_cmd free)"
-    if [ $? -ne 0 ]; then
-        wrap_warn "check_free_memory"
-        wrap_warning_message "Could not find free utility to calculate current free memory. Skipping the check"
-        return
+    memory_filename="/proc/meminfo"
+    if [  ! -f "$memory_filename" ] ; then
+        wrap_skip "check_free_memory"
+        return 2
     fi
-
     eval iotedge_binary_memory='$'"$(echo "$ARCH"_iotedge_binaries_avg_memory)"
     eval iotedge_container_memory='$'"$(echo "$ARCH"_iotedge_container_memory)"
 
@@ -714,7 +740,7 @@ check_free_memory() {
     total_iotedge_memory_size=$(echo $iotedge_binary_memory $iotedge_container_memory $iotedge_memory_buffer | awk '{print $1 + $2 + $3}')
 
     # /proc/meminfo returns the memory size in KB, but our memory calculations are in MB, convert it to appropriate units
-    current_free_memory=$(cat /proc/meminfo | grep "MemAvailable" | awk '{print $2/1024}')
+    current_free_memory=$(cat $memory_filename | grep "MemAvailable" | awk '{print $2/1024}')
 
     #TODO: correct final link of aka.ms/iotedge with the setup info of memory analysis.
     base_message="IoT Edge requires a minimum memory of approximately $total_iotedge_memory_size MB for running the default setup as described in aka.ms/iotedge. We verified that the the device has $current_free_memory MB of free memory"
@@ -861,7 +887,7 @@ else
     "$APP_NAME"_check
 fi
 
-base_message="Azure IoT Compatibility Script had $FAILURES Errors $WARNINGS Warnings and $PASS Successful Checks"
+base_message="Azure IoT Compatibility Script had $FAILURES Errors $WARNINGS Warnings $PASS Successful Checks and $SKIP Skipped Checks"
 if [ $FAILURES -gt 0 ]; then
     wrap_bad "$base_message"
     exit 1
