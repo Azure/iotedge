@@ -68,6 +68,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         public Task<Stream> GetSupportBundle(Option<string> since, Option<string> until, Option<string> iothubHostname, Option<bool> edgeRuntimeOnly, CancellationToken token) =>
             this.Throttle(() => this.inner.GetSupportBundle(since, until, iothubHostname, edgeRuntimeOnly, token));
 
+        public async Task<string> GetProductInfoAsync(CancellationToken token, string baseProductInfo)
+        {
+            SystemInfo systemInfo = await this.GetSystemInfoAsync(token);
+
+            return $"{baseProductInfo} ({systemInfo.ToQueryString()})";
+        }
+
         internal static ModuleManagementHttpClientVersioned GetVersionedModuleManagement(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion)
         {
             ApiVersion supportedVersion = GetSupportedVersion(serverSupportedApiVersion, clientSupportedApiVersion);
@@ -95,6 +102,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             if (supportedVersion == ApiVersion.Version20200707)
             {
                 return new Version_2020_07_07.ModuleManagementHttpClient(managementUri);
+            }
+
+            if (supportedVersion == ApiVersion.Version20211207)
+            {
+                return new Version_2021_12_07.ModuleManagementHttpClient(managementUri);
             }
 
             return new Version_2018_06_28.ModuleManagementHttpClient(managementUri);

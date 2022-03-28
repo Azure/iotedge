@@ -707,6 +707,7 @@ checksum = "134951f4028bdadb9b84baf4232681efbf277da25144b9b0ad65df75946c422b"
 name = "edgelet-core"
 version = "0.1.0"
 dependencies = [
+ "aziotctl-common",
  "base64 0.9.3",
  "bytes 0.4.12",
  "chrono",
@@ -717,10 +718,13 @@ dependencies = [
  "humantime 2.1.0",
  "lazy_static",
  "log",
+ "nix",
+ "num_cpus",
  "regex",
  "serde",
  "serde_derive",
  "serde_json",
+ "serde_with",
  "sha2",
  "test-case",
  "tokio",
@@ -1995,9 +1999,9 @@ checksum = "41cc0f7e4d5d4544e8861606a285bb08d3e70712ccc7d2b84d7c0ccfaf4b05ce"
 
 [[package]]
 name = "regex"
-version = "1.5.4"
+version = "1.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d07a8629359eb56f1e2fb1652bb04212c072a87ba68546a04065d525673ac461"
+checksum = "1a11647b6b25ff05a515cb92c365cec08801e83423a235b51e231e1808747286"
 dependencies = [
  "aho-corasick",
  "memchr",

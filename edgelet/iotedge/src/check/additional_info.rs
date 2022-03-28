@@ -115,6 +115,7 @@ fn parse_os_release_line(line: &str) -> Option<(&str, &str)> {
 
     Some((key, value))
 }
+
 #[derive(Clone, Debug, Default, serde_derive::Serialize)]
 struct SystemInfo {
     used_ram: String,
