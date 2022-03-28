@@ -143,7 +143,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                         timeGeneratedUtc = MetricTimestampEpoch + TimeSpan.FromMilliseconds(metricTimestamp);
                     }
 
-                    if (Settings.Current.AddIdentifyingTags)
+                    if (Settings.Current.ExperimentalFeatureAddIdentifyingTags)
                     {
                         try
                         {
