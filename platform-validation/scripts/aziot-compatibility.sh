@@ -653,7 +653,7 @@ check_storage_space() {
 
 check_package_manager() {
     not_found=0
-    sca_cert=0
+    skip_ca_cert=0
     package_managers="apt-get dnf yum dpkg rpm"
     for package in $package_managers; do
         # TODO : Is there a better way to do this?
@@ -678,7 +678,7 @@ check_package_manager() {
         skip_ca_cert=1
         check_ca_cert
     fi
-    if [ "$skip_ca_cert" -eq 0 ]; then
+    if [ ! "$skip_ca_cert" -eq 1 ]; then
         wrap_skip "check_ca_cert"
     fi
 }
@@ -726,7 +726,7 @@ iotedge_memory_buffer=50
 
 check_free_memory() {
     memory_filename="/proc/meminfo"
-    if [  ! -f memory_filename ] ; then
+    if [  ! -f "$memory_filename" ] ; then
         wrap_skip "check_free_memory"
         return 2
     fi
