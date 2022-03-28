@@ -1,3 +1,14 @@
+# 1.1.12 (2022-03-15)
+## Edge Agent
+### Bug Fixes
+* Update Base Images for a Security Patch [.NET Core 3.1.23 - March 8, 2022](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1.23/3.1.23.md)
+
+
+## Edge Hub
+### Bug Fixes
+* Update Base Images for a Security Patch [.NET Core 3.1.23 - March 8, 2022](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1.23/3.1.23.md)
+
+
 # 1.1.11 (2022-03-07)
 ## Edge Agent
 ### Bug Fixes
