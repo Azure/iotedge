@@ -653,6 +653,7 @@ check_storage_space() {
 
 check_package_manager() {
     not_found=0
+    sca_cert=0
     package_managers="apt-get dnf yum dpkg rpm"
     for package in $package_managers; do
         # TODO : Is there a better way to do this?
@@ -662,6 +663,7 @@ check_package_manager() {
             wrap_debug_message "Current target platform supports $package package manager"
             wrap_pass "check_package_manager"
             if [ $package = "rpm" ] || [ $package = "dpkg" ]; then
+                skip_ca_cert=1
                 check_ca_cert
             fi
             break
@@ -673,7 +675,11 @@ check_package_manager() {
     if [ "$not_found" -eq 1 ]; then
         wrap_warning "check_package_manager"
         wrap_warning_message "IoT Edge supports the following package types [*deb, *rpm] and following package managers [apt-get]. We have identified that this device does not have support for the supported package type. Please head to aka.ms/iotedge for instructions on how to build the iotedge binaries from source"
+        skip_ca_cert=1
         check_ca_cert
+    fi
+    if [ "$skip_ca_cert" -eq 0 ]; then
+        wrap_skip "check_ca_cert"
     fi
 }
 
