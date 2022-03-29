@@ -18,7 +18,7 @@ ARG EDGEAGENTUSER_ID
 ENV EDGEAGENTUSER_ID ${EDGEAGENTUSER_ID:-13622}
 RUN useradd -ms /bin/bash -u ${EDGEAGENTUSER_ID} edgeagentuser 
 
-# COPY $EXE_DIR/librocksdb/librocksdb.so.arm64 /usr/lib/librocksdb.so
+COPY $EXE_DIR/librocksdb/librocksdb.so.arm64 /usr/lib/librocksdb.so
  
 ARG EXE_DIR=.
 

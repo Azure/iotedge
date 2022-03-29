@@ -3,7 +3,7 @@
 mkdir ~/setup
 cd ~/setup
 
-# Install >NET 6 runtime ( https://docs.microsoft.com/en-us/dotnet/core/install/linux-ubuntu )
+# Install .NET 6 runtime ( https://docs.microsoft.com/en-us/dotnet/core/install/linux-ubuntu )
 wget https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
 sudo dpkg -i packages-microsoft-prod.deb
 
