@@ -3,7 +3,7 @@
 mkdir ~/setup
 cd ~/setup
 
-# Install dotnet3.1 core runtime ( https://docs.microsoft.com/en-us/dotnet/core/install/linux-ubuntu )
+# Install >NET 6 runtime ( https://docs.microsoft.com/en-us/dotnet/core/install/linux-ubuntu )
 wget https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
 sudo dpkg -i packages-microsoft-prod.deb
 
@@ -13,12 +13,7 @@ sudo apt-get update; \
 sudo apt-get update; \
   sudo apt-get install -y apt-transport-https && \
   sudo apt-get update && \
-  sudo apt-get install -y dotnet-sdk-3.1
-
-sudo apt-get update; \
-  sudo apt-get install -y apt-transport-https && \
-  sudo apt-get update && \
-  sudo apt-get install -y aspnetcore-runtime-3.1
+  sudo apt-get install -y dotnet-sdk-6.0
 
 # Install Powershell ( https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-core-on-linux?view=powershell-7 )
 sudo apt-get update; \
