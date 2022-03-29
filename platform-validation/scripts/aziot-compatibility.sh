@@ -15,7 +15,7 @@ WARNINGS=0
 
 #Variables for shared libraries
 SHARED_LIB_PATH="/usr /lib /lib32 /lib64"
-CURRENT_SHARED_LIBRARIES_BASE="libssl.so.1.1 libcrypto.so.1.1 libdl.so.2 librt.so.1 libpthread.so.0 libc.so.6 libm.so.6 libgcc_s.so.1"
+SHARED_LIBRARIES_BASE="libssl.so.1.1 libcrypto.so.1.1 libdl.so.2 librt.so.1 libpthread.so.0 libc.so.6 libm.so.6 libgcc_s.so.1"
 SHARED_LIBRARIES_x86_64="ld-linux-x86-64.so.2"
 SHARED_LIBRARIES_aarch64="ld-linux-aarch64.so.1"
 SHARED_LIBRARIES_armv7l="ld-linux-armhf.so.3"
@@ -807,7 +807,7 @@ check_free_memory() {
 
 aziotedge_check() {
 
-    # #Todo : As we add new versions, these checks will need to be changed. Keep a common check for now
+    #Todo : As we add new versions, these checks will need to be changed. Keep a common check for now
     case $APP_VERSION in
     *) wrap_debug_message "Checking aziot-edge compatibility for Release 1.2" ;;
     esac
