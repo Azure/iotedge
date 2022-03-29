@@ -24,6 +24,8 @@ pub(crate) async fn run_until_shutdown(
     let shutdown_loop = shutdown_rx.recv();
     futures_util::pin_mut!(shutdown_loop);
 
+    remove_old_edge_runtime(&settings, &runtime).await?;
+
     log::info!("Starting watchdog with 60 second period...");
 
     loop {
@@ -67,6 +69,21 @@ pub(crate) async fn run_until_shutdown(
             }
         }
     }
+}
+
+async fn remove_old_edge_runtime(
+    settings: &edgelet_settings::docker::Settings,
+    runtime: &edgelet_docker::DockerModuleRuntime,
+) -> Result<(), EdgedError> {
+    let agent_name = settings.agent().name();
+    if runtime.get(agent_name).await.is_ok() {
+        log::info!("Remove old Edge runtime");
+        runtime
+            .remove(agent_name)
+            .await
+            .map_err(|err| EdgedError::from_err("Failed to remove old Edge runtime", err))?;
+    }
+    Ok(())
 }
 
 async fn watchdog(
