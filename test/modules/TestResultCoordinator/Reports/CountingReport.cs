@@ -129,7 +129,15 @@ namespace TestResultCoordinator.Reports
             return this.TotalExpectCount > 0 && this.TotalDuplicateExpectedResultCount == 0 && this.EventHubSpecificReportComponents.Match(
                 eh =>
                 {
-                    return eh.AllActualResultsMatch && eh.StillReceivingFromEventHub;
+                    if (this.Topology == Topology.Nested && this.MqttBrokerEnabled && this.TestDescription.Contains(MessagesTestDescription))
+                    {
+                        bool matchWithinThreshold = ((double)this.TotalMatchCount / this.TotalExpectCount) > .99d;
+                        return matchWithinThreshold && eh.StillReceivingFromEventHub;
+                    }
+                    else
+                    {
+                        return eh.AllActualResultsMatch && eh.StillReceivingFromEventHub;
+                    }
                 },
                 () =>
                 {
@@ -156,11 +164,6 @@ namespace TestResultCoordinator.Reports
                         if (this.Topology == Topology.Nested && this.MqttBrokerEnabled && this.TestDescription.Contains(GenericMqttTelemetryTestDescription))
                         {
                             return ((double)this.TotalMatchCount / this.TotalExpectCount) > .8d;
-                        }
-                        // Product issue for messages when broker is enabled.
-                        else if (this.Topology == Topology.Nested && this.MqttBrokerEnabled && this.TestDescription.Contains(MessagesTestDescription))
-                        {
-                            return ((double)this.TotalMatchCount / this.TotalExpectCount) > .99d;
                         }
                         else
                         {
