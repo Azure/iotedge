@@ -67,8 +67,8 @@ BUILD_REPOSITORY_LOCALPATH="$(realpath "${BUILD_REPOSITORY_LOCALPATH:-$DIR/../..
 DOCKER_VOLUME_MOUNTS=''
 
 case "$PACKAGE_OS" in
-    'ubuntu18.04')
-        DOCKER_IMAGE='ubuntu:18.04'
+    'ubuntu20.04')
+        DOCKER_IMAGE='ubuntu:20.04'
         ;;
 
     'alpine')
@@ -82,7 +82,7 @@ if [ -z "$DOCKER_IMAGE" ]; then
 fi
 
 case "$PACKAGE_OS.$PACKAGE_ARCH" in
-    ubuntu18.04.amd64)
+    ubuntu20.04.amd64)
         RUST_TARGET='x86_64-unknown-linux-gnu'
 
         SETUP_COMMAND=$'
@@ -169,7 +169,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         MAKE_FLAGS="$MAKE_FLAGS 'STRIP_COMMAND=strip'"        
         ;;
 
-    ubuntu18.04.arm32v7)
+    ubuntu20.04.arm32v7)
         RUST_TARGET='armv7-unknown-linux-gnueabihf'
         
         SETUP_COMMAND=$'
@@ -293,7 +293,7 @@ cd /tmp && \
     MAKE_FLAGS="$MAKE_FLAGS 'STRIP_COMMAND=musl-strip'"
         ;;
 
-    ubuntu18.04.aarch64| alpine.aarch64)
+    ubuntu20.04.aarch64| alpine.aarch64)
         RUST_TARGET='aarch64-unknown-linux-gnu'
         
         SETUP_COMMAND=$'
