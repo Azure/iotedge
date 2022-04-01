@@ -86,6 +86,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         RUST_TARGET='x86_64-unknown-linux-gnu'
 
         SETUP_COMMAND=$'
+            export DEBIAN_FRONTEND=noninteractive
             sources="$(cat /etc/apt/sources.list | grep -E \'^[^#]\')" &&
             # Update existing repos to be specifically for amd64
             echo "$sources" | sed -e \'s/^deb /deb [arch=amd64] /g\' > /etc/apt/sources.list
@@ -173,6 +174,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         RUST_TARGET='armv7-unknown-linux-gnueabihf'
         
         SETUP_COMMAND=$'
+            export DEBIAN_FRONTEND=noninteractive
             sources="$(cat /etc/apt/sources.list | grep -E \'^[^#]\')" &&
             # Update existing repos to be specifically for amd64
             echo "$sources" | sed -e \'s/^deb /deb [arch=amd64] /g\' > /etc/apt/sources.list &&
@@ -297,6 +299,7 @@ cd /tmp && \
         RUST_TARGET='aarch64-unknown-linux-gnu'
         
         SETUP_COMMAND=$'
+            export DEBIAN_FRONTEND=noninteractive
             sources="$(cat /etc/apt/sources.list | grep -E \'^[^#]\')" &&
             # Update existing repos to be specifically for amd64
             echo "$sources" | sed -e \'s/^deb /deb [arch=amd64] /g\' > /etc/apt/sources.list &&
