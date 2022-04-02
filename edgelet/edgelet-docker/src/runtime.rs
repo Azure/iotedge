@@ -502,6 +502,10 @@ impl ModuleRuntime for DockerModuleRuntime {
 
                 create_options.set_labels(btree_labels);
             }
+
+            if let Some(env) = config.env() {
+                create_options.set_env(env.to_vec());
+            }
         }
 
         let mut config = DockerConfig::new(

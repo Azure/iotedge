@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use edgelet_core::ModuleRuntime;
+use edgelet_core::{Module, ModuleRuntime};
 use edgelet_settings::RuntimeSettings;
 
 use crate::error::Error as EdgedError;
@@ -24,7 +24,7 @@ pub(crate) async fn run_until_shutdown(
     let shutdown_loop = shutdown_rx.recv();
     futures_util::pin_mut!(shutdown_loop);
 
-    remove_old_edge_runtime(&settings, &runtime).await?;
+    remove_old_edge_runtime(&settings, device_info, &runtime, identity_client).await?;
 
     log::info!("Starting watchdog with 60 second period...");
 
@@ -73,16 +73,38 @@ pub(crate) async fn run_until_shutdown(
 
 async fn remove_old_edge_runtime(
     settings: &edgelet_settings::docker::Settings,
+    device_info: &aziot_identity_common::AzureIoTSpec,
     runtime: &edgelet_docker::DockerModuleRuntime,
+    identity_client: &aziot_identity_client_async::Client,
 ) -> Result<(), EdgedError> {
+    let gen_id = agent_gen_id(identity_client).await?;
+    let new_env = agent_env(gen_id, settings, device_info);
+
     let agent_name = settings.agent().name();
-    if runtime.get(agent_name).await.is_ok() {
-        log::info!("Remove old Edge runtime");
-        runtime
-            .remove(agent_name)
-            .await
-            .map_err(|err| EdgedError::from_err("Failed to remove old Edge runtime", err))?;
+    if let Ok((module, _)) = runtime.get(agent_name).await {
+        let config = module.config();
+        if let Some(envs) = config.create_options().env() {
+            for env in envs {
+                let env_split: Vec<&str> = env.split("=").collect();
+                if env_split.len() != 2 {
+                    continue;
+                }
+                let cur_key = env_split[0];
+                let cur_value = env_split[1];
+                if let Some(new_value) = new_env.get(cur_key) {
+                    if new_value != cur_value {
+                        // Remove old edgeAgent only if edgeAgent's config changes.
+                        log::info!("Remove old Edge runtime");
+                        runtime.remove(agent_name).await.map_err(|err| {
+                            EdgedError::from_err("Failed to remove old Edge runtime", err)
+                        })?;
+                        return Ok(());
+                    }
+                }
+            }
+        }
     }
+
     Ok(())
 }
 
