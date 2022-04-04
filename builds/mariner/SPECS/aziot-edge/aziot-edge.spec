@@ -16,7 +16,6 @@ URL:            https://github.com/azure/iotedge
 
 %{?systemd_requires}
 BuildRequires:  systemd
-BuildRequires:  rust = 1.47.0
 Requires(pre):  shadow-utils
 Requires:       openssl
 Requires:       aziot-identity-service
@@ -25,6 +24,7 @@ Requires:       moby-cli
 
 #Source0:       https://github.com/Azure/iotedge/archive/%{version}.tar.gz
 Source0:        %{name}-%{version}.tar.gz
+Source1:        rust.tar.gz
 
 %description
 Azure IoT Edge Module Runtime
@@ -37,6 +37,13 @@ This package contains the IoT Edge daemon and CLI tool.
 
 %prep
 %setup -q
+# include rust toolchain that matches the one from aziotedge's pipeline
+pushd ~
+tar xf %{SOURCE1} --no-same-owner --strip-components=1
+popd
+export CARGO_HOME=~/.cargo
+export PATH=$PATH:$CARGO_HOME/bin
+export RUSTUP_HOME=~/.rustup
 
 cd edgelet
 make \
@@ -49,6 +56,9 @@ make \
 %install
 IOTEDGE_HOST=unix:///var/lib/iotedge/mgmt.sock
 export IOTEDGE_HOST
+export CARGO_HOME=~/.cargo
+export PATH=$PATH:$CARGO_HOME/bin
+export RUSTUP_HOME=~/.rustup
 
 rm -rf $RPM_BUILD_ROOT
 cd edgelet
@@ -187,7 +197,7 @@ fi
 -   Update to run on iotedge pipeline.
 *   Wed May 05 2021 David Grob <grobdavid@microsoft.com> 1.2.0-3
 -   Update to version 1.2.0 and compress source files.
-*   Fri Apr 08 2021 Saravanan Somasundaram <sarsoma@microsoft.com> 1.2.0-2
+*   Thu Apr 08 2021 Saravanan Somasundaram <sarsoma@microsoft.com> 1.2.0-2
 -   Adding Azure IoT Edge Migration Service as a Dependency.
 *   Mon Mar 29 2021 David Grob <grobdavid@microsoft.com> 1.2.0-1
 -   Original aziot-edge version 1.2.0 post rc4 for Mariner.
