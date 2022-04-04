@@ -111,6 +111,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         RUST_TARGET='x86_64-unknown-linux-musl'
         # The below SETUP was copied from https://github.com/emk/rust-musl-builder/blob/main/Dockerfile.
         SETUP_COMMAND=$'
+            export DEBIAN_FRONTEND=noninteractive
             OPENSSL_VERSION=1.1.1i
             apt-get update && \
             apt-get install -y \
