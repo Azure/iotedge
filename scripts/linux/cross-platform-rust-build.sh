@@ -204,6 +204,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
             echo \'Installing rustup\' &&
             curl -sSLf https://sh.rustup.rs | sh -s -- -y &&
             . ~/.cargo/env &&
+            rustc --version --verbose &&
         '
         MAKE_FLAGS="'CARGOFLAGS=$CARGOFLAGS --target armv7-unknown-linux-gnueabihf'"
         MAKE_FLAGS="$MAKE_FLAGS 'TARGET=target/armv7-unknown-linux-gnueabihf/release'"
