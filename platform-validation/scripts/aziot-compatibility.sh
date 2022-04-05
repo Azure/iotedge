@@ -4,17 +4,43 @@
 # This script checks whether IoT Edge can run on a target OS
 ###############################################################################
 
-#Variables
+#Variables for logging
 OSTYPE=""
 ARCH=""
 VERBOSE=0
-PASS=0
 FAILURES=0
+PASS=0
+SKIP=0
 WARNINGS=0
-# ------------------------------------------------------------------------------
-#  Text Formatting
-#  Derived from : https://github.com/moby/moby/blob/master/contrib/check-config.sh
-# ------------------------------------------------------------------------------
+
+#Variables for shared libraries
+SHARED_LIB_PATH="/usr /lib /lib32 /lib64"
+SHARED_LIBRARIES_BASE="libssl.so.1.1 libcrypto.so.1.1 libdl.so.2 librt.so.1 libpthread.so.0 libc.so.6 libm.so.6 libgcc_s.so.1"
+SHARED_LIBRARIES_x86_64="ld-linux-x86-64.so.2"
+SHARED_LIBRARIES_aarch64="ld-linux-aarch64.so.1"
+SHARED_LIBRARIES_armv7l="ld-linux-armhf.so.3"
+SHARED_LIB_LIBSSSL_1_1="libssl.so.1.1"
+SHARED_LIB_LIBSSSL_1_0="libssl.so.1.0"
+
+#Variables for memory and storage numbers
+#TODO : Update these numbers after Automated Run. The goal is that for every release, we would update these numbers
+armv7l_iotedge_binaries_size=36.68
+armv7l_iotedge_binaries_avg_memory=35.51
+armv7l_iotedge_container_size=322.98
+armv7l_iotedge_container_memory=164.53
+x86_64_iotedge_binaries_size=42.39
+x86_64_iotedge_binaries_avg_memory=54.24
+x86_64_iotedge_container_size=254.96
+x86_64_iotedge_container_memory=175
+aarch64_iotedge_binaries_size=36.68
+aarch64_iotedge_binaries_avg_memory=26.62
+aarch64_iotedge_container_size=322.6
+aarch64_iotedge_container_memory=210
+iotedge_size_buffer=50
+iotedge_memory_buffer=50
+
+#Variable for Docker API version
+MINIMUM_DOCKER_API_VERSION=1.34
 
 POSSIBLE_CONFIGS="
 	/proc/config.gz
@@ -33,6 +59,10 @@ is_set() {
     zgrep "CONFIG_$1=[y|m]" "$CONFIG" >/dev/null
 }
 
+# ------------------------------------------------------------------------------
+#  Text Formatting
+#  Derived from : https://github.com/moby/moby/blob/master/contrib/check-config.sh
+# ------------------------------------------------------------------------------
 color() {
     codes=
     if [ "$1" = 'bold' ]; then
@@ -92,6 +122,12 @@ wrap_pass() {
     PASS=$((PASS + 1))
     echo "$(wrap_color "$1 - OK" green)"
 }
+
+wrap_skip() {
+    SKIP=$((SKIP + 1))
+    echo "$(wrap_color "$1 - Skipped" white)"
+}
+
 wrap_fail() {
     FAILURES=$((FAILURES + 1))
     echo "$(wrap_color "$1 - Error" bold red)"
@@ -190,6 +226,11 @@ get_endianness() {
     fi
 }
 
+# ------------------------------------------------------------------------------
+#
+#  Compatibility Tool Checks
+#
+# ------------------------------------------------------------------------------
 get_architecture() {
     _ostype=""
     _cputype=""
@@ -369,97 +410,6 @@ get_architecture() {
     ARCH=$_cputype
 }
 
-check_kernel_file() {
-    if [ ! -e "$CONFIG" ]; then
-        wrap_warning_message "warning: $CONFIG does not exist, searching other paths for kernel config ..."
-        for tryConfig in $POSSIBLE_CONFIGS; do
-            if [ -e "$tryConfig" ]; then
-                CONFIG="$tryConfig"
-                break
-            fi
-        done
-        if [ ! -e "$CONFIG" ]; then
-            wrap_warning_message "error: cannot find kernel config"
-            wrap_warning_message "  try running this script again, specifying the kernel config:"
-            wrap_warning_message "    CONFIG=/path/to/kernel/.config $0"
-            EXIT_CODE=1
-        fi
-    fi
-}
-
-check_flag() {
-    if is_set "$1"; then
-        wrap_pass "CONFIG_$1"
-    else
-        wrap_fail "CONFIG_$1"
-    fi
-}
-
-legacy_find_and_report_libs() {
-    found_library=0
-    for path in $SHARED_LIB_PATH; do
-        if [ ! -e "$path" ]; then
-            wrap_warning_message "Path : $path does not exist, Searching for other paths"
-            continue
-        else
-            if [ ! "$(find "$path" -name "$1" | grep .)" ]; then
-                found_library=0
-            else
-                found_library=1
-                wrap_pass "library_$1"
-                break
-            fi
-        fi
-    done
-    if [ $found_library -eq 0 ]; then
-        wrap_fail "library_$1"
-        display_missing_library_warning "$1"
-    fi
-}
-
-display_missing_library_warning() {
-
-    wrap_warning_message "error: cannot find Library $1 in $SHARED_LIB_PATH"
-    wrap_warning_message "  try running this script again, providing the shared library path for your distro"
-    wrap_warning_message "    SHARED_LIB_PATH=/path/to/shared_lib $0"
-    case $1 in
-    "libssl.so.1.1" | "libcrypto.so.1.1")
-        wrap_warning_message "If problem still persists, please install openssl and libssl-dev for your OS distribution."
-        ;;
-    "libdl.so.2" | "librt.so.1" | "libpthread.so.0" | "libc.so.6" | "libm.so.6")
-        wrap_warning_message "If problem still persists, please install libc6-dev for your OS distribution."
-        ;;
-    "ld-linux-x86-64.so.2" | "ld-linux-aarch64.so.1" | "ld-linux-armhf.so.3")
-        wrap_warning_message "If problem still persists, please install libc6 for your OS distribution."
-        ;;
-    "libgcc_s.so.1")
-        wrap_warning_message "If problem still persists, please install gcc for your OS distribution."
-        ;;
-    esac
-}
-
-# ------------------------------------------------------------------------------
-#
-#  Compatibility Tool Checks
-#
-# ------------------------------------------------------------------------------
-
-check_kernel_flags() {
-    EXIT_CODE=0
-    check_kernel_file
-    if [ $EXIT_CODE != 0 ]; then
-        wrap_fail "check_kernel_flags"
-        return
-    fi
-    EXIT_CODE=0
-    wrap_debug_message "Reading Kernel Config from $CONFIG"
-    for flag in "$@"; do
-        printf -- '- '
-        check_flag "$flag"
-    done
-
-}
-
 # bits of this were adapted from moby check-config.shells
 # See https://github.com/moby/moby/blob/master/contrib/check-config.sh
 #Reference Issue : https://github.com/Azure/iotedge/issues/5812
@@ -506,6 +456,47 @@ check_cgroup_heirachy() {
     fi
 }
 
+check_kernel_flags() {
+    EXIT_CODE=0
+    check_kernel_flags_file_util
+    if [ $EXIT_CODE != 0 ]; then
+        wrap_fail "check_kernel_flags"
+        return
+    fi
+    EXIT_CODE=0
+    wrap_debug_message "Reading Kernel Config from $CONFIG"
+    for flag in "$@"; do
+        printf -- '- '
+        check_kernel_flags_util "$flag"
+    done
+}
+
+check_kernel_flags_file_util() {
+    if [ ! -e "$CONFIG" ]; then
+        wrap_warning_message "warning: $CONFIG does not exist, searching other paths for kernel config ..."
+        for tryConfig in $POSSIBLE_CONFIGS; do
+            if [ -e "$tryConfig" ]; then
+                CONFIG="$tryConfig"
+                break
+            fi
+        done
+        if [ ! -e "$CONFIG" ]; then
+            wrap_warning_message "error: cannot find kernel config"
+            wrap_warning_message "  try running this script again, specifying the kernel config:"
+            wrap_warning_message "    CONFIG=/path/to/kernel/.config $0"
+            EXIT_CODE=1
+        fi
+    fi
+}
+
+check_kernel_flags_util() {
+    if is_set "$1"; then
+        wrap_pass "CONFIG_$1"
+    else
+        wrap_fail "CONFIG_$1"
+    fi
+}
+
 check_systemd() {
     wrap_debug_message "Checking presence of systemd..."
     if [ -z "$(pidof systemd)" ]; then
@@ -535,7 +526,6 @@ check_architecture() {
         wrap_warning_message "Compatibility for IoT Edge not known for architecture $ARCH"
         ;;
     esac
-
 }
 
 #Todo : This will need to be checked here : https://github.com/Azure/iotedge/blob/main/edgelet/docker-rs/src/apis/configuration.rs#L14 for every build
@@ -568,34 +558,129 @@ check_docker_api_version() {
         wrap_fail "check_docker_api_version"
         wrap_warning_message "Docker API Version on device $version is lower than Minumum API Version $MINIMUM_DOCKER_API_VERSION. Please upgrade docker engine."
     fi
-
 }
 
-SHARED_LIB_PATH="/usr /lib /lib32 /lib64"
 check_shared_library_dependency() {
+    if [ "$ARCH" = x86_64 ]; then
+        SHARED_LIBRARIES="$(echo $CURRENT_SHARED_LIBRARIES_BASE $CURRENT_SHARED_LIBRARIES_x86_64)"
+    elif [ "$ARCH" = aarch64 ]; then
+        SHARED_LIBRARIES="$(echo $CURRENT_SHARED_LIBRARIES_BASE $CURRENT_SHARED_LIBRARIES_aarch64)"
+    elif [ "$ARCH" = armv7l ]; then
+        SHARED_LIBRARIES="$(echo $CURRENT_SHARED_LIBRARIES_BASE $CURRENT_SHARED_LIBRARIES_armv7l)"
+    fi
+
+    wrap_debug_message "Shared libraries to check: $SHARED_LIBRARIES"
+
     for lib in $SHARED_LIBRARIES; do
-        # check dependencies for `ldconfig` and fall back to `find` when its not possible
-        if [ "$(id -u)" -ne 0 ]; then
-            legacy_find_and_report_libs "$lib"
+        check_ldconfig=$(need_cmd ldconfig)
+        result_ldconfig="$?"
+        # case with root privilege and ldconfig exists
+        if [ "$(id -u)" -eq 0 ] && [ "$result_ldconfig" -eq 0 ] ; then
+            check_shared_lib_ldconfig_util "$lib"
+            result_lib="$?"
+            if [ "$result_lib" -ne 0 ] && [ "$lib" = "$SHARED_LIB_LIBSSSL_1_1" ]; then
+                check_shared_lib_ldconfig_util "$SHARED_LIB_LIBSSSL_1_0"
+            fi
         else
-            ret=$(need_cmd ldconfig)
-            if [ "$?" -ne 0 ]; then
-                legacy_find_and_report_libs "$lib"
-            else
-                ret=$(ldconfig -p | grep "$lib")
-                if [ -z "$ret" ]; then
-                    wrap_fail "library_$lib"
-                    display_missing_library_warning "$lib"
-                else
-                    wrap_pass "library_$lib"
-                fi
+            check_shared_lib_find_util "$lib"
+            result_lib="$?"
+            if [ "$result_lib" -ne 0 ] && [ "$lib" = "$SHARED_LIB_LIBSSSL_1_1" ]; then
+                check_shared_lib_find_util "$SHARED_LIB_LIBSSSL_1_0"
             fi
         fi
     done
 }
 
-# Takes in a File System path , Size of Application in MB and Buffer Size in MB
+check_shared_lib_find_util() {
+    found_library=0
+    for path in $SHARED_LIB_PATH; do
+        if [ ! -e "$path" ]; then
+            wrap_warning_message "Path : $path does not exist, Searching for other paths"
+            continue
+        else
+            if [ ! "$(find "$path" -name "$1" | grep .)" ]; then
+                found_library=0
+            else
+                found_library=1
+                break
+            fi
+        fi
+    done
+    if [ $found_library -eq 0 ]; then
+        check_shared_lib_display_warning "$1" "library_$1"
+        return 1
+    else
+        wrap_pass "library_$1"
+        return 0
+    fi
+}
+
+check_shared_lib_ldconfig_util() {
+    ret=$(ldconfig -p | grep "$1")
+    if [ -z "$ret" ]; then
+        check_shared_lib_display_warning "$1" "library_$1"
+        return 1
+    else
+        wrap_pass "library_$1"
+        return 0
+    fi
+}
+
+check_shared_lib_display_warning() {
+    wrap_warning_message "error: cannot find Library $1 in $SHARED_LIB_PATH"
+    wrap_warning_message "  try running this script again, providing the shared library path for your distro"
+    wrap_warning_message "    SHARED_LIB_PATH=/path/to/shared_lib $0"
+    case $1 in
+    "libssl.so.1.1" | "libssl.so.1.0" | "libcrypto.so.1.1")
+        wrap_fail "$2"
+        wrap_warning_message "If problem still persists, please install openssl and libssl-dev for your OS distribution."
+        ;;
+    "libdl.so.2" | "librt.so.1" | "libpthread.so.0" | "libc.so.6" | "libm.so.6")
+        wrap_fail "$2"
+        wrap_warning_message "If problem still persists, please install libc6-dev for your OS distribution."
+        ;;
+    "ld-linux-x86-64.so.2" | "ld-linux-aarch64.so.1" | "ld-linux-armhf.so.3")
+        wrap_fail "$2"
+        wrap_warning_message "If problem still persists, please install libc6 for your OS distribution."
+        ;;
+    "libgcc_s.so.1")
+        wrap_fail "$2"
+        wrap_warning_message "If problem still persists, please install gcc for your OS distribution."
+        ;;
+    esac
+}
+
 check_storage_space() {
+    eval binary_size='$'"$(echo "$ARCH"_iotedge_binaries_size)"
+    eval container_size='$'"$(echo "$ARCH"_iotedge_container_size)"
+
+    # Round Numbers
+    binary_size=$(echo $binary_size | awk '{printf "%.0f", $1}')
+    container_size=$(echo $container_size | awk '{printf "%.0f", $1}')
+    TOTAL_SIZE=$(echo $binary_size $container_size | awk '{print $1 + $2}')
+
+    if [ -z "$MOUNTPOINT" ]; then
+        MOUNTPOINT=$(pwd)
+        wrap_debug_message "The Mountpoint where application is intented to be installed is unknown, using $MOUNTPOINT"
+    fi
+
+    check_storage_space_util "$MOUNTPOINT" "$TOTAL_SIZE" "$iotedge_size_buffer"
+    ret="$?"
+
+    base_message="IoT Edge requires a minimum storage space of approximately $((container_size + binary_size + iotedge_size_buffer)) MB for installing edge daemon and runtime docker containers. We verified that the the device has $available_storage MB of available storage for File System $(df -P -m "$MOUNTPOINT" | awk '{print $6}')"
+
+    if [ $ret -eq 0 ]; then
+        wrap_warning_message "$base_message"
+        #TODO : Check with PM on messaging
+        wrap_warning_message "Additional storage space maybe required for based on usage of iotedge and has not been measured here. Please visit aka.ms/iotedge for more information"
+    elif [ $ret -eq 1 ]; then
+        wrap_warning_message "$base_message"
+        wrap_warning_message "If you are planning to install iotedge on a different mountpoint, please run the script with MOUNTPOINT='<Path-to-mount>' $(basename "$0")"
+    fi
+}
+
+# Takes in a File System path , Size of Application in MB and Buffer Size in MB
+check_storage_space_util() {
     storage_path=$1
     application_size=$2
     buffer=$3
@@ -603,8 +688,8 @@ check_storage_space() {
     # Check dependencies
     ret=$(need_cmd df)
     if [ "$?" -ne 0 ]; then
-        wrap_warning "check_storage_space"
-        wrap_warning_message "Could not find df utility to calculate disk space, Skipping the check"
+        wrap_debug_message "Could not find df utility to calculate disk space, Skipping the check"
+        wrap_skip "check_storage_space"
         return 2
     fi
 
@@ -629,11 +714,11 @@ check_storage_space() {
         wrap_fail "check_storage_space"
         return 1
     fi
-
 }
 
 check_package_manager() {
     not_found=0
+    skip_ca_cert=0
     package_managers="apt-get dnf yum dpkg rpm"
     for package in $package_managers; do
         # TODO : Is there a better way to do this?
@@ -643,6 +728,7 @@ check_package_manager() {
             wrap_debug_message "Current target platform supports $package package manager"
             wrap_pass "check_package_manager"
             if [ $package = "rpm" ] || [ $package = "dpkg" ]; then
+                skip_ca_cert=1
                 check_ca_cert
             fi
             break
@@ -654,55 +740,56 @@ check_package_manager() {
     if [ "$not_found" -eq 1 ]; then
         wrap_warning "check_package_manager"
         wrap_warning_message "IoT Edge supports the following package types [*deb, *rpm] and following package managers [apt-get]. We have identified that this device does not have support for the supported package type. Please head to aka.ms/iotedge for instructions on how to build the iotedge binaries from source"
+        skip_ca_cert=1
         check_ca_cert
+    fi
+    if [ ! "$skip_ca_cert" -eq 1 ]; then
+        wrap_skip "check_ca_cert"
     fi
 }
 
 check_ca_cert() {
-    if [ ! -d "/etc/ca-certificates" ]; then
-        wrap_warning "check_ca_cert"
-        wrap_warning_message "Could not find ca-certificates at /etc/ca-certificates, These are required for TLS Communication with IoT Hub"
+    find_openssl=$(openssl version >/dev/null 2>&1)
+    if [ "$?" -eq 0 ]; then
+        ca_cert_dir=$(openssl version -d | awk '{print $2}'| sed "s/\"//g" | tr -d " ")"/certs"
+        wrap_debug_message "CA: cert directory $ca_cert_dir"
+        # Check first if the directory exists.
+        if [ ! -d "$ca_cert_dir" ]; then
+            wrap_warning "check_ca_cert"
+            wrap_warning_message "Could not find ca-certificates. These are required for TLS Communication with IoT Hub"
+        else
+            # Check if the directory has cert files
+            find_crt=$(find -L "$ca_cert_dir" -type f -name "*.pem" -o -name "*.crt" | grep .)
+            if [ "$?" -ne 0 ]; then
+                wrap_warning "check_ca_cert"
+                wrap_warning_message "Could not find ca-certificates at $ca_cert_dir, These are required for TLS Communication with IoT Hub"
+            else
+                wrap_pass "check_ca_cert"
+            fi
+        fi
     else
-        wrap_pass "check_ca_cert"
+        wrap_debug_message "OpenSSL is not installed"
+        wrap_skip "check_ca_cert"
     fi
 }
 
-#TODO : Update these numbers after Automated Run. The goal is that for every release, we would update these numbers
-armv7l_iotedge_binaries_size=36.68
-armv7l_iotedge_binaries_avg_memory=35.51
-armv7l_iotedge_container_size=322.98
-armv7l_iotedge_container_memory=164.53
-x86_64_iotedge_binaries_size=42.39
-x86_64_iotedge_binaries_avg_memory=54.24
-x86_64_iotedge_container_size=254.96
-x86_64_iotedge_container_memory=175
-aarch64_iotedge_binaries_size=36.68
-aarch64_iotedge_binaries_avg_memory=26.62
-aarch64_iotedge_container_size=322.6
-aarch64_iotedge_container_memory=154.53
-iotedge_size_buffer=50
-iotedge_memory_buffer=50
-
 check_free_memory() {
-    # Check dependencies
-    cmd_res="$(need_cmd free)"
-    if [ $? -ne 0 ]; then
-        wrap_warn "check_free_memory"
-        wrap_warning_message "Could not find free utility to calculate current free memory. Skipping the check"
-        return
+    memory_filename="/proc/meminfo"
+    if [  ! -f "$memory_filename" ] ; then
+        wrap_skip "check_free_memory"
+        return 2
     fi
-
     eval iotedge_binary_memory='$'"$(echo "$ARCH"_iotedge_binaries_avg_memory)"
     eval iotedge_container_memory='$'"$(echo "$ARCH"_iotedge_container_memory)"
 
-    # Round Numbers
+    #Round Numbers
     iotedge_binary_memory=$(echo "$iotedge_binary_memory" | awk '{printf "%.0f", $1}')
     iotedge_container_memory=$(echo "$iotedge_container_memory" | awk '{printf "%.0f", $1}')
 
     total_iotedge_memory_size=$(echo $iotedge_binary_memory $iotedge_container_memory $iotedge_memory_buffer | awk '{print $1 + $2 + $3}')
 
     # /proc/meminfo returns the memory size in KB, but our memory calculations are in MB, convert it to appropriate units
-    current_free_memory=$(cat /proc/meminfo | grep "MemAvailable" | awk '{print $2/1024}')
+    current_free_memory=$(cat $memory_filename | grep "MemAvailable" | awk '{print $2/1024}')
 
     #TODO: correct final link of aka.ms/iotedge with the setup info of memory analysis.
     base_message="IoT Edge requires a minimum memory of approximately $total_iotedge_memory_size MB for running the default setup as described in aka.ms/iotedge. We verified that the the device has $current_free_memory MB of free memory"
@@ -720,20 +807,16 @@ check_free_memory() {
 
 aziotedge_check() {
 
-    # Todo : As we add new versions, these checks will need to be changed. Keep a common check for now
+    #Todo : As we add new versions, these checks will need to be changed. Keep a common check for now
     case $APP_VERSION in
     *) wrap_debug_message "Checking aziot-edge compatibility for Release 1.2" ;;
     esac
 
-    SHARED_LIBRARIES="libssl.so.1.1 libcrypto.so.1.1 libdl.so.2 librt.so.1 libpthread.so.0 libc.so.6 libm.so.6 libgcc_s.so.1"
-    MINIMUM_DOCKER_API_VERSION=1.34
     #Required for resource allocation for containers
     check_cgroup_heirachy
 
     #Flags Required for setting elevated capabilities in a container. EdgeHub currently requires setting CAP_NET_BIND on dotnet binary:EXT4_FS_SECURITY
-
-    # kernel flags required for running a container engine. For description on each of the config flags : Visit -https://www.kernelconfig.io/
-
+    #Kernel flags required for running a container engine. For description on each of the config flags : Visit -https://www.kernelconfig.io/
     #Todo : Only check if docker engine is not present?
     #Check for Required Container Engine Flags if docker is not present
     check_kernel_flags \
@@ -749,51 +832,15 @@ aziotedge_check() {
         NETFILTER_XT_MARK \
         IP_NF_NAT NF_NAT \
         POSIX_MQUEUE
-    # (POSIX_MQUEUE is required for bind-mounting /dev/mqueue into containers)
+    #(POSIX_MQUEUE is required for bind-mounting /dev/mqueue into containers)
 
     check_systemd
     check_architecture
-
     check_docker_api_version $MINIMUM_DOCKER_API_VERSION
-
-    if [ $ARCH = x86_64 ]; then
-        SHARED_LIBRARIES="$(echo $SHARED_LIBRARIES "ld-linux-x86-64.so.2")"
-    elif [ $ARCH = aarch64 ]; then
-        SHARED_LIBRARIES="$(echo $SHARED_LIBRARIES "ld-linux-aarch64.so.1")"
-    elif [ $ARCH = armv7l ]; then
-        SHARED_LIBRARIES="$(echo $SHARED_LIBRARIES "ld-linux-armhf.so.3")"
-    fi
-
     check_shared_library_dependency
-    check_free_memory
+    check_storage_space
     check_package_manager
-
-    eval binary_size='$'"$(echo "$ARCH"_iotedge_binaries_size)"
-    eval container_size='$'"$(echo "$ARCH"_iotedge_container_size)"
-
-    # Round Numbers
-    binary_size=$(echo $binary_size | awk '{printf "%.0f", $1}')
-    container_size=$(echo $container_size | awk '{printf "%.0f", $1}')
-    TOTAL_SIZE=$(echo $binary_size $container_size | awk '{print $1 + $2}')
-
-    if [ -z "$MOUNTPOINT" ]; then
-        MOUNTPOINT=$(pwd)
-        wrap_debug_message "The Mountpoint where application is intented to be installed is unknown, using $MOUNTPOINT"
-    fi
-
-    check_storage_space "$MOUNTPOINT" "$TOTAL_SIZE" "$iotedge_size_buffer"
-    ret="$?"
-
-    base_message="IoT Edge requires a minimum storage space of approximately $((container_size + binary_size + iotedge_size_buffer)) MB for installing edge daemon and runtime docker containers. We verified that the the device has $available_storage MB of available storage for File System $(df -P -m "$MOUNTPOINT" | awk '{print $6}')"
-
-    if [ $ret -eq 0 ]; then
-        wrap_warning_message "$base_message"
-        #TODO : Check with PM on messaging
-        wrap_warning_message "Additional storage space maybe required for based on usage of iotedge and has not been measured here. Please visit aka.ms/iotedge for more information"
-    elif [ $ret -eq 1 ]; then
-        wrap_warning_message "$base_message"
-        wrap_warning_message "If you are planning to install iotedge on a different mountpoint, please run the script with MOUNTPOINT='<Path-to-mount>' $(basename "$0")"
-    fi
+    check_free_memory
 
     echo "IoT Edge Compatibility Tool Check Complete"
 }
@@ -860,7 +907,7 @@ else
     "$APP_NAME"_check
 fi
 
-base_message="Azure IoT Compatibility Script had $FAILURES Errors $WARNINGS Warnings and $PASS Successful Checks"
+base_message="Azure IoT Compatibility Script had $FAILURES Errors $WARNINGS Warnings $PASS Successful Checks and $SKIP Skipped Checks"
 if [ $FAILURES -gt 0 ]; then
     wrap_bad "$base_message"
     exit 1
