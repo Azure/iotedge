@@ -5,10 +5,10 @@ STRIP_COMMAND=strip
 SRCDIR?=.
 
 all:
-	RUST_BACKTRACE=1 $(CARGO) build $(CARGOFLAGS)
+	$(CARGO) build $(CARGOFLAGS)
 
 release:
-	RUST_BACKTRACE=1 $(CARGO) build $(CARGOFLAGS) --release -p watchdog
+	$(CARGO) build $(CARGOFLAGS) --release -p watchdog
 	$(STRIP_COMMAND) $(TARGET)/watchdog
 
 clean:
