@@ -85,6 +85,8 @@ then
     chmod 600 "$backupjson"
   fi
 
+  echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Completed necessary setup. Starting EdgeAgent."
+
   exec su "$username" -c "/usr/bin/dotnet Microsoft.Azure.Devices.Edge.Agent.Service.dll"
 else
   exec /usr/bin/dotnet Microsoft.Azure.Devices.Edge.Agent.Service.dll
