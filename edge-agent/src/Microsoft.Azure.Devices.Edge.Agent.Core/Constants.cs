@@ -107,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string StorageLogLevel = "Storage_LogLevel";
 
-        public const string WorkloadApiVersion = "2020-10-10";
+        public const string WorkloadApiVersion = "2020-07-07";
 
         public const uint HighestPriority = 0;
 
