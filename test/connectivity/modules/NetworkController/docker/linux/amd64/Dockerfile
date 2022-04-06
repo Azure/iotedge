@@ -1,4 +1,4 @@
-﻿# syntax=docker/dockerfile:1.4
+# syntax=docker/dockerfile:1.4
 
 FROM mcr.microsoft.com/dotnet/runtime:6.0-alpine
 
@@ -13,5 +13,9 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
-CMD echo "$(date --utc +"[%Y-%m-%d %H:%M:%S %:z]"): Starting Module" && \
+# Add an unprivileged user account for running the module
+RUN adduser -Ds /bin/sh moduleuser 
+USER moduleuser
+
+CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Module" && \
     exec /usr/bin/dotnet NetworkController.dll

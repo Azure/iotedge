@@ -66,8 +66,14 @@ function process_args() {
 
 process_args "$@"
 
+case "$ARCH" in
+'amd64') platform='linux/amd64' ;;
+'arm32v7') platform='linux/arm/v7' ;;
+'arm64v8') platform='linux/arm64' ;;
+esac
+
 build_image=rocksdb-build:main-$POSTFIX-$BUILD_NUMBER
 mkdir -p $OUTPUT_DIR/librocksdb
 cd $BUILD_REPOSITORY_LOCALPATH/edge-util/docker/linux/$ARCH
-docker build --tag ${build_image} .
+docker buildx build --load --platform ${platform} --tag ${build_image} .
 docker run --rm -v $OUTPUT_DIR/librocksdb:/artifacts ${build_image} cp /publish/librocksdb.so.$POSTFIX /artifacts

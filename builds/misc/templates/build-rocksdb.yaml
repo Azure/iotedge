@@ -5,10 +5,6 @@ stages:
   - stage: BuildRocksDB
 ################################################################################
     displayName: Build RocksDB
-    pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
     dependsOn: ${{parameters.dependency}}
     jobs: 
     - job: BuildRocksDB
@@ -16,16 +12,43 @@ stages:
       strategy:
         matrix:
           RocksDbAmd64:
+            pool_name: $(pool.linux.name)
+            agent_image: agent-aziotedge-ubuntu-20.04-docker
             arch: amd64
             postfix: amd64
           RocksDbArm32:
+            pool_name: Azure-IoT-Edge-1ES-Hosted-Linux-Arm64
+            agent_image: agent-aziotedge-ubuntu-20.04-arm64
             arch: arm32v7
             postfix: armhf
           RocksDbArm64:
+            pool_name: Azure-IoT-Edge-1ES-Hosted-Linux-Arm64
+            agent_image: agent-aziotedge-ubuntu-20.04-arm64
             arch: arm64v8
             postfix: arm64
+      pool:
+          name: $(pool_name)
+          demands:
+          - ImageOverride -equals $(agent_image)
       steps:
-      - script: scripts/linux/buildRocksDb.sh --output-dir $(Build.ArtifactStagingDirectory) --postfix $(postfix) --build-number $(Build.BuildNumber) --arch $(arch)
+      - bash: |
+          set -e
+          # Install Moby
+          curl https://packages.microsoft.com/config/ubuntu/20.04/prod.list > ./microsoft-prod.list
+          sudo cp ./microsoft-prod.list /etc/apt/sources.list.d/
+          curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
+          sudo cp ./microsoft.gpg /etc/apt/trusted.gpg.d/
+          rm microsoft-prod.list microsoft.gpg
+          sudo apt-get update
+          sudo apt-get install -y moby-engine
+          sudo groupadd docker || true
+          sudo usermod -aG docker $USER
+        condition: and(succeeded(), not(eq(variables.arch, 'amd64')))
+        displayName: Install moby (arm32/64 only)
+      - script: |
+          /usr/bin/newgrp docker <<EONG
+          scripts/linux/buildRocksDb.sh --output-dir $(Build.ArtifactStagingDirectory) --postfix $(postfix) --build-number $(Build.BuildNumber) --arch $(arch)
+          EONG
         displayName: Build and copy out rocksdb lib
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifacts to VSTS'
