@@ -86,6 +86,7 @@ impl ModuleRuntimeState {
         &self.status
     }
 
+    #[must_use]
     pub fn with_status(mut self, status: ModuleStatus) -> Self {
         self.status = status;
         self
@@ -95,6 +96,7 @@ impl ModuleRuntimeState {
         self.exit_code
     }
 
+    #[must_use]
     pub fn with_exit_code(mut self, exit_code: Option<i64>) -> Self {
         self.exit_code = exit_code;
         self
@@ -104,6 +106,7 @@ impl ModuleRuntimeState {
         self.status_description.as_ref().map(AsRef::as_ref)
     }
 
+    #[must_use]
     pub fn with_status_description(mut self, status_description: Option<String>) -> Self {
         self.status_description = status_description;
         self
@@ -113,6 +116,7 @@ impl ModuleRuntimeState {
         self.started_at.as_ref()
     }
 
+    #[must_use]
     pub fn with_started_at(mut self, started_at: Option<DateTime<Utc>>) -> Self {
         self.started_at = started_at;
         self
@@ -122,6 +126,7 @@ impl ModuleRuntimeState {
         self.finished_at.as_ref()
     }
 
+    #[must_use]
     pub fn with_finished_at(mut self, finished_at: Option<DateTime<Utc>>) -> Self {
         self.finished_at = finished_at;
         self
@@ -131,6 +136,7 @@ impl ModuleRuntimeState {
         self.image_id.as_ref().map(AsRef::as_ref)
     }
 
+    #[must_use]
     pub fn with_image_id(mut self, image_id: Option<String>) -> Self {
         self.image_id = image_id;
         self
@@ -140,6 +146,7 @@ impl ModuleRuntimeState {
         self.pid
     }
 
+    #[must_use]
     pub fn with_pid(mut self, pid: Option<i32>) -> Self {
         self.pid = pid;
         self
@@ -203,26 +210,31 @@ impl LogOptions {
         }
     }
 
+    #[must_use]
     pub fn with_follow(mut self, follow: bool) -> Self {
         self.follow = follow;
         self
     }
 
+    #[must_use]
     pub fn with_tail(mut self, tail: LogTail) -> Self {
         self.tail = tail;
         self
     }
 
+    #[must_use]
     pub fn with_since(mut self, since: i32) -> Self {
         self.since = since;
         self
     }
 
+    #[must_use]
     pub fn with_until(mut self, until: i32) -> Self {
         self.until = Some(until);
         self
     }
 
+    #[must_use]
     pub fn with_timestamps(mut self, timestamps: bool) -> Self {
         self.timestamps = timestamps;
         self

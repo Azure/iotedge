@@ -429,10 +429,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         let create_options = module.config().create_options().clone();
         let merged_env = DockerModuleRuntime::merge_env(create_options.env(), module.env());
 
-        let mut labels = create_options
-            .labels()
-            .cloned()
-            .unwrap_or_else(BTreeMap::new);
+        let mut labels = create_options.labels().cloned().unwrap_or_default();
         labels.insert(OWNER_LABEL_KEY.to_string(), OWNER_LABEL_VALUE.to_string());
         labels.insert(
             ORIGINAL_IMAGE_LABEL_KEY.to_string(),
