@@ -346,7 +346,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateResponse(ServerCertificateResponse response, ILogger logger = null) =>
             ParseCertificateAndKey(response.Certificate, response.PrivateKey, logger);
 
-        internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateAndKey(string certificateWithChain, string privateKey, ILogger logger = null)
+        public static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateAndKey(string certificateWithChain, string privateKey, ILogger logger = null)
         {
             IEnumerable<string> pemCerts = ParsePemCerts(certificateWithChain);
 
@@ -467,7 +467,9 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 {
                     // On Windows the certificate in 'result' gives an error when used with kestrel: "No credentials are available in the security"
                     // This is a suggested workaround that seems working (https://github.com/dotnet/runtime/issues/45680)
-                    // result = new X509Certificate2(result.Export(X509ContentType.Pkcs12), string.Empty, X509KeyStorageFlags.PersistKeySet);
+                    //var ex = result.Export(X509ContentType.Pkcs12);
+                    //File.WriteAllBytes(@"MyCert.pfx", ex);
+                    result = new X509Certificate2(result.Export(X509ContentType.Pkcs12));
 
                     // On Windows the imported certificate sometimes fails to use the private key and kestrel fails accepting connections (this is not related
                     // to the other problem above). Try to access the private key and catch the error early. If it fails, re-importing the certificate
