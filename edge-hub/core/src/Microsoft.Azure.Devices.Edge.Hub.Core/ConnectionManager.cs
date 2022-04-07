@@ -84,11 +84,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 : Task.CompletedTask;
         }
 
-        public async Task RemoveAllDeviceConnections()
+        async Task RemoveCloudConnection(string id)
+        {
+            if (this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(id, nameof(id)), out ConnectedDevice device))
+            {
+                await device.CloudConnection.Filter(cp => cp.IsActive)
+                    .ForEachAsync(cp => cp.CloseAsync());
+            }
+
+            return;
+        }
+
+        public async Task RemoveAllCloudConnections()
         {
             foreach (IIdentity id in this.GetConnectedClients())
             {
-               await this.RemoveDeviceConnection(id.Id);
+               await this.RemoveCloudConnection(id.Id);
             }
 
             this.IncidentIssueOccured?.Invoke();
