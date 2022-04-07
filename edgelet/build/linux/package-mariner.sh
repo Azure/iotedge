@@ -120,8 +120,8 @@ mkdir -p "${MARINER_BUILD_ROOT}/SPECS/libiothsm-std/SOURCES/"
 cp "${BUILD_REPOSITORY_LOCALPATH}/azure-iotedge-${VERSION}.tar.gz" "${MARINER_BUILD_ROOT}/SPECS/libiothsm-std/SOURCES/"
 
 # Copy spec files to expected locations
-cp "${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/aziot-edge/azure-iotedge.spec" "${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/"
-cp "${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/aziot-edge/azure-iotedge.signatures.json" "${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/"
+cp "${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/azure-iotedge/azure-iotedge.spec" "${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/"
+cp "${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/azure-iotedge/azure-iotedge.signatures.json" "${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/"
 cp "${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/libiothsm-std/libiothsm-std.signatures.json" "${MARINER_BUILD_ROOT}/SPECS/libiothsm-std/"
 cp "${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/libiothsm-std/libiothsm-std.spec" "${MARINER_BUILD_ROOT}/SPECS/libiothsm-std/"
 
@@ -130,7 +130,7 @@ pushd $tmp_dir
 mkdir "rust"
 cp -r ~/.cargo "rust"
 cp -r ~/.rustup "rust"
-tar cf "${MARINER_BUILD_ROOT}/SPECS/aziot-edge/SOURCES/rust.tar.gz" "rust"
+tar cf "${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/SOURCES/rust.tar.gz" "rust"
 popd
 
 # Download Mariner repo and build toolkit
