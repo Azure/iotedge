@@ -46,6 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly ResettableTimer timer;
         readonly AsyncLock timerGuard = new AsyncLock();
         readonly bool closeOnIdleTimeout;
+        readonly int sdkWaitTime = 120000;
 
         SubscriptionState subscriptionState = new SubscriptionState();
 
@@ -184,7 +185,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 using (Metrics.TimeMessageSend(this.clientId, metricOutputRoute))
                 {
-                    await this.client.SendEventBatchAsync(messages);
+                    var tokenSource = new CancellationTokenSource(this.sdkWaitTime);
+                    await this.client.SendEventBatchAsyncCancellable(messages, tokenSource.Token);
                     Events.SendMessage(this);
 
                     if (messages.Count > 0)
@@ -194,6 +196,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         Metrics.AddSentMessages(this.clientId, messages.Count, metricOutputRoute, inputMessages.First().ProcessedPriority);
                     }
                 }
+            }
+
+            // bubble this up
+            catch (TaskCanceledException ex)
+            {
+                Events.ErrorSendingBatchMessageSDKError(this, ex);
+                await this.client.CloseAsync();
+                throw new ObjectDisposedException(this.clientId);
             }
             catch (Exception ex)
             {
@@ -586,6 +596,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 SendMessage,
                 SendMessageError,
                 SendMessageBatchError,
+                SendMessageBatchSDKError,
                 UpdateReportedProperties,
                 BindCloudListener,
                 SendFeedbackMessage,
@@ -636,6 +647,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             public static void ErrorSendingBatchMessage(CloudProxy cloudProxy, Exception ex)
             {
                 Log.LogDebug((int)EventIds.SendMessageBatchError, ex, Invariant($"Error sending message batch for {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
+            }
+
+            public static void ErrorSendingBatchMessageSDKError(CloudProxy cloudProxy, Exception ex)
+            {
+                Log.LogDebug((int)EventIds.SendMessageBatchSDKError, ex, Invariant($"Error sending message batch for {cloudProxy.clientId} in cloud proxy {cloudProxy.id} due to SDK"));
             }
 
             public static void UpdateReportedProperties(CloudProxy cloudProxy)

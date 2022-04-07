@@ -28,13 +28,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     public class CloudEndpoint : Endpoint
     {
         readonly Func<string, Task<Try<ICloudProxy>>> cloudProxyGetterFunc;
+        readonly Func<Task> removeAllConnectionsFunc;
         readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
         readonly int maxBatchSize;
         readonly bool trackDeviceState;
+        IncidentIssue tracker;
+        enum IncidentIssue
+        {
+            None = 0,
+            OccurredOnce = 1,
+            OccurredTwice = 2
+        }
 
         public CloudEndpoint(
             string id,
             Func<string, Task<Try<ICloudProxy>>> cloudProxyGetterFunc,
+            Func<Task> removeAllConnectionsFunc,
             Core.IMessageConverter<IRoutingMessage> messageConverter,
             bool trackDeviceState,
             int maxBatchSize = 10,
@@ -42,11 +51,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             : base(id)
         {
             Preconditions.CheckArgument(maxBatchSize > 0, "MaxBatchSize should be greater than 0");
+            this.removeAllConnectionsFunc = Preconditions.CheckNotNull(removeAllConnectionsFunc);
             this.cloudProxyGetterFunc = Preconditions.CheckNotNull(cloudProxyGetterFunc);
             this.messageConverter = Preconditions.CheckNotNull(messageConverter);
             this.trackDeviceState = trackDeviceState;
             this.maxBatchSize = maxBatchSize;
             this.FanOutFactor = fanoutFactor;
+            this.tracker = IncidentIssue.None;
             Events.Created(id, maxBatchSize, fanoutFactor);
         }
 
@@ -99,6 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 return result;
             }
 
+            // incident related?
             public Task<ISinkResult> ProcessAsync(ICollection<IRoutingMessage> routingMessages, CancellationToken token)
             {
                 Events.ProcessingMessages(Preconditions.CheckNotNull(routingMessages, nameof(routingMessages)));
@@ -144,6 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 return new SinkResult<IRoutingMessage>(ImmutableList<IRoutingMessage>.Empty, ImmutableList<IRoutingMessage>.Empty, invalid, sendFailureDetails);
             }
 
+            // incident related
             async Task<ISinkResult> ProcessByClients(ICollection<IRoutingMessage> routingMessages, CancellationToken token)
             {
                 var result = new MergingSinkResult<IRoutingMessage>();
@@ -171,6 +184,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 return result;
             }
 
+            // Incident related
             // Process all messages for a particular client
             async Task<ISinkResult<IRoutingMessage>> ProcessClientMessages(string id, List<IRoutingMessage> routingMessages, CancellationToken token)
             {
@@ -216,25 +230,46 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     var cp = cloudProxy.Value;
                     try
                     {
-                            List<IMessage> messages = routingMessages
-                                .Select(r => this.cloudEndpoint.messageConverter.ToMessage(r))
-                                .ToList();
+                        List<IMessage> messages = routingMessages
+                            .Select(r => this.cloudEndpoint.messageConverter.ToMessage(r))
+                            .ToList();
 
-                            if (messages.Count == 1)
-                            {
-                                await cp.SendMessageAsync(messages[0]);
-                            }
-                            else
-                            {
-                                await cp.SendMessageBatchAsync(messages);
-                            }
-
-                            return new SinkResult<IRoutingMessage>(routingMessages);
-                        }
-                        catch (Exception ex)
+                        if (messages.Count == 1)
                         {
+                            await cp.SendMessageAsync(messages[0]);
+                        }
+                        else
+                        {
+                            await cp.SendMessageBatchAsync(messages);
+                        }
+
+                        return new SinkResult<IRoutingMessage>(routingMessages);
+                    }
+                    catch (ObjectDisposedException ex)
+                    {
+                        // since this isnt production code just using an  enum should be fine?
+                        if (this.cloudEndpoint.tracker == IncidentIssue.OccurredOnce)
+                        {
+                            await this.cloudEndpoint.removeAllConnectionsFunc();
+                            this.cloudEndpoint.tracker = IncidentIssue.OccurredTwice;
                             return this.HandleException(ex, id, routingMessages);
                         }
+                        else if (this.cloudEndpoint.tracker == IncidentIssue.OccurredTwice)
+                        {
+                            Environment.Exit(1);
+                            return this.HandleException(ex, id, routingMessages);
+                        }
+                        else
+                        {
+                            this.cloudEndpoint.tracker = IncidentIssue.OccurredOnce;
+                            Events.RetryingMessage(id, ex);
+                            return GetSyncResultForFailedMessages(new EdgeHubIOException($"Error sending messages to IotHub due to SDK error for device {this.cloudEndpoint.Id}"), routingMessages);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        return this.HandleException(ex, id, routingMessages);
+                    }
                 }
                 else
                 {
@@ -294,7 +329,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 InvalidMessageNoIdentity,
                 CancelledProcessing,
                 Created,
-                DoneProcessing
+                DoneProcessing,
             }
 
             public static void DeviceIdNotFound(IRoutingMessage routingMessage)

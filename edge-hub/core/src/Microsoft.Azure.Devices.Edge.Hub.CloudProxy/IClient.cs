@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Shared;
@@ -15,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         Task SendEventAsync(Message message);
 
+        Task SendEventBatchAsyncCancellable(IEnumerable<Message> messages, CancellationToken cancellationToken);
         Task SendEventBatchAsync(IEnumerable<Message> messages);
 
         Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties);

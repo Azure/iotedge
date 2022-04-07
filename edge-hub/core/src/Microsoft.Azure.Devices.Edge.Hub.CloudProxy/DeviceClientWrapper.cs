@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -64,6 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public Task SendEventAsync(Message message) => this.underlyingDeviceClient.SendEventAsync(message);
 
+        public Task SendEventBatchAsyncCancellable(IEnumerable<Message> messages, CancellationToken cancellationToken) => this.underlyingDeviceClient.SendEventBatchAsync(messages, cancellationToken);
         public Task SendEventBatchAsync(IEnumerable<Message> messages) => this.underlyingDeviceClient.SendEventBatchAsync(messages);
 
         public void SetConnectionStatusChangedHandler(ConnectionStatusChangesHandler handler) => this.underlyingDeviceClient.SetConnectionStatusChangesHandler(handler);

@@ -460,6 +460,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 this.clientWatcher.AddReceivedMessages(messages);
             }
 
+            public async Task SendEventBatchAsyncCancellable(IEnumerable<Message> messages, CancellationToken token)
+            {
+                this.UpdateOperationCounter();
+                await Task.Delay(TimeSpan.FromMilliseconds(50 + this.random.Next(50)));
+                this.clientWatcher.AddReceivedMessages(messages);
+            }
+
             public Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties) => throw new NotImplementedException();
 
             public Task CompleteAsync(string messageId) => throw new NotImplementedException();
