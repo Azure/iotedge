@@ -7,7 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
     using System.Diagnostics;
     using System.Net;
     using System.Threading.Tasks;
-    using App.Metrics.Infrastructure;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -71,9 +70,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         public void BindDeviceProxy(IDeviceProxy deviceProxy)
         {
-            this.underlyingProxy = Preconditions.CheckNotNull(deviceProxy);
-            this.connectionManager.AddDeviceConnection(this.Identity, this);
-            Events.BindDeviceProxy(this.Identity);
+            this.BindDeviceProxyAsync(deviceProxy, Option.None<Action>());
+        }
+
+        public void BindDeviceProxy(IDeviceProxy deviceProxy, Action initWhenBound)
+        {
+            this.BindDeviceProxyAsync(deviceProxy, Option.Some(initWhenBound));
         }
 
         public async Task CloseAsync()
@@ -211,13 +213,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             switch (this.Identity)
             {
                 case IModuleIdentity moduleIdentity:
-                    reportedPropertiesMessage.SystemProperties[SystemProperties.ConnectionDeviceId] = moduleIdentity.DeviceId;
-                    reportedPropertiesMessage.SystemProperties[SystemProperties.ConnectionModuleId] = moduleIdentity.ModuleId;
+                    reportedPropertiesMessage.SystemProperties[SystemProperties.RpConnectionDeviceIdInternal] = moduleIdentity.DeviceId;
+                    reportedPropertiesMessage.SystemProperties[SystemProperties.RpConnectionModuleIdInternal] = moduleIdentity.ModuleId;
                     break;
                 case IDeviceIdentity deviceIdentity:
-                    reportedPropertiesMessage.SystemProperties[SystemProperties.ConnectionDeviceId] = deviceIdentity.DeviceId;
+                    reportedPropertiesMessage.SystemProperties[SystemProperties.RpConnectionDeviceIdInternal] = deviceIdentity.DeviceId;
                     break;
             }
+
+            reportedPropertiesMessage.SystemProperties[SystemProperties.ConnectionDeviceId] = this.edgeHub.GetEdgeDeviceId();
+            reportedPropertiesMessage.SystemProperties[SystemProperties.ConnectionModuleId] = Constants.EdgeHubModuleId;
 
             try
             {
@@ -245,6 +250,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                 Events.ErrorUpdatingReportedPropertiesTwin(this.Identity, e);
                 await this.HandleTwinOperationException(correlationId, e);
             }
+        }
+
+        async void BindDeviceProxyAsync(IDeviceProxy deviceProxy, Option<Action> initWhenBound)
+        {
+            this.underlyingProxy = Preconditions.CheckNotNull(deviceProxy);
+
+            try
+            {
+                await this.connectionManager.AddDeviceConnection(this.Identity, this);
+            }
+            catch (Exception ex)
+            {
+                Events.ErrorBindingDeviceProxy(this.Identity, ex);
+                return;
+            }
+
+            try
+            {
+                initWhenBound.ForEach(a => a?.Invoke());
+            }
+            catch (Exception ex)
+            {
+                Events.ErrorPostBindAction(this.Identity, ex);
+                return;
+            }
+
+            Events.BindDeviceProxy(this.Identity);
         }
 
         async Task HandleTwinOperationException(string correlationId, Exception e)
@@ -276,6 +308,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             enum EventIds
             {
                 BindDeviceProxy = IdStart,
+                ErrorBindingDeviceProxy,
+                ErrorPostBindAction,
                 RemoveDeviceConnection,
                 MethodSentToClient,
                 MethodResponseReceived,
@@ -299,6 +333,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             public static void BindDeviceProxy(IIdentity identity)
             {
                 Log.LogInformation((int)EventIds.BindDeviceProxy, Invariant($"Bind device proxy for device {identity.Id}"));
+            }
+
+            public static void ErrorBindingDeviceProxy(IIdentity identity, Exception ex)
+            {
+                Log.LogError((int)EventIds.ErrorBindingDeviceProxy, ex, Invariant($"Error binding device proxy for device {identity.Id}"));
+            }
+
+            public static void ErrorPostBindAction(IIdentity identity, Exception ex)
+            {
+                Log.LogError((int)EventIds.ErrorPostBindAction, ex, Invariant($"Error executing post-bind action for device {identity.Id}"));
             }
 
             public static void Close(IIdentity identity)

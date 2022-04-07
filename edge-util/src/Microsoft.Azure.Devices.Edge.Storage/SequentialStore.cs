@@ -188,6 +188,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return batch;
         }
 
+        public Task<ulong> Count() => this.entityStore.Count();
+
+        public Task<ulong> GetCountFromOffset(long offset) => this.entityStore.GetCountFromOffset(StoreUtils.GetKeyFromOffset(offset));
+
         public void Dispose()
         {
             this.Dispose(true);

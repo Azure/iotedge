@@ -31,8 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             (string name, string args) command,
             CancellationToken token)
         {
-            string[] output = await Process.RunAsync(command.name, command.args, token);
-            Log.Verbose(string.Join("\n", output));
+            await Process.RunAsync(command.name, command.args, token);
 
             var files = new[]
             {
@@ -60,8 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             CancellationToken token)
         {
             Log.Verbose("Executing: " + command.name + ' ' + command.args);
-            string[] output = await Process.RunAsync(command.name, command.args, token);
-            Log.Verbose(string.Join("\n", output));
+            await Process.RunAsync(command.name, command.args, token);
         }
 
         static void CheckFiles(IEnumerable<string> paths, string basePath) => NormalizeFiles(paths, basePath);

@@ -2,10 +2,12 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
 {
     using System;
+    using System.ComponentModel;
     using System.IO;
     using System.Linq;
     using System.Net;
     using System.ServiceProcess;
+    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -48,12 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             };
 
             await Profiler.Run(
-                async () =>
-                {
-                    string[] output =
-                        await Process.RunAsync("powershell", string.Join(";", commands), token);
-                    Log.Verbose(string.Join("\n", output));
-                },
+                async () => await Process.RunAsync("powershell", string.Join(";", commands), token),
                 message,
                 properties);
         }
@@ -88,11 +85,36 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
         async Task InternalStartAsync(CancellationToken token)
         {
             var sc = new ServiceController("iotedge");
-            if (sc.Status != ServiceControllerStatus.Running)
-            {
-                sc.Start();
-                await WaitForStatusAsync(sc, ServiceControllerStatus.Running, token);
-            }
+            await Retry.Do(
+                () =>
+                {
+                    sc.Refresh();
+                    if (sc.Status != ServiceControllerStatus.StartPending &&
+                        sc.Status != ServiceControllerStatus.Running)
+                    {
+                        sc.Start();
+                    }
+
+                    return Task.FromResult(true);
+                },
+                _ => true,
+                e =>
+                {
+                    if (e is InvalidOperationException && e.InnerException is Win32Exception ex && ex.NativeErrorCode == 1056)
+                    {
+                        Log.Verbose(
+                            "While attempting to start IoT Edge (Status = {Status}), Windows returned an error ({Error}). Retrying...",
+                            sc.Status.ToString(),
+                            e.Message);
+                        return true;
+                    }
+
+                    return false;
+                },
+                TimeSpan.FromSeconds(2),
+                token);
+
+            await WaitForStatusAsync(sc, ServiceControllerStatus.Running, token);
         }
 
         public Task StopAsync(CancellationToken token)
@@ -105,11 +127,45 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
         async Task InternalStopAsync(CancellationToken token)
         {
             var sc = new ServiceController("iotedge");
-            if (sc.Status != ServiceControllerStatus.Stopped)
-            {
-                sc.Stop();
-                await WaitForStatusAsync(sc, ServiceControllerStatus.Stopped, token);
-            }
+
+            // Sometimes Windows will throw different errors when we try to stop a service. When
+            // that happens, wait a couple seconds and try again.
+            await Retry.Do(
+                () =>
+                {
+                    sc.Refresh();
+                    if (sc.Status != ServiceControllerStatus.StopPending &&
+                        sc.Status != ServiceControllerStatus.Stopped)
+                    {
+                        sc.Stop();
+                    }
+
+                    return Task.FromResult(true);
+                },
+                _ => true,
+                e =>
+                {
+                    // Reference page for error codes:
+                    // https://docs.microsoft.com/en-us/windows/win32/debug/system-error-codes--1000-1299-
+                    //
+                    // ERROR_BROKEN_PIPE
+                    // ERROR_INVALID_SERVICE_CONTROL
+                    // ERROR_SERVICE_CANNOT_ACCEPT_CTRL
+                    // ERROR_SERVICE_NOT_ACTIVE
+                    if (e is InvalidOperationException && e.InnerException is Win32Exception ex && (ex.NativeErrorCode == 109 || ex.NativeErrorCode == 1052 || ex.NativeErrorCode == 1061 || ex.NativeErrorCode == 1062))
+                    {
+                        Log.Verbose(
+                            "While attempting to stop IoT Edge (Status = {Status}), Windows returned an error ({Error}). Retrying...",
+                            sc.Status.ToString(),
+                            e.Message);
+                        return true;
+                    }
+
+                    return false;
+                },
+                TimeSpan.FromSeconds(2),
+                token);
+            await WaitForStatusAsync(sc, ServiceControllerStatus.Stopped, token);
         }
 
         public async Task UninstallAsync(CancellationToken token)
@@ -126,12 +182,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             };
 
             await Profiler.Run(
-                async () =>
-                {
-                    string[] output =
-                        await Process.RunAsync("powershell", string.Join(";", commands), token);
-                    Log.Verbose(string.Join("\n", output));
-                },
+                async () => await Process.RunAsync("powershell", string.Join(";", commands), token),
                 "Uninstalled edge daemon");
         }
 
@@ -164,13 +215,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             };
 
             await Profiler.Run(
-                async () =>
-                {
-                    await Process.RunAsync(
-                        "powershell",
-                        string.Join(';', commands),
-                        token);
-                },
+                async () => await Process.RunAsync("powershell", string.Join(';', commands), token),
                 "Downloaded Edge daemon Windows installer from '{Address}'",
                 Address);
 

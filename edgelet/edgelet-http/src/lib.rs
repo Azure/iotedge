@@ -20,6 +20,7 @@ use std::net;
 use std::net::ToSocketAddrs;
 #[cfg(target_os = "linux")]
 use std::os::unix::io::FromRawFd;
+use std::sync::atomic::{AtomicU32, Ordering};
 #[cfg(windows)]
 use std::sync::Arc;
 #[cfg(unix)]
@@ -34,10 +35,9 @@ use log::{debug, error, Level};
 use native_tls::Identity;
 #[cfg(unix)]
 use native_tls::TlsAcceptor;
-use openssl::pkcs12::Pkcs12;
-use openssl::pkey::PKey;
+use openssl::pkey::{PKey, PKeyRef, Private};
 use openssl::stack::Stack;
-use openssl::x509::X509;
+use openssl::x509::{X509Ref, X509};
 #[cfg(target_os = "linux")]
 use systemd::Socket;
 use tokio::net::TcpListener;
@@ -60,6 +60,8 @@ pub mod route;
 mod unix;
 mod util;
 mod version;
+#[cfg(windows)]
+mod windows;
 
 pub use certificate_manager::CertificateManager;
 pub use error::{BindListenerType, Error, ErrorKind, InvalidUrlReason};
@@ -80,27 +82,21 @@ const TCP_SCHEME: &str = "tcp";
 #[cfg(target_os = "linux")]
 const FD_SCHEME: &str = "fd";
 
+#[derive(Clone, Copy)]
+pub enum ConcurrencyThrottling {
+    Limited(u32),
+    NoLimit,
+}
+
 #[derive(Clone)]
 pub struct PemCertificate {
     cert: Vec<u8>,
     key: Option<Vec<u8>>,
-    username: Option<String>,
-    password: Option<String>,
 }
 
 impl PemCertificate {
-    pub fn new(
-        cert: Vec<u8>,
-        key: Option<Vec<u8>>,
-        username: Option<String>,
-        password: Option<String>,
-    ) -> Self {
-        PemCertificate {
-            cert,
-            key,
-            username,
-            password,
-        }
+    pub fn new(cert: Vec<u8>, key: Option<Vec<u8>>) -> Self {
+        PemCertificate { cert, key }
     }
 
     pub fn get_certificate(&self) -> &[u8] {
@@ -123,7 +119,7 @@ impl PemCertificate {
             Err(_err) => return Err(Error::from(ErrorKind::IdentityPrivateKey)),
         };
 
-        Ok(PemCertificate::new(cert, key, None, None))
+        Ok(PemCertificate::new(cert, key))
     }
 
     pub fn get_identity(&self) -> Result<Identity, Error> {
@@ -147,20 +143,7 @@ impl PemCertificate {
 
         let identity_cert = &certs[0];
 
-        let mut builder = Pkcs12::builder();
-        builder.ca(ca_certs);
-        let pkcs_certs = builder
-            .build(
-                self.password.as_ref().map_or("", String::as_str),
-                self.username.as_ref().map_or("", String::as_str),
-                &key,
-                &identity_cert,
-            )
-            .context(ErrorKind::IdentityCertificate)?;
-
-        let der = pkcs_certs
-            .to_der()
-            .context(ErrorKind::IdentityCertificate)?;
+        let der = make_pkcs12(&identity_cert, &key, ca_certs)?;
 
         let identity = Identity::from_pkcs12(&der, "")
             .with_context(|err| ErrorKind::PKCS12Identity(err.to_string()))?;
@@ -174,6 +157,37 @@ impl Debug for PemCertificate {
         // do not print either the username, password or private key
         write!(f, "Certificate: {:?}", self.cert)
     }
+}
+
+#[cfg(windows)]
+#[allow(
+    // `ca_certs` must be taken as `Stack` to be API-compatible with its `cfg(unix)` variant
+    clippy::needless_pass_by_value,
+)]
+fn make_pkcs12(
+    identity_cert: &X509Ref,
+    key: &PKeyRef<Private>,
+    ca_certs: Stack<X509>,
+) -> Result<Vec<u8>, Error> {
+    crate::windows::make_pkcs12(identity_cert, key, &ca_certs)
+}
+
+#[cfg(not(windows))]
+fn make_pkcs12(
+    identity_cert: &X509Ref,
+    key: &PKeyRef<Private>,
+    ca_certs: Stack<X509>,
+) -> Result<Vec<u8>, Error> {
+    let mut builder = openssl::pkcs12::Pkcs12::builder();
+    builder.ca(ca_certs);
+    let pkcs_certs = builder
+        .build("", "", key, identity_cert)
+        .context(ErrorKind::IdentityCertificate)?;
+
+    let der = pkcs_certs
+        .to_der()
+        .context(ErrorKind::IdentityCertificate)?;
+    Ok(der)
 }
 
 pub trait IntoResponse {
@@ -212,10 +226,10 @@ where
     <S::Service as Service>::Future: Send + 'static,
 {
     pub fn run(self) -> Run {
-        self.run_until(future::empty())
+        self.run_until(future::empty(), ConcurrencyThrottling::NoLimit)
     }
 
-    pub fn run_until<F>(self, shutdown_signal: F) -> Run
+    pub fn run_until<F>(self, shutdown_signal: F, concurrency: ConcurrencyThrottling) -> Run
     where
         F: Future<Item = (), Error = ()> + Send + 'static,
     {
@@ -227,34 +241,64 @@ where
 
         let protocol = Arc::new(protocol);
 
-        let srv = incoming.for_each(move |(socket, addr)| {
-            let protocol = protocol.clone();
+        let lock = if let ConcurrencyThrottling::Limited(limit) = concurrency {
+            Some((Arc::new(AtomicU32::new(limit)), limit))
+        } else {
+            None
+        };
 
+        let srv = incoming.for_each(move |(socket, addr)| {
+
+            if let Some((lock, limit)) = lock.clone() {
+                let limit_reached = lock.fetch_update( Ordering::AcqRel,
+                    Ordering::Acquire,
+                    |current| current.checked_sub(1),
+                    ).is_err();
+
+                if limit_reached {
+                    error!("Maximum concurrency reached, {} simultaneous connections, dropping the connection request", limit);
+                    // Return Ok so the stream is not stopped.
+                    return Ok(());
+                }
+            }
+
+            let protocol = protocol.clone();
             debug!("accepted new connection ({})", addr);
             let pid = socket.pid()?;
             let fut = new_service
                 .new_service()
-                .then(move |srv| match srv {
+                .then({
+                    let lock = lock.clone();
+                    move |srv| match srv {
                     Ok(srv) => Ok((srv, addr)),
                     Err(err) => {
                         error!("server connection error: ({})", addr);
+                        if let Some((lock, _)) = lock {
+                            lock.fetch_add(1, Ordering::AcqRel);
+                        }
                         log_failure(Level::Error, &err);
                         Err(())
                     }
-                })
-                .and_then(move |(srv, addr)| {
+                }})
+                .and_then({
+                    let lock = lock.clone();
+                    move |(srv, addr)| {
                     let service = PidService::new(pid, srv);
                     protocol
                         .serve_connection(socket, service)
-                        .then(move |result| match result {
+                        .then(move |result| {
+                            if let Some((lock, _)) = lock {
+                                lock.fetch_add(1, Ordering::AcqRel);
+                            }
+                            match result {
                             Ok(_) => Ok(()),
                             Err(err) => {
                                 error!("server connection error: ({})", addr);
                                 log_failure(Level::Error, &err);
                                 Err(())
                             }
-                        })
-                });
+                        }})
+                }});
             tokio::spawn(fut);
             Ok(())
         });
@@ -291,6 +335,7 @@ pub trait HyperExt {
         url: Url,
         new_service: S,
         cert_manager: Option<TlsAcceptorParams<'_, C>>,
+        unix_socket_permission: u32,
     ) -> Result<Server<S>, Error>
     where
         C: CreateCertificate + Clone,
@@ -305,6 +350,7 @@ impl HyperExt for Http {
         url: Url,
         new_service: S,
         tls_params: Option<TlsAcceptorParams<'_, C>>,
+        unix_socket_permission: u32,
     ) -> Result<Server<S>, Error>
     where
         C: CreateCertificate + Clone,
@@ -373,7 +419,7 @@ impl HyperExt for Http {
                 let path = url
                     .to_uds_file_path()
                     .map_err(|_| ErrorKind::InvalidUrl(url.to_string()))?;
-                unix::listener(path)?
+                unix::listener(path, unix_socket_permission)?
             }
             #[cfg(target_os = "linux")]
             FD_SCHEME => {

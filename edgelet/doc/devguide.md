@@ -13,7 +13,7 @@ There are two options for building the IoT Edge Security Daemon.
 
 Linux packages are built using the `edgelet/build/linux/package.sh` script. Set the following environment variables, then invoke the script:
 
-1. `PACKAGE_OS`: This is the OS on which the resulting packages will be installed. It should be one of `centos7`, `debian8`, `debian9`, `debian10` or `ubuntu18.04`
+1. `PACKAGE_OS`: This is the OS on which the resulting packages will be installed. It should be one of `centos7`, `debian9`, `debian10`, `debian11`, or `ubuntu18.04`
 
 1. `PACKAGE_ARCH`: This is the architecture of the OS on which the resulting packages will be installed. It should be one of `amd64`, `arm32v7` or `aarch64`.
 
@@ -65,7 +65,7 @@ cd iotedge/edgelet/
 
 rustup update   # Install / update the toolchain used to build the daemon binaries.
                 # This is controlled by the rust-toolchain file in this directory.
-                # For the master branch, this is the latest "stable" toolchain.
+                # For the main branch, this is the latest "stable" toolchain.
                 # For release branches, this is a pinned Rust release.
 ```
 
@@ -81,7 +81,16 @@ yum install \
     libcurl-devel libuuid-devel openssl-devel
 ```
 
-#### Debian 8-10, Ubuntu 18.04
+#### Debian 9-11
+
+```sh
+apt-get update
+apt-get install \
+    binutils build-essential ca-certificates curl cmake debhelper file git make \
+    gcc g++ pkg-config \
+    libcurl4-openssl-dev libssl-dev uuid-dev
+```
+#### Ubuntu 18.04
 
 ```sh
 apt-get update
@@ -90,6 +99,8 @@ apt-get install \
     gcc g++ pkg-config \
     libcurl4-openssl-dev libssl-dev uuid-dev
 ```
+
+ Make sure Moby-Engine is installed in your machine by following instructions [here](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-edge?view=iotedge-2020-11#install-a-container-engine)
 
 #### macOS
 
@@ -168,14 +179,49 @@ To run `iotedged` locally:
         ```powershell
         $env:IOTEDGE_HOMEDIR = Resolve-Path ~/iotedge
         New-Item -Type Directory -Force $env:IOTEDGE_HOMEDIR
+        Copy-Item Resolve-Path
         ```
 
-1. Create a `config.yaml`. It's okay to create this under the `IOTEDGE_HOMEDIR` directory.
+2. Copy the configy.yaml file to the `IOTEDGE_HOMEDIR` directory.
 
-1. Run the daemon with the `IOTEDGE_HOMEDIR` environment variable set and with the path to the `config.yaml`
+    - Linux / MacOS
+      ```sh
+      sudo cp edgelet/contrib/config/linux/config.yaml $IOTEDGE_HOMEDIR
+      ```
+
+    - Windows
+      ```powershell
+      Copy-Item .\edgelet\contrib\config\windows\config.yaml -Destination $env:IOTEDGE_HOMEDIR
+      ```
+
+3. Update the Primary Connection String in `config.yaml` to take the device connection string from your iot hub. To Create a device in IoT Hub - Please see [Quickstart](https://docs.microsoft.com/en-us/azure/iot-edge/quickstart-linux?view=iotedge-2020-11)
+
+4. In Linux, Make sure $USER is added to docker group
+
+    Check if User is already part of the group
+    ```sh
+    grep docker /etc/group
+    ```
+
+    Add User to Docker Group
 
     ```sh
-    cargo run -p iotedged -- -c /absolute/path/to/config.yaml
+    sudo usermod -aG docker $USER
+    ```
+
+    Log Out and Log In or Restart Shell so that group membership is re-evaluated
+
+5. In Linux Create /var/lib/iotedge dir and chown the dir to the user
+   
+   ```sh
+   sudo mkdir -p /var/lib/iotedge
+   sudo chown $USER /var/lib/iotedge/
+   ```
+
+6. Run the daemon with the `IOTEDGE_HOMEDIR` environment variable set and with the path to the `config.yaml`. Make sure you are in the edgelet directory when you run the command.
+
+    ```sh
+    cargo run -p iotedged -- -c $IOTEDGE_HOMEDIR/config.yaml
     ```
 
 
@@ -253,6 +299,8 @@ cargo test --all
     ```
 
     Note that we've manually fixed up the generated code so that it satisfies rustfmt and clippy. As such, if you ever need to run `swagger-codegen-cli` against new definitions, or need to regenerate existing ones, you will want to perform the same fixups manually. Make sure to run clippy and rustfmt against the new code yourself, and inspect the diffs of modified files before checking in.
+
+    For more details, please visit [**How to build Management API using Swagger-Codegen**](../api/README.md)
 
 - IDE
 

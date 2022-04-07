@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     using System.Linq;
     using System.Threading.Tasks;
     using System.Web;
+    using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
@@ -21,18 +22,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     /// </summary>
     class ClientConnectionHandler : IConnectionHandler
     {
+        readonly TimeSpan closeTimeout = TimeSpan.FromSeconds(60);
         readonly IDictionary<LinkType, ILinkHandler> registry = new Dictionary<LinkType, ILinkHandler>();
         readonly IIdentity identity;
+        readonly AmqpConnectionBase amqpConnection;
 
         readonly AsyncLock initializationLock = new AsyncLock();
         readonly AsyncLock registryUpdateLock = new AsyncLock();
         readonly IConnectionProvider connectionProvider;
         Option<IDeviceListener> deviceListener = Option.None<IDeviceListener>();
 
-        public ClientConnectionHandler(IIdentity identity, IConnectionProvider connectionProvider)
+        public ClientConnectionHandler(IIdentity identity, IConnectionProvider connectionProvider, AmqpConnectionBase amqpConnection)
         {
             this.identity = Preconditions.CheckNotNull(identity, nameof(identity));
             this.connectionProvider = Preconditions.CheckNotNull(connectionProvider, nameof(connectionProvider));
+            this.amqpConnection = Preconditions.CheckNotNull(amqpConnection, nameof(amqpConnection));
         }
 
         public Task<IDeviceListener> GetDeviceListener()
@@ -129,18 +133,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             }
         }
 
-        Task CloseAllLinks()
-        {
-            IList<ILinkHandler> links = this.registry.Values.ToList();
-            IEnumerable<Task> closeTasks = links.Select(l => l.CloseAsync(Constants.DefaultTimeout));
-            return Task.WhenAll(closeTasks);
-        }
-
         async Task CloseConnection()
         {
             using (await this.initializationLock.LockAsync())
             {
                 await this.deviceListener.ForEachAsync(d => d.CloseAsync());
+                this.deviceListener = Option.None<IDeviceListener>();
+                await this.amqpConnection.CloseAsync(this.closeTimeout);
             }
         }
 
@@ -157,6 +156,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
             public bool IsActive => this.isActive;
 
+            public bool IsDirectClient => true;
+
             public IIdentity Identity { get; }
 
             public Task CloseAsync(Exception ex)
@@ -164,7 +165,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 if (this.isActive.GetAndSet(false))
                 {
                     Events.ClosingProxy(this.Identity, ex);
-                    return this.clientConnectionHandler.CloseAllLinks();
+                    return this.clientConnectionHandler.CloseConnection();
                 }
 
                 return Task.CompletedTask;

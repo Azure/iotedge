@@ -243,7 +243,7 @@ where
 
         let file_name = format!("{}_log.txt", module_name);
         zip_writer
-            .start_file_from_path(&Path::new("logs").join(file_name), file_options)
+            .start_file(format!("logs/{}", file_name), file_options)
             .into_future()
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))
             .and_then(move |_| {
@@ -320,7 +320,7 @@ where
         };
 
         self.zip_writer
-            .start_file_from_path(&Path::new("logs").join(file_name), self.file_options)
+            .start_file(format!("logs/{}", file_name), self.file_options)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         self.zip_writer
@@ -375,7 +375,7 @@ where
         };
 
         self.zip_writer
-            .start_file_from_path(&Path::new("logs").join(file_name), self.file_options)
+            .start_file(format!("logs/{}", file_name), self.file_options)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         self.zip_writer
@@ -406,7 +406,7 @@ where
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         self.zip_writer
-            .start_file_from_path(&Path::new("check.json"), self.file_options)
+            .start_file("check.json", self.file_options)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         self.zip_writer
@@ -456,7 +456,7 @@ where
         };
 
         self.zip_writer
-            .start_file_from_path(&Path::new(&file_name), self.file_options)
+            .start_file(file_name, self.file_options)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         self.zip_writer
@@ -533,7 +533,7 @@ where
         };
 
         self.zip_writer
-            .start_file_from_path(&Path::new(&file_name), self.file_options)
+            .start_file(file_name, self.file_options)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         self.zip_writer
@@ -564,6 +564,8 @@ mod tests {
     use std::path::PathBuf;
     use std::str;
 
+    use edgelet_core::ModuleAction;
+    use futures::sync::mpsc;
     use regex::Regex;
     use tempfile::tempdir;
 
@@ -712,10 +714,14 @@ mod tests {
         let config = TestConfig::new(format!("microsoft/{}", module_name));
         let module = TestModule::new_with_logs(module_name.to_owned(), config, state, logs);
 
+        let (create_socket_channel_snd, _create_socket_channel_rcv) =
+            mpsc::unbounded::<ModuleAction>();
+
         TestRuntime::make_runtime(
             TestSettings::new(),
             TestProvisioningResult::new(),
             TestHsm::default(),
+            create_socket_channel_snd,
         )
         .wait()
         .unwrap()

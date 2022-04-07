@@ -1,4 +1,4 @@
-FROM alpine:3.10
+﻿FROM alpine:3.14
 
 RUN addgroup -S proxy && adduser -S proxy -G proxy
 USER proxy

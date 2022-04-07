@@ -102,7 +102,7 @@ mod tests {
     use hyper::{Body, Error as HyperError, Method, Request, Response, StatusCode};
     use maplit::btreemap;
     use serde_json::json;
-    use tokio::runtime::Runtime;
+    use tokio::runtime::current_thread::Runtime;
 
     use edgelet_test_utils::cert::TestCert;
     use edgelet_test_utils::crypto::TestHsm;

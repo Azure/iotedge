@@ -18,17 +18,23 @@
     <Title>Microsoft Azure Edge Function extension</Title>
     <Authors>Microsoft</Authors>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <PackageLicenseUrl>https://github.com/Azure/iotedge/blob/master/LICENSE</PackageLicenseUrl>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <Description>This package contains binding extensions for IoTEdge.</Description>
     <PackageIconUrl>http://go.microsoft.com/fwlink/?LinkID=288890</PackageIconUrl>
+    <PackageIcon>icon.png</PackageIcon>
     <PackageProjectUrl>https://github.com/Azure/iotedge</PackageProjectUrl>
     <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
     <PackageTags>IoT Microsoft Azure IoTEdge Functions</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.28.0" />
-    <PackageReference Include="Microsoft.Azure.WebJobs" Version="3.0.4" />
+    <None Include="..\..\..\..\..\LICENSE" Pack="true" PackagePath=""/>
+    <None Include="images\icon.png" Pack="true" PackagePath=""/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.28.2" />
+    <PackageReference Include="Microsoft.Azure.WebJobs" Version="3.0.27" />
   </ItemGroup>
 
   <ItemGroup>

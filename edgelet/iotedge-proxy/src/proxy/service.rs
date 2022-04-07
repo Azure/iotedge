@@ -100,7 +100,7 @@ mod tests {
     use hyper::service::Service;
     use hyper::{Body, Chunk, Request, Response, StatusCode};
     use serde_json::json;
-    use tokio::runtime::Runtime;
+    use tokio::runtime::current_thread::Runtime;
 
     use crate::proxy::test::config::config;
     use crate::proxy::test::http::client_fn;

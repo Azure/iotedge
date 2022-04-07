@@ -12,11 +12,21 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     class ColumnFamilyDbStore : IDbStore
     {
         readonly IRocksDb db;
+        private long count;
 
         public ColumnFamilyDbStore(IRocksDb db, ColumnFamilyHandle handle)
         {
             this.db = Preconditions.CheckNotNull(db, nameof(db));
             this.Handle = Preconditions.CheckNotNull(handle, nameof(handle));
+
+            var iterator = db.NewIterator(this.Handle);
+            iterator.SeekToFirst();
+            this.count = 0;
+            while (iterator.Valid())
+            {
+                this.count += 1;
+                iterator = iterator.Next();
+            }
         }
 
         internal ColumnFamilyHandle Handle { get; }
@@ -49,20 +59,23 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             return returnValue;
         }
 
-        public Task Put(byte[] key, byte[] value, CancellationToken cancellationToken)
+        public async Task Put(byte[] key, byte[] value, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(key, nameof(key));
             Preconditions.CheckNotNull(value, nameof(value));
 
             Action operation = () => this.db.Put(key, value, this.Handle);
-            return operation.ExecuteUntilCancelled(cancellationToken);
+            await operation.ExecuteUntilCancelled(cancellationToken);
+            Interlocked.Increment(ref this.count);
         }
 
-        public Task Remove(byte[] key, CancellationToken cancellationToken)
+        public async Task Remove(byte[] key, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(key, nameof(key));
+
             Action operation = () => this.db.Remove(key, this.Handle);
-            return operation.ExecuteUntilCancelled(cancellationToken);
+            await operation.ExecuteUntilCancelled(cancellationToken);
+            Interlocked.Decrement(ref this.count);
         }
 
         public async Task<Option<(byte[] key, byte[] value)>> GetLastEntry(CancellationToken cancellationToken)
@@ -126,6 +139,23 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             Preconditions.CheckNotNull(callback, nameof(callback));
 
             return this.IterateBatch(iterator => iterator.SeekToFirst(), batchSize, callback, cancellationToken);
+        }
+
+        public Task<ulong> Count() => Task.FromResult((ulong)Math.Max(Interlocked.Read(ref this.count), 0));
+
+        public Task<ulong> GetCountFromOffset(byte[] offset)
+        {
+            var iterator = this.db.NewIterator(this.Handle);
+            iterator.Seek(offset);
+
+            ulong count = 0;
+            while (iterator.Valid())
+            {
+                count += 1;
+                iterator = iterator.Next();
+            }
+
+            return Task.FromResult(count);
         }
 
         public void Dispose()

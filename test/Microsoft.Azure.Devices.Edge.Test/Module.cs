@@ -17,8 +17,52 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string SensorName = "tempSensor";
         const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
 
+        [TestCase(Protocol.Mqtt)]
+        [TestCase(Protocol.Amqp)]
+        [Category("CentOsSafe")]
+        public async Task CertRenew(Protocol protocol)
+        {
+            CancellationToken token = this.TestToken;
+
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
+                    builder =>
+                    {
+                        builder.GetModule(ModuleName.EdgeHub).WithEnvironment(("ServerCertificateRenewAfterInMs", "6000"));
+                        builder.GetModule(ModuleName.EdgeHub).WithEnvironment(new[] { ("UpstreamProtocol", protocol.ToString()) });
+                    },
+                    token);
+
+            // get by module name without $ because the system modules dictionary is created without $
+            EdgeModule edgeHub = deployment.Modules[ModuleName.EdgeHub.Substring(1)];
+            await edgeHub.WaitForStatusAsync(EdgeModuleStatus.Running, token);
+
+            // certificate renew should stop edgeHub and then it should be started by edgeAgent
+            await new EdgeModule(ModuleName.EdgeAgent, this.runtime.DeviceId, this.iotHub).WaitForReportedPropertyUpdatesAsync(
+                new
+                {
+                    properties = new
+                    {
+                        reported = new
+                        {
+                            systemModules = new
+                            {
+                                edgeHub = new
+                                {
+                                    restartCount = 1
+                                }
+                            }
+                        }
+                    }
+                },
+                token);
+        }
+
         [Test]
         [Category("CentOsSafe")]
+        [Category("nestededge_isa95")]
+        // This test should be disabled on windows until the following is resolved:
+        // https://github.com/Azure/azure-iot-sdk-csharp/issues/2223
+        [Category("FlakyOnWindows")]
         public async Task TempSensor()
         {
             string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
@@ -28,43 +72,17 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 builder =>
                 {
                     builder.AddModule(SensorName, sensorImage)
-                        .WithEnvironment(new[] { ("MessageCount", "1") });
+                        .WithEnvironment(new[] { ("MessageCount", "1"), ("StartDelay", "00:00:30") });
                 },
                 token);
 
             EdgeModule sensor = deployment.Modules[SensorName];
             await sensor.WaitForEventsReceivedAsync(deployment.StartTime, token);
-
-            await sensor.UpdateDesiredPropertiesAsync(
-                new
-                {
-                    properties = new
-                    {
-                        desired = new
-                        {
-                            SendData = true,
-                            SendInterval = 10
-                        }
-                    }
-                },
-                token);
-            await sensor.WaitForReportedPropertyUpdatesAsync(
-                new
-                {
-                    properties = new
-                    {
-                        reported = new
-                        {
-                            SendData = true,
-                            SendInterval = 10
-                        }
-                    }
-                },
-                token);
         }
 
         [Test]
         [Category("CentOsSafe")]
+        [Category("Flaky")]
         public async Task TempFilter()
         {
             const string filterName = "tempFilter";
@@ -91,7 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 TempFilterToCloud = $"FROM /messages/modules/{filterName}/outputs/alertOutput INTO $upstream",
                                 TempSensorToTempFilter = $"FROM /messages/modules/{SensorName}/outputs/temperatureOutput INTO BrokeredEndpoint('/modules/{filterName}/inputs/input1')"
                             }
-                        } );
+                        });
                 },
                 token);
 
@@ -100,6 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
+        [Category("Flaky")]
         // Test Temperature Filter Function: https://docs.microsoft.com/en-us/azure/iot-edge/tutorial-deploy-function
         public async Task TempFilterFunc()
         {
@@ -138,6 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         [Test]
         [Category("CentOsSafe")]
+        [Category("Flaky")]
         public async Task ModuleToModuleDirectMethod(
             [Values] Protocol protocol)
         {

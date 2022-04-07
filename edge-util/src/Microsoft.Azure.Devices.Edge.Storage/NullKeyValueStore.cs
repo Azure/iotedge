@@ -43,5 +43,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         public Task IterateBatch(int batchSize, Func<TK, TV, Task> perEntityCallback, CancellationToken cancellationToken) => Task.CompletedTask;
 
         public Task IterateBatch(TK startKey, int batchSize, Func<TK, TV, Task> perEntityCallback, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task<ulong> Count() => Task.FromResult(0UL);
+
+        public Task<ulong> GetCountFromOffset(TK offset) => Task.FromResult(0UL);
     }
 }

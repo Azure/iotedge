@@ -24,7 +24,6 @@
 //#############################################################################
 
 static TEST_MUTEX_HANDLE g_testByTest;
-static TEST_MUTEX_HANDLE g_dllByDll;
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
@@ -165,7 +164,6 @@ BEGIN_TEST_SUITE(certificate_info_func_tests)
 
     TEST_SUITE_INITIALIZE(TestClassInitialize)
     {
-        TEST_INITIALIZE_MEMORY_DEBUG(g_dllByDll);
         g_testByTest = TEST_MUTEX_CREATE();
         ASSERT_IS_NOT_NULL(g_testByTest);
         umock_c_init(test_hook_on_umock_c_error);
@@ -174,7 +172,6 @@ BEGIN_TEST_SUITE(certificate_info_func_tests)
     TEST_SUITE_CLEANUP(TestClassCleanup)
     {
         TEST_MUTEX_DESTROY(g_testByTest);
-        TEST_DEINITIALIZE_MEMORY_DEBUG(g_dllByDll);
     }
 
     TEST_FUNCTION_INITIALIZE(TestMethodInitialize)
@@ -203,8 +200,8 @@ BEGIN_TEST_SUITE(certificate_info_func_tests)
         //assert
         ASSERT_IS_NOT_NULL(cert_handle);
         ASSERT_IS_NULL(pk);
-        ASSERT_ARE_EQUAL(size_t, 0, pk_size, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL(int, PRIVATE_KEY_UNKNOWN, pk_type, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, 0, pk_size, "Line:" MU_TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, PRIVATE_KEY_UNKNOWN, pk_type, "Line:" MU_TOSTRING(__LINE__));
 
         //cleanup
         certificate_info_destroy(cert_handle);
@@ -222,10 +219,10 @@ BEGIN_TEST_SUITE(certificate_info_func_tests)
 
         //assert
         ASSERT_IS_NOT_NULL(cert_handle);
-        ASSERT_ARE_EQUAL(size_t, TEST_PRIVATE_KEY_LEN, pk_size, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, TEST_PRIVATE_KEY_LEN, pk_size, "Line:" MU_TOSTRING(__LINE__));
         int cmp = memcmp(pk, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN);
-        ASSERT_ARE_EQUAL(int, 0, cmp, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL(int, PRIVATE_KEY_PAYLOAD, pk_type, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, cmp, "Line:" MU_TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, PRIVATE_KEY_PAYLOAD, pk_type, "Line:" MU_TOSTRING(__LINE__));
 
         //cleanup
         certificate_info_destroy(cert_handle);
@@ -243,10 +240,10 @@ BEGIN_TEST_SUITE(certificate_info_func_tests)
 
         //assert
         ASSERT_IS_NOT_NULL(cert_handle);
-        ASSERT_ARE_EQUAL(size_t, TEST_PRIVATE_KEY_LEN, pk_size, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, TEST_PRIVATE_KEY_LEN, pk_size, "Line:" MU_TOSTRING(__LINE__));
         int cmp = memcmp(pk, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN);
-        ASSERT_ARE_EQUAL(int, 0, cmp, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL(int, PRIVATE_KEY_REFERENCE, pk_type, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, cmp, "Line:" MU_TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, PRIVATE_KEY_REFERENCE, pk_type, "Line:" MU_TOSTRING(__LINE__));
 
         //cleanup
         certificate_info_destroy(cert_handle);

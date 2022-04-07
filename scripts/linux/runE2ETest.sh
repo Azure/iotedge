@@ -1074,7 +1074,7 @@ function usage() {
     echo ' -eventHubConsumerGroupId                       Optional Event Hub Consumer Group ID for the Analyzer module.'
     echo ' -loadGenMessageFrequency                       Frequency to send messages in LoadGen module for long haul and stress test. Default is 00.00.01 for long haul and 00:00:00.03 for stress test.'
     echo ' -snitchAlertUrl                                Alert Url pointing to Azure Logic App for email preparation and sending for long haul and stress test.'
-    echo ' -snitchBuildNumber                             Build number for snitcher docker image for long haul and stress test. Default is 1.1.'
+    echo ' -snitchBuildNumber                             Build number for snitcher docker image for long haul and stress test. Default is 1.4.'
     echo ' -snitchReportingIntervalInSecs                 Reporting frequency in seconds to send status email for long hual and stress test. Default is 86400 (1 day) for long haul and 1700000 for stress test.'
     echo ' -snitchStorageAccount                          Azure blob Storage account for store logs used in status email for long haul and stress test.'
     echo ' -snitchStorageMasterKey                        Master key of snitch storage account for long haul and stress test.'
@@ -1115,7 +1115,7 @@ CONTAINER_REGISTRY="${CONTAINER_REGISTRY:-edgebuilds.azurecr.io}"
 INITIALIZE_WITH_AGENT_ARTIFACT="${INITIALIZE_WITH_AGENT_ARTIFACT:-false}"
 E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
 EVENT_HUB_CONSUMER_GROUP_ID=${EVENT_HUB_CONSUMER_GROUP_ID:-\$Default}
-SNITCH_BUILD_NUMBER="${SNITCH_BUILD_NUMBER:-1.2}"
+SNITCH_BUILD_NUMBER="${SNITCH_BUILD_NUMBER:-1.5}"
 TRANSPORT_TYPE_1="${TRANSPORT_TYPE_1:-amqp}"
 TRANSPORT_TYPE_2="${TRANSPORT_TYPE_2:-amqp}"
 TRANSPORT_TYPE_3="${TRANSPORT_TYPE_3:-mqtt}"

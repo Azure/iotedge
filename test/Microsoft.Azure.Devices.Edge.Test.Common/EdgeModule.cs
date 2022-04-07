@@ -47,8 +47,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     {
                         string[] output = await Process.RunAsync("iotedge", "list", token);
 
-                        Log.Verbose(string.Join("\n", output));
-
                         return output
                             .Where(
                                 ln =>
@@ -73,7 +71,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         // Retry if iotedged's management endpoint is still starting up,
                         // and therefore isn't responding to `iotedge list` yet
                         static bool DaemonNotReady(string details) =>
+                            details.Contains("Incorrect function", StringComparison.OrdinalIgnoreCase) ||
                             details.Contains("Could not list modules", StringComparison.OrdinalIgnoreCase) ||
+                            details.Contains("Operation not permitted", StringComparison.OrdinalIgnoreCase) ||
                             details.Contains("Socket file could not be found", StringComparison.OrdinalIgnoreCase);
 
                         return DaemonNotReady(e.ToString());
@@ -107,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         data.SystemProperties.TryGetValue("iothub-connection-device-id", out object devId);
                         data.SystemProperties.TryGetValue("iothub-connection-module-id", out object modId);
 
-                        resultBody = Encoding.UTF8.GetString(data.Body);
+                        resultBody = Encoding.UTF8.GetString(data.Body.ToArray());
                         Log.Verbose($"Received event for '{devId}/{modId}' with body '{resultBody}'");
 
                         return devId != null && devId.ToString().Equals(this.deviceId)

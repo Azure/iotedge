@@ -4,21 +4,33 @@ parameters:
   namespace: 'microsoft'
   project: ''
   version: ''
+  buildx_flag: ''
+  use_rocksdb: false
+  bin_dir: ''
 
 steps:
+
+  - task: CopyFiles@2
+    displayName: Copy RocksDB libs into project
+    condition: and(succeeded(), eq('${{ parameters.use_rocksdb }}', 'true'))
+    inputs:
+      sourceFolder: '$(Build.BinariesDirectory)/publish/librocksdb'
+      contents: '**'
+      targetFolder: '$(Build.BinariesDirectory)/publish/${{ parameters.project }}/librocksdb'          
+
   - task: Bash@3
     displayName: Build Image - ${{ parameters.name }} - amd64
     inputs:
       filePath: scripts/linux/buildImage.sh
-      arguments: -r "$(registry.address)" -u "$(registry.user)" -p "$(registry.password)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }}"
+      arguments: -r "$(registry.address)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }}"
   - task: Bash@3
     displayName: Build Image - ${{ parameters.name }} - arm32
     inputs:
       filePath: scripts/linux/buildImage.sh
-      arguments: -r "$(registry.address)" -u "$(registry.user)" -p "$(registry.password)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }}" --target-arch armv7l
+      arguments: -r "$(registry.address)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }}" --target-arch armv7l --buildx_flag ${{ parameters.buildx_flag }}
   - task: Bash@3
     displayName: Build Image - ${{ parameters.name }} - arm64 
     condition: and(ne('${{ parameters.name }}', 'Functions Sample'), succeeded())
     inputs:
       filePath: scripts/linux/buildImage.sh
-      arguments: -r "$(registry.address)" -u "$(registry.user)" -p "$(registry.password)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }}" --target-arch aarch64
+      arguments: -r "$(registry.address)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }}" --target-arch aarch64 --buildx_flag ${{ parameters.buildx_flag }}

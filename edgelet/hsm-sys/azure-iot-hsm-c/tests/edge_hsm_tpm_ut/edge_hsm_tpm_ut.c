@@ -98,7 +98,6 @@ MOCKABLE_FUNCTION(, const HSM_CLIENT_KEY_INTERFACE*, hsm_client_key_interface);
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
 static TEST_MUTEX_HANDLE g_testByTest;
-static TEST_MUTEX_HANDLE g_dllByDll;
 static unsigned char TEST_EDGE_MODULE_IDENTITY[] = {'s', 'a', 'm', 'p', 'l', 'e'};
 
 // 90 days.
@@ -358,15 +357,14 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
 
         TEST_SUITE_INITIALIZE(TestClassInitialize)
         {
-            TEST_INITIALIZE_MEMORY_DEBUG(g_dllByDll);
             g_testByTest = TEST_MUTEX_CREATE();
             ASSERT_IS_NOT_NULL(g_testByTest);
 
             umock_c_init(test_hook_on_umock_c_error);
 
-            REGISTER_UMOCK_ALIAS_TYPE(HSM_CLIENT_STORE_INTERFACE, void*);
+            REGISTER_UMOCK_ALIAS_TYPE(HSM_CLIENT_STORE_INTERFACE*, void*);
             REGISTER_UMOCK_ALIAS_TYPE(HSM_CLIENT_STORE_HANDLE, void*);
-            REGISTER_UMOCK_ALIAS_TYPE(HSM_CLIENT_KEY_INTERFACE, void*);
+            REGISTER_UMOCK_ALIAS_TYPE(HSM_CLIENT_KEY_INTERFACE*, void*);
             REGISTER_UMOCK_ALIAS_TYPE(HSM_CLIENT_HANDLE, void*);
             REGISTER_UMOCK_ALIAS_TYPE(KEY_HANDLE, void*);
             REGISTER_UMOCK_ALIAS_TYPE(HSM_KEY_T, int);
@@ -455,7 +453,6 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             umock_c_deinit();
 
             TEST_MUTEX_DESTROY(g_testByTest);
-            TEST_DEINITIALIZE_MEMORY_DEBUG(g_dllByDll);
         }
 
         TEST_FUNCTION_INITIALIZE(TestMethodInitialize)
@@ -489,8 +486,8 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             status = hsm_client_tpm_store_init();
 
             // assert
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
             //cleanup
             hsm_client_tpm_store_deinit();
@@ -522,7 +519,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
                 status = hsm_client_tpm_store_init();
 
                 // assert
-                ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+                ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
             }
 
             //cleanup
@@ -544,8 +541,8 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             status = hsm_client_tpm_store_init();
 
             // assert
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
             //cleanup
             hsm_client_tpm_store_deinit();
@@ -565,7 +562,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             hsm_client_tpm_store_deinit();
 
             // assert
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
             //cleanup
         }
@@ -591,8 +588,8 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             status = hsm_client_tpm_store_init();
 
             // assert
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
             //cleanup
             hsm_client_tpm_store_deinit();
@@ -610,15 +607,15 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             const HSM_CLIENT_TPM_INTERFACE* result = hsm_client_tpm_store_interface();
 
             // assert
-            ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NOT_NULL(result->hsm_client_tpm_create, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NOT_NULL(result->hsm_client_tpm_destroy, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NOT_NULL(result->hsm_client_activate_identity_key, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NOT_NULL(result->hsm_client_get_ek, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NOT_NULL(result->hsm_client_get_srk, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NOT_NULL(result->hsm_client_sign_with_identity, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NOT_NULL(result->hsm_client_derive_and_sign_with_identity, "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_NOT_NULL(result, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_NOT_NULL(result->hsm_client_tpm_create, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_NOT_NULL(result->hsm_client_tpm_destroy, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_NOT_NULL(result->hsm_client_activate_identity_key, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_NOT_NULL(result->hsm_client_get_ek, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_NOT_NULL(result->hsm_client_get_srk, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_NOT_NULL(result->hsm_client_sign_with_identity, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_NOT_NULL(result->hsm_client_derive_and_sign_with_identity, "Line:" MU_TOSTRING(__LINE__));
 
             //cleanup
         }
@@ -630,16 +627,16 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         TEST_FUNCTION(edge_hsm_client_tpm_create_fails_when_tpm_not_initialized)
         {
             //arrange
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
-            HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
+            const HSM_CLIENT_TPM_INTERFACE* iface = hsm_client_tpm_store_interface();
+            HSM_CLIENT_CREATE hsm_client_tpm_create = iface->hsm_client_tpm_create;
             umock_c_reset_all_calls();
 
             // act
             HSM_CLIENT_HANDLE hsm_handle = hsm_client_tpm_create();
 
             // assert
-            ASSERT_IS_NULL(hsm_handle, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_NULL(hsm_handle, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
         }
 
         /**
@@ -651,10 +648,10 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             //arrange
             int status;
             status = hsm_client_tpm_store_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
-            HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
-            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
+            ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            const HSM_CLIENT_TPM_INTERFACE* iface = hsm_client_tpm_store_interface();
+            HSM_CLIENT_CREATE hsm_client_tpm_create = iface->hsm_client_tpm_create;
+            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = iface->hsm_client_tpm_destroy;
             umock_c_reset_all_calls();
 
             STRICT_EXPECTED_CALL(gballoc_calloc(1, IGNORED_NUM_ARG));
@@ -664,8 +661,8 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             HSM_CLIENT_HANDLE hsm_handle = hsm_client_tpm_create();
 
             // assert
-            ASSERT_IS_NOT_NULL(hsm_handle, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_NOT_NULL(hsm_handle, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
             //cleanup
             hsm_client_tpm_destroy(hsm_handle);
@@ -684,10 +681,10 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             ASSERT_ARE_EQUAL(int, 0, test_result);
 
             status = hsm_client_tpm_store_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
-            HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
-            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
+            ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            const HSM_CLIENT_TPM_INTERFACE* iface = hsm_client_tpm_store_interface();
+            HSM_CLIENT_CREATE hsm_client_tpm_create = iface->hsm_client_tpm_create;
+            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = iface->hsm_client_tpm_destroy;
             umock_c_reset_all_calls();
 
             STRICT_EXPECTED_CALL(gballoc_calloc(1, IGNORED_NUM_ARG));
@@ -704,7 +701,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
                 HSM_CLIENT_HANDLE hsm_handle = hsm_client_tpm_create();
 
                 // assert
-                ASSERT_IS_NULL(hsm_handle, "Line:" TOSTRING(__LINE__));
+                ASSERT_IS_NULL(hsm_handle, "Line:" MU_TOSTRING(__LINE__));
             }
 
             //cleanup
@@ -719,14 +716,14 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         TEST_FUNCTION(edge_hsm_client_tpm_destroy_does_nothing_with_invalid_handle)
         {
             //arrange
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
-            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
+            const HSM_CLIENT_TPM_INTERFACE* iface = hsm_client_tpm_store_interface();
+            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = iface->hsm_client_tpm_destroy;
 
             // act
             hsm_client_tpm_destroy(NULL);
 
             // assert
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
         }
 
         /**
@@ -736,14 +733,14 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         TEST_FUNCTION(edge_hsm_client_tpm_destroy_does_nothing_when_tpm_not_initialized)
         {
             //arrange
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
-            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
+            const HSM_CLIENT_TPM_INTERFACE* iface = hsm_client_tpm_store_interface();
+            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = iface->hsm_client_tpm_destroy;
 
             // act
             hsm_client_tpm_destroy(TEST_HSM_CLIENT_HANDLE);
 
             // assert
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
         }
 
         /**
@@ -755,10 +752,10 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             //arrange
             int status;
             status = hsm_client_tpm_store_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
-            HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
-            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
+            ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            const HSM_CLIENT_TPM_INTERFACE* iface = hsm_client_tpm_store_interface();
+            HSM_CLIENT_CREATE hsm_client_tpm_create = iface->hsm_client_tpm_create;
+            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = iface->hsm_client_tpm_destroy;
             HSM_CLIENT_HANDLE hsm_handle = hsm_client_tpm_create();
             umock_c_reset_all_calls();
 
@@ -769,8 +766,8 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             hsm_client_tpm_destroy(hsm_handle);
 
             // assert
-            ASSERT_IS_NOT_NULL(hsm_handle, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_NOT_NULL(hsm_handle, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
             //cleanup
             hsm_client_tpm_store_deinit();
@@ -785,21 +782,21 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             //arrange
             int status;
             status = hsm_client_tpm_store_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
-            HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
-            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
-            HSM_CLIENT_ACTIVATE_IDENTITY_KEY hsm_client_activate_identity_key = interface->hsm_client_activate_identity_key;
+            ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            const HSM_CLIENT_TPM_INTERFACE* iface = hsm_client_tpm_store_interface();
+            HSM_CLIENT_CREATE hsm_client_tpm_create = iface->hsm_client_tpm_create;
+            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = iface->hsm_client_tpm_destroy;
+            HSM_CLIENT_ACTIVATE_IDENTITY_KEY hsm_client_activate_identity_key = iface->hsm_client_activate_identity_key;
             HSM_CLIENT_HANDLE hsm_handle = hsm_client_tpm_create();
             unsigned char test_input[] = {'t', 'e', 's', 't'};
 
             // act, assert
             status = hsm_client_activate_identity_key(NULL, test_input, sizeof(test_input));
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
             status = hsm_client_activate_identity_key(hsm_handle, NULL, sizeof(test_input));
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
             status = hsm_client_activate_identity_key(hsm_handle, test_input, 0);
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
 
             //cleanup
             hsm_client_tpm_destroy(hsm_handle);
@@ -815,11 +812,11 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             //arrange
             int status;
             status = hsm_client_tpm_store_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
-            HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
-            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
-            HSM_CLIENT_ACTIVATE_IDENTITY_KEY hsm_client_activate_identity_key = interface->hsm_client_activate_identity_key;
+            ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            const HSM_CLIENT_TPM_INTERFACE* iface = hsm_client_tpm_store_interface();
+            HSM_CLIENT_CREATE hsm_client_tpm_create = iface->hsm_client_tpm_create;
+            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = iface->hsm_client_tpm_destroy;
+            HSM_CLIENT_ACTIVATE_IDENTITY_KEY hsm_client_activate_identity_key = iface->hsm_client_activate_identity_key;
             HSM_CLIENT_HANDLE hsm_handle = hsm_client_tpm_create();
             unsigned char test_input[] = {'t', 'e', 's', 't'};
             umock_c_reset_all_calls();
@@ -830,8 +827,8 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             status = hsm_client_activate_identity_key(hsm_handle, test_input, sizeof(test_input));
 
             // assert
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
             //cleanup
             hsm_client_tpm_destroy(hsm_handle);
@@ -850,11 +847,11 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             ASSERT_ARE_EQUAL(int, 0, test_result);
 
             status = hsm_client_tpm_store_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
-            HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
-            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
-            HSM_CLIENT_ACTIVATE_IDENTITY_KEY hsm_client_activate_identity_key = interface->hsm_client_activate_identity_key;
+            ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            const HSM_CLIENT_TPM_INTERFACE* iface = hsm_client_tpm_store_interface();
+            HSM_CLIENT_CREATE hsm_client_tpm_create = iface->hsm_client_tpm_create;
+            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = iface->hsm_client_tpm_destroy;
+            HSM_CLIENT_ACTIVATE_IDENTITY_KEY hsm_client_activate_identity_key = iface->hsm_client_activate_identity_key;
             HSM_CLIENT_HANDLE hsm_handle = hsm_client_tpm_create();
             unsigned char test_input[] = {'t', 'e', 's', 't'};
             umock_c_reset_all_calls();
@@ -872,7 +869,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
                 status = hsm_client_activate_identity_key(hsm_handle, test_input, sizeof(test_input));
 
                 // assert
-                ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+                ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
             }
 
             //cleanup
@@ -888,8 +885,8 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         TEST_FUNCTION(edge_hsm_client_get_ek_does_nothing_when_tpm_not_initialized)
         {
             //arrange
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
-            HSM_CLIENT_GET_ENDORSEMENT_KEY hsm_client_get_ek = interface->hsm_client_get_ek;
+            const HSM_CLIENT_TPM_INTERFACE* iface = hsm_client_tpm_store_interface();
+            HSM_CLIENT_GET_ENDORSEMENT_KEY hsm_client_get_ek = iface->hsm_client_get_ek;
             int status;
             unsigned char *test_output_buffer = (unsigned char*)0x5000;
             size_t test_output_len = 10;
@@ -899,10 +896,10 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             status = hsm_client_get_ek(TEST_HSM_CLIENT_HANDLE, &test_output_buffer, &test_output_len);
 
             // assert
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NULL(test_output_buffer, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_TRUE((test_output_len == 0), "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_NULL(test_output_buffer, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_TRUE((test_output_len == 0), "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
         }
 
         /**
@@ -913,11 +910,11 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         {
             //arrange
             int status = hsm_client_tpm_store_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
-            HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
-            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
-            HSM_CLIENT_GET_ENDORSEMENT_KEY hsm_client_get_ek = interface->hsm_client_get_ek;
+            ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            const HSM_CLIENT_TPM_INTERFACE* iface = hsm_client_tpm_store_interface();
+            HSM_CLIENT_CREATE hsm_client_tpm_create = iface->hsm_client_tpm_create;
+            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = iface->hsm_client_tpm_destroy;
+            HSM_CLIENT_GET_ENDORSEMENT_KEY hsm_client_get_ek = iface->hsm_client_get_ek;
             HSM_CLIENT_HANDLE hsm_handle = hsm_client_tpm_create();
             unsigned char *test_output_buffer = (unsigned char*)0x5000;
             size_t test_output_len = 10;
@@ -927,10 +924,10 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             status = hsm_client_get_ek(hsm_handle, &test_output_buffer, &test_output_len);
 
             // assert
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NULL(test_output_buffer, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_TRUE((test_output_len == 0), "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_NULL(test_output_buffer, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_TRUE((test_output_len == 0), "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
             //cleanup
             hsm_client_tpm_destroy(hsm_handle);
@@ -945,32 +942,32 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         {
             //arrange
             int status = hsm_client_tpm_store_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
-            HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
-            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
-            HSM_CLIENT_GET_ENDORSEMENT_KEY hsm_client_get_ek = interface->hsm_client_get_ek;
+            ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            const HSM_CLIENT_TPM_INTERFACE* iface = hsm_client_tpm_store_interface();
+            HSM_CLIENT_CREATE hsm_client_tpm_create = iface->hsm_client_tpm_create;
+            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = iface->hsm_client_tpm_destroy;
+            HSM_CLIENT_GET_ENDORSEMENT_KEY hsm_client_get_ek = iface->hsm_client_get_ek;
             HSM_CLIENT_HANDLE hsm_handle = hsm_client_tpm_create();
             unsigned char *test_output_buffer = (unsigned char*)0x5000;
             size_t test_output_len = 10;
 
             // act, assert
             status = hsm_client_get_ek(NULL, &test_output_buffer, &test_output_len);
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NULL(test_output_buffer, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_TRUE((test_output_len == 0), "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_NULL(test_output_buffer, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_TRUE((test_output_len == 0), "Line:" MU_TOSTRING(__LINE__));
 
             test_output_buffer = (unsigned char*)0x5000;
             test_output_len = 10;
             status = hsm_client_get_ek(hsm_handle, NULL, &test_output_len);
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_TRUE((test_output_len == 0), "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_TRUE((test_output_len == 0), "Line:" MU_TOSTRING(__LINE__));
 
             test_output_buffer = (unsigned char*)0x5000;
             test_output_len = 10;
             status = hsm_client_get_ek(hsm_handle, &test_output_buffer, NULL);
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NULL(test_output_buffer, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_NULL(test_output_buffer, "Line:" MU_TOSTRING(__LINE__));
 
             //cleanup
             hsm_client_tpm_destroy(hsm_handle);
@@ -984,8 +981,8 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         TEST_FUNCTION(edge_hsm_client_get_srk_does_nothing_when_tpm_not_initialized)
         {
             //arrange
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
-            HSM_CLIENT_GET_STORAGE_ROOT_KEY hsm_client_get_srk = interface->hsm_client_get_srk;
+            const HSM_CLIENT_TPM_INTERFACE* iface = hsm_client_tpm_store_interface();
+            HSM_CLIENT_GET_STORAGE_ROOT_KEY hsm_client_get_srk = iface->hsm_client_get_srk;
             unsigned char *test_output_buffer = (unsigned char*)0x5000;
             size_t test_output_len = 10;
             int status;
@@ -995,10 +992,10 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             status = hsm_client_get_srk(TEST_HSM_CLIENT_HANDLE, &test_output_buffer, &test_output_len);
 
             // assert
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NULL(test_output_buffer, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_TRUE((test_output_len == 0), "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_NULL(test_output_buffer, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_TRUE((test_output_len == 0), "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
         }
 
         /**
@@ -1009,11 +1006,11 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         {
             //arrange
             int status = hsm_client_tpm_store_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
-            HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
-            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
-            HSM_CLIENT_GET_STORAGE_ROOT_KEY hsm_client_get_srk = interface->hsm_client_get_srk;
+            ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            const HSM_CLIENT_TPM_INTERFACE* iface = hsm_client_tpm_store_interface();
+            HSM_CLIENT_CREATE hsm_client_tpm_create = iface->hsm_client_tpm_create;
+            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = iface->hsm_client_tpm_destroy;
+            HSM_CLIENT_GET_STORAGE_ROOT_KEY hsm_client_get_srk = iface->hsm_client_get_srk;
             HSM_CLIENT_HANDLE hsm_handle = hsm_client_tpm_create();
             unsigned char *test_output_buffer = (unsigned char*)0x5000;
             size_t test_output_len = 10;
@@ -1023,10 +1020,10 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             status = hsm_client_get_srk(hsm_handle, &test_output_buffer, &test_output_len);
 
             // assert
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NULL(test_output_buffer, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_TRUE((test_output_len == 0), "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_NULL(test_output_buffer, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_TRUE((test_output_len == 0), "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
             //cleanup
             hsm_client_tpm_destroy(hsm_handle);
@@ -1041,32 +1038,32 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         {
             //arrange
             int status = hsm_client_tpm_store_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
-            HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
-            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
-            HSM_CLIENT_GET_STORAGE_ROOT_KEY hsm_client_get_srk = interface->hsm_client_get_srk;
+            ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            const HSM_CLIENT_TPM_INTERFACE* iface = hsm_client_tpm_store_interface();
+            HSM_CLIENT_CREATE hsm_client_tpm_create = iface->hsm_client_tpm_create;
+            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = iface->hsm_client_tpm_destroy;
+            HSM_CLIENT_GET_STORAGE_ROOT_KEY hsm_client_get_srk = iface->hsm_client_get_srk;
             HSM_CLIENT_HANDLE hsm_handle = hsm_client_tpm_create();
             unsigned char *test_output_buffer = TEST_OUTPUT_DIGEST_PTR;
             size_t test_output_len = 10;
 
             // act, assert
             status = hsm_client_get_srk(NULL, &test_output_buffer, &test_output_len);
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NULL(test_output_buffer, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_TRUE((test_output_len == 0), "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_NULL(test_output_buffer, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_TRUE((test_output_len == 0), "Line:" MU_TOSTRING(__LINE__));
 
             test_output_buffer = TEST_OUTPUT_DIGEST_PTR;
             test_output_len = 10;
             status = hsm_client_get_srk(hsm_handle, NULL, &test_output_len);
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_TRUE((test_output_len == 0), "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_TRUE((test_output_len == 0), "Line:" MU_TOSTRING(__LINE__));
 
             test_output_buffer = TEST_OUTPUT_DIGEST_PTR;
             test_output_len = 10;
             status = hsm_client_get_srk(hsm_handle, &test_output_buffer, NULL);
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NULL(test_output_buffer, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_NULL(test_output_buffer, "Line:" MU_TOSTRING(__LINE__));
 
             //cleanup
             hsm_client_tpm_destroy(hsm_handle);
@@ -1081,8 +1078,8 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         {
             //arrange
             int status;
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
-            HSM_CLIENT_SIGN_WITH_IDENTITY hsm_client_sign_with_identity = interface->hsm_client_sign_with_identity;
+            const HSM_CLIENT_TPM_INTERFACE* iface = hsm_client_tpm_store_interface();
+            HSM_CLIENT_SIGN_WITH_IDENTITY hsm_client_sign_with_identity = iface->hsm_client_sign_with_identity;
             unsigned char test_input[] = {'t', 'e', 's', 't'};
             unsigned char *test_output_buffer = TEST_OUTPUT_DIGEST_PTR;
             size_t test_output_len = 10;
@@ -1092,11 +1089,11 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             status = hsm_client_sign_with_identity(TEST_HSM_CLIENT_HANDLE, test_input, sizeof(test_input), &test_output_buffer, &test_output_len);
 
             // assert
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NULL(test_output_buffer, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_TRUE((test_output_len == 0), "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_NULL(test_output_buffer, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_TRUE((test_output_len == 0), "Line:" MU_TOSTRING(__LINE__));
         }
 
         /**
@@ -1107,11 +1104,11 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         {
             //arrange
             int status = hsm_client_tpm_store_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
-            HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
-            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
-            HSM_CLIENT_SIGN_WITH_IDENTITY hsm_client_sign_with_identity = interface->hsm_client_sign_with_identity;
+            ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            const HSM_CLIENT_TPM_INTERFACE* iface = hsm_client_tpm_store_interface();
+            HSM_CLIENT_CREATE hsm_client_tpm_create = iface->hsm_client_tpm_create;
+            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = iface->hsm_client_tpm_destroy;
+            HSM_CLIENT_SIGN_WITH_IDENTITY hsm_client_sign_with_identity = iface->hsm_client_sign_with_identity;
             HSM_CLIENT_HANDLE hsm_handle = hsm_client_tpm_create();
             unsigned char test_input[] = {'t', 'e', 's', 't'};
             unsigned char *test_output_buffer = TEST_OUTPUT_DIGEST_PTR;
@@ -1119,35 +1116,35 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
 
             // act, assert
             status = hsm_client_sign_with_identity(NULL, test_input, sizeof(test_input), &test_output_buffer, &test_output_len);
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NULL(test_output_buffer, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_TRUE((test_output_len == 0), "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_NULL(test_output_buffer, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_TRUE((test_output_len == 0), "Line:" MU_TOSTRING(__LINE__));
 
             test_output_buffer = TEST_OUTPUT_DIGEST_PTR;
             test_output_len = 10;
             status = hsm_client_sign_with_identity(hsm_handle, NULL, sizeof(test_input), &test_output_buffer, &test_output_len);
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NULL(test_output_buffer, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_TRUE((test_output_len == 0), "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_NULL(test_output_buffer, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_TRUE((test_output_len == 0), "Line:" MU_TOSTRING(__LINE__));
 
             test_output_buffer = TEST_OUTPUT_DIGEST_PTR;
             test_output_len = 10;
             status = hsm_client_sign_with_identity(hsm_handle, test_input, 0, &test_output_buffer, &test_output_len);
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NULL(test_output_buffer, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_TRUE((test_output_len == 0), "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_NULL(test_output_buffer, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_TRUE((test_output_len == 0), "Line:" MU_TOSTRING(__LINE__));
 
             test_output_buffer = TEST_OUTPUT_DIGEST_PTR;
             test_output_len = 10;
             status = hsm_client_sign_with_identity(hsm_handle, test_input, sizeof(test_input), NULL, &test_output_len);
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_TRUE((test_output_len == 0), "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_TRUE((test_output_len == 0), "Line:" MU_TOSTRING(__LINE__));
 
             test_output_buffer = TEST_OUTPUT_DIGEST_PTR;
             test_output_len = 10;
             status = hsm_client_sign_with_identity(hsm_handle, test_input, sizeof(test_input), &test_output_buffer, NULL);
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NULL(test_output_buffer, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_NULL(test_output_buffer, "Line:" MU_TOSTRING(__LINE__));
 
             //cleanup
             hsm_client_tpm_destroy(hsm_handle);
@@ -1162,11 +1159,11 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         {
             //arrange
             int status = hsm_client_tpm_store_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
-            HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
-            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
-            HSM_CLIENT_SIGN_WITH_IDENTITY hsm_client_sign_with_identity = interface->hsm_client_sign_with_identity;
+            ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            const HSM_CLIENT_TPM_INTERFACE* iface = hsm_client_tpm_store_interface();
+            HSM_CLIENT_CREATE hsm_client_tpm_create = iface->hsm_client_tpm_create;
+            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = iface->hsm_client_tpm_destroy;
+            HSM_CLIENT_SIGN_WITH_IDENTITY hsm_client_sign_with_identity = iface->hsm_client_sign_with_identity;
             HSM_CLIENT_HANDLE hsm_handle = hsm_client_tpm_create();
             unsigned char test_input[] = {'t', 'e', 's', 't'};
             unsigned char *test_output_buffer = NULL;
@@ -1181,8 +1178,8 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             status = hsm_client_sign_with_identity(hsm_handle, test_input, sizeof(test_input), &test_output_buffer, &test_output_len);
 
             // assert
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
             //cleanup
             hsm_client_tpm_destroy(hsm_handle);
@@ -1199,11 +1196,11 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             int test_result = umock_c_negative_tests_init();
             ASSERT_ARE_EQUAL(int, 0, test_result);
             int status = hsm_client_tpm_store_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
-            HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
-            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
-            HSM_CLIENT_SIGN_WITH_IDENTITY hsm_client_sign_with_identity = interface->hsm_client_sign_with_identity;
+            ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            const HSM_CLIENT_TPM_INTERFACE* iface = hsm_client_tpm_store_interface();
+            HSM_CLIENT_CREATE hsm_client_tpm_create = iface->hsm_client_tpm_create;
+            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = iface->hsm_client_tpm_destroy;
+            HSM_CLIENT_SIGN_WITH_IDENTITY hsm_client_sign_with_identity = iface->hsm_client_sign_with_identity;
             HSM_CLIENT_HANDLE hsm_handle = hsm_client_tpm_create();
             unsigned char test_input[] = {'t', 'e', 's', 't'};
             unsigned char *test_output_buffer = NULL;
@@ -1225,7 +1222,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
                 status = hsm_client_sign_with_identity(hsm_handle, test_input, sizeof(test_input), &test_output_buffer, &test_output_len);
 
                 // assert
-                ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+                ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
             }
 
             //cleanup
@@ -1242,8 +1239,8 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         {
             //arrange
             int status;
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
-            HSM_CLIENT_DERIVE_AND_SIGN_WITH_IDENTITY hsm_client_derive_and_sign_with_identity = interface->hsm_client_derive_and_sign_with_identity;
+            const HSM_CLIENT_TPM_INTERFACE* iface = hsm_client_tpm_store_interface();
+            HSM_CLIENT_DERIVE_AND_SIGN_WITH_IDENTITY hsm_client_derive_and_sign_with_identity = iface->hsm_client_derive_and_sign_with_identity;
             unsigned char test_input[] = {'t', 'e', 's', 't'};
             unsigned char *test_output_buffer = NULL;
             size_t test_output_len = 0;
@@ -1254,10 +1251,10 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             status = hsm_client_derive_and_sign_with_identity(TEST_HSM_CLIENT_HANDLE, test_input, sizeof(test_input), TEST_EDGE_MODULE_IDENTITY, identity_size, &test_output_buffer, &test_output_len);
 
             // assert
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NULL(test_output_buffer, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_TRUE((test_output_len == 0), "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_NULL(test_output_buffer, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_TRUE((test_output_len == 0), "Line:" MU_TOSTRING(__LINE__));
         }
 
         /**
@@ -1268,11 +1265,11 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         {
             //arrange
             int status = hsm_client_tpm_store_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
-            HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
-            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
-            HSM_CLIENT_DERIVE_AND_SIGN_WITH_IDENTITY hsm_client_derive_and_sign_with_identity = interface->hsm_client_derive_and_sign_with_identity;
+            ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            const HSM_CLIENT_TPM_INTERFACE* iface = hsm_client_tpm_store_interface();
+            HSM_CLIENT_CREATE hsm_client_tpm_create = iface->hsm_client_tpm_create;
+            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = iface->hsm_client_tpm_destroy;
+            HSM_CLIENT_DERIVE_AND_SIGN_WITH_IDENTITY hsm_client_derive_and_sign_with_identity = iface->hsm_client_derive_and_sign_with_identity;
             HSM_CLIENT_HANDLE hsm_handle = hsm_client_tpm_create();
             unsigned char test_input[] = {'t', 'e', 's', 't'};
             unsigned char *test_output_buffer = TEST_OUTPUT_DIGEST_PTR;
@@ -1283,49 +1280,49 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             test_output_buffer = TEST_OUTPUT_DIGEST_PTR;
             test_output_len = 10;
             status = hsm_client_derive_and_sign_with_identity(NULL, test_input, sizeof(test_input), TEST_EDGE_MODULE_IDENTITY, identity_size, &test_output_buffer, &test_output_len);
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NULL(test_output_buffer, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_TRUE((test_output_len == 0), "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_NULL(test_output_buffer, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_TRUE((test_output_len == 0), "Line:" MU_TOSTRING(__LINE__));
 
             test_output_buffer = TEST_OUTPUT_DIGEST_PTR;
             test_output_len = 10;
             status = hsm_client_derive_and_sign_with_identity(hsm_handle, NULL, sizeof(test_input), TEST_EDGE_MODULE_IDENTITY, identity_size, &test_output_buffer, &test_output_len);
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NULL(test_output_buffer, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_TRUE((test_output_len == 0), "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_NULL(test_output_buffer, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_TRUE((test_output_len == 0), "Line:" MU_TOSTRING(__LINE__));
 
             test_output_buffer = TEST_OUTPUT_DIGEST_PTR;
             test_output_len = 10;
             status = hsm_client_derive_and_sign_with_identity(hsm_handle, test_input, 0, TEST_EDGE_MODULE_IDENTITY, identity_size, &test_output_buffer, &test_output_len);
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NULL(test_output_buffer, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_TRUE((test_output_len == 0), "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_NULL(test_output_buffer, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_TRUE((test_output_len == 0), "Line:" MU_TOSTRING(__LINE__));
 
             test_output_buffer = TEST_OUTPUT_DIGEST_PTR;
             test_output_len = 10;
             status = hsm_client_derive_and_sign_with_identity(hsm_handle, test_input, sizeof(test_input), NULL, identity_size, &test_output_buffer, &test_output_len);
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NULL(test_output_buffer, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_TRUE((test_output_len == 0), "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_NULL(test_output_buffer, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_TRUE((test_output_len == 0), "Line:" MU_TOSTRING(__LINE__));
 
             test_output_buffer = TEST_OUTPUT_DIGEST_PTR;
             test_output_len = 10;
             status = hsm_client_derive_and_sign_with_identity(hsm_handle, test_input, sizeof(test_input), TEST_EDGE_MODULE_IDENTITY, 0, &test_output_buffer, &test_output_len);
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NULL(test_output_buffer, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_TRUE((test_output_len == 0), "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_NULL(test_output_buffer, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_TRUE((test_output_len == 0), "Line:" MU_TOSTRING(__LINE__));
 
             test_output_buffer = TEST_OUTPUT_DIGEST_PTR;
             test_output_len = 10;
             status = hsm_client_derive_and_sign_with_identity(hsm_handle, test_input, sizeof(test_input), TEST_EDGE_MODULE_IDENTITY, identity_size, NULL, &test_output_len);
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_TRUE((test_output_len == 0), "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_TRUE((test_output_len == 0), "Line:" MU_TOSTRING(__LINE__));
 
             test_output_buffer = TEST_OUTPUT_DIGEST_PTR;
             test_output_len = 10;
             status = hsm_client_derive_and_sign_with_identity(hsm_handle, test_input, sizeof(test_input), TEST_EDGE_MODULE_IDENTITY, identity_size, &test_output_buffer, NULL);
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NULL(test_output_buffer, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_NULL(test_output_buffer, "Line:" MU_TOSTRING(__LINE__));
 
             //cleanup
             hsm_client_tpm_destroy(hsm_handle);
@@ -1340,11 +1337,11 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         {
             //arrange
             int status = hsm_client_tpm_store_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
-            HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
-            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
-            HSM_CLIENT_DERIVE_AND_SIGN_WITH_IDENTITY hsm_client_derive_and_sign_with_identity = interface->hsm_client_derive_and_sign_with_identity;
+            ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            const HSM_CLIENT_TPM_INTERFACE* iface = hsm_client_tpm_store_interface();
+            HSM_CLIENT_CREATE hsm_client_tpm_create = iface->hsm_client_tpm_create;
+            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = iface->hsm_client_tpm_destroy;
+            HSM_CLIENT_DERIVE_AND_SIGN_WITH_IDENTITY hsm_client_derive_and_sign_with_identity = iface->hsm_client_derive_and_sign_with_identity;
             HSM_CLIENT_HANDLE hsm_handle = hsm_client_tpm_create();
             unsigned char test_input[] = {'t', 'e', 's', 't'};
             unsigned char *test_output_buffer = TEST_OUTPUT_DIGEST_PTR;
@@ -1361,8 +1358,8 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             status = hsm_client_derive_and_sign_with_identity(hsm_handle, test_input, sizeof(test_input), TEST_EDGE_MODULE_IDENTITY, identity_size, &test_output_buffer, &test_output_len);
 
             // assert
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
             //cleanup
             hsm_client_tpm_destroy(hsm_handle);
@@ -1379,11 +1376,11 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             int test_result = umock_c_negative_tests_init();
             ASSERT_ARE_EQUAL(int, 0, test_result);
             int status = hsm_client_tpm_store_init();
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
-            HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
-            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
-            HSM_CLIENT_DERIVE_AND_SIGN_WITH_IDENTITY hsm_client_derive_and_sign_with_identity = interface->hsm_client_derive_and_sign_with_identity;
+            ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            const HSM_CLIENT_TPM_INTERFACE* iface = hsm_client_tpm_store_interface();
+            HSM_CLIENT_CREATE hsm_client_tpm_create = iface->hsm_client_tpm_create;
+            HSM_CLIENT_DESTROY hsm_client_tpm_destroy = iface->hsm_client_tpm_destroy;
+            HSM_CLIENT_DERIVE_AND_SIGN_WITH_IDENTITY hsm_client_derive_and_sign_with_identity = iface->hsm_client_derive_and_sign_with_identity;
             HSM_CLIENT_HANDLE hsm_handle = hsm_client_tpm_create();
             unsigned char test_input[] = {'t', 'e', 's', 't'};
             unsigned char *test_output_buffer = NULL;
@@ -1407,7 +1404,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
                 status = hsm_client_derive_and_sign_with_identity(hsm_handle, test_input, sizeof(test_input), TEST_EDGE_MODULE_IDENTITY, identity_size, &test_output_buffer, &test_output_len);
 
                 // assert
-                ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+                ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
             }
 
             //cleanup

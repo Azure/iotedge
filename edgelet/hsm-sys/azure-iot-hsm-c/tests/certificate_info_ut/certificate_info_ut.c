@@ -84,7 +84,6 @@ extern time_t get_utc_time_from_asn_string(const unsigned char *time_value, size
 // Test defines and data
 //#############################################################################
 static TEST_MUTEX_HANDLE g_testByTest;
-static TEST_MUTEX_HANDLE g_dllByDll;
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
@@ -335,57 +334,57 @@ static void test_helper_parse_cert_common_callstack
     umock_c_reset_all_calls();
 
     EXPECTED_CALL(gballoc_malloc(IGNORED_NUM_ARG));
-    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     STRICT_EXPECTED_CALL(gballoc_malloc(certificate_size));
-    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     // *************** Load and parse certificate **************
     EXPECTED_CALL(BIO_s_mem());
-    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
     i++;
 
     STRICT_EXPECTED_CALL(BIO_new(TEST_BIO_METHOD));
-    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
-    ASSERT_IS_FALSE(certificate_len > INT_MAX, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_FALSE(certificate_len > INT_MAX, "Line:" MU_TOSTRING(__LINE__));
     STRICT_EXPECTED_CALL(BIO_write(TEST_BIO, IGNORED_PTR_ARG, (int)certificate_len));
-    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     STRICT_EXPECTED_CALL(PEM_read_bio_X509(TEST_BIO, NULL, NULL, NULL));
-    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     STRICT_EXPECTED_CALL(BIO_free_all(TEST_BIO));
-    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
     i++;
     // *************************************************
 
     // *************** Parse validity timestamps **************
     STRICT_EXPECTED_CALL(mocked_X509_get_notAfter(TEST_X509));
-    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
     i++;
 
     STRICT_EXPECTED_CALL(mocked_X509_get_notBefore(TEST_X509));
-    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
     i++;
     // *************************************************
 
     // *************** Parse common name **************
     STRICT_EXPECTED_CALL(X509_get_subject_name(TEST_X509));
-    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     STRICT_EXPECTED_CALL(gballoc_malloc(MAX_COMMON_NAME_SIZE));
-    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     // conditionally fail since certificates may not have a CN field
-    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
     if (overrride && overrride->fail_common_name_lookup)
     {
         STRICT_EXPECTED_CALL(X509_NAME_get_text_by_NID(TEST_X509_SUBJECT_NAME, NID_commonName, IGNORED_PTR_ARG, MAX_COMMON_NAME_SIZE)).SetReturn(-1);
@@ -398,21 +397,21 @@ static void test_helper_parse_cert_common_callstack
     }
 
     STRICT_EXPECTED_CALL(X509_free(TEST_X509));
-    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
     i++;
     // *************************************************
 
     // *************** Finalize certificate info object **************
     // allocator for the first certificate which includes /r/n ending
     STRICT_EXPECTED_CALL(gballoc_malloc(certificate_size));
-    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     // allocator for the private key
     if (private_key_set)
     {
         STRICT_EXPECTED_CALL(gballoc_malloc(TEST_PRIVATE_KEY_LEN));
-        ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
     }
     // *************************************************
@@ -437,7 +436,6 @@ BEGIN_TEST_SUITE(certificate_info_ut)
 
     TEST_SUITE_INITIALIZE(suite_init)
     {
-        TEST_INITIALIZE_MEMORY_DEBUG(g_dllByDll);
         g_testByTest = TEST_MUTEX_CREATE();
         ASSERT_IS_NOT_NULL(g_testByTest);
 
@@ -478,7 +476,6 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         umock_c_deinit();
 
         TEST_MUTEX_DESTROY(g_testByTest);
-        TEST_DEINITIALIZE_MEMORY_DEBUG(g_dllByDll);
     }
 
     TEST_FUNCTION_INITIALIZE(method_init)

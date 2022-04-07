@@ -73,7 +73,7 @@ namespace MetricsValidator.Tests
 
             // The following metric should not be populated in a happy E2E path.
             // We are going to make a list and remove them here to not consider them as a failure.
-            IEnumerable<string> skippingMetrics = new HashSet<string>
+            HashSet<string> skippingMetrics = new HashSet<string>
             {
                 "edgeAgent_unsuccessful_iothub_syncs_total",
                 "edgehub_client_connect_failed_total",
@@ -83,6 +83,12 @@ namespace MetricsValidator.Tests
                 "edgehub_operation_retry_total",
                 "edgehub_client_disconnect_total"
             };
+
+            if (!System.Environment.Is64BitOperatingSystem)
+            {
+                // This metric is not part of the scrape on ARM32 machine.
+                skippingMetrics.Add("edgeAgent_created_pids_total");
+            }
 
             foreach (string skippingMetric in skippingMetrics)
             {

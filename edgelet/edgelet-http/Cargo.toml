@@ -16,7 +16,7 @@ hyper-tls = "0.3"
 log = "0.4"
 openssl = "0.10"
 percent-encoding = "1.0"
-regex = "0.2"
+regex = "1"
 serde = "1.0"
 serde_json = "1.0"
 serde_derive = "1.0"
@@ -34,16 +34,15 @@ systemd = { path = "../systemd" }
 hyperlocal = "0.6"
 libc = "0.2"
 nix = "0.14"
-scopeguard = "0.3.3"
 tokio-uds = "0.2"
 
 [target.'cfg(windows)'.dependencies]
 hyper-named-pipe = { path = "../hyper-named-pipe" }
-hyperlocal-windows = { git = "https://github.com/Azure/hyperlocal-windows" }
-mio-uds-windows = { git = "https://github.com/Azure/mio-uds-windows.git" }
+hyperlocal-windows = { git = "https://github.com/Azure/hyperlocal-windows", branch = "main" }
+mio-uds-windows = { git = "https://github.com/Azure/mio-uds-windows.git", branch = "main" }
 tokio-named-pipe = { path = "../tokio-named-pipe" }
-tokio-uds-windows = { git = "https://github.com/Azure/tokio-uds-windows.git" }
-winapi = { version = "0.3.5", features = ["winsock2"] }
+tokio-uds-windows = { git = "https://github.com/Azure/tokio-uds-windows.git", branch = "main" }
+winapi = { version = "0.3.6", features = ["bcrypt", "errhandlingapi", "minwindef", "ncrypt", "wincrypt", "winnt", "winsock2"] }
 
 [dev-dependencies]
 lazy_static = "1.0"

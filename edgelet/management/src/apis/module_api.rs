@@ -53,6 +53,7 @@ pub trait ModuleApi: Send + Sync {
         name: &str,
         follow: bool,
         tail: &str,
+        timestamps: bool,
         since: i32,
     ) -> Box<dyn Future<Item = hyper::Body, Error = Error<serde_json::Value>> + Send>;
     fn restart_module(
@@ -323,6 +324,7 @@ where
         name: &str,
         follow: bool,
         tail: &str,
+        timestamps: bool,
         since: i32,
     ) -> Box<dyn Future<Item = hyper::Body, Error = Error<serde_json::Value>> + Send> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
@@ -333,6 +335,7 @@ where
             .append_pair("api-version", &api_version.to_string())
             .append_pair("follow", &follow.to_string())
             .append_pair("tail", &tail.to_string())
+            .append_pair("timestamps", &timestamps.to_string())
             .append_pair("since", &since.to_string())
             .finish();
         let uri_str = format!(

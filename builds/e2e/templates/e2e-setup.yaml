@@ -15,52 +15,88 @@ steps:
       TestPreviewEventHubCompatibleEndpoint,
       TestIotedgedPackageRootSigningCert,
       TestIotHubConnectionString,
+      TestIotHubResourceId,
       TestPreviewIotHubConnectionString,
       TestRootCaCertificate,
       TestRootCaKey,
       TestRootCaPassword,
       TestBlobStoreSas
 
-- pwsh: |
-    $imageBuildId = $(resources.pipeline.images.runID)
-    $packageBuildId = $(resources.pipeline.packages.runID)
-
-    if ('$(az.pipeline.images.buildId)')
+- pwsh: | 
+    try
     {
-      Write-Output '>> User supplied az.pipeline.images.buildId=$(az.pipeline.images.buildId)'
-      $imageBuildId = '$(az.pipeline.images.buildId)'
+      Write-Host "Built Images Result is $(builtImages)"
+      Write-Host "Built Packages Result is $(builtPackages)"
+      $buildImages = "$(builtImages)"
+      $buildPackages = "$(builtPackages)"
+      if ($buildImages -eq 'Succeeded' -or $buildImages -eq 'SucceededWithIssues')
+      {
+        Write-Host "Use Pipeline Image Artifacts"
+        Write-Host "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]TRUE"
+      }     
+      else
+      {
+        Write-Host "Use Build Image Artifacts"
+        Write-Host "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]FALSE"
+      }
+      if ($buildPackages -eq 'Succeeded' -or $buildPackages -eq 'SucceededWithIssues')
+      {
+        Write-Host "Use Pipeline Package Artifacts"
+        Write-Host "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]TRUE"
+      }
+      else
+      {
+        Write-Host "Use Build Package Artifacts"
+        Write-Host "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]FALSE"
+      }
     }
-
-    if ('$(az.pipeline.packages.buildId)')
+    catch
     {
-      Write-Output '>> User supplied az.pipeline.packages.buildId=$(az.pipeline.packages.buildId)'
-      $packageBuildId = '$(az.pipeline.packages.buildId)'
+      Write-Host "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]FALSE"
+      Write-Host "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]FALSE"
     }
+    
+  name: check_use_artifacts
+  displayName: Check Use Pipeline Image Artifacts
 
-    Write-Output "##vso[task.setvariable variable=imageBuildId]$imageBuildId"
-    Write-Output "##vso[task.setvariable variable=packageBuildId]$packageBuildId"
-  displayName: Override artifacts with user-supplied args
+- task: DownloadPipelineArtifact@2
+  displayName: Download Pipeline Build Images
+  condition: eq(variables['check_use_artifacts.UsePipelineImageArtifacts'],'true')
+  inputs:
+    source: 'current'
+    path: $(System.ArtifactsDirectory)
+    patterns: $(az.pipeline.images.artifacts)/artifactInfo.txt
 
+- task: DownloadPipelineArtifact@2
+  displayName: Download Pipeline Build Packages
+  condition: eq(variables['check_use_artifacts.UsePipelinePackageArtifacts'],'true')
+  inputs:
+    source: 'current'
+    path: $(System.ArtifactsDirectory)
+    patterns: $(artifactName)/*
+  
 - task: DownloadBuildArtifacts@0
-  displayName: Get Docker image info
+  displayName: Download Resource Build Images
+  condition: eq(variables['check_use_artifacts.UsePipelineImageArtifacts'],'false')
   inputs:
     buildType: specific
     project: $(resources.pipeline.images.projectID)
     pipeline: $(resources.pipeline.images.pipelineName)
     buildVersionToDownload: specific
-    buildId: $(imageBuildId)
+    buildId: $(resources.pipeline.images.runID)
     downloadType: single
     artifactName: $(az.pipeline.images.artifacts)
     itemPattern: $(az.pipeline.images.artifacts)/artifactInfo.txt
 
 - task: DownloadBuildArtifacts@0
   displayName: Download edgelet packages
+  condition: eq(variables['check_use_artifacts.UsePipelinePackageArtifacts'],'false')
   inputs:
     buildType: specific
     project: $(resources.pipeline.packages.projectID)
     pipeline: $(resources.pipeline.packages.pipelineName)
     buildVersionToDownload: specific
-    buildId: $(packageBuildId)
+    buildId: $(resources.pipeline.packages.runID)
     downloadType: single
     artifactName: $(artifactName)
 
@@ -88,8 +124,9 @@ steps:
     $imageId = Get-Content -Encoding Utf8 `
       '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'
     $imageId = ($imageId -split '=')[1]
-    $imageTag = "$imageId-$(os)-$(arch)"
 
+    $imageTag = "$imageId-$(os)-$(arch)"
+    
     $context = @{
       dpsIdScope = '$(dps.idScope)'
       edgeAgentImage = "$imagePrefix-agent:$imageTag";
@@ -104,6 +141,7 @@ steps:
       networkControllerImage = "$imagePrefix-network-controller:$imageTag";
       testResultCoordinatorImage = "$imagePrefix-test-result-coordinator:$imageTag";
       metricsValidatorImage = "$imagePrefix-metrics-validator:$imageTag";
+      metricsCollectorImage = "$imagePrefix-metrics-collector:$imageTag"
       numberLoggerImage = "$imagePrefix-number-logger:$imageTag";
       edgeAgentBootstrapImage = "$imagePrefix-agent-bootstrap-e2e-$(os)-$(arch)";
       registries = @(
@@ -117,20 +155,24 @@ steps:
       rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
       rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
       logFile = Join-Path '$(binDir)' 'testoutput.log';
+      getSupportBundle = 'true'
     }
 
     if ($IsWindows)
     {
       $context['installerPath'] = Convert-Path '$(Build.SourcesDirectory)/scripts/windows/setup'
+      $context['testTimeoutMinutes'] = 8
     }
 
-    if ('$(arch)' -eq 'arm32v7')
+    if (('$(arch)' -eq 'arm32v7') -or ('$(arch)' -eq 'arm64v8'))
     {
       $context['optimizeForPerformance'] = 'false'
       $context['setupTimeoutMinutes'] = 10
       $context['teardownTimeoutMinutes'] = 5
-      $context['testTimeoutMinutes'] = 6
+      $context['testTimeoutMinutes'] = 8
     }
 
+    Write-Host "Edge agent image: $imagePrefix-agent:$imageTag"
+    Write-Host "Edge hub image: $imagePrefix-hub:$imageTag"
     $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
   displayName: Create test arguments file (context.json)

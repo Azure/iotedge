@@ -4,23 +4,19 @@ IoT Edge Build and Test Infrastructure
 Build
 -----
 
-We use Azure DevOps to build and release.
-
-More information about Azure DevOps is available [here](https://docs.microsoft.com/en-us/azure/devops/pipelines/overview).
+We use [Azure DevOps](https://docs.microsoft.com/en-us/azure/devops/pipelines/overview) to build and release.
 
 Our builds fall into these categories:
 
-| Type                                      | Goal                                                                                                          | Trigger                                        | Target                      |
-|-------------------------------------------|---------------------------------------------------------------------------------------------------------------|------------------------------------------------|-----------------------------|
-| Checkin                                   | Ensures that the master branch builds clean and passes basic tests.                                           | When commits are pushed to a Pull Request (PR) | Linux - x64                 |
-| Security Development Lifecycle (SDL)      | Scans and analyzes the code to detect security issues.                                                        | When commits are pushed to a PR                | Windows - x64               |
-| Continuous Integration (CI)               | Runs end-to-end tests, builds Docker images & publishes to ACR, builds iotedgectl pypi archive.               | After a PR is merged to master                 | Linux - x64, Windows - x64  |
-| Continuous Deployment (CD)                | Consumes artifacts from CI, deploys IoT Edge to a Linux VM and a Raspberry Pi and tests basic functionality.  | After a successful CI build                    | Linux - x64                 |
-| Images                                    | Builds Docker images & publishes to ACR.                                                                      | Manual                                         | Linux - x64, Windows - x64  |
-| Service Deployment Verification           | Runs smoke tests. Used to validate IoT Edge scenarios before the service deploys updates.                     | Manual                                         | Linux - x64                 |
-| Release Build                             | Under the Release/ folder. Builds IoT Edge core runtime (C#) and iotedgectl tool (Python).                    | Manual                                         | Linux - x64, Windows - x64  |
-| Release Publish                           | Under the Release/ folder. Builds Docker images from signed IoT Edge runtime binaries.                        | Manual                                         | Linux - x64, Windows - x64  |
-
+| Type                                      | Goal                                                                                                          | Trigger                                        | Target                                            |
+|-------------------------------------------|---------------------------------------------------------------------------------------------------------------|------------------------------------------------|---------------------------------------------------|
+| Checkin                                   | Ensures that a branch builds clean and passes basic tests.                                                    | When commits are pushed to a Pull Request (PR) | Linux (amd64), Windows (amd64)                    |
+| Security Development Lifecycle (SDL)      | Scans and analyzes the code to detect security issues.                                                        | When commits are pushed to a PR                | Windows (amd64)                                   |
+| Continuous Integration (CI)               | Ensures that a branch builds clean and passes integration tests, builds host packages and Docker images.      | After a PR is merged                           | Linux (amd64, aarch64, arm32v7), Windows (amd64)  |
+| Continuous Deployment (CD)                | Consumes artifacts from CI, deploys IoT Edge to supported devices and tests basic functionality.              | After a successful CI build                    | Linux (amd64, aarch64, arm32v7), Windows (amd64)  |
+| Service Deployment Verification           | Runs smoke tests. Used to validate IoT Edge scenarios before IoT Hub deploys updates.                         | Manual                                         | Linux (amd64)                                     |
+| Build Release                             | Builds IoT Edge packages and Docker images for final release                                                  | Manual                                         | Linux (amd64, aarch64, arm32v7), Windows (amd64)  |
+| Publish Release                           | Publishes IoT Edge packages and Docker images to public release locations.                                    | Manual                                         | Linux (amd64, aarch64, arm32v7), Windows (amd64)  |
 
 Test
 ----

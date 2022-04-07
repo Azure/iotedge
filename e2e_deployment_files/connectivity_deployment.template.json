@@ -31,7 +31,7 @@
                 "value": "true"
               },
               "ExperimentalFeatures__EnableUploadLogs": {
-                  "value": "true"
+                "value": "true"
               }
             },
             "settings": {
@@ -51,6 +51,9 @@
               },
               "experimentalfeatures__enableMetrics": {
                 "value": "true"
+              },
+              "SslProtocols": {
+                "value": "tls1.2"
               }
             },
             "status": "running",
@@ -744,7 +747,7 @@
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-test-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           }

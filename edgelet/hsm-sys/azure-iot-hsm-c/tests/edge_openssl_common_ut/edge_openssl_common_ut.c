@@ -59,7 +59,6 @@ MOCKABLE_FUNCTION(, void, mocked_ERR_load_crypto_strings);
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 static TEST_MUTEX_HANDLE g_testByTest;
-static TEST_MUTEX_HANDLE g_dllByDll;
 
 //#############################################################################
 // Mocked functions test hooks
@@ -96,7 +95,6 @@ BEGIN_TEST_SUITE(edge_openssl_common_ut)
 
     TEST_SUITE_INITIALIZE(TestClassInitialize)
     {
-        TEST_INITIALIZE_MEMORY_DEBUG(g_dllByDll);
         g_testByTest = TEST_MUTEX_CREATE();
         ASSERT_IS_NOT_NULL(g_testByTest);
 
@@ -113,7 +111,6 @@ BEGIN_TEST_SUITE(edge_openssl_common_ut)
         umock_c_deinit();
 
         TEST_MUTEX_DESTROY(g_testByTest);
-        TEST_DEINITIALIZE_MEMORY_DEBUG(g_dllByDll);
     }
 
     TEST_FUNCTION_INITIALIZE(TestMethodInitialize)
@@ -146,7 +143,7 @@ BEGIN_TEST_SUITE(edge_openssl_common_ut)
         initialize_openssl();
 
         // assert 1
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
         umock_c_reset_all_calls();
 
@@ -154,7 +151,7 @@ BEGIN_TEST_SUITE(edge_openssl_common_ut)
         initialize_openssl();
 
         // assert 2
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
         // cleanup
     }

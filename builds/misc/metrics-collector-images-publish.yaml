@@ -1,0 +1,120 @@
+trigger: none
+pr: none
+
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
+  
+jobs:
+################################################################################
+  - deployment: publishImagesLinux
+################################################################################
+    displayName: Publish Images Linux
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby    
+    workspace:
+      clean: all
+    environment: 'Azure-IoT-Edge-Core Release Env'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+            clean: true
+            fetchDepth: 100
+        
+          # If you need to test this job. Create a new Service Connection in the Project Settings (Azure DevOps)
+          # and update the pipeline variable.
+          - task: Docker@2
+            displayName: Docker login edgerelease
+            inputs:
+              command: login
+              containerRegistry: $(service.connection)              
+        
+          - task: Bash@3
+            displayName: 'Publish Metrics Collector - Linux amd64'
+            inputs:
+              filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
+              arguments: '--from $(registry.address)/$(from.registry.namespace)/azureiotedge-metrics-collector:$(version)-linux-amd64 --to $(registry.address)/$(to.registry.namespace)/azureiotedge-metrics-collector:$(version)-linux-amd64'
+      
+          - task: Bash@3
+            displayName: 'Publish Metrics Collector - Linux arm32v7'
+            inputs:
+              filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
+              arguments: '--from $(registry.address)/$(from.registry.namespace)/azureiotedge-metrics-collector:$(version)-linux-arm32v7 --to $(registry.address)/$(to.registry.namespace)/azureiotedge-metrics-collector:$(version)-linux-arm32v7'
+      
+          - task: Bash@3
+            displayName: 'Publish Metrics Collector - Linux arm64v8'
+            inputs:
+              filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
+              arguments: '--from $(registry.address)/$(from.registry.namespace)/azureiotedge-metrics-collector:$(version)-linux-arm64v8 --to $(registry.address)/$(to.registry.namespace)/azureiotedge-metrics-collector:$(version)-linux-arm64v8'
+################################################################################
+  - deployment: publishImagesWindows
+################################################################################
+    displayName: Publish Images Windows
+    pool:
+      name: $(pool.windows.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
+    workspace:
+      clean: all
+    environment: 'Azure-IoT-Edge-Core Release Env'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+            clean: true
+            fetchDepth: 100
+
+          # If you need to test this job. Create a new Service Connection in the Project Settings (Azure DevOps)
+          # and update the pipeline variable.
+          - task: Docker@2
+            displayName: Docker login edgerelease
+            inputs:
+              command: login
+              containerRegistry: $(service.connection)                
+
+          - task: PowerShell@2
+            displayName: "Publish Metrics Collector - Windows amd64"
+            inputs:
+              arguments: "-FromImage '$(registry.address)/$(from.registry.namespace)/azureiotedge-metrics-collector:$(version)-windows-amd64' -ToImage '$(registry.address)/$(to.registry.namespace)/azureiotedge-metrics-collector:$(version)-windows-amd64'"
+              filePath: ./scripts/windows/build/Move-Image.ps1
+              targetType: filePath
+################################################################################
+  - deployment: manifest
+################################################################################
+    displayName: Publish Manifest
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby 
+    workspace:
+      clean: all
+    environment: 'Azure-IoT-Edge-Core Release Env'
+    dependsOn:
+      - publishImagesLinux
+      - publishImagesWindows
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+            clean: true
+            fetchDepth: 100
+
+          # If you need to test this job. Create a new Service Connection in the Project Settings (Azure DevOps)
+          # and update the pipeline variable.
+          - task: Docker@2
+            displayName: Docker login edgerelease
+            inputs:
+              command: login
+              containerRegistry: $(service.connection)                
+
+          - task: Bash@3
+            displayName: 'Publish Metrics Collector Manifest'
+            inputs:
+              targetType: filePath
+              filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/buildManifest.sh'
+              arguments: '-r $(registry.address) -v $(version) -t $(System.DefaultWorkingDirectory)/edge-modules/metrics-collector/docker/manifest.yaml.template -n $(to.registry.namespace) --tags "$(tags)"'

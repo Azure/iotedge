@@ -100,7 +100,6 @@ MOCKABLE_FUNCTION(, const char*, get_issuer_alias, CERT_PROPS_HANDLE, handle);
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
 static TEST_MUTEX_HANDLE g_testByTest;
-static TEST_MUTEX_HANDLE g_dllByDll;
 
 //#############################################################################
 // Mocked functions test hooks
@@ -237,15 +236,14 @@ BEGIN_TEST_SUITE(edge_hsm_store_unittests)
 
     TEST_SUITE_INITIALIZE(TestClassInitialize)
     {
-        TEST_INITIALIZE_MEMORY_DEBUG(g_dllByDll);
         g_testByTest = TEST_MUTEX_CREATE();
         ASSERT_IS_NOT_NULL(g_testByTest);
 
         umock_c_init(test_hook_on_umock_c_error);
 
-        REGISTER_UMOCK_ALIAS_TYPE(HSM_CLIENT_STORE_INTERFACE, void*);
+        REGISTER_UMOCK_ALIAS_TYPE(HSM_CLIENT_STORE_INTERFACE*, void*);
         REGISTER_UMOCK_ALIAS_TYPE(HSM_CLIENT_STORE_HANDLE, void*);
-        REGISTER_UMOCK_ALIAS_TYPE(HSM_CLIENT_KEY_INTERFACE, void*);
+        REGISTER_UMOCK_ALIAS_TYPE(HSM_CLIENT_KEY_INTERFACE*, void*);
         REGISTER_UMOCK_ALIAS_TYPE(KEY_HANDLE, void*);
         REGISTER_UMOCK_ALIAS_TYPE(CERT_PROPS_HANDLE, void*);
         REGISTER_UMOCK_ALIAS_TYPE(SINGLYLINKEDLIST_HANDLE, void*);
@@ -290,7 +288,6 @@ BEGIN_TEST_SUITE(edge_hsm_store_unittests)
         umock_c_deinit();
 
         TEST_MUTEX_DESTROY(g_testByTest);
-        TEST_DEINITIALIZE_MEMORY_DEBUG(g_dllByDll);
     }
 
     TEST_FUNCTION_INITIALIZE(TestMethodInitialize)
@@ -316,10 +313,10 @@ BEGIN_TEST_SUITE(edge_hsm_store_unittests)
 
         // act, assert
         result = store_if->hsm_client_store_create(NULL);
-        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" MU_TOSTRING(__LINE__));
 
         result = store_if->hsm_client_store_create("");
-        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" MU_TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -332,10 +329,10 @@ BEGIN_TEST_SUITE(edge_hsm_store_unittests)
 
         // act, assert
         result = store_if->hsm_client_store_destroy(NULL);
-        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" MU_TOSTRING(__LINE__));
 
         result = store_if->hsm_client_store_destroy("");
-        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" MU_TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -370,7 +367,7 @@ BEGIN_TEST_SUITE(edge_hsm_store_unittests)
 
         // assert
         ASSERT_IS_NOT_NULL(result);
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
         // cleanup
         (void)store_if->hsm_client_store_close(result);
@@ -391,7 +388,7 @@ BEGIN_TEST_SUITE(edge_hsm_store_unittests)
 
         // assert
         ASSERT_IS_NOT_NULL(handle_2);
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
         // cleanup
         (void)store_if->hsm_client_store_close(handle_2);
@@ -436,11 +433,11 @@ BEGIN_TEST_SUITE(edge_hsm_store_unittests)
 
         // act, assert
         result = store_if->hsm_client_store_close(NULL);
-        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" MU_TOSTRING(__LINE__));
 
 
         result = store_if->hsm_client_store_close(TEST_STORE_HANDLE);
-        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" MU_TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -462,8 +459,8 @@ BEGIN_TEST_SUITE(edge_hsm_store_unittests)
         result = store_if->hsm_client_store_close(handle);
 
         // assert
-        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" MU_TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -485,8 +482,8 @@ BEGIN_TEST_SUITE(edge_hsm_store_unittests)
         result = store_if->hsm_client_store_close(handle);
 
         // assert
-        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" MU_TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -507,8 +504,8 @@ BEGIN_TEST_SUITE(edge_hsm_store_unittests)
         int result = store_if->hsm_client_store_close(handle_2);
 
         // assert
-        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" MU_TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
         // cleanup
         (void)store_if->hsm_client_store_close(handle_1);
@@ -525,7 +522,7 @@ BEGIN_TEST_SUITE(edge_hsm_store_unittests)
         handle_2 = store_if->hsm_client_store_open(TEST_STORE_NAME);
         ASSERT_IS_NOT_NULL(handle_2);
         int result = store_if->hsm_client_store_close(handle_2);
-        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" MU_TOSTRING(__LINE__));
         umock_c_reset_all_calls();
 
         call_stack_helper_store_close(0);
@@ -534,8 +531,8 @@ BEGIN_TEST_SUITE(edge_hsm_store_unittests)
         result = store_if->hsm_client_store_close(handle_1);
 
         // assert
-        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" MU_TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
         // cleanup
     }
@@ -553,23 +550,23 @@ BEGIN_TEST_SUITE(edge_hsm_store_unittests)
 
         // act, assert
         store_if->hsm_client_store_insert_sas_key(NULL, TEST_SAS_KEY_NAME_1, TEST_SAS_KEY_VALUE_1, strlen(TEST_SAS_KEY_VALUE_1) + 1);
-        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" MU_TOSTRING(__LINE__));
 
         // act, assert
         store_if->hsm_client_store_insert_sas_key(handle, NULL, TEST_SAS_KEY_VALUE_1, strlen(TEST_SAS_KEY_VALUE_1) + 1);
-        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" MU_TOSTRING(__LINE__));
 
         // act, assert
         store_if->hsm_client_store_insert_sas_key(handle, "", TEST_SAS_KEY_VALUE_1, strlen(TEST_SAS_KEY_VALUE_1) + 1);
-        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" MU_TOSTRING(__LINE__));
 
         // act, assert
         store_if->hsm_client_store_insert_sas_key(handle, TEST_SAS_KEY_NAME_1, NULL, strlen(TEST_SAS_KEY_VALUE_1) + 1);
-        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" MU_TOSTRING(__LINE__));
 
         // act, assert
         store_if->hsm_client_store_insert_sas_key(handle, TEST_SAS_KEY_NAME_1, TEST_SAS_KEY_VALUE_1, 0);
-        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" MU_TOSTRING(__LINE__));
 
         // cleanup
         (void)store_if->hsm_client_store_close(handle);
@@ -603,8 +600,8 @@ BEGIN_TEST_SUITE(edge_hsm_store_unittests)
         result = store_if->hsm_client_store_insert_sas_key(handle, TEST_SAS_KEY_NAME_1, TEST_SAS_KEY_VALUE_1, strlen(TEST_SAS_KEY_VALUE_1) + 1);
 
         // assert
-        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" MU_TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
         // cleanup
         (void)store_if->hsm_client_store_close(handle);

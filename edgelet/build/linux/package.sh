@@ -17,6 +17,7 @@ CMAKE_ARGS='-DCMAKE_BUILD_TYPE=Release'
 CMAKE_ARGS="$CMAKE_ARGS -DBUILD_SHARED=On -Drun_unittests=Off -Duse_default_uuid=On -Duse_emulator=Off -Duse_http=Off"
 
 DOCKER_VOLUME_MOUNTS=''
+BUILD_DIST=''
 
 case "$PACKAGE_OS" in
     'centos7')
@@ -99,42 +100,6 @@ case "$PACKAGE_OS" in
         CMAKE_ARGS="$CMAKE_ARGS '-DOPENSSL_DEPENDS_SPEC=openssl-libs'"
         ;;
 
-    'debian8')
-        CMAKE_ARGS="$CMAKE_ARGS -DCPACK_GENERATOR=DEB"
-
-        case "$PACKAGE_ARCH" in
-            'amd64')
-                DOCKER_IMAGE='debian:8-slim'
-
-                # The cmake in this image doesn't understand CPACK_DEBIAN_PACKAGE_RELEASE, so include the REVISION in CPACK_PACKAGE_VERSION
-                CMAKE_ARGS="$CMAKE_ARGS '-DCPACK_PACKAGE_VERSION=$VERSION-$REVISION'"
-                ;;
-
-            # Debian 8 doesn't have cross-compiler packages in its main repo
-            #
-            # The emdebian repos have cross-compiler packages but they cannot be installed because of broken dependencies.
-            # >gcc-4.9-arm-linux-gnueabihf : Depends: libgcc-4.9-dev:armhf (= 4.9.2-10) but 4.9.2-10+deb8u2 is to be installed
-            #
-            # emdebian is also not maintained any more, not in the least because Debian 9+ have cross-compiler packages in the main repo.
-            #
-            # So stick with the linaro compiler for now.
-            'arm32v7')
-                DOCKER_IMAGE='azureiotedge/gcc-linaro-7.3.1-2018.05-x86_64_arm-linux-gnueabihf:debian_8.11-1'
-
-                CMAKE_ARGS="$CMAKE_ARGS '-DCPACK_PACKAGE_VERSION=$VERSION'"
-                CMAKE_ARGS="$CMAKE_ARGS '-DCPACK_DEBIAN_PACKAGE_RELEASE=$REVISION'"
-                ;;
-
-            'aarch64')
-                # Like the comment in packages.yaml says, Debian 8 aarch64 is not LTS, and doesn't have any official or ports repos.
-                #
-                # So don't build it at all.
-                ;;
-        esac
-
-        CMAKE_ARGS="$CMAKE_ARGS '-DOPENSSL_DEPENDS_SPEC=libssl1.0.0'"
-        ;;
-
     'debian9')
         DOCKER_IMAGE='debian:9-slim'
 
@@ -153,8 +118,26 @@ case "$PACKAGE_OS" in
         CMAKE_ARGS="$CMAKE_ARGS '-DOPENSSL_DEPENDS_SPEC=libssl1.1'"
         ;;
 
+    'debian11')
+        DOCKER_IMAGE='debian:11-slim'
+
+        CMAKE_ARGS="$CMAKE_ARGS -DCPACK_GENERATOR=DEB"
+        CMAKE_ARGS="$CMAKE_ARGS '-DCPACK_PACKAGE_VERSION=$VERSION'"
+        CMAKE_ARGS="$CMAKE_ARGS '-DCPACK_DEBIAN_PACKAGE_RELEASE=$REVISION'"
+        CMAKE_ARGS="$CMAKE_ARGS '-DOPENSSL_DEPENDS_SPEC=libssl1.1'"
+        ;;
+
     'ubuntu18.04')
         DOCKER_IMAGE='ubuntu:18.04'
+
+        CMAKE_ARGS="$CMAKE_ARGS -DCPACK_GENERATOR=DEB"
+        CMAKE_ARGS="$CMAKE_ARGS '-DCPACK_PACKAGE_VERSION=$VERSION'"
+        CMAKE_ARGS="$CMAKE_ARGS '-DCPACK_DEBIAN_PACKAGE_RELEASE=$REVISION'"
+        CMAKE_ARGS="$CMAKE_ARGS '-DOPENSSL_DEPENDS_SPEC=libssl1.1'"
+        ;;
+    
+    'ubuntu20.04')
+        DOCKER_IMAGE='ubuntu:20.04'
 
         CMAKE_ARGS="$CMAKE_ARGS -DCPACK_GENERATOR=DEB"
         CMAKE_ARGS="$CMAKE_ARGS '-DCPACK_PACKAGE_VERSION=$VERSION'"
@@ -236,28 +219,10 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
             apt-get update &&
             apt-get upgrade -y &&
             apt-get install -y --no-install-recommends \
-                binutils build-essential ca-certificates curl cmake debhelper dh-systemd file git make \
+                binutils build-essential ca-certificates curl cmake debhelper file git make \
                 gcc g++ pkg-config \
                 libcurl4-openssl-dev libssl-dev uuid-dev &&
         '
-        ;;
-
-    debian8.arm32v7)
-        SETUP_COMMAND=$'
-            apt-get update &&
-            apt-get upgrade -y &&
-
-            mkdir -p ~/.cargo &&
-            echo \'[target.armv7-unknown-linux-gnueabihf]\' > ~/.cargo/config &&
-            echo \'linker = "arm-linux-gnueabihf-gcc"\' >> ~/.cargo/config &&
-        '
-
-        # Indicate to cmake that we're cross-compiling
-        CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_VERSION=1"
-
-        CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_SYSROOT=/toolchain/arm-linux-gnueabihf/libc"
-        CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_C_COMPILER=/toolchain/bin/arm-linux-gnueabihf-gcc"
-        CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_CXX_COMPILER=/toolchain/bin/arm-linux-gnueabihf-g++"
         ;;
 
     debian*.arm32v7)
@@ -266,7 +231,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
             apt-get update &&
             apt-get upgrade -y &&
             apt-get install -y --no-install-recommends \
-                binutils build-essential ca-certificates cmake curl debhelper dh-systemd file git make \
+                binutils build-essential ca-certificates cmake curl debhelper file git make \
                 gcc g++ \
                 gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf \
                 libcurl4-openssl-dev:armhf libssl-dev:armhf uuid-dev:armhf &&
@@ -291,7 +256,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
             apt-get update &&
             apt-get upgrade -y &&
             apt-get install -y --no-install-recommends \
-                binutils build-essential ca-certificates cmake curl debhelper dh-systemd file git make \
+                binutils build-essential ca-certificates cmake curl debhelper file git make \
                 gcc g++ \
                 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
                 libcurl4-openssl-dev:arm64 libssl-dev:arm64 uuid-dev:arm64 &&
@@ -310,8 +275,10 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++"
         ;;
 
-    ubuntu18.04.amd64)
+    ubuntu18.04.amd64|ubuntu20.04.amd64)
         SETUP_COMMAND=$'
+            export DEBIAN_FRONTEND=noninteractive
+            export TZ=UTC
             apt-get update &&
             apt-get upgrade -y &&
             apt-get install -y --no-install-recommends \
@@ -321,8 +288,10 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         '
         ;;
 
-    ubuntu18.04.arm32v7)
+    ubuntu18.04.arm32v7|ubuntu20.04.arm32v7)
         SETUP_COMMAND=$'
+            export DEBIAN_FRONTEND=noninteractive
+            export TZ=UTC
             sources="$(cat /etc/apt/sources.list | grep -E \'^[^#]\')" &&
             # Update existing repos to be specifically for amd64
             echo "$sources" | sed -e \'s/^deb /deb [arch=amd64] /g\' > /etc/apt/sources.list &&
@@ -359,8 +328,10 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_CXX_COMPILER=arm-linux-gnueabihf-g++"
         ;;
 
-    ubuntu18.04.aarch64)
+    ubuntu18.04.aarch64|ubuntu20.04.aarch64)
         SETUP_COMMAND=$'
+            export DEBIAN_FRONTEND=noninteractive
+            export TZ=UTC
             sources="$(cat /etc/apt/sources.list | grep -E \'^[^#]\')" &&
             # Update existing repos to be specifically for amd64
             echo "$sources" | sed -e \'s/^deb /deb [arch=amd64] /g\' > /etc/apt/sources.list &&
@@ -430,17 +401,14 @@ case "$PACKAGE_OS" in
         ;;
 
     *)
-        case "$PACKAGE_OS" in
-            debian8)
-                MAKE_TARGET='deb8'
-                ;;
-            *)
-                MAKE_TARGET='deb'
-                ;;
-        esac
-
         case "$PACKAGE_ARCH" in
             amd64)
+                # only need to create the vendor package once
+                case "$PACKAGE_OS" in
+                    ubuntu18.04|ubuntu20.04)
+                       BUILD_DIST="make dist VERSION=$DEFAULT_VERSION"
+                       ;;
+                esac
                 ;;
             arm32v7)
                 MAKE_FLAGS="'CARGOFLAGS=--target armv7-unknown-linux-gnueabihf'"
@@ -454,7 +422,7 @@ case "$PACKAGE_OS" in
                 ;;
         esac
 
-        MAKE_COMMAND="make $MAKE_TARGET 'VERSION=$VERSION' 'REVISION=$REVISION' $MAKE_FLAGS"
+        MAKE_COMMAND="make deb 'VERSION=$VERSION' 'REVISION=$REVISION' $MAKE_FLAGS"
         ;;
 esac
 
@@ -488,6 +456,7 @@ docker run --rm \
         cd /project/edgelet &&
         $RUST_TARGET_COMMAND
         $MAKE_COMMAND
+        $BUILD_DIST
     "
 
 # Some images use old CPACK which produces non-standard package filenames. This renames them.
@@ -538,3 +507,4 @@ esac
 
 find "$PROJECT_ROOT" -name '*.deb'
 find "$PROJECT_ROOT" -name '*.rpm'
+find "$PROJECT_ROOT" -name '*.tar.gz'

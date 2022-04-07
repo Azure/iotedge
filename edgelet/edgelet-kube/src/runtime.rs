@@ -7,6 +7,7 @@ use std::time::Duration;
 
 use failure::Fail;
 use futures::prelude::*;
+use futures::sync::mpsc::UnboundedSender;
 use futures::{future, stream, Async, Future, Stream};
 use hyper::client::HttpConnector;
 use hyper::service::Service;
@@ -14,8 +15,8 @@ use hyper::{Body, Chunk as HyperChunk, Request};
 use hyper_tls::HttpsConnector;
 
 use edgelet_core::{
-    AuthId, Authenticator, GetTrustBundle, LogOptions, MakeModuleRuntime, ModuleRegistry,
-    ModuleRuntime, ModuleRuntimeState, ModuleSpec, ProvisioningInfo,
+    AuthId, Authenticator, GetTrustBundle, LogOptions, MakeModuleRuntime, ModuleAction,
+    ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec, ProvisioningInfo,
     ProvisioningResult as CoreProvisioningResult, RuntimeOperation, SystemInfo, SystemResources,
 };
 use edgelet_docker::DockerConfig;
@@ -106,6 +107,7 @@ impl MakeModuleRuntime
         settings: Self::Settings,
         provisioning_result: Self::ProvisioningResult,
         crypto: impl GetTrustBundle + Send + 'static,
+        _create_socket_channel: UnboundedSender<ModuleAction>,
     ) -> Self::Future {
         let settings = settings
             .with_device_id(provisioning_result.device_id())
@@ -410,7 +412,7 @@ mod tests {
     use hyper::{Body, Method, Request, StatusCode};
     use maplit::btreemap;
     use serde_json::json;
-    use tokio::runtime::Runtime;
+    use tokio::runtime::current_thread::Runtime;
 
     use edgelet_core::ModuleRuntime;
     use edgelet_test_utils::routes;
