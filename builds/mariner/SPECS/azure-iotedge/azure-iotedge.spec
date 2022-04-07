@@ -14,13 +14,13 @@ Release:        1%{?dist}
 
 #Source0:       https://github.com/Azure/iotedge/archive/%{version}.tar.gz
 Source0:        %{name}-%{version}.tar.gz
+Source1:        rust.tar.gz
 License:        MIT
 Group:          Applications/File
 URL:            https://github.com/azure/iotedge
 Vendor:         Microsoft Corporation
 Distribution:   Mariner
 
-BuildRequires:  rust == 1.47.0
 BuildRequires:  cmake
 BuildRequires:  curl
 BuildRequires:  git
@@ -53,6 +53,14 @@ This package contains the IoT Edge daemon and CLI tool
 %setup -q -n %{_topdir}/BUILD/azure-iotedge-%{version}/edgelet
 
 %build
+# include rust toolchain that matches the one from aziotedge's pipeline
+pushd ~
+tar xf %{SOURCE1} --no-same-owner --strip-components=1
+popd
+export CARGO_HOME=~/.cargo
+export PATH=$PATH:$CARGO_HOME/bin
+export RUSTUP_HOME=~/.rustup
+
 cd %{_topdir}/BUILD/azure-iotedge-%{version}/edgelet
 
 # Remove FORTIFY_SOURCE from CFLAGS to fix compilation error
@@ -65,7 +73,10 @@ export IOTEDGE_HOST
 make %{?_smp_mflags} release
 
 %install
-export PATH=$PATH:/root/.cargo/bin/
+export CARGO_HOME=~/.cargo
+export PATH=$PATH:$CARGO_HOME/bin
+export RUSTUP_HOME=~/.rustup
+
 IOTEDGE_HOST=unix:///var/lib/iotedge/mgmt.sock
 export IOTEDGE_HOST
 make %{?_smp_mflags} install DESTDIR=$RPM_BUILD_ROOT unitdir=%{_unitdir} docdir=%{_docdir}/iotedge-%{version}

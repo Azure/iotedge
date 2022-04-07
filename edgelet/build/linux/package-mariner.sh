@@ -5,20 +5,65 @@ set -e
 # Get directory of running script
 DIR="$(cd "$(dirname "$0")" && pwd)"
 
+export DEBIAN_FRONTEND=noninteractive
+export TZ=UTC
+
+apt-get update -y
+apt-get upgrade -y
+apt-get install -y software-properties-common
+add-apt-repository -y ppa:longsleep/golang-backports
+apt-get update -y
+apt-get install -y \
+    cmake curl gcc g++ git jq make pkg-config \
+    libclang1 libssl-dev llvm-dev \
+    cpio genisoimage golang-1.13-go qemu-utils pigz python-pip python3-distutils rpm tar wget
+
+rm -f /usr/bin/go
+ln -vs /usr/lib/go-1.13/bin/go /usr/bin/go
+if [ -f /.dockerenv ]; then
+    mv /.dockerenv /.dockerenv.old
+fi
+
+echo 'Installing rustup'
+curl -sSLf https://sh.rustup.rs | sh -s -- -y
+. ~/.cargo/env
+
+
+# need to use preview repo for the next 2 weeks untill mariner 2.0 gets moved to prod
+case "${MARINER_RELEASE}" in
+    '1.0-stable')
+        UsePreview=n
+        MarinerIdentity=mariner1
+        PackageExtension="cm1"
+        ;;
+    '2.0-stable')
+        UsePreview=y
+        MarinerIdentity=mariner2
+        PackageExtension="cm2"
+        ;;
+esac
+
 BUILD_REPOSITORY_LOCALPATH="$(realpath "${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}")"
 EDGELET_ROOT="${BUILD_REPOSITORY_LOCALPATH}/edgelet"
-MARINER_BUILD_ROOT="${BUILD_REPOSITORY_LOCALPATH}/builds/mariner"
+MARINER_BUILD_ROOT="${BUILD_REPOSITORY_LOCALPATH}/builds/${MarinerIdentity}"
 
-# Get version from this file, but omit strings like "~dev" which are illegal in Mariner RPM versions.
-VERSION="$(cat "$EDGELET_ROOT/version.txt" | sed 's/~.*//')"
-echo "Edgelet version is ${VERSION}"
+pushd $EDGELET_ROOT
+case "${MARINER_ARCH}" in
+    'x86_64')
+        rustup target add x86_64-unknown-linux-gnu
+        ;;
+    'arm64')
+        rustup target add aarch64-unknown-linux-gnu
+        ;;
+esac
+popd
 
 # Update versions in specfiles
 pushd "${BUILD_REPOSITORY_LOCALPATH}"
-sed -i "s/@@VERSION@@/${VERSION}/g" builds/mariner/SPECS/azure-iotedge/azure-iotedge.signatures.json
-sed -i "s/@@VERSION@@/${VERSION}/g" builds/mariner/SPECS/azure-iotedge/azure-iotedge.spec
-sed -i "s/@@VERSION@@/${VERSION}/g" builds/mariner/SPECS/libiothsm-std/libiothsm-std.signatures.json
-sed -i "s/@@VERSION@@/${VERSION}/g" builds/mariner/SPECS/libiothsm-std/libiothsm-std.spec
+sed -i "s/@@VERSION@@/${VERSION}/g" ${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/azure-iotedge/azure-iotedge.signatures.json
+sed -i "s/@@VERSION@@/${VERSION}/g" ${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/azure-iotedge/azure-iotedge.spec
+sed -i "s/@@VERSION@@/${VERSION}/g" ${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/libiothsm-std/libiothsm-std.signatures.json
+sed -i "s/@@VERSION@@/${VERSION}/g" ${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/libiothsm-std/libiothsm-std.spec
 popd
 
 pushd "${EDGELET_ROOT}"
@@ -68,17 +113,25 @@ echo "Creating source tarball azure-iotedge-${VERSION}.tar.gz"
 tar -czf azure-iotedge-${VERSION}.tar.gz --transform="s,^.*edgelet/,azure-iotedge-${VERSION}/edgelet/," "${EDGELET_ROOT}"
 popd
 
-# Update expected tarball hash
-TARBALL_HASH=$(sha256sum "${BUILD_REPOSITORY_LOCALPATH}/azure-iotedge-${VERSION}.tar.gz" | awk '{print $1}')
-echo "azure-iotedge-${VERSION}.tar.gz sha256 hash is ${TARBALL_HASH}"
-sed -i 's/\("azure-iotedge-[0-9.]\+.tar.gz": "\)\([a-fA-F0-9]\+\)/\1'${TARBALL_HASH}'/g' "${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/azure-iotedge.signatures.json"
-sed -i 's/\("azure-iotedge-[0-9.]\+.tar.gz": "\)\([a-fA-F0-9]\+\)/\1'${TARBALL_HASH}'/g' "${MARINER_BUILD_ROOT}/SPECS/libiothsm-std/libiothsm-std.signatures.json"
-
 # Copy source tarball to expected locations
 mkdir -p "${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/SOURCES/"
 cp "${BUILD_REPOSITORY_LOCALPATH}/azure-iotedge-${VERSION}.tar.gz" "${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/SOURCES/"
 mkdir -p "${MARINER_BUILD_ROOT}/SPECS/libiothsm-std/SOURCES/"
 cp "${BUILD_REPOSITORY_LOCALPATH}/azure-iotedge-${VERSION}.tar.gz" "${MARINER_BUILD_ROOT}/SPECS/libiothsm-std/SOURCES/"
+
+# Copy spec files to expected locations
+cp "${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/aziot-edge/azure-iotedge.spec" "${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/"
+cp "${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/aziot-edge/azure-iotedge.signatures.json" "${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/"
+cp "${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/libiothsm-std/libiothsm-std.signatures.json" "${MARINER_BUILD_ROOT}/SPECS/libiothsm-std/"
+cp "${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/libiothsm-std/libiothsm-std.spec" "${MARINER_BUILD_ROOT}/SPECS/libiothsm-std/"
+
+tmp_dir=$(mktemp -d)
+pushd $tmp_dir
+mkdir "rust"
+cp -r ~/.cargo "rust"
+cp -r ~/.rustup "rust"
+tar cf "${MARINER_BUILD_ROOT}/SPECS/aziot-edge/SOURCES/rust.tar.gz" "rust"
+popd
 
 # Download Mariner repo and build toolkit
 echo "Cloning the \"${MARINER_RELEASE}\" tag of the CBL-Mariner repo."
@@ -86,17 +139,19 @@ git clone https://github.com/microsoft/CBL-Mariner.git
 pushd CBL-Mariner
 git checkout ${MARINER_RELEASE}
 pushd toolkit
-sudo make package-toolkit REBUILD_TOOLS=y
+make package-toolkit REBUILD_TOOLS=y
 popd
-sudo mv out/toolkit-*.tar.gz "${MARINER_BUILD_ROOT}/toolkit.tar.gz"
+mv out/toolkit-*.tar.gz "${MARINER_BUILD_ROOT}/toolkit.tar.gz"
 popd
+
+rm -rf CBL-Mariner
 
 # Prepare toolkit
 pushd ${MARINER_BUILD_ROOT}
-sudo tar xzf toolkit.tar.gz
+tar xzf toolkit.tar.gz
 pushd toolkit
 
 # Build Mariner RPM packages
-sudo make build-packages PACKAGE_BUILD_LIST="azure-iotedge libiothsm-std" CONFIG_FILE= -j$(nproc)
+make build-packages PACKAGE_BUILD_LIST="azure-iotedge libiothsm-std" SRPM_FILE_SIGNATURE_HANDLING=update USE_PREVIEW_REPO=$UsePreview CONFIG_FILE= -j$(nproc)
 popd
 popd
