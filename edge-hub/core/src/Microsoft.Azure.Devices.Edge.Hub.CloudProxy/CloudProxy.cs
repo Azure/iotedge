@@ -164,7 +164,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 Events.ErrorSendingBatchMessageSDKError(this, ex);
                 await this.client.CloseAsync();
-                throw new ObjectDisposedException(this.clientId);
+                throw new EdgeHubCloudSDKException(this.clientId);
             }
             catch (Exception ex)
             {
@@ -210,7 +210,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 Events.ErrorSendingBatchMessageSDKError(this, ex);
                 await this.client.CloseAsync();
-                throw new ObjectDisposedException(this.clientId);
+                throw new EdgeHubCloudSDKException(this.clientId);
             }
             catch (Exception ex)
             {

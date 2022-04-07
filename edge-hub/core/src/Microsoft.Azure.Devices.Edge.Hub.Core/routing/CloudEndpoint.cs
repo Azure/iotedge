@@ -37,7 +37,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         {
             None = 0,
             OccurredOnce = 1,
-            OccurredTwice = 2
         }
 
         public CloudEndpoint(
@@ -79,6 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 typeof(TimeoutException),
                 typeof(IOException),
                 typeof(IotHubException),
+                typeof(EdgeHubCloudSDKException),
                 typeof(UnauthorizedException) // This indicates the SAS token has expired, and will get a new one.
             };
 
@@ -245,25 +245,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
                         return new SinkResult<IRoutingMessage>(routingMessages);
                     }
-                    catch (ObjectDisposedException ex)
+                    catch (EdgeHubCloudSDKException ex)
                     {
                         // since this isnt production code just using an  enum should be fine?
-                        if (this.cloudEndpoint.tracker == IncidentIssue.OccurredOnce)
+                        if (this.cloudEndpoint.tracker == IncidentIssue.None)
                         {
-                            await this.cloudEndpoint.removeAllConnectionsFunc();
-                            this.cloudEndpoint.tracker = IncidentIssue.OccurredTwice;
+                            this.cloudEndpoint.tracker = IncidentIssue.OccurredOnce;
                             return this.HandleException(ex, id, routingMessages);
                         }
-                        else if (this.cloudEndpoint.tracker == IncidentIssue.OccurredTwice)
+                        else if (this.cloudEndpoint.tracker == IncidentIssue.OccurredOnce)
                         {
-                            Environment.Exit(1);
+                            await this.cloudEndpoint.removeAllConnectionsFunc();
                             return this.HandleException(ex, id, routingMessages);
                         }
                         else
                         {
-                            this.cloudEndpoint.tracker = IncidentIssue.OccurredOnce;
-                            Events.RetryingMessage(id, ex);
-                            return GetSyncResultForFailedMessages(new EdgeHubIOException($"Error sending messages to IotHub due to SDK error for device {this.cloudEndpoint.Id}"), routingMessages);
+                            Environment.Exit(1);
+                            return this.HandleException(ex, id, routingMessages);
                         }
                     }
                     catch (Exception ex)
