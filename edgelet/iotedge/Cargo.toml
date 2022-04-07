@@ -8,6 +8,7 @@ name = "iotedge"
 version = "0.1.0"
 [dependencies]
 async-trait = "0.1"
+anyhow="1.0"
 atty = "0.2"
 base64 = "0.9"
 byte-unit = "3.0.3"
