@@ -15,6 +15,7 @@ Release:        1%{?dist}
 #Source0:       https://github.com/Azure/iotedge/archive/%{version}.tar.gz
 Source0:        %{name}-%{version}.tar.gz
 Source1:        rust.tar.gz
+Patch0:         gcc-11.patch
 License:        MIT
 Group:          Applications/File
 URL:            https://github.com/azure/iotedge
@@ -51,6 +52,10 @@ This package contains the IoT Edge daemon and CLI tool
 
 %prep
 %setup -q -n %{_topdir}/BUILD/azure-iotedge-%{version}/edgelet
+
+pushd %{_topdir}/BUILD/azure-iotedge-%{version}
+%patch0 -p1
+popd
 
 %build
 # include rust toolchain that matches the one from aziotedge's pipeline
