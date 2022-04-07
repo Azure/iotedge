@@ -116,6 +116,8 @@ pub fn run(
     Ok(handle)
 }
 
+// We can use `thread::sleep()` instead when this issue is resolved:
+// https://github.com/rust-lang/rust/issues/95661
 fn sleep(duration: Duration) -> Result<()> {
     Command::new("sleep")
         .arg(duration.as_secs().to_string())
