@@ -33,7 +33,8 @@ This library is used to interface with the TPM from Azure IoT Edge.
 %global debug_package %{nil}
 
 %prep
-%autosetup -q
+%setup -q
+%patch0 -p1
 
 %build
 cd %{_topdir}/BUILD/azure-iotedge-%{version}/edgelet/hsm-sys/azure-iot-hsm-c
