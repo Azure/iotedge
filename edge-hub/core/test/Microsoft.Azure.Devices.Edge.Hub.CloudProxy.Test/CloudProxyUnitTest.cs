@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -24,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 .Callback(() => isClientActive = false)
                 .Returns(Task.CompletedTask);
             client.SetupGet(c => c.IsActive).Returns(() => isClientActive);
-            client.Setup(c => c.SendEventAsync(It.IsAny<Message>())).Returns(Task.CompletedTask);
+            client.Setup(c => c.SendEventAsync(It.IsAny<Message>(), CancellationToken.None)).Returns(Task.CompletedTask);
 
             var messageConverter = new Mock<IMessageConverter<Message>>();
             messageConverter.Setup(m => m.FromMessage(It.IsAny<IMessage>()))
@@ -75,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 .Callback(() => isClientActive = false)
                 .Returns(Task.CompletedTask);
             client.SetupGet(c => c.IsActive).Returns(() => isClientActive);
-            client.Setup(c => c.SendEventAsync(It.IsAny<Message>())).Returns(Task.CompletedTask);
+            client.Setup(c => c.SendEventAsync(It.IsAny<Message>(), CancellationToken.None)).Returns(Task.CompletedTask);
 
             var messageConverter = new Mock<IMessageConverter<Message>>();
             messageConverter.Setup(m => m.FromMessage(It.IsAny<IMessage>()))
@@ -108,7 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 .Callback(() => isClientActive = false)
                 .Returns(Task.CompletedTask);
             client.SetupGet(c => c.IsActive).Returns(() => isClientActive);
-            client.Setup(c => c.SendEventAsync(It.IsAny<Message>())).Returns(Task.CompletedTask);
+            client.Setup(c => c.SendEventAsync(It.IsAny<Message>(), CancellationToken.None)).Returns(Task.CompletedTask);
             client.Setup(c => c.SetDesiredPropertyUpdateCallbackAsync(It.IsAny<DesiredPropertyUpdateCallback>(), It.IsAny<object>())).Returns(Task.CompletedTask);
 
             var messageConverter = new Mock<IMessageConverter<Message>>();
@@ -149,7 +150,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 .Callback(() => isClientActive = false)
                 .Returns(Task.CompletedTask);
             client.SetupGet(c => c.IsActive).Returns(() => isClientActive);
-            client.Setup(c => c.SendEventAsync(It.IsAny<Message>())).Returns(Task.CompletedTask);
+            client.Setup(c => c.SendEventAsync(It.IsAny<Message>(), CancellationToken.None)).Returns(Task.CompletedTask);
             client.Setup(c => c.SetMethodDefaultHandlerAsync(It.IsAny<MethodCallback>(), It.IsAny<object>())).Returns(Task.CompletedTask);
 
             var messageConverter = new Mock<IMessageConverter<Message>>();

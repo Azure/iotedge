@@ -64,11 +64,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.deviceConnectivityManager.DeviceDisconnected += this.HandleDeviceDisconnectedEvent;
         }
 
-        public Task SendEventAsync(Message message) => this.InvokeFunc(() => this.underlyingClient.SendEventAsync(message), nameof(this.SendEventAsync));
+        public Task SendEventAsync(Message message, CancellationToken cancellationToken = default(CancellationToken)) => this.InvokeFunc(() => this.underlyingClient.SendEventAsync(message, cancellationToken), nameof(this.SendEventAsync));
 
-        public Task SendEventBatchAsyncCancellable(IEnumerable<Message> messages, CancellationToken cancellationToken) => this.underlyingClient.SendEventBatchAsyncCancellable(messages, cancellationToken);
-        public Task SendEventBatchAsync(IEnumerable<Message> messages) =>
-            this.InvokeFunc(() => this.underlyingClient.SendEventBatchAsync(messages), nameof(this.SendEventBatchAsync));
+        public Task SendEventBatchAsync(IEnumerable<Message> messages, CancellationToken cancellationToken = default(CancellationToken)) =>
+            this.InvokeFunc(() => this.underlyingClient.SendEventBatchAsync(messages, cancellationToken), nameof(this.SendEventBatchAsync));
 
         public void SetConnectionStatusChangedHandler(ConnectionStatusChangesHandler handler)
         {

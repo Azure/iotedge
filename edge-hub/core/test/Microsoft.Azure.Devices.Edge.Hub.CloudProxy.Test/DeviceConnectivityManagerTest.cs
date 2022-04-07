@@ -105,14 +105,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             }
 
             var device1UnderlyingClient = new Mock<IClient>();
-            device1UnderlyingClient.Setup(c => c.SendEventAsync(It.IsAny<Message>()))
+            device1UnderlyingClient.Setup(c => c.SendEventAsync(It.IsAny<Message>(), CancellationToken.None))
                 .Returns(Task.CompletedTask);
             device1UnderlyingClient.Setup(d => d.OpenAsync()).Returns(Task.CompletedTask);
             var device1Client = new ConnectivityAwareClient(device1UnderlyingClient.Object, deviceConnectivityManager, deviceIdentity);
             device1Client.SetConnectionStatusChangedHandler(ConnectionStatusChangedHandler);
 
             var device2UnderlyingClient = new Mock<IClient>();
-            device2UnderlyingClient.Setup(c => c.SendEventAsync(It.IsAny<Message>()))
+            device2UnderlyingClient.Setup(c => c.SendEventAsync(It.IsAny<Message>(), CancellationToken.None))
                 .Throws<TimeoutException>();
             device2UnderlyingClient.Setup(d => d.OpenAsync()).Returns(Task.CompletedTask);
             var device2Client = new ConnectivityAwareClient(device2UnderlyingClient.Object, deviceConnectivityManager, deviceIdentity);

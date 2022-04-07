@@ -66,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             // Arrange
             var client = new Mock<IClient>();
-            client.Setup(c => c.SendEventAsync(It.IsAny<Message>())).ThrowsAsync(Activator.CreateInstance(thrownException, "msg str") as Exception);
+            client.Setup(c => c.SendEventAsync(It.IsAny<Message>(), CancellationToken.None)).ThrowsAsync(Activator.CreateInstance(thrownException, "msg str") as Exception);
             var deviceConnectivityManager = new Mock<IDeviceConnectivityManager>();
             deviceConnectivityManager.Setup(d => d.CallTimedOut()).Returns(Task.CompletedTask);
             var connectivityAwareClient = new ConnectivityAwareClient(client.Object, deviceConnectivityManager.Object, Mock.Of<IIdentity>(i => i.Id == "d1"));
@@ -154,7 +154,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var deviceConnectivityManager = new DeviceConnectivityManager();
             var client = Mock.Of<IClient>();
-            Mock.Get(client).SetupSequence(c => c.SendEventAsync(It.IsAny<Message>()))
+            Mock.Get(client).SetupSequence(c => c.SendEventAsync(It.IsAny<Message>(), CancellationToken.None))
                 .Returns(Task.CompletedTask)
                 .Throws(new TimeoutException());
             var connectivityAwareClient = new ConnectivityAwareClient(client, deviceConnectivityManager, Mock.Of<IIdentity>(i => i.Id == "d1"));

@@ -153,11 +153,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 string outputRoute = inputMessage.GetOutput();
                 using (Metrics.TimeMessageSend(this.clientId, outputRoute))
                 {
+                    var tokenSource = new CancellationTokenSource(this.sdkWaitTime);
                     Metrics.MessageProcessingLatency(this.clientId, inputMessage);
-                    await this.client.SendEventAsync(message);
+                    await this.client.SendEventAsync(message, tokenSource.Token);
                     Events.SendMessage(this);
                     Metrics.AddSentMessages(this.clientId, 1, outputRoute, inputMessage.ProcessedPriority);
                 }
+            }
+            catch (TaskCanceledException ex)
+            {
+                Events.ErrorSendingBatchMessageSDKError(this, ex);
+                await this.client.CloseAsync();
+                throw new ObjectDisposedException(this.clientId);
             }
             catch (Exception ex)
             {
@@ -186,7 +193,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 using (Metrics.TimeMessageSend(this.clientId, metricOutputRoute))
                 {
                     var tokenSource = new CancellationTokenSource(this.sdkWaitTime);
-                    await this.client.SendEventBatchAsyncCancellable(messages, tokenSource.Token);
+                    await this.client.SendEventBatchAsync(messages, tokenSource.Token);
                     Events.SendMessage(this);
 
                     if (messages.Count > 0)
