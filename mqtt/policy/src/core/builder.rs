@@ -101,7 +101,6 @@ where
 
     /// Specifies the default decision that `Policy` will return if
     /// no rules match the request.
-    #[must_use]
     pub fn with_default_decision(mut self, decision: Decision) -> Self {
         self.default_decision = decision;
         self
