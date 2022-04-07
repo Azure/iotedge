@@ -467,8 +467,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 {
                     // On Windows the certificate in 'result' gives an error when used with kestrel: "No credentials are available in the security"
                     // This is a suggested workaround that seems working (https://github.com/dotnet/runtime/issues/45680)
-                    //var ex = result.Export(X509ContentType.Pkcs12);
-                    //File.WriteAllBytes(@"MyCert.pfx", ex);
+                    // var ex = result.Export(X509ContentType.Pkcs12);
+                    // File.WriteAllBytes(@"MyCert.pfx", ex);
                     result = new X509Certificate2(result.Export(X509ContentType.Pkcs12));
 
                     // On Windows the imported certificate sometimes fails to use the private key and kestrel fails accepting connections (this is not related
