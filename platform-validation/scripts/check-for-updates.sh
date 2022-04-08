@@ -223,7 +223,7 @@ function process_args() {
         elif [ ${save_next_arg} -eq 9 ]; then
             TEMPSENSOR_IMAGE=$arg
             save_next_arg=0
-        elif [ ${save_next_arg} -eq 9 ]; then
+        elif [ ${save_next_arg} -eq 10 ]; then
             OUTPUT_PATH=$arg
             save_next_arg=0
         else
