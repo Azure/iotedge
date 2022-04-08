@@ -128,7 +128,9 @@ jobs:
           sudo chmod +x /opt/microsoft/powershell/7/pwsh
           sudo ln -s /opt/microsoft/powershell/7/pwsh /usr/bin/pwsh
           echo "CPU INFO below"
-          less /proc/cpuinfo
+          cat /proc/cpuinfo
+          echo "lscpu info below"
+          lscpu
       displayName: Install pwsh
     - bash: |
         set -e
