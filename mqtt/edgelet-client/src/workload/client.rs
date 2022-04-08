@@ -74,7 +74,7 @@ impl WorkloadClient {
         let uri =
             make_hyper_uri(&self.scheme, &path).map_err(|e| ApiError::ConstructRequestUrl(e))?;
 
-        let req = SignRequest::new(base64::encode(data.to_string()));
+        let req = SignRequest::new(base64::encode(data));
         self.post(uri, req, StatusCode::OK).await
     }
 
