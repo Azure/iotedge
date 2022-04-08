@@ -14,4 +14,5 @@ EXPOSE 443/tcp
 
 USER ContainerAdministrator
 RUN reg add "hklm\system\currentcontrolset\control\Windows Containers" /v CryptoSpecializeOverride /t REG_DWORD /d 1
+USER ContainerUser
 CMD ["dotnet", "Microsoft.Azure.Devices.Edge.Hub.Service.dll"]
