@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly ResettableTimer timer;
         readonly AsyncLock timerGuard = new AsyncLock();
         readonly bool closeOnIdleTimeout;
-        readonly int sdkWaitTime = 120000;
+        readonly int sdkWaitTime = 30000;
 
         SubscriptionState subscriptionState = new SubscriptionState();
 
@@ -160,10 +160,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     Metrics.AddSentMessages(this.clientId, 1, outputRoute, inputMessage.ProcessedPriority);
                 }
             }
-            catch (TaskCanceledException ex)
+            catch (EdgeHubCloudSDKException ex)
             {
                 Events.ErrorSendingBatchMessageSDKError(this, ex);
-                throw new EdgeHubCloudSDKException(this.clientId);
+                throw;
             }
             catch (Exception ex)
             {
