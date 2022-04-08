@@ -109,12 +109,12 @@ wrap_bad() {
 
 wrap_debug_message() {
     if [ $VERBOSE -eq 1 ]; then
-        echo "$(wrap_color "    $1" white)"
+        echo "$(wrap_color "[DBG] $1" white)"
     fi
 }
 
 wrap_warning_message() {
-    echo "$(wrap_color "    $1" yellow)"
+    echo "$(wrap_color "    [WARN] $1" yellow)"
 }
 
 wrap_pass() {
@@ -676,7 +676,7 @@ check_storage_space() {
 
     if [ $ret -eq 0 ]; then
         #TODO : Check with PM on messaging
-        wrap_warning_message "!! Additional storage may be required based on usage. Please visit aka.ms/iotedge for more information"
+        wrap_warning_message "Additional storage may be required based on usage. Please visit aka.ms/iotedge for more information"
     elif [ $ret -eq 1 ]; then
         wrap_warning_message "If you are planning to install iotedge on a different mountpoint, please run the script with MOUNTPOINT='<Path-to-mount>' $(basename "$0")"
     fi
@@ -806,7 +806,7 @@ check_free_memory() {
     if [ $res -eq 1 ]; then
         wrap_debug_message "The device has $current_free_memory MB of free memory"
         wrap_pass "check_free_memory"
-        wrap_warning_message "!! Additional memory may be required based on usage. Please visit aka.ms/iotedge for more information"
+        wrap_warning_message "Additional memory may be required based on usage. Please visit aka.ms/iotedge for more information"
     else
         # TODO: Need to refine this message
         wrap_fail "check_free_memory"
@@ -922,11 +922,7 @@ fi
 echo "----------------------------"
 echo "Compatibility Check Results"
 echo "----------------------------"
-pass="$PASS check(s) succeeded"
-fail="$FAILURES check(s) failed"
-warn="$WARNINGS check(s) have warnings"
-skip="$SKIP check(s) skipped"
-echo "$(wrap_color "$pass" green)"
-echo "$(wrap_color "$fail" red)"
-echo "$(wrap_color "$warn" yellow)"
-echo "$(wrap_color "$skip" white)"
+echo "$(wrap_color "$PASS check(s) suceeded" green)"
+echo "$(wrap_color "$FAILURES check(s) failed" red)"
+echo "$(wrap_color "$WARNINGS check(s) have warnings" yellow)"
+echo "$(wrap_color "$SKIP check(s)" white)"
