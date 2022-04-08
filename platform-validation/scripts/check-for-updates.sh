@@ -138,6 +138,7 @@ function provision_edge_device() {
         sudo iotedge config mp --connection-string "$connection_string"
         sudo iotedge config apply
     else
+        sed -i -e "s@<Connection-String>@$connection_string@g" "$CONFIG_TOML_FILE_NAME"
         sed -i -e "s@<CR.Address>@$REGISTRY_ADDRESS@g" "$CONFIG_TOML_FILE_NAME"
         sed -i -e "s@<CR.UserName>@$REGISTRY_USERNAME@g" "$CONFIG_TOML_FILE_NAME"
         sed -i -e "s@<CR.Password>@$REGISTRY_PASSWORD@g" "$CONFIG_TOML_FILE_NAME"
