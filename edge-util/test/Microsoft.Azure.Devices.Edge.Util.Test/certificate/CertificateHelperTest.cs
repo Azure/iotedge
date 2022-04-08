@@ -35,8 +35,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
         public void ValidateCertNullArgumentsThrows()
         {
             var trustedCACerts = Option.None<IList<X509Certificate2>>();
-            Assert.Throws<ArgumentNullException>(() => CertificateHelper.ValidateCert(null, new X509Certificate2[] { }, trustedCACerts));
-            Assert.Throws<ArgumentNullException>(() => CertificateHelper.ValidateCert(new X509Certificate2(), null, trustedCACerts));
+            X509Certificate2 cert = TestCertificateHelper.GenerateSelfSignedCert("top secret");
+            Assert.Throws<ArgumentNullException>(() => CertificateHelper.ValidateCert(null, Array.Empty<X509Certificate2>(), trustedCACerts));
+            Assert.Throws<ArgumentNullException>(() => CertificateHelper.ValidateCert(cert, null, trustedCACerts));
         }
 
         [Fact]
@@ -64,12 +65,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
         public void ClientCertCallbackNullArgumentThrows()
         {
             var trustedCACerts = Option.None<IList<X509Certificate2>>();
+            X509Certificate2 cert = TestCertificateHelper.GenerateSelfSignedCert("top secret");
             Assert.Throws<ArgumentNullException>(
                 () =>
                     CertificateHelper.ValidateClientCert(null, new List<X509Certificate2>(), trustedCACerts, Logger.Factory.CreateLogger("something")));
             Assert.Throws<ArgumentNullException>(
                 () =>
-                    CertificateHelper.ValidateClientCert(new X509Certificate2(), null, trustedCACerts, Logger.Factory.CreateLogger("something")));
+                    CertificateHelper.ValidateClientCert(cert, null, trustedCACerts, Logger.Factory.CreateLogger("something")));
         }
 
         [Fact]
