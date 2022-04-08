@@ -87,7 +87,7 @@ jobs:
       displayName: Publish logs
       inputs:
         PathtoPublish: $(Build.ArtifactStagingDirectory)/compat
-        ArtifactName: compatibility-logs
+        ArtifactName: compatibility-logs-amd64
       condition: always()
 
 # TODO : Current 1ES Image for ARM64 requires some additional installation, We should add these to our 1ES Base Image
@@ -199,7 +199,7 @@ jobs:
       displayName: Publish logs
       inputs:
         PathtoPublish: $(Build.ArtifactStagingDirectory)/compat
-        ArtifactName: compatibility-logs
+        ArtifactName: compatibility-logs-arm64
       condition: always()
 
 
