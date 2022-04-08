@@ -81,6 +81,7 @@ color() {
         magenta) code=35 ;;
         cyan) code=36 ;;
         white) code=37 ;;
+        orange) code=38 ;;
         esac
         if [ "$code" ]; then
             codes="${codes:+$codes;}$code"
@@ -100,27 +101,27 @@ wrap_color() {
 
 wrap_good() {
     if [ $VERBOSE -eq 1 ]; then
-        echo "$(wrap_color "$1" white): $(wrap_color "$2" green)"
+        echo "$(wrap_color "    $1" white): $(wrap_color "  $2" green)"
     fi
 }
 wrap_bad() {
-    echo "$(wrap_color "$1" bold red)"
+    echo "$(wrap_color "    $1" bold red)"
 }
 
 wrap_debug_message() {
-
     if [ $VERBOSE -eq 1 ]; then
-        echo "$(wrap_color "$1" white)"
+        echo "$(wrap_color "    $1" white)"
     fi
 }
 
 wrap_warning_message() {
-    echo "$(wrap_color "$1" magenta)"
+    echo "$(wrap_color "    $1" yellow)"
 }
 
 wrap_pass() {
     PASS=$((PASS + 1))
-    echo "$(wrap_color "$1 - OK" green)"
+    check=$(env printf '\u2713')
+    echo "$(wrap_color "$check $1 - OK" green)"
 }
 
 wrap_skip() {
@@ -130,12 +131,14 @@ wrap_skip() {
 
 wrap_fail() {
     FAILURES=$((FAILURES + 1))
-    echo "$(wrap_color "$1 - Error" bold red)"
+    cross=$(env printf '\u2a09')
+    echo "$(wrap_color "$cross $1 - Error" bold red)"
 }
 
 wrap_warning() {
     WARNINGS=$((WARNINGS + 1))
-    echo "$(wrap_color "$1 - Warning!!" yellow)"
+    warn="!!"
+    echo "$(wrap_color "$warn $1 - Warning" yellow)"
 }
 
 # ------------------------------------------------------------------------------
@@ -232,6 +235,7 @@ get_endianness() {
 #
 # ------------------------------------------------------------------------------
 get_architecture() {
+    wrap_debug_message "Checking architecture..."
     _ostype=""
     _cputype=""
     _bitness=""
@@ -457,10 +461,12 @@ check_cgroup_heirachy() {
 }
 
 check_kernel_flags() {
+    wrap_debug_message "Checking Kernel Flags..."
     EXIT_CODE=0
     check_kernel_flags_file_util
     if [ $EXIT_CODE != 0 ]; then
         wrap_fail "check_kernel_flags"
+        wrap_bad "Try running this script again by specifying the kernel config as CONFIG=/path/to/kernel/.config $0"
         return
     fi
     EXIT_CODE=0
@@ -473,7 +479,7 @@ check_kernel_flags() {
 
 check_kernel_flags_file_util() {
     if [ ! -e "$CONFIG" ]; then
-        wrap_warning_message "warning: $CONFIG does not exist, searching other paths for kernel config ..."
+        wrap_debug_message "CONFIG env variable does not exist, searching other paths for kernel config"
         for tryConfig in $POSSIBLE_CONFIGS; do
             if [ -e "$tryConfig" ]; then
                 CONFIG="$tryConfig"
@@ -481,9 +487,7 @@ check_kernel_flags_file_util() {
             fi
         done
         if [ ! -e "$CONFIG" ]; then
-            wrap_warning_message "error: cannot find kernel config"
-            wrap_warning_message "  try running this script again, specifying the kernel config:"
-            wrap_warning_message "    CONFIG=/path/to/kernel/.config $0"
+            wrap_debug_message "Cannot find kernel config in other paths"
             EXIT_CODE=1
         fi
     fi
@@ -498,18 +502,16 @@ check_kernel_flags_util() {
 }
 
 check_systemd() {
-    wrap_debug_message "Checking presence of systemd..."
+    wrap_debug_message "Checking systemd presence..."
     if [ -z "$(pidof systemd)" ]; then
         wrap_warning "check_systemd"
-        wrap_warning_message "Systemd is not present on this device, As a result azure iot edge services will need to be run and managed independently.
-        For instructions on running azure iot edge without systemd, visit: https://github.com/Azure/iotedge/blob/master/edgelet/doc/devguide.md#run"
+        wrap_warning_message "Systemd is not present on this device. Iot Edge services must be managed independently. For running azure iot edge without systemd, visit: https://github.com/Azure/iotedge/blob/master/edgelet/doc/devguide.md#run"
     else
         wrap_pass "check_systemd"
     fi
 }
 
 check_architecture() {
-
     wrap_debug_message "Checking architecture Compatibility..."
     wrap_debug_message "Architecture:$ARCH"
 
@@ -533,12 +535,13 @@ check_architecture() {
 
 check_docker_api_version() {
     # Check dependencies
+    wrap_debug_message "Checking docker api client version..."
 
     #TODO : This is how we check  for a container engine in our packages. Is this the right way?
     ret=$(need_cmd docker)
     if [ "$?" -ne 0 ]; then
         wrap_warning "check_docker_api_version"
-        wrap_warning_message "Docker Engine does not exist on this device!!, Please follow instructions here on how to install a compatible container engine
+        wrap_warning_message "Docker Engine does not exist on this device, Please follow instructions here on how to install a compatible container engine
         https://docs.microsoft.com/en-us/azure/iot-edge/how-to-provision-single-device-linux-symmetric?view=iotedge-2020-11&tabs=azure-portal%2Cubuntu#install-a-container-engine"
         return
     fi
@@ -561,12 +564,13 @@ check_docker_api_version() {
 }
 
 check_shared_library_dependency() {
+    wrap_debug_message "Checking shared library dependency..."
     if [ "$ARCH" = x86_64 ]; then
-        SHARED_LIBRARIES="$(echo $CURRENT_SHARED_LIBRARIES_BASE $CURRENT_SHARED_LIBRARIES_x86_64)"
+        SHARED_LIBRARIES="$(echo $SHARED_LIBRARIES_BASE $CURRENT_SHARED_LIBRARIES_x86_64)"
     elif [ "$ARCH" = aarch64 ]; then
-        SHARED_LIBRARIES="$(echo $CURRENT_SHARED_LIBRARIES_BASE $CURRENT_SHARED_LIBRARIES_aarch64)"
+        SHARED_LIBRARIES="$(echo $SHARED_LIBRARIES_BASE $CURRENT_SHARED_LIBRARIES_aarch64)"
     elif [ "$ARCH" = armv7l ]; then
-        SHARED_LIBRARIES="$(echo $CURRENT_SHARED_LIBRARIES_BASE $CURRENT_SHARED_LIBRARIES_armv7l)"
+        SHARED_LIBRARIES="$(echo $SHARED_LIBRARIES_BASE $CURRENT_SHARED_LIBRARIES_armv7l)"
     fi
 
     wrap_debug_message "Shared libraries to check: $SHARED_LIBRARIES"
@@ -627,9 +631,9 @@ check_shared_lib_ldconfig_util() {
 }
 
 check_shared_lib_display_warning() {
-    wrap_warning_message "error: cannot find Library $1 in $SHARED_LIB_PATH"
-    wrap_warning_message "  try running this script again, providing the shared library path for your distro"
-    wrap_warning_message "    SHARED_LIB_PATH=/path/to/shared_lib $0"
+    wrap_warning_message "Cannot find Library $1 in $SHARED_LIB_PATH"
+    wrap_warning_message "Try running this script again, providing the shared library path for your distro"
+    wrap_warning_message "SHARED_LIB_PATH=/path/to/shared_lib $0"
     case $1 in
     "libssl.so.1.1" | "libssl.so.1.0" | "libcrypto.so.1.1")
         wrap_fail "$2"
@@ -651,6 +655,7 @@ check_shared_lib_display_warning() {
 }
 
 check_storage_space() {
+    wrap_debug_message "Checking storage space..."
     eval binary_size='$'"$(echo "$ARCH"_iotedge_binaries_size)"
     eval container_size='$'"$(echo "$ARCH"_iotedge_container_size)"
 
@@ -667,14 +672,13 @@ check_storage_space() {
     check_storage_space_util "$MOUNTPOINT" "$TOTAL_SIZE" "$iotedge_size_buffer"
     ret="$?"
 
-    base_message="IoT Edge requires a minimum storage space of approximately $((container_size + binary_size + iotedge_size_buffer)) MB for installing edge daemon and runtime docker containers. We verified that the the device has $available_storage MB of available storage for File System $(df -P -m "$MOUNTPOINT" | awk '{print $6}')"
+    wrap_debug_message "IoT Edge requires a minimum storage space of $((container_size + binary_size + iotedge_size_buffer)) MB for installing Edge."
+    wrap_debug_message "The device has $available_storage MB of available storage for File System $(df -P -m "$MOUNTPOINT" | awk '{print $6}')"
 
     if [ $ret -eq 0 ]; then
-        wrap_warning_message "$base_message"
         #TODO : Check with PM on messaging
-        wrap_warning_message "Additional storage space maybe required for based on usage of iotedge and has not been measured here. Please visit aka.ms/iotedge for more information"
+        wrap_warning_message "!! Additional storage may be required based on usage. Please visit aka.ms/iotedge for more information"
     elif [ $ret -eq 1 ]; then
-        wrap_warning_message "$base_message"
         wrap_warning_message "If you are planning to install iotedge on a different mountpoint, please run the script with MOUNTPOINT='<Path-to-mount>' $(basename "$0")"
     fi
 }
@@ -717,6 +721,7 @@ check_storage_space_util() {
 }
 
 check_package_manager() {
+    wrap_debug_message "Checking package managers..."
     not_found=0
     skip_ca_cert=0
     package_managers="apt-get dnf yum dpkg rpm"
@@ -738,8 +743,10 @@ check_package_manager() {
         fi
     done
     if [ "$not_found" -eq 1 ]; then
+        #TODO: update the link
         wrap_warning "check_package_manager"
-        wrap_warning_message "IoT Edge supports the following package types [*deb, *rpm] and following package managers [apt-get]. We have identified that this device does not have support for the supported package type. Please head to aka.ms/iotedge for instructions on how to build the iotedge binaries from source"
+        wrap_warning_message "IoT Edge supports [*deb, *rpm] package types and [apt-get] package manager."
+        wrap_warning_message "Platform does not have support for the supported package type. Please head to aka.ms/iotedge for instructions on how to build the iotedge binaries from source"
         skip_ca_cert=1
         check_ca_cert
     fi
@@ -749,6 +756,7 @@ check_package_manager() {
 }
 
 check_ca_cert() {
+    wrap_debug_message "Checking ca-certificates package..."
     find_openssl=$(openssl version >/dev/null 2>&1)
     if [ "$?" -eq 0 ]; then
         ca_cert_dir=$(openssl version -d | awk '{print $2}'| sed "s/\"//g" | tr -d " ")"/certs"
@@ -756,13 +764,13 @@ check_ca_cert() {
         # Check first if the directory exists.
         if [ ! -d "$ca_cert_dir" ]; then
             wrap_warning "check_ca_cert"
-            wrap_warning_message "Could not find ca-certificates. These are required for TLS Communication with IoT Hub"
+            wrap_warning_message "Could not find ca-certificates. It is required for TLS Communication with IoT Hub"
         else
             # Check if the directory has cert files
             find_crt=$(find -L "$ca_cert_dir" -type f -name "*.pem" -o -name "*.crt" | grep .)
             if [ "$?" -ne 0 ]; then
                 wrap_warning "check_ca_cert"
-                wrap_warning_message "Could not find ca-certificates at $ca_cert_dir, These are required for TLS Communication with IoT Hub"
+                wrap_warning_message "Could not find ca-certificates at $ca_cert_dir. It is required for TLS Communication with IoT Hub"
             else
                 wrap_pass "check_ca_cert"
             fi
@@ -774,6 +782,7 @@ check_ca_cert() {
 }
 
 check_free_memory() {
+    wrap_debug_message "Checking memory space..."
     memory_filename="/proc/meminfo"
     if [  ! -f "$memory_filename" ] ; then
         wrap_skip "check_free_memory"
@@ -792,16 +801,17 @@ check_free_memory() {
     current_free_memory=$(cat $memory_filename | grep "MemAvailable" | awk '{print $2/1024}')
 
     #TODO: correct final link of aka.ms/iotedge with the setup info of memory analysis.
-    base_message="IoT Edge requires a minimum memory of approximately $total_iotedge_memory_size MB for running the default setup as described in aka.ms/iotedge. We verified that the the device has $current_free_memory MB of free memory"
+    wrap_debug_message "IoT Edge requires a minimum memory of $total_iotedge_memory_size MB for a simple workload"
 
     res=$(echo $current_free_memory $total_iotedge_memory_size | awk '{if ($1 > $2) print 1; else print 0}')
     if [ $res -eq 1 ]; then
+        wrap_debug_message "The device has $current_free_memory MB of free memory"
         wrap_pass "check_free_memory"
-        wrap_warning_message "$base_message"
+        wrap_warning_message "!! Additional memory may be required based on usage. Please visit aka.ms/iotedge for more information"
     else
         # TODO: Need to refine this message
-        wrap_fail "Current available memory is $current_free_memory MB. Free up atleast $total_iotedge_memory_size MB to run IoT edge"
-        wrap_warning_message "$base_message"
+        wrap_fail "check_free_memory"
+        wrap_warning_message "Current available memory is $current_free_memory MB. Free up atleast $total_iotedge_memory_size MB to run IoT Edge"
     fi
 }
 
@@ -841,8 +851,6 @@ aziotedge_check() {
     check_storage_space
     check_package_manager
     check_free_memory
-
-    echo "IoT Edge Compatibility Tool Check Complete"
 }
 
 list_apps() {
@@ -886,9 +894,14 @@ process_args() {
         fi
     done
 }
+echo "--------------------"
+echo "Compatibility Checks"
+echo "--------------------"
 
 if [ "$(id -u)" -ne 0 ]; then
-    wrap_warning_message "Platform Compatibility Tool is not running as root!"
+    wrap_warning "Platform Compatibility Tool is not running as root"
+else
+    wrap_pass "Platform Compatibility Tool has root privileges"
 fi
 process_args "$@"
 get_architecture
@@ -907,12 +920,14 @@ else
     "$APP_NAME"_check
 fi
 
-base_message="Azure IoT Compatibility Script had $FAILURES Errors $WARNINGS Warnings $PASS Successful Checks and $SKIP Skipped Checks"
-if [ $FAILURES -gt 0 ]; then
-    wrap_bad "$base_message"
-    exit 1
-elif [ $WARNINGS -gt 0 ]; then
-    wrap_warning_message "$base_message"
-else
-    wrap_pass "$base_message"
-fi
+echo "----------------------------"
+echo "Compatibility Check Results"
+echo "----------------------------"
+pass="$PASS check(s) succeeded"
+fail="$FAILURES check(s) failed"
+warn="$WARNINGS check(s) have warnings"
+skip="$SKIP check(s) skipped"
+echo "$(wrap_color "$pass" green)"
+echo "$(wrap_color "$fail" red)"
+echo "$(wrap_color "$warn" yellow)"
+echo "$(wrap_color "$skip" white)"
