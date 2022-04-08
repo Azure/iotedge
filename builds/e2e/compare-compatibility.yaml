@@ -127,6 +127,8 @@ jobs:
           sudo tar zxf /tmp/$file -C /opt/microsoft/powershell/7
           sudo chmod +x /opt/microsoft/powershell/7/pwsh
           sudo ln -s /opt/microsoft/powershell/7/pwsh /usr/bin/pwsh
+          echo "CPU INFO below"
+          less /proc/cpuinfo
       displayName: Install pwsh
     - bash: |
         set -e
