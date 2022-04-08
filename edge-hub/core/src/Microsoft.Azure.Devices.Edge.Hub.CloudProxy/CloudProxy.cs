@@ -155,7 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 {
                     var tokenSource = new CancellationTokenSource(this.sdkWaitTime);
                     Metrics.MessageProcessingLatency(this.clientId, inputMessage);
-                    await this.client.SendEventAsync(message, tokenSource.Token).TimeoutAfterSDKHang(TimeSpan.FromSeconds(30));
+                    await this.client.SendEventAsync(message, tokenSource.Token).TimeoutAfterSDKHang(TimeSpan.FromSeconds(50));
                     Events.SendMessage(this);
                     Metrics.AddSentMessages(this.clientId, 1, outputRoute, inputMessage.ProcessedPriority);
                 }
