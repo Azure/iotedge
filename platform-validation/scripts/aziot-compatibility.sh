@@ -81,7 +81,6 @@ color() {
         magenta) code=35 ;;
         cyan) code=36 ;;
         white) code=37 ;;
-        orange) code=38 ;;
         esac
         if [ "$code" ]; then
             codes="${codes:+$codes;}$code"
