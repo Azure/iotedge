@@ -177,7 +177,7 @@ namespace SimulatedTemperatureSensor
             {
                 if (sendData)
                 {
-                    var eventMessage = new Message(new byte[Rnd.Next(9, 11) * 10000]);
+                    var eventMessage = new Message(new byte[200000]);
                     eventMessage.Properties.Add("sequenceNumber", count.ToString());
                     eventMessage.Properties.Add("batchId", BatchId.ToString());
                     Console.WriteLine($"\t{DateTime.Now.ToLocalTime()}> Sending message: {count}");
