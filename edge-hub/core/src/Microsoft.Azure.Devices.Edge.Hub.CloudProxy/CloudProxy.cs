@@ -155,7 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 {
                     var tokenSource = new CancellationTokenSource(this.sdkWaitTime);
                     Metrics.MessageProcessingLatency(this.clientId, inputMessage);
-                    await this.client.SendEventAsync(message, tokenSource.Token);
+                    await this.client.SendEventAsync(message, tokenSource.Token).TimeoutAfterSDKHang(TimeSpan.FromSeconds(60));
                     Events.SendMessage(this);
                     Metrics.AddSentMessages(this.clientId, 1, outputRoute, inputMessage.ProcessedPriority);
                 }
@@ -163,7 +163,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             catch (TaskCanceledException ex)
             {
                 Events.ErrorSendingBatchMessageSDKError(this, ex);
-                await this.client.CloseAsync();
                 throw new EdgeHubCloudSDKException(this.clientId);
             }
             catch (Exception ex)
@@ -206,7 +205,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
 
             // bubble this up
-            catch (TaskCanceledException ex)
+            catch (OperationCanceledException ex)
             {
                 Events.ErrorSendingBatchMessageSDKError(this, ex);
                 await this.client.CloseAsync();

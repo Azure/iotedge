@@ -252,6 +252,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                         if (this.cloudEndpoint.tracker == IncidentIssue.None)
                         {
                             this.cloudEndpoint.tracker = IncidentIssue.OccurredOnce;
+                            await cp.CloseAsync();
                             return this.HandleException(ex, id, routingMessages);
                         }
                         else if (this.cloudEndpoint.tracker == IncidentIssue.OccurredOnce)
