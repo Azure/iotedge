@@ -125,7 +125,7 @@ wrap_pass() {
 
 wrap_skip() {
     SKIP=$((SKIP + 1))
-    echo "$(wrap_color "$1 - Skipped" white)"
+    echo "$(wrap_color "- $1 - Skipped" white)"
 }
 
 wrap_fail() {
