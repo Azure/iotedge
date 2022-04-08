@@ -12,4 +12,5 @@ EXPOSE 8883/tcp
 EXPOSE 5671/tcp
 EXPOSE 443/tcp
 
+USER ContainerAdministrator
 CMD ["dotnet", "Microsoft.Azure.Devices.Edge.Hub.Service.dll"]
