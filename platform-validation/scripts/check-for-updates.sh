@@ -134,8 +134,17 @@ function provision_edge_device() {
     DEVICE_ID=benchmark-device-$(echo $RANDOM | md5sum | head -c 10)
     az iot hub device-identity create --device-id "$DEVICE_ID" --edge-enabled --hub-name "$IOTHUB_NAME"
     connection_string=$(az iot hub device-identity connection-string show --device-id "$DEVICE_ID" --hub-name "$IOTHUB_NAME" -o tsv)
-    sudo iotedge config mp --connection-string "$connection_string"
-    sudo iotedge config apply
+    if [[ -z "$CONFIG_TOML_FILE_NAME" ]]; then
+        sudo iotedge config mp --connection-string "$connection_string"
+        sudo iotedge config apply
+    else
+        sed -i -e "s@<CR.Address>@$REGISTRY_ADDRESS@g" "$CONFIG_TOML_FILE_NAME"
+        sed -i -e "s@<CR.UserName>@$REGISTRY_USERNAME@g" "$CONFIG_TOML_FILE_NAME"
+        sed -i -e "s@<CR.Password>@$REGISTRY_PASSWORD@g" "$CONFIG_TOML_FILE_NAME"
+        sed -i -e "s@<edgeAgentImage>@$EDGEAGENT_IMAGE@g" "$CONFIG_TOML_FILE_NAME"
+        cat "$CONFIG_TOML_FILE_NAME"
+        sudo iotedge config apply -c "$CONFIG_TOML_FILE_NAME"
+    fi
 }
 
 function create_edge_deployment() {
@@ -187,6 +196,7 @@ function usage() {
     echo "--edge-hub-image                      The EdgeHub Image"
     echo "--temp-sensor-image                   The Temp Sensor Image"
     echo "-o, --output-path                     Output Path for Logs"
+    echo "--config-toml-path                    Config TOML Path"
     exit 1
 }
 
@@ -226,6 +236,9 @@ function process_args() {
         elif [ ${save_next_arg} -eq 10 ]; then
             OUTPUT_PATH=$arg
             save_next_arg=0
+        elif [ ${save_next_arg} -eq 11 ]; then
+            CONFIG_TOML_FILE_NAME=$arg
+            save_next_arg=0
         else
             case "$arg" in
             "-h" | "--help") usage ;;
@@ -239,6 +252,7 @@ function process_args() {
             "--edge-hub-image") save_next_arg=8 ;;
             "--temp-sensor-image") save_next_arg=9 ;;
             "-o" | "--output-path") save_next_arg=10 ;;
+            "--config-toml-path") save_next_arg=11 ;;
             *) usage ;;
             esac
         fi

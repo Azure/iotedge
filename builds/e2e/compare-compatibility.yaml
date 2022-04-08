@@ -74,7 +74,8 @@ jobs:
           --edge-agent-image $edgeAgentImage \
           --edge-hub-image $edgeHubImage \
           --temp-sensor-image $tempSensorImage \
-          -o "$(Build.ArtifactStagingDirectory)/compat" 
+          -o "$(Build.ArtifactStagingDirectory)/compat" \
+          --config-toml-path  $(Build.SourcesDirectory)/platform-validation/deployment/template.toml
       displayName: Check Usage
       name: check_usage
       env:
@@ -185,7 +186,8 @@ jobs:
           --edge-agent-image $edgeAgentImage \
           --edge-hub-image $edgeHubImage \
           --temp-sensor-image $tempSensorImage \
-          -o "$(Build.ArtifactStagingDirectory)/compat"
+          -o "$(Build.ArtifactStagingDirectory)/compat" \
+          --config-toml-path  $(Build.SourcesDirectory)/platform-validation/deployment/template.toml
       displayName: Check Usage
       name: check_usage
       env:
