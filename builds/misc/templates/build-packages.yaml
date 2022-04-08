@@ -226,7 +226,7 @@ stages:
         - task: CopyFiles@2
           displayName: Copy iotedged and libiothsm Files to Artifact Staging
           inputs:
-            SourceFolder: $(target.iotedged)
+            SourceFolder: $(target.iotedged)/$(mariner_arch)
             Contents: |
               *.rpm
             TargetFolder: '$(build.artifactstagingdirectory)'
