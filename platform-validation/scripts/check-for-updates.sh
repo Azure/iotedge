@@ -6,7 +6,6 @@
 #Requires Environment Variables REGISTRY_ADDRESS REGISTRY_USERNAME REGISTRY_PASSWORD to be set
 
 TEMP_DEPLOYMENT_FILE="deployment.json"
-BENCHMARK_OUTPUT_DIR="memory-usage-results"
 
 set -e
 
@@ -74,7 +73,6 @@ compare_usage() {
     fi
 }
 
-
 EXPECTED_SHARED_LIBRARIES=""
 SHARED_LIBRARIES=""
 find_shared_library() {
@@ -94,8 +92,8 @@ find_shared_library() {
     for iotedgelib in $IOTEDGE_SHARED_LIB; do
         for identitydlib in $IDENTITYD_SHARED_LIB; do
             if [ "$iotedgelib" = "$identitydlib" ]; then
-                EXPECTED_SHARED_LIBRARIES+="$identitydlib ";
-                break;
+                EXPECTED_SHARED_LIBRARIES+="$identitydlib "
+                break
             fi
         done
     done
@@ -120,10 +118,10 @@ check_shared_library() {
         for currentlib in $SHARED_LIBRARIES; do
             if [ "$expectedlib" = "$currentlib" ]; then
                 found=1
-                break;
+                break
             fi
         done
-        if [ "$found" != 1 ] ; then
+        if [ "$found" != 1 ]; then
             echo "$expectedlib is not checked in current aziot-compatibility tool. Please update aziot-compatibility tool"
             exit 1
         fi
@@ -169,7 +167,6 @@ function delete_iot_edge() {
 }
 
 function cleanup_files() {
-    rm -rf $BENCHMARK_OUTPUT_DIR || true
     rm -rf $TEMP_DEPLOYMENT_FILE || true
 }
 
@@ -189,6 +186,7 @@ function usage() {
     echo "--edge-agent-image                    The EdgeAgent Image"
     echo "--edge-hub-image                      The EdgeHub Image"
     echo "--temp-sensor-image                   The Temp Sensor Image"
+    echo "-o, --output-path                     Output Path for Logs"
     exit 1
 }
 
@@ -225,6 +223,9 @@ function process_args() {
         elif [ ${save_next_arg} -eq 9 ]; then
             TEMPSENSOR_IMAGE=$arg
             save_next_arg=0
+        elif [ ${save_next_arg} -eq 9 ]; then
+            OUTPUT_PATH=$arg
+            save_next_arg=0
         else
             case "$arg" in
             "-h" | "--help") usage ;;
@@ -237,6 +238,7 @@ function process_args() {
             "--edge-agent-image") save_next_arg=7 ;;
             "--edge-hub-image") save_next_arg=8 ;;
             "--temp-sensor-image") save_next_arg=9 ;;
+            "-o" | "--output-path") save_next_arg=10 ;;
             *) usage ;;
             esac
         fi
@@ -297,7 +299,13 @@ process_args "$@"
     exit 1
 }
 
+[[ -z "$OUTPUT_PATH" ]] && {
+    print_error 'Output Path is required.'
+    exit 1
+}
+
 cleanup_files
+BENCHMARK_OUTPUT_DIR="$OUTPUT_PATH/memory-usage-results"
 #Start the Memory Usage Script so that we can capture startup memory usage
 begin_benchmarking "$TIME_TO_RUN"
 install_iotedge_local "$BINARIES_PATH"
@@ -307,6 +315,7 @@ sleep 60
 create_edge_deployment
 echo "Deployment Complete, Sleeping for $TIME_TO_RUN seconds"
 sleep "$TIME_TO_RUN"
+iotedge support-bundle -o "$OUTPUT_PATH"/support_bundle.zip
 find_shared_library
 calculate_usage
 delete_edge_deployment
@@ -322,4 +331,4 @@ compare_usage container size "$size_buffer"
 compare_usage container memory "$memory_buffer"
 compare_usage binaries size "$size_buffer"
 compare_usage binaries avg_memory "$memory_buffer"
-check_shared_library 
+check_shared_library
