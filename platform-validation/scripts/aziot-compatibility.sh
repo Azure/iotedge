@@ -545,10 +545,10 @@ check_docker_api_version() {
         return
     fi
 
-    version=$(docker version -f '{{.Client.APIVersion}}')
+    version=$(docker version -f '{{.Client.APIVersion}}'>/dev/null 2>&1)
     if [ $? != 0 ]; then
         wrap_warning "check_docker_api_version"
-        wrap_warning_message "Could not get Docker Version"
+        wrap_warning_message "Could not get Docker Version. Run it with root privileges"
         return
     fi
 
