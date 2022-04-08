@@ -73,7 +73,7 @@ jobs:
           -t $(TIME_TO_RUN_SECONDS) \
           --edge-agent-image $edgeAgentImage \
           --edge-hub-image $edgeHubImage \
-          --temp-sensor-image $tempSensorImage
+          --temp-sensor-image $tempSensorImage \
           -o "$(Build.ArtifactStagingDirectory)/compat" 
       displayName: Check Usage
       name: check_usage
@@ -184,7 +184,7 @@ jobs:
           -t $(TIME_TO_RUN_SECONDS) \
           --edge-agent-image $edgeAgentImage \
           --edge-hub-image $edgeHubImage \
-          --temp-sensor-image $tempSensorImage
+          --temp-sensor-image $tempSensorImage \
           -o "$(Build.ArtifactStagingDirectory)/compat"
       displayName: Check Usage
       name: check_usage
