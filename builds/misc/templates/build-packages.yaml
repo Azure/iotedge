@@ -195,7 +195,7 @@ stages:
   
             echo "PACKAGE_ARCH=$(arch)"
             echo "PACKAGE_OS=$(os)"
-            echo "##vso[task.setvariable variable=MARINER_RELEASE;]$(release)"
+            echo "##vso[task.setvariable variable=MARINER_RELEASE;]$(mariner_release)"
             echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
             echo "PACKAGE_OS=$(os)"
             mariner_arch=$(arch)
