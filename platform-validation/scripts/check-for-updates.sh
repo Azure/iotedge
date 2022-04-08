@@ -143,7 +143,6 @@ function provision_edge_device() {
         sed -i -e "s@<CR.UserName>@$REGISTRY_USERNAME@g" "$CONFIG_TOML_FILE_NAME"
         sed -i -e "s@<CR.Password>@$REGISTRY_PASSWORD@g" "$CONFIG_TOML_FILE_NAME"
         sed -i -e "s@<edgeAgentImage>@$EDGEAGENT_IMAGE@g" "$CONFIG_TOML_FILE_NAME"
-        cat "$CONFIG_TOML_FILE_NAME"
         sudo iotedge config apply -c "$CONFIG_TOML_FILE_NAME"
     fi
 }
