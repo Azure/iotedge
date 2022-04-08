@@ -37,6 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         {
             None = 0,
             OccurredOnce = 1,
+            OccurredTwice = 2
         }
 
         public CloudEndpoint(
@@ -255,6 +256,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                         }
                         else if (this.cloudEndpoint.tracker == IncidentIssue.OccurredOnce)
                         {
+                            this.cloudEndpoint.tracker = IncidentIssue.OccurredTwice;
                             await this.cloudEndpoint.removeAllConnectionsFunc();
                             return this.HandleException(ex, id, routingMessages);
                         }
