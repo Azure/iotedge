@@ -1063,11 +1063,13 @@ where
         }
     }
 
+    #[must_use]
     pub fn with_state(mut self, state: BrokerSnapshot) -> Self {
         self.state = Some(state);
         self
     }
 
+    #[must_use]
     pub fn with_config(mut self, config: BrokerConfig) -> Self {
         self.config = config;
         self
