@@ -100,11 +100,11 @@ wrap_color() {
 
 wrap_good() {
     if [ $VERBOSE -eq 1 ]; then
-        echo "$(wrap_color "    $1" white): $(wrap_color "  $2" green)"
+        echo "$(wrap_color "    $1" white): $(wrap_color "$2" green)"
     fi
 }
 wrap_bad() {
-    echo "$(wrap_color "    $1" bold red)"
+    echo "$(wrap_color "    [ERR] $1" bold red)"
 }
 
 wrap_debug_message() {
@@ -677,7 +677,7 @@ check_storage_space() {
     check_storage_space_util "$MOUNTPOINT" "$TOTAL_SIZE" "$iotedge_size_buffer"
     ret="$?"
 
-    wrap_debug_message "IoT Edge requires approximately a minimum storage space of $((container_size + binary_size + iotedge_size_buffer)) MB for running IoT Edge Binaries and Container Engine."
+    wrap_debug_message "IoT Edge requires a minimum storage space of $((container_size + binary_size + iotedge_size_buffer)) MB (approximately) for running IoT Edge Binaries and Container Engine."
     wrap_debug_message "For more information on how profiling has been done. Please visit aka.ms/iotedge for more details."
     wrap_debug_message "The device has $available_storage MB of available storage for File System $(df -P "$MOUNTPOINT" | awk '{print $6}')"
 
@@ -807,7 +807,7 @@ check_free_memory() {
     current_free_memory=$(cat $memory_filename | grep "MemAvailable" | awk '{print $2/1024}')
 
     #TODO: correct final link of aka.ms/iotedge with the setup info of memory analysis.
-    wrap_debug_message "IoT Edge requires approximately a minimum memory of $total_iotedge_memory_size MB for running IoT Edge Binaries and Container Engine."
+    wrap_debug_message "IoT Edge requires a minimum memory of $total_iotedge_memory_size MB (approximately) for running IoT Edge Binaries and Container Engine."
     wrap_debug_message "For more information on how profiling has been done. Please visit aka.ms/iotedge for more details."
 
     res=$(echo $current_free_memory $total_iotedge_memory_size | awk '{if ($1 > $2) print 1; else print 0}')
