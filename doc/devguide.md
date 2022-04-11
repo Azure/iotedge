@@ -5,6 +5,10 @@ The C# development setup is described below. The Rust development setup is descr
 
 If you want to run tests outside of the pipelines, you will need to be running linux.
 
+## Warnings
+
+- If you have upgraded the most recent API version and have backported to 1.2, make sure PR for main is merged before the PR to 1.2. This is because the pipelines for main rely on images built from 1.2.
+
 ## Setup
 
 Make sure the following dependencies are installed in your environment before you build IoT Edge code:
@@ -68,7 +72,6 @@ The syntax of the "filter" argument is described [here](https://docs.microsoft.c
 
 The end-to-end tests are documented [here](../test/README.md).
 
-
 ## Running Code Coverage Checks for Unit Tests Locally (Windows Only)
 
 Currently, Code Coverage Local Checks are supported only in a Windows Environment due to dependency on Microsoft Code Coverage Tools
@@ -92,8 +95,6 @@ dotnet-coverageconverter --CoverageFilesFolder TestResults
 dotnet tool install -g dotnet-reportgenerator-globaltool
 reportgenerator "-reports:TestResults\*\*.coveragexml" "-targetdir:report"
 ```
-
-
 
 ## Build Edge Hub Container Locally
 
