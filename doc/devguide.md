@@ -7,7 +7,7 @@ If you want to run tests outside of the pipelines, you will need to be running l
 
 ## Warnings
 
-- If you have upgraded the most recent API version and have backported to 1.2, make sure PR for main is merged before the PR to 1.2. This is because the pipelines for main rely on images built from 1.2.
+- If you have upgraded the most recent API version and have backported to 1.2, make sure PR for main is merged before the PR to 1.2. This is because there are Microsoft-internal teams that use edgelet from main and images from 1.2.9.
 
 ## Setup
 
