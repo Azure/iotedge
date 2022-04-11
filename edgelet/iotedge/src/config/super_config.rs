@@ -77,7 +77,7 @@ pub fn default_agent() -> edgelet_settings::ModuleSpec<edgelet_settings::DockerC
 pub enum EdgeCa {
     Issued {
         #[serde(flatten)]
-        cert: common_config::super_config::CertIssuanceOptions,
+        cert: Box<common_config::super_config::CertIssuanceOptions>,
     },
     Preloaded {
         cert: Url,

@@ -123,7 +123,7 @@ check_shared_library() {
                 break;
             fi
         done
-        if [ $found != 1 ] ; then
+        if [ "$found" != 1 ] ; then
             echo "$expectedlib is not checked in current aziot-compatibility tool. Please update aziot-compatibility tool"
             exit 1
         fi

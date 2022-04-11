@@ -377,39 +377,33 @@ mod tests {
         let test_certs = vec![
             // Expired certificate.
             (
-                test_common::credential::test_certificate(
-                    "testCertificate",
-                    Some(|cert| {
-                        let expired = openssl::asn1::Asn1Time::from_unix(1).unwrap();
-                        cert.set_not_after(&expired).unwrap();
-                    }),
-                ),
+                test_common::credential::custom_test_certificate("testCertificate", |cert| {
+                    let expired = openssl::asn1::Asn1Time::from_unix(1).unwrap();
+                    cert.set_not_after(&expired).unwrap();
+                }),
                 true,
             ),
             // Certificate that is near expiry.
             (
-                test_common::credential::test_certificate(
-                    "testCertificate",
-                    Some(|cert| {
-                        let now = std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .unwrap();
+                test_common::credential::custom_test_certificate("testCertificate", |cert| {
+                    let now = std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap();
 
-                        // Certs within 5 mins of expiration should renew, so set an expiration
-                        // time 2 mins from now.
-                        let expiry_time = now.as_secs() + 120;
-                        let expiry_time: libc::time_t =
-                            std::convert::TryInto::try_into(expiry_time).unwrap();
+                    // Certs within 5 mins of expiration should renew, so set an expiration
+                    // time 2 mins from now.
+                    let expiry_time = now.as_secs() + 120;
+                    let expiry_time: libc::time_t =
+                        std::convert::TryInto::try_into(expiry_time).unwrap();
 
-                        let expiry_time = openssl::asn1::Asn1Time::from_unix(expiry_time).unwrap();
-                        cert.set_not_after(&expiry_time).unwrap();
-                    }),
-                ),
+                    let expiry_time = openssl::asn1::Asn1Time::from_unix(expiry_time).unwrap();
+                    cert.set_not_after(&expiry_time).unwrap();
+                }),
                 true,
             ),
             // Certificate that is not near expiry.
             (
-                test_common::credential::test_certificate("testCertificate", None),
+                test_common::credential::test_certificate("testCertificate"),
                 false,
             ),
         ];
