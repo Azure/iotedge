@@ -465,7 +465,7 @@ check_kernel_flags() {
     check_kernel_flags_file_util
     if [ $EXIT_CODE != 0 ]; then
         wrap_fail "check_kernel_flags"
-        wrap_bad "Try running this script again by specifying the kernel config as CONFIG=/path/to/kernel/.config $0"
+        wrap_bad "Try running this script again by specifying the kernel config path as CONFIG=/path/to/kernel/.config $0"
         return
     fi
     EXIT_CODE=0
@@ -504,7 +504,7 @@ check_systemd() {
     wrap_debug_message "Checking systemd presence..."
     if [ -z "$(pidof systemd)" ]; then
         wrap_warning "check_systemd"
-        wrap_warning_message "Systemd is not present on this device. Iot Edge services must be managed independently. For running azure iot edge without systemd, visit: https://github.com/Azure/iotedge/blob/master/edgelet/doc/devguide.md#run"
+        wrap_warning_message "Systemd is not present on this device. IoT Edge services must be managed independently. For running azure iot edge without systemd, visit: https://github.com/Azure/iotedge/blob/master/edgelet/doc/devguide.md#run"
     else
         wrap_pass "check_systemd"
     fi
@@ -548,7 +548,7 @@ check_docker_api_version() {
     version=$(docker version -f '{{.Client.APIVersion}}'>/dev/null 2>&1)
     if [ $? != 0 ]; then
         wrap_warning "check_docker_api_version"
-        wrap_warning_message "Could not get Docker Version. Run it with root privileges"
+        wrap_warning_message "Could not get Docker Version"
         return
     fi
 
@@ -577,6 +577,7 @@ check_shared_library_dependency() {
     for lib in $SHARED_LIBRARIES; do
         check_ldconfig=$(need_cmd ldconfig)
         result_ldconfig="$?"
+        result_lib=0
         # case with root privilege and ldconfig exists
         if [ "$(id -u)" -eq 0 ] && [ "$result_ldconfig" -eq 0 ] ; then
             check_shared_lib_ldconfig_util "$lib"
@@ -592,6 +593,11 @@ check_shared_library_dependency() {
             fi
         fi
     done
+    if [ $result_lib -eq 0 ]; then
+        wrap_pass "check_shared_library"
+    else
+        wrap_fail "check_shared_library"
+    fi
 }
 
 check_shared_lib_find_util() {
@@ -613,7 +619,7 @@ check_shared_lib_find_util() {
         check_shared_lib_display_warning "$1" "library_$1"
         return 1
     else
-        wrap_pass "library_$1"
+        wrap_debug_message "library_$1 exists"
         return 0
     fi
 }
@@ -624,7 +630,7 @@ check_shared_lib_ldconfig_util() {
         check_shared_lib_display_warning "$1" "library_$1"
         return 1
     else
-        wrap_pass "library_$1"
+        wrap_debug_message "library_$1 exists"
         return 0
     fi
 }
@@ -671,8 +677,9 @@ check_storage_space() {
     check_storage_space_util "$MOUNTPOINT" "$TOTAL_SIZE" "$iotedge_size_buffer"
     ret="$?"
 
-    wrap_debug_message "IoT Edge requires a minimum storage space of $((container_size + binary_size + iotedge_size_buffer)) MB for installing Edge."
-    wrap_debug_message "The device has $available_storage MB of available storage for File System $(df -P -m "$MOUNTPOINT" | awk '{print $6}')"
+    wrap_debug_message "IoT Edge requires approximately a minimum storage space of $((container_size + binary_size + iotedge_size_buffer)) MB for running IoT Edge Binaries and Container Engine."
+    wrap_debug_message "For more information on how profiling has been done. Please visit aka.ms/iotedge for more details."
+    wrap_debug_message "The device has $available_storage MB of available storage for File System $(df -P "$MOUNTPOINT" | awk '{print $6}')"
 
     if [ $ret -eq 0 ]; then
         #TODO : Check with PM on messaging
@@ -800,7 +807,8 @@ check_free_memory() {
     current_free_memory=$(cat $memory_filename | grep "MemAvailable" | awk '{print $2/1024}')
 
     #TODO: correct final link of aka.ms/iotedge with the setup info of memory analysis.
-    wrap_debug_message "IoT Edge requires a minimum memory of $total_iotedge_memory_size MB for a simple workload"
+    wrap_debug_message "IoT Edge requires approximately a minimum memory of $total_iotedge_memory_size MB for running IoT Edge Binaries and Container Engine."
+    wrap_debug_message "For more information on how profiling has been done. Please visit aka.ms/iotedge for more details."
 
     res=$(echo $current_free_memory $total_iotedge_memory_size | awk '{if ($1 > $2) print 1; else print 0}')
     if [ $res -eq 1 ]; then
@@ -899,11 +907,10 @@ echo "--------------------"
 
 if [ "$(id -u)" -ne 0 ]; then
     wrap_warning "Platform Compatibility Tool is not running as root"
-else
-    wrap_pass "Platform Compatibility Tool has root privileges"
 fi
 process_args "$@"
 get_architecture
+wrap_debug_message "Quering Operating System Information from /etc/os-release"
 wrap_debug_message "$(cat /etc/os-release)"
 if [ -z "$APP_NAME" ]; then
     wrap_debug_message "No Application Name Provided, Performing Check on all supported Applications"
@@ -926,3 +933,4 @@ echo "$(wrap_color "$PASS check(s) suceeded" green)"
 echo "$(wrap_color "$FAILURES check(s) failed" red)"
 echo "$(wrap_color "$WARNINGS check(s) have warnings" yellow)"
 echo "$(wrap_color "$SKIP check(s)" white)"
+echo "Run the script with verbose flag (--verbose or -v) for more details"
