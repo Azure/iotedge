@@ -114,7 +114,6 @@ static CERT_PROPS_HANDLE test_helper_create_certificate_props
 static void test_helper_generate_pki_certificate
 (
     CERT_PROPS_HANDLE cert_props_handle,
-    int serial_num,
     int path_len,
     const char *private_key_file,
     const char *cert_file,
@@ -123,7 +122,6 @@ static void test_helper_generate_pki_certificate
 )
 {
     int result = generate_pki_cert_and_key(cert_props_handle,
-                                           serial_num,
                                            path_len,
                                            private_key_file,
                                            cert_file,
@@ -135,7 +133,7 @@ static void test_helper_generate_pki_certificate
 static void test_helper_generate_self_signed
 (
     CERT_PROPS_HANDLE cert_props_handle,
-    int serial_num,
+    long serial_num,
     int path_len,
     const char *private_key_file,
     const char *cert_file,
@@ -191,7 +189,6 @@ static void test_helper_prepare_transparent_gateway_certs(void)
                                                                 TEST_VALIDITY);
 
     test_helper_generate_pki_certificate(int_ca_1_root_handle,
-                                         TEST_SERIAL_NUM + 2,
                                          INT_CA_1_PATH_LEN,
                                          int_pk_1_path,
                                          int_ca_1_path,
@@ -205,7 +202,6 @@ static void test_helper_prepare_transparent_gateway_certs(void)
                                                                 TEST_VALIDITY);
 
     test_helper_generate_pki_certificate(int_ca_2_root_handle,
-                                         TEST_SERIAL_NUM + 3,
                                          INT_CA_2_PATH_LEN,
                                          int_pk_2_path,
                                          int_ca_2_path,
@@ -219,7 +215,6 @@ static void test_helper_prepare_transparent_gateway_certs(void)
                                                             TEST_VALIDITY);
 
     test_helper_generate_pki_certificate(device_ca_handle,
-                                         TEST_SERIAL_NUM + 4,
                                          DEVICE_CA_PATH_LEN,
                                          device_pk_path,
                                          device_ca_path,

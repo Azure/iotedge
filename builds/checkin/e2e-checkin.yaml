@@ -7,7 +7,7 @@ trigger: none
 pr:
   branches:
     include:
-      - master
+      - main
       - release/*
 
 resources:
@@ -46,9 +46,8 @@ stages:
     condition: |
       and
       ( 
-        succeededOrFailed(),
-        in(dependencies.BuildExecutables.result, 'Succeeded','Skipped'),
-        in(dependencies.BuildPackages.result, 'Succeeded','Skipped')
+        in(dependencies.BuildExecutables.result, 'Succeeded','Skipped','SucceededWithIssues'),
+        in(dependencies.BuildPackages.result, 'Succeeded','Skipped','SucceededWithIssues')
       )     
     jobs:
       - job: ubuntu_2004_msmoby
@@ -57,7 +56,7 @@ stages:
           verbose: false
           os: linux
           arch: amd64
-          artifactName: iotedged-ubuntu18.04-amd64
+          artifactName: iotedged-ubuntu20.04-amd64
           builtImages: $[ stageDependencies.BuildExecutables.linux_dotnet_projects.result ]
           builtPackages: $[ stageDependencies.BuildPackages.linux.result ]
         steps:

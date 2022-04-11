@@ -2,7 +2,7 @@ trigger: none
 pr:
   branches:
     include:
-      - master
+      - main
       - release/*
       - iiot
 jobs:
@@ -65,8 +65,8 @@ jobs:
         displayName: Set Version
       - script: edgelet/build/linux/install.sh
         displayName: Install Rust
-      - script: "cargo install --git https://github.com/arsing/cross.git --branch set-path"
-        displayName: "Install cross (fork with docker fix)"
+      - script: "cargo install cross --version ^0.2"
+        displayName: "Install cross"
       - script: "cross build --target armv7-unknown-linux-gnueabihf"
         displayName: armv7-unknown-linux-gnueabihf build
         workingDirectory: $(Build.SourcesDirectory)/edgelet
@@ -94,8 +94,8 @@ jobs:
         displayName: Set Version
       - script: edgelet/build/linux/install.sh
         displayName: Install Rust
-      - script: "cargo install --git https://github.com/arsing/cross.git --branch set-path"
-        displayName: "Install cross (fork with docker fix)"
+      - script: "cargo install cross --version ^0.2"
+        displayName: "Install cross"
       - script: "cross build --target aarch64-unknown-linux-gnu"
         displayName: aarch64-unknown-linux-gnu build
         workingDirectory: $(Build.SourcesDirectory)/edgelet
@@ -110,7 +110,9 @@ jobs:
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
-      vmImage: "vs2017-win2016"
+      name: $(pool.windows.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
     steps:
       - powershell: Write-Host ("##vso[task.setvariable variable=NO_VALGRIND;]true")
         displayName: Set env variables
@@ -167,7 +169,7 @@ jobs:
       - script: edgelet/build/linux/install.sh
         displayName: Install Rust
       - script: |
-          $CARGO install cargo-tarpaulin
+          $CARGO install cargo-tarpaulin --version '^0.18'
         workingDirectory: edgelet
         displayName: Install Cargo Tarpaulin
       - script: |

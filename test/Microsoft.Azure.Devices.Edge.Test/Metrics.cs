@@ -19,10 +19,54 @@ namespace Microsoft.Azure.Devices.Edge.Test
     [EndToEnd]
     public class Metrics : SasManualProvisioningFixture
     {
-        public const string ModuleName = "metricsValidator";
+        public const string ValidatorModuleName = "metricsValidator";
+        public const string CollectorModuleName = "metricsCollector";
 
         [Test]
-        [Category("FlakyOnArm")]
+        [Category("CentOsSafe")]
+        public async Task MetricsCollector()
+        {
+            CancellationToken token = this.TestToken;
+
+            string metricsCollectorImage = Context.Current.MetricsCollectorImage.Expect(() => new ArgumentException("metricsCollectorImage parameter is required for MetricsCollector test"));
+            string hubResourceId = Context.Current.HubResourceId.Expect(() => new ArgumentException("IOT_HUB_RESOURCE_ID is required for MetricsCollector test"));
+
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
+                builder =>
+                {
+                    builder.AddModule(CollectorModuleName, metricsCollectorImage)
+                        .WithEnvironment(new[]
+                        {
+                            ("UploadTarget", "IotMessage"),
+                            ("ResourceID", hubResourceId),
+                            ("ScrapeFrequencyInSecs", "10"),
+                            ("CompressForUpload", "false")
+                        });
+                    builder.GetModule(ModuleName.EdgeHub)
+                        .WithDesiredProperties(new Dictionary<string, object>
+                        {
+                            ["routes"] = new
+                            {
+                                AzureIotEdgeMetricsCollectorToCloud = $"FROM /messages/modules/{CollectorModuleName}/* INTO $upstream"
+                            }
+                        });
+                },
+                token);
+
+            EdgeModule azureIotEdgeMetricsCollector = deployment.Modules[CollectorModuleName];
+
+            string output = await azureIotEdgeMetricsCollector.WaitForEventsReceivedAsync(DateTime.Now, token, "id");
+
+            JsonSerializerSettings settings = new JsonSerializerSettings();
+            settings.MissingMemberHandling = MissingMemberHandling.Error;
+
+            List<IoTHubMetric> iotHubMetrics = new List<IoTHubMetric>() { };
+            iotHubMetrics.AddRange(JsonConvert.DeserializeObject<IoTHubMetric[]>(output, settings));
+
+            Assert.True(iotHubMetrics.Count > 0);
+        }
+
+        [Test]
         public async Task ValidateMetrics()
         {
             CancellationToken token = this.TestToken;
@@ -31,7 +75,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
             var agent = new EdgeAgent(this.runtime.DeviceId, this.iotHub);
             await agent.PingAsync(token);
 
-            var result = await this.iotHub.InvokeMethodAsync(this.runtime.DeviceId, ModuleName, new CloudToDeviceMethod("ValidateMetrics", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)), token);
+            var result = await this.iotHub.InvokeMethodAsync(
+                this.runtime.DeviceId,
+                ValidatorModuleName,
+                new CloudToDeviceMethod(
+                "ValidateMetrics",
+                TimeSpan.FromSeconds(120),
+                TimeSpan.FromSeconds(60)),
+                token);
             Assert.AreEqual(result.Status, (int)HttpStatusCode.OK);
 
             string body = result.GetPayloadAsJson();
@@ -54,6 +105,18 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await this.runtime.DeployConfigurationAsync(
                 builder => { builder.AddMetricsValidatorConfig(metricsValidatorImage); },
                 token);
+        }
+
+        class IoTHubMetric
+        {
+            [JsonProperty("TimeGeneratedUtc")]
+            public DateTime TimeGeneratedUtc { get; set; }
+            [JsonProperty("Name")]
+            public string Name { get; set; }
+            [JsonProperty("Value")]
+            public double Value { get; set; }
+            [JsonProperty("Labels")]
+            public IReadOnlyDictionary<string, string> Labels { get; set; }
         }
 
         // Presents a more focused view by serializing only failures
@@ -121,7 +184,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         public static void AddMetricsValidatorConfig(this EdgeConfigBuilder builder, string image)
         {
-            builder.AddModule(Metrics.ModuleName, image);
+            builder.AddModule(Metrics.ValidatorModuleName, image);
 
             builder.GetModule(ConfigModuleName.EdgeHub)
                 .WithDesiredProperties(new Dictionary<string, object>
@@ -130,7 +193,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         "routes", new
                         {
                             All = "FROM /messages/* INTO $upstream",
-                            QueueLengthTest = $"FROM /messages/modules/{Metrics.ModuleName}/outputs/ToSelf INTO BrokeredEndpoint(\"/modules/{Metrics.ModuleName}/inputs/FromSelf\")"
+                            QueueLengthTest = $"FROM /messages/modules/{Metrics.ValidatorModuleName}/outputs/ToSelf INTO BrokeredEndpoint(\"/modules/{Metrics.ValidatorModuleName}/inputs/FromSelf\")"
                         }
                     }
                 });

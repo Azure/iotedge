@@ -45,6 +45,8 @@ Create a Root CA certificate for your machine *(See [Create Certs](https://docs.
 ./certGen.sh create_root_and_intermediate
 # This will create root and intermediate CA certs. The Root CA cert will be located in the 
 # certs sub directory and will be needed to run the tests.
+
+# These will be valid for 30 days, after which they will need to be regenerated.
 ~~~
 
 ##### Configure your local container registry
@@ -190,6 +192,8 @@ In your DPS instance, create another enrollment group for X.509 certificate base
 az iot dps certificate create --certificate-name {dps root ca name}  --resource-group {resource group name} \
   --dps-name {dps group name} --path {path to ca cert .pem file}  --verified true
 
+# Note that the iot dps certificate will need to be updated if the root certificate is regenerated using the certGen.sh script.
+
 # Create enrollment group for X.509 based enrollment
 az iot dps enrollment-group create -g {resource group name} --dps-name {dps group name} \
   --enrollment-id {cert enrollment group name} --ca-name {dps root ca name} --edge-enabled
@@ -211,6 +215,44 @@ az storage account show-connection-string --name {storage account name} \
  az storage container create --name {container name} --resource-group {resource group name} \
    --account-name {storage account name} --connection-string "{connection string}"
 
-# TODO: Currently, the SAS URL has to created using the Azure portal. Add instructions
-# here to do it using the CLI
+~~~
+
+The SAS URL can be created using the Azure portal as follows:
+ - Navigate to your storage account.
+ - Under 'Data storage' click 'Containers', and select the right container.
+ - Click on 'Shared access tokens' under 'Settings'.
+ - Select 'Write' permissions and hit 'Generate SAS token and URL'.
+ - Save the URL as E2E_BLOB_STORE_SAS.
+
+Alternately, you can use the Azure CLI:
+
+~~~sh
+# you can get the account key from 'Storage Accounts' --> <Your account> -- > 'Security + networking' --> 'Access keys', or use the CLI as follows:
+ az storage account keys list --resource-group {resource group name} --account-name {storage account name}
+
+# generate the SAS token
+  az storage container generate-sas --name {container name} --account-name {storage account name} --account-key {storage key} --permissions rw --expiry YYYY-MM-DD
+
+# append the token to the following to get the E2E_BLOB_STORE_SAS
+ https://{storage account name}.blob.core.windows.net/{container name}?{sas token}
+~~~
+
+
+###### Potential error messages you may run into
+
+Just running (all) the E2E tests the first time may result into the following error:
+
+~~~
+System.Security.Cryptography.CryptographicException : The owner of '~/.dotnet/corefx/cryptography/x509stores/root' is not the current user.
+~~~
+
+As a workaround, you can run
+
+~~~ sh
+chown -R root ~/.dotnet/corefx/cryptography/x509stores/root
+~~~
+
+If the SAS URL created using the Azure portal isn't correct, double check to see if there's a typo. You'll know the URL isn't correct if you see:
+~~~
+Task upload support bundle failed because of error Invalid URI: The URI scheme is not valid.
 ~~~

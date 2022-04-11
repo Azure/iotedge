@@ -2,7 +2,7 @@ trigger:
   batch: true
   branches:
     include:
-      - master
+      - main
       - release/*
       - iiot
 pr: none
@@ -31,7 +31,6 @@ jobs:
             IotDevice3ConnStr2,
             IotHubConnStr2,
             IotHubMqttHeadCert
-      - template: ../templates/install-dotnet3.yaml
       - task: Bash@3
         displayName: Install Prerequisites
         inputs:
@@ -89,7 +88,9 @@ jobs:
     displayName: Windows
     timeoutInMinutes: 120
     pool:
-      vmImage: windows-2019
+      name: $(pool.windows.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
     variables:
       testEnvironment: windows
     steps:
@@ -106,7 +107,6 @@ jobs:
             IotDevice3ConnStr2,
             IotHubConnStr2,
             IotHubMqttHeadCert
-      - template: ../templates/install-dotnet3.yaml
       - powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration $(Build.Configuration) -UpdateVersion
         displayName: Build
       - powershell: scripts/windows/test/Test-Branch.ps1 -Filter "$(test.filter)&Category!=Kubernetes" -BuildConfig $(Build.Configuration)

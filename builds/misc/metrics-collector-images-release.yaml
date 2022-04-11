@@ -4,104 +4,414 @@ pr: none
 variables:
   NugetSecurityAnalysisWarningLevel: warn
   Build.Configuration: release
-  
-jobs:
-################################################################################
-  - job: MetricsCollector_Linux
-################################################################################
-    displayName: Metrics Collector Linux Build
-    timeoutInMinutes: 30
-    pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
-    steps:
-      - template: ../templates/install-dotnet2.yaml
-      - template: ../templates/install-dotnet3.yaml
 
+stages:
+# This stage builds Rocks DB and adds the files to staging directory
+# It's only needed for building E2E test images and not needed for the Metrics Collector
+################################################################################
+- template: templates/build-rocksdb.yaml
+################################################################################
+
+- stage: BuildReleaseImages
+  dependsOn: [ BuildRocksDB ]
+
+  jobs:
+  ################################################################################
+    - job: MetricsCollector_Linux
+  ################################################################################
+      displayName: Metrics Collector Linux Build
+      timeoutInMinutes: 30
+      pool:
+        name: $(pool.linux.name)
+        demands:
+          - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
+      steps:
+        # If you need to test this job. Create a new Service Connection in the Project Settings (Azure DevOps)
+        # and update the pipeline variable.
+        - task: Docker@2
+          displayName: Docker login edgerelease
+          inputs:
+            command: login
+            containerRegistry: $(service.connection)
+
+        - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
+          name: build
+          displayName: Build ($(Build.Configuration))
+
+        - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
+          displayName: 'SBOM Generation Task'
+          inputs:
+              BuildDropPath: '$(Build.BinariesDirectory)/publish'
+
+        - task: PublishBuildArtifacts@1
+          displayName: 'Publish Artifacts'
+          inputs:
+            PathtoPublish: '$(Build.BinariesDirectory)/publish'
+            ArtifactName: 'core-linux'
+
+        - task: DownloadPipelineArtifact@2
+          inputs:
+            artifact: 'librocksdb'
+            path: '$(Pipeline.Workspace)/librocksdb'
+
+        - task: CopyFiles@2
+          displayName: Copy rocksdb libs
+          inputs:
+            sourceFolder: '$(Pipeline.Workspace)/librocksdb'
+            contents: '**'
+            targetFolder: '$(Build.BinariesDirectory)/publish/librocksdb'
+
+        - template: templates/image-linux.yaml
+          parameters:
+            name: Metrics Collector (customer-facing)
+            imageName: azureiotedge-metrics-collector
+            project: Microsoft.Azure.Devices.Edge.Azure.Monitor
+            version: $(version)
+
+        # for E2E tests only
+        - template: templates/image-linux.yaml
+          parameters:
+            imageName: azureiotedge-agent
+            name: "Edge Agent"
+            project: Microsoft.Azure.Devices.Edge.Agent.Service
+            version: $(version)
+            buildx_flag: 'true'
+            use_rocksdb: true
+        - template: templates/image-linux.yaml
+          parameters:
+            imageName: azureiotedge-hub
+            name: "Edge Hub"
+            project: Microsoft.Azure.Devices.Edge.Hub.Service
+            version: $(version)
+            buildx_flag: 'true'
+            use_rocksdb: true
+        - template: templates/image-linux.yaml
+          parameters:
+            name: "Direct Method Sender"
+            imageName: azureiotedge-direct-method-sender
+            project: DirectMethodSender
+            bin_dir: '$(Build.BinariesDirectory)'
+            buildx_flag: 'true'
+
+  ################################################################################
+    - job: MetricsCollector_Windows
+  ################################################################################
+      displayName: Metrics Collector Windows Build
+      timeoutInMinutes: 30
+      pool:
+        name: $(pool.windows.name)
+        demands:
+          - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
+      workspace:
+        clean: all
+      steps:
+        # If you need to test this job. Create a new Service Connection in the Project Settings (Azure DevOps)
+        # and update the pipeline variable.
+        - task: Docker@2
+          displayName: Docker login edgerelease
+          inputs:
+            command: login
+            containerRegistry: $(service.connection)
+
+        - powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration:"$(Build.Configuration)" -PublishTests:$False -UpdateVersion
+          name: build
+          displayName: Build ($(Build.Configuration))
+
+        - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
+          displayName: 'SBOM Generation Task'
+          inputs:
+              BuildDropPath: '$(Build.BinariesDirectory)/publish'
+
+        - task: PublishBuildArtifacts@1
+          displayName: 'Publish Artifacts'
+          inputs:
+            PathtoPublish: '$(Build.BinariesDirectory)/publish'
+            ArtifactName: 'core-windows'
+
+        - template: templates/image-windows.yaml
+          parameters:
+            name: Metrics Collector (customer-facing)
+            imageName: azureiotedge-metrics-collector
+            project: Microsoft.Azure.Devices.Edge.Azure.Monitor
+            version: $(version)
+
+        # for E2E tests only
+        - template: templates/image-windows.yaml
+          parameters:
+            imageName: azureiotedge-agent
+            name: "Edge Agent"
+            project: Microsoft.Azure.Devices.Edge.Agent.Service
+            version: $(version)
+            buildx_flag: 'true'
+            use_rocksdb: true
+        - template: templates/image-windows.yaml
+          parameters:
+            imageName: azureiotedge-hub
+            name: "Edge Hub"
+            project: Microsoft.Azure.Devices.Edge.Hub.Service
+            version: $(version)
+            buildx_flag: 'true'
+            use_rocksdb: true
+        - template: templates/image-windows.yaml
+          parameters:
+            imageName: azureiotedge-direct-method-sender
+            name: "Direct Method Sender"
+            project: DirectMethodSender
+            version: $(version)
+            buildx_flag: 'true'
+
+################################################################################
+- stage: PublishManifests
+################################################################################
+  displayName: Publish Manifest Images
+  pool:
+    name: $(pool.linux.name)
+    demands:
+      - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
+  jobs:
+    - job:
+      steps:
       # If you need to test this job. Create a new Service Connection in the Project Settings (Azure DevOps)
       # and update the pipeline variable.
       - task: Docker@2
         displayName: Docker login edgerelease
         inputs:
           command: login
-          containerRegistry: $(service.connection)
-
-      - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
-        name: build
-        displayName: Build ($(Build.Configuration))
-
-      - task: PublishBuildArtifacts@1
-        displayName: 'Publish Artifacts'
-        inputs:
-          PathtoPublish: '$(Build.BinariesDirectory)/publish'
-          ArtifactName: 'core-linux'
-
-      - template: templates/image-linux.yaml
-        parameters:
-          name: Metrics Collector (customer-facing)
-          imageName: azureiotedge-metrics-collector
-          project: Microsoft.Azure.Devices.Edge.Azure.Monitor
-          version: $(version)
+          containerRegistry: "$(service.connection)"
+      - script: scripts/linux/buildManifest.sh -r "$(registry.address)" -v "$(version)" -t "$(System.DefaultWorkingDirectory)"/edge-modules/metrics-collector/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+        displayName: 'Publish Metrics Collector Manifest'
 
 ################################################################################
-  - job: MetricsCollector_Windows
+- stage: RunE2ETest
 ################################################################################
-    displayName: Metrics Collector Windows Build
-    timeoutInMinutes: 30
-    pool:
-      name: $(pool.windows.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
-    workspace:
-      clean: all
-    steps:
-      - template: ../templates/install-dotnet2.yaml
-      - template: ../templates/install-dotnet3.yaml
+  dependsOn: PublishManifests
+  condition: in(dependencies.PublishManifests.result, 'Succeeded', 'SucceededWithIssues')
+  variables:
+    # A 'minimal' pipeline only runs one end-to-end test (TempSensor). This is useful for platforms or
+    # environments that are very similar to other platforms/environments in our matrix, Ubuntu 18.04
+    # with the 'docker-ce' package vs. Ubuntu 18.04 with the 'iotedge-moby' package vs. the same
+    # variations in Ubuntu 20.04. In these instances the platforms/environments are so similar that we
+    # don't reasonably expect to encounter differences--if we do, it would likely manifest during
+    # installation, or in running a very basic test. We don't need to repeat the entire test suite.
+    # The 'minimal' variable defaults to 'false'; we override it in specific jobs as needed.
+    minimal: false
+    verbose: false
+  jobs:
+  ################################################################################
+    - job: linux_arm32v7
+  ################################################################################
+      displayName: Linux arm32v7
 
-      # If you need to test this job. Create a new Service Connection in the Project Settings (Azure DevOps)
-      # and update the pipeline variable.
+      pool:
+        name: $(pool.custom.name)
+        demands: rpi3-e2e-tests
+
+      variables:
+        os: linux
+        arch: arm32v7
+        artifactName: iotedged-debian9-arm32v7
+        builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
+
+      timeoutInMinutes: 120
+
+      steps:
       - task: Docker@2
         displayName: Docker login edgerelease
         inputs:
           command: login
-          containerRegistry: $(service.connection)
+          containerRegistry: iotedge-release-acr
+      - template: ../e2e/../e2e/templates/e2e-clean-directory.yaml
+      - template: ../e2e/templates/e2e-setup-base-image-update-release.yaml
+      - template: ../e2e/templates/e2e-clear-docker-cached-images.yaml
+      - template: ../e2e/templates/e2e-run-metrics-collector.yaml
 
-      - powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration:"$(Build.Configuration)" -PublishTests:$False -UpdateVersion
-        name: build
-        displayName: Build ($(Build.Configuration))
+  ################################################################################
+    - job: ubuntu_1804_msmoby
+  ################################################################################
+      displayName: Ubuntu 18.04 with iotedge-moby
 
-      - task: PublishBuildArtifacts@1
-        displayName: 'Publish Artifacts'
+      pool:
+        name: $(pool.linux.name)
+        demands:
+          - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
+
+      variables:
+        os: linux
+        arch: amd64
+        artifactName: iotedged-ubuntu18.04-amd64
+        builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
+
+      steps:
+      - template: ../e2e/templates/e2e-setup-base-image-update-release.yaml
+      - template: ../e2e/templates/e2e-run-metrics-collector.yaml
+
+  ################################################################################
+    - job: ubuntu_1804_docker
+  ################################################################################
+      displayName: Ubuntu 18.04 with Docker (minimal)
+
+      pool:
+        name: $(pool.linux.name)
+        demands:
+          - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+
+      variables:
+        os: linux
+        arch: amd64
+        artifactName: iotedged-ubuntu18.04-amd64
+        builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
+        minimal: true
+
+      steps:
+      - template: ../e2e/templates/e2e-setup-base-image-update-release.yaml
+      - template: ../e2e/templates/e2e-run-metrics-collector.yaml
+
+  ################################################################################
+    - job: ubuntu_2004_msmoby
+  ################################################################################
+      displayName: Ubuntu 20.04 with iotedge-moby
+
+      pool:
+        name: $(pool.linux.name)
+        demands:
+          - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
+
+      variables:
+        os: linux
+        arch: amd64
+        artifactName: iotedged-ubuntu20.04-amd64
+        builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
+
+      steps:
+      - template: ../e2e/templates/e2e-setup-base-image-update-release.yaml
+      - template: ../e2e/templates/e2e-run-metrics-collector.yaml
+
+  ################################################################################
+    - job: ubuntu_2004_arm64v8
+  ################################################################################
+      displayName: Ubuntu 20.04 with arm64v8
+      pool:
+        name: $(pool.custom.name)
+        demands:
+          - agent-group -equals rpi3-e2e-aarch64
+
+      variables:
+        os: linux
+        arch: arm64v8
+        artifactName: iotedged-ubuntu20.04-aarch64
+        builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
+
+      steps:
+      - task: Docker@2
+        displayName: Docker login edgerelease
         inputs:
-          PathtoPublish: '$(Build.BinariesDirectory)/publish'
-          ArtifactName: 'core-windows'
+          command: login
+          containerRegistry: iotedge-release-acr
+      - template: ../e2e/templates/e2e-clean-directory.yaml
+      - template: ../e2e/templates/e2e-setup-base-image-update-release.yaml
+      - template: ../e2e/templates/e2e-clear-docker-cached-images.yaml
+      - template: ../e2e/templates/e2e-run-metrics-collector.yaml
 
-      - template: templates/image-windows.yaml
-        parameters:
-          name: Metrics Collector (customer-facing)
-          imageName: azureiotedge-metrics-collector
-          project: Microsoft.Azure.Devices.Edge.Azure.Monitor
-          version: $(version)          
+  ################################################################################
+    - job: ubuntu_2004_docker
+  ################################################################################
+      displayName: Ubuntu 20.04 with Docker (minimal)
 
-################################################################################
-  - job: manifest
-################################################################################
-    displayName: Publish Manifest Images
-    pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby 
-    dependsOn:
-      - MetricsCollector_Linux
-      - MetricsCollector_Windows
-    steps:
-    # If you need to test this job. Create a new Service Connection in the Project Settings (Azure DevOps)
-    # and update the pipeline variable.
-    - task: Docker@2
-      displayName: Docker login edgerelease
-      inputs:
-        command: login
-        containerRegistry: $(service.connection)
-    - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(version) -t $(System.DefaultWorkingDirectory)/edge-modules/azure-monitor/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
-      displayName: 'Publish Metrics Collector Manifest'
+      pool:
+        name: $(pool.linux.name)
+        demands:
+          - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+
+      variables:
+        os: linux
+        arch: amd64
+        artifactName: iotedged-ubuntu20.04-amd64
+        builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
+        minimal: true
+
+      steps:
+      - template: ../e2e/templates/e2e-setup-base-image-update-release.yaml
+      - template: ../e2e/templates/e2e-run-metrics-collector.yaml
+
+  ################################################################################
+    - job: windows_server
+  ################################################################################
+      displayName: Windows Server 2019
+
+      pool:
+        name: $(pool.windows.name)
+        demands:
+          - ImageOverride -equals agent-aziotedge-winserver-2019dc-test
+
+      variables:
+        os: windows
+        arch: amd64
+        artifactName: iotedged-windows
+        builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
+
+      steps:
+      - template: ../e2e/templates/e2e-setup-base-image-update-release.yaml
+
+      - pwsh: |
+          $certBytes = [system.Text.Encoding]::UTF8.GetBytes($env:PACKAGE_SIGNING_CERT)
+          $cert = [System.Security.Cryptography.X509Certificates.X509Certificate]::new($certBytes)
+          $store = New-Object System.Security.Cryptography.X509Certificates.X509Store `
+            -ArgumentList 'Root', 'LocalMachine'
+          $store.Open('ReadWrite')
+          $store.Add($cert)
+        displayName: Install CAB signing root cert
+        env:
+          PACKAGE_SIGNING_CERT: $(TestIotedgedPackageRootSigningCert)
+
+      - pwsh: |
+          Write-Output '>>> BEFORE:'
+          netsh interface ipv6 show prefixpolicies
+          netsh interface ipv6 set prefixpolicy ::ffff:0:0/96 45 4
+          Write-Output '>>> AFTER:'
+          netsh interface ipv6 show prefixpolicies
+        displayName: Prefer IPv4
+
+      - template: ../e2e/templates/e2e-clear-docker-cached-images.yaml
+      - template: ../e2e/templates/e2e-run-metrics-collector.yaml
+
+  ################################################################################
+    - job: windows_10ent
+  ################################################################################
+      displayName: Windows 10 Enterprise (minimal)
+
+      pool:
+        name: $(pool.windows.name)
+        demands:
+          - ImageOverride -equals agent-aziotedge-win10-entn2019-test
+
+      variables:
+        os: windows
+        arch: amd64
+        artifactName: iotedged-windows
+        builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
+        minimal: true
+
+      steps:
+      - template: ../e2e/templates/e2e-setup-base-image-update-release.yaml
+
+      - pwsh: |
+          $certBytes = [system.Text.Encoding]::UTF8.GetBytes($env:PACKAGE_SIGNING_CERT)
+          $cert = [System.Security.Cryptography.X509Certificates.X509Certificate]::new($certBytes)
+          $store = New-Object System.Security.Cryptography.X509Certificates.X509Store `
+            -ArgumentList 'Root', 'LocalMachine'
+          $store.Open('ReadWrite')
+          $store.Add($cert)
+        displayName: Install CAB signing root cert
+        env:
+          PACKAGE_SIGNING_CERT: $(TestIotedgedPackageRootSigningCert)
+
+      - pwsh: |
+          Write-Output '>>> BEFORE:'
+          netsh interface ipv6 show prefixpolicies
+          netsh interface ipv6 set prefixpolicy ::ffff:0:0/96 45 4
+          Write-Output '>>> AFTER:'
+          netsh interface ipv6 show prefixpolicies
+        displayName: Prefer IPv4
+
+      - template: ../e2e/templates/e2e-clear-docker-cached-images.yaml
+      - template: ../e2e/templates/e2e-run-metrics-collector.yaml

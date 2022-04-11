@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
 {
     using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -71,6 +72,69 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
             (byte[] key, byte[] value) lastEntry = lastEntryOption.OrDefault();
             Assert.Equal(lastKey, lastEntry.key.FromBytes());
             Assert.Equal(lastValue, lastEntry.value.FromBytes());
+        }
+
+        [Fact]
+        public async Task MessageCountTest()
+        {
+            using (IDbStore columnFamilyDbStore = this.rocksDbStoreProvider.GetDbStore("test"))
+            {
+                Assert.Equal(0ul, await columnFamilyDbStore.Count());
+
+                for (int i = 0; i < 10; i++)
+                {
+                    string key = $"key{i}";
+                    string value = "$value{i}";
+                    await columnFamilyDbStore.Put(key.ToBytes(), value.ToBytes());
+                }
+
+                Assert.Equal(10ul, await columnFamilyDbStore.Count());
+            }
+
+            using (IDbStore columnFamilyDbStore = this.rocksDbStoreProvider.GetDbStore("test"))
+            {
+                Assert.Equal(10ul, await columnFamilyDbStore.Count());
+
+                for (int i = 0; i < 10; i++)
+                {
+                    string key = $"key{i}";
+                    await columnFamilyDbStore.Remove(key.ToBytes());
+                }
+
+                Assert.Equal(0ul, await columnFamilyDbStore.Count());
+            }
+        }
+
+        [Fact]
+        public async Task MessageCountUnderflowTest()
+        {
+            using (IDbStore columnFamilyDbStore = this.rocksDbStoreProvider.GetDbStore("test"))
+            {
+                Assert.Equal(0ul, await columnFamilyDbStore.Count());
+
+                for (int i = 0; i < 10; i++)
+                {
+                    string key = $"key{i}";
+                    string value = "$value{i}";
+                    await columnFamilyDbStore.Put(key.ToBytes(), value.ToBytes());
+                }
+
+                Assert.Equal(10ul, await columnFamilyDbStore.Count());
+            }
+
+            using (IDbStore columnFamilyDbStore = this.rocksDbStoreProvider.GetDbStore("test"))
+            {
+                Assert.Equal(10ul, await columnFamilyDbStore.Count());
+
+                // Using 11 (10 + 1) to make sure underflow is caught.
+                for (int i = 0; i < 11; i++)
+                {
+                    string key = $"key{i}";
+                    await columnFamilyDbStore.Remove(key.ToBytes());
+                }
+
+                Assert.Equal(0ul, await columnFamilyDbStore.Count());
+            }
         }
     }
 }

@@ -44,9 +44,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "doc", "doc", "{A9F6AF55-719
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Service", "edge-agent\src\Microsoft.Azure.Devices.Edge.Agent.Service\Microsoft.Azure.Devices.Edge.Agent.Service.csproj", "{37129265-046F-4A46-A1BD-C067E6C06264}"
-	ProjectSection(ProjectDependencies) = postProject
-		{B63C506E-5CB5-4DE8-8275-F7BA8354799E} = {B63C506E-5CB5-4DE8-8275-F7BA8354799E}
-	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.CloudProxy", "edge-hub\src\Microsoft.Azure.Devices.Edge.Hub.CloudProxy\Microsoft.Azure.Devices.Edge.Hub.CloudProxy.csproj", "{F3F1EFBD-CCD0-4579-99EE-C91A1B6D5C5D}"
 EndProject
@@ -164,22 +161,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{2300ED4C-1
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Test.Common", "test\Microsoft.Azure.Devices.Edge.Test.Common\Microsoft.Azure.Devices.Edge.Test.Common.csproj", "{950DACB0-B011-41AF-B0FB-245F749B01AB}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Kubernetes", "edge-agent\src\Microsoft.Azure.Devices.Edge.Agent.Kubernetes\Microsoft.Azure.Devices.Edge.Agent.Kubernetes.csproj", "{B63C506E-5CB5-4DE8-8275-F7BA8354799E}"
-	ProjectSection(ProjectDependencies) = postProject
-		{B0F37919-0D16-490F-B7A1-665BB93B9A62} = {B0F37919-0D16-490F-B7A1-665BB93B9A62}
-		{3B5A4C63-7B33-4E37-9602-29FC8FC7C9C5} = {3B5A4C63-7B33-4E37-9602-29FC8FC7C9C5}
-		{84B77973-0092-4DC9-87E3-F16FC2F4E9AE} = {84B77973-0092-4DC9-87E3-F16FC2F4E9AE}
-	EndProjectSection
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test\Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.csproj", "{A5DFFB52-D8EA-4E1A-BF4F-8B9665C7DAFE}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Test", "test\Microsoft.Azure.Devices.Edge.Test\Microsoft.Azure.Devices.Edge.Test.csproj", "{08986FED-9283-47F1-B938-86D9C6E753E1}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Diagnostics", "edge-agent\src\Microsoft.Azure.Devices.Edge.Agent.Diagnostics\Microsoft.Azure.Devices.Edge.Agent.Diagnostics.csproj", "{47AA5965-5826-489D-B74B-314A61629121}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test\Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.csproj", "{B736B03C-1185-4AE5-87B7-665C6790F50F}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest\Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.csproj", "{79540E35-45EA-4568-9AB7-C1CC0BFF73EE}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "modules", "modules", "{F921339B-32F9-4BF3-B364-2DB01FA2F1A1}"
 EndProject
@@ -191,7 +177,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NetworkController", "test\c
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Modules.Test", "test\modules\Modules.Test\Modules.Test.csproj", "{837F5563-BB1C-4A59-A506-07ED8458DB4E}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MetricsCollector", "edge-modules\MetricsCollector\MetricsCollector.csproj", "{4B0F95CF-E696-450F-B7F6-35E361C91777}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestMetricsCollector", "test\modules\TestMetricsCollector\TestMetricsCollector.csproj", "{4B0F95CF-E696-450F-B7F6-35E361C91777}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DirectMethodReceiver", "test\modules\DirectMethodReceiver\DirectMethodReceiver.csproj", "{8C964A2F-A163-421C-B262-BE9C81B555BC}"
 EndProject
@@ -484,18 +470,6 @@ Global
 		{950DACB0-B011-41AF-B0FB-245F749B01AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{950DACB0-B011-41AF-B0FB-245F749B01AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{950DACB0-B011-41AF-B0FB-245F749B01AB}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B63C506E-5CB5-4DE8-8275-F7BA8354799E}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
-		{B63C506E-5CB5-4DE8-8275-F7BA8354799E}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
-		{B63C506E-5CB5-4DE8-8275-F7BA8354799E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B63C506E-5CB5-4DE8-8275-F7BA8354799E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B63C506E-5CB5-4DE8-8275-F7BA8354799E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B63C506E-5CB5-4DE8-8275-F7BA8354799E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A5DFFB52-D8EA-4E1A-BF4F-8B9665C7DAFE}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
-		{A5DFFB52-D8EA-4E1A-BF4F-8B9665C7DAFE}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
-		{A5DFFB52-D8EA-4E1A-BF4F-8B9665C7DAFE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A5DFFB52-D8EA-4E1A-BF4F-8B9665C7DAFE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A5DFFB52-D8EA-4E1A-BF4F-8B9665C7DAFE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A5DFFB52-D8EA-4E1A-BF4F-8B9665C7DAFE}.Release|Any CPU.Build.0 = Release|Any CPU
 		{08986FED-9283-47F1-B938-86D9C6E753E1}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
 		{08986FED-9283-47F1-B938-86D9C6E753E1}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
 		{08986FED-9283-47F1-B938-86D9C6E753E1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -518,14 +492,6 @@ Global
 		{B736B03C-1185-4AE5-87B7-665C6790F50F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B736B03C-1185-4AE5-87B7-665C6790F50F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B736B03C-1185-4AE5-87B7-665C6790F50F}.Release|Any CPU.Build.0 = Release|Any CPU
-		{79540E35-45EA-4568-9AB7-C1CC0BFF73EE}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
-		{79540E35-45EA-4568-9AB7-C1CC0BFF73EE}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
-		{79540E35-45EA-4568-9AB7-C1CC0BFF73EE}.CodeCoverage|Any CPU.ActiveCfg = Debug|Any CPU
-		{79540E35-45EA-4568-9AB7-C1CC0BFF73EE}.CodeCoverage|Any CPU.Build.0 = Debug|Any CPU
-		{79540E35-45EA-4568-9AB7-C1CC0BFF73EE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{79540E35-45EA-4568-9AB7-C1CC0BFF73EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{79540E35-45EA-4568-9AB7-C1CC0BFF73EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{79540E35-45EA-4568-9AB7-C1CC0BFF73EE}.Release|Any CPU.Build.0 = Release|Any CPU
 		{8181EB49-62CE-495B-8078-08DCF8C30541}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
 		{8181EB49-62CE-495B-8078-08DCF8C30541}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
 		{8181EB49-62CE-495B-8078-08DCF8C30541}.CodeCoverage|Any CPU.ActiveCfg = Debug|Any CPU
@@ -758,12 +724,9 @@ Global
 		{B8D5312A-B37B-4FA3-8B80-2D1A93077DDF} = {C3BDC9FA-B7D8-44F3-970F-D24281335F46}
 		{9BED8F14-63E9-4B4B-88F7-659D5E522CBD} = {63969606-14B2-4D9D-AB72-A5D60D22037C}
 		{950DACB0-B011-41AF-B0FB-245F749B01AB} = {2300ED4C-1D5A-460F-8691-7C85E1162E0C}
-		{B63C506E-5CB5-4DE8-8275-F7BA8354799E} = {54351E51-19CB-4DE3-8302-99846AB216CF}
-		{A5DFFB52-D8EA-4E1A-BF4F-8B9665C7DAFE} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
 		{08986FED-9283-47F1-B938-86D9C6E753E1} = {2300ED4C-1D5A-460F-8691-7C85E1162E0C}
 		{47AA5965-5826-489D-B74B-314A61629121} = {54351E51-19CB-4DE3-8302-99846AB216CF}
 		{B736B03C-1185-4AE5-87B7-665C6790F50F} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
-		{79540E35-45EA-4568-9AB7-C1CC0BFF73EE} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
 		{F921339B-32F9-4BF3-B364-2DB01FA2F1A1} = {2300ED4C-1D5A-460F-8691-7C85E1162E0C}
 		{8181EB49-62CE-495B-8078-08DCF8C30541} = {F921339B-32F9-4BF3-B364-2DB01FA2F1A1}
 		{F3B989E5-E7F5-4A07-AEA1-84B63040A190} = {2300ED4C-1D5A-460F-8691-7C85E1162E0C}
