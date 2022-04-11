@@ -15,10 +15,10 @@ Note: The metrics would drastically vary if the workload would have more contain
 
 | Name | Version |
 |:-----:|:-------:|
-| IoT Edge Service| 1.2.8|
+| IoT Edge Service| 1.2.8 |
 | IoT Identity service | 1.2.6 |
-| EdgeAgent | 1.2 |
-| EdgeHgent | 1.2 |
+| EdgeAgent | 1.2.8 |
+| EdgeHgent | 1.2.8 |
 | SimulatedTemperatureSensor | 1.2 |
 
   The specifications of the three platforms are in the table below.
@@ -26,7 +26,7 @@ Note: The metrics would drastically vary if the workload would have more contain
 | Platform | Processor | vCPU| RAM(GiB) |  Disk (GiB) 
 |:----------|:---------:|:--------:|:--------:|:--------:|
 | armv7l| Raspberry Pi 3 Model B Plus Rev 1.3 @1.2 GHz Quad core  BCM2835 ARMv7 Processor | 1 | 1 | 8 |
-| aarch64 | TBD | 2 | 8 | 75 
+| aarch64 | ThunderX2 99xx @ 2.2 GHz ARMV8-A Processor | 2 | 8 | 75  
 | x86_64 |Intel Xeon E5-2673 v4 @ 2.29 GHz 1 Processor, 1 Core, 2 Threads|  2 | 8 | 16 |
 
 ## Metrics
@@ -35,11 +35,11 @@ Two major metrics are observed from this  i.e memory and storage. In both the ca
 
 ### Memory check
 
-* Memory Usage (Resisent Set Size) of Binaries
+* Memory Usage (Resident Set Size) of Binaries
 
 	* The average dynamic memory consumed by the IoT edge binaries like aziot-edged, aziot-identityd, aziot-certd etc and it is obtained by using `ps` command.
 
-* Memory Usage (Resisent Set Size) of Containers
+* Memory Usage (Resident Set Size) of Containers
 
 	* The average dynamic memory consumed by the a simple workload of Edge runtime Containers (edgeAgent and edgeHub) along with SimulatedTemperatureSensor  and it is obtained by `docker stats` command.
 
@@ -58,8 +58,8 @@ A summary of the metrics by profiling specified version of IoT edge in three pla
 
 | Metric Name |x86_64 |armv7l |aarch64 |
 |:-----------------------:|:----------:|:----------:|:----------:|
-|Memory Usage (Resisent Set Size) of Binaries |55 |36 |27 |
-|Memory Usage (Resisent Set Size) of Containers |175 |164|210|
+|Memory Usage (Resident Set Size) of Binaries |55 |36 |27 |
+|Memory Usage (Resident Set Size) of Containers |175 |164|210|
 |On Disk Binary Size |43 |37 |37 |
 |On Disk Container Size |255 |323 |323 |
 
