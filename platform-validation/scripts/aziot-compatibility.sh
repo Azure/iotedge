@@ -504,7 +504,7 @@ check_systemd() {
     wrap_debug_message "Checking systemd presence..."
     if [ -z "$(pidof systemd)" ]; then
         wrap_warning "check_systemd"
-        wrap_warning_message "Systemd is not present on this device. IoT Edge services must be managed independently. For running azure iot edge without systemd, visit: https://github.com/Azure/iotedge/blob/master/edgelet/doc/devguide.md#run"
+        wrap_warning_message "Systemd is not present on this device. IoT Edge services must be managed independently. For running azure IoT edge without systemd, visit: https://github.com/Azure/iotedge/blob/master/edgelet/doc/devguide.md#run"
     else
         wrap_pass "check_systemd"
     fi
