@@ -632,6 +632,7 @@ name = "edgelet-core"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "aziotctl-common",
  "base64 0.13.0",
  "bytes 1.1.0",
  "chrono",
@@ -643,9 +644,12 @@ dependencies = [
  "hyper",
  "lazy_static",
  "log",
+ "nix",
+ "num_cpus",
  "serde",
  "serde_derive",
  "serde_json",
+ "serde_with",
  "test-case",
  "tokio",
  "tokio-util",
