@@ -1,7 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-pub type Result<T> = ::std::result::Result<T, Error>;
-
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     // Only used by edgelet-test-utils

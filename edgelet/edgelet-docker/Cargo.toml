@@ -6,11 +6,11 @@ publish = false
 version = "0.1.0"
 
 [dependencies]
+anyhow = "1"
 async-trait = "0.1"
 base64 = "0.9"
 bytes = "1"
-chrono = {version = "0.4", features = ["serde"]}
-failure = "0.1"
+chrono = { version = "0.4", features = ["serde"] }
 futures = "0.3"
 hex="0.3"
 hyper = "0.14"
@@ -19,22 +19,22 @@ serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
 sysinfo = "0.14.10"
-tokio = {version = "1", features = ["process", "macros"]}
-url = {version = "2", features = ["serde"]}
+thiserror = "1"
+tokio = { version = "1", features = ["macros", "process"] }
+url = { version = "2", features = ["serde"] }
 
-aziot-cert-client-async = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
-aziot-cert-common-http = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
-config-common = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
-docker = {path = "../docker-rs"}
-edgelet-core = {path = "../edgelet-core"}
-edgelet-settings = {path = "../edgelet-settings", features = ["settings-docker"]}
-edgelet-utils = {path = "../edgelet-utils"}
-http-common = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
+aziot-cert-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-cert-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+config-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+docker = { path = "../docker-rs" }
+edgelet-core = { path = "../edgelet-core" }
+edgelet-settings = { path = "../edgelet-settings", features = ["settings-docker"] }
+edgelet-utils = { path = "../edgelet-utils" }
+http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 libc = "0.2.66"
 
 [dev_dependencies]
 maplit = "1.0"
-tempdir = "0.3.7"
 tempfile = "3"
 time = "0.1"
 typed-headers = "0.1"

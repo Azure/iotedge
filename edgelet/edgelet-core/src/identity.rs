@@ -70,7 +70,7 @@ impl IdentitySpec {
 #[async_trait::async_trait]
 pub trait IdentityManager {
     type Identity: Identity;
-    type Error: std::error::Error;
+    type Error;
 
     async fn create(&mut self, id: IdentitySpec) -> Result<Self::Identity, Self::Error>;
     async fn update(&mut self, id: IdentitySpec) -> Result<Self::Identity, Self::Error>;

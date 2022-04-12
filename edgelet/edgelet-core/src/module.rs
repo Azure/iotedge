@@ -264,7 +264,7 @@ impl LogOptions {
 #[async_trait::async_trait]
 pub trait Module {
     type Config;
-    type Error: std::error::Error;
+    type Error;
 
     fn name(&self) -> &str;
     fn type_(&self) -> &str;
@@ -275,7 +275,7 @@ pub trait Module {
 #[async_trait::async_trait]
 pub trait ModuleRegistry {
     type Config;
-    type Error: std::error::Error;
+    type Error;
 
     async fn pull(&self, config: &Self::Config) -> Result<(), Self::Error>;
     async fn remove(&self, name: &str) -> Result<(), Self::Error>;
@@ -460,7 +460,7 @@ pub trait MakeModuleRuntime {
     type Config: Clone + Send;
     type Settings: RuntimeSettings<ModuleConfig = Self::Config>;
     type ModuleRuntime: ModuleRuntime<Config = Self::Config>;
-    type Error: std::error::Error;
+    type Error;
 
     async fn make_runtime(
         settings: &Self::Settings,
@@ -470,7 +470,7 @@ pub trait MakeModuleRuntime {
 
 #[async_trait::async_trait]
 pub trait ModuleRuntime: Sized {
-    type Error: std::error::Error;
+    type Error;
 
     type Config: Clone + Send + serde::Serialize;
     type Module: Module<Config = Self::Config> + Send;

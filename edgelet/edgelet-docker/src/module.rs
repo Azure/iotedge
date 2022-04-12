@@ -2,16 +2,16 @@
 
 use std::str::FromStr;
 
+use anyhow::Context;
 use chrono::prelude::*;
 
 use docker::apis::{DockerApi, DockerApiClient};
 use docker::models::InlineResponse200State;
 use edgelet_core::{Module, ModuleOperation, ModuleRuntimeState, ModuleStatus};
 use edgelet_settings::DockerConfig;
+use edgelet_utils::ensure_not_empty;
 
-use edgelet_utils::ensure_not_empty_with_context;
-
-use crate::error::{Error, ErrorKind, Result};
+use crate::error::Error;
 
 pub const MODULE_TYPE: &str = "docker";
 pub const MIN_DATE: &str = "0001-01-01T00:00:00Z";
@@ -29,8 +29,12 @@ impl std::fmt::Debug for DockerModule {
 }
 
 impl DockerModule {
-    pub fn new(client: DockerApiClient, name: String, config: DockerConfig) -> Result<Self> {
-        ensure_not_empty_with_context(&name, || ErrorKind::InvalidModuleName(name.clone()))?;
+    pub fn new(
+        client: DockerApiClient,
+        name: String,
+        config: DockerConfig,
+    ) -> anyhow::Result<Self> {
+        ensure_not_empty(&name).with_context(|| Error::InvalidModuleName(name.clone()))?;
 
         Ok(DockerModule {
             client,
@@ -89,7 +93,7 @@ pub fn runtime_state(
 #[async_trait::async_trait]
 impl Module for DockerModule {
     type Config = DockerConfig;
-    type Error = Error;
+    type Error = anyhow::Error;
 
     fn name(&self) -> &str {
         &self.name
@@ -103,17 +107,13 @@ impl Module for DockerModule {
         &self.config
     }
 
-    async fn runtime_state(&self) -> Result<ModuleRuntimeState> {
+    async fn runtime_state(&self) -> anyhow::Result<ModuleRuntimeState> {
         let inspect = self
             .client
             .container_inspect(&self.name, false)
             .await
-            .map_err(|e| {
-                Error::from_docker_error(
-                    e,
-                    ErrorKind::ModuleOperation(ModuleOperation::RuntimeState),
-                )
-            })?;
+            .map_err(|e| Error::DockerRuntime(e.to_string()))
+            .context(Error::ModuleOperation(ModuleOperation::RuntimeState))?;
 
         Ok(runtime_state(inspect.id(), inspect.state()))
     }

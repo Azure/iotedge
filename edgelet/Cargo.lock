@@ -78,7 +78,7 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 [[package]]
 name = "aziot-cert-client-async"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service.git?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
 dependencies = [
  "aziot-cert-common-http",
  "aziot-key-common",
@@ -91,7 +91,7 @@ dependencies = [
 [[package]]
 name = "aziot-cert-common-http"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service.git?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
 dependencies = [
  "aziot-key-common",
  "serde",
@@ -100,7 +100,7 @@ dependencies = [
 [[package]]
 name = "aziot-certd-config"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service.git?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
 dependencies = [
  "cert-renewal",
  "hex 0.4.3",
@@ -141,7 +141,7 @@ dependencies = [
 [[package]]
 name = "aziot-identity-client-async"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service.git?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
 dependencies = [
  "aziot-cert-common-http",
  "aziot-identity-common",
@@ -155,7 +155,7 @@ dependencies = [
 [[package]]
 name = "aziot-identity-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service.git?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
 dependencies = [
  "aziot-key-common",
  "http-common",
@@ -165,7 +165,7 @@ dependencies = [
 [[package]]
 name = "aziot-identity-common-http"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service.git?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
 dependencies = [
  "aziot-cert-common-http",
  "aziot-identity-common",
@@ -179,7 +179,7 @@ dependencies = [
 [[package]]
 name = "aziot-identityd-config"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service.git?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
 dependencies = [
  "aziot-identity-common",
  "cert-renewal",
@@ -192,7 +192,7 @@ dependencies = [
 [[package]]
 name = "aziot-key-client"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service.git?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
 dependencies = [
  "aziot-key-common",
  "aziot-key-common-http",
@@ -207,7 +207,7 @@ dependencies = [
 [[package]]
 name = "aziot-key-client-async"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service.git?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
 dependencies = [
  "aziot-key-common",
  "aziot-key-common-http",
@@ -220,7 +220,7 @@ dependencies = [
 [[package]]
 name = "aziot-key-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service.git?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
 dependencies = [
  "serde",
 ]
@@ -228,7 +228,7 @@ dependencies = [
 [[package]]
 name = "aziot-key-common-http"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service.git?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
 dependencies = [
  "aziot-key-common",
  "http-common",
@@ -238,7 +238,7 @@ dependencies = [
 [[package]]
 name = "aziot-key-openssl-engine"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service.git?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
 dependencies = [
  "aziot-key-client",
  "aziot-key-common",
@@ -256,7 +256,7 @@ dependencies = [
 [[package]]
 name = "aziot-keyd-config"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service.git?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
 dependencies = [
  "http-common",
  "libc",
@@ -266,7 +266,7 @@ dependencies = [
 [[package]]
 name = "aziot-keys-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service.git?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
 dependencies = [
  "pkcs11",
  "serde",
@@ -276,7 +276,7 @@ dependencies = [
 [[package]]
 name = "aziot-tpmd-config"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service.git?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
 dependencies = [
  "http-common",
  "serde",
@@ -285,7 +285,7 @@ dependencies = [
 [[package]]
 name = "aziotctl-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service.git?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
 dependencies = [
  "anyhow",
  "aziot-certd-config",
@@ -417,7 +417,7 @@ checksum = "79c2681d6594606957bbb8631c4b90a7fcaaa72cdb714743a437b156d6a7eedd"
 [[package]]
 name = "cert-renewal"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service.git?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
 dependencies = [
  "openssl",
  "serde",
@@ -487,7 +487,7 @@ dependencies = [
 [[package]]
 name = "config-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service.git?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
 dependencies = [
  "serde",
  "toml",
@@ -661,6 +661,7 @@ dependencies = [
 name = "edgelet-docker"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "async-trait",
  "aziot-cert-client-async",
  "aziot-cert-common-http",
@@ -672,7 +673,6 @@ dependencies = [
  "edgelet-core",
  "edgelet-settings",
  "edgelet-utils",
- "failure",
  "futures 0.3.17",
  "hex 0.3.2",
  "http-common",
@@ -684,8 +684,8 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "sysinfo",
- "tempdir",
  "tempfile",
+ "thiserror",
  "time",
  "tokio",
  "typed-headers",
@@ -918,12 +918,6 @@ dependencies = [
  "matches",
  "percent-encoding 2.1.0",
 ]
-
-[[package]]
-name = "fuchsia-cprng"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a06f77d526c1a601b7c4cdd98f54b5eaabffc14d5f2f0296febdc7f357c6d3ba"
 
 [[package]]
 name = "futures"
@@ -1159,7 +1153,7 @@ dependencies = [
 [[package]]
 name = "http-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service.git?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
 dependencies = [
  "async-trait",
  "base64 0.13.0",
@@ -1438,7 +1432,7 @@ dependencies = [
 [[package]]
 name = "logger"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service.git?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
 dependencies = [
  "env_logger",
  "log",
@@ -1609,7 +1603,7 @@ dependencies = [
 [[package]]
 name = "openssl-build"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service.git?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
 dependencies = [
  "cc",
 ]
@@ -1640,7 +1634,7 @@ dependencies = [
 [[package]]
 name = "openssl-sys2"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service.git?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
 dependencies = [
  "openssl-build",
  "openssl-sys",
@@ -1649,7 +1643,7 @@ dependencies = [
 [[package]]
 name = "openssl2"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service.git?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
 dependencies = [
  "foreign-types",
  "foreign-types-shared",
@@ -1711,7 +1705,7 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 [[package]]
 name = "pkcs11"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service.git?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
 dependencies = [
  "foreign-types-shared",
  "lazy_static",
@@ -1728,7 +1722,7 @@ dependencies = [
 [[package]]
 name = "pkcs11-sys"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service.git?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
 
 [[package]]
 name = "pkg-config"
@@ -1774,26 +1768,13 @@ dependencies = [
 
 [[package]]
 name = "rand"
-version = "0.4.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "552840b97013b1a26992c11eac34bdd778e464601a4c2054b5f0bff7c6761293"
-dependencies = [
- "fuchsia-cprng",
- "libc",
- "rand_core 0.3.1",
- "rdrand",
- "winapi",
-]
-
-[[package]]
-name = "rand"
 version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2e7573632e6454cf6b99d7aac4ccca54be06da05aca2ef7423d22d27d4d4bcd8"
 dependencies = [
  "libc",
  "rand_chacha",
- "rand_core 0.6.3",
+ "rand_core",
  "rand_hc",
 ]
 
@@ -1804,23 +1785,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6c10a63a0fa32252be49d21e7709d4d4baf8d231c2dbce1eaa8141b9b127d88"
 dependencies = [
  "ppv-lite86",
- "rand_core 0.6.3",
+ "rand_core",
 ]
-
-[[package]]
-name = "rand_core"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a6fdeb83b075e8266dcc8762c22776f6877a63111121f5f8c7411e5be7eed4b"
-dependencies = [
- "rand_core 0.4.2",
-]
-
-[[package]]
-name = "rand_core"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c33a3c44ca05fa6f1807d8e6743f3824e8509beca625669633be0acbdf509dc"
 
 [[package]]
 name = "rand_core"
@@ -1837,7 +1803,7 @@ version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d51e9f596de227fda2ea6c84607f5558e196eeaf43c986b724ba4fb8fdf497e7"
 dependencies = [
- "rand_core 0.6.3",
+ "rand_core",
 ]
 
 [[package]]
@@ -1863,15 +1829,6 @@ dependencies = [
  "crossbeam-utils",
  "lazy_static",
  "num_cpus",
-]
-
-[[package]]
-name = "rdrand"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "678054eb77286b51581ba43620cc911abf02758c91f93f479767aed0f90458b2"
-dependencies = [
- "rand_core 0.3.1",
 ]
 
 [[package]]
@@ -2132,16 +2089,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tempdir"
-version = "0.3.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15f2b5fb00ccdf689e0149d1b1b3c03fead81c2b37735d812fa8bddbbf41b6d8"
-dependencies = [
- "rand 0.4.6",
- "remove_dir_all",
-]
-
-[[package]]
 name = "tempfile"
 version = "3.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2149,7 +2096,7 @@ checksum = "dac1c663cfc93810f88aed9b8941d48cabf856a1b111c29a40439018d870eb22"
 dependencies = [
  "cfg-if 1.0.0",
  "libc",
- "rand 0.8.4",
+ "rand",
  "redox_syscall",
  "remove_dir_all",
  "winapi",
@@ -2189,7 +2136,7 @@ dependencies = [
 [[package]]
 name = "test-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service.git?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#8f53f29c063c03529e508ee4111c7f1b1110c08f"
 dependencies = [
  "aziot-identity-common",
  "aziot-identity-common-http",
