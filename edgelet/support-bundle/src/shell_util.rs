@@ -4,17 +4,17 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use std::io::{Seek, Write};
 use tokio::process::Command;
 
-use failure::Fail;
+use anyhow::Context;
 use zip::{write::FileOptions, ZipWriter};
 
-use crate::error::{Error, ErrorKind};
+use crate::error::Error;
 use edgelet_core::LogOptions;
 
 pub async fn write_check(
     writer: &mut impl Write,
     iothub_hostname: Option<String>,
     verbose: bool,
-) -> Result<(), Error> {
+) -> anyhow::Result<()> {
     print_verbose("Calling iotedge check", verbose);
 
     let mut iotedge = std::env::current_exe().unwrap();
@@ -35,14 +35,14 @@ pub async fn write_check(
     let check = check
         .output()
         .await
-        .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+        .context(Error::SupportBundle)?;
 
     writer
         .write_all(&check.stdout)
-        .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+        .context(Error::SupportBundle)?;
     writer
         .write_all(&check.stderr)
-        .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+        .context(Error::SupportBundle)?;
 
     print_verbose("Wrote check output to file", verbose);
     Ok(())
@@ -53,7 +53,7 @@ pub async fn write_inspect<W>(
     zip_writer: &mut ZipWriter<W>,
     file_options: &FileOptions,
     verbose: bool,
-) -> Result<(), Error>
+) -> anyhow::Result<()>
 where
     W: Write + Seek,
 {
@@ -86,11 +86,11 @@ where
 
     zip_writer
         .start_file(file_name, *file_options)
-        .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+        .context(Error::SupportBundle)?;
 
     zip_writer
         .write_all(&output)
-        .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+        .context(Error::SupportBundle)?;
 
     print_verbose(&format!("Got docker inspect for {}", module_name), verbose);
 
@@ -127,7 +127,7 @@ pub async fn write_network_inspect<W>(
     zip_writer: &mut ZipWriter<W>,
     file_options: &FileOptions,
     verbose: bool,
-) -> Result<(), Error>
+) -> anyhow::Result<()>
 where
     W: Write + Seek,
 {
@@ -160,11 +160,11 @@ where
 
     zip_writer
         .start_file(file_name, *file_options)
-        .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+        .context(Error::SupportBundle)?;
 
     zip_writer
         .write_all(&output)
-        .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+        .context(Error::SupportBundle)?;
 
     print_verbose(
         &format!("Got docker network inspect for {}", network_name),
@@ -180,7 +180,7 @@ pub async fn write_system_log<W>(
     zip_writer: &mut ZipWriter<W>,
     file_options: &FileOptions,
     verbose: bool,
-) -> Result<(), Error>
+) -> anyhow::Result<()>
 where
     W: Write + Seek,
 {
@@ -230,11 +230,11 @@ where
 
     zip_writer
         .start_file(file_name, *file_options)
-        .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+        .context(Error::SupportBundle)?;
 
     zip_writer
         .write_all(&output)
-        .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+        .context(Error::SupportBundle)?;
 
     print_verbose(format!("Got logs for {}", name).as_str(), verbose);
     Ok(())

@@ -93,7 +93,6 @@ pub fn runtime_state(
 #[async_trait::async_trait]
 impl Module for DockerModule {
     type Config = DockerConfig;
-    type Error = anyhow::Error;
 
     fn name(&self) -> &str {
         &self.name

@@ -2,12 +2,12 @@
 
 use std::io::Write;
 
-use failure::Fail;
+use anyhow::Context;
 use futures::TryStreamExt;
 
 use edgelet_core::{LogOptions, Module, ModuleRuntime};
 
-use crate::error::{Error, ErrorKind};
+use crate::error::Error;
 
 pub async fn get_modules(runtime: &impl ModuleRuntime, include_ms_only: bool) -> Vec<String> {
     const MS_MODULES: &[&str] = &["edgeAgent", "edgeHub"];
@@ -38,24 +38,24 @@ pub async fn write_logs(
     module_name: &str,
     options: &LogOptions,
     writer: &mut (impl Write + Send),
-) -> Result<(), Error> {
+) -> anyhow::Result<()> {
     // Collect Logs
     let mut logs = runtime
         .logs(module_name, options)
         .await
-        .map_err(|err| Error::from(err.context(ErrorKind::Write)))?;
+        .context(Error::Write)?;
 
     while let Some(bytes) = logs
         .try_next()
         .await
-        .map_err(|err| Error::from(err.context(ErrorKind::Write)))?
+        .context(Error::Write)?
     {
         // First 4 bytes represent stderr vs stdout, we currently don't display differently based on that.
         // Next 4 bytes represent length of chunk, rust already encodes this information in the slice.
         if bytes.len() > 8 {
             writer
                 .write_all(&bytes[8..])
-                .map_err(|err| Error::from(err.context(ErrorKind::Write)))?;
+                .context(Error::Write)?;
         }
     }
 

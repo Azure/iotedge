@@ -5,12 +5,12 @@ use std::fs::File;
 use std::io::{Cursor, Read, Seek, SeekFrom, Write};
 use std::path::Path;
 
-use failure::Fail;
+use anyhow::Context;
 use zip::{write::FileOptions, CompressionMethod, ZipWriter};
 
 use edgelet_core::{LogOptions, ModuleRuntime};
 
-use crate::error::{Error, ErrorKind};
+use crate::error::Error;
 use crate::runtime_util::{get_modules, write_logs};
 use crate::shell_util::{
     get_docker_networks, write_check, write_inspect, write_network_inspect, write_system_log,
@@ -34,11 +34,11 @@ pub async fn make_bundle(
     verbose: bool,
     iothub_hostname: Option<String>,
     runtime: &impl ModuleRuntime,
-) -> Result<(Box<dyn Read + Send>, u64), Error> {
+) -> anyhow::Result<(Box<dyn Read + Send>, u64)> {
     match output_location {
         OutputLocation::File(location) => {
             let buffer = File::create(Path::new(&location))
-                .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+                .context(Error::SupportBundle)?;
             let mut zip_writer = ZipWriter::new(buffer);
 
             let (reader, size) = write_all(
@@ -79,7 +79,7 @@ async fn write_all<W>(
     verbose: bool,
     iothub_hostname: Option<String>,
     runtime: &impl ModuleRuntime,
-) -> Result<(W, u64), Error>
+) -> anyhow::Result<(W, u64)>
 where
     W: Write + Seek + Send,
 {
@@ -88,7 +88,7 @@ where
     // Get Check
     zip_writer
         .start_file("check.json", file_options)
-        .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+        .context(Error::SupportBundle)?;
     write_check(&mut zip_writer, iothub_hostname, verbose).await?;
 
     // Get all modules
@@ -96,7 +96,7 @@ where
         // Write module logs
         zip_writer
             .start_file(format!("logs/{}_log.txt", module_name), file_options)
-            .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+            .context(Error::SupportBundle)?;
         write_logs(runtime, &module_name, &log_options, &mut zip_writer).await?;
 
         // write module inspect
@@ -116,13 +116,13 @@ where
     // Finilize buffer and set cursur to 0 for reading.
     let mut buffer = zip_writer
         .finish()
-        .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+        .context(Error::SupportBundle)?;
     let len = buffer
         .seek(SeekFrom::Current(0))
-        .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+        .context(Error::SupportBundle)?;
     buffer
         .seek(SeekFrom::Start(0))
-        .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+        .context(Error::SupportBundle)?;
 
     let result = (buffer, len);
     Ok(result)

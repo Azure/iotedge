@@ -203,7 +203,6 @@ impl std::fmt::Debug for DockerModuleRuntime {
 
 #[async_trait::async_trait]
 impl ModuleRegistry for DockerModuleRuntime {
-    type Error = anyhow::Error;
     type Config = DockerConfig;
 
     async fn pull(&self, config: &Self::Config) -> anyhow::Result<()> {
@@ -262,7 +261,6 @@ impl ModuleRegistry for DockerModuleRuntime {
 
 #[async_trait::async_trait]
 impl MakeModuleRuntime for DockerModuleRuntime {
-    type Error = anyhow::Error;
     type Config = DockerConfig;
     type Settings = Settings;
     type ModuleRuntime = Self;
@@ -402,7 +400,6 @@ fn get_ipv6_settings(network_configuration: &MobyNetwork) -> (bool, Option<Ipam>
 
 #[async_trait::async_trait]
 impl ModuleRuntime for DockerModuleRuntime {
-    type Error = anyhow::Error;
     type Config = DockerConfig;
     type Module = DockerModule;
     type ModuleRegistry = Self;
