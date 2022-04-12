@@ -18,9 +18,9 @@ use url::Url;
 use docker::apis::{Configuration, DockerApi, DockerApiClient};
 use docker::models::{ContainerCreateBody, HostConfig, InlineResponse2001, Ipam, NetworkConfig};
 use edgelet_core::{
-    DiskInfo, LogOptions, MakeModuleRuntime, Module, ModuleAction, ModuleRegistry,
-    ModuleRuntime, ModuleRuntimeState, RegistryOperation, RuntimeOperation,
-    SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
+    DiskInfo, LogOptions, MakeModuleRuntime, Module, ModuleAction, ModuleRegistry, ModuleRuntime,
+    ModuleRuntimeState, RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo,
+    SystemResources, UrlExt,
 };
 use edgelet_settings::{
     ContentTrust, DockerConfig, Ipam as CoreIpam, MobyNetwork, ModuleSpec, RuntimeSettings,
