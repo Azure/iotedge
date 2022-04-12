@@ -51,6 +51,7 @@ impl DockerConfig {
         &self.image
     }
 
+    #[must_use]
     pub fn with_image(mut self, image: String) -> Self {
         self.image = image;
         self
@@ -60,6 +61,7 @@ impl DockerConfig {
         self.image_hash.as_deref()
     }
 
+    #[must_use]
     pub fn with_image_hash(mut self, image_id: String) -> Self {
         self.image_hash = Some(image_id);
         self
@@ -73,6 +75,7 @@ impl DockerConfig {
         &mut self.create_options
     }
 
+    #[must_use]
     pub fn with_create_options(
         mut self,
         create_options: docker::models::ContainerCreateBody,
@@ -93,6 +96,7 @@ impl DockerConfig {
         self.auth.as_ref()
     }
 
+    #[must_use]
     pub fn with_auth(mut self, auth: docker::models::AuthConfig) -> Self {
         self.auth = Some(auth);
         self

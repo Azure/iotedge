@@ -47,7 +47,7 @@ async fn run() -> Result<(), Error> {
 
     let default_diagnostics_image_name = format!(
         "/azureiotedge-diagnostics:{}",
-        edgelet_core::version().replace("~", "-")
+        edgelet_core::version().replace('~', "-")
     );
 
     let default_support_bundle_name = format!(

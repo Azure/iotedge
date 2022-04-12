@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::collections::BTreeMap;
 use std::default::Default;
 use std::fmt;
 use std::result::Result;
@@ -10,7 +11,9 @@ use std::time::Duration;
 use chrono::prelude::*;
 use failure::{Fail, ResultExt};
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 
+use aziotctl_common::host_info::{DmiInfo, OsInfo};
 use edgelet_settings::module::Settings as ModuleSpec;
 use edgelet_settings::RuntimeSettings;
 use tokio::sync::mpsc::UnboundedSender;
@@ -83,6 +86,7 @@ impl ModuleRuntimeState {
         &self.status
     }
 
+    #[must_use]
     pub fn with_status(mut self, status: ModuleStatus) -> Self {
         self.status = status;
         self
@@ -92,6 +96,7 @@ impl ModuleRuntimeState {
         self.exit_code
     }
 
+    #[must_use]
     pub fn with_exit_code(mut self, exit_code: Option<i64>) -> Self {
         self.exit_code = exit_code;
         self
@@ -101,6 +106,7 @@ impl ModuleRuntimeState {
         self.status_description.as_ref().map(AsRef::as_ref)
     }
 
+    #[must_use]
     pub fn with_status_description(mut self, status_description: Option<String>) -> Self {
         self.status_description = status_description;
         self
@@ -110,6 +116,7 @@ impl ModuleRuntimeState {
         self.started_at.as_ref()
     }
 
+    #[must_use]
     pub fn with_started_at(mut self, started_at: Option<DateTime<Utc>>) -> Self {
         self.started_at = started_at;
         self
@@ -119,6 +126,7 @@ impl ModuleRuntimeState {
         self.finished_at.as_ref()
     }
 
+    #[must_use]
     pub fn with_finished_at(mut self, finished_at: Option<DateTime<Utc>>) -> Self {
         self.finished_at = finished_at;
         self
@@ -128,6 +136,7 @@ impl ModuleRuntimeState {
         self.image_id.as_ref().map(AsRef::as_ref)
     }
 
+    #[must_use]
     pub fn with_image_id(mut self, image_id: Option<String>) -> Self {
         self.image_id = image_id;
         self
@@ -137,6 +146,7 @@ impl ModuleRuntimeState {
         self.pid
     }
 
+    #[must_use]
     pub fn with_pid(mut self, pid: Option<i32>) -> Self {
         self.pid = pid;
         self
@@ -200,26 +210,31 @@ impl LogOptions {
         }
     }
 
+    #[must_use]
     pub fn with_follow(mut self, follow: bool) -> Self {
         self.follow = follow;
         self
     }
 
+    #[must_use]
     pub fn with_tail(mut self, tail: LogTail) -> Self {
         self.tail = tail;
         self
     }
 
+    #[must_use]
     pub fn with_since(mut self, since: i32) -> Self {
         self.since = since;
         self
     }
 
+    #[must_use]
     pub fn with_until(mut self, until: i32) -> Self {
         self.until = Some(until);
         self
     }
 
+    #[must_use]
     pub fn with_timestamps(mut self, timestamps: bool) -> Self {
         self.timestamps = timestamps;
         self
@@ -266,21 +281,103 @@ pub trait ModuleRegistry {
     async fn remove(&self, name: &str) -> Result<(), Self::Error>;
 }
 
-#[derive(Debug, Default, Deserialize, PartialEq, Serialize)]
+#[skip_serializing_none]
+#[derive(Debug, Default, PartialEq, Serialize)]
 pub struct SystemInfo {
-    /// OS Type of the Host. Example of value expected: \"linux\" and \"windows\".
     #[serde(rename = "osType")]
-    pub os_type: String,
-    /// Hardware architecture of the host. Example of value expected: arm32, x86, amd64
-    pub architecture: String,
-    /// iotedge version string
-    pub version: String,
-    pub provisioning: ProvisioningInfo,
-    pub server_version: String,
+    pub kernel: String,
+    pub kernel_release: String,
     pub kernel_version: String,
-    pub operating_system: String,
-    pub cpus: i32,
+
+    pub operating_system: Option<String>,
+    pub operating_system_version: Option<String>,
+    pub operating_system_variant: Option<String>,
+    pub operating_system_build: Option<String>,
+
+    pub architecture: String,
+    pub cpus: usize,
     pub virtualized: String,
+
+    pub product_name: Option<String>,
+    pub system_vendor: Option<String>,
+
+    pub version: String,
+
+    pub provisioning: ProvisioningInfo,
+
+    #[serde(default, flatten)]
+    pub additional_properties: BTreeMap<String, String>,
+}
+
+impl SystemInfo {
+    pub fn from_system() -> Result<Self, Error> {
+        let kernel = nix::sys::utsname::uname();
+        let dmi = DmiInfo::default();
+        let os = OsInfo::default();
+
+        let res = Self {
+            kernel: kernel.sysname().to_owned(),
+            kernel_release: kernel.release().to_owned(),
+            kernel_version: kernel.version().to_owned(),
+
+            operating_system: os.id,
+            operating_system_version: os.version_id,
+            operating_system_variant: os.variant_id,
+            operating_system_build: os.build_id,
+
+            architecture: os.arch.to_owned(),
+            cpus: num_cpus::get(),
+            virtualized: match crate::virtualization::is_virtualized_env() {
+                Ok(Some(true)) => "yes",
+                Ok(Some(false)) => "no",
+                _ => "unknown",
+            }
+            .to_owned(),
+
+            product_name: dmi.product,
+            system_vendor: dmi.vendor,
+
+            version: crate::version_with_source_version(),
+            provisioning: ProvisioningInfo {
+                r#type: "ProvisioningType".into(),
+                dynamic_reprovisioning: false,
+                always_reprovision_on_startup: false,
+            },
+
+            additional_properties: BTreeMap::new(),
+        };
+
+        Ok(res)
+    }
+
+    pub fn merge_additional(&mut self, mut additional_info: BTreeMap<String, String>) -> &Self {
+        macro_rules! remove_assign {
+            ($src:literal, $dest:ident) => {
+                if let Some((_, x)) = additional_info.remove_entry($src) {
+                    self.$dest = x.into();
+                }
+            };
+        }
+
+        remove_assign!("kernel_name", kernel);
+        remove_assign!("kernel_release", kernel_release);
+        remove_assign!("kernel_version", kernel_version);
+
+        remove_assign!("os_name", operating_system);
+        remove_assign!("os_version", operating_system_version);
+        remove_assign!("os_variant", operating_system_variant);
+        remove_assign!("os_build", operating_system_build);
+
+        remove_assign!("cpu_architecture", architecture);
+
+        remove_assign!("product_name", product_name);
+        remove_assign!("product_vendor", system_vendor);
+
+        self.additional_properties
+            .extend(additional_info.into_iter());
+
+        self
+    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
@@ -479,13 +576,14 @@ impl fmt::Display for RuntimeOperation {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     use std::collections::BTreeMap;
     use std::str::FromStr;
     use std::string::ToString;
 
     use edgelet_settings::module::ImagePullPolicy;
 
-    use super::ModuleSpec;
     use crate::module::ModuleStatus;
 
     fn get_inputs() -> Vec<(&'static str, ModuleStatus)> {
@@ -564,5 +662,78 @@ mod tests {
             ImagePullPolicy::default(),
         )
         .unwrap_err();
+    }
+
+    #[test]
+    fn system_info_merge() {
+        let mut base = SystemInfo {
+            kernel: "FOO".into(),
+            kernel_release: "BAR".into(),
+            kernel_version: "BAZ".into(),
+
+            operating_system: "A".to_owned().into(),
+            operating_system_version: "B".to_owned().into(),
+            operating_system_variant: "C".to_owned().into(),
+            operating_system_build: "D".to_owned().into(),
+
+            architecture: "ARCH".into(),
+            cpus: 0,
+            virtualized: "UNKNOWN".into(),
+
+            product_name: None,
+            system_vendor: None,
+
+            version: crate::version_with_source_version(),
+            provisioning: ProvisioningInfo {
+                r#type: "ProvisioningType".into(),
+                dynamic_reprovisioning: false,
+                always_reprovision_on_startup: false,
+            },
+
+            additional_properties: BTreeMap::new(),
+        };
+
+        let result = SystemInfo {
+            kernel: "linux".into(),
+            kernel_release: "5.0".into(),
+            kernel_version: "1".into(),
+
+            operating_system: "OS".to_owned().into(),
+            operating_system_version: "B".to_owned().into(),
+            operating_system_variant: "C".to_owned().into(),
+            operating_system_build: "D".to_owned().into(),
+
+            architecture: "ARCH".into(),
+            cpus: 0,
+            virtualized: "UNKNOWN".into(),
+
+            product_name: None,
+            system_vendor: None,
+
+            version: crate::version_with_source_version(),
+            provisioning: ProvisioningInfo {
+                r#type: "ProvisioningType".into(),
+                dynamic_reprovisioning: false,
+                always_reprovision_on_startup: false,
+            },
+
+            additional_properties: BTreeMap::from([
+                ("foo".to_owned(), "foofoo".to_owned()),
+                ("bar".to_owned(), "barbar".to_owned()),
+            ]),
+        };
+
+        let additional = BTreeMap::from([
+            ("kernel_name".to_owned(), "linux".to_owned()),
+            ("kernel_release".to_owned(), "5.0".to_owned()),
+            ("kernel_version".to_owned(), "1".to_owned()),
+            ("os_name".to_owned(), "OS".to_owned()),
+            ("foo".to_owned(), "foofoo".to_owned()),
+            ("bar".to_owned(), "barbar".to_owned()),
+        ]);
+
+        base.merge_additional(additional);
+
+        assert_eq!(base, result);
     }
 }

@@ -43,6 +43,7 @@ impl CertificateProperties {
         &self.common_name
     }
 
+    #[must_use]
     pub fn with_common_name(mut self, common_name: String) -> Self {
         self.common_name = common_name;
         self
@@ -52,6 +53,7 @@ impl CertificateProperties {
         &self.certificate_type
     }
 
+    #[must_use]
     pub fn with_certificate_type(mut self, certificate_type: CertificateType) -> Self {
         self.certificate_type = certificate_type;
         self
@@ -61,6 +63,7 @@ impl CertificateProperties {
         &self.alias
     }
 
+    #[must_use]
     pub fn with_alias(mut self, alias: String) -> Self {
         self.alias = alias;
         self
@@ -70,6 +73,7 @@ impl CertificateProperties {
         &self.issuer
     }
 
+    #[must_use]
     pub fn with_issuer(mut self, issuer: CertificateIssuer) -> Self {
         self.issuer = issuer;
         self
@@ -79,6 +83,7 @@ impl CertificateProperties {
         self.dns_san_entries.as_ref().map(AsRef::as_ref)
     }
 
+    #[must_use]
     pub fn with_dns_san_entries(mut self, entries: Vec<String>) -> Self {
         self.dns_san_entries = Some(entries);
         self
@@ -88,6 +93,7 @@ impl CertificateProperties {
         self.ip_entries.as_ref().map(AsRef::as_ref)
     }
 
+    #[must_use]
     pub fn with_ip_entries(mut self, entries: Vec<String>) -> Self {
         self.ip_entries = Some(entries);
         self

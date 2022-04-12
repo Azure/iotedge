@@ -32,6 +32,9 @@ pub struct Config {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub manifest_trust_bundle_cert: Option<Url>,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub additional_info: Option<Url>,
+
     #[serde(flatten)]
     pub aziot: aziotctl_common::config::super_config::Config,
 
@@ -77,7 +80,7 @@ pub fn default_agent() -> edgelet_settings::ModuleSpec<edgelet_settings::DockerC
 pub enum EdgeCa {
     Issued {
         #[serde(flatten)]
-        cert: common_config::super_config::CertIssuanceOptions,
+        cert: Box<common_config::super_config::CertIssuanceOptions>,
     },
     Preloaded {
         cert: Url,
