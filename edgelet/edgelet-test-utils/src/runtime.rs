@@ -167,10 +167,7 @@ impl edgelet_core::ModuleRuntime for Runtime {
         unimplemented!()
     }
 
-    async fn stop_all(
-        &self,
-        _wait_before_kill: Option<std::time::Duration>,
-    ) -> anyhow::Result<()> {
+    async fn stop_all(&self, _wait_before_kill: Option<std::time::Duration>) -> anyhow::Result<()> {
         unimplemented!()
     }
 

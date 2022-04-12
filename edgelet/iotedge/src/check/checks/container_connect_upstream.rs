@@ -179,17 +179,16 @@ impl ContainerConnectUpstream {
         }
 
         if let Err((_, err)) = super::docker(docker_host_arg, args).await {
-            let err = err
-                .context(format!(
-                    "Container on the {} network could not connect to {}:{}",
-                    if self.use_container_runtime_network {
-                        network_name
-                    } else {
-                        "default"
-                    },
-                    upstream_hostname,
-                    port,
-                ));
+            let err = err.context(format!(
+                "Container on the {} network could not connect to {}:{}",
+                if self.use_container_runtime_network {
+                    network_name
+                } else {
+                    "default"
+                },
+                upstream_hostname,
+                port,
+            ));
             return CheckResult::Failed(err);
         }
 
