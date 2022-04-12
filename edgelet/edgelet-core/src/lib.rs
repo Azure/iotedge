@@ -62,7 +62,7 @@ pub fn version() -> &'static str {
 }
 
 pub fn version_with_source_version() -> String {
-    (&VERSION_WITH_SOURCE_VERSION).to_string()
+    VERSION_WITH_SOURCE_VERSION.to_string()
 }
 
 pub trait UrlExt {
