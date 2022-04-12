@@ -51,11 +51,14 @@ pub enum ErrorKind {
     #[fail(display = "The timer that checks the edge runtime status encountered an error.")]
     EdgeRuntimeStatusCheckerTimer,
 
-    #[fail(display = "An identity manager error occurred.")]
-    IdentityManager,
+    #[fail(display = "Unable to get the virtualization status.")]
+    GetVirtualizationStatus,
 
     #[fail(display = "An error occurred when obtaining the HSM version")]
     HsmVersion,
+
+    #[fail(display = "An identity manager error occurred.")]
+    IdentityManager,
 
     #[fail(display = "Invalid image pull policy configuration {:?}", _0)]
     InvalidImagePullPolicy(String),
@@ -89,9 +92,6 @@ pub enum ErrorKind {
 
     #[fail(display = "Unable to parse since.")]
     ParseSince,
-
-    #[fail(display = "Unable to get the virtualization status.")]
-    GetVirtualizationStatus,
 
     #[fail(display = "Signing error occurred.")]
     Sign,

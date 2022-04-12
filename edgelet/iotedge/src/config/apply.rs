@@ -181,6 +181,7 @@ fn execute_inner(
         auto_reprovisioning_mode,
         imported_master_encryption_key,
         manifest_trust_bundle_cert,
+        additional_info,
         aziot,
         agent,
         connect,
@@ -396,6 +397,22 @@ fn execute_inner(
         edgelet_settings::MANIFEST_TRUST_BUNDLE_ALIAS.to_owned()
     });
 
+    let additional_info = if let Some(additional_info) = additional_info {
+        let scheme = additional_info.scheme();
+        if scheme != "file" {
+            return Err(format!("unsupported additional_info scheme: {}", scheme).into());
+        }
+        let path = additional_info
+            .to_file_path()
+            .map_err(|_| "additional_info is an invalid URI")?;
+        let lossy = path.to_string_lossy();
+        let bytes = std::fs::read(&path)
+            .map_err(|e| format!("failed to read additional_info from {}: {:?}", lossy, e))?;
+        toml::de::from_slice(&bytes).map_err(|e| format!("invalid toml at {}: {:?}", lossy, e))?
+    } else {
+        std::collections::BTreeMap::new()
+    };
+
     let edged_config = edgelet_settings::Settings {
         base: edgelet_settings::base::Settings {
             hostname: identityd_config.hostname.clone(),
@@ -404,6 +421,7 @@ fn execute_inner(
             edge_ca_key,
             trust_bundle_cert: Some(edgelet_settings::TRUST_BUNDLE_ALIAS.to_owned()),
             manifest_trust_bundle_cert,
+            additional_info,
 
             auto_reprovisioning_mode,
 
