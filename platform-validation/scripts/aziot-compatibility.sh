@@ -535,9 +535,14 @@ check_docker_api_version() {
     # First Check if We can get Docker API Version from the Docker Socket since that is how
     # IoT Edge communicates with Docker Container Enginer. Additionally, there maybe scenarios
     # where docker CLI is not present.
+    if [ -z "$DOCKER_SOCKET" ]; then
+        DOCKER_SOCKET="/var/run/docker.sock"
+        wrap_debug_message "No Socket URI Specified for Docker Engine, using default path $DOCKER_SOCKET"
+    fi
+
     ret=$(need_cmd curl)
     if [ "$?" -eq 0 ]; then
-        version_string=$(curl --unix-socket /var/run/docker.sock http://localhost/version)
+        version_string=$(curl -s --unix-socket "$DOCKER_SOCKET" http://localhost/version)
         if [ "$?" -eq 0 ]; then
             actual_version=$(echo "$version_string" | sed 's/.*\"ApiVersion\":\(\"[.0-9]*\"\),.*/\1/' | tr -d '\"')
             version_check=$(echo "$actual_version" "$1" | awk '{if ($1 < $2) print 1; else print 0}')
@@ -550,13 +555,15 @@ check_docker_api_version() {
                 wrap_warning_message "Docker API Version on device $version is lower than Minumum API Version $MINIMUM_DOCKER_API_VERSION. Please upgrade docker engine."
                 return
             fi
+        else
+            wrap_warning_message "Could not communicate with $DOCKER_SOCKET, Re-run the script again with DOCKET_SOCKET=<docker-socket-path> ./aziot-compatibility.sh. Will try to use Docker CLI "
         fi
     fi
 
     ret=$(need_cmd docker)
     if [ "$?" -ne 0 ]; then
         wrap_warning "check_docker_api_version"
-        wrap_warning_message "Docker Engine does not exist on this device!!, Please follow instructions here on how to install a compatible container engine
+        wrap_warning_message "Docker CLI does not exist on this device, Have you installed a compatible container engine? Please follow instructions here to install one:
         https://docs.microsoft.com/en-us/azure/iot-edge/how-to-provision-single-device-linux-symmetric?view=iotedge-2020-11&tabs=azure-portal%2Cubuntu#install-a-container-engine"
         return
     fi
