@@ -532,9 +532,27 @@ check_architecture() {
 #to make sure we still support the version.
 
 check_docker_api_version() {
-    # Check dependencies
+    # First Check if We can get Docker API Version from the Docker Socket since that is how
+    # IoT Edge communicates with Docker Container Enginer. Additionally, there maybe scenarios
+    # where docker CLI is not present.
+    ret=$(need_cmd curl)
+    if [ "$?" -eq 0 ]; then
+        version_string=$(curl --unix-socket /var/run/docker.sock http://localhost/version)
+        if [ "$?" -eq 0 ]; then
+            actual_version=$(echo "$version_string" | sed 's/.*\"ApiVersion\":\(\"[.0-9]*\"\),.*/\1/' | tr -d '\"')
+            version_check=$(echo "$actual_version" "$1" | awk '{if ($1 < $2) print 1; else print 0}')
+            wrap_debug_message "Docker API Version is $actual_version, Minimum Docker Version Required is $1"
+            if [ "$version_check" -eq 0 ]; then
+                wrap_pass "check_docker_api_version"
+                return
+            else
+                wrap_fail "check_docker_api_version"
+                wrap_warning_message "Docker API Version on device $version is lower than Minumum API Version $MINIMUM_DOCKER_API_VERSION. Please upgrade docker engine."
+                return
+            fi
+        fi
+    fi
 
-    #TODO : This is how we check  for a container engine in our packages. Is this the right way?
     ret=$(need_cmd docker)
     if [ "$?" -ne 0 ]; then
         wrap_warning "check_docker_api_version"
@@ -543,7 +561,7 @@ check_docker_api_version() {
         return
     fi
 
-    version=$(docker version -f '{{.Client.APIVersion}}')
+    version=$(docker version -f '{{.Server.APIVersion}}')
     if [ $? != 0 ]; then
         wrap_warning "check_docker_api_version"
         wrap_warning_message "Could not get Docker Version"
@@ -575,7 +593,7 @@ check_shared_library_dependency() {
         check_ldconfig=$(need_cmd ldconfig)
         result_ldconfig="$?"
         # case with root privilege and ldconfig exists
-        if [ "$(id -u)" -eq 0 ] && [ "$result_ldconfig" -eq 0 ] ; then
+        if [ "$(id -u)" -eq 0 ] && [ "$result_ldconfig" -eq 0 ]; then
             check_shared_lib_ldconfig_util "$lib"
             result_lib="$?"
             if [ "$result_lib" -ne 0 ] && [ "$lib" = "$SHARED_LIB_LIBSSSL_1_1" ]; then
@@ -751,7 +769,7 @@ check_package_manager() {
 check_ca_cert() {
     find_openssl=$(openssl version >/dev/null 2>&1)
     if [ "$?" -eq 0 ]; then
-        ca_cert_dir=$(openssl version -d | awk '{print $2}'| sed "s/\"//g" | tr -d " ")"/certs"
+        ca_cert_dir=$(openssl version -d | awk '{print $2}' | sed "s/\"//g" | tr -d " ")"/certs"
         wrap_debug_message "CA: cert directory $ca_cert_dir"
         # Check first if the directory exists.
         if [ ! -d "$ca_cert_dir" ]; then
@@ -775,7 +793,7 @@ check_ca_cert() {
 
 check_free_memory() {
     memory_filename="/proc/meminfo"
-    if [  ! -f "$memory_filename" ] ; then
+    if [ ! -f "$memory_filename" ]; then
         wrap_skip "check_free_memory"
         return 2
     fi
@@ -811,6 +829,9 @@ aziotedge_check() {
     case $APP_VERSION in
     *) wrap_debug_message "Checking aziot-edge compatibility for Release 1.2" ;;
     esac
+
+    # Keep the ordering of checks consistent, Add new checks towards the end, Since outputs of
+    # one check maybe used by the other
 
     #Required for resource allocation for containers
     check_cgroup_heirachy
