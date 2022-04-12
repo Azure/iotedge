@@ -19,8 +19,8 @@ use docker::apis::{Configuration, DockerApi, DockerApiClient};
 use docker::models::{ContainerCreateBody, HostConfig, InlineResponse2001, Ipam, NetworkConfig};
 use edgelet_core::{
     DiskInfo, LogOptions, MakeModuleRuntime, Module, ModuleRegistry, ModuleRuntime,
-    ModuleRuntimeState, ProvisioningInfo, RegistryOperation, RuntimeOperation,
-    SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
+    ModuleRuntimeState, RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo,
+    SystemResources, UrlExt,
 };
 use edgelet_settings::{
     ContentTrust, DockerConfig, Ipam as CoreIpam, MobyNetwork, ModuleSpec, RuntimeSettings,
@@ -49,6 +49,7 @@ pub struct DockerModuleRuntime {
     notary_lock: Arc<Mutex<BTreeMap<String, String>>>,
     create_socket_channel: UnboundedSender<ModuleAction>,
     allow_elevated_docker_permissions: bool,
+    additional_info: BTreeMap<String, String>,
 }
 
 impl DockerModuleRuntime {
@@ -288,6 +289,7 @@ impl MakeModuleRuntime for DockerModuleRuntime {
             notary_lock: Arc::new(Mutex::new(BTreeMap::new())),
             create_socket_channel,
             allow_elevated_docker_permissions: settings.allow_elevated_docker_permissions(),
+            additional_info: settings.additional_info().clone(),
         };
 
         Ok(runtime)
@@ -654,49 +656,11 @@ impl ModuleRuntime for DockerModuleRuntime {
     async fn system_info(&self) -> Result<CoreSystemInfo> {
         info!("Querying system info...");
 
-        // Provisioning information is no longer available in aziot-edged. This information should
-        // be emitted from Identity Service
-        let provisioning = ProvisioningInfo {
-            r#type: "ProvisioningType".into(),
-            dynamic_reprovisioning: false,
-            always_reprovision_on_startup: false,
-        };
+        let mut system_info = CoreSystemInfo::from_system()
+            .map_err(|_| ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))?;
 
-        let system_info = self.client.system_info().await.map_err(|e| {
-            Error::from_docker_error(e, ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))
-        })?;
+        system_info.merge_additional(self.additional_info.clone());
 
-        let system_info = CoreSystemInfo {
-            os_type: system_info
-                .os_type()
-                .unwrap_or(&String::from("Unknown"))
-                .to_string(),
-            architecture: system_info
-                .architecture()
-                .unwrap_or(&String::from("Unknown"))
-                .to_string(),
-            version: edgelet_core::version_with_source_version(),
-            provisioning,
-            cpus: system_info.NCPU().unwrap_or_default(),
-            virtualized: match edgelet_core::is_virtualized_env() {
-                Ok(Some(true)) => "yes",
-                Ok(Some(false)) => "no",
-                Ok(None) | Err(_) => "unknown",
-            }
-            .to_string(),
-            kernel_version: system_info
-                .kernel_version()
-                .map(std::string::ToString::to_string)
-                .unwrap_or_default(),
-            operating_system: system_info
-                .operating_system()
-                .map(std::string::ToString::to_string)
-                .unwrap_or_default(),
-            server_version: system_info
-                .server_version()
-                .map(std::string::ToString::to_string)
-                .unwrap_or_default(),
-        };
         info!("Successfully queried system info");
         Ok(system_info)
     }

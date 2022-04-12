@@ -26,6 +26,7 @@ impl CertificateResponse {
         self.private_key = private_key;
     }
 
+    #[must_use]
     pub fn with_private_key(mut self, private_key: PrivateKey) -> Self {
         self.private_key = private_key;
         self
@@ -39,6 +40,7 @@ impl CertificateResponse {
         self.certificate = certificate;
     }
 
+    #[must_use]
     pub fn with_certificate(mut self, certificate: String) -> Self {
         self.certificate = certificate;
         self
@@ -52,6 +54,7 @@ impl CertificateResponse {
         self.expiration = expiration;
     }
 
+    #[must_use]
     pub fn with_expiration(mut self, expiration: String) -> Self {
         self.expiration = expiration;
         self
@@ -90,6 +93,7 @@ impl PrivateKey {
         self.type_ = type_;
     }
 
+    #[must_use]
     pub fn with_type(mut self, type_: String) -> Self {
         self.type_ = type_;
         self
@@ -103,6 +107,7 @@ impl PrivateKey {
         self.ref_ = Some(ref_);
     }
 
+    #[must_use]
     pub fn with_ref(mut self, ref_: String) -> Self {
         self.ref_ = Some(ref_);
         self
@@ -120,6 +125,7 @@ impl PrivateKey {
         self.bytes = Some(bytes);
     }
 
+    #[must_use]
     pub fn with_bytes(mut self, bytes: String) -> Self {
         self.bytes = Some(bytes);
         self
