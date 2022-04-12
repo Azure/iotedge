@@ -7,7 +7,7 @@ pub enum Error {
     #[error("Invalid argument - [{0}]")]
     Argument(String),
 
-    #[error("Argument {0} out of range [{1}, {2}) ")]
+    #[error("Argument {0} out of range [{1}, {2})")]
     ArgumentOutOfRange(String, String, String),
 
     #[error("Argument {0} should be greater than {1}")]

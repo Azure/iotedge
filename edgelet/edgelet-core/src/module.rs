@@ -8,17 +8,17 @@ use std::str::FromStr;
 use std::string::ToString;
 use std::time::Duration;
 
+use anyhow::Context;
 use chrono::prelude::*;
-use failure::{Fail, ResultExt};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
+use tokio::sync::mpsc::UnboundedSender;
 
 use aziotctl_common::host_info::{DmiInfo, OsInfo};
 use edgelet_settings::module::Settings as ModuleSpec;
 use edgelet_settings::RuntimeSettings;
-use tokio::sync::mpsc::UnboundedSender;
 
-use crate::error::{Error, ErrorKind, Result as EdgeletResult};
+use crate::error::Error;
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -166,15 +166,15 @@ impl Default for LogTail {
 }
 
 impl FromStr for LogTail {
-    type Err = Error;
+    type Err = anyhow::Error;
 
-    fn from_str(s: &str) -> EdgeletResult<Self> {
+    fn from_str(s: &str) -> anyhow::Result<Self> {
         let tail = if s == "all" {
             LogTail::All
         } else {
             let num = s
                 .parse::<u64>()
-                .with_context(|_| ErrorKind::InvalidLogTail(s.to_string()))?;
+                .with_context(|| Error::InvalidLogTail(s.to_string()))?;
             LogTail::Num(num)
         };
         Ok(tail)
@@ -264,7 +264,7 @@ impl LogOptions {
 #[async_trait::async_trait]
 pub trait Module {
     type Config;
-    type Error: Fail;
+    type Error: std::error::Error;
 
     fn name(&self) -> &str;
     fn type_(&self) -> &str;
@@ -275,7 +275,7 @@ pub trait Module {
 #[async_trait::async_trait]
 pub trait ModuleRegistry {
     type Config;
-    type Error: Fail;
+    type Error: std::error::Error;
 
     async fn pull(&self, config: &Self::Config) -> Result<(), Self::Error>;
     async fn remove(&self, name: &str) -> Result<(), Self::Error>;
@@ -460,7 +460,7 @@ pub trait MakeModuleRuntime {
     type Config: Clone + Send;
     type Settings: RuntimeSettings<ModuleConfig = Self::Config>;
     type ModuleRuntime: ModuleRuntime<Config = Self::Config>;
-    type Error: Fail;
+    type Error: std::error::Error;
 
     async fn make_runtime(
         settings: &Self::Settings,
@@ -470,7 +470,7 @@ pub trait MakeModuleRuntime {
 
 #[async_trait::async_trait]
 pub trait ModuleRuntime: Sized {
-    type Error: Fail;
+    type Error: std::error::Error;
 
     type Config: Clone + Send + serde::Serialize;
     type Module: Module<Config = Self::Config> + Send;

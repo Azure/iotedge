@@ -2,8 +2,6 @@
 
 use std::fmt;
 
-use failure::Fail;
-
 #[derive(Clone, Copy, Debug, serde_derive::Deserialize, PartialEq, serde_derive::Serialize)]
 pub enum AuthType {
     None,
@@ -72,7 +70,7 @@ impl IdentitySpec {
 #[async_trait::async_trait]
 pub trait IdentityManager {
     type Identity: Identity;
-    type Error: Fail;
+    type Error: std::error::Error;
 
     async fn create(&mut self, id: IdentitySpec) -> Result<Self::Identity, Self::Error>;
     async fn update(&mut self, id: IdentitySpec) -> Result<Self::Identity, Self::Error>;

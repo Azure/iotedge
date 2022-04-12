@@ -1,144 +1,94 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::fmt;
-use std::fmt::Display;
-
-use failure::{Backtrace, Context, Fail};
-
 pub type Result<T> = ::std::result::Result<T, Error>;
 
-#[derive(Debug)]
-pub struct Error {
-    inner: Context<ErrorKind>,
-}
-
-#[derive(Debug, Fail)]
-pub enum ErrorKind {
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
     // Only used by edgelet-test-utils
     #[cfg(test)]
-    #[fail(display = "Identity error")]
+    #[error("Identity error")]
     Certificate,
 
-    #[fail(display = "An error occurred obtaining the certificate contents")]
+    #[error("An error occurred obtaining the certificate contents")]
     CertificateContent,
 
-    #[fail(display = "An error occurred creating the certificate")]
+    #[error("An error occurred creating the certificate")]
     CertificateCreate,
 
-    #[fail(display = "An error occurred destroying the certificate")]
+    #[error("An error occurred destroying the certificate")]
     CertificateDestroy,
 
-    #[fail(display = "An error occurred obtaining the certificate's details")]
+    #[error("An error occurred obtaining the certificate's details")]
     CertificateDetail,
 
-    #[fail(display = "An error occurred getting the certificate")]
+    #[error("An error occurred getting the certificate")]
     CertificateGet,
 
-    #[fail(display = "An error occurred obtaining the certificate's key")]
+    #[error("An error occurred obtaining the certificate's key")]
     CertificateKey,
 
-    #[fail(display = "An error occurred when obtaining the device identity certificate.")]
+    #[error("An error occurred when obtaining the device identity certificate.")]
     DeviceIdentityCertificate,
 
-    #[fail(display = "An error occurred when signing using the device identity private key.")]
+    #[error("An error occurred when signing using the device identity private key.")]
     DeviceIdentitySign,
 
-    #[fail(
-        display = "Edge runtime module has not been created in IoT Hub. Please make sure this device is an IoT Edge capable device."
+    #[error(
+        "Edge runtime module has not been created in IoT Hub. Please make sure this device is an IoT Edge capable device."
     )]
     EdgeRuntimeIdentityNotFound,
 
-    #[fail(display = "The timer that checks the edge runtime status encountered an error.")]
+    #[error("The timer that checks the edge runtime status encountered an error.")]
     EdgeRuntimeStatusCheckerTimer,
 
-    #[fail(display = "Unable to get the virtualization status.")]
+    #[error("Unable to get the virtualization status.")]
     GetVirtualizationStatus,
 
-    #[fail(display = "An error occurred when obtaining the HSM version")]
+    #[error("An error occurred when obtaining the HSM version")]
     HsmVersion,
 
-    #[fail(display = "An identity manager error occurred.")]
+    #[error("An identity manager error occurred.")]
     IdentityManager,
 
-    #[fail(display = "Invalid image pull policy configuration {:?}", _0)]
+    #[error("Invalid image pull policy configuration {0:?}")]
     InvalidImagePullPolicy(String),
 
-    #[fail(display = "Invalid or unsupported certificate issuer.")]
+    #[error("Invalid or unsupported certificate issuer.")]
     InvalidIssuer,
 
-    #[fail(display = "Invalid log tail {:?}", _0)]
+    #[error("Invalid log tail {0:?}")]
     InvalidLogTail(String),
 
-    #[fail(display = "Invalid module name {:?}", _0)]
+    #[error("Invalid module name {0:?}")]
     InvalidModuleName(String),
 
-    #[fail(display = "Invalid module type {:?}", _0)]
+    #[error("Invalid module type {0:?}")]
     InvalidModuleType(String),
 
-    #[fail(display = "Invalid URL {:?}", _0)]
+    #[error("Invalid URL {0:?}")]
     InvalidUrl(String),
 
-    #[fail(display = "An error occurred in the key store.")]
+    #[error("An error occurred in the key store.")]
     KeyStore,
 
-    #[fail(display = "Item not found.")]
+    #[error("Item not found.")]
     KeyStoreItemNotFound,
 
-    #[fail(display = "An error occured when generating a random number.")]
+    #[error("An error occured when generating a random number.")]
     MakeRandom,
 
-    #[fail(display = "A module runtime error occurred.")]
+    #[error("A module runtime error occurred.")]
     ModuleRuntime,
 
-    #[fail(display = "Unable to parse since.")]
+    #[error("Unable to parse since.")]
     ParseSince,
 
-    #[fail(display = "Signing error occurred.")]
+    #[error("Signing error occurred.")]
     Sign,
 
-    #[fail(display = "Signing error occurred. Invalid key length: {}", _0)]
+    #[error("Signing error occurred. Invalid key length: {0}")]
     SignInvalidKeyLength(usize),
 
-    #[fail(display = "The workload manager encountered an error")]
+    #[error("The workload manager encountered an error")]
     WorkloadManager,
-}
-
-impl Fail for Error {
-    fn cause(&self) -> Option<&dyn Fail> {
-        self.inner.cause()
-    }
-
-    fn backtrace(&self) -> Option<&Backtrace> {
-        self.inner.backtrace()
-    }
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.inner, f)
-    }
-}
-
-impl Error {
-    pub fn new(inner: Context<ErrorKind>) -> Self {
-        Error { inner }
-    }
-
-    pub fn kind(&self) -> &ErrorKind {
-        self.inner.get_context()
-    }
-}
-
-impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Self {
-        Error {
-            inner: Context::new(kind),
-        }
-    }
-}
-
-impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Self {
-        Error { inner }
-    }
 }

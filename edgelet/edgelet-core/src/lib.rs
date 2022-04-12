@@ -35,7 +35,7 @@ pub use crypto::{
     Certificate, CreateCertificate, GetDeviceIdentityCertificate, GetIssuerAlias, KeyBytes,
     PrivateKey,
 };
-pub use error::{Error, ErrorKind};
+pub use error::Error;
 pub use identity::{AuthType, Identity, IdentityManager, IdentityOperation, IdentitySpec};
 //pub use logs::{Chunked, LogChunk, LogDecode};
 pub use module::{
