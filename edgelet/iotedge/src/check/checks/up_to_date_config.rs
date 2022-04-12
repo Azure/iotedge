@@ -26,7 +26,7 @@ impl UpToDateConfig {
             Ok(()) => CheckResult::Ok,
             Err(LastModifiedError::Ignored) => CheckResult::Ignored,
             Err(LastModifiedError::Warning(message)) => {
-                CheckResult::Warning(anyhow::Error::msg(message))
+                CheckResult::Warning(anyhow::anyhow!(message))
             }
             Err(LastModifiedError::Failed(error)) => CheckResult::Failed(error.into()),
         };

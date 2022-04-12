@@ -1,6 +1,6 @@
 use std::fs::File;
 
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
@@ -56,19 +56,19 @@ impl ContainerEngineLogrotate {
         self.daemon_config = Some(daemon_config.clone());
 
         if daemon_config.log_driver.is_none() {
-            return Ok(CheckResult::Warning(anyhow::Error::msg(MESSAGE)));
+            return Ok(CheckResult::Warning(anyhow!(MESSAGE)));
         }
 
         if let Some(log_opts) = &daemon_config.log_opts {
             if log_opts.max_file.is_none() {
-                return Ok(CheckResult::Warning(anyhow::Error::msg(MESSAGE)));
+                return Ok(CheckResult::Warning(anyhow!(MESSAGE)));
             }
 
             if log_opts.max_size.is_none() {
-                return Ok(CheckResult::Warning(anyhow::Error::msg(MESSAGE)));
+                return Ok(CheckResult::Warning(anyhow!(MESSAGE)));
             }
         } else {
-            return Ok(CheckResult::Warning(anyhow::Error::msg(MESSAGE)));
+            return Ok(CheckResult::Warning(anyhow!(MESSAGE)));
         }
 
         Ok(CheckResult::Ok)

@@ -1,5 +1,7 @@
 use std::{net::IpAddr, str::FromStr};
 
+use anyhow::anyhow;
+
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
 #[derive(Default, serde_derive::Serialize)]
@@ -43,7 +45,7 @@ impl ParentHostname {
         // Some software like the IoT Hub SDKs for downstream clients require the device hostname to follow RFC 1035.
         // For example, the IoT Hub C# SDK cannot connect to a hostname that contains an `_`.
         if !aziotctl_common::is_rfc_1035_valid(config_parent_hostname) {
-            return Ok(CheckResult::Warning(anyhow::Error::msg(format!(
+            return Ok(CheckResult::Warning(anyhow!(
             "configuration has parent_hostname {} which does not comply with RFC 1035.\n\
              \n\
              - Hostname must be between 1 and 255 octets inclusive.\n\
@@ -53,14 +55,14 @@ impl ParentHostname {
              \n\
              Not complying with RFC 1035 may cause errors during the TLS handshake with modules and downstream devices.",
             config_parent_hostname,
-        ))));
+        )));
         }
 
         if !aziotctl_common::check_length_for_local_issuer(config_parent_hostname) {
-            return Ok(CheckResult::Failed(anyhow::Error::msg(format!(
+            return Ok(CheckResult::Failed(anyhow!(
                 "configuration parent_hostname {} is too long to be used as a certificate issuer",
                 config_parent_hostname,
-            ))));
+            )));
         }
 
         Ok(CheckResult::Ok)

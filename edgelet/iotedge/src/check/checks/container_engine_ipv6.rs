@@ -74,7 +74,7 @@ impl ContainerEngineIPv6 {
         if daemon_config.ipv6.unwrap_or_default() {
             Ok(CheckResult::Ok)
         } else if is_edge_ipv6_configured {
-            Err(anyhow::Error::msg(MESSAGE))
+            Err(anyhow::anyhow!(MESSAGE))
         } else {
             Ok(CheckResult::Ignored)
         }

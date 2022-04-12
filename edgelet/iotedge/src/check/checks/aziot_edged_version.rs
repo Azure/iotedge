@@ -1,4 +1,4 @@
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use regex::Regex;
 
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
@@ -128,11 +128,11 @@ impl AziotEdgedVersion {
             .await
             .context("Could not spawn aziot-edged process")?;
         if !output.status.success() {
-            return Err(anyhow::Error::msg(format!(
+            return Err(anyhow!(
                 "aziot-edged returned {}, stderr = {}",
                 output.status,
                 String::from_utf8_lossy(&*output.stderr),
-            ))
+            )
             .context("Could not spawn aziot-edged process"));
         }
 
@@ -144,11 +144,8 @@ impl AziotEdgedVersion {
         let captures = aziot_edged_version_regex
             .captures(output.trim())
             .ok_or_else(|| {
-                anyhow::Error::msg(format!(
-                    "output {:?} does not match expected format",
-                    output,
-                ))
-                .context("Could not parse output of aziot-edged --version")
+                anyhow!("output {:?} does not match expected format", output,)
+                    .context("Could not parse output of aziot-edged --version")
             })?;
         let version = captures
             .get(1)
@@ -160,11 +157,11 @@ impl AziotEdgedVersion {
 
         if version != latest_versions.aziot_edge {
             return Ok(CheckResult::Warning(
-            anyhow::Error::msg(format!(
+            anyhow!(
                 "Installed IoT Edge daemon has version {} but {} is the latest stable version available.\n\
                  Please see https://aka.ms/iotedge-update-runtime for update instructions.",
                 version, latest_versions.aziot_edge,
-            )),
+            ),
         ));
         }
 

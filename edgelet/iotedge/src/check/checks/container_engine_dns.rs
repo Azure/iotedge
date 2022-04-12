@@ -64,7 +64,7 @@ impl ContainerEngineDns {
         self.dns = daemon_config.dns.clone();
 
         if daemon_config.dns.map_or(true, |e| e.is_empty()) {
-            return Ok(CheckResult::Warning(anyhow::Error::msg(MESSAGE)));
+            return Ok(CheckResult::Warning(anyhow::anyhow!(MESSAGE)));
         }
 
         Ok(CheckResult::Ok)

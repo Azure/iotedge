@@ -126,7 +126,7 @@ fn check_agent_image_version_nested(agent_image: &str) -> CheckResult {
 
         if let (Some(major), Some(minor)) = (major, minor) {
             if major < 1 || (major == 1) && (minor < 2) {
-                return CheckResult::Failed(anyhow::Error::msg(
+                return CheckResult::Failed(anyhow::anyhow!(
                     "In nested Edge, edgeAgent version need to be 1.2 or above",
                 ));
             }

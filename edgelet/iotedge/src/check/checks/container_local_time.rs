@@ -80,7 +80,7 @@ impl ContainerLocalTime {
         self.diff = Some(diff.as_secs());
 
         if diff.as_secs() >= 10 {
-            return Err(anyhow::Error::msg(
+            return Err(anyhow::anyhow!(
                 "Detected time drift between host and container",
             ));
         }

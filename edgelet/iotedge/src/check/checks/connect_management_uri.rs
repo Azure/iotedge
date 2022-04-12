@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::ffi::{OsStr, OsString};
 
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 
 use edgelet_core::{self, UrlExt};
 use edgelet_settings::RuntimeSettings;
@@ -84,19 +84,18 @@ impl ConnectManagementUri {
 
             let socket_path =
                 socket_path.to_str()
-                .ok_or_else(|| anyhow::Error::msg("Could not parse connect.management_uri: file path is not valid utf-8"))?;
+                .ok_or_else(|| anyhow!("Could not parse connect.management_uri: file path is not valid utf-8"))?;
 
             args.push(Cow::Owned(format!("{}:{}", socket_path, socket_path).into()));
         },
 
-        (scheme1, scheme2) if scheme1 != scheme2 => return Err(anyhow::Error::msg(
-            format!(
+        (scheme1, scheme2) if scheme1 != scheme2 => return Err(anyhow!(
                 "configuration has invalid combination of schemes for connect.management_uri ({:?}) and listen.management_uri ({:?})",
                 scheme1, scheme2,
-            ))),
+            )),
 
-        (scheme, _) => return Err(anyhow::Error::msg(
-            format!("Could not parse connect.management_uri: scheme {} is invalid", scheme),
+        (scheme, _) => return Err(anyhow!(
+            "Could not parse connect.management_uri: scheme {} is invalid", scheme,
         )),
     }
 

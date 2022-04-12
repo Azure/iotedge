@@ -428,9 +428,8 @@ impl Check {
         {
             fn to_check_result(res: CheckResultSerializable) -> CheckResult {
                 fn vec_to_err(mut v: Vec<String>) -> anyhow::Error {
-                    let mut err = anyhow::Error::msg(
-                        v.pop().expect("errors always have at least one source"),
-                    );
+                    let mut err =
+                        anyhow::anyhow!(v.pop().expect("errors always have at least one source"),);
                     while let Some(s) = v.pop() {
                         err = err.context(s);
                     }

@@ -1,5 +1,7 @@
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
+use anyhow::anyhow;
+
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct ContainerEngineInstalled {
     docker_host_arg: Option<String>,
@@ -42,10 +44,11 @@ impl ContainerEngineInstalled {
             }
 
             scheme => {
-                return Err(anyhow::Error::msg(format!(
+                return Err(anyhow!(
                     "Could not communicate with container engine at {}. The scheme {} is invalid.",
-                    uri, scheme,
-                )));
+                    uri,
+                    scheme,
+                ));
             }
         };
 
