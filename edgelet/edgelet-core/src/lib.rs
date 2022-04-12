@@ -11,41 +11,24 @@
     clippy::use_self
 )]
 
-use std::path::{Path, PathBuf};
-
-use lazy_static::lazy_static;
-use url::Url;
-
-mod authentication;
-mod authorization;
-mod certificate_properties;
-pub mod crypto;
 pub mod error;
-mod identity;
-mod logs;
 pub mod module;
+
 mod parse_since;
 mod virtualization;
-pub mod workload;
 
-pub use authentication::Authenticator;
-pub use authorization::{AuthId, ModuleId, Policy};
-pub use certificate_properties::{CertificateIssuer, CertificateProperties, CertificateType};
-pub use crypto::{
-    Certificate, CreateCertificate, GetDeviceIdentityCertificate, GetIssuerAlias, KeyBytes,
-    PrivateKey,
-};
 pub use error::Error;
-pub use identity::{AuthType, Identity, IdentityManager, IdentityOperation, IdentitySpec};
-//pub use logs::{Chunked, LogChunk, LogDecode};
 pub use module::{
-    DiskInfo, LogOptions, LogTail, MakeModuleRuntime, Module, ModuleOperation, ModuleRegistry,
+    DiskInfo, LogOptions, LogTail, MakeModuleRuntime, Module, ModuleAction, ModuleOperation, ModuleRegistry,
     ModuleRuntime, ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleStatus, ProvisioningInfo,
     RegistryOperation, RuntimeOperation, SystemInfo, SystemResources,
 };
 pub use parse_since::parse_since;
-pub use virtualization::is_virtualized_env;
-pub use workload::WorkloadConfig;
+
+use std::path::{Path, PathBuf};
+
+use lazy_static::lazy_static;
+use url::Url;
 
 lazy_static! {
     static ref VERSION: &'static str =
@@ -62,7 +45,7 @@ pub fn version() -> &'static str {
 }
 
 pub fn version_with_source_version() -> String {
-    (&VERSION_WITH_SOURCE_VERSION).to_string()
+    VERSION_WITH_SOURCE_VERSION.to_string()
 }
 
 pub trait UrlExt {
