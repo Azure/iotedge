@@ -818,7 +818,6 @@ check_free_memory() {
     else
         # TODO: Need to refine this message
         wrap_fail "check_free_memory"
-        wrap_warning_message "Current available memory is $current_free_memory MB. Free up atleast $total_iotedge_memory_size MB to run IoT Edge"
     fi
 }
 
