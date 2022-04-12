@@ -45,12 +45,6 @@
 //! let _thing = TheThing::new(5);
 //! ```
 
-use std::fmt;
-
-use failure::{Context, Fail};
-
-use crate::error::ErrorKind;
-
 /// Exits a function early with an `Error`.
 ///
 /// The `bail!` macro provides an easy way to exit a function. It takes an error
@@ -61,11 +55,11 @@ use crate::error::ErrorKind;
 /// ```
 /// #[macro_use] extern crate edgelet_utils;
 ///
-/// use edgelet_utils::{ErrorKind, Error};
+/// use edgelet_utils::Error;
 ///
 /// fn do_the_thing(some_expected_value: bool) -> Result<(), Error> {
 ///     if !some_expected_value {
-///         bail!(ErrorKind::Argument("boo".to_string()));
+///         bail!(Error::Argument("boo".to_string()));
 ///     } else {
 ///         Ok(())
 ///     }
@@ -111,7 +105,7 @@ macro_rules! ensure_impl {
 ///
 /// ```
 /// # #[macro_use] extern crate edgelet_utils;
-/// # use edgelet_utils::{ErrorKind, Error};
+/// # use edgelet_utils::Error;
 /// fn do_thing() -> Result<(), Error> {
 ///    assert_eq!(10, ensure!(10, 10 > 0));
 ///    Ok(())
@@ -123,7 +117,7 @@ macro_rules! ensure_impl {
 ///
 /// ```
 /// # #[macro_use] extern crate edgelet_utils;
-/// # use edgelet_utils::{ErrorKind, Error};
+/// # use edgelet_utils::Error;
 /// #[derive(Debug)]
 /// struct Foo {
 ///     ival: i32,
@@ -136,7 +130,7 @@ macro_rules! ensure_impl {
 ///             ival: ensure!(ival, ival > 0),
 ///             fval: ensure!(
 ///                     fval, fval > 10f32,
-///                     ErrorKind::Argument("fval too small".to_string())
+///                     Error::Argument("fval too small".to_string())
 ///                   ),
 ///         })
 ///     }
@@ -156,7 +150,7 @@ macro_rules! ensure {
         ensure_impl!($val, $cond, $err, bail)
     };
     ($val:expr, $cond:expr) => {
-        ensure!($val, $cond, $crate::ErrorKind::Argument("".to_string()))
+        ensure!($val, $cond, $crate::Error::Argument("".to_string()))
     };
     ($cond:expr) => {
         ensure!((), $cond);
@@ -173,7 +167,7 @@ macro_rules! ensure_range_impl {
             (val_val, low_val, high_val) => $ensure!(
                 *val_val,
                 *val_val > *low_val && *val_val <= *high_val,
-                $crate::ErrorKind::ArgumentOutOfRange(
+                $crate::Error::ArgumentOutOfRange(
                     format!("{}", val_val),
                     format!("{}", low_val),
                     format!("{}", high_val),
@@ -221,7 +215,7 @@ macro_rules! ensure_greater_impl {
             (val_val, low_val) => $ensure!(
                 *val_val,
                 *val_val > *low_val,
-                $crate::ErrorKind::ArgumentTooLow(format!("{}", val_val), format!("{}", low_val))
+                $crate::Error::ArgumentTooLow(format!("{}", val_val), format!("{}", low_val))
             ),
         }
     };
@@ -269,7 +263,7 @@ macro_rules! ensure_not_empty_impl {
         $ensure!(
             $val,
             !($val.trim().is_empty()),
-            $crate::ErrorKind::ArgumentEmpty($msg.to_string())
+            $crate::Error::ArgumentEmpty($msg.to_string())
         )
     };
 }
@@ -309,22 +303,10 @@ macro_rules! ensure_not_empty {
     };
 }
 
-pub fn ensure_not_empty_with_context<D, F>(value: &str, context: F) -> Result<(), Context<D>>
-where
-    D: fmt::Display + Send + Sync,
-    F: FnOnce() -> D,
-{
-    if value.trim().is_empty() {
-        return Err(ErrorKind::ArgumentEmpty(String::new()).context(context()));
-    }
-
-    Ok(())
-}
-
 #[cfg(test)]
 #[allow(clippy::semicolon_if_nothing_returned)]
 mod tests {
-    use crate::error::{Error, ErrorKind};
+    use crate::error::Error;
 
     macro_rules! check_ok {
         ($expected:expr, $f:block) => {
@@ -344,7 +326,7 @@ mod tests {
             let err = result.expect_err("expected error but found value");
 
             match err.kind() {
-                ErrorKind::$expected(..) => (),
+                Error::$expected(..) => (),
                 _ => panic!("Unexpected error encountered {:#?}", err),
             }
         };
@@ -354,7 +336,7 @@ mod tests {
             let err = result.expect_err("expected error but found value");
 
             match err.kind() {
-                ErrorKind::$expected(..) => (),
+                Error::$expected(..) => (),
                 _ => panic!("Unexpected error encountered {:#?}", err),
             }
         };

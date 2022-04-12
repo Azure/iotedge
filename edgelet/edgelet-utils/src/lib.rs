@@ -20,9 +20,8 @@ mod yaml_file_source;
 
 use std::{collections::HashMap, net::IpAddr, str::FromStr};
 
-pub use crate::error::{Error, ErrorKind};
+pub use crate::error::Error;
 pub use crate::logging::log_failure;
-pub use crate::macros::ensure_not_empty_with_context;
 pub use crate::ser_de::{serde_clone, string_or_struct};
 pub use crate::yaml_file_source::YamlFileSource;
 
