@@ -133,8 +133,7 @@ impl AziotEdgedVersion {
                 output.status,
                 String::from_utf8_lossy(&*output.stderr),
             ))
-            .context("Could not spawn aziot-edged process")
-            .into());
+            .context("Could not spawn aziot-edged process"));
         }
 
         let output = String::from_utf8(output.stdout)
@@ -165,8 +164,7 @@ impl AziotEdgedVersion {
                 "Installed IoT Edge daemon has version {} but {} is the latest stable version available.\n\
                  Please see https://aka.ms/iotedge-update-runtime for update instructions.",
                 version, latest_versions.aziot_edge,
-            ))
-            .into(),
+            )),
         ));
         }
 

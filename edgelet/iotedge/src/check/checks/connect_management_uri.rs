@@ -93,12 +93,11 @@ impl ConnectManagementUri {
             format!(
                 "configuration has invalid combination of schemes for connect.management_uri ({:?}) and listen.management_uri ({:?})",
                 scheme1, scheme2,
-            ))
-            .into()),
+            ))),
 
         (scheme, _) => return Err(anyhow::Error::msg(
             format!("Could not parse connect.management_uri: scheme {} is invalid", scheme),
-        ).into()),
+        )),
     }
 
         args.extend(vec![
@@ -112,8 +111,8 @@ impl ConnectManagementUri {
 
         match super::docker(docker_host_arg, args).await {
             Ok(_) => Ok(CheckResult::Ok),
-            Err((Some(stderr), err)) => Err(err.context(stderr).into()),
-            Err((None, err)) => Err(err.context("Could not spawn docker process").into()),
+            Err((Some(stderr), err)) => Err(err.context(stderr)),
+            Err((None, err)) => Err(err.context("Could not spawn docker process")),
         }
     }
 }

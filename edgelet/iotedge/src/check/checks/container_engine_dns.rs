@@ -50,7 +50,7 @@ impl ContainerEngineDns {
         let daemon_config_file = match daemon_config_file {
             Ok(daemon_config_file) => daemon_config_file,
             Err(err) => {
-                return Ok(CheckResult::Warning(err.into()));
+                return Ok(CheckResult::Warning(err));
             }
         };
         let daemon_config: DaemonConfig = serde_json::from_reader(daemon_config_file)
@@ -64,7 +64,7 @@ impl ContainerEngineDns {
         self.dns = daemon_config.dns.clone();
 
         if daemon_config.dns.map_or(true, |e| e.is_empty()) {
-            return Ok(CheckResult::Warning(anyhow::Error::msg(MESSAGE).into()));
+            return Ok(CheckResult::Warning(anyhow::Error::msg(MESSAGE)));
         }
 
         Ok(CheckResult::Ok)

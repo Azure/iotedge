@@ -189,8 +189,7 @@ impl ContainerConnectUpstream {
                     },
                     upstream_hostname,
                     port,
-                ))
-                .into();
+                ));
             return CheckResult::Failed(err);
         }
 

@@ -772,6 +772,7 @@ dependencies = [
 name = "edgelet-test-utils"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "async-trait",
  "aziot-identity-common",
  "aziot-key-client",

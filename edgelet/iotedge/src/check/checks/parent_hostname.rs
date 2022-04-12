@@ -53,8 +53,7 @@ impl ParentHostname {
              \n\
              Not complying with RFC 1035 may cause errors during the TLS handshake with modules and downstream devices.",
             config_parent_hostname,
-        ))
-        .into()));
+        ))));
         }
 
         if !aziotctl_common::check_length_for_local_issuer(config_parent_hostname) {
@@ -62,8 +61,7 @@ impl ParentHostname {
                 anyhow::Error::msg(format!(
                     "configuration parent_hostname {} is too long to be used as a certificate issuer",
                     config_parent_hostname,
-                ))
-                .into(),
+                )),
             ));
         }
 

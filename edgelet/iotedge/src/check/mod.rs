@@ -432,7 +432,7 @@ impl Check {
                         v.pop().expect("errors always have at least one source"),
                     );
                     while let Some(s) = v.pop() {
-                        err = err.context(s).into();
+                        err = err.context(s);
                     }
                     err
                 }

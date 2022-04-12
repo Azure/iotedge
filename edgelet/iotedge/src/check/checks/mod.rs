@@ -60,8 +60,7 @@ where
         let err = anyhow::Error::msg(format!(
             "docker returned {}, stderr = {}",
             output.status, stderr,
-        ))
-        .into();
+        ));
         return Err((Some(stderr), err));
     }
 

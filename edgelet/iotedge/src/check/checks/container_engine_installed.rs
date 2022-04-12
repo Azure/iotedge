@@ -45,8 +45,7 @@ impl ContainerEngineInstalled {
                 return Err(anyhow::Error::msg(format!(
                     "Could not communicate with container engine at {}. The scheme {} is invalid.",
                     uri, scheme,
-                ))
-                .into());
+                )));
             }
         };
 
@@ -67,11 +66,11 @@ impl ContainerEngineInstalled {
                 if let Some(message) = message {
                     if message.contains("Got permission denied") {
                         error_message += "\nYou might need to run this command as root.";
-                        return Ok(CheckResult::Fatal(err.context(error_message).into()));
+                        return Ok(CheckResult::Fatal(err.context(error_message)));
                     }
                 }
 
-                return Err(err.context(error_message).into());
+                return Err(err.context(error_message));
             }
         };
 
