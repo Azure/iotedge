@@ -140,7 +140,7 @@ async fn inspect_container(
     docker_host_arg: &str,
     name: &str,
 ) -> anyhow::Result<docker::models::InlineResponse200> {
-    Ok(super::docker(docker_host_arg, &["inspect", name])
+    super::docker(docker_host_arg, &["inspect", name])
         .await
         .map_err(|(_, err)| err)
         .and_then(|output| {
@@ -149,5 +149,5 @@ async fn inspect_container(
                     .context("Could not parse result of docker inspect")?;
             Ok(inspect_result)
         })
-        .with_context(|| format!("Could not check current state of {} container", name))?)
+        .with_context(|| format!("Could not check current state of {} container", name))
 }
