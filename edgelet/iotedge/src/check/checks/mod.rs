@@ -1,5 +1,6 @@
 mod aziot_edged_version;
 mod check_agent_image;
+mod check_sockets;
 mod check_users;
 mod connect_management_uri;
 mod container_connect_upstream;
