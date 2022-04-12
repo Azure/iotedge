@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::ffi::{OsStr, OsString};
 
-use failure::{self, Context, ResultExt};
+use anyhow::Context;
 
 use edgelet_core::{self, UrlExt};
 use edgelet_settings::RuntimeSettings;
@@ -31,7 +31,7 @@ impl Checker for ConnectManagementUri {
 }
 
 impl ConnectManagementUri {
-    async fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    async fn inner_execute(&mut self, check: &mut Check) -> anyhow::Result<CheckResult> {
         let settings = if let Some(settings) = &check.settings {
             settings
         } else {
@@ -84,19 +84,19 @@ impl ConnectManagementUri {
 
             let socket_path =
                 socket_path.to_str()
-                .ok_or_else(|| Context::new("Could not parse connect.management_uri: file path is not valid utf-8"))?;
+                .ok_or_else(|| anyhow::Error::msg("Could not parse connect.management_uri: file path is not valid utf-8"))?;
 
             args.push(Cow::Owned(format!("{}:{}", socket_path, socket_path).into()));
         },
 
-        (scheme1, scheme2) if scheme1 != scheme2 => return Err(Context::new(
+        (scheme1, scheme2) if scheme1 != scheme2 => return Err(anyhow::Error::msg(
             format!(
                 "configuration has invalid combination of schemes for connect.management_uri ({:?}) and listen.management_uri ({:?})",
                 scheme1, scheme2,
             ))
             .into()),
 
-        (scheme, _) => return Err(Context::new(
+        (scheme, _) => return Err(anyhow::Error::msg(
             format!("Could not parse connect.management_uri: scheme {} is invalid", scheme),
         ).into()),
     }

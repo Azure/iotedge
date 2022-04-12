@@ -1,8 +1,10 @@
 use std::{net::IpAddr, str::FromStr};
 
-use crate::check::{Check, CheckResult, Checker, CheckerMeta};
+use anyhow::Context;
+
 use edgelet_settings::RuntimeSettings;
-use failure::ResultExt;
+
+use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct ContainerResolveParentHostname {}
@@ -25,7 +27,7 @@ impl Checker for ContainerResolveParentHostname {
 
 impl ContainerResolveParentHostname {
     #[allow(clippy::unused_self)]
-    async fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    async fn inner_execute(&mut self, check: &mut Check) -> anyhow::Result<CheckResult> {
         let settings = if let Some(settings) = &check.settings {
             settings
         } else {

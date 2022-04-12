@@ -32,10 +32,7 @@ pub async fn write_check(
     if let Some(host_name) = iothub_hostname {
         check.args(&["--iothub-hostname", &host_name]);
     }
-    let check = check
-        .output()
-        .await
-        .context(Error::SupportBundle)?;
+    let check = check.output().await.context(Error::SupportBundle)?;
 
     writer
         .write_all(&check.stdout)

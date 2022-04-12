@@ -1,7 +1,5 @@
 use std::{net::IpAddr, str::FromStr};
 
-use failure::{self, Context};
-
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
 #[derive(Default, serde_derive::Serialize)]
@@ -26,7 +24,7 @@ impl Checker for ParentHostname {
 
 impl ParentHostname {
     #[allow(clippy::unnecessary_wraps)]
-    fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    fn inner_execute(&mut self, check: &mut Check) -> anyhow::Result<CheckResult> {
         let config_parent_hostname =
             if let Some(config_parent_hostname) = check.parent_hostname.as_ref() {
                 config_parent_hostname
@@ -45,7 +43,7 @@ impl ParentHostname {
         // Some software like the IoT Hub SDKs for downstream clients require the device hostname to follow RFC 1035.
         // For example, the IoT Hub C# SDK cannot connect to a hostname that contains an `_`.
         if !aziotctl_common::is_rfc_1035_valid(config_parent_hostname) {
-            return Ok(CheckResult::Warning(Context::new(format!(
+            return Ok(CheckResult::Warning(anyhow::Error::msg(format!(
             "configuration has parent_hostname {} which does not comply with RFC 1035.\n\
              \n\
              - Hostname must be between 1 and 255 octets inclusive.\n\
@@ -61,7 +59,7 @@ impl ParentHostname {
 
         if !aziotctl_common::check_length_for_local_issuer(config_parent_hostname) {
             return Ok(CheckResult::Failed(
-                Context::new(format!(
+                anyhow::Error::msg(format!(
                     "configuration parent_hostname {} is too long to be used as a certificate issuer",
                     config_parent_hostname,
                 ))

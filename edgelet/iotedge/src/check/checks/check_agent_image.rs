@@ -1,6 +1,7 @@
-use edgelet_settings::RuntimeSettings;
-use failure::{Context, ResultExt};
+use anyhow::Context;
 use regex::Regex;
+
+use edgelet_settings::RuntimeSettings;
 
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
@@ -25,7 +26,7 @@ impl Checker for CheckAgentImage {
 
 impl CheckAgentImage {
     #[allow(clippy::unused_self)]
-    async fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    async fn inner_execute(&mut self, check: &mut Check) -> anyhow::Result<CheckResult> {
         let settings = if let Some(settings) = &mut check.settings {
             settings
         } else {
@@ -126,7 +127,7 @@ fn check_agent_image_version_nested(agent_image: &str) -> CheckResult {
         if let (Some(major), Some(minor)) = (major, minor) {
             if major < 1 || (major == 1) && (minor < 2) {
                 return CheckResult::Failed(
-                    Context::new("In nested Edge, edgeAgent version need to be 1.2 or above")
+                    anyhow::Error::msg("In nested Edge, edgeAgent version need to be 1.2 or above")
                         .into(),
                 );
             }

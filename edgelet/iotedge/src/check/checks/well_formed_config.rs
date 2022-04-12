@@ -1,11 +1,9 @@
 use std::fs::File;
 
-use failure::{self, Fail};
-
 use edgelet_settings::{Settings, CONFIG_FILE_DEFAULT, UPSTREAM_PARENT_KEYWORD};
 
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
-use crate::{Error, ErrorKind};
+use crate::error::Error;
 
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct WellFormedConfig {}
@@ -25,7 +23,7 @@ impl Checker for WellFormedConfig {
 }
 
 impl WellFormedConfig {
-    fn inner_execute(check: &mut Check) -> Result<CheckResult, failure::Error> {
+    fn inner_execute(check: &mut Check) -> anyhow::Result<CheckResult> {
         // The config crate just returns a "file not found" error when it can't open the file for any reason,
         // even if the real error was a permissions issue.
         //
@@ -35,13 +33,11 @@ impl WellFormedConfig {
         if let Err(err) = File::open(CONFIG_FILE_DEFAULT) {
             if err.kind() == std::io::ErrorKind::PermissionDenied {
                 return Ok(CheckResult::Fatal(
-                    err.context("Could not open IoT Edge configuration. You might need to run this command as root.")
-                    .into(),
+                    anyhow::Error::from(err).context("Could not open IoT Edge configuration. You might need to run this command as root."),
                 ));
             } else if err.kind() != std::io::ErrorKind::NotFound {
-                return Err(err
-                    .context(format!("Could not open file {}", CONFIG_FILE_DEFAULT))
-                    .into());
+                return Err(anyhow::Error::from(err)
+                    .context(format!("Could not open file {}", CONFIG_FILE_DEFAULT)));
             }
         }
 
@@ -57,7 +53,7 @@ impl WellFormedConfig {
                 } else {
                     "The IoT Edge daemon's configuration file is not well-formed.".to_string()
                 };
-                return Err(Error::from(ErrorKind::Check(message)).into());
+                return Err(Error::Check(message).into());
             }
         };
 

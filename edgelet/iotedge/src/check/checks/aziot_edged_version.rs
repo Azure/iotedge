@@ -1,8 +1,8 @@
-use failure::{self, Context, Fail, ResultExt};
+use anyhow::Context;
 use regex::Regex;
 
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
-use crate::error::{Error, ErrorKind, FetchLatestVersionsReason};
+use crate::error::{Error, FetchLatestVersionsReason};
 
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct AziotEdgedVersion {
@@ -29,16 +29,13 @@ impl Checker for AziotEdgedVersion {
 }
 
 impl AziotEdgedVersion {
-    async fn get_version(
-        &mut self,
-        check: &Check,
-    ) -> Result<crate::LatestVersions, failure::Error> {
+    async fn get_version(&mut self, check: &Check) -> anyhow::Result<crate::LatestVersions> {
         let proxy = check
             .proxy_uri
             .as_ref()
             .map(|proxy| proxy.parse::<hyper::Uri>())
             .transpose()
-            .context(ErrorKind::FetchLatestVersions(
+            .context(Error::FetchLatestVersions(
                 FetchLatestVersionsReason::CreateClient,
             ))?;
 
@@ -59,7 +56,7 @@ impl AziotEdgedVersion {
             let res = client
                 .request(req)
                 .await
-                .context(ErrorKind::FetchLatestVersions(
+                .context(Error::FetchLatestVersions(
                     FetchLatestVersionsReason::GetResponse,
                 ))?;
             match res.status() {
@@ -67,18 +64,18 @@ impl AziotEdgedVersion {
                     uri = res
                         .headers()
                         .get(hyper::header::LOCATION)
-                        .ok_or(ErrorKind::FetchLatestVersions(
+                        .ok_or(Error::FetchLatestVersions(
                             FetchLatestVersionsReason::InvalidOrMissingLocationHeader,
                         ))?
                         .to_str()
                         .map_err(|_| {
-                            ErrorKind::FetchLatestVersions(
+                            Error::FetchLatestVersions(
                                 FetchLatestVersionsReason::InvalidOrMissingLocationHeader,
                             )
                         })?
                         .parse()
                         .map_err(|_| {
-                            ErrorKind::FetchLatestVersions(
+                            Error::FetchLatestVersions(
                                 FetchLatestVersionsReason::InvalidOrMissingLocationHeader,
                             )
                         })?;
@@ -94,9 +91,9 @@ impl AziotEdgedVersion {
                 }
 
                 status_code => {
-                    return Err(Error::from(ErrorKind::FetchLatestVersions(
+                    return Err(Error::FetchLatestVersions(
                         FetchLatestVersionsReason::ResponseStatusCode(status_code),
-                    ))
+                    )
                     .into())
                 }
             }
@@ -105,7 +102,7 @@ impl AziotEdgedVersion {
         Ok(latest_versions)
     }
 
-    async fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    async fn inner_execute(&mut self, check: &mut Check) -> anyhow::Result<CheckResult> {
         let latest_versions =
             if let Some(expected_aziot_edged_version) = &check.expected_aziot_edged_version {
                 crate::LatestVersions {
@@ -131,7 +128,7 @@ impl AziotEdgedVersion {
             .await
             .context("Could not spawn aziot-edged process")?;
         if !output.status.success() {
-            return Err(Context::new(format!(
+            return Err(anyhow::Error::msg(format!(
                 "aziot-edged returned {}, stderr = {}",
                 output.status,
                 String::from_utf8_lossy(&*output.stderr),
@@ -148,7 +145,7 @@ impl AziotEdgedVersion {
         let captures = aziot_edged_version_regex
             .captures(output.trim())
             .ok_or_else(|| {
-                Context::new(format!(
+                anyhow::Error::msg(format!(
                     "output {:?} does not match expected format",
                     output,
                 ))
@@ -164,7 +161,7 @@ impl AziotEdgedVersion {
 
         if version != latest_versions.aziot_edge {
             return Ok(CheckResult::Warning(
-            Context::new(format!(
+            anyhow::Error::msg(format!(
                 "Installed IoT Edge daemon has version {} but {} is the latest stable version available.\n\
                  Please see https://aka.ms/iotedge-update-runtime for update instructions.",
                 version, latest_versions.aziot_edge,

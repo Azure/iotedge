@@ -45,17 +45,11 @@ pub async fn write_logs(
         .await
         .context(Error::Write)?;
 
-    while let Some(bytes) = logs
-        .try_next()
-        .await
-        .context(Error::Write)?
-    {
+    while let Some(bytes) = logs.try_next().await.context(Error::Write)? {
         // First 4 bytes represent stderr vs stdout, we currently don't display differently based on that.
         // Next 4 bytes represent length of chunk, rust already encodes this information in the slice.
         if bytes.len() > 8 {
-            writer
-                .write_all(&bytes[8..])
-                .context(Error::Write)?;
+            writer.write_all(&bytes[8..]).context(Error::Write)?;
         }
     }
 

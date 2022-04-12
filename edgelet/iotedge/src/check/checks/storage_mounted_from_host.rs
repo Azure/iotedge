@@ -2,7 +2,7 @@
 
 use std::path::{Path, PathBuf};
 
-use failure::{self, Context, ResultExt};
+use anyhow::Context;
 use regex::Regex;
 
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
@@ -69,7 +69,7 @@ async fn storage_mounted_from_host<'a>(
     storage_directory_name: &'static str,
     storage_directory_out: &'a mut Option<PathBuf>,
     container_directories_out: &'a mut Option<Vec<PathBuf>>,
-) -> Result<CheckResult, failure::Error> {
+) -> anyhow::Result<CheckResult> {
     lazy_static::lazy_static! {
         static ref STORAGE_FOLDER_ENV_VAR_KEY_REGEX: Regex =
             Regex::new("(?i)^storagefolder=(.*)")
@@ -124,15 +124,13 @@ async fn storage_mounted_from_host<'a>(
         .into_iter()
         .any(|container_directory| storage_directory.starts_with(container_directory))
     {
-        return Ok(CheckResult::Warning(
-            Context::new(format!(
-                "The {} module is not configured to persist its {} directory on the host filesystem.\n\
+        return Ok(CheckResult::Warning(anyhow::Error::msg(format!(
+            "The {} module is not configured to persist its {} directory on the host filesystem.\n\
                  Data might be lost if the module is deleted or updated.\n\
                  Please see https://aka.ms/iotedge-storage-host for best practices.",
-                container_name,
-                storage_directory.display(),
-            )).into(),
-        ));
+            container_name,
+            storage_directory.display(),
+        ))));
     }
 
     Ok(CheckResult::Ok)
@@ -141,7 +139,7 @@ async fn storage_mounted_from_host<'a>(
 async fn inspect_container(
     docker_host_arg: &str,
     name: &str,
-) -> Result<docker::models::InlineResponse200, failure::Error> {
+) -> anyhow::Result<docker::models::InlineResponse200> {
     Ok(super::docker(docker_host_arg, &["inspect", name])
         .await
         .map_err(|(_, err)| err)
@@ -151,5 +149,5 @@ async fn inspect_container(
                     .context("Could not parse result of docker inspect")?;
             Ok(inspect_result)
         })
-        .with_context(|_| format!("Could not check current state of {} container", name))?)
+        .with_context(|| format!("Could not check current state of {} container", name))?)
 }

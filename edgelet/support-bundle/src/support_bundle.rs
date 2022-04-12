@@ -37,8 +37,7 @@ pub async fn make_bundle(
 ) -> anyhow::Result<(Box<dyn Read + Send>, u64)> {
     match output_location {
         OutputLocation::File(location) => {
-            let buffer = File::create(Path::new(&location))
-                .context(Error::SupportBundle)?;
+            let buffer = File::create(Path::new(&location)).context(Error::SupportBundle)?;
             let mut zip_writer = ZipWriter::new(buffer);
 
             let (reader, size) = write_all(
@@ -114,9 +113,7 @@ where
     }
 
     // Finilize buffer and set cursur to 0 for reading.
-    let mut buffer = zip_writer
-        .finish()
-        .context(Error::SupportBundle)?;
+    let mut buffer = zip_writer.finish().context(Error::SupportBundle)?;
     let len = buffer
         .seek(SeekFrom::Current(0))
         .context(Error::SupportBundle)?;
