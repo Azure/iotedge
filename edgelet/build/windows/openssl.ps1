@@ -16,11 +16,16 @@ function Get-OpenSSL
     if (!((Test-Path -Path $env:HOMEDRIVE\vcpkg) -and ((Test-Path -Path $env:HOMEDRIVE\vcpkg\vcpkg.exe))))
     {
         Write-Host "Installing vcpkg from github..."
-        git clone https://github.com/Microsoft/vcpkg $env:HOMEDRIVE\vcpkg
+        git init "$env:HOMEDRIVE\vcpkg"
+        git -C "$env:HOMEDRIVE\vcpkg" remote add origin 'https://github.com/microsoft/vcpkg'
+        # pin to OpenSSL 1.1.1n
+        git -C "$env:HOMEDRIVE\vcpkg" fetch origin '3b3bd424827a1f7f4813216f6b32b6c61e386b2e'
         if ($LastExitCode)
         {
             Throw "Failed to clone vcpkg repo with exit code $LastExitCode"
         }
+        git -C "$env:HOMEDRIVE\vcpkg" reset --hard FETCH_HEAD
+
         Write-Host "Bootstrapping vcpkg..."
         & "$env:HOMEDRIVE\vcpkg\bootstrap-vcpkg.bat"
         if ($LastExitCode)
@@ -35,7 +40,6 @@ function Get-OpenSSL
         }
     }
 
-    Write-Host "Downloading strawberry perl"
     if (!(Test-Path -Path $env:HOMEDRIVE\vcpkg\Downloads))
     {
         New-Item -Type Directory "$env:HOMEDRIVE\vcpkg\Downloads" | Out-Null
