@@ -28,7 +28,7 @@ impl ChildProcess {
         Self { name, process }
     }
 
-    pub fn is_running(&mut self) -> bool {
+    pub fn poll_running(&mut self) -> bool {
         match self.process.try_wait() {
             Ok(status) => status.is_none(),
             Err(e) => {
@@ -39,7 +39,7 @@ impl ChildProcess {
     }
 
     pub fn shutdown_if_running(&mut self) -> Result<()> {
-        if self.is_running() {
+        if self.poll_running() {
             info!("Terminating {} process", self.name);
             self.send_signal(Signal::SIGTERM);
         } else {
@@ -48,7 +48,7 @@ impl ChildProcess {
 
         self.wait_for_exit()?;
 
-        if self.is_running() {
+        if self.poll_running() {
             info!("Killing {} process", self.name);
             self.send_signal(Signal::SIGKILL);
         }
@@ -75,7 +75,7 @@ impl ChildProcess {
 
     fn wait_for_exit(&mut self) -> Result<()> {
         let mut elapsed_secs = 0;
-        while elapsed_secs < PROCESS_SHUTDOWN_TOLERANCE.as_secs() && self.is_running() {
+        while elapsed_secs < PROCESS_SHUTDOWN_TOLERANCE.as_secs() && self.poll_running() {
             sleep(PROCESS_POLL_INTERVAL)?;
             elapsed_secs += PROCESS_POLL_INTERVAL.as_secs();
         }
@@ -103,7 +103,7 @@ pub fn run(
 
         let mut child_process = ChildProcess::new(name, child);
 
-        while child_process.is_running() && !should_shutdown.load(Ordering::Relaxed) {
+        while child_process.poll_running() && !should_shutdown.load(Ordering::Relaxed) {
             sleep(PROCESS_POLL_INTERVAL)?;
         }
 

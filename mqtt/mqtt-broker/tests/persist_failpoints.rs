@@ -34,8 +34,8 @@ fn arb_op() -> impl Strategy<Value = Op> {
     prop_oneof![
         Just(Op::Load),
         Just(Op::Store(BrokerSnapshot::default())),
-        proptest::sample::select(FAILPOINTS).prop_map(|f| Op::AddFailpoint(f)),
-        proptest::sample::select(FAILPOINTS).prop_map(|f| Op::RemoveFailpoint(f)),
+        proptest::sample::select(FAILPOINTS).prop_map(Op::AddFailpoint),
+        proptest::sample::select(FAILPOINTS).prop_map(Op::RemoveFailpoint),
     ]
 }
 
