@@ -59,7 +59,7 @@ jobs:
         script: |
           az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
     - bash: |
-          contextPath=$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp3.1/context.json
+          contextPath=$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net6.0/context.json
           mkdir -p $(Build.ArtifactStagingDirectory)/compat
           edgeAgentImage="$(cat $contextPath | jq '.edgeAgentImage' | tr -d '"')" 
           edgeHubImage="$(cat $contextPath | jq '.edgeHubImage' | tr -d '"')"
@@ -171,7 +171,7 @@ jobs:
           export PATH=azure-cli-env/bin/:$PATH
           az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
 
-          contextPath=$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp3.1/context.json
+          contextPath=$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net6.0/context.json
           mkdir -p $(Build.ArtifactStagingDirectory)/compat
           edgeAgentImage="$(cat $contextPath | jq '.edgeAgentImage' | tr -d '"')" 
           edgeHubImage="$(cat $contextPath | jq '.edgeHubImage' | tr -d '"')"

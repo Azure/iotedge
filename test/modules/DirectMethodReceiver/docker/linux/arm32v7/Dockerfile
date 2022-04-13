@@ -1,4 +1,4 @@
-ARG base_tag=3.1-bionic-arm32v7
+ARG base_tag=6.0-focal-arm32v7
 FROM mcr.microsoft.com/dotnet/runtime:${base_tag}
 
 # Add an unprivileged user account for running the module
