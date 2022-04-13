@@ -60,17 +60,17 @@ Following are the checks that are performed in the Platform Compatibility script
 
 * To run the script, use the following commands for help.
 
-`./aziot-compatibilty.sh --help` or `./aziot-compatibilty.sh -h`
+`./aziot-compatibility.sh --help` or `./aziot-compatibility.sh -h`
 
 * To list the apps that are supported by the Compatibility script
 
-`./aziot-compatibilty.sh --list-apps` or `./aziot-compatibilty.sh -l`
+`./aziot-compatibility.sh --list-apps` or `./aziot-compatibility.sh -l`
 
 * To enable the debug logs of the script 
-`./aziot-compatibilty.sh -v` or `./aziot-compatibilty.sh --verbose`
+`./aziot-compatibility.sh -v` or `./aziot-compatibility.sh --verbose`
 
 * To know the version of the IoT edge supported by the Compatibility script
-`./aziot-compatibilty.sh --app-version`
+`./aziot-compatibility.sh --app-version`
 
 
 ## Output
