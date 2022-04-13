@@ -17,7 +17,7 @@ jobs:
         submodules: false
         fetchDepth: 3
       - bash: |
-          git log -m -1 --name-only --first-parent --pretty="" | egrep -i '^(rust-toolchain.toml|builds|mqtt)'
+          git log -m -1 --name-only --first-parent --pretty="" | egrep -i '^(rust-toolchain\.toml|builds|mqtt)'
           if [[ $? == 0 ]]; then
             echo "Detected changes inside builds or mqtt folders"
             echo "##vso[task.setvariable variable=RUN_PIPELINE;isOutput=true]TRUE"
