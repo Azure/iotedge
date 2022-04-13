@@ -3,7 +3,7 @@ schemes:
   - http
 info:
   title: IoT Edge Management API
-  version: '2020-07-07'
+  version: '2021-12-07'
 tags:
   - name: Module
     x-displayName: Modules
@@ -297,6 +297,11 @@ paths:
           type: string
           default: "all"
         - in: query
+          name: timestamps
+          description: Return logs with prepended rfc3339 timestamp to each line of log.
+          type: boolean
+          default: false
+        - in: query
           name: since
           description: Only return logs since this time, as a duration (1 day, 1d, 90m, 2 days 3 hours 2 minutes), rfc3339 timestamp, or UNIX timestamp.
           type: string
@@ -417,7 +422,7 @@ paths:
           description: Error
           schema:
             $ref: '#/definitions/ErrorResponse'
-            
+
   /systeminfo:
     get:
       tags:
@@ -457,7 +462,7 @@ paths:
           description: Error
           schema:
             $ref: '#/definitions/ErrorResponse'
-  
+
   '/systeminfo/supportbundle':
     get:
       tags:
@@ -471,6 +476,11 @@ paths:
         - in: query
           name: since
           description: Duration to get logs from. Can be relative (1d, 10m, 1h30m etc.) or absolute (unix timestamp or rfc 3339)
+          required: false
+          type: string
+        - in: query
+          name: until
+          description: Duration to get logs to. Can be relative (1d, 10m, 1h30m etc.) or absolute (unix timestamp or rfc 3339)
           required: false
           type: string
         - in: query
@@ -512,7 +522,7 @@ paths:
           description: Error
           schema:
             $ref: '#/definitions/ErrorResponse'
-            
+
 definitions:
   ModuleList:
     type: object
@@ -641,31 +651,22 @@ definitions:
   SystemInfo:
     type: object
     properties:
-      osType:
+      osType: # kernel type
         type: string
       architecture:
         type: string
       version:
         type: string
-      provisioning:
-        type: '#/definitions/Provisioning'
-      server_version:
+      serverVersion: # for compatibility
         type: string
-      kernel_version:
-        type: string
-      operating_system:
-        type: string
-      cpus:
-        type: integer
-      virtualized:
-        type: string        
+    additionalProperties:
+      type: string
     required:
       - osType
       - architecture
-      - version
     example:
-      osType: "linux/windows"
-      architecture: "arm/amd64/x86"
+      osType: "Linux"
+      architecture: "arm,amd64"
   SystemResources:
     type: object
     properties:

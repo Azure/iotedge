@@ -17,7 +17,7 @@ Note: Code manually changed to replace System.Uri.EscapeDataString with System.N
 TODO: Write test to ensure that WebUtility.UrlEncode is used
 */
 
-namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2020_10_10.GeneratedCode
+namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2020_07_07.GeneratedCode
 {
 #pragma warning disable // Disable all warnings
 
