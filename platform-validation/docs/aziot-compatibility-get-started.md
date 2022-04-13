@@ -52,21 +52,25 @@ Following are the checks that are performed in the Platform Compatibility script
  
  * To download the script, use the following command
  
-`wget aka.ms/aziot-compat-prev`
+`wget aka.ms/aziot-compatibility.sh`
+
+* To make script executable, use the following command
+ 
+`chmod +x ./aziot-compatibility.sh`
 
 * To run the script, use the following commands for help.
 
-`./aziot-compatibilty --help` or `./aziot-compatibilty -h`
+`./aziot-compatibilty.sh --help` or `./aziot-compatibilty.sh -h`
 
 * To list the apps that are supported by the Compatibility script
 
-`./aziot-compatibilty --list-apps` or `./aziot-compatibilty -l`
+`./aziot-compatibilty.sh --list-apps` or `./aziot-compatibilty.sh -l`
 
 * To enable the debug logs of the script 
-`./aziot-compatibilty -v` or `./aziot-compatibilty --verbose`
+`./aziot-compatibilty.sh -v` or `./aziot-compatibilty.sh --verbose`
 
 * To know the version of the IoT edge supported by the Compatibility script
-`./aziot-compatibilty --app-version`
+`./aziot-compatibilty.sh --app-version`
 
 
 ## Output
