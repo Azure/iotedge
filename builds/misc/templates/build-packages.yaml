@@ -149,7 +149,9 @@ stages:
       ################################################################################
         displayName: Mariner_Linux
         pool:
-          name: $(pool.linux.name)
+          # We are using Linux image that lives in Windows pool. The Windows pool by default uses Standard_D4s_v3 SKU.
+          # EFLOW requires ~85GB to build the edgelet artifacts.
+          name: $(pool.windows.name)
           demands:
           - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker-large-disk
         variables:
