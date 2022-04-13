@@ -370,6 +370,8 @@ fn execute_inner(
 
         manifest_trust_bundle_cert: None,
 
+        additional_info: None,
+
         aziot: common_config::super_config::Config {
             hostname: Some(hostname),
             parent_hostname,

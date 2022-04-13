@@ -56,6 +56,7 @@ where
     S: StreamWakeableState + Send,
 {
     /// Apples parameters to create local pump.
+    #[must_use]
     pub fn with_local<F>(mut self, mut apply: F) -> Self
     where
         F: FnMut(&mut PumpBuilder),
@@ -65,6 +66,7 @@ where
     }
 
     /// Applies parameters to create remote pump.
+    #[must_use]
     pub fn with_remote<F>(mut self, mut apply: F) -> Self
     where
         F: FnMut(&mut PumpBuilder),

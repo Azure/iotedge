@@ -168,6 +168,8 @@ steps:
       SIGNER_CERT: $(TestManifestSigningSignerCert)
       SIGNER_KEY: $(TestManifestSigningSignerKey)
       CONTENT_TRUST_ROOT_CA_CERT : $(TestContentTrustRootCa)
+      http_proxy: $(Agent.ProxyUrl)
+      https_proxy: $(Agent.ProxyUrl)
 
   - pwsh: |
       $imageId = Get-Content -Encoding Utf8 `

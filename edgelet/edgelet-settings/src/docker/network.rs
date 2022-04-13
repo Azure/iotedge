@@ -46,6 +46,7 @@ impl Network {
         &self.name
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = name;
         self
@@ -55,6 +56,7 @@ impl Network {
         self.ipv6
     }
 
+    #[must_use]
     pub fn with_ipv6(mut self, ipv6: Option<bool>) -> Self {
         self.ipv6 = ipv6;
         self
@@ -64,6 +66,7 @@ impl Network {
         self.ipam.as_ref()
     }
 
+    #[must_use]
     pub fn with_ipam(mut self, ipam: Ipam) -> Self {
         self.ipam = Some(ipam);
         self
@@ -81,6 +84,7 @@ impl Ipam {
         self.config.as_deref()
     }
 
+    #[must_use]
     pub fn with_config(mut self, config: Vec<IpamConfig>) -> Self {
         self.config = Some(config);
         self
@@ -104,6 +108,7 @@ impl IpamConfig {
         self.gateway.as_deref()
     }
 
+    #[must_use]
     pub fn with_gateway(mut self, gateway: String) -> Self {
         self.gateway = Some(gateway);
         self
@@ -113,6 +118,7 @@ impl IpamConfig {
         self.subnet.as_deref()
     }
 
+    #[must_use]
     pub fn with_subnet(mut self, subnet: String) -> Self {
         self.subnet = Some(subnet);
         self
@@ -122,6 +128,7 @@ impl IpamConfig {
         self.ip_range.as_deref()
     }
 
+    #[must_use]
     pub fn with_ip_range(mut self, ip_range: String) -> Self {
         self.ip_range = Some(ip_range);
         self
