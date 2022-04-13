@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     using System;
-    using System.IO;
     using System.Net.Security;
     using System.Net.Sockets;
     using System.Security.Authentication;
@@ -33,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             SslProtocols validProtocol = SslProtocols.Tls12;
             SslProtocols invalidProtocol1 = SslProtocols.Tls;
             SslProtocols invalidProtocol2 = SslProtocols.Tls11;
-            Option<Type> expectedException = Option.Some(typeof(IOException));
+            Option<Type> expectedException = Option.Some(typeof(AuthenticationException));
 
             TestConnection(httpsPort, validProtocol, Option.None<Type>());
             TestConnection(amqpsPort, validProtocol, Option.None<Type>());

@@ -5,15 +5,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Common;
     using Microsoft.Azure.Devices.Common.Exceptions;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Azure.EventHubs;
     using Newtonsoft.Json;
     using Serilog;
     using DeviceTransportType = Microsoft.Azure.Devices.TransportType;
     using EventHubTransportType = Microsoft.Azure.EventHubs.TransportType;
+    using RetryPolicy = Util.TransientFaultHandling.RetryPolicy;
 
     public class IotHub
     {
@@ -22,6 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         readonly Lazy<RegistryManager> registryManager;
         readonly Lazy<ServiceClient> serviceClient;
         readonly Lazy<EventHubClient> eventHubClient;
+        static readonly TimeSpan eventHubRequestDuration = TimeSpan.FromSeconds(20);
 
         public IotHub(string iotHubConnectionString, string eventHubEndpoint, Option<Uri> proxyUri)
         {
@@ -204,7 +206,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             CancellationToken token)
         {
             EventHubClient client = this.EventHubClient;
-            int count = (await client.GetRuntimeInformationAsync()).PartitionCount;
+            int count = (await GetPartitionCountAsync(client, token)).PartitionCount;
             string partition = EventHubPartitionKeyResolver.ResolveToPartition(deviceId, count);
             seekTime = seekTime.ToUniversalTime().Subtract(TimeSpan.FromMinutes(2)); // substract 2 minutes to account for client/server drift
             EventPosition position = EventPosition.FromEnqueuedTime(seekTime);
@@ -232,6 +234,20 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             await receiver.CloseAsync();
         }
 
+        static async Task<EventHubRuntimeInformation> GetPartitionCountAsync(EventHubClient client, CancellationToken token)
+        {
+            CancellationToken eachRequestCancellationToken = new CancellationTokenSource(eventHubRequestDuration).Token;
+
+            // Sometimes eventhub will hang when getting runtime information, so we need a retry.
+            var retryStrategy = new Incremental(15, RetryStrategy.DefaultRetryInterval, RetryStrategy.DefaultRetryIncrement);
+            var retryPolicy = new RetryPolicy(new CatchTimeoutErrorDetectionStrategy(), retryStrategy);
+            return await retryPolicy.ExecuteAsync(
+                async () =>
+            {
+                return await Task.Run(async () => await client.GetRuntimeInformationAsync(), eachRequestCancellationToken);
+            }, token);
+        }
+
         public async Task UpdateEdgeEnableStatus(string deviceId, bool enabled)
         {
             var edge = await this.RegistryManager.GetDeviceAsync(deviceId);
@@ -245,6 +261,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             var updated = await this.RegistryManager.UpdateDeviceAsync(edge);
             Log.Verbose($"Updated enabled status for {deviceId}, enabled: {enabled}");
             Log.Verbose($"{updated.Id}, enabled: {updated.Status}");
+        }
+
+        class CatchTimeoutErrorDetectionStrategy : ITransientErrorDetectionStrategy
+        {
+            public bool IsTransient(Exception ex) => ex is TaskCanceledException;
         }
     }
 }

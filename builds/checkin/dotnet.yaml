@@ -11,7 +11,7 @@ jobs:
 ################################################################################
     displayName: Check pipeline preconditions (changes ARE NOT in either edgelet, docs, or mqtt folder)
     pool:
-      vmImage: "ubuntu-18.04"
+      vmImage: "ubuntu-20.04"
     steps:
       - bash: |
           git log -m -1 --name-only --first-parent --pretty="" | egrep -i -v '^(edgelet|doc|mqtt)'
@@ -29,7 +29,7 @@ jobs:
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
-      vmImage: "ubuntu-18.04"
+      vmImage: "ubuntu-20.04"
     steps:
       - task: Bash@3
         displayName: Install Prerequisites
@@ -66,7 +66,7 @@ jobs:
     variables:
       coverage.goal: 60
     pool:
-      vmImage: windows-2019
+      vmImage: windows-2022
     steps:
       - task: DotNetCoreCLI@2
         displayName: Build

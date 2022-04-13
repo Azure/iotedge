@@ -22,7 +22,7 @@ jobs:
       displayName: Build MQTT Broker - arm32
       inputs:
         filePath: scripts/linux/cross-platform-rust-build.sh
-        arguments: --os ubuntu18.04 --arch arm32v7 --build-path mqtt/mqttd
+        arguments: --os ubuntu20.04 --arch arm32v7 --build-path mqtt/mqttd
     - task: CopyFiles@2
       inputs:
         sourceFolder: 'mqtt/target/armv7-unknown-linux-gnueabihf/release/'
@@ -39,7 +39,7 @@ jobs:
       displayName: Build MQTT Broker - arm64
       inputs:
         filePath: scripts/linux/cross-platform-rust-build.sh
-        arguments: --os ubuntu18.04 --arch aarch64 --build-path mqtt/mqttd
+        arguments: --os ubuntu20.04 --arch aarch64 --build-path mqtt/mqttd
     - task: CopyFiles@2
       inputs:
         sourceFolder: 'mqtt/target/aarch64-unknown-linux-gnu/release/'
@@ -73,7 +73,7 @@ jobs:
       displayName: Build watchdog - arm32
       inputs:
         filePath: scripts/linux/cross-platform-rust-build.sh
-        arguments: --os ubuntu18.04 --arch arm32v7 --build-path edge-hub/watchdog
+        arguments: --os ubuntu20.04 --arch arm32v7 --build-path edge-hub/watchdog
     - task: CopyFiles@2
       inputs:
         sourceFolder: 'edge-hub/watchdog/target/armv7-unknown-linux-gnueabihf/release/'
@@ -90,7 +90,7 @@ jobs:
       displayName: Build watchdog - arm64
       inputs:
         filePath: scripts/linux/cross-platform-rust-build.sh
-        arguments: --os ubuntu18.04 --arch aarch64 --build-path edge-hub/watchdog
+        arguments: --os ubuntu20.04 --arch aarch64 --build-path edge-hub/watchdog
     - task: CopyFiles@2
       inputs:
         sourceFolder: 'edge-hub/watchdog/target/aarch64-unknown-linux-gnu/release/'

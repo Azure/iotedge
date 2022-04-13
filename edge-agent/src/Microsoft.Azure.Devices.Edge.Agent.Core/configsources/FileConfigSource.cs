@@ -33,7 +33,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
 
             this.sync = new AsyncLock();
             this.watcherSubscription = Observable
-                .FromEventPattern<FileSystemEventArgs>(this.watcher, "Changed")
+                .FromEventPattern<FileSystemEventHandler, FileSystemEventArgs>(
+                    h => this.watcher.Changed += h,
+                    h => this.watcher.Changed -= h)
                 // Rx.NET's "Throttle" is really "Debounce". An unfortunate naming mishap.
                 .Throttle(TimeSpan.FromMilliseconds(FileChangeWatcherDebounceInterval))
                 .Subscribe(this.WatcherOnChanged);

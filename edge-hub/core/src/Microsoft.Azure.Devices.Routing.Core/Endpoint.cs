@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
         /// <summary>
         /// Endpoint identifier. This must be globally unique
         /// </summary>
-        public virtual string Id { get; }
+        public string Id { get; }
 
         public string Name { get; }
 

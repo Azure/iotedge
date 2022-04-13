@@ -23,16 +23,16 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController
 
         public enum BandwidthUnitType
         {
-            bit,
-            kbit,
-            mbit,
-            gbit,
-            tbit,
-            bps,
-            kbps,
-            mbps,
-            gbps,
-            tbps
+            Bit,
+            Kbit,
+            Mbit,
+            Gbit,
+            Tbit,
+            Bps,
+            Kbps,
+            Mbps,
+            Gbps,
+            Tbps
         }
     }
 }
