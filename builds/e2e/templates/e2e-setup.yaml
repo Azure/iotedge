@@ -30,6 +30,7 @@ steps:
         TestContentTrustRegistryPassword,
 
   - bash: | 
+      dotnet nuget locals all --list
       echo "Built Images Result is $(builtImages)"
       echo "Built Packages Result is $(builtPackages)"
       if [[ ! -z $(builtImages) && ( $(builtImages) == 'Succeeded' || $(builtImages) == 'SucceededWithIssues') ]]
