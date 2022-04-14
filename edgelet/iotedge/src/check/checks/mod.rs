@@ -78,8 +78,13 @@ where
 pub(crate) fn built_in_checks() -> [(&'static str, Vec<Box<dyn Checker>>); 3] {
     /* Note: keep ordering consistent. Later tests may depend on earlier tests. */
     [
-        ("Installation Checks", vec![Box::new(CheckUsers::default()),
-        Box::new(CheckSockets::default())]),
+        (
+            "Installation Checks",
+            vec![
+                Box::new(CheckUsers::default()),
+                Box::new(CheckSockets::default()),
+            ],
+        ),
         (
             "Configuration checks",
             vec![

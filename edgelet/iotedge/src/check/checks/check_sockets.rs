@@ -121,7 +121,7 @@ impl CheckSockets {
             if socket_permission != WORKLOAD_SOCKET_DEFAULT_PERMISSION {
                 return Ok(CheckResult::Failed(
                     Context::new(format!(
-                        "Incorrect Permission for Socker for Socket :{:?}, Expected Permission: {}, Actual Permission: {}",
+                        "Incorrect Permission for Socket at :{:?}, Expected Permission: {}, Actual Permission: {}",
                         socket_file_path, WORKLOAD_SOCKET_DEFAULT_PERMISSION, socket_permission
                     ))
                     .into(),
