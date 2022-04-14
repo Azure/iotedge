@@ -3,7 +3,7 @@ use std::os::unix::prelude::{MetadataExt, PermissionsExt};
 use edgelet_core::UrlExt;
 use edgelet_settings::RuntimeSettings;
 use failure::{Context, ResultExt};
-use nix::unistd::{Uid, User, Group};
+use nix::unistd::{Gid, Group};
 
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
@@ -36,13 +36,14 @@ impl CheckSockets {
     #[allow(unused_variables)]
     async fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
         // Todo : We need to add a similar check in IIS repo for IIS Sockets
-        let (connect_management_uri, connect_workload_uri) = match edgelet_settings::Settings::new(){
+        let (connect_management_uri, connect_workload_uri) = match edgelet_settings::Settings::new()
+        {
             Ok(settings) => (
                 settings.connect().management_uri().clone(),
                 settings.connect().workload_uri().clone(),
             ),
             _ => {
-              return Ok(CheckResult::Skipped);
+                return Ok(CheckResult::Skipped);
             }
         };
 
@@ -51,20 +52,17 @@ impl CheckSockets {
             (connect_workload_uri, WORKLOAD_SOCKET_DEFAULT_PERMISSION),
         ] {
             let socket_path = socket_uri.to_uds_file_path().context(format!(
-                "Could not parse socket uri {}: does not represent a valid file path",socket_uri
+                "Could not parse socket uri {}: does not represent a valid file path",
+                socket_uri
             ))?;
 
             if !socket_path.exists() {
                 return Ok(CheckResult::Failed(
-                    Context::new(format!("Did not find socket with uri {}",socket_uri)).into(),
+                    Context::new(format!("Did not find socket with uri {}", socket_uri)).into(),
                 ));
             }
 
-            let socket_permission = socket_path
-            .metadata()?
-            .permissions()
-            .mode()
-            & 0o777;
+            let socket_permission = socket_path.metadata()?.permissions().mode() & 0o777;
 
             if socket_permission != *permission {
                 return Ok(CheckResult::Failed(
@@ -76,14 +74,13 @@ impl CheckSockets {
                 ));
             }
 
-            let user = User::from_uid(Uid::from_raw(socket_path.metadata()?.uid()))?;
-            if let Some(user) = user {
-                let group = Group::from_gid(user.gid)?.unwrap();
+            let group = Group::from_gid(Gid::from_raw(socket_path.metadata()?.gid()))?;
+            if let Some(group) = group {
                 if group.name != *DEFAULT_SOCKET_USER {
                     return Ok(CheckResult::Failed(
                         Context::new(format!(
-                            "Incorrect Group for Socket {} User : {}",
-                            socket_uri, user.name
+                            "Incorrect Group for Socket {} Group : {}",
+                            socket_uri, group.name
                         ))
                         .into(),
                     ));
