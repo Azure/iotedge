@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+mod edge_ca;
 mod module;
 mod trust_bundle;
 
@@ -30,6 +31,11 @@ where
     identity_client: std::sync::Arc<futures_util::lock::Mutex<IdentityClient>>,
 
     runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
+    renewal_engine: Option<
+        std::sync::Arc<
+            futures_util::lock::Mutex<cert_renewal::RenewalEngine<edge_ca::EdgeCaRenewal>>,
+        >,
+    >,
     config: WorkloadConfig,
 }
 
@@ -72,12 +78,21 @@ where
         let runtime = std::sync::Arc::new(futures_util::lock::Mutex::new(runtime));
         let config = WorkloadConfig::new(settings, device_info);
 
+        let renewal_engine = if let Some(auto_renew) = &config.edge_ca_auto_renew {
+            let engine = cert_renewal::engine::new();
+
+            Some(engine)
+        } else {
+            None
+        };
+
         Ok(Service {
             key_connector,
             key_client,
             cert_client,
             identity_client,
             runtime,
+            renewal_engine,
             config,
         })
     }
@@ -126,6 +141,7 @@ where
             manifest_trust_bundle: "test-manifest-trust-bundle".to_string(),
             edge_ca_cert: "test-ca-cert".to_string(),
             edge_ca_key: "test-ca-key".to_string(),
+            edge_ca_auto_renew: None,
         };
 
         Service {
@@ -134,6 +150,7 @@ where
             cert_client,
             identity_client,
             runtime,
+            renewal_engine: None,
             config,
         }
     }
@@ -172,6 +189,7 @@ struct WorkloadConfig {
 
     edge_ca_cert: String,
     edge_ca_key: String,
+    edge_ca_auto_renew: Option<cert_renewal::AutoRenewConfig>,
 }
 
 impl WorkloadConfig {
@@ -197,6 +215,7 @@ impl WorkloadConfig {
             .edge_ca_key()
             .unwrap_or(edgelet_settings::AZIOT_EDGED_CA_ALIAS)
             .to_string();
+        let edge_ca_auto_renew = settings.edge_ca_auto_renew().to_owned();
 
         WorkloadConfig {
             hub_name: device_info.hub_name.clone(),
@@ -207,6 +226,7 @@ impl WorkloadConfig {
 
             edge_ca_cert,
             edge_ca_key,
+            edge_ca_auto_renew,
         }
     }
 }
@@ -238,6 +258,7 @@ mod tests {
 
                 edge_ca_cert: edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_string(),
                 edge_ca_key: edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_string(),
+                edge_ca_auto_renew: None,
             },
             config
         );
@@ -257,6 +278,7 @@ mod tests {
         let settings = edgelet_test_utils::Settings {
             edge_ca_cert: Some("test-ca-cert".to_string()),
             edge_ca_key: Some("test-ca-key".to_string()),
+            edge_ca_auto_renew: None,
             trust_bundle: Some("test-trust-bundle".to_string()),
             manifest_trust_bundle: Some("test-manifest-trust-bundle".to_string()),
         };
@@ -273,6 +295,7 @@ mod tests {
 
                 edge_ca_cert: "test-ca-cert".to_string(),
                 edge_ca_key: "test-ca-key".to_string(),
+                edge_ca_auto_renew: None,
             },
             config
         );

@@ -67,6 +67,10 @@ impl crate::RuntimeSettings for Settings {
         self.base.edge_ca_key()
     }
 
+    fn edge_ca_auto_renew(&self) -> &Option<cert_renewal::AutoRenewConfig> {
+        self.base.edge_ca_auto_renew()
+    }
+
     fn trust_bundle_cert(&self) -> Option<&str> {
         self.base.trust_bundle_cert()
     }
