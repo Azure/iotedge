@@ -10,7 +10,7 @@ use std::{mem, process, str};
 use anyhow::Context;
 use hyper::Uri;
 use log::{debug, error, info, warn, Level};
-use sysinfo::{DiskExt, ProcessExt, ProcessorExt, System, SystemExt};
+use sysinfo::{DiskExt, PidExt, ProcessExt, ProcessorExt, System, SystemExt};
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::Mutex;
 use url::Url;
@@ -666,14 +666,9 @@ impl ModuleRuntime for DockerModuleRuntime {
         let mut system_resources = self.system_resources.as_ref().lock().await;
         system_resources.refresh_all();
 
-        let start_time = process::id()
-            .try_into()
-            .map(|id| {
-                system_resources
-                    .get_process(id)
-                    .map(ProcessExt::start_time)
-                    .unwrap_or_default()
-            })
+        let start_time = system_resources
+            .process(sysinfo::Pid::from_u32(process::id()))
+            .map(ProcessExt::start_time)
             .unwrap_or_default();
 
         let current_time = SystemTime::now()
@@ -681,20 +676,20 @@ impl ModuleRuntime for DockerModuleRuntime {
             .unwrap_or_default()
             .as_secs();
 
-        let used_cpu = system_resources.get_global_processor_info().get_cpu_usage();
-        let total_memory = system_resources.get_total_memory() * 1000;
-        let used_memory = system_resources.get_used_memory() * 1000;
+        let used_cpu = system_resources.global_processor_info().cpu_usage();
+        let total_memory = system_resources.total_memory() * 1000;
+        let used_memory = system_resources.used_memory() * 1000;
 
         let disks = system_resources
-            .get_disks()
+            .disks()
             .iter()
             .map(|disk| {
                 DiskInfo::new(
-                    disk.get_name().to_string_lossy().into_owned(),
-                    disk.get_available_space(),
-                    disk.get_total_space(),
-                    String::from_utf8_lossy(disk.get_file_system()).into_owned(),
-                    format!("{:?}", disk.get_type()),
+                    disk.name().to_string_lossy().into_owned(),
+                    disk.available_space(),
+                    disk.total_space(),
+                    String::from_utf8_lossy(disk.file_system()).into_owned(),
+                    format!("{:?}", disk.type_()),
                 )
             })
             .collect();

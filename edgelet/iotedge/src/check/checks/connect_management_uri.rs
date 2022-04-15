@@ -8,7 +8,7 @@ use edgelet_settings::RuntimeSettings;
 
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
-#[derive(Default, serde_derive::Serialize)]
+#[derive(Default, serde::Serialize)]
 pub(crate) struct ConnectManagementUri {
     connect_management_uri: Option<String>,
     listen_management_uri: Option<String>,

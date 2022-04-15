@@ -17,7 +17,7 @@
     clippy::use_self
 )]
 
-use serde_derive::Deserialize;
+use serde::Deserialize;
 
 mod check;
 mod client;

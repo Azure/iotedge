@@ -6,7 +6,7 @@ use edgelet_settings::RuntimeSettings;
 
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
-#[derive(Default, serde_derive::Serialize)]
+#[derive(Default, serde::Serialize)]
 pub(crate) struct ContainerResolveParentHostname {}
 
 #[async_trait::async_trait]

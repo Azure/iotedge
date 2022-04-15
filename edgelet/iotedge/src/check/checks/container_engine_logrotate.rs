@@ -4,7 +4,7 @@ use anyhow::{anyhow, Context};
 
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
-#[derive(Default, serde_derive::Serialize)]
+#[derive(Default, serde::Serialize)]
 pub(crate) struct ContainerEngineLogrotate {
     daemon_config: Option<DaemonConfig>,
 }
@@ -75,7 +75,7 @@ impl ContainerEngineLogrotate {
     }
 }
 
-#[derive(serde_derive::Deserialize, serde_derive::Serialize, Clone)]
+#[derive(serde::Deserialize, serde::Serialize, Clone)]
 struct DaemonConfig {
     #[serde(rename = "log-driver")]
     log_driver: Option<String>,
@@ -84,7 +84,7 @@ struct DaemonConfig {
     log_opts: Option<DaemonConfigLogOpts>,
 }
 
-#[derive(serde_derive::Deserialize, serde_derive::Serialize, Clone)]
+#[derive(serde::Deserialize, serde::Serialize, Clone)]
 struct DaemonConfigLogOpts {
     #[serde(rename = "max-file")]
     max_file: Option<String>,

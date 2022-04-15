@@ -5,7 +5,7 @@ use edgelet_settings::{Settings, CONFIG_FILE_DEFAULT, UPSTREAM_PARENT_KEYWORD};
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 use crate::error::Error;
 
-#[derive(Default, serde_derive::Serialize)]
+#[derive(Default, serde::Serialize)]
 pub(crate) struct WellFormedConfig {}
 
 #[async_trait::async_trait]

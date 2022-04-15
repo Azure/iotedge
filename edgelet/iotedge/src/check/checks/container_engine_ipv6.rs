@@ -6,7 +6,7 @@ use edgelet_settings::MobyNetwork;
 
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
-#[derive(Default, serde_derive::Serialize)]
+#[derive(Default, serde::Serialize)]
 pub(crate) struct ContainerEngineIPv6 {
     expected_use_ipv6: Option<bool>,
     actual_use_ipv6: Option<bool>,
@@ -81,7 +81,7 @@ impl ContainerEngineIPv6 {
     }
 }
 
-#[derive(serde_derive::Deserialize)]
+#[derive(serde::Deserialize)]
 struct DaemonConfig {
     ipv6: Option<bool>,
 }

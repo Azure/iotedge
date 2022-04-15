@@ -2,7 +2,7 @@ use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
 use anyhow::anyhow;
 
-#[derive(Default, serde_derive::Serialize)]
+#[derive(Default, serde::Serialize)]
 pub(crate) struct ContainerEngineInstalled {
     docker_host_arg: Option<String>,
     docker_server_version: Option<String>,

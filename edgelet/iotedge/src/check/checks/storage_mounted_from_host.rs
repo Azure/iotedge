@@ -7,7 +7,7 @@ use regex::Regex;
 
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
-#[derive(Default, serde_derive::Serialize)]
+#[derive(Default, serde::Serialize)]
 pub(crate) struct EdgeAgentStorageMounted {
     storage_directory: Option<PathBuf>,
     container_directories: Option<Vec<PathBuf>>,
@@ -35,7 +35,7 @@ impl Checker for EdgeAgentStorageMounted {
     }
 }
 
-#[derive(Default, serde_derive::Serialize)]
+#[derive(Default, serde::Serialize)]
 pub struct EdgeHubStorageMounted {
     storage_directory: Option<PathBuf>,
     container_directories: Option<Vec<PathBuf>>,

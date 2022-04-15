@@ -4,7 +4,7 @@ use anyhow::anyhow;
 
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
-#[derive(Default, serde_derive::Serialize)]
+#[derive(Default, serde::Serialize)]
 pub(crate) struct ParentHostname {
     config_parent_hostname: Option<String>,
 }

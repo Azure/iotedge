@@ -4,7 +4,7 @@ use anyhow::Context;
 
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
-#[derive(Default, serde_derive::Serialize)]
+#[derive(Default, serde::Serialize)]
 pub(crate) struct ContainerEngineDns {
     container_engine_config_path: Option<String>,
     dns: Option<Vec<String>>,
@@ -71,7 +71,7 @@ impl ContainerEngineDns {
     }
 }
 
-#[derive(serde_derive::Deserialize)]
+#[derive(serde::Deserialize)]
 struct DaemonConfig {
     dns: Option<Vec<String>>,
 }

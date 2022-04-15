@@ -4,7 +4,7 @@ use anyhow::Context;
 
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
-#[derive(Default, serde_derive::Serialize)]
+#[derive(Default, serde::Serialize)]
 pub(crate) struct ContainerLocalTime {
     expected_duration: Option<Duration>,
     actual_duration: Option<Duration>,

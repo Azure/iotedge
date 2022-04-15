@@ -4,7 +4,7 @@ use regex::Regex;
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 use crate::error::{Error, FetchLatestVersionsReason};
 
-#[derive(Default, serde_derive::Serialize)]
+#[derive(Default, serde::Serialize)]
 pub(crate) struct AziotEdgedVersion {
     actual_version: Option<String>,
     expected_version: Option<String>,

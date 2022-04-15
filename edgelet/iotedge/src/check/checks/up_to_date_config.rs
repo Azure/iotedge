@@ -2,7 +2,7 @@ use aziotctl_common::check_last_modified::{check_last_modified, LastModifiedErro
 
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
-#[derive(Default, serde_derive::Serialize)]
+#[derive(Default, serde::Serialize)]
 pub(crate) struct UpToDateConfig {}
 
 #[async_trait::async_trait]
