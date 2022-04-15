@@ -17,4 +17,4 @@ keys = ["aziot-edged-ca"]
 
 [[principal]]
 uid = 5558
-keys = ["aziot-edged-ca", "iotedge_master_encryption_id"]
+keys = ["aziot-edged-ca", "iotedge_master_encryption_id", "aziot-edged-ca-temp"]

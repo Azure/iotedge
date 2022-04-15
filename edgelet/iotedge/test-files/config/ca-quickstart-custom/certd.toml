@@ -13,4 +13,4 @@ trust-bundle-user = "file:///var/secrets/trusted-ca.pem"
 
 [[principal]]
 uid = 5558
-certs = ["aziot-edged-ca", "aziot-edged/module/*"]
+certs = ["aziot-edged-ca", "aziot-edged/module/*", "aziot-edged-ca-temp"]
