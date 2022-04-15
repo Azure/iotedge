@@ -43,8 +43,6 @@ pub struct Settings<ModuleConfig> {
     pub edge_ca_cert: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub edge_ca_key: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub edge_ca_auto_renew: Option<cert_renewal::AutoRenewConfig>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub trust_bundle_cert: Option<String>,
@@ -72,6 +70,11 @@ pub struct Settings<ModuleConfig> {
     #[serde(default, skip_serializing)]
     #[cfg_attr(not(debug_assertions), serde(skip_deserializing))]
     pub endpoints: aziot::Endpoints,
+
+    // Despite being a part of Edge CA settings, this table must be placed at the
+    // end of the struct, after all the values.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub edge_ca_auto_renew: Option<cert_renewal::AutoRenewConfig>,
 
     /// Additional system information
     #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]

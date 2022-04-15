@@ -200,13 +200,15 @@ fn execute_inner(
     } = aziotctl_common::config::apply::run(aziot, aziotcs_uid, aziotid_uid)
         .map_err(|err| format!("{:?}", err))?;
 
-    certd_config.principal.push(aziot_certd_config::Principal {
-        uid: iotedge_uid.as_raw(),
-        certs: vec![
-            edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned(),
-            "aziot-edged/module/*".to_owned(),
-        ],
-    });
+    let mut iotedge_authorized_certs = vec![
+        edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned(),
+        "aziot-edged/module/*".to_owned(),
+    ];
+
+    let mut iotedge_authorized_keys = vec![
+        edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned(),
+        "iotedge_master_encryption_id".to_owned(),
+    ];
 
     identityd_config
         .principal
@@ -216,14 +218,6 @@ fn execute_inner(
             id_type: None,
             localid: None,
         });
-
-    keyd_config.principal.push(aziot_keyd_config::Principal {
-        uid: iotedge_uid.as_raw(),
-        keys: vec![
-            edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned(),
-            "iotedge_master_encryption_id".to_owned(),
-        ],
-    });
 
     let preloaded_master_encryption_key_bytes = {
         if let Some(imported_master_encryption_key) = imported_master_encryption_key {
@@ -380,6 +374,27 @@ fn execute_inner(
             (None, None, auto_renew)
         }
     };
+
+    // Edge daemon needs authorization to manage temporary credentials for Edge CA renewal.
+    if let Some(auto_renew) = &edge_ca_auto_renew {
+        let temp = format!("{}-temp", edgelet_settings::AZIOT_EDGED_CA_ALIAS);
+
+        iotedge_authorized_certs.push(temp.clone());
+
+        if auto_renew.rotate_key {
+            iotedge_authorized_keys.push(temp);
+        }
+    }
+
+    certd_config.principal.push(aziot_certd_config::Principal {
+        uid: iotedge_uid.as_raw(),
+        certs: iotedge_authorized_certs,
+    });
+
+    keyd_config.principal.push(aziot_keyd_config::Principal {
+        uid: iotedge_uid.as_raw(),
+        keys: iotedge_authorized_keys,
+    });
 
     if let Some(trust_bundle_cert) = trust_bundle_cert {
         certd_config.preloaded_certs.insert(
