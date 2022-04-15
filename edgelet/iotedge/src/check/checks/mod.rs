@@ -1,6 +1,6 @@
 mod aziot_edged_version;
 mod check_agent_image;
-mod check_io_calls;
+mod check_fs_calls;
 mod check_users;
 mod connect_management_uri;
 mod container_connect_upstream;
@@ -18,7 +18,7 @@ mod well_formed_config;
 
 pub(crate) use self::aziot_edged_version::AziotEdgedVersion;
 pub(crate) use self::check_agent_image::CheckAgentImage;
-pub(crate) use self::check_io_calls::CheckIoCalls;
+pub(crate) use self::check_fs_calls::CheckFsCalls;
 pub(crate) use self::check_users::CheckUsers;
 pub(crate) use self::connect_management_uri::ConnectManagementUri;
 pub(crate) use self::container_connect_upstream::get_host_container_upstream_tests;
@@ -81,8 +81,8 @@ pub(crate) fn built_in_checks() -> [(&'static str, Vec<Box<dyn Checker>>); 3] {
         (
             "Installation Checks",
              vec![
-                 Box::new(CheckUsers::default())
-                 Box::new(CheckIoCalls::default())
+                 Box::new(CheckUsers::default()),
+                 Box::new(CheckFsCalls::default())
                  ]),
         (
             "Configuration checks",
