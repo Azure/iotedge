@@ -704,12 +704,12 @@ check_storage_space() {
     ret="$?"
 
     wrap_debug_message "IoT Edge requires a minimum storage space of $((container_size + binary_size + iotedge_size_buffer)) MB (approximately) for running IoT Edge Binaries and Container Engine."
-    wrap_debug_message "For more information on how profiling has been done. Please visit aka.ms/iotedge for more details."
+    wrap_debug_message "For more information on how profiling has been done. Please visit https://aka.ms/iotedge-resource-profiling for more details."
     wrap_debug_message "The device has $available_storage MB of available storage for File System $(df -P "$MOUNTPOINT" | awk '{print $6}')"
 
     if [ $ret -eq 0 ]; then
         #TODO : Check with PM on messaging
-        wrap_warning_message "Additional storage may be required based on usage. Please visit aka.ms/iotedge for more information"
+        wrap_warning_message "Additional storage may be required based on usage. Please visit https://aka.ms/iotedge-resource-profiling for more information"
     elif [ $ret -eq 1 ]; then
         wrap_warning_message "If you are planning to install iotedge on a different mountpoint, please run the script with MOUNTPOINT='<Path-to-mount>' $(basename "$0")"
     fi
@@ -778,7 +778,7 @@ check_package_manager() {
         #TODO: update the link
         wrap_warning "check_package_manager"
         wrap_warning_message "IoT Edge supports [*deb, *rpm] package types and [apt-get] package manager."
-        wrap_warning_message "Platform does not have support for the supported package type. Please head to aka.ms/iotedge for instructions on how to build the iotedge binaries from source"
+        wrap_warning_message "Platform does not have support for the supported package type. Please head to https://aka.ms/iotedge-dev-guide for instructions on how to build the iotedge binaries from source"
         skip_ca_cert=1
         check_ca_cert
     fi
@@ -832,15 +832,14 @@ check_free_memory() {
     # /proc/meminfo returns the memory size in KB, but our memory calculations are in MB, convert it to appropriate units
     current_free_memory=$(cat $memory_filename | grep "MemAvailable" | awk '{print $2/1024}')
 
-    #TODO: correct final link of aka.ms/iotedge with the setup info of memory analysis.
     wrap_debug_message "IoT Edge requires a minimum memory of $total_iotedge_memory_size MB (approximately) for running IoT Edge Binaries and Container Engine."
-    wrap_debug_message "For more information on how profiling has been done. Please visit aka.ms/iotedge for more details."
+    wrap_debug_message "For more information on how profiling has been done. Please visit https://aka.ms/aziot-compatibility.sh for more details."
 
     res=$(echo $current_free_memory $total_iotedge_memory_size | awk '{if ($1 > $2) print 1; else print 0}')
     if [ $res -eq 1 ]; then
         wrap_debug_message "The device has $current_free_memory MB of free memory"
         wrap_pass "check_free_memory"
-        wrap_warning_message "Additional memory may be required based on usage. Please visit aka.ms/iotedge for more information"
+        wrap_warning_message "Additional memory may be required based on usage. Please visit https://aka.ms/aziot-compatibility.sh for more information"
     else
         # TODO: Need to refine this message
         wrap_fail "check_free_memory"

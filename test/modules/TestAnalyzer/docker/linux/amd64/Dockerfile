@@ -1,4 +1,4 @@
-﻿ARG base_tag=3.1-alpine
+﻿ARG base_tag=6.0-alpine
 
 FROM mcr.microsoft.com/dotnet/aspnet:${base_tag}
 

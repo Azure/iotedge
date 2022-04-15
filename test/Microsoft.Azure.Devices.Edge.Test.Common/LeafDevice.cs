@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.IO;
     using System.Linq;
     using System.Net;
+    using System.Security.Authentication;
     using System.Security.Cryptography.X509Certificates;
     using System.Text;
     using System.Threading;
@@ -16,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Serilog;
 
     public class LeafDevice
@@ -310,7 +312,19 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         static async Task<LeafDevice> CreateLeafDeviceAsync(Device device, Func<DeviceClient> clientFactory, IotHub iotHub, CancellationToken token)
         {
             DeviceClient client = clientFactory();
-            await client.SetMethodHandlerAsync(nameof(DirectMethod), DirectMethod, null, token);
+
+            // This retry is needed to correct failing tls, however this failure should not happen.
+            // Can be removed when the below are fixed:
+            // 1 - sometimes tls auth error occurs because EdgeHub sends an unexpected message (work item 14057676)
+            // 2 - devices sdk issue (https://github.com/Azure/azure-iot-sdk-csharp/issues/2337)
+            var retryStrategy = new Incremental(15, RetryStrategy.DefaultRetryInterval, RetryStrategy.DefaultRetryIncrement);
+            var retryPolicy = new RetryPolicy(new FailingTLSConnectionErrorDetectionStrategy(), retryStrategy);
+            await retryPolicy.ExecuteAsync(
+                async () =>
+            {
+                await client.SetMethodHandlerAsync(nameof(DirectMethod), DirectMethod, null, token);
+            }, token);
+
             return new LeafDevice(device, client, iotHub);
         }
 
@@ -370,6 +384,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 "Leaf device received direct method call with payload: {Payload}",
                 request.DataAsJson);
             return Task.FromResult(new MethodResponse(request.Data, (int)HttpStatusCode.OK));
+        }
+
+        class FailingTLSConnectionErrorDetectionStrategy : ITransientErrorDetectionStrategy
+        {
+            public bool IsTransient(Exception ex) => ex is ObjectDisposedException || ex is AuthenticationException;
         }
     }
 }
