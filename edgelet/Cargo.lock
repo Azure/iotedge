@@ -789,6 +789,7 @@ dependencies = [
 name = "edgelet-settings"
 version = "0.1.0"
 dependencies = [
+ "cert-renewal",
  "config-common",
  "docker",
  "lazy_static",
@@ -1330,6 +1331,7 @@ dependencies = [
  "base64 0.9.3",
  "byte-unit",
  "bytes 0.4.12",
+ "cert-renewal",
  "chrono",
  "chrono-humanize",
  "clap",

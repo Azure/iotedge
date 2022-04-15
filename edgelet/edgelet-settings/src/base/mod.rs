@@ -43,6 +43,8 @@ pub struct Settings<ModuleConfig> {
     pub edge_ca_cert: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub edge_ca_key: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub edge_ca_auto_renew: Option<cert_renewal::AutoRenewConfig>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub trust_bundle_cert: Option<String>,

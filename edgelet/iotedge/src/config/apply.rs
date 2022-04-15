@@ -252,9 +252,10 @@ fn execute_inner(
 
     let edge_ca = edge_ca.unwrap_or(super_config::EdgeCa::Quickstart {
         auto_generated_edge_ca_expiry_days: 90,
+        auto_renew: None,
     });
 
-    let (edge_ca_cert, edge_ca_key) = match edge_ca {
+    let (edge_ca_cert, edge_ca_key, edge_ca_auto_renew) = match edge_ca {
         super_config::EdgeCa::Issued { cert } => {
             let subject = cert.subject.or_else(|| {
                 Some(aziot_certd_config::CertSubject::CommonName(format!(
@@ -302,6 +303,7 @@ fn execute_inner(
                     (
                         Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
                         Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                        cert.auto_renew,
                     )
                 }
                 common_config::super_config::CertIssuanceMethod::LocalCa => {
@@ -322,6 +324,7 @@ fn execute_inner(
                     (
                         Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
                         Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                        cert.auto_renew,
                     )
                 }
                 common_config::super_config::CertIssuanceMethod::SelfSigned => {
@@ -337,6 +340,7 @@ fn execute_inner(
                     (
                         Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
                         Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                        cert.auto_renew,
                     )
                 }
             }
@@ -355,10 +359,12 @@ fn execute_inner(
             (
                 Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
                 Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                None,
             )
         }
         super_config::EdgeCa::Quickstart {
             auto_generated_edge_ca_expiry_days,
+            auto_renew,
         } => {
             set_quickstart_ca(
                 &mut keyd_config,
@@ -371,7 +377,7 @@ fn execute_inner(
                 ))),
             );
 
-            (None, None)
+            (None, None, auto_renew)
         }
     };
 
@@ -419,6 +425,7 @@ fn execute_inner(
 
             edge_ca_cert,
             edge_ca_key,
+            edge_ca_auto_renew,
             trust_bundle_cert: Some(edgelet_settings::TRUST_BUNDLE_ALIAS.to_owned()),
             manifest_trust_bundle_cert,
             additional_info,
