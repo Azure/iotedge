@@ -49,13 +49,13 @@ impl CheckFsCalls {
         fs::remove_file("read_to_string_test.txt").with_context(|_| format!("Unable to cleanup file read_to_string test file"))?;
 
         // Test create_dir and remove_dir 
-        fs::create_dir("createdirtest").with_context(|_| format!("Unable to create test directory"))?;
-        fs::remove_dir("createdirtest").with_context(|_| format!("Unable to remove test directory"))?;
+        fs::create_dir("createdirtest1").with_context(|_| format!("Unable to create test directory"))?;
+        fs::remove_dir("createdirtest1").with_context(|_| format!("Unable to remove test directory"))?;
 
         // Test create_dir_all, read_dir and remove_dir_alliot
-        fs::create_dir_all("createtestdir/level/a").with_context(|_| format!("Unable to perform create_dir_all"))?;
-        fs::read_dir("createtestdir/level/a").with_context(|_| format!("Unable to perform read_dir"))?;
-        fs::remove_dir_all("createtestdir/level/a").with_context(|_| format!("Unable to perform remove_dir_all"))?;
+        fs::create_dir_all("createtestdir2/level1/level2").with_context(|_| format!("Unable to perform create_dir_all"))?;
+        fs::read_dir("createtestdir2/level1/level2").with_context(|_| format!("Unable to perform read_dir"))?;
+        fs::remove_dir_all("createtestdir2").with_context(|_| format!("Unable to perform create_dir_all"))?;
 
         Ok(CheckResult::Ok)
     }
