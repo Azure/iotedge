@@ -35,7 +35,7 @@ pub(crate) struct CertificateResponse {
     expiration: String,
 }
 
-enum SubjectAltName {
+pub(crate) enum SubjectAltName {
     Dns(String),
     Ip(String),
 }
@@ -149,7 +149,7 @@ fn new_keys() -> Result<
     Ok((private_key, public_key))
 }
 
-fn new_csr(
+pub(crate) fn new_csr(
     common_name: String,
     keys: (
         openssl::pkey::PKey<openssl::pkey::Private>,

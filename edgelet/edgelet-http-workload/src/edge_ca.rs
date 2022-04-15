@@ -1,9 +1,19 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+#[cfg(not(test))]
+use aziot_key_openssl_engine as KeyEngine;
+
+#[cfg(test)]
+use test_common::client::KeyEngine;
+
 #[derive(Clone)]
 pub(crate) struct EdgeCaRenewal {}
 
-impl EdgeCaRenewal {}
+impl EdgeCaRenewal {
+    pub fn new() -> Self {
+        EdgeCaRenewal {}
+    }
+}
 
 #[async_trait::async_trait]
 impl cert_renewal::CertInterface for EdgeCaRenewal {
@@ -39,4 +49,56 @@ impl cert_renewal::CertInterface for EdgeCaRenewal {
     ) -> Result<(), cert_renewal::Error> {
         todo!()
     }
+}
+
+pub(crate) fn keys(
+    key_connector: http_common::Connector,
+    key_handle: &aziot_key_common::KeyHandle,
+) -> Result<
+    (
+        openssl::pkey::PKey<openssl::pkey::Private>,
+        openssl::pkey::PKey<openssl::pkey::Public>,
+    ),
+    String,
+> {
+    // The openssl engine must use a sync client. Elsewhere, the async client is used.
+    let key_client = aziot_key_client::Client::new(
+        aziot_key_common_http::ApiVersion::V2021_05_01,
+        key_connector,
+    );
+    let key_client = std::sync::Arc::new(key_client);
+    let key_handle =
+        std::ffi::CString::new(key_handle.0.clone()).expect("key handle contained null");
+
+    let mut engine =
+        KeyEngine::load(key_client).map_err(|_| "failed to load openssl key engine".to_string())?;
+
+    let private_key = engine
+        .load_private_key(&key_handle)
+        .map_err(|_| "failed to load edge ca private key".to_string())?;
+
+    let public_key = engine
+        .load_public_key(&key_handle)
+        .map_err(|_| "failed to load edge ca public key".to_string())?;
+
+    Ok((private_key, public_key))
+}
+
+pub(crate) fn extensions(
+) -> Result<openssl::stack::Stack<openssl::x509::X509Extension>, openssl::error::ErrorStack> {
+    let mut csr_extensions = openssl::stack::Stack::new()?;
+
+    let mut key_usage = openssl::x509::extension::KeyUsage::new();
+    key_usage.critical().digital_signature().key_cert_sign();
+
+    let mut basic_constraints = openssl::x509::extension::BasicConstraints::new();
+    basic_constraints.ca().critical().pathlen(0);
+
+    let key_usage = key_usage.build()?;
+    let basic_constraints = basic_constraints.build()?;
+
+    csr_extensions.push(key_usage)?;
+    csr_extensions.push(basic_constraints)?;
+
+    Ok(csr_extensions)
 }
