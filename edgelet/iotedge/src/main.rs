@@ -9,26 +9,26 @@ use std::io;
 use std::process;
 use std::str::FromStr;
 
+use anyhow::Context;
 use clap::{crate_description, crate_name, App, AppSettings, Arg, SubCommand};
-use failure::{Fail, ResultExt};
 use url::Url;
 
 use edgelet_core::{parse_since, LogOptions, LogTail};
 use support_bundle::OutputLocation;
 
 use iotedge::{
-    Check, Error, ErrorKind, List, Logs, MgmtClient, OutputFormat, Restart, SupportBundleCommand,
-    System, Version,
+    Check, Error, List, Logs, MgmtClient, OutputFormat, Restart, SupportBundleCommand, System,
+    Version,
 };
 
 #[tokio::main]
 async fn main() {
     if let Err(ref error) = run().await {
-        let fail: &dyn Fail = error;
+        let mut chain = error.chain();
 
-        eprintln!("{}", error);
+        eprintln!("{}", chain.next().unwrap());
 
-        for cause in fail.iter_causes() {
+        for cause in chain {
             eprintln!("\tcaused by: {}", cause);
         }
 
@@ -39,7 +39,7 @@ async fn main() {
 }
 
 #[allow(clippy::too_many_lines)]
-async fn run() -> Result<(), Error> {
+async fn run() -> anyhow::Result<()> {
     let aziot_bin = option_env!("AZIOT_BIN").unwrap_or("aziotctl");
 
     let default_mgmt_uri = option_env!("IOTEDGE_CONNECT_MANAGEMENT_URI")
@@ -384,14 +384,10 @@ async fn run() -> Result<(), Error> {
         .subcommand(SubCommand::with_name("version").about("Show the version information"))
         .get_matches();
 
-    let runtime = || -> Result<_, Error> {
+    let runtime = || -> anyhow::Result<_> {
         let url = matches.value_of("host").map_or_else(
-            || Err(Error::from(ErrorKind::MissingHostParameter)),
-            |h| {
-                Url::parse(h)
-                    .context(ErrorKind::BadHostParameter)
-                    .map_err(Error::from)
-            },
+            || Err(Error::MissingHostParameter.into()),
+            |h| Url::parse(h).context(Error::BadHostParameter),
         )?;
         MgmtClient::new(&url)
     };
@@ -442,7 +438,7 @@ async fn run() -> Result<(), Error> {
                     .expect("arg has a default value");
                 let config_file = std::path::Path::new(config_file);
 
-                let () = iotedge::config::apply::execute(config_file).map_err(ErrorKind::Config)?;
+                let () = iotedge::config::apply::execute(config_file).map_err(Error::Config)?;
                 Ok(())
             }
             ("import", Some(args)) => {
@@ -459,7 +455,7 @@ async fn run() -> Result<(), Error> {
                 let force = args.is_present("force");
 
                 let () = iotedge::config::import::execute(old_config_file, new_config_file, force)
-                    .map_err(ErrorKind::Config)?;
+                    .map_err(Error::Config)?;
                 Ok(())
             }
             ("mp", Some(args)) => {
@@ -476,7 +472,7 @@ async fn run() -> Result<(), Error> {
                 let force = args.is_present("force");
 
                 let () = iotedge::config::mp::execute(connection_string, out_config_file, force)
-                    .map_err(ErrorKind::Config)?;
+                    .map_err(Error::Config)?;
                 Ok(())
             }
             (command, _) => {
@@ -501,15 +497,13 @@ async fn run() -> Result<(), Error> {
                 .value_of("tail")
                 .map(str::parse)
                 .transpose()
-                .map_err(|err: edgelet_core::Error| {
-                    Error::from(err.context(ErrorKind::BadTailParameter))
-                })?
+                .context(Error::BadTailParameter)?
                 .expect("arg has a default value");
             let since = args
                 .value_of("since")
                 .map(parse_since)
                 .transpose()
-                .context(ErrorKind::BadSinceParameter)?
+                .context(Error::BadSinceParameter)?
                 .expect("arg has a default value");
             let mut options = LogOptions::new()
                 .with_follow(follow)
@@ -519,14 +513,14 @@ async fn run() -> Result<(), Error> {
                 .value_of("until")
                 .map(parse_since)
                 .transpose()
-                .context(ErrorKind::BadSinceParameter)?
+                .context(Error::BadSinceParameter)?
             {
                 options = options.with_until(until);
             }
 
             Logs::new(id, options, runtime()?).execute().await
         }
-        ("system", Some(args)) => match args.subcommand() {
+        ("system", Some(args)) => (match args.subcommand() {
             ("logs", Some(args)) => {
                 let jctl_args: Vec<&OsStr> = args
                     .values_of_os("args")
@@ -547,14 +541,15 @@ async fn run() -> Result<(), Error> {
                 eprintln!("Unknown system subcommand {:?}", command);
                 std::process::exit(1);
             }
-        },
+        })
+        .map_err(anyhow::Error::from),
         ("support-bundle", Some(args)) => {
             let location = args.value_of_os("output").expect("arg has a default value");
             let since = args
                 .value_of("since")
                 .map(parse_since)
                 .transpose()
-                .context(ErrorKind::BadSinceParameter)?
+                .context(Error::BadSinceParameter)?
                 .expect("arg has a default value");
             let mut options = LogOptions::new()
                 .with_follow(false)
@@ -564,7 +559,7 @@ async fn run() -> Result<(), Error> {
                 .value_of("until")
                 .map(parse_since)
                 .transpose()
-                .context(ErrorKind::BadSinceParameter)?
+                .context(Error::BadSinceParameter)?
             {
                 options = options.with_until(until);
             }

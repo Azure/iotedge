@@ -41,7 +41,7 @@ impl fmt::Display for AuthId {
         match self {
             AuthId::None => write!(f, "none"),
             AuthId::Any => write!(f, "any"),
-            AuthId::Value(auth_id) => write!(f, "{}", auth_id),
+            AuthId::Value(auth_id) => write!(f, "{auth_id}"),
         }
     }
 }
