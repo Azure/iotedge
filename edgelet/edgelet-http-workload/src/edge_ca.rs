@@ -14,19 +14,26 @@ use test_common::client::KeyClient;
 #[cfg(test)]
 use test_common::client::KeyEngine;
 
-#[derive(Clone)]
-pub(crate) struct EdgeCaRenewal {
+pub(crate) struct EdgeCaRenewal<M>
+where
+    M: edgelet_core::ModuleRuntime + Send + Sync,
+{
     rotate_key: bool,
     temp_cert: String,
+    runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
     cert_client: std::sync::Arc<futures_util::lock::Mutex<CertClient>>,
     key_client: std::sync::Arc<futures_util::lock::Mutex<KeyClient>>,
     key_connector: http_common::Connector,
 }
 
-impl EdgeCaRenewal {
+impl<M> EdgeCaRenewal<M>
+where
+    M: edgelet_core::ModuleRuntime + Send + Sync,
+{
     pub fn new(
         rotate_key: bool,
         edge_ca_id: &str,
+        runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
         cert_client: std::sync::Arc<futures_util::lock::Mutex<CertClient>>,
         key_client: std::sync::Arc<futures_util::lock::Mutex<KeyClient>>,
         key_connector: http_common::Connector,
@@ -36,6 +43,7 @@ impl EdgeCaRenewal {
         EdgeCaRenewal {
             rotate_key,
             temp_cert,
+            runtime,
             cert_client,
             key_client,
             key_connector,
@@ -44,7 +52,10 @@ impl EdgeCaRenewal {
 }
 
 #[async_trait::async_trait]
-impl cert_renewal::CertInterface for EdgeCaRenewal {
+impl<M> cert_renewal::CertInterface for EdgeCaRenewal<M>
+where
+    M: edgelet_core::ModuleRuntime + Send + Sync,
+{
     type NewKey = String;
 
     async fn get_cert(
@@ -213,8 +224,15 @@ impl cert_renewal::CertInterface for EdgeCaRenewal {
                 .map_err(|_| cert_renewal::Error::retryable_error("failed to import new cert"))?;
         }
 
-        // Restart all modules. Modules should request new server certs based on the new
-        // Edge CA on restart.
+        // Modules should be restarted so that they request new server certs. Stop all modules here;
+        // the Edge daemon watchdog will restart them.
+        let runtime = self.runtime.lock().await;
+
+        if let Err(err) = runtime.stop_all(None).await {
+            log::warn!("Failed to restart modules after Edge CA renewal: {}", err);
+        } else {
+            log::info!("Edge CA renewal stopped all modules");
+        }
 
         Ok(())
     }

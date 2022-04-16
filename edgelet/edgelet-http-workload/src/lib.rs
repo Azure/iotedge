@@ -21,7 +21,7 @@ use test_common::client::KeyClient;
 #[derive(Clone)]
 pub struct Service<M>
 where
-    M: edgelet_core::ModuleRuntime,
+    M: edgelet_core::ModuleRuntime + Send + Sync,
 {
     // This connector is needed to contruct sync aziot_key_clients when using aziot_key_openssl_engine.
     key_connector: http_common::Connector,
@@ -33,7 +33,7 @@ where
     runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
     renewal_engine: Option<
         std::sync::Arc<
-            futures_util::lock::Mutex<cert_renewal::RenewalEngine<edge_ca::EdgeCaRenewal>>,
+            futures_util::lock::Mutex<cert_renewal::RenewalEngine<edge_ca::EdgeCaRenewal<M>>>,
         >,
     >,
     config: WorkloadConfig,
@@ -41,7 +41,7 @@ where
 
 impl<M> Service<M>
 where
-    M: edgelet_core::ModuleRuntime,
+    M: edgelet_core::ModuleRuntime + Send + Sync + 'static,
 {
     #[cfg(not(test))]
     pub fn new(
@@ -156,6 +156,7 @@ where
             let interface = edge_ca::EdgeCaRenewal::new(
                 rotate_key,
                 &self.config.edge_ca_cert,
+                self.runtime.clone(),
                 self.cert_client.clone(),
                 self.key_client.clone(),
                 self.key_connector.clone(),
