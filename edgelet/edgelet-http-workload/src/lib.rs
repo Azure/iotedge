@@ -146,7 +146,11 @@ where
                 .policy
                 .to_owned();
 
-            let interface = edge_ca::EdgeCaRenewal::new();
+            let interface = edge_ca::EdgeCaRenewal::new(
+                self.cert_client.clone(),
+                self.key_client.clone(),
+                self.key_connector.clone(),
+            );
 
             cert_renewal::engine::add_credential(
                 engine,
@@ -159,7 +163,7 @@ where
             .map_err(|err| format!("failed to configure Edge CA auto renew: {}", err))?;
         } else {
             log::warn!(
-                "Auto renewal of the Edge CA is not configured. Edge CA will not be automatically renewed.",
+                "Auto renewal of the Edge CA is not configured. Edge CA will not be automatically renewed",
             );
         }
 

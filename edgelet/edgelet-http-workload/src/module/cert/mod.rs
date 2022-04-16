@@ -46,7 +46,6 @@ struct CertApi {
 
 impl CertApi {
     pub fn new(
-        key_connector: http_common::Connector,
         key_client: std::sync::Arc<futures_util::lock::Mutex<KeyClient>>,
         cert_client: std::sync::Arc<futures_util::lock::Mutex<CertClient>>,
         config: &crate::WorkloadConfig,

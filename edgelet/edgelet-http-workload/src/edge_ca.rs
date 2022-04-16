@@ -1,17 +1,37 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #[cfg(not(test))]
+use aziot_cert_client_async::Client as CertClient;
+#[cfg(not(test))]
+use aziot_key_client_async::Client as KeyClient;
+#[cfg(not(test))]
 use aziot_key_openssl_engine as KeyEngine;
 
+#[cfg(test)]
+use test_common::client::CertClient;
+#[cfg(test)]
+use test_common::client::KeyClient;
 #[cfg(test)]
 use test_common::client::KeyEngine;
 
 #[derive(Clone)]
-pub(crate) struct EdgeCaRenewal {}
+pub(crate) struct EdgeCaRenewal {
+    cert_client: std::sync::Arc<futures_util::lock::Mutex<CertClient>>,
+    key_client: std::sync::Arc<futures_util::lock::Mutex<KeyClient>>,
+    key_connector: http_common::Connector,
+}
 
 impl EdgeCaRenewal {
-    pub fn new() -> Self {
-        EdgeCaRenewal {}
+    pub fn new(
+        cert_client: std::sync::Arc<futures_util::lock::Mutex<CertClient>>,
+        key_client: std::sync::Arc<futures_util::lock::Mutex<KeyClient>>,
+        key_connector: http_common::Connector,
+    ) -> Self {
+        EdgeCaRenewal {
+            cert_client,
+            key_client,
+            key_connector,
+        }
     }
 }
 
@@ -23,14 +43,32 @@ impl cert_renewal::CertInterface for EdgeCaRenewal {
         &mut self,
         cert_id: &str,
     ) -> Result<openssl::x509::X509, cert_renewal::Error> {
-        todo!()
+        let cert_client = self.cert_client.lock().await;
+
+        let cert = cert_client
+            .get_cert(cert_id)
+            .await
+            .map_err(|_| cert_renewal::Error::retryable_error("failed to retrieve edge CA cert"))?;
+
+        openssl::x509::X509::from_pem(&cert)
+            .map_err(|_| cert_renewal::Error::fatal_error("failed to parse edge CA cert"))
     }
 
     async fn get_key(
         &mut self,
         key_id: &str,
     ) -> Result<openssl::pkey::PKey<openssl::pkey::Private>, cert_renewal::Error> {
-        todo!()
+        let key_client = self.key_client.lock().await;
+
+        let key_handle = key_client
+            .load_key_pair(key_id)
+            .await
+            .map_err(|_| cert_renewal::Error::retryable_error("failed to get identity cert key"))?;
+
+        let (private_key, _) = keys(self.key_connector.clone(), &key_handle)
+            .map_err(|err| cert_renewal::Error::retryable_error(err))?;
+
+        Ok(private_key)
     }
 
     async fn renew_cert(
