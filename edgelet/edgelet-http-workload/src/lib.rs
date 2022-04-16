@@ -146,7 +146,16 @@ where
                 .policy
                 .to_owned();
 
+            let rotate_key = self
+                .config
+                .edge_ca_auto_renew
+                .as_ref()
+                .expect("auto renew config should exist if engine exists")
+                .rotate_key;
+
             let interface = edge_ca::EdgeCaRenewal::new(
+                rotate_key,
+                &self.config.edge_ca_cert,
                 self.cert_client.clone(),
                 self.key_client.clone(),
                 self.key_connector.clone(),
