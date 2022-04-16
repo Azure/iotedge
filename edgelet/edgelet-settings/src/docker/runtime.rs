@@ -4,9 +4,6 @@
 pub struct MobyRuntime {
     pub uri: url::Url,
     pub network: crate::docker::network::MobyNetwork,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub content_trust: Option<ContentTrust>,
 }
 
 impl MobyRuntime {
@@ -16,21 +13,5 @@ impl MobyRuntime {
 
     pub fn network(&self) -> &crate::docker::network::MobyNetwork {
         &self.network
-    }
-
-    pub fn content_trust(&self) -> Option<&ContentTrust> {
-        self.content_trust.as_ref()
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
-pub struct ContentTrust {
-    #[serde(default)]
-    pub ca_certs: Option<std::collections::BTreeMap<String, String>>,
-}
-
-impl ContentTrust {
-    pub fn ca_certs(&self) -> Option<&std::collections::BTreeMap<String, String>> {
-        self.ca_certs.as_ref()
     }
 }

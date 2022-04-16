@@ -19,7 +19,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         protected CancellationToken TestToken => this.cts.Token;
 
         protected virtual Task BeforeTestTimerStarts() => Task.CompletedTask;
-        protected virtual Task AfterTestTimerEnds() => Task.CompletedTask;
 
         [SetUp]
         protected async Task BeforeEachTestAsync()
@@ -39,6 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 async () =>
                 {
                     this.cts.Dispose();
+
                     if ((!Context.Current.ISA95Tag) && (TestContext.CurrentContext.Result.Outcome != ResultState.Ignored))
                     {
                         using var cts = new CancellationTokenSource(Context.Current.TeardownTimeout);
@@ -61,8 +61,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     }
                 },
                 "Completed test teardown");
-
-            await this.AfterTestTimerEnds();
         }
     }
 }

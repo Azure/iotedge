@@ -1,9 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
-  <Import Project="..\..\..\netstandardVersion.props" />
-
-  <ItemGroup>
-    <ProjectReference Include="..\es6numberserializer\es6numberserializer.csproj" />
-  </ItemGroup>
-
-</Project>

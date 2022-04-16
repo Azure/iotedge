@@ -6,7 +6,6 @@ pub struct Settings {
     pub edge_ca_key: Option<String>,
 
     pub trust_bundle: Option<String>,
-    pub manifest_trust_bundle: Option<String>,
 }
 
 impl edgelet_settings::RuntimeSettings for Settings {
@@ -22,10 +21,6 @@ impl edgelet_settings::RuntimeSettings for Settings {
 
     fn trust_bundle_cert(&self) -> Option<&str> {
         self.trust_bundle.as_deref()
-    }
-
-    fn manifest_trust_bundle_cert(&self) -> Option<&str> {
-        self.manifest_trust_bundle.as_deref()
     }
 
     // The functions below aren't used in tests.

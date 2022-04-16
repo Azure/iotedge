@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             Option<AuthConfig> authConfig = deploymentAuthConfigs.FirstAuthConfig(moduleWithDockerConfig.Config.Image)
                 .Else(() => this.authConfigs.FirstAuthConfig(moduleWithDockerConfig.Config.Image));
 
-            return new CombinedDockerConfig(moduleWithDockerConfig.Config.Image, moduleWithDockerConfig.Config.CreateOptions, moduleWithDockerConfig.Config.Digest, authConfig);
+            return new CombinedDockerConfig(moduleWithDockerConfig.Config.Image, moduleWithDockerConfig.Config.CreateOptions, authConfig);
         }
     }
 }

@@ -65,11 +65,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                         var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties_1_2>(twinJson);
                         edgeHubConfig = this.GetEdgeHubConfig(desiredProperties);
                     }
-                    else if (version.Minor == Core.Constants.SchemaVersion_1_3.Minor)
-                    {
-                        var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties_1_3>(twinJson);
-                        edgeHubConfig = this.GetEdgeHubConfig(desiredProperties);
-                    }
                     else
                     {
                         throw new InvalidSchemaVersionException($"EdgeHub config contains unsupported SchemaVersion: {version}");
@@ -116,8 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 desiredProperties.SchemaVersion,
                 new ReadOnlyDictionary<string, RouteConfig>(routes),
                 desiredProperties.StoreAndForwardConfiguration,
-                Option.None<BrokerConfig>(),
-                Option.None<ManifestIntegrity>());
+                Option.None<BrokerConfig>());
         }
 
         public EdgeHubConfig GetEdgeHubConfig(EdgeHubDesiredProperties_1_1 desiredProperties)
@@ -129,8 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 desiredProperties.SchemaVersion,
                 routes,
                 desiredProperties.StoreAndForwardConfiguration,
-                Option.None<BrokerConfig>(),
-                Option.None<ManifestIntegrity>());
+                Option.None<BrokerConfig>());
         }
 
         public EdgeHubConfig GetEdgeHubConfig(EdgeHubDesiredProperties_1_2 desiredProperties)
@@ -143,22 +136,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 desiredProperties.SchemaVersion,
                 routes,
                 desiredProperties.StoreAndForwardConfiguration,
-                brokerConfig,
-                Option.None<ManifestIntegrity>());
-        }
-
-        public EdgeHubConfig GetEdgeHubConfig(EdgeHubDesiredProperties_1_3 desiredProperties)
-        {
-            Preconditions.CheckNotNull(desiredProperties, nameof(desiredProperties));
-            ReadOnlyDictionary<string, RouteConfig> routes = ParseRoutesWithPriority(desiredProperties.Routes, this.routeFactory);
-            Option<BrokerConfig> brokerConfig = this.ParseBrokerConfig(desiredProperties.BrokerConfiguration);
-
-            return new EdgeHubConfig(
-                desiredProperties.SchemaVersion,
-                routes,
-                desiredProperties.StoreAndForwardConfiguration,
-                brokerConfig,
-                desiredProperties.Integrity);
+                brokerConfig);
         }
 
         static ReadOnlyDictionary<string, RouteConfig> ParseRoutesWithPriority(IDictionary<string, RouteSpec> routeSpecs, RouteFactory routeFactory)

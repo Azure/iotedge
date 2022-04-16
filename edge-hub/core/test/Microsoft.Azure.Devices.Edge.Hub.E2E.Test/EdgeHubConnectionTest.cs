@@ -5,7 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
-    using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
@@ -150,8 +149,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     twinManager,
                     twinMessageConverter,
                     twinCollectionMessageConverter,
-                    configParser,
-                    Option.None<X509Certificate2>());
+                    configParser);
 
                 // Get and Validate EdgeHubConfig
                 Option<EdgeHubConfig> edgeHubConfigOption = await configSource.GetConfig();

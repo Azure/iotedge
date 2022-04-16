@@ -2,7 +2,6 @@
 
 use std::collections::{BTreeMap, HashMap};
 use std::convert::TryInto;
-use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{mem, process, str};
@@ -23,7 +22,7 @@ use edgelet_core::{
     SystemResources, UrlExt,
 };
 use edgelet_settings::{
-    ContentTrust, DockerConfig, Ipam as CoreIpam, MobyNetwork, ModuleSpec, RuntimeSettings,
+    DockerConfig, Ipam as CoreIpam, MobyNetwork, ModuleSpec, RuntimeSettings,
     Settings,
 };
 use edgelet_utils::{ensure_not_empty, log_failure};
@@ -31,21 +30,17 @@ use http_common::Connector;
 
 use crate::error::Error;
 use crate::module::{runtime_state, DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
-use crate::notary;
 
 type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
 const OWNER_LABEL_KEY: &str = "net.azure-devices.edge.owner";
 const OWNER_LABEL_VALUE: &str = "Microsoft.Azure.Devices.Edge.Agent";
-const ORIGINAL_IMAGE_LABEL_KEY: &str = "net.azure-devices.edge.original-image";
 const LABELS: &[&str] = &["net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent"];
 
 #[derive(Clone)]
 pub struct DockerModuleRuntime {
     client: DockerApiClient,
     system_resources: Arc<Mutex<System>>,
-    notary_registries: BTreeMap<String, PathBuf>,
-    notary_lock: Arc<Mutex<BTreeMap<String, String>>>,
     create_socket_channel: UnboundedSender<ModuleAction>,
     allow_elevated_docker_permissions: bool,
     additional_info: BTreeMap<String, String>,
@@ -73,126 +68,6 @@ impl DockerModuleRuntime {
             .map(|(key, value)| format!("{}={}", key, value))
             .collect()
     }
-
-    async fn get_notary_registries(
-        settings: &Settings,
-    ) -> anyhow::Result<BTreeMap<String, PathBuf>> {
-        if let Some(content_trust_map) = settings
-            .moby_runtime()
-            .content_trust()
-            .and_then(ContentTrust::ca_certs)
-        {
-            debug!("Notary Content Trust is enabled");
-            let home_dir: Arc<Path> = settings.homedir().into();
-            let certd_url = settings.endpoints().aziot_certd_url().clone();
-            let cert_client = aziot_cert_client_async::Client::new(
-                aziot_cert_common_http::ApiVersion::V2020_09_01,
-                http_common::Connector::new(&certd_url).map_err(|_| Error::Docker)?, // TODO: Error Fix
-                1,
-            );
-
-            let mut notary_registries = BTreeMap::new();
-            for (registry_server_hostname, cert_id) in content_trust_map {
-                let cert_buf = cert_client.get_cert(cert_id).await.map_err(|_| {
-                    Error::NotaryRootCAReadError("Notary root CA read error".to_owned())
-                })?;
-
-                let config_path =
-                    notary::notary_init(&home_dir, registry_server_hostname, &cert_buf).map_err(
-                        |_| Error::NotaryRootCAReadError("Notary init error".to_owned()),
-                    )?;
-                notary_registries.insert(registry_server_hostname.clone(), config_path);
-            }
-
-            Ok(notary_registries)
-        } else {
-            debug!("Notary Content Trust is disabled");
-            Ok(BTreeMap::new())
-        }
-    }
-
-    async fn check_for_notary_image(
-        &self,
-        config: &DockerConfig,
-    ) -> anyhow::Result<(String, bool)> {
-        if let Some((notary_auth, gun, tag, config_path)) = self.get_notary_parameters(config) {
-            let lock = self.notary_lock.clone();
-            let mut notary_map = lock.lock().await;
-
-            // Note `.entry()` cannot be used b/c the notary lookup is async
-            let digest_from_notary = if let Some(digest) = notary_map.get(config.image()) {
-                digest.clone()
-            } else {
-                let digest =
-                    notary::notary_lookup(notary_auth.as_deref(), &gun, &tag, &config_path).await?;
-                notary_map.insert(config.image().to_owned(), digest.clone());
-                digest
-            };
-
-            let image_with_digest = format!("{}@{}", gun, digest_from_notary);
-            if let Some(digest_from_manifest) = config.digest() {
-                if digest_from_manifest == digest_from_notary {
-                    info!("Digest from notary and Digest from manifest does match");
-                    debug!(
-                        "Digest from notary : {} and Digest from manifest : {} does match",
-                        digest_from_notary, digest_from_manifest
-                    );
-                    Ok((image_with_digest, true))
-                } else {
-                    info!("Digest from notary and Digest from manifest does not match");
-                    debug!(
-                        "Digest from notary : {} and Digest from manifest : {} does not match",
-                        digest_from_notary, digest_from_manifest
-                    );
-                    Err(Error::NotaryDigestMismatch(
-                        "notary digest mismatch with the manifest".to_owned(),
-                    )
-                    .into())
-                }
-            } else {
-                info!("No Digest from the manifest");
-                Ok((image_with_digest, true))
-            }
-        } else {
-            Ok((config.image().to_owned(), false))
-        }
-    }
-
-    fn get_notary_parameters(
-        &self,
-        config: &DockerConfig,
-    ) -> Option<(Option<String>, Arc<str>, String, PathBuf)> {
-        // check if the serveraddress exists & check if it exists in notary_registries
-        let registry_auth = config.auth();
-        let (registry_hostname, registry_username, registry_password) = match registry_auth {
-            Some(a) => (a.serveraddress(), a.username(), a.password()),
-            None => (None, None, None),
-        };
-        let hostname = registry_hostname?;
-        let config_path = self.notary_registries.get(hostname)?;
-        info!("{} is enabled for notary content trust", hostname);
-        let notary_auth = match (registry_username, registry_password) {
-            (None, None) => None,
-            (username, password) => {
-                let notary_auth = format!(
-                    "{}:{}",
-                    username.unwrap_or_default(),
-                    password.unwrap_or_default()
-                );
-                let notary_auth = base64::encode(&notary_auth);
-                Some(notary_auth)
-            }
-        };
-        let mut image_with_tag_parts = config.image().split(':');
-        let gun = image_with_tag_parts
-            .next()
-            .expect("split always returns atleast one element")
-            .to_owned();
-        let gun: Arc<str> = gun.into();
-        let tag = image_with_tag_parts.next().unwrap_or("latest").to_owned();
-
-        Some((notary_auth, gun, tag, config_path.clone()))
-    }
 }
 
 impl std::fmt::Debug for DockerModuleRuntime {
@@ -206,12 +81,8 @@ impl ModuleRegistry for DockerModuleRuntime {
     type Config = DockerConfig;
 
     async fn pull(&self, config: &Self::Config) -> anyhow::Result<()> {
-        let (image, is_content_trust_enabled) = self.check_for_notary_image(config).await?;
-        if is_content_trust_enabled {
-            info!("Pulling image via digest {}...", image);
-        } else {
-            info!("Pulling image via tag {}...", image);
-        }
+        let image = config.image().to_owned();
+        info!("Pulling image via tag {}...", image);
 
         let creds = match config.auth() {
             Some(a) => {
@@ -272,7 +143,6 @@ impl MakeModuleRuntime for DockerModuleRuntime {
         info!("Initializing module runtime...");
 
         let client = init_client(settings.moby_runtime().uri())?;
-        let notary_registries = Self::get_notary_registries(settings).await?;
         create_network_if_missing(settings, &client).await?;
 
         // to avoid excessive FD usage, we will not allow sysinfo to keep files open.
@@ -283,8 +153,6 @@ impl MakeModuleRuntime for DockerModuleRuntime {
         let runtime = Self {
             client,
             system_resources: Arc::new(Mutex::new(system_resources)),
-            notary_registries,
-            notary_lock: Arc::new(Mutex::new(BTreeMap::new())),
             create_socket_channel,
             allow_elevated_docker_permissions: settings.allow_elevated_docker_permissions(),
             additional_info: settings.additional_info().clone(),
@@ -421,26 +289,14 @@ impl ModuleRuntime for DockerModuleRuntime {
             module.config_mut().create_options_mut(),
         );
 
-        let (image, is_content_trust_enabled) =
-            self.check_for_notary_image(module.config()).await?;
-        if is_content_trust_enabled {
-            info!("Creating image via digest {}...", image);
-        } else {
-            info!("Creating image via tag {}...", image);
-        }
-
-        debug!("Creating container {} with image {}", module.name(), image);
+        let image = module.config().image().to_owned();
         let create_options = module.config().create_options().clone();
         let merged_env = DockerModuleRuntime::merge_env(create_options.env(), module.env());
 
         let mut labels = create_options.labels().cloned().unwrap_or_default();
         labels.insert(OWNER_LABEL_KEY.to_string(), OWNER_LABEL_VALUE.to_string());
-        labels.insert(
-            ORIGINAL_IMAGE_LABEL_KEY.to_string(),
-            module.config().image().to_string(),
-        );
 
-        debug!("Creating container {} with image {}", module.name(), image);
+        info!("Creating container {} with image {}", module.name(), image);
 
         let create_options = create_options
             .with_image(image)
@@ -500,7 +356,6 @@ impl ModuleRuntime for DockerModuleRuntime {
         let mut config = DockerConfig::new(
             image,
             create_options,
-            None,
             None,
             self.allow_elevated_docker_permissions,
         )
@@ -753,7 +608,6 @@ impl ModuleRuntime for DockerModuleRuntime {
                             .map(|(k, v)| (k.to_string(), v.to_string()))
                             .collect(),
                     ),
-                    None,
                     None,
                     self.allow_elevated_docker_permissions,
                 )

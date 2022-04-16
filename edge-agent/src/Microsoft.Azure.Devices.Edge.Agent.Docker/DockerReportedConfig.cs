@@ -13,17 +13,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     [JsonConverter(typeof(DockerReportedConfigJsonConverter))]
     public class DockerReportedConfig : DockerConfig, IEquatable<DockerReportedConfig>
     {
-        public static DockerReportedConfig Unknown = new DockerReportedConfig(CoreConstants.Unknown, string.Empty, string.Empty, Option.None<string>());
+        public static DockerReportedConfig Unknown = new DockerReportedConfig(CoreConstants.Unknown, string.Empty, string.Empty);
 
         [JsonConstructor]
-        public DockerReportedConfig(string image, string createOptions, string imageHash, Option<string> digest)
-            : base(image, createOptions, digest)
+        public DockerReportedConfig(string image, string createOptions, string imageHash)
+            : base(image, createOptions)
         {
             this.ImageHash = imageHash ?? string.Empty;
         }
 
-        public DockerReportedConfig(string image, CreateContainerParameters createOptions, string imageHash, Option<string> digest)
-            : base(image, createOptions, digest)
+        public DockerReportedConfig(string image, CreateContainerParameters createOptions, string imageHash)
+            : base(image, createOptions)
         {
             this.ImageHash = imageHash ?? string.Empty;
         }
@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 return true;
             }
 
-            return base.Equals(other) && string.Equals(this.ImageHash, other.ImageHash) && Equals(this.Digest, other.Digest);
+            return base.Equals(other) && string.Equals(this.ImageHash, other.ImageHash);
         }
 
         public override int GetHashCode()
@@ -83,11 +83,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     writer.WriteValue(chunk);
                 }
 
-                dockerReportedConfig.Digest.ForEach(ct =>
-                {
-                    writer.WritePropertyName("digest");
-                    serializer.Serialize(writer, ct);
-                });
                 writer.WriteEndObject();
             }
 
@@ -104,14 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     .Select(token => token?.ToString() ?? string.Empty)
                     .Join();
 
-                if (obj.TryGetValue("digest", StringComparison.OrdinalIgnoreCase, out JToken jTokenDigest))
-                {
-                    return new DockerReportedConfig(jTokenImage?.ToString(), options, jTokenImageHash?.ToString(), Option.Maybe(jTokenDigest.ToObject<string>()));
-                }
-                else
-                {
-                    return new DockerReportedConfig(jTokenImage?.ToString(), options, jTokenImageHash?.ToString(), Option.None<string>());
-                }
+                return new DockerReportedConfig(jTokenImage?.ToString(), options, jTokenImageHash?.ToString());
             }
 
             public override bool CanConvert(Type objectType) => objectType == typeof(DockerReportedConfig);

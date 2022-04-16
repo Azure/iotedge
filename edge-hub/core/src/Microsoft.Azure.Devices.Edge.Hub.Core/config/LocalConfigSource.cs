@@ -34,8 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 Constants.LatestSchemaVersion.ToString(),
                 new ReadOnlyDictionary<string, RouteConfig>(parsedRoutes),
                 storeAndForwardConfiguration,
-                Option.None<BrokerConfig>(),
-                Option.None<ManifestIntegrity>());
+                Option.None<BrokerConfig>());
         }
 
 #pragma warning disable CS0067 // unused event but part of the interface.

@@ -33,7 +33,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public static readonly Version SchemaVersion_1_0 = new Version("1.0");
         public static readonly Version SchemaVersion_1_1 = new Version("1.1");
         public static readonly Version SchemaVersion_1_2 = new Version("1.2");
-        public static readonly Version SchemaVersion_1_3 = new Version("1.3");
-        public static readonly Version LatestSchemaVersion = SchemaVersion_1_3;
+        public static readonly Version LatestSchemaVersion = SchemaVersion_1_2;
     }
 }

@@ -72,6 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                 deny: new List<AuthorizationProperties.Rule>());
 
             var authzProperties = new AuthorizationProperties { statement1, statement2 };
+
             var bridgeConfig = new BridgeConfig
             {
                 new Bridge("$upstream", new List<Settings>

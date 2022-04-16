@@ -22,9 +22,6 @@ pub enum Error {
     #[error("Could not initialize module runtime - {0}")]
     Initialization(String),
 
-    #[error("Could not initialize Notary configuration: {0}")]
-    InitializeNotary(String),
-
     #[error("Invalid docker image {0:?}")]
     InvalidImage(String),
 
@@ -38,16 +35,7 @@ pub enum Error {
     InvalidSocketUri(String),
 
     #[error("{0}")]
-    LaunchNotary(String),
-
-    #[error("{0}")]
     ModuleOperation(ModuleOperation),
-
-    #[error("{0}")]
-    NotaryDigestMismatch(String),
-
-    #[error("{0}")]
-    NotaryRootCAReadError(String),
 
     #[error("{0}")]
     NotFound(String),

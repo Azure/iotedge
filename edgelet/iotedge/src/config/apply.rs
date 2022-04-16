@@ -180,7 +180,6 @@ fn execute_inner(
         allow_elevated_docker_permissions,
         auto_reprovisioning_mode,
         imported_master_encryption_key,
-        manifest_trust_bundle_cert,
         additional_info,
         aziot,
         agent,
@@ -389,14 +388,6 @@ fn execute_inner(
         aziot_certd_config::PreloadedCert::Ids(trust_bundle_certs),
     );
 
-    let manifest_trust_bundle_cert = manifest_trust_bundle_cert.map(|manifest_trust_bundle_cert| {
-        certd_config.preloaded_certs.insert(
-            edgelet_settings::MANIFEST_TRUST_BUNDLE_ALIAS.to_owned(),
-            aziot_certd_config::PreloadedCert::Uri(manifest_trust_bundle_cert),
-        );
-        edgelet_settings::MANIFEST_TRUST_BUNDLE_ALIAS.to_owned()
-    });
-
     let additional_info = if let Some(additional_info) = additional_info {
         let scheme = additional_info.scheme();
         if scheme != "file" {
@@ -420,7 +411,6 @@ fn execute_inner(
             edge_ca_cert,
             edge_ca_key,
             trust_bundle_cert: Some(edgelet_settings::TRUST_BUNDLE_ALIAS.to_owned()),
-            manifest_trust_bundle_cert,
             additional_info,
 
             auto_reprovisioning_mode,
@@ -443,39 +433,11 @@ fn execute_inner(
             let super_config::MobyRuntime {
                 uri,
                 network,
-                content_trust,
             } = moby_runtime;
 
             edgelet_settings::MobyRuntime {
                 uri,
                 network,
-                content_trust: content_trust
-                    .map(
-                        |content_trust| -> Result<_, std::borrow::Cow<'static, str>> {
-                            let super_config::ContentTrust { ca_certs } = content_trust;
-
-                            Ok(edgelet_settings::ContentTrust {
-                                ca_certs: ca_certs
-                                    .map(|ca_certs| -> Result<_, std::borrow::Cow<'static, str>> {
-                                        let mut new_ca_certs: std::collections::BTreeMap<_, _> =
-                                            Default::default();
-
-                                        for (hostname, cert_uri) in ca_certs {
-                                            let cert_id = format!("content-trust-{}", hostname);
-                                            certd_config.preloaded_certs.insert(
-                                                cert_id.clone(),
-                                                aziot_certd_config::PreloadedCert::Uri(cert_uri),
-                                            );
-                                            new_ca_certs.insert(hostname.clone(), cert_id);
-                                        }
-
-                                        Ok(new_ca_certs)
-                                    })
-                                    .transpose()?,
-                            })
-                        },
-                    )
-                    .transpose()?,
             }
         },
     };

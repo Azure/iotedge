@@ -1,7 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::collections::BTreeMap;
-
 use url::Url;
 
 use aziotctl_common::config as common_config;
@@ -28,9 +26,6 @@ pub struct Config {
     /// in the super-config template.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub imported_master_encryption_key: Option<std::path::PathBuf>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub manifest_trust_bundle_cert: Option<Url>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub additional_info: Option<Url>,
@@ -64,7 +59,6 @@ pub fn default_agent() -> edgelet_settings::ModuleSpec<edgelet_settings::DockerC
         edgelet_settings::DockerConfig::new(
             /* image */ "mcr.microsoft.com/azureiotedge-agent:1.2".to_owned(),
             /* create_options */ docker::models::ContainerCreateBody::new(),
-            /* digest */ None,
             /* auth */ None,
             /* allow_elevated_docker_permissions */ true,
         )
@@ -95,8 +89,6 @@ pub enum EdgeCa {
 pub struct MobyRuntime {
     pub uri: Url,
     pub network: edgelet_settings::MobyNetwork,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub content_trust: Option<ContentTrust>,
 }
 
 impl Default for MobyRuntime {
@@ -110,12 +102,6 @@ impl Default for MobyRuntime {
             network: edgelet_settings::MobyNetwork::Name(
                 edgelet_settings::DEFAULT_NETWORKID.to_owned(),
             ),
-            content_trust: None,
         }
     }
-}
-
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
-pub struct ContentTrust {
-    pub ca_certs: Option<BTreeMap<String, Url>>,
 }

@@ -23,12 +23,11 @@ thiserror = "1"
 tokio = { version = "1", features = ["macros", "process"] }
 url = { version = "2", features = ["serde"] }
 
-aziot-cert-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-cert-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-config-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-docker = { path = "../docker-rs" }
-edgelet-core = { path = "../edgelet-core" }
-edgelet-settings = { path = "../edgelet-settings", features = ["settings-docker"] }
-edgelet-utils = { path = "../edgelet-utils" }
-http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-cert-client-async = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
+config-common = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
+docker = {path = "../docker-rs"}
+edgelet-core = {path = "../edgelet-core"}
+edgelet-settings = {path = "../edgelet-settings", features = ["settings-docker"]}
+edgelet-utils = {path = "../edgelet-utils"}
+http-common = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
 libc = "0.2.66"

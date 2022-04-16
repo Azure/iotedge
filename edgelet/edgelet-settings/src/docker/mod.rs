@@ -71,10 +71,6 @@ impl crate::RuntimeSettings for Settings {
         self.base.trust_bundle_cert()
     }
 
-    fn manifest_trust_bundle_cert(&self) -> Option<&str> {
-        self.base.manifest_trust_bundle_cert()
-    }
-
     fn auto_reprovisioning_mode(&self) -> crate::aziot::AutoReprovisioningMode {
         self.base.auto_reprovisioning_mode()
     }
@@ -132,11 +128,9 @@ mod tests {
 
     // Test files.
     static BAD_SETTINGS: &str = "test-files/bad_sample_settings.toml";
-    static BAD_SETTINGS_CONTENT_TRUST: &str = "test-files/bad_settings_content_trust.toml";
 
     static GOOD_SETTINGS: &str = "test-files/sample_settings.toml";
     static GOOD_SETTINGS_CASE_SENSITIVE: &str = "test-files/case_sensitive.toml";
-    static GOOD_SETTINGS_CONTENT_TRUST: &str = "test-files/sample_settings_content_trust.toml";
     static GOOD_SETTINGS_NETWORK: &str = "test-files/sample_settings.network.toml";
 
     #[test]
@@ -275,46 +269,5 @@ mod tests {
             labels.get("net.azure-devices.edge.env"),
             Some(&"{}".to_string())
         );
-    }
-
-    #[test]
-    fn content_trust_env() {
-        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
-
-        std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS_CONTENT_TRUST);
-        std::env::set_var("AZIOT_EDGED_CONFIG_DIR", CONFIG_DIR);
-
-        let settings = Settings::new().unwrap();
-        if let Some(content_trust_map) = settings
-            .moby_runtime()
-            .content_trust()
-            .and_then(crate::docker::runtime::ContentTrust::ca_certs)
-        {
-            assert_eq!(
-                content_trust_map
-                    .get("contoso1.azurcr.io")
-                    .map(AsRef::as_ref),
-                Some("content-trust-contoso1.azurecr.io")
-            );
-            assert_eq!(
-                content_trust_map
-                    .get("contoso2.azurcr.io")
-                    .map(AsRef::as_ref),
-                Some("content-trust-contoso2.azurecr.io")
-            );
-        } else {
-            panic!();
-        }
-    }
-
-    #[test]
-    fn content_trust_env_err() {
-        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
-
-        std::env::set_var("AZIOT_EDGED_CONFIG", BAD_SETTINGS_CONTENT_TRUST);
-        std::env::set_var("AZIOT_EDGED_CONFIG_DIR", CONFIG_DIR);
-
-        let settings = Settings::new();
-        assert!(settings.is_err());
     }
 }

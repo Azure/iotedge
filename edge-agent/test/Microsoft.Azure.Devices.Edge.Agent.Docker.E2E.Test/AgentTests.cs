@@ -107,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 
                 // Initialize docker configuration for this module.
                 DockerConfig dockerConfig = testConfig.ImageCreateOptions != null
-                    ? new DockerConfig(testConfig.Image, testConfig.ImageCreateOptions, Option.None<string>())
+                    ? new DockerConfig(testConfig.Image, testConfig.ImageCreateOptions)
                     : new DockerConfig(testConfig.Image);
 
                 ImagePullPolicy imagePullPolicy = ImagePullPolicy.OnCreate;
@@ -144,7 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 
                 var runtimeConfig = new DockerRuntimeConfig("1.24.0", "{}");
                 var runtimeInfo = new DockerRuntimeInfo("docker", runtimeConfig);
-                var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", runtimeInfo, systemModules, modules, null));
+                var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", runtimeInfo, systemModules, modules));
 
                 var configSource = new Mock<IConfigSource>();
                 configSource.Setup(cs => cs.Configuration).Returns(configRoot);

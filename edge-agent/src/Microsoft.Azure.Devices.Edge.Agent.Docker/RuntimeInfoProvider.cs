@@ -118,7 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             // Figure out module stats and runtime status
             ModuleStatus runtimeStatus = ToRuntimeStatus(inspectResponse.State);
 
-            var reportedConfig = new DockerReportedConfig(image, string.Empty, imageHash, Option.None<string>());
+            var reportedConfig = new DockerReportedConfig(image, string.Empty, imageHash);
             var moduleRuntimeInfo = new ModuleRuntimeInfo<DockerReportedConfig>(name, "docker", runtimeStatus, statusDescription, exitCode, Option.Some(lastStartTime), Option.Some(lastExitTime), reportedConfig);
             return moduleRuntimeInfo;
         }

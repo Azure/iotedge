@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
                 ["module1"] = customModule1,
                 ["module2"] = customModule2
             };
-            var deploymentConfig = new DeploymentConfig("1.0", runtimeInfo, systemModules, modules, null);
+            var deploymentConfig = new DeploymentConfig("1.0", runtimeInfo, systemModules, modules);
             var deploymentConfigInfo = new DeploymentConfigInfo(5, deploymentConfig);
 
             var edgeAgentConnection = new Mock<IEdgeAgentConnection>();

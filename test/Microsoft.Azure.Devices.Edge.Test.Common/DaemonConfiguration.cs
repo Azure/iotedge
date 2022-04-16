@@ -253,25 +253,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 throw new InvalidOperationException($"{certs.TrustedCertificatesPath} does not exist");
             }
 
-            if (certs.ManifestTrustedCertificatesPath.HasValue && File.Exists(certs.ManifestTrustedCertificatesPath.OrDefault()))
-            {
-                this.config[Service.Certd].Document.ReplaceOrAdd("preloaded_certs.aziot-edged-manifest-trust-bundle", "file://" + certs.ManifestTrustedCertificatesPath.OrDefault());
-            }
-
-            if (certs.ContentTrustInputs.HasValue)
-            {
-                // Content trust config is a part of super-config.toml. Currently, We don't have a way to set up super config in E2E test.
-                // To enable content trust in E2E, both certd and edged needs to be configured with right mapping.
-                foreach (var kvp in certs.ContentTrustInputs.OrDefault())
-                {
-                    string quoted_hostname = $"\"{kvp.Key}\"";
-                    string prefix_hostname = $"content-trust-{kvp.Key}";
-                    string prefix_quoted_hostname = $"\"content-trust-{kvp.Key}\"";
-                    this.config[Service.Edged].Document.AddTable("moby_runtime.content_trust.ca_certs", quoted_hostname, prefix_hostname);
-                    this.config[Service.Certd].Document.AddToTableWithExistingEntry("preloaded_certs", prefix_quoted_hostname, $"file://{kvp.Value}");
-                }
-            }
-
             this.config[Service.Certd].Document.ReplaceOrAdd("preloaded_certs.aziot-edged-ca", "file://" + certs.CertificatePath);
             this.config[Service.Keyd].Document.ReplaceOrAdd("preloaded_keys.aziot-edged-ca", "file://" + certs.KeyPath);
             this.config[Service.Certd].Document.ReplaceOrAdd("preloaded_certs.aziot-edged-trust-bundle", "file://" + certs.TrustedCertificatesPath);
@@ -283,8 +264,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config[Service.Keyd].Document.RemoveIfExists("preloaded_keys.aziot-edged-ca");
             this.config[Service.Certd].Document.RemoveIfExists("preloaded_certs.aziot-edged-trust-bundle");
         }
-
-        public void RemoveManifestTrustBundle() => this.config[Service.Certd].Document.RemoveIfExists("preloaded_certs.aziot-edged-manifest-trust-bundle");
 
         public void AddIdentityPrincipal(string name, uint uid, string[] type = null, Dictionary<string, string> opts = null)
         {

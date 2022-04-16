@@ -12,12 +12,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     [Unit]
     public class DockerReportedConfigTest
     {
-        static readonly DockerReportedConfig Config1 = new DockerReportedConfig("image1:42", @"{""HostConfig"": {""PortBindings"": {""42/udp"": [{""HostPort"": ""42""}]}}}", "sha256:foo", Option.None<string>());
-        static readonly DockerReportedConfig Config2 = new DockerReportedConfig("image1:42", @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}", "sha256:foo", Option.None<string>());
-        static readonly DockerReportedConfig Config3 = new DockerReportedConfig("image1:42", @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}", "sha256:foo", Option.None<string>());
-        static readonly DockerReportedConfig Config4 = new DockerReportedConfig("image1:43", @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}", "sha256:foo", Option.None<string>());
-        static readonly DockerReportedConfig Config5 = new DockerReportedConfig("image1:43", @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}", "sha256:foosha", Option.None<string>());
-        static readonly DockerReportedConfig Config6 = new DockerReportedConfig("image1:43", @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}", "sha256:foosha", Option.Some("4562124545"));
+        static readonly DockerReportedConfig Config1 = new DockerReportedConfig("image1:42", @"{""HostConfig"": {""PortBindings"": {""42/udp"": [{""HostPort"": ""42""}]}}}", "sha256:foo");
+        static readonly DockerReportedConfig Config2 = new DockerReportedConfig("image1:42", @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}", "sha256:foo");
+        static readonly DockerReportedConfig Config3 = new DockerReportedConfig("image1:42", @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}", "sha256:foo");
+        static readonly DockerReportedConfig Config4 = new DockerReportedConfig("image1:43", @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}", "sha256:foo");
+        static readonly DockerReportedConfig Config5 = new DockerReportedConfig("image1:43", @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}", "sha256:foosha");
 
         static readonly string Extended5 = @"
         {
@@ -26,16 +25,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             'createOptions': ""{'Env': ['k1=v1', 'k2=v2'], 'HostConfig'"",
             'createOptions01': "": {'PortBindings': {'43/udp': [{'HostPort': '4"",
             'createOptions02': ""3'}]}}}""
-        }";
-
-        static readonly string Extended5Digest = @"
-        {
-            'image': 'image1:43',
-            'imageHash': 'sha256:foosha',
-            'createOptions': ""{'Env': ['k1=v1', 'k2=v2'], 'HostConfig'"",
-            'createOptions01': "": {'PortBindings': {'43/udp': [{'HostPort': '4"",
-            'createOptions02': ""3'}]}}}"",
-            'digest': '4562124545'
         }";
 
         static readonly string Extended5Order = @"
@@ -95,7 +84,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         {
             Assert.Equal(Config5, JsonConvert.DeserializeObject<DockerReportedConfig>(Extended5));
             Assert.Equal(Config5, JsonConvert.DeserializeObject<DockerReportedConfig>(Extended5Order));
-            Assert.Equal(Config6, JsonConvert.DeserializeObject<DockerReportedConfig>(Extended5Digest));
         }
 
         [Fact]
@@ -121,23 +109,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 string.Join(", ", Enumerable.Repeat(@"{""HostPort"": ""43""}", 50)) +
                 @"], ""42/tcp"": [{""HostPort"": ""42""}]}}}";
 
-            DockerReportedConfig config = new DockerReportedConfig("image1:42", createOptions, "sha256:foosha", Option.None<string>());
+            DockerReportedConfig config = new DockerReportedConfig("image1:42", createOptions, "sha256:foosha");
             string json = JsonConvert.SerializeObject(config);
             string expected = "{\"image\":\"image1:42\",\"imageHash\":\"sha256:foosha\",\"createOptions\":\"{\\\"Env\\\":[\\\"k1=v1\\\",\\\"k2=v2\\\",\\\"k3=v3\\\"],\\\"HostConfig\\\":{\\\"PortBindings\\\":{\\\"43/udp\\\":[{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostP\",\"createOptions01\":\"ort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"}],\\\"42/tcp\\\":[{\\\"HostPort\\\":\\\"42\\\"}]}}}\"}";
-
-            Assert.Equal(expected, json);
-        }
-
-        [Fact]
-        public void TestSerializationDigest()
-        {
-            string createOptions = @"{""Env"": [""k1=v1"", ""k2=v2"", ""k3=v3""], ""HostConfig"": {""PortBindings"": {""43/udp"": [" +
-                string.Join(", ", Enumerable.Repeat(@"{""HostPort"": ""43""}", 50)) +
-                @"], ""42/tcp"": [{""HostPort"": ""42""}]}}}";
-
-            DockerReportedConfig config = new DockerReportedConfig("image1:42", createOptions, "sha256:foosha", Option.Some("4562124545"));
-            string json = JsonConvert.SerializeObject(config);
-            string expected = "{\"image\":\"image1:42\",\"imageHash\":\"sha256:foosha\",\"createOptions\":\"{\\\"Env\\\":[\\\"k1=v1\\\",\\\"k2=v2\\\",\\\"k3=v3\\\"],\\\"HostConfig\\\":{\\\"PortBindings\\\":{\\\"43/udp\\\":[{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostP\",\"createOptions01\":\"ort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"}],\\\"42/tcp\\\":[{\\\"HostPort\\\":\\\"42\\\"}]}}}\",\"digest\":\"4562124545\"}";
 
             Assert.Equal(expected, json);
         }

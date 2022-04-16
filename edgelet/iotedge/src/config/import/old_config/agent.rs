@@ -34,9 +34,6 @@ pub(crate) struct DockerConfig {
     pub(crate) create_options: ContainerCreateBody,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) digest: Option<String>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) auth: Option<AuthConfig>,
 }
 

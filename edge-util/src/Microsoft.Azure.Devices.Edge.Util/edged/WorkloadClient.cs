@@ -23,8 +23,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
 
         public Task<string> GetTrustBundleAsync() => this.inner.GetTrustBundleAsync();
 
-        public Task<string> GetManifestTrustBundleAsync() => this.inner.GetManifestTrustBundleAsync();
-
         public Task<string> EncryptAsync(string initializationVector, string plainText) => this.inner.EncryptAsync(initializationVector, plainText);
 
         public Task<string> DecryptAsync(string initializationVector, string encryptedText) => this.inner.DecryptAsync(initializationVector, encryptedText);

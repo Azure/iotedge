@@ -20,15 +20,8 @@ steps:
         TestRootCaCertificate,
         TestRootCaKey,
         TestRootCaPassword,
-        TestBlobStoreSas,
-        TestManifestSigningGoodRootCa,
-        TestManifestSigningIntermediateCa,
-        TestManifestSigningSignerCert,
-        TestManifestSigningSignerKey,
-        TestManifestSigningBadRootCa,
-        TestContentTrustRootCa,
-        TestContentTrustRegistryPassword,
-
+        TestBlobStoreSas
+  
   - bash: | 
       echo "Built Images Result is $(builtImages)"
       echo "Built Packages Result is $(builtPackages)"
@@ -50,16 +43,7 @@ steps:
       fi
     name: check_use_artifacts
     displayName: Check Use Pipeline Image Artifacts
-
-  - bash: |
-      wget https://github.com/theupdateframework/notary/releases/download/v0.6.0/notary-Linux-amd64
-      chmod +x notary-Linux-amd64
-      sudo mv notary-Linux-amd64 /usr/bin/notary
-      ls -l /usr/bin
-    name: install_notary_for_content_trust
-    displayName: Install Notary for Content Trust
-    condition: eq(variables['skip_notary'], 'false')
-
+  
   - task: DownloadPipelineArtifact@2
     displayName: Download Pipeline Build Images
     condition: eq(variables['check_use_artifacts.UsePipelineImageArtifacts'],'true')
@@ -135,42 +119,7 @@ steps:
       http_proxy: $(Agent.ProxyUrl)
       https_proxy: $(Agent.ProxyUrl)
     displayName: Build tests
-    
-  - pwsh: |
-      $manifestSignerClientDir = '$(Build.SourcesDirectory)/samples/dotnet/ManifestSignerClient'
-      dotnet build $manifestSignerClientDir
-      $manifestSignerClientBinDir = Convert-Path "$manifestSignerClientDir/bin/Debug/net6.0"
-      Write-Output "##vso[task.setvariable variable=manifestSignerClientDir]$manifestSignerClientDir"
-      Write-Output "##vso[task.setvariable variable=manifestSignerClientBinDir]$manifestSignerClientBinDir"
-      $manifestSigningTestDir = '$(System.ArtifactsDirectory)/manifest_signing'
-      $manifestSigningDeploymentDir = '$(System.ArtifactsDirectory)/manifest_signing/deployment'
-      Write-Output "##vso[task.setvariable variable=manifestSigningDeploymentDir]$manifestSigningDeploymentDir"
-      $manifestSigningCertDir = '$(System.ArtifactsDirectory)/manifest_signing/certs'
-      $contentTrustCertDir = '$(System.ArtifactsDirectory)/content_trust/certs'
-      New-Item "$manifestSigningCertDir" -ItemType Directory -Force | Out-Null
-      New-Item "$contentTrustCertDir" -ItemType Directory -Force | Out-Null
-      New-Item "$manifestSigningDeploymentDir" -ItemType Directory -Force | Out-Null
-      New-Item -Path "$manifestSigningDeploymentDir/deployment.json" -ItemType File
-      New-Item -Path "$manifestSigningDeploymentDir/signed_deployment.json" -ItemType File
-      $env:GOOD_ROOT_CA_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/good_root_ca.pem"
-      $env:BAD_ROOT_CA_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/bad_root_ca.pem"
-      $env:INTERMEDIATE_CA_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/intermediate_ca.pem"
-      $env:SIGNER_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/signer_cert.pem"
-      $env:SIGNER_KEY | Out-File -Encoding Utf8 "$manifestSigningCertDir/signer_key.key"
-      $env:CONTENT_TRUST_ROOT_CA_CERT | Out-File -Encoding Utf8 "$contentTrustCertDir/content_trust_root_ca.pem"
-      Write-Output "##vso[task.setvariable variable=manifestSigningCertDir]$manifestSigningCertDir"
-      Write-Output "##vso[task.setvariable variable=contentTrustCertDir]$contentTrustCertDir"
-    displayName: Manifest Trust Setup 
-    env:
-      GOOD_ROOT_CA_CERT: $(TestManifestSigningGoodRootCa)
-      BAD_ROOT_CA_CERT: $(TestManifestSigningBadRootCa)
-      INTERMEDIATE_CA_CERT: $(TestManifestSigningIntermediateCa)
-      SIGNER_CERT: $(TestManifestSigningSignerCert)
-      SIGNER_KEY: $(TestManifestSigningSignerKey)
-      CONTENT_TRUST_ROOT_CA_CERT : $(TestContentTrustRootCa)
-      http_proxy: $(Agent.ProxyUrl)
-      https_proxy: $(Agent.ProxyUrl)
-
+  
   - pwsh: |
       $imageId = Get-Content -Encoding Utf8 `
         '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'
@@ -210,40 +159,7 @@ steps:
       {
         $edgeHubImage = "$imagePrefix-hub:$imageTag";
       }
-
-      $testManifestSigningGoodRootCaPath = Convert-Path "$(manifestSigningCertDir)/good_root_ca.pem";
-      $testManifestSigningBadRootCaPath = Convert-Path "$(manifestSigningCertDir)/bad_root_ca.pem";
-      $testManifestSigningIntermediateCaPath = Convert-Path "$(manifestSigningCertDir)/intermediate_ca.pem";
-      $testManifestSigningSignerCertPath = Convert-Path "$(manifestSigningCertDir)/signer_cert.pem";
-      $testManifestSigningSignerKeyPath = Convert-Path "$(manifestSigningCertDir)/signer_key.key";
-      $testManifestSigningDeploymentPath = Convert-Path "$(manifestSigningDeploymentDir)/deployment.json";
-      $testManifestSigningSignedDeploymentPath = Convert-Path "$(manifestSigningDeploymentDir)/signed_deployment.json";
-      $testManifestSignerClientDirectory = Convert-Path "$(manifestSignerClientDir)";
-      $testManifestSignerClientProjectPath = Convert-Path "$(manifestSignerClientDir)/ManifestSignerClient.csproj";
-      $testManifestSigningLaunchSettingsPath = Convert-Path "$(manifestSignerClientDir)/Properties/launchSettings.json";
-      $testContentTrustRootCaPath = Convert-Path "$(contentTrustCertDir)/content_trust_root_ca.pem";
-
-      $testManifestSigningDefaultLaunchSettings = @{
-        profiles = @{
-          ManifestSignerClient = @{
-            commandName = "Project";
-            environmentVariables = @{  
-              USE_TESTING_CA = "true";
-              DEPLOYMENT_MANIFEST_FILE_PATH = "$testManifestSigningDeploymentPath";
-              SIGNED_DEPLOYMENT_MANIFEST_FILE_PATH = "$testManifestSigningSignedDeploymentPath";
-              MANIFEST_TRUST_INTERMEDIATE_CA_PATH = "$testManifestSigningIntermediateCaPath";
-              MANIFEST_TRUST_SIGNER_PRIVATE_KEY_PATH = "$testManifestSigningSignerKeyPath";
-              MANIFEST_TRUST_SIGNER_CERT_PATH = "$testManifestSigningSignerCertPath";
-              DSA_ALGORITHM = "ES256";
-            }
-          }
-        }
-      };
-
-      $testManifestSigningDefaultLaunchSettings = $testManifestSigningDefaultLaunchSettings | ConvertTo-Json -Depth 3 
-      $testManifestSigningDefaultLaunchSettings | Out-File -Encoding Utf8 "$testManifestSigningLaunchSettingsPath"
-      Get-Content -Path "$testManifestSigningLaunchSettingsPath"
-      
+  
       echo "Edge agent image: $edgeAgentImage"
       echo "Edge hub image: $edgeHubImage"
   
@@ -271,10 +187,6 @@ steps:
           @{
             address = '$(cr.address)';
             username = '$(cr.username)';
-          },
-          @{
-            address = '$(contenttrust.address)';
-            username = '$(contenttrust.username)';
           }
         );
         packagePath = Convert-Path '$(System.ArtifactsDirectory)/$(artifactName)';
@@ -283,19 +195,7 @@ steps:
         rootCaPrivateKeyPath = "$rootCaPrivateKeyPath";
         logFile = Join-Path '$(binDir)' 'testoutput.log';
         verbose = '$(verbose)';
-        getSupportBundle = 'true';
-        manifestSigningDeploymentPath = "$testManifestSigningDeploymentPath";
-        manifestSigningSignedDeploymentPath = "$testManifestSigningSignedDeploymentPath";
-        manifestSigningGoodRootCaPath = "$testManifestSigningGoodRootCaPath";
-        manifestSigningBadRootCaPath = "$testManifestSigningBadRootCaPath";
-        manifestSigningDefaultLaunchSettings = "$testManifestSigningDefaultLaunchSettings";
-        manifestSigningLaunchSettingsPath = "$testManifestSigningLaunchSettingsPath";
-        manifestSignerClientDirectory = "$testManifestSignerClientDirectory";
-        manifestSignerClientProjectPath = "$testManifestSignerClientProjectPath";
-        contentTrustRootCaPath = "$testContentTrustRootCaPath";
-        contentTrustRegistryName = "${env:CONTENTTRUST_ADDRESS}";
-        contentTrustSignedImage = "${env:CONTENTTRUST_SIGNEDIMAGE}";
-        contentTrustUnsignedImage = "${env:CONTENTTRUST_UNSIGNEDIMAGE}";
+        getSupportBundle = 'true'
       }
   
       if ('$(nestededge)' -eq 'true')
@@ -325,6 +225,6 @@ steps:
         $context['testRunnerProxy'] = $env:AGENT_PROXYURL
         $context['edgeProxy'] = $env:AGENT_PROXYURL
       }
-
+  
       $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
     displayName: Create test arguments file (context.json)

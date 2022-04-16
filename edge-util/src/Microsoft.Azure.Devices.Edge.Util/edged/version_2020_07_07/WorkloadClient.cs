@@ -51,16 +51,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2020_07_07
             }
         }
 
-        public override async Task<string> GetManifestTrustBundleAsync()
-        {
-            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.WorkloadUri))
-            {
-                var edgeletHttpClient = new HttpWorkloadClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.WorkloadUri) };
-                ManifestTrustBundleResponse result = await this.Execute(() => edgeletHttpClient.ManifestTrustBundleAsync(this.Version.Name), "ManifestTrustBundleAsync");
-                return result.Certificate;
-            }
-        }
-
         public override async Task<string> EncryptAsync(string initializationVector, string plainText)
         {
             var request = new EncryptRequest

@@ -215,7 +215,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
 
             string hostNetworkCreateOptions = "{\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}},\"HostConfig\":{\"NetworkMode\":\"host\"}}";
             var module = new Mock<IModule<DockerConfig>>();
-            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", hostNetworkCreateOptions, Option.None<string>()));
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", hostNetworkCreateOptions));
             module.SetupGet(m => m.Name).Returns("mod1");
 
             IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
@@ -252,7 +252,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
 
             string createOptions = "{\"HostConfig\":{\"Devices\":[],\"DeviceRequests\":[{\"Driver\":\"\",\"Count\":-1,\"DeviceIDs\":null,\"Capabilities\":[[\"gpu\"]],\"Options\":{}}]}}";
             var module = new Mock<IModule<DockerConfig>>();
-            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", createOptions, Option.None<string>()));
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", createOptions));
             module.SetupGet(m => m.Name).Returns("mod1");
 
             IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
@@ -302,7 +302,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
             // capabilities will remain lowercase because there is no backward compatibility issue for those properties supported after 1.0.9
             string createOptions = "{\"HostConfig\":{\"portBindings\":{\"8883/tcp\":[{\"hostPort\":\"8883\"}]},\"Devices\":[],\"runtime\":\"nvidia\",\"DeviceRequests\":[{\"Driver\":\"\",\"Count\":-1,\"DeviceIDs\":null,\"capabilities\":[[\"gpu\"]],\"Options\":{}}]}}";
             var module = new Mock<IModule<DockerConfig>>();
-            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", createOptions, Option.None<string>()));
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", createOptions));
             module.SetupGet(m => m.Name).Returns("mod1");
 
             IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
@@ -366,7 +366,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
             var runtimeInfo = Mock.Of<IRuntimeInfo<DockerRuntimeConfig>>(ri =>
                 ri.Config == new DockerRuntimeConfig("1.24", string.Empty));
 
-            var module = Mock.Of<IModule<DockerConfig>>(m => m.Config == new DockerConfig("some-image:latest", createOptions, Option.None<string>())
+            var module = Mock.Of<IModule<DockerConfig>>(m => m.Config == new DockerConfig("some-image:latest", createOptions)
                 && m.Name == Constants.EdgeAgentModuleName
                 && m.Env == dictEnv);
 

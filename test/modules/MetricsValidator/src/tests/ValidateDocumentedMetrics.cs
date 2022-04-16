@@ -69,16 +69,12 @@ namespace MetricsValidator.Tests
             // We are going to make a list and remove them here to not consider them as a failure.
             var skippingMetrics = new HashSet<string>
             {
-                "edgeAgent_twin_signature_check_count",
-                "edgeAgent_twin_signaturs_check_seconds",
                 "edgeAgent_unsuccessful_iothub_syncs_total",
                 "edgehub_client_connect_failed_total",
                 "edgehub_messages_dropped_total",
                 "edgehub_messages_unack_total",
                 "edgehub_offline_count_total",
                 "edgehub_operation_retry_total",
-                "edgehub_twin_signature_check_count",
-                "edgehub_twin_signature_check_seconds",
                 "edgehub_client_disconnect_total"
             };
 

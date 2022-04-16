@@ -132,29 +132,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                       '$version': 2
                     }";
 
-            string version_1_3 =
-                    @"{
-                      'schemaVersion': '1.3',
-                      'routes': {
-                        'route1': 'FROM /* INTO $upstream'
-                      },
-                      'storeAndForwardConfiguration': {
-                        'timeToLiveSecs': 20
-                      },
-                      'integrity': {
-                        'header' : {
-                          'signercert' : ['signercert1', 'signercert2'],
-                          'intermediatecacert' : ['intermediateca1', 'intermediatecacert2'],
-                         },
-                        'signature' : {
-                          'bytes' : 'signaturebytes',
-                          'algorithm' : 'ES256'
-                         }
-                       },
-                      'authorizations': [ ],
-                      '$version': 2
-                    }";
-
             string version_2_0 =
                     @"{
                       'schemaVersion': '2.0',
@@ -202,7 +179,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
             yield return new object[] { version_1_1, null };
             yield return new object[] { version_1_1_0, null };
             yield return new object[] { version_1_2, null };
-            yield return new object[] { version_1_3, null };
             yield return new object[] { version_2_0, typeof(InvalidSchemaVersionException) };
             yield return new object[] { version_2_0_1, typeof(InvalidSchemaVersionException) };
             yield return new object[] { versionMismatch, typeof(JsonReaderException) };

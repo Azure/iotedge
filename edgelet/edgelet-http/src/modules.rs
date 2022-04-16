@@ -196,7 +196,6 @@ mod tests {
                 settings: serde_json::json!({
                     "image": "testImage",
                     "imageHash": "testHash",
-                    "digest": "testDigest",
                 }),
                 env: Some(vec![super::EnvVar {
                     key: "testKey".to_string(),
@@ -228,7 +227,6 @@ mod tests {
         let runtime_config = runtime_spec.config();
         assert_eq!("testImage", runtime_config.image());
         assert_eq!(Some("testHash"), runtime_config.image_hash());
-        assert_eq!(Some("testDigest"), runtime_config.digest());
     }
 
     #[test]

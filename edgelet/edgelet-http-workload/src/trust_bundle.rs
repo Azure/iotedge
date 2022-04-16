@@ -23,7 +23,6 @@ pub(crate) struct TrustBundleResponse {
 }
 
 const TRUST_BUNDLE_PATH: &str = "/trust-bundle";
-const MANIFEST_TRUST_BUNDLE_PATH: &str = "/manifest-trust-bundle";
 
 #[async_trait::async_trait]
 impl<M> http_common::server::Route for Route<M>
@@ -45,7 +44,6 @@ where
         // The default trust bundle is required, but the manifest trust bundle is optional.
         let (trust_bundle, optional) = match path {
             TRUST_BUNDLE_PATH => (service.config.trust_bundle.clone(), false),
-            MANIFEST_TRUST_BUNDLE_PATH => (service.config.manifest_trust_bundle.clone(), true),
             _ => return None,
         };
 
@@ -107,17 +105,11 @@ mod tests {
         assert_eq!("test-trust-bundle", route.trust_bundle);
         assert!(!route.optional);
 
-        let route = test_route_ok!(super::MANIFEST_TRUST_BUNDLE_PATH);
-        assert_eq!("test-manifest-trust-bundle", route.trust_bundle);
-        assert!(route.optional);
-
         // Extra character at beginning of URI
         test_route_err!(&format!("a{}", super::TRUST_BUNDLE_PATH));
-        test_route_err!(&format!("a{}", super::MANIFEST_TRUST_BUNDLE_PATH));
 
         // Extra character at end of URI
         test_route_err!(&format!("{}a", super::TRUST_BUNDLE_PATH));
-        test_route_err!(&format!("a{}", super::MANIFEST_TRUST_BUNDLE_PATH));
     }
 
     #[tokio::test]
@@ -127,33 +119,20 @@ mod tests {
             "test-trust-bundle".to_string(),
             "TRUST_BUNDLE".as_bytes().to_owned(),
         );
-        certs.insert(
-            "test-manifest-trust-bundle".to_string(),
-            "MANIFEST_TRUST_BUNDLE".as_bytes().to_owned(),
-        );
 
-        // Check that path /trust-bundle selects the default trust bundle,
-        // and path /manifest-trust-bundle selects the manifest trust bundle.
-        let paths = vec![
-            (super::TRUST_BUNDLE_PATH, "TRUST_BUNDLE"),
-            (super::MANIFEST_TRUST_BUNDLE_PATH, "MANIFEST_TRUST_BUNDLE"),
-        ];
-
-        for (path, expected) in paths {
-            let route = test_route_ok!(path);
-
-            {
-                let mut client = route.client.lock().await;
-                client.certs =
-                    futures_util::lock::Mutex::new(std::cell::RefCell::new(certs.clone()));
-            }
-
-            let response = route.get().await.unwrap();
-            let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
-            let trust_bundle: super::TrustBundleResponse = serde_json::from_slice(&body).unwrap();
-
-            assert_eq!(expected, trust_bundle.certificate);
+        // Check that path /trust-bundle selects the default trust bundle
+        let route = test_route_ok!(super::TRUST_BUNDLE_PATH);
+        {
+            let mut client = route.client.lock().await;
+            client.certs =
+                futures_util::lock::Mutex::new(std::cell::RefCell::new(certs.clone()));
         }
+
+        let response = route.get().await.unwrap();
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let trust_bundle: super::TrustBundleResponse = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!("TRUST_BUNDLE", trust_bundle.certificate);
     }
 
     #[tokio::test]
@@ -161,12 +140,5 @@ mod tests {
         // Required trust bundle: fail if cert doesn't exist.
         let route = test_route_ok!(super::TRUST_BUNDLE_PATH);
         route.get().await.unwrap_err();
-
-        // Optional trust bundle: return empty string if cert doesn't exist.
-        let route = test_route_ok!(super::MANIFEST_TRUST_BUNDLE_PATH);
-        let response = route.get().await.unwrap();
-        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
-        let trust_bundle: super::TrustBundleResponse = serde_json::from_slice(&body).unwrap();
-        assert_eq!(String::new(), trust_bundle.certificate);
     }
 }

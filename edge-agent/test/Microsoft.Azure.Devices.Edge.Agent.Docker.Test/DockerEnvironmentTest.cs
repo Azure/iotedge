@@ -40,8 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 "1.0",
                 new DockerRuntimeInfo("docker", new DockerRuntimeConfig(minDockerVersion, dockerLoggingOptions)),
                 new SystemModules(Option.None<IEdgeAgentModule>(), Option.None<IEdgeHubModule>()),
-                new Dictionary<string, IModule>(),
-                null);
+                new Dictionary<string, IModule>());
 
             var environment = new DockerEnvironment(runtimeInfoProvider, deploymentConfig, moduleStateStore, restartPolicyManager, systemInfo.OperatingSystemType, systemInfo.Architecture, systemInfo.Version);
 
@@ -98,14 +97,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             string module2Hash = Guid.NewGuid().ToString();
             string edgeHubHash = Guid.NewGuid().ToString();
             string edgeAgentHash = Guid.NewGuid().ToString();
-            string contentTrustModuleHash = Guid.NewGuid().ToString();
-            var contentTrustCreateOptionsLabels = JsonConvert.SerializeObject(new
-            {
-                Labels = new Dictionary<string, object>
-                {
-                    [Constants.Labels.OriginalImage] = "contentTrustModule:v1",
-                }
-            });
             var moduleRuntimeInfoList = new List<ModuleRuntimeInfo>();
             moduleRuntimeInfoList.Add(
                 new ModuleRuntimeInfo<DockerReportedConfig>(
@@ -116,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     0,
                     Option.Some(new DateTime(2017, 10, 10)),
                     Option.None<DateTime>(),
-                    new DockerReportedConfig("mod1:v1", string.Empty, module1Hash, Option.None<string>())));
+                    new DockerReportedConfig("mod1:v1", string.Empty, module1Hash)));
             moduleRuntimeInfoList.Add(
                 new ModuleRuntimeInfo<DockerReportedConfig>(
                     "module2",
@@ -126,17 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     5,
                     Option.Some(new DateTime(2017, 10, 12)),
                     Option.Some(new DateTime(2017, 10, 14)),
-                    new DockerReportedConfig("mod2:v2", string.Empty, module2Hash, Option.None<string>())));
-            moduleRuntimeInfoList.Add(
-                new ModuleRuntimeInfo<DockerReportedConfig>(
-                    "contentTrustModule",
-                    "docker",
-                    ModuleStatus.Running,
-                    string.Empty,
-                    0,
-                    Option.Some(new DateTime(2017, 10, 10)),
-                    Option.None<DateTime>(),
-                    new DockerReportedConfig("contentTrustModule:digest", contentTrustCreateOptionsLabels, contentTrustModuleHash, Option.None<string>())));
+                    new DockerReportedConfig("mod2:v2", string.Empty, module2Hash)));
             moduleRuntimeInfoList.Add(
                 new ModuleRuntimeInfo<DockerReportedConfig>(
                     "edgeHub",
@@ -146,7 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     0,
                     Option.Some(new DateTime(2017, 10, 10)),
                     Option.None<DateTime>(),
-                    new DockerReportedConfig("edgehub:v1", string.Empty, edgeHubHash, Option.None<string>())));
+                    new DockerReportedConfig("edgehub:v1", string.Empty, edgeHubHash)));
             moduleRuntimeInfoList.Add(
                 new ModuleRuntimeInfo<DockerReportedConfig>(
                     "edgeAgent",
@@ -156,29 +137,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     0,
                     Option.Some(new DateTime(2017, 10, 10)),
                     Option.None<DateTime>(),
-                    new DockerReportedConfig("edgeAgent:v1", "{\"Env\":[\"foo4=bar4\"]}", edgeAgentHash, Option.None<string>())));
+                    new DockerReportedConfig("edgeAgent:v1", "{\"Env\":[\"foo4=bar4\"]}", edgeAgentHash)));
 
             var runtimeInfoProvider = Mock.Of<IRuntimeInfoProvider>(r => r.GetModules(CancellationToken.None) == Task.FromResult(moduleRuntimeInfoList.AsEnumerable()));
             var moduleStateStore = new Mock<IEntityStore<string, ModuleState>>();
             moduleStateStore.Setup(m => m.Get("module1")).ReturnsAsync(Option.Some(new ModuleState(1, new DateTime(2017, 10, 13))));
             moduleStateStore.Setup(m => m.Get("module2")).ReturnsAsync(Option.Some(new ModuleState(2, new DateTime(2017, 10, 13))));
-            moduleStateStore.Setup(m => m.Get("contentTrustModule")).ReturnsAsync(Option.Some(new ModuleState(4, new DateTime(2017, 10, 13))));
             moduleStateStore.Setup(m => m.Get("edgeHub")).ReturnsAsync(Option.Some(new ModuleState(3, new DateTime(2017, 10, 13))));
             moduleStateStore.Setup(m => m.Get("edgeAgent")).ReturnsAsync(Option.Some(new ModuleState(4, new DateTime(2017, 10, 13))));
+
             string minDockerVersion = "20";
             string dockerLoggingOptions = "dummy logging options";
 
-            var module1 = new DockerModule("module1", "v1", ModuleStatus.Stopped, RestartPolicy.Always, new DockerConfig("mod1:v1", "{\"Env\":[\"foo=bar\"]}", Option.None<string>()), ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, new ConfigurationInfo(), null);
-            var module2 = new DockerModule("module2", "v2", ModuleStatus.Running, RestartPolicy.OnUnhealthy, new DockerConfig("mod2:v2", "{\"Env\":[\"foo2=bar2\"]}", Option.None<string>()), ImagePullPolicy.Never, Constants.DefaultStartupOrder, new ConfigurationInfo(), null);
-            var contentTrustModule = new DockerModule("contentTrustModule", "v1", ModuleStatus.Running, RestartPolicy.Always, new DockerConfig("contentTrustModule:v1", string.Empty, Option.None<string>()), ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, new ConfigurationInfo(), null);
-            var edgeHubModule = new EdgeHubDockerModule("docker", ModuleStatus.Running, RestartPolicy.Always, new DockerConfig("edgehub:v1", "{\"Env\":[\"foo3=bar3\"]}", Option.None<string>()), ImagePullPolicy.OnCreate, Constants.HighestPriority, new ConfigurationInfo(), null);
-            var edgeAgentModule = new EdgeAgentDockerModule("docker", new DockerConfig("edgeAgent:v1", string.Empty, Option.None<string>()), ImagePullPolicy.OnCreate, new ConfigurationInfo(), null);
+            var module1 = new DockerModule("module1", "v1", ModuleStatus.Stopped, RestartPolicy.Always, new DockerConfig("mod1:v1", "{\"Env\":[\"foo=bar\"]}"), ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, new ConfigurationInfo(), null);
+            var module2 = new DockerModule("module2", "v2", ModuleStatus.Running, RestartPolicy.OnUnhealthy, new DockerConfig("mod2:v2", "{\"Env\":[\"foo2=bar2\"]}"), ImagePullPolicy.Never, Constants.DefaultStartupOrder, new ConfigurationInfo(), null);
+            var edgeHubModule = new EdgeHubDockerModule("docker", ModuleStatus.Running, RestartPolicy.Always, new DockerConfig("edgehub:v1", "{\"Env\":[\"foo3=bar3\"]}"), ImagePullPolicy.OnCreate, Constants.HighestPriority, new ConfigurationInfo(), null);
+            var edgeAgentModule = new EdgeAgentDockerModule("docker", new DockerConfig("edgeAgent:v1", string.Empty), ImagePullPolicy.OnCreate, new ConfigurationInfo(), null);
             var deploymentConfig = new DeploymentConfig(
                 "1.0",
                 new DockerRuntimeInfo("docker", new DockerRuntimeConfig(minDockerVersion, dockerLoggingOptions)),
                 new SystemModules(edgeAgentModule, edgeHubModule),
-                new Dictionary<string, IModule> { [module1.Name] = module1, [module2.Name] = module2, [contentTrustModule.Name] = contentTrustModule },
-                null);
+                new Dictionary<string, IModule> { [module1.Name] = module1, [module2.Name] = module2 });
 
             var environment = new DockerEnvironment(runtimeInfoProvider, deploymentConfig, moduleStateStore.Object, restartPolicyManager.Object, OperatingSystemType, Architecture, Version);
 
@@ -189,7 +168,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.NotNull(moduleSet);
             Assert.True(moduleSet.Modules.TryGetValue("module1", out IModule receivedModule1));
             Assert.True(moduleSet.Modules.TryGetValue("module2", out IModule receivedModule2));
-            Assert.True(moduleSet.Modules.TryGetValue("contentTrustModule", out IModule receivedContentTrustModule));
             Assert.True(moduleSet.Modules.TryGetValue("edgeHub", out IModule receivedEdgeHub));
             Assert.True(moduleSet.Modules.TryGetValue("edgeAgent", out IModule receivedEdgeAgent));
 
@@ -230,17 +208,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(new DateTime(2017, 10, 13), receivedDockerModule2.LastRestartTimeUtc);
             Assert.Equal(module2Hash, (receivedDockerModule2.Config as DockerReportedConfig)?.ImageHash);
             Assert.Equal(2, receivedDockerModule2.RestartCount);
-
-            var receivedDockerModule3 = receivedContentTrustModule as DockerRuntimeModule;
-            Assert.NotNull(receivedDockerModule3);
-            Assert.Equal("contentTrustModule", receivedDockerModule3.Name);
-            Assert.Equal("v1", receivedDockerModule3.Version);
-            Assert.Equal(ModuleStatus.Running, receivedDockerModule3.DesiredStatus);
-            Assert.Equal(RestartPolicy.Always, receivedDockerModule3.RestartPolicy);
-            Assert.Equal(ImagePullPolicy.OnCreate, receivedDockerModule3.ImagePullPolicy);
-            Assert.Equal(Constants.DefaultStartupOrder, receivedDockerModule3.StartupOrder);
-            Assert.Equal("contentTrustModule:v1", receivedDockerModule3.Config.Image);
-            Assert.Equal(contentTrustModuleHash, (receivedDockerModule3.Config as DockerReportedConfig)?.ImageHash);
 
             var receivedDockerEdgeHub = receivedEdgeHub as EdgeHubDockerRuntimeModule;
             Assert.NotNull(receivedDockerEdgeHub);

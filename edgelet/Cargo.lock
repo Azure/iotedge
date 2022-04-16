@@ -611,7 +611,6 @@ dependencies = [
  "anyhow",
  "async-trait",
  "aziot-cert-client-async",
- "aziot-cert-common-http",
  "base64",
  "bytes",
  "chrono",

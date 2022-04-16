@@ -4,8 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using System;
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Json;
-    using Newtonsoft.Json;
 
     /// <summary>
     /// Domain object that represents EdgeHub configuration.
@@ -19,14 +17,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             string schemaVersion,
             IReadOnlyDictionary<string, RouteConfig> routes,
             StoreAndForwardConfiguration storeAndForwardConfiguration,
-            Option<BrokerConfig> brokerConfiguration,
-            Option<ManifestIntegrity> integrity)
+            Option<BrokerConfig> brokerConfiguration)
         {
             this.SchemaVersion = Preconditions.CheckNonWhiteSpace(schemaVersion, nameof(schemaVersion));
             this.Routes = Preconditions.CheckNotNull(routes, nameof(routes));
             this.StoreAndForwardConfiguration = Preconditions.CheckNotNull(storeAndForwardConfiguration, nameof(storeAndForwardConfiguration));
             this.BrokerConfiguration = brokerConfiguration;
-            this.Integrity = integrity;
         }
 
         public string SchemaVersion { get; }
@@ -36,10 +32,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         public StoreAndForwardConfiguration StoreAndForwardConfiguration { get; }
 
         public Option<BrokerConfig> BrokerConfiguration { get; }
-
-        [JsonProperty("integrity", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        [JsonConverter(typeof(OptionConverter<ManifestIntegrity>))]
-        public Option<ManifestIntegrity> Integrity { get; }
 
         public static bool operator ==(EdgeHubConfig left, EdgeHubConfig right) => Equals(left, right);
 
@@ -60,8 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             return string.Equals(this.SchemaVersion, other.SchemaVersion, StringComparison.OrdinalIgnoreCase)
                    && new ReadOnlyDictionaryComparer<string, RouteConfig>().Equals(this.Routes, other.Routes)
                    && Equals(this.StoreAndForwardConfiguration, other.StoreAndForwardConfiguration)
-                   && Equals(this.BrokerConfiguration, other.BrokerConfiguration)
-                   && Equals(this.Integrity, other.Integrity);
+                   && Equals(this.BrokerConfiguration, other.BrokerConfiguration);
         }
 
         public override bool Equals(object obj)
@@ -75,7 +66,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 hashCode = (hashCode * 397) ^ (this.Routes?.GetHashCode() ?? 0);
                 hashCode = (hashCode * 397) ^ (this.StoreAndForwardConfiguration?.GetHashCode() ?? 0);
                 hashCode = (hashCode * 397) ^ this.BrokerConfiguration.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.Integrity.GetHashCode();
                 return hashCode;
             }
         }

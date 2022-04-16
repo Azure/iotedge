@@ -20,20 +20,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         readonly CreateContainerParameters createOptions;
 
         public DockerConfig(string image)
-            : this(image, string.Empty, Option.None<string>())
+            : this(image, string.Empty)
         {
         }
 
-        public DockerConfig(string image, string createOptions, Option<string> digest)
-            : this(ValidateAndGetImage(image), GetCreateOptions(createOptions), digest)
+        public DockerConfig(string image, string createOptions)
+            : this(ValidateAndGetImage(image), GetCreateOptions(createOptions))
         {
         }
 
-        public DockerConfig(string image, CreateContainerParameters createOptions, Option<string> digest)
+        public DockerConfig(string image, CreateContainerParameters createOptions)
         {
             this.Image = image;
             this.createOptions = Preconditions.CheckNotNull(createOptions, nameof(createOptions));
-            this.Digest = digest;
         }
 
         public string Image { get; }
@@ -41,9 +40,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         // Do a serialization roundtrip to clone the createOptions
         // https://docs.docker.com/engine/api/v1.25/#operation/ContainerCreate
         public CreateContainerParameters CreateOptions => JsonConvert.DeserializeObject<CreateContainerParameters>(JsonConvert.SerializeObject(this.createOptions));
-
-        [JsonProperty("digest", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public Option<string> Digest { get; }
 
         public override bool Equals(object obj) => this.Equals(obj as DockerConfig);
 
@@ -70,8 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             }
 
             return string.Equals(this.Image, other.Image) &&
-                   CompareCreateOptions(this.CreateOptions, other.CreateOptions) &&
-                   Equals(this.Digest, other.Digest);
+                   CompareCreateOptions(this.CreateOptions, other.CreateOptions);
         }
 
         internal static CreateContainerParameters GetCreateOptions(string createOptions)
@@ -184,11 +179,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     writer.WriteValue(chunk);
                 }
 
-                dockerconfig.Digest.ForEach(ct =>
-                {
-                    writer.WritePropertyName("digest");
-                    serializer.Serialize(writer, ct);
-                });
                 writer.WriteEndObject();
             }
 
@@ -204,14 +194,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     .Select(token => token?.ToString() ?? string.Empty)
                     .Join();
 
-                if (obj.TryGetValue("digest", StringComparison.OrdinalIgnoreCase, out JToken jTokenDigest))
-                {
-                    return new DockerConfig(jTokenImage?.ToString(), options, Option.Maybe(jTokenDigest.ToObject<string>()));
-                }
-                else
-                {
-                    return new DockerConfig(jTokenImage?.ToString(), options, Option.None<string>());
-                }
+                return new DockerConfig(jTokenImage?.ToString(), options);
             }
 
             public override bool CanConvert(Type objectType) => objectType == typeof(DockerConfig);

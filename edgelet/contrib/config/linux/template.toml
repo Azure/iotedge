@@ -29,18 +29,6 @@
 
 
 # ==============================================================================
-# Manifest Trust bundle cert
-# ==============================================================================
-#
-# If you have want to enable Manifest Signing, Manifest Trust Bundle Root CA 
-# certificate is required.
-# uncomment the next line and set the value to a file URI for
-# the path of the file.
-#
-# manifest_trust_bundle_cert = "file:///var/secrets/manifest-trust-bundle.pem"
-
-
-# ==============================================================================
 # Elevated Docker Permissions Flag
 # ==============================================================================
 #

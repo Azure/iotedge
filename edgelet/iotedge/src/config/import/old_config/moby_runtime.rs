@@ -1,15 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::collections::HashMap;
-use std::path::PathBuf;
-
 use url::Url;
 
 #[derive(Debug, serde::Deserialize)]
 pub(crate) struct MobyRuntime {
     pub(crate) uri: Url,
     pub(crate) network: MobyNetwork,
-    pub(crate) content_trust: Option<ContentTrust>,
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -46,9 +42,4 @@ pub(crate) struct IpamConfig {
 
     #[serde(rename = "ip_range", skip_serializing_if = "Option::is_none")]
     pub(crate) ip_range: Option<String>,
-}
-
-#[derive(Debug, serde::Deserialize)]
-pub(crate) struct ContentTrust {
-    pub(crate) ca_certs: Option<HashMap<String, PathBuf>>,
 }

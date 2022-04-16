@@ -368,8 +368,6 @@ fn execute_inner(
 
         imported_master_encryption_key: old_master_encryption_key_path,
 
-        manifest_trust_bundle_cert: None,
-
         additional_info: None,
 
         aziot: common_config::super_config::Config {
@@ -411,13 +409,11 @@ fn execute_inner(
                         image,
                         image_id,
                         create_options,
-                        digest,
                         auth,
                     } = config;
                     let new_config = edgelet_settings::DockerConfig::new(
                         image,
                         create_options,
-                        digest,
                         auth,
                         true,
                     )?;
@@ -520,7 +516,6 @@ fn execute_inner(
             let old_config::MobyRuntime {
                 uri,
                 network,
-                content_trust,
             } = moby_runtime;
             super_config::MobyRuntime {
                 uri,
@@ -562,36 +557,6 @@ fn execute_inner(
                         edgelet_settings::MobyNetwork::Name(name)
                     }
                 },
-
-                content_trust: content_trust
-                    .map(
-                        |content_trust| -> Result<_, std::borrow::Cow<'static, str>> {
-                            let old_config::ContentTrust { ca_certs } = content_trust;
-
-                            Ok(super_config::ContentTrust {
-                                ca_certs: ca_certs
-                                    .map(|ca_certs| -> Result<_, std::borrow::Cow<'static, str>> {
-                                        let mut new_ca_certs: std::collections::BTreeMap<_, _> =
-                                            Default::default();
-
-                                        for (hostname, cert_path) in ca_certs {
-                                            let cert_uri = url::Url::from_file_path(&cert_path)
-                                                .map_err(|()| {
-                                                    format!(
-                                                        "could not convert path {} to file URI",
-                                                        cert_path.display()
-                                                    )
-                                                })?;
-                                            new_ca_certs.insert(hostname, cert_uri);
-                                        }
-
-                                        Ok(new_ca_certs)
-                                    })
-                                    .transpose()?,
-                            })
-                        },
-                    )
-                    .transpose()?,
             }
         },
     };

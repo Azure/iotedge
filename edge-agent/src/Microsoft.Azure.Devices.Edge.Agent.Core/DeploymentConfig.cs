@@ -5,7 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Json;
     using Newtonsoft.Json;
 
     public class DeploymentConfig : IEquatable<DeploymentConfig>
@@ -14,8 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             "1.0",
             UnknownRuntimeInfo.Instance,
             new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance),
-            ImmutableDictionary<string, IModule>.Empty,
-            null);
+            ImmutableDictionary<string, IModule>.Empty);
 
         static readonly ReadOnlyDictionaryComparer<string, IModule> ModuleDictionaryComparer = new ReadOnlyDictionaryComparer<string, IModule>();
 
@@ -24,15 +22,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             string schemaVersion,
             IRuntimeInfo runtime,
             SystemModules systemModules,
-            IDictionary<string, IModule> modules,
-            ManifestIntegrity integrity)
+            IDictionary<string, IModule> modules)
         {
             this.SchemaVersion = Preconditions.CheckNotNull(schemaVersion, nameof(schemaVersion));
             this.SystemModules = Preconditions.CheckNotNull(systemModules, nameof(this.SystemModules));
             this.Runtime = Preconditions.CheckNotNull(runtime, nameof(runtime));
             this.Modules = modules?.ToImmutableDictionary() ?? ImmutableDictionary<string, IModule>.Empty;
             this.UpdateModuleNames();
-            this.Integrity = Option.Maybe(integrity);
         }
 
         [JsonProperty("schemaVersion")]
@@ -46,10 +42,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         [JsonProperty("modules")]
         public IImmutableDictionary<string, IModule> Modules { get; }
-
-        [JsonProperty("integrity", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        [JsonConverter(typeof(OptionConverter<ManifestIntegrity>))]
-        public Option<ManifestIntegrity> Integrity { get; }
 
         public ModuleSet GetModuleSet()
         {
@@ -81,8 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             return string.Equals(this.SchemaVersion, other.SchemaVersion)
                    && Equals(this.Runtime, other.Runtime)
                    && Equals(this.SystemModules, other.SystemModules)
-                   && ModuleDictionaryComparer.Equals(this.Modules, other.Modules)
-                   && Equals(this.Integrity, other.Integrity);
+                   && ModuleDictionaryComparer.Equals(this.Modules, other.Modules);
         }
 
         public override bool Equals(object obj)
@@ -104,7 +95,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 hashCode = (hashCode * 397) ^ (this.Runtime != null ? this.Runtime.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (this.SystemModules != null ? this.SystemModules.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (this.Modules != null ? this.Modules.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (this.Integrity != null ? this.Integrity.GetHashCode() : 0);
                 return hashCode;
             }
         }

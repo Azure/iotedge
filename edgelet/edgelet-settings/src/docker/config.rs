@@ -13,9 +13,6 @@ pub struct DockerConfig {
     create_options: docker::models::ContainerCreateBody,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    digest: Option<String>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
     auth: Option<docker::models::AuthConfig>,
 
     #[serde(
@@ -29,7 +26,6 @@ impl DockerConfig {
     pub fn new(
         image: String,
         create_options: docker::models::ContainerCreateBody,
-        digest: Option<String>,
         auth: Option<docker::models::AuthConfig>,
         allow_elevated_docker_permissions: bool,
     ) -> Result<Self, String> {
@@ -41,7 +37,6 @@ impl DockerConfig {
             image,
             image_hash: None,
             create_options,
-            digest,
             auth,
             allow_elevated_docker_permissions,
         })
@@ -88,10 +83,6 @@ impl DockerConfig {
         self.create_options = create_options;
     }
 
-    pub fn digest(&self) -> Option<&str> {
-        self.digest.as_deref()
-    }
-
     pub fn auth(&self) -> Option<&docker::models::AuthConfig> {
         self.auth.as_ref()
     }
@@ -136,7 +127,7 @@ mod tests {
 
     #[test]
     fn empty_image_fails() {
-        DockerConfig::new("".to_string(), ContainerCreateBody::new(), None, None, true)
+        DockerConfig::new("".to_string(), ContainerCreateBody::new(), None, true)
             .unwrap_err();
     }
 
@@ -145,7 +136,6 @@ mod tests {
         DockerConfig::new(
             "    ".to_string(),
             ContainerCreateBody::new(),
-            None,
             None,
             true,
         )
@@ -168,7 +158,7 @@ mod tests {
             .with_host_config(HostConfig::new().with_port_bindings(port_bindings))
             .with_labels(labels);
 
-        let config = DockerConfig::new("ubuntu".to_string(), create_options, None, None, true)
+        let config = DockerConfig::new("ubuntu".to_string(), create_options, None, true)
             .unwrap()
             .with_image_hash("42".to_string());
         let actual_json = serde_json::to_string(&config).unwrap();
@@ -221,7 +211,6 @@ mod tests {
         let config = DockerConfig::new(
             "ubuntu".to_string(),
             create_options,
-            None,
             Some(auth_config),
             true,
         )

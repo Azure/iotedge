@@ -123,7 +123,6 @@ where
             hub_name: "test-hub.test.net".to_string(),
             device_id: "test-device".to_string(),
             trust_bundle: "test-trust-bundle".to_string(),
-            manifest_trust_bundle: "test-manifest-trust-bundle".to_string(),
             edge_ca_cert: "test-ca-cert".to_string(),
             edge_ca_key: "test-ca-key".to_string(),
         };
@@ -168,7 +167,6 @@ struct WorkloadConfig {
     device_id: String,
 
     trust_bundle: String,
-    manifest_trust_bundle: String,
 
     edge_ca_cert: String,
     edge_ca_key: String,
@@ -182,11 +180,6 @@ impl WorkloadConfig {
         let trust_bundle = settings
             .trust_bundle_cert()
             .unwrap_or(edgelet_settings::TRUST_BUNDLE_ALIAS)
-            .to_string();
-
-        let manifest_trust_bundle = settings
-            .manifest_trust_bundle_cert()
-            .unwrap_or(edgelet_settings::MANIFEST_TRUST_BUNDLE_ALIAS)
             .to_string();
 
         let edge_ca_cert = settings
@@ -203,7 +196,6 @@ impl WorkloadConfig {
             device_id: device_info.device_id.0.clone(),
 
             trust_bundle,
-            manifest_trust_bundle,
 
             edge_ca_cert,
             edge_ca_key,
@@ -234,7 +226,6 @@ mod tests {
                 device_id: device_info.device_id.0,
 
                 trust_bundle: edgelet_settings::TRUST_BUNDLE_ALIAS.to_string(),
-                manifest_trust_bundle: edgelet_settings::MANIFEST_TRUST_BUNDLE_ALIAS.to_string(),
 
                 edge_ca_cert: edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_string(),
                 edge_ca_key: edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_string(),
@@ -258,7 +249,6 @@ mod tests {
             edge_ca_cert: Some("test-ca-cert".to_string()),
             edge_ca_key: Some("test-ca-key".to_string()),
             trust_bundle: Some("test-trust-bundle".to_string()),
-            manifest_trust_bundle: Some("test-manifest-trust-bundle".to_string()),
         };
 
         // Check that values from settings are used when provided.
@@ -269,7 +259,6 @@ mod tests {
                 device_id: device_info.device_id.0,
 
                 trust_bundle: "test-trust-bundle".to_string(),
-                manifest_trust_bundle: "test-manifest-trust-bundle".to_string(),
 
                 edge_ca_cert: "test-ca-cert".to_string(),
                 edge_ca_key: "test-ca-key".to_string(),

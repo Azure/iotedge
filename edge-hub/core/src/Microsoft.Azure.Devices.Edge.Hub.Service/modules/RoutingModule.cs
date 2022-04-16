@@ -5,7 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
-    using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
@@ -64,7 +63,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly bool isLegacyUpstream;
         readonly bool scopeAuthenticationOnly;
         readonly bool trackDeviceState;
-        readonly Option<X509Certificate2> manifestTrustBundle;
 
         public RoutingModule(
             string iotHubName,
@@ -100,8 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             bool nestedEdgeEnabled,
             bool isLegacyUpstream,
             bool scopeAuthenticationOnly,
-            bool trackDeviceState,
-            Option<X509Certificate2> manifestTrustBundle)
+            bool trackDeviceState)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.gatewayHostname = gatewayHostname;
@@ -137,7 +134,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.isLegacyUpstream = isLegacyUpstream;
             this.scopeAuthenticationOnly = scopeAuthenticationOnly;
             this.trackDeviceState = trackDeviceState;
-            this.manifestTrustBundle = manifestTrustBundle;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -628,7 +624,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             var twinMessageConverter = c.Resolve<Core.IMessageConverter<Twin>>();
                             var twinManagerTask = c.Resolve<Task<ITwinManager>>();
                             var edgeHubTask = c.Resolve<Task<IEdgeHub>>();
-
                             ITwinManager twinManager = await twinManagerTask;
                             IEdgeHub edgeHub = await edgeHubTask;
                             IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
@@ -651,8 +646,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                                 twinManager,
                                 twinMessageConverter,
                                 twinCollectionMessageConverter,
-                                configParser,
-                                this.manifestTrustBundle);
+                                configParser);
                         }
                         else
                         {
