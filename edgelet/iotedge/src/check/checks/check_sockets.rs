@@ -8,6 +8,7 @@ use url::Url;
 
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
+// These are defined in workload.rs and management.rs as well
 const MANAGEMENT_SOCKET_DEFAULT_PERMISSION: u32 = 0o660;
 const WORKLOAD_SOCKET_DEFAULT_PERMISSION: u32 = 0o666;
 const DEFAULT_SOCKET_GROUP: &str = "iotedge";
@@ -68,6 +69,7 @@ impl CheckSockets {
                 ));
             }
 
+            // Mode returns some additional information. Mask the first 9 bits to get the Permission.
             let socket_permission = socket_path.metadata()?.permissions().mode() & 0o777;
 
             if socket_permission != *permission {
