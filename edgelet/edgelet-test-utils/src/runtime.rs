@@ -23,7 +23,6 @@ impl Default for Module {
 #[async_trait::async_trait]
 impl edgelet_core::Module for Module {
     type Config = Config;
-    type Error = std::io::Error;
 
     fn name(&self) -> &str {
         &self.name
@@ -39,7 +38,7 @@ impl edgelet_core::Module for Module {
 
     // The functions below aren't used in tests.
 
-    async fn runtime_state(&self) -> Result<edgelet_core::ModuleRuntimeState, Self::Error> {
+    async fn runtime_state(&self) -> anyhow::Result<edgelet_core::ModuleRuntimeState> {
         unimplemented!()
     }
 }
@@ -49,15 +48,14 @@ pub struct ModuleRegistry {}
 #[async_trait::async_trait]
 impl edgelet_core::ModuleRegistry for ModuleRegistry {
     type Config = Config;
-    type Error = std::io::Error;
 
     // The fuctions below aren't used in tests.
 
-    async fn pull(&self, _config: &Self::Config) -> Result<(), Self::Error> {
+    async fn pull(&self, _config: &Self::Config) -> anyhow::Result<()> {
         unimplemented!()
     }
 
-    async fn remove(&self, _name: &str) -> Result<(), Self::Error> {
+    async fn remove(&self, _name: &str) -> anyhow::Result<()> {
         unimplemented!()
     }
 }
@@ -83,13 +81,11 @@ impl Default for Runtime {
 
 #[async_trait::async_trait]
 impl edgelet_core::ModuleRuntime for Runtime {
-    type Error = std::io::Error;
-
     type Config = Config;
     type Module = Module;
     type ModuleRegistry = ModuleRegistry;
 
-    async fn module_top(&self, id: &str) -> Result<Vec<i32>, Self::Error> {
+    async fn module_top(&self, id: &str) -> anyhow::Result<Vec<i32>> {
         if id == "runtimeError" {
             Err(crate::test_error())
         } else {
@@ -110,18 +106,18 @@ impl edgelet_core::ModuleRuntime for Runtime {
     async fn create(
         &self,
         _module: edgelet_settings::ModuleSpec<Self::Config>,
-    ) -> Result<(), Self::Error> {
+    ) -> anyhow::Result<()> {
         unimplemented!()
     }
 
     async fn get(
         &self,
         _id: &str,
-    ) -> Result<(Self::Module, edgelet_core::ModuleRuntimeState), Self::Error> {
+    ) -> anyhow::Result<(Self::Module, edgelet_core::ModuleRuntimeState)> {
         unimplemented!()
     }
 
-    async fn start(&self, _id: &str) -> Result<(), Self::Error> {
+    async fn start(&self, _id: &str) -> anyhow::Result<()> {
         unimplemented!()
     }
 
@@ -129,33 +125,33 @@ impl edgelet_core::ModuleRuntime for Runtime {
         &self,
         _id: &str,
         _wait_before_kill: Option<std::time::Duration>,
-    ) -> Result<(), Self::Error> {
+    ) -> anyhow::Result<()> {
         unimplemented!()
     }
 
-    async fn restart(&self, _id: &str) -> Result<(), Self::Error> {
+    async fn restart(&self, _id: &str) -> anyhow::Result<()> {
         unimplemented!()
     }
 
-    async fn remove(&self, _id: &str) -> Result<(), Self::Error> {
+    async fn remove(&self, _id: &str) -> anyhow::Result<()> {
         unimplemented!()
     }
 
-    async fn system_info(&self) -> Result<edgelet_core::SystemInfo, Self::Error> {
+    async fn system_info(&self) -> anyhow::Result<edgelet_core::SystemInfo> {
         unimplemented!()
     }
 
-    async fn system_resources(&self) -> Result<edgelet_core::SystemResources, Self::Error> {
+    async fn system_resources(&self) -> anyhow::Result<edgelet_core::SystemResources> {
         unimplemented!()
     }
 
-    async fn list(&self) -> Result<Vec<Self::Module>, Self::Error> {
+    async fn list(&self) -> anyhow::Result<Vec<Self::Module>> {
         unimplemented!()
     }
 
     async fn list_with_details(
         &self,
-    ) -> Result<Vec<(Self::Module, edgelet_core::ModuleRuntimeState)>, Self::Error> {
+    ) -> anyhow::Result<Vec<(Self::Module, edgelet_core::ModuleRuntimeState)>> {
         unimplemented!()
     }
 
@@ -163,18 +159,15 @@ impl edgelet_core::ModuleRuntime for Runtime {
         &self,
         _id: &str,
         _options: &edgelet_core::LogOptions,
-    ) -> Result<hyper::Body, Self::Error> {
+    ) -> anyhow::Result<hyper::Body> {
         unimplemented!()
     }
 
-    async fn remove_all(&self) -> Result<(), Self::Error> {
+    async fn remove_all(&self) -> anyhow::Result<()> {
         unimplemented!()
     }
 
-    async fn stop_all(
-        &self,
-        _wait_before_kill: Option<std::time::Duration>,
-    ) -> Result<(), Self::Error> {
+    async fn stop_all(&self, _wait_before_kill: Option<std::time::Duration>) -> anyhow::Result<()> {
         unimplemented!()
     }
 

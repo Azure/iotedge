@@ -8,17 +8,17 @@ use std::str::FromStr;
 use std::string::ToString;
 use std::time::Duration;
 
+use anyhow::Context;
 use chrono::prelude::*;
-use failure::{Fail, ResultExt};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
+use tokio::sync::mpsc::UnboundedSender;
 
 use aziotctl_common::host_info::{DmiInfo, OsInfo};
 use edgelet_settings::module::Settings as ModuleSpec;
 use edgelet_settings::RuntimeSettings;
-use tokio::sync::mpsc::UnboundedSender;
 
-use crate::error::{Error, ErrorKind, Result as EdgeletResult};
+use crate::error::Error;
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -166,15 +166,15 @@ impl Default for LogTail {
 }
 
 impl FromStr for LogTail {
-    type Err = Error;
+    type Err = anyhow::Error;
 
-    fn from_str(s: &str) -> EdgeletResult<Self> {
+    fn from_str(s: &str) -> anyhow::Result<Self> {
         let tail = if s == "all" {
             LogTail::All
         } else {
             let num = s
                 .parse::<u64>()
-                .with_context(|_| ErrorKind::InvalidLogTail(s.to_string()))?;
+                .with_context(|| Error::InvalidLogTail(s.to_string()))?;
             LogTail::Num(num)
         };
         Ok(tail)
@@ -264,21 +264,19 @@ impl LogOptions {
 #[async_trait::async_trait]
 pub trait Module {
     type Config;
-    type Error: Fail;
 
     fn name(&self) -> &str;
     fn type_(&self) -> &str;
     fn config(&self) -> &Self::Config;
-    async fn runtime_state(&self) -> Result<ModuleRuntimeState, Self::Error>;
+    async fn runtime_state(&self) -> anyhow::Result<ModuleRuntimeState>;
 }
 
 #[async_trait::async_trait]
 pub trait ModuleRegistry {
     type Config;
-    type Error: Fail;
 
-    async fn pull(&self, config: &Self::Config) -> Result<(), Self::Error>;
-    async fn remove(&self, name: &str) -> Result<(), Self::Error>;
+    async fn pull(&self, config: &Self::Config) -> anyhow::Result<()>;
+    async fn remove(&self, name: &str) -> anyhow::Result<()>;
 }
 
 #[skip_serializing_none]
@@ -460,38 +458,33 @@ pub trait MakeModuleRuntime {
     type Config: Clone + Send;
     type Settings: RuntimeSettings<ModuleConfig = Self::Config>;
     type ModuleRuntime: ModuleRuntime<Config = Self::Config>;
-    type Error: Fail;
 
     async fn make_runtime(
         settings: &Self::Settings,
         create_socket_channel: UnboundedSender<ModuleAction>,
-    ) -> Result<Self::ModuleRuntime, Self::Error>;
+    ) -> anyhow::Result<Self::ModuleRuntime>;
 }
 
 #[async_trait::async_trait]
 pub trait ModuleRuntime: Sized {
-    type Error: Fail;
-
     type Config: Clone + Send + serde::Serialize;
     type Module: Module<Config = Self::Config> + Send;
-    type ModuleRegistry: ModuleRegistry<Config = Self::Config, Error = Self::Error> + Send + Sync;
+    type ModuleRegistry: ModuleRegistry<Config = Self::Config> + Send + Sync;
 
-    async fn create(&self, module: ModuleSpec<Self::Config>) -> Result<(), Self::Error>;
-    async fn get(&self, id: &str) -> Result<(Self::Module, ModuleRuntimeState), Self::Error>;
-    async fn start(&self, id: &str) -> Result<(), Self::Error>;
-    async fn stop(&self, id: &str, wait_before_kill: Option<Duration>) -> Result<(), Self::Error>;
-    async fn restart(&self, id: &str) -> Result<(), Self::Error>;
-    async fn remove(&self, id: &str) -> Result<(), Self::Error>;
-    async fn system_info(&self) -> Result<SystemInfo, Self::Error>;
-    async fn system_resources(&self) -> Result<SystemResources, Self::Error>;
-    async fn list(&self) -> Result<Vec<Self::Module>, Self::Error>;
-    async fn list_with_details(
-        &self,
-    ) -> Result<Vec<(Self::Module, ModuleRuntimeState)>, Self::Error>;
-    async fn logs(&self, id: &str, options: &LogOptions) -> Result<hyper::Body, Self::Error>;
-    async fn remove_all(&self) -> Result<(), Self::Error>;
-    async fn stop_all(&self, wait_before_kill: Option<Duration>) -> Result<(), Self::Error>;
-    async fn module_top(&self, id: &str) -> Result<Vec<i32>, Self::Error>;
+    async fn create(&self, module: ModuleSpec<Self::Config>) -> anyhow::Result<()>;
+    async fn get(&self, id: &str) -> anyhow::Result<(Self::Module, ModuleRuntimeState)>;
+    async fn start(&self, id: &str) -> anyhow::Result<()>;
+    async fn stop(&self, id: &str, wait_before_kill: Option<Duration>) -> anyhow::Result<()>;
+    async fn restart(&self, id: &str) -> anyhow::Result<()>;
+    async fn remove(&self, id: &str) -> anyhow::Result<()>;
+    async fn system_info(&self) -> anyhow::Result<SystemInfo>;
+    async fn system_resources(&self) -> anyhow::Result<SystemResources>;
+    async fn list(&self) -> anyhow::Result<Vec<Self::Module>>;
+    async fn list_with_details(&self) -> anyhow::Result<Vec<(Self::Module, ModuleRuntimeState)>>;
+    async fn logs(&self, id: &str, options: &LogOptions) -> anyhow::Result<hyper::Body>;
+    async fn remove_all(&self) -> anyhow::Result<()>;
+    async fn stop_all(&self, wait_before_kill: Option<Duration>) -> anyhow::Result<()>;
+    async fn module_top(&self, id: &str) -> anyhow::Result<Vec<i32>>;
 
     fn registry(&self) -> &Self::ModuleRegistry;
 }
