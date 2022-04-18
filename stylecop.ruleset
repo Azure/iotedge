@@ -6,11 +6,6 @@
     <Rule Id="SA1108" Action="None" />
     <Rule Id="SA1118" Action="None" />
     <Rule Id="SA1124" Action="None" />
-    <!-- 
-        Disable SA1135 as it causes build fail when .Net Core 3.1 is installed 
-        Will re-enable once https://github.com/DotNetAnalyzers/StyleCopAnalyzers/issues/3136 is resolved
-    -->
-    <Rule Id="SA1135" Action="None" />
     <Rule Id="SA1201" Action="None" />
     <Rule Id="SA1202" Action="None" />
     <Rule Id="SA1204" Action="None" />

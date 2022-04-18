@@ -12,7 +12,7 @@ use aziotctl_common::system::{
 use aziot_identity_client_async::Client as IdentityClient;
 use aziot_identity_common_http::ApiVersion;
 
-use crate::error::{Error, ErrorKind};
+use crate::error::Error;
 
 lazy_static! {
     static ref IOTEDGED: ServiceDefinition = {
@@ -50,35 +50,35 @@ impl System {
 
         logs(&services, args).map_err(|err| {
             eprintln!("{:#?}", err);
-            Error::from(ErrorKind::System)
+            Error::System
         })
     }
 
     pub fn system_restart() -> Result<(), Error> {
         restart(&SERVICE_DEFINITIONS).map_err(|err| {
             eprintln!("{:#?}", err);
-            Error::from(ErrorKind::System)
+            Error::System
         })
     }
 
     pub fn system_stop() -> Result<(), Error> {
         stop(&SERVICE_DEFINITIONS).map_err(|err| {
             eprintln!("{:#?}", err);
-            Error::from(ErrorKind::System)
+            Error::System
         })
     }
 
     pub fn set_log_level(level: log::Level) -> Result<(), Error> {
         log_level(&SERVICE_DEFINITIONS, level).map_err(|err| {
             eprintln!("{:#?}", err);
-            Error::from(ErrorKind::System)
+            Error::System
         })
     }
 
     pub fn get_system_status() -> Result<(), Error> {
         get_status(&SERVICE_DEFINITIONS).map_err(|err| {
             eprintln!("{:#?}", err);
-            Error::from(ErrorKind::System)
+            Error::System
         })
     }
 
@@ -89,21 +89,21 @@ impl System {
             ApiVersion::V2020_09_01,
             http_common::Connector::new(&uri).map_err(|err| {
                 eprintln!("Failed to make identity client: {}", err);
-                Error::from(ErrorKind::System)
+                Error::System
             })?,
             1,
         );
 
         client.reprovision().await.map_err(|err| {
             eprintln!("Failed to reprovision: {}", err);
-            Error::from(ErrorKind::System)
+            Error::System
         })?;
 
         println!("Successfully reprovisioned with IoT Hub.");
 
         restart(&[&IOTEDGED]).map_err(|err| {
             eprintln!("{:#?}", err);
-            Error::from(ErrorKind::System)
+            Error::System
         })?;
 
         Ok(())

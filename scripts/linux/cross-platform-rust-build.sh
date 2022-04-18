@@ -67,12 +67,12 @@ BUILD_REPOSITORY_LOCALPATH="$(realpath "${BUILD_REPOSITORY_LOCALPATH:-$DIR/../..
 DOCKER_VOLUME_MOUNTS=''
 
 case "$PACKAGE_OS" in
-    'ubuntu18.04')
-        DOCKER_IMAGE='ubuntu:18.04'
+    'ubuntu20.04')
+        DOCKER_IMAGE='ubuntu:20.04'
         ;;
 
     'alpine')
-        DOCKER_IMAGE='ubuntu:18.04'
+        DOCKER_IMAGE='ubuntu:20.04'
         ;;       
 esac
 
@@ -82,10 +82,11 @@ if [ -z "$DOCKER_IMAGE" ]; then
 fi
 
 case "$PACKAGE_OS.$PACKAGE_ARCH" in
-    ubuntu18.04.amd64)
+    ubuntu20.04.amd64)
         RUST_TARGET='x86_64-unknown-linux-gnu'
 
         SETUP_COMMAND=$'
+            export DEBIAN_FRONTEND=noninteractive
             sources="$(cat /etc/apt/sources.list | grep -E \'^[^#]\')" &&
             # Update existing repos to be specifically for amd64
             echo "$sources" | sed -e \'s/^deb /deb [arch=amd64] /g\' > /etc/apt/sources.list
@@ -110,6 +111,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         RUST_TARGET='x86_64-unknown-linux-musl'
         # The below SETUP was copied from https://github.com/emk/rust-musl-builder/blob/main/Dockerfile.
         SETUP_COMMAND=$'
+            export DEBIAN_FRONTEND=noninteractive
             OPENSSL_VERSION=1.1.1i
             apt-get update && \
             apt-get install -y \
@@ -169,10 +171,11 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         MAKE_FLAGS="$MAKE_FLAGS 'STRIP_COMMAND=strip'"        
         ;;
 
-    ubuntu18.04.arm32v7)
+    ubuntu20.04.arm32v7)
         RUST_TARGET='armv7-unknown-linux-gnueabihf'
         
         SETUP_COMMAND=$'
+            export DEBIAN_FRONTEND=noninteractive
             sources="$(cat /etc/apt/sources.list | grep -E \'^[^#]\')" &&
             # Update existing repos to be specifically for amd64
             echo "$sources" | sed -e \'s/^deb /deb [arch=amd64] /g\' > /etc/apt/sources.list &&
@@ -293,10 +296,11 @@ cd /tmp && \
     MAKE_FLAGS="$MAKE_FLAGS 'STRIP_COMMAND=musl-strip'"
         ;;
 
-    ubuntu18.04.aarch64| alpine.aarch64)
+    ubuntu20.04.aarch64| alpine.aarch64)
         RUST_TARGET='aarch64-unknown-linux-gnu'
         
         SETUP_COMMAND=$'
+            export DEBIAN_FRONTEND=noninteractive
             sources="$(cat /etc/apt/sources.list | grep -E \'^[^#]\')" &&
             # Update existing repos to be specifically for amd64
             echo "$sources" | sed -e \'s/^deb /deb [arch=amd64] /g\' > /etc/apt/sources.list &&

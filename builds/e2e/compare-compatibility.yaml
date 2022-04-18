@@ -59,7 +59,7 @@ jobs:
         script: |
           az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
     - bash: |
-          contextPath=$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp3.1/context.json
+          contextPath=$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net6.0/context.json
           mkdir -p $(Build.ArtifactStagingDirectory)/compat
           edgeAgentImage="$(cat $contextPath | jq '.edgeAgentImage' | tr -d '"')" 
           edgeHubImage="$(cat $contextPath | jq '.edgeHubImage' | tr -d '"')"
@@ -144,7 +144,7 @@ jobs:
         sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
             libc6 libgcc1 libgssapi-krb5-2 libicu66 libssl1.1 libstdc++6 zlib1g
         # Install .NET Core
-        curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 3.1
+        curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 6.0
         sudo ln -s $HOME/.dotnet/dotnet /usr/bin/dotnet
       displayName: Install .NET Core
     - bash: |
@@ -171,7 +171,7 @@ jobs:
           export PATH=azure-cli-env/bin/:$PATH
           az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
 
-          contextPath=$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp3.1/context.json
+          contextPath=$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net6.0/context.json
           mkdir -p $(Build.ArtifactStagingDirectory)/compat
           edgeAgentImage="$(cat $contextPath | jq '.edgeAgentImage' | tr -d '"')" 
           edgeHubImage="$(cat $contextPath | jq '.edgeHubImage' | tr -d '"')"

@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         [Fact]
         public async Task HandlesAWebSocketRequest()
         {
-            HttpContext httpContext = this.ContextWithRequestedSubprotocols("abc");
+            HttpContext httpContext = ContextWithRequestedSubprotocols("abc");
 
             var listener = Mock.Of<IWebSocketListener>(wsl => wsl.SubProtocol == "abc");
 
@@ -76,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         {
             var correlationIds = new List<string>();
             IWebSocketListenerRegistry registry = ObservingWebSocketListenerRegistry(correlationIds);
-            HttpContext httpContext = this.WebSocketRequestContext();
+            HttpContext httpContext = WebSocketRequestContext();
 
             var middleware = new WebSocketHandlingMiddleware(this.ThrowingNextDelegate(), registry, Task.FromResult(Mock.Of<IHttpProxiedCertificateExtractor>()));
             await middleware.Invoke(httpContext);
@@ -104,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var listener = Mock.Of<IWebSocketListener>(wsl => wsl.SubProtocol == "abc");
             var registry = new WebSocketListenerRegistry();
             registry.TryRegister(listener);
-            HttpContext httpContext = this.ContextWithRequestedSubprotocols("xyz");
+            HttpContext httpContext = ContextWithRequestedSubprotocols("xyz");
 
             var middleware = new WebSocketHandlingMiddleware(this.ThrowingNextDelegate(), registry, Task.FromResult(Mock.Of<IHttpProxiedCertificateExtractor>()));
             await middleware.Invoke(httpContext);
@@ -116,7 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         public async Task SetsBadrequestWhenNoRegisteredListener()
         {
             var registry = new WebSocketListenerRegistry();
-            HttpContext httpContext = this.ContextWithRequestedSubprotocols("xyz");
+            HttpContext httpContext = ContextWithRequestedSubprotocols("xyz");
 
             var middleware = new WebSocketHandlingMiddleware(this.ThrowingNextDelegate(), registry, Task.FromResult(Mock.Of<IHttpProxiedCertificateExtractor>()));
             await middleware.Invoke(httpContext);
@@ -148,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string certContentBase64 = Convert.ToBase64String(certContentBytes);
             string clientCertString = $"-----BEGIN CERTIFICATE-----\n{certContentBase64}\n-----END CERTIFICATE-----\n";
             clientCertString = WebUtility.UrlEncode(clientCertString);
-            HttpContext httpContext = this.ContextWithRequestedSubprotocolsAndForwardedCert(new StringValues(clientCertString), "abc");
+            HttpContext httpContext = ContextWithRequestedSubprotocolsAndForwardedCert(new StringValues(clientCertString), "abc");
             var certExtractor = new Mock<IHttpProxiedCertificateExtractor>();
             certExtractor.Setup(p => p.GetClientCertificate(It.IsAny<HttpContext>())).ThrowsAsync(new AuthenticationException());
 
@@ -182,7 +182,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string certContentBase64 = Convert.ToBase64String(certContentBytes);
             string clientCertString = $"-----BEGIN CERTIFICATE-----\n{certContentBase64}\n-----END CERTIFICATE-----\n";
             clientCertString = WebUtility.UrlEncode(clientCertString);
-            HttpContext httpContext = this.ContextWithRequestedSubprotocolsAndForwardedCert(new StringValues(clientCertString), "abc");
+            HttpContext httpContext = ContextWithRequestedSubprotocolsAndForwardedCert(new StringValues(clientCertString), "abc");
             var certExtractor = new Mock<IHttpProxiedCertificateExtractor>();
             certExtractor.Setup(p => p.GetClientCertificate(It.IsAny<HttpContext>())).ReturnsAsync(Option.Some(new X509Certificate2(certContentBytes)));
 
@@ -210,7 +210,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var registry = new WebSocketListenerRegistry();
             registry.TryRegister(listener.Object);
 
-            HttpContext httpContext = this.ContextWithRequestedSubprotocols("abc");
+            HttpContext httpContext = ContextWithRequestedSubprotocols("abc");
             var authenticator = new Mock<IAuthenticator>();
             authenticator.Setup(p => p.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(false);
 
@@ -243,9 +243,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             return registry.Object;
         }
 
-        HttpContext WebSocketRequestContext()
-        {
-            return Mock.Of<HttpContext>(
+        static HttpContext WebSocketRequestContext() => Mock.Of<HttpContext>(
                 ctx =>
                     ctx.WebSockets == Mock.Of<WebSocketManager>(wsm => wsm.IsWebSocketRequest == true)
                     && ctx.Request == Mock.Of<HttpRequest>(
@@ -261,8 +259,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
                                 && conn.LocalPort == It.IsAny<int>()
                                 && conn.RemoteIpAddress == new IPAddress(123)
                                 && conn.RemotePort == It.IsAny<int>()
-                                && conn.ClientCertificate == new X509Certificate2()));
-        }
+                                && conn.ClientCertificate == Util.Test.Common.CertificateHelper.GenerateSelfSignedCert("client cert", false)));
 
         HttpContext NonWebSocketRequestContext()
         {
@@ -273,9 +270,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
                             wsm.IsWebSocketRequest == false));
         }
 
-        HttpContext ContextWithRequestedSubprotocols(params string[] subprotocols)
-        {
-            return Mock.Of<HttpContext>(
+        static HttpContext ContextWithRequestedSubprotocols(params string[] subprotocols) => Mock.Of<HttpContext>(
                 ctx =>
                     ctx.WebSockets == Mock.Of<WebSocketManager>(
                         wsm =>
@@ -292,12 +287,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
                         conn => conn.LocalIpAddress == new IPAddress(123)
                                 && conn.LocalPort == It.IsAny<int>()
                                 && conn.RemoteIpAddress == new IPAddress(123) && conn.RemotePort == It.IsAny<int>()
-                                && conn.ClientCertificate == new X509Certificate2()));
-        }
+                                && conn.ClientCertificate == Util.Test.Common.CertificateHelper.GenerateSelfSignedCert("client cert", false)));
 
-        HttpContext ContextWithRequestedSubprotocolsAndForwardedCert(StringValues cert, params string[] subprotocols)
-        {
-            return Mock.Of<HttpContext>(
+        static HttpContext ContextWithRequestedSubprotocolsAndForwardedCert(StringValues cert, params string[] subprotocols) => Mock.Of<HttpContext>(
                 ctx =>
                     ctx.WebSockets == Mock.Of<WebSocketManager>(
                         wsm =>
@@ -306,7 +298,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
                             && wsm.AcceptWebSocketAsync(It.IsAny<string>()) == Task.FromResult(Mock.Of<WebSocket>()))
                     && ctx.Request == Mock.Of<HttpRequest>(
                         req =>
-                            req.Headers == Mock.Of<IHeaderDictionary>(h => h.TryGetValue("x-ms-edge-clientcert", out cert)) == true )
+                            req.Headers == Mock.Of<IHeaderDictionary>(h => h.TryGetValue("x-ms-edge-clientcert", out cert)) == true)
                     && ctx.Response == Mock.Of<HttpResponse>()
                     && ctx.Features == Mock.Of<IFeatureCollection>(
                         fc => fc.Get<ITlsConnectionFeatureExtended>() == Mock.Of<ITlsConnectionFeatureExtended>(f => f.ChainElements == new List<X509Certificate2>()))
@@ -314,8 +306,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
                         conn => conn.LocalIpAddress == new IPAddress(123)
                                 && conn.LocalPort == It.IsAny<int>()
                                 && conn.RemoteIpAddress == new IPAddress(123) && conn.RemotePort == It.IsAny<int>()
-                                && conn.ClientCertificate == new X509Certificate2()));
-        }
+                                && conn.ClientCertificate == Util.Test.Common.CertificateHelper.GenerateSelfSignedCert("client cert", false)));
 
         RequestDelegate ThrowingNextDelegate()
         {

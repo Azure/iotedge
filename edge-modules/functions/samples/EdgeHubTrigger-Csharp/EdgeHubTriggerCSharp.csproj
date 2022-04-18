@@ -1,6 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="..\..\..\..\netcoreappVersion.props" />
+  <PropertyGroup>
+     <!-- functions must stay on dotnet 3.1 since base image for functions module
+     is not supported for dotnet 6 -->
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
   
   <PropertyGroup>
     <AzureFunctionsVersion></AzureFunctionsVersion>

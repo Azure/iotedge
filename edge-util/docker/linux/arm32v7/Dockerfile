@@ -1,5 +1,4 @@
-﻿# docker file for azureiotedge/azureiotedge-runtime-base:1.2-linux-arm32v7
-FROM ubuntu:18.04
+﻿FROM ubuntu:18.04
 
 ARG num_procs=4
 
