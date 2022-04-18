@@ -83,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 {
                     $"rpm -iv --replacepkgs https://packages.microsoft.com/config/{this.os}/{this.version}/packages-microsoft-prod.rpm",
                     $"yum updateinfo",
-                    $"yum install --yes aziot-edge",
+                    $"yum install -y aziot-edge",
                     "pathToSystemdConfig=$(systemctl cat aziot-edge | head -n 1)",
                     "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
                     "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
