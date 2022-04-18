@@ -597,15 +597,21 @@ fn set_quickstart_ca(
         issuance.clone(),
     );
 
+    let mut certd_keys = vec![edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()];
+
     if auto_renew {
         let temp_cert = format!("{}-temp", edgelet_settings::AZIOT_EDGED_CA_ALIAS);
 
-        certd_config.cert_issuance.certs.insert(temp_cert, issuance);
+        certd_config
+            .cert_issuance
+            .certs
+            .insert(temp_cert.clone(), issuance);
+        certd_keys.push(temp_cert);
     }
 
     keyd_config.principal.push(aziot_keyd_config::Principal {
         uid: aziotcs_uid.as_raw(),
-        keys: vec![edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()],
+        keys: certd_keys,
     });
 }
 

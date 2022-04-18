@@ -13,7 +13,7 @@ keys = ["aziot_identityd_master_id", "device-id"]
 
 [[principal]]
 uid = 5555
-keys = ["aziot-edged-ca"]
+keys = ["aziot-edged-ca", "aziot-edged-ca-temp"]
 
 [[principal]]
 uid = 5558
