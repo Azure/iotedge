@@ -194,7 +194,7 @@ pub fn nginx_controller_start(
 
                 // This delay controls how fast the main loop can reconnect once nginx crashed.
                 // Without this, nginx crashes and restart continuously. Rapidly increasing the size of the logs.
-                time::sleep(MAX_LOOP_INTERVAL_SECONDS);
+                time::sleep(MAX_LOOP_INTERVAL_SECONDS).await;
             }
         }
     });

@@ -53,7 +53,7 @@ steps:
       $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
       dotnet build -c $(Build.Configuration) $testDir
   
-      $binDir = Convert-Path "$testDir/bin/$(Build.Configuration)/netcoreapp3.1"
+      $binDir = Convert-Path "$testDir/bin/$(Build.Configuration)/net6.0"
       Write-Output "##vso[task.setvariable variable=binDir]$binDir"
     env:
       http_proxy: $(Agent.ProxyUrl)
@@ -63,7 +63,7 @@ steps:
   - pwsh: |
       $manifestSignerClientDir = '$(Build.SourcesDirectory)/samples/dotnet/ManifestSignerClient'
       dotnet build -c $(Build.Configuration) $manifestSignerClientDir
-      $manifestSignerClientBinDir = Convert-Path "$manifestSignerClientDir/bin/$(Build.Configuration)/netcoreapp3.1"
+      $manifestSignerClientBinDir = Convert-Path "$manifestSignerClientDir/bin/$(Build.Configuration)/net6.0"
       Write-Output "##vso[task.setvariable variable=manifestSignerClientDir]$manifestSignerClientDir"
       Write-Output "##vso[task.setvariable variable=manifestSignerClientBinDir]$manifestSignerClientBinDir"
       $manifestSigningTestDir = '$(System.ArtifactsDirectory)/manifest_signing'

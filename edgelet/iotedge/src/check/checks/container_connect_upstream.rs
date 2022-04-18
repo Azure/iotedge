@@ -50,7 +50,7 @@ pub(crate) fn get_host_container_upstream_tests() -> Vec<Box<dyn Checker>> {
     ]
 }
 
-#[derive(serde_derive::Serialize)]
+#[derive(serde::Serialize)]
 pub(crate) struct ContainerConnectUpstream {
     upstream_port: UpstreamProtocolPort,
     upstream_hostname: Option<String>,
@@ -179,18 +179,16 @@ impl ContainerConnectUpstream {
         }
 
         if let Err((_, err)) = super::docker(docker_host_arg, args).await {
-            let err = err
-                .context(format!(
-                    "Container on the {} network could not connect to {}:{}",
-                    if self.use_container_runtime_network {
-                        network_name
-                    } else {
-                        "default"
-                    },
-                    upstream_hostname,
-                    port,
-                ))
-                .into();
+            let err = err.context(format!(
+                "Container on the {} network could not connect to {}:{}",
+                if self.use_container_runtime_network {
+                    network_name
+                } else {
+                    "default"
+                },
+                upstream_hostname,
+                port,
+            ));
             return CheckResult::Failed(err);
         }
 

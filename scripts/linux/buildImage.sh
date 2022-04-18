@@ -15,7 +15,6 @@ set -e
 ARCH=$(uname -m)
 SCRIPT_NAME=$(basename "$0")
 PUBLISH_DIR=
-BASE_TAG=
 PROJECT=
 DOCKERFILE=
 DOCKER_IMAGENAME=
@@ -56,7 +55,6 @@ usage()
     echo " -n, --namespace      Docker namespace (default: $DEFAULT_DOCKER_NAMESPACE)"
     echo " -v, --image-version  Docker Image Version. Either use this option or set env variable BUILD_BUILDNUMBER"
     echo " -t, --target-arch    Target architecture (default: uname -m)"
-    echo "--base-tag            Override the tag of the base image (e.g., to use a different version of .NET Core)"
     echo "--bin-dir             Directory containing the output binaries. Either use this option or set env variable BUILD_BINARIESDIRECTORY"
     echo "--skip-push           Build images, but don't push them"
     echo "-b, --buildx_flag     Use buildx to cross build images from amd64 to arm target"
@@ -86,9 +84,6 @@ process_args()
         elif [[ ${save_next_arg} -eq 3 ]]; then
             BUILD_BINARIESDIRECTORY="$arg"
             save_next_arg=0
-        elif [[ ${save_next_arg} -eq 4 ]]; then
-            BASE_TAG="$arg"
-            save_next_arg=0
         elif [[ ${save_next_arg} -eq 5 ]]; then
             ARCH="$arg"
             check_arch
@@ -111,7 +106,6 @@ process_args()
                 "-r" | "--registry" ) save_next_arg=1;;
                 "-v" | "--image-version" ) save_next_arg=2;;
                 "--bin-dir" ) save_next_arg=3;;
-                "--base-tag" ) save_next_arg=4;;
                 "-t" | "--target-arch" ) save_next_arg=5;;
                 "-P" | "--project" ) save_next_arg=6;;
                 "-i" | "--image-name" ) save_next_arg=7;;
@@ -264,7 +258,6 @@ check_arch
 process_args "$@"
 
 build_args=( "EXE_DIR=." )
-[[ -z "$BASE_TAG" ]] || build_args+=( "base_tag=$BASE_TAG" )
 
 # push image
 docker_build_and_tag_and_push \
