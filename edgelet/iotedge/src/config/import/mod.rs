@@ -411,12 +411,8 @@ fn execute_inner(
                         create_options,
                         auth,
                     } = config;
-                    let new_config = edgelet_settings::DockerConfig::new(
-                        image,
-                        create_options,
-                        auth,
-                        true,
-                    )?;
+                    let new_config =
+                        edgelet_settings::DockerConfig::new(image, create_options, auth, true)?;
 
                     // Clippy wants map_or here, but that's not possible without cloning.
                     #[allow(clippy::option_if_let_else)]
@@ -513,10 +509,7 @@ fn execute_inner(
         edge_ca,
 
         moby_runtime: {
-            let old_config::MobyRuntime {
-                uri,
-                network,
-            } = moby_runtime;
+            let old_config::MobyRuntime { uri, network } = moby_runtime;
             super_config::MobyRuntime {
                 uri,
 

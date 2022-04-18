@@ -124,8 +124,7 @@ mod tests {
         let route = test_route_ok!(super::TRUST_BUNDLE_PATH);
         {
             let mut client = route.client.lock().await;
-            client.certs =
-                futures_util::lock::Mutex::new(std::cell::RefCell::new(certs.clone()));
+            client.certs = futures_util::lock::Mutex::new(std::cell::RefCell::new(certs.clone()));
         }
 
         let response = route.get().await.unwrap();

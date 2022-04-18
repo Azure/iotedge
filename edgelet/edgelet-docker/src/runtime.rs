@@ -22,8 +22,7 @@ use edgelet_core::{
     SystemResources, UrlExt,
 };
 use edgelet_settings::{
-    DockerConfig, Ipam as CoreIpam, MobyNetwork, ModuleSpec, RuntimeSettings,
-    Settings,
+    DockerConfig, Ipam as CoreIpam, MobyNetwork, ModuleSpec, RuntimeSettings, Settings,
 };
 use edgelet_utils::{ensure_not_empty, log_failure};
 use http_common::Connector;

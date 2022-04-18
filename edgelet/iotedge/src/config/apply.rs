@@ -430,15 +430,9 @@ fn execute_inner(
         },
 
         moby_runtime: {
-            let super_config::MobyRuntime {
-                uri,
-                network,
-            } = moby_runtime;
+            let super_config::MobyRuntime { uri, network } = moby_runtime;
 
-            edgelet_settings::MobyRuntime {
-                uri,
-                network,
-            }
+            edgelet_settings::MobyRuntime { uri, network }
         },
     };
 

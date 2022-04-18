@@ -127,19 +127,12 @@ mod tests {
 
     #[test]
     fn empty_image_fails() {
-        DockerConfig::new("".to_string(), ContainerCreateBody::new(), None, true)
-            .unwrap_err();
+        DockerConfig::new("".to_string(), ContainerCreateBody::new(), None, true).unwrap_err();
     }
 
     #[test]
     fn white_space_image_fails() {
-        DockerConfig::new(
-            "    ".to_string(),
-            ContainerCreateBody::new(),
-            None,
-            true,
-        )
-        .unwrap_err();
+        DockerConfig::new("    ".to_string(), ContainerCreateBody::new(), None, true).unwrap_err();
     }
 
     #[test]
