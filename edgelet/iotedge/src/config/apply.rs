@@ -32,7 +32,7 @@ pub fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>> {
             get_system_user("aziotks").map_err(|err| format!("{}", err))?,
             get_system_user("aziotcs").map_err(|err| format!("{}", err))?,
             get_system_user("aziotid").map_err(|err| format!("{}", err))?,
-            get_system_user("aziotpm").map_err(|err| format!("{}", err))?,
+            get_system_user("aziottpm").map_err(|err| format!("{}", err))?,
             get_system_user("iotedge").map_err(|err| format!("{}", err))?,
         )
     };
