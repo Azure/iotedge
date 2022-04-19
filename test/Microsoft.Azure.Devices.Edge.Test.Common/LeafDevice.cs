@@ -313,6 +313,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         {
             DeviceClient client = clientFactory();
 
+            client.SetConnectionStatusChangesHandler((status, reason) =>
+            {
+                Log.Information($"Detected change in connection status:{Environment.NewLine}Changed Status: {status} Reason: {reason}");
+            });
+
             // This retry is needed to correct failing tls, however this failure should not happen.
             // Can be removed when the below are fixed:
             // 1 - sometimes tls auth error occurs because EdgeHub sends an unexpected message (work item 14057676)
