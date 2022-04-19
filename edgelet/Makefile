@@ -108,6 +108,8 @@ deb: release
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man1/iotedge.1 $(TARGET)/$(PACKAGE)/man/iotedge.1
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/aziot-edged.8 $(TARGET)/$(PACKAGE)/man/aziot-edged.8
 
+	$(INSTALL_PROGRAM) -D $(srcdir)/contrib/debian/aziot-compatibility.sh $(TARGET)/$(PACKAGE)/etc/aziot/edged/aziot-compatibility.sh
+
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/template.toml $(TARGET)/$(PACKAGE)/etc/aziot/config.toml.edge.template
 	sed -i \
 		-e 's|@connect_workload_uri@|$(CONNECT_WORKLOAD_URI)|' \
@@ -166,6 +168,7 @@ install: release
 		-e 's|@listen_management_uri@|$(LISTEN_MANAGEMENT_URI)|' \
 		$(DESTDIR)$(sysconfdir)/aziot/config.toml.edge.template
 
+	$(INSTALL_PROGRAM) -D $(srcdir)/contrib/debian/aziot-compatibility.sh $(DESTDIR)/$(sysconfdir)/aziot/edged/aziot-compatibility.sh
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/default.toml $(DESTDIR)$(sysconfdir)/aziot/edged/config.toml.default
 	sed -i \
 		-e 's|@connect_workload_uri@|$(CONNECT_WORKLOAD_URI)|' \

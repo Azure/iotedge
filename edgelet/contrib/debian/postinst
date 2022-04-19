@@ -5,73 +5,73 @@ USER=iotedge
 GROUP=iotedge
 
 case "$1" in
-    configure)
-        if id -u $USER > /dev/null 2>&1; then
-            if [ ! -d /var/lib/aziot/edged ]; then
-                mkdir -p /var/lib/aziot/edged
-            fi
-            if [ ! -d /var/log/aziot/edged ]; then
-                mkdir -p /var/log/aziot/edged
-            fi
-            chown ${USER}:${GROUP} /var/lib/aziot/edged
-            chown ${USER}:${GROUP} /var/log/aziot/edged
-            chown root:root /etc/aziot/config.toml.edge.template
-            chown ${USER}:${GROUP} /etc/aziot/edged/config.toml.default
-            chown ${USER}:${GROUP} /etc/aziot/edged/config.d
+configure)
+    if id -u $USER >/dev/null 2>&1; then
+        if [ ! -d /var/lib/aziot/edged ]; then
+            mkdir -p /var/lib/aziot/edged
+        fi
+        if [ ! -d /var/log/aziot/edged ]; then
+            mkdir -p /var/log/aziot/edged
+        fi
+        chown ${USER}:${GROUP} /var/lib/aziot/edged
+        chown ${USER}:${GROUP} /var/log/aziot/edged
+        chown root:root /etc/aziot/config.toml.edge.template
+        chown ${USER}:${GROUP} /etc/aziot/edged/config.toml.default
+        chown ${USER}:${GROUP} /etc/aziot/edged/aziot-compatibility.sh
+        chown ${USER}:${GROUP} /etc/aziot/edged/config.d
 
-            chmod 755 /var/lib/aziot/edged
-            chmod 755 /var/log/aziot/edged
-            chmod 600 /etc/aziot/config.toml.edge.template
-            chmod 400 /etc/aziot/edged/config.toml.default
-            chmod 700 /etc/aziot/edged/config.d
+        chmod 755 /var/lib/aziot/edged
+        chmod 755 /var/log/aziot/edged
+        chmod 600 /etc/aziot/config.toml.edge.template
+        chmod 400 /etc/aziot/edged/config.toml.default
+        chmod 700 /etc/aziot/edged/config.d
 
+    fi
+
+    if [ ! -f '/etc/aziot/config.toml' ]; then
+        echo "==============================================================================="
+        echo ""
+        echo "                              Azure IoT Edge"
+        echo ""
+        echo "  IMPORTANT: Please configure the device with provisioning information."
+        echo ""
+
+        if [ -f '/etc/iotedge/config.yaml' ]; then
+            echo "  Detected /etc/iotedge/config.yaml from a previously installed version"
+            echo "  of IoT Edge. You can import its configuration using:"
+            echo ""
+            echo "    sudo iotedge config import"
+            echo ""
+            echo "  Otherwise, please create a new system configuration."
+        else
+            echo "  Please create a new system configuration."
         fi
 
-        if [ ! -f '/etc/aziot/config.toml' ]; then
-            echo "==============================================================================="
-            echo ""
-            echo "                              Azure IoT Edge"
-            echo ""
-            echo "  IMPORTANT: Please configure the device with provisioning information."
-            echo ""
-
-            if [ -f '/etc/iotedge/config.yaml' ]; then
-                echo "  Detected /etc/iotedge/config.yaml from a previously installed version"
-                echo "  of IoT Edge. You can import its configuration using:"
-                echo ""
-                echo "    sudo iotedge config import"
-                echo ""
-                echo "  Otherwise, please create a new system configuration."
-            else
-                echo "  Please create a new system configuration."
-            fi
-
-            echo ""
-            echo "  You can quickly configure the device for manual provisioning with"
-            echo "   a connection string using:"
-            echo ""
-            echo "    sudo iotedge config mp --connection-string '...'"
-            echo ""
-            echo "  For other provisioning options, copy the template file "
-            echo "  at /etc/aziot/config.toml.edge.template to /etc/aziot/config.toml,"
-            echo "  update it with your device information, then apply the configuration to"
-            echo "  the IoT Edge services with:"
-            echo ""
-            echo "    sudo iotedge config apply"
-            echo ""
-            echo "==============================================================================="
-        fi
+        echo ""
+        echo "  You can quickly configure the device for manual provisioning with"
+        echo "   a connection string using:"
+        echo ""
+        echo "    sudo iotedge config mp --connection-string '...'"
+        echo ""
+        echo "  For other provisioning options, copy the template file "
+        echo "  at /etc/aziot/config.toml.edge.template to /etc/aziot/config.toml,"
+        echo "  update it with your device information, then apply the configuration to"
+        echo "  the IoT Edge services with:"
+        echo ""
+        echo "    sudo iotedge config apply"
+        echo ""
+        echo "==============================================================================="
+    fi
     ;;
 
-    abort-upgrade|abort-remove|abort-deconfigure)
-    ;;
+abort-upgrade | abort-remove | abort-deconfigure) ;;
 
+\
     *)
-        echo "postinst called with unknown argument \`$1'" >&2
-        exit 1
+    echo "postinst called with unknown argument \`$1'" >&2
+    exit 1
     ;;
 esac
-
 
 #DEBHELPER#
 
