@@ -31,9 +31,7 @@ impl CheckCompatibility {
         let script_path = PathBuf::from("/etc/aziot/edged/aziot-compatibility.sh");
         let (is_success, result_output) = get_compatibility_script_output(script_path).await?;
         if !is_success {
-            return Ok(CheckResult::Failed(
-                Context::new(format!("{}", result_output)).into(),
-            ));
+            return Ok(CheckResult::Failed(Context::new(result_output).into()));
         }
         Ok(CheckResult::Ok)
     }
