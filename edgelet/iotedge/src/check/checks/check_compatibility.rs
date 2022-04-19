@@ -28,7 +28,6 @@ impl CheckCompatibility {
     #[allow(clippy::unused_self)]
     #[allow(unused_variables)]
     async fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
-        // Todo : Add Check for TPM User.
         let script_path = PathBuf::from("/etc/aziot/edged/aziot-compatibility.sh");
         let (is_success, result_output) = get_compatibility_script_output(script_path).await?;
         if !is_success {
