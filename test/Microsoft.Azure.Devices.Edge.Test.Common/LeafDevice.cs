@@ -318,12 +318,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 Log.Information($"Detected change in connection status:{Environment.NewLine}Changed Status: {status} Reason: {reason}");
             });
 
-            // This retry is needed to correct failing tls, however this failure should not happen.
-            // Can be removed when the below are fixed:
-            // 1 - sometimes tls auth error occurs because EdgeHub sends an unexpected message (work item 14057676)
-            // 2 - devices sdk issue (https://github.com/Azure/azure-iot-sdk-csharp/issues/2337)
+            // This retry is needed to correct a variety of exceptions, however this failure should not happen.
             var retryStrategy = new Incremental(15, RetryStrategy.DefaultRetryInterval, RetryStrategy.DefaultRetryIncrement);
-            var retryPolicy = new RetryPolicy(new FailingTLSConnectionErrorDetectionStrategy(), retryStrategy);
+            var retryPolicy = new RetryPolicy(new FailingConnectionErrorDetectionStrategy(), retryStrategy);
             await retryPolicy.ExecuteAsync(
                 async () =>
             {
@@ -391,9 +388,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             return Task.FromResult(new MethodResponse(request.Data, (int)HttpStatusCode.OK));
         }
 
-        class FailingTLSConnectionErrorDetectionStrategy : ITransientErrorDetectionStrategy
+        // This error detection strategy is intended for SDK clients connecting
+        // to EdgeHub encountering a variety of issues.
+        //
+        // Can be removed when the below are fixed:
+        // 1 (AuthenticationException) - Sometimes tls auth error occurs because EdgeHub sends an unexpected message (work item 14057676).
+        // 2 (ObjectDisposedException) - Devices SDK Issue: ObjectDisposed exception (https://github.com/Azure/azure-iot-sdk-csharp/issues/2337)
+        // 3 (InvalidOperationException) - Devices SDK Issue: No authenticated context (https://github.com/Azure/azure-iot-sdk-csharp/issues/2353)
+        class FailingConnectionErrorDetectionStrategy : ITransientErrorDetectionStrategy
         {
-            public bool IsTransient(Exception ex) => ex is ObjectDisposedException || ex is AuthenticationException;
+            public bool IsTransient(Exception ex) => ex is ObjectDisposedException || ex is AuthenticationException || ex is InvalidOperationException;
         }
     }
 }
