@@ -1,3 +1,24 @@
+# 1.2.9 (2021-04-04)
+## Edge Agent
+### Bug Fixes
+* Dev identity issues when switching identities ( [fb8d034](https://github.com/Azure/iotedge/commit/fb8d034626e43c413371274d7f9f685617c5b03f) )
+* Update regex to 1.5.5 ( [cb20b6b](https://github.com/Azure/iotedge/commit/cb20b6b2aca25ca09e58713e35e116879e323be3) )
+* Device product information ( [477814d](https://github.com/Azure/iotedge/commit/477814d9caaeba0c5318e418d1b44ddfc5206249) )
+
+
+## Edge Hub
+### Bug Fixes
+* AMQP CBS token message dispose ( [8670979](https://github.com/Azure/iotedge/commit/86709794fd42149368d632ef534f82c56db3ad79) )
+* Dev identity issues when switching identities ( [fb8d034](https://github.com/Azure/iotedge/commit/fb8d034626e43c413371274d7f9f685617c5b03f) )
+
+
+## aziot-edge
+### Bug Fixes
+* Update tokio, rayon, and crossbeam to latest compatible versions( [d468058](https://github.com/Azure/iotedge/commit/d468058d294453feebc92870f0f7cae7a6ca4a3d), [a0f148e](https://github.com/Azure/iotedge/commit/a0f148e88c82ff42ba1852b8a8f23fee0882075c) )
+* Update regex to 1.5.5 ( [cb20b6b](https://github.com/Azure/iotedge/commit/cb20b6b2aca25ca09e58713e35e116879e323be3) )
+* Device product information ( [477814d](https://github.com/Azure/iotedge/commit/477814d9caaeba0c5318e418d1b44ddfc5206249) )
+
+
 # 1.2.8 (2021-02-24)
 ## Edge Agent
 ### Bug Fixes

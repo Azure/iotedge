@@ -319,6 +319,7 @@ pub trait RuntimeSettings {
     fn homedir(&self) -> &Path;
     fn watchdog(&self) -> &WatchdogSettings;
     fn endpoints(&self) -> &Endpoints;
+    fn additional_info(&self) -> &std::collections::BTreeMap<String, String>;
     fn edge_ca_cert(&self) -> Option<&str>;
     fn edge_ca_key(&self) -> Option<&str>;
     fn trust_bundle_cert(&self) -> Option<&str>;
@@ -371,6 +372,9 @@ pub struct Settings<T> {
     #[serde(default, skip_serializing)]
     #[cfg_attr(not(debug_assertions), serde(skip_deserializing))]
     pub endpoints: Endpoints,
+
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub additional_info: std::collections::BTreeMap<String, String>,
 }
 
 // Serde default requires a function: https://github.com/serde-rs/serde/issues/1030
@@ -414,6 +418,10 @@ where
 
     fn endpoints(&self) -> &Endpoints {
         &self.endpoints
+    }
+
+    fn additional_info(&self) -> &std::collections::BTreeMap<String, String> {
+        &self.additional_info
     }
 
     fn edge_ca_cert(&self) -> Option<&str> {
