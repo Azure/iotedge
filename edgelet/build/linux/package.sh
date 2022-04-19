@@ -15,43 +15,43 @@ VERSION="${VERSION:-$DEFAULT_VERSION}"
 DOCKER_VOLUME_MOUNTS=''
 
 case "$PACKAGE_OS" in
-'centos7')
-    # Converts debian versioning to rpm version
-    # deb 1.0.1~dev100 ~> rpm 1.0.1-0.1.dev100
-    RPM_VERSION="$(echo "$VERSION" | cut -d"~" -f1)"
-    RPM_TAG="$(echo "$VERSION" | cut -s -d"~" -f2)"
-    if [ -n "$RPM_TAG" ]; then
-        RPM_RELEASE="0.$REVISION.$RPM_TAG"
-    else
-        RPM_RELEASE="$REVISION"
-    fi
+    'centos7')
+        # Converts debian versioning to rpm version
+        # deb 1.0.1~dev100 ~> rpm 1.0.1-0.1.dev100
+        RPM_VERSION="$(echo "$VERSION" | cut -d"~" -f1)"
+        RPM_TAG="$(echo "$VERSION" | cut -s -d"~" -f2)"
+        if [ -n "$RPM_TAG" ]; then
+            RPM_RELEASE="0.$REVISION.$RPM_TAG"
+        else
+            RPM_RELEASE="$REVISION"
+        fi
 
-    case "$PACKAGE_ARCH" in
-    'amd64')
-        DOCKER_IMAGE='centos:7.5.1804'
+        case "$PACKAGE_ARCH" in
+            'amd64')
+                DOCKER_IMAGE='centos:7.5.1804'
+                ;;
+        esac
         ;;
-    esac
-    ;;
 
-'debian9')
-    DOCKER_IMAGE='debian:9-slim'
-    ;;
+    'debian9')
+        DOCKER_IMAGE='debian:9-slim'
+        ;;
 
-'debian10')
-    DOCKER_IMAGE='debian:10-slim'
-    ;;
+    'debian10')
+        DOCKER_IMAGE='debian:10-slim'
+        ;;
 
-'debian11')
-    DOCKER_IMAGE='debian:11-slim'
-    ;;
+    'debian11')
+        DOCKER_IMAGE='debian:11-slim'
+        ;;
 
-'ubuntu18.04')
-    DOCKER_IMAGE='ubuntu:18.04'
-    ;;
+    'ubuntu18.04')
+        DOCKER_IMAGE='ubuntu:18.04'
+        ;;
 
-'ubuntu20.04')
-    DOCKER_IMAGE='ubuntu:20.04'
-    ;;
+    'ubuntu20.04')
+        DOCKER_IMAGE='ubuntu:20.04'
+        ;;
 esac
 
 if [ -z "$DOCKER_IMAGE" ]; then
@@ -60,36 +60,37 @@ if [ -z "$DOCKER_IMAGE" ]; then
 fi
 
 case "$PACKAGE_ARCH" in
-'amd64')
-    MAKE_FLAGS="DPKGFLAGS='-b -us -uc -i'"
-    ;;
+    'amd64')
+        MAKE_FLAGS="DPKGFLAGS='-b -us -uc -i'"
+        ;;
 
-'arm32v7')
-    RUST_TARGET='armv7-unknown-linux-gnueabihf'
-    ;;
+    'arm32v7')
+        RUST_TARGET='armv7-unknown-linux-gnueabihf'
+        ;;
 
-'aarch64')
-    RUST_TARGET='aarch64-unknown-linux-gnu'
-    ;;
+    'aarch64')
+        RUST_TARGET='aarch64-unknown-linux-gnu'
+        ;;
 esac
 
 if [ -n "$RUST_TARGET" ]; then
     RUST_TARGET_COMMAND="rustup target add $RUST_TARGET &&"
 fi
 
+
 case "$PACKAGE_OS.$PACKAGE_ARCH" in
-centos7.amd64)
-    SETUP_COMMAND=$'
+    centos7.amd64)
+        SETUP_COMMAND=$'
             yum update -y &&
             yum install -y \
                 curl git make rpm-build \
                 gcc gcc-c++ \
                 libcurl-devel libuuid-devel openssl-devel &&
         '
-    ;;
+        ;;
 
-debian*.amd64)
-    SETUP_COMMAND=$'
+    debian*.amd64)
+        SETUP_COMMAND=$'
             export DEBIAN_FRONTEND=noninteractive
             export TZ=UTC
             apt-get update &&
@@ -99,10 +100,10 @@ debian*.amd64)
                 gcc g++ pkg-config \
                 libcurl4-openssl-dev libssl-dev uuid-dev &&
         '
-    ;;
-
-debian*.arm32v7)
-    SETUP_COMMAND=$'
+        ;;
+    
+    debian*.arm32v7)
+        SETUP_COMMAND=$'
             export DEBIAN_FRONTEND=noninteractive
             export TZ=UTC
             dpkg --add-architecture armhf &&
@@ -120,10 +121,10 @@ debian*.arm32v7)
             export ARMV7_UNKNOWN_LINUX_GNUEABIHF_OPENSSL_LIB_DIR=/usr/lib/arm-linux-gnueabihf &&
             export ARMV7_UNKNOWN_LINUX_GNUEABIHF_OPENSSL_INCLUDE_DIR=/usr/include &&
         '
-    ;;
+        ;;
 
-debian*.aarch64)
-    SETUP_COMMAND=$'
+    debian*.aarch64)
+        SETUP_COMMAND=$'
             export DEBIAN_FRONTEND=noninteractive
             export TZ=UTC
             dpkg --add-architecture arm64 &&
@@ -141,10 +142,10 @@ debian*.aarch64)
             export AARCH64_UNKNOWN_LINUX_GNU_OPENSSL_LIB_DIR=/usr/lib/aarch64-linux-gnu &&
             export AARCH64_UNKNOWN_LINUX_GNU_OPENSSL_INCLUDE_DIR=/usr/include &&
         '
-    ;;
+        ;;
 
-ubuntu18.04.amd64 | ubuntu20.04.amd64)
-    SETUP_COMMAND=$'
+    ubuntu18.04.amd64|ubuntu20.04.amd64)
+        SETUP_COMMAND=$'
             export DEBIAN_FRONTEND=noninteractive
             export TZ=UTC
             apt-get update &&
@@ -154,10 +155,10 @@ ubuntu18.04.amd64 | ubuntu20.04.amd64)
                 gcc g++ pkg-config \
                 libcurl4-openssl-dev libssl-dev uuid-dev &&
         '
-    ;;
+        ;;
 
-ubuntu18.04.arm32v7 | ubuntu20.04.arm32v7)
-    SETUP_COMMAND=$'
+    ubuntu18.04.arm32v7|ubuntu20.04.arm32v7)
+        SETUP_COMMAND=$'
             export DEBIAN_FRONTEND=noninteractive
             export TZ=UTC
             sources="$(cat /etc/apt/sources.list | grep -E \'^[^#]\')" &&
@@ -185,10 +186,10 @@ ubuntu18.04.arm32v7 | ubuntu20.04.arm32v7)
             export ARMV7_UNKNOWN_LINUX_GNUEABIHF_OPENSSL_LIB_DIR=/usr/lib/arm-linux-gnueabihf &&
             export ARMV7_UNKNOWN_LINUX_GNUEABIHF_OPENSSL_INCLUDE_DIR=/usr/include &&
         '
-    ;;
+        ;;
 
-ubuntu18.04.aarch64 | ubuntu20.04.aarch64)
-    SETUP_COMMAND=$'
+    ubuntu18.04.aarch64|ubuntu20.04.aarch64)
+        SETUP_COMMAND=$'
             export DEBIAN_FRONTEND=noninteractive
             export TZ=UTC
             sources="$(cat /etc/apt/sources.list | grep -E \'^[^#]\')" &&
@@ -216,7 +217,7 @@ ubuntu18.04.aarch64 | ubuntu20.04.aarch64)
             export AARCH64_UNKNOWN_LINUX_GNU_OPENSSL_LIB_DIR=/usr/lib/aarch64-linux-gnu &&
             export AARCH64_UNKNOWN_LINUX_GNU_OPENSSL_INCLUDE_DIR=/usr/include &&
         '
-    ;;
+        ;;
 esac
 
 if [ -z "$SETUP_COMMAND" ]; then
@@ -225,50 +226,51 @@ if [ -z "$SETUP_COMMAND" ]; then
 fi
 
 case "$PACKAGE_OS" in
-centos7)
-    case "$PACKAGE_ARCH" in
-    amd64)
-        MAKE_TARGET_DIR='target/release'
-        ;;
-    arm32v7)
-        MAKE_TARGET_DIR="target/$RUST_TARGET/release"
-        CARGO_TARGET_FLAG="--target $RUST_TARGET"
-        RPMBUILD_TARGET_FLAG='--target armv7hl'
-        ;;
-    aarch64)
-        MAKE_TARGET_DIR="target/$RUST_TARGET/release"
-        CARGO_TARGET_FLAG="--target $RUST_TARGET"
-        RPMBUILD_TARGET_FLAG='--target aarch64'
-        ;;
-    esac
+    centos7)
+        case "$PACKAGE_ARCH" in
+            amd64)
+                MAKE_TARGET_DIR='target/release'
+                ;;
+            arm32v7)
+                MAKE_TARGET_DIR="target/$RUST_TARGET/release"
+                CARGO_TARGET_FLAG="--target $RUST_TARGET"
+                RPMBUILD_TARGET_FLAG='--target armv7hl'
+                ;;
+            aarch64)
+                MAKE_TARGET_DIR="target/$RUST_TARGET/release"
+                CARGO_TARGET_FLAG="--target $RUST_TARGET"
+                RPMBUILD_TARGET_FLAG='--target aarch64'
+                ;;
+        esac
 
-    MAKE_COMMAND="mkdir -p /project/edgelet/target/rpmbuild"
-    MAKE_COMMAND="$MAKE_COMMAND && cd /project/edgelet/target/rpmbuild"
-    MAKE_COMMAND="$MAKE_COMMAND && mkdir -p RPMS SOURCES SPECS SRPMS BUILD"
-    MAKE_COMMAND="$MAKE_COMMAND && cd /project/edgelet"
-    MAKE_COMMAND="$MAKE_COMMAND && make rpm-dist 'TARGET=target/rpmbuild/SOURCES' 'VERSION=$VERSION' 'REVISION=$REVISION'"
-    MAKE_COMMAND="$MAKE_COMMAND && make rpm rpmbuilddir=/project/edgelet/target/rpmbuild 'TARGET=$MAKE_TARGET_DIR' 'VERSION=$VERSION' 'REVISION=$REVISION' 'CARGOFLAGS=--manifest-path ./Cargo.toml $CARGO_TARGET_FLAG' RPMBUILDFLAGS='-v -bb --clean --define \"_topdir /project/edgelet/target/rpmbuild\" $RPMBUILD_TARGET_FLAG'"
-    ;;
-
-*)
-    case "$PACKAGE_ARCH" in
-    amd64) ;;
-
-    arm32v7)
-        MAKE_FLAGS="'CARGOFLAGS=--target armv7-unknown-linux-gnueabihf'"
-        MAKE_FLAGS="$MAKE_FLAGS 'TARGET=target/armv7-unknown-linux-gnueabihf/release'"
-        MAKE_FLAGS="$MAKE_FLAGS 'DPKGFLAGS=-b -us -uc -i --host-arch armhf'"
+        MAKE_COMMAND="mkdir -p /project/edgelet/target/rpmbuild"
+        MAKE_COMMAND="$MAKE_COMMAND && cd /project/edgelet/target/rpmbuild"
+        MAKE_COMMAND="$MAKE_COMMAND && mkdir -p RPMS SOURCES SPECS SRPMS BUILD"
+        MAKE_COMMAND="$MAKE_COMMAND && cd /project/edgelet"
+        MAKE_COMMAND="$MAKE_COMMAND && make rpm-dist 'TARGET=target/rpmbuild/SOURCES' 'VERSION=$VERSION' 'REVISION=$REVISION'"
+        MAKE_COMMAND="$MAKE_COMMAND && make rpm rpmbuilddir=/project/edgelet/target/rpmbuild 'TARGET=$MAKE_TARGET_DIR' 'VERSION=$VERSION' 'REVISION=$REVISION' 'CARGOFLAGS=--manifest-path ./Cargo.toml $CARGO_TARGET_FLAG' RPMBUILDFLAGS='-v -bb --clean --define \"_topdir /project/edgelet/target/rpmbuild\" $RPMBUILD_TARGET_FLAG'"
         ;;
-    aarch64)
-        MAKE_FLAGS="'CARGOFLAGS=--target aarch64-unknown-linux-gnu'"
-        MAKE_FLAGS="$MAKE_FLAGS 'TARGET=target/aarch64-unknown-linux-gnu/release'"
-        MAKE_FLAGS="$MAKE_FLAGS 'DPKGFLAGS=-b -us -uc -i --host-arch arm64 --host-type aarch64-linux-gnu --target-type aarch64-linux-gnu'"
-        ;;
-    esac
 
-    MAKE_COMMAND="make deb 'VERSION=$VERSION' 'REVISION=$REVISION' $MAKE_FLAGS"
-    ;;
+    *)
+        case "$PACKAGE_ARCH" in
+            amd64)
+                ;;
+            arm32v7)
+                MAKE_FLAGS="'CARGOFLAGS=--target armv7-unknown-linux-gnueabihf'"
+                MAKE_FLAGS="$MAKE_FLAGS 'TARGET=target/armv7-unknown-linux-gnueabihf/release'"
+                MAKE_FLAGS="$MAKE_FLAGS 'DPKGFLAGS=-b -us -uc -i --host-arch armhf'"
+                ;;
+            aarch64)
+                MAKE_FLAGS="'CARGOFLAGS=--target aarch64-unknown-linux-gnu'"
+                MAKE_FLAGS="$MAKE_FLAGS 'TARGET=target/aarch64-unknown-linux-gnu/release'"
+                MAKE_FLAGS="$MAKE_FLAGS 'DPKGFLAGS=-b -us -uc -i --host-arch arm64 --host-type aarch64-linux-gnu --target-type aarch64-linux-gnu'"
+                ;;
+        esac
+
+        MAKE_COMMAND="make deb 'VERSION=$VERSION' 'REVISION=$REVISION' $MAKE_FLAGS"
+        ;;
 esac
+
 
 docker run --rm \
     --user root \
