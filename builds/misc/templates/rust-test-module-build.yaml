@@ -10,7 +10,7 @@ steps:
   displayName: Build ${{ parameters['module.name'] }} - ${{ parameters['arch'] }}
   inputs:
     filePath: scripts/linux/cross-platform-rust-build.sh
-    arguments: --os ubuntu18.04 --arch ${{ parameters['arch'] }} --build-path ${{ parameters['module.path'] }}
+    arguments: --os ubuntu20.04 --arch ${{ parameters['arch'] }} --build-path ${{ parameters['module.path'] }}
 - task: PublishBuildArtifacts@1
   inputs:
     pathToPublish: ${{ parameters['module.path'] }}/target/${{ parameters['target'] }}/release/${{ parameters['module.name'] }}

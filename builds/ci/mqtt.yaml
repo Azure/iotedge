@@ -5,6 +5,7 @@ trigger:
       - release/*
   paths:
     include:
+      - "rust-toolchain.toml"
       - "mqtt/*"
       - "builds/*"
 pr: none

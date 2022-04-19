@@ -167,26 +167,31 @@ where
         }
     }
 
+    #[must_use]
     pub fn with_client_id(mut self, client_id: ClientId) -> Self {
         self.client_id = client_id;
         self
     }
 
+    #[must_use]
     pub fn with_username(mut self, username: &str) -> Self {
         self.username = Some(username.into());
         self
     }
 
+    #[must_use]
     pub fn with_password(mut self, password: &str) -> Self {
         self.password = Some(password.into());
         self
     }
 
+    #[must_use]
     pub fn with_will(mut self, will: Publication) -> Self {
         self.will = Some(will);
         self
     }
 
+    #[must_use]
     pub fn with_keep_alive(mut self, keep_alive: Duration) -> Self {
         self.keep_alive = keep_alive;
         self
