@@ -11,6 +11,11 @@ method = "local_ca"
 expiry_days = 365
 common_name = "my-device local-ca"
 
+[cert_issuance.aziot-edged-ca-temp]
+method = "local_ca"
+expiry_days = 365
+common_name = "my-device local-ca"
+
 [preloaded_certs]
 aziot-edged-trust-bundle = ["aziot-edged-ca", "trust-bundle-user"]
 local-ca = "file:///var/secrets/local-ca.pem"
@@ -18,4 +23,4 @@ trust-bundle-user = "file:///var/secrets/trusted-ca.pem"
 
 [[principal]]
 uid = 5558
-certs = ["aziot-edged-ca", "aziot-edged/module/*"]
+certs = ["aziot-edged-ca", "aziot-edged/module/*", "aziot-edged-ca-temp"]
