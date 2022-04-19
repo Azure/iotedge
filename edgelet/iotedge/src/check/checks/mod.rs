@@ -21,7 +21,6 @@ pub(crate) use self::aziot_edged_version::AziotEdgedVersion;
 pub(crate) use self::check_agent_image::CheckAgentImage;
 pub(crate) use self::check_compatibility::CheckCompatibility;
 pub(crate) use self::check_sockets::CheckSockets;
-use self::check_sockets::CheckSockets;
 pub(crate) use self::check_users::CheckUsers;
 pub(crate) use self::connect_management_uri::ConnectManagementUri;
 pub(crate) use self::container_connect_upstream::get_host_container_upstream_tests;
