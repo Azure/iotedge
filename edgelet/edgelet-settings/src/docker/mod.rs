@@ -42,6 +42,7 @@ impl Settings {
         &self.moby_runtime
     }
 
+    #[must_use]
     pub fn agent_upstream_resolve(mut self, parent_hostname: &str) -> Self {
         crate::RuntimeSettings::agent_mut(&mut self)
             .config_mut()
@@ -82,6 +83,10 @@ impl crate::RuntimeSettings for Settings {
         self.base.homedir()
     }
 
+    fn allow_elevated_docker_permissions(&self) -> bool {
+        self.base.allow_elevated_docker_permissions()
+    }
+
     fn agent(&self) -> &crate::module::Settings<Self::ModuleConfig> {
         self.base.agent()
     }
@@ -106,8 +111,8 @@ impl crate::RuntimeSettings for Settings {
         self.base.endpoints()
     }
 
-    fn allow_elevated_docker_permissions(&self) -> bool {
-        self.base.allow_elevated_docker_permissions()
+    fn additional_info(&self) -> &std::collections::BTreeMap<String, String> {
+        self.base.additional_info()
     }
 }
 

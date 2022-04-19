@@ -1,19 +1,18 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use crate::error::{Error, ErrorKind};
-use failure::ResultExt;
 use std::process::Command;
 
-pub fn is_virtualized_env() -> Result<Option<bool>, Error> {
+use anyhow::Context;
+
+use crate::error::Error;
+
+pub fn is_virtualized_env() -> anyhow::Result<Option<bool>> {
     if cfg!(target_os = "linux") {
         let status = Command::new("systemd-detect-virt")
             .status()
-            .context(ErrorKind::GetVirtualizationStatus)?;
+            .context(Error::GetVirtualizationStatus)?;
 
-        match status.code() {
-            Some(0) => Ok(Some(true)),
-            _ => Ok(Some(false)),
-        }
+        Ok(Some(status.code() == Some(0)))
     } else {
         Ok(None)
     }

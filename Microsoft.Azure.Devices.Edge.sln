@@ -113,7 +113,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NetworkController", "test\c
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Modules.Test", "test\modules\Modules.Test\Modules.Test.csproj", "{837F5563-BB1C-4A59-A506-07ED8458DB4E}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MetricsCollector", "edge-modules\MetricsCollector\MetricsCollector.csproj", "{4B0F95CF-E696-450F-B7F6-35E361C91777}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestMetricsCollector", "test\modules\TestMetricsCollector\TestMetricsCollector.csproj", "{4B0F95CF-E696-450F-B7F6-35E361C91777}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DirectMethodReceiver", "test\modules\DirectMethodReceiver\DirectMethodReceiver.csproj", "{8C964A2F-A163-421C-B262-BE9C81B555BC}"
 EndProject
@@ -193,14 +193,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edg
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Routing.Core.Test", "edge-hub\core\test\Microsoft.Azure.Devices.Routing.Core.Test\Microsoft.Azure.Devices.Routing.Core.Test.csproj", "{5D0F6FB0-8716-4247-A5BE-92DA5B9E2189}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "edge-modules", "edge-modules", "{43E10CBA-2F64-4B4C-A5A5-B9E332DC98A1}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "functions", "functions", "{059BC610-4D1E-4A4D-9099-E67DF47D7DB7}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{4F3B7488-3547-4EEB-A79E-9737182960AB}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeHubTriggerCSharp", "edge-modules\functions\samples\EdgeHubTrigger-Csharp\EdgeHubTriggerCSharp.csproj", "{9F5BD0E2-E73D-434A-8568-0C117A0716C9}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NumberLogger", "test\modules\NumberLogger\NumberLogger.csproj", "{B0151FFD-85C4-42B9-81CC-9193BADFE9F8}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "jsoncanonicalizer", "edge-util\src\jsoncanonicalizer\jsoncanonicalizer.csproj", "{1915CE7E-E949-4633-9862-D92BD5E873B5}"
@@ -210,6 +202,14 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ManifestSignerClient", "samples\dotnet\ManifestSignerClient\ManifestSignerClient.csproj", "{C4C3CEB4-1177-4D1C-9BAE-EE0453831905}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IotedgeDiagnosticsDotnet", "edge-modules\iotedge-diagnostics-dotnet\IotedgeDiagnosticsDotnet.csproj", "{59CF2F3B-5FCC-43BE-B221-1E7A956D4792}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "edge-modules", "edge-modules", "{17D4D30E-7C88-479D-AF04-735DCCBA3AD4}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "functions", "functions", "{72DC75C8-2116-4836-BB95-2D2B5BF34452}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{10886974-CE80-40FC-9647-A9C145DE420C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EdgeHubTriggerCSharp", "edge-modules\functions\samples\EdgeHubTrigger-Csharp\EdgeHubTriggerCSharp.csproj", "{8E7FB9D5-4736-4CE0-8698-2F30E2E49B59}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -602,12 +602,6 @@ Global
 		{5D0F6FB0-8716-4247-A5BE-92DA5B9E2189}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5D0F6FB0-8716-4247-A5BE-92DA5B9E2189}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5D0F6FB0-8716-4247-A5BE-92DA5B9E2189}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9F5BD0E2-E73D-434A-8568-0C117A0716C9}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
-		{9F5BD0E2-E73D-434A-8568-0C117A0716C9}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
-		{9F5BD0E2-E73D-434A-8568-0C117A0716C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9F5BD0E2-E73D-434A-8568-0C117A0716C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9F5BD0E2-E73D-434A-8568-0C117A0716C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9F5BD0E2-E73D-434A-8568-0C117A0716C9}.Release|Any CPU.Build.0 = Release|Any CPU
 		{B0151FFD-85C4-42B9-81CC-9193BADFE9F8}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
 		{B0151FFD-85C4-42B9-81CC-9193BADFE9F8}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
 		{B0151FFD-85C4-42B9-81CC-9193BADFE9F8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -638,6 +632,12 @@ Global
 		{59CF2F3B-5FCC-43BE-B221-1E7A956D4792}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{59CF2F3B-5FCC-43BE-B221-1E7A956D4792}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{59CF2F3B-5FCC-43BE-B221-1E7A956D4792}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8E7FB9D5-4736-4CE0-8698-2F30E2E49B59}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
+		{8E7FB9D5-4736-4CE0-8698-2F30E2E49B59}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
+		{8E7FB9D5-4736-4CE0-8698-2F30E2E49B59}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8E7FB9D5-4736-4CE0-8698-2F30E2E49B59}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8E7FB9D5-4736-4CE0-8698-2F30E2E49B59}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8E7FB9D5-4736-4CE0-8698-2F30E2E49B59}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -720,14 +720,14 @@ Global
 		{111DFD7C-FC04-4A68-8CC1-D986CCC3DAC3} = {F5A09810-99FB-43EB-A86E-A15E48EED108}
 		{240DF1F3-6472-472A-9748-494D79AEF085} = {F5A09810-99FB-43EB-A86E-A15E48EED108}
 		{5D0F6FB0-8716-4247-A5BE-92DA5B9E2189} = {F5A09810-99FB-43EB-A86E-A15E48EED108}
-		{059BC610-4D1E-4A4D-9099-E67DF47D7DB7} = {43E10CBA-2F64-4B4C-A5A5-B9E332DC98A1}
-		{4F3B7488-3547-4EEB-A79E-9737182960AB} = {059BC610-4D1E-4A4D-9099-E67DF47D7DB7}
-		{9F5BD0E2-E73D-434A-8568-0C117A0716C9} = {4F3B7488-3547-4EEB-A79E-9737182960AB}
 		{B0151FFD-85C4-42B9-81CC-9193BADFE9F8} = {F921339B-32F9-4BF3-B364-2DB01FA2F1A1}
 		{1915CE7E-E949-4633-9862-D92BD5E873B5} = {66964A75-04AC-4FDE-8505-E6CB2EF90BE8}
 		{BE39EC1F-7E7C-4421-93BF-1DF02C1E6A15} = {66964A75-04AC-4FDE-8505-E6CB2EF90BE8}
 		{C4C3CEB4-1177-4D1C-9BAE-EE0453831905} = {A6D8677F-DB76-459E-B6DE-110AFCEF7F08}
 		{59CF2F3B-5FCC-43BE-B221-1E7A956D4792} = {578D5330-2F72-44C6-9DB5-C93B3F42C473}
+		{72DC75C8-2116-4836-BB95-2D2B5BF34452} = {17D4D30E-7C88-479D-AF04-735DCCBA3AD4}
+		{10886974-CE80-40FC-9647-A9C145DE420C} = {72DC75C8-2116-4836-BB95-2D2B5BF34452}
+		{8E7FB9D5-4736-4CE0-8698-2F30E2E49B59} = {10886974-CE80-40FC-9647-A9C145DE420C}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D71830F5-3AF5-46B4-8A9E-1DCE4F2253AC}

@@ -42,6 +42,10 @@ impl edgelet_settings::RuntimeSettings for Settings {
         unimplemented!()
     }
 
+    fn allow_elevated_docker_permissions(&self) -> bool {
+        unimplemented!()
+    }
+
     fn agent(&self) -> &edgelet_settings::module::Settings<Self::ModuleConfig> {
         unimplemented!()
     }
@@ -66,7 +70,7 @@ impl edgelet_settings::RuntimeSettings for Settings {
         unimplemented!()
     }
 
-    fn allow_elevated_docker_permissions(&self) -> bool {
+    fn additional_info(&self) -> &std::collections::BTreeMap<String, String> {
         unimplemented!()
     }
 }
