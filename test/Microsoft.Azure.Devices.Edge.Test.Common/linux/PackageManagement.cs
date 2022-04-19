@@ -57,29 +57,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         {
             return new[]
             {
-                SupportedPackageExtension.Deb => new[]
-                {
-                    "set -e",
-                    $"apt-get install -y --option DPkg::Lock::Timeout=600 {string.Join(' ', packages)}",
-                    $"apt-get install -f --option DPkg::Lock::Timeout=600"
-                },
-                SupportedPackageExtension.Rpm => new[]
-                {
-                    "set -e",
-                    $"rpm --nodeps -i {string.Join(' ', packages)}",
-                    "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
-                    "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
-                    "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
-                    "sudo systemctl daemon-reload"
-                },
-                _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.packageExtension}'"),
+                "set -e",
+                $"apt-get install -y {string.Join(' ', packages)}",
+                $"apt-get install -f"
             };
         }
 
-        public string[] GetInstallCommandsFromMicrosoftProd(Option<Uri> proxy)
+        public override string[] GetInstallCommandsFromMicrosoftProd()
         {
-            // we really support only two options for now.
-            string repository = this.os.ToLower() switch
+            string repository = this.Os.ToLower() switch
             {
                 "ubuntu" => this.Version == "18.04" ? "https://packages.microsoft.com/config/ubuntu/18.04/multiarch/prod.list" : "https://packages.microsoft.com/config/ubuntu/20.04/prod.list",
                 "debian" => $"https://packages.microsoft.com/config/debian/stretch/multiarch/prod.list",
@@ -88,30 +74,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
             return new[]
             {
-                SupportedPackageExtension.Deb => new[]
-                {
-                    $"curl {repository} > /etc/apt/sources.list.d/microsoft-prod.list",
-                    "curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg",
-                    $"apt-get update",
-                    $"apt-get install --option DPkg::Lock::Timeout=600 --yes aziot-edge"
-                },
-                SupportedPackageExtension.Rpm => new[]
-                {
-                    $"rpm -iv --replacepkgs https://packages.microsoft.com/config/{this.os}/{this.version}/packages-microsoft-prod.rpm",
-                    $"yum updateinfo",
-                    $"yum install --yes aziot-edge",
-                    "pathToSystemdConfig=$(systemctl cat aziot-edge | head -n 1)",
-                    "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
-                    "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
-                    "sudo systemctl daemon-reload"
-                },
-                _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.packageExtension}'"),
+                $"curl {repository} > /etc/apt/sources.list.d/microsoft-prod.list",
+                "curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg",
+                $"apt-get update",
+                $"apt-get install --yes aziot-edge"
             };
         }
 
-        public string[] GetUninstallCommands() => this.packageExtension switch
+        public override string[] GetUninstallCommands()
         {
-            SupportedPackageExtension.Deb => new[]
+            return new[]
             {
                 "dpkg --purge aziot-edge",
                 "dpkg --purge aziot-identity-service",
