@@ -564,36 +564,36 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             ErrorDispatchingConnectivityEvent
         }
 
-        public static void GettingTwin(string id, long rid) => Log.LogDebug((int)EventIds.GettingTwin, $"Getting twin for client: {id} with request id: {rid}");
-        public static void CannotAddPendingRid(string id, long rid) => Log.LogDebug((int)EventIds.CannotAddPendingRid, $"Cannot register request-id when getting twin for client: {id} with request id: {rid}");
-        public static void TwinSentWaitingResult(string id, long rid) => Log.LogDebug((int)EventIds.TwinSentWaitingResult, $"Twin request sent for client: {id} with request id: {rid}, waiting for result");
-        public static void TwinUpdateSentWaitingResult(string id, long rid) => Log.LogDebug((int)EventIds.TwinUpdateSentWaitingResult, $"Twin update sent from client: {id} with request id: {rid}, waiting for result");
-        public static void TwinUpdateHasConfirmed(string id, long rid) => Log.LogDebug((int)EventIds.TwinUpdateSentWaitingResult, $"Twin update has confirmed for client: {id} with request id: {rid}");
-        public static void TwinResultReceived(string id, long rid) => Log.LogDebug((int)EventIds.TwinResultReceived, $"Twin received for client: {id} with request id: {rid}");
-        public static void CannotParseRid(string rid) => Log.LogError((int)EventIds.CannotParseGuid, "Cannot parse rid: {rid}");
-        public static void CannotFindRid(string rid) => Log.LogError((int)EventIds.CannotFindGuid, "Cannot find rid to ACK: {rid}");
-        public static void SendingTelemetry(string id) => Log.LogDebug((int)EventIds.SendingTelemetry, $"Sending telemetry message from client: {id}");
+        public static void GettingTwin(string id, long rid) => Log.LogDebug((int)EventIds.GettingTwin, "Getting twin for client: {id} with request id: {rid}", id, rid);
+        public static void CannotAddPendingRid(string id, long rid) => Log.LogDebug((int)EventIds.CannotAddPendingRid, "Cannot register request-id when getting twin for client: {id} with request id: {rid}", id, rid);
+        public static void TwinSentWaitingResult(string id, long rid) => Log.LogDebug((int)EventIds.TwinSentWaitingResult, "Twin request sent for client: {id} with request id: {rid}, waiting for result", id, rid);
+        public static void TwinUpdateSentWaitingResult(string id, long rid) => Log.LogDebug((int)EventIds.TwinUpdateSentWaitingResult, "Twin update sent from client: {id} with request id: {rid}, waiting for result", id, rid);
+        public static void TwinUpdateHasConfirmed(string id, long rid) => Log.LogDebug((int)EventIds.TwinUpdateSentWaitingResult, "Twin update has confirmed for client: {id} with request id: {rid}", id, rid);
+        public static void TwinResultReceived(string id, long rid) => Log.LogDebug((int)EventIds.TwinResultReceived, "Twin received for client: {id} with request id: {rid}", id, rid);
+        public static void CannotParseRid(string rid) => Log.LogError((int)EventIds.CannotParseGuid, "Cannot parse rid: {rid}", rid);
+        public static void CannotFindRid(string rid) => Log.LogError((int)EventIds.CannotFindGuid, "Cannot find rid to ACK: {rid}", rid);
+        public static void SendingTelemetry(string id) => Log.LogDebug((int)EventIds.SendingTelemetry, "Sending telemetry message from client: {id}", id);
 
-        public static void UpstreamMessageTimeout(string id, long rid) => Log.LogWarning((int)EventIds.UpstreamMessageTimeout, $"Timeout waiting for result after request sent for client: {id} with request id: {rid}");
+        public static void UpstreamMessageTimeout(string id, long rid) => Log.LogWarning((int)EventIds.UpstreamMessageTimeout, "Timeout waiting for result after request sent for client: {id} with request id: {rid}", id, rid);
 
-        public static void SendingReportedProperyUpdate(string id, long rid) => Log.LogDebug((int)EventIds.GettingTwin, $"Sending reported property update for client: {id} with request id: {rid}");
+        public static void SendingReportedProperyUpdate(string id, long rid) => Log.LogDebug((int)EventIds.GettingTwin, "Sending reported property update for client: {id} with request id: {rid}", id, rid);
 
-        public static void CannotAddPendingRpcId(Guid guid) => Log.LogWarning((int)EventIds.CannotAddPendingRpcId, $"Cannot add pending rpc id to the pending list, because it already exists. Id: {guid}");
+        public static void CannotAddPendingRpcId(Guid guid) => Log.LogWarning((int)EventIds.CannotAddPendingRpcId, "Cannot add pending rpc id to the pending list, because it already exists. Id: {guid}", guid);
 
-        public static void SendingUpstreamMessage(Guid guid) => Log.LogDebug((int)EventIds.SendingUpstreamMessage, $"Sending message upstream with id: {guid}");
-        public static void SentUpstreamWaitingAck(Guid guid) => Log.LogDebug((int)EventIds.SentUpstreamWaitingAck, $"Sent message upstream, waiting for confirmation. Message id: {guid}");
-        public static void SentUpstreamTimeout(Guid guid) => Log.LogWarning((int)EventIds.SentUpstreamTimeout, $"Timeout waiting for upstream message confirmation. Message id: {guid}");
-        public static void ReceivedConfirmation(Guid guid) => Log.LogDebug((int)EventIds.ReceivedConfirmation, $"Received confirmation for upstream message. Message id: {guid}");
+        public static void SendingUpstreamMessage(Guid guid) => Log.LogDebug((int)EventIds.SendingUpstreamMessage, "Sending message upstream with id: {guid}", guid);
+        public static void SentUpstreamWaitingAck(Guid guid) => Log.LogDebug((int)EventIds.SentUpstreamWaitingAck, "Sent message upstream, waiting for confirmation. Message id: {guid}", guid);
+        public static void SentUpstreamTimeout(Guid guid) => Log.LogWarning((int)EventIds.SentUpstreamTimeout, "Timeout waiting for upstream message confirmation. Message id: {guid}", guid);
+        public static void ReceivedConfirmation(Guid guid) => Log.LogDebug((int)EventIds.ReceivedConfirmation, "Received confirmation for upstream message. Message id: {guid}", guid);
 
-        public static void AddingDirectMethodCallSubscription(string id) => Log.LogDebug((int)EventIds.AddingDirectMethodCallSubscription, $"Adding direct method call subscriptions for client: {id}");
+        public static void AddingDirectMethodCallSubscription(string id) => Log.LogDebug((int)EventIds.AddingDirectMethodCallSubscription, "Adding direct method call subscriptions for client: {id}", id);
         public static void AddingDesiredPropertyUpdateSubscription(string id) => Log.LogDebug((int)EventIds.AddingDesiredPropertyUpdateSubscription, $"Adding desired property update subscriptions for client: {id}");
         public static void RemovingDirectMethodCallSubscription(string id) => Log.LogDebug((int)EventIds.RemovingDirectMethodCallSubscription, $"Removing direct method call subscriptions for client: {id}");
         public static void RemovingDesiredPropertyUpdateSubscription(string id) => Log.LogDebug((int)EventIds.RemovingDesiredPropertyUpdateSubscription, $"Removing desired property update subscriptions for client: {id}");
         public static void RemovingTwinResultSubscription(string id) => Log.LogDebug((int)EventIds.RemovingTwinResultSubscription, $"Removing twin result subscriptions for client: {id}");
 
-        public static void ErrorHandlingDownstreamMessage(string topic, Exception e) => Log.LogError((int)EventIds.ErrorHandlingDownstreamMessage, e, $"Error handling downstream message on topic: {topic}");
-        public static void CannotParseGuid(string guid) => Log.LogError((int)EventIds.CannotParseGuid, $"Cannot parse guid: {guid}");
-        public static void CannotFindGuid(string guid) => Log.LogError((int)EventIds.CannotFindGuid, $"Cannot find guid to ACK: {guid}");
+        public static void ErrorHandlingDownstreamMessage(string topic, Exception e) => Log.LogError((int)EventIds.ErrorHandlingDownstreamMessage, e, "Error handling downstream message on topic: {topic}", topic);
+        public static void CannotParseGuid(string guid) => Log.LogError((int)EventIds.CannotParseGuid, "Cannot parse guid: {guid}", guid);
+        public static void CannotFindGuid(string guid) => Log.LogError((int)EventIds.CannotFindGuid, "Cannot find guid to ACK: {guid}", guid);
         public static void ErrorParsingConnectivityEvent(Exception ex) => Log.LogError((int)EventIds.ErrorParsingConnectivityEvent, ex, "Error parsing connectivity event");
         public static void ErrorDispatchingConnectivityEvent(Exception ex) => Log.LogError((int)EventIds.ErrorDispatchingConnectivityEvent, ex, "Error dispatching connectivity event");
     }

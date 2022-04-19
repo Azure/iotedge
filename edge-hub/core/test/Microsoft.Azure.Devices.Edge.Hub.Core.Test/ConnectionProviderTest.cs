@@ -61,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         {
             var connectionManager = Mock.Of<IConnectionManager>();
             var edgeHub = Mock.Of<IEdgeHub>();
-            var clientCertificate = new X509Certificate2();
+            var clientCertificate = Util.Test.Common.CertificateHelper.GenerateSelfSignedCert("client cert", false);
             var clientCertChain = new List<X509Certificate2>();
             var moduleCredentials = new X509CertCredentials(new ModuleIdentity("hub", "device", "module"), string.Empty, Option.None<string>(), Option.None<string>(), clientCertificate, clientCertChain);
 

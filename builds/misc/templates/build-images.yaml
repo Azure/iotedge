@@ -47,7 +47,7 @@ stages:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker  
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
     dependsOn: CheckBuildImages
     jobs:
     - job: BuildDotnetComponents
@@ -137,7 +137,7 @@ stages:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker  
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
     dependsOn: [BuildExecutables, BuildRocksDB]
     jobs:
     - job: ConsolidateAndPublishArtifacts
@@ -323,11 +323,11 @@ stages:
     - job: BuildImageFunctionsSample
       steps:
       - template: image-linux.yaml
-        parameters:      
+        parameters:
           name: Functions Sample
           imageName: azureiotedge-functions-filter
           project: EdgeHubTriggerCSharp
-          bin_dir: '$(Build.BinariesDirectory)'      
+          bin_dir: '$(Build.BinariesDirectory)'
 
     - job: BuildImageDirectMethodSender
       steps:
@@ -421,13 +421,13 @@ stages:
           buildx_flag: 'true'
           use_rocksdb: true  
 
-    - job: BuildImageMetricsCollector
+    - job: BuildImageTestMetricsCollector
       steps:
       - template: image-linux.yaml
         parameters:           
-          name: Metrics Collector
-          imageName: azureiotedge-metrics-collector
-          project: MetricsCollector
+          name: Test Metrics Collector
+          imageName: azureiotedge-test-metrics-collector
+          project: TestMetricsCollector
           bin_dir: '$(Build.BinariesDirectory)'   
           buildx_flag: 'true'
 

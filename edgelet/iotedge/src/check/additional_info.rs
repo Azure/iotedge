@@ -7,7 +7,7 @@ use byte_unit::{Byte, ByteUnit};
 use sysinfo::{DiskExt, SystemExt};
 
 /// Additional info for the JSON output of `iotedge check`
-#[derive(Clone, Debug, serde_derive::Serialize)]
+#[derive(Clone, Debug, serde::Serialize)]
 pub(super) struct AdditionalInfo {
     pub(super) docker_version: Option<String>,
     pub(super) aziot_edged_version: Option<String>,
@@ -42,7 +42,7 @@ impl AdditionalInfo {
 /// ```
 ///
 /// Ref: <https://www.freedesktop.org/software/systemd/man/os-release.html>
-#[derive(Clone, Debug, serde_derive::Serialize)]
+#[derive(Clone, Debug, serde::Serialize)]
 pub(super) struct OsInfo {
     id: Option<String>,
     version_id: Option<String>,
@@ -115,7 +115,7 @@ fn parse_os_release_line(line: &str) -> Option<(&str, &str)> {
 
     Some((key, value))
 }
-#[derive(Clone, Debug, Default, serde_derive::Serialize)]
+#[derive(Clone, Debug, Default, serde::Serialize)]
 struct SystemInfo {
     used_ram: String,
     total_ram: String,
@@ -132,12 +132,12 @@ impl SystemInfo {
             let mut system = sysinfo::System::new();
             system.refresh_all();
             SystemInfo {
-                total_ram: pretty_kbyte(system.get_total_memory()),
-                used_ram: pretty_kbyte(system.get_used_memory()),
-                total_swap: pretty_kbyte(system.get_total_swap()),
-                used_swap: pretty_kbyte(system.get_used_swap()),
+                total_ram: pretty_kbyte(system.total_memory()),
+                used_ram: pretty_kbyte(system.used_memory()),
+                total_swap: pretty_kbyte(system.total_swap()),
+                used_swap: pretty_kbyte(system.used_swap()),
 
-                disks: system.get_disks().iter().map(DiskInfo::new).collect(),
+                disks: system.disks().iter().map(DiskInfo::new).collect(),
             }
         }
 
@@ -146,7 +146,7 @@ impl SystemInfo {
     }
 }
 
-#[derive(Clone, Debug, Default, serde_derive::Serialize)]
+#[derive(Clone, Debug, Default, serde::Serialize)]
 struct DiskInfo {
     name: String,
     percent_free: String,
@@ -162,8 +162,8 @@ impl DiskInfo {
     where
         T: DiskExt,
     {
-        let available_space = disk.get_available_space();
-        let total_space = disk.get_total_space();
+        let available_space = disk.available_space();
+        let total_space = disk.total_space();
         #[allow(clippy::cast_precision_loss)]
         let percent_free = format!(
             "{:.1}%",
@@ -171,7 +171,7 @@ impl DiskInfo {
         );
 
         DiskInfo {
-            name: disk.get_name().to_string_lossy().into_owned(),
+            name: disk.name().to_string_lossy().into_owned(),
             percent_free,
             available_space: Byte::from_bytes(u128::from(available_space))
                 .get_appropriate_unit(true)
@@ -179,8 +179,8 @@ impl DiskInfo {
             total_space: Byte::from_bytes(u128::from(total_space))
                 .get_appropriate_unit(true)
                 .format(2),
-            file_system: String::from_utf8_lossy(disk.get_file_system()).into_owned(),
-            file_type: format!("{:?}", disk.get_type()),
+            file_system: String::from_utf8_lossy(disk.file_system()).into_owned(),
+            file_type: format!("{:?}", disk.type_()),
         }
     }
 }

@@ -2,12 +2,12 @@
 
 use std::io::stdout;
 
-use failure::ResultExt;
+use anyhow::Context;
 
 use edgelet_core::{LogOptions, ModuleRuntime};
 use support_bundle::write_logs;
 
-use crate::error::{Error, ErrorKind};
+use crate::error::Error;
 
 pub struct Logs<M> {
     id: String,
@@ -29,11 +29,11 @@ impl<M> Logs<M>
 where
     M: ModuleRuntime,
 {
-    pub async fn execute(self) -> Result<(), Error> {
+    pub async fn execute(self) -> anyhow::Result<()> {
         let id = self.id.clone();
         write_logs(&self.runtime, &id, &self.options, &mut stdout())
             .await
-            .context(ErrorKind::ModuleRuntime)?;
+            .context(Error::ModuleRuntime)?;
 
         Ok(())
     }
