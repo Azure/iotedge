@@ -48,6 +48,7 @@ aziot-keyd-config = { git = "https://github.com/Azure/iot-identity-service", bra
 aziot-keys-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 aziot-tpmd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 aziotctl-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+cert-renewal = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 config-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 docker = { path = "../docker-rs" }
 edgelet-core = { path = "../edgelet-core" }

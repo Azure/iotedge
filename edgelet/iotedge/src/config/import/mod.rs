@@ -350,6 +350,7 @@ fn execute_inner(
                 (
                     Some(super_config::EdgeCa::Quickstart {
                         auto_generated_edge_ca_expiry_days: auto_generated_ca_lifetime_days.into(),
+                        auto_renew: None,
                     }),
                     None,
                 )

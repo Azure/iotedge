@@ -55,6 +55,11 @@ password = "password"
 bootstrap_identity_cert = "file:///var/secrets/est-bootstrap-id.pem"
 bootstrap_identity_pk = "file:///var/secrets/est-bootstrap-id.key.pem"
 
+[edge_ca.auto_renew]
+rotate_key = true
+threshold = "90%"
+retry = "1%"
+
 [moby_runtime]
 uri = "unix:///var/run/docker.sock"
 network = "azure-iot-edge"
