@@ -1,6 +1,8 @@
 mod aziot_edged_version;
 mod check_agent_image;
+mod check_compatibility;
 mod check_fs_calls;
+mod check_sockets;
 mod check_users;
 mod connect_management_uri;
 mod container_connect_upstream;
@@ -18,7 +20,9 @@ mod well_formed_config;
 
 pub(crate) use self::aziot_edged_version::AziotEdgedVersion;
 pub(crate) use self::check_agent_image::CheckAgentImage;
+pub(crate) use self::check_compatibility::CheckCompatibility;
 pub(crate) use self::check_fs_calls::CheckFsCalls;
+pub(crate) use self::check_sockets::CheckSockets;
 pub(crate) use self::check_users::CheckUsers;
 pub(crate) use self::connect_management_uri::ConnectManagementUri;
 pub(crate) use self::container_connect_upstream::get_host_container_upstream_tests;
@@ -36,14 +40,12 @@ pub(crate) use self::well_formed_config::WellFormedConfig;
 
 use std::ffi::OsStr;
 
-use failure::{self, Context, Fail};
-
 use super::Checker;
 
 pub(crate) async fn docker<I>(
     docker_host_arg: &str,
     args: I,
-) -> Result<Vec<u8>, (Option<String>, failure::Error)>
+) -> Result<Vec<u8>, (Option<String>, anyhow::Error)>
 where
     I: IntoIterator,
     <I as IntoIterator>::Item: AsRef<OsStr>,
@@ -57,17 +59,13 @@ where
     let output = process.output().await.map_err(|err| {
         (
             None,
-            err.context(format!("could not run {:?}", process)).into(),
+            anyhow::Error::from(err).context(format!("could not run {:?}", process)),
         )
     })?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&*output.stderr).into_owned();
-        let err = Context::new(format!(
-            "docker returned {}, stderr = {}",
-            output.status, stderr,
-        ))
-        .into();
+        let err = anyhow::anyhow!("docker returned {}, stderr = {}", output.status, stderr,);
         return Err((Some(stderr), err));
     }
 
@@ -80,10 +78,13 @@ pub(crate) fn built_in_checks() -> [(&'static str, Vec<Box<dyn Checker>>); 3] {
     [
         (
             "Installation Checks",
-             vec![
-                 Box::new(CheckUsers::default()),
-                 Box::new(CheckFsCalls::default())
-                 ]),
+            vec![
+                Box::new(CheckUsers::default()),
+                Box::new(CheckSockets::default()),
+                Box::new(CheckFsCalls::default())
+                Box::new(CheckCompatibility::default()),
+            ],
+        ),
         (
             "Configuration checks",
             vec![

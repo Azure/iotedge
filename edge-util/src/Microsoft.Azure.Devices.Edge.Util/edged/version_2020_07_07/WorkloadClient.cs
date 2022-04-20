@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2020_10_10
+namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2020_07_07
 {
     using System;
     using System.Net.Http;
     using System.Runtime.ExceptionServices;
     using System.Text;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Util.Edged.Version_2020_10_10.GeneratedCode;
+    using Microsoft.Azure.Devices.Edge.Util.Edged.Version_2020_07_07.GeneratedCode;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
 
     class WorkloadClient : WorkloadClientVersioned

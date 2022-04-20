@@ -22,7 +22,7 @@ SRC_E2E_TEST_FILES_DIR=$ROOT_FOLDER/e2e_test_files
 SRC_CERT_TOOLS_DIR=$ROOT_FOLDER/tools/CACertificates
 FUNCTIONS_SAMPLE_DIR=$ROOT_FOLDER/edge-modules/functions/samples
 VERSIONINFO_FILE_PATH=$BUILD_REPOSITORY_LOCALPATH/versionInfo.json
-DOTNET_RUNTIME=netcoreapp3.1
+DOTNET_RUNTIME=net6.0
 
 usage()
 {
@@ -31,7 +31,7 @@ usage()
     echo "options"
     echo " -c, --config         Product binary configuration: Debug [default] or Release"
     echo " --no-rocksdb-bin     Do not copy the RocksDB binaries into the project's output folders"
-    echo " --dotnet_runtime     Set the dotnet_runtime version to build. (Default netcoreapp3.1)"
+    echo " --dotnet_runtime     Set the dotnet_runtime version to build. (Default net6.0)"
     exit 1;
 }
 
@@ -136,7 +136,9 @@ publish_project()
     fi
 
     echo "Publishing $type '$name'"
+    echo "$DOTNET_ROOT_PATH/dotnet publish -f $framework -p:DotNet_Runtime=$DOTNET_RUNTIME -c $config $option -o $output $path"
     $DOTNET_ROOT_PATH/dotnet publish -f $framework -p:DotNet_Runtime=$DOTNET_RUNTIME -c $config $option -o $output $path
+
     if [ $? -gt 0 ]; then
         RES=1
     fi
@@ -145,8 +147,15 @@ publish_project()
 publish_app()
 {
     local name="$1"
+    local dotnet_runtime="$2"
+
+    if [ -z "$dotnet_runtime" ]
+    then
+        dotnet_runtime=$DOTNET_RUNTIME
+    fi
+
     publish_project app \
-        "$name" $DOTNET_RUNTIME $CONFIGURATION "$PUBLISH_FOLDER/$name" $MSBUILD_OPTIONS
+        "$name" $dotnet_runtime $CONFIGURATION "$PUBLISH_FOLDER/$name" $MSBUILD_OPTIONS
 }
 
 publish_lib()
@@ -236,7 +245,7 @@ publish_app "DirectMethodReceiver"
 publish_app "ModuleRestarter"
 publish_app "TwinTester"
 publish_app "Relayer"
-publish_app "MetricsCollector"
+publish_app "TestMetricsCollector"
 publish_app "TestResultCoordinator"
 publish_app "NetworkController"
 publish_app "DeploymentTester"
@@ -245,8 +254,10 @@ publish_app "MetricsValidator"
 publish_app "NumberLogger"
 publish_app "CloudToDeviceMessageTester"
 publish_app "IotedgeDiagnosticsDotnet"
-publish_app "EdgeHubTriggerCSharp"
 
+# Azure Functions Sample needs to be built on dotnet 3.1. Azure Functions Dotnet
+# base image needs to support dotnet 6.
+publish_app "EdgeHubTriggerCSharp" "netcoreapp3.1"
 publish_lib "Microsoft.Azure.WebJobs.Extensions.EdgeHub"
 
 publish_files $SRC_SCRIPTS_DIR $PUBLISH_FOLDER

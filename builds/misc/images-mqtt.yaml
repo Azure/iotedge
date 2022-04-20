@@ -78,7 +78,7 @@ jobs:
         displayName: Build MQTT Broker - arm32
         inputs:
           filePath: scripts/linux/cross-platform-rust-build.sh
-          arguments: --os ubuntu18.04 --arch arm32v7 --build-path mqtt/mqttd --cargo-flags '--no-default-features --features="generic"'
+          arguments: --os ubuntu20.04 --arch arm32v7 --build-path mqtt/mqttd --cargo-flags '--no-default-features --features="generic"'
 
       - script: scripts/linux/consolidate-build-artifacts.sh --artifact-name 'mqttd'
         displayName: Consolidate MQTT Broker artifacts

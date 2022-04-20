@@ -6,21 +6,22 @@ The iotedge tool is used to manage the IoT Edge runtime.
 edition = "2021"
 name = "iotedge"
 version = "0.1.0"
+
 [dependencies]
+anyhow = "1"
 async-trait = "0.1"
 anyhow="1.0"
 atty = "0.2"
-base64 = "0.9"
+base64 = "0.13"
 byte-unit = "3.0.3"
-bytes = "0.4"
-chrono = {version = "0.4.7", features = ["serde"]}
+bytes = "1"
+chrono = { version = "0.4.7", features = ["serde"] }
 chrono-humanize = "0.0.11"
 clap = "2.31"
-config = {version = "0.11", default-features = false}
+config = { version = "0.11", default-features = false }
 erased-serde = "0.3.12"
-failure = "0.1"
-futures = "0.1"
-hex = "0.3"
+futures = "0.3"
+hex = "0.4"
 hyper = "0.14"
 lazy_static = "1"
 libc = "0.2"
@@ -28,36 +29,35 @@ log = "0.4"
 nix = "0.23"
 openssl = "0.10"
 regex = "1"
-serde = "1.0"
-serde_derive = "1.0"
-serde_json = "1.0"
-sysinfo = "0.14.10"
-tabwriter = "1.0"
-termcolor = "0.3"
-tokio = {version = "1", features = ["process", "macros"]}
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1"
+sysinfo = "0.23"
+tabwriter = "1"
+termcolor = "1"
+thiserror = "1"
+tokio = { version = "1", features = ["macros", "process"] }
 toml = "0.5"
-typed-headers = "0.1.1"
 url = "2"
 zip = "0.5.3"
 
-aziot-certd-config = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
-aziot-identity-client-async = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
-aziot-identity-common = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
-aziot-identity-common-http = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
-aziot-identityd-config = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
-aziot-keyd-config = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
-aziot-keys-common = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
-aziot-tpmd-config = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
-aziotctl-common = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
-config-common = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
-docker = {path = "../docker-rs"}
-edgelet-core = {path = "../edgelet-core"}
-edgelet-http = {path = "../edgelet-http"}
-edgelet-settings = {path = "../edgelet-settings", features = ["settings-docker"]}
-edgelet-utils = {path = "../edgelet-utils"}
-http-common = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
-support-bundle = {path = "../support-bundle"}
+aziot-certd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-identity-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-identityd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-keyd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-keys-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-tpmd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziotctl-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+config-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+docker = { path = "../docker-rs" }
+edgelet-core = { path = "../edgelet-core" }
+edgelet-http = { path = "../edgelet-http" }
+edgelet-settings = { path = "../edgelet-settings", features = ["settings-docker"] }
+edgelet-utils = { path = "../edgelet-utils" }
+http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+support-bundle = { path = "../support-bundle" }
 
 [dev-dependencies]
-edgelet-test-utils = {path = "../edgelet-test-utils"}
+edgelet-test-utils = { path = "../edgelet-test-utils" }
 tempfile = "3.1.0"

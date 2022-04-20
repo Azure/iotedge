@@ -4,12 +4,12 @@ use std::collections::HashMap;
 use std::fmt;
 use std::path::Path;
 
-use failure::Fail;
+use anyhow::Context;
 use git2::Repository;
 use hex::encode;
 use log::debug;
 
-use crate::error::{Error, ErrorKind};
+use crate::error::Error;
 
 type RemoteUrl = String;
 type CommitId = String;
@@ -45,13 +45,14 @@ impl GitModule {
     }
 }
 
+#[allow(clippy::module_name_repetitions)]
 pub struct Git2Tree {
     root: GitModule,
     children: Vec<Git2Tree>,
 }
 
-fn sanitize_url(url: String) -> String {
-    url.trim_end_matches(".git").replace("www.", "").to_string()
+fn sanitize_url(url: &str) -> String {
+    url.trim_end_matches(".git").replace("www.", "")
 }
 
 impl Git2Tree {
@@ -66,42 +67,39 @@ impl Git2Tree {
             write!(f, "  ")?;
         }
         write!(f, "|- ")?;
-        write!(f, "{}\n", self.root)?;
-        for child in self.children.iter() {
+        writeln!(f, "{}", self.root)?;
+        for child in &self.children {
             child.format(level + 1, f)?;
         }
         Ok(())
     }
 
-    fn new_as_subtree(path: &Path, mut remotes: &mut RemoteMap) -> Result<Self, Error> {
+    fn new_as_subtree(path: &Path, remotes: &mut RemoteMap) -> anyhow::Result<Self> {
         debug!("repo path {:?}", path);
-        let repo =
-            Repository::open(path).map_err(|err| Error::from(err.context(ErrorKind::Git)))?;
+        let repo = Repository::open(path).context(Error::Git)?;
         let remote = sanitize_url(
             repo.find_remote("origin")
-                .map_err(|err| Error::from(err.context(ErrorKind::Git)))?
+                .context(Error::Git)?
                 .url()
-                .unwrap()
-                .to_string(),
+                .unwrap(),
         );
         debug!("remote = {:?}", remote);
         let commit = encode(
             repo.head()
-                .map_err(|err| Error::from(err.context(ErrorKind::Git)))?
+                .context(Error::Git)?
                 .peel_to_commit()
-                .map_err(|err| Error::from(err.context(ErrorKind::Git)))?
+                .context(Error::Git)?
                 .id(),
         );
         debug!("commit = {:?}", commit);
         let flag = remotes.get(&remote).map_or(false, |c| &commit != c);
-        remotes.entry(remote.clone()).or_insert(commit.clone());
+        remotes
+            .entry(remote.clone())
+            .or_insert_with(|| commit.clone());
 
         let mut children: Vec<Git2Tree> = Vec::new();
-        for sm in repo
-            .submodules()
-            .map_err(|err| Error::from(err.context(ErrorKind::Git)))?
-        {
-            let child = Git2Tree::new_as_subtree(path.join(sm.path()).as_path(), &mut remotes)?;
+        for sm in repo.submodules().context(Error::Git)? {
+            let child = Git2Tree::new_as_subtree(path.join(sm.path()).as_path(), remotes)?;
             children.push(child);
         }
         Ok(Git2Tree {
@@ -110,7 +108,7 @@ impl Git2Tree {
         })
     }
 
-    pub fn new(path: &Path) -> Result<Self, Error> {
+    pub fn new(path: &Path) -> anyhow::Result<Self> {
         let mut remotes: RemoteMap = HashMap::new();
         Git2Tree::new_as_subtree(path, &mut remotes)
     }
@@ -121,7 +119,7 @@ impl Git2Tree {
             + self
                 .children
                 .iter()
-                .fold(0, |acc, ref x| acc + x.count_flagged())
+                .fold(0, |acc, x| acc + x.count_flagged())
     }
 }
 

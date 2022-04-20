@@ -68,9 +68,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
         }
 
+        // NOTE: temporarily marked as fully flaky.
         [Test]
-        [Category("FlakyOnArm")]
-        [Category("FlakyOnRelease")]
+        [Category("Flaky")]
+        // [Category("FlakyOnArm")]
+        // [Category("FlakyOnRelease")]
         public async Task TestIfSignedDeploymentIsSuccessful()
         {
             // Edge Daemon is configured with a good root CA and manifest is signed.
