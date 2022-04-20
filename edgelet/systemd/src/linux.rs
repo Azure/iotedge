@@ -9,14 +9,14 @@ use std::collections::{hash_map, HashMap};
 use std::env;
 use std::net::SocketAddr;
 
-use failure::ResultExt;
+use anyhow::Context;
 use log::debug;
 use nix::fcntl;
 use nix::sys::socket::{self, AddressFamily, SockType};
 use nix::sys::stat;
 use nix::unistd::Pid;
 
-use crate::error::{Error, ErrorKind, SocketLookupType};
+use crate::error::{Error, SocketLookupType};
 use crate::{Fd, Socket};
 
 pub const LISTEN_FDS_START: Fd = 3;
@@ -28,7 +28,7 @@ const ENV_NAMES: &str = "LISTEN_FDNAMES";
 /// Returns the first listener for a file descriptor number.
 ///
 /// Note that this value is biased by `LISTEN_FDS_START`. For example, an input of 0 corresponds to fd 3.
-pub fn listener(num: usize) -> Result<Socket, Error> {
+pub fn listener(num: usize) -> anyhow::Result<Socket> {
     debug!("Finding socket for number: {}", num);
     let sockets = listen_fds(false, LISTEN_FDS_START)?;
     #[allow(
@@ -37,33 +37,33 @@ pub fn listener(num: usize) -> Result<Socket, Error> {
         clippy::cast_sign_loss
     )]
     let socket = *sockets.get(num).ok_or_else(|| {
-        Error::from(ErrorKind::SocketNotFound(SocketLookupType::Fd(
+        Error::SocketNotFound(SocketLookupType::Fd(
             (num + (LISTEN_FDS_START as usize)) as Fd,
-        )))
+        ))
     })?;
     Ok(socket)
 }
 
 /// Returns the first listener for a file descriptor name.
-pub fn listener_name(name: &str) -> Result<Socket, Error> {
+pub fn listener_name(name: &str) -> anyhow::Result<Socket> {
     debug!("Finding socket for name: {}", name);
     let sockets = listeners_name(name)?;
     let socket = sockets.into_iter().next().ok_or_else(|| {
-        Error::from(ErrorKind::SocketNotFound(SocketLookupType::Name(
+        Error::SocketNotFound(SocketLookupType::Name(
             name.to_string(),
-        )))
+        ))
     })?;
     Ok(socket)
 }
 
 /// Returns all of the listeners for a file descriptor name.
-pub fn listeners_name(name: &str) -> Result<Vec<Socket>, Error> {
+pub fn listeners_name(name: &str) -> anyhow::Result<Vec<Socket>> {
     debug!("Finding sockets for name: {}", name);
     let sockets = listen_fds_with_names(false, LISTEN_FDS_START)?;
     let sockets = sockets.get(name).ok_or_else(|| {
-        Error::from(ErrorKind::SocketNotFound(SocketLookupType::Name(
+        Error::SocketNotFound(SocketLookupType::Name(
             name.to_string(),
-        )))
+        ))
     })?;
     Ok(sockets.clone())
 }
@@ -74,36 +74,36 @@ fn unsetenv_all() {
     env::remove_var(ENV_NAMES);
 }
 
-fn get_env(key: &str) -> Result<String, Error> {
-    Ok(env::var(key).with_context(|_| ErrorKind::InvalidVar(key.to_string()))?)
+fn get_env(key: &str) -> anyhow::Result<String> {
+    Ok(env::var(key).with_context(|| Error::InvalidVar(key.to_string()))?)
 }
 
-fn listen_fds(unset_environment: bool, start_fd: Fd) -> Result<Vec<Socket>, Error> {
+fn listen_fds(unset_environment: bool, start_fd: Fd) -> anyhow::Result<Vec<Socket>> {
     let pid_str = get_env(ENV_PID)?;
     debug!("{} {}", ENV_PID, pid_str);
     let pid = Pid::from_raw(
         pid_str
             .parse::<i32>()
-            .context(ErrorKind::ParsePid(ENV_PID.to_string()))?,
+            .with_context(|| Error::ParsePid(ENV_PID.to_string()))?,
     );
 
     if pid != Pid::this() {
-        return Err(ErrorKind::WrongProcess(ENV_PID.to_string(), pid).into());
+        return Err(Error::WrongProcess(ENV_PID.to_string(), pid).into());
     }
 
     let fds_str = get_env(ENV_FDS)?;
     debug!("{} {}", ENV_FDS, fds_str);
     let num_fds = fds_str
         .parse::<Fd>()
-        .with_context(|_| ErrorKind::InvalidVar(ENV_FDS.to_string()))?;
+        .with_context(|| Error::InvalidVar(ENV_FDS.to_string()))?;
     if num_fds < 0 {
-        return Err(ErrorKind::InvalidNumFds(ENV_FDS.to_string(), num_fds).into());
+        return Err(Error::InvalidNumFds(ENV_FDS.to_string(), num_fds).into());
     }
 
     // Set CLOEXEC on each FD so that they aren't inherited by child processes
     for fd in start_fd..(start_fd + num_fds) {
         fcntl::fcntl(fd, fcntl::FcntlArg::F_SETFD(fcntl::FdFlag::FD_CLOEXEC))
-            .context(ErrorKind::Syscall("fcntl"))?;
+            .context(Error::Syscall("fcntl"))?;
     }
 
     if unset_environment {
@@ -128,17 +128,17 @@ fn listen_fds(unset_environment: bool, start_fd: Fd) -> Result<Vec<Socket>, Erro
 fn listen_fds_with_names(
     unset_environment: bool,
     start_fd: Fd,
-) -> Result<HashMap<String, Vec<Socket>>, Error> {
+) -> anyhow::Result<HashMap<String, Vec<Socket>>> {
     let names_str = get_env(ENV_NAMES)?;
     debug!("{} {}", ENV_NAMES, names_str);
     let names: Vec<&str> = names_str.split(':').collect();
 
     let fds = listen_fds(unset_environment, start_fd)?;
     if fds.len() != names.len() {
-        return Err(Error::from(ErrorKind::NumFdsDoesNotMatchNumFdNames(
+        return Err(Error::NumFdsDoesNotMatchNumFdNames(
             fds.len(),
             names.len(),
-        )));
+        ).into());
     }
 
     let mut map: HashMap<String, Vec<Socket>> = HashMap::new();
@@ -157,12 +157,12 @@ fn is_socket_internal(
     fd: Fd,
     socktype: Option<SockType>,
     listening: Option<bool>,
-) -> Result<bool, Error> {
+) -> anyhow::Result<bool> {
     if fd < 0 {
-        return Err(Error::from(ErrorKind::InvalidFd(fd)));
+        return Err(Error::InvalidFd(fd).into());
     }
 
-    let fs = stat::fstat(fd).context(ErrorKind::Syscall("fstat"))?;
+    let fs = stat::fstat(fd).context(Error::Syscall("fstat"))?;
     let mode = stat::SFlag::from_bits_truncate(fs.st_mode);
     if !mode.contains(stat::SFlag::S_IFSOCK) {
         return Ok(false);
@@ -170,7 +170,7 @@ fn is_socket_internal(
 
     if let Some(val) = socktype {
         let type_ = socket::getsockopt(fd, socket::sockopt::SockType)
-            .context(ErrorKind::Syscall("getsockopt"))?;
+            .context(Error::Syscall("getsockopt"))?;
         if type_ != val {
             return Ok(false);
         }
@@ -178,7 +178,7 @@ fn is_socket_internal(
 
     if let Some(val) = listening {
         let acc = socket::getsockopt(fd, socket::sockopt::AcceptConn)
-            .context(ErrorKind::Syscall("getsockopt"))?;
+            .context(Error::Syscall("getsockopt"))?;
         if acc != val {
             return Ok(false);
         }
@@ -192,12 +192,12 @@ fn is_socket_inet(
     socktype: Option<SockType>,
     listening: Option<bool>,
     port: Option<u16>,
-) -> Result<Option<SocketAddr>, Error> {
+) -> anyhow::Result<Option<SocketAddr>> {
     if !is_socket_internal(fd, socktype, listening)? {
         return Ok(None);
     }
 
-    let sock_addr = socket::getsockname(fd).context(ErrorKind::Syscall("getsockname"))?;
+    let sock_addr = socket::getsockname(fd).context(Error::Syscall("getsockname"))?;
     let sock_family = sock_addr.family();
     if sock_family != AddressFamily::Inet && sock_family != AddressFamily::Inet6 {
         return Ok(None);
@@ -227,12 +227,12 @@ fn is_socket_unix(
     fd: Fd,
     socktype: Option<SockType>,
     listening: Option<bool>,
-) -> Result<bool, Error> {
+) -> anyhow::Result<bool> {
     if !is_socket_internal(fd, socktype, listening)? {
         return Ok(false);
     }
 
-    let sock_addr = socket::getsockname(fd).context(ErrorKind::Syscall("getsockname"))?;
+    let sock_addr = socket::getsockname(fd).context(Error::Syscall("getsockname"))?;
     let sock_family = sock_addr.family();
     if sock_family != AddressFamily::Unix {
         return Ok(false);

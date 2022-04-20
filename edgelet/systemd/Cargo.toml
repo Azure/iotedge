@@ -5,9 +5,10 @@ authors = ["Azure IoT Edge Devs"]
 edition = "2018"
 
 [dependencies]
-failure = "0.1"
+anyhow = "1"
 log = "0.4"
 nix = "0.23"
+thiserror = "1"
 
 [dev-dependencies]
 lazy_static = "1.0"

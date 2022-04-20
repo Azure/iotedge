@@ -3,99 +3,49 @@
 use std::fmt;
 use std::fmt::Display;
 
-use failure::{Backtrace, Context, Fail};
 #[cfg(target_os = "linux")]
 use nix::unistd::Pid;
 
 use crate::Fd;
 
-#[derive(Debug)]
-pub struct Error {
-    inner: Context<ErrorKind>,
-}
-
-#[derive(Debug, Fail)]
-pub enum ErrorKind {
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
     #[cfg(target_os = "linux")]
-    #[fail(display = "{} syscall for socket failed.", _0)]
+    #[error("{0} syscall for socket failed.")]
     Syscall(&'static str),
 
-    #[fail(display = "File descriptor not found.")]
+    #[error("File descriptor not found.")]
     FdNotFound,
 
-    #[fail(
-        display = "The number of file descriptors {} does not match the number of file descriptor names {}.",
-        _0, _1
+    #[error(
+        "The number of file descriptors {0} does not match the number of file descriptor names {1}.",
     )]
     NumFdsDoesNotMatchNumFdNames(usize, usize),
 
-    #[fail(display = "File descriptor {} is invalid.", _0)]
+    #[error("File descriptor {0} is invalid.")]
     InvalidFd(Fd),
 
-    #[fail(
-        display = "Number of file descriptors {} from environment variable {} is not a valid value.",
-        _1, _0
+    #[error(
+        "Number of file descriptors {1} from environment variable {0} is not a valid value.",
     )]
     InvalidNumFds(String, Fd),
 
-    #[fail(display = "Environment variable {} is set to an invalid value.", _0)]
+    #[error("Environment variable {0} is set to an invalid value.")]
     InvalidVar(String),
 
-    #[fail(
-        display = "Could not parse process ID from environment variable {}.",
-        _0
+    #[error(
+        "Could not parse process ID from environment variable {0}.",
     )]
     ParsePid(String),
 
-    #[fail(display = "Socket corresponding to {} not found.", _0)]
+    #[error("Socket corresponding to {0} not found.")]
     SocketNotFound(SocketLookupType),
 
     #[cfg(target_os = "linux")]
-    #[fail(
-        display = "Based on the environment variable {}, other environment variables meant for a different process (PID {}).",
-        _0, _1
+    #[error(
+        "Based on the environment variable {0}, other environment variables meant for a different process (PID {1}).",
     )]
     WrongProcess(String, Pid),
-}
-
-impl Fail for Error {
-    fn cause(&self) -> Option<&dyn Fail> {
-        self.inner.cause()
-    }
-
-    fn backtrace(&self) -> Option<&Backtrace> {
-        self.inner.backtrace()
-    }
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.inner, f)
-    }
-}
-
-impl Error {
-    pub fn new(inner: Context<ErrorKind>) -> Self {
-        Error { inner }
-    }
-
-    pub fn kind(&self) -> &ErrorKind {
-        self.inner.get_context()
-    }
-}
-
-impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Self {
-        Error {
-            inner: Context::new(kind),
-        }
-    }
-}
-
-impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Self {
-        Error { inner }
-    }
 }
 
 #[derive(Debug)]

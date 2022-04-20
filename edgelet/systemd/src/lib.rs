@@ -16,7 +16,7 @@ mod error;
 #[cfg(target_os = "linux")]
 mod linux;
 
-pub use self::error::{Error, ErrorKind, SocketLookupType};
+pub use self::error::{Error, SocketLookupType};
 
 pub type Fd = i32;
 
