@@ -262,8 +262,6 @@ mod tests {
     use typed_headers::{mime, ContentType};
     use url::form_urlencoded::parse as parse_query;
 
-    use crate::error::ErrorKind;
-
     struct StaticTokenSource {
         token: String,
     }
@@ -303,7 +301,7 @@ mod tests {
         match client {
             Ok(_) => panic!("Expected error but got a result."),
             Err(err) => {
-                if let ErrorKind::InvalidApiVersion(s) = err.kind() {
+                if let Error::InvalidApiVersion(s) = err.downcast_ref().unwrap() {
                     assert_eq!(s, &api_version);
                 } else {
                     panic!(
@@ -329,7 +327,7 @@ mod tests {
         match client {
             Ok(_) => panic!("Expected error but got a result."),
             Err(err) => {
-                if let ErrorKind::InvalidApiVersion(s) = err.kind() {
+                if let Error::InvalidApiVersion(s) = err.downcast_ref().unwrap() {
                     assert_eq!(s, &api_version);
                 } else {
                     panic!(

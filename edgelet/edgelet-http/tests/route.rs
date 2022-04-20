@@ -8,14 +8,13 @@ use hyper::service::{NewService, Service};
 use hyper::{Body, Chunk, Request, Response, StatusCode};
 
 use edgelet_http::route::{Builder, Parameters, RegexRoutesBuilder, Router};
-use edgelet_http::Error as HttpError;
 use edgelet_http::Version;
 
 #[allow(clippy::needless_pass_by_value)]
 fn route1(
     _req: Request<Body>,
     params: Parameters,
-) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = anyhow::Error> + Send> {
     let response = params.name("name").map_or_else(
         || {
             Response::builder()
@@ -37,7 +36,7 @@ fn route1(
 fn route2(
     _req: Request<Body>,
     params: Parameters,
-) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = anyhow::Error> + Send> {
     let response = params.name("name").map_or_else(
         || {
             Response::builder()

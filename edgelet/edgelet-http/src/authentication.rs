@@ -30,7 +30,7 @@ impl<H, M> Handler<Parameters> for Authentication<H, M>
 where
     H: Handler<Parameters> + Sync,
     M: Authenticator<Request = Request<Body>> + Send + 'static,
-    <M::AuthenticateFuture as Future>::Error: std::error::Error + Send + Sync + 'static,
+    <M::AuthenticateFuture as Future>::Error: Into<anyhow::Error> + Send + Sync + 'static,
 {
     fn handle(
         &self,
@@ -72,10 +72,9 @@ mod tests {
     use futures::{future, Future, Stream};
     use hyper::{Body, Request, Response, StatusCode};
 
-    use edgelet_core::{AuthId, Authenticator, Error, ErrorKind, Policy};
+    use edgelet_core::{AuthId, Authenticator, Error, Policy};
 
     use crate::authentication::Authentication;
-    use crate::error::Error as HttpError;
     use crate::route::{Handler, Parameters};
 
     #[test]
@@ -174,16 +173,15 @@ mod tests {
     }
 
     impl Authenticator for TestAuthenticator {
-        type Error = Error;
         type Request = Request<Body>;
-        type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = Self::Error> + Send>;
+        type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = anyhow::Error> + Send>;
 
         fn authenticate(&self, _req: &Self::Request) -> Self::AuthenticateFuture {
             let auth = self.auth.clone();
 
             Box::new(match auth {
                 Some(auth_id) => future::ok(auth_id),
-                None => future::err(Error::ModuleRuntime),
+                None => future::err(Error::ModuleRuntime.into()),
             })
         }
     }
@@ -202,7 +200,7 @@ mod tests {
             &self,
             req: Request<Body>,
             _params: Parameters,
-        ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
+        ) -> Box<dyn Future<Item = Response<Body>, Error = anyhow::Error> + Send> {
             let body = req
                 .extensions()
                 .get::<AuthId>()

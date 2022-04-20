@@ -67,7 +67,6 @@ mod tests {
     use hyper::{Body, Request, Response, StatusCode};
 
     use super::{future, AuthId, Authorization, Handler, Parameters, Policy};
-    use crate::error::Error as HttpError;
 
     #[test]
     fn handler_calls_inner_handler() {
@@ -134,7 +133,7 @@ mod tests {
             &self,
             _req: Request<Body>,
             _params: Parameters,
-        ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
+        ) -> Box<dyn Future<Item = Response<Body>, Error = anyhow::Error> + Send> {
             let response = Response::builder()
                 .status(StatusCode::OK)
                 .body("from TestHandler".into())
