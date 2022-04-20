@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use failure::ResultExt;
+use anyhow::Context;
 use futures::future;
 use hyper::client::HttpConnector;
 use hyper::{Body, Client as HyperClient, Error as HyperError, Request, Response, StatusCode, Uri};
@@ -13,7 +13,7 @@ use typed_headers::Credentials;
 use url::Url;
 
 use crate::client::ClientImpl;
-use crate::error::{Error, ErrorKind, InvalidUrlReason};
+use crate::error::{Error, InvalidUrlReason};
 use crate::PemCertificate;
 
 const DNS_WORKER_THREADS: usize = 4;
@@ -47,32 +47,32 @@ impl Config {
         self
     }
 
-    pub fn build(&self) -> Result<Client, Error> {
+    pub fn build(&self) -> anyhow::Result<Client> {
         if self.null {
             Ok(Client::Null)
         } else {
             let mut builder = TlsConnector::builder();
             if let Some(bundle) = &self.trust_bundle {
                 let certs = X509::stack_from_pem(&bundle.cert)
-                    .context(ErrorKind::TrustBundle)
-                    .context(ErrorKind::Initialization)?;
+                    .context(Error::TrustBundle)
+                    .context(Error::Initialization)?;
                 for cert in certs {
                     let der = cert
                         .to_der()
-                        .context(ErrorKind::TrustBundle)
-                        .context(ErrorKind::Initialization)?;
+                        .context(Error::TrustBundle)
+                        .context(Error::Initialization)?;
                     let c = TlsCertificate::from_der(&der)
-                        .context(ErrorKind::TrustBundle)
-                        .context(ErrorKind::Initialization)?;
+                        .context(Error::TrustBundle)
+                        .context(Error::Initialization)?;
                     builder.add_root_certificate(c);
                 }
             }
             if let Some(id) = &self.identity_certificate {
-                let identity = id.get_identity().context(ErrorKind::Initialization)?;
+                let identity = id.get_identity().context(Error::Initialization)?;
                 builder.identity(identity);
             }
 
-            let connector = builder.build().context(ErrorKind::Initialization)?;
+            let connector = builder.build().context(Error::Initialization)?;
             let mut http = HttpConnector::new(DNS_WORKER_THREADS);
             http.enforce_http(false);
             let https_connector = HttpsConnector::from((http, connector));
@@ -84,8 +84,8 @@ impl Config {
                 Some(uri) => {
                     let proxy = uri_to_proxy(uri.clone())?;
                     let conn = ProxyConnector::from_proxy(https_connector, proxy)
-                        .context(ErrorKind::Proxy(uri.clone()))
-                        .context(ErrorKind::Initialization)?;
+                        .with_context(|| Error::Proxy(uri.clone()))
+                        .context(Error::Initialization)?;
                     Ok(Client::Proxy(HyperClient::builder().build(conn)))
                 }
             }
@@ -93,53 +93,53 @@ impl Config {
     }
 }
 
-fn uri_to_proxy(uri: Uri) -> Result<Proxy, Error> {
-    let url = Url::parse(&uri.to_string()).with_context(|_| ErrorKind::Proxy(uri.clone()))?;
+fn uri_to_proxy(uri: Uri) -> anyhow::Result<Proxy> {
+    let url = Url::parse(&uri.to_string()).with_context(|| Error::Proxy(uri.clone()))?;
     let mut proxy = Proxy::new(Intercept::All, uri.clone());
 
     if !url.username().is_empty() {
         let username = percent_decode(url.username().as_bytes())
             .decode_utf8()
-            .with_context(|_| {
-                ErrorKind::InvalidUrlWithReason(
+            .with_context(|| {
+                Error::InvalidUrlWithReason(
                     url.to_string(),
                     InvalidUrlReason::InvalidCredentials,
                 )
             })
-            .with_context(|_| ErrorKind::Proxy(uri.clone()))
-            .context(ErrorKind::Initialization)?;
+            .with_context(|| Error::Proxy(uri.clone()))
+            .context(Error::Initialization)?;
         let credentials = match url.password() {
             Some(password) => {
                 let password = percent_decode(password.as_bytes())
                     .decode_utf8()
-                    .with_context(|_| {
-                        ErrorKind::InvalidUrlWithReason(
+                    .with_context(|| {
+                        Error::InvalidUrlWithReason(
                             url.to_string(),
                             InvalidUrlReason::InvalidCredentials,
                         )
                     })
-                    .with_context(|_| ErrorKind::Proxy(uri.clone()))
-                    .context(ErrorKind::Initialization)?;
+                    .with_context(|| Error::Proxy(uri.clone()))
+                    .context(Error::Initialization)?;
 
                 Credentials::basic(&username, &password)
-                    .with_context(|_| {
-                        ErrorKind::InvalidUrlWithReason(
+                    .with_context(|| {
+                        Error::InvalidUrlWithReason(
                             url.to_string(),
                             InvalidUrlReason::InvalidCredentials,
                         )
                     })
-                    .with_context(|_| ErrorKind::Proxy(uri))
-                    .context(ErrorKind::Initialization)?
+                    .with_context(|| Error::Proxy(uri))
+                    .context(Error::Initialization)?
             }
             None => Credentials::basic(&username, "")
-                .with_context(|_| {
-                    ErrorKind::InvalidUrlWithReason(
+                .with_context(|| {
+                    Error::InvalidUrlWithReason(
                         url.to_string(),
                         InvalidUrlReason::InvalidCredentials,
                     )
                 })
-                .with_context(|_| ErrorKind::Proxy(uri))
-                .context(ErrorKind::Initialization)?,
+                .with_context(|| Error::Proxy(uri))
+                .context(Error::Initialization)?,
         };
         proxy.set_authorization(credentials);
     }

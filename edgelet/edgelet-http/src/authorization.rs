@@ -2,14 +2,14 @@
 
 use std::sync::Arc;
 
-use failure::ResultExt;
+use anyhow::Context;
 use futures::{future, Future};
 use hyper::{Body, Request, Response};
 
 use edgelet_core::{AuthId, Policy};
 
 use crate::route::{Handler, Parameters};
-use crate::{Error, ErrorKind, IntoResponse};
+use crate::{Error, IntoResponse};
 
 pub struct Authorization<H> {
     policy: Policy,
@@ -33,7 +33,7 @@ where
         &self,
         req: Request<Body>,
         params: Parameters,
-    ) -> Box<dyn Future<Item = Response<Body>, Error = Error> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = anyhow::Error> + Send> {
         let (name, auth_id) = (
             params.name("name"),
             req.extensions()
@@ -49,12 +49,12 @@ where
             future::Either::A(
                 inner
                     .handle(req, params)
-                    .then(|resp| resp.context(ErrorKind::Authorization).map_err(Error::from)),
+                    .then(|resp| resp.context(Error::Authorization)),
             )
         } else {
-            future::Either::B(future::err(Error::from(ErrorKind::ModuleNotFound(
+            future::Either::B(future::err(Error::ModuleNotFound(
                 name.unwrap_or("").to_string(),
-            ))))
+            ).into()))
         };
 
         Box::new(response.or_else(|e| future::ok(e.into_response())))

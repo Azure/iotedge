@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 use std::sync::Arc;
 
-use failure::Fail;
 use futures::future::Either;
 use futures::{future, Future};
 use hyper::{Body, Request, Response};
@@ -9,7 +8,7 @@ use hyper::{Body, Request, Response};
 use edgelet_core::{AuthId, Authenticator, ModuleId, Policy};
 
 use crate::route::{Handler, Parameters};
-use crate::{Error, ErrorKind, IntoResponse};
+use crate::{Error, IntoResponse};
 
 pub struct Authentication<H, M> {
     policy: Policy,
@@ -31,13 +30,13 @@ impl<H, M> Handler<Parameters> for Authentication<H, M>
 where
     H: Handler<Parameters> + Sync,
     M: Authenticator<Request = Request<Body>> + Send + 'static,
-    <M::AuthenticateFuture as Future>::Error: Fail,
+    <M::AuthenticateFuture as Future>::Error: std::error::Error + Send + Sync + 'static,
 {
     fn handle(
         &self,
         req: Request<Body>,
         params: Parameters,
-    ) -> Box<dyn Future<Item = Response<Body>, Error = Error> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = anyhow::Error> + Send> {
         let mut req = req;
 
         let name = params.name("name");
@@ -60,7 +59,7 @@ where
                 future::Either::A(inner.handle(req, params))
             }
             Err(err) => future::Either::B(future::ok(
-                Error::from(err.context(ErrorKind::Authorization)).into_response(),
+                err.context(Error::Authorization).into_response(),
             )),
         });
 
@@ -184,7 +183,7 @@ mod tests {
 
             Box::new(match auth {
                 Some(auth_id) => future::ok(auth_id),
-                None => future::err(Error::from(ErrorKind::ModuleRuntime)),
+                None => future::err(Error::ModuleRuntime),
             })
         }
     }

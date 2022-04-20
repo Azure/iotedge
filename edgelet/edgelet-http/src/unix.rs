@@ -4,48 +4,47 @@ use std::fs;
 use std::os::unix::prelude::PermissionsExt;
 use std::path::Path;
 
-use failure::ResultExt;
+use anyhow::Context;
 use log::{debug, error};
 #[cfg(unix)]
 use tokio_uds::UnixListener;
 
-use crate::error::{Error, ErrorKind};
+use crate::error::Error;
 use crate::util::{incoming::Incoming, socket_file_exists};
 
-pub fn listener<P: AsRef<Path>>(path: P, unix_socket_permission: u32) -> Result<Incoming, Error> {
-    let path = path.as_ref();
+pub fn listener<P: AsRef<Path>>(path: P, unix_socket_permission: u32) -> anyhow::Result<Incoming> {
+    let path = path.as_ref().to_owned();
     let path_display = path.display();
 
-    if socket_file_exists(path) {
+    if socket_file_exists(&path) {
         debug!("unlinking {}...", path_display);
 
-        let err1 = fs::remove_file(path).err();
-        let err2 = fs::remove_dir_all(path).err();
+        let err1 = fs::remove_file(&path).err();
+        let err2 = fs::remove_dir_all(&path).err();
         if let Some((err1, err2)) = err1.zip(err2) {
             error!("Could not unlink existing socket: [{}] [{}]", err1, err2);
-            return Err(ErrorKind::Path(path_display.to_string()).into());
+            return Err(anyhow::anyhow!(path_display.to_string()).context(Error::Path));
         }
         debug!("unlinked {}", path_display);
     }
 
     // If parent doesn't exist, create it and socket will be created inside.
     if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).with_context(|err| {
+        fs::create_dir_all(parent).map_err(|err| {
             error!("Cannot create directory, error: {}", err);
-            ErrorKind::Path(path_display.to_string())
-        })?;
+            err
+        }).context(Error::Path)?;
     }
 
     let listener =
-        UnixListener::bind(&path).with_context(|_| ErrorKind::Path(path_display.to_string()))?;
+        UnixListener::bind(&path).context(Error::Path)?;
     debug!("bound {}", path_display);
 
-    fs::set_permissions(path, fs::Permissions::from_mode(unix_socket_permission)).map_err(
-        |err| {
+    fs::set_permissions(&path, fs::Permissions::from_mode(unix_socket_permission)).map_err(|err| {
             error!("Cannot set directory permissions: {}", err);
-            ErrorKind::Path(path_display.to_string())
-        },
-    )?;
+            err
+        }
+    ).context(Error::Path)?;
 
     Ok(Incoming::Unix(listener))
 }

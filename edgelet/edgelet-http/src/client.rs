@@ -3,8 +3,8 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use anyhow::Context;
 use chrono::{DateTime, Duration, Utc};
-use failure::{Fail, ResultExt};
 use futures::{Future, IntoFuture, Stream};
 use hyper::{self, Body, Method, Request, Response};
 use log::debug;
@@ -14,9 +14,9 @@ use typed_headers::{http, mime, ContentLength, ContentType, HeaderMapExt};
 use url::form_urlencoded::Serializer as UrlSerializer;
 use url::Url;
 
-use edgelet_utils::ensure_not_empty_with_context;
+use edgelet_utils::ensure_not_empty;
 
-use crate::error::{Error, ErrorKind};
+use crate::error::Error;
 
 pub trait TokenSource {
     type Error;
@@ -67,17 +67,18 @@ impl<C, T> Client<C, T>
 where
     C: ClientImpl,
     T: TokenSource + Clone,
-    T::Error: Fail,
+    T::Error: std::error::Error + Send + Sync + 'static,
 {
     pub fn new(
         inner: C,
         token_source: Option<T>,
         api_version: String,
         host_name: Url,
-    ) -> Result<Self, Error> {
-        ensure_not_empty_with_context(&api_version, || {
-            ErrorKind::InvalidApiVersion(api_version.clone())
-        })?;
+    ) -> anyhow::Result<Self> {
+        ensure_not_empty(&api_version)
+            .with_context(||
+            Error::InvalidApiVersion(api_version.clone())
+        )?;
 
         let client = Client {
             inner: Arc::new(inner),
@@ -116,11 +117,11 @@ where
         &self.host_name
     }
 
-    fn add_sas_token(&self, req: &mut Request<Body>, path: &str) -> Result<(), Error> {
+    fn add_sas_token(&self, req: &mut Request<Body>, path: &str) -> anyhow::Result<()> {
         if let Some(ref source) = self.token_source {
             let token_duration = Duration::hours(1);
             let expiry = Utc::now() + token_duration;
-            let token = source.get(&expiry).context(ErrorKind::TokenSource)?;
+            let token = source.get(&expiry).context(Error::TokenSource)?;
             debug!(
                 "Success generating token for request {} {}",
                 req.method(),
@@ -144,7 +145,7 @@ where
         query: Option<HashMap<&str, &str>>,
         body: Option<BodyT>,
         add_if_match: bool,
-    ) -> impl Future<Item = Option<ResponseT>, Error = Error>
+    ) -> impl Future<Item = Option<ResponseT>, Error = anyhow::Error>
     where
         BodyT: Serialize,
         ResponseT: 'static + DeserializeOwned,
@@ -163,9 +164,8 @@ where
         let path_query = format!("{}?{}", path, query);
         self.host_name
             .join(&path_query)
-            .with_context(|_| ErrorKind::UrlJoin(self.host_name.clone(), path_query))
-            .context(ErrorKind::Http)
-            .map_err(Error::from)
+            .with_context(|| Error::UrlJoin(self.host_name.clone(), path_query))
+            .context(Error::Http)
             .and_then(|url| {
                 let mut req = Request::builder();
                 req.method(method).uri(url.as_str());
@@ -182,16 +182,16 @@ where
 
                 // add request body if there is any
                 let mut req = if let Some(body) = body {
-                    let serialized = serde_json::to_string(&body).context(ErrorKind::Http)?;
+                    let serialized = serde_json::to_string(&body).context(Error::Http)?;
                     let serialized_len = serialized.len();
-                    let mut req = req.body(Body::from(serialized)).context(ErrorKind::Http)?;
+                    let mut req = req.body(Body::from(serialized)).context(Error::Http)?;
                     req.headers_mut()
                         .typed_insert(&ContentType(mime::APPLICATION_JSON));
                     req.headers_mut()
                         .typed_insert(&ContentLength(serialized_len as u64));
                     req
                 } else {
-                    req.body(Body::empty()).context(ErrorKind::Http)?
+                    req.body(Body::empty()).context(Error::Http)?
                 };
 
                 // add sas token
@@ -202,11 +202,11 @@ where
             .map(|req| {
                 self.inner
                     .call(req)
-                    .then(|resp| resp.context(ErrorKind::Http).map_err(Error::from))
+                    .then(|resp| resp.context(Error::Http))
                     .and_then(|resp| {
                         let (http::response::Parts { status, .. }, body) = resp.into_parts();
                         body.concat2().then(move |res| {
-                            let body = res.context(ErrorKind::Http)?;
+                            let body = res.context(Error::Http)?;
                             Ok((status, body))
                         })
                     })
@@ -214,7 +214,7 @@ where
                         if status.is_success() {
                             Ok(body)
                         } else {
-                            Err(Error::http_with_error_response(status, &*body))
+                            Err(anyhow::Error::from(Error::http_with_error_response(status, &*body)))
                         }
                     })
                     .and_then(|body| {
@@ -223,7 +223,7 @@ where
                         } else {
                             Ok(Some(
                                 serde_json::from_slice::<ResponseT>(&body)
-                                    .context(ErrorKind::Http)?,
+                                    .context(Error::Http)?,
                             ))
                         }
                     })

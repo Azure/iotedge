@@ -23,11 +23,12 @@ use std::sync::atomic::{AtomicU32, Ordering};
 #[cfg(unix)]
 use std::sync::Arc;
 
-use failure::{Fail, ResultExt};
+use anyhow::Context;
 use futures::{future, Future, Poll, Stream};
+use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::server::conn::Http;
 use hyper::service::{NewService, Service};
-use hyper::{Body, Response};
+use hyper::{Body, Response, StatusCode};
 use log::{debug, error, Level};
 use native_tls::Identity;
 #[cfg(unix)]
@@ -57,7 +58,7 @@ mod unix;
 mod util;
 mod version;
 
-pub use error::{BindListenerType, Error, ErrorKind, InvalidUrlReason};
+pub use error::{BindListenerType, Error, InvalidUrlReason};
 pub use pid::Pid;
 pub use util::proxy::MaybeProxyClient;
 pub use util::UrlConnector;
@@ -104,42 +105,42 @@ impl PemCertificate {
         &self.cert
     }
 
-    pub fn from<C>(id_cert: &C) -> Result<Self, Error>
+    pub fn from<C>(id_cert: &C) -> anyhow::Result<Self>
     where
         C: Certificate,
     {
         let cert = id_cert
             .pem()
             .map(|cert_buffer| cert_buffer.as_ref().to_owned())
-            .context(ErrorKind::IdentityCertificate)?;
+            .context(Error::IdentityCertificate)?;
 
         let key = match id_cert.get_private_key() {
             Ok(Some(PrivateKey::Ref(ref_))) => Some(ref_.into_bytes()),
             Ok(Some(PrivateKey::Key(KeyBytes::Pem(buffer)))) => Some(buffer.as_ref().to_vec()),
             Ok(None) => None,
-            Err(_err) => return Err(Error::from(ErrorKind::IdentityPrivateKey)),
+            Err(_err) => return Err(Error::IdentityPrivateKey.into()),
         };
 
         Ok(PemCertificate::new(cert, key, None, None))
     }
 
-    pub fn get_identity(&self) -> Result<Identity, Error> {
-        let mut certs = X509::stack_from_pem(&self.cert).context(ErrorKind::IdentityCertificate)?;
+    pub fn get_identity(&self) -> anyhow::Result<Identity> {
+        let mut certs = X509::stack_from_pem(&self.cert).context(Error::IdentityCertificate)?;
 
         // the first cert is the identity cert and the other certs are part of the CA
         // chain; we skip the server cert and build an OpenSSL cert stack with the
         // other certs
-        let mut ca_certs = Stack::new().context(ErrorKind::IdentityCertificate)?;
+        let mut ca_certs = Stack::new().context(Error::IdentityCertificate)?;
         for cert in certs.drain(1..) {
             ca_certs
                 .push(cert)
-                .context(ErrorKind::IdentityCertificate)?;
+                .context(Error::IdentityCertificate)?;
         }
 
         let key = match &self.key {
             Some(k) => PKey::private_key_from_pem(&k)
-                .with_context(|err| ErrorKind::IdentityPrivateKeyRead(err.to_string())),
-            None => return Err(Error::from(ErrorKind::IdentityPrivateKey)),
+                .context(Error::IdentityPrivateKeyRead),
+            None => return Err(Error::IdentityPrivateKey.into()),
         }?;
 
         let identity_cert = &certs[0];
@@ -153,14 +154,14 @@ impl PemCertificate {
                 &key,
                 &identity_cert,
             )
-            .context(ErrorKind::IdentityCertificate)?;
+            .context(Error::IdentityCertificate)?;
 
         let der = pkcs_certs
             .to_der()
-            .context(ErrorKind::IdentityCertificate)?;
+            .context(Error::IdentityCertificate)?;
 
         let identity = Identity::from_pkcs12(&der, "")
-            .with_context(|err| ErrorKind::PKCS12Identity(err.to_string()))?;
+            .context(Error::PKCS12Identity)?;
 
         Ok(identity)
     }
@@ -183,11 +184,32 @@ impl IntoResponse for Response<Body> {
     }
 }
 
-pub struct Run(Box<dyn Future<Item = (), Error = Error> + Send + 'static>);
+impl IntoResponse for anyhow::Error {
+    fn into_response(self) -> Response<Body> {
+        let status_code = match self.downcast_ref() {
+            Some(Error::Authorization) | Some(Error::ModuleNotFound(_)) => StatusCode::NOT_FOUND,
+            Some(Error::InvalidApiVersion(_)) => StatusCode::BAD_REQUEST,
+            _ => StatusCode::INTERNAL_SERVER_ERROR
+        };
+        let body = serde_json::json!({
+            "message": format!("{:?}", self)
+        })
+        .to_string();
+
+        Response::builder()
+            .status(status_code)
+            .header(CONTENT_TYPE, "application/json")
+            .header(CONTENT_LENGTH, body.len().to_string().as_str())
+            .body(body.into())
+            .expect("response builder failure")
+    }
+}
+
+pub struct Run(Box<dyn Future<Item = (), Error = anyhow::Error> + Send + 'static>);
 
 impl Future for Run {
     type Item = ();
-    type Error = Error;
+    type Error = anyhow::Error;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         self.0.poll()
@@ -205,7 +227,7 @@ where
     S: NewService<ReqBody = Body, ResBody = Body> + Send + 'static,
     S::Future: Send + 'static,
     S::Service: Send + 'static,
-    S::InitError: Fail,
+    S::InitError: std::error::Error + Send + Sync + 'static,
     <S::Service as Service>::Future: Send + 'static,
 {
     pub fn run(self) -> Run {
@@ -296,7 +318,7 @@ where
             .select(srv)
             .then(move |result| match result {
                 Ok(((), _other)) => Ok(()),
-                Err((e, _other)) => Err(Error::from(e.context(ErrorKind::ServiceError))),
+                Err((e, _other)) => Err(anyhow::Error::from(e).context(Error::ServiceError)),
             });
 
         Run(Box::new(main_execution))
@@ -316,7 +338,7 @@ pub trait HyperExt {
         url: Url,
         new_service: S,
         unix_socket_permission: u32,
-    ) -> Result<Server<S>, Error>
+    ) -> anyhow::Result<Server<S>>
     where
         S: NewService<ReqBody = Body>;
 }
@@ -329,7 +351,7 @@ impl HyperExt for Http {
         url: Url,
         new_service: S,
         unix_socket_permission: u32,
-    ) -> Result<Server<S>, Error>
+    ) -> anyhow::Result<Server<S>>
     where
         S: NewService<ReqBody = Body>,
     {
@@ -337,26 +359,26 @@ impl HyperExt for Http {
             HTTP_SCHEME | TCP_SCHEME => {
                 let addr = url
                     .socket_addrs(|| None)
-                    .context(ErrorKind::InvalidUrl(url.to_string()))?;
+                    .with_context(|| Error::InvalidUrl(url.to_string()))?;
                 let addr = addr.get(0);
                 let addr = addr.ok_or_else(|| {
-                    ErrorKind::InvalidUrlWithReason(url.to_string(), InvalidUrlReason::NoAddress)
+                    Error::InvalidUrlWithReason(url.to_string(), InvalidUrlReason::NoAddress)
                 })?;
 
                 let listener = TcpListener::bind(&addr)
-                    .with_context(|_| ErrorKind::BindListener(BindListenerType::Address(*addr)))?;
+                    .context(Error::BindListener(BindListenerType::Address(*addr)))?;
                 Incoming::Tcp(listener)
             }
             UNIX_SCHEME => {
                 let path = url
                     .to_uds_file_path()
-                    .map_err(|_| ErrorKind::InvalidUrl(url.to_string()))?;
+                    .map_err(|_| Error::InvalidUrl(url.to_string()))?;
                 unix::listener(path, unix_socket_permission)?
             }
             #[cfg(target_os = "linux")]
             FD_SCHEME => {
                 let host = url.host_str().ok_or_else(|| {
-                    ErrorKind::InvalidUrlWithReason(url.to_string(), InvalidUrlReason::NoHost)
+                    Error::InvalidUrlWithReason(url.to_string(), InvalidUrlReason::NoHost)
                 })?;
 
                 // Try to parse the host as an FD number, then as an FD name
@@ -365,8 +387,8 @@ impl HyperExt for Http {
                     .map_err(|_| ())
                     .and_then(|num| systemd::listener(num).map_err(|_| ()))
                     .or_else(|_| systemd::listener_name(host))
-                    .with_context(|_| {
-                        ErrorKind::InvalidUrlWithReason(
+                    .with_context(|| {
+                        Error::InvalidUrlWithReason(
                             url.to_string(),
                             InvalidUrlReason::FdNeitherNumberNorName,
                         )
@@ -376,21 +398,21 @@ impl HyperExt for Http {
                     Socket::Inet(fd, _addr) => {
                         let l = unsafe { net::TcpListener::from_raw_fd(fd) };
                         Incoming::Tcp(
-                            TcpListener::from_std(l, &Default::default()).with_context(|_| {
-                                ErrorKind::BindListener(BindListenerType::Fd(fd))
+                            TcpListener::from_std(l, &Default::default()).with_context(|| {
+                                Error::BindListener(BindListenerType::Fd(fd))
                             })?,
                         )
                     }
                     Socket::Unix(fd) => {
                         let l = unsafe { ::std::os::unix::net::UnixListener::from_raw_fd(fd) };
                         Incoming::Unix(
-                            UnixListener::from_std(l, &Default::default()).with_context(|_| {
-                                ErrorKind::BindListener(BindListenerType::Fd(fd))
+                            UnixListener::from_std(l, &Default::default()).with_context(|| {
+                                Error::BindListener(BindListenerType::Fd(fd))
                             })?,
                         )
                     }
                     Socket::Unknown => {
-                        return Err(ErrorKind::InvalidUrlWithReason(
+                        return Err(Error::InvalidUrlWithReason(
                             url.to_string(),
                             InvalidUrlReason::UnrecognizedSocket,
                         )
@@ -399,10 +421,10 @@ impl HyperExt for Http {
                 }
             }
             _ => {
-                return Err(Error::from(ErrorKind::InvalidUrlWithReason(
+                return Err(Error::InvalidUrlWithReason(
                     url.to_string(),
                     InvalidUrlReason::InvalidScheme,
-                )))
+                ).into())
             }
         };
 

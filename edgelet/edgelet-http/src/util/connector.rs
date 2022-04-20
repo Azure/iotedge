@@ -15,7 +15,7 @@
 
 use std::io;
 
-use failure::ResultExt;
+use anyhow::Context;
 use futures::{future, Future};
 use hyper::client::connect::{Connect, Connected, Destination};
 use hyper::client::HttpConnector;
@@ -24,7 +24,7 @@ use hyper::Uri;
 use hyperlocal::{UnixConnector, Uri as HyperlocalUri};
 use url::{ParseError, Url};
 
-use crate::error::{Error, ErrorKind, InvalidUrlReason};
+use crate::error::{Error, InvalidUrlReason};
 use crate::util::StreamSelector;
 use crate::{HTTP_SCHEME, UNIX_SCHEME};
 
@@ -45,26 +45,25 @@ impl UrlConnector {
                 //       this time.
                 Ok(UrlConnector::Http(HttpConnector::new(4)))
             }
-            _ => Err(ErrorKind::InvalidUrlWithReason(
+            _ => Err(Error::InvalidUrlWithReason(
                 url.to_string(),
                 InvalidUrlReason::InvalidScheme,
-            )
-            .into()),
+            )),
         }
     }
 
-    pub fn build_hyper_uri(scheme: &str, base_path: &str, path: &str) -> Result<Uri, Error> {
+    pub fn build_hyper_uri(scheme: &str, base_path: &str, path: &str) -> anyhow::Result<Uri> {
         match &*scheme {
             UNIX_SCHEME => Ok(HyperlocalUri::new(base_path, &path).into()),
             HTTP_SCHEME => Ok(Url::parse(base_path)
                 .and_then(|base| base.join(path))
                 .and_then(|url| url.as_str().parse().map_err(|_| ParseError::IdnaError))
-                .with_context(|_| ErrorKind::MalformedUrl {
+                .with_context(|| Error::MalformedUrl {
                     scheme: scheme.to_string(),
                     base_path: base_path.to_string(),
                     path: path.to_string(),
                 })?),
-            _ => Err(ErrorKind::MalformedUrl {
+            _ => Err(Error::MalformedUrl {
                 scheme: scheme.to_string(),
                 base_path: base_path.to_string(),
                 path: path.to_string(),

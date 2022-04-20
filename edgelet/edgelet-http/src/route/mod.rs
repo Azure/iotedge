@@ -6,13 +6,12 @@
 use std::clone::Clone;
 use std::sync::Arc;
 
-use failure::{Compat, Fail};
 use futures::{future, Future};
 use hyper::service::{NewService, Service};
 use hyper::{Body, Method, Request, Response, StatusCode};
 use url::form_urlencoded::parse as parse_query;
 
-use crate::error::{Error, ErrorKind};
+use crate::error::Error;
 use crate::version::Version;
 use crate::IntoResponse;
 
@@ -26,20 +25,20 @@ pub trait Handler<P>: 'static + Send {
         &self,
         req: Request<Body>,
         params: P,
-    ) -> Box<dyn Future<Item = Response<Body>, Error = Error> + Send>;
+    ) -> Box<dyn Future<Item = Response<Body>, Error = anyhow::Error> + Send>;
 }
 
 impl<F, P> Handler<P> for F
 where
     F: 'static
-        + Fn(Request<Body>, P) -> Box<dyn Future<Item = Response<Body>, Error = Error> + Send>
+        + Fn(Request<Body>, P) -> Box<dyn Future<Item = Response<Body>, Error = anyhow::Error> + Send>
         + Send,
 {
     fn handle(
         &self,
         req: Request<Body>,
         params: P,
-    ) -> Box<dyn Future<Item = Response<Body>, Error = Error> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = anyhow::Error> + Send> {
         (*self)(req, params)
     }
 }
@@ -151,7 +150,7 @@ where
 {
     type ReqBody = Body;
     type ResBody = Body;
-    type Error = Compat<Error>;
+    type Error = anyhow::Error;
     type Future = Box<dyn Future<Item = Response<Self::ResBody>, Error = Self::Error> + Send>;
 
     fn call(&mut self, req: Request<Body>) -> Self::Future {
@@ -171,7 +170,7 @@ where
                 let path = req.uri().path().to_owned();
                 match self.inner.recognize(&method, api_version, &path) {
                     Ok((handler, params)) => {
-                        Box::new(handler.handle(req, params).map_err(Fail::compat))
+                        Box::new(handler.handle(req, params).map_err(Into::into))
                     }
                     Err(code) => Box::new(future::ok(
                         Response::builder()
@@ -182,7 +181,7 @@ where
                 }
             }
             None => Box::new(future::ok(
-                Error::from(ErrorKind::InvalidApiVersion(String::new())).into_response(),
+                anyhow::Error::from(Error::InvalidApiVersion(String::new())).into_response(),
             )),
         }
     }

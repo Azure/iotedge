@@ -772,12 +772,12 @@ dependencies = [
 name = "edgelet-http"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "bytes 0.4.12",
  "chrono",
  "edgelet-core",
  "edgelet-test-utils",
  "edgelet-utils",
- "failure",
  "futures",
  "hyper",
  "hyper-proxy",
@@ -798,6 +798,7 @@ dependencies = [
  "systemd",
  "tempdir",
  "tempfile",
+ "thiserror",
  "tokio",
  "tokio-tls",
  "tokio-uds",
@@ -2292,10 +2293,11 @@ dependencies = [
 name = "systemd"
 version = "0.1.0"
 dependencies = [
- "failure",
+ "anyhow",
  "lazy_static",
  "log",
  "nix",
+ "thiserror",
 ]
 
 [[package]]
