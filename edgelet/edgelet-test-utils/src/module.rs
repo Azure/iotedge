@@ -8,7 +8,6 @@ use edgelet_core::{
     LogOptions, MakeModuleRuntime, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState,
     ModuleSpec, ProvisioningInfo, RuntimeSettings, SystemInfo, SystemResources, WatchdogSettings,
 };
-use failure::Fail;
 use futures::future::{self, FutureResult};
 use futures::prelude::*;
 use futures::stream;
@@ -33,23 +32,22 @@ impl<E, C> TestRegistry<E, C> {
 
 impl<E, C> ModuleRegistry for TestRegistry<E, C>
 where
-    E: Clone + Fail + Send + Sync,
+    E: std::error::Error + Clone + Send + Sync + 'static,
 {
-    type Error = E;
-    type PullFuture = FutureResult<(), Self::Error>;
-    type RemoveFuture = FutureResult<(), Self::Error>;
+    type PullFuture = FutureResult<(), anyhow::Error>;
+    type RemoveFuture = FutureResult<(), anyhow::Error>;
     type Config = C;
 
     fn pull(&self, _config: &Self::Config) -> Self::PullFuture {
         match self.err {
-            Some(ref e) => future::err(e.clone()),
+            Some(ref e) => future::err(e.clone().into()),
             None => future::ok(()),
         }
     }
 
     fn remove(&self, _name: &str) -> Self::RemoveFuture {
         match self.err {
-            Some(ref e) => future::err(e.clone()),
+            Some(ref e) => future::err(e.clone().into()),
             None => future::ok(()),
         }
     }
@@ -140,11 +138,11 @@ pub struct TestModule<E, C> {
     name: String,
     config: C,
     state: Result<ModuleRuntimeState, E>,
-    logs: TestBody<E>,
+    logs: TestBody,
 }
 
-impl<E: Fail> TestModule<E, TestConfig> {
-    pub fn new(name: String, config: TestConfig, state: Result<ModuleRuntimeState, E>) -> Self {
+impl<E, C> TestModule<E, C> {
+    pub fn new(name: String, config: C, state: Result<ModuleRuntimeState, E>) -> Self {
         TestModule {
             name,
             config,
@@ -152,23 +150,10 @@ impl<E: Fail> TestModule<E, TestConfig> {
             logs: TestBody::default(),
         }
     }
-}
 
-impl<E: Fail, C> TestModule<E, C> {
-    pub fn new_with_config(name: String, config: C, state: Result<ModuleRuntimeState, E>) -> Self {
-        TestModule {
-            name,
-            config,
-            state,
-            logs: TestBody::default(),
-        }
-    }
-}
-
-impl<E: Fail> TestModule<E, TestConfig> {
     pub fn new_with_logs(
         name: String,
-        config: TestConfig,
+        config: C,
         state: Result<ModuleRuntimeState, E>,
         logs: Vec<&'static [u8]>,
     ) -> Self {
@@ -181,10 +166,12 @@ impl<E: Fail> TestModule<E, TestConfig> {
     }
 }
 
-impl<E: Clone + Fail, C> Module for TestModule<E, C> {
+impl<E, C> Module for TestModule<E, C>
+where
+    E: std::error::Error + Clone + Send + Sync + 'static,
+{
     type Config = C;
-    type Error = E;
-    type RuntimeStateFuture = FutureResult<ModuleRuntimeState, Self::Error>;
+    type RuntimeStateFuture = FutureResult<ModuleRuntimeState, anyhow::Error>;
 
     fn name(&self) -> &str {
         &self.name
@@ -199,7 +186,7 @@ impl<E: Clone + Fail, C> Module for TestModule<E, C> {
     }
 
     fn runtime_state(&self) -> Self::RuntimeStateFuture {
-        self.state.clone().into_future()
+        self.state.clone().map_err(Into::into).into_future()
     }
 }
 
@@ -215,8 +202,8 @@ where
 
 impl<E, S> TestRuntime<E, S>
 where
+    E: std::error::Error + Clone + Send + Sync + 'static,
     S: RuntimeSettings,
-    E: Clone + Fail,
 {
     pub fn with_module(mut self, module: Result<TestModule<E, S::Config>, E>) -> Self {
         self.module = Some(module);
@@ -232,11 +219,9 @@ where
 impl<E, S> Authenticator for TestRuntime<E, S>
 where
     S: RuntimeSettings,
-    E: Clone + Fail,
 {
-    type Error = E;
     type Request = Request<Body>;
-    type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = Self::Error> + Send>;
+    type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = anyhow::Error> + Send>;
 
     fn authenticate(&self, _req: &Self::Request) -> Self::AuthenticateFuture {
         Box::new(future::ok(AuthId::Any))
@@ -244,12 +229,12 @@ where
 }
 
 #[derive(Debug)]
-pub struct TestBody<E> {
+pub struct TestBody {
     data: Vec<&'static [u8]>,
-    stream: futures::stream::IterOk<std::vec::IntoIter<&'static [u8]>, E>,
+    stream: futures::stream::IterOk<std::vec::IntoIter<&'static [u8]>, anyhow::Error>,
 }
 
-impl<E> TestBody<E> {
+impl TestBody {
     pub fn new(logs: Vec<&'static [u8]>) -> Self {
         TestBody {
             data: logs.clone(),
@@ -258,7 +243,7 @@ impl<E> TestBody<E> {
     }
 }
 
-impl<E> Default for TestBody<E> {
+impl Default for TestBody {
     fn default() -> Self {
         TestBody::new(vec![&[
             0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, b'A',
@@ -266,23 +251,23 @@ impl<E> Default for TestBody<E> {
     }
 }
 
-impl<E> Stream for TestBody<E> {
+impl Stream for TestBody {
     type Item = &'static [u8];
-    type Error = E;
+    type Error = anyhow::Error;
 
     fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
         self.stream.poll()
     }
 }
 
-impl<E> Clone for TestBody<E> {
+impl Clone for TestBody {
     fn clone(&self) -> Self {
         Self::new(self.data.clone())
     }
 }
 
-impl<E> From<TestBody<E>> for Body {
-    fn from(old: TestBody<E>) -> Body {
+impl From<TestBody> for Body {
+    fn from(old: TestBody) -> Body {
         let temp: Vec<u8> = old.data.into_iter().flat_map(ToOwned::to_owned).collect();
         Body::from(temp)
     }
@@ -290,15 +275,14 @@ impl<E> From<TestBody<E>> for Body {
 
 impl<E, S> MakeModuleRuntime for TestRuntime<E, S>
 where
-    E: Clone + Fail,
+    E: std::error::Error + Clone + Send + Sync + 'static,
     S: RuntimeSettings + Send,
     S::Config: Clone + Send + 'static,
 {
     type Config = S::Config;
     type Settings = S;
     type ModuleRuntime = Self;
-    type Error = E;
-    type Future = FutureResult<Self, Self::Error>;
+    type Future = FutureResult<Self, anyhow::Error>;
 
     fn make_runtime(
         settings: Self::Settings,
@@ -314,71 +298,70 @@ where
 
 impl<E, S> ModuleRuntime for TestRuntime<E, S>
 where
-    E: Clone + Fail,
+    E: std::error::Error + Clone + Send + Sync + 'static,
     S: RuntimeSettings + Send,
     S::Config: Clone + Send + 'static,
 {
-    type Error = E;
     type Config = S::Config;
     type Module = TestModule<E, S::Config>;
     type ModuleRegistry = TestRegistry<E, S::Config>;
     type Chunk = &'static [u8];
-    type Logs = TestBody<E>;
+    type Logs = TestBody;
 
-    type CreateFuture = FutureResult<(), Self::Error>;
-    type GetFuture = FutureResult<(Self::Module, ModuleRuntimeState), Self::Error>;
-    type ListFuture = FutureResult<Vec<Self::Module>, Self::Error>;
+    type CreateFuture = FutureResult<(), anyhow::Error>;
+    type GetFuture = FutureResult<(Self::Module, ModuleRuntimeState), anyhow::Error>;
+    type ListFuture = FutureResult<Vec<Self::Module>, anyhow::Error>;
     type ListWithDetailsStream =
-        Box<dyn Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
-    type LogsFuture = FutureResult<Self::Logs, Self::Error>;
-    type RemoveFuture = FutureResult<(), Self::Error>;
-    type RestartFuture = FutureResult<(), Self::Error>;
-    type StartFuture = FutureResult<(), Self::Error>;
-    type StopFuture = FutureResult<(), Self::Error>;
-    type SystemInfoFuture = FutureResult<SystemInfo, Self::Error>;
-    type SystemResourcesFuture = FutureResult<SystemResources, Self::Error>;
-    type RemoveAllFuture = FutureResult<(), Self::Error>;
-    type StopAllFuture = FutureResult<(), Self::Error>;
+        Box<dyn Stream<Item = (Self::Module, ModuleRuntimeState), Error = anyhow::Error> + Send>;
+    type LogsFuture = FutureResult<Self::Logs, anyhow::Error>;
+    type RemoveFuture = FutureResult<(), anyhow::Error>;
+    type RestartFuture = FutureResult<(), anyhow::Error>;
+    type StartFuture = FutureResult<(), anyhow::Error>;
+    type StopFuture = FutureResult<(), anyhow::Error>;
+    type SystemInfoFuture = FutureResult<SystemInfo, anyhow::Error>;
+    type SystemResourcesFuture = FutureResult<SystemResources, anyhow::Error>;
+    type RemoveAllFuture = FutureResult<(), anyhow::Error>;
+    type StopAllFuture = FutureResult<(), anyhow::Error>;
 
     fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
         match self.module.as_ref().unwrap() {
             Ok(_) => future::ok(()),
-            Err(ref e) => future::err(e.clone()),
+            Err(ref e) => future::err(e.clone().into()),
         }
     }
 
     fn get(&self, _id: &str) -> Self::GetFuture {
         match self.module.as_ref().unwrap() {
             Ok(ref m) => future::ok((m.clone(), ModuleRuntimeState::default())),
-            Err(ref e) => future::err(e.clone()),
+            Err(ref e) => future::err(e.clone().into()),
         }
     }
 
     fn start(&self, _id: &str) -> Self::StartFuture {
         match self.module.as_ref().unwrap() {
             Ok(_) => future::ok(()),
-            Err(ref e) => future::err(e.clone()),
+            Err(ref e) => future::err(e.clone().into()),
         }
     }
 
     fn stop(&self, _id: &str, _wait_before_kill: Option<Duration>) -> Self::StopFuture {
         match self.module.as_ref().unwrap() {
             Ok(_) => future::ok(()),
-            Err(ref e) => future::err(e.clone()),
+            Err(ref e) => future::err(e.clone().into()),
         }
     }
 
     fn restart(&self, _id: &str) -> Self::RestartFuture {
         match self.module.as_ref().unwrap() {
             Ok(_) => future::ok(()),
-            Err(ref e) => future::err(e.clone()),
+            Err(ref e) => future::err(e.clone().into()),
         }
     }
 
     fn remove(&self, _id: &str) -> Self::RemoveFuture {
         match self.module.as_ref().unwrap() {
             Ok(_) => future::ok(()),
-            Err(ref e) => future::err(e.clone()),
+            Err(ref e) => future::err(e.clone().into()),
         }
     }
 
@@ -410,7 +393,7 @@ where
 
                 additional_properties: std::collections::BTreeMap::new(),
             }),
-            Err(ref e) => future::err(e.clone()),
+            Err(ref e) => future::err(e.clone().into()),
         }
     }
 
@@ -431,14 +414,14 @@ where
                 )],
                 "fake docker stats".to_owned(),
             )),
-            Err(ref e) => future::err(e.clone()),
+            Err(ref e) => future::err(e.clone().into()),
         }
     }
 
     fn list(&self) -> Self::ListFuture {
         match self.module.as_ref().unwrap() {
             Ok(ref m) => future::ok(vec![m.clone()]),
-            Err(ref e) => future::err(e.clone()),
+            Err(ref e) => future::err(e.clone().into()),
         }
     }
 
@@ -448,14 +431,14 @@ where
                 let m = m.clone();
                 Box::new(m.runtime_state().map(|rs| (m, rs)).into_stream())
             }
-            Err(ref e) => Box::new(stream::once(Err(e.clone()))),
+            Err(ref e) => Box::new(stream::once(Err(e.clone().into()))),
         }
     }
 
     fn logs(&self, _id: &str, _options: &LogOptions) -> Self::LogsFuture {
         match self.module.as_ref().unwrap() {
             Ok(ref m) => future::ok(m.logs.clone()),
-            Err(ref e) => future::err(e.clone()),
+            Err(ref e) => future::err(e.clone().into()),
         }
     }
 

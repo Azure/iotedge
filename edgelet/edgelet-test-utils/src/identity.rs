@@ -1,19 +1,18 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use failure::Fail;
 use futures::future::{self, FutureResult, IntoFuture};
 
 use edgelet_core::{AuthType, Identity, IdentityManager, IdentitySpec};
 
-#[derive(Clone, Copy, Debug, Fail)]
+#[derive(Clone, Copy, Debug, thiserror::Error)]
 pub enum Error {
-    #[fail(display = "General error")]
+    #[error("General error")]
     General,
 
-    #[fail(display = "Module not found")]
+    #[error("Module not found")]
     ModuleNotFound,
 
-    #[fail(display = "Module generation ID was not provided")]
+    #[error("Module generation ID was not provided")]
     MissingGenerationId,
 }
 
@@ -101,16 +100,15 @@ impl TestIdentityManager {
 
 impl IdentityManager for TestIdentityManager {
     type Identity = TestIdentity;
-    type Error = Error;
-    type CreateFuture = FutureResult<Self::Identity, Self::Error>;
-    type UpdateFuture = FutureResult<Self::Identity, Self::Error>;
-    type ListFuture = FutureResult<Vec<Self::Identity>, Self::Error>;
-    type GetFuture = FutureResult<Option<Self::Identity>, Self::Error>;
-    type DeleteFuture = FutureResult<(), Self::Error>;
+    type CreateFuture = FutureResult<Self::Identity, anyhow::Error>;
+    type UpdateFuture = FutureResult<Self::Identity, anyhow::Error>;
+    type ListFuture = FutureResult<Vec<Self::Identity>, anyhow::Error>;
+    type GetFuture = FutureResult<Option<Self::Identity>, anyhow::Error>;
+    type DeleteFuture = FutureResult<(), anyhow::Error>;
 
     fn create(&mut self, id: IdentitySpec) -> Self::CreateFuture {
         if self.fail_create {
-            future::err(Error::General)
+            future::err(Error::General.into())
         } else {
             self.gen_id_sentinel += 1;
             let id = TestIdentity::new(
@@ -151,13 +149,13 @@ impl IdentityManager for TestIdentityManager {
 
             future::ok(module)
         } else {
-            future::err(Error::MissingGenerationId)
+            future::err(Error::MissingGenerationId.into())
         }
     }
 
     fn list(&self) -> Self::ListFuture {
         if self.fail_list {
-            future::err(Error::General)
+            future::err(Error::General.into())
         } else {
             future::ok(self.identities.clone())
         }
@@ -165,7 +163,7 @@ impl IdentityManager for TestIdentityManager {
 
     fn get(&self, id: IdentitySpec) -> Self::GetFuture {
         if self.fail_get {
-            future::err(Error::General)
+            future::err(Error::General.into())
         } else {
             match self
                 .identities
@@ -173,7 +171,7 @@ impl IdentityManager for TestIdentityManager {
                 .find(|m| m.module_id() == id.module_id())
             {
                 Some(module) => future::ok(Some(module.clone())),
-                None => future::err(Error::ModuleNotFound),
+                None => future::err(Error::ModuleNotFound.into()),
             }
         }
     }
@@ -185,7 +183,7 @@ impl IdentityManager for TestIdentityManager {
             .map(|index| {
                 self.identities.remove(index);
             })
-            .ok_or(Error::ModuleNotFound)
+            .ok_or(Error::ModuleNotFound.into())
             .into_future()
     }
 }

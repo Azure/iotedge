@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use chrono::{DateTime, Utc};
-use edgelet_core::{Certificate, Error as CoreError, ErrorKind as CoreErrorKind, PrivateKey};
+use edgelet_core::{Certificate, Error, PrivateKey};
 
 #[derive(Clone, Debug, Default)]
 #[allow(clippy::struct_excessive_bools)]
@@ -63,25 +63,25 @@ impl Certificate for TestCert {
     type Buffer = Vec<u8>;
     type KeyBuffer = String;
 
-    fn pem(&self) -> Result<Vec<u8>, CoreError> {
+    fn pem(&self) -> Result<Vec<u8>, Error> {
         if self.fail_pem {
-            Err(CoreError::from(CoreErrorKind::KeyStore))
+            Err(Error::KeyStore)
         } else {
             Ok(self.cert.clone())
         }
     }
 
-    fn get_private_key(&self) -> Result<Option<PrivateKey<Self::KeyBuffer>>, CoreError> {
+    fn get_private_key(&self) -> Result<Option<PrivateKey<Self::KeyBuffer>>, Error> {
         if self.fail_private_key {
-            Err(CoreError::from(CoreErrorKind::KeyStore))
+            Err(Error::KeyStore)
         } else {
             Ok(Some(self.private_key.as_ref().cloned().unwrap()))
         }
     }
 
-    fn get_valid_to(&self) -> Result<DateTime<Utc>, CoreError> {
+    fn get_valid_to(&self) -> Result<DateTime<Utc>, Error> {
         if self.fail_valid_to {
-            Err(CoreError::from(CoreErrorKind::KeyStore))
+            Err(Error::KeyStore)
         } else {
             match self.valid_to {
                 Some(ts) => Ok(ts),
@@ -90,9 +90,9 @@ impl Certificate for TestCert {
         }
     }
 
-    fn get_common_name(&self) -> Result<String, CoreError> {
+    fn get_common_name(&self) -> Result<String, Error> {
         if self.fail_common_name {
-            Err(CoreError::from(CoreErrorKind::KeyStore))
+            Err(Error::KeyStore)
         } else {
             Ok(self.common_name.clone())
         }
