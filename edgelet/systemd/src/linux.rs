@@ -243,7 +243,7 @@ fn is_socket_unix(
 #[cfg(test)]
 mod tests {
     use super::{
-        env, listen_fds, listen_fds_with_names, socket, AddressFamily, ErrorKind, Fd, Pid,
+        env, listen_fds, listen_fds_with_names, socket, AddressFamily, Error, Fd, Pid,
         SockType, Socket, ENV_FDS, ENV_NAMES, ENV_PID, LISTEN_FDS_START,
     };
 
@@ -323,10 +323,10 @@ mod tests {
 
         match listen_fds_with_names(true, LISTEN_FDS_START) {
             Ok(_) => panic!("expected listen_fds_with_names to panic"),
-            Err(err) => match err.kind() {
-                ErrorKind::InvalidVar(s) if s == ENV_NAMES => (),
+            Err(err) => match err.downcast_ref().unwrap() {
+                Error::InvalidVar(s) if s == ENV_NAMES => (),
                 _ => panic!(
-                    "expected listen_fds_with_names to raise ErrorKind::InvalidVar({}) but it raised {:?}",
+                    "expected listen_fds_with_names to raise Error::InvalidVar({}) but it raised {:?}",
                     ENV_NAMES, err
                 ),
             },
