@@ -52,7 +52,11 @@ A transactable IoT Edge module should use a new EdgeHub API to get the offer and
 
 ![image](https://user-images.githubusercontent.com/2320572/149997134-77419272-c1e4-4856-a37e-be66c9652f97.png)
 
-SDK support for this new API isn't available in the private preview, so the steps to integrate with this API involve more manual steps. In essence, you'll need to:
+We have a sample at [iotedge/edge-modules/TransactableModuleSample at feature/billing - Azure/iotedge (github.com)](https://github.com/Azure/iotedge/tree/feature/billing/edge-modules/TransactableModuleSample/src) that makes a call to the IoT Edge seucurity daemon workload URI to get a signed token and also installs the EdgeHub root CA. It then uses this token to make the call to get the purchase info. We recommend starting with this sample as-is to get something working.
+
+In this sample, a large part of [PurchaseInfoProvider.cs](https://github.com/Azure/iotedge/blob/feature/billing/edge-modules/TransactableModuleSample/src/PurchaseInfoProvider.cs) is directly copied from [edge-util](https://github.com/Azure/iotedge/tree/master/edge-util/src/Microsoft.Azure.Devices.Edge.Util). This is a workaround to get the sample code to work while we finish the SDK integration. When the SDK integration is complete, you'll just need to make call to a built-in method GetPurchaseAsync, and it return the purchase status, publisher ID, offer ID, plan ID and validation time as specified.
+
+Without using the sample, SDK support for this new API isn't available in the private preview, so the steps to integrate with this API involve more manual steps. One flow could be:
 
 -   Deploy your unmodified module to an IoT Edge device
 -   Get the SAS key for the module ([Azure portal example](https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-csharp-csharp-module-twin-getstarted#update-the-module-twin-using-net-device-sdk))
@@ -61,10 +65,6 @@ SDK support for this new API isn't available in the private preview, so the step
 -   Add code to generate the SAS token for the module ([example](https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-dev-guide-sas?tabs=node#security-token-structure))
 -   Create an HttpClient to call the new API in the module ([similar to this](https://github.com/Azure/iotedge/blob/master/edge-hub/core/src/Microsoft.Azure.Devices.Edge.Hub.CloudProxy/NestedDeviceScopeApiClient.cs#L163))
 -   Create logic to react to the returned offer information, like enabling/disabling features in the module
-
-Here is a link to a simple sample that demonstrates how above steps are done [iotedge/edge-modules/TransactableModuleSample at feature/billing - Azure/iotedge (github.com)](https://github.com/Azure/iotedge/tree/feature/billing/edge-modules/TransactableModuleSample).
-
-In this sample, a large part of [PurchaseInfoProvider.cs](https://github.com/Azure/iotedge/blob/feature/billing/edge-modules/TransactableModuleSample/src/PurchaseInfoProvider.cs) is directly copied from [edge-util](https://github.com/Azure/iotedge/tree/master/edge-util/src/Microsoft.Azure.Devices.Edge.Util). This is a workaround to get the sample code to work while we finish the SDK integration. When the SDK integration is complete, you'll just need to make call to a built-in method GetPurchaseAsync, and it return the purchase status, publisher ID, offer ID, plan ID and validation time as specified.
 
 ## API specification 
 
