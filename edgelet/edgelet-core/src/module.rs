@@ -763,7 +763,7 @@ mod tests {
     use std::str::FromStr;
     use std::string::ToString;
 
-    use crate::error::ErrorKind;
+    use crate::error::Error;
     use crate::module::ModuleStatus;
 
     fn get_inputs() -> Vec<(&'static str, ModuleStatus)> {
@@ -804,7 +804,7 @@ mod tests {
         ) {
             Ok(_) => panic!("Expected error"),
             Err(err) => {
-                if let ErrorKind::InvalidModuleName(s) = err.kind() {
+                if let Error::InvalidModuleName(s) = err.downcast_ref().unwrap() {
                     assert_eq!(s, &name);
                 } else {
                     panic!("Expected `InvalidModuleName` but got {:?}", err);
@@ -825,7 +825,7 @@ mod tests {
         ) {
             Ok(_) => panic!("Expected error"),
             Err(err) => {
-                if let ErrorKind::InvalidModuleName(s) = err.kind() {
+                if let Error::InvalidModuleName(s) = err.downcast_ref().unwrap() {
                     assert_eq!(s, &name);
                 } else {
                     panic!("Expected `InvalidModuleName` but got {:?}", err);
@@ -846,7 +846,7 @@ mod tests {
         ) {
             Ok(_) => panic!("Expected error"),
             Err(err) => {
-                if let ErrorKind::InvalidModuleType(s) = err.kind() {
+                if let Error::InvalidModuleType(s) = err.downcast_ref().unwrap() {
                     assert_eq!(s, &type_);
                 } else {
                     panic!("Expected `InvalidModuleType` but got {:?}", err);
@@ -867,7 +867,7 @@ mod tests {
         ) {
             Ok(_) => panic!("Expected error"),
             Err(err) => {
-                if let ErrorKind::InvalidModuleType(s) = err.kind() {
+                if let Error::InvalidModuleType(s) = err.downcast_ref().unwrap() {
                     assert_eq!(s, &type_);
                 } else {
                     panic!("Expected `InvalidModuleType` but got {:?}", err);
