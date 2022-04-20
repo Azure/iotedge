@@ -4,15 +4,15 @@ use std::io::Write;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 
+use anyhow::Context;
 use chrono::{DateTime, Duration, TimeZone, Utc};
 use chrono_humanize::{Accuracy, HumanTime, Tense};
-use failure::{Fail, ResultExt};
 use tabwriter::TabWriter;
 
 use edgelet_core::{Module, ModuleRuntime, ModuleStatus as ModuleStatusEnum};
 use edgelet_http::ModuleStatus;
 
-use crate::error::{Error, ErrorKind};
+use crate::error::Error;
 use crate::MgmtModule;
 
 pub struct List<M, W> {
@@ -38,18 +38,18 @@ where
     M: ModuleRuntime<Module = MgmtModule>,
     W: Write,
 {
-    pub async fn execute(self) -> Result<(), Error> {
+    pub async fn execute(self) -> anyhow::Result<()> {
         let write = self.output.clone();
         let mut result = self
             .runtime
             .list_with_details()
             .await
-            .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))?;
+            .context(Error::ModuleRuntime)?;
 
         result.sort_by(|(mod1, _), (mod2, _)| mod1.name().cmp(mod2.name()));
 
         let mut w = write.lock().unwrap();
-        writeln!(w, "NAME\tSTATUS\tDESCRIPTION\tConfig").context(ErrorKind::WriteToStdout)?;
+        writeln!(w, "NAME\tSTATUS\tDESCRIPTION\tConfig").context(Error::WriteToStdout)?;
         for (module, _state) in result {
             writeln!(
                 w,
@@ -59,9 +59,9 @@ where
                 humanize_status(&module.details.status),
                 module.image
             )
-            .context(ErrorKind::WriteToStdout)?;
+            .context(Error::WriteToStdout)?;
         }
-        w.flush().context(ErrorKind::WriteToStdout)?;
+        w.flush().context(Error::WriteToStdout)?;
 
         Ok(())
     }

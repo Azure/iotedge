@@ -3,7 +3,7 @@
 use regex::Regex;
 use url::Url;
 
-#[derive(Debug, serde_derive::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub(crate) struct Provisioning {
     #[serde(flatten)]
@@ -13,7 +13,7 @@ pub(crate) struct Provisioning {
     pub(crate) dynamic_reprovisioning: bool,
 }
 
-#[derive(Debug, serde_derive::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "lowercase", tag = "source")]
 pub(crate) enum ProvisioningType {
     Manual(Manual),
@@ -31,7 +31,7 @@ impl<'de> serde::Deserialize<'de> for Manual {
     where
         D: serde::Deserializer<'de>,
     {
-        #[derive(Debug, serde_derive::Deserialize)]
+        #[derive(Debug, serde::Deserialize)]
         struct Inner {
             #[serde(skip_serializing_if = "Option::is_none")]
             device_connection_string: Option<String>,
@@ -63,7 +63,7 @@ impl<'de> serde::Deserialize<'de> for Manual {
         Ok(Manual { authentication })
     }
 }
-#[derive(Debug, serde_derive::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "lowercase", tag = "method")]
 pub(crate) enum ManualAuthMethod {
     #[serde(rename = "device_connection_string")]
@@ -154,7 +154,7 @@ impl<'de> serde::Deserialize<'de> for ManualDeviceConnectionString {
     where
         D: serde::Deserializer<'de>,
     {
-        #[derive(Debug, serde_derive::Deserialize)]
+        #[derive(Debug, serde::Deserialize)]
         #[serde(rename_all = "lowercase")]
         struct Inner {
             device_connection_string: String,
@@ -170,7 +170,7 @@ impl<'de> serde::Deserialize<'de> for ManualDeviceConnectionString {
     }
 }
 
-#[derive(Debug, serde_derive::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub(crate) struct ManualX509Auth {
     pub(crate) iothub_hostname: String,
@@ -192,7 +192,7 @@ impl<'de> serde::Deserialize<'de> for Dps {
     where
         D: serde::Deserializer<'de>,
     {
-        #[derive(Debug, serde_derive::Deserialize)]
+        #[derive(Debug, serde::Deserialize)]
         struct Inner {
             global_endpoint: Url,
             scope_id: String,
@@ -230,7 +230,7 @@ impl<'de> serde::Deserialize<'de> for Dps {
     }
 }
 
-#[derive(Debug, serde_derive::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "lowercase", tag = "method")]
 pub(crate) enum AttestationMethod {
     Tpm(TpmAttestationInfo),
@@ -241,13 +241,13 @@ pub(crate) enum AttestationMethod {
     X509(X509AttestationInfo),
 }
 
-#[derive(Debug, serde_derive::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub(crate) struct TpmAttestationInfo {
     pub(crate) registration_id: String,
 }
 
-#[derive(Debug, serde_derive::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub(crate) struct SymmetricKeyAttestationInfo {
     pub(crate) registration_id: String,
@@ -255,7 +255,7 @@ pub(crate) struct SymmetricKeyAttestationInfo {
     pub(crate) symmetric_key: Vec<u8>,
 }
 
-#[derive(Debug, serde_derive::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub(crate) struct X509AttestationInfo {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -266,7 +266,7 @@ pub(crate) struct X509AttestationInfo {
     pub(crate) identity_pk: Url,
 }
 
-#[derive(Debug, serde_derive::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 #[allow(dead_code)]
 pub(crate) struct External {
