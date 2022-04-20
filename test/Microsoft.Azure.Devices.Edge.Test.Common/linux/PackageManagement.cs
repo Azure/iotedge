@@ -47,15 +47,28 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     $"apt-get install -y --option DPkg::Lock::Timeout=600 {string.Join(' ', packages)}",
                     $"apt-get install -f --option DPkg::Lock::Timeout=600"
                 },
-                SupportedPackageExtension.Rpm => new[]
-                {
-                    "set -e",
-                    $"rpm --nodeps -i {string.Join(' ', packages)}",
-                    "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
-                    "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
-                    "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
-                    "sudo systemctl daemon-reload"
+                SupportedPackageExtension.Rpm => this.os switch {
+                    "centos" =>    new[]
+                    {
+                        "set -e",
+                        $"rpm --nodeps -i {string.Join(' ', packages)}",
+                        "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
+                        "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
+                        "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
+                        "sudo systemctl daemon-reload"
+                    },
+                    "rhel" => new[]
+                    {
+                        "set -e",
+                        $"rpm --nodeps -i {string.Join(' ', packages)}",
+                        "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
+                        "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
+                        "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
+                        "sudo systemctl daemon-reload"
+                    },
+                    _ =>  throw new NotImplementedException($"Don't know how to install daemon on for '.{this.os}'")
                 },
+                
                 _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.packageExtension}'"),
             };
         }
@@ -79,15 +92,31 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     $"apt-get update",
                     $"apt-get install --option DPkg::Lock::Timeout=600 --yes aziot-edge"
                 },
-                SupportedPackageExtension.Rpm => new[]
+                SupportedPackageExtension.Rpm => this.os switch {
+                    "centos" =>    new[]
+                    {
+                        $"rpm -iv --replacepkgs https://packages.microsoft.com/config/{this.os}/{this.version}/packages-microsoft-prod.rpm",
+                        $"yum updateinfo",
+                        $"yum install -y aziot-edge",
+                        "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
+                        "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
+                        "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
+                        "sudo systemctl daemon-reload"
+                    },
+                    "rhel" => new[]
+                    {
+                        $"rpm -iv --replacepkgs https://packages.microsoft.com/config/{this.os}/{this.version}/packages-microsoft-prod.rpm",
+                        $"sudo dnf updateinfo",
+                        $"sudo dnf install -y aziot-edge",
+                        "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
+                        "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
+                        "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
+                        "sudo systemctl daemon-reload"
+                    },
+                    _ =>  throw new NotImplementedException($"Don't know how to install daemon on for '.{this.os}'")
+                }, new[]
                 {
-                    $"rpm -iv --replacepkgs https://packages.microsoft.com/config/{this.os}/{this.version}/packages-microsoft-prod.rpm",
-                    $"yum updateinfo",
-                    $"yum install -y aziot-edge",
-                    "pathToSystemdConfig=$(systemctl cat aziot-edge | head -n 1)",
-                    "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
-                    "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
-                    "sudo systemctl daemon-reload"
+
                 },
                 _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.packageExtension}'"),
             };
