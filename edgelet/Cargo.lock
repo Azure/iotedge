@@ -707,13 +707,13 @@ checksum = "134951f4028bdadb9b84baf4232681efbf277da25144b9b0ad65df75946c422b"
 name = "edgelet-core"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "aziotctl-common",
  "base64 0.9.3",
  "bytes 0.4.12",
  "chrono",
  "consistenttime",
  "edgelet-utils",
- "failure",
  "futures",
  "humantime 2.1.0",
  "lazy_static",
@@ -727,6 +727,7 @@ dependencies = [
  "serde_with",
  "sha2",
  "test-case",
+ "thiserror",
  "tokio",
  "url 2.1.1",
  "url_serde",
@@ -884,12 +885,12 @@ name = "edgelet-utils"
 version = "0.1.0"
 dependencies = [
  "config",
- "failure",
  "futures",
  "log",
  "serde",
  "serde_derive",
  "serde_json",
+ "thiserror",
  "yaml-rust",
 ]
 

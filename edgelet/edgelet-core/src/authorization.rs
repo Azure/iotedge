@@ -11,12 +11,9 @@ impl fmt::Display for ModuleId {
     }
 }
 
-impl<T> PartialEq<T> for ModuleId
-where
-    T: AsRef<str>,
-{
-    fn eq(&self, other: &T) -> bool {
-        self.0 == other.as_ref()
+impl AsRef<str> for ModuleId {
+    fn as_ref(&self) -> &str {
+        self.0.as_ref()
     }
 }
 
@@ -78,7 +75,7 @@ impl Policy {
             |name| match auth_id {
                 AuthId::None => false,
                 AuthId::Any => true,
-                AuthId::Value(module) => module == name,
+                AuthId::Value(module) => module.as_ref() == name,
             },
         )
     }

@@ -2,10 +2,9 @@
 
 use std::fmt;
 
-use failure::Fail;
 use futures::Future;
 
-#[derive(Clone, Copy, Debug, serde_derive::Deserialize, PartialEq, serde_derive::Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, serde_derive::Deserialize, serde_derive::Serialize)]
 pub enum AuthType {
     None,
     Sas,
@@ -70,12 +69,11 @@ impl IdentitySpec {
 
 pub trait IdentityManager {
     type Identity: Identity;
-    type Error: Fail;
-    type CreateFuture: Future<Item = Self::Identity, Error = Self::Error> + Send;
-    type UpdateFuture: Future<Item = Self::Identity, Error = Self::Error> + Send;
-    type ListFuture: Future<Item = Vec<Self::Identity>, Error = Self::Error> + Send;
-    type GetFuture: Future<Item = Option<Self::Identity>, Error = Self::Error> + Send;
-    type DeleteFuture: Future<Item = (), Error = Self::Error> + Send;
+    type CreateFuture: Future<Item = Self::Identity, Error = anyhow::Error> + Send;
+    type UpdateFuture: Future<Item = Self::Identity, Error = anyhow::Error> + Send;
+    type ListFuture: Future<Item = Vec<Self::Identity>, Error = anyhow::Error> + Send;
+    type GetFuture: Future<Item = Option<Self::Identity>, Error = anyhow::Error> + Send;
+    type DeleteFuture: Future<Item = (), Error = anyhow::Error> + Send;
 
     fn create(&mut self, id: IdentitySpec) -> Self::CreateFuture;
     fn update(&mut self, id: IdentitySpec) -> Self::UpdateFuture;

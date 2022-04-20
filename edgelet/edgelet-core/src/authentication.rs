@@ -5,9 +5,8 @@ use futures::Future;
 use crate::AuthId;
 
 pub trait Authenticator {
-    type Error;
     type Request;
-    type AuthenticateFuture: Future<Item = AuthId, Error = Self::Error> + Send;
+    type AuthenticateFuture: Future<Item = AuthId, Error = anyhow::Error> + Send;
 
     fn authenticate(&self, req: &Self::Request) -> Self::AuthenticateFuture;
 }

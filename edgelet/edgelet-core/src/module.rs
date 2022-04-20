@@ -3,23 +3,22 @@
 use std::collections::BTreeMap;
 use std::default::Default;
 use std::fmt;
-use std::result::Result as StdResult;
 use std::str::FromStr;
 use std::string::ToString;
 use std::time::Duration;
 
+use anyhow::Context;
 use chrono::prelude::*;
-use failure::{Fail, ResultExt};
 use futures::sync::mpsc::UnboundedSender;
 use futures::{Future, Stream};
 use serde_derive::Serialize;
 use serde_with::skip_serializing_none;
 
 use aziotctl_common::host_info::{DmiInfo, OsInfo};
-use edgelet_utils::ensure_not_empty_with_context;
+use edgelet_utils::ensure_not_empty;
 use futures::sync::oneshot::Sender;
 
-use crate::error::{Error, ErrorKind, Result};
+use crate::error::Error;
 use crate::settings::RuntimeSettings;
 
 #[derive(Clone, Copy, Debug, serde_derive::Deserialize, PartialEq, serde_derive::Serialize)]
@@ -41,7 +40,7 @@ pub enum ModuleAction {
 impl FromStr for ModuleStatus {
     type Err = serde_json::Error;
 
-    fn from_str(s: &str) -> StdResult<Self, Self::Err> {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         serde_json::from_str(&format!("\"{}\"", s))
     }
 }
@@ -210,9 +209,11 @@ impl<T> ModuleSpec<T> {
         config: T,
         env: BTreeMap<String, String>,
         image_pull_policy: ImagePullPolicy,
-    ) -> Result<Self> {
-        ensure_not_empty_with_context(&name, || ErrorKind::InvalidModuleName(name.clone()))?;
-        ensure_not_empty_with_context(&type_, || ErrorKind::InvalidModuleType(type_.clone()))?;
+    ) -> anyhow::Result<Self> {
+        ensure_not_empty(&name)
+            .with_context(|| Error::InvalidModuleName(name.clone()))?;
+        ensure_not_empty(&type_)
+            .with_context(|| Error::InvalidModuleType(type_.clone()))?;
 
         Ok(ModuleSpec {
             name,
@@ -294,27 +295,28 @@ impl Default for LogTail {
 }
 
 impl FromStr for LogTail {
-    type Err = Error;
+    type Err = anyhow::Error;
 
-    fn from_str(s: &str) -> Result<Self> {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         let tail = if s == "all" {
             LogTail::All
         } else {
             let num = s
                 .parse::<u64>()
-                .with_context(|_| ErrorKind::InvalidLogTail(s.to_string()))?;
+                .with_context(|| Error::InvalidLogTail(s.to_string()))?;
             LogTail::Num(num)
         };
         Ok(tail)
     }
 }
 
-impl ToString for LogTail {
-    fn to_string(&self) -> String {
-        match self {
+impl fmt::Display for LogTail {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
             LogTail::All => "all".to_string(),
             LogTail::Num(n) => n.to_string(),
-        }
+        };
+        write!(f, "{}", s)
     }
 }
 
@@ -386,8 +388,7 @@ impl LogOptions {
 
 pub trait Module {
     type Config;
-    type Error: Fail;
-    type RuntimeStateFuture: Future<Item = ModuleRuntimeState, Error = Self::Error> + Send;
+    type RuntimeStateFuture: Future<Item = ModuleRuntimeState, Error = anyhow::Error> + Send;
 
     fn name(&self) -> &str;
     fn type_(&self) -> &str;
@@ -396,9 +397,8 @@ pub trait Module {
 }
 
 pub trait ModuleRegistry {
-    type Error: Fail;
-    type PullFuture: Future<Item = (), Error = Self::Error> + Send;
-    type RemoveFuture: Future<Item = (), Error = Self::Error>;
+    type PullFuture: Future<Item = (), Error = anyhow::Error> + Send;
+    type RemoveFuture: Future<Item = (), Error = anyhow::Error>;
     type Config;
 
     fn pull(&self, config: &Self::Config) -> Self::PullFuture;
@@ -434,7 +434,7 @@ pub struct SystemInfo {
 }
 
 impl SystemInfo {
-    pub fn from_system() -> Result<Self> {
+    pub fn from_system() -> Self {
         let kernel = nix::sys::utsname::uname();
         let dmi = DmiInfo::default();
         let os = OsInfo::default();
@@ -471,7 +471,7 @@ impl SystemInfo {
             additional_properties: BTreeMap::new(),
         };
 
-        Ok(res)
+        res
     }
 
     pub fn merge_additional(&mut self, mut additional_info: BTreeMap<String, String>) -> &Self {
@@ -605,8 +605,7 @@ pub trait MakeModuleRuntime {
     type Config: Clone + Send;
     type Settings: RuntimeSettings<Config = Self::Config>;
     type ModuleRuntime: ModuleRuntime<Config = Self::Config>;
-    type Error: Fail;
-    type Future: Future<Item = Self::ModuleRuntime, Error = Self::Error> + Send;
+    type Future: Future<Item = Self::ModuleRuntime, Error = anyhow::Error> + Send;
 
     fn make_runtime(
         settings: Self::Settings,
@@ -615,28 +614,26 @@ pub trait MakeModuleRuntime {
 }
 
 pub trait ModuleRuntime: Sized {
-    type Error: Fail;
-
     type Config: Clone + Send;
     type Module: Module<Config = Self::Config> + Send;
-    type ModuleRegistry: ModuleRegistry<Config = Self::Config, Error = Self::Error>;
+    type ModuleRegistry: ModuleRegistry<Config = Self::Config>;
     type Chunk: AsRef<[u8]>;
-    type Logs: Stream<Item = Self::Chunk, Error = Self::Error> + Send;
+    type Logs: Stream<Item = Self::Chunk, Error = anyhow::Error> + Send;
 
-    type CreateFuture: Future<Item = (), Error = Self::Error> + Send;
-    type GetFuture: Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send;
-    type ListFuture: Future<Item = Vec<Self::Module>, Error = Self::Error> + Send;
-    type ListWithDetailsStream: Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error>
+    type CreateFuture: Future<Item = (), Error = anyhow::Error> + Send;
+    type GetFuture: Future<Item = (Self::Module, ModuleRuntimeState), Error = anyhow::Error> + Send;
+    type ListFuture: Future<Item = Vec<Self::Module>, Error = anyhow::Error> + Send;
+    type ListWithDetailsStream: Stream<Item = (Self::Module, ModuleRuntimeState), Error = anyhow::Error>
         + Send;
-    type LogsFuture: Future<Item = Self::Logs, Error = Self::Error> + Send;
-    type RemoveFuture: Future<Item = (), Error = Self::Error> + Send;
-    type RestartFuture: Future<Item = (), Error = Self::Error> + Send;
-    type StartFuture: Future<Item = (), Error = Self::Error> + Send;
-    type StopFuture: Future<Item = (), Error = Self::Error> + Send;
-    type SystemInfoFuture: Future<Item = SystemInfo, Error = Self::Error> + Send;
-    type SystemResourcesFuture: Future<Item = SystemResources, Error = Self::Error> + Send;
-    type RemoveAllFuture: Future<Item = (), Error = Self::Error> + Send;
-    type StopAllFuture: Future<Item = (), Error = Self::Error> + Send;
+    type LogsFuture: Future<Item = Self::Logs, Error = anyhow::Error> + Send;
+    type RemoveFuture: Future<Item = (), Error = anyhow::Error> + Send;
+    type RestartFuture: Future<Item = (), Error = anyhow::Error> + Send;
+    type StartFuture: Future<Item = (), Error = anyhow::Error> + Send;
+    type StopFuture: Future<Item = (), Error = anyhow::Error> + Send;
+    type SystemInfoFuture: Future<Item = SystemInfo, Error = anyhow::Error> + Send;
+    type SystemResourcesFuture: Future<Item = SystemResources, Error = anyhow::Error> + Send;
+    type RemoveAllFuture: Future<Item = (), Error = anyhow::Error> + Send;
+    type StopAllFuture: Future<Item = (), Error = anyhow::Error> + Send;
 
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture;
     fn get(&self, id: &str) -> Self::GetFuture;
@@ -747,13 +744,13 @@ impl Default for ImagePullPolicy {
 impl FromStr for ImagePullPolicy {
     type Err = Error;
 
-    fn from_str(s: &str) -> StdResult<ImagePullPolicy, Self::Err> {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
             "on-create" => Ok(ImagePullPolicy::OnCreate),
             "never" => Ok(ImagePullPolicy::Never),
-            _ => Err(Error::from(ErrorKind::InvalidImagePullPolicy(
+            _ => Err(Error::InvalidImagePullPolicy(
                 s.to_string(),
-            ))),
+            )),
         }
     }
 }

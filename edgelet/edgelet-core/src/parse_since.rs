@@ -1,27 +1,27 @@
 use std::convert::TryInto;
 
+use anyhow::Context;
 use chrono::{DateTime, Duration, Local};
-use failure::ResultExt;
 use humantime::parse_duration;
 
-use crate::error::{Error, ErrorKind};
+use crate::error::Error;
 
-pub fn parse_since(since: &str) -> Result<i32, Error> {
+pub fn parse_since(since: &str) -> anyhow::Result<i32> {
     if let Ok(datetime) = DateTime::parse_from_rfc3339(since) {
         let temp: Result<i32, _> = datetime.timestamp().try_into();
-        Ok(temp.context(ErrorKind::ParseSince)?)
+        Ok(temp.context(Error::ParseSince)?)
     } else if let Ok(epoch) = since.parse() {
         Ok(epoch)
     } else if let Ok(duration) = parse_duration(since) {
         let nano: Result<i64, _> = duration.as_nanos().try_into();
-        let nano = nano.context(ErrorKind::ParseSince)?;
+        let nano = nano.context(Error::ParseSince)?;
 
         let temp: Result<i32, _> = (Local::now() - Duration::nanoseconds(nano))
             .timestamp()
             .try_into();
-        Ok(temp.context(ErrorKind::ParseSince)?)
+        Ok(temp.context(Error::ParseSince)?)
     } else {
-        Err(Error::from(ErrorKind::ParseSince))
+        Err(Error::ParseSince.into())
     }
 }
 

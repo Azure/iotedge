@@ -6,12 +6,12 @@ publish = false
 edition = "2018"
 
 [dependencies]
+anyhow = "1"
 base64 = "0.9"
 bytes = "0.4"
 chrono = { version = "0.4", features = ["serde"] }
 consistenttime = "0.2.0"
 futures = "0.1"
-failure = "0.1"
 humantime = "2"
 lazy_static = "1.0"
 nix = "0.23"
@@ -25,6 +25,7 @@ sha2 = "0.7.0"
 log = "0.4"
 url = { version = "2", features = ["serde"] }
 url_serde = "0.2"
+thiserror = "1"
 tokio = "0.1"
 
 aziotctl-common = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.2" }
