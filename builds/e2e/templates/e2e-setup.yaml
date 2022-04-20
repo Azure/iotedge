@@ -137,40 +137,40 @@ steps:
       https_proxy: $(Agent.ProxyUrl)
     displayName: Build tests
     
-  - pwsh: |
-      $manifestSignerClientDir = '$(Build.SourcesDirectory)/samples/dotnet/ManifestSignerClient'
-      dotnet build $manifestSignerClientDir
-      $manifestSignerClientBinDir = Convert-Path "$manifestSignerClientDir/bin/Debug/net6.0"
-      Write-Output "##vso[task.setvariable variable=manifestSignerClientDir]$manifestSignerClientDir"
-      Write-Output "##vso[task.setvariable variable=manifestSignerClientBinDir]$manifestSignerClientBinDir"
-      $manifestSigningTestDir = '$(System.ArtifactsDirectory)/manifest_signing'
-      $manifestSigningDeploymentDir = '$(System.ArtifactsDirectory)/manifest_signing/deployment'
-      Write-Output "##vso[task.setvariable variable=manifestSigningDeploymentDir]$manifestSigningDeploymentDir"
-      $manifestSigningCertDir = '$(System.ArtifactsDirectory)/manifest_signing/certs'
-      $contentTrustCertDir = '$(System.ArtifactsDirectory)/content_trust/certs'
-      New-Item "$manifestSigningCertDir" -ItemType Directory -Force | Out-Null
-      New-Item "$contentTrustCertDir" -ItemType Directory -Force | Out-Null
-      New-Item "$manifestSigningDeploymentDir" -ItemType Directory -Force | Out-Null
-      New-Item -Path "$manifestSigningDeploymentDir/deployment.json" -ItemType File
-      New-Item -Path "$manifestSigningDeploymentDir/signed_deployment.json" -ItemType File
-      $env:GOOD_ROOT_CA_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/good_root_ca.pem"
-      $env:BAD_ROOT_CA_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/bad_root_ca.pem"
-      $env:INTERMEDIATE_CA_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/intermediate_ca.pem"
-      $env:SIGNER_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/signer_cert.pem"
-      $env:SIGNER_KEY | Out-File -Encoding Utf8 "$manifestSigningCertDir/signer_key.key"
-      $env:CONTENT_TRUST_ROOT_CA_CERT | Out-File -Encoding Utf8 "$contentTrustCertDir/content_trust_root_ca.pem"
-      Write-Output "##vso[task.setvariable variable=manifestSigningCertDir]$manifestSigningCertDir"
-      Write-Output "##vso[task.setvariable variable=contentTrustCertDir]$contentTrustCertDir"
-    displayName: Manifest Trust Setup 
-    env:
-      GOOD_ROOT_CA_CERT: $(TestManifestSigningGoodRootCa)
-      BAD_ROOT_CA_CERT: $(TestManifestSigningBadRootCa)
-      INTERMEDIATE_CA_CERT: $(TestManifestSigningIntermediateCa)
-      SIGNER_CERT: $(TestManifestSigningSignerCert)
-      SIGNER_KEY: $(TestManifestSigningSignerKey)
-      CONTENT_TRUST_ROOT_CA_CERT : $(TestContentTrustRootCa)
-      http_proxy: $(Agent.ProxyUrl)
-      https_proxy: $(Agent.ProxyUrl)
+  # - pwsh: |
+  #     $manifestSignerClientDir = '$(Build.SourcesDirectory)/samples/dotnet/ManifestSignerClient'
+  #     dotnet build $manifestSignerClientDir
+  #     $manifestSignerClientBinDir = Convert-Path "$manifestSignerClientDir/bin/Debug/net6.0"
+  #     Write-Output "##vso[task.setvariable variable=manifestSignerClientDir]$manifestSignerClientDir"
+  #     Write-Output "##vso[task.setvariable variable=manifestSignerClientBinDir]$manifestSignerClientBinDir"
+  #     $manifestSigningTestDir = '$(System.ArtifactsDirectory)/manifest_signing'
+  #     $manifestSigningDeploymentDir = '$(System.ArtifactsDirectory)/manifest_signing/deployment'
+  #     Write-Output "##vso[task.setvariable variable=manifestSigningDeploymentDir]$manifestSigningDeploymentDir"
+  #     $manifestSigningCertDir = '$(System.ArtifactsDirectory)/manifest_signing/certs'
+  #     $contentTrustCertDir = '$(System.ArtifactsDirectory)/content_trust/certs'
+  #     New-Item "$manifestSigningCertDir" -ItemType Directory -Force | Out-Null
+  #     New-Item "$contentTrustCertDir" -ItemType Directory -Force | Out-Null
+  #     New-Item "$manifestSigningDeploymentDir" -ItemType Directory -Force | Out-Null
+  #     New-Item -Path "$manifestSigningDeploymentDir/deployment.json" -ItemType File
+  #     New-Item -Path "$manifestSigningDeploymentDir/signed_deployment.json" -ItemType File
+  #     $env:GOOD_ROOT_CA_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/good_root_ca.pem"
+  #     $env:BAD_ROOT_CA_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/bad_root_ca.pem"
+  #     $env:INTERMEDIATE_CA_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/intermediate_ca.pem"
+  #     $env:SIGNER_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/signer_cert.pem"
+  #     $env:SIGNER_KEY | Out-File -Encoding Utf8 "$manifestSigningCertDir/signer_key.key"
+  #     $env:CONTENT_TRUST_ROOT_CA_CERT | Out-File -Encoding Utf8 "$contentTrustCertDir/content_trust_root_ca.pem"
+  #     Write-Output "##vso[task.setvariable variable=manifestSigningCertDir]$manifestSigningCertDir"
+  #     Write-Output "##vso[task.setvariable variable=contentTrustCertDir]$contentTrustCertDir"
+  #   displayName: Manifest Trust Setup 
+  #   env:
+  #     GOOD_ROOT_CA_CERT: $(TestManifestSigningGoodRootCa)
+  #     BAD_ROOT_CA_CERT: $(TestManifestSigningBadRootCa)
+  #     INTERMEDIATE_CA_CERT: $(TestManifestSigningIntermediateCa)
+  #     SIGNER_CERT: $(TestManifestSigningSignerCert)
+  #     SIGNER_KEY: $(TestManifestSigningSignerKey)
+  #     CONTENT_TRUST_ROOT_CA_CERT : $(TestContentTrustRootCa)
+  #     http_proxy: $(Agent.ProxyUrl)
+  #     https_proxy: $(Agent.ProxyUrl)
 
   - pwsh: |
       $imageId = Get-Content -Encoding Utf8 `
