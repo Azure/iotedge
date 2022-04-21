@@ -150,7 +150,7 @@ function provision_edge_device() {
 
 function create_edge_deployment() {
     sudo apt-get install -y uuid
-    DEPLOYMENT_ID=iotedge-benchmarking-$(uuidgen)
+    DEPLOYMENT_ID=iotedge-benchmarking-$(uuid)
     cp "$DEPLOYMENT_FILE_NAME" $TEMP_DEPLOYMENT_FILE
     sed -i -e "s@<CR.Address>@$REGISTRY_ADDRESS@g" "$TEMP_DEPLOYMENT_FILE"
     sed -i -e "s@<CR.UserName>@$REGISTRY_USERNAME@g" "$TEMP_DEPLOYMENT_FILE"
