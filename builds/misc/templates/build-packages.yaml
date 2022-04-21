@@ -189,7 +189,6 @@ stages:
               ARTIFACT_NAME: 'packages_mariner_$(arch)'
               PACKAGE_FILTER: 'aziot-identity-service-*.cm1.$(MARINER_ARCH).rpm'
               DOWNLOAD_PATH: $(Build.StagingDirectory)
-              IDENTITY_SERVICE_COMMIT: 'fb2770eb60f7d87f4f6c6dc1ea51bdff1bf74e1c'
           - script: edgelet/build/linux/package-mariner.sh
             displayName: Create iotedged packages
           - task: CopyFiles@2
