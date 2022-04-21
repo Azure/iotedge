@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use failure::ResultExt;
+use anyhow::Context;
 
 use docker::models::{AuthConfig, ContainerCreateBody};
 use edgelet_core::module::NestedEdgeBodge;
-use edgelet_utils::{ensure_not_empty_with_context, serde_clone};
+use edgelet_utils::{ensure_not_empty, serde_clone};
 
-use crate::error::{ErrorKind, Result};
+use crate::error::Error;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DockerConfig {
     pub image: String,
@@ -29,8 +29,9 @@ impl DockerConfig {
         create_options: ContainerCreateBody,
         digest: Option<String>,
         auth: Option<AuthConfig>,
-    ) -> Result<Self> {
-        ensure_not_empty_with_context(&image, || ErrorKind::InvalidImage(image.clone()))?;
+    ) -> anyhow::Result<Self> {
+        ensure_not_empty(&image)
+            .with_context(|| Error::InvalidImage(image.clone()))?;
 
         let config = DockerConfig {
             image,
@@ -42,8 +43,8 @@ impl DockerConfig {
         Ok(config)
     }
 
-    pub fn clone_create_options(&self) -> Result<ContainerCreateBody> {
-        Ok(serde_clone(&self.create_options).context(ErrorKind::CloneCreateOptions)?)
+    pub fn clone_create_options(&self) -> anyhow::Result<ContainerCreateBody> {
+        Ok(serde_clone(&self.create_options).context(Error::CloneCreateOptions)?)
     }
 
     pub fn image(&self) -> &str {

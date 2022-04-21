@@ -685,8 +685,8 @@ checksum = "fea41bba32d969b513997752735605054bc0dfa92b4c56bf1189f2e174be7a10"
 name = "docker"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "base64 0.9.3",
- "failure",
  "futures",
  "hyper",
  "serde",
@@ -737,6 +737,7 @@ dependencies = [
 name = "edgelet-docker"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "aziot-cert-common-http",
  "base64 0.9.3",
  "cert-client",
@@ -747,7 +748,6 @@ dependencies = [
  "edgelet-http",
  "edgelet-test-utils",
  "edgelet-utils",
- "failure",
  "futures",
  "hyper",
  "lazy_static",
@@ -760,6 +760,7 @@ dependencies = [
  "sysinfo",
  "tempdir",
  "tempfile",
+ "thiserror",
  "time",
  "tokio",
  "tokio-threadpool",

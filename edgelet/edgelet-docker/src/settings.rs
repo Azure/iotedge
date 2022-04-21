@@ -3,17 +3,17 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
+use anyhow::Context;
 use docker::models::{ContainerCreateBodyNetworkingConfig, EndpointSettings, HostConfig};
 use edgelet_core::{
     settings::AutoReprovisioningMode, Connect, Endpoints, Listen, MobyNetwork, ModuleSpec,
     RuntimeSettings, Settings as BaseSettings, UrlExt, WatchdogSettings,
 };
-use failure::{Context, Fail, ResultExt};
 
 use url::Url;
 
 use crate::config::DockerConfig;
-use crate::error::{Error, ErrorKind};
+use crate::error::Error;
 
 /// This is the key for the docker network Id.
 const EDGE_NETWORKID_KEY: &str = "NetworkId";
@@ -72,7 +72,7 @@ impl Settings {
     ///
     /// Configuration is made up of /etc/aziot/edged/config.toml (overridden by the `AZIOT_EDGED_CONFIG` env var)
     /// and any files in the /etc/aziot/edged/config.d directory (overridden by the `AZIOT_EDGED_CONFIG_DIR` env var).
-    pub fn new() -> Result<Self, LoadSettingsError> {
+    pub fn new() -> anyhow::Result<Self> {
         const CONFIG_ENV_VAR: &str = "AZIOT_EDGED_CONFIG";
         const CONFIG_DIRECTORY_ENV_VAR: &str = "AZIOT_EDGED_CONFIG_DIR";
         const CONFIG_DIRECTORY_DEFAULT: &str = "/etc/aziot/edged/config.d";
@@ -85,7 +85,7 @@ impl Settings {
 
         let mut settings: Settings =
             config_common::read_config(&config_path, Some(&config_directory_path))
-                .map_err(|err| LoadSettingsError(Context::new(Box::new(err))))?;
+                .context(LoadSettingsError)?;
 
         init_agent_spec(&mut settings)?;
 
@@ -153,7 +153,7 @@ impl RuntimeSettings for Settings {
     }
 }
 
-fn init_agent_spec(settings: &mut Settings) -> Result<(), LoadSettingsError> {
+fn init_agent_spec(settings: &mut Settings) -> anyhow::Result<()> {
     // setup vol mounts for workload/management sockets
     agent_vol_mount(settings)?;
 
@@ -168,8 +168,8 @@ fn init_agent_spec(settings: &mut Settings) -> Result<(), LoadSettingsError> {
     Ok(())
 }
 
-fn agent_vol_mount(settings: &mut Settings) -> Result<(), LoadSettingsError> {
-    let create_options = settings.agent().config().clone_create_options()?;
+fn agent_vol_mount(settings: &mut Settings) -> anyhow::Result<()> {
+    let create_options = settings.agent().config().clone_create_options().context(LoadSettingsError)?;
     let host_config = create_options
         .host_config()
         .cloned()
@@ -179,10 +179,12 @@ fn agent_vol_mount(settings: &mut Settings) -> Result<(), LoadSettingsError> {
     let home_dir = settings
         .homedir()
         .to_str()
-        .ok_or_else(|| ErrorKind::InvalidHomeDirPath)?;
+        .context(Error::InvalidHomeDirPath)
+        .context(LoadSettingsError)?;
 
     let workload_listen_uri = &Listen::workload_uri(home_dir, settings.agent().name())
-        .map_err(|err| err.context(ErrorKind::InvalidHomeDirPath))?;
+        .context(Error::InvalidHomeDirPath)
+        .context(LoadSettingsError)?;
 
     let workload_connect_uri = settings.connect().workload_uri();
 
@@ -196,8 +198,8 @@ fn agent_vol_mount(settings: &mut Settings) -> Result<(), LoadSettingsError> {
         (workload_listen_uri, workload_connect_uri),
     ] {
         if connect_uri.scheme() == UNIX_SCHEME {
-            let source_path = get_path_from_uri(listen_uri)?;
-            let target_path = get_path_from_uri(connect_uri)?;
+            let source_path = get_path_from_uri(listen_uri).context(LoadSettingsError)?;
+            let target_path = get_path_from_uri(connect_uri).context(LoadSettingsError)?;
 
             let bind = format!("{}:{}", &source_path, &target_path);
             if !binds.contains(&bind) {
@@ -219,13 +221,13 @@ fn agent_vol_mount(settings: &mut Settings) -> Result<(), LoadSettingsError> {
     Ok(())
 }
 
-fn get_path_from_uri(uri: &Url) -> Result<String, LoadSettingsError> {
+fn get_path_from_uri(uri: &Url) -> anyhow::Result<String> {
     let path = uri
         .to_uds_file_path()
-        .context(ErrorKind::InvalidSocketUri(uri.to_string()))?;
+        .context(Error::InvalidSocketUri(uri.to_string()))?;
     Ok(path
         .to_str()
-        .ok_or_else(|| ErrorKind::InvalidSocketUri(uri.to_string()))?
+        .with_context(|| Error::InvalidSocketUri(uri.to_string()))?
         .to_string())
 }
 
@@ -237,10 +239,10 @@ fn agent_env(settings: &mut Settings) {
         .insert(EDGE_NETWORKID_KEY.to_string(), network_id);
 }
 
-fn agent_networking(settings: &mut Settings) -> Result<(), LoadSettingsError> {
+fn agent_networking(settings: &mut Settings) -> anyhow::Result<()> {
     let network_id = settings.moby_runtime().network().name().to_string();
 
-    let create_options = settings.agent().config().clone_create_options()?;
+    let create_options = settings.agent().config().clone_create_options().context(LoadSettingsError)?;
 
     let mut network_config = create_options
         .networking_config()
@@ -266,7 +268,7 @@ fn agent_networking(settings: &mut Settings) -> Result<(), LoadSettingsError> {
     Ok(())
 }
 
-fn agent_labels(settings: &mut Settings) -> Result<(), LoadSettingsError> {
+fn agent_labels(settings: &mut Settings) -> anyhow::Result<()> {
     let create_options = settings.agent().config().clone_create_options()?;
 
     let mut labels = create_options
@@ -292,39 +294,9 @@ fn agent_labels(settings: &mut Settings) -> Result<(), LoadSettingsError> {
     Ok(())
 }
 
-#[derive(Debug, Fail)]
-#[fail(display = "Could not load settings")]
-pub struct LoadSettingsError(#[cause] Context<Box<dyn std::fmt::Display + Send + Sync>>);
-
-impl From<std::io::Error> for LoadSettingsError {
-    fn from(err: std::io::Error) -> Self {
-        LoadSettingsError(Context::new(Box::new(err)))
-    }
-}
-
-impl From<serde_json::Error> for LoadSettingsError {
-    fn from(err: serde_json::Error) -> Self {
-        LoadSettingsError(Context::new(Box::new(err)))
-    }
-}
-
-impl From<Error> for LoadSettingsError {
-    fn from(err: Error) -> Self {
-        LoadSettingsError(Context::new(Box::new(err)))
-    }
-}
-
-impl From<Context<ErrorKind>> for LoadSettingsError {
-    fn from(inner: Context<ErrorKind>) -> Self {
-        From::from(Error::from(inner))
-    }
-}
-
-impl From<ErrorKind> for LoadSettingsError {
-    fn from(kind: ErrorKind) -> Self {
-        From::from(Error::from(kind))
-    }
-}
+#[derive(Debug, thiserror::Error)]
+#[error("Could not load settings")]
+pub struct LoadSettingsError;
 
 #[cfg(test)]
 mod tests {

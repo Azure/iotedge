@@ -2,8 +2,8 @@
 
 use std::str::FromStr;
 
+use anyhow::Context;
 use chrono::prelude::*;
-use failure::ResultExt;
 use futures::Future;
 use hyper::client::connect::Connect;
 
@@ -11,11 +11,11 @@ use docker::models::{InlineResponse2001, InlineResponse200State};
 use edgelet_core::{
     Module, ModuleOperation, ModuleRuntimeState, ModuleStatus, ModuleTop, RuntimeOperation,
 };
-use edgelet_utils::ensure_not_empty_with_context;
+use edgelet_utils::ensure_not_empty;
 
 use crate::client::DockerClient;
 use crate::config::DockerConfig;
-use crate::error::{Error, ErrorKind, Result};
+use crate::error::Error;
 
 type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
@@ -38,8 +38,8 @@ where
 }
 
 impl<C: 'static + Connect> DockerModule<C> {
-    pub fn new(client: DockerClient<C>, name: String, config: DockerConfig) -> Result<Self> {
-        ensure_not_empty_with_context(&name, || ErrorKind::InvalidModuleName(name.clone()))?;
+    pub fn new(client: DockerClient<C>, name: String, config: DockerConfig) -> anyhow::Result<Self> {
+        ensure_not_empty(&name).with_context(|| Error::InvalidModuleName(name.clone()))?;
 
         Ok(DockerModule {
             client,
@@ -51,13 +51,13 @@ impl<C: 'static + Connect> DockerModule<C> {
 
 pub trait DockerModuleTop {
     type Error;
-    type ModuleTopFuture: Future<Item = ModuleTop, Error = Self::Error> + Send;
+    type ModuleTopFuture: Future<Item = ModuleTop, Error = anyhow::Error> + Send;
 
     fn top(&self) -> Self::ModuleTopFuture;
 }
 
 impl<C: 'static + Connect> DockerModuleTop for DockerModule<C> {
-    type Error = Error;
+    type Error = anyhow::Error;
     type ModuleTopFuture = Box<dyn Future<Item = ModuleTop, Error = Self::Error> + Send>;
 
     fn top(&self) -> Self::ModuleTopFuture {
@@ -68,15 +68,14 @@ impl<C: 'static + Connect> DockerModuleTop for DockerModule<C> {
                 .container_top(&id, "")
                 .then(|result| match result {
                     Ok(resp) => {
-                        let p = parse_top_response::<Deserializer>(&resp).with_context(|_| {
-                            ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id.clone()))
+                        let p = parse_top_response::<Deserializer>(&resp).with_context(|| {
+                            Error::RuntimeOperation(RuntimeOperation::TopModule(id.clone()))
                         })?;
                         Ok(ModuleTop::new(id, p))
                     }
                     Err(err) => {
-                        let err = Error::from_docker_error(
-                            err,
-                            ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id)),
+                        let err = anyhow::Error::from(Error::from(err)).context(
+                            Error::RuntimeOperation(RuntimeOperation::TopModule(id)),
                         );
                         Err(err)
                     }
@@ -173,9 +172,8 @@ pub fn runtime_state(
 
 impl<C: 'static + Connect> Module for DockerModule<C> {
     type Config = DockerConfig;
-    type Error = Error;
     type RuntimeStateFuture =
-        Box<dyn Future<Item = ModuleRuntimeState, Error = Self::Error> + Send>;
+        Box<dyn Future<Item = ModuleRuntimeState, Error = anyhow::Error> + Send>;
 
     fn name(&self) -> &str {
         &self.name
@@ -196,9 +194,8 @@ impl<C: 'static + Connect> Module for DockerModule<C> {
                 .container_inspect(&self.name, false)
                 .map(|resp| runtime_state(resp.id(), resp.state()))
                 .map_err(|err| {
-                    Error::from_docker_error(
-                        err,
-                        ErrorKind::ModuleOperation(ModuleOperation::RuntimeState),
+                    anyhow::Error::from(Error::from(err)).context(
+                        Error::ModuleOperation(ModuleOperation::RuntimeState),
                     )
                 }),
         )

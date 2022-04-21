@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use anyhow::Context;
 use futures::future::{self, FutureResult, IntoFuture};
 
 use edgelet_core::{AuthType, Identity, IdentityManager, IdentitySpec};
@@ -183,7 +184,7 @@ impl IdentityManager for TestIdentityManager {
             .map(|index| {
                 self.identities.remove(index);
             })
-            .ok_or(Error::ModuleNotFound.into())
+            .context(Error::ModuleNotFound)
             .into_future()
     }
 }

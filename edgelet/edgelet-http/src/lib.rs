@@ -360,8 +360,7 @@ impl HyperExt for Http {
                 let addr = url
                     .socket_addrs(|| None)
                     .with_context(|| Error::InvalidUrl(url.to_string()))?;
-                let addr = addr.get(0);
-                let addr = addr.ok_or_else(|| {
+                let addr = addr.get(0).with_context(|| {
                     Error::InvalidUrlWithReason(url.to_string(), InvalidUrlReason::NoAddress)
                 })?;
 
@@ -377,7 +376,7 @@ impl HyperExt for Http {
             }
             #[cfg(target_os = "linux")]
             FD_SCHEME => {
-                let host = url.host_str().ok_or_else(|| {
+                let host = url.host_str().with_context(|| {
                     Error::InvalidUrlWithReason(url.to_string(), InvalidUrlReason::NoHost)
                 })?;
 

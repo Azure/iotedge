@@ -7,7 +7,7 @@ use std::str;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use failure::{Fail, ResultExt};
+use anyhow::Context;
 use futures::future::Either;
 use futures::prelude::*;
 use futures::sync::mpsc::UnboundedSender;
@@ -29,11 +29,11 @@ use edgelet_core::{
     SystemResources, UrlExt,
 };
 use edgelet_http::{Pid, UrlConnector};
-use edgelet_utils::{ensure_not_empty_with_context, log_failure};
+use edgelet_utils::{ensure_not_empty, log_failure};
 
 use crate::client::DockerClient;
 use crate::config::DockerConfig;
-use crate::error::{Error, ErrorKind, Result};
+use crate::error::Error;
 use crate::module::{
     runtime_state, DockerModule, DockerModuleTop, MODULE_TYPE as DOCKER_MODULE_TYPE,
 };
@@ -107,7 +107,7 @@ struct MutexFuture<T>(tokio::sync::lock::Lock<T>);
 
 impl<T> Future for MutexFuture<T> {
     type Item = tokio::sync::lock::LockGuard<T>;
-    type Error = Error;
+    type Error = anyhow::Error;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         Ok(self.0.poll_lock())
@@ -115,9 +115,8 @@ impl<T> Future for MutexFuture<T> {
 }
 
 impl ModuleRegistry for DockerModuleRuntime {
-    type Error = Error;
-    type PullFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
-    type RemoveFuture = Box<dyn Future<Item = (), Error = Self::Error>>;
+    type PullFuture = Box<dyn Future<Item = (), Error = anyhow::Error> + Send>;
+    type RemoveFuture = Box<dyn Future<Item = (), Error = anyhow::Error>>;
     type Config = DockerConfig;
 
     fn pull(&self, config: &Self::Config) -> Self::PullFuture {
@@ -159,8 +158,8 @@ impl ModuleRegistry for DockerModuleRuntime {
             .and_then(|(image, is_content_trust_enabled)| {
                 let creds = match creds {
                     Some(a) => {
-                        let json = serde_json::to_string(&a).with_context(|_| {
-                            ErrorKind::RegistryOperation(RegistryOperation::PullImage(
+                        let json = serde_json::to_string(&a).with_context(|| {
+                            Error::RegistryOperation(RegistryOperation::PullImage(
                                 image.clone(),
                             ))
                         })?;
@@ -181,9 +180,8 @@ impl ModuleRegistry for DockerModuleRuntime {
                     .image_create(&image, "", "", "", "", &creds, "")
                     .then(|result| match result {
                         Ok(()) => Ok(image),
-                        Err(err) => Err(Error::from_docker_error(
-                            err,
-                            ErrorKind::RegistryOperation(RegistryOperation::PullImage(image)),
+                        Err(err) => Err(anyhow::anyhow!(Error::from(err)).context(
+                            Error::RegistryOperation(RegistryOperation::PullImage(image)),
                         )),
                     })
             })
@@ -193,7 +191,7 @@ impl ModuleRegistry for DockerModuleRuntime {
                     Ok(())
                 }
                 Err(err) => {
-                    log_failure(Level::Warn, &err);
+                    log_failure(Level::Warn, err.as_ref());
                     Err(err)
                 }
             });
@@ -204,10 +202,10 @@ impl ModuleRegistry for DockerModuleRuntime {
     fn remove(&self, name: &str) -> Self::RemoveFuture {
         info!("Removing image {}...", name);
 
-        if let Err(err) = ensure_not_empty_with_context(name, || {
-            ErrorKind::RegistryOperation(RegistryOperation::RemoveImage(name.to_string()))
+        if let Err(err) = ensure_not_empty(name).with_context(|| {
+            Error::RegistryOperation(RegistryOperation::RemoveImage(name.to_string()))
         }) {
-            return Box::new(future::err(Error::from(err)));
+            return Box::new(future::err(err));
         }
 
         let name = name.to_string();
@@ -222,11 +220,11 @@ impl ModuleRegistry for DockerModuleRuntime {
                         Ok(())
                     }
                     Err(err) => {
-                        let err = Error::from_docker_error(
-                            err,
-                            ErrorKind::RegistryOperation(RegistryOperation::RemoveImage(name)),
+                        let err = anyhow::anyhow!(Error::from(err))
+                        .context(
+                            Error::RegistryOperation(RegistryOperation::RemoveImage(name)),
                         );
-                        log_failure(Level::Warn, &err);
+                        log_failure(Level::Warn, err.as_ref());
                         Err(err)
                     }
                 }),
@@ -249,8 +247,7 @@ impl MakeModuleRuntime for DockerModuleRuntime {
     type Config = DockerConfig;
     type Settings = Settings;
     type ModuleRuntime = Self;
-    type Error = Error;
-    type Future = Box<dyn Future<Item = Self, Error = Self::Error> + Send>;
+    type Future = Box<dyn Future<Item = Self, Error = anyhow::Error> + Send>;
 
     fn make_runtime(
         settings: Settings,
@@ -282,7 +279,7 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                             let home_dir = home_dir.clone();
                             cert_client
                                 .get_cert(&cert_id)
-                                .then(move |cert_output| -> Result<_> {
+                                .then(move |cert_output| {
                                     match cert_output {
                                         Ok(cert_buf) => {
                                             let config_path = notary::notary_init(
@@ -290,17 +287,14 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                                                 &registry_server_hostname,
                                                 &cert_buf,
                                             )
-                                            .context(ErrorKind::Initialization)?;
+                                            .context(Error::Initialization)?;
                                             notary_registries.insert(
                                                 registry_server_hostname.clone(),
                                                 config_path,
                                             );
                                             Ok((notary_registries, cert_client))
                                         }
-                                        Err(_e) => Err(ErrorKind::NotaryRootCAReadError(
-                                            "Notary root CA read error".to_owned(),
-                                        )
-                                        .into()),
+                                        Err(_e) => Err(anyhow::anyhow!(Error::NotaryRootCAReadError)),
                                     }
                                 })
                         },
@@ -336,11 +330,9 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                         }
                     })
                     .map_err(|err| {
-                        let e = Error::from_docker_error(
-                            err,
-                            ErrorKind::RuntimeOperation(RuntimeOperation::Init),
-                        );
-                        log_failure(Level::Warn, &e);
+                        let e = anyhow::anyhow!(Error::from(err))
+                            .context(Error::RuntimeOperation(RuntimeOperation::Init));
+                        log_failure(Level::Warn, e.as_ref());
                         e
                     })
                     .join(notary_registries)
@@ -366,8 +358,8 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                 future::Either::A(fut)
             }
             Err(err) => {
-                log_failure(Level::Warn, &err);
-                future::Either::B(Err(err).into_future())
+                log_failure(Level::Warn, err.as_ref());
+                future::Either::B(future::err(err))
             }
         };
         Box::new(created)
@@ -409,38 +401,37 @@ fn get_ipv6_settings(network_configuration: &MobyNetwork) -> (bool, Option<Ipam>
 }
 
 impl ModuleRuntime for DockerModuleRuntime {
-    type Error = Error;
     type Config = DockerConfig;
     type Module = DockerModule<UrlConnector>;
     type ModuleRegistry = Self;
     type Chunk = Chunk;
     type Logs = Logs;
 
-    type CreateFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type CreateFuture = Box<dyn Future<Item = (), Error = anyhow::Error> + Send>;
     type GetFuture =
-        Box<dyn Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
-    type ListFuture = Box<dyn Future<Item = Vec<Self::Module>, Error = Self::Error> + Send>;
+        Box<dyn Future<Item = (Self::Module, ModuleRuntimeState), Error = anyhow::Error> + Send>;
+    type ListFuture = Box<dyn Future<Item = Vec<Self::Module>, Error = anyhow::Error> + Send>;
     type ListWithDetailsStream =
-        Box<dyn Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
-    type LogsFuture = Box<dyn Future<Item = Self::Logs, Error = Self::Error> + Send>;
-    type RemoveFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
-    type RestartFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
-    type StartFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
-    type StopFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
-    type SystemInfoFuture = Box<dyn Future<Item = CoreSystemInfo, Error = Self::Error> + Send>;
+        Box<dyn Stream<Item = (Self::Module, ModuleRuntimeState), Error = anyhow::Error> + Send>;
+    type LogsFuture = Box<dyn Future<Item = Self::Logs, Error = anyhow::Error> + Send>;
+    type RemoveFuture = Box<dyn Future<Item = (), Error = anyhow::Error> + Send>;
+    type RestartFuture = Box<dyn Future<Item = (), Error = anyhow::Error> + Send>;
+    type StartFuture = Box<dyn Future<Item = (), Error = anyhow::Error> + Send>;
+    type StopFuture = Box<dyn Future<Item = (), Error = anyhow::Error> + Send>;
+    type SystemInfoFuture = Box<dyn Future<Item = CoreSystemInfo, Error = anyhow::Error> + Send>;
     type SystemResourcesFuture =
-        Box<dyn Future<Item = SystemResources, Error = Self::Error> + Send>;
-    type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
-    type StopAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+        Box<dyn Future<Item = SystemResources, Error = anyhow::Error> + Send>;
+    type RemoveAllFuture = Box<dyn Future<Item = (), Error = anyhow::Error> + Send>;
+    type StopAllFuture = Box<dyn Future<Item = (), Error = anyhow::Error> + Send>;
 
     fn create(&self, mut module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
         info!("Creating module {}...", module.name());
 
         // we only want "docker" modules
         if module.type_() != DOCKER_MODULE_TYPE {
-            return Box::new(future::err(Error::from(ErrorKind::InvalidModuleType(
+            return Box::new(future::err(Error::InvalidModuleType(
                 module.type_().to_string(),
-            ))));
+            ).into()));
         }
 
         let image_with_tag = module.config().image().to_string();
@@ -493,9 +484,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                             else {
                                 info!("Digest from notary and Digest from manifest does not match");
                                 debug!("Digest from notary : {} and Digest from manifest : {} does not match", digest_from_notary, digest_from_manifest_str);
-                                Err(Error::from(ErrorKind::NotaryDigestMismatch(
-                                        "notary digest mismatch with the manifest".to_owned(),
-                                )))
+                                Err(Error::NotaryDigestMismatch.into())
                             }
                         }
                         else {
@@ -547,12 +536,11 @@ impl ModuleRuntime for DockerModuleRuntime {
                             .container_create(create_options, module.name())
                             .then(|result| match result {
                                 Ok(_) => Ok(module),
-                                Err(err) => Err(Error::from_docker_error(
-                                    err,
-                                    ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
+                                Err(err) => Err(anyhow::anyhow!(Error::from(err)).context(
+                                    Error::RuntimeOperation(RuntimeOperation::CreateModule(
                                         module.name().to_string(),
-                                    )),
-                                )),
+                                    ))),
+                                ),
                             })
                     })
             })
@@ -563,7 +551,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                     Ok(())
                 }
                 Err(err) => {
-                    log_failure(Level::Warn, &err);
+                    log_failure(Level::Warn, err.as_ref());
                     Err(err)
                 }
             });
@@ -573,13 +561,14 @@ impl ModuleRuntime for DockerModuleRuntime {
 
     fn get(&self, id: &str) -> Self::GetFuture {
         debug!("Getting module {}...", id);
-        let id = id.to_string();
 
-        if let Err(err) = ensure_not_empty_with_context(&id, || {
-            ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.clone()))
+        if let Err(err) = ensure_not_empty(id).with_context(|| {
+            Error::RuntimeOperation(RuntimeOperation::GetModule(id.to_string()))
         }) {
-            return Box::new(future::err(Error::from(err)));
+            return Box::new(future::err(err));
         }
+
+        let id = id.to_string();
 
         let client_copy = self.client.clone();
 
@@ -590,29 +579,29 @@ impl ModuleRuntime for DockerModuleRuntime {
                 .then(|result| match result {
                     Ok(container) => {
                         let name =
-                            parse_get_response::<Deserializer>(&container).with_context(|_| {
-                                ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.clone()))
+                            parse_get_response::<Deserializer>(&container).with_context(|| {
+                                Error::RuntimeOperation(RuntimeOperation::GetModule(id.clone()))
                             })?;
                         let config =
                             DockerConfig::new(name.clone(), ContainerCreateBody::new(), None, None)
-                                .with_context(|_| {
-                                    ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(
+                                .with_context(|| {
+                                    Error::RuntimeOperation(RuntimeOperation::GetModule(
                                         id.clone(),
                                     ))
                                 })?;
                         let module =
-                            DockerModule::new(client_copy, name, config).with_context(|_| {
-                                ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.clone()))
+                            DockerModule::new(client_copy, name, config).context({
+                                Error::RuntimeOperation(RuntimeOperation::GetModule(id))
                             })?;
                         let state = runtime_state(container.id(), container.state());
                         Ok((module, state))
                     }
                     Err(err) => {
-                        let err = Error::from_docker_error(
-                            err,
-                            ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id)),
+                        let err = anyhow::anyhow!(Error::from(err))
+                        .context(
+                            Error::RuntimeOperation(RuntimeOperation::GetModule(id)),
                         );
-                        log_failure(Level::Warn, &err);
+                        log_failure(Level::Warn, err.as_ref());
                         Err(err)
                     }
                 }),
@@ -621,13 +610,15 @@ impl ModuleRuntime for DockerModuleRuntime {
 
     fn start(&self, id: &str) -> Self::StartFuture {
         info!("Starting module {}...", id);
-        let id = id.to_string();
 
-        if let Err(err) = ensure_not_empty_with_context(&id, || {
-            ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id.clone()))
-        }) {
-            return Box::new(future::err(Error::from(err)));
+        if let Err(err) = ensure_not_empty(id)
+            .with_context(||
+                Error::RuntimeOperation(RuntimeOperation::StartModule(id.to_string()))
+            ) {
+            return Box::new(future::err(err));
         }
+
+        let id = id.to_string();
 
         let (sender, receiver): (Sender<()>, Receiver<()>) = oneshot::channel();
 
@@ -635,9 +626,9 @@ impl ModuleRuntime for DockerModuleRuntime {
             .create_socket_channel
             .unbounded_send(ModuleAction::Start(id.clone(), sender))
             .map_err(|_| {
-                Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(
+                Error::RuntimeOperation(RuntimeOperation::GetModule(
                     id.clone(),
-                )))
+                )).into()
             })
         {
             return Box::new(future::err(err));
@@ -645,25 +636,25 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         let future = self.client.container_api().container_start(&id, "");
 
-        let id2 = id.clone();
-
         Box::new(
             receiver
-                .map_err(move |_| {
-                    Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id)))
-                })
+                .map_err({
+                    let id = id.clone();
+                    move |_| {
+                    anyhow::anyhow!(Error::RuntimeOperation(RuntimeOperation::GetModule(id)))
+                }})
                 .and_then(move |()| {
                     future.then(move |result| match result {
                         Ok(_) => {
-                            info!("Successfully started module {}", id2);
+                            info!("Successfully started module {}", id);
                             Ok(())
                         }
                         Err(err) => {
-                            let err = Error::from_docker_error(
-                                err,
-                                ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id2)),
+                            let err = anyhow::anyhow!(Error::from(err))
+                            .context(
+                                Error::RuntimeOperation(RuntimeOperation::StartModule(id)),
                             );
-                            log_failure(Level::Warn, &err);
+                            log_failure(Level::Warn, err.as_ref());
                             Err(err)
                         }
                     })
@@ -673,13 +664,14 @@ impl ModuleRuntime for DockerModuleRuntime {
 
     fn stop(&self, id: &str, wait_before_kill: Option<Duration>) -> Self::StopFuture {
         info!("Stopping module {}...", id);
-        let id = id.to_string();
 
-        if let Err(err) = ensure_not_empty_with_context(&id, || {
-            ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(id.clone()))
+        if let Err(err) = ensure_not_empty(id).with_context(|| {
+            Error::RuntimeOperation(RuntimeOperation::StopModule(id.to_string()))
         }) {
-            return Box::new(future::err(Error::from(err)));
+            return Box::new(future::err(err));
         }
+
+        let id = id.to_string();
 
         #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
         let wait_timeout = wait_before_kill.map(|s| match s.as_secs() {
@@ -696,24 +688,23 @@ impl ModuleRuntime for DockerModuleRuntime {
                     Ok(_) => {
                         match create_socket_channel.unbounded_send(ModuleAction::Stop(id.clone())) {
                             Ok(()) => {
-                                info!("Successfully stoppedmodule {}", id);
+                                info!("Successfully stopped module {}", id);
                                 Ok(())
                             },
                             Err(err) => {
                                 log_failure(Level::Warn, &err);
-                                info!("Successfully stoppedmodule {}, but could not stop listener on socket", id);
-                                Err(Error::from(ErrorKind::RuntimeOperation(
+                                info!("Successfully stopped module {}, but could not stop listener on socket", id);
+                                Err(Error::RuntimeOperation(
                                     RuntimeOperation::GetModule(id),
-                                )))
+                                ).into())
                             }
                         }
                     }
                     Err(err) => {
-                        let err = Error::from_docker_error(
-                            err,
-                            ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(id)),
+                        let err = anyhow::anyhow!(Error::from(err)).context(
+                            Error::RuntimeOperation(RuntimeOperation::StopModule(id)),
                         );
-                        log_failure(Level::Warn, &err);
+                        log_failure(Level::Warn, err.as_ref());
                         Err(err)
                     }
                 }),
@@ -722,13 +713,14 @@ impl ModuleRuntime for DockerModuleRuntime {
 
     fn restart(&self, id: &str) -> Self::RestartFuture {
         info!("Restarting module {}...", id);
-        let id = id.to_string();
 
-        if let Err(err) = ensure_not_empty_with_context(&id, || {
-            ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(id.clone()))
+        if let Err(err) = ensure_not_empty(id).with_context(|| {
+            Error::RuntimeOperation(RuntimeOperation::RestartModule(id.to_string()))
         }) {
-            return Box::new(future::err(Error::from(err)));
+            return Box::new(future::err(err));
         }
+
+        let id = id.to_string();
 
         Box::new(
             self.client
@@ -740,11 +732,10 @@ impl ModuleRuntime for DockerModuleRuntime {
                         Ok(())
                     }
                     Err(err) => {
-                        let err = Error::from_docker_error(
-                            err,
-                            ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(id)),
+                        let err = anyhow::anyhow!(Error::from(err)).context(
+                            Error::RuntimeOperation(RuntimeOperation::RestartModule(id)),
                         );
-                        log_failure(Level::Warn, &err);
+                        log_failure(Level::Warn, err.as_ref());
                         Err(err)
                     }
                 }),
@@ -754,13 +745,13 @@ impl ModuleRuntime for DockerModuleRuntime {
     fn remove(&self, id: &str) -> Self::RemoveFuture {
         info!("Removing module {}...", id);
 
-        let id = id.to_string();
-
-        if let Err(err) = ensure_not_empty_with_context(&id, || {
-            ErrorKind::RuntimeOperation(RuntimeOperation::RemoveModule(id.clone()))
+        if let Err(err) = ensure_not_empty(id).with_context(|| {
+            Error::RuntimeOperation(RuntimeOperation::RemoveModule(id.to_string()))
         }) {
-            return Box::new(future::err(Error::from(err)));
+            return Box::new(future::err(err).from_err());
         }
+
+        let id = id.to_string();
 
         let create_socket_channel = self.create_socket_channel.clone();
 
@@ -785,18 +776,17 @@ impl ModuleRuntime for DockerModuleRuntime {
                                     "Successfully removed module {}, but could not remove socket",
                                     id
                                 );
-                                Err(Error::from(ErrorKind::RuntimeOperation(
+                                Err(Error::RuntimeOperation(
                                     RuntimeOperation::GetModule(id),
-                                )))
+                                ).into())
                             }
                         }
                     }
                     Err(err) => {
-                        let err = Error::from_docker_error(
-                            err,
-                            ErrorKind::RuntimeOperation(RuntimeOperation::RemoveModule(id)),
+                        let err = anyhow::anyhow!(Error::from(err)).context(
+                            Error::RuntimeOperation(RuntimeOperation::RemoveModule(id)),
                         );
-                        log_failure(Level::Warn, &err);
+                        log_failure(Level::Warn, err.as_ref());
                         Err(err)
                     }
                 }),
@@ -806,14 +796,7 @@ impl ModuleRuntime for DockerModuleRuntime {
     fn system_info(&self) -> Self::SystemInfoFuture {
         info!("Querying system info...");
 
-        Box::new(match CoreSystemInfo::from_system() {
-            Ok(mut system_info) => {
-                system_info.merge_additional(self.additional_info.clone());
-
-                future::ok(system_info)
-            }
-            Err(_) => future::err(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo).into()),
-        })
+        Box::new(future::ok(CoreSystemInfo::from_system()))
     }
 
     fn system_resources(&self) -> Self::SystemResourcesFuture {
@@ -830,9 +813,8 @@ impl ModuleRuntime for DockerModuleRuntime {
                             client.container_api().container_stats(module.name(), false)
                         })
                         .map_err(|err| {
-                            Error::from_docker_error(
-                                err,
-                                ErrorKind::RuntimeOperation(RuntimeOperation::SystemResources),
+                            anyhow::anyhow!(Error::from(err)).context(
+                                Error::RuntimeOperation(RuntimeOperation::SystemResources),
                             )
                         }),
                 )
@@ -842,7 +824,7 @@ impl ModuleRuntime for DockerModuleRuntime {
             .and_then(|stats| {
                 // convert to string
                 serde_json::to_string(&stats).map_err(|_| {
-                    Error::from(ErrorKind::RuntimeOperation(
+                    anyhow::anyhow!(Error::RuntimeOperation(
                         RuntimeOperation::SystemResources,
                     ))
                 })
@@ -926,8 +908,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         let client_copy = self.client.clone();
 
         let result = serde_json::to_string(&filters)
-            .context(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules))
-            .map_err(Error::from)
+            .context(Error::RuntimeOperation(RuntimeOperation::ListModules))
             .map(|filters| {
                 self.client
                     .container_api()
@@ -970,9 +951,8 @@ impl ModuleRuntime for DockerModuleRuntime {
                             .collect()
                     })
                     .map_err(|err| {
-                        Error::from_docker_error(
-                            err,
-                            ErrorKind::RuntimeOperation(RuntimeOperation::ListModules),
+                        anyhow::anyhow!(Error::from(err)).context(
+                            Error::RuntimeOperation(RuntimeOperation::ListModules),
                         )
                     })
             })
@@ -981,7 +961,7 @@ impl ModuleRuntime for DockerModuleRuntime {
             .then(|result| {
                 match result {
                     Ok(_) => debug!("Successfully listed modules"),
-                    Err(ref err) => log_failure(Level::Warn, err),
+                    Err(ref err) => log_failure(Level::Warn, err.as_ref()),
                 }
 
                 result
@@ -1017,11 +997,10 @@ impl ModuleRuntime for DockerModuleRuntime {
                     Ok(Logs(id, logs))
                 }
                 Err(err) => {
-                    let err = Error::from_docker_error(
-                        err,
-                        ErrorKind::RuntimeOperation(RuntimeOperation::GetModuleLogs(id)),
+                    let err = anyhow::anyhow!(Error::from(err)).context(
+                        Error::RuntimeOperation(RuntimeOperation::GetModuleLogs(id)),
                     );
-                    log_failure(Level::Warn, &err);
+                    log_failure(Level::Warn, err.as_ref());
                     Err(err)
                 }
             });
@@ -1052,8 +1031,8 @@ impl ModuleRuntime for DockerModuleRuntime {
                     wait_before_kill,
                 )
                 .or_else(|err| {
-                    match <dyn Fail>::find_root_cause(&err).downcast_ref::<ErrorKind>() {
-                        Some(ErrorKind::NotFound(_)) | Some(ErrorKind::NotModified) => Ok(()),
+                    match err.root_cause().downcast_ref() {
+                        Some(Error::NotFound(_)) | Some(Error::NotModified) => Ok(()),
                         _ => Err(err),
                     }
                 })
@@ -1064,37 +1043,36 @@ impl ModuleRuntime for DockerModuleRuntime {
 }
 
 impl Authenticator for DockerModuleRuntime {
-    type Error = Error;
     type Request = Request<Body>;
-    type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = Self::Error> + Send>;
+    type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = anyhow::Error> + Send>;
 
     fn authenticate(&self, req: &Self::Request) -> Self::AuthenticateFuture {
         authenticate(self, req)
     }
 }
 
-fn init_client(docker_url: &Url) -> Result<DockerClient<UrlConnector>> {
+fn init_client(docker_url: &Url) -> anyhow::Result<DockerClient<UrlConnector>> {
     // build the hyper client
     let client = Client::builder()
         // we don't need connection pool'ing for local docker socket.
         .keep_alive(false)
         .max_idle_per_host(0)
-        .build(UrlConnector::new(docker_url).context(ErrorKind::Initialization)?);
+        .build(UrlConnector::new(docker_url).context(Error::Initialization)?);
 
     // extract base path - the bit that comes after the scheme
     let base_path = docker_url
         .to_base_path()
-        .context(ErrorKind::Initialization)?;
+        .context(Error::Initialization)?;
     let mut configuration = Configuration::new(client);
     configuration.base_path = base_path
         .to_str()
-        .ok_or(ErrorKind::Initialization)?
+        .context(Error::Initialization)?
         .to_string();
 
     let scheme = docker_url.scheme().to_string();
     configuration.uri_composer = Box::new(move |base_path, path| {
-        Ok(UrlConnector::build_hyper_uri(&scheme, base_path, path)
-            .context(ErrorKind::Initialization)?)
+        UrlConnector::build_hyper_uri(&scheme, base_path, path)
+            .context(Error::Initialization)
     });
 
     Ok(DockerClient::new(APIClient::new(configuration)))
@@ -1105,22 +1083,22 @@ pub struct Logs(String, Body);
 
 impl Stream for Logs {
     type Item = Chunk;
-    type Error = Error;
+    type Error = anyhow::Error;
 
     fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
         match self.1.poll() {
             Ok(Async::Ready(chunk)) => Ok(Async::Ready(chunk.map(Chunk))),
             Ok(Async::NotReady) => Ok(Async::NotReady),
-            Err(err) => Err(Error::from(err.context(ErrorKind::RuntimeOperation(
+            Err(err) => Err(anyhow::anyhow!(err).context(Error::RuntimeOperation(
                 RuntimeOperation::GetModuleLogs(self.0.clone()),
-            )))),
+            ))),
         }
     }
 }
 
-impl From<Logs> for Body {
-    fn from(logs: Logs) -> Self {
-        logs.1
+impl Into<Body> for Logs {
+    fn into(self) -> Body {
+        self.1
     }
 }
 
@@ -1156,11 +1134,11 @@ impl AsRef<[u8]> for Chunk {
 /// instead of letting the whole `list_with_details` call fail.
 fn list_with_details<MR, M>(
     runtime: &MR,
-) -> Box<dyn Stream<Item = (M, ModuleRuntimeState), Error = Error> + Send>
+) -> Box<dyn Stream<Item = (M, ModuleRuntimeState), Error = anyhow::Error> + Send>
 where
-    MR: ModuleRuntime<Error = Error, Config = <M as Module>::Config, Module = M>,
+    MR: ModuleRuntime<Config = <M as Module>::Config, Module = M>,
     <MR as ModuleRuntime>::ListFuture: 'static,
-    M: Module<Error = Error> + Send + 'static,
+    M: Module + Send + 'static,
     <M as Module>::Config: Clone + Send,
 {
     Box::new(remove_not_found(
@@ -1179,17 +1157,15 @@ where
 
 fn remove_not_found<S>(stream: S) -> impl Stream<Item = S::Item, Error = S::Error> + Send
 where
-    S: Stream<Error = Error> + Send + 'static,
+    S: Stream<Error = anyhow::Error> + Send + 'static,
     S::Item: Send + 'static,
 {
     stream
-        .then(Ok::<_, Error>) // Ok(_) -> Ok(Ok(_)), Err(_) -> Ok(Err(_)), ! -> Err(_)
+        .then(Ok::<_, std::convert::Infallible>)
         .filter_map(|value| match value {
             Ok(value) => Some(Ok(value)),
-            Err(err) => match err.kind() {
-                ErrorKind::NotFound(_) => None,
-                _ => Some(Err(err)),
-            },
+            Err(err) if matches!(err.downcast_ref(), Some(Error::NotFound(_))) => None,
+            err => Some(err)
         })
         .then(Result::unwrap) // Ok(Ok(_)) -> Ok(_), Ok(Err(_)) -> Err(_), Err(_) -> !
 }
@@ -1197,11 +1173,11 @@ where
 fn authenticate<MR>(
     runtime: &MR,
     req: &Request<Body>,
-) -> Box<dyn Future<Item = AuthId, Error = Error> + Send>
+) -> Box<dyn Future<Item = AuthId, Error = anyhow::Error> + Send>
 where
-    MR: ModuleRuntime<Error = Error>,
+    MR: ModuleRuntime,
     <MR as ModuleRuntime>::ListFuture: 'static,
-    MR::Module: DockerModuleTop<Error = Error> + 'static,
+    MR::Module: DockerModuleTop + 'static,
 {
     let pid = req
         .extensions()
@@ -1228,7 +1204,7 @@ where
                         .list()
                         .map(move |list| {
                             list.into_iter()
-                                .find(|module| expected_module_id == module.name())
+                                .find(|module| expected_module_id.as_ref() == module.name())
                         })
                         .and_then(|module| module.map(|module| module.top()))
                         .map(move |top| {
@@ -1246,13 +1222,13 @@ where
                                 info!("Unable to find a module for caller pid: {}", pid);
                                 Ok(AuthId::None)
                             }
-                            Err(err) => match err.kind() {
-                                ErrorKind::NotFound(_)
-                                | ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(_)) => {
+                            Err(err) => match err.downcast_ref() {
+                                Some(Error::NotFound(_))
+                                | Some(Error::RuntimeOperation(RuntimeOperation::TopModule(_))) => {
                                     Ok(AuthId::None)
                                 }
                                 _ => {
-                                    log_failure(Level::Warn, &err);
+                                    log_failure(Level::Warn, err.as_ref());
                                     Err(err)
                                 }
                             },
@@ -1707,7 +1683,7 @@ mod tests {
                     future::ok(ModuleRuntimeState::default().with_pid(top_pid))
                 }
                 TestModuleRuntimeStateBehavior::NotFound => {
-                    future::err(ErrorKind::NotFound(String::new()).into())
+                    future::err(Error::NotFound(String::new()).into())
                 }
             }
         }
@@ -1743,7 +1719,7 @@ mod tests {
                     future::ok(ModuleTop::new(self.name.clone(), self.process_ids.clone()))
                 }
                 TestModuleRuntimeStateBehavior::NotFound => {
-                    future::err(ErrorKind::NotFound(String::new()).into())
+                    future::err(Error::NotFound(String::new()).into())
                 }
             }
         }

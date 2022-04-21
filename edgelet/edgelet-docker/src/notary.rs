@@ -6,26 +6,26 @@ use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use failure::ResultExt;
+use anyhow::Context;
 use futures::Future;
 use log::debug;
 use serde_json::json;
 
-use crate::{Error, ErrorKind};
+use crate::error::Error;
 
 pub fn notary_init(
     home_dir: &Path,
     registry_server_hostname: &str,
     cert_buf: &[u8],
-) -> Result<PathBuf, Error> {
+) -> anyhow::Result<PathBuf> {
     // Validate inputs
     if registry_server_hostname.is_empty() {
-        return Err(ErrorKind::InitializeNotary("hostname is empty".to_owned()).into());
+        return Err(Error::InitializeNotary("hostname is empty".to_owned()).into());
     }
 
     if cert_buf.is_empty() {
         return Err(
-            ErrorKind::InitializeNotary("root ca pem string content is empty".to_owned()).into(),
+            Error::InitializeNotary("root ca pem string content is empty".to_owned()).into(),
         );
     }
 
@@ -69,7 +69,7 @@ pub fn notary_init(
     // Delete Notary directory for a clean start.
     if let Err(err) = fs::remove_dir_all(&notary_dir) {
         if err.kind() != std::io::ErrorKind::NotFound {
-            return Err(ErrorKind::InitializeNotary(format!(
+            return Err(Error::InitializeNotary(format!(
                 "could not delete notary directory {}",
                 hostname_dir.display()
             ))
@@ -78,16 +78,16 @@ pub fn notary_init(
     }
 
     // Create trust directory
-    fs::create_dir_all(&trust_dir).with_context(|_| {
-        ErrorKind::InitializeNotary(format!(
+    fs::create_dir_all(&trust_dir).with_context(|| {
+        Error::InitializeNotary(format!(
             "could not create trust directory {}",
             trust_dir.display()
         ))
     })?;
 
     // Create certs directory
-    fs::create_dir_all(&certs_dir).with_context(|_| {
-        ErrorKind::InitializeNotary(format!(
+    fs::create_dir_all(&certs_dir).with_context(|| {
+        Error::InitializeNotary(format!(
             "could not create certs directory {}",
             certs_dir.display()
         ))
@@ -97,8 +97,8 @@ pub fn notary_init(
     let root_ca_cert_name = sanitized_hostname + "_root_ca.pem";
     let root_ca_file_path = certs_dir.join(root_ca_cert_name);
 
-    fs::write(&root_ca_file_path, cert_buf).with_context(|_| {
-        ErrorKind::InitializeNotary(format!(
+    fs::write(&root_ca_file_path, cert_buf).with_context(|| {
+        Error::InitializeNotary(format!(
             "could not create root CA cert for notary hostname directory {}",
             hostname_dir.display()
         ))
@@ -127,8 +127,8 @@ pub fn notary_init(
     let mut config_file_path = hostname_dir.join("config");
 
     // Create config directory
-    fs::create_dir_all(&config_file_path).with_context(|_| {
-        ErrorKind::InitializeNotary(format!(
+    fs::create_dir_all(&config_file_path).with_context(|| {
+        Error::InitializeNotary(format!(
             "could not config directory {}",
             config_file_path.display()
         ))
@@ -138,14 +138,14 @@ pub fn notary_init(
     debug!("Config file path {}", config_file_path.display());
 
     // Create Notary config file
-    let file = File::create(&config_file_path).with_context(|_| {
-        ErrorKind::InitializeNotary(format!(
+    let file = File::create(&config_file_path).with_context(|| {
+        Error::InitializeNotary(format!(
             "could not create notary config file in {}",
             config_file_path.display()
         ))
     })?;
-    serde_json::to_writer(file, &config_contents).with_context(|_| {
-        ErrorKind::InitializeNotary(format!(
+    serde_json::to_writer(file, &config_contents).with_context(|| {
+        Error::InitializeNotary(format!(
             "could not write contents to notary config file in {}",
             config_file_path.display()
         ))
@@ -165,7 +165,7 @@ pub fn notary_lookup(
         String,
         tokio::sync::lock::LockGuard<BTreeMap<String, String>>,
     ),
-    Error = Error,
+    Error = anyhow::Error,
 > {
     let mut notary_cmd = Command::new("notary");
 
@@ -178,24 +178,22 @@ pub fn notary_lookup(
     }
 
     futures::future::poll_fn(move || {
-        tokio_threadpool::blocking(|| {
-            let std::process::Output { stdout, .. } = notary_cmd.output().with_context(|e| {
-                ErrorKind::LaunchNotary(format!("could not spawn notary process: {}", e))
-            })?;
+        tokio_threadpool::blocking(|| -> Result<_, _> {
+            let std::process::Output { stdout, .. } = notary_cmd.output().context(
+                Error::LaunchNotary("could not spawn notary process")
+            )?;
             let output_str = std::str::from_utf8(&stdout)
-                .with_context(|_| ErrorKind::LaunchNotary("received invalid utf8".to_owned()))?;
+                .context(Error::LaunchNotary("received invalid utf8"))?;
             debug!("Notary output string is {}", output_str);
 
             output_str
                 .split_whitespace()
                 .nth(2)
                 .map(ToOwned::to_owned)
-                .ok_or_else(|| {
-                    ErrorKind::LaunchNotary("notary digest split array is empty".to_owned()).into()
-                })
+                .context(Error::LaunchNotary("notary digest split array is empty"))
         })
     })
-    .map_err(|e| ErrorKind::LaunchNotary(format!("should run in thread pool: {}", e)))
+    .map_err(|e| anyhow::Error::from(e).context(Error::LaunchNotary("should run in thread pool")))
     .flatten()
     .map(|output| (output, lock))
 }
