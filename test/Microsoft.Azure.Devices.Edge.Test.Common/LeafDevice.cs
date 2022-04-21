@@ -397,7 +397,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         // 3 (InvalidOperationException) - Devices SDK Issue: No authenticated context (https://github.com/Azure/azure-iot-sdk-csharp/issues/2353)
         class FailingConnectionErrorDetectionStrategy : ITransientErrorDetectionStrategy
         {
-            public bool IsTransient(Exception ex) => ex is ObjectDisposedException || ex is AuthenticationException || ex is InvalidOperationException;
+            public bool IsTransient(Exception ex)
+            {
+                return ex is ObjectDisposedException || ex is AuthenticationException || (ex is InvalidOperationException && ex.Message.Contains("This operation is only allowed using a successfully authenticated context."));
+            }
         }
     }
 }
