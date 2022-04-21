@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     "rhel" => new[]
                     {
                         "set -e",
-                        $"rpm --nodeps -i {string.Join(' ', packages)}",
+                        $"sudo rpm --nodeps -i {string.Join(' ', packages)}",
                         "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
                         "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
                         "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
@@ -105,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     },
                     "rhel" => new[]
                     {
-                        $"rpm -iv --replacepkgs https://packages.microsoft.com/config/{this.os}/{this.version}/packages-microsoft-prod.rpm",
+                        $"sudo rpm -iv --replacepkgs https://packages.microsoft.com/config/{this.os}/{this.version}/packages-microsoft-prod.rpm",
                         $"sudo dnf updateinfo",
                         $"sudo dnf install -y aziot-edge",
                         "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
