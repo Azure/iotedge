@@ -110,6 +110,11 @@ jobs:
     timeoutInMinutes: 180
 
     steps:
+    - task: Bash@3
+      inputs:
+        targetType: 'inline'
+        script: az --version
+        bashEnvValue: '~/.bashrc'
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-clear-docker-cached-images.yaml
