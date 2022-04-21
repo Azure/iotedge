@@ -120,13 +120,15 @@ jobs:
         KeyVaultName: $(az.keyvault)
         SecretsFilter: >-
           edgebuild-service-principal-secret,
-    - task: Bash@3
-      displayName: 'Az login'
-      inputs:
-        targetType: inline
-        script: |
-          az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
+    # - task: Bash@3
+    #   displayName: 'Az login'
+    #   inputs:
+    #     targetType: inline
+    #     script: |
+    #       az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
     - bash: |
+          export PATH=azure-cli-env/bin/:$PATH
+          az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
           contextPath=$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net6.0/context.json
           mkdir -p $(Build.ArtifactStagingDirectory)/compat
           edgeAgentImage="$(cat $contextPath | jq '.edgeAgentImage' | tr -d '"')" 
