@@ -132,6 +132,7 @@ check_shared_library() {
 function provision_edge_device() {
     # Provision w/ connection string
     DEVICE_ID=benchmark-device-$(echo $RANDOM | md5sum | head -c 10)
+    export PATH=~/azure-cli-env/bin/:$PATH
     az iot hub device-identity create --device-id "$DEVICE_ID" --edge-enabled --hub-name "$IOTHUB_NAME"
     connection_string=$(az iot hub device-identity connection-string show --device-id "$DEVICE_ID" --hub-name "$IOTHUB_NAME" -o tsv)
     if [[ -z "$CONFIG_TOML_FILE_NAME" ]]; then
