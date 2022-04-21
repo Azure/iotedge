@@ -165,6 +165,7 @@ stages:
               mariner_release: 1.0-stable
               target.iotedged: builds/mariner1/out/RPMS
               target.logs: builds/mariner1/build/logs/pkggen/rpmbuilding/
+              IISCommit: 158a726f0684cdfa5609191c2c9ace0123530522
             CBL-Mariner2.0-amd64:
               arch: amd64
               os: mariner
@@ -172,6 +173,7 @@ stages:
               mariner_release: 2.0-stable
               target.iotedged: builds/mariner2/out/RPMS
               target.logs: builds/mariner2/build/logs/pkggen/rpmbuilding/
+              IISCommit: 158a726f0684cdfa5609191c2c9ace0123530522
         steps:
           - bash: |
               BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
@@ -202,6 +204,7 @@ stages:
               ARTIFACT_NAME: 'packages_$(os)-$(os_version)_$(arch)'
               PACKAGE_FILTER: 'aziot-identity-service-*.cm$(os_version).$(MARINER_ARCH).rpm'
               DOWNLOAD_PATH: $(Build.SourcesDirectory)
+              IDENTITY_SERVICE_COMMIT: $(IISCommit)
           - bash: |
               docker run --rm \
                 -v "$(Build.SourcesDirectory):/src" \
