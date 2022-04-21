@@ -193,7 +193,7 @@ pub fn notary_lookup(
                 .context(Error::LaunchNotary("notary digest split array is empty"))
         })
     })
-    .map_err(|e| anyhow::Error::from(e).context(Error::LaunchNotary("should run in thread pool")))
+    .map_err(|e| anyhow::anyhow!(e).context(Error::LaunchNotary("should run in thread pool")))
     .flatten()
     .map(|output| (output, lock))
 }

@@ -72,7 +72,7 @@ impl<C: 'static + Connect> DockerModuleTop for DockerModule<C> {
                         Ok(ModuleTop::new(id, p))
                     }
                     Err(err) => {
-                        let err = anyhow::Error::from(Error::from(err)).context(
+                        let err = anyhow::anyhow!(Error::from(err)).context(
                             Error::RuntimeOperation(RuntimeOperation::TopModule(id)),
                         );
                         Err(err)
@@ -192,7 +192,7 @@ impl<C: 'static + Connect> Module for DockerModule<C> {
                 .container_inspect(&self.name, false)
                 .map(|resp| runtime_state(resp.id(), resp.state()))
                 .map_err(|err| {
-                    anyhow::Error::from(Error::from(err)).context(
+                    anyhow::anyhow!(Error::from(err)).context(
                         Error::ModuleOperation(ModuleOperation::RuntimeState),
                     )
                 }),
