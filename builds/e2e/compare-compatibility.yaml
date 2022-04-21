@@ -148,6 +148,7 @@ jobs:
           -o "$(Build.ArtifactStagingDirectory)/compat" \
           --config-toml-path  $(Build.SourcesDirectory)/platform-validation/deployment/template.toml
       displayName: Check Usage
+      bashEnvValue: '~/.bashrc'
       name: check_usage
       env:
         IOTHUB_NAME: $(IOT_HUB_NAME)
@@ -159,6 +160,11 @@ jobs:
       inputs:
         PathtoPublish: $(Build.ArtifactStagingDirectory)/compat
         ArtifactName: compatibility-logs-amd64
+      condition: always()
+    - bash: |
+          sudo rm -rf $(Build.ArtifactStagingDirectory)/compat || true
+      displayName: Cleanup
+      name: cleanup
       condition: always()
 
 # TODO : Current 1ES Image for ARM64 requires some additional installation, We should add these to our 1ES Base Image
