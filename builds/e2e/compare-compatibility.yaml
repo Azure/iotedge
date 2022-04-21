@@ -110,11 +110,6 @@ jobs:
     timeoutInMinutes: 180
 
     steps:
-    - task: Bash@3
-      inputs:
-        targetType: 'inline'
-        script: env
-        bashEnvValue: '~/.bashrc'
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-clear-docker-cached-images.yaml
@@ -133,6 +128,7 @@ jobs:
     #       az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
     - bash: |
           set -e
+          export PATH=~/azure-cli-env/bin/:$PATH
           az --verion
           az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
           contextPath=$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net6.0/context.json
