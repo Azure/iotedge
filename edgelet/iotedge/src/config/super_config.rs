@@ -88,6 +88,9 @@ pub enum EdgeCa {
     },
     Quickstart {
         auto_generated_edge_ca_expiry_days: u32,
+
+        #[serde(skip_serializing_if = "Option::is_none")]
+        auto_renew: Option<cert_renewal::AutoRenewConfig>,
     },
 }
 

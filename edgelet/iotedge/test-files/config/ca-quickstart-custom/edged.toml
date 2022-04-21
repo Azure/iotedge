@@ -27,6 +27,11 @@ image = "mcr.microsoft.com/azureiotedge-agent:1.0"
 workload_uri = "unix:///var/run/iotedge/workload.sock"
 management_uri = "unix:///var/run/iotedge/mgmt.sock"
 
+[edge_ca_auto_renew]
+rotate_key = true
+threshold = "80%"
+retry = "2%"
+
 [listen]
 workload_uri = "fd://aziot-edged.workload.socket"
 management_uri = "fd://aziot-edged.mgmt.socket"

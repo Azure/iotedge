@@ -9,6 +9,7 @@ edition = "2021"
 serde = { version = "1.0", features = ["derive"] }
 url = { version = "2", features = ["serde"] }
 
+cert-renewal = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 config-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main", optional = true }
 docker = { path = "../docker-rs", optional = true }
 
