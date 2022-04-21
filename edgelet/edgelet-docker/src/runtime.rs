@@ -1337,7 +1337,7 @@ mod tests {
         authenticate, drop_unsafe_privileges, future, list_with_details, parse_get_response,
         unset_privileged, AuthId, Authenticator, BTreeMap, Body, ContainerCreateBody,
         CoreSystemInfo, Deserializer, DockerModuleRuntime, DockerModuleTop, Duration, Error,
-        ErrorKind, Future, HostConfig, InlineResponse200, LogOptions, MakeModuleRuntime, Module,
+        Future, HostConfig, InlineResponse200, LogOptions, MakeModuleRuntime, Module,
         ModuleId, ModuleRuntime, ModuleRuntimeState, ModuleSpec, Pid, Request, Stream,
         SystemResources,
     };
@@ -1661,8 +1661,7 @@ mod tests {
 
     impl Module for TestModule {
         type Config = TestConfig;
-        type Error = Error;
-        type RuntimeStateFuture = FutureResult<ModuleRuntimeState, Self::Error>;
+        type RuntimeStateFuture = FutureResult<ModuleRuntimeState, anyhow::Error>;
 
         fn name(&self) -> &str {
             &self.name
@@ -1695,9 +1694,8 @@ mod tests {
     }
 
     impl ModuleRegistry for TestModuleList {
-        type Error = Error;
-        type PullFuture = FutureResult<(), Self::Error>;
-        type RemoveFuture = FutureResult<(), Self::Error>;
+        type PullFuture = FutureResult<(), anyhow::Error>;
+        type RemoveFuture = FutureResult<(), anyhow::Error>;
         type Config = TestConfig;
 
         fn pull(&self, _config: &Self::Config) -> Self::PullFuture {
@@ -1710,8 +1708,7 @@ mod tests {
     }
 
     impl DockerModuleTop for TestModule {
-        type Error = Error;
-        type ModuleTopFuture = FutureResult<ModuleTop, Self::Error>;
+        type ModuleTopFuture = FutureResult<ModuleTop, anyhow::Error>;
 
         fn top(&self) -> Self::ModuleTopFuture {
             match self.runtime_state_behavior {
@@ -1729,8 +1726,7 @@ mod tests {
         type Config = TestConfig;
         type ModuleRuntime = Self;
         type Settings = TestSettings;
-        type Error = Error;
-        type Future = FutureResult<Self, Self::Error>;
+        type Future = FutureResult<Self, anyhow::Error>;
 
         fn make_runtime(
             _settings: Self::Settings,
@@ -1741,28 +1737,27 @@ mod tests {
     }
 
     impl ModuleRuntime for TestModuleList {
-        type Error = Error;
         type Config = TestConfig;
         type Module = TestModule;
         type ModuleRegistry = Self;
         type Chunk = String;
-        type Logs = Empty<Self::Chunk, Self::Error>;
+        type Logs = Empty<Self::Chunk, anyhow::Error>;
 
-        type CreateFuture = FutureResult<(), Self::Error>;
-        type GetFuture = FutureResult<(Self::Module, ModuleRuntimeState), Self::Error>;
-        type ListFuture = FutureResult<Vec<Self::Module>, Self::Error>;
+        type CreateFuture = FutureResult<(), anyhow::Error>;
+        type GetFuture = FutureResult<(Self::Module, ModuleRuntimeState), anyhow::Error>;
+        type ListFuture = FutureResult<Vec<Self::Module>, anyhow::Error>;
         type ListWithDetailsStream =
-            Box<dyn Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
-        type LogsFuture = FutureResult<Self::Logs, Self::Error>;
-        type RemoveFuture = FutureResult<(), Self::Error>;
-        type RestartFuture = FutureResult<(), Self::Error>;
-        type StartFuture = FutureResult<(), Self::Error>;
-        type StopFuture = FutureResult<(), Self::Error>;
-        type SystemInfoFuture = FutureResult<CoreSystemInfo, Self::Error>;
+            Box<dyn Stream<Item = (Self::Module, ModuleRuntimeState), Error = anyhow::Error> + Send>;
+        type LogsFuture = FutureResult<Self::Logs, anyhow::Error>;
+        type RemoveFuture = FutureResult<(), anyhow::Error>;
+        type RestartFuture = FutureResult<(), anyhow::Error>;
+        type StartFuture = FutureResult<(), anyhow::Error>;
+        type StopFuture = FutureResult<(), anyhow::Error>;
+        type SystemInfoFuture = FutureResult<CoreSystemInfo, anyhow::Error>;
         type SystemResourcesFuture =
-            Box<dyn Future<Item = SystemResources, Error = Self::Error> + Send>;
-        type RemoveAllFuture = FutureResult<(), Self::Error>;
-        type StopAllFuture = FutureResult<(), Self::Error>;
+            Box<dyn Future<Item = SystemResources, Error = anyhow::Error> + Send>;
+        type RemoveAllFuture = FutureResult<(), anyhow::Error>;
+        type StopAllFuture = FutureResult<(), anyhow::Error>;
 
         fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
             unimplemented!()
@@ -1822,9 +1817,8 @@ mod tests {
     }
 
     impl Authenticator for TestModuleList {
-        type Error = Error;
         type Request = Request<Body>;
-        type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = Self::Error> + Send>;
+        type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = anyhow::Error> + Send>;
 
         fn authenticate(&self, req: &Self::Request) -> Self::AuthenticateFuture {
             authenticate(self, req)

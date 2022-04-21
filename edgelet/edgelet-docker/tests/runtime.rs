@@ -9,7 +9,6 @@ use std::str;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
-use failure::Fail;
 use futures::future;
 use futures::prelude::*;
 use futures::sync::mpsc;
@@ -30,7 +29,7 @@ use edgelet_core::{
     ModuleRuntime, ModuleSpec, RegistryOperation, RuntimeOperation,
 };
 use edgelet_docker::{DockerConfig, DockerModuleRuntime, Settings};
-use edgelet_docker::{Error, ErrorKind};
+use edgelet_docker::Error;
 use edgelet_test_utils::web::{
     make_req_dispatcher, HttpMethod, RequestHandler, RequestPath, ResponseFuture,
 };
@@ -260,12 +259,12 @@ network = "azure-iot-edge"
         .block_on(task)
         .expect_err("Expected runtime pull method to fail due to invalid image name.");
 
-    match (err.kind(), err.cause().and_then(Fail::downcast_ref)) {
+    match (err.downcast_ref().unwrap(), err.source().unwrap().downcast_ref().unwrap()) {
         (
-            edgelet_docker::ErrorKind::RegistryOperation(
+            edgelet_docker::Error::RegistryOperation(
                 edgelet_core::RegistryOperation::PullImage(name),
             ),
-            Some(edgelet_docker::ErrorKind::NotFound(message)),
+            edgelet_docker::Error::NotFound(message),
         ) if name == INVALID_IMAGE_NAME => {
             assert_eq!(
                 &format!("manifest for {} not found", INVALID_IMAGE_NAME),
@@ -275,7 +274,7 @@ network = "azure-iot-edge"
 
         _ => panic!(
             "Specific docker runtime message is expected for invalid image name. Got {:?}",
-            err.kind()
+            err
         ),
     }
 }
@@ -367,12 +366,12 @@ network = "azure-iot-edge"
         .block_on(task)
         .expect_err("Expected runtime pull method to fail due to invalid image host.");
 
-    match (err.kind(), err.cause().and_then(Fail::downcast_ref)) {
+    match (err.downcast_ref().unwrap(), err.source().unwrap().downcast_ref().unwrap()) {
         (
-            edgelet_docker::ErrorKind::RegistryOperation(
+            edgelet_docker::Error::RegistryOperation(
                 edgelet_core::RegistryOperation::PullImage(name),
             ),
-            Some(edgelet_docker::ErrorKind::FormattedDockerRuntime(message)),
+            edgelet_docker::Error::FormattedDockerRuntime(message),
         ) if name == INVALID_IMAGE_HOST => {
             assert_eq!(
                 &format!(
@@ -385,7 +384,7 @@ network = "azure-iot-edge"
 
         _ => panic!(
             "Specific docker runtime message is expected for invalid image host. Got {:?}",
-            err.kind()
+            err
         ),
     }
 }
@@ -489,12 +488,12 @@ network = "azure-iot-edge"
         .block_on(task)
         .expect_err("Expected runtime pull method to fail due to unauthentication.");
 
-    match (err.kind(), err.cause().and_then(Fail::downcast_ref)) {
+    match (err.downcast_ref().unwrap(), err.source().unwrap().downcast_ref().unwrap()) {
         (
-            edgelet_docker::ErrorKind::RegistryOperation(
+            edgelet_docker::Error::RegistryOperation(
                 edgelet_core::RegistryOperation::PullImage(name),
             ),
-            Some(edgelet_docker::ErrorKind::FormattedDockerRuntime(message)),
+            edgelet_docker::Error::FormattedDockerRuntime(message),
         ) if name == IMAGE_NAME => {
             assert_eq!(
                 &format!(
@@ -507,7 +506,7 @@ network = "azure-iot-edge"
 
         _ => panic!(
             "Specific docker runtime message is expected for unauthentication. Got {:?}",
-            err.kind()
+            err
         ),
     }
 }
@@ -1325,8 +1324,8 @@ network = "azure-iot-edge"
         .and_then(|runtime| ModuleRegistry::remove(&runtime, image_name))
         .then(|res| match res {
             Ok(_) => Err("Expected error but got a result.".to_string()),
-            Err(err) => match err.kind() {
-                ErrorKind::RegistryOperation(RegistryOperation::RemoveImage(s))
+            Err(err) => match err.downcast_ref().unwrap() {
+                Error::RegistryOperation(RegistryOperation::RemoveImage(s))
                     if s == image_name =>
                 {
                     Ok(())
@@ -1382,8 +1381,8 @@ network = "azure-iot-edge"
         })
         .then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::InvalidModuleType(s) if s == name => Ok::<_, Error>(()),
+            Err(err) => match err.downcast_ref().unwrap() {
+                Error::InvalidModuleType(s) if s == name => Ok::<_, Error>(()),
                 kind => panic!("Expected `InvalidModuleType` error but got {:?}.", kind),
             },
         });
@@ -1415,8 +1414,8 @@ network = "azure-iot-edge"
         .and_then(|runtime| runtime.start(name))
         .then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(s)) if s == name => {
+            Err(err) => match err.downcast_ref().unwrap() {
+                Error::RuntimeOperation(RuntimeOperation::StartModule(s)) if s == name => {
                     Ok::<_, Error>(())
                 }
                 kind => panic!(
@@ -1453,8 +1452,8 @@ network = "azure-iot-edge"
         .and_then(|runtime| runtime.start(name))
         .then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(s)) if s == name => {
+            Err(err) => match err.downcast_ref().unwrap() {
+                Error::RuntimeOperation(RuntimeOperation::StartModule(s)) if s == name => {
                     Ok::<_, Error>(())
                 }
                 kind => panic!(
@@ -1491,8 +1490,8 @@ network = "azure-iot-edge"
         .and_then(|runtime| runtime.stop(name, None))
         .then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(s)) if s == name => {
+            Err(err) => match err.downcast_ref().unwrap() {
+                Error::RuntimeOperation(RuntimeOperation::StopModule(s)) if s == name => {
                     Ok::<_, Error>(())
                 }
                 kind => panic!(
@@ -1529,8 +1528,8 @@ network = "azure-iot-edge"
         .and_then(|runtime| runtime.stop(name, None))
         .then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(s)) if s == name => {
+            Err(err) => match err.downcast_ref().unwrap() {
+                Error::RuntimeOperation(RuntimeOperation::StopModule(s)) if s == name => {
                     Ok::<_, Error>(())
                 }
                 kind => panic!(
@@ -1567,8 +1566,8 @@ network = "azure-iot-edge"
         .and_then(|runtime| runtime.restart(name))
         .then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(s)) if s == name => {
+            Err(err) => match err.downcast_ref().unwrap() {
+                Error::RuntimeOperation(RuntimeOperation::RestartModule(s)) if s == name => {
                     Ok::<_, Error>(())
                 }
                 kind => panic!(
@@ -1605,8 +1604,8 @@ network = "azure-iot-edge"
         .and_then(|runtime| runtime.restart(name))
         .then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(s)) if s == name => {
+            Err(err) => match err.downcast_ref().unwrap() {
+                Error::RuntimeOperation(RuntimeOperation::RestartModule(s)) if s == name => {
                     Ok::<_, Error>(())
                 }
                 kind => panic!(
@@ -1643,8 +1642,8 @@ network = "azure-iot-edge"
         .and_then(|runtime| ModuleRuntime::remove(&runtime, name))
         .then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::RemoveModule(s)) if s == name => {
+            Err(err) => match err.downcast_ref().unwrap() {
+                Error::RuntimeOperation(RuntimeOperation::RemoveModule(s)) if s == name => {
                     Ok::<_, Error>(())
                 }
                 kind => panic!(
@@ -1681,8 +1680,8 @@ network = "azure-iot-edge"
         .and_then(|runtime| ModuleRuntime::remove(&runtime, name))
         .then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::RemoveModule(s)) if s == name => {
+            Err(err) => match err.downcast_ref().unwrap() {
+                Error::RuntimeOperation(RuntimeOperation::RemoveModule(s)) if s == name => {
                     Ok::<_, Error>(())
                 }
                 kind => panic!(
@@ -1719,8 +1718,8 @@ network = "azure-iot-edge"
         .and_then(|runtime| runtime.get(name))
         .then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(s)) if s == name => {
+            Err(err) => match err.downcast_ref().unwrap() {
+                Error::RuntimeOperation(RuntimeOperation::GetModule(s)) if s == name => {
                     Ok::<_, Error>(())
                 }
                 kind => panic!(
@@ -1757,8 +1756,8 @@ network = "azure-iot-edge"
         .and_then(|runtime| runtime.get(name))
         .then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(s)) if s == name => {
+            Err(err) => match err.downcast_ref().unwrap() {
+                Error::RuntimeOperation(RuntimeOperation::GetModule(s)) if s == name => {
                     Ok::<_, Error>(())
                 }
                 kind => panic!(
