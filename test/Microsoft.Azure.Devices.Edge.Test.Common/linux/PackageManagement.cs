@@ -62,8 +62,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         "set -e",
                         $"sudo rpm --nodeps -i {string.Join(' ', packages)}",
                         "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
-                        "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
-                        "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
+                        "pathToOverride=$(dirname ${pathToSystemdConfig#?})/aziot-edged.service.d",
+                        "sudo mkdir $pathToOverride",
+                        "echo -e \"[Service]\nRestart=no\" >  ~/override.conf",
+                        "sudo mv -f ~/override.conf ${pathToOverride}/overrides.conf",
                         "sudo systemctl daemon-reload"
                     },
                     _ =>  throw new NotImplementedException($"Don't know how to install daemon on for '.{this.os}'")
@@ -109,8 +111,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         $"sudo dnf updateinfo",
                         $"sudo dnf install -y aziot-edge",
                         "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
-                        "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
-                        "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
+                        "pathToOverride=$(dirname ${pathToSystemdConfig#?})/aziot-edged.service.d",
+                        "sudo mkdir $pathToOverride",
+                        "echo -e \"[Service]\nRestart=no\" >  ~/override.conf",
+                        "sudo mv -f ~/override.conf ${pathToOverride}/overrides.conf",
                         "sudo systemctl daemon-reload"
                     },
                     _ =>  throw new NotImplementedException($"Don't know how to install daemon on for '.{this.os}'")
