@@ -155,7 +155,6 @@ jobs:
         REGISTRY_ADDRESS: $(cr.address)
         REGISTRY_USERNAME: $(cr.username)
         REGISTRY_PASSWORD: $(cr.password)
-        BASH_ENV: '~/.bashrc'
     - task: PublishBuildArtifacts@1
       displayName: Publish logs
       inputs:
