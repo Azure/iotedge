@@ -127,6 +127,8 @@ jobs:
     #     script: |
     #       az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
     - bash: |
+          set -e
+          azure-cli-env/bin/az --version
           export PATH=azure-cli-env/bin/:$PATH
           az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
           contextPath=$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net6.0/context.json
