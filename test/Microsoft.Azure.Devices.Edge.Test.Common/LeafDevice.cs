@@ -315,7 +315,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             client.SetConnectionStatusChangesHandler((status, reason) =>
             {
-                Log.Information($"Detected change in connection status:{Environment.NewLine}Changed Status: {status} Reason: {reason}");
+                Log.Verbose($"Detected change in connection status:{Environment.NewLine}Changed Status: {status} Reason: {reason}");
             });
 
             // This retry is needed to correct a variety of exceptions, however this failure should not happen.
