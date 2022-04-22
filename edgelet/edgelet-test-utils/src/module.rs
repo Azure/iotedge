@@ -12,17 +12,16 @@ use futures::future::{self, FutureResult};
 use futures::prelude::*;
 use futures::stream;
 use futures::sync::mpsc::UnboundedSender;
-use futures::IntoFuture;
 use hyper::{Body, Request};
 
 #[derive(Clone, Debug)]
-pub struct TestRegistry<E, C> {
-    err: Option<E>,
+pub struct TestRegistry<C> {
+    err: bool,
     phantom: PhantomData<C>,
 }
 
-impl<E, C> TestRegistry<E, C> {
-    pub fn new(err: Option<E>) -> Self {
+impl<C> TestRegistry<C> {
+    pub fn new(err: bool) -> Self {
         TestRegistry {
             err,
             phantom: PhantomData,
@@ -30,26 +29,24 @@ impl<E, C> TestRegistry<E, C> {
     }
 }
 
-impl<E, C> ModuleRegistry for TestRegistry<E, C>
-where
-    E: std::error::Error + Clone + Send + Sync + 'static,
+impl<C> ModuleRegistry for TestRegistry<C>
 {
     type PullFuture = FutureResult<(), anyhow::Error>;
     type RemoveFuture = FutureResult<(), anyhow::Error>;
     type Config = C;
 
     fn pull(&self, _config: &Self::Config) -> Self::PullFuture {
-        match self.err {
-            Some(ref e) => future::err(e.clone().into()),
-            None => future::ok(()),
+        if self.err {
+            return future::err(anyhow::anyhow!("TestRegistry::pull"));
         }
+        future::ok(())
     }
 
     fn remove(&self, _name: &str) -> Self::RemoveFuture {
-        match self.err {
-            Some(ref e) => future::err(e.clone().into()),
-            None => future::ok(()),
+        if self.err {
+            return future::err(anyhow::anyhow!("TestRegistry::remove"));
         }
+        future::ok(())
     }
 }
 
@@ -134,15 +131,15 @@ impl RuntimeSettings for TestSettings {
 }
 
 #[derive(Clone, Debug)]
-pub struct TestModule<E, C> {
+pub struct TestModule<C> {
     name: String,
     config: C,
-    state: Result<ModuleRuntimeState, E>,
+    state: Option<ModuleRuntimeState>,
     logs: TestBody,
 }
 
-impl<E, C> TestModule<E, C> {
-    pub fn new(name: String, config: C, state: Result<ModuleRuntimeState, E>) -> Self {
+impl<C> TestModule<C> {
+    pub fn new(name: String, config: C, state: Option<ModuleRuntimeState>) -> Self {
         TestModule {
             name,
             config,
@@ -154,7 +151,7 @@ impl<E, C> TestModule<E, C> {
     pub fn new_with_logs(
         name: String,
         config: C,
-        state: Result<ModuleRuntimeState, E>,
+        state: Option<ModuleRuntimeState>,
         logs: Vec<&'static [u8]>,
     ) -> Self {
         TestModule {
@@ -166,9 +163,7 @@ impl<E, C> TestModule<E, C> {
     }
 }
 
-impl<E, C> Module for TestModule<E, C>
-where
-    E: std::error::Error + Clone + Send + Sync + 'static,
+impl<C> Module for TestModule<C>
 {
     type Config = C;
     type RuntimeStateFuture = FutureResult<ModuleRuntimeState, anyhow::Error>;
@@ -186,37 +181,41 @@ where
     }
 
     fn runtime_state(&self) -> Self::RuntimeStateFuture {
-        self.state.clone().map_err(Into::into).into_future()
+        if let Some(state) = self.state.clone() {
+            future::ok(state)
+        }
+        else {
+            future::err(anyhow::anyhow!("TestModule::runtime_state"))
+        }
     }
 }
 
 #[derive(Clone)]
-pub struct TestRuntime<E, S>
+pub struct TestRuntime<S>
 where
     S: RuntimeSettings,
 {
-    module: Option<Result<TestModule<E, S::Config>, E>>,
-    registry: TestRegistry<E, S::Config>,
+    module: Option<TestModule<S::Config>>,
+    registry: TestRegistry<S::Config>,
     settings: S,
 }
 
-impl<E, S> TestRuntime<E, S>
+impl<S> TestRuntime<S>
 where
-    E: std::error::Error + Clone + Send + Sync + 'static,
     S: RuntimeSettings,
 {
-    pub fn with_module(mut self, module: Result<TestModule<E, S::Config>, E>) -> Self {
+    pub fn with_module(mut self, module: TestModule<S::Config>) -> Self {
         self.module = Some(module);
         self
     }
 
-    pub fn with_registry(mut self, registry: TestRegistry<E, S::Config>) -> Self {
+    pub fn with_registry(mut self, registry: TestRegistry<S::Config>) -> Self {
         self.registry = registry;
         self
     }
 }
 
-impl<E, S> Authenticator for TestRuntime<E, S>
+impl<S> Authenticator for TestRuntime<S>
 where
     S: RuntimeSettings,
 {
@@ -273,9 +272,8 @@ impl From<TestBody> for Body {
     }
 }
 
-impl<E, S> MakeModuleRuntime for TestRuntime<E, S>
+impl<S> MakeModuleRuntime for TestRuntime<S>
 where
-    E: std::error::Error + Clone + Send + Sync + 'static,
     S: RuntimeSettings + Send,
     S::Config: Clone + Send + 'static,
 {
@@ -290,21 +288,20 @@ where
     ) -> Self::Future {
         future::ok(TestRuntime {
             module: None,
-            registry: TestRegistry::new(None),
+            registry: TestRegistry::new(false),
             settings,
         })
     }
 }
 
-impl<E, S> ModuleRuntime for TestRuntime<E, S>
+impl<S> ModuleRuntime for TestRuntime<S>
 where
-    E: std::error::Error + Clone + Send + Sync + 'static,
     S: RuntimeSettings + Send,
     S::Config: Clone + Send + 'static,
 {
     type Config = S::Config;
-    type Module = TestModule<E, S::Config>;
-    type ModuleRegistry = TestRegistry<E, S::Config>;
+    type Module = TestModule<S::Config>;
+    type ModuleRegistry = TestRegistry<S::Config>;
     type Chunk = &'static [u8];
     type Logs = TestBody;
 
@@ -324,50 +321,57 @@ where
     type StopAllFuture = FutureResult<(), anyhow::Error>;
 
     fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
-        match self.module.as_ref().unwrap() {
-            Ok(_) => future::ok(()),
-            Err(ref e) => future::err(e.clone().into()),
+        if self.module.is_none() {
+            return future::err(anyhow::anyhow!("TestRuntime::create"));
         }
+        future::ok(())
     }
 
     fn get(&self, _id: &str) -> Self::GetFuture {
-        match self.module.as_ref().unwrap() {
-            Ok(ref m) => future::ok((m.clone(), ModuleRuntimeState::default())),
-            Err(ref e) => future::err(e.clone().into()),
+        if let Some(module) = self.module.clone() {
+            future::result(module.runtime_state()
+                .poll()
+                .map(move |runtime_state| match runtime_state {
+                    futures::Async::Ready(runtime_state) => (module, runtime_state),
+                    _ => panic!("TestModule::runtime_state should return FutureResult")
+                }))
+        }
+        else {
+            future::err(anyhow::anyhow!("TestRuntime::get")) 
         }
     }
 
     fn start(&self, _id: &str) -> Self::StartFuture {
-        match self.module.as_ref().unwrap() {
-            Ok(_) => future::ok(()),
-            Err(ref e) => future::err(e.clone().into()),
+        if self.module.is_none() {
+            return future::err(anyhow::anyhow!("TestRuntime::start"));
         }
+        future::ok(())
     }
 
     fn stop(&self, _id: &str, _wait_before_kill: Option<Duration>) -> Self::StopFuture {
-        match self.module.as_ref().unwrap() {
-            Ok(_) => future::ok(()),
-            Err(ref e) => future::err(e.clone().into()),
+        if self.module.is_none() {
+            return future::err(anyhow::anyhow!("TestRuntime::stop"));
         }
+        future::ok(())
     }
 
     fn restart(&self, _id: &str) -> Self::RestartFuture {
-        match self.module.as_ref().unwrap() {
-            Ok(_) => future::ok(()),
-            Err(ref e) => future::err(e.clone().into()),
+        if self.module.is_none() {
+            return future::err(anyhow::anyhow!("TestRuntime::restart"));
         }
+        future::ok(())
     }
 
     fn remove(&self, _id: &str) -> Self::RemoveFuture {
-        match self.module.as_ref().unwrap() {
-            Ok(_) => future::ok(()),
-            Err(ref e) => future::err(e.clone().into()),
+        if self.module.is_none() {
+            return future::err(anyhow::anyhow!("TestRuntime::remove"));
         }
+        future::ok(())
     }
 
     fn system_info(&self) -> Self::SystemInfoFuture {
-        match self.module.as_ref().unwrap() {
-            Ok(_) => future::ok(SystemInfo {
+        if self.module.is_some() {
+            future::ok(SystemInfo {
                 kernel: "linux".to_owned(),
                 kernel_release: "5.0".to_owned(),
                 kernel_version: "1".to_owned(),
@@ -392,14 +396,16 @@ where
                 },
 
                 additional_properties: std::collections::BTreeMap::new(),
-            }),
-            Err(ref e) => future::err(e.clone().into()),
+            })
+        }
+        else {
+            future::err(anyhow::anyhow!("TestRuntime::system_info"))
         }
     }
 
     fn system_resources(&self) -> Self::SystemResourcesFuture {
-        match self.module.as_ref().unwrap() {
-            Ok(_) => future::ok(SystemResources::new(
+        if self.module.is_some() {
+            future::ok(SystemResources::new(
                 595_023,
                 200,
                 0.25,
@@ -413,32 +419,40 @@ where
                     "test type".to_owned(),
                 )],
                 "fake docker stats".to_owned(),
-            )),
-            Err(ref e) => future::err(e.clone().into()),
+            ))
+        }
+        else {
+            future::err(anyhow::anyhow!("TestRuntime::system_resources"))
         }
     }
 
     fn list(&self) -> Self::ListFuture {
-        match self.module.as_ref().unwrap() {
-            Ok(ref m) => future::ok(vec![m.clone()]),
-            Err(ref e) => future::err(e.clone().into()),
+        if let Some(module) = self.module.clone() {
+            future::ok(vec![module])
+        }
+        else {
+            future::err(anyhow::anyhow!("TestRuntime::list"))
         }
     }
 
     fn list_with_details(&self) -> Self::ListWithDetailsStream {
-        match self.module.as_ref().unwrap() {
-            Ok(ref m) => {
-                let m = m.clone();
-                Box::new(m.runtime_state().map(|rs| (m, rs)).into_stream())
-            }
-            Err(ref e) => Box::new(stream::once(Err(e.clone().into()))),
+        if let Some(module) = self.module.clone() {
+            Box::new(module
+                .runtime_state()
+                .map(move |runtime_state| (module, runtime_state))
+                .into_stream())
+        }
+        else {
+            Box::new(stream::once(Err(anyhow::anyhow!("TestRuntime::list_with_details"))))
         }
     }
 
     fn logs(&self, _id: &str, _options: &LogOptions) -> Self::LogsFuture {
-        match self.module.as_ref().unwrap() {
-            Ok(ref m) => future::ok(m.logs.clone()),
-            Err(ref e) => future::err(e.clone().into()),
+        if let Some(module) = &self.module {
+            future::ok(module.logs.clone())
+        }
+        else {
+            future::err(anyhow::anyhow!("TestRuntime::logs"))
         }
     }
 
