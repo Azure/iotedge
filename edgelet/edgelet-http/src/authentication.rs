@@ -8,7 +8,7 @@ use hyper::{Body, Request, Response};
 use edgelet_core::{AuthId, Authenticator, ModuleId, Policy};
 
 use crate::route::{Handler, Parameters};
-use crate::{Error, IntoResponse};
+use crate::Error;
 
 pub struct Authentication<H, M> {
     policy: Policy,
@@ -59,7 +59,7 @@ where
                 future::Either::A(inner.handle(req, params))
             }
             Err(err) => future::Either::B(future::ok(
-                err.context(Error::Authorization).into_response(),
+                err.context(Error::Authorization).downcast::<Error>().expect("should always have crate::Error").into(),
             )),
         });
 

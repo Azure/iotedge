@@ -13,7 +13,6 @@ use url::form_urlencoded::parse as parse_query;
 
 use crate::error::Error;
 use crate::version::Version;
-use crate::IntoResponse;
 
 pub mod macros;
 mod regex;
@@ -181,7 +180,7 @@ where
                 }
             }
             None => Box::new(future::ok(
-                anyhow::Error::from(Error::InvalidApiVersion(String::new())).into_response(),
+                Error::InvalidApiVersion(String::new()).into(),
             )),
         }
     }

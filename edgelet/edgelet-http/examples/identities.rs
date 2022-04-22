@@ -9,13 +9,13 @@ use hyper::server::conn::Http;
 use hyper::{Body, Request, Response, StatusCode};
 
 use edgelet_http::route::{Builder, Parameters, RegexRoutesBuilder, Router};
-use edgelet_http::{Error as HttpError, HyperExt, Version};
+use edgelet_http::{HyperExt, Version};
 
 #[allow(clippy::needless_pass_by_value)]
 fn index(
     _req: Request<Body>,
     _params: Parameters,
-) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = anyhow::Error> + Send> {
     let response = Response::builder()
         .status(StatusCode::OK)
         .header(CONTENT_TYPE, "text/plain")
@@ -28,7 +28,7 @@ fn index(
 fn identities_list(
     _req: Request<Body>,
     _params: Parameters,
-) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = anyhow::Error> + Send> {
     let response = Response::builder()
         .status(StatusCode::OK)
         .header(CONTENT_TYPE, "application/json")
@@ -41,7 +41,7 @@ fn identities_list(
 fn identities_update(
     _req: Request<Body>,
     params: Parameters,
-) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = anyhow::Error> + Send> {
     let response = params
         .name("name")
         .map_or_else(|| {
@@ -63,7 +63,7 @@ fn identities_update(
 fn identities_delete(
     _req: Request<Body>,
     _params: Parameters,
-) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = anyhow::Error> + Send> {
     let response = Response::builder()
         .status(StatusCode::BAD_REQUEST)
         .body(Body::default())

@@ -9,7 +9,7 @@ use hyper::{Body, Request, Response};
 use edgelet_core::{AuthId, Policy};
 
 use crate::route::{Handler, Parameters};
-use crate::{Error, IntoResponse};
+use crate::Error;
 
 pub struct Authorization<H> {
     policy: Policy,
@@ -57,7 +57,7 @@ where
             ).into()))
         };
 
-        Box::new(response.or_else(|e| future::ok(e.into_response())))
+        Box::new(response.or_else(|e| future::ok(e.downcast::<Error>().expect("should always have crate::Error").into())))
     }
 }
 

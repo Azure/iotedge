@@ -174,21 +174,11 @@ impl Debug for PemCertificate {
     }
 }
 
-pub trait IntoResponse {
-    fn into_response(self) -> Response<Body>;
-}
-
-impl IntoResponse for Response<Body> {
-    fn into_response(self) -> Response<Body> {
-        self
-    }
-}
-
-impl IntoResponse for anyhow::Error {
-    fn into_response(self) -> Response<Body> {
-        let status_code = match self.downcast_ref() {
-            Some(Error::Authorization) | Some(Error::ModuleNotFound(_)) => StatusCode::NOT_FOUND,
-            Some(Error::InvalidApiVersion(_)) => StatusCode::BAD_REQUEST,
+impl Into<Response<Body>> for Error {
+    fn into(self) -> Response<Body> {
+        let status_code = match self {
+            Error::Authorization | Error::ModuleNotFound(_) => StatusCode::NOT_FOUND,
+            Error::InvalidApiVersion(_) => StatusCode::BAD_REQUEST,
             _ => StatusCode::INTERNAL_SERVER_ERROR
         };
         let body = serde_json::json!({
@@ -224,10 +214,9 @@ pub struct Server<S> {
 
 impl<S> Server<S>
 where
-    S: NewService<ReqBody = Body, ResBody = Body> + Send + 'static,
+    S: NewService<ReqBody = Body, ResBody = Body, InitError = anyhow::Error> + Send + 'static,
     S::Future: Send + 'static,
     S::Service: Send + 'static,
-    S::InitError: std::error::Error + Send + Sync + 'static,
     <S::Service as Service>::Future: Send + 'static,
 {
     pub fn run(self) -> Run {
@@ -281,7 +270,7 @@ where
                         if let Some((lock, _)) = lock {
                             lock.fetch_add(1, Ordering::AcqRel);
                         }
-                        log_failure(Level::Error, &err);
+                        log_failure(Level::Error, err.as_ref());
                         Err(())
                     }
                 }})
