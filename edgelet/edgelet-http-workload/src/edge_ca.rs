@@ -212,7 +212,7 @@ where
             if key_client.move_key_pair(&new_key, old_key).await.is_err() {
                 revert_cert = true;
             }
-        };
+        }
 
         // Revert to the previous cert if the key could not be written.
         if revert_cert {
@@ -221,7 +221,7 @@ where
             cert_client
                 .import_cert(cert_id, &old_cert_pem)
                 .await
-                .map_err(|_| cert_renewal::Error::retryable_error("failed to import new cert"))?;
+                .map_err(|_| cert_renewal::Error::retryable_error("failed to restore old cert"))?;
         }
 
         // Modules should be restarted so that they request new server certs. Stop all modules here;
