@@ -627,7 +627,7 @@ mod tests {
         assert_eq!("Roses are redviolets are blue", result_str);
     }
 
-    fn make_runtime(module_name: &str) -> TestRuntime<Error, TestSettings> {
+    fn make_runtime(module_name: &str) -> TestRuntime<TestSettings> {
         let logs = vec![
             &[0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0d, b'R', b'o'][..],
             &b"ses are"[..],
@@ -637,7 +637,7 @@ mod tests {
             &b" are blue"[..],
         ];
 
-        let state: Result<ModuleRuntimeState, Error> = Ok(ModuleRuntimeState::default());
+        let state = Some(ModuleRuntimeState::default());
         let config = TestConfig::new(format!("microsoft/{}", module_name));
         let module = TestModule::new_with_logs(module_name.to_owned(), config, state, logs);
 
@@ -647,7 +647,7 @@ mod tests {
         TestRuntime::make_runtime(TestSettings::new(), create_socket_channel_snd)
             .wait()
             .unwrap()
-            .with_module(Ok(module))
+            .with_module(module)
     }
 
     // From https://github.com/mvdnes/zip-rs/blob/master/examples/extract.rs
