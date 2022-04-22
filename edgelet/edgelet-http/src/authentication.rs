@@ -59,7 +59,7 @@ where
                 future::Either::A(inner.handle(req, params))
             }
             Err(err) => future::Either::B(future::ok(
-                err.context(Error::Authorization).downcast::<Error>().expect("should always have crate::Error").into(),
+                err.context(Error::Authorization).downcast::<Error>().map_or_else(crate::error::catchall_error_response, Into::into),
             )),
         });
 

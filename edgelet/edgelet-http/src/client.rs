@@ -214,7 +214,7 @@ where
                         if status.is_success() {
                             Ok(body)
                         } else {
-                            Err(anyhow::Error::from(Error::http_with_error_response(status, &*body)))
+                            Err(anyhow::anyhow!(Error::from((status, &*body))))
                         }
                     })
                     .and_then(|body| {

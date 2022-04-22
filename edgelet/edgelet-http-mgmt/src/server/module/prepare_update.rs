@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use failure::ResultExt;
+use anyhow::Context;
 use futures::future::Either;
 use futures::{Future, Stream};
 use hyper::{Body, Request, Response, StatusCode};
@@ -10,11 +10,9 @@ use serde::Serialize;
 
 use edgelet_core::{ImagePullPolicy, Module, ModuleRegistry, ModuleRuntime};
 use edgelet_http::route::{Handler, Parameters};
-use edgelet_http::Error as HttpError;
 
 use super::spec_to_core;
-use crate::error::{Error, ErrorKind};
-use crate::IntoResponse;
+use crate::error::Error;
 
 pub struct PrepareUpdateModule<M> {
     runtime: M,
@@ -35,16 +33,16 @@ where
         &self,
         req: Request<Body>,
         _params: Parameters,
-    ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = anyhow::Error> + Send> {
         let runtime = self.runtime.clone();
 
         let response = req
             .into_body()
             .concat2()
-            .then(|b| -> Result<_, Error> {
-                let b = b.context(ErrorKind::MalformedRequestBody)?;
-                let spec = serde_json::from_slice(&b).context(ErrorKind::MalformedRequestBody)?;
-                let core_spec = spec_to_core::<M>(&spec, ErrorKind::MalformedRequestBody)?;
+            .then(|b| -> anyhow::Result<_> {
+                let b = b.context(Error::MalformedRequestBody)?;
+                let spec = serde_json::from_slice(&b).context(Error::MalformedRequestBody)?;
+                let core_spec = spec_to_core::<M>(&spec)?;
                 Ok((core_spec, runtime))
             })
             .and_then(|(core_spec, runtime)| {
@@ -56,8 +54,8 @@ where
                             .registry()
                             .pull(core_spec.config())
                             .then(move |result| {
-                                result.with_context(|_| {
-                                    ErrorKind::PrepareUpdateModule(name.clone())
+                                result.with_context(|| {
+                                    Error::PrepareUpdateModule(name.clone())
                                 })?;
                                 Ok((name, true))
                             }),
@@ -65,7 +63,7 @@ where
                     ImagePullPolicy::Never => Either::B(futures::future::ok((name, false))),
                 }
             })
-            .and_then(|(name, image_pulled)| -> Result<_, Error> {
+            .and_then(|(name, image_pulled)| -> anyhow::Result<_> {
                 if image_pulled {
                     debug!("Successfully pulled new image for module {}", name)
                 } else {
@@ -78,10 +76,10 @@ where
                 let response = Response::builder()
                     .status(StatusCode::NO_CONTENT)
                     .body(Body::default())
-                    .context(ErrorKind::PrepareUpdateModule(name))?;
+                    .context(Error::PrepareUpdateModule(name))?;
                 Ok(response)
             })
-            .or_else(|e| Ok(e.into_response()));
+            .or_else(|e| Ok(e.downcast::<Error>().map_or_else(edgelet_http::error::catchall_error_response, Into::into)));
 
         Box::new(response)
     }

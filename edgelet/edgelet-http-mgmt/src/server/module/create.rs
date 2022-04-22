@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use failure::ResultExt;
+use anyhow::Context;
 use futures::future::Either;
 use futures::{Future, Stream};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
@@ -13,12 +13,10 @@ use edgelet_core::{
     ImagePullPolicy, Module, ModuleRegistry, ModuleRuntime, ModuleStatus, RuntimeOperation,
 };
 use edgelet_http::route::{Handler, Parameters};
-use edgelet_http::Error as HttpError;
 use management::models::ModuleSpec;
 
 use super::{spec_to_core, spec_to_details};
-use crate::error::{Error, ErrorKind};
-use crate::IntoResponse;
+use crate::error::Error;
 
 pub struct CreateModule<M> {
     runtime: M,
@@ -39,16 +37,16 @@ where
         &self,
         req: Request<Body>,
         _params: Parameters,
-    ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = anyhow::Error> + Send> {
         let runtime = self.runtime.clone();
         let response = req
             .into_body()
             .concat2()
             .then(|b| {
-                let b = b.context(ErrorKind::MalformedRequestBody)?;
+                let b = b.context(Error::MalformedRequestBody)?;
                 let spec = serde_json::from_slice::<ModuleSpec>(&b)
-                    .context(ErrorKind::MalformedRequestBody)?;
-                let core_spec = spec_to_core::<M>(&spec, ErrorKind::MalformedRequestBody)?;
+                    .context(Error::MalformedRequestBody)?;
+                let core_spec = spec_to_core::<M>(&spec)?;
                 Ok((spec, core_spec))
             })
             .and_then(move |(spec, core_spec)| {
@@ -61,8 +59,8 @@ where
                             .registry()
                             .pull(core_spec.config())
                             .then(move |result| {
-                                result.with_context(|_| {
-                                    ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
+                                result.with_context(|| {
+                                    Error::RuntimeOperation(RuntimeOperation::CreateModule(
                                         module_name.clone(),
                                     ))
                                 })?;
@@ -72,7 +70,7 @@ where
                     ImagePullPolicy::Never => Either::B(futures::future::ok((module_name, false))),
                 };
 
-                pull_future.and_then(move |(name, image_pulled)| -> Result<_, Error> {
+                pull_future.and_then(move |(name, image_pulled)| -> anyhow::Result<_> {
                     if image_pulled {
                         debug!("Successfully pulled new image for module {}", name)
                     } else {
@@ -84,15 +82,15 @@ where
 
                     Ok(runtime
                         .create(core_spec)
-                        .then(move |result| -> Result<_, Error> {
-                            result.with_context(|_| {
-                                ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
+                        .then(move |result| -> anyhow::Result<_> {
+                            result.with_context(|| {
+                                Error::RuntimeOperation(RuntimeOperation::CreateModule(
                                     name.clone(),
                                 ))
                             })?;
                             let details = spec_to_details(&spec, ModuleStatus::Stopped);
-                            let b = serde_json::to_string(&details).with_context(|_| {
-                                ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
+                            let b = serde_json::to_string(&details).with_context(|| {
+                                Error::RuntimeOperation(RuntimeOperation::CreateModule(
                                     name.clone(),
                                 ))
                             })?;
@@ -101,7 +99,7 @@ where
                                 .header(CONTENT_TYPE, "application/json")
                                 .header(CONTENT_LENGTH, b.len().to_string().as_str())
                                 .body(b.into())
-                                .context(ErrorKind::RuntimeOperation(
+                                .context(Error::RuntimeOperation(
                                     RuntimeOperation::CreateModule(name),
                                 ))?;
                             Ok(response)
@@ -109,7 +107,7 @@ where
                 })
             })
             .flatten()
-            .or_else(|e| Ok(e.into_response()));
+            .or_else(|e| Ok(e.downcast::<Error>().map_or_else(edgelet_http::error::catchall_error_response, Into::into)));
 
         Box::new(response)
     }

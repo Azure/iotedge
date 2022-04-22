@@ -39,7 +39,7 @@ where
             req.extensions()
                 .get::<AuthId>()
                 .cloned()
-                .unwrap_or_else(|| AuthId::None),
+                .unwrap_or(AuthId::None),
         );
         let inner = self.inner.clone();
 
@@ -57,7 +57,7 @@ where
             ).into()))
         };
 
-        Box::new(response.or_else(|e| future::ok(e.downcast::<Error>().expect("should always have crate::Error").into())))
+        Box::new(response.or_else(|e| future::ok(e.downcast::<Error>().map_or_else(crate::error::catchall_error_response, Into::into))))
     }
 }
 

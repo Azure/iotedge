@@ -10,23 +10,11 @@
     clippy::use_self
 )]
 
-use hyper::{Body, Response};
-
 mod client;
 mod error;
 mod server;
 
 pub use client::ModuleClient;
-pub use error::{Error, ErrorKind};
+pub use error::Error;
 pub use server::ListModules;
 pub use server::ManagementService;
-
-pub trait IntoResponse {
-    fn into_response(self) -> Response<Body>;
-}
-
-impl IntoResponse for Response<Body> {
-    fn into_response(self) -> Response<Body> {
-        self
-    }
-}

@@ -811,13 +811,13 @@ dependencies = [
 name = "edgelet-http-mgmt"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "aziot-identity-common",
  "chrono",
  "edgelet-core",
  "edgelet-docker",
  "edgelet-http",
  "edgelet-test-utils",
- "failure",
  "futures",
  "hyper",
  "identity-client",
@@ -827,6 +827,7 @@ dependencies = [
  "serde",
  "serde_json",
  "support-bundle",
+ "thiserror",
  "url 2.1.1",
 ]
 
@@ -1287,11 +1288,11 @@ checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 name = "identity-client"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "aziot-identity-common",
  "aziot-identity-common-http",
  "edgelet-core",
  "edgelet-http",
- "failure",
  "futures",
  "hyper",
  "hyperlocal",
@@ -1300,6 +1301,7 @@ dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
+ "thiserror",
  "typed-headers",
  "url 2.1.1",
 ]
@@ -1459,8 +1461,8 @@ dependencies = [
 name = "management"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "base64 0.9.3",
- "failure",
  "futures",
  "hyper",
  "serde",

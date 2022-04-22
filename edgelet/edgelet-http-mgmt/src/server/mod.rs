@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use failure::{Compat, Fail, ResultExt};
+use anyhow::Context;
 use futures::sync::mpsc::UnboundedSender;
 use futures::{future, Future};
 use std::sync::{Arc, Mutex};
@@ -11,7 +11,7 @@ use lazy_static::lazy_static;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
-use edgelet_core::{Authenticator, Module, ModuleRuntime, ModuleRuntimeErrorReason, Policy};
+use edgelet_core::{Authenticator, Module, ModuleRuntime, Policy};
 use edgelet_http::authentication::Authentication;
 use edgelet_http::authorization::Authorization;
 use edgelet_http::route::{Builder, RegexRecognizer, Router, RouterService};
@@ -28,7 +28,7 @@ use self::device_actions::ReprovisionDevice;
 use self::identity::{CreateIdentity, DeleteIdentity, ListIdentities, UpdateIdentity};
 pub use self::module::*;
 use self::system_info::{GetSupportBundle, GetSystemInfo, GetSystemResources};
-use crate::error::{Error, ErrorKind};
+use crate::error::Error;
 
 lazy_static! {
     static ref AGENT_NAME: String = "edgeAgent".to_string();
@@ -44,13 +44,11 @@ impl ManagementService {
         runtime: &M,
         identity_client: Arc<Mutex<IdentityClient>>,
         initiate_shutdown_and_reprovision: UnboundedSender<()>,
-    ) -> impl Future<Item = Self, Error = Error>
+    ) -> impl Future<Item = Self, Error = anyhow::Error>
     where
         M: ModuleRuntime + Authenticator<Request = Request<Body>> + Clone + Send + Sync + 'static,
-        for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
         <M::Module as Module>::Config: DeserializeOwned + Serialize,
         M::Logs: Into<Body>,
-        <M::AuthenticateFuture as Future>::Error: Fail,
     {
         let router = router!(
             get     Version2018_06_28 runtime Policy::Anonymous             => "/modules"                           => ListModules::new(runtime.clone()),
@@ -77,7 +75,7 @@ impl ManagementService {
         );
 
         router.new_service().then(|inner| {
-            let inner = inner.context(ErrorKind::StartService)?;
+            let inner = inner.context(Error::StartService)?;
             Ok(ManagementService { inner })
         })
     }
@@ -100,7 +98,7 @@ impl NewService for ManagementService {
     type Error = <Self::Service as Service>::Error;
     type Service = Self;
     type Future = future::FutureResult<Self::Service, Self::InitError>;
-    type InitError = Compat<Error>;
+    type InitError = anyhow::Error;
 
     fn new_service(&self) -> Self::Future {
         future::ok(self.clone())

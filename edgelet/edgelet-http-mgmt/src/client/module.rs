@@ -5,7 +5,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 
-use failure::{Fail, ResultExt};
+use anyhow::Context;
 use futures::future::{self, FutureResult};
 use futures::prelude::*;
 use futures::stream;
@@ -24,24 +24,24 @@ use edgelet_core::{
 use edgelet_docker::{self, DockerConfig};
 use edgelet_http::{UrlConnector, API_VERSION};
 
-use crate::error::{Error, ErrorKind};
+use crate::error::Error;
 
 pub struct ModuleClient {
     client: Arc<APIClient>,
 }
 
 impl ModuleClient {
-    pub fn new(url: &Url) -> Result<Self, Error> {
+    pub fn new(url: &Url) -> anyhow::Result<Self> {
         let client = Client::builder()
-            .build(UrlConnector::new(url).context(ErrorKind::InitializeModuleClient)?);
+            .build(UrlConnector::new(url).context(Error::InitializeModuleClient)?);
 
         let base_path = url
             .to_base_path()
-            .context(ErrorKind::InitializeModuleClient)?;
+            .context(Error::InitializeModuleClient)?;
         let mut configuration = Configuration::new(client);
         configuration.base_path = base_path
             .to_str()
-            .ok_or(ErrorKind::InitializeModuleClient)?
+            .context(Error::InitializeModuleClient)?
             .to_string();
 
         let scheme = url.scheme().to_string();
@@ -83,8 +83,7 @@ impl fmt::Display for ModuleConfig {
 
 impl Module for ModuleDetails {
     type Config = ModuleConfig;
-    type Error = Error;
-    type RuntimeStateFuture = FutureResult<ModuleRuntimeState, Self::Error>;
+    type RuntimeStateFuture = FutureResult<ModuleRuntimeState, anyhow::Error>;
 
     fn name(&self) -> &str {
         self.0.name()
@@ -103,9 +102,9 @@ impl Module for ModuleDetails {
     }
 }
 
-fn runtime_status(details: &HttpModuleDetails) -> Result<ModuleRuntimeState, Error> {
+fn runtime_status(details: &HttpModuleDetails) -> anyhow::Result<ModuleRuntimeState> {
     let status = ModuleStatus::from_str(details.status().runtime_status().status())
-        .context(ErrorKind::ModuleOperation(ModuleOperation::RuntimeState))?;
+        .context(Error::ModuleOperation(ModuleOperation::RuntimeState))?;
     let description = details
         .status()
         .runtime_status()
@@ -131,9 +130,8 @@ fn runtime_status(details: &HttpModuleDetails) -> Result<ModuleRuntimeState, Err
 }
 
 impl ModuleRegistry for ModuleClient {
-    type Error = Error;
-    type PullFuture = FutureResult<(), Self::Error>;
-    type RemoveFuture = FutureResult<(), Self::Error>;
+    type PullFuture = FutureResult<(), anyhow::Error>;
+    type RemoveFuture = FutureResult<(), anyhow::Error>;
     type Config = ModuleConfig;
 
     fn pull(&self, _config: &Self::Config) -> Self::PullFuture {
@@ -146,29 +144,28 @@ impl ModuleRegistry for ModuleClient {
 }
 
 impl ModuleRuntime for ModuleClient {
-    type Error = Error;
     type Config = ModuleConfig;
     type Module = ModuleDetails;
     type ModuleRegistry = Self;
     type Chunk = Chunk;
     type Logs = Logs;
 
-    type CreateFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type CreateFuture = Box<dyn Future<Item = (), Error = anyhow::Error> + Send>;
     type GetFuture =
-        Box<dyn Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
-    type ListFuture = Box<dyn Future<Item = Vec<Self::Module>, Error = Self::Error> + Send>;
+        Box<dyn Future<Item = (Self::Module, ModuleRuntimeState), Error = anyhow::Error> + Send>;
+    type ListFuture = Box<dyn Future<Item = Vec<Self::Module>, Error = anyhow::Error> + Send>;
     type ListWithDetailsStream =
-        Box<dyn Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
-    type LogsFuture = Box<dyn Future<Item = Self::Logs, Error = Self::Error> + Send>;
-    type RemoveFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
-    type RestartFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
-    type StartFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
-    type StopFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
-    type SystemInfoFuture = Box<dyn Future<Item = CoreSystemInfo, Error = Self::Error> + Send>;
+        Box<dyn Stream<Item = (Self::Module, ModuleRuntimeState), Error = anyhow::Error> + Send>;
+    type LogsFuture = Box<dyn Future<Item = Self::Logs, Error = anyhow::Error> + Send>;
+    type RemoveFuture = Box<dyn Future<Item = (), Error = anyhow::Error> + Send>;
+    type RestartFuture = Box<dyn Future<Item = (), Error = anyhow::Error> + Send>;
+    type StartFuture = Box<dyn Future<Item = (), Error = anyhow::Error> + Send>;
+    type StopFuture = Box<dyn Future<Item = (), Error = anyhow::Error> + Send>;
+    type SystemInfoFuture = Box<dyn Future<Item = CoreSystemInfo, Error = anyhow::Error> + Send>;
     type SystemResourcesFuture =
-        Box<dyn Future<Item = SystemResources, Error = Self::Error> + Send>;
-    type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
-    type StopAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+        Box<dyn Future<Item = SystemResources, Error = anyhow::Error> + Send>;
+    type RemoveAllFuture = Box<dyn Future<Item = (), Error = anyhow::Error> + Send>;
+    type StopAllFuture = Box<dyn Future<Item = (), Error = anyhow::Error> + Send>;
 
     fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
         unimplemented!()
@@ -186,15 +183,15 @@ impl ModuleRuntime for ModuleClient {
             .module_api()
             .start_module(&API_VERSION.to_string(), &id)
             .map_err(|err| {
-                Error::from_mgmt_error(
-                    err,
-                    ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id)),
+                anyhow::anyhow!(Error::from(err))
+                    .context(
+                    Error::RuntimeOperation(RuntimeOperation::StartModule(id)),
                 )
             })
             .then(|result| match result {
                 other @ Ok(_) => other,
-                Err(e) => match e.kind() {
-                    ErrorKind::NotModified => Ok(()),
+                Err(e) => match e.downcast_ref() {
+                    Some(Error::NotModified) => Ok(()),
                     _ => Err(e),
                 },
             });
@@ -209,15 +206,15 @@ impl ModuleRuntime for ModuleClient {
             .module_api()
             .stop_module(&API_VERSION.to_string(), &id)
             .map_err(|err| {
-                Error::from_mgmt_error(
-                    err,
-                    ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(id)),
+                anyhow::anyhow!(Error::from(err))
+                .context(
+                    Error::RuntimeOperation(RuntimeOperation::StopModule(id)),
                 )
             })
             .then(|result| match result {
                 other @ Ok(_) => other,
-                Err(e) => match e.kind() {
-                    ErrorKind::NotModified => Ok(()),
+                Err(e) => match e.downcast_ref() {
+                    Some(Error::NotModified) => Ok(()),
                     _ => Err(e),
                 },
             });
@@ -232,15 +229,14 @@ impl ModuleRuntime for ModuleClient {
             .module_api()
             .restart_module(&API_VERSION.to_string(), &id)
             .map_err(|err| {
-                Error::from_mgmt_error(
-                    err,
-                    ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(id)),
+                anyhow::anyhow!(Error::from(err)).context(
+                    Error::RuntimeOperation(RuntimeOperation::RestartModule(id)),
                 )
             })
             .then(|result| match result {
                 other @ Ok(_) => other,
-                Err(e) => match e.kind() {
-                    ErrorKind::NotModified => Ok(()),
+                Err(e) => match e.downcast_ref() {
+                    Some(Error::NotModified) => Ok(()),
                     _ => Err(e),
                 },
             });
@@ -276,9 +272,8 @@ impl ModuleRuntime for ModuleClient {
                     .collect()
             })
             .map_err(|err| {
-                Error::from_mgmt_error(
-                    err,
-                    ErrorKind::RuntimeOperation(RuntimeOperation::ListModules),
+                anyhow::anyhow!(Error::from(err)).context(
+                    Error::RuntimeOperation(RuntimeOperation::ListModules),
                 )
             });
         Box::new(modules)
@@ -290,9 +285,8 @@ impl ModuleRuntime for ModuleClient {
             .module_api()
             .list_modules(&API_VERSION.to_string())
             .map_err(|err| {
-                Error::from_mgmt_error(
-                    err,
-                    ErrorKind::RuntimeOperation(RuntimeOperation::ListModules),
+                anyhow::anyhow!(Error::from(err)).context(
+                    Error::RuntimeOperation(RuntimeOperation::ListModules),
                 )
             })
             .map(|list| {
@@ -327,9 +321,8 @@ impl ModuleRuntime for ModuleClient {
             )
             .then(|logs| match logs {
                 Ok(logs) => Ok(Logs(id, logs)),
-                Err(err) => Err(Error::from_mgmt_error(
-                    err,
-                    ErrorKind::RuntimeOperation(RuntimeOperation::GetModuleLogs(id)),
+                Err(err) => Err(anyhow::anyhow!(Error::from(err)).context(
+                    Error::RuntimeOperation(RuntimeOperation::GetModuleLogs(id)),
                 )),
             });
         Box::new(result)
@@ -364,15 +357,15 @@ pub struct Logs(String, Body);
 
 impl Stream for Logs {
     type Item = Chunk;
-    type Error = Error;
+    type Error = anyhow::Error;
 
     fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
         match self.1.poll() {
             Ok(Async::Ready(chunk)) => Ok(Async::Ready(chunk.map(Chunk))),
             Ok(Async::NotReady) => Ok(Async::NotReady),
-            Err(err) => Err(Error::from(err.context(ErrorKind::RuntimeOperation(
+            Err(err) => Err(anyhow::anyhow!(err).context(Error::RuntimeOperation(
                 RuntimeOperation::GetModuleLogs(self.0.clone()),
-            )))),
+            ))),
         }
     }
 }

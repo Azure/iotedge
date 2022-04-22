@@ -2,9 +2,9 @@
 
 use std::fmt::{self, Display};
 use std::net::SocketAddr;
-use std::str;
 
-use hyper::{StatusCode, Uri};
+use hyper::{Body, Response, StatusCode, Uri};
+use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use systemd::Fd;
 use url::Url;
 
@@ -105,15 +105,14 @@ pub enum Error {
     UrlJoin(Url, String),
 }
 
-impl Error {
-    pub fn http_with_error_response(status_code: StatusCode, body: &[u8]) -> Self {
-        match str::from_utf8(body) {
-            Ok(body) => Self::HttpWithErrorResponse(status_code, body.to_string()),
-            Err(_) => Self::HttpWithErrorResponse(
-                status_code,
-                "<could not parse response body as utf-8>".to_string(),
-            ),
-        }
+impl<'a> From<(StatusCode, &'a [u8])> for Error {
+    fn from((status_code, body): (StatusCode, &'a [u8])) -> Self {
+        Self::HttpWithErrorResponse(
+            status_code,
+            std::str::from_utf8(body)
+                .unwrap_or("<could not parse response body as utf-8>")
+                .to_string()
+        )
     }
 }
 
@@ -159,4 +158,18 @@ impl Display for InvalidUrlReason {
             }
         }
     }
+}
+
+pub fn catchall_error_response(err: anyhow::Error) -> Response<Body> {
+    let body = serde_json::json!({
+        "message": format!("{:?}", err)
+    })
+    .to_string();
+
+    Response::builder()
+        .status(StatusCode::INTERNAL_SERVER_ERROR)
+        .header(CONTENT_TYPE, "application/json")
+        .header(CONTENT_LENGTH, body.len().to_string().as_str())
+        .body(body.into())
+        .expect("response builder failure")
 }

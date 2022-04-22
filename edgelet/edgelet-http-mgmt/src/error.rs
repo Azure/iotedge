@@ -1,10 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::fmt::{self, Display};
-
 use edgelet_core::{IdentityOperation, ModuleOperation, RuntimeOperation};
-use edgelet_docker::ErrorKind as DockerErrorKind;
-use failure::{Backtrace, Context, Fail};
+use edgelet_docker::Error as DockerError;
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Response, StatusCode};
 use identity_client::Error as IdentityClientError;
@@ -13,139 +10,108 @@ use log::error;
 use management::apis::Error as MgmtError;
 use management::models::ErrorResponse;
 
-use crate::IntoResponse;
-
-#[derive(Debug)]
-pub struct Error {
-    inner: Context<ErrorKind>,
-}
-
-#[derive(Debug, Fail)]
-pub enum ErrorKind {
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
     // Note: This errorkind is always wrapped in another errorkind context
-    #[fail(display = "Client error")]
+    #[error("Client error")]
     Client(MgmtError<serde_json::Value>),
 
-    #[fail(display = "{}", _0)]
+    #[error("{0}")]
     IdentityOperation(IdentityOperation),
 
-    #[fail(display = "Could not initialize module client")]
+    #[error("Could not initialize module client")]
     InitializeModuleClient,
 
-    #[fail(display = "Invalid API version {:?}", _0)]
+    #[error("Invalid API version {0}")]
     InvalidApiVersion(String),
 
-    #[fail(display = "Invalid Identity type")]
+    #[error("Invalid Identity type")]
     InvalidIdentityType,
 
-    #[fail(display = "A request to Azure IoT Hub failed")]
+    #[error("A request to Azure IoT Hub failed")]
     IotHub,
 
-    #[fail(display = "Request body is malformed")]
+    #[error("Request body is malformed")]
     MalformedRequestBody,
 
-    #[fail(display = "The request parameter `{}` is malformed", _0)]
+    #[error("The request parameter `{0}` is malformed")]
     MalformedRequestParameter(&'static str),
 
-    #[fail(display = "The request is missing required parameter `{}`", _0)]
+    #[error("The request is missing required parameter `{0}`")]
     MissingRequiredParameter(&'static str),
 
-    #[fail(display = "{}", _0)]
+    #[error("{0}")]
     ModuleOperation(ModuleOperation),
 
-    #[fail(display = "State not modified")]
+    #[error("State not modified")]
     NotModified,
 
-    #[fail(display = "Could not prepare update for module {:?}", _0)]
+    #[error("Could not prepare update for module {0}")]
     PrepareUpdateModule(String),
 
-    #[fail(display = "Could not reprovision device")]
+    #[error("Could not reprovision device")]
     ReprovisionDevice,
 
-    #[fail(display = "{}", _0)]
+    #[error("{0}")]
     RuntimeOperation(RuntimeOperation),
 
-    #[fail(display = "Could not start management service")]
+    #[error("Could not start management service")]
     StartService,
 
-    #[fail(display = "Could not update module {:?}", _0)]
+    #[error("Could not update module {0}")]
     UpdateModule(String),
 
-    #[fail(display = "Could not collect support bundle")]
+    #[error("Could not collect support bundle")]
     SupportBundle,
 }
 
-impl Fail for Error {
-    fn cause(&self) -> Option<&dyn Fail> {
-        self.inner.cause()
-    }
-
-    fn backtrace(&self) -> Option<&Backtrace> {
-        self.inner.backtrace()
-    }
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.inner, f)
+impl From<IdentityClientError> for Error {
+    fn from(value: IdentityClientError) -> Self {
+        anyhow::anyhow!(value)
+            .context(Error::IotHub)
+            .downcast()
+            .expect("should always have crate::Error")
     }
 }
 
-impl Error {
-    pub fn kind(&self) -> &ErrorKind {
-        self.inner.get_context()
-    }
-
-    pub fn from_mgmt_error(error: MgmtError<serde_json::Value>, context: ErrorKind) -> Self {
-        match error {
-            MgmtError::Hyper(h) => Error::from(h.context(context)),
-            MgmtError::Serde(s) => Error::from(s.context(context)),
+impl From<MgmtError<serde_json::Value>> for Error {
+    fn from(value: MgmtError<serde_json::Value>) -> Self {
+        match value {
             MgmtError::Api(ref e) if e.code == StatusCode::NOT_MODIFIED => {
-                Error::from(ErrorKind::NotModified)
+                Error::NotModified
             }
-            MgmtError::Api(_) => Error::from(ErrorKind::Client(error).context(context)),
+            MgmtError::Hyper(_)
+            | MgmtError::Serde(_)
+            | MgmtError::Api(_) => Error::Client(value),
         }
     }
 }
 
-impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Self {
-        Error {
-            inner: Context::new(kind),
-        }
-    }
-}
+impl Into<Response<Body>> for Error {
+    fn into(self) -> Response<Body> {
+        let message = format!("{:?}", self);
 
-impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Self {
-        Error { inner }
-    }
-}
-
-impl IntoResponse for Error {
-    fn into_response(self) -> Response<Body> {
-        let mut message = self.to_string();
-        for cause in Fail::iter_causes(&self) {
-            message.push_str(&format!("\n\tcaused by: {}", cause));
+        let mut cur: &dyn std::error::Error = &self;
+        while let Some(cause) = cur.source() {
+            cur = cause;
         }
 
         // Specialize status code based on the underlying docker runtime error, if any
-        let status_code = if let Some(cause) =
-            <dyn Fail>::find_root_cause(&self).downcast_ref::<DockerErrorKind>()
+        let status_code = if let Some(docker_error) = cur.downcast_ref()
         {
-            match cause {
-                DockerErrorKind::NotFound(_) => StatusCode::NOT_FOUND,
-                DockerErrorKind::Conflict => StatusCode::CONFLICT,
-                DockerErrorKind::NotModified => StatusCode::NOT_MODIFIED,
+            match docker_error {
+                DockerError::NotFound(_) => StatusCode::NOT_FOUND,
+                DockerError::Conflict => StatusCode::CONFLICT,
+                DockerError::NotModified => StatusCode::NOT_MODIFIED,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             }
         } else {
-            match self.kind() {
-                ErrorKind::InvalidApiVersion(_)
-                | ErrorKind::InvalidIdentityType
-                | ErrorKind::MalformedRequestBody
-                | ErrorKind::MalformedRequestParameter(_)
-                | ErrorKind::MissingRequiredParameter(_) => StatusCode::BAD_REQUEST,
+            match self {
+                Error::InvalidApiVersion(_)
+                | Error::InvalidIdentityType
+                | Error::MalformedRequestBody
+                | Error::MalformedRequestParameter(_)
+                | Error::MissingRequiredParameter(_) => StatusCode::BAD_REQUEST,
                 _ => {
                     error!("Internal server error: {}", message);
                     StatusCode::INTERNAL_SERVER_ERROR
@@ -171,11 +137,5 @@ impl IntoResponse for Error {
         response
             .body(body.into())
             .expect("response builder failure")
-    }
-}
-
-impl IntoResponse for IdentityClientError {
-    fn into_response(self) -> Response<Body> {
-        Error::from(self.context(ErrorKind::IotHub)).into_response()
     }
 }

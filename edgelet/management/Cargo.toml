@@ -10,8 +10,8 @@ api.
 edition = "2018"
 
 [dependencies]
+anyhow = "1.0"
 base64 = "0.9"
-failure = "0.1"
 futures = "0.1"
 hyper = "0.12"
 serde = "1.0"

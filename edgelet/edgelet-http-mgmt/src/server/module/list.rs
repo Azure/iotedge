@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use failure::ResultExt;
+use anyhow::Context;
 use futures::{Future, Stream};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Request, Response, StatusCode};
@@ -9,11 +9,9 @@ use serde::Serialize;
 
 use edgelet_core::{Module, ModuleRuntime, ModuleRuntimeState, RuntimeOperation};
 use edgelet_http::route::{Handler, Parameters};
-use edgelet_http::Error as HttpError;
 use management::models::{Config, ExitStatus, ModuleDetails, ModuleList, RuntimeStatus, Status};
 
-use crate::error::{Error, ErrorKind};
-use crate::IntoResponse;
+use crate::error::Error;
 
 pub struct ListModules<M> {
     runtime: M,
@@ -34,43 +32,43 @@ where
         &self,
         _req: Request<Body>,
         _params: Parameters,
-    ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = anyhow::Error> + Send> {
         debug!("List modules");
 
         let response = self
             .runtime
             .list_with_details()
             .collect()
-            .then(|result| -> Result<_, Error> {
-                let details: Result<_, Error> = result
-                    .context(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules))?
+            .then(|result| -> anyhow::Result<_> {
+                let details = result
+                    .context(Error::RuntimeOperation(RuntimeOperation::ListModules))?
                     .into_iter()
                     .map(|(module, state)| core_to_details(&module, &state))
-                    .collect();
-                let body = ModuleList::new(details?);
+                    .collect::<anyhow::Result<_>>()?;
+                let body = ModuleList::new(details);
                 let b = serde_json::to_string(&body)
-                    .context(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules))?;
+                    .context(Error::RuntimeOperation(RuntimeOperation::ListModules))?;
                 let response = Response::builder()
                     .status(StatusCode::OK)
                     .header(CONTENT_TYPE, "application/json")
                     .header(CONTENT_LENGTH, b.len().to_string().as_str())
                     .body(b.into())
-                    .context(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules))?;
+                    .context(Error::RuntimeOperation(RuntimeOperation::ListModules))?;
                 Ok(response)
             })
-            .or_else(|e| Ok(e.into_response()));
+            .or_else(|e| Ok(e.downcast::<Error>().map_or_else(edgelet_http::error::catchall_error_response, Into::into)));
 
         Box::new(response)
     }
 }
 
-fn core_to_details<M>(module: &M, state: &ModuleRuntimeState) -> Result<ModuleDetails, Error>
+fn core_to_details<M>(module: &M, state: &ModuleRuntimeState) -> anyhow::Result<ModuleDetails>
 where
     M: 'static + Module + Send,
     M::Config: Serialize,
 {
     let settings = serde_json::to_value(module.config())
-        .context(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules))?;
+        .context(Error::RuntimeOperation(RuntimeOperation::ListModules))?;
     let config = Config::new(settings).with_env(vec![]);
     let mut runtime_status = RuntimeStatus::new(state.status().to_string());
     if let Some(description) = state.status_description() {

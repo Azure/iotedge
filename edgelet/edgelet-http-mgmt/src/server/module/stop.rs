@@ -1,15 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use failure::{Fail, ResultExt};
+use anyhow::Context;
 use futures::{Future, IntoFuture};
 use hyper::{Body, Request, Response, StatusCode};
 
 use edgelet_core::{ModuleRuntime, RuntimeOperation};
 use edgelet_http::route::{Handler, Parameters};
-use edgelet_http::Error as HttpError;
 
-use crate::error::{Error, ErrorKind};
-use crate::IntoResponse;
+use crate::error::Error;
 
 pub struct StopModule<M> {
     runtime: M,
@@ -29,19 +27,17 @@ where
         &self,
         _req: Request<Body>,
         params: Parameters,
-    ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = anyhow::Error> + Send> {
         let response = params
             .name("name")
-            .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("name")))
+            .context(Error::MissingRequiredParameter("name"))
             .map(|name| {
                 let name = name.to_string();
 
-                self.runtime.stop(&name, None).then(|result| match result {
-                    Ok(_) => Ok(name),
-                    Err(err) => Err(Error::from(err.context(ErrorKind::RuntimeOperation(
-                        RuntimeOperation::StopModule(name),
-                    )))),
-                })
+                self.runtime.stop(&name, None).then(|result|
+                    result.with_context(|| Error::RuntimeOperation(RuntimeOperation::StopModule(name.clone())))
+                    .map(|_| name)
+                )
             })
             .into_future()
             .flatten()
@@ -49,11 +45,11 @@ where
                 Ok(Response::builder()
                     .status(StatusCode::NO_CONTENT)
                     .body(Body::default())
-                    .context(ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(
+                    .context(Error::RuntimeOperation(RuntimeOperation::StopModule(
                         name,
                     )))?)
             })
-            .or_else(|e| Ok(e.into_response()));
+            .or_else(|e| Ok(e.downcast::<Error>().map_or_else(edgelet_http::error::catchall_error_response, Into::into)));
 
         Box::new(response)
     }

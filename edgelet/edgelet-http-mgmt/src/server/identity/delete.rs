@@ -2,18 +2,16 @@
 
 use std::sync::{Arc, Mutex};
 
-use failure::ResultExt;
+use anyhow::Context;
 use futures::future::IntoFuture;
 use futures::Future;
 use hyper::{Body, Request, Response, StatusCode};
 
 use edgelet_core::IdentityOperation;
 use edgelet_http::route::{Handler, Parameters};
-use edgelet_http::Error as HttpError;
 use identity_client::client::IdentityClient;
 
-use crate::error::{Error, ErrorKind};
-use crate::IntoResponse;
+use crate::error::Error;
 
 pub struct DeleteIdentity {
     id_manager: Arc<Mutex<IdentityClient>>,
@@ -30,19 +28,19 @@ impl Handler<Parameters> for DeleteIdentity {
         &self,
         _req: Request<Body>,
         params: Parameters,
-    ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = anyhow::Error> + Send> {
         let id_mgr = self.id_manager.clone();
         let response =
             params
                 .name("name")
-                .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("name")))
+                .context(Error::MissingRequiredParameter("name"))
                 .map(move |name| {
                     let name = name.to_string();
 
                     id_mgr.lock().unwrap().delete_module(name.as_ref()).then(
                         |result| match result {
                             Ok(_) => Ok(name),
-                            Err(_) => Err(Error::from(ErrorKind::IdentityOperation(
+                            Err(_) => Err(anyhow::anyhow!(Error::IdentityOperation(
                                 IdentityOperation::DeleteIdentity(name),
                             ))),
                         },
@@ -54,11 +52,11 @@ impl Handler<Parameters> for DeleteIdentity {
                     Ok(Response::builder()
                         .status(StatusCode::NO_CONTENT)
                         .body(Body::default())
-                        .context(ErrorKind::IdentityOperation(
+                        .context(Error::IdentityOperation(
                             IdentityOperation::DeleteIdentity(name),
                         ))?)
                 })
-                .or_else(|e| Ok(e.into_response()));
+                .or_else(|e| Ok(e.downcast::<Error>().map_or_else(edgelet_http::error::catchall_error_response, Into::into)));
 
         Box::new(response)
     }

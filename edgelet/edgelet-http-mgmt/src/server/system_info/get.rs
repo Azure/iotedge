@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use failure::ResultExt;
+use anyhow::Context;
 use futures::Future;
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Request, Response, StatusCode};
@@ -9,10 +9,8 @@ use serde::Serialize;
 
 use edgelet_core::{Module, ModuleRuntime, RuntimeOperation};
 use edgelet_http::route::{Handler, Parameters};
-use edgelet_http::Error as HttpError;
 
-use crate::error::{Error, ErrorKind};
-use crate::IntoResponse;
+use crate::error::Error;
 
 pub struct GetSystemInfo<M> {
     runtime: M,
@@ -33,28 +31,28 @@ where
         &self,
         _req: Request<Body>,
         _params: Parameters,
-    ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = anyhow::Error> + Send> {
         debug!("Get System Information");
 
         let response = self
             .runtime
             .system_info()
-            .then(|system_info| -> Result<_, Error> {
+            .then(|system_info| -> anyhow::Result<_> {
                 let system_info = system_info
-                    .context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))?;
+                    .context(Error::RuntimeOperation(RuntimeOperation::SystemInfo))?;
 
                 let body = serde_json::to_string(&system_info)
-                    .context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))?;
+                    .context(Error::RuntimeOperation(RuntimeOperation::SystemInfo))?;
 
                 let response = Response::builder()
                     .status(StatusCode::OK)
                     .header(CONTENT_TYPE, "application/json")
                     .header(CONTENT_LENGTH, body.len().to_string().as_str())
                     .body(body.into())
-                    .context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))?;
+                    .context(Error::RuntimeOperation(RuntimeOperation::SystemInfo))?;
                 Ok(response)
             })
-            .or_else(|e| Ok(e.into_response()));
+            .or_else(|e| Ok(e.downcast::<Error>().map_or_else(edgelet_http::error::catchall_error_response, Into::into)));
 
         Box::new(response)
     }

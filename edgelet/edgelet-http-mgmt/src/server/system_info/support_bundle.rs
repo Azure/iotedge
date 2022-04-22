@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 use std::io::Read;
 
-use failure::ResultExt;
+use anyhow::Context;
 use futures::{Async, Future, Poll, Stream};
 use hyper::header::{CONTENT_ENCODING, CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Request, Response, StatusCode};
@@ -11,11 +11,9 @@ use url::form_urlencoded;
 
 use edgelet_core::{parse_since, LogOptions, Module, ModuleRuntime, RuntimeOperation};
 use edgelet_http::route::{Handler, Parameters};
-use edgelet_http::Error as HttpError;
 use support_bundle::{make_bundle, OutputLocation};
 
-use crate::error::{Error, ErrorKind};
-use crate::IntoResponse;
+use crate::error::Error;
 
 pub struct GetSupportBundle<M> {
     runtime: M,
@@ -36,13 +34,13 @@ where
         &self,
         req: Request<Body>,
         _params: Parameters,
-    ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = anyhow::Error> + Send> {
         debug!("Get Support Bundle");
 
         let query = req.uri().query().unwrap_or("");
 
         let response = get_bundle(self.runtime.clone(), query)
-            .and_then(|(bundle, size)| -> Result<_, Error> {
+            .and_then(|(bundle, size)| {
                 let body = Body::wrap_stream(ReadStream(bundle));
 
                 let response = Response::builder()
@@ -51,12 +49,12 @@ where
                     .header(CONTENT_ENCODING, "zip")
                     .header(CONTENT_LENGTH, size.to_string().as_str())
                     .body(body)
-                    .context(ErrorKind::RuntimeOperation(
+                    .context(Error::RuntimeOperation(
                         RuntimeOperation::GetSupportBundle,
                     ))?;
                 Ok(response)
             })
-            .or_else(|e| Ok(e.into_response()));
+            .or_else(|e| Ok(e.downcast::<Error>().map_or_else(edgelet_http::error::catchall_error_response, Into::into)));
 
         Box::new(response)
     }
@@ -65,7 +63,7 @@ where
 fn get_bundle<M>(
     runtime: M,
     query: &str,
-) -> Box<dyn Future<Item = (Box<dyn Read + Send>, u64), Error = Error> + Send>
+) -> Box<dyn Future<Item = (Box<dyn Read + Send>, u64), Error = anyhow::Error> + Send>
 where
     M: 'static + ModuleRuntime + Send + Clone + Sync,
 {
@@ -110,7 +108,7 @@ where
         iothub_hostname,
         runtime,
     )
-    .map_err(|_| Error::from(ErrorKind::SupportBundle));
+    .map_err(|_| anyhow::anyhow!(Error::SupportBundle));
 
     Box::new(result)
 }

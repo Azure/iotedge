@@ -2,7 +2,7 @@
 
 use std::collections::BTreeMap;
 
-use failure::Fail;
+use anyhow::Context;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
@@ -11,7 +11,7 @@ use edgelet_core::{
 };
 use management::models::{Config, EnvVar, ModuleDetails, ModuleSpec, RuntimeStatus, Status};
 
-use crate::error::{Error, ErrorKind};
+use crate::error::Error;
 
 mod create;
 mod delete;
@@ -37,8 +37,7 @@ pub use self::update::UpdateModule;
 
 fn spec_to_core<M>(
     spec: &ModuleSpec,
-    context: ErrorKind,
-) -> Result<CoreModuleSpec<<M::Module as Module>::Config>, Error>
+) -> anyhow::Result<CoreModuleSpec<<M::Module as Module>::Config>>
 where
     M: 'static + ModuleRuntime,
     <M::Module as Module>::Config: DeserializeOwned + Serialize,
@@ -51,23 +50,16 @@ where
             .collect()
     });
 
-    let config = match serde_json::from_value(spec.config().settings().clone()) {
-        Ok(config) => config,
-        Err(err) => return Err(Error::from(err.context(context))),
-    };
+    let config = serde_json::from_value(spec.config().settings().clone())
+        .context(Error::MalformedRequestBody)?;
 
-    let image_pull_policy = match spec
+    let image_pull_policy = spec
         .image_pull_policy()
         .map_or(Ok(ImagePullPolicy::default()), str::parse)
-    {
-        Ok(image_pull_policy) => image_pull_policy,
-        Err(err) => return Err(Error::from(err.context(context))),
-    };
+        .context(Error::MalformedRequestBody)?;
 
-    let module_spec = match CoreModuleSpec::new(name, type_, config, env, image_pull_policy) {
-        Ok(module_spec) => module_spec,
-        Err(err) => return Err(Error::from(err.context(context))),
-    };
+    let module_spec = CoreModuleSpec::new(name, type_, config, env, image_pull_policy)
+        .context(Error::MalformedRequestBody)?;
 
     Ok(module_spec)
 }
@@ -94,17 +86,14 @@ fn spec_to_details(spec: &ModuleSpec, module_status: ModuleStatus) -> ModuleDeta
 
 #[cfg(test)]
 pub mod tests {
-    use failure::Fail;
     use futures::{Future, Stream};
     use hyper::{Body, Response, StatusCode};
 
     use edgelet_core::RuntimeOperation;
-    use edgelet_docker::{Error as DockerError, ErrorKind as DockerErrorKind};
+    use edgelet_docker::{Error as DockerError, Error as DockerErrorKind};
     use management::models::ErrorResponse;
 
-    use crate::error::{Error as MgmtError, ErrorKind};
-    use crate::IntoResponse;
-
+    use crate::error::{Error as MgmtError, Error};
     #[derive(Clone, Copy, Debug, Fail)]
     pub enum Error {
         #[fail(display = "General error")]
@@ -127,13 +116,13 @@ pub mod tests {
         // arrange
         let error = MgmtError::from(
             DockerError::from(
-                DockerErrorKind::NotFound("No such container: m1".to_string()).context(
-                    DockerErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
+                DockerError::NotFound("No such container: m1".to_string()).context(
+                    DockerError::RuntimeOperation(RuntimeOperation::StartModule(
                         "m1".to_string(),
                     )),
                 ),
             )
-            .context(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
+            .context(Error::RuntimeOperation(RuntimeOperation::StartModule(
                 "m1".to_string(),
             ))),
         );
@@ -161,10 +150,10 @@ pub mod tests {
     fn conflict() {
         // arrange
         let error = MgmtError::from(
-            DockerError::from(DockerErrorKind::Conflict.context(
-                DockerErrorKind::RuntimeOperation(RuntimeOperation::StartModule("m1".to_string())),
+            DockerError::from(DockerError::Conflict.context(
+                DockerError::RuntimeOperation(RuntimeOperation::StartModule("m1".to_string())),
             ))
-            .context(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
+            .context(Error::RuntimeOperation(RuntimeOperation::StartModule(
                 "m1".to_string(),
             ))),
         );
@@ -192,10 +181,10 @@ pub mod tests {
     fn not_modified() {
         // arrange
         let error = MgmtError::from(
-            DockerError::from(DockerErrorKind::NotModified.context(
-                DockerErrorKind::RuntimeOperation(RuntimeOperation::StopModule("m1".to_string())),
+            DockerError::from(DockerError::NotModified.context(
+                DockerError::RuntimeOperation(RuntimeOperation::StopModule("m1".to_string())),
             ))
-            .context(ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(
+            .context(Error::RuntimeOperation(RuntimeOperation::StopModule(
                 "m1".to_string(),
             ))),
         );
@@ -219,8 +208,8 @@ pub mod tests {
     #[test]
     fn internal_server() {
         // arrange
-        let error = MgmtError::from(DockerError::from(DockerErrorKind::Docker).context(
-            ErrorKind::RuntimeOperation(RuntimeOperation::StartModule("m1".to_string())),
+        let error = MgmtError::from(DockerError::from(DockerError::Docker).context(
+            Error::RuntimeOperation(RuntimeOperation::StartModule("m1".to_string())),
         ));
 
         // act
@@ -247,10 +236,10 @@ pub mod tests {
     fn formatted_docker_runtime() {
         // arrange
         let error = MgmtError::from(
-            DockerError::from(DockerErrorKind::FormattedDockerRuntime(
+            DockerError::from(DockerError::FormattedDockerRuntime(
                 "manifest for image:latest not found".to_string(),
             ))
-            .context(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
+            .context(Error::RuntimeOperation(RuntimeOperation::StartModule(
                 "m1".to_string(),
             ))),
         );

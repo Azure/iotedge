@@ -1,16 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use failure::ResultExt;
+use anyhow::Context;
 use futures::{future, Future, IntoFuture};
 use hyper::{Body, Request, Response, StatusCode};
 use url::form_urlencoded;
 
 use edgelet_core::{parse_since, LogOptions, LogTail, ModuleRuntime, RuntimeOperation};
 use edgelet_http::route::{Handler, Parameters};
-use edgelet_http::Error as HttpError;
 
-use crate::error::{Error, ErrorKind};
-use crate::IntoResponse;
+use crate::error::Error;
 
 pub struct ModuleLogs<M> {
     runtime: M,
@@ -31,12 +29,12 @@ where
         &self,
         req: Request<Body>,
         params: Parameters,
-    ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = anyhow::Error> + Send> {
         let runtime = self.runtime.clone();
 
         let response = params
             .name("name")
-            .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("name")))
+            .context(Error::MissingRequiredParameter("name"))
             .and_then(|name| {
                 let name = name.to_string();
                 let options = req
@@ -46,14 +44,14 @@ where
                 Ok((name, options))
             })
             .map(move |(name, options)| {
-                runtime.logs(&name, &options).then(|s| -> Result<_, Error> {
-                    let s = s.with_context(|_| {
-                        ErrorKind::RuntimeOperation(RuntimeOperation::GetModuleLogs(name.clone()))
+                runtime.logs(&name, &options).then(|s| -> anyhow::Result<_> {
+                    let s = s.with_context(|| {
+                        Error::RuntimeOperation(RuntimeOperation::GetModuleLogs(name.clone()))
                     })?;
                     let response = Response::builder()
                         .status(StatusCode::OK)
                         .body(s.into())
-                        .context(ErrorKind::RuntimeOperation(
+                        .context(Error::RuntimeOperation(
                             RuntimeOperation::GetModuleLogs(name),
                         ))?;
                     Ok(response)
@@ -61,34 +59,34 @@ where
             })
             .into_future()
             .flatten()
-            .or_else(|e| future::ok(e.into_response()));
+            .or_else(|e| future::ok(e.downcast::<Error>().map_or_else(edgelet_http::error::catchall_error_response, Into::into)));
 
         Box::new(response)
     }
 }
 
-fn parse_options(query: &str) -> Result<LogOptions, Error> {
+fn parse_options(query: &str) -> anyhow::Result<LogOptions> {
     let parse: Vec<_> = form_urlencoded::parse(query.as_bytes()).collect();
     let tail = parse
         .iter()
         .find(|&(ref key, _)| key == "tail")
         .map_or_else(|| Ok(LogTail::default()), |(_, val)| val.parse::<LogTail>())
-        .context(ErrorKind::MalformedRequestParameter("tail"))?;
+        .context(Error::MalformedRequestParameter("tail"))?;
     let follow = parse
         .iter()
         .find(|&(ref key, _)| key == "follow")
         .map_or_else(|| Ok(false), |(_, val)| val.parse::<bool>())
-        .context(ErrorKind::MalformedRequestParameter("follow"))?;
+        .context(Error::MalformedRequestParameter("follow"))?;
     let since = parse
         .iter()
         .find(|&(ref key, _)| key == "since")
         .map_or_else(|| Ok(0), |(_, val)| parse_since(val))
-        .context(ErrorKind::MalformedRequestParameter("since"))?;
+        .context(Error::MalformedRequestParameter("since"))?;
     let timestamps = parse
         .iter()
         .find(|&(ref key, _)| key == "timestamps")
         .map_or_else(|| Ok(false), |(_, val)| val.parse::<bool>())
-        .context(ErrorKind::MalformedRequestParameter("timestamps"))?;
+        .context(Error::MalformedRequestParameter("timestamps"))?;
     let mut options = LogOptions::new()
         .with_follow(follow)
         .with_tail(tail)
@@ -105,7 +103,7 @@ fn parse_options(query: &str) -> Result<LogOptions, Error> {
             }
         })
         .transpose()
-        .context(ErrorKind::MalformedRequestParameter("until"))?
+        .context(Error::MalformedRequestParameter("until"))?
     {
         options = options.with_until(until);
     }

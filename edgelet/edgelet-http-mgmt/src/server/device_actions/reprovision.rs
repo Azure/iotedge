@@ -1,16 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use failure::ResultExt;
+use anyhow::Context;
 use futures::{Future, IntoFuture};
 use hyper::{Body, Request, Response, StatusCode};
 use log::debug;
 
 use edgelet_http::route::{Handler, Parameters};
-use edgelet_http::Error as HttpError;
 use futures::sync::mpsc::UnboundedSender;
 
-use crate::error::{Error, ErrorKind};
-use crate::IntoResponse;
+use crate::error::Error;
 
 pub struct ReprovisionDevice {
     initiate_shutdown: UnboundedSender<()>,
@@ -27,21 +25,21 @@ impl Handler<Parameters> for ReprovisionDevice {
         &self,
         _req: Request<Body>,
         _params: Parameters,
-    ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = anyhow::Error> + Send> {
         debug!("Reprovision Device");
         let response = self
             .initiate_shutdown
             .unbounded_send(())
-            .map_err(|_| Error::from(ErrorKind::ReprovisionDevice))
-            .and_then(|_| -> Result<_, Error> {
+            .map_err(|_| anyhow::anyhow!(Error::ReprovisionDevice))
+            .and_then(|_| -> anyhow::Result<_> {
                 let response = Response::builder()
                     .status(StatusCode::OK)
                     .body(Body::default())
-                    .context(ErrorKind::ReprovisionDevice)?;
+                    .context(Error::ReprovisionDevice)?;
 
                 Ok(response)
             })
-            .or_else(|e| Ok(e.into_response()))
+            .or_else(|e| Ok(e.downcast::<Error>().expect("should always have crate::Error").into()))
             .into_future();
 
         Box::new(response)
@@ -55,7 +53,7 @@ mod tests {
     use futures::Stream;
 
     use super::{Body, Future, Handler, ReprovisionDevice, Request, StatusCode};
-    use crate::error::{Error, ErrorKind};
+    use crate::error::Error;
 
     #[test]
     fn reprovision_device_success() {
@@ -65,7 +63,7 @@ mod tests {
         let receiver_fut = mgmt_stop_rx
             .then(|res| match res {
                 Ok(_) => Err(None),
-                Err(_) => Err(Some(Error::from(ErrorKind::ReprovisionDevice))),
+                Err(_) => Err(Some(Error::from(Error::ReprovisionDevice))),
             })
             .for_each(move |_x: Option<Error>| Ok(()))
             .then(|res| match res {

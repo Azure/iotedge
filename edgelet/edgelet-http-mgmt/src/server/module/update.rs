@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use failure::ResultExt;
+use anyhow::Context;
 use futures::future::Either;
 use futures::{future, Future, Stream};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
@@ -13,11 +13,9 @@ use url::form_urlencoded::parse as parse_query;
 
 use edgelet_core::{ImagePullPolicy, Module, ModuleRegistry, ModuleRuntime, ModuleStatus};
 use edgelet_http::route::{Handler, Parameters};
-use edgelet_http::Error as HttpError;
 
 use super::{spec_to_core, spec_to_details};
-use crate::error::{Error, ErrorKind};
-use crate::IntoResponse;
+use crate::error::Error;
 
 pub struct UpdateModule<M> {
     runtime: M,
@@ -38,7 +36,7 @@ where
         &self,
         req: Request<Body>,
         _params: Parameters,
-    ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = anyhow::Error> + Send> {
         let runtime = self.runtime.clone();
 
         let start: bool = req
@@ -55,10 +53,10 @@ where
         let response = req
             .into_body()
             .concat2()
-            .then(|b| -> Result<_, Error> {
-                let b = b.context(ErrorKind::MalformedRequestBody)?;
-                let spec = serde_json::from_slice(&b).context(ErrorKind::MalformedRequestBody)?;
-                let core_spec = spec_to_core::<M>(&spec, ErrorKind::MalformedRequestBody)?;
+            .then(|b| -> anyhow::Result<_> {
+                let b = b.context(Error::MalformedRequestBody)?;
+                let spec = serde_json::from_slice(&b).context(Error::MalformedRequestBody)?;
+                let core_spec = spec_to_core::<M>(&spec)?;
                 Ok((core_spec, spec))
             })
             .and_then(move |(core_spec, spec)| {
@@ -71,7 +69,7 @@ where
                 }
 
                 runtime.remove(&name).then(|result| {
-                    result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
+                    result.with_context(|| Error::UpdateModule(name.clone()))?;
                     Ok((core_spec, spec, name, runtime))
                 })
             })
@@ -81,7 +79,7 @@ where
                 match core_spec.image_pull_policy() {
                     ImagePullPolicy::OnCreate => {
                         Either::A(runtime.registry().pull(core_spec.config()).then(|result| {
-                            result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
+                            result.with_context(|| Error::UpdateModule(name.clone()))?;
                             Ok((core_spec, spec, name, runtime, true))
                         }))
                     }
@@ -101,7 +99,7 @@ where
                 }
 
                 runtime.create(core_spec).then(|result| {
-                    result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
+                    result.with_context(|| Error::UpdateModule(name.clone()))?;
                     Ok((name, spec, runtime))
                 })
             })
@@ -110,26 +108,26 @@ where
                 if start {
                     info!("Starting module {}", name);
                     future::Either::A(runtime.start(&name).then(|result| {
-                        result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
+                        result.with_context(|| Error::UpdateModule(name.clone()))?;
                         Ok((ModuleStatus::Running, spec, name))
                     }))
                 } else {
                     future::Either::B(future::ok((ModuleStatus::Stopped, spec, name)))
                 }
             })
-            .and_then(|(status, spec, name)| -> Result<_, Error> {
+            .and_then(|(status, spec, name)| -> anyhow::Result<_> {
                 let details = spec_to_details(&spec, status);
                 let b = serde_json::to_string(&details)
-                    .with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
+                    .with_context(|| Error::UpdateModule(name.clone()))?;
                 let response = Response::builder()
                     .status(StatusCode::OK)
                     .header(CONTENT_TYPE, "application/json")
                     .header(CONTENT_LENGTH, b.len().to_string().as_str())
                     .body(b.into())
-                    .context(ErrorKind::UpdateModule(name))?;
+                    .context(Error::UpdateModule(name))?;
                 Ok(response)
             })
-            .or_else(|e| Ok(e.into_response()));
+            .or_else(|e| Ok(e.downcast::<Error>().map_or_else(edgelet_http::error::catchall_error_response, Into::into)));
 
         Box::new(response)
     }
