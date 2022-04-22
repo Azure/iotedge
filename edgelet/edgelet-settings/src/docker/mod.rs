@@ -87,6 +87,10 @@ impl crate::RuntimeSettings for Settings {
         self.base.homedir()
     }
 
+    fn allow_elevated_docker_permissions(&self) -> bool {
+        self.base.allow_elevated_docker_permissions()
+    }
+
     fn agent(&self) -> &crate::module::Settings<Self::ModuleConfig> {
         self.base.agent()
     }
@@ -111,8 +115,8 @@ impl crate::RuntimeSettings for Settings {
         self.base.endpoints()
     }
 
-    fn allow_elevated_docker_permissions(&self) -> bool {
-        self.base.allow_elevated_docker_permissions()
+    fn additional_info(&self) -> &std::collections::BTreeMap<String, String> {
+        self.base.additional_info()
     }
 }
 

@@ -9,6 +9,9 @@ pr:
     include:
       - main
       - release/*
+  paths:
+    exclude:
+      - platform-validation
 
 resources:
   pipelines:

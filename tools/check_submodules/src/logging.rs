@@ -4,10 +4,7 @@ use std::env;
 use std::io::Write;
 
 use edgelet_utils::log_failure;
-use env_logger;
 use log::{Level, LevelFilter};
-
-use crate::error::Error;
 
 const ENV_LOG: &str = "IOTEDGE_LOG";
 
@@ -16,8 +13,7 @@ fn syslog_level(level: Level) -> i8 {
         Level::Error => 3,
         Level::Warn => 4,
         Level::Info => 6,
-        Level::Debug => 7,
-        Level::Trace => 7,
+        Level::Debug | Level::Trace => 7,
     }
 }
 
@@ -59,6 +55,6 @@ pub fn init_logger() {
         .init();
 }
 
-pub fn log_error(error: &Error) {
+pub fn log_error(error: &dyn std::error::Error) {
     log_failure(Level::Error, error);
 }

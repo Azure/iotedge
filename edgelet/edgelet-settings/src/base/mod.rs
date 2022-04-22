@@ -21,6 +21,8 @@ pub trait RuntimeSettings {
 
     fn homedir(&self) -> &std::path::Path;
 
+    fn allow_elevated_docker_permissions(&self) -> bool;
+
     fn agent(&self) -> &module::Settings<Self::ModuleConfig>;
     fn agent_mut(&mut self) -> &mut module::Settings<Self::ModuleConfig>;
 
@@ -31,7 +33,7 @@ pub trait RuntimeSettings {
 
     fn endpoints(&self) -> &aziot::Endpoints;
 
-    fn allow_elevated_docker_permissions(&self) -> bool;
+    fn additional_info(&self) -> &std::collections::BTreeMap<String, String>;
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -75,6 +77,15 @@ pub struct Settings<ModuleConfig> {
     #[serde(default, skip_serializing)]
     #[cfg_attr(not(debug_assertions), serde(skip_deserializing))]
     pub endpoints: aziot::Endpoints,
+
+    // Despite being a part of Edge CA settings, this table must be placed at the
+    // end of the struct, after all the values.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub edge_ca_auto_renew: Option<cert_renewal::AutoRenewConfig>,
+
+    /// Additional system information
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub additional_info: std::collections::BTreeMap<String, String>,
 }
 
 pub(crate) fn default_allow_elevated_docker_permissions() -> bool {
@@ -117,6 +128,10 @@ impl<T: Clone> RuntimeSettings for Settings<T> {
         &self.homedir
     }
 
+    fn allow_elevated_docker_permissions(&self) -> bool {
+        self.allow_elevated_docker_permissions
+    }
+
     fn agent(&self) -> &module::Settings<Self::ModuleConfig> {
         &self.agent
     }
@@ -141,7 +156,7 @@ impl<T: Clone> RuntimeSettings for Settings<T> {
         &self.endpoints
     }
 
-    fn allow_elevated_docker_permissions(&self) -> bool {
-        self.allow_elevated_docker_permissions
+    fn additional_info(&self) -> &std::collections::BTreeMap<String, String> {
+        &self.additional_info
     }
 }

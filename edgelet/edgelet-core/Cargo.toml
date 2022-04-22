@@ -6,24 +6,29 @@ publish = false
 edition = "2021"
 
 [dependencies]
+anyhow = "1"
 async-trait = "0.1"
 base64 = "0.13"
 bytes = "1"
 chrono = { version = "0.4", features = ["serde"] }
 consistenttime = "0.2"
-failure = "0.1"
 futures = "0.3"
 humantime = "2"
 hyper = "0.14"
 lazy_static = "1.4"
 log = "0.4"
-serde = "1.0"
-serde_derive = "1.0"
-serde_json = "1.0"
+nix = "0.23"
+num_cpus = "1.8.0"
+serde = "1"
+serde_derive = "1"
+serde_json = "1"
+serde_with = "1"
+thiserror = "1"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "sync", "time"] }
-tokio-util = { version = "0.6", features = ["codec"] }
+tokio-util = { version = "0.7", features = ["codec"] }
 url = { version = "2", features = ["serde"] }
 
+aziotctl-common = { git = "https://github.com/Azure/iot-identity-service.git", branch = "feature/dps_certs" }
 edgelet-settings = { path = "../edgelet-settings" }
 
 [dev-dependencies]

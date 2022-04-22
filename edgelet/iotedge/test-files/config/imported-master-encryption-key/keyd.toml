@@ -13,9 +13,9 @@ uid = 5556
 keys = ["aziot_identityd_master_id", "aziot-dps-identity-cert-key", "device-id"]
 
 [[principal]]
-uid = 5558
-keys = ["aziot-edged-ca", "aziot-dps-identity-cert-key", "iotedge_master_encryption_id"]
-
-[[principal]]
 uid = 5555
 keys = ["aziot-edged-ca"]
+
+[[principal]]
+uid = 5558
+keys = ["aziot-edged-ca", "aziot-dps-identity-cert-key", "iotedge_master_encryption_id"]

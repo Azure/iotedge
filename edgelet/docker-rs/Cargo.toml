@@ -7,13 +7,12 @@ version = "0.1.0"
 
 [dependencies]
 async-trait = "0.1"
-base64 = "0.9"
-futures = "0.1"
+base64 = "0.13"
+futures = "0.3"
 hyper = "0.14"
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
-typed-headers = "0.1"
-url = "1.5"
+url = "2"
 
-http-common = {git = "https://github.com/Azure/iot-identity-service", branch = "feature/dps_certs"}
+http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/dps_certs" }

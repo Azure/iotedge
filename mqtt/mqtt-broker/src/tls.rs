@@ -154,7 +154,7 @@ mod tests {
                 tokio::spawn(async move {
                     let mut buffer = [0_u8; 1024];
                     while stream.read(&mut buffer).await.unwrap() > 0 {
-                        stream.write(&buffer).await.unwrap();
+                        assert_eq!(buffer.len(), stream.write(&buffer).await.unwrap());
                     }
                 });
             }
@@ -180,10 +180,10 @@ mod tests {
         let mut tls = SslStream::new(ssl, tcp).unwrap();
         Pin::new(&mut tls).connect().await.unwrap();
 
-        tls.write(message).await.unwrap();
+        assert_eq!(message.len(), tls.write(message).await.unwrap());
 
         let mut buffer = vec![0; message.len()];
-        tls.read(&mut buffer[..]).await.unwrap();
+        assert_eq!(buffer.len(), tls.read(&mut buffer[..]).await.unwrap());
 
         buffer
     }

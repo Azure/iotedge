@@ -42,7 +42,7 @@ where
             service.config.hub_name, service.config.device_id, module_id
         );
 
-        let pid = match extensions.get::<Option<libc::pid_t>>().cloned().flatten() {
+        let pid = match extensions.get::<Option<libc::pid_t>>().copied().flatten() {
             Some(pid) => pid,
             None => return None,
         };

@@ -403,6 +403,24 @@
 # [edge_ca]
 # auto_generated_edge_ca_expiry_days = 90
 
+# ==============================================================================
+# Edge CA certificate auto-renewal
+# ==============================================================================
+#
+# Manage auto-renewal of the Edge CA certificate. Generally, this applies when the
+# Edge CA is configured as Quickstart or when the Edge CA has an issuance `method`
+# set. Edge CA certs loaded from files generally cannot be auto-renewed as the Edge
+# runtime will not have enough information to renew them.
+#
+# Renewal of an Edge CA requires all server certificates issued by that CA to be
+# regenerated. This is done by restarting all modules. The time of Edge CA renewal
+# cannot be guaranteed, so if random module restarts are unacceptable for your use
+# case, disable auto renewal.
+#
+# [edge_ca.auto_renew]
+# rotate_key = true
+# threshold = "80%"
+# retry = "4%"
 
 # ==============================================================================
 # Moby runtime

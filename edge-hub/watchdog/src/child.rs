@@ -15,8 +15,8 @@ use nix::{
 };
 use tracing::{error, info};
 
-const PROCESS_SHUTDOWN_TOLERANCE_SECS: Duration = Duration::from_secs(60);
-const PROCESS_POLL_INTERVAL_SECS: Duration = Duration::from_secs(1);
+const PROCESS_SHUTDOWN_TOLERANCE: Duration = Duration::from_secs(60);
+const PROCESS_POLL_INTERVAL: Duration = Duration::from_secs(1);
 
 pub struct ChildProcess {
     name: String,
@@ -28,7 +28,7 @@ impl ChildProcess {
         Self { name, process }
     }
 
-    pub fn is_running(&mut self) -> bool {
+    pub fn poll_running(&mut self) -> bool {
         match self.process.try_wait() {
             Ok(status) => status.is_none(),
             Err(e) => {
@@ -38,22 +38,24 @@ impl ChildProcess {
         }
     }
 
-    pub fn shutdown_if_running(&mut self) {
-        if self.is_running() {
+    pub fn shutdown_if_running(&mut self) -> Result<()> {
+        if self.poll_running() {
             info!("Terminating {} process", self.name);
             self.send_signal(Signal::SIGTERM);
         } else {
             info!("{} process has stopped", self.name);
         }
 
-        self.wait_for_exit();
+        self.wait_for_exit()?;
 
-        if self.is_running() {
+        if self.poll_running() {
             info!("Killing {} process", self.name);
             self.send_signal(Signal::SIGKILL);
         }
 
-        self.wait_for_exit();
+        self.wait_for_exit()?;
+
+        Ok(())
     }
 
     fn send_signal(&mut self, signal: Signal) {
@@ -71,12 +73,14 @@ impl ChildProcess {
         }
     }
 
-    fn wait_for_exit(&mut self) {
+    fn wait_for_exit(&mut self) -> Result<()> {
         let mut elapsed_secs = 0;
-        while elapsed_secs < PROCESS_SHUTDOWN_TOLERANCE_SECS.as_secs() && self.is_running() {
-            thread::sleep(PROCESS_POLL_INTERVAL_SECS);
-            elapsed_secs += PROCESS_POLL_INTERVAL_SECS.as_secs();
+        while elapsed_secs < PROCESS_SHUTDOWN_TOLERANCE.as_secs() && self.poll_running() {
+            sleep(PROCESS_POLL_INTERVAL)?;
+            elapsed_secs += PROCESS_POLL_INTERVAL.as_secs();
         }
+
+        Ok(())
     }
 }
 
@@ -85,7 +89,7 @@ pub fn run(
     program: impl Into<String>,
     args: Vec<String>,
     should_shutdown: Arc<AtomicBool>,
-) -> Result<JoinHandle<()>> {
+) -> Result<JoinHandle<Result<()>>> {
     let name = name.into();
 
     let child = Command::new(program.into())
@@ -99,14 +103,25 @@ pub fn run(
 
         let mut child_process = ChildProcess::new(name, child);
 
-        while child_process.is_running() && !should_shutdown.load(Ordering::Relaxed) {
-            thread::sleep(PROCESS_POLL_INTERVAL_SECS);
+        while child_process.poll_running() && !should_shutdown.load(Ordering::Relaxed) {
+            sleep(PROCESS_POLL_INTERVAL)?;
         }
 
         // tell the threads to shut down their child process
         should_shutdown.store(true, Ordering::Relaxed);
 
-        child_process.shutdown_if_running();
+        child_process.shutdown_if_running()?;
+        Ok(())
     });
     Ok(handle)
+}
+
+// We can use `thread::sleep()` instead when this issue is resolved:
+// https://github.com/rust-lang/rust/issues/95661
+fn sleep(duration: Duration) -> Result<()> {
+    Command::new("sleep")
+        .arg(duration.as_secs().to_string())
+        .output()?;
+
+    Ok(())
 }

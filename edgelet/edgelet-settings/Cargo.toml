@@ -11,6 +11,7 @@ url = { version = "2", features = ["serde"] }
 
 aziot-identityd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/dps_certs" }
 config-common = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/dps_certs", optional = true }
+cert-renewal = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/dps_certs" }
 docker = { path = "../docker-rs", optional = true }
 
 [dev-dependencies]

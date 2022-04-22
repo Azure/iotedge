@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.IO;
     using System.Linq;
     using System.Net;
+    using System.Security.Authentication;
     using System.Security.Cryptography.X509Certificates;
     using System.Text;
     using System.Threading;
@@ -16,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Serilog;
 
     public class LeafDevice
@@ -310,7 +312,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         static async Task<LeafDevice> CreateLeafDeviceAsync(Device device, Func<DeviceClient> clientFactory, IotHub iotHub, CancellationToken token)
         {
             DeviceClient client = clientFactory();
-            await client.SetMethodHandlerAsync(nameof(DirectMethod), DirectMethod, null, token);
+
+            client.SetConnectionStatusChangesHandler((status, reason) =>
+            {
+                Log.Verbose($"Detected change in connection status:{Environment.NewLine}Changed Status: {status} Reason: {reason}");
+            });
+
+            // This retry is needed to correct a variety of exceptions, however this failure should not happen.
+            var retryStrategy = new Incremental(15, RetryStrategy.DefaultRetryInterval, RetryStrategy.DefaultRetryIncrement);
+            var retryPolicy = new RetryPolicy(new FailingConnectionErrorDetectionStrategy(), retryStrategy);
+            await retryPolicy.ExecuteAsync(
+                async () =>
+            {
+                await client.SetMethodHandlerAsync(nameof(DirectMethod), DirectMethod, null, token);
+            }, token);
+
             return new LeafDevice(device, client, iotHub);
         }
 
@@ -370,6 +386,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 "Leaf device received direct method call with payload: {Payload}",
                 request.DataAsJson);
             return Task.FromResult(new MethodResponse(request.Data, (int)HttpStatusCode.OK));
+        }
+
+        // This error detection strategy is intended for SDK clients connecting
+        // to EdgeHub encountering a variety of issues.
+        //
+        // Can be removed when the below are fixed:
+        // 1 (AuthenticationException) - Sometimes tls auth error occurs because EdgeHub sends an unexpected message (work item 14057676).
+        // 2 (ObjectDisposedException) - Devices SDK Issue: ObjectDisposed exception (https://github.com/Azure/azure-iot-sdk-csharp/issues/2337)
+        // 3 (InvalidOperationException) - Devices SDK Issue: No authenticated context (https://github.com/Azure/azure-iot-sdk-csharp/issues/2353)
+        class FailingConnectionErrorDetectionStrategy : ITransientErrorDetectionStrategy
+        {
+            public bool IsTransient(Exception ex)
+            {
+                return ex is ObjectDisposedException || ex is AuthenticationException || (ex is InvalidOperationException && ex.Message.Contains("This operation is only allowed using a successfully authenticated context."));
+            }
         }
     }
 }

@@ -32,6 +32,9 @@ pub struct Config {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub manifest_trust_bundle_cert: Option<Url>,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub additional_info: Option<Url>,
+
     #[serde(flatten)]
     pub aziot: aziotctl_common::config::super_config::Config,
 
@@ -72,7 +75,7 @@ pub fn default_agent() -> edgelet_settings::ModuleSpec<edgelet_settings::DockerC
     .expect("name and type are never empty")
 }
 
-#[derive(Debug, serde_derive::Deserialize, serde_derive::Serialize)]
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
 #[serde(untagged)]
 pub enum EdgeCa {
     Issued {
@@ -85,10 +88,13 @@ pub enum EdgeCa {
     },
     Quickstart {
         auto_generated_edge_ca_expiry_days: u32,
+
+        #[serde(skip_serializing_if = "Option::is_none")]
+        auto_renew: Option<cert_renewal::AutoRenewConfig>,
     },
 }
 
-#[derive(Debug, serde_derive::Deserialize, serde_derive::Serialize)]
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct MobyRuntime {
     pub uri: Url,
     pub network: edgelet_settings::MobyNetwork,
@@ -112,7 +118,7 @@ impl Default for MobyRuntime {
     }
 }
 
-#[derive(Debug, serde_derive::Deserialize, serde_derive::Serialize)]
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct ContentTrust {
     pub ca_certs: Option<BTreeMap<String, Url>>,
 }

@@ -139,16 +139,13 @@ mod tests {
 
     /// Generate a self-signed CA certificate for testing.
     fn new_cert(common_name: &str) -> String {
-        let (cert, _) = test_common::credential::test_certificate(
-            common_name,
-            Some(|cert| {
-                let mut basic_constraints = openssl::x509::extension::BasicConstraints::new();
-                basic_constraints.ca().critical().pathlen(0);
-                let basic_constraints = basic_constraints.build().unwrap();
+        let (cert, _) = test_common::credential::custom_test_certificate(common_name, |cert| {
+            let mut basic_constraints = openssl::x509::extension::BasicConstraints::new();
+            basic_constraints.ca().critical().pathlen(0);
+            let basic_constraints = basic_constraints.build().unwrap();
 
-                cert.append_extension(basic_constraints).unwrap();
-            }),
-        );
+            cert.append_extension(basic_constraints).unwrap();
+        });
 
         let cert = cert.to_pem().unwrap();
 
