@@ -12,6 +12,7 @@ use edgelet_http::route::{Handler, Parameters};
 
 use crate::error::Error;
 
+use crate::IntoResponse;
 pub struct GetSystemResources<M> {
     runtime: M,
 }
@@ -56,7 +57,7 @@ where
                     ))?;
                 Ok(response)
             })
-            .or_else(|e| Ok(e.downcast::<Error>().map_or_else(edgelet_http::error::catchall_error_response, Into::into)));
+            .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }

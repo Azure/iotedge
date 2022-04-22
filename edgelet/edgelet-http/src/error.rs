@@ -8,6 +8,8 @@ use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use systemd::Fd;
 use url::Url;
 
+use crate::IntoResponse;
+
 #[derive(Debug, PartialEq, thiserror::Error)]
 pub enum Error {
     #[error("An error occurred while authorizing the HTTP request")]
@@ -116,6 +118,35 @@ impl<'a> From<(StatusCode, &'a [u8])> for Error {
     }
 }
 
+impl IntoResponse for anyhow::Error {
+    fn into_response(self) -> Response<Body> {
+        let message = format!("{:?}", self);
+        
+        let status_code = if let Some(error) = self.downcast_ref() {
+            match error {
+                Error::Authorization
+                | Error::ModuleNotFound(_) => StatusCode::NOT_FOUND,
+                Error::InvalidApiVersion(_) => StatusCode::BAD_REQUEST,
+                _ => StatusCode::INTERNAL_SERVER_ERROR
+            }
+        } else {
+            StatusCode::INTERNAL_SERVER_ERROR
+        };
+
+        let body = serde_json::json!({
+            "message": message,
+        })
+        .to_string();
+
+        Response::builder()
+            .status(status_code)
+            .header(CONTENT_TYPE, "application/json")
+            .header(CONTENT_LENGTH, body.len().to_string().as_str())
+            .body(body.into())
+            .expect("response builder failure")
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum BindListenerType {
     Address(SocketAddr),
@@ -158,18 +189,4 @@ impl Display for InvalidUrlReason {
             }
         }
     }
-}
-
-pub fn catchall_error_response(err: anyhow::Error) -> Response<Body> {
-    let body = serde_json::json!({
-        "message": format!("{:?}", err)
-    })
-    .to_string();
-
-    Response::builder()
-        .status(StatusCode::INTERNAL_SERVER_ERROR)
-        .header(CONTENT_TYPE, "application/json")
-        .header(CONTENT_LENGTH, body.len().to_string().as_str())
-        .body(body.into())
-        .expect("response builder failure")
 }

@@ -18,3 +18,7 @@ pub use client::ModuleClient;
 pub use error::Error;
 pub use server::ListModules;
 pub use server::ManagementService;
+
+pub(crate) trait IntoResponse {
+    fn into_response(self) -> hyper::Response<hyper::Body>;
+}

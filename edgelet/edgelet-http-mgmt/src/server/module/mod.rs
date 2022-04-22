@@ -90,45 +90,28 @@ pub mod tests {
     use hyper::{Body, Response, StatusCode};
 
     use edgelet_core::RuntimeOperation;
-    use edgelet_docker::{Error as DockerError, Error as DockerErrorKind};
+    use edgelet_docker::{Error as DockerError};
     use management::models::ErrorResponse;
 
-    use crate::error::{Error as MgmtError, Error};
-    #[derive(Clone, Copy, Debug, Fail)]
-    pub enum Error {
-        #[fail(display = "General error")]
-        General,
-    }
-
-    impl IntoResponse for Error {
-        fn into_response(self) -> Response<Body> {
-            let body = serde_json::to_string(&ErrorResponse::new(self.to_string()))
-                .expect("serialization of ErrorResponse failed.");
-            Response::builder()
-                .status(StatusCode::INTERNAL_SERVER_ERROR)
-                .body(body.into())
-                .unwrap()
-        }
-    }
+    use crate::IntoResponse;
+    use crate::error::Error;
 
     #[test]
     fn not_found() {
         // arrange
-        let error = MgmtError::from(
-            DockerError::from(
-                DockerError::NotFound("No such container: m1".to_string()).context(
+        let error =
+                anyhow::anyhow!(DockerError::NotFound("No such container: m1".to_string()))
+                .context(
                     DockerError::RuntimeOperation(RuntimeOperation::StartModule(
                         "m1".to_string(),
                     )),
-                ),
-            )
+                )
             .context(Error::RuntimeOperation(RuntimeOperation::StartModule(
                 "m1".to_string(),
-            ))),
-        );
+            )));
 
         // act
-        let response = error.into_response();
+        let response: Response<Body> = error.into_response();
 
         // assert
         assert_eq!(StatusCode::NOT_FOUND, response.status());
@@ -138,7 +121,7 @@ pub mod tests {
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!(
-                    "Could not start module m1\n\tcaused by: Could not start module m1\n\tcaused by: No such container: m1",
+                    "Could not start module m1\n\nCaused by:\n    0: Could not start module m1\n    1: No such container: m1",
                     error.message()
                 );
                 Ok(())
@@ -149,17 +132,17 @@ pub mod tests {
     #[test]
     fn conflict() {
         // arrange
-        let error = MgmtError::from(
-            DockerError::from(DockerError::Conflict.context(
+        let error = 
+            anyhow::anyhow!(DockerError::Conflict)
+            .context(
                 DockerError::RuntimeOperation(RuntimeOperation::StartModule("m1".to_string())),
-            ))
+            )
             .context(Error::RuntimeOperation(RuntimeOperation::StartModule(
                 "m1".to_string(),
-            ))),
-        );
+            )));
 
         // act
-        let response = error.into_response();
+        let response: Response<Body> = error.into_response();
 
         // assert
         assert_eq!(StatusCode::CONFLICT, response.status());
@@ -169,7 +152,7 @@ pub mod tests {
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!(
-                    "Could not start module m1\n\tcaused by: Could not start module m1\n\tcaused by: Conflict with current operation",
+                    "Could not start module m1\n\nCaused by:\n    0: Could not start module m1\n    1: Conflict with current operation",
                     error.message()
                 );
                 Ok(())
@@ -180,17 +163,17 @@ pub mod tests {
     #[test]
     fn not_modified() {
         // arrange
-        let error = MgmtError::from(
-            DockerError::from(DockerError::NotModified.context(
+        let error = 
+            anyhow::anyhow!(DockerError::NotModified)
+            .context(
                 DockerError::RuntimeOperation(RuntimeOperation::StopModule("m1".to_string())),
-            ))
+            )
             .context(Error::RuntimeOperation(RuntimeOperation::StopModule(
                 "m1".to_string(),
-            ))),
-        );
+            )));
 
         // act
-        let response = error.into_response();
+        let response: Response<Body> = error.into_response();
 
         // assert
         assert_eq!(StatusCode::NOT_MODIFIED, response.status());
@@ -208,12 +191,12 @@ pub mod tests {
     #[test]
     fn internal_server() {
         // arrange
-        let error = MgmtError::from(DockerError::from(DockerError::Docker).context(
+        let error = anyhow::anyhow!(DockerError::Docker(anyhow::anyhow!("DOCKER"))).context(
             Error::RuntimeOperation(RuntimeOperation::StartModule("m1".to_string())),
-        ));
+        );
 
         // act
-        let response = error.into_response();
+        let response: Response<Body> = error.into_response();
 
         // assert
         assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
@@ -223,7 +206,7 @@ pub mod tests {
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!(
-                    "Could not start module m1\n\tcaused by: Container runtime error",
+                    "Could not start module m1\n\nCaused by:\n    0: Container runtime error\n    1: DOCKER",
                     error.message()
                 );
                 Ok(())
@@ -235,17 +218,16 @@ pub mod tests {
     #[test]
     fn formatted_docker_runtime() {
         // arrange
-        let error = MgmtError::from(
-            DockerError::from(DockerError::FormattedDockerRuntime(
+        let error =
+            anyhow::anyhow!(DockerError::FormattedDockerRuntime(
                 "manifest for image:latest not found".to_string(),
             ))
             .context(Error::RuntimeOperation(RuntimeOperation::StartModule(
                 "m1".to_string(),
-            ))),
-        );
+            )));
 
         // act
-        let response = error.into_response();
+        let response: Response<Body> = error.into_response();
 
         // assert
         assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
@@ -255,7 +237,7 @@ pub mod tests {
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!(
-                    "Could not start module m1\n\tcaused by: manifest for image:latest not found",
+                    "Could not start module m1\n\nCaused by:\n    manifest for image:latest not found",
                     error.message()
                 );
                 Ok(())

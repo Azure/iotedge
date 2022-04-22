@@ -8,6 +8,7 @@ use log::debug;
 use edgelet_http::route::{Handler, Parameters};
 use futures::sync::mpsc::UnboundedSender;
 
+use crate::IntoResponse;
 use crate::error::Error;
 
 pub struct ReprovisionDevice {
@@ -39,7 +40,7 @@ impl Handler<Parameters> for ReprovisionDevice {
 
                 Ok(response)
             })
-            .or_else(|e| Ok(e.downcast::<Error>().expect("should always have crate::Error").into()))
+            .or_else(|e| Ok(e.into_response()))
             .into_future();
 
         Box::new(response)

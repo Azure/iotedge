@@ -45,22 +45,22 @@ pub enum Error {
     #[error("An error occurred when obtaining the HSM version")]
     HsmVersion,
 
-    #[error("Invalid image pull policy configuration {0}")]
+    #[error("Invalid image pull policy configuration `{0}`")]
     InvalidImagePullPolicy(String),
 
     #[error("Invalid or unsupported certificate issuer.")]
     InvalidIssuer,
 
-    #[error("Invalid log tail {0}")]
+    #[error("Invalid log tail `{0}`")]
     InvalidLogTail(String),
 
-    #[error("Invalid module name {0}")]
+    #[error("Invalid module name `{0}`")]
     InvalidModuleName(String),
 
-    #[error("Invalid module type {0}")]
+    #[error("Invalid module type `{0}`")]
     InvalidModuleType(String),
 
-    #[error("Invalid URL {0}")]
+    #[error("Invalid URL `{0}`")]
     InvalidUrl(String),
 
     #[error("An error occurred in the key store.")]

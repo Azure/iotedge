@@ -11,7 +11,7 @@ use url::{ParseError, Url};
 
 use crate::module::ModuleSpec;
 
-#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct Connect {
     pub workload_uri: Url,
     pub management_uri: Url,
@@ -55,7 +55,7 @@ impl Default for Connect {
     }
 }
 
-#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct Listen {
     pub workload_uri: Url,
     pub management_uri: Url,
@@ -296,7 +296,7 @@ impl serde::Serialize for RetryLimit {
     }
 }
 
-#[derive(Clone, Debug, Default, serde_derive::Deserialize, serde_derive::Serialize)]
+#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
 pub struct WatchdogSettings {
     #[serde(default)]
     pub max_retries: RetryLimit,
@@ -326,7 +326,7 @@ pub trait RuntimeSettings {
     fn auto_reprovisioning_mode(&self) -> &AutoReprovisioningMode;
 }
 
-#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub enum AutoReprovisioningMode {
     Dynamic,
     AlwaysOnStartup,
@@ -339,7 +339,7 @@ impl Default for AutoReprovisioningMode {
     }
 }
 
-#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct Settings<T> {
     pub hostname: String,
 
@@ -441,7 +441,7 @@ where
     }
 }
 
-#[derive(Clone, Debug, PartialEq, serde_derive::Deserialize, serde_derive::Serialize)]
+#[derive(Clone, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct Endpoints {
     aziot_certd_url: Url,
     aziot_keyd_url: Url,

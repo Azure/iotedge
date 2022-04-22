@@ -15,6 +15,7 @@ use edgelet_core::{ImagePullPolicy, Module, ModuleRegistry, ModuleRuntime, Modul
 use edgelet_http::route::{Handler, Parameters};
 
 use super::{spec_to_core, spec_to_details};
+use crate::IntoResponse;
 use crate::error::Error;
 
 pub struct UpdateModule<M> {
@@ -127,7 +128,7 @@ where
                     .context(Error::UpdateModule(name))?;
                 Ok(response)
             })
-            .or_else(|e| Ok(e.downcast::<Error>().map_or_else(edgelet_http::error::catchall_error_response, Into::into)));
+            .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
@@ -145,12 +146,11 @@ mod tests {
     use serde_json::json;
 
     use super::{
-        Future, Handler, Request, StatusCode, Stream, UpdateModule, CONTENT_LENGTH, CONTENT_TYPE,
+        Error, Future, Handler, Request, StatusCode, Stream, UpdateModule, CONTENT_LENGTH, CONTENT_TYPE,
     };
-    use crate::server::module::tests::Error;
 
     lazy_static! {
-        static ref RUNTIME: TestRuntime<Error, TestSettings> = {
+        static ref RUNTIME: TestRuntime<TestSettings> = {
             let state = ModuleRuntimeState::default()
                 .with_status(ModuleStatus::Running)
                 .with_exit_code(Some(0))
@@ -159,14 +159,14 @@ mod tests {
                 .with_finished_at(Some(Utc.ymd(2018, 4, 13).and_hms_milli(15, 20, 0, 1)))
                 .with_image_id(Some("image-id".to_string()));
             let config = TestConfig::new("microsoft/test-image".to_string());
-            let module = TestModule::new("test-module".to_string(), config, Ok(state));
+            let module = TestModule::new("test-module".to_string(), config, Some(state));
             let (create_socket_channel_snd, _create_socket_channel_rcv) =
                 mpsc::unbounded::<ModuleAction>();
 
             TestRuntime::make_runtime(TestSettings::new(), create_socket_channel_snd)
                 .wait()
                 .unwrap()
-                .with_module(Ok(module))
+                .with_module(module)
         };
     }
 
@@ -268,8 +268,9 @@ mod tests {
             .and_then(|b| {
                 let error_response: ErrorResponse = serde_json::from_slice(&b).unwrap();
                 let expected =
-                    "Request body is malformed\n\tcaused by: expected value at line 1 column 1";
-                assert_eq!(expected, error_response.message());
+                    anyhow::anyhow!("expected value at line 1 column 1")
+                    .context(Error::MalformedRequestBody);
+                assert_eq!(&format!("{:?}", expected), error_response.message());
                 Ok(())
             })
             .wait()
@@ -283,8 +284,7 @@ mod tests {
 
         let runtime = TestRuntime::make_runtime(TestSettings::new(), create_socket_channel_snd)
             .wait()
-            .unwrap()
-            .with_module(Err(Error::General));
+            .unwrap();
         let handler = UpdateModule::new(runtime);
         let config = Config::new(json!({"image":"microsoft/test-image"}));
         let spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);
@@ -302,8 +302,10 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
+                let expected = anyhow::anyhow!("TestRuntime::remove")
+                    .context(Error::UpdateModule("test-module".to_string()));
                 assert_eq!(
-                    "Could not update module \"test-module\"\n\tcaused by: General error",
+                    &format!("{:?}", expected),
                     error.message()
                 );
                 Ok(())
@@ -319,8 +321,7 @@ mod tests {
 
         let runtime = TestRuntime::make_runtime(TestSettings::new(), create_socket_channel_snd)
             .wait()
-            .unwrap()
-            .with_module(Err(Error::General));
+            .unwrap();
         let handler = UpdateModule::new(runtime);
         let config = Config::new(json!({}));
         let spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);
@@ -338,8 +339,10 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
+                let expected = anyhow::anyhow!("missing field `image`")
+                .context(Error::MalformedRequestBody);
                 assert_eq!(
-                    "Request body is malformed\n\tcaused by: missing field `image`",
+                    &format!("{:?}", expected),
                     error.message()
                 );
                 Ok(())
@@ -368,7 +371,9 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                assert_eq!("Request body is malformed\n\tcaused by: Invalid image pull policy configuration \"what\"", error.message());
+                let expected = anyhow::anyhow!(edgelet_core::Error::InvalidImagePullPolicy("what".to_string()))
+                .context(Error::MalformedRequestBody);
+                assert_eq!(&format!("{:?}", expected), error.message());
                 Ok(())
             })
             .wait()

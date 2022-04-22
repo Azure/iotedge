@@ -7,6 +7,7 @@ use hyper::{Body, Request, Response, StatusCode};
 use edgelet_core::{ModuleRuntime, RuntimeOperation};
 use edgelet_http::route::{Handler, Parameters};
 
+use crate::IntoResponse;
 use crate::error::Error;
 
 pub struct DeleteModule<M> {
@@ -49,7 +50,7 @@ where
                         name,
                     )))?)
             })
-            .or_else(|e| Ok(e.downcast::<Error>().map_or_else(edgelet_http::error::catchall_error_response, Into::into)));
+            .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
@@ -65,7 +66,6 @@ mod tests {
     use futures::sync::mpsc;
 
     use super::{Body, DeleteModule, Future, Handler, Request, StatusCode};
-    use crate::server::module::tests::Error;
 
     #[test]
     fn success() {
@@ -78,15 +78,15 @@ mod tests {
             .with_finished_at(Some(Utc.ymd(2018, 4, 13).and_hms_milli(15, 20, 0, 1)))
             .with_image_id(Some("image-id".to_string()));
         let config = TestConfig::new("microsoft/test-image".to_string());
-        let module: TestModule<Error, _> =
-            TestModule::new("test-module".to_string(), config, Ok(state));
+        let module =
+            TestModule::new("test-module".to_string(), config, Some(state));
         let (create_socket_channel_snd, _create_socket_channel_rcv) =
             mpsc::unbounded::<ModuleAction>();
 
         let runtime = TestRuntime::make_runtime(TestSettings::new(), create_socket_channel_snd)
             .wait()
             .unwrap()
-            .with_module(Ok(module));
+            .with_module(module);
         let handler = DeleteModule::new(runtime);
         let parameters =
             Parameters::with_captures(vec![(Some("name".to_string()), "test".to_string())]);
@@ -112,8 +112,8 @@ mod tests {
             .with_finished_at(Some(Utc.ymd(2018, 4, 13).and_hms_milli(15, 20, 0, 1)))
             .with_image_id(Some("image-id".to_string()));
         let config = TestConfig::new("microsoft/test-image".to_string());
-        let module: TestModule<Error, _> =
-            TestModule::new("test-module".to_string(), config, Ok(state));
+        let module =
+            TestModule::new("test-module".to_string(), config, Some(state));
 
         let (create_socket_channel_snd, _create_socket_channel_rcv) =
             mpsc::unbounded::<ModuleAction>();
@@ -121,7 +121,7 @@ mod tests {
         let runtime = TestRuntime::make_runtime(TestSettings::new(), create_socket_channel_snd)
             .wait()
             .unwrap()
-            .with_module(Ok(module));
+            .with_module(module);
         let handler = DeleteModule::new(runtime);
         let request = Request::delete("http://localhost/modules/test")
             .body(Body::default())

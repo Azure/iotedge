@@ -4,7 +4,7 @@ use std::fmt;
 
 use futures::Future;
 
-#[derive(Clone, Copy, Debug, PartialEq, serde_derive::Deserialize, serde_derive::Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 pub enum AuthType {
     None,
     Sas,

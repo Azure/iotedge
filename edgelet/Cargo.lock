@@ -722,7 +722,6 @@ dependencies = [
  "num_cpus",
  "regex",
  "serde",
- "serde_derive",
  "serde_json",
  "serde_with",
  "sha2",

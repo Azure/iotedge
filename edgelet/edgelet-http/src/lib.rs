@@ -423,3 +423,7 @@ impl HyperExt for Http {
         })
     }
 }
+
+pub(crate) trait IntoResponse {
+    fn into_response(self) -> Response<Body>;
+}

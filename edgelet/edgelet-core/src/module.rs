@@ -11,7 +11,6 @@ use anyhow::Context;
 use chrono::prelude::*;
 use futures::sync::mpsc::UnboundedSender;
 use futures::{Future, Stream};
-use serde_derive::Serialize;
 use serde_with::skip_serializing_none;
 
 use aziotctl_common::host_info::{DmiInfo, OsInfo};
@@ -21,7 +20,7 @@ use futures::sync::oneshot::Sender;
 use crate::error::Error;
 use crate::settings::RuntimeSettings;
 
-#[derive(Clone, Copy, Debug, serde_derive::Deserialize, PartialEq, serde_derive::Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ModuleStatus {
     Unknown,
@@ -57,7 +56,7 @@ impl fmt::Display for ModuleStatus {
     }
 }
 
-#[derive(serde_derive::Serialize, serde_derive::Deserialize, Debug, PartialEq, Clone)]
+#[derive(Clone, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct ModuleRuntimeState {
     status: ModuleStatus,
     exit_code: Option<i64>,
@@ -147,7 +146,7 @@ impl ModuleRuntimeState {
     }
 }
 
-#[derive(serde_derive::Deserialize, Debug, serde_derive::Serialize)]
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct ModuleSpec<T> {
     pub name: String,
     #[serde(rename = "type")]
@@ -406,7 +405,7 @@ pub trait ModuleRegistry {
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Default, PartialEq, Serialize)]
+#[derive(Debug, Default, PartialEq, serde::Serialize)]
 pub struct SystemInfo {
     #[serde(rename = "osType")]
     pub kernel: String,
@@ -504,7 +503,7 @@ impl SystemInfo {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct ProvisioningInfo {
     /// IoT Edge provisioning type, examples: manual.device_connection_string, dps.x509
     pub r#type: String,
@@ -514,7 +513,7 @@ pub struct ProvisioningInfo {
     pub always_reprovision_on_startup: bool,
 }
 
-#[derive(Debug, serde_derive::Serialize)]
+#[derive(Debug, serde::Serialize)]
 pub struct SystemResources {
     host_uptime: u64,
     process_uptime: u64,
@@ -547,7 +546,7 @@ impl SystemResources {
     }
 }
 
-#[derive(Debug, serde_derive::Serialize)]
+#[derive(Debug, serde::Serialize)]
 pub struct DiskInfo {
     name: String,
     available_space: u64,
@@ -727,7 +726,7 @@ impl fmt::Display for RuntimeOperation {
     }
 }
 
-#[derive(Clone, Copy, Debug, serde_derive::Deserialize, PartialEq, serde_derive::Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ImagePullPolicy {
     #[serde(rename = "on-create")]

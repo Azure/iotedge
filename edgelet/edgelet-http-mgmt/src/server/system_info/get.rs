@@ -10,6 +10,7 @@ use serde::Serialize;
 use edgelet_core::{Module, ModuleRuntime, RuntimeOperation};
 use edgelet_http::route::{Handler, Parameters};
 
+use crate::IntoResponse;
 use crate::error::Error;
 
 pub struct GetSystemInfo<M> {
@@ -52,7 +53,7 @@ where
                     .context(Error::RuntimeOperation(RuntimeOperation::SystemInfo))?;
                 Ok(response)
             })
-            .or_else(|e| Ok(e.downcast::<Error>().map_or_else(edgelet_http::error::catchall_error_response, Into::into)));
+            .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
@@ -67,15 +68,14 @@ mod tests {
     use management::models::SystemInfo;
 
     use super::{Body, Future, GetSystemInfo, Handler, Request};
-    use crate::server::module::tests::Error;
 
     #[test]
     fn system_info_success() {
         // arrange
         let state = ModuleRuntimeState::default();
         let config = TestConfig::new("microsoft/test-image".to_string());
-        let module: TestModule<Error, _> =
-            TestModule::new("test-module".to_string(), config, Ok(state));
+        let module =
+            TestModule::new("test-module".to_string(), config, Some(state));
 
         let (create_socket_channel_snd, _create_socket_channel_rcv) =
             mpsc::unbounded::<ModuleAction>();
@@ -83,7 +83,7 @@ mod tests {
         let runtime = TestRuntime::make_runtime(TestSettings::new(), create_socket_channel_snd)
             .wait()
             .unwrap()
-            .with_module(Ok(module));
+            .with_module(module);
         let handler = GetSystemInfo::new(runtime);
         let request = Request::get("http://localhost/info")
             .body(Body::default())
@@ -122,8 +122,7 @@ mod tests {
         // arrange
         let runtime = TestRuntime::make_runtime(TestSettings::new(), create_socket_channel_snd)
             .wait()
-            .unwrap()
-            .with_module(Err(Error::General));
+            .unwrap();
         let handler = GetSystemInfo::new(runtime);
         let request = Request::get("http://localhost/modules")
             .body(Body::default())
@@ -139,7 +138,7 @@ mod tests {
             .and_then(|b| {
                 let error: management::models::ErrorResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!(
-                    "Could not query system info\n\tcaused by: General error",
+                    "Could not query system info\n\nCaused by:\n    TestRuntime::system_info",
                     error.message()
                 );
                 Ok(())

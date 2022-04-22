@@ -2,7 +2,7 @@
 
 use crate::DEFAULT_NETWORKID;
 
-#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct Network {
     pub name: String,
 
@@ -50,7 +50,7 @@ impl Network {
     }
 }
 
-#[derive(Clone, Debug, Default, serde_derive::Deserialize, PartialEq, serde_derive::Serialize)]
+#[derive(Clone, Debug, Default, serde::Deserialize, PartialEq, serde::Serialize)]
 pub struct Ipam {
     #[serde(rename = "config", skip_serializing_if = "Option::is_none")]
     pub config: Option<Vec<IpamConfig>>,
@@ -67,7 +67,7 @@ impl Ipam {
     }
 }
 
-#[derive(Clone, Debug, Default, serde_derive::Deserialize, PartialEq, serde_derive::Serialize)]
+#[derive(Clone, Debug, Default, serde::Deserialize, PartialEq, serde::Serialize)]
 pub struct IpamConfig {
     #[serde(rename = "gateway", skip_serializing_if = "Option::is_none")]
     pub gateway: Option<String>,
@@ -108,7 +108,7 @@ impl IpamConfig {
     }
 }
 
-#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(untagged)]
 pub enum MobyNetwork {
     Network(Network),

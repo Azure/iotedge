@@ -13,6 +13,7 @@ use edgelet_http::route::{Handler, Parameters};
 use identity_client::client::IdentityClient;
 use management::models::{Identity, IdentityList};
 
+use crate::IntoResponse;
 use crate::error::Error;
 
 pub struct ListIdentities {
@@ -80,7 +81,7 @@ impl Handler<Parameters> for ListIdentities {
                     ))?;
                 Ok(response)
             })
-            .or_else(|e| Ok(e.downcast::<Error>().map_or_else(edgelet_http::error::catchall_error_response, Into::into)));
+            .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }

@@ -10,6 +10,8 @@ use log::error;
 use management::apis::Error as MgmtError;
 use management::models::ErrorResponse;
 
+use crate::IntoResponse;
+
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     // Note: This errorkind is always wrapped in another errorkind context
@@ -22,7 +24,7 @@ pub enum Error {
     #[error("Could not initialize module client")]
     InitializeModuleClient,
 
-    #[error("Invalid API version {0}")]
+    #[error("Invalid API version `{0}`")]
     InvalidApiVersion(String),
 
     #[error("Invalid Identity type")]
@@ -46,7 +48,7 @@ pub enum Error {
     #[error("State not modified")]
     NotModified,
 
-    #[error("Could not prepare update for module {0}")]
+    #[error("Could not prepare update for module `{0}`")]
     PrepareUpdateModule(String),
 
     #[error("Could not reprovision device")]
@@ -58,7 +60,7 @@ pub enum Error {
     #[error("Could not start management service")]
     StartService,
 
-    #[error("Could not update module {0}")]
+    #[error("Could not update module `{0}`")]
     UpdateModule(String),
 
     #[error("Could not collect support bundle")]
@@ -87,17 +89,12 @@ impl From<MgmtError<serde_json::Value>> for Error {
     }
 }
 
-impl Into<Response<Body>> for Error {
-    fn into(self) -> Response<Body> {
+impl IntoResponse for anyhow::Error {
+    fn into_response(self) -> Response<Body> {
         let message = format!("{:?}", self);
 
-        let mut cur: &dyn std::error::Error = &self;
-        while let Some(cause) = cur.source() {
-            cur = cause;
-        }
-
         // Specialize status code based on the underlying docker runtime error, if any
-        let status_code = if let Some(docker_error) = cur.downcast_ref()
+        let status_code = if let Some(docker_error) = self.root_cause().downcast_ref()
         {
             match docker_error {
                 DockerError::NotFound(_) => StatusCode::NOT_FOUND,
@@ -105,8 +102,8 @@ impl Into<Response<Body>> for Error {
                 DockerError::NotModified => StatusCode::NOT_MODIFIED,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             }
-        } else {
-            match self {
+        } else if let Some(error) = self.downcast_ref() {
+            match error {
                 Error::InvalidApiVersion(_)
                 | Error::InvalidIdentityType
                 | Error::MalformedRequestBody
@@ -117,6 +114,8 @@ impl Into<Response<Body>> for Error {
                     StatusCode::INTERNAL_SERVER_ERROR
                 }
             }
+        } else {
+            StatusCode::INTERNAL_SERVER_ERROR
         };
 
         // Per the RFC, status code NotModified should not have a body

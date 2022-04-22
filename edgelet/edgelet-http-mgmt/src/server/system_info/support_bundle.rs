@@ -13,6 +13,7 @@ use edgelet_core::{parse_since, LogOptions, Module, ModuleRuntime, RuntimeOperat
 use edgelet_http::route::{Handler, Parameters};
 use support_bundle::{make_bundle, OutputLocation};
 
+use crate::IntoResponse;
 use crate::error::Error;
 
 pub struct GetSupportBundle<M> {
@@ -54,7 +55,7 @@ where
                     ))?;
                 Ok(response)
             })
-            .or_else(|e| Ok(e.downcast::<Error>().map_or_else(edgelet_http::error::catchall_error_response, Into::into)));
+            .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
