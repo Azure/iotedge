@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use failure::{Fail, ResultExt};
+use anyhow::Context;
 use futures::future::Future;
 use futures::prelude::*;
 use http::Uri;
@@ -11,7 +11,7 @@ use typed_headers::{self, http};
 use edgelet_core::UrlExt;
 use edgelet_http::UrlConnector;
 
-use crate::error::{Error, ErrorKind};
+use crate::error::Error;
 use url::Url;
 
 #[derive(Clone)]
@@ -33,7 +33,7 @@ impl IdentityClient {
 
     pub fn get_device(
         &self,
-    ) -> Box<dyn Future<Item = aziot_identity_common::Identity, Error = Error> + Send> {
+    ) -> Box<dyn Future<Item = aziot_identity_common::Identity, Error = anyhow::Error> + Send> {
         let client = self.client.clone();
         let uri = format!("/identities/device?api-version={}", self.api_version);
         let body = serde_json::json! {{ "type": "aziot" }};
@@ -48,7 +48,7 @@ impl IdentityClient {
     pub fn reprovision_device(
         &self,
         provisioning_cache: std::path::PathBuf,
-    ) -> Box<dyn Future<Item = (), Error = Error> + Send> {
+    ) -> Box<dyn Future<Item = (), Error = anyhow::Error> + Send> {
         let client = self.client.clone();
         let uri = format!(
             "/identities/device/reprovision?api-version={}",
@@ -77,7 +77,7 @@ impl IdentityClient {
     pub fn create_module(
         &self,
         module_name: &str,
-    ) -> Box<dyn Future<Item = aziot_identity_common::Identity, Error = Error> + Send> {
+    ) -> Box<dyn Future<Item = aziot_identity_common::Identity, Error = anyhow::Error> + Send> {
         let client = self.client.clone();
         let uri = format!(
             "/identities/modules?api-version={}&type=aziot",
@@ -95,7 +95,7 @@ impl IdentityClient {
     pub fn update_module(
         &self,
         module_name: &str,
-    ) -> Box<dyn Future<Item = aziot_identity_common::Identity, Error = Error> + Send> {
+    ) -> Box<dyn Future<Item = aziot_identity_common::Identity, Error = anyhow::Error> + Send> {
         let client = self.client.clone();
         let uri = format!(
             "/identities/modules/{}?api-version={}&type=aziot",
@@ -113,7 +113,7 @@ impl IdentityClient {
     pub fn delete_module(
         &self,
         module_name: &str,
-    ) -> Box<dyn Future<Item = (), Error = Error> + Send> {
+    ) -> Box<dyn Future<Item = (), Error = anyhow::Error> + Send> {
         let client = self.client.clone();
         let uri = format!(
             "/identities/modules/{}?api-version={}&type=aziot",
@@ -132,7 +132,7 @@ impl IdentityClient {
     pub fn get_module(
         &self,
         module_name: &str,
-    ) -> Box<dyn Future<Item = aziot_identity_common::Identity, Error = Error> + Send> {
+    ) -> Box<dyn Future<Item = aziot_identity_common::Identity, Error = anyhow::Error> + Send> {
         let client = self.client.clone();
         let uri = format!(
             "/identities/modules/{}?api-version={}&type=aziot",
@@ -142,6 +142,7 @@ impl IdentityClient {
 
         let identity = build_request_uri(&self.host, &uri)
             .into_future()
+            .from_err()
             .and_then(move |uri| request(&client, hyper::Method::GET, &uri, Some(&body)));
 
         Box::new(identity)
@@ -149,7 +150,7 @@ impl IdentityClient {
 
     pub fn get_modules(
         &self,
-    ) -> Box<dyn Future<Item = Vec<aziot_identity_common::Identity>, Error = Error> + Send> {
+    ) -> Box<dyn Future<Item = Vec<aziot_identity_common::Identity>, Error = anyhow::Error> + Send> {
         let client = self.client.clone();
         let uri = format!(
             "/identities/modules?api-version={}&type=aziot",
@@ -172,17 +173,17 @@ impl IdentityClient {
     }
 }
 
-fn build_request_uri(host: &Url, uri: &str) -> Result<Uri, Error> {
-    let base_path = host.to_base_path().context(ErrorKind::ConnectorUri)?;
+fn build_request_uri(host: &Url, uri: &str) -> anyhow::Result<Uri> {
+    let base_path = host.to_base_path().context(Error::ConnectorUri)?;
     UrlConnector::build_hyper_uri(
         &host.scheme().to_string(),
         &base_path
             .to_str()
-            .ok_or(ErrorKind::ConnectorUri)?
+            .ok_or(Error::ConnectorUri)?
             .to_string(),
         &uri,
     )
-    .map_err(|_| Error::from(ErrorKind::ConnectorUri))
+    .context(Error::ConnectorUri)
 }
 
 fn request<TConnect, TRequest, TResponse>(
@@ -190,7 +191,7 @@ fn request<TConnect, TRequest, TResponse>(
     method: http::Method,
     uri: &http::Uri,
     body: Option<&TRequest>,
-) -> Box<dyn Future<Item = TResponse, Error = Error> + Send>
+) -> Box<dyn Future<Item = TResponse, Error = anyhow::Error> + Send>
 where
     TConnect: hyper::client::connect::Connect + Clone + Send + Sync + 'static,
     TRequest: serde::Serialize,
@@ -219,7 +220,7 @@ where
     Box::new(
         client
             .request(req)
-            .map_err(|e| Error::from(e.context(ErrorKind::Request)))
+            .map_err(|e| anyhow::anyhow!(e).context(Error::Request))
             .and_then(|resp| {
                 let (
                     http::response::Parts {
@@ -229,7 +230,7 @@ where
                 ) = resp.into_parts();
                 body.concat2()
                     .and_then(move |body| Ok((status, headers, body)))
-                    .map_err(|e| Error::from(e.context(ErrorKind::Hyper)))
+                    .map_err(|e| anyhow::anyhow!(e).context(Error::Hyper))
             })
             .and_then(|(status, headers, body)| {
                 if status.is_success() {
@@ -238,7 +239,7 @@ where
                         if header_name == Some(hyper::header::CONTENT_TYPE) {
                             let value = header_value
                                 .to_str()
-                                .map_err(|_| Error::from(ErrorKind::MalformedResponse))?;
+                                .map_err(|_| Error::MalformedResponse)?;
                             if value == "application/json" {
                                 is_json = true;
                             }
@@ -246,17 +247,17 @@ where
                     }
 
                     if !is_json {
-                        return Err(Error::from(ErrorKind::MalformedResponse));
+                        return Err(Error::MalformedResponse.into());
                     }
 
                     Ok(body)
                 } else {
-                    Err(Error::http_with_error_response(status, &*body))
+                    Err(anyhow::anyhow!(Error::from((status, &*body))))
                 }
             })
             .and_then(|body| {
-                let parsed: Result<TResponse, _> = serde_json::from_slice(&body);
-                parsed.map_err(|e| Error::from(ErrorKind::Serde(e)))
+                serde_json::from_slice(&body)
+                    .context(Error::Serde)
             }),
     )
 }
@@ -266,7 +267,7 @@ fn request_no_content<TConnect, TRequest>(
     method: http::Method,
     uri: &http::Uri,
     body: Option<&TRequest>,
-) -> Box<dyn Future<Item = (), Error = Error> + Send>
+) -> Box<dyn Future<Item = (), Error = anyhow::Error> + Send>
 where
     TConnect: hyper::client::connect::Connect + Clone + Send + Sync + 'static,
     TRequest: serde::Serialize,
@@ -294,18 +295,18 @@ where
     Box::new(
         client
             .request(req)
-            .map_err(|e| Error::from(e.context(ErrorKind::Request)))
+            .map_err(|e| anyhow::anyhow!(e).context(Error::Request))
             .and_then(|resp| {
                 let (http::response::Parts { status, .. }, body) = resp.into_parts();
                 body.concat2()
                     .and_then(move |body| Ok((status, body)))
-                    .map_err(|e| Error::from(e.context(ErrorKind::Hyper)))
+                    .map_err(|e| anyhow::anyhow!(e).context(Error::Hyper))
             })
             .and_then(|(status, body)| {
                 if status.is_success() {
                     Ok(())
                 } else {
-                    Err(Error::http_with_error_response(status, &*body))
+                    Err(anyhow::anyhow!(Error::from((status, &*body))))
                 }
             }),
     )

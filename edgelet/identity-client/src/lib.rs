@@ -17,4 +17,4 @@ pub mod client;
 pub mod error;
 
 pub use self::client::IdentityClient;
-pub use self::error::{Error, ErrorKind};
+pub use self::error::Error;
