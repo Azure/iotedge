@@ -5,9 +5,10 @@ authors = ["Lee Fitchett <lefitche@microsoft.com>"]
 edition = "2018"
 
 [dependencies]
+anyhow = "1.0"
 chrono = "0.4.7"
-failure = "0.1"
 futures = "0.1"
+thiserror = "1.0"
 tokio = "0.1"
 zip = "0.5.3"
 
