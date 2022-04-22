@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     $"apt-get install -f --option DPkg::Lock::Timeout=600"
                 },
                 SupportedPackageExtension.Rpm => this.os switch {
-                    "centos" =>    new[]
+                    "centos" => new[]
                     {
                         "set -e",
                         $"rpm --nodeps -i {string.Join(' ', packages)}",
@@ -68,9 +68,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         "sudo mv -f ~/override.conf ${pathToOverride}/overrides.conf",
                         "sudo systemctl daemon-reload"
                     },
-                    _ =>  throw new NotImplementedException($"Don't know how to install daemon on for '.{this.os}'")
+                    _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.os}'")
                 },
-                
                 _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.packageExtension}'"),
             };
         }
@@ -95,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     $"apt-get install --option DPkg::Lock::Timeout=600 --yes aziot-edge"
                 },
                 SupportedPackageExtension.Rpm => this.os switch {
-                    "centos" =>    new[]
+                    "centos" => new[]
                     {
                         $"rpm -iv --replacepkgs https://packages.microsoft.com/config/{this.os}/{this.version}/packages-microsoft-prod.rpm",
                         $"yum updateinfo",
@@ -117,7 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         "sudo mv -f ~/override.conf ${pathToOverride}/overrides.conf",
                         "sudo systemctl daemon-reload"
                     },
-                    _ =>  throw new NotImplementedException($"Don't know how to install daemon on for '.{this.os}'")
+                    _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.os}'")
                 },
                 _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.packageExtension}'"),
             };
