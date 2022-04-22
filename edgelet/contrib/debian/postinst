@@ -16,6 +16,7 @@ case "$1" in
             chown ${USER}:${GROUP} /var/lib/aziot/edged
             chown ${USER}:${GROUP} /var/log/aziot/edged
             chown root:root /etc/aziot/config.toml.edge.template
+            chown ${USER}:${GROUP} /etc/aziot/edged/aziot-compatibility.sh
             chown ${USER}:${GROUP} /etc/aziot/edged/config.toml.default
             chown ${USER}:${GROUP} /etc/aziot/edged/config.d
 

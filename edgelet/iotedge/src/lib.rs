@@ -23,6 +23,7 @@ mod check;
 mod client;
 pub mod config;
 mod error;
+mod internal;
 mod list;
 mod logs;
 mod restart;

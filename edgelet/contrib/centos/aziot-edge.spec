@@ -154,6 +154,7 @@ fi
 
 # config
 %attr(600, root, root) %{aziot_confdir}/config.toml.edge.template
+%attr(600, %{iotedge_user}, %{iotedge_group}) %{iotedge_confdir}/aziot-compatibility.sh
 %attr(400, %{iotedge_user}, %{iotedge_group}) %{iotedge_confdir}/config.toml.default
 %attr(700, %{iotedge_user}, %{iotedge_group}) %dir %{iotedge_confdir}/config.d
 %config(noreplace) %{_sysconfdir}/logrotate.d/%{name}

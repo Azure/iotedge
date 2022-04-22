@@ -1,5 +1,9 @@
 mod aziot_edged_version;
 mod check_agent_image;
+mod check_compatibility;
+mod check_fs_calls;
+mod check_sockets;
+mod check_users;
 mod connect_management_uri;
 mod container_connect_upstream;
 mod container_engine_dns;
@@ -16,6 +20,10 @@ mod well_formed_config;
 
 pub(crate) use self::aziot_edged_version::AziotEdgedVersion;
 pub(crate) use self::check_agent_image::CheckAgentImage;
+pub(crate) use self::check_compatibility::CheckCompatibility;
+pub(crate) use self::check_fs_calls::CheckFsCalls;
+pub(crate) use self::check_sockets::CheckSockets;
+pub(crate) use self::check_users::CheckUsers;
 pub(crate) use self::connect_management_uri::ConnectManagementUri;
 pub(crate) use self::container_connect_upstream::get_host_container_upstream_tests;
 pub(crate) use self::container_engine_dns::ContainerEngineDns;
@@ -65,9 +73,18 @@ where
 }
 
 // built-in checks, as opposed to those that are deferred to `aziot check`
-pub(crate) fn built_in_checks() -> [(&'static str, Vec<Box<dyn Checker>>); 2] {
+pub(crate) fn built_in_checks() -> [(&'static str, Vec<Box<dyn Checker>>); 3] {
     /* Note: keep ordering consistent. Later tests may depend on earlier tests. */
     [
+        (
+            "Installation Checks",
+            vec![
+                Box::new(CheckUsers::default()),
+                Box::new(CheckSockets::default()),
+                Box::new(CheckFsCalls::default())
+                Box::new(CheckCompatibility::default()),
+            ],
+        ),
         (
             "Configuration checks",
             vec![
