@@ -135,18 +135,6 @@ steps:
       http_proxy: $(Agent.ProxyUrl)
       https_proxy: $(Agent.ProxyUrl)
     displayName: Build tests
-
-  - pwsh: |
-      $manifestSignerClientDir = '$(Build.SourcesDirectory)/samples/dotnet/ManifestSignerClient'
-      dotnet build $manifestSignerClientDir
-
-      $manifestSignerClientBinDir = Convert-Path "$manifestSignerClientDir/bin/Debug/net6.0"
-      Write-Output "##vso[task.setvariable variable=manifestSignerClientDir]$manifestSignerClientDir"
-      Write-Output "##vso[task.setvariable variable=manifestSignerClientBinDir]$manifestSignerClientBinDir"
-    env:
-      http_proxy: $(Agent.ProxyUrl)
-      https_proxy: $(Agent.ProxyUrl)
-    displayName: Build manifest signer (test)
     
   - pwsh: |
       $manifestSignerClientDir = '$(Build.SourcesDirectory)/samples/dotnet/ManifestSignerClient'
