@@ -91,9 +91,9 @@ jobs:
       condition: always()
 
 ################################################################################
-  - job: debian_11_moby
+  - job: debian_11_arm32v7
 ################################################################################
-    displayName: debian_11_moby
+    displayName: Debian 11 arm32v7
     pool:
       name: $(pool.custom.name)
       demands: compatibility-ci
