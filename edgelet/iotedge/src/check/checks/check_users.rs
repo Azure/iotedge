@@ -1,11 +1,9 @@
-use failure::Context;
-
 use crate::{
     check::{Check, CheckResult, Checker, CheckerMeta},
     internal::common::get_system_user,
 };
 
-#[derive(Default, serde_derive::Serialize)]
+#[derive(Default, serde::Serialize)]
 pub(crate) struct CheckUsers {}
 
 #[async_trait::async_trait]
@@ -27,11 +25,11 @@ impl Checker for CheckUsers {
 impl CheckUsers {
     #[allow(clippy::unused_self)]
     #[allow(unused_variables)]
-    async fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    async fn inner_execute(&mut self, check: &mut Check) -> anyhow::Result<CheckResult> {
         // Todo : Add Check for TPM User.
         for user in ["aziotcs", "aziotks", "aziotid", "iotedge"] {
             if let Err(e) = get_system_user(user) {
-                return Ok(CheckResult::Failed(Context::new(format!("{}", e)).into()));
+                return Ok(CheckResult::Failed(anyhow::anyhow!(format!("{}", e))));
             }
         }
         Ok(CheckResult::Ok)

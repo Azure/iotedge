@@ -81,7 +81,7 @@ pub(crate) fn built_in_checks() -> [(&'static str, Vec<Box<dyn Checker>>); 3] {
             vec![
                 Box::new(CheckUsers::default()),
                 Box::new(CheckSockets::default()),
-                Box::new(CheckFsCalls::default())
+                Box::new(CheckFsCalls::default()),
                 Box::new(CheckCompatibility::default()),
             ],
         ),
