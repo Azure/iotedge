@@ -1,8 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::fmt::{self, Display};
+use std::fmt;
 
-use failure::{Backtrace, Context, Fail};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Response, StatusCode};
 use log::error;
@@ -10,115 +9,55 @@ use workload::models::ErrorResponse;
 
 use crate::IntoResponse;
 
-pub type Result<T> = ::std::result::Result<T, Error>;
-
-#[derive(Debug)]
-pub struct Error {
-    inner: Context<ErrorKind>,
-}
-
-#[derive(Clone, Debug, Fail)]
-pub enum ErrorKind {
-    #[fail(display = "Certificate has an invalid private key")]
+#[derive(Clone, Debug, thiserror::Error)]
+pub enum Error {
+    #[error("Certificate has an invalid private key")]
     BadPrivateKey,
 
-    #[fail(display = "{}", _0)]
+    #[error("{0}")]
     CertOperation(CertOperation),
 
-    #[fail(display = "{}", _0)]
+    #[error("{0}")]
     EncryptionOperation(EncryptionOperation),
 
-    #[fail(display = "Failed to get identity")]
+    #[error("Failed to get identity")]
     GetIdentity,
 
-    #[fail(display = "Failed to load master encryption key")]
+    #[error("Failed to load master encryption key")]
     LoadMasterEncKey,
 
-    #[fail(display = "Invalid certificate type")]
-    InvalidCertificateType,
-
-    #[fail(display = "Invalid Identity auth type")]
-    InvalidIdentityAuthType,
-
-    #[fail(display = "Invalid Identity type")]
+    #[error("Invalid Identity type")]
     InvalidIdentityType,
 
-    #[fail(display = "Key Client error")]
-    KeyClient,
-
-    #[fail(display = "Failed to load OpenSSL engine")]
-    LoadKeyOpensslEngine,
-
-    #[fail(display = "Request body is malformed")]
+    #[error("Request body is malformed")]
     MalformedRequestBody,
 
-    #[fail(display = "The request parameter `{}` is malformed", _0)]
+    #[error("The request parameter `{0}` is malformed")]
     MalformedRequestParameter(&'static str),
 
-    #[fail(display = "The request is missing required parameter `{}`", _0)]
+    #[error("The request is missing required parameter `{0}`")]
     MissingRequiredParameter(&'static str),
 
-    #[fail(display = "Module not found")]
-    ModuleNotFound(String),
-
-    #[fail(display = "Could not start workload service")]
+    #[error("Could not start workload service")]
     StartService,
 }
 
-impl Fail for Error {
-    fn cause(&self) -> Option<&dyn Fail> {
-        self.inner.cause()
-    }
-
-    fn backtrace(&self) -> Option<&Backtrace> {
-        self.inner.backtrace()
-    }
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.inner, f)
-    }
-}
-
-impl Error {
-    pub fn kind(&self) -> &ErrorKind {
-        self.inner.get_context()
-    }
-}
-
-impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Self {
-        Error {
-            inner: Context::new(kind),
-        }
-    }
-}
-
-impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Self {
-        Error { inner }
-    }
-}
-
-impl IntoResponse for Error {
+impl IntoResponse for anyhow::Error {
     fn into_response(self) -> Response<Body> {
-        let mut fail: &dyn Fail = &self;
-        let mut message = self.to_string();
-        while let Some(cause) = fail.cause() {
-            message.push_str(&format!("\n\tcaused by: {}", cause.to_string()));
-            fail = cause;
-        }
+        let message = format!("{:?}", self);
 
-        let status_code = match *self.kind() {
-            ErrorKind::ModuleNotFound(_) => StatusCode::NOT_FOUND,
-            ErrorKind::MalformedRequestBody
-            | ErrorKind::MalformedRequestParameter(_)
-            | ErrorKind::MissingRequiredParameter(_) => StatusCode::BAD_REQUEST,
-            _ => {
-                error!("Internal server error: {}", message);
-                StatusCode::INTERNAL_SERVER_ERROR
+        let status_code = if let Some(error) = self.downcast_ref() {
+            match error {
+                Error::MalformedRequestBody
+                | Error::MalformedRequestParameter(_)
+                | Error::MissingRequiredParameter(_) => StatusCode::BAD_REQUEST,
+                _ => {
+                    error!("Internal server error: {}", message);
+                    StatusCode::INTERNAL_SERVER_ERROR
+                }
             }
+        } else {
+            StatusCode::INTERNAL_SERVER_ERROR
         };
 
         // Per the RFC, status code NotModified should not have a body

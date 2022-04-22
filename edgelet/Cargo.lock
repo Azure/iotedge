@@ -834,6 +834,7 @@ dependencies = [
 name = "edgelet-http-workload"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "aziot-identity-common",
  "aziot-key-client",
  "aziot-key-common",
@@ -847,7 +848,6 @@ dependencies = [
  "edgelet-http-mgmt",
  "edgelet-test-utils",
  "edgelet-utils",
- "failure",
  "futures",
  "http-common",
  "hyper",
@@ -860,6 +860,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
+ "thiserror",
  "tokio",
  "tokio-tls",
  "workload",

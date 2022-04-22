@@ -1,18 +1,18 @@
 // Copyright (c) Microsoft. All rights reserved.
 use std::sync::{Arc, Mutex};
 
-use super::refresh_cert;
+use anyhow::Context;
 use futures::{Future, IntoFuture};
 use hyper::{Body, Request, Response};
 
 use cert_client::client::CertificateClient;
 use edgelet_core::{CertificateProperties, CertificateType, WorkloadConfig};
 use edgelet_http::route::{Handler, Parameters};
-use edgelet_http::Error as HttpError;
-use edgelet_utils::{ensure_not_empty_with_context, prepare_cert_uri_module};
+use edgelet_utils::{ensure_not_empty, prepare_cert_uri_module};
 
-use crate::error::{CertOperation, Error, ErrorKind};
+use super::refresh_cert;
 use crate::IntoResponse;
+use crate::error::{CertOperation, Error};
 
 pub struct IdentityCertHandler<W: WorkloadConfig> {
     cert_client: Arc<Mutex<CertificateClient>>,
@@ -42,14 +42,14 @@ where
         &self,
         _req: Request<Body>,
         params: Parameters,
-    ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = anyhow::Error> + Send> {
         let cfg = self.config.clone();
         let cert_client = self.cert_client.clone();
         let key_client = self.key_client.clone();
 
         let response = params
             .name("name")
-            .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("name")))
+            .context(Error::MissingRequiredParameter("name"))
             .map(std::string::ToString::to_string)
             .into_future()
             .and_then(|module_id| {
@@ -58,8 +58,8 @@ where
                 let module_uri =
                     prepare_cert_uri_module(cfg.iot_hub_name(), cfg.device_id(), &module_id);
 
-                ensure_not_empty_with_context(&cn, || {
-                    ErrorKind::MalformedRequestParameter("name")
+                ensure_not_empty(&cn).with_context(|| {
+                    Error::MalformedRequestParameter("name")
                 })?;
 
                 let sans = vec![module_uri];
@@ -78,10 +78,10 @@ where
                         key_id: cfg.edge_ca_key().to_string(),
                         device_id: cfg.device_id().to_string(),
                     },
-                    ErrorKind::CertOperation(CertOperation::CreateIdentityCert),
+                    Error::CertOperation(CertOperation::CreateIdentityCert)
                 )
                 .map_err(|_| {
-                    Error::from(ErrorKind::CertOperation(CertOperation::CreateIdentityCert))
+                    anyhow::anyhow!(Error::CertOperation(CertOperation::CreateIdentityCert))
                 });
                 Ok(response)
             })

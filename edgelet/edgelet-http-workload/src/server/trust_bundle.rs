@@ -3,7 +3,7 @@
 use std::str;
 use std::sync::{Arc, Mutex};
 
-use failure::ResultExt;
+use anyhow::Context;
 use futures::{Future, IntoFuture};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Request, Response, StatusCode};
@@ -11,10 +11,9 @@ use hyper::{Body, Request, Response, StatusCode};
 use cert_client::client::CertificateClient;
 use edgelet_core::WorkloadConfig;
 use edgelet_http::route::{Handler, Parameters};
-use edgelet_http::Error as HttpError;
 use workload::models::TrustBundleResponse;
 
-use crate::error::{EncryptionOperation, Error, ErrorKind};
+use crate::error::{EncryptionOperation, Error};
 use crate::IntoResponse;
 
 pub struct TrustBundleHandler<W: WorkloadConfig> {
@@ -39,29 +38,29 @@ where
         &self,
         _req: Request<Body>,
         _params: Parameters,
-    ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
+    ) -> Box<dyn Future<Item = Response<Body>, Error = anyhow::Error> + Send> {
         let config = self.config.clone();
         let response = self
             .cert_client
             .lock()
             .expect("cert client lock failed")
             .get_cert(config.trust_bundle_cert())
-            .map_err(|_| Error::from(ErrorKind::GetIdentity))
-            .and_then(|cert| -> Result<_, Error> {
+            .map_err(|_| anyhow::anyhow!(Error::GetIdentity))
+            .and_then(|cert| -> anyhow::Result<_> {
                 let cert = str::from_utf8(cert.as_ref())
-                    .context(ErrorKind::EncryptionOperation(
+                    .context(Error::EncryptionOperation(
                         EncryptionOperation::GetTrustBundle,
                     ))?
                     .to_string();
                 let body = serde_json::to_string(&TrustBundleResponse::new(cert)).context(
-                    ErrorKind::EncryptionOperation(EncryptionOperation::GetTrustBundle),
+                    Error::EncryptionOperation(EncryptionOperation::GetTrustBundle),
                 )?;
                 let response = Response::builder()
                     .status(StatusCode::OK)
                     .header(CONTENT_TYPE, "application/json")
                     .header(CONTENT_LENGTH, body.len().to_string().as_str())
                     .body(body.into())
-                    .context(ErrorKind::EncryptionOperation(
+                    .context(Error::EncryptionOperation(
                         EncryptionOperation::GetTrustBundle,
                     ))?;
                 Ok(response)

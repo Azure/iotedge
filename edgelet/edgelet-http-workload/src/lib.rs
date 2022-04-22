@@ -22,9 +22,3 @@ pub use crate::server::WorkloadService;
 pub trait IntoResponse {
     fn into_response(self) -> Response<Body>;
 }
-
-impl IntoResponse for Response<Body> {
-    fn into_response(self) -> Response<Body> {
-        self
-    }
-}
