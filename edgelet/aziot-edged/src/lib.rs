@@ -705,21 +705,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::fmt;
-
     use edgelet_docker::Settings;
 
-    use super::{Fail, RuntimeSettings};
+    use super::{RuntimeSettings};
 
     static GOOD_SETTINGS_EDGE_CA_CERT_ID: &str = "test/linux/sample_settings.edge.ca.id.toml";
-    #[derive(Clone, Copy, Debug, Fail)]
-    pub struct Error;
-
-    impl fmt::Display for Error {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            write!(f, "Error")
-        }
-    }
 
     lazy_static::lazy_static! {
         static ref ENV_LOCK: std::sync::Mutex<()> = Default::default();
