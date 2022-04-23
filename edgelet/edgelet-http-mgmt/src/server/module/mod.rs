@@ -90,22 +90,19 @@ pub mod tests {
     use hyper::{Body, Response, StatusCode};
 
     use edgelet_core::RuntimeOperation;
-    use edgelet_docker::{Error as DockerError};
+    use edgelet_docker::Error as DockerError;
     use management::models::ErrorResponse;
 
-    use crate::IntoResponse;
     use crate::error::Error;
+    use crate::IntoResponse;
 
     #[test]
     fn not_found() {
         // arrange
-        let error =
-                anyhow::anyhow!(DockerError::NotFound("No such container: m1".to_string()))
-                .context(
-                    DockerError::RuntimeOperation(RuntimeOperation::StartModule(
-                        "m1".to_string(),
-                    )),
-                )
+        let error = anyhow::anyhow!(DockerError::NotFound("No such container: m1".to_string()))
+            .context(DockerError::RuntimeOperation(
+                RuntimeOperation::StartModule("m1".to_string()),
+            ))
             .context(Error::RuntimeOperation(RuntimeOperation::StartModule(
                 "m1".to_string(),
             )));
@@ -132,11 +129,10 @@ pub mod tests {
     #[test]
     fn conflict() {
         // arrange
-        let error = 
-            anyhow::anyhow!(DockerError::Conflict)
-            .context(
-                DockerError::RuntimeOperation(RuntimeOperation::StartModule("m1".to_string())),
-            )
+        let error = anyhow::anyhow!(DockerError::Conflict)
+            .context(DockerError::RuntimeOperation(
+                RuntimeOperation::StartModule("m1".to_string()),
+            ))
             .context(Error::RuntimeOperation(RuntimeOperation::StartModule(
                 "m1".to_string(),
             )));
@@ -163,11 +159,10 @@ pub mod tests {
     #[test]
     fn not_modified() {
         // arrange
-        let error = 
-            anyhow::anyhow!(DockerError::NotModified)
-            .context(
-                DockerError::RuntimeOperation(RuntimeOperation::StopModule("m1".to_string())),
-            )
+        let error = anyhow::anyhow!(DockerError::NotModified)
+            .context(DockerError::RuntimeOperation(RuntimeOperation::StopModule(
+                "m1".to_string(),
+            )))
             .context(Error::RuntimeOperation(RuntimeOperation::StopModule(
                 "m1".to_string(),
             )));
@@ -218,13 +213,12 @@ pub mod tests {
     #[test]
     fn formatted_docker_runtime() {
         // arrange
-        let error =
-            anyhow::anyhow!(DockerError::FormattedDockerRuntime(
-                "manifest for image:latest not found".to_string(),
-            ))
-            .context(Error::RuntimeOperation(RuntimeOperation::StartModule(
-                "m1".to_string(),
-            )));
+        let error = anyhow::anyhow!(DockerError::FormattedDockerRuntime(
+            "manifest for image:latest not found".to_string(),
+        ))
+        .context(Error::RuntimeOperation(RuntimeOperation::StartModule(
+            "m1".to_string(),
+        )));
 
         // act
         let response: Response<Body> = error.into_response();

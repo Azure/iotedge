@@ -8,8 +8,8 @@ use url::form_urlencoded;
 use edgelet_core::{parse_since, LogOptions, LogTail, ModuleRuntime, RuntimeOperation};
 use edgelet_http::route::{Handler, Parameters};
 
-use crate::IntoResponse;
 use crate::error::Error;
+use crate::IntoResponse;
 
 pub struct ModuleLogs<M> {
     runtime: M,
@@ -45,18 +45,20 @@ where
                 Ok((name, options))
             })
             .map(move |(name, options)| {
-                runtime.logs(&name, &options).then(|s| -> anyhow::Result<_> {
-                    let s = s.with_context(|| {
-                        Error::RuntimeOperation(RuntimeOperation::GetModuleLogs(name.clone()))
-                    })?;
-                    let response = Response::builder()
-                        .status(StatusCode::OK)
-                        .body(s.into())
-                        .context(Error::RuntimeOperation(
-                            RuntimeOperation::GetModuleLogs(name),
-                        ))?;
-                    Ok(response)
-                })
+                runtime
+                    .logs(&name, &options)
+                    .then(|s| -> anyhow::Result<_> {
+                        let s = s.with_context(|| {
+                            Error::RuntimeOperation(RuntimeOperation::GetModuleLogs(name.clone()))
+                        })?;
+                        let response = Response::builder()
+                            .status(StatusCode::OK)
+                            .body(s.into())
+                            .context(Error::RuntimeOperation(RuntimeOperation::GetModuleLogs(
+                                name,
+                            )))?;
+                        Ok(response)
+                    })
             })
             .into_future()
             .flatten()
@@ -121,7 +123,8 @@ mod tests {
     use management::models::ErrorResponse;
 
     use super::{
-        parse_options, Body, Error, Future, Handler, LogTail, ModuleLogs, Parameters, Request, StatusCode,
+        parse_options, Body, Error, Future, Handler, LogTail, ModuleLogs, Parameters, Request,
+        StatusCode,
     };
 
     #[test]
@@ -246,12 +249,11 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                let expected = anyhow::anyhow!("TestRuntime::logs")
-                .context(Error::RuntimeOperation(edgelet_core::RuntimeOperation::GetModuleLogs("mod1".to_string())));
-                assert_eq!(
-                    &format!("{:?}", expected),
-                    error.message()
-                );
+                let expected =
+                    anyhow::anyhow!("TestRuntime::logs").context(Error::RuntimeOperation(
+                        edgelet_core::RuntimeOperation::GetModuleLogs("mod1".to_string()),
+                    ));
+                assert_eq!(&format!("{:?}", expected), error.message());
                 Ok(())
             })
             .wait()
@@ -268,8 +270,7 @@ mod tests {
             .with_finished_at(Some(Utc.ymd(2018, 4, 13).and_hms_milli(15, 20, 0, 1)))
             .with_image_id(Some("image-id".to_string()));
         let config = TestConfig::new("microsoft/test-image".to_string());
-        let module =
-            TestModule::new("test-module".to_string(), config, Some(state));
+        let module = TestModule::new("test-module".to_string(), config, Some(state));
         let (create_socket_channel_snd, _create_socket_channel_rcv) =
             mpsc::unbounded::<ModuleAction>();
 
@@ -297,8 +298,8 @@ mod tests {
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
                 let expected = anyhow::anyhow!("invalid digit found in string")
-                .context(edgelet_core::Error::InvalidLogTail("asfafda".to_string()))
-                .context(Error::MalformedRequestParameter("tail"));
+                    .context(edgelet_core::Error::InvalidLogTail("asfafda".to_string()))
+                    .context(Error::MalformedRequestParameter("tail"));
                 assert_eq!(&format!("{:?}", expected), error.message());
                 Ok(())
             })

@@ -132,14 +132,11 @@ impl PemCertificate {
         // other certs
         let mut ca_certs = Stack::new().context(Error::IdentityCertificate)?;
         for cert in certs.drain(1..) {
-            ca_certs
-                .push(cert)
-                .context(Error::IdentityCertificate)?;
+            ca_certs.push(cert).context(Error::IdentityCertificate)?;
         }
 
         let key = match &self.key {
-            Some(k) => PKey::private_key_from_pem(&k)
-                .context(Error::IdentityPrivateKeyRead),
+            Some(k) => PKey::private_key_from_pem(&k).context(Error::IdentityPrivateKeyRead),
             None => return Err(Error::IdentityPrivateKey.into()),
         }?;
 
@@ -156,12 +153,9 @@ impl PemCertificate {
             )
             .context(Error::IdentityCertificate)?;
 
-        let der = pkcs_certs
-            .to_der()
-            .context(Error::IdentityCertificate)?;
+        let der = pkcs_certs.to_der().context(Error::IdentityCertificate)?;
 
-        let identity = Identity::from_pkcs12(&der, "")
-            .context(Error::PKCS12Identity)?;
+        let identity = Identity::from_pkcs12(&der, "").context(Error::PKCS12Identity)?;
 
         Ok(identity)
     }
@@ -179,12 +173,9 @@ impl Into<Response<Body>> for Error {
         let status_code = match self {
             Error::Authorization | Error::ModuleNotFound(_) => StatusCode::NOT_FOUND,
             Error::InvalidApiVersion(_) => StatusCode::BAD_REQUEST,
-            _ => StatusCode::INTERNAL_SERVER_ERROR
+            _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
-        let body = serde_json::json!({
-            "message": format!("{:?}", self)
-        })
-        .to_string();
+        let body = serde_json::json!({ "message": format!("{:?}", self) }).to_string();
 
         Response::builder()
             .status(status_code)
@@ -386,17 +377,15 @@ impl HyperExt for Http {
                     Socket::Inet(fd, _addr) => {
                         let l = unsafe { net::TcpListener::from_raw_fd(fd) };
                         Incoming::Tcp(
-                            TcpListener::from_std(l, &Default::default()).with_context(|| {
-                                Error::BindListener(BindListenerType::Fd(fd))
-                            })?,
+                            TcpListener::from_std(l, &Default::default())
+                                .with_context(|| Error::BindListener(BindListenerType::Fd(fd)))?,
                         )
                     }
                     Socket::Unix(fd) => {
                         let l = unsafe { ::std::os::unix::net::UnixListener::from_raw_fd(fd) };
                         Incoming::Unix(
-                            UnixListener::from_std(l, &Default::default()).with_context(|| {
-                                Error::BindListener(BindListenerType::Fd(fd))
-                            })?,
+                            UnixListener::from_std(l, &Default::default())
+                                .with_context(|| Error::BindListener(BindListenerType::Fd(fd)))?,
                         )
                     }
                     Socket::Unknown => {
@@ -412,7 +401,8 @@ impl HyperExt for Http {
                 return Err(Error::InvalidUrlWithReason(
                     url.to_string(),
                     InvalidUrlReason::InvalidScheme,
-                ).into())
+                )
+                .into())
             }
         };
 

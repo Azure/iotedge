@@ -35,7 +35,7 @@ impl<'a> From<(StatusCode, &'a [u8])> for Error {
             status_code,
             std::str::from_utf8(body)
                 .unwrap_or("<could not parse response body as utf-8>")
-                .to_string()
+                .to_string(),
         )
     }
 }

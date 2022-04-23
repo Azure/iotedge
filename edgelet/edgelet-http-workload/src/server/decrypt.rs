@@ -56,8 +56,8 @@ impl Handler<Parameters> for DecryptHandler {
             .into_future()
             .flatten()
             .and_then(move |(id, request)| -> anyhow::Result<_> {
-                let ciphertext = base64::decode(request.ciphertext())
-                    .context(Error::MalformedRequestBody)?;
+                let ciphertext =
+                    base64::decode(request.ciphertext()).context(Error::MalformedRequestBody)?;
                 let initialization_vector = base64::decode(request.initialization_vector())
                     .context(Error::MalformedRequestBody)?;
                 let plaintext = get_master_encryption_key(&key_client)
@@ -73,17 +73,14 @@ impl Handler<Parameters> for DecryptHandler {
                     .and_then(|plaintext| -> anyhow::Result<_> {
                         let encoded = base64::encode(&plaintext);
                         let response = DecryptResponse::new(encoded);
-                        let body = serde_json::to_string(&response).context(
-                            Error::EncryptionOperation(EncryptionOperation::Decrypt),
-                        )?;
+                        let body = serde_json::to_string(&response)
+                            .context(Error::EncryptionOperation(EncryptionOperation::Decrypt))?;
                         let response = Response::builder()
                             .status(StatusCode::OK)
                             .header(CONTENT_TYPE, "application/json")
                             .header(CONTENT_LENGTH, body.len().to_string().as_str())
                             .body(body.into())
-                            .context(Error::EncryptionOperation(
-                                EncryptionOperation::Decrypt,
-                            ))?;
+                            .context(Error::EncryptionOperation(EncryptionOperation::Decrypt))?;
                         Ok(response)
                     });
                 Ok(plaintext)

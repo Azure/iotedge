@@ -7,8 +7,8 @@ use hyper::{Body, Request, Response, StatusCode};
 use edgelet_core::{ModuleRuntime, RuntimeOperation};
 use edgelet_http::route::{Handler, Parameters};
 
-use crate::IntoResponse;
 use crate::error::Error;
+use crate::IntoResponse;
 
 pub struct StopModule<M> {
     runtime: M,
@@ -36,8 +36,11 @@ where
                 let name = name.to_string();
 
                 self.runtime.stop(&name, None).then(|result| {
-                    result.with_context(|| Error::RuntimeOperation(RuntimeOperation::StopModule(name.clone())))
-                    .map(|_| name)
+                    result
+                        .with_context(|| {
+                            Error::RuntimeOperation(RuntimeOperation::StopModule(name.clone()))
+                        })
+                        .map(|_| name)
                 })
             })
             .into_future()
@@ -46,9 +49,7 @@ where
                 Ok(Response::builder()
                     .status(StatusCode::NO_CONTENT)
                     .body(Body::default())
-                    .context(Error::RuntimeOperation(RuntimeOperation::StopModule(
-                        name,
-                    )))?)
+                    .context(Error::RuntimeOperation(RuntimeOperation::StopModule(name)))?)
             })
             .or_else(|e| Ok(e.into_response()));
 
@@ -77,8 +78,7 @@ mod tests {
             .with_finished_at(Some(Utc.ymd(2018, 4, 13).and_hms_milli(15, 20, 0, 1)))
             .with_image_id(Some("image-id".to_string()));
         let config = TestConfig::new("microsoft/test-image".to_string());
-        let module =
-            TestModule::new("test-module".to_string(), config, Some(state));
+        let module = TestModule::new("test-module".to_string(), config, Some(state));
         let (create_socket_channel_snd, _create_socket_channel_rcv) =
             mpsc::unbounded::<ModuleAction>();
 
@@ -111,8 +111,7 @@ mod tests {
             .with_finished_at(Some(Utc.ymd(2018, 4, 13).and_hms_milli(15, 20, 0, 1)))
             .with_image_id(Some("image-id".to_string()));
         let config = TestConfig::new("microsoft/test-image".to_string());
-        let module =
-            TestModule::new("test-module".to_string(), config, Some(state));
+        let module = TestModule::new("test-module".to_string(), config, Some(state));
 
         let (create_socket_channel_snd, _create_socket_channel_rcv) =
             mpsc::unbounded::<ModuleAction>();

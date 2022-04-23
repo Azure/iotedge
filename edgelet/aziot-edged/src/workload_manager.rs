@@ -18,8 +18,8 @@ use url::Url;
 use aziot_key_client::Client;
 use cert_client::CertificateClient;
 use edgelet_core::{
-    Authenticator, Listen, MakeModuleRuntime, Module, ModuleAction, ModuleRuntime,
-    RuntimeSettings, UrlExt, WorkloadConfig,
+    Authenticator, Listen, MakeModuleRuntime, Module, ModuleAction, ModuleRuntime, RuntimeSettings,
+    UrlExt, WorkloadConfig,
 };
 use edgelet_http::{logging::LoggingService, ConcurrencyThrottling, HyperExt};
 use edgelet_http_workload::WorkloadService;
@@ -99,11 +99,9 @@ where
             config,
         };
 
-        let module_list: Vec<<M as ModuleRuntime>::Module> =
-            tokio_runtime.block_on(runtime.list()).context(
-                Error::Initialize(
-                    InitializeErrorReason::WorkloadService,
-                ))?;
+        let module_list: Vec<<M as ModuleRuntime>::Module> = tokio_runtime
+            .block_on(runtime.list())
+            .context(Error::Initialize(InitializeErrorReason::WorkloadService))?;
 
         tokio_runtime.block_on(futures::future::lazy(move || {
             server(workload_manager, &module_list, create_socket_channel_rcv)
@@ -154,9 +152,8 @@ where
             self.config.clone(),
         )
         .then(move |service| -> anyhow::Result<_> {
-            let service = service.context(Error::Initialize(
-                InitializeErrorReason::WorkloadService,
-            ))?;
+            let service =
+                service.context(Error::Initialize(InitializeErrorReason::WorkloadService))?;
             let service = LoggingService::new(label, service);
 
             let run = Http::new()
@@ -242,7 +239,8 @@ where
         // If the container is removed, also remove the socket file to limit the leaking of socket file
         let workload_uri = self.get_listener_uri(module_id)?;
 
-        let path = workload_uri.to_uds_file_path()
+        let path = workload_uri
+            .to_uds_file_path()
             .context(Error::WorkloadManager)
             .map_err(|err| {
                 warn!("Could not convert uri {} to path", workload_uri);

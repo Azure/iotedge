@@ -179,9 +179,7 @@ where
                     )),
                 }
             }
-            None => Box::new(future::ok(
-                Error::InvalidApiVersion(String::new()).into(),
-            )),
+            None => Box::new(future::ok(Error::InvalidApiVersion(String::new()).into())),
         }
     }
 }

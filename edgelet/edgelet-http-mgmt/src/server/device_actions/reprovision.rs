@@ -8,8 +8,8 @@ use log::debug;
 use edgelet_http::route::{Handler, Parameters};
 use futures::sync::mpsc::UnboundedSender;
 
-use crate::IntoResponse;
 use crate::error::Error;
+use crate::IntoResponse;
 
 pub struct ReprovisionDevice {
     initiate_shutdown: UnboundedSender<()>,

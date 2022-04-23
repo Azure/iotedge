@@ -77,8 +77,7 @@ where
                         Ok(())
                     }
                     OutputLocation::Memory => {
-                        copy(&mut bundle, &mut stdout())
-                            .context(Error::SupportBundle)?;
+                        copy(&mut bundle, &mut stdout()).context(Error::SupportBundle)?;
 
                         Ok(())
                     }

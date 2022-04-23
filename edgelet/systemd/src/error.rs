@@ -25,17 +25,13 @@ pub enum Error {
     #[error("File descriptor {0} is invalid.")]
     InvalidFd(Fd),
 
-    #[error(
-        "Number of file descriptors {1} from environment variable {0} is not a valid value.",
-    )]
+    #[error("Number of file descriptors {1} from environment variable {0} is not a valid value.")]
     InvalidNumFds(String, Fd),
 
     #[error("Environment variable {0} is set to an invalid value.")]
     InvalidVar(String),
 
-    #[error(
-        "Could not parse process ID from environment variable {0}.",
-    )]
+    #[error("Could not parse process ID from environment variable {0}.")]
     ParsePid(String),
 
     #[error("Socket corresponding to {0} not found.")]

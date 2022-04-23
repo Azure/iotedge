@@ -18,8 +18,8 @@ use edgelet_http_mgmt::ModuleClient;
 use support_bundle::OutputLocation;
 
 use iotedge::{
-    Check, Command, Error, List, Logs, OutputFormat, Restart, SupportBundleCommand,
-    System, Unknown, Version,
+    Check, Command, Error, List, Logs, OutputFormat, Restart, SupportBundleCommand, System,
+    Unknown, Version,
 };
 
 fn main() {
@@ -374,12 +374,11 @@ fn run() -> anyhow::Result<()> {
         .get_matches();
 
     let runtime = || -> anyhow::Result<_> {
-        let host = matches.value_of("host")
+        let host = matches
+            .value_of("host")
             .context(Error::MissingHostParameter)?;
-        let url = Url::parse(host)
-            .context(Error::BadHostParameter)?;
-        let runtime = ModuleClient::new(&url)
-            .context(Error::ModuleRuntime)?;
+        let url = Url::parse(host).context(Error::BadHostParameter)?;
+        let runtime = ModuleClient::new(&url).context(Error::ModuleRuntime)?;
         Ok(runtime)
     };
 

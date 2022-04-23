@@ -73,17 +73,14 @@ impl Handler<Parameters> for EncryptHandler {
                     .and_then(|ciphertext| -> anyhow::Result<_> {
                         let encoded = base64::encode(&ciphertext);
                         let response = EncryptResponse::new(encoded);
-                        let body = serde_json::to_string(&response).context(
-                            Error::EncryptionOperation(EncryptionOperation::Encrypt),
-                        )?;
+                        let body = serde_json::to_string(&response)
+                            .context(Error::EncryptionOperation(EncryptionOperation::Encrypt))?;
                         let response = Response::builder()
                             .status(StatusCode::OK)
                             .header(CONTENT_TYPE, "application/json")
                             .header(CONTENT_LENGTH, body.len().to_string().as_str())
                             .body(body.into())
-                            .context(Error::EncryptionOperation(
-                                EncryptionOperation::Encrypt,
-                            ))?;
+                            .context(Error::EncryptionOperation(EncryptionOperation::Encrypt))?;
                         Ok(response)
                     });
                 Ok(ciphertext)

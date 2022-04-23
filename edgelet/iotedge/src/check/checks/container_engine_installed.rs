@@ -44,7 +44,8 @@ impl ContainerEngineInstalled {
             scheme => {
                 anyhow::bail!(
                     "Could not communicate with container engine at {}. The scheme {} is invalid.",
-                    uri, scheme,
+                    uri,
+                    scheme,
                 );
             }
         };

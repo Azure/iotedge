@@ -111,11 +111,9 @@ impl System {
 
         println!("Successfully reprovisioned with IoT Hub.");
 
-        restart(&[&IOTEDGED])
-            .context(Error::System)
-            .map_err(|err| {
-                eprintln!("{:#?}", err);
-                err
-            })
+        restart(&[&IOTEDGED]).context(Error::System).map_err(|err| {
+            eprintln!("{:#?}", err);
+            err
+        })
     }
 }

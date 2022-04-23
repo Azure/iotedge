@@ -16,9 +16,7 @@ pub enum Error {
     #[error("")]
     Diagnostics,
 
-    #[error(
-        "Error while fetching latest versions of edge components: {0}",
-    )]
+    #[error("Error while fetching latest versions of edge components: {0}")]
     FetchLatestVersions(FetchLatestVersionsReason),
 
     #[error("Command failed: {0}")]

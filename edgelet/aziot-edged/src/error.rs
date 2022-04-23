@@ -47,8 +47,9 @@ pub enum Error {
 impl From<edgelet_core::Error> for Error {
     fn from(error: edgelet_core::Error) -> Self {
         match error {
-            edgelet_core::Error::EdgeRuntimeIdentityNotFound =>
-                Error::Initialize(InitializeErrorReason::InvalidDeviceConfig),
+            edgelet_core::Error::EdgeRuntimeIdentityNotFound => {
+                Error::Initialize(InitializeErrorReason::InvalidDeviceConfig)
+            }
             _ => Error::Watchdog,
         }
     }

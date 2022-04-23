@@ -159,9 +159,7 @@ impl ModuleRegistry for DockerModuleRuntime {
                 let creds = match creds {
                     Some(a) => {
                         let json = serde_json::to_string(&a).with_context(|| {
-                            Error::RegistryOperation(RegistryOperation::PullImage(
-                                image.clone(),
-                            ))
+                            Error::RegistryOperation(RegistryOperation::PullImage(image.clone()))
                         })?;
                         base64::encode_config(&json, base64::URL_SAFE)
                     }
@@ -220,8 +218,7 @@ impl ModuleRegistry for DockerModuleRuntime {
                         Ok(())
                     }
                     Err(err) => {
-                        let err = anyhow::anyhow!(Error::from(err))
-                        .context(
+                        let err = anyhow::anyhow!(Error::from(err)).context(
                             Error::RegistryOperation(RegistryOperation::RemoveImage(name)),
                         );
                         log_failure(Level::Warn, err.as_ref());
@@ -277,26 +274,22 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                         move |(mut notary_registries, cert_client),
                               (registry_server_hostname, cert_id)| {
                             let home_dir = home_dir.clone();
-                            cert_client
-                                .get_cert(&cert_id)
-                                .then(move |cert_output| {
-                                    match cert_output {
-                                        Ok(cert_buf) => {
-                                            let config_path = notary::notary_init(
-                                                &home_dir,
-                                                &registry_server_hostname,
-                                                &cert_buf,
-                                            )
-                                            .context(Error::Initialization)?;
-                                            notary_registries.insert(
-                                                registry_server_hostname.clone(),
-                                                config_path,
-                                            );
-                                            Ok((notary_registries, cert_client))
-                                        }
-                                        Err(_e) => Err(anyhow::anyhow!(Error::NotaryRootCARead)),
+                            cert_client.get_cert(&cert_id).then(
+                                move |cert_output| match cert_output {
+                                    Ok(cert_buf) => {
+                                        let config_path = notary::notary_init(
+                                            &home_dir,
+                                            &registry_server_hostname,
+                                            &cert_buf,
+                                        )
+                                        .context(Error::Initialization)?;
+                                        notary_registries
+                                            .insert(registry_server_hostname.clone(), config_path);
+                                        Ok((notary_registries, cert_client))
                                     }
-                                })
+                                    Err(_e) => Err(anyhow::anyhow!(Error::NotaryRootCARead)),
+                                },
+                            )
                         },
                     ))
                 } else {
@@ -429,9 +422,9 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         // we only want "docker" modules
         if module.type_() != DOCKER_MODULE_TYPE {
-            return Box::new(future::err(Error::InvalidModuleType(
-                module.type_().to_string(),
-            ).into()));
+            return Box::new(future::err(
+                Error::InvalidModuleType(module.type_().to_string()).into(),
+            ));
         }
 
         let image_with_tag = module.config().image().to_string();
@@ -539,8 +532,8 @@ impl ModuleRuntime for DockerModuleRuntime {
                                 Err(err) => Err(anyhow::anyhow!(Error::from(err)).context(
                                     Error::RuntimeOperation(RuntimeOperation::CreateModule(
                                         module.name().to_string(),
-                                    ))),
-                                ),
+                                    )),
+                                )),
                             })
                     })
             })
@@ -562,9 +555,9 @@ impl ModuleRuntime for DockerModuleRuntime {
     fn get(&self, id: &str) -> Self::GetFuture {
         debug!("Getting module {}...", id);
 
-        if let Err(err) = ensure_not_empty(id).with_context(|| {
-            Error::RuntimeOperation(RuntimeOperation::GetModule(id.to_string()))
-        }) {
+        if let Err(err) = ensure_not_empty(id)
+            .with_context(|| Error::RuntimeOperation(RuntimeOperation::GetModule(id.to_string())))
+        {
             return Box::new(future::err(err));
         }
 
@@ -585,22 +578,17 @@ impl ModuleRuntime for DockerModuleRuntime {
                         let config =
                             DockerConfig::new(name.clone(), ContainerCreateBody::new(), None, None)
                                 .with_context(|| {
-                                    Error::RuntimeOperation(RuntimeOperation::GetModule(
-                                        id.clone(),
-                                    ))
+                                    Error::RuntimeOperation(RuntimeOperation::GetModule(id.clone()))
                                 })?;
-                        let module =
-                            DockerModule::new(client_copy, name, config).context({
-                                Error::RuntimeOperation(RuntimeOperation::GetModule(id))
-                            })?;
+                        let module = DockerModule::new(client_copy, name, config).context({
+                            Error::RuntimeOperation(RuntimeOperation::GetModule(id))
+                        })?;
                         let state = runtime_state(container.id(), container.state());
                         Ok((module, state))
                     }
                     Err(err) => {
                         let err = anyhow::anyhow!(Error::from(err))
-                        .context(
-                            Error::RuntimeOperation(RuntimeOperation::GetModule(id)),
-                        );
+                            .context(Error::RuntimeOperation(RuntimeOperation::GetModule(id)));
                         log_failure(Level::Warn, err.as_ref());
                         Err(err)
                     }
@@ -612,9 +600,8 @@ impl ModuleRuntime for DockerModuleRuntime {
         info!("Starting module {}...", id);
 
         if let Err(err) = ensure_not_empty(id)
-            .with_context(||
-                Error::RuntimeOperation(RuntimeOperation::StartModule(id.to_string()))
-            ) {
+            .with_context(|| Error::RuntimeOperation(RuntimeOperation::StartModule(id.to_string())))
+        {
             return Box::new(future::err(err));
         }
 
@@ -625,11 +612,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         if let Err(err) = self
             .create_socket_channel
             .unbounded_send(ModuleAction::Start(id.clone(), sender))
-            .map_err(|_| {
-                Error::RuntimeOperation(RuntimeOperation::GetModule(
-                    id.clone(),
-                )).into()
-            })
+            .map_err(|_| Error::RuntimeOperation(RuntimeOperation::GetModule(id.clone())).into())
         {
             return Box::new(future::err(err));
         }
@@ -641,8 +624,9 @@ impl ModuleRuntime for DockerModuleRuntime {
                 .map_err({
                     let id = id.clone();
                     move |_| {
-                    anyhow::anyhow!(Error::RuntimeOperation(RuntimeOperation::GetModule(id)))
-                }})
+                        anyhow::anyhow!(Error::RuntimeOperation(RuntimeOperation::GetModule(id)))
+                    }
+                })
                 .and_then(move |()| {
                     future.then(move |result| match result {
                         Ok(_) => {
@@ -650,8 +634,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                             Ok(())
                         }
                         Err(err) => {
-                            let err = anyhow::anyhow!(Error::from(err))
-                            .context(
+                            let err = anyhow::anyhow!(Error::from(err)).context(
                                 Error::RuntimeOperation(RuntimeOperation::StartModule(id)),
                             );
                             log_failure(Level::Warn, err.as_ref());
@@ -665,9 +648,9 @@ impl ModuleRuntime for DockerModuleRuntime {
     fn stop(&self, id: &str, wait_before_kill: Option<Duration>) -> Self::StopFuture {
         info!("Stopping module {}...", id);
 
-        if let Err(err) = ensure_not_empty(id).with_context(|| {
-            Error::RuntimeOperation(RuntimeOperation::StopModule(id.to_string()))
-        }) {
+        if let Err(err) = ensure_not_empty(id)
+            .with_context(|| Error::RuntimeOperation(RuntimeOperation::StopModule(id.to_string())))
+        {
             return Box::new(future::err(err));
         }
 
@@ -737,9 +720,8 @@ impl ModuleRuntime for DockerModuleRuntime {
                         Ok(())
                     }
                     Err(err) => {
-                        let err = anyhow::anyhow!(Error::from(err)).context(
-                            Error::RuntimeOperation(RuntimeOperation::RestartModule(id)),
-                        );
+                        let err = anyhow::anyhow!(Error::from(err))
+                            .context(Error::RuntimeOperation(RuntimeOperation::RestartModule(id)));
                         log_failure(Level::Warn, err.as_ref());
                         Err(err)
                     }
@@ -781,16 +763,13 @@ impl ModuleRuntime for DockerModuleRuntime {
                                     "Successfully removed module {}, but could not remove socket",
                                     id
                                 );
-                                Err(Error::RuntimeOperation(
-                                    RuntimeOperation::GetModule(id),
-                                ).into())
+                                Err(Error::RuntimeOperation(RuntimeOperation::GetModule(id)).into())
                             }
                         }
                     }
                     Err(err) => {
-                        let err = anyhow::anyhow!(Error::from(err)).context(
-                            Error::RuntimeOperation(RuntimeOperation::RemoveModule(id)),
-                        );
+                        let err = anyhow::anyhow!(Error::from(err))
+                            .context(Error::RuntimeOperation(RuntimeOperation::RemoveModule(id)));
                         log_failure(Level::Warn, err.as_ref());
                         Err(err)
                     }
@@ -818,9 +797,8 @@ impl ModuleRuntime for DockerModuleRuntime {
                             client.container_api().container_stats(module.name(), false)
                         })
                         .map_err(|err| {
-                            anyhow::anyhow!(Error::from(err)).context(
-                                Error::RuntimeOperation(RuntimeOperation::SystemResources),
-                            )
+                            anyhow::anyhow!(Error::from(err))
+                                .context(Error::RuntimeOperation(RuntimeOperation::SystemResources))
                         }),
                 )
                 .collect()
@@ -829,9 +807,7 @@ impl ModuleRuntime for DockerModuleRuntime {
             .and_then(|stats| {
                 // convert to string
                 serde_json::to_string(&stats).map_err(|_| {
-                    anyhow::anyhow!(Error::RuntimeOperation(
-                        RuntimeOperation::SystemResources,
-                    ))
+                    anyhow::anyhow!(Error::RuntimeOperation(RuntimeOperation::SystemResources,))
                 })
             });
 
@@ -956,9 +932,8 @@ impl ModuleRuntime for DockerModuleRuntime {
                             .collect()
                     })
                     .map_err(|err| {
-                        anyhow::anyhow!(Error::from(err)).context(
-                            Error::RuntimeOperation(RuntimeOperation::ListModules),
-                        )
+                        anyhow::anyhow!(Error::from(err))
+                            .context(Error::RuntimeOperation(RuntimeOperation::ListModules))
                     })
             })
             .into_future()
@@ -1002,9 +977,8 @@ impl ModuleRuntime for DockerModuleRuntime {
                     Ok(Logs(id, logs))
                 }
                 Err(err) => {
-                    let err = anyhow::anyhow!(Error::from(err)).context(
-                        Error::RuntimeOperation(RuntimeOperation::GetModuleLogs(id)),
-                    );
+                    let err = anyhow::anyhow!(Error::from(err))
+                        .context(Error::RuntimeOperation(RuntimeOperation::GetModuleLogs(id)));
                     log_failure(Level::Warn, err.as_ref());
                     Err(err)
                 }
@@ -1035,11 +1009,9 @@ impl ModuleRuntime for DockerModuleRuntime {
                     c.name(),
                     wait_before_kill,
                 )
-                .or_else(|err| {
-                    match err.root_cause().downcast_ref() {
-                        Some(Error::NotFound(_)) | Some(Error::NotModified) => Ok(()),
-                        _ => Err(err),
-                    }
+                .or_else(|err| match err.root_cause().downcast_ref() {
+                    Some(Error::NotFound(_)) | Some(Error::NotModified) => Ok(()),
+                    _ => Err(err),
                 })
             });
             future::join_all(n).map(|_| ())
@@ -1065,9 +1037,7 @@ fn init_client(docker_url: &Url) -> anyhow::Result<DockerClient<UrlConnector>> {
         .build(UrlConnector::new(docker_url).context(Error::Initialization)?);
 
     // extract base path - the bit that comes after the scheme
-    let base_path = docker_url
-        .to_base_path()
-        .context(Error::Initialization)?;
+    let base_path = docker_url.to_base_path().context(Error::Initialization)?;
     let mut configuration = Configuration::new(client);
     configuration.base_path = base_path
         .to_str()
@@ -1076,8 +1046,7 @@ fn init_client(docker_url: &Url) -> anyhow::Result<DockerClient<UrlConnector>> {
 
     let scheme = docker_url.scheme().to_string();
     configuration.uri_composer = Box::new(move |base_path, path| {
-        UrlConnector::build_hyper_uri(&scheme, base_path, path)
-            .context(Error::Initialization)
+        UrlConnector::build_hyper_uri(&scheme, base_path, path).context(Error::Initialization)
     });
 
     Ok(DockerClient::new(APIClient::new(configuration)))
@@ -1170,7 +1139,7 @@ where
         .filter_map(|value| match value {
             Ok(value) => Some(Ok(value)),
             Err(err) if matches!(err.downcast_ref(), Some(Error::NotFound(_))) => None,
-            err @ Err(_) => Some(err)
+            err @ Err(_) => Some(err),
         })
         .then(Result::unwrap) // Ok(Ok(_)) -> Ok(_), Ok(Err(_)) -> Err(_), Err(_) -> !
 }
@@ -1342,9 +1311,8 @@ mod tests {
         authenticate, drop_unsafe_privileges, future, list_with_details, parse_get_response,
         unset_privileged, AuthId, Authenticator, BTreeMap, Body, ContainerCreateBody,
         CoreSystemInfo, Deserializer, DockerModuleRuntime, DockerModuleTop, Duration, Error,
-        Future, HostConfig, InlineResponse200, LogOptions, MakeModuleRuntime, Module,
-        ModuleId, ModuleRuntime, ModuleRuntimeState, ModuleSpec, Pid, Request, Stream,
-        SystemResources,
+        Future, HostConfig, InlineResponse200, LogOptions, MakeModuleRuntime, Module, ModuleId,
+        ModuleRuntime, ModuleRuntimeState, ModuleSpec, Pid, Request, Stream, SystemResources,
     };
 
     use std::path::Path;
@@ -1751,8 +1719,9 @@ mod tests {
         type CreateFuture = FutureResult<(), anyhow::Error>;
         type GetFuture = FutureResult<(Self::Module, ModuleRuntimeState), anyhow::Error>;
         type ListFuture = FutureResult<Vec<Self::Module>, anyhow::Error>;
-        type ListWithDetailsStream =
-            Box<dyn Stream<Item = (Self::Module, ModuleRuntimeState), Error = anyhow::Error> + Send>;
+        type ListWithDetailsStream = Box<
+            dyn Stream<Item = (Self::Module, ModuleRuntimeState), Error = anyhow::Error> + Send,
+        >;
         type LogsFuture = FutureResult<Self::Logs, anyhow::Error>;
         type RemoveFuture = FutureResult<(), anyhow::Error>;
         type RestartFuture = FutureResult<(), anyhow::Error>;

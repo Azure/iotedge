@@ -13,8 +13,8 @@ use edgelet_http::route::{Handler, Parameters};
 use identity_client::client::IdentityClient;
 use management::models::{Identity, IdentitySpec as CreateIdentitySpec};
 
-use crate::IntoResponse;
 use crate::error::Error;
+use crate::IntoResponse;
 
 pub struct CreateIdentity {
     id_manager: Arc<Mutex<IdentityClient>>,

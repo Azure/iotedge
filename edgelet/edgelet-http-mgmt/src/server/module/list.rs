@@ -11,8 +11,8 @@ use edgelet_core::{Module, ModuleRuntime, ModuleRuntimeState, RuntimeOperation};
 use edgelet_http::route::{Handler, Parameters};
 use management::models::{Config, ExitStatus, ModuleDetails, ModuleList, RuntimeStatus, Status};
 
-use crate::IntoResponse;
 use crate::error::Error;
+use crate::IntoResponse;
 
 pub struct ListModules<M> {
     runtime: M,
@@ -116,8 +116,7 @@ mod tests {
             .with_finished_at(Some(Utc.ymd(2018, 4, 13).and_hms_milli(15, 20, 0, 1)))
             .with_image_id(Some("image-id".to_string()));
         let config = TestConfig::new("microsoft/test-image".to_string());
-        let module =
-            TestModule::new("test-module".to_string(), config, Some(state));
+        let module = TestModule::new("test-module".to_string(), config, Some(state));
         let (create_socket_channel_snd, _create_socket_channel_rcv) =
             mpsc::unbounded::<ModuleAction>();
 
@@ -193,12 +192,10 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                let expected = anyhow::anyhow!("TestRuntime::list_with_details")
-                .context(Error::RuntimeOperation(edgelet_core::RuntimeOperation::ListModules));
-                assert_eq!(
-                    &format!("{:?}", expected),
-                    error.message()
+                let expected = anyhow::anyhow!("TestRuntime::list_with_details").context(
+                    Error::RuntimeOperation(edgelet_core::RuntimeOperation::ListModules),
                 );
+                assert_eq!(&format!("{:?}", expected), error.message());
                 Ok(())
             })
             .wait()
@@ -231,12 +228,10 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                let expected = anyhow::anyhow!("TestModule::runtime_state")
-                .context(Error::RuntimeOperation(edgelet_core::RuntimeOperation::ListModules));
-                assert_eq!(
-                    &format!("{:?}", expected),
-                    error.message()
+                let expected = anyhow::anyhow!("TestModule::runtime_state").context(
+                    Error::RuntimeOperation(edgelet_core::RuntimeOperation::ListModules),
                 );
+                assert_eq!(&format!("{:?}", expected), error.message());
                 Ok(())
             })
             .wait()

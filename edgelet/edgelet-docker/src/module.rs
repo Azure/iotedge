@@ -38,7 +38,11 @@ where
 }
 
 impl<C: 'static + Connect> DockerModule<C> {
-    pub fn new(client: DockerClient<C>, name: String, config: DockerConfig) -> anyhow::Result<Self> {
+    pub fn new(
+        client: DockerClient<C>,
+        name: String,
+        config: DockerConfig,
+    ) -> anyhow::Result<Self> {
         ensure_not_empty(&name).with_context(|| Error::InvalidModuleName(name.clone()))?;
 
         Ok(DockerModule {
@@ -72,9 +76,8 @@ impl<C: 'static + Connect> DockerModuleTop for DockerModule<C> {
                         Ok(ModuleTop::new(id, p))
                     }
                     Err(err) => {
-                        let err = anyhow::anyhow!(Error::from(err)).context(
-                            Error::RuntimeOperation(RuntimeOperation::TopModule(id)),
-                        );
+                        let err = anyhow::anyhow!(Error::from(err))
+                            .context(Error::RuntimeOperation(RuntimeOperation::TopModule(id)));
                         Err(err)
                     }
                 }),
@@ -192,9 +195,8 @@ impl<C: 'static + Connect> Module for DockerModule<C> {
                 .container_inspect(&self.name, false)
                 .map(|resp| runtime_state(resp.id(), resp.state()))
                 .map_err(|err| {
-                    anyhow::anyhow!(Error::from(err)).context(
-                        Error::ModuleOperation(ModuleOperation::RuntimeState),
-                    )
+                    anyhow::anyhow!(Error::from(err))
+                        .context(Error::ModuleOperation(ModuleOperation::RuntimeState))
                 }),
         )
     }

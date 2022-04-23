@@ -77,7 +77,10 @@ impl ContainerLocalTime {
             - std::cmp::min(actual_duration, expected_duration);
         self.diff = Some(diff.as_secs());
 
-        anyhow::ensure!(diff.as_secs() < 10, "Detected time drift between host and container");
+        anyhow::ensure!(
+            diff.as_secs() < 10,
+            "Detected time drift between host and container"
+        );
 
         Ok(CheckResult::Ok)
     }

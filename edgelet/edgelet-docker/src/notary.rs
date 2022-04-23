@@ -179,9 +179,9 @@ pub fn notary_lookup(
 
     futures::future::poll_fn(move || {
         tokio_threadpool::blocking(|| -> Result<_, _> {
-            let std::process::Output { stdout, .. } = notary_cmd.output().context(
-                Error::LaunchNotary("could not spawn notary process")
-            )?;
+            let std::process::Output { stdout, .. } = notary_cmd
+                .output()
+                .context(Error::LaunchNotary("could not spawn notary process"))?;
             let output_str = std::str::from_utf8(&stdout)
                 .context(Error::LaunchNotary("received invalid utf8"))?;
             debug!("Notary output string is {}", output_str);

@@ -13,8 +13,8 @@ use edgelet_http::route::{Handler, Parameters};
 use identity_client::client::IdentityClient;
 use management::models::{Identity, IdentityList};
 
-use crate::IntoResponse;
 use crate::error::Error;
+use crate::IntoResponse;
 
 pub struct ListIdentities {
     id_manager: Arc<Mutex<IdentityClient>>,
@@ -38,9 +38,8 @@ impl Handler<Parameters> for ListIdentities {
             .unwrap()
             .get_modules()
             .then(|identities| -> anyhow::Result<_> {
-                let identities = identities.context(Error::IdentityOperation(
-                    IdentityOperation::ListIdentities,
-                ))?;
+                let identities = identities
+                    .context(Error::IdentityOperation(IdentityOperation::ListIdentities))?;
                 let body = IdentityList::new(
                     identities
                         .into_iter()
@@ -68,17 +67,14 @@ impl Handler<Parameters> for ListIdentities {
                         })
                         .collect(),
                 );
-                let b = serde_json::to_string(&body).context(Error::IdentityOperation(
-                    IdentityOperation::ListIdentities,
-                ))?;
+                let b = serde_json::to_string(&body)
+                    .context(Error::IdentityOperation(IdentityOperation::ListIdentities))?;
                 let response = Response::builder()
                     .status(StatusCode::OK)
                     .header(CONTENT_TYPE, "application/json")
                     .header(CONTENT_LENGTH, b.len().to_string().as_str())
                     .body(b.into())
-                    .context(Error::IdentityOperation(
-                        IdentityOperation::ListIdentities,
-                    ))?;
+                    .context(Error::IdentityOperation(IdentityOperation::ListIdentities))?;
                 Ok(response)
             })
             .or_else(|e| Ok(e.into_response()));

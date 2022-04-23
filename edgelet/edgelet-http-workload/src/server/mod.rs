@@ -9,9 +9,7 @@ mod trust_bundle;
 use aziot_key_client::Client as KeyClient;
 use aziot_key_common::KeyHandle;
 use cert_client::client::CertificateClient;
-use edgelet_core::{
-    Authenticator, Module, ModuleRuntime, Policy, WorkloadConfig,
-};
+use edgelet_core::{Authenticator, Module, ModuleRuntime, Policy, WorkloadConfig};
 use edgelet_http::authentication::Authentication;
 use edgelet_http::authorization::Authorization;
 use edgelet_http::route::{Builder, RegexRecognizer, Router, RouterService};

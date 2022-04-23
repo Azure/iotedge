@@ -101,10 +101,7 @@ fn uri_to_proxy(uri: Uri) -> anyhow::Result<Proxy> {
         let username = percent_decode(url.username().as_bytes())
             .decode_utf8()
             .with_context(|| {
-                Error::InvalidUrlWithReason(
-                    url.to_string(),
-                    InvalidUrlReason::InvalidCredentials,
-                )
+                Error::InvalidUrlWithReason(url.to_string(), InvalidUrlReason::InvalidCredentials)
             })
             .with_context(|| Error::Proxy(uri.clone()))
             .context(Error::Initialization)?;

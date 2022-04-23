@@ -16,8 +16,8 @@ use edgelet_http::route::{Handler, Parameters};
 use management::models::ModuleSpec;
 
 use super::{spec_to_core, spec_to_details};
-use crate::IntoResponse;
 use crate::error::Error;
+use crate::IntoResponse;
 
 pub struct CreateModule<M> {
     runtime: M,
@@ -128,7 +128,8 @@ mod tests {
     use management::models::{Config, ErrorResponse, ModuleDetails};
 
     use super::{
-        CreateModule, Error, Future, Handler, ModuleSpec, StatusCode, Stream, CONTENT_LENGTH, CONTENT_TYPE,
+        CreateModule, Error, Future, Handler, ModuleSpec, StatusCode, Stream, CONTENT_LENGTH,
+        CONTENT_TYPE,
     };
 
     lazy_static! {
@@ -211,7 +212,7 @@ mod tests {
             .and_then(|b| {
                 let error_response: ErrorResponse = serde_json::from_slice(&b).unwrap();
                 let expected = anyhow::anyhow!("expected value at line 1 column 1")
-                .context(Error::MalformedRequestBody);
+                    .context(Error::MalformedRequestBody);
                 assert_eq!(&format!("{:?}", expected), error_response.message());
                 Ok(())
             })
@@ -243,12 +244,11 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                let expected = anyhow::anyhow!("TestRuntime::create")
-                .context(Error::RuntimeOperation(edgelet_core::RuntimeOperation::CreateModule("image-id".to_string())));
-                assert_eq!(
-                    &format!("{:?}", expected),
-                    error.message()
-                );
+                let expected =
+                    anyhow::anyhow!("TestRuntime::create").context(Error::RuntimeOperation(
+                        edgelet_core::RuntimeOperation::CreateModule("image-id".to_string()),
+                    ));
+                assert_eq!(&format!("{:?}", expected), error.message());
                 Ok(())
             })
             .wait()
@@ -280,12 +280,9 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                let expected = anyhow::anyhow!("missing field `image`")
-                .context(Error::MalformedRequestBody);
-                assert_eq!(
-                    &format!("{:?}", expected),
-                    error.message()
-                );
+                let expected =
+                    anyhow::anyhow!("missing field `image`").context(Error::MalformedRequestBody);
+                assert_eq!(&format!("{:?}", expected), error.message());
                 Ok(())
             })
             .wait()
@@ -312,7 +309,9 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error_response: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                let expected = anyhow::anyhow!(edgelet_core::Error::InvalidImagePullPolicy("what".to_string()))
+                let expected = anyhow::anyhow!(edgelet_core::Error::InvalidImagePullPolicy(
+                    "what".to_string()
+                ))
                 .context(Error::MalformedRequestBody);
                 assert_eq!(&format!("{:?}", expected), error_response.message());
                 Ok(())

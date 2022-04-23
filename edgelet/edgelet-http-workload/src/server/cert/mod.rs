@@ -18,10 +18,7 @@ use edgelet_utils::log_failure;
 use openssl::error::ErrorStack;
 use workload::models::{CertificateResponse, PrivateKey as PrivateKeyResponse};
 
-use crate::{
-    error::Error,
-    IntoResponse,
-};
+use crate::{error::Error, IntoResponse};
 
 mod identity;
 mod server;
@@ -72,13 +69,11 @@ fn refresh_cert(
     alias: String,
     new_cert_props: &CertificateProperties,
     edge_ca: EdgeCaCertificate,
-    context: Error
+    context: Error,
 ) -> Box<dyn Future<Item = Response<Body>, Error = anyhow::Error> + Send> {
     let response = generate_local_keypair()
-        .and_then(
-            |(privkey, pubkey)| {
-                create_csr(new_cert_props, &privkey, &pubkey)
-                    .map(|csr| (privkey, csr))
+        .and_then(|(privkey, pubkey)| {
+            create_csr(new_cert_props, &privkey, &pubkey).map(|csr| (privkey, csr))
         })
         .map_err(|e| anyhow::anyhow!(e).context(context.clone()))
         .into_future()
@@ -89,9 +84,7 @@ fn refresh_cert(
                 edge_ca.clone(),
                 context.clone(),
             )
-            .map_err(
-                |e| anyhow::anyhow!(e)
-            )
+            .map_err(|e| anyhow::anyhow!(e))
             .and_then(move |_| {
                 key_client
                     .load_key_pair(edge_ca.key_id.as_str())
@@ -162,12 +155,10 @@ fn load_keypair(
     ca_key_pair_handle: &aziot_key_common::KeyHandle,
     key_engine: &mut openssl2::FunctionalEngine,
     context: &Error,
-) -> anyhow::Result<
-    (
-        openssl::pkey::PKey<openssl::pkey::Private>,
-        openssl::pkey::PKey<openssl::pkey::Public>,
-    ),
-> {
+) -> anyhow::Result<(
+    openssl::pkey::PKey<openssl::pkey::Private>,
+    openssl::pkey::PKey<openssl::pkey::Public>,
+)> {
     let (workload_ca_private_key, workload_ca_public_key) = {
         let workload_ca_key_pair_handle = std::ffi::CString::new(ca_key_pair_handle.0.clone())
             .with_context(|| context.clone())?;
@@ -327,18 +318,14 @@ fn create_edge_ca_certificate(
 
     //generate new key in Key Service, generate csr for Edge CA certificate, import into Cert Service
     let fut = create_key_engine(key_client.clone())
-        .map_err(
-            |e| anyhow::anyhow!(e).context(context.clone())
-        )
+        .map_err(|e| anyhow::anyhow!(e).context(context.clone()))
         .and_then({
             let ca = ca.clone();
             let context = context.clone();
             move |mut key_engine| {
                 key_client
                     .create_key_pair_if_not_exists(ca.key_id.as_str(), Some("rsa-2048:*"))
-                    .map_err(
-                        |e| anyhow::anyhow!(e).context(context.clone())
-                    )
+                    .map_err(|e| anyhow::anyhow!(e).context(context.clone()))
                     .and_then(|ca_key_pair_handle| {
                         load_keypair(&ca_key_pair_handle, &mut key_engine, &context)
                             .context(context.clone())
@@ -405,8 +392,8 @@ impl CoreCertificate for Certificate {
 
         let cert = openssl::x509::X509::from_pem(&self.pem)
             .map_err(|_| edgelet_core::Error::CertificateCreate)?;
-        let not_after = parse_openssl_time(cert.not_after())
-            .map_err(|_| edgelet_core::Error::ParseSince)?;
+        let not_after =
+            parse_openssl_time(cert.not_after()).map_err(|_| edgelet_core::Error::ParseSince)?;
         Ok(not_after)
     }
 

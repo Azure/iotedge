@@ -53,8 +53,7 @@ where
                 result.sort_by(|(mod1, _), (mod2, _)| mod1.name().cmp(mod2.name()));
 
                 let mut w = write.lock().unwrap();
-                writeln!(w, "NAME\tSTATUS\tDESCRIPTION\tCONFIG")
-                    .context(Error::WriteToStdout)?;
+                writeln!(w, "NAME\tSTATUS\tDESCRIPTION\tCONFIG").context(Error::WriteToStdout)?;
                 for (module, state) in result {
                     writeln!(
                         w,

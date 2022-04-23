@@ -76,14 +76,14 @@ impl Git2Tree {
 
     fn new_as_subtree(path: &Path, mut remotes: &mut RemoteMap) -> anyhow::Result<Self> {
         debug!("repo path {:?}", path);
-        let repo =
-            Repository::open(path).context(Error::Git)?;
+        let repo = Repository::open(path).context(Error::Git)?;
         let remote = sanitize_url(
-            &repo.find_remote("origin")
+            &repo
+                .find_remote("origin")
                 .context(Error::Git)?
                 .url()
                 .unwrap()
-                .to_string()
+                .to_string(),
         );
         debug!("remote = {:?}", remote);
         let commit = encode(
@@ -95,14 +95,14 @@ impl Git2Tree {
         );
         debug!("commit = {:?}", commit);
         let flag = remotes.get(&remote).map_or(false, |c| &commit != c);
-        remotes.entry(remote.clone()).or_insert_with(|| commit.clone());
+        remotes
+            .entry(remote.clone())
+            .or_insert_with(|| commit.clone());
 
         let mut children: Vec<Git2Tree> = Vec::new();
-        for sm in repo
-            .submodules()
-            .context(Error::Git)?
-        {
-            let child = Git2Tree::new_as_subtree(path.join(sm.path()).as_path(), &mut remotes).context(Error::Git)?;
+        for sm in repo.submodules().context(Error::Git)? {
+            let child = Git2Tree::new_as_subtree(path.join(sm.path()).as_path(), &mut remotes)
+                .context(Error::Git)?;
             children.push(child);
         }
         Ok(Git2Tree {

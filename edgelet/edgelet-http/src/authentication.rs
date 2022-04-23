@@ -7,8 +7,8 @@ use hyper::{Body, Request, Response};
 
 use edgelet_core::{AuthId, Authenticator, ModuleId, Policy};
 
-use crate::{Error, IntoResponse};
 use crate::route::{Handler, Parameters};
+use crate::{Error, IntoResponse};
 
 pub struct Authentication<H, M> {
     policy: Policy,

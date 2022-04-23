@@ -32,9 +32,7 @@ where
                         LogChunk::Stdin(b)
                         | LogChunk::Stdout(b)
                         | LogChunk::Stderr(b)
-                        | LogChunk::Unknown(b) => w
-                            .write(&b)
-                            .context(Error::Write)?,
+                        | LogChunk::Unknown(b) => w.write(&b).context(Error::Write)?,
                     };
                     Ok(w)
                 })

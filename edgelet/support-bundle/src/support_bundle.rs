@@ -31,8 +31,7 @@ where
 {
     match output_location {
         OutputLocation::File(location) => {
-            let writer = File::create(Path::new(&location))
-                .context(Error::SupportBundle);
+            let writer = File::create(Path::new(&location)).context(Error::SupportBundle);
 
             let state = writer.map(move |writer| {
                 make_state(
@@ -47,45 +46,39 @@ where
 
             let bundle = state.into_future().and_then(BundleState::bundle_all);
 
-            let read =
-                bundle.and_then(|mut bundle| -> anyhow::Result<(Box<dyn Read + Send>, u64)> {
-                    let result: Box<dyn Read + Send> = Box::new(
-                        bundle
-                            .zip_writer
-                            .finish()
-                            .context(Error::SupportBundle)?
-                    );
+            let read = bundle.and_then(
+                |mut bundle| -> anyhow::Result<(Box<dyn Read + Send>, u64)> {
+                    let result: Box<dyn Read + Send> =
+                        Box::new(bundle.zip_writer.finish().context(Error::SupportBundle)?);
                     Ok((result, 0)) // TODO: Get Size
-                });
+                },
+            );
 
             Box::new(read)
         }
         OutputLocation::Memory => {
             let writer = Cursor::new(Vec::new());
 
-            let state = 
-                make_state(
-                    log_options,
-                    include_ms_only,
-                    verbose,
-                    iothub_hostname,
-                    runtime,
-                    writer,
-                );
+            let state = make_state(
+                log_options,
+                include_ms_only,
+                verbose,
+                iothub_hostname,
+                runtime,
+                writer,
+            );
 
             let bundle = BundleState::bundle_all(state);
 
-            let read =
-                bundle.and_then(|mut bundle| -> anyhow::Result<(Box<dyn Read + Send>, u64)> {
-                    let mut cursor = bundle
-                        .zip_writer
-                        .finish()
-                        .context(Error::SupportBundle)?;
+            let read = bundle.and_then(
+                |mut bundle| -> anyhow::Result<(Box<dyn Read + Send>, u64)> {
+                    let mut cursor = bundle.zip_writer.finish().context(Error::SupportBundle)?;
                     let len = cursor.position();
                     cursor.set_position(0);
                     let reader: Box<dyn Read + Send> = Box::new(cursor);
                     Ok((reader, len))
-                });
+                },
+            );
 
             Box::new(read)
         }
@@ -342,9 +335,7 @@ where
         if let Some(host_name) = self.iothub_hostname.clone() {
             check.args(&["--iothub-hostname", &host_name]);
         }
-        let check = check
-            .output()
-            .context(Error::SupportBundle)?;
+        let check = check.output().context(Error::SupportBundle)?;
 
         self.zip_writer
             .start_file("check.json", self.file_options)

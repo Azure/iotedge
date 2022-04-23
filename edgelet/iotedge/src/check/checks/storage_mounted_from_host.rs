@@ -124,15 +124,13 @@ fn storage_mounted_from_host(
         .into_iter()
         .any(|container_directory| storage_directory.starts_with(container_directory))
     {
-        return Ok(CheckResult::Warning(
-            anyhow::anyhow!(
-                "The {} module is not configured to persist its {} directory on the host filesystem.\n\
+        return Ok(CheckResult::Warning(anyhow::anyhow!(
+            "The {} module is not configured to persist its {} directory on the host filesystem.\n\
                  Data might be lost if the module is deleted or updated.\n\
                  Please see https://aka.ms/iotedge-storage-host for best practices.",
-                container_name,
-                storage_directory.display(),
-            ),
-        ));
+            container_name,
+            storage_directory.display(),
+        )));
     }
 
     Ok(CheckResult::Ok)

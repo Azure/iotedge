@@ -79,12 +79,8 @@ impl From<IdentityClientError> for Error {
 impl From<MgmtError<serde_json::Value>> for Error {
     fn from(value: MgmtError<serde_json::Value>) -> Self {
         match value {
-            MgmtError::Api(ref e) if e.code == StatusCode::NOT_MODIFIED => {
-                Error::NotModified
-            }
-            MgmtError::Hyper(_)
-            | MgmtError::Serde(_)
-            | MgmtError::Api(_) => Error::Client(value),
+            MgmtError::Api(ref e) if e.code == StatusCode::NOT_MODIFIED => Error::NotModified,
+            MgmtError::Hyper(_) | MgmtError::Serde(_) | MgmtError::Api(_) => Error::Client(value),
         }
     }
 }
@@ -94,8 +90,7 @@ impl IntoResponse for anyhow::Error {
         let message = format!("{:?}", self);
 
         // Specialize status code based on the underlying docker runtime error, if any
-        let status_code = if let Some(docker_error) = self.root_cause().downcast_ref()
-        {
+        let status_code = if let Some(docker_error) = self.root_cause().downcast_ref() {
             match docker_error {
                 DockerError::NotFound(_) => StatusCode::NOT_FOUND,
                 DockerError::Conflict => StatusCode::CONFLICT,

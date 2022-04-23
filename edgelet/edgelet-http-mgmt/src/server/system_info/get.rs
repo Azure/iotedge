@@ -10,8 +10,8 @@ use serde::Serialize;
 use edgelet_core::{Module, ModuleRuntime, RuntimeOperation};
 use edgelet_http::route::{Handler, Parameters};
 
-use crate::IntoResponse;
 use crate::error::Error;
+use crate::IntoResponse;
 
 pub struct GetSystemInfo<M> {
     runtime: M,
@@ -39,8 +39,8 @@ where
             .runtime
             .system_info()
             .then(|system_info| -> anyhow::Result<_> {
-                let system_info = system_info
-                    .context(Error::RuntimeOperation(RuntimeOperation::SystemInfo))?;
+                let system_info =
+                    system_info.context(Error::RuntimeOperation(RuntimeOperation::SystemInfo))?;
 
                 let body = serde_json::to_string(&system_info)
                     .context(Error::RuntimeOperation(RuntimeOperation::SystemInfo))?;
@@ -74,8 +74,7 @@ mod tests {
         // arrange
         let state = ModuleRuntimeState::default();
         let config = TestConfig::new("microsoft/test-image".to_string());
-        let module =
-            TestModule::new("test-module".to_string(), config, Some(state));
+        let module = TestModule::new("test-module".to_string(), config, Some(state));
 
         let (create_socket_channel_snd, _create_socket_channel_rcv) =
             mpsc::unbounded::<ModuleAction>();

@@ -29,8 +29,7 @@ impl<C> TestRegistry<C> {
     }
 }
 
-impl<C> ModuleRegistry for TestRegistry<C>
-{
+impl<C> ModuleRegistry for TestRegistry<C> {
     type PullFuture = FutureResult<(), anyhow::Error>;
     type RemoveFuture = FutureResult<(), anyhow::Error>;
     type Config = C;
@@ -163,8 +162,7 @@ impl<C> TestModule<C> {
     }
 }
 
-impl<C> Module for TestModule<C>
-{
+impl<C> Module for TestModule<C> {
     type Config = C;
     type RuntimeStateFuture = FutureResult<ModuleRuntimeState, anyhow::Error>;
 
@@ -183,8 +181,7 @@ impl<C> Module for TestModule<C>
     fn runtime_state(&self) -> Self::RuntimeStateFuture {
         if let Some(state) = self.state.clone() {
             future::ok(state)
-        }
-        else {
+        } else {
             future::err(anyhow::anyhow!("TestModule::runtime_state"))
         }
     }
@@ -329,16 +326,15 @@ where
 
     fn get(&self, _id: &str) -> Self::GetFuture {
         if let Some(module) = self.module.clone() {
-            future::result(module.runtime_state()
-                .poll()
-                .map(move |runtime_state| if let futures::Async::Ready(runtime_state) = runtime_state {
+            future::result(module.runtime_state().poll().map(move |runtime_state| {
+                if let futures::Async::Ready(runtime_state) = runtime_state {
                     (module, runtime_state)
-                } else  {
+                } else {
                     panic!("TestModule::runtime_state should return FutureResult")
-                }))
-        }
-        else {
-            future::err(anyhow::anyhow!("TestRuntime::get")) 
+                }
+            }))
+        } else {
+            future::err(anyhow::anyhow!("TestRuntime::get"))
         }
     }
 
@@ -398,8 +394,7 @@ where
 
                 additional_properties: std::collections::BTreeMap::new(),
             })
-        }
-        else {
+        } else {
             future::err(anyhow::anyhow!("TestRuntime::system_info"))
         }
     }
@@ -421,8 +416,7 @@ where
                 )],
                 "fake docker stats".to_owned(),
             ))
-        }
-        else {
+        } else {
             future::err(anyhow::anyhow!("TestRuntime::system_resources"))
         }
     }
@@ -430,29 +424,30 @@ where
     fn list(&self) -> Self::ListFuture {
         if let Some(module) = self.module.clone() {
             future::ok(vec![module])
-        }
-        else {
+        } else {
             future::err(anyhow::anyhow!("TestRuntime::list"))
         }
     }
 
     fn list_with_details(&self) -> Self::ListWithDetailsStream {
         if let Some(module) = self.module.clone() {
-            Box::new(module
-                .runtime_state()
-                .map(move |runtime_state| (module, runtime_state))
-                .into_stream())
-        }
-        else {
-            Box::new(stream::once(Err(anyhow::anyhow!("TestRuntime::list_with_details"))))
+            Box::new(
+                module
+                    .runtime_state()
+                    .map(move |runtime_state| (module, runtime_state))
+                    .into_stream(),
+            )
+        } else {
+            Box::new(stream::once(Err(anyhow::anyhow!(
+                "TestRuntime::list_with_details"
+            ))))
         }
     }
 
     fn logs(&self, _id: &str, _options: &LogOptions) -> Self::LogsFuture {
         if let Some(module) = &self.module {
             future::ok(module.logs.clone())
-        }
-        else {
+        } else {
             future::err(anyhow::anyhow!("TestRuntime::logs"))
         }
     }

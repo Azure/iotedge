@@ -28,8 +28,8 @@ use edgelet_core::{
     ImagePullPolicy, LogOptions, LogTail, MakeModuleRuntime, Module, ModuleAction, ModuleRegistry,
     ModuleRuntime, ModuleSpec, RegistryOperation, RuntimeOperation,
 };
-use edgelet_docker::{DockerConfig, DockerModuleRuntime, Settings};
 use edgelet_docker::Error;
+use edgelet_docker::{DockerConfig, DockerModuleRuntime, Settings};
 use edgelet_test_utils::web::{
     make_req_dispatcher, HttpMethod, RequestHandler, RequestPath, ResponseFuture,
 };
@@ -259,11 +259,14 @@ network = "azure-iot-edge"
         .block_on(task)
         .expect_err("Expected runtime pull method to fail due to invalid image name.");
 
-    match (err.downcast_ref().unwrap(), err.source().unwrap().downcast_ref().unwrap()) {
+    match (
+        err.downcast_ref().unwrap(),
+        err.source().unwrap().downcast_ref().unwrap(),
+    ) {
         (
-            edgelet_docker::Error::RegistryOperation(
-                edgelet_core::RegistryOperation::PullImage(name),
-            ),
+            edgelet_docker::Error::RegistryOperation(edgelet_core::RegistryOperation::PullImage(
+                name,
+            )),
             edgelet_docker::Error::NotFound(message),
         ) if name == INVALID_IMAGE_NAME => {
             assert_eq!(
@@ -366,11 +369,14 @@ network = "azure-iot-edge"
         .block_on(task)
         .expect_err("Expected runtime pull method to fail due to invalid image host.");
 
-    match (err.downcast_ref().unwrap(), err.source().unwrap().downcast_ref().unwrap()) {
+    match (
+        err.downcast_ref().unwrap(),
+        err.source().unwrap().downcast_ref().unwrap(),
+    ) {
         (
-            edgelet_docker::Error::RegistryOperation(
-                edgelet_core::RegistryOperation::PullImage(name),
-            ),
+            edgelet_docker::Error::RegistryOperation(edgelet_core::RegistryOperation::PullImage(
+                name,
+            )),
             edgelet_docker::Error::FormattedDockerRuntime(message),
         ) if name == INVALID_IMAGE_HOST => {
             assert_eq!(
@@ -488,11 +494,14 @@ network = "azure-iot-edge"
         .block_on(task)
         .expect_err("Expected runtime pull method to fail due to unauthentication.");
 
-    match (err.downcast_ref().unwrap(), err.source().unwrap().downcast_ref().unwrap()) {
+    match (
+        err.downcast_ref().unwrap(),
+        err.source().unwrap().downcast_ref().unwrap(),
+    ) {
         (
-            edgelet_docker::Error::RegistryOperation(
-                edgelet_core::RegistryOperation::PullImage(name),
-            ),
+            edgelet_docker::Error::RegistryOperation(edgelet_core::RegistryOperation::PullImage(
+                name,
+            )),
             edgelet_docker::Error::FormattedDockerRuntime(message),
         ) if name == IMAGE_NAME => {
             assert_eq!(
@@ -1325,9 +1334,7 @@ network = "azure-iot-edge"
         .then(|res| match res {
             Ok(_) => Err("Expected error but got a result.".to_string()),
             Err(err) => match err.downcast_ref().unwrap() {
-                Error::RegistryOperation(RegistryOperation::RemoveImage(s))
-                    if s == image_name =>
-                {
+                Error::RegistryOperation(RegistryOperation::RemoveImage(s)) if s == image_name => {
                     Ok(())
                 }
                 kind => panic!(

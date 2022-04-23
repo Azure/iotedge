@@ -1,8 +1,8 @@
 use std::{net::IpAddr, str::FromStr};
 
 use crate::check::{checker::Checker, Check, CheckResult};
-use edgelet_core::RuntimeSettings;
 use anyhow::Context;
+use edgelet_core::RuntimeSettings;
 
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct ContainerResolveParentHostname {}

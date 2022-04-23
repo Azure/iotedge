@@ -30,8 +30,7 @@ impl DockerConfig {
         digest: Option<String>,
         auth: Option<AuthConfig>,
     ) -> anyhow::Result<Self> {
-        ensure_not_empty(&image)
-            .with_context(|| Error::InvalidImage(image.clone()))?;
+        ensure_not_empty(&image).with_context(|| Error::InvalidImage(image.clone()))?;
 
         let config = DockerConfig {
             image,

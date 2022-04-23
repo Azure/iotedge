@@ -3,8 +3,8 @@
 use std::fmt::{self, Display};
 use std::net::SocketAddr;
 
-use hyper::{Body, Response, StatusCode, Uri};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use hyper::{Body, Response, StatusCode, Uri};
 use systemd::Fd;
 use url::Url;
 
@@ -81,9 +81,7 @@ pub enum Error {
     #[error("An error occurred with the proxy {0}")]
     Proxy(Uri),
 
-    #[error(
-        "Preparing a PCKS12 client certificate identity failed",
-    )]
+    #[error("Preparing a PCKS12 client certificate identity failed")]
     PKCS12Identity,
 
     #[error("An error occurred in the service")]
@@ -101,9 +99,7 @@ pub enum Error {
     #[error("Could not parse trust bundle")]
     TrustBundle,
 
-    #[error(
-        "Could not form well-formed URL by joining {0} with {1}",
-    )]
+    #[error("Could not form well-formed URL by joining {0} with {1}")]
     UrlJoin(Url, String),
 }
 
@@ -113,7 +109,7 @@ impl<'a> From<(StatusCode, &'a [u8])> for Error {
             status_code,
             std::str::from_utf8(body)
                 .unwrap_or("<could not parse response body as utf-8>")
-                .to_string()
+                .to_string(),
         )
     }
 }
@@ -121,14 +117,13 @@ impl<'a> From<(StatusCode, &'a [u8])> for Error {
 impl IntoResponse for anyhow::Error {
     fn into_response(self) -> Response<Body> {
         let message = format!("{:?}", self);
-        
-        let status_code = self.downcast_ref().map_or(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            |error| match error {
-                Error::Authorization
-                | Error::ModuleNotFound(_) => StatusCode::NOT_FOUND,
+
+        let status_code = self
+            .downcast_ref()
+            .map_or(StatusCode::INTERNAL_SERVER_ERROR, |error| match error {
+                Error::Authorization | Error::ModuleNotFound(_) => StatusCode::NOT_FOUND,
                 Error::InvalidApiVersion(_) => StatusCode::BAD_REQUEST,
-                _ => StatusCode::INTERNAL_SERVER_ERROR
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
             });
 
         let body = serde_json::json!({

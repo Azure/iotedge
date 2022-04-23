@@ -209,10 +209,8 @@ impl<T> ModuleSpec<T> {
         env: BTreeMap<String, String>,
         image_pull_policy: ImagePullPolicy,
     ) -> anyhow::Result<Self> {
-        ensure_not_empty(&name)
-            .with_context(|| Error::InvalidModuleName(name.clone()))?;
-        ensure_not_empty(&type_)
-            .with_context(|| Error::InvalidModuleType(type_.clone()))?;
+        ensure_not_empty(&name).with_context(|| Error::InvalidModuleName(name.clone()))?;
+        ensure_not_empty(&type_).with_context(|| Error::InvalidModuleType(type_.clone()))?;
 
         Ok(ModuleSpec {
             name,
@@ -747,9 +745,7 @@ impl FromStr for ImagePullPolicy {
         match s.to_lowercase().as_str() {
             "on-create" => Ok(ImagePullPolicy::OnCreate),
             "never" => Ok(ImagePullPolicy::Never),
-            _ => Err(Error::InvalidImagePullPolicy(
-                s.to_string(),
-            )),
+            _ => Err(Error::InvalidImagePullPolicy(s.to_string())),
         }
     }
 }

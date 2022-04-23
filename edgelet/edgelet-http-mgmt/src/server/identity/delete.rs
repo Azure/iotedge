@@ -11,8 +11,8 @@ use edgelet_core::IdentityOperation;
 use edgelet_http::route::{Handler, Parameters};
 use identity_client::client::IdentityClient;
 
-use crate::IntoResponse;
 use crate::error::Error;
+use crate::IntoResponse;
 
 pub struct DeleteIdentity {
     id_manager: Arc<Mutex<IdentityClient>>,
@@ -53,9 +53,9 @@ impl Handler<Parameters> for DeleteIdentity {
                     Ok(Response::builder()
                         .status(StatusCode::NO_CONTENT)
                         .body(Body::default())
-                        .context(Error::IdentityOperation(
-                            IdentityOperation::DeleteIdentity(name),
-                        ))?)
+                        .context(Error::IdentityOperation(IdentityOperation::DeleteIdentity(
+                            name,
+                        )))?)
                 })
                 .or_else(|e| Ok(e.into_response()));
 

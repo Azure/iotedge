@@ -57,13 +57,10 @@ impl ParentHostname {
         }
 
         if !aziotctl_common::check_length_for_local_issuer(config_parent_hostname) {
-            return Ok(CheckResult::Failed(
-                anyhow::anyhow!(
-                    "configuration parent_hostname {} is too long to be used as a certificate issuer",
-                    config_parent_hostname,
-                )
-                ,
-            ));
+            return Ok(CheckResult::Failed(anyhow::anyhow!(
+                "configuration parent_hostname {} is too long to be used as a certificate issuer",
+                config_parent_hostname,
+            )));
         }
 
         Ok(CheckResult::Ok)

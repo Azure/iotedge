@@ -11,8 +11,8 @@ use edgelet_http::route::{Handler, Parameters};
 use edgelet_utils::{ensure_not_empty, prepare_cert_uri_module};
 
 use super::refresh_cert;
-use crate::IntoResponse;
 use crate::error::{CertOperation, Error};
+use crate::IntoResponse;
 
 pub struct IdentityCertHandler<W: WorkloadConfig> {
     cert_client: Arc<Mutex<CertificateClient>>,
@@ -58,9 +58,7 @@ where
                 let module_uri =
                     prepare_cert_uri_module(cfg.iot_hub_name(), cfg.device_id(), &module_id);
 
-                ensure_not_empty(&cn).with_context(|| {
-                    Error::MalformedRequestParameter("name")
-                })?;
+                ensure_not_empty(&cn).with_context(|| Error::MalformedRequestParameter("name"))?;
 
                 let sans = vec![module_uri];
                 let props = CertificateProperties::new(cn, CertificateType::Client, alias.clone())
@@ -78,7 +76,7 @@ where
                         key_id: cfg.edge_ca_key().to_string(),
                         device_id: cfg.device_id().to_string(),
                     },
-                    Error::CertOperation(CertOperation::CreateIdentityCert)
+                    Error::CertOperation(CertOperation::CreateIdentityCert),
                 )
                 .map_err(|_| {
                     anyhow::anyhow!(Error::CertOperation(CertOperation::CreateIdentityCert))

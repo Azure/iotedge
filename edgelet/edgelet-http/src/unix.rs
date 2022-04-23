@@ -30,21 +30,23 @@ pub fn listener<P: AsRef<Path>>(path: P, unix_socket_permission: u32) -> anyhow:
 
     // If parent doesn't exist, create it and socket will be created inside.
     if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(|err| {
-            error!("Cannot create directory, error: {}", err);
-            err
-        }).context(Error::Path)?;
+        fs::create_dir_all(parent)
+            .map_err(|err| {
+                error!("Cannot create directory, error: {}", err);
+                err
+            })
+            .context(Error::Path)?;
     }
 
-    let listener =
-        UnixListener::bind(&path).context(Error::Path)?;
+    let listener = UnixListener::bind(&path).context(Error::Path)?;
     debug!("bound {}", path_display);
 
-    fs::set_permissions(&path, fs::Permissions::from_mode(unix_socket_permission)).map_err(|err| {
+    fs::set_permissions(&path, fs::Permissions::from_mode(unix_socket_permission))
+        .map_err(|err| {
             error!("Cannot set directory permissions: {}", err);
             err
-        }
-    ).context(Error::Path)?;
+        })
+        .context(Error::Path)?;
 
     Ok(Incoming::Unix(listener))
 }

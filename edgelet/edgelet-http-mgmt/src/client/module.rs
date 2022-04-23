@@ -32,12 +32,10 @@ pub struct ModuleClient {
 
 impl ModuleClient {
     pub fn new(url: &Url) -> anyhow::Result<Self> {
-        let client = Client::builder()
-            .build(UrlConnector::new(url).context(Error::InitializeModuleClient)?);
+        let client =
+            Client::builder().build(UrlConnector::new(url).context(Error::InitializeModuleClient)?);
 
-        let base_path = url
-            .to_base_path()
-            .context(Error::InitializeModuleClient)?;
+        let base_path = url.to_base_path().context(Error::InitializeModuleClient)?;
         let mut configuration = Configuration::new(client);
         configuration.base_path = base_path
             .to_str()
@@ -184,9 +182,7 @@ impl ModuleRuntime for ModuleClient {
             .start_module(&API_VERSION.to_string(), &id)
             .map_err(|err| {
                 anyhow::anyhow!(Error::from(err))
-                    .context(
-                    Error::RuntimeOperation(RuntimeOperation::StartModule(id)),
-                )
+                    .context(Error::RuntimeOperation(RuntimeOperation::StartModule(id)))
             })
             .then(|result| match result {
                 other @ Ok(_) => other,
@@ -207,9 +203,7 @@ impl ModuleRuntime for ModuleClient {
             .stop_module(&API_VERSION.to_string(), &id)
             .map_err(|err| {
                 anyhow::anyhow!(Error::from(err))
-                .context(
-                    Error::RuntimeOperation(RuntimeOperation::StopModule(id)),
-                )
+                    .context(Error::RuntimeOperation(RuntimeOperation::StopModule(id)))
             })
             .then(|result| match result {
                 other @ Ok(_) => other,
@@ -229,9 +223,8 @@ impl ModuleRuntime for ModuleClient {
             .module_api()
             .restart_module(&API_VERSION.to_string(), &id)
             .map_err(|err| {
-                anyhow::anyhow!(Error::from(err)).context(
-                    Error::RuntimeOperation(RuntimeOperation::RestartModule(id)),
-                )
+                anyhow::anyhow!(Error::from(err))
+                    .context(Error::RuntimeOperation(RuntimeOperation::RestartModule(id)))
             })
             .then(|result| match result {
                 other @ Ok(_) => other,
@@ -272,9 +265,8 @@ impl ModuleRuntime for ModuleClient {
                     .collect()
             })
             .map_err(|err| {
-                anyhow::anyhow!(Error::from(err)).context(
-                    Error::RuntimeOperation(RuntimeOperation::ListModules),
-                )
+                anyhow::anyhow!(Error::from(err))
+                    .context(Error::RuntimeOperation(RuntimeOperation::ListModules))
             });
         Box::new(modules)
     }
@@ -285,9 +277,8 @@ impl ModuleRuntime for ModuleClient {
             .module_api()
             .list_modules(&API_VERSION.to_string())
             .map_err(|err| {
-                anyhow::anyhow!(Error::from(err)).context(
-                    Error::RuntimeOperation(RuntimeOperation::ListModules),
-                )
+                anyhow::anyhow!(Error::from(err))
+                    .context(Error::RuntimeOperation(RuntimeOperation::ListModules))
             })
             .map(|list| {
                 let iter = list.modules().to_owned().into_iter().map(|m| {
@@ -321,9 +312,8 @@ impl ModuleRuntime for ModuleClient {
             )
             .then(|logs| match logs {
                 Ok(logs) => Ok(Logs(id, logs)),
-                Err(err) => Err(anyhow::anyhow!(Error::from(err)).context(
-                    Error::RuntimeOperation(RuntimeOperation::GetModuleLogs(id)),
-                )),
+                Err(err) => Err(anyhow::anyhow!(Error::from(err))
+                    .context(Error::RuntimeOperation(RuntimeOperation::GetModuleLogs(id)))),
             });
         Box::new(result)
     }

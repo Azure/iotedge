@@ -150,7 +150,8 @@ impl IdentityClient {
 
     pub fn get_modules(
         &self,
-    ) -> Box<dyn Future<Item = Vec<aziot_identity_common::Identity>, Error = anyhow::Error> + Send> {
+    ) -> Box<dyn Future<Item = Vec<aziot_identity_common::Identity>, Error = anyhow::Error> + Send>
+    {
         let client = self.client.clone();
         let uri = format!(
             "/identities/modules?api-version={}&type=aziot",
@@ -177,10 +178,7 @@ fn build_request_uri(host: &Url, uri: &str) -> anyhow::Result<Uri> {
     let base_path = host.to_base_path().context(Error::ConnectorUri)?;
     UrlConnector::build_hyper_uri(
         &host.scheme().to_string(),
-        &base_path
-            .to_str()
-            .ok_or(Error::ConnectorUri)?
-            .to_string(),
+        &base_path.to_str().ok_or(Error::ConnectorUri)?.to_string(),
         &uri,
     )
     .context(Error::ConnectorUri)
@@ -255,10 +253,7 @@ where
                     Err(anyhow::anyhow!(Error::from((status, &*body))))
                 }
             })
-            .and_then(|body| {
-                serde_json::from_slice(&body)
-                    .context(Error::Serde)
-            }),
+            .and_then(|body| serde_json::from_slice(&body).context(Error::Serde)),
     )
 }
 

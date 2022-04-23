@@ -29,82 +29,66 @@ impl Checker for AziotEdgedVersion {
         check: &mut Check,
         tokio_runtime: &mut tokio::runtime::Runtime,
     ) -> CheckResult {
-        let latest_versions = if let Some(expected_aziot_edged_version) =
-            &check.expected_aziot_edged_version
-        {
-            future::Either::A(future::ok::<_, anyhow::Error>(crate::LatestVersions {
-                aziot_edge: expected_aziot_edged_version.clone(),
-            }))
-        } else {
-            if check.parent_hostname.is_some() {
-                // This is a nested Edge device so it may not be able to access aka.ms or github.com.
-                // In the best case the request would be blocked immediately, but in the worst case it may take a long time to time out.
-                // The user didn't provide the `expected_aziot_edged_version` param on the CLI, so we just ignore this check.
-                return CheckResult::Ignored;
-            }
+        let latest_versions =
+            if let Some(expected_aziot_edged_version) = &check.expected_aziot_edged_version {
+                future::Either::A(future::ok::<_, anyhow::Error>(crate::LatestVersions {
+                    aziot_edge: expected_aziot_edged_version.clone(),
+                }))
+            } else {
+                if check.parent_hostname.is_some() {
+                    // This is a nested Edge device so it may not be able to access aka.ms or github.com.
+                    // In the best case the request would be blocked immediately, but in the worst case it may take a long time to time out.
+                    // The user didn't provide the `expected_aziot_edged_version` param on the CLI, so we just ignore this check.
+                    return CheckResult::Ignored;
+                }
 
-            let proxy = std::env::var("HTTPS_PROXY")
-                .ok()
-                .or_else(|| std::env::var("https_proxy").ok())
-                .map(|proxy| proxy.parse::<hyper::Uri>())
-                .transpose()
-                .context(Error::FetchLatestVersions(
-                    FetchLatestVersionsReason::CreateClient,
-                ));
-            let hyper_client = proxy.and_then(|proxy| {
-                MaybeProxyClient::new(proxy, None, None).context(Error::FetchLatestVersions(
-                    FetchLatestVersionsReason::CreateClient,
-                ))
-            });
-            let hyper_client = match hyper_client {
-                Ok(hyper_client) => hyper_client,
-                Err(err) => return CheckResult::Failed(err),
-            };
+                let proxy = std::env::var("HTTPS_PROXY")
+                    .ok()
+                    .or_else(|| std::env::var("https_proxy").ok())
+                    .map(|proxy| proxy.parse::<hyper::Uri>())
+                    .transpose()
+                    .context(Error::FetchLatestVersions(
+                        FetchLatestVersionsReason::CreateClient,
+                    ));
+                let hyper_client = proxy.and_then(|proxy| {
+                    MaybeProxyClient::new(proxy, None, None).context(Error::FetchLatestVersions(
+                        FetchLatestVersionsReason::CreateClient,
+                    ))
+                });
+                let hyper_client = match hyper_client {
+                    Ok(hyper_client) => hyper_client,
+                    Err(err) => return CheckResult::Failed(err),
+                };
 
-            let request = hyper::Request::get("https://aka.ms/latest-aziot-edge")
-                .body(hyper::Body::default())
-                .expect("can't fail to create request");
+                let request = hyper::Request::get("https://aka.ms/latest-aziot-edge")
+                    .body(hyper::Body::default())
+                    .expect("can't fail to create request");
 
-            future::Either::B(
-                hyper_client
-                    .call(request)
-                    .then(|response| -> anyhow::Result<_> {
-                        let response = response.context(Error::FetchLatestVersions(
-                            FetchLatestVersionsReason::GetResponse,
-                        ))?;
-                        Ok(response)
-                    })
-                    .and_then(move |response| match response.status() {
-                        status_code if status_code.is_redirection() => {
-                            let uri = response
-                                .headers()
-                                .get(hyper::header::LOCATION)
-                                .ok_or(Error::FetchLatestVersions(
-                                    FetchLatestVersionsReason::InvalidOrMissingLocationHeader,
-                                ))?
-                                .to_str()
-                                .context(Error::FetchLatestVersions(
-                                    FetchLatestVersionsReason::InvalidOrMissingLocationHeader,
-                                ))?;
-                            let request = hyper::Request::get(uri)
-                                .body(hyper::Body::default())
-                                .expect("can't fail to create request");
-                            Ok(hyper_client.call(request).map_err(|err| {
-                                anyhow::anyhow!(err).context(Error::FetchLatestVersions(
-                                    FetchLatestVersionsReason::GetResponse,
-                                ))
-                            }))
-                        }
-                        status_code => Err(Error::FetchLatestVersions(
-                            FetchLatestVersionsReason::ResponseStatusCode(status_code),
-                        )
-                        .into()),
-                    })
-                    .flatten()
-                    .and_then(|response| -> anyhow::Result<_> {
-                        match response.status() {
-                            hyper::StatusCode::OK => {
-                                Ok(response.into_body().concat2().map_err(|err| {
+                future::Either::B(
+                    hyper_client
+                        .call(request)
+                        .then(|response| -> anyhow::Result<_> {
+                            let response = response.context(Error::FetchLatestVersions(
+                                FetchLatestVersionsReason::GetResponse,
+                            ))?;
+                            Ok(response)
+                        })
+                        .and_then(move |response| match response.status() {
+                            status_code if status_code.is_redirection() => {
+                                let uri = response
+                                    .headers()
+                                    .get(hyper::header::LOCATION)
+                                    .ok_or(Error::FetchLatestVersions(
+                                        FetchLatestVersionsReason::InvalidOrMissingLocationHeader,
+                                    ))?
+                                    .to_str()
+                                    .context(Error::FetchLatestVersions(
+                                        FetchLatestVersionsReason::InvalidOrMissingLocationHeader,
+                                    ))?;
+                                let request = hyper::Request::get(uri)
+                                    .body(hyper::Body::default())
+                                    .expect("can't fail to create request");
+                                Ok(hyper_client.call(request).map_err(|err| {
                                     anyhow::anyhow!(err).context(Error::FetchLatestVersions(
                                         FetchLatestVersionsReason::GetResponse,
                                     ))
@@ -114,16 +98,31 @@ impl Checker for AziotEdgedVersion {
                                 FetchLatestVersionsReason::ResponseStatusCode(status_code),
                             )
                             .into()),
-                        }
-                    })
-                    .flatten()
-                    .and_then(|body| {
-                        Ok(serde_json::from_slice(&body).context(
-                            Error::FetchLatestVersions(FetchLatestVersionsReason::GetResponse),
-                        )?)
-                    }),
-            )
-        };
+                        })
+                        .flatten()
+                        .and_then(|response| -> anyhow::Result<_> {
+                            match response.status() {
+                                hyper::StatusCode::OK => {
+                                    Ok(response.into_body().concat2().map_err(|err| {
+                                        anyhow::anyhow!(err).context(Error::FetchLatestVersions(
+                                            FetchLatestVersionsReason::GetResponse,
+                                        ))
+                                    }))
+                                }
+                                status_code => Err(Error::FetchLatestVersions(
+                                    FetchLatestVersionsReason::ResponseStatusCode(status_code),
+                                )
+                                .into()),
+                            }
+                        })
+                        .flatten()
+                        .and_then(|body| {
+                            Ok(serde_json::from_slice(&body).context(
+                                Error::FetchLatestVersions(FetchLatestVersionsReason::GetResponse),
+                            )?)
+                        }),
+                )
+            };
 
         self.inner_execute(check, tokio_runtime.block_on(latest_versions).map_err(Some))
             .unwrap_or_else(CheckResult::Failed)

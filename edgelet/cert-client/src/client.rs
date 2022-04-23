@@ -105,7 +105,10 @@ impl CertificateClient {
         Box::new(res)
     }
 
-    pub fn get_cert(&self, id: &str) -> Box<dyn Future<Item = Vec<u8>, Error = anyhow::Error> + Send> {
+    pub fn get_cert(
+        &self,
+        id: &str,
+    ) -> Box<dyn Future<Item = Vec<u8>, Error = anyhow::Error> + Send> {
         let client = self.client.clone();
         let uri = format!(
             "/certificates/{}?api-version={}",
@@ -128,7 +131,10 @@ impl CertificateClient {
         Box::new(res)
     }
 
-    pub fn delete_cert(&self, id: &str) -> Box<dyn Future<Item = (), Error = anyhow::Error> + Send> {
+    pub fn delete_cert(
+        &self,
+        id: &str,
+    ) -> Box<dyn Future<Item = (), Error = anyhow::Error> + Send> {
         let client = self.client.clone();
         let uri = format!(
             "{}certificates/{}?api-version={}",
@@ -151,10 +157,7 @@ fn build_request_uri(host: &Url, uri: &str) -> anyhow::Result<Uri> {
     let base_path = host.to_base_path().context(Error::ConnectorUri)?;
     UrlConnector::build_hyper_uri(
         &host.scheme().to_string(),
-        &base_path
-            .to_str()
-            .context(Error::ConnectorUri)?
-            .to_string(),
+        &base_path.to_str().context(Error::ConnectorUri)?.to_string(),
         &uri,
     )
     .context(Error::ConnectorUri)
@@ -211,9 +214,7 @@ where
                     let mut is_json = false;
                     for (header_name, header_value) in headers {
                         if header_name == Some(hyper::header::CONTENT_TYPE) {
-                            let value = header_value
-                                .to_str()
-                                .context(Error::MalformedResponse)?;
+                            let value = header_value.to_str().context(Error::MalformedResponse)?;
                             if value == "application/json" {
                                 is_json = true;
                             }
@@ -227,9 +228,7 @@ where
                     anyhow::bail!(Error::from((status, &*body)))
                 }
             })
-            .and_then(|body| {
-                Ok(serde_json::from_slice(&body)?)
-            }),
+            .and_then(|body| Ok(serde_json::from_slice(&body)?)),
     )
 }
 

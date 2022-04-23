@@ -35,20 +35,20 @@ use std::{collections::BTreeMap, fs::OpenOptions, io::Read};
 
 use workload_manager::WorkloadManager;
 
+use anyhow::Context;
 use edgelet_core::{
     crypto::{AZIOT_EDGED_CA_ALIAS, TRUST_BUNDLE_ALIAS},
     settings::AutoReprovisioningMode,
 };
 use edgelet_core::{
-    Authenticator, Listen, MakeModuleRuntime, Module, ModuleAction, ModuleRuntime,
-    ModuleSpec, RuntimeSettings, WorkloadConfig,
+    Authenticator, Listen, MakeModuleRuntime, Module, ModuleAction, ModuleRuntime, ModuleSpec,
+    RuntimeSettings, WorkloadConfig,
 };
 use edgelet_http::logging::LoggingService;
 use edgelet_http::{ConcurrencyThrottling, HyperExt, API_VERSION};
 use edgelet_http_mgmt::ManagementService;
 use edgelet_utils::log_failure;
 pub use error::{Error, InitializeErrorReason};
-use anyhow::Context;
 use futures::future::Either;
 use futures::sync::{
     mpsc::{UnboundedReceiver, UnboundedSender},
@@ -212,31 +212,29 @@ where
                 AutoReprovisioningMode::Dynamic | AutoReprovisioningMode::OnErrorOnly => {}
             }
 
-            let result =
-                tokio_runtime.block_on(
-                    client
-                        .lock()
-                        .unwrap()
-                        .get_device()
-                        .map_err(|err| {
-                            anyhow::anyhow!(err).context(Error::Initialize(
-                                InitializeErrorReason::GetDeviceInfo,
-                            ))
-                        })
-                        .and_then(|identity| match identity {
-                            aziot_identity_common::Identity::Aziot(spec) => {
-                                debug!("{}:{}", spec.hub_name, spec.device_id.0);
-                                Ok(ProvisioningResult {
-                                    device_id: spec.device_id.0,
-                                    gateway_host_name: spec.gateway_host,
-                                    hub_name: spec.hub_name,
-                                })
-                            }
-                            aziot_identity_common::Identity::Local(_) => Err(anyhow::anyhow!(
-                                Error::Initialize(InitializeErrorReason::InvalidIdentityType),
-                            )),
-                        }),
-                );
+            let result = tokio_runtime.block_on(
+                client
+                    .lock()
+                    .unwrap()
+                    .get_device()
+                    .map_err(|err| {
+                        anyhow::anyhow!(err)
+                            .context(Error::Initialize(InitializeErrorReason::GetDeviceInfo))
+                    })
+                    .and_then(|identity| match identity {
+                        aziot_identity_common::Identity::Aziot(spec) => {
+                            debug!("{}:{}", spec.hub_name, spec.device_id.0);
+                            Ok(ProvisioningResult {
+                                device_id: spec.device_id.0,
+                                gateway_host_name: spec.gateway_host,
+                                hub_name: spec.hub_name,
+                            })
+                        }
+                        aziot_identity_common::Identity::Local(_) => Err(anyhow::anyhow!(
+                            Error::Initialize(InitializeErrorReason::InvalidIdentityType),
+                        )),
+                    }),
+            );
 
             match result {
                 Ok(provisioning_result) => {
@@ -426,13 +424,11 @@ where
     let path = subdir.join(filename);
 
     // store provisioning result
-    let digest = compute_provisioning_result_digest(provisioning_result).context(
-        Error::Initialize(InitializeErrorReason::SaveProvisioning),
-    )?;
+    let digest = compute_provisioning_result_digest(provisioning_result)
+        .context(Error::Initialize(InitializeErrorReason::SaveProvisioning))?;
 
-    std::fs::write(path, digest.into_bytes()).context(Error::Initialize(
-        InitializeErrorReason::SaveProvisioning,
-    ))?;
+    std::fs::write(path, digest.into_bytes())
+        .context(Error::Initialize(InitializeErrorReason::SaveProvisioning))?;
 
     Ok(())
 }
@@ -687,9 +683,8 @@ where
 
     ManagementService::new(runtime, identity_client, initiate_shutdown_and_reprovision)
         .then(move |service| -> anyhow::Result<_> {
-            let service = service.context(Error::Initialize(
-                InitializeErrorReason::ManagementService,
-            ))?;
+            let service =
+                service.context(Error::Initialize(InitializeErrorReason::ManagementService))?;
             let service = LoggingService::new(label, service);
 
             let run = Http::new()
@@ -707,7 +702,7 @@ where
 mod tests {
     use edgelet_docker::Settings;
 
-    use super::{RuntimeSettings};
+    use super::RuntimeSettings;
 
     static GOOD_SETTINGS_EDGE_CA_CERT_ID: &str = "test/linux/sample_settings.edge.ca.id.toml";
 

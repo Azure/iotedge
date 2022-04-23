@@ -7,8 +7,8 @@ use hyper::{Body, Request, Response, StatusCode};
 use edgelet_core::{ModuleRuntime, RuntimeOperation};
 use edgelet_http::route::{Handler, Parameters};
 
-use crate::IntoResponse;
 use crate::error::Error;
+use crate::IntoResponse;
 
 pub struct DeleteModule<M> {
     runtime: M,
@@ -35,10 +35,13 @@ where
             .map(|name| {
                 let name = name.to_string();
 
-                self.runtime.remove(&name).then(|result|
-                    result.with_context(|| Error::RuntimeOperation(RuntimeOperation::RemoveModule(name.clone())))
-                    .map(|_| name)
-                )
+                self.runtime.remove(&name).then(|result| {
+                    result
+                        .with_context(|| {
+                            Error::RuntimeOperation(RuntimeOperation::RemoveModule(name.clone()))
+                        })
+                        .map(|_| name)
+                })
             })
             .into_future()
             .flatten()
@@ -78,8 +81,7 @@ mod tests {
             .with_finished_at(Some(Utc.ymd(2018, 4, 13).and_hms_milli(15, 20, 0, 1)))
             .with_image_id(Some("image-id".to_string()));
         let config = TestConfig::new("microsoft/test-image".to_string());
-        let module =
-            TestModule::new("test-module".to_string(), config, Some(state));
+        let module = TestModule::new("test-module".to_string(), config, Some(state));
         let (create_socket_channel_snd, _create_socket_channel_rcv) =
             mpsc::unbounded::<ModuleAction>();
 
@@ -112,8 +114,7 @@ mod tests {
             .with_finished_at(Some(Utc.ymd(2018, 4, 13).and_hms_milli(15, 20, 0, 1)))
             .with_image_id(Some("image-id".to_string()));
         let config = TestConfig::new("microsoft/test-image".to_string());
-        let module =
-            TestModule::new("test-module".to_string(), config, Some(state));
+        let module = TestModule::new("test-module".to_string(), config, Some(state));
 
         let (create_socket_channel_snd, _create_socket_channel_rcv) =
             mpsc::unbounded::<ModuleAction>();

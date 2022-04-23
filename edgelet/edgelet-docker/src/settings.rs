@@ -169,7 +169,11 @@ fn init_agent_spec(settings: &mut Settings) -> anyhow::Result<()> {
 }
 
 fn agent_vol_mount(settings: &mut Settings) -> anyhow::Result<()> {
-    let create_options = settings.agent().config().clone_create_options().context(LoadSettingsError)?;
+    let create_options = settings
+        .agent()
+        .config()
+        .clone_create_options()
+        .context(LoadSettingsError)?;
     let host_config = create_options
         .host_config()
         .cloned()
@@ -242,7 +246,11 @@ fn agent_env(settings: &mut Settings) {
 fn agent_networking(settings: &mut Settings) -> anyhow::Result<()> {
     let network_id = settings.moby_runtime().network().name().to_string();
 
-    let create_options = settings.agent().config().clone_create_options().context(LoadSettingsError)?;
+    let create_options = settings
+        .agent()
+        .config()
+        .clone_create_options()
+        .context(LoadSettingsError)?;
 
     let mut network_config = create_options
         .networking_config()

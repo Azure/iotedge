@@ -8,8 +8,8 @@ use hyper::{Body, Request, Response};
 
 use edgelet_core::{AuthId, Policy};
 
-use crate::{Error, IntoResponse};
 use crate::route::{Handler, Parameters};
+use crate::{Error, IntoResponse};
 
 pub struct Authorization<H> {
     policy: Policy,
@@ -52,9 +52,9 @@ where
                     .then(|resp| resp.context(Error::Authorization)),
             )
         } else {
-            future::Either::B(future::err(Error::ModuleNotFound(
-                name.unwrap_or("").to_string(),
-            ).into()))
+            future::Either::B(future::err(
+                Error::ModuleNotFound(name.unwrap_or("").to_string()).into(),
+            ))
         };
 
         Box::new(response.or_else(|e| future::ok(e.into_response())))

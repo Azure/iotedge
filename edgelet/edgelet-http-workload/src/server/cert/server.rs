@@ -69,8 +69,7 @@ where
             .into_future()
             .and_then(|(module_id, alias)| {
                 req.into_body().concat2().then(move |body| {
-                    let body =
-                        body.context(Error::CertOperation(CertOperation::GetServerCert))?;
+                    let body = body.context(Error::CertOperation(CertOperation::GetServerCert))?;
                     Ok((alias, body, module_id))
                 })
             })
@@ -79,8 +78,7 @@ where
                     serde_json::from_slice(&body).context(Error::MalformedRequestBody)?;
 
                 let common_name = cert_req.common_name();
-                ensure_not_empty(common_name)
-                .context(Error::MalformedRequestBody)?;
+                ensure_not_empty(common_name).context(Error::MalformedRequestBody)?;
 
                 // add a DNS SAN entry in the server cert that uses the module identifier as
                 // an alternative DNS name; we also need to add the common_name that we are using
@@ -119,7 +117,7 @@ where
                         key_id: cfg.edge_ca_key().to_string(),
                         device_id: cfg.device_id().to_string(),
                     },
-                    Error::CertOperation(CertOperation::GetServerCert)
+                    Error::CertOperation(CertOperation::GetServerCert),
                 )
                 .map_err(|_| anyhow::anyhow!(Error::CertOperation(CertOperation::GetServerCert)));
                 Ok(response)

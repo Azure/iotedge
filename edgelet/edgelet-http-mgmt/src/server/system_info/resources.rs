@@ -39,22 +39,18 @@ where
             .runtime
             .system_resources()
             .then(|system_resources| -> anyhow::Result<_> {
-                let system_resources = system_resources.context(Error::RuntimeOperation(
-                    RuntimeOperation::SystemResources,
-                ))?;
+                let system_resources = system_resources
+                    .context(Error::RuntimeOperation(RuntimeOperation::SystemResources))?;
 
-                let body = serde_json::to_string(&system_resources).context(
-                    Error::RuntimeOperation(RuntimeOperation::SystemResources),
-                )?;
+                let body = serde_json::to_string(&system_resources)
+                    .context(Error::RuntimeOperation(RuntimeOperation::SystemResources))?;
 
                 let response = Response::builder()
                     .status(StatusCode::OK)
                     .header(CONTENT_TYPE, "application/json")
                     .header(CONTENT_LENGTH, body.len().to_string().as_str())
                     .body(body.into())
-                    .context(Error::RuntimeOperation(
-                        RuntimeOperation::SystemResources,
-                    ))?;
+                    .context(Error::RuntimeOperation(RuntimeOperation::SystemResources))?;
                 Ok(response)
             })
             .or_else(|e| Ok(e.into_response()));

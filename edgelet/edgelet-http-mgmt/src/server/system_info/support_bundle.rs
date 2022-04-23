@@ -13,8 +13,8 @@ use edgelet_core::{parse_since, LogOptions, Module, ModuleRuntime, RuntimeOperat
 use edgelet_http::route::{Handler, Parameters};
 use support_bundle::{make_bundle, OutputLocation};
 
-use crate::IntoResponse;
 use crate::error::Error;
+use crate::IntoResponse;
 
 pub struct GetSupportBundle<M> {
     runtime: M,
@@ -50,9 +50,7 @@ where
                     .header(CONTENT_ENCODING, "zip")
                     .header(CONTENT_LENGTH, size.to_string().as_str())
                     .body(body)
-                    .context(Error::RuntimeOperation(
-                        RuntimeOperation::GetSupportBundle,
-                    ))?;
+                    .context(Error::RuntimeOperation(RuntimeOperation::GetSupportBundle))?;
                 Ok(response)
             })
             .or_else(|e| Ok(e.into_response()));

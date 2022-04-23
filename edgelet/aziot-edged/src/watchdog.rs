@@ -14,9 +14,7 @@ use edgelet_core::{ImagePullPolicy, ModuleRegistry};
 use edgelet_utils::log_failure;
 
 use aziot_identity_common::Identity as AziotIdentity;
-use edgelet_core::module::{
-    Module, ModuleRuntime, ModuleSpec, ModuleStatus,
-};
+use edgelet_core::module::{Module, ModuleRuntime, ModuleSpec, ModuleStatus};
 use edgelet_core::settings::RetryLimit;
 
 use crate::error::{Error, InitializeErrorReason};
@@ -249,9 +247,7 @@ where
             let identity = identity.context(Error::ModuleRuntime)?;
 
             let genid = match identity {
-                AziotIdentity::Aziot(spec) => spec
-                    .gen_id
-                    .context(Error::ModuleRuntime)?,
+                AziotIdentity::Aziot(spec) => spec.gen_id.context(Error::ModuleRuntime)?,
                 AziotIdentity::Local(_) => {
                     return Err(anyhow::anyhow!(Error::Initialize(
                         InitializeErrorReason::InvalidIdentityType,

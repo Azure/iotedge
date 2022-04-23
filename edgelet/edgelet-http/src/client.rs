@@ -76,9 +76,7 @@ where
         host_name: Url,
     ) -> anyhow::Result<Self> {
         ensure_not_empty(&api_version)
-            .with_context(||
-            Error::InvalidApiVersion(api_version.clone())
-        )?;
+            .with_context(|| Error::InvalidApiVersion(api_version.clone()))?;
 
         let client = Client {
             inner: Arc::new(inner),
@@ -222,8 +220,7 @@ where
                             Ok(None)
                         } else {
                             Ok(Some(
-                                serde_json::from_slice::<ResponseT>(&body)
-                                    .context(Error::Http)?,
+                                serde_json::from_slice::<ResponseT>(&body).context(Error::Http)?,
                             ))
                         }
                     })

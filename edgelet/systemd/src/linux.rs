@@ -48,11 +48,10 @@ pub fn listener(num: usize) -> anyhow::Result<Socket> {
 pub fn listener_name(name: &str) -> anyhow::Result<Socket> {
     debug!("Finding socket for name: {}", name);
     let sockets = listeners_name(name)?;
-    let socket = sockets.into_iter().next().ok_or_else(|| {
-        Error::SocketNotFound(SocketLookupType::Name(
-            name.to_string(),
-        ))
-    })?;
+    let socket = sockets
+        .into_iter()
+        .next()
+        .ok_or_else(|| Error::SocketNotFound(SocketLookupType::Name(name.to_string())))?;
     Ok(socket)
 }
 
@@ -60,11 +59,9 @@ pub fn listener_name(name: &str) -> anyhow::Result<Socket> {
 pub fn listeners_name(name: &str) -> anyhow::Result<Vec<Socket>> {
     debug!("Finding sockets for name: {}", name);
     let sockets = listen_fds_with_names(false, LISTEN_FDS_START)?;
-    let sockets = sockets.get(name).ok_or_else(|| {
-        Error::SocketNotFound(SocketLookupType::Name(
-            name.to_string(),
-        ))
-    })?;
+    let sockets = sockets
+        .get(name)
+        .ok_or_else(|| Error::SocketNotFound(SocketLookupType::Name(name.to_string())))?;
     Ok(sockets.clone())
 }
 
@@ -135,10 +132,7 @@ fn listen_fds_with_names(
 
     let fds = listen_fds(unset_environment, start_fd)?;
     if fds.len() != names.len() {
-        return Err(Error::NumFdsDoesNotMatchNumFdNames(
-            fds.len(),
-            names.len(),
-        ).into());
+        return Err(Error::NumFdsDoesNotMatchNumFdNames(fds.len(), names.len()).into());
     }
 
     let mut map: HashMap<String, Vec<Socket>> = HashMap::new();
@@ -243,8 +237,8 @@ fn is_socket_unix(
 #[cfg(test)]
 mod tests {
     use super::{
-        env, listen_fds, listen_fds_with_names, socket, AddressFamily, Error, Fd, Pid,
-        SockType, Socket, ENV_FDS, ENV_NAMES, ENV_PID, LISTEN_FDS_START,
+        env, listen_fds, listen_fds_with_names, socket, AddressFamily, Error, Fd, Pid, SockType,
+        Socket, ENV_FDS, ENV_NAMES, ENV_PID, LISTEN_FDS_START,
     };
 
     use std::panic;
