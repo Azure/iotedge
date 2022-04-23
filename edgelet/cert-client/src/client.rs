@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use failure::{Fail, ResultExt};
+use anyhow::Context;
 use futures::future::Future;
 use futures::prelude::*;
 use http::Uri;
@@ -11,7 +11,7 @@ use typed_headers::{self, http};
 use edgelet_core::UrlExt;
 use edgelet_http::UrlConnector;
 
-use crate::error::{Error, ErrorKind};
+use crate::error::Error;
 use url::Url;
 
 /// Ref <https://url.spec.whatwg.org/#path-percent-encode-set>
@@ -48,7 +48,7 @@ impl CertificateClient {
         id: &str,
         csr: &[u8],
         issuer: Option<(&str, &aziot_key_common::KeyHandle)>,
-    ) -> Box<dyn Future<Item = Vec<u8>, Error = Error> + Send> {
+    ) -> Box<dyn Future<Item = Vec<u8>, Error = anyhow::Error> + Send> {
         let client = self.client.clone();
         let uri = format!("/certificates?api-version={}", self.api_version);
         let body = aziot_cert_common_http::create_cert::Request {
@@ -80,7 +80,7 @@ impl CertificateClient {
         &self,
         id: &str,
         pem: &[u8],
-    ) -> Box<dyn Future<Item = Vec<u8>, Error = Error> + Send> {
+    ) -> Box<dyn Future<Item = Vec<u8>, Error = anyhow::Error> + Send> {
         let client = self.client.clone();
         let uri = format!(
             "/certificates/{}?api-version={}",
@@ -105,7 +105,7 @@ impl CertificateClient {
         Box::new(res)
     }
 
-    pub fn get_cert(&self, id: &str) -> Box<dyn Future<Item = Vec<u8>, Error = Error> + Send> {
+    pub fn get_cert(&self, id: &str) -> Box<dyn Future<Item = Vec<u8>, Error = anyhow::Error> + Send> {
         let client = self.client.clone();
         let uri = format!(
             "/certificates/{}?api-version={}",
@@ -128,7 +128,7 @@ impl CertificateClient {
         Box::new(res)
     }
 
-    pub fn delete_cert(&self, id: &str) -> Box<dyn Future<Item = (), Error = Error> + Send> {
+    pub fn delete_cert(&self, id: &str) -> Box<dyn Future<Item = (), Error = anyhow::Error> + Send> {
         let client = self.client.clone();
         let uri = format!(
             "{}certificates/{}?api-version={}",
@@ -147,17 +147,17 @@ impl CertificateClient {
     }
 }
 
-fn build_request_uri(host: &Url, uri: &str) -> Result<Uri, Error> {
-    let base_path = host.to_base_path().context(ErrorKind::ConnectorUri)?;
+fn build_request_uri(host: &Url, uri: &str) -> anyhow::Result<Uri> {
+    let base_path = host.to_base_path().context(Error::ConnectorUri)?;
     UrlConnector::build_hyper_uri(
         &host.scheme().to_string(),
         &base_path
             .to_str()
-            .ok_or(ErrorKind::ConnectorUri)?
+            .context(Error::ConnectorUri)?
             .to_string(),
         &uri,
     )
-    .map_err(|_| Error::from(ErrorKind::ConnectorUri))
+    .context(Error::ConnectorUri)
 }
 
 fn request<TConnect, TRequest, TResponse>(
@@ -165,7 +165,7 @@ fn request<TConnect, TRequest, TResponse>(
     method: http::Method,
     uri: &http::Uri,
     body: Option<&TRequest>,
-) -> Box<dyn Future<Item = TResponse, Error = Error> + Send>
+) -> Box<dyn Future<Item = TResponse, Error = anyhow::Error> + Send>
 where
     TConnect: hyper::client::connect::Connect + Clone + Send + Sync + 'static,
     TRequest: serde::Serialize,
@@ -194,7 +194,7 @@ where
     Box::new(
         client
             .request(req)
-            .map_err(|e| Error::from(e.context(ErrorKind::Request)))
+            .map_err(|e| anyhow::anyhow!(e).context(Error::Request))
             .and_then(|resp| {
                 let (
                     http::response::Parts {
@@ -204,7 +204,7 @@ where
                 ) = resp.into_parts();
                 body.concat2()
                     .and_then(move |body| Ok((status, headers, body)))
-                    .map_err(|e| Error::from(e.context(ErrorKind::Hyper)))
+                    .map_err(|e| anyhow::anyhow!(e).context(Error::Hyper))
             })
             .and_then(|(status, headers, body)| {
                 if status.is_success() {
@@ -213,25 +213,22 @@ where
                         if header_name == Some(hyper::header::CONTENT_TYPE) {
                             let value = header_value
                                 .to_str()
-                                .map_err(|_| Error::from(ErrorKind::MalformedResponse))?;
+                                .context(Error::MalformedResponse)?;
                             if value == "application/json" {
                                 is_json = true;
                             }
                         }
                     }
 
-                    if !is_json {
-                        return Err(Error::from(ErrorKind::MalformedResponse));
-                    }
+                    anyhow::ensure!(is_json, Error::MalformedResponse);
 
                     Ok(body)
                 } else {
-                    Err(Error::http_with_error_response(status, &*body))
+                    anyhow::bail!(Error::from((status, &*body)))
                 }
             })
             .and_then(|body| {
-                let parsed: Result<TResponse, _> = serde_json::from_slice(&body);
-                parsed.map_err(|e| Error::from(ErrorKind::Serde(e)))
+                Ok(serde_json::from_slice(&body)?)
             }),
     )
 }
@@ -241,7 +238,7 @@ fn request_no_content<TConnect, TRequest>(
     method: http::Method,
     uri: &http::Uri,
     body: Option<&TRequest>,
-) -> Box<dyn Future<Item = (), Error = Error> + Send>
+) -> Box<dyn Future<Item = (), Error = anyhow::Error> + Send>
 where
     TConnect: hyper::client::connect::Connect + Clone + Send + Sync + 'static,
     TRequest: serde::Serialize,
@@ -269,18 +266,18 @@ where
     Box::new(
         client
             .request(req)
-            .map_err(|e| Error::from(e.context(ErrorKind::Request)))
+            .map_err(|e| anyhow::anyhow!(e).context(Error::Request))
             .and_then(|resp| {
                 let (http::response::Parts { status, .. }, body) = resp.into_parts();
                 body.concat2()
                     .and_then(move |body| Ok((status, body)))
-                    .map_err(|e| Error::from(e.context(ErrorKind::Hyper)))
+                    .map_err(|e| anyhow::anyhow!(e).context(Error::Hyper))
             })
             .and_then(|(status, body)| {
                 if status.is_success() {
                     Ok(())
                 } else {
-                    Err(Error::http_with_error_response(status, &*body))
+                    anyhow::bail!(Error::from((status, &*body)))
                 }
             }),
     )

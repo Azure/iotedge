@@ -8,7 +8,6 @@ edition = "2018"
 [dependencies]
 anyhow = "1.0"
 chrono = "0.4"
-failure = "0.1"
 futures = "0.1"
 hyper = "0.12"
 objekt = "0.1"

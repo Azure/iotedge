@@ -416,11 +416,11 @@ checksum = "66120af515773fb005778dc07c261bd201ec8ce50bd6e7144c927753fe013381"
 name = "cert-client"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "aziot-cert-common-http",
  "aziot-key-common",
  "edgelet-core",
  "edgelet-http",
- "failure",
  "futures",
  "hyper",
  "log",
@@ -428,6 +428,7 @@ dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
+ "thiserror",
  "typed-headers",
  "url 2.1.1",
 ]
@@ -874,7 +875,6 @@ dependencies = [
  "anyhow",
  "chrono",
  "edgelet-core",
- "failure",
  "futures",
  "hyper",
  "hyperlocal",
