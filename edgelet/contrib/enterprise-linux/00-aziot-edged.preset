@@ -1,0 +1,5 @@
+# Enable aziot-edged to always start.
+
+enable aziot-edged.mgmt.socket
+enable aziot-edged.workload.socket
+enable aziot-edged.service

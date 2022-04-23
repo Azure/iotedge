@@ -1,0 +1,21 @@
+[Unit]
+Description=Azure IoT Edge daemon
+After=network-online.target docker.service aziot-edged.workload.socket aziot-edged.mgmt.socket
+Requires=aziot-edged.workload.socket aziot-edged.mgmt.socket
+Wants=network-online.target docker.service
+Documentation=man:aziot-edged(8)
+
+[Service]
+ExecStart=/usr/libexec/aziot/aziot-edged
+KillMode=process
+TimeoutStartSec=600
+TimeoutStopSec=40
+Restart=on-failure
+RestartPreventExitStatus=153
+RestartSec=5
+User=iotedge
+Group=iotedge
+
+[Install]
+WantedBy=multi-user.target
+Also=aziot-edged.workload.socket aziot-edged.mgmt.socket
