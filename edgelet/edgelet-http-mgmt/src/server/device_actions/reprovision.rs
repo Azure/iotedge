@@ -64,7 +64,7 @@ mod tests {
         let receiver_fut = mgmt_stop_rx
             .then(|res| match res {
                 Ok(_) => Err(None),
-                Err(_) => Err(Some(Error::from(Error::ReprovisionDevice))),
+                Err(_) => Err(Some(Error::ReprovisionDevice)),
             })
             .for_each(move |_x: Option<Error>| Ok(()))
             .then(|res| match res {
