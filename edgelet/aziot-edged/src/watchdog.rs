@@ -3,7 +3,7 @@
 use std::cmp::Ordering;
 use std::time::{Duration, Instant};
 
-use failure::{Fail, ResultExt};
+use anyhow::Context;
 use futures::future::{self, Either};
 use futures::Future;
 use log::{info, warn, Level};
@@ -15,11 +15,11 @@ use edgelet_utils::log_failure;
 
 use aziot_identity_common::Identity as AziotIdentity;
 use edgelet_core::module::{
-    Module, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec, ModuleStatus,
+    Module, ModuleRuntime, ModuleSpec, ModuleStatus,
 };
 use edgelet_core::settings::RetryLimit;
 
-use crate::error::{Error, ErrorKind, InitializeErrorReason};
+use crate::error::{Error, InitializeErrorReason};
 
 // Time to allow EdgeAgent to gracefully shutdown (including stopping all modules, and updating reported properties)
 const EDGE_RUNTIME_STOP_TIME: Duration = Duration::from_secs(60);
@@ -39,7 +39,6 @@ pub struct Watchdog<M> {
 impl<M> Watchdog<M>
 where
     M: 'static + ModuleRuntime + Clone,
-    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
     <M::Module as Module>::Config: Clone,
 {
     pub fn new(runtime: M, max_retries: RetryLimit, identityd_url: &url::Url) -> Self {
@@ -58,7 +57,7 @@ where
         spec: ModuleSpec<<M::Module as Module>::Config>,
         module_id: &str,
         shutdown_signal: F,
-    ) -> impl Future<Item = (), Error = Error>
+    ) -> impl Future<Item = (), Error = anyhow::Error>
     where
         F: Future<Item = (), Error = ()> + 'static,
     {
@@ -79,30 +78,21 @@ where
         // shutdown signal.
         shutdown_signal
             .select(watchdog)
-            .then(move |result| match result {
-                Ok(((), _)) => Ok(stop_runtime(&runtime_copy, &name)),
-                Err((err, _)) => Err(err),
-            })
-            .flatten()
+            .map_err(|(x, _)| x)
+            .and_then(move |((), _)| stop_runtime(&runtime_copy, &name))
     }
 }
 
 // Stop EdgeAgent
-fn stop_runtime<M>(runtime: &M, name: &str) -> impl Future<Item = (), Error = Error>
+fn stop_runtime<M>(runtime: &M, name: &str) -> impl Future<Item = (), Error = anyhow::Error>
 where
     M: 'static + ModuleRuntime + Clone,
-    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
     <M::Module as Module>::Config: Clone,
 {
     info!("Stopping edge runtime module {}", name);
     runtime
         .stop(name, Some(EDGE_RUNTIME_STOP_TIME))
-        .or_else(|err| match (&err).into() {
-            ModuleRuntimeErrorReason::NotFound => Ok(()),
-            ModuleRuntimeErrorReason::Other => {
-                Err(Error::from(err.context(ErrorKind::ModuleRuntime)))
-            }
-        })
+        .map_err(|err| anyhow::anyhow!(err).context(Error::ModuleRuntime))
 }
 
 // Start watchdog on a timer for 1 minute
@@ -112,7 +102,7 @@ pub fn start_watchdog<M>(
     module_id: String,
     max_retries: RetryLimit,
     identityd_url: url::Url,
-) -> impl Future<Item = (), Error = Error>
+) -> impl Future<Item = (), Error = anyhow::Error>
 where
     M: 'static + ModuleRuntime + Clone,
     <M::Module as Module>::Config: Clone,
@@ -123,7 +113,7 @@ where
     );
 
     Interval::new(Instant::now(), Duration::from_secs(WATCHDOG_FREQUENCY_SECS))
-        .map_err(|err| Error::from(err.context(ErrorKind::EdgeRuntimeStatusCheckerTimer)))
+        .map_err(|err| anyhow::anyhow!(err).context(Error::EdgeRuntimeStatusCheckerTimer))
         .and_then(move |_| {
             info!("Checking edge runtime status");
 
@@ -136,11 +126,11 @@ where
             .and_then(|_| future::ok(None))
             .or_else(|e| {
                 warn!("Error in watchdog when checking for edge runtime status:");
-                log_failure(Level::Warn, &e);
+                log_failure(Level::Warn, e.as_ref());
                 future::ok(Some(e))
             })
         })
-        .fold(0, move |exec_count: u32, result: Option<Error>| {
+        .fold(0, move |exec_count: u32, result: Option<anyhow::Error>| {
             result.map_or_else(
                 || Ok(0),
                 |e| {
@@ -161,7 +151,7 @@ fn check_runtime<M>(
     spec: ModuleSpec<<M::Module as Module>::Config>,
     module_id: String,
     identityd_url: url::Url,
-) -> impl Future<Item = (), Error = Error>
+) -> impl Future<Item = (), Error = anyhow::Error>
 where
     M: 'static + ModuleRuntime + Clone,
     <M::Module as Module>::Config: Clone,
@@ -171,7 +161,7 @@ where
         .and_then(|m| {
             m.map(|m| {
                 m.runtime_state()
-                    .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))
+                    .map_err(|e| anyhow::anyhow!(e).context(Error::ModuleRuntime))
             })
         })
         .and_then(move |state| match state {
@@ -190,7 +180,7 @@ where
                         Either::B(Either::A(
                             runtime
                                 .start(&module)
-                                .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime))),
+                                .map_err(|e| anyhow::anyhow!(e).context(Error::ModuleRuntime)),
                         ))
                     }
 
@@ -203,7 +193,7 @@ where
                         Either::B(Either::B(
                             runtime
                                 .remove(&module)
-                                .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))
+                                .map_err(|e| anyhow::anyhow!(e).context(Error::ModuleRuntime))
                                 .and_then(move |_| {
                                     create_and_start(runtime, spec, &module_id, &identityd_url)
                                 }),
@@ -223,7 +213,7 @@ where
 fn get_edge_runtime_mod<M>(
     runtime: &M,
     name: String,
-) -> impl Future<Item = Option<M::Module>, Error = Error>
+) -> impl Future<Item = Option<M::Module>, Error = anyhow::Error>
 where
     M: 'static + ModuleRuntime + Clone,
     <M::Module as Module>::Config: Clone,
@@ -231,7 +221,7 @@ where
     runtime
         .list()
         .map(move |m| m.into_iter().find(move |m| m.name() == name))
-        .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))
+        .map_err(|e| anyhow::anyhow!(e).context(Error::ModuleRuntime))
 }
 
 fn create_and_start<M>(
@@ -239,7 +229,7 @@ fn create_and_start<M>(
     spec: ModuleSpec<<M::Module as Module>::Config>,
     module_id: &str,
     identityd_url: &url::Url,
-) -> impl Future<Item = (), Error = Error>
+) -> impl Future<Item = (), Error = anyhow::Error>
 where
     M: 'static + ModuleRuntime + Clone,
     <M::Module as Module>::Config: Clone,
@@ -255,15 +245,15 @@ where
 
     id_mgr
         .update_module(module_id.as_ref())
-        .then(move |identity| -> Result<_, Error> {
-            let identity = identity.with_context(|_| ErrorKind::ModuleRuntime)?;
+        .then(move |identity| -> anyhow::Result<_> {
+            let identity = identity.context(Error::ModuleRuntime)?;
 
             let genid = match identity {
                 AziotIdentity::Aziot(spec) => spec
                     .gen_id
-                    .ok_or_else(|| Error::from(ErrorKind::ModuleRuntime))?,
+                    .context(Error::ModuleRuntime)?,
                 AziotIdentity::Local(_) => {
-                    return Err(Error::from(ErrorKind::Initialize(
+                    return Err(anyhow::anyhow!(Error::Initialize(
                         InitializeErrorReason::InvalidIdentityType,
                     )))
                 }
@@ -282,7 +272,7 @@ where
                     runtime
                         .registry()
                         .pull(spec.config())
-                        .map_err(|_| Error::from(ErrorKind::ModuleRuntime)),
+                        .map_err(|_| anyhow::anyhow!(Error::ModuleRuntime)),
                 ),
             };
 
@@ -290,12 +280,12 @@ where
                 .and_then(move |_| {
                     runtime
                         .create(spec)
-                        .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))
+                        .map_err(|e| anyhow::anyhow!(e).context(Error::ModuleRuntime))
                 })
                 .and_then(move |_| {
                     runtime_copy
                         .start(&module_name)
-                        .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))
+                        .map_err(|e| anyhow::anyhow!(e).context(Error::ModuleRuntime))
                 })
         })
 }

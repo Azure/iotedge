@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use anyhow::Context;
 use clap::{crate_authors, crate_description, crate_name, App};
-use failure::ResultExt;
 use log::info;
 
 #[cfg(feature = "runtime-docker")]
 use edgelet_docker::Settings;
 
-use crate::error::{Error, ErrorKind, InitializeErrorReason};
+use crate::error::{Error, InitializeErrorReason};
 use crate::logging;
 
 fn create_app() -> App<'static, 'static> {
@@ -18,7 +18,7 @@ fn create_app() -> App<'static, 'static> {
     app
 }
 
-pub fn init() -> Result<Settings, Error> {
+pub fn init() -> anyhow::Result<Settings> {
     // Handle `--help` and `--version`
     let _ = create_app().get_matches();
 
@@ -28,6 +28,6 @@ pub fn init() -> Result<Settings, Error> {
     info!("Version - {}", edgelet_core::version_with_source_version());
 
     let settings = edgelet_docker::Settings::new()
-        .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
+        .context(Error::Initialize(InitializeErrorReason::LoadSettings))?;
     Ok(settings)
 }

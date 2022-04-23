@@ -1,113 +1,61 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::fmt;
-use std::fmt::Display;
 
-use edgelet_core::Error as CoreError;
-use edgelet_core::ErrorKind as CoreErrorKind;
-
-use failure::{Backtrace, Context, Fail};
-
-#[derive(Debug)]
-pub struct Error {
-    inner: Context<ErrorKind>,
-}
-
-#[derive(Clone, Debug, Fail, PartialEq)]
-pub enum ErrorKind {
-    #[fail(display = "The symmetric key string could not be activated")]
+#[derive(Clone, Debug, PartialEq, thiserror::Error)]
+pub enum Error {
+    #[error("The symmetric key string could not be activated")]
     ActivateSymmetricKey,
 
-    #[fail(display = "The certificate management expiration timer encountered a failure.")]
+    #[error("The certificate management expiration timer encountered a failure.")]
     CertificateExpirationManagement,
 
-    #[fail(display = "The device has been de-provisioned")]
+    #[error("The device has been de-provisioned")]
     DeviceDeprovisioned,
 
-    #[fail(display = "The timer that checks the edge runtime status encountered an error.")]
+    #[error("The timer that checks the edge runtime status encountered an error.")]
     EdgeRuntimeStatusCheckerTimer,
 
-    #[fail(display = "The daemon could not start up successfully: {}", _0)]
+    #[error("The daemon could not start up successfully: {0}")]
     Initialize(InitializeErrorReason),
 
-    #[fail(display = "Invalid signed token was provided.")]
+    #[error("Invalid signed token was provided.")]
     InvalidSignedToken,
 
-    #[fail(display = "The management service encountered an error")]
+    #[error("The management service encountered an error")]
     ManagementService,
 
-    #[fail(display = "A module runtime error occurred.")]
+    #[error("A module runtime error occurred.")]
     ModuleRuntime,
 
-    #[fail(display = "The reprovisioning operation failed")]
+    #[error("The reprovisioning operation failed")]
     ReprovisionFailure,
 
-    #[fail(display = "The symmetric key string is malformed")]
+    #[error("The symmetric key string is malformed")]
     SymmetricKeyMalformed,
 
-    #[fail(display = "The watchdog encountered an error")]
+    #[error("The watchdog encountered an error")]
     Watchdog,
 
-    #[fail(display = "The workload service encountered an error")]
+    #[error("The workload service encountered an error")]
     WorkloadService,
 
-    #[fail(display = "The workload manager encountered an error")]
+    #[error("The workload manager encountered an error")]
     WorkloadManager,
 }
 
-impl Error {
-    pub fn kind(&self) -> &ErrorKind {
-        self.inner.get_context()
-    }
-}
-
-impl Fail for Error {
-    fn cause(&self) -> Option<&dyn Fail> {
-        self.inner.cause()
-    }
-
-    fn backtrace(&self) -> Option<&Backtrace> {
-        self.inner.backtrace()
-    }
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.inner, f)
-    }
-}
-
-impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Self {
-        Error {
-            inner: Context::new(kind),
+impl From<edgelet_core::Error> for Error {
+    fn from(error: edgelet_core::Error) -> Self {
+        match error {
+            edgelet_core::Error::EdgeRuntimeIdentityNotFound =>
+                Error::Initialize(InitializeErrorReason::InvalidDeviceConfig),
+            _ => Error::Watchdog,
         }
     }
 }
 
-impl From<CoreError> for Error {
-    fn from(error: CoreError) -> Self {
-        let error_kind = ErrorKind::Watchdog;
-
-        let error_kind_result = match error.kind() {
-            CoreErrorKind::EdgeRuntimeIdentityNotFound => {
-                ErrorKind::Initialize(InitializeErrorReason::InvalidDeviceConfig)
-            }
-            _ => error_kind,
-        };
-
-        Error::from(error.context(error_kind_result))
-    }
-}
-
-impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Self {
-        Error { inner }
-    }
-}
-
-impl From<&ErrorKind> for i32 {
-    fn from(err: &ErrorKind) -> Self {
+impl From<&Error> for i32 {
+    fn from(err: &Error) -> Self {
         match err {
             // Using 150 as the starting base for custom IoT edge error codes so as to avoid
             // collisions with -
@@ -117,11 +65,11 @@ impl From<&ErrorKind> for i32 {
             // (https://rust-lang-nursery.github.io/cli-wg/in-depth/exit-code.html)
             // 2. Bash scripting exit codes with special meanings
             // (http://www.tldp.org/LDP/abs/html/exitcodes.html)
-            ErrorKind::Initialize(InitializeErrorReason::InvalidDeviceConfig) => 150,
-            ErrorKind::Initialize(InitializeErrorReason::InvalidHubConfig) => 151,
-            ErrorKind::InvalidSignedToken => 152,
-            ErrorKind::Initialize(InitializeErrorReason::LoadSettings) => 153,
-            ErrorKind::DeviceDeprovisioned => 154,
+            Error::Initialize(InitializeErrorReason::InvalidDeviceConfig) => 150,
+            Error::Initialize(InitializeErrorReason::InvalidHubConfig) => 151,
+            Error::InvalidSignedToken => 152,
+            Error::Initialize(InitializeErrorReason::LoadSettings) => 153,
+            Error::DeviceDeprovisioned => 154,
             _ => 1,
         }
     }

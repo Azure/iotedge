@@ -41,14 +41,14 @@ use edgelet_core::{
 };
 use edgelet_core::{
     Authenticator, Listen, MakeModuleRuntime, Module, ModuleAction, ModuleRuntime,
-    ModuleRuntimeErrorReason, ModuleSpec, RuntimeSettings, WorkloadConfig,
+    ModuleSpec, RuntimeSettings, WorkloadConfig,
 };
 use edgelet_http::logging::LoggingService;
 use edgelet_http::{ConcurrencyThrottling, HyperExt, API_VERSION};
 use edgelet_http_mgmt::ManagementService;
 use edgelet_utils::log_failure;
-pub use error::{Error, ErrorKind, InitializeErrorReason};
-use failure::{Context, Fail, ResultExt};
+pub use error::{Error, InitializeErrorReason};
+use anyhow::Context;
 use futures::future::Either;
 use futures::sync::{
     mpsc::{UnboundedReceiver, UnboundedSender},
@@ -159,8 +159,6 @@ where
         Clone + DeserializeOwned + Serialize + edgelet_core::module::NestedEdgeBodge,
     M::Settings: 'static + Clone + Serialize,
     <M::ModuleRuntime as ModuleRuntime>::Logs: Into<Body>,
-    <M::ModuleRuntime as Authenticator>::Error: Fail + Sync,
-    for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
 {
     pub fn new(settings: M::Settings) -> Self {
         Main { settings }
@@ -168,7 +166,7 @@ where
 
     // Allowing cognitive complexity errors for now. TODO: Refactor method later.
     #[allow(clippy::cognitive_complexity)]
-    pub fn run_until<F, G>(self, make_shutdown_signal: G) -> Result<(), Error>
+    pub fn run_until<F, G>(self, make_shutdown_signal: G) -> anyhow::Result<()>
     where
         F: Future<Item = (), Error = ()> + Send + 'static,
         G: Fn() -> F,
@@ -176,14 +174,14 @@ where
         let Main { mut settings } = self;
 
         let mut tokio_runtime = tokio::runtime::Runtime::new()
-            .context(ErrorKind::Initialize(InitializeErrorReason::Tokio))?;
+            .context(Error::Initialize(InitializeErrorReason::Tokio))?;
 
         let cache_subdir_path = Path::new(&settings.homedir()).join(EDGE_SETTINGS_SUBDIR);
         // make sure the cache directory exists
         DirBuilder::new()
             .recursive(true)
             .create(&cache_subdir_path)
-            .context(ErrorKind::Initialize(
+            .context(Error::Initialize(
                 InitializeErrorReason::CreateCacheDirectory,
             ))?;
 
@@ -221,9 +219,9 @@ where
                         .unwrap()
                         .get_device()
                         .map_err(|err| {
-                            Error::from(err.context(ErrorKind::Initialize(
+                            anyhow::anyhow!(err).context(Error::Initialize(
                                 InitializeErrorReason::GetDeviceInfo,
-                            )))
+                            ))
                         })
                         .and_then(|identity| match identity {
                             aziot_identity_common::Identity::Aziot(spec) => {
@@ -234,8 +232,8 @@ where
                                     hub_name: spec.hub_name,
                                 })
                             }
-                            aziot_identity_common::Identity::Local(_) => Err(Error::from(
-                                ErrorKind::Initialize(InitializeErrorReason::InvalidIdentityType),
+                            aziot_identity_common::Identity::Local(_) => Err(anyhow::anyhow!(
+                                Error::Initialize(InitializeErrorReason::InvalidIdentityType),
                             )),
                         }),
                 );
@@ -245,7 +243,7 @@ where
                     break provisioning_result;
                 }
                 Err(err) => {
-                    log_failure(Level::Warn, &err);
+                    log_failure(Level::Warn, err.as_ref());
 
                     log::warn!("Requesting device reprovision.");
 
@@ -272,7 +270,7 @@ where
         info!("Stopping all modules...");
         tokio_runtime
             .block_on(runtime.stop_all(Some(STOP_TIME)))
-            .context(ErrorKind::Initialize(
+            .context(Error::Initialize(
                 InitializeErrorReason::StopExistingModules,
             ))?;
         info!("Finished stopping modules.");
@@ -333,11 +331,11 @@ where
 fn reprovision_device(
     identity_client: &Arc<Mutex<IdentityClient>>,
     provisioning_cache: std::path::PathBuf,
-) -> impl Future<Item = (), Error = Error> {
+) -> impl Future<Item = (), Error = anyhow::Error> {
     let id_mgr = identity_client.lock().unwrap();
     id_mgr
         .reprovision_device(provisioning_cache)
-        .map_err(|err| Error::from(err.context(ErrorKind::ReprovisionFailure)))
+        .map_err(|err| anyhow::anyhow!(err).context(Error::ReprovisionFailure))
 }
 
 fn check_device_reconfigure<M>(
@@ -346,7 +344,7 @@ fn check_device_reconfigure<M>(
     provisioning_result: &ProvisioningResult,
     runtime: &M::ModuleRuntime,
     tokio_runtime: &mut tokio::runtime::Runtime,
-) -> Result<(), Error>
+) -> anyhow::Result<()>
 where
     M: MakeModuleRuntime + 'static,
 {
@@ -370,8 +368,8 @@ where
 
 fn compute_provisioning_result_digest(
     provisioning_result: &ProvisioningResult,
-) -> Result<String, DiffError> {
-    let s = serde_json::to_string(provisioning_result)?;
+) -> anyhow::Result<String> {
+    let s = serde_json::to_string(provisioning_result).context(DiffError)?;
     Ok(base64::encode(&Sha256::digest_str(&s)))
 }
 
@@ -379,7 +377,7 @@ fn diff_with_cached(provisioning_result: &ProvisioningResult, path: &Path) -> bo
     fn diff_with_cached_inner(
         provisioning_result: &ProvisioningResult,
         path: &Path,
-    ) -> Result<bool, DiffError> {
+    ) -> anyhow::Result<bool> {
         let mut file = OpenOptions::new().read(true).open(path)?;
         let mut buffer = String::new();
         file.read_to_string(&mut buffer)?;
@@ -392,32 +390,20 @@ fn diff_with_cached(provisioning_result: &ProvisioningResult, path: &Path) -> bo
         }
     }
 
-    match diff_with_cached_inner(provisioning_result, path) {
+    match diff_with_cached_inner(provisioning_result, path).context(DiffError) {
         Ok(result) => result,
 
         Err(err) => {
-            log_failure(Level::Debug, &err);
+            log_failure(Level::Debug, err.as_ref());
             debug!("Error reading config backup.");
             true
         }
     }
 }
 
-#[derive(Debug, Fail)]
-#[fail(display = "Could not load provisioning result")]
-pub struct DiffError(#[cause] Context<Box<dyn std::fmt::Display + Send + Sync>>);
-
-impl From<std::io::Error> for DiffError {
-    fn from(err: std::io::Error) -> Self {
-        DiffError(Context::new(Box::new(err)))
-    }
-}
-
-impl From<serde_json::Error> for DiffError {
-    fn from(err: serde_json::Error) -> Self {
-        DiffError(Context::new(Box::new(err)))
-    }
-}
+#[derive(Debug, thiserror::Error)]
+#[error("Could not load provisioning result")]
+pub struct DiffError;
 
 fn reconfigure<M>(
     subdir: &Path,
@@ -425,14 +411,14 @@ fn reconfigure<M>(
     provisioning_result: &ProvisioningResult,
     runtime: &M::ModuleRuntime,
     tokio_runtime: &mut tokio::runtime::Runtime,
-) -> Result<(), Error>
+) -> anyhow::Result<()>
 where
     M: MakeModuleRuntime + 'static,
 {
     info!("Removing all modules...");
     tokio_runtime
         .block_on(runtime.remove_all())
-        .context(ErrorKind::Initialize(
+        .context(Error::Initialize(
             InitializeErrorReason::RemoveExistingModules,
         ))?;
     info!("Finished removing modules.");
@@ -441,10 +427,10 @@ where
 
     // store provisioning result
     let digest = compute_provisioning_result_digest(provisioning_result).context(
-        ErrorKind::Initialize(InitializeErrorReason::SaveProvisioning),
+        Error::Initialize(InitializeErrorReason::SaveProvisioning),
     )?;
 
-    std::fs::write(path, digest.into_bytes()).context(ErrorKind::Initialize(
+    std::fs::write(path, digest.into_bytes()).context(Error::Initialize(
         InitializeErrorReason::SaveProvisioning,
     ))?;
 
@@ -460,7 +446,7 @@ fn start_api<F, W, M>(
     shutdown_signal: F,
     tokio_runtime: &mut tokio::runtime::Runtime,
     create_socket_channel_rcv: UnboundedReceiver<ModuleAction>,
-) -> Result<bool, Error>
+) -> anyhow::Result<bool>
 where
     F: Future<Item = (), Error = ()> + Send + 'static,
     W: WorkloadConfig + Clone + Send + Sync + 'static,
@@ -470,8 +456,6 @@ where
         Clone + DeserializeOwned + Serialize,
     M::Settings: 'static,
     <M::ModuleRuntime as ModuleRuntime>::Logs: Into<Body>,
-    <M::ModuleRuntime as Authenticator>::Error: Fail + Sync,
-    for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
 {
     let iot_hub_name = workload_config.iot_hub_name().to_string();
     let device_id = workload_config.device_id().to_string();
@@ -506,7 +490,7 @@ where
             .into_future()
             .then(|res| match res {
                 Ok((Some(()), _)) | Ok((None, _)) => Ok(()),
-                Err(((), _)) => Err(Error::from(ErrorKind::ManagementService)),
+                Err(((), _)) => Err(anyhow::anyhow!(Error::ManagementService)),
             });
 
     let mgmt_stop_and_reprovision_signaled = match settings.auto_reprovisioning_mode() {
@@ -572,7 +556,7 @@ fn init_runtime<M>(
     settings: M::Settings,
     tokio_runtime: &mut tokio::runtime::Runtime,
     create_socket_channel_snd: UnboundedSender<ModuleAction>,
-) -> Result<M::ModuleRuntime, Error>
+) -> anyhow::Result<M::ModuleRuntime>
 where
     M: MakeModuleRuntime + Send + 'static,
     M::ModuleRuntime: Send,
@@ -581,7 +565,7 @@ where
     info!("Initializing the module runtime...");
     let runtime = tokio_runtime
         .block_on(M::make_runtime(settings, create_socket_channel_snd))
-        .context(ErrorKind::Initialize(InitializeErrorReason::ModuleRuntime))?;
+        .context(Error::Initialize(InitializeErrorReason::ModuleRuntime))?;
     info!("Finished initializing the module runtime.");
 
     Ok(runtime)
@@ -594,14 +578,13 @@ fn start_runtime<M>(
     device_id: &str,
     settings: &M::Settings,
     shutdown: Receiver<()>,
-) -> Result<impl Future<Item = (), Error = Error>, Error>
+) -> anyhow::Result<impl Future<Item = (), Error = anyhow::Error>>
 where
     M: MakeModuleRuntime,
     M::ModuleRuntime: Clone + 'static,
     <<M::ModuleRuntime as ModuleRuntime>::Module as Module>::Config:
         Clone + DeserializeOwned + Serialize,
     <M::ModuleRuntime as ModuleRuntime>::Logs: Into<Body>,
-    for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
 {
     let spec = settings.agent().clone();
     let env = build_env(spec.env(), hostname, parent_hostname, device_id, settings);
@@ -612,7 +595,7 @@ where
         env,
         spec.image_pull_policy(),
     )
-    .context(ErrorKind::Initialize(InitializeErrorReason::EdgeRuntime))?;
+    .context(Error::Initialize(InitializeErrorReason::EdgeRuntime))?;
 
     let watchdog = Watchdog::new(
         runtime,
@@ -621,7 +604,7 @@ where
     );
     let runtime_future = watchdog
         .run_until(spec, EDGE_RUNTIME_MODULEID, shutdown.map_err(|_| ()))
-        .map_err(Error::from);
+        .from_err();
 
     Ok(runtime_future)
 }
@@ -684,12 +667,10 @@ fn start_management<M>(
     runtime: &M::ModuleRuntime,
     shutdown: Receiver<()>,
     initiate_shutdown_and_reprovision: mpsc::UnboundedSender<()>,
-) -> impl Future<Item = (), Error = Error>
+) -> impl Future<Item = (), Error = anyhow::Error>
 where
     M: MakeModuleRuntime,
     M::ModuleRuntime: Authenticator<Request = Request<Body>> + Send + Sync + Clone + 'static,
-    <<M::ModuleRuntime as Authenticator>::AuthenticateFuture as Future>::Error: Fail,
-    for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
     <<M::ModuleRuntime as ModuleRuntime>::Module as Module>::Config: DeserializeOwned + Serialize,
     <M::ModuleRuntime as ModuleRuntime>::Logs: Into<Body>,
 {
@@ -705,21 +686,17 @@ where
     )));
 
     ManagementService::new(runtime, identity_client, initiate_shutdown_and_reprovision)
-        .then(move |service| -> Result<_, Error> {
-            let service = service.context(ErrorKind::Initialize(
+        .then(move |service| -> anyhow::Result<_> {
+            let service = service.context(Error::Initialize(
                 InitializeErrorReason::ManagementService,
             ))?;
             let service = LoggingService::new(label, service);
 
             let run = Http::new()
                 .bind_url(url.clone(), service, MGMT_SOCKET_DEFAULT_PERMISSION)
-                .map_err(|err| {
-                    err.context(ErrorKind::Initialize(
-                        InitializeErrorReason::ManagementService,
-                    ))
-                })?
+                .context(Error::Initialize(InitializeErrorReason::ManagementService))?
                 .run_until(shutdown.map_err(|_| ()), ConcurrencyThrottling::NoLimit)
-                .map_err(|err| Error::from(err.context(ErrorKind::ManagementService)));
+                .map_err(|e| anyhow::anyhow!(e).context(Error::ManagementService));
             info!("Listening on {} with 1 thread for management API.", url);
             Ok(run)
         })

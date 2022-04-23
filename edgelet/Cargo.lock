@@ -114,6 +114,7 @@ dependencies = [
 name = "aziot-edged"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "aziot-cert-common-http",
  "aziot-identity-common",
  "aziot-identity-common-http",
@@ -134,7 +135,6 @@ dependencies = [
  "edgelet-test-utils",
  "edgelet-utils",
  "env_logger",
- "failure",
  "foreign-types-shared",
  "futures",
  "http-common",
@@ -152,6 +152,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "tempdir",
+ "thiserror",
  "tokio",
  "tokio-signal",
  "url 2.1.1",
