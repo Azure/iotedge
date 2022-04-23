@@ -152,6 +152,8 @@ stages:
           vmImage: 'ubuntu-18.04'
         variables:
           NugetSecurityAnalysisWarningLevel: warn
+        permissions:
+          actions: read
         strategy:
           matrix:
             CBL-Mariner1.0-amd64:
