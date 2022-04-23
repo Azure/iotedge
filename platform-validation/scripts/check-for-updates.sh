@@ -3,15 +3,14 @@
 #Script to check for udpates required to aziot-compatibility.sh script
 #Assumes Moby-Engine/Docker is installed
 #Requires AZ Login and appropriate subscription to be selected
+#Requires Environment Variables REGISTRY_ADDRESS REGISTRY_USERNAME REGISTRY_PASSWORD to be set
 
 TEMP_DEPLOYMENT_FILE="deployment.json"
-BENCHMARK_OUTPUT_DIR="memory-usage-results"
 
 set -e
 
 function install_iotedge_local() {
     directory="$1"
-    sudo apt-get update
     identityservicebinary="$(ls "$directory" | grep "aziot-identity-service")"
     if [[ -z $identityservicebinary ]]; then
         echo "No Identity Service Binary Found"
@@ -32,9 +31,9 @@ function install_iotedge_local() {
 
 begin_benchmarking() {
     mkdir -p "$BENCHMARK_OUTPUT_DIR"
-    echo "Starting Script for Analyzing Container Memory with Path $BENCHMARK_OUTPUT_DIR and Script $USAGE_SCRIPT_PATH"
+    echo "Starting Script for Analyzing IoT Edge Memory with Path $BENCHMARK_OUTPUT_DIR and Script $USAGE_SCRIPT_PATH"
     sudo chmod +x "$USAGE_SCRIPT_PATH"
-    "$USAGE_SCRIPT_PATH" -t "$1" -p "$BENCHMARK_OUTPUT_DIR" >&"$BENCHMARK_OUTPUT_DIR/analyze-memory-logs.out" &
+    "$USAGE_SCRIPT_PATH" -t "$1" -p "$BENCHMARK_OUTPUT_DIR" >"$BENCHMARK_OUTPUT_DIR/analyze-memory-logs.out" &
 }
 
 calculate_usage() {
@@ -74,36 +73,101 @@ compare_usage() {
     fi
 }
 
+EXPECTED_SHARED_LIBRARIES=""
+SHARED_LIBRARIES=""
+find_shared_library() {
+    CURRENT_SHARED_LIBRARIES_BASE="$(grep "SHARED_LIBRARIES_BASE=" <"$COMPATIBILITY_TOOL_PATH" | sed -r "s/^SHARED_LIBRARIES_BASE=//g" | tr -d '"')"
+    CURRENT_SHARED_LIBRARIES_x86_64="$(grep "SHARED_LIBRARIES_x86_64=" <"$COMPATIBILITY_TOOL_PATH" | sed -r "s/^SHARED_LIBRARIES_x86_64=//g" | tr -d '"')"
+    CURRENT_SHARED_LIBRARIES_aarch64="$(grep "SHARED_LIBRARIES_aarch64=" <"$COMPATIBILITY_TOOL_PATH" | sed -r "s/^SHARED_LIBRARIES_aarch64=//g" | tr -d '"')"
+    CURRENT_SHARED_LIBRARIES_armv7l="$(grep "SHARED_LIBRARIES_armv7l=" <"$COMPATIBILITY_TOOL_PATH" | sed -r "s/^SHARED_LIBRARIES_armv7l=//g" | tr -d '"')"
+
+    echo "Installing binutils for readelf command"
+    INSTALL_READELF=$(sudo apt-get -y install binutils)
+    echo "Successfully installed binutils"
+    IOTEDGE_SHARED_LIB=$(readelf --dynamic /usr/bin/iotedge | grep "Shared library" | tr -d [] | awk '{print $5}')
+    echo "IoT Edge shared dependent libraries: $IOTEDGE_SHARED_LIB"
+    IDENTITYD_SHARED_LIB=$(readelf --dynamic /usr/libexec/aziot-identity-service/aziot-identityd | grep "Shared library" | tr -d [] | awk '{print $5}')
+    echo "IoT Identity service shared dependent libraries: $IDENTITYD_SHARED_LIB"
+
+    for iotedgelib in $IOTEDGE_SHARED_LIB; do
+        for identitydlib in $IDENTITYD_SHARED_LIB; do
+            if [ "$iotedgelib" = "$identitydlib" ]; then
+                EXPECTED_SHARED_LIBRARIES+="$identitydlib "
+                break
+            fi
+        done
+    done
+
+    echo "Expected common shared libraries for the current IoT edge package: $EXPECTED_SHARED_LIBRARIES"
+
+    ARCH=$(uname -m)
+    if [ "$ARCH" = x86_64 ]; then
+        SHARED_LIBRARIES="$(echo $CURRENT_SHARED_LIBRARIES_BASE $CURRENT_SHARED_LIBRARIES_x86_64)"
+    elif [ "$ARCH" = aarch64 ]; then
+        SHARED_LIBRARIES="$(echo $CURRENT_SHARED_LIBRARIES_BASE $CURRENT_SHARED_LIBRARIES_aarch64)"
+    elif [ "$ARCH" = armv7l ]; then
+        SHARED_LIBRARIES="$(echo $CURRENT_SHARED_LIBRARIES_BASE $CURRENT_SHARED_LIBRARIES_armv7l)"
+    fi
+
+    echo "Shared libraries in aziot-compatibility tool : $SHARED_LIBRARIES"
+}
+
+check_shared_library() {
+    for expectedlib in $EXPECTED_SHARED_LIBRARIES; do
+        found=0
+        for currentlib in $SHARED_LIBRARIES; do
+            if [ "$expectedlib" = "$currentlib" ]; then
+                found=1
+                break
+            fi
+        done
+        if [ "$found" != 1 ]; then
+            echo "$expectedlib is not checked in current aziot-compatibility tool. Please update aziot-compatibility tool"
+            exit 1
+        fi
+    done
+    echo "Shared Library check is up to date in aziot-compatibility tool"
+}
+
 function provision_edge_device() {
     # Provision w/ connection string
     DEVICE_ID=benchmark-device-$(echo $RANDOM | md5sum | head -c 10)
-    az iot hub device-identity create --device-id "$DEVICE_ID" --edge-enabled --hub-name "$IOT_HUB_NAME"
-    connection_string=$(az iot hub device-identity connection-string show --device-id "$DEVICE_ID" --hub-name "$IOT_HUB_NAME" -o tsv)
-    sudo iotedge config mp --connection-string "$connection_string"
-    sudo iotedge config apply
+    az iot hub device-identity create --device-id "$DEVICE_ID" --edge-enabled --hub-name "$IOTHUB_NAME"
+    connection_string=$(az iot hub device-identity connection-string show --device-id "$DEVICE_ID" --hub-name "$IOTHUB_NAME" -o tsv)
+    if [[ -z "$CONFIG_TOML_FILE_NAME" ]]; then
+        sudo iotedge config mp --connection-string "$connection_string"
+        sudo iotedge config apply
+    else
+        sed -i -e "s@<Connection-String>@$connection_string@g" "$CONFIG_TOML_FILE_NAME"
+        sed -i -e "s@<CR.Address>@$REGISTRY_ADDRESS@g" "$CONFIG_TOML_FILE_NAME"
+        sed -i -e "s@<CR.UserName>@$REGISTRY_USERNAME@g" "$CONFIG_TOML_FILE_NAME"
+        sed -i -e "s@<CR.Password>@$REGISTRY_PASSWORD@g" "$CONFIG_TOML_FILE_NAME"
+        sed -i -e "s@<edgeAgentImage>@$EDGEAGENT_IMAGE@g" "$CONFIG_TOML_FILE_NAME"
+        sudo iotedge config apply -c "$CONFIG_TOML_FILE_NAME"
+    fi
 }
 
 function create_edge_deployment() {
     sudo apt-get install -y uuid
-    DEPLOYMENT_ID=iotedge-benchmarking-$(uuidgen)
+    DEPLOYMENT_ID=iotedge-benchmarking-$(uuid)
     cp "$DEPLOYMENT_FILE_NAME" $TEMP_DEPLOYMENT_FILE
     sed -i -e "s@<CR.Address>@$REGISTRY_ADDRESS@g" "$TEMP_DEPLOYMENT_FILE"
-    sed -i -e "s@<CR.Username>@$REGISTRY_USERNAME@g" "$TEMP_DEPLOYMENT_FILE"
+    sed -i -e "s@<CR.UserName>@$REGISTRY_USERNAME@g" "$TEMP_DEPLOYMENT_FILE"
     sed -i -e "s@<CR.Password>@$REGISTRY_PASSWORD@g" "$TEMP_DEPLOYMENT_FILE"
     sed -i -e "s@<edgeAgentImage>@$EDGEAGENT_IMAGE@g" "$TEMP_DEPLOYMENT_FILE"
     sed -i -e "s@<edgeHubImage>@$EDGEHUB_IMAGE@g" "$TEMP_DEPLOYMENT_FILE"
     sed -i -e "s@<tempSensorImage>@$TEMPSENSOR_IMAGE@g" "$TEMP_DEPLOYMENT_FILE"
-    az iot edge deployment create --content "$TEMP_DEPLOYMENT_FILE" --deployment-id "$DEPLOYMENT_ID" --hub-name "$IOT_HUB_NAME" -t "deviceId='$DEVICE_ID'"
+    az iot edge deployment create --content "$TEMP_DEPLOYMENT_FILE" --deployment-id "$DEPLOYMENT_ID" --hub-name "$IOTHUB_NAME" -t "deviceId='$DEVICE_ID'"
 }
 
 function delete_edge_deployment() {
     echo "Removing IoT Edge Device Deployment"
-    az iot edge deployment delete --deployment-id $DEPLOYMENT_ID --hub-name $IOT_HUB_NAME
+    az iot edge deployment delete --deployment-id $DEPLOYMENT_ID --hub-name $IOTHUB_NAME
 }
 
 function delete_iot_hub_device_identity() {
     echo "Removing IoT Edge Device Identity"
-    az iot hub device-identity delete --device-id $DEVICE_ID --hub-name $IOT_HUB_NAME
+    az iot hub device-identity delete --device-id $DEVICE_ID --hub-name $IOTHUB_NAME
 }
 
 function delete_iot_edge() {
@@ -112,7 +176,6 @@ function delete_iot_edge() {
 }
 
 function cleanup_files() {
-    rm -rf $BENCHMARK_OUTPUT_DIR || true
     rm -rf $TEMP_DEPLOYMENT_FILE || true
 }
 
@@ -132,6 +195,8 @@ function usage() {
     echo "--edge-agent-image                    The EdgeAgent Image"
     echo "--edge-hub-image                      The EdgeHub Image"
     echo "--temp-sensor-image                   The Temp Sensor Image"
+    echo "-o, --output-path                     Output Path for Logs"
+    echo "--config-toml-path                    Config TOML Path"
     exit 1
 }
 
@@ -145,7 +210,7 @@ function process_args() {
             DEPLOYMENT_FILE_NAME=$arg
             save_next_arg=0
         elif [ ${save_next_arg} -eq 2 ]; then
-            IOT_HUB_NAME=$arg
+            IOTHUB_NAME=$arg
             save_next_arg=0
         elif [ ${save_next_arg} -eq 3 ]; then
             USAGE_SCRIPT_PATH=$arg
@@ -168,6 +233,12 @@ function process_args() {
         elif [ ${save_next_arg} -eq 9 ]; then
             TEMPSENSOR_IMAGE=$arg
             save_next_arg=0
+        elif [ ${save_next_arg} -eq 10 ]; then
+            OUTPUT_PATH=$arg
+            save_next_arg=0
+        elif [ ${save_next_arg} -eq 11 ]; then
+            CONFIG_TOML_FILE_NAME=$arg
+            save_next_arg=0
         else
             case "$arg" in
             "-h" | "--help") usage ;;
@@ -180,6 +251,8 @@ function process_args() {
             "--edge-agent-image") save_next_arg=7 ;;
             "--edge-hub-image") save_next_arg=8 ;;
             "--temp-sensor-image") save_next_arg=9 ;;
+            "-o" | "--output-path") save_next_arg=10 ;;
+            "--config-toml-path") save_next_arg=11 ;;
             *) usage ;;
             esac
         fi
@@ -195,7 +268,7 @@ function print_error() {
 
 process_args "$@"
 
-[[ -z "$IOT_HUB_NAME" ]] && {
+[[ -z "$IOTHUB_NAME" ]] && {
     print_error 'IoT Hub name is required.'
     exit 1
 }
@@ -240,7 +313,16 @@ process_args "$@"
     exit 1
 }
 
+[[ -z "$OUTPUT_PATH" ]] && {
+    print_error 'Output Path is required.'
+    exit 1
+}
+
+# On ARM32 Agents, we need to specify path to azure cli since it runs in a python Environment
+# due to issues with azure-cli running on ARM. On other platforms, the following line will be a no-op
+export PATH=~/azure-cli-env/bin/:$PATH
 cleanup_files
+BENCHMARK_OUTPUT_DIR="$OUTPUT_PATH/memory-usage-results"
 #Start the Memory Usage Script so that we can capture startup memory usage
 begin_benchmarking "$TIME_TO_RUN"
 install_iotedge_local "$BINARIES_PATH"
@@ -250,6 +332,8 @@ sleep 60
 create_edge_deployment
 echo "Deployment Complete, Sleeping for $TIME_TO_RUN seconds"
 sleep "$TIME_TO_RUN"
+iotedge support-bundle -o "$OUTPUT_PATH"/support_bundle.zip
+find_shared_library
 calculate_usage
 delete_edge_deployment
 delete_iot_hub_device_identity
@@ -258,8 +342,10 @@ delete_iot_edge
 #Compare Usage and Exit if Current Usage exceeds recorded usage
 size_buffer="$(grep "iotedge_size_buffer=" <"$COMPATIBILITY_TOOL_PATH" | sed -r "s/^iotedge_size_buffer=//g")"
 memory_buffer="$(grep "iotedge_memory_buffer=" <"$COMPATIBILITY_TOOL_PATH" | sed -r "s/^iotedge_memory_buffer=//g")"
+cat "$BENCHMARK_OUTPUT_DIR/analyze-memory-logs.out"
 echo "Size buffer is $size_buffer"
 compare_usage container size "$size_buffer"
 compare_usage container memory "$memory_buffer"
 compare_usage binaries size "$size_buffer"
 compare_usage binaries avg_memory "$memory_buffer"
+check_shared_library

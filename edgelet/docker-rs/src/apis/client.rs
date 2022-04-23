@@ -4,7 +4,6 @@ use std::sync::Arc;
 
 use futures::{Future, Stream};
 use serde_json;
-use typed_headers::{self, mime, HeaderMapExt};
 
 use http_common::{Connector, ErrorBody, HttpRequest};
 use hyper::{Body, Client, Uri};

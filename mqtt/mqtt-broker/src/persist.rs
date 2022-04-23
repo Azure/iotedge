@@ -104,6 +104,7 @@ impl<F> FilePersistor<F> {
     /// The intent is to allow rollback to a pervious state.
     /// The default is `2`, which saves the current and previous state.
     /// The minimum value is `1` (the current state).
+    #[must_use]
     pub fn with_previous_count(mut self, previous_count: usize) -> Self {
         self.previous_count = cmp::max(1, previous_count);
         self
