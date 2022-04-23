@@ -7,8 +7,6 @@ use edgelet_utils::log_failure;
 use env_logger;
 use log::{Level, LevelFilter};
 
-use crate::error::Error;
-
 const ENV_LOG: &str = "IOTEDGE_LOG";
 
 pub fn init() {
@@ -58,6 +56,6 @@ fn syslog_level(level: Level) -> i8 {
     }
 }
 
-pub fn log_error(error: &Error) {
+pub fn log_error(error: &dyn std::error::Error) {
     log_failure(Level::Error, error);
 }
