@@ -4,12 +4,12 @@ use std::collections::HashMap;
 use std::fmt;
 use std::path::Path;
 
-use failure::Fail;
+use anyhow::Context;
 use git2::Repository;
 use hex::encode;
 use log::debug;
 
-use crate::error::{Error, ErrorKind};
+use crate::error::Error;
 
 type RemoteUrl = String;
 type CommitId = String;
@@ -73,13 +73,13 @@ impl Git2Tree {
         Ok(())
     }
 
-    fn new_as_subtree(path: &Path, mut remotes: &mut RemoteMap) -> Result<Self, Error> {
+    fn new_as_subtree(path: &Path, mut remotes: &mut RemoteMap) -> anyhow::Result<Self> {
         debug!("repo path {:?}", path);
         let repo =
-            Repository::open(path).map_err(|err| Error::from(err.context(ErrorKind::Git)))?;
+            Repository::open(path).context(Error::Git)?;
         let remote = sanitize_url(
             repo.find_remote("origin")
-                .map_err(|err| Error::from(err.context(ErrorKind::Git)))?
+                .context(Error::Git)?
                 .url()
                 .unwrap()
                 .to_string(),
@@ -87,9 +87,9 @@ impl Git2Tree {
         debug!("remote = {:?}", remote);
         let commit = encode(
             repo.head()
-                .map_err(|err| Error::from(err.context(ErrorKind::Git)))?
+                .context(Error::Git)?
                 .peel_to_commit()
-                .map_err(|err| Error::from(err.context(ErrorKind::Git)))?
+                .context(Error::Git)?
                 .id(),
         );
         debug!("commit = {:?}", commit);
@@ -99,9 +99,9 @@ impl Git2Tree {
         let mut children: Vec<Git2Tree> = Vec::new();
         for sm in repo
             .submodules()
-            .map_err(|err| Error::from(err.context(ErrorKind::Git)))?
+            .context(Error::Git)?
         {
-            let child = Git2Tree::new_as_subtree(path.join(sm.path()).as_path(), &mut remotes)?;
+            let child = Git2Tree::new_as_subtree(path.join(sm.path()).as_path(), &mut remotes).context(Error::Git)?;
             children.push(child);
         }
         Ok(Git2Tree {
@@ -110,7 +110,7 @@ impl Git2Tree {
         })
     }
 
-    pub fn new(path: &Path) -> Result<Self, Error> {
+    pub fn new(path: &Path) -> anyhow::Result<Self> {
         let mut remotes: RemoteMap = HashMap::new();
         Git2Tree::new_as_subtree(path, &mut remotes)
     }

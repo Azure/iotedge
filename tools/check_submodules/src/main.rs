@@ -13,7 +13,7 @@ use std::path::Path;
 use clap::{App, Arg};
 use log::info;
 
-fn run_check(starting_path: &Path) -> Result<(), error::Error> {
+fn run_check(starting_path: &Path) -> anyhow::Result<()> {
     // Create a submodule tree.
     let tree = tree::Git2Tree::new(starting_path)?;
     let count = tree.count_flagged();
@@ -21,7 +21,7 @@ fn run_check(starting_path: &Path) -> Result<(), error::Error> {
     println!("{}", tree);
     match count {
         0 => Ok(()),
-        _ => Err(count)?,
+        _ => Err(error::Error::from(count))?,
     }
 }
 
@@ -40,7 +40,7 @@ fn main() {
     info!("Starting check with path {:?}", starting_path);
 
     if let Err(e) = run_check(starting_path) {
-        logging::log_error(&e);
+        logging::log_error(e.as_ref());
         std::process::exit(1);
     } else {
         info!("No inconsistencies detected");
