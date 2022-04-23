@@ -1343,6 +1343,7 @@ dependencies = [
 name = "iotedge"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "atty",
  "aziot-certd-config",
  "aziot-identity-common",
@@ -1367,7 +1368,6 @@ dependencies = [
  "edgelet-http-mgmt",
  "edgelet-test-utils",
  "edgelet-utils",
- "failure",
  "futures",
  "hyper",
  "hyper-proxy",
@@ -1390,6 +1390,7 @@ dependencies = [
  "tabwriter",
  "tempfile",
  "termcolor 0.3.6",
+ "thiserror",
  "tokio",
  "toml",
  "typed-headers",

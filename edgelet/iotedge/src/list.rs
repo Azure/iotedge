@@ -4,15 +4,15 @@ use std::fmt::Display;
 use std::io::Write;
 use std::sync::{Arc, Mutex};
 
+use anyhow::Context;
 use chrono::{Duration, Utc};
 use chrono_humanize::{Accuracy, HumanTime, Tense};
-use failure::{Fail, ResultExt};
 use futures::{Future, Stream};
 use tabwriter::TabWriter;
 
 use edgelet_core::{Module, ModuleRuntime, ModuleRuntimeState, ModuleStatus};
 
-use crate::error::{Error, ErrorKind};
+use crate::error::Error;
 use crate::Command;
 
 pub struct List<M, W> {
@@ -40,21 +40,21 @@ where
     M::Config: Display,
     W: 'static + Write + Send,
 {
-    type Future = Box<dyn Future<Item = (), Error = Error> + Send>;
+    type Future = Box<dyn Future<Item = (), Error = anyhow::Error> + Send>;
 
     fn execute(self) -> Self::Future {
         let write = self.output.clone();
         let result = self
             .runtime
             .list_with_details()
-            .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))
+            .map_err(|err| err.context(Error::ModuleRuntime))
             .collect()
             .and_then(move |mut result| {
                 result.sort_by(|(mod1, _), (mod2, _)| mod1.name().cmp(mod2.name()));
 
                 let mut w = write.lock().unwrap();
                 writeln!(w, "NAME\tSTATUS\tDESCRIPTION\tCONFIG")
-                    .context(ErrorKind::WriteToStdout)?;
+                    .context(Error::WriteToStdout)?;
                 for (module, state) in result {
                     writeln!(
                         w,
@@ -64,9 +64,9 @@ where
                         humanize_state(&state),
                         module.config(),
                     )
-                    .context(ErrorKind::WriteToStdout)?;
+                    .context(Error::WriteToStdout)?;
                 }
-                w.flush().context(ErrorKind::WriteToStdout)?;
+                w.flush().context(Error::WriteToStdout)?;
                 Ok(())
             });
         Box::new(result)

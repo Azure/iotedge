@@ -1,6 +1,6 @@
 use std::process::Command;
 
-use failure::{self, Context, Fail, ResultExt};
+use anyhow::Context;
 use futures::{future, Future, Stream};
 use regex::Regex;
 
@@ -8,7 +8,7 @@ use edgelet_http::client::ClientImpl;
 use edgelet_http::MaybeProxyClient;
 
 use crate::check::{checker::Checker, Check, CheckResult};
-use crate::error::{Error, ErrorKind, FetchLatestVersionsReason};
+use crate::error::{Error, FetchLatestVersionsReason};
 
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct AziotEdgedVersion {
@@ -32,7 +32,7 @@ impl Checker for AziotEdgedVersion {
         let latest_versions = if let Some(expected_aziot_edged_version) =
             &check.expected_aziot_edged_version
         {
-            future::Either::A(future::ok::<_, Error>(crate::LatestVersions {
+            future::Either::A(future::ok::<_, anyhow::Error>(crate::LatestVersions {
                 aziot_edge: expected_aziot_edged_version.clone(),
             }))
         } else {
@@ -48,11 +48,11 @@ impl Checker for AziotEdgedVersion {
                 .or_else(|| std::env::var("https_proxy").ok())
                 .map(|proxy| proxy.parse::<hyper::Uri>())
                 .transpose()
-                .context(ErrorKind::FetchLatestVersions(
+                .context(Error::FetchLatestVersions(
                     FetchLatestVersionsReason::CreateClient,
                 ));
             let hyper_client = proxy.and_then(|proxy| {
-                MaybeProxyClient::new(proxy, None, None).context(ErrorKind::FetchLatestVersions(
+                MaybeProxyClient::new(proxy, None, None).context(Error::FetchLatestVersions(
                     FetchLatestVersionsReason::CreateClient,
                 ))
             });
@@ -68,8 +68,8 @@ impl Checker for AziotEdgedVersion {
             future::Either::B(
                 hyper_client
                     .call(request)
-                    .then(|response| -> Result<_, Error> {
-                        let response = response.context(ErrorKind::FetchLatestVersions(
+                    .then(|response| -> anyhow::Result<_> {
+                        let response = response.context(Error::FetchLatestVersions(
                             FetchLatestVersionsReason::GetResponse,
                         ))?;
                         Ok(response)
@@ -79,40 +79,38 @@ impl Checker for AziotEdgedVersion {
                             let uri = response
                                 .headers()
                                 .get(hyper::header::LOCATION)
-                                .ok_or(ErrorKind::FetchLatestVersions(
+                                .ok_or(Error::FetchLatestVersions(
                                     FetchLatestVersionsReason::InvalidOrMissingLocationHeader,
                                 ))?
                                 .to_str()
-                                .context(ErrorKind::FetchLatestVersions(
+                                .context(Error::FetchLatestVersions(
                                     FetchLatestVersionsReason::InvalidOrMissingLocationHeader,
                                 ))?;
                             let request = hyper::Request::get(uri)
                                 .body(hyper::Body::default())
                                 .expect("can't fail to create request");
                             Ok(hyper_client.call(request).map_err(|err| {
-                                err.context(ErrorKind::FetchLatestVersions(
+                                anyhow::anyhow!(err).context(Error::FetchLatestVersions(
                                     FetchLatestVersionsReason::GetResponse,
                                 ))
-                                .into()
                             }))
                         }
-                        status_code => Err(ErrorKind::FetchLatestVersions(
+                        status_code => Err(Error::FetchLatestVersions(
                             FetchLatestVersionsReason::ResponseStatusCode(status_code),
                         )
                         .into()),
                     })
                     .flatten()
-                    .and_then(|response| -> Result<_, Error> {
+                    .and_then(|response| -> anyhow::Result<_> {
                         match response.status() {
                             hyper::StatusCode::OK => {
                                 Ok(response.into_body().concat2().map_err(|err| {
-                                    err.context(ErrorKind::FetchLatestVersions(
+                                    anyhow::anyhow!(err).context(Error::FetchLatestVersions(
                                         FetchLatestVersionsReason::GetResponse,
                                     ))
-                                    .into()
                                 }))
                             }
-                            status_code => Err(ErrorKind::FetchLatestVersions(
+                            status_code => Err(Error::FetchLatestVersions(
                                 FetchLatestVersionsReason::ResponseStatusCode(status_code),
                             )
                             .into()),
@@ -121,7 +119,7 @@ impl Checker for AziotEdgedVersion {
                     .flatten()
                     .and_then(|body| {
                         Ok(serde_json::from_slice(&body).context(
-                            ErrorKind::FetchLatestVersions(FetchLatestVersionsReason::GetResponse),
+                            Error::FetchLatestVersions(FetchLatestVersionsReason::GetResponse),
                         )?)
                     }),
             )
@@ -139,12 +137,12 @@ impl AziotEdgedVersion {
     fn inner_execute(
         &mut self,
         check: &mut Check,
-        latest_versions: Result<crate::LatestVersions, Option<Error>>,
-    ) -> Result<CheckResult, failure::Error> {
+        latest_versions: Result<crate::LatestVersions, Option<anyhow::Error>>,
+    ) -> anyhow::Result<CheckResult> {
         let latest_versions = match latest_versions {
             Ok(latest_versions) => latest_versions,
             Err(mut err) => match err.take() {
-                Some(err) => return Ok(CheckResult::Warning(err.into())),
+                Some(err) => return Ok(CheckResult::Warning(err)),
                 None => return Ok(CheckResult::Skipped),
             },
         };
@@ -157,13 +155,12 @@ impl AziotEdgedVersion {
             .output()
             .context("Could not spawn aziot-edged process")?;
         if !output.status.success() {
-            return Err(Context::new(format!(
+            return Err(anyhow::anyhow!(
                 "aziot-edged returned {}, stderr = {}",
                 output.status,
                 String::from_utf8_lossy(&*output.stderr),
-            ))
-            .context("Could not spawn aziot-edged process")
-            .into());
+            )
+            .context("Could not spawn aziot-edged process"));
         }
 
         let output = String::from_utf8(output.stdout)
@@ -173,13 +170,8 @@ impl AziotEdgedVersion {
             .expect("This hard-coded regex is expected to be valid.");
         let captures = aziot_edged_version_regex
             .captures(output.trim())
-            .ok_or_else(|| {
-                Context::new(format!(
-                    "output {:?} does not match expected format",
-                    output,
-                ))
-                .context("Could not parse output of aziot-edged --version")
-            })?;
+            .with_context(|| format!("output {:?} does not match expected format", output))
+            .context("Could not parse output of aziot-edged --version")?;
         let version = captures
             .get(1)
             .expect("unreachable: regex defines one capturing group")
@@ -190,12 +182,11 @@ impl AziotEdgedVersion {
 
         if version != latest_versions.aziot_edge {
             return Ok(CheckResult::Warning(
-            Context::new(format!(
+            anyhow::anyhow!(
                 "Installed IoT Edge daemon has version {} but {} is the latest stable version available.\n\
                  Please see https://aka.ms/iotedge-update-runtime for update instructions.",
                 version, latest_versions.aziot_edge,
-            ))
-            .into(),
+            )
         ));
         }
 

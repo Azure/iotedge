@@ -2,6 +2,7 @@
 
 use std::ffi::OsStr;
 
+use anyhow::Context;
 use lazy_static::lazy_static;
 
 use aziotctl_common::system::{
@@ -12,7 +13,7 @@ use aziotctl_common::system::{
 use aziot_identity_common_http::ApiVersion;
 use identity_client::IdentityClient;
 
-use crate::error::{Error, ErrorKind};
+use crate::error::Error;
 
 lazy_static! {
     static ref IOTEDGED: ServiceDefinition = {
@@ -45,44 +46,54 @@ lazy_static! {
 pub struct System;
 
 impl System {
-    pub fn get_system_logs(args: &[&OsStr]) -> Result<(), Error> {
+    pub fn get_system_logs(args: &[&OsStr]) -> anyhow::Result<()> {
         let services: Vec<&str> = SERVICE_DEFINITIONS.iter().map(|s| s.service).collect();
 
-        logs(&services, &args).map_err(|err| {
-            eprintln!("{:#?}", err);
-            Error::from(ErrorKind::System)
-        })
+        logs(&services, &args)
+            .context(Error::System)
+            .map_err(|err| {
+                eprintln!("{:#?}", err);
+                err
+            })
     }
 
-    pub fn system_restart() -> Result<(), Error> {
-        restart(&SERVICE_DEFINITIONS).map_err(|err| {
-            eprintln!("{:#?}", err);
-            Error::from(ErrorKind::System)
-        })
+    pub fn system_restart() -> anyhow::Result<()> {
+        restart(&SERVICE_DEFINITIONS)
+            .context(Error::System)
+            .map_err(|err| {
+                eprintln!("{:#?}", err);
+                err
+            })
     }
 
-    pub fn system_stop() -> Result<(), Error> {
-        stop(&SERVICE_DEFINITIONS).map_err(|err| {
-            eprintln!("{:#?}", err);
-            Error::from(ErrorKind::System)
-        })
+    pub fn system_stop() -> anyhow::Result<()> {
+        stop(&SERVICE_DEFINITIONS)
+            .context(Error::System)
+            .map_err(|err| {
+                eprintln!("{:#?}", err);
+                err
+            })
     }
 
-    pub fn set_log_level(level: log::Level) -> Result<(), Error> {
-        log_level(&SERVICE_DEFINITIONS, level).map_err(|err| {
-            eprintln!("{:#?}", err);
-            Error::from(ErrorKind::System)
-        })
+    pub fn set_log_level(level: log::Level) -> anyhow::Result<()> {
+        log_level(&SERVICE_DEFINITIONS, level)
+            .context(Error::System)
+            .map_err(|err| {
+                eprintln!("{:#?}", err);
+                err
+            })
     }
 
-    pub fn get_system_status() -> Result<(), Error> {
-        get_status(&SERVICE_DEFINITIONS).map_err(|err| {
-            eprintln!("{:#?}", err);
-            Error::from(ErrorKind::System)
-        })
+    pub fn get_system_status() -> anyhow::Result<()> {
+        get_status(&SERVICE_DEFINITIONS)
+            .context(Error::System)
+            .map_err(|err| {
+                eprintln!("{:#?}", err);
+                err
+            })
     }
 
-    pub fn reprovision(runtime: &mut tokio::runtime::Runtime) -> Result<(), Error> {
+    pub fn reprovision(runtime: &mut tokio::runtime::Runtime) -> anyhow::Result<()> {
         let uri = url::Url::parse("unix:///run/aziot/identityd.sock")
             .expect("hard-coded URI should parse");
         let client = IdentityClient::new(ApiVersion::V2020_09_01, &uri);
@@ -92,18 +103,19 @@ impl System {
 
         runtime
             .block_on(client.reprovision_device(provisioning_cache))
+            .context(Error::System)
             .map_err(|err| {
                 eprintln!("Failed to reprovision: {}", err);
-                Error::from(ErrorKind::System)
+                err
             })?;
 
         println!("Successfully reprovisioned with IoT Hub.");
 
-        restart(&[&IOTEDGED]).map_err(|err| {
-            eprintln!("{:#?}", err);
-            Error::from(ErrorKind::System)
-        })?;
-
-        Ok(())
+        restart(&[&IOTEDGED])
+            .context(Error::System)
+            .map_err(|err| {
+                eprintln!("{:#?}", err);
+                err
+            })
     }
 }

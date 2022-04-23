@@ -6,8 +6,7 @@ use std::path::PathBuf;
 
 use std::process::Command;
 
-use failure::Fail;
-use failure::{self, ResultExt};
+use anyhow::Context;
 
 use edgelet_docker::Settings;
 
@@ -16,7 +15,7 @@ use aziotctl_common::{
     CheckResultsSerializable, CheckerMetaSerializable,
 };
 
-use crate::error::{Error, ErrorKind};
+use crate::error::Error;
 
 mod additional_info;
 use self::additional_info::AdditionalInfo;
@@ -65,14 +64,14 @@ pub enum OutputFormat {
 
 /// The various ways a check can resolve.
 ///
-/// Check functions return `Result<CheckResult, failure::Error>` where `Err` represents the check failed.
+/// Check functions return `anyhow::Result<CheckResult>` where `Err` represents the check failed.
 #[derive(Debug)]
 pub enum CheckResult {
     /// Check succeeded.
     Ok,
 
     /// Check failed with a warning.
-    Warning(failure::Error),
+    Warning(anyhow::Error),
 
     /// Check is not applicable and was ignored. Should be treated as success.
     Ignored,
@@ -81,10 +80,10 @@ pub enum CheckResult {
     Skipped,
 
     /// Check failed, and further checks should be performed.
-    Failed(failure::Error),
+    Failed(anyhow::Error),
 
     /// Check failed, and further checks should not be performed.
-    Fatal(failure::Error),
+    Fatal(anyhow::Error),
 }
 
 impl Check {
@@ -128,7 +127,7 @@ impl Check {
         }
     }
 
-    pub fn print_list(aziot_bin: &str) -> Result<(), Error> {
+    pub fn print_list(aziot_bin: &str) -> anyhow::Result<()> {
         let mut all_checks: Vec<(String, Vec<CheckerMetaSerializable>)> = Vec::new();
 
         // get all the aziot checks by shelling-out to aziot
@@ -141,7 +140,7 @@ impl Check {
             match aziot_check_out {
                 Ok(out) => {
                     let aziot_checks: BTreeMap<String, Vec<CheckerMetaSerializable>> =
-                        serde_json::from_slice(&out.stdout).context(ErrorKind::Aziot)?;
+                        serde_json::from_slice(&out.stdout).context(Error::Aziot)?;
 
                     all_checks.extend(aziot_checks.into_iter().map(|(section_name, checks)| {
                         (section_name + " (aziot-identity-service)", checks)
@@ -236,7 +235,7 @@ impl Check {
         }
     }
 
-    pub fn execute(&mut self, runtime: &mut tokio::runtime::Runtime) -> Result<(), Error> {
+    pub fn execute(&mut self, runtime: &mut tokio::runtime::Runtime) -> anyhow::Result<()> {
         // heterogeneous type representing the output of a check, regardless of
         // whether or not it is built-in, or parsed from `aziot check`
         #[derive(Debug)]
@@ -260,7 +259,7 @@ impl Check {
         let mut output_check = |check: CheckOutput,
                                 verbose: bool,
                                 warnings_as_errors: bool|
-         -> Result<bool, Error> {
+         -> anyhow::Result<bool> {
             if num_fatal > 0 {
                 return Ok(true);
             }
@@ -298,7 +297,7 @@ impl Check {
                         check_id,
                         CheckOutputSerializable {
                             result: CheckResultSerializable::Warning {
-                                details: warning.iter_chain().map(ToString::to_string).collect(),
+                                details: warning.chain().map(ToString::to_string).collect(),
                             },
                             additional_info,
                         },
@@ -312,7 +311,7 @@ impl Check {
                         write_lines(stdout, "    ", "    ", message.lines())?;
 
                         if verbose {
-                            for cause in warning.iter_causes() {
+                            for cause in warning.chain() {
                                 write_lines(
                                     stdout,
                                     "        caused by: ",
@@ -363,7 +362,7 @@ impl Check {
                         check_id,
                         CheckOutputSerializable {
                             result: CheckResultSerializable::Fatal {
-                                details: err.iter_chain().map(ToString::to_string).collect(),
+                                details: err.chain().map(ToString::to_string).collect(),
                             },
                             additional_info,
                         },
@@ -377,7 +376,7 @@ impl Check {
                         write_lines(stdout, "    ", "    ", message.lines())?;
 
                         if verbose {
-                            for cause in err.iter_causes() {
+                            for cause in err.chain() {
                                 write_lines(
                                     stdout,
                                     "        caused by: ",
@@ -398,7 +397,7 @@ impl Check {
                         check_id,
                         CheckOutputSerializable {
                             result: CheckResultSerializable::Error {
-                                details: err.iter_chain().map(ToString::to_string).collect(),
+                                details: err.chain().map(ToString::to_string).collect(),
                             },
                             additional_info,
                         },
@@ -412,7 +411,7 @@ impl Check {
                         write_lines(stdout, "    ", "    ", message.lines())?;
 
                         if verbose {
-                            for cause in err.iter_causes() {
+                            for cause in err.chain() {
                                 write_lines(
                                     stdout,
                                     "        caused by: ",
@@ -434,9 +433,9 @@ impl Check {
         // aziot are required to run iotedge checks. e.g: the "iothub_hostname".
         {
             fn to_check_result(res: CheckResultSerializable) -> CheckResult {
-                fn vec_to_err(mut v: Vec<String>) -> failure::Error {
+                fn vec_to_err(mut v: Vec<String>) -> anyhow::Error {
                     let mut err =
-                        failure::err_msg(v.pop().expect("errors always have at least one source"));
+                        anyhow::anyhow!(v.pop().expect("errors always have at least one source"));
                     while let Some(s) = v.pop() {
                         err = err.context(s).into();
                     }
@@ -495,7 +494,7 @@ impl Check {
                     for val in
                         serde_json::Deserializer::from_reader(child.stdout.unwrap()).into_iter()
                     {
-                        let val = val.context(ErrorKind::Aziot)?;
+                        let val = val.context(Error::Aziot)?;
                         match val {
                             CheckOutputSerializableStreaming::Section { name } => {
                                 self.output_section(&format!("{} (aziot-identity-service)", name))
@@ -548,7 +547,7 @@ impl Check {
                                 "aziot-identity-service checks unavailable - could not communicate with '{}' binary.",
                                 &self.aziot_bin.to_str().expect("aziot_bin should be valid UTF-8")
                             ),
-                            result: CheckResult::Failed(err.context(ErrorKind::Aziot).into()),
+                            result: CheckResult::Failed(anyhow::anyhow!(err).context(Error::Aziot).into()),
                             additional_info: serde_json::Value::Null,
                         },
                         self.verbose,
@@ -630,7 +629,7 @@ impl Check {
         }
 
         let result = if num_fatal + num_errors > 0 {
-            Err(ErrorKind::Diagnostics.into())
+            Err(Error::Diagnostics.into())
         } else {
             Ok(())
         };
@@ -643,7 +642,7 @@ impl Check {
 
             if let Err(err) = serde_json::to_writer(std::io::stdout(), &check_results) {
                 eprintln!("Could not write JSON output: {}", err,);
-                return Err(ErrorKind::Diagnostics.into());
+                return Err(Error::Diagnostics.into());
             }
 
             println!();

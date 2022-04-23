@@ -4,7 +4,6 @@ use clap::crate_name;
 
 use futures::future::{self, FutureResult};
 
-use crate::error::Error;
 use crate::Command;
 
 #[derive(Default)]
@@ -17,7 +16,7 @@ impl Version {
 }
 
 impl Command for Version {
-    type Future = FutureResult<(), Error>;
+    type Future = FutureResult<(), anyhow::Error>;
 
     #[allow(clippy::print_literal)]
     fn execute(self) -> Self::Future {

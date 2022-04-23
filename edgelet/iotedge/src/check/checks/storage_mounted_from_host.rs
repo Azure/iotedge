@@ -2,7 +2,7 @@
 
 use std::path::{Path, PathBuf};
 
-use failure::{self, Context, ResultExt};
+use anyhow::Context;
 use regex::Regex;
 
 use crate::check::{checker::Checker, Check, CheckResult};
@@ -69,7 +69,7 @@ fn storage_mounted_from_host(
     storage_directory_name: &'static str,
     storage_directory_out: &mut Option<PathBuf>,
     container_directories_out: &mut Option<Vec<PathBuf>>,
-) -> Result<CheckResult, failure::Error> {
+) -> anyhow::Result<CheckResult> {
     lazy_static::lazy_static! {
         static ref STORAGE_FOLDER_ENV_VAR_KEY_REGEX: Regex =
             Regex::new("(?i)^storagefolder=(.*)")
@@ -125,13 +125,13 @@ fn storage_mounted_from_host(
         .any(|container_directory| storage_directory.starts_with(container_directory))
     {
         return Ok(CheckResult::Warning(
-            Context::new(format!(
+            anyhow::anyhow!(
                 "The {} module is not configured to persist its {} directory on the host filesystem.\n\
                  Data might be lost if the module is deleted or updated.\n\
                  Please see https://aka.ms/iotedge-storage-host for best practices.",
                 container_name,
                 storage_directory.display(),
-            )).into(),
+            ),
         ));
     }
 
@@ -141,7 +141,7 @@ fn storage_mounted_from_host(
 fn inspect_container(
     docker_host_arg: &str,
     name: &str,
-) -> Result<docker::models::InlineResponse200, failure::Error> {
+) -> anyhow::Result<docker::models::InlineResponse200> {
     Ok(super::docker(docker_host_arg, &["inspect", name])
         .map_err(|(_, err)| err)
         .and_then(|output| {
@@ -150,5 +150,5 @@ fn inspect_container(
                     .context("Could not parse result of docker inspect")?;
             Ok(inspect_result)
         })
-        .with_context(|_| format!("Could not check current state of {} container", name))?)
+        .with_context(|| format!("Could not check current state of {} container", name))?)
 }

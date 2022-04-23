@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::ffi::{OsStr, OsString};
 
-use failure::{self, Context, ResultExt};
+use anyhow::Context;
 
 use edgelet_core::{self, RuntimeSettings, UrlExt};
 
@@ -30,7 +30,7 @@ impl Checker for ConnectManagementUri {
 }
 
 impl ConnectManagementUri {
-    fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    fn inner_execute(&mut self, check: &mut Check) -> anyhow::Result<CheckResult> {
         let settings = if let Some(settings) = &check.settings {
             settings
         } else {
@@ -83,21 +83,19 @@ impl ConnectManagementUri {
 
             let socket_path =
                 socket_path.to_str()
-                .ok_or_else(|| Context::new("Could not parse connect.management_uri: file path is not valid utf-8"))?;
+                .context("Could not parse connect.management_uri: file path is not valid utf-8")?;
 
             args.push(Cow::Owned(format!("{}:{}", socket_path, socket_path).into()));
         },
 
-        (scheme1, scheme2) if scheme1 != scheme2 => return Err(Context::new(
-            format!(
+        (scheme1, scheme2) if scheme1 != scheme2 => anyhow::bail!(
                 "configuration has invalid combination of schemes for connect.management_uri ({:?}) and listen.management_uri ({:?})",
                 scheme1, scheme2,
-            ))
-            .into()),
+            ),
 
-        (scheme, _) => return Err(Context::new(
-            format!("Could not parse connect.management_uri: scheme {} is invalid", scheme),
-        ).into()),
+        (scheme, _) => anyhow::bail!(
+            "Could not parse connect.management_uri: scheme {} is invalid", scheme
+        ),
     }
 
         args.extend(vec![
@@ -111,8 +109,8 @@ impl ConnectManagementUri {
 
         match super::docker(docker_host_arg, args) {
             Ok(_) => Ok(CheckResult::Ok),
-            Err((Some(stderr), err)) => Err(err.context(stderr).into()),
-            Err((None, err)) => Err(err.context("Could not spawn docker process").into()),
+            Err((Some(stderr), err)) => Err(err.context(stderr)),
+            Err((None, err)) => Err(err.context("Could not spawn docker process")),
         }
     }
 }

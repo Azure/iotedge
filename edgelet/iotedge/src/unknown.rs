@@ -2,7 +2,6 @@
 
 use futures::future::{self, FutureResult};
 
-use crate::error::Error;
 use crate::Command;
 
 pub struct Unknown {
@@ -16,7 +15,7 @@ impl Unknown {
 }
 
 impl Command for Unknown {
-    type Future = FutureResult<(), Error>;
+    type Future = FutureResult<(), anyhow::Error>;
 
     fn execute(self) -> Self::Future {
         eprintln!("unknown command: {}", self.command);

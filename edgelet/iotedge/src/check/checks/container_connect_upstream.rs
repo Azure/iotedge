@@ -79,7 +79,7 @@ impl Checker for ContainerConnectUpstream {
     }
 }
 impl ContainerConnectUpstream {
-    fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    fn inner_execute(&mut self, check: &mut Check) -> anyhow::Result<CheckResult> {
         let settings = if let Some(settings) = &check.settings {
             settings
         } else {
@@ -175,8 +175,7 @@ impl ContainerConnectUpstream {
                     },
                     upstream_hostname,
                     port,
-                ))
-                .into());
+                )));
         }
 
         Ok(CheckResult::Ok)

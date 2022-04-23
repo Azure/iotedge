@@ -3,13 +3,13 @@
 use std::io::{copy, stdout};
 use std::path::PathBuf;
 
-use failure::Fail;
+use anyhow::Context;
 use futures::Future;
 
 use edgelet_core::{LogOptions, ModuleRuntime};
 use support_bundle::{make_bundle, OutputLocation};
 
-use crate::error::{Error, ErrorKind};
+use crate::error::Error;
 use crate::Command;
 
 pub struct SupportBundleCommand<M> {
@@ -48,7 +48,7 @@ impl<M> Command for SupportBundleCommand<M>
 where
     M: 'static + ModuleRuntime + Clone + Send + Sync,
 {
-    type Future = Box<dyn Future<Item = (), Error = Error> + Send>;
+    type Future = Box<dyn Future<Item = (), Error = anyhow::Error> + Send>;
 
     fn execute(self) -> Self::Future {
         println!("Making support bundle");
@@ -64,8 +64,8 @@ where
         );
 
         let result = bundle
-            .map_err(|_| Error::from(ErrorKind::SupportBundle))
-            .and_then(|(mut bundle, _size)| -> Result<(), Error> {
+            .map_err(|err| err.context(Error::SupportBundle))
+            .and_then(|(mut bundle, _size)| -> anyhow::Result<()> {
                 match output_location {
                     OutputLocation::File(location) => {
                         let path = PathBuf::from(location);
@@ -78,7 +78,7 @@ where
                     }
                     OutputLocation::Memory => {
                         copy(&mut bundle, &mut stdout())
-                            .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+                            .context(Error::SupportBundle)?;
 
                         Ok(())
                     }

@@ -1,4 +1,4 @@
-use failure::{self, Context, ResultExt};
+use anyhow::Context;
 use std::time::Duration;
 
 use crate::check::{checker::Checker, Check, CheckResult};
@@ -27,7 +27,7 @@ impl Checker for ContainerLocalTime {
 }
 
 impl ContainerLocalTime {
-    fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    fn inner_execute(&mut self, check: &mut Check) -> anyhow::Result<CheckResult> {
         let docker_host_arg = if let Some(docker_host_arg) = &check.docker_host_arg {
             docker_host_arg
         } else {
@@ -61,8 +61,8 @@ impl ContainerLocalTime {
         .context("Could not query local time inside container")?;
 
         let output = std::str::from_utf8(&output)
-            .map_err(failure::Error::from)
-            .and_then(|output| output.trim_end().parse::<u64>().map_err(Into::into))
+            .context("Output not utf-8")?
+            .parse::<u64>()
             .context("Could not parse container output")?;
 
         let actual_duration = std::time::Duration::from_secs(output);
@@ -77,9 +77,7 @@ impl ContainerLocalTime {
             - std::cmp::min(actual_duration, expected_duration);
         self.diff = Some(diff.as_secs());
 
-        if diff.as_secs() >= 10 {
-            return Err(Context::new("Detected time drift between host and container").into());
-        }
+        anyhow::ensure!(diff.as_secs() < 10, "Detected time drift between host and container");
 
         Ok(CheckResult::Ok)
     }

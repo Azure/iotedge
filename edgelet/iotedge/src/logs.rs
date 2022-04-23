@@ -7,7 +7,7 @@ use futures::prelude::*;
 use edgelet_core::{LogOptions, ModuleRuntime};
 use support_bundle::pull_logs;
 
-use crate::error::{Error, ErrorKind};
+use crate::error::Error;
 use crate::Command;
 
 pub struct Logs<M> {
@@ -30,12 +30,12 @@ impl<M> Command for Logs<M>
 where
     M: 'static + ModuleRuntime + Clone,
 {
-    type Future = Box<dyn Future<Item = (), Error = Error> + Send>;
+    type Future = Box<dyn Future<Item = (), Error = anyhow::Error> + Send>;
 
     fn execute(self) -> Self::Future {
         let id = self.id.clone();
         let result = pull_logs(&self.runtime, &id, &self.options, stdout())
-            .map_err(|_| Error::from(ErrorKind::ModuleRuntime))
+            .map_err(|err| err.context(Error::ModuleRuntime))
             .map(drop);
         Box::new(result)
     }

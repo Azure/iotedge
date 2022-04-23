@@ -1,6 +1,5 @@
-use failure::Context;
-
 use crate::check::{checker::Checker, Check, CheckResult};
+
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct ContainerEngineInstalled {
     docker_host_arg: Option<String>,
@@ -24,7 +23,7 @@ impl Checker for ContainerEngineInstalled {
 }
 
 impl ContainerEngineInstalled {
-    fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    fn inner_execute(&mut self, check: &mut Check) -> anyhow::Result<CheckResult> {
         let settings = if let Some(settings) = &check.settings {
             settings
         } else {
@@ -43,11 +42,10 @@ impl ContainerEngineInstalled {
             }
 
             scheme => {
-                return Err(Context::new(format!(
+                anyhow::bail!(
                     "Could not communicate with container engine at {}. The scheme {} is invalid.",
                     uri, scheme,
-                ))
-                .into());
+                );
             }
         };
 
@@ -71,7 +69,7 @@ impl ContainerEngineInstalled {
                     }
                 }
 
-                return Err(err.context(error_message).into());
+                return Err(err.context(error_message));
             }
         };
 

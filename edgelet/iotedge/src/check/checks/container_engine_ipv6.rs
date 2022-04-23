@@ -1,6 +1,6 @@
 use std::fs::File;
 
-use failure::{self, Context, Fail, ResultExt};
+use anyhow::Context;
 
 use edgelet_core::{self, MobyNetwork};
 
@@ -29,7 +29,7 @@ impl Checker for ContainerEngineIPv6 {
 }
 
 impl ContainerEngineIPv6 {
-    fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    fn inner_execute(&mut self, check: &mut Check) -> anyhow::Result<CheckResult> {
         const MESSAGE: &str =
             "Container engine is not configured for IPv6 communication.\n\
              Please see https://aka.ms/iotedge-docker-ipv6 for a guide on how to enable IPv6 support.";
@@ -45,7 +45,7 @@ impl ContainerEngineIPv6 {
         self.expected_use_ipv6 = Some(is_edge_ipv6_configured);
 
         let daemon_config_file = File::open(&check.container_engine_config_path)
-            .with_context(|_| {
+            .with_context(|| {
                 format!(
                     "Could not open container engine config file {}",
                     check.container_engine_config_path.display(),
@@ -56,14 +56,14 @@ impl ContainerEngineIPv6 {
             Ok(daemon_config_file) => daemon_config_file,
             Err(err) => {
                 return if is_edge_ipv6_configured {
-                    Err(err.context(MESSAGE).into())
+                    Err(err.context(MESSAGE))
                 } else {
                     Ok(CheckResult::Ignored)
                 }
             }
         };
         let daemon_config: DaemonConfig = serde_json::from_reader(daemon_config_file)
-            .with_context(|_| {
+            .with_context(|| {
                 format!(
                     "Could not parse container engine config file {}",
                     check.container_engine_config_path.display(),
@@ -75,7 +75,7 @@ impl ContainerEngineIPv6 {
         if daemon_config.ipv6.unwrap_or_default() {
             Ok(CheckResult::Ok)
         } else if is_edge_ipv6_configured {
-            Err(Context::new(MESSAGE).into())
+            Err(anyhow::anyhow!(MESSAGE))
         } else {
             Ok(CheckResult::Ignored)
         }

@@ -3,12 +3,12 @@
 use std::io::Write;
 use std::sync::{Arc, Mutex};
 
-use failure::{Fail, ResultExt};
+use anyhow::Context;
 use futures::Future;
 
 use edgelet_core::ModuleRuntime;
 
-use crate::error::{Error, ErrorKind};
+use crate::error::Error;
 use crate::Command;
 
 pub struct Restart<M, W> {
@@ -32,7 +32,7 @@ where
     M: 'static + ModuleRuntime + Clone,
     W: 'static + Write + Send,
 {
-    type Future = Box<dyn Future<Item = (), Error = Error> + Send>;
+    type Future = Box<dyn Future<Item = (), Error = anyhow::Error> + Send>;
 
     fn execute(self) -> Self::Future {
         let id = self.id.clone();
@@ -40,10 +40,10 @@ where
         let result = self
             .runtime
             .restart(&id)
-            .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))
+            .map_err(|err| err.context(Error::ModuleRuntime))
             .and_then(move |_| {
                 let mut w = write.lock().unwrap();
-                writeln!(w, "{}", id).context(ErrorKind::WriteToStdout)?;
+                writeln!(w, "{}", id).context(Error::WriteToStdout)?;
                 Ok(())
             });
         Box::new(result)

@@ -7,6 +7,7 @@ The iotedge tool is used to manage the IoT Edge runtime.
 """
 edition = "2018"
 [dependencies]
+anyhow = "1.0"
 atty = "0.2"
 base64 = "0.9"
 bytes = "0.4"
@@ -14,7 +15,6 @@ chrono = { version = "0.4.7", features = ["serde"] }
 chrono-humanize = "0.0.11"
 clap = "2.31"
 config = { version = "0.9", default-features = false }
-failure = "0.1"
 futures = "0.1"
 hyper = "0.12"
 hyper-proxy = "0.5.1"
@@ -31,6 +31,7 @@ serde_json = "1.0"
 serde_yaml = "0.8"
 tabwriter = "1.0"
 termcolor = "0.3"
+thiserror = "1.0"
 tokio = "0.1"
 toml = "0.5"
 typed-headers = "0.1.1"
