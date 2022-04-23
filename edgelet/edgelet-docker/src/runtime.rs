@@ -701,11 +701,16 @@ impl ModuleRuntime for DockerModuleRuntime {
                         }
                     }
                     Err(err) => {
-                        let err = anyhow::anyhow!(Error::from(err)).context(
-                            Error::RuntimeOperation(RuntimeOperation::StopModule(id)),
-                        );
-                        log_failure(Level::Warn, err.as_ref());
-                        Err(err)
+                        let err = Error::from(err);
+                        if let Error::NotFound(_) = &err {
+                            Ok(())
+                        }
+                        else {
+                            let err = anyhow::anyhow!(err)
+                                .context(Error::RuntimeOperation(RuntimeOperation::StopModule(id)));
+                            log_failure(Level::Warn, err.as_ref());
+                            Err(err)
+                        }
                     }
                 }),
         )
