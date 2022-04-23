@@ -1,11 +1,8 @@
 use std::path::PathBuf;
-
-use failure::Context;
 use tokio::process::Command;
 
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
-
-#[derive(Default, serde_derive::Serialize)]
+#[derive(Default, serde::Serialize)]
 pub(crate) struct CheckCompatibility {}
 
 #[async_trait::async_trait]
@@ -27,19 +24,17 @@ impl Checker for CheckCompatibility {
 impl CheckCompatibility {
     #[allow(clippy::unused_self)]
     #[allow(unused_variables)]
-    async fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    async fn inner_execute(&mut self, check: &mut Check) -> anyhow::Result<CheckResult> {
         let script_path = PathBuf::from("/etc/aziot/edged/aziot-compatibility.sh");
         let (is_success, result_output) = get_compatibility_script_output(script_path).await?;
         if !is_success {
-            return Ok(CheckResult::Failed(Context::new(result_output).into()));
+            return Ok(CheckResult::Failed(anyhow::anyhow!(result_output)));
         }
         Ok(CheckResult::Ok)
     }
 }
 
-async fn get_compatibility_script_output(
-    script_path: PathBuf,
-) -> Result<(bool, String), failure::Error> {
+async fn get_compatibility_script_output(script_path: PathBuf) -> anyhow::Result<(bool, String)> {
     let mut inspect = Command::new(script_path);
     inspect.args(&["-a", "aziotedge"]);
     let inspect = inspect.output().await?;

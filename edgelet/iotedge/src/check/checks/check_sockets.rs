@@ -1,8 +1,8 @@
 use std::os::unix::prelude::{MetadataExt, PermissionsExt};
 
+use anyhow::Context;
 use edgelet_core::UrlExt;
 use edgelet_settings::RuntimeSettings;
-use failure::{Context, ResultExt};
 use nix::unistd::{Gid, Group};
 use url::Url;
 
@@ -13,7 +13,7 @@ const MANAGEMENT_SOCKET_DEFAULT_PERMISSION: u32 = 0o660;
 const WORKLOAD_SOCKET_DEFAULT_PERMISSION: u32 = 0o666;
 const DEFAULT_SOCKET_GROUP: &str = "iotedge";
 
-#[derive(Default, serde_derive::Serialize)]
+#[derive(Default, serde::Serialize)]
 pub(crate) struct CheckSockets {}
 
 #[async_trait::async_trait]
@@ -36,7 +36,7 @@ impl Checker for CheckSockets {
 impl CheckSockets {
     #[allow(clippy::unused_self)]
     #[allow(unused_variables)]
-    async fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    async fn inner_execute(&mut self, check: &mut Check) -> anyhow::Result<CheckResult> {
         // Todo : We need to add a similar check in IIS repo for IIS Sockets
         let (connect_management_uri, connect_workload_uri, workload_mnt_uri) =
             match edgelet_settings::Settings::new() {
@@ -64,9 +64,10 @@ impl CheckSockets {
             ))?;
 
             if !socket_path.exists() {
-                return Ok(CheckResult::Failed(
-                    Context::new(format!("Did not find socket with uri {}", socket_uri)).into(),
-                ));
+                return Ok(CheckResult::Failed(anyhow::anyhow!(format!(
+                    "Did not find socket with uri {}",
+                    socket_uri
+                ))));
             }
 
             // Mode returns some additional information. Mask the first 9 bits to get the Permission.
@@ -74,29 +75,26 @@ impl CheckSockets {
 
             if socket_permission != *permission {
                 return Ok(CheckResult::Failed(
-                    Context::new(format!(
+                    anyhow::anyhow!(format!(
                         "Incorrect Permission for Socker with URI:{}, Expected Permission: {}, Actual Permission: {}",
                         socket_uri, permission, socket_permission
                     ))
-                    .into(),
                 ));
             }
 
             let group = Group::from_gid(Gid::from_raw(socket_path.metadata()?.gid()))?;
             if let Some(group) = group {
                 if group.name != *DEFAULT_SOCKET_GROUP {
-                    return Ok(CheckResult::Failed(
-                        Context::new(format!(
-                            "Incorrect Group for Socket {} Group : {}",
-                            socket_uri, group.name
-                        ))
-                        .into(),
-                    ));
+                    return Ok(CheckResult::Failed(anyhow::anyhow!(format!(
+                        "Incorrect Group for Socket {} Group : {}",
+                        socket_uri, group.name
+                    ))));
                 }
             } else {
-                return Ok(CheckResult::Failed(
-                    Context::new(format!("No User for Socket {}", socket_uri)).into(),
-                ));
+                return Ok(CheckResult::Failed(anyhow::anyhow!(format!(
+                    "No User for Socket {}",
+                    socket_uri
+                ))));
             }
         }
 
@@ -106,13 +104,10 @@ impl CheckSockets {
         ))?;
         // Ensure that different workload sockets created for different modules have the required permissions
         if !workload_mnt_uri_path.exists() {
-            return Ok(CheckResult::Failed(
-                Context::new(format!(
-                    "Path for Module Workload Sockets {} does not exists",
-                    workload_mnt_uri
-                ))
-                .into(),
-            ));
+            return Ok(CheckResult::Failed(anyhow::anyhow!(format!(
+                "Path for Module Workload Sockets {} does not exists",
+                workload_mnt_uri
+            ))));
         }
 
         let files = std::fs::read_dir(workload_mnt_uri_path)?;
@@ -122,11 +117,10 @@ impl CheckSockets {
 
             if socket_permission != WORKLOAD_SOCKET_DEFAULT_PERMISSION {
                 return Ok(CheckResult::Failed(
-                    Context::new(format!(
+                    anyhow::anyhow!(format!(
                         "Incorrect Permission for Socket at :{:?}, Expected Permission: {}, Actual Permission: {}",
                         socket_file_path, WORKLOAD_SOCKET_DEFAULT_PERMISSION, socket_permission
                     ))
-                    .into(),
                 ));
             }
         }
