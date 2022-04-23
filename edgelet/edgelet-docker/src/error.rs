@@ -72,7 +72,7 @@ pub enum Error {
     NotaryDigestMismatch,
 
     #[error("notary root CA read error")]
-    NotaryRootCAReadError,
+    NotaryRootCARead,
 
     #[error("{0}")]
     NotFound(String),

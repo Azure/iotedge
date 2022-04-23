@@ -43,7 +43,7 @@ impl ContainerEngineLogrotate {
         let daemon_config_file = match daemon_config_file {
             Ok(daemon_config_file) => daemon_config_file,
             Err(err) => {
-                return Ok(CheckResult::Warning(err.into()));
+                return Ok(CheckResult::Warning(err));
             }
         };
         let daemon_config: DaemonConfig = serde_json::from_reader(daemon_config_file)

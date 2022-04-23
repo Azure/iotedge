@@ -4,7 +4,6 @@ use std::env;
 use std::io::Write;
 
 use edgelet_utils::log_failure;
-use env_logger;
 use log::{Level, LevelFilter};
 
 const ENV_LOG: &str = "IOTEDGE_LOG";

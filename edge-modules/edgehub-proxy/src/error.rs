@@ -3,7 +3,6 @@
 use std::io;
 
 use hyper::Error as HyperError;
-use serde_json;
 use url::ParseError;
 
 use edgelet_http::Error as EdgeletHttpError;

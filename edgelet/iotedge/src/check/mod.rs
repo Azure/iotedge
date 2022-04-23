@@ -437,7 +437,7 @@ impl Check {
                     let mut err =
                         anyhow::anyhow!(v.pop().expect("errors always have at least one source"));
                     while let Some(s) = v.pop() {
-                        err = err.context(s).into();
+                        err = err.context(s);
                     }
                     err
                 }
@@ -547,7 +547,7 @@ impl Check {
                                 "aziot-identity-service checks unavailable - could not communicate with '{}' binary.",
                                 &self.aziot_bin.to_str().expect("aziot_bin should be valid UTF-8")
                             ),
-                            result: CheckResult::Failed(anyhow::anyhow!(err).context(Error::Aziot).into()),
+                            result: CheckResult::Failed(anyhow::anyhow!(err).context(Error::Aziot)),
                             additional_info: serde_json::Value::Null,
                         },
                         self.verbose,

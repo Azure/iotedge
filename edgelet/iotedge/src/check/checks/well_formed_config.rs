@@ -52,7 +52,7 @@ impl WellFormedConfig {
                 } else {
                     "The IoT Edge daemon's configuration file is not well-formed."
                 };
-                return Err(err.context(message).into());
+                return Err(err.context(message));
             }
         };
 

@@ -10,6 +10,7 @@
     clippy::must_use_candidate,
     clippy::missing_errors_doc,
     clippy::expl_impl_clone_on_copy, // needed for `EnumSetType` derive
+    clippy::unknown_clippy_lints,
 )]
 
 use std::fmt;

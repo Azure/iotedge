@@ -122,16 +122,14 @@ impl IntoResponse for anyhow::Error {
     fn into_response(self) -> Response<Body> {
         let message = format!("{:?}", self);
         
-        let status_code = if let Some(error) = self.downcast_ref() {
-            match error {
+        let status_code = self.downcast_ref().map_or(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            |error| match error {
                 Error::Authorization
                 | Error::ModuleNotFound(_) => StatusCode::NOT_FOUND,
                 Error::InvalidApiVersion(_) => StatusCode::BAD_REQUEST,
                 _ => StatusCode::INTERNAL_SERVER_ERROR
-            }
-        } else {
-            StatusCode::INTERNAL_SERVER_ERROR
-        };
+            });
 
         let body = serde_json::json!({
             "message": message,

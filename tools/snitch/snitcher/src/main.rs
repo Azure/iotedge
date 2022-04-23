@@ -52,5 +52,5 @@ fn main() -> Result<()> {
     // we want to propagate any errors we might have encountered from 'main'
     // because we want to exit with a non-zero error code when something goes
     // wrong
-    Ok(error.map(|err| Err(err)).unwrap_or_else(|| Ok(()))?)
+    Ok(error.map(Err).unwrap_or_else(|| Ok(()))?)
 }

@@ -58,7 +58,7 @@ impl Checker for AziotEdgedVersion {
             });
             let hyper_client = match hyper_client {
                 Ok(hyper_client) => hyper_client,
-                Err(err) => return CheckResult::Failed(err.into()),
+                Err(err) => return CheckResult::Failed(err),
             };
 
             let request = hyper::Request::get("https://aka.ms/latest-aziot-edge")

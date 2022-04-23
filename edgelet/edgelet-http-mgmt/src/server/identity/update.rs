@@ -35,7 +35,7 @@ impl Handler<Parameters> for UpdateIdentity {
         let id_mgr = self.id_manager.clone();
         let response = params
             .name("name")
-            .ok_or_else(|| Error::from(Error::MissingRequiredParameter("name")))
+            .context(Error::MissingRequiredParameter("name"))
             .map(|name| {
                 let name = name.to_string();
                 read_request(name.clone(), req).map(|spec| (spec, name))

@@ -5,8 +5,8 @@ authors = ["Azure IoT Edge Devs"]
 edition = "2018"
 
 [dependencies]
+anyhow = "1.0"
 nix = "0.23"
 signal-hook = "0.1"
 tracing = "0.1"
 tracing-subscriber = "0.1"
-anyhow = "1.0"

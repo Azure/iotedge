@@ -65,7 +65,7 @@ impl ContainerEngineInstalled {
                 if let Some(message) = message {
                     if message.contains("Got permission denied") {
                         error_message += "\nYou might need to run this command as root.";
-                        return Ok(CheckResult::Fatal(err.context(error_message).into()));
+                        return Ok(CheckResult::Fatal(err.context(error_message)));
                     }
                 }
 

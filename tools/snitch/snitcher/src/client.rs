@@ -13,7 +13,6 @@ use hyper::service::Service;
 use hyper::{Body, Error as HyperError, Method, Request};
 use log::{debug, error};
 use serde::{de::DeserializeOwned, Serialize};
-use serde_json;
 use url::{form_urlencoded::Serializer as UrlSerializer, Url};
 
 use crate::error::Error;

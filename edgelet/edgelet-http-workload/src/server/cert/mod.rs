@@ -41,7 +41,7 @@ pub(crate) struct EdgeCaCertificate {
 
 fn cert_to_response<T: CoreCertificate>(
     cert: &T,
-    context: Error,
+    context: &Error,
 ) -> anyhow::Result<CertificateResponse> {
     let cert_buffer = cert.pem().with_context(|| context.clone())?;
 
@@ -55,8 +55,8 @@ fn cert_to_response<T: CoreCertificate>(
             PrivateKeyResponse::new("key".to_string())
                 .with_bytes(String::from_utf8_lossy(buffer.as_ref()).to_string())
         }
-        Ok(None) => return Err(anyhow::anyhow!(Error::BadPrivateKey).context(context)),
-        Err(err) => return Err(anyhow::anyhow!(err).context(context)),
+        Ok(None) => return Err(anyhow::anyhow!(Error::BadPrivateKey).context(context.clone())),
+        Err(err) => return Err(anyhow::anyhow!(err).context(context.clone())),
     };
 
     Ok(CertificateResponse::new(
@@ -114,7 +114,7 @@ fn refresh_cert(
                                     .private_key_to_pem_pkcs8()
                                     .with_context(|| context.clone())?;
                                 let cert = Certificate::new(cert, pk);
-                                let cert = cert_to_response(&cert, context.clone())
+                                let cert = cert_to_response(&cert, &context)
                                     .with_context(|| context.clone())?;
                                 let body = serde_json::to_string(&cert)
                                     .with_context(|| context.clone())?;
@@ -161,7 +161,7 @@ fn generate_local_keypair() -> std::result::Result<
 fn load_keypair(
     ca_key_pair_handle: &aziot_key_common::KeyHandle,
     key_engine: &mut openssl2::FunctionalEngine,
-    context: Error,
+    context: &Error,
 ) -> anyhow::Result<
     (
         openssl::pkey::PKey<openssl::pkey::Private>,
@@ -340,7 +340,7 @@ fn create_edge_ca_certificate(
                         |e| anyhow::anyhow!(e).context(context.clone())
                     )
                     .and_then(|ca_key_pair_handle| {
-                        load_keypair(&ca_key_pair_handle, &mut key_engine, context.clone())
+                        load_keypair(&ca_key_pair_handle, &mut key_engine, &context)
                             .context(context.clone())
                             .and_then(|(privkey, pubkey)| {
                                 create_csr(&edgelet_ca_props, &privkey, &pubkey)
@@ -404,9 +404,9 @@ impl CoreCertificate for Certificate {
         }
 
         let cert = openssl::x509::X509::from_pem(&self.pem)
-            .map_err(|_| edgelet_core::Error::from(edgelet_core::Error::CertificateCreate))?;
+            .map_err(|_| edgelet_core::Error::CertificateCreate)?;
         let not_after = parse_openssl_time(cert.not_after())
-            .map_err(|_| edgelet_core::Error::from(edgelet_core::Error::ParseSince))?;
+            .map_err(|_| edgelet_core::Error::ParseSince)?;
         Ok(not_after)
     }
 

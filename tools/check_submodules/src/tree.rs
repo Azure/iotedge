@@ -45,13 +45,14 @@ impl GitModule {
     }
 }
 
+#[allow(clippy::module_name_repetitions)]
 pub struct Git2Tree {
     root: GitModule,
     children: Vec<Git2Tree>,
 }
 
-fn sanitize_url(url: String) -> String {
-    url.trim_end_matches(".git").replace("www.", "").to_string()
+fn sanitize_url(url: &str) -> String {
+    url.trim_end_matches(".git").replace("www.", "")
 }
 
 impl Git2Tree {
@@ -66,8 +67,8 @@ impl Git2Tree {
             write!(f, "  ")?;
         }
         write!(f, "|- ")?;
-        write!(f, "{}\n", self.root)?;
-        for child in self.children.iter() {
+        writeln!(f, "{}", self.root)?;
+        for child in &self.children {
             child.format(level + 1, f)?;
         }
         Ok(())
@@ -78,11 +79,11 @@ impl Git2Tree {
         let repo =
             Repository::open(path).context(Error::Git)?;
         let remote = sanitize_url(
-            repo.find_remote("origin")
+            &repo.find_remote("origin")
                 .context(Error::Git)?
                 .url()
                 .unwrap()
-                .to_string(),
+                .to_string()
         );
         debug!("remote = {:?}", remote);
         let commit = encode(
@@ -94,7 +95,7 @@ impl Git2Tree {
         );
         debug!("commit = {:?}", commit);
         let flag = remotes.get(&remote).map_or(false, |c| &commit != c);
-        remotes.entry(remote.clone()).or_insert(commit.clone());
+        remotes.entry(remote.clone()).or_insert_with(|| commit.clone());
 
         let mut children: Vec<Git2Tree> = Vec::new();
         for sm in repo

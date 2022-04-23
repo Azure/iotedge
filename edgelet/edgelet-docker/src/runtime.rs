@@ -294,7 +294,7 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                                             );
                                             Ok((notary_registries, cert_client))
                                         }
-                                        Err(_e) => Err(anyhow::anyhow!(Error::NotaryRootCAReadError)),
+                                        Err(_e) => Err(anyhow::anyhow!(Error::NotaryRootCARead)),
                                     }
                                 })
                         },
@@ -1170,7 +1170,7 @@ where
         .filter_map(|value| match value {
             Ok(value) => Some(Ok(value)),
             Err(err) if matches!(err.downcast_ref(), Some(Error::NotFound(_))) => None,
-            err => Some(err)
+            err @ Err(_) => Some(err)
         })
         .then(Result::unwrap) // Ok(Ok(_)) -> Ok(_), Ok(Err(_)) -> Err(_), Err(_) -> !
 }

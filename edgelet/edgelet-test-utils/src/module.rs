@@ -331,9 +331,10 @@ where
         if let Some(module) = self.module.clone() {
             future::result(module.runtime_state()
                 .poll()
-                .map(move |runtime_state| match runtime_state {
-                    futures::Async::Ready(runtime_state) => (module, runtime_state),
-                    _ => panic!("TestModule::runtime_state should return FutureResult")
+                .map(move |runtime_state| if let futures::Async::Ready(runtime_state) = runtime_state {
+                    (module, runtime_state)
+                } else  {
+                    panic!("TestModule::runtime_state should return FutureResult")
                 }))
         }
         else {

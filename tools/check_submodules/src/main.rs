@@ -19,10 +19,8 @@ fn run_check(starting_path: &Path) -> anyhow::Result<()> {
     let count = tree.count_flagged();
     // display the tree.
     println!("{}", tree);
-    match count {
-        0 => Ok(()),
-        _ => Err(error::Error::from(count))?,
-    }
+    anyhow::ensure!(count == 0, error::Error::from(count));
+    Ok(())
 }
 
 fn main() {

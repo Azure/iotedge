@@ -6,7 +6,6 @@ use std::env;
 use std::time::Duration;
 
 use serde::Deserialize;
-use serde_yaml;
 use url::Url;
 
 use crate::error::{Error, ErrorKind, Result};
@@ -69,7 +68,7 @@ impl From<Url> for Alert {
                 .query_pairs()
                 .map(|(k, v)| (k.into_owned(), v.into_owned()))
                 .collect(),
-            url: url,
+            url,
         }
     }
 }

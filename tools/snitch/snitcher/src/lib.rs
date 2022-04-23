@@ -79,7 +79,7 @@ pub fn schedule_reports(settings: &Settings) -> impl Future<Item = (), Error = E
 pub fn do_report(settings: Settings) -> impl Future<Item = (), Error = Error> + Send {
     info!("Beginning report run");
 
-    let report = Arc::new(Mutex::new(Report::new(format!("{}", settings.build_id()))));
+    let report = Arc::new(Mutex::new(Report::new(settings.build_id().to_string())));
     let timestamp = Utc::now().timestamp();
 
     // collect docker logs from all running containers
@@ -134,11 +134,10 @@ pub fn do_report(settings: Settings) -> impl Future<Item = (), Error = Error> + 
     // wait for all the bits to get done and then build report and alert
     let all_futures: Vec<Box<dyn Future<Item = (), Error = Error> + Send>> =
         vec![Box::new(add_log_files), Box::new(get_analysis)];
-    let report_copy = report.clone();
     future::join_all(all_futures)
         .and_then(move |_| {
             info!("Preparing report");
-            let report = &mut *report_copy.lock().unwrap();
+            let report = &mut *report.lock().unwrap();
             debug!(
                 "alert url: {:?}, report: {:?}",
                 &settings.alert().url(),
@@ -197,7 +196,7 @@ pub fn upload_file(
                     .incomplete_vector
                     .vector
                     .iter()
-                    .find(|c| &c.name == &report_id)
+                    .find(|c| c.name == report_id)
                     .is_none()
                 {
                     debug!(
@@ -240,9 +239,9 @@ pub fn get_module_logs(
 ) -> impl Future<Item = Vec<(String, String)>, Error = Error> + Send {
     info!("Fetching module logs");
 
-    let module_client = ModuleClient::new(settings.management_uri())
+    let module_client = ModuleClient::new(&settings.management_uri().to_string().parse().unwrap())
         .map_err(|err| Error::new(ErrorKind::ModuleRuntime(err.to_string())))
-        .expect(&format!(
+        .unwrap_or_else(|_| panic!(
             "Failed to instantiate module client with {}",
             settings.management_uri()
         ));
@@ -380,7 +379,7 @@ where
     let iter = i.into_iter();
     loop_fn((vec![], iter), |(mut output, mut iter)| {
         let fut = if let Some(next) = iter.next() {
-            Either::A(next.into_future().map(|v| Some(v)))
+            Either::A(next.into_future().map(Some))
         } else {
             Either::B(future::ok(None))
         };
