@@ -212,10 +212,6 @@ fn key_to_pem(key: &openssl::pkey::PKey<openssl::pkey::Private>) -> String {
 #[cfg(test)]
 mod tests {
     fn test_api() -> super::CertApi {
-        // Tests won't actually connect to keyd, so just put any URL in the key connector.
-        let key_connector = url::Url::parse("unix:///tmp/test.sock").unwrap();
-        let key_connector = http_common::Connector::new(&key_connector).unwrap();
-
         let key_client = super::KeyClient::default();
         let key_client = std::sync::Arc::new(futures_util::lock::Mutex::new(key_client));
 
