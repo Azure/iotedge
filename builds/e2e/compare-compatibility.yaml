@@ -90,6 +90,76 @@ jobs:
         ArtifactName: compatibility-logs-amd64
       condition: always()
 
+################################################################################
+  - job: debian_11_arm32v7
+################################################################################
+    displayName: Debian 11 arm32v7
+    pool:
+      name: $(pool.custom.name)
+      demands: compatibility-ci
+
+    variables:
+      os: linux
+      arch: arm32v7
+      artifactName: iotedged-debian11-arm32v7
+      identityServiceArtifactName: packages_debian-11-slim_arm32v7
+      identityServicePackageFilter: aziot-identity-service_*_armhf.deb
+      # skip notary installation as it is not supported for ARM platforms
+      skip_notary: true
+    
+    timeoutInMinutes: 180
+
+    steps:
+    - template: templates/e2e-clean-directory.yaml
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-clear-docker-cached-images.yaml
+    - task: AzureKeyVault@1
+      displayName: 'Get Secret'
+      inputs:
+        azureSubscription: $(az.subscription)
+        KeyVaultName: $(az.keyvault)
+        SecretsFilter: >-
+          edgebuild-service-principal-secret,
+    - bash: |
+          set -e
+          export PATH=~/azure-cli-env/bin/:$PATH
+          az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
+          contextPath=$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net6.0/context.json
+          mkdir -p $(Build.ArtifactStagingDirectory)/compat
+          edgeAgentImage="$(cat $contextPath | jq '.edgeAgentImage' | tr -d '"')" 
+          edgeHubImage="$(cat $contextPath | jq '.edgeHubImage' | tr -d '"')"
+          tempSensorImage="$(cat $contextPath | jq '.tempSensorImage' | tr -d '"')"
+          az extension add --name azure-iot
+          sudo --preserve-env $(Build.SourcesDirectory)/platform-validation/scripts/check-for-updates.sh \
+          -f $(Build.SourcesDirectory)/platform-validation/deployment/platform-compatibility.json \
+          -u $(Build.SourcesDirectory)/platform-validation/scripts/analyzeSystemStats.sh \
+          -c $(Build.SourcesDirectory)/platform-validation/scripts/aziot-compatibility.sh \
+          -b $(System.ArtifactsDirectory)/$(artifactName) \
+          -t $(TIME_TO_RUN_SECONDS) \
+          --edge-agent-image $edgeAgentImage \
+          --edge-hub-image $edgeHubImage \
+          --temp-sensor-image $tempSensorImage \
+          -o "$(Build.ArtifactStagingDirectory)/compat" \
+          --config-toml-path  $(Build.SourcesDirectory)/platform-validation/deployment/template.toml
+      displayName: Check Usage
+      name: check_usage
+      env:
+        IOTHUB_NAME: $(IOT_HUB_NAME)
+        REGISTRY_ADDRESS: $(cr.address)
+        REGISTRY_USERNAME: $(cr.username)
+        REGISTRY_PASSWORD: $(cr.password)
+    - task: PublishBuildArtifacts@1
+      displayName: Publish logs
+      inputs:
+        PathtoPublish: $(Build.ArtifactStagingDirectory)/compat
+        ArtifactName: compatibility-logs-amd64
+      condition: always()
+    - bash: |
+          sudo rm -rf $(Build.ArtifactStagingDirectory)/compat || true
+      displayName: Cleanup
+      name: cleanup
+      condition: always()
+
 # TODO : Current 1ES Image for ARM64 requires some additional installation, We should add these to our 1ES Base Image
 ################################################################################
   - job: ubuntu_2004_arm64v8

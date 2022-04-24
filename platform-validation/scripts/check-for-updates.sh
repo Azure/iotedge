@@ -149,7 +149,7 @@ function provision_edge_device() {
 
 function create_edge_deployment() {
     sudo apt-get install -y uuid
-    DEPLOYMENT_ID=iotedge-benchmarking-$(uuidgen)
+    DEPLOYMENT_ID=iotedge-benchmarking-$(uuid)
     cp "$DEPLOYMENT_FILE_NAME" $TEMP_DEPLOYMENT_FILE
     sed -i -e "s@<CR.Address>@$REGISTRY_ADDRESS@g" "$TEMP_DEPLOYMENT_FILE"
     sed -i -e "s@<CR.UserName>@$REGISTRY_USERNAME@g" "$TEMP_DEPLOYMENT_FILE"
@@ -318,6 +318,9 @@ process_args "$@"
     exit 1
 }
 
+# On ARM32 Agents, we need to specify path to azure cli since it runs in a python Environment
+# due to issues with azure-cli running on ARM. On other platforms, the following line will be a no-op
+export PATH=~/azure-cli-env/bin/:$PATH
 cleanup_files
 BENCHMARK_OUTPUT_DIR="$OUTPUT_PATH/memory-usage-results"
 #Start the Memory Usage Script so that we can capture startup memory usage

@@ -265,7 +265,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         class CatchTimeoutErrorDetectionStrategy : ITransientErrorDetectionStrategy
         {
-            public bool IsTransient(Exception ex) => ex is TaskCanceledException;
+            public bool IsTransient(Exception ex) => ex is TaskCanceledException || ex is TimeoutException;
         }
     }
 }

@@ -21,6 +21,10 @@ stages:
             arch: amd64
             os: centos7
             target.iotedged: edgelet/target/rpmbuild/RPMS/x86_64
+          RedHat8-amd64:
+            arch: amd64
+            os: redhat8
+            target.iotedged: edgelet/target/rpmbuild/RPMS/x86_64
           Debian9-amd64:
             os: debian9
             arch: amd64
@@ -251,7 +255,11 @@ stages:
             artifactName: iotedged-centos7-amd64
             identityServiceArtifactName: packages_centos-7_amd64
             identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
-          
+          RedHat8-amd64:
+              os: redhat8
+              artifactName: iotedged-redhat8-amd64
+              identityServiceArtifactName: packages_redhat-ubi8-latest_amd64
+              identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm          
           Debian9-amd64:
             os: debian9
             artifactName: iotedged-debian9-amd64

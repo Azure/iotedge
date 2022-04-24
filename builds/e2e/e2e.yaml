@@ -126,6 +126,8 @@ jobs:
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
       skip_notary: false
 
+    timeoutInMinutes: 90
+
     steps:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
@@ -172,6 +174,8 @@ jobs:
       identityServiceArtifactName: packages_ubuntu-20.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
       skip_notary: false
+
+    timeoutInMinutes: 90
 
     steps:
     - template: templates/e2e-setup.yaml
