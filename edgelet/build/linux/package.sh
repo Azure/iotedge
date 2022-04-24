@@ -33,6 +33,24 @@ case "$PACKAGE_OS" in
         esac
         ;;
 
+    'redhat8')
+        # Converts debian versioning to rpm version
+        # deb 1.0.1~dev100 ~> rpm 1.0.1-0.1.dev100
+        RPM_VERSION="$(echo "$VERSION" | cut -d"~" -f1)"
+        RPM_TAG="$(echo "$VERSION" | cut -s -d"~" -f2)"
+        if [ -n "$RPM_TAG" ]; then
+            RPM_RELEASE="0.$REVISION.$RPM_TAG"
+        else
+            RPM_RELEASE="$REVISION"
+        fi
+
+        case "$PACKAGE_ARCH" in
+            'amd64')
+                DOCKER_IMAGE='redhat/ubi8:latest'
+                ;;
+        esac
+        ;;
+
     'debian9')
         DOCKER_IMAGE='debian:9-slim'
         ;;
@@ -83,6 +101,16 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         SETUP_COMMAND=$'
             yum update -y &&
             yum install -y \
+                curl git make rpm-build \
+                gcc gcc-c++ \
+                libcurl-devel libuuid-devel openssl-devel &&
+        '
+        ;;
+
+    redhat8.amd64)
+        SETUP_COMMAND=$'
+            dnf distro-sync -y &&
+            dnf install -y \
                 curl git make rpm-build \
                 gcc gcc-c++ \
                 libcurl-devel libuuid-devel openssl-devel &&
@@ -249,6 +277,21 @@ case "$PACKAGE_OS" in
         MAKE_COMMAND="$MAKE_COMMAND && cd /project/edgelet"
         MAKE_COMMAND="$MAKE_COMMAND && make rpm-dist 'TARGET=target/rpmbuild/SOURCES' 'VERSION=$VERSION' 'REVISION=$REVISION'"
         MAKE_COMMAND="$MAKE_COMMAND && make rpm rpmbuilddir=/project/edgelet/target/rpmbuild 'TARGET=$MAKE_TARGET_DIR' 'VERSION=$VERSION' 'REVISION=$REVISION' 'CARGOFLAGS=--manifest-path ./Cargo.toml $CARGO_TARGET_FLAG' RPMBUILDFLAGS='-v -bb --clean --define \"_topdir /project/edgelet/target/rpmbuild\" $RPMBUILD_TARGET_FLAG'"
+        ;;
+
+    redhat8)
+        case "$PACKAGE_ARCH" in
+            amd64)
+                MAKE_TARGET_DIR='target/release'
+                ;;
+        esac
+
+        MAKE_COMMAND="mkdir -p /project/edgelet/target/rpmbuild"
+        MAKE_COMMAND="$MAKE_COMMAND && cd /project/edgelet/target/rpmbuild"
+        MAKE_COMMAND="$MAKE_COMMAND && mkdir -p RPMS SOURCES SPECS SRPMS BUILD"
+        MAKE_COMMAND="$MAKE_COMMAND && cd /project/edgelet"
+        MAKE_COMMAND="$MAKE_COMMAND && make rpm-dist 'TARGET=target/rpmbuild/SOURCES' 'VERSION=$VERSION' 'REVISION=$REVISION'"
+        MAKE_COMMAND="$MAKE_COMMAND && make rpm8 rpmbuilddir=/project/edgelet/target/rpmbuild 'TARGET=$MAKE_TARGET_DIR' 'VERSION=$VERSION' 'REVISION=$REVISION' 'CARGOFLAGS=--manifest-path ./Cargo.toml $CARGO_TARGET_FLAG' RPMBUILDFLAGS='-v -bb --clean --define \"_topdir /project/edgelet/target/rpmbuild\" $RPMBUILD_TARGET_FLAG'"
         ;;
 
     *)

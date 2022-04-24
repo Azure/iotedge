@@ -134,6 +134,11 @@ deb: release
 	$(SED) "s/@version@/${DEB_VERSION}/g; s/@revision@/${DEB_REVISION}/g;" $(srcdir)/contrib/debian/control > $(TARGET)/$(PACKAGE)/debian/control
 	cd $(TARGET)/$(PACKAGE) && dpkg-buildpackage $(DPKGFLAGS)
 
+rpm8:
+	cp $(srcdir)/contrib/enterprise-linux/00-aziot-edged.preset $(rpmbuilddir)/SOURCES
+	$(SED) "s/@version@/${RPM_VERSION}/g; s/@release@/${RPM_RELEASE}/g;" $(srcdir)/contrib/enterprise-linux/aziot-edge.spec > $(rpmbuilddir)/SPECS/aziot-edge.spec
+	rpmbuild $(RPMBUILDFLAGS) $(rpmbuilddir)/SPECS/aziot-edge.spec
+
 rpm:
 	cp $(srcdir)/contrib/centos/00-aziot-edged.preset $(rpmbuilddir)/SOURCES
 	$(SED) "s/@version@/${RPM_VERSION}/g; s/@release@/${RPM_RELEASE}/g;" $(srcdir)/contrib/centos/aziot-edge.spec > $(rpmbuilddir)/SPECS/aziot-edge.spec
@@ -184,8 +189,6 @@ install: release
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(localstatedir)/lib/aziot/edged
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(localstatedir)/log/aziot/edged
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(localstatedir)/lib/iotedge
-	$(INSTALL) -m 0660 /dev/null $(DESTDIR)$(localstatedir)/lib/iotedge/mgmt.sock
-	$(INSTALL) -m 0666 /dev/null $(DESTDIR)$(localstatedir)/lib/iotedge/workload.sock
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/LICENSE $(DESTDIR)$(docdir)/LICENSE
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/ThirdPartyNotices $(DESTDIR)$(docdir)/ThirdPartyNotices
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/trademark $(DESTDIR)$(docdir)/trademark
@@ -194,6 +197,15 @@ install: release
 
 install-rpm: install
 	$(INSTALL_DATA) -D $(rpmbuilddir)/SOURCES/00-aziot-edged.preset $(DESTDIR)$(presetdir)/00-aziot-edged.preset
+	$(INSTALL) -m 0660 /dev/null $(DESTDIR)$(localstatedir)/lib/iotedge/mgmt.sock
+	$(INSTALL) -m 0666 /dev/null $(DESTDIR)$(localstatedir)/lib/iotedge/workload.sock
+
+install-rpm8: install
+	$(INSTALL_DATA) -D $(rpmbuilddir)/SOURCES/00-aziot-edged.preset $(DESTDIR)$(presetdir)/00-aziot-edged.preset
+	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/enterprise-linux/aziot-edged.service $(DESTDIR)$(unitdir)/aziot-edged.service
+	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/enterprise-linux/aziot-edged.workload.socket  $(DESTDIR)$(unitdir)/aziot-edged.workload.socket
+	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/enterprise-linux/aziot-edged.mgmt.socket  $(DESTDIR)$(unitdir)/aziot-edged.mgmt.socket
+
 
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/aziot-edged
@@ -219,4 +231,4 @@ version:
 	@echo "rpm version:  ${RPM_VERSION}"
 	@echo "rpm release:  ${RPM_RELEASE}"
 
-.PHONY: all clean deb dist install install-rpm rpm rpm-dist uninstall version
+.PHONY: all clean deb dist install install-rpm install-rpm8 rpm rpm8 rpm-dist uninstall version
