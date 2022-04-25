@@ -243,7 +243,7 @@ steps:
       $testManifestSigningDefaultLaunchSettings = $testManifestSigningDefaultLaunchSettings | ConvertTo-Json -Depth 3 
       $testManifestSigningDefaultLaunchSettings | Out-File -Encoding Utf8 "$testManifestSigningLaunchSettingsPath"
       Get-Content -Path "$testManifestSigningLaunchSettingsPath"
-      
+
       echo "Edge agent image: $edgeAgentImage"
       echo "Edge hub image: $edgeHubImage"
   

@@ -51,13 +51,23 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     version = "stretch";
                     packageExtension = SupportedPackageExtension.Deb;
                     break;
+                case "rhel":
+                    version = version.Split('.')[0];
+                    packageExtension = SupportedPackageExtension.Rpm;
+
+                    if (version != "8")
+                    {
+                        throw new NotImplementedException($"Daemon is only installed on Red Hat version 8.X, operating system '{os} {version}'");
+                    }
+
+                    break;
                 case "centos":
                     version = version.Split('.')[0];
                     packageExtension = SupportedPackageExtension.Rpm;
 
                     if (version != "7")
                     {
-                        throw new NotImplementedException($"Don't know how to install daemon on operating system '{os} {version}'");
+                        throw new NotImplementedException($"Daemon is only installed on Centos version 7.X, operating system '{os} {version}'");
                     }
 
                     break;
