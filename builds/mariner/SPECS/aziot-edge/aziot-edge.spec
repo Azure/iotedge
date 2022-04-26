@@ -193,7 +193,9 @@ fi
 %doc %{_docdir}/%{name}/trademark
 
 %changelog
-*   Wed Sep 08 2021 Joseph Knierman <joknierm@microsoft.com> @@VERSION@@-@@RELEASE@@
+*   Tue Apr 26 2022 Joseph Knierman <joknierm@microsoft.com> @@VERSION@@-@@RELEASE@@
+-   Update to build for Mariner 2.0 and uses the rust toolkit provided by the iotedge build pipelines
+*   Wed Sep 08 2021 Joseph Knierman <joknierm@microsoft.com> 1.2.0-4
 -   Update to run on iotedge pipeline.
 *   Wed May 05 2021 David Grob <grobdavid@microsoft.com> 1.2.0-3
 -   Update to version 1.2.0 and compress source files.
