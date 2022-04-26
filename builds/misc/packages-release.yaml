@@ -399,13 +399,13 @@ stages:
         displayName: Copy libiothsm Files to Artifact Staging
         inputs:
           SourceFolder: edgelet/target/hsm
-          Contents: '*.rpm'
+          Contents: '!(*debug*).rpm'
           TargetFolder: $(build.artifactstagingdirectory)
       - task: CopyFiles@2
         displayName: Copy iotedged Files to Artifact Staging
         inputs:
           SourceFolder: edgelet/target/rpmbuild/RPMS/x86_64
-          Contents: '*.rpm'
+          Contents: '!(*debug*).rpm'
           TargetFolder: $(build.artifactstagingdirectory)
       - task: ManifestGeneratorTask@0
         displayName: SBOM Generation Task

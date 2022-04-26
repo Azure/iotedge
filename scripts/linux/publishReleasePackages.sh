@@ -121,7 +121,7 @@ process_args() {
 
 publish_to_microsoft_repo()
 {
-    #Cleanup
+#Cleanup
 sudo rm -rf $WDIR/private-key.pem || true
 sudo rm -rf $WDIR/$OS_NAME-$OS_VERSION-multi-aad.json || true
 
@@ -186,7 +186,7 @@ fi
 
 publish_to_github()
 {   
-    #Investigate if this can be derived from a commit, Hardcode for now.
+    # Investigate if this can be derived from a commit, Hardcode for now.
     if [[ -z $BRANCH_NAME ]]; then
         echo "No Branch Name Provided"
         exit 1
@@ -195,7 +195,7 @@ publish_to_github()
     branch_name=${BRANCH_NAME/"refs/heads/"/""}
     echo "Branch Name is $branch_name"
     
-     # Get the latest release from a given branch
+    # Get the latest release from a given branch
     echo "Fetch the latest release: "
     url="https://api.github.com/repos/Azure/iotedge/releases"
     header_content="Accept:application/vnd.github.v3+json"
@@ -212,6 +212,8 @@ publish_to_github()
     url="https://api.github.com/repos/Azure/azure-iotedge/releases"
     content=$(curl -X GET -H "$header_content" -H "$header_auth" "$url")
     
+    # TODO: Check if the repository is tagged with a given version. Otherwise, tag the commit with the releasing version
+
     # Check if Release Page has already been created
     release_created=$(echo $content | jq --arg version $VERSION '.[] | select(.name==$version)')
     
