@@ -1083,8 +1083,8 @@ stages:
             artifactNames=($(artifactName))
             for eachArtifact in "${artifactNames[@]}"
             do
-              $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh -p $(os) -w $(System.ArtifactsDirectory) -d "$(System.ArtifactsDirectory)/$eachArtifact" -v "$BASE_VERSION" -s "github.com" -b $(Build.SourceBranch)
               echo "$eachArtifact"
+              $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh -p $(os) -w $(System.ArtifactsDirectory) -d "$(System.ArtifactsDirectory)/$eachArtifact" -v "$BASE_VERSION" -s "github.com" -b $(Build.SourceBranch)
             done
           env:
             GITHUB_PAT: "$(GitHubAccessToken)"    

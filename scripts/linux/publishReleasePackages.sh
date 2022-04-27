@@ -48,8 +48,11 @@ check_os() {
     elif [[ "$PACKAGE_OS" == "centos7" ]]; then
         OS_NAME="centos"
         OS_VERSION="7"
+    elif [[ "$PACKAGE_OS" == "windows" ]]; then
+        OS_NAME="windows"
+        OS_VERSION="10"
     else
-        echo "Unsupported OS $PACKAGE_OS"
+        echo "Unsupported OS: $PACKAGE_OS"
         exit 1
     fi
 }
