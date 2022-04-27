@@ -930,24 +930,18 @@ stages:
 
 
             # Use the environment variables input below to pass secret variables to this script.
-      #BEARWASHERE -- Windows Staging copy -- need to create the "iotedged-windows-amd64"
-      - task: PowerShell@2
-        displayName: Create Sub Staing Directory
-        inputs:
-          script: >-
-            New-Item -Path "$(build.artifactstagingdirectory)\iotedged-windows-amd64" -ItemType Directory
       - task: CopyFiles@2
         displayName: Copy Package Artifact Staging
         inputs:
           SourceFolder: .
           Contents: '*.cab'
-          TargetFolder: $(build.artifactstagingdirectory)\iotedged-windows-amd64
+          TargetFolder: $(build.artifactstagingdirectory)
       - task: CopyFiles@2
         displayName: Copy Setup Script to Artifact Staging
         inputs:
           SourceFolder: scripts\windows\setup
           Contents: IotEdgeSecurityDaemon.ps1
-          TargetFolder: $(build.artifactstagingdirectory)\iotedged-windows-amd64
+          TargetFolder: $(build.artifactstagingdirectory)
       - task: EsrpCodeSigning@1
         displayName: ESRP Package CodeSigning
         inputs:
@@ -1059,7 +1053,7 @@ stages:
             os: windows
             # BEARWASHERE -- Rename this first before it gets here
             #artifactName: '"IotEdgeSecurityDaemon" "Microsoft-Azure-IoTEdge"'
-            artifactName: iotedged-windows-amd64
+            artifactName: ''
 
       steps:
         - task: AzureKeyVault@1
@@ -1077,8 +1071,8 @@ stages:
             patterns: |
                 $(artifactName)/*.deb
                 $(artifactName)/*.rpm
-                IotEdgeSecurityDaemon.ps1
-                Microsoft-Azure-IoTEdge.cab
+                *.ps1
+                *.cab
         - bash: |
             BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
             sudo chmod +x $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh
