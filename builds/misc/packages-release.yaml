@@ -399,13 +399,15 @@ stages:
         displayName: Copy libiothsm Files to Artifact Staging
         inputs:
           SourceFolder: edgelet/target/hsm
-          Contents: '!(*debug*).rpm'
+          Contents: '*.rpm'
           TargetFolder: $(build.artifactstagingdirectory)
       - task: CopyFiles@2
         displayName: Copy iotedged Files to Artifact Staging
         inputs:
           SourceFolder: edgelet/target/rpmbuild/RPMS/x86_64
-          Contents: '!(*debug*).rpm'
+          # Warning: Content with '!(*debug*).rpm' doesn't work. 
+          #   the filename prefix is hard coded here to filter out the debuginfo rpm
+          Contents: 'iotedge-1.*.rpm'
           TargetFolder: $(build.artifactstagingdirectory)
       - task: ManifestGeneratorTask@0
         displayName: SBOM Generation Task
@@ -928,18 +930,24 @@ stages:
 
 
             # Use the environment variables input below to pass secret variables to this script.
+      #BEARWASHERE -- Windows Staging copy -- need to create the "iotedged-windows-amd64"
+      - task: PowerShell@2
+        displayName: Create Sub Staing Directory
+        inputs:
+          script: >-
+            New-Item -Path "$(build.artifactstagingdirectory)\iotedged-windows-amd64" -ItemType Directory
       - task: CopyFiles@2
         displayName: Copy Package Artifact Staging
         inputs:
           SourceFolder: .
           Contents: '*.cab'
-          TargetFolder: $(build.artifactstagingdirectory)
+          TargetFolder: $(build.artifactstagingdirectory)\iotedged-windows-amd64
       - task: CopyFiles@2
         displayName: Copy Setup Script to Artifact Staging
         inputs:
           SourceFolder: scripts\windows\setup
           Contents: IotEdgeSecurityDaemon.ps1
-          TargetFolder: $(build.artifactstagingdirectory)
+          TargetFolder: $(build.artifactstagingdirectory)\iotedged-windows-amd64
       - task: EsrpCodeSigning@1
         displayName: ESRP Package CodeSigning
         inputs:
