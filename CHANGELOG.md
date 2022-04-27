@@ -16,10 +16,6 @@
 ### Bug Fixes
 * Update Base Images to address gzip vulnerability [CVE-2022-1271](https://ubuntu.com/security/CVE-2022-1271)
 
-## Metrics Collector
-### Bug Fixes
-* Update Base Images to address gzip vulnerability [CVE-2022-1271](https://ubuntu.com/security/CVE-2022-1271)
-
 ## Simulated Temperature Sensor
 ### Bug Fixes
 * Update Base Images to address gzip vulnerability [CVE-2022-1271](https://ubuntu.com/security/CVE-2022-1271)
