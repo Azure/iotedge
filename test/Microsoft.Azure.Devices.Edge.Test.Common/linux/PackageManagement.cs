@@ -44,8 +44,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 SupportedPackageExtension.Deb => new[]
                 {
                     "set -e",
-                    $"apt-get install -y {string.Join(' ', packages)}",
-                    $"apt-get install -f"
+                    $"apt-get install -y --option DPkg::Lock::Timeout=600 {string.Join(' ', packages)}",
+                    $"apt-get install -f --option DPkg::Lock::Timeout=600"
                 },
                 SupportedPackageExtension.Rpm => new[]
                 {
@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     $"curl {repository} > /etc/apt/sources.list.d/microsoft-prod.list",
                     "curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg",
                     $"apt-get update",
-                    $"apt-get install --yes aziot-edge"
+                    $"apt-get install --option DPkg::Lock::Timeout=600 --yes aziot-edge"
                 },
                 SupportedPackageExtension.Rpm => new[]
                 {
