@@ -5,7 +5,7 @@
 
 # 1.0.6 (2022-03-15)
 
-## Bug Fixes
+### Bug Fixes
 - Update Base Images for a Security Patch [.NET Core 3.1.23 - March 8, 2022](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1.23/3.1.23.md)
 
 # 1.0.5 (2022-03-08)
