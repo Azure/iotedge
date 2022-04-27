@@ -270,10 +270,10 @@ publish_to_github()
                     mimetype="application/x-rpm"
                     ;;
                 'cab')
-                    # Microsoft-Azure-IoTEdge.cab
-                    name="${f%-*-*}-amd64"
-                    name+="${f##*}"
                     mimetype="application/octet-stream"
+                    # Rename Microsoft-Azure-IoTEdge.cab --> Microsoft-Azure-IoTEdge-amd64.cab
+                    name="${f%.*}-amd64"
+                    name+="${f##*.}"
                     ;;
                 *)
                     mimetype="application/octet-stream"
