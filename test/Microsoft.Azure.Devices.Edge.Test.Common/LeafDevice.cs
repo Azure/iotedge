@@ -399,7 +399,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         {
             public bool IsTransient(Exception ex)
             {
-                return ex is ObjectDisposedException || ex is AuthenticationException || (ex is InvalidOperationException && ex.Message.Contains("This operation is only allowed using a successfully authenticated context."));
+                return ex is ObjectDisposedException || (ex is InvalidOperationException && ex.Message.Contains("This operation is only allowed using a successfully authenticated context."));
             }
         }
     }
