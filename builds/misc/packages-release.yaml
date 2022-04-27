@@ -1051,7 +1051,12 @@ stages:
           Ubuntu2004-aarch64:
             os: ubuntu20.04
             artifactName: iotedged-ubuntu20.04-aarch64
-           
+
+          Windows-amd64:
+            os: windows
+            # BEARWASHERE -- Rename this first before it gets here
+            artifactName: '"IotEdgeSecurityDaemon" "Microsoft-Azure-IoTEdge"'
+
       steps:
         - task: AzureKeyVault@1
           displayName: Get secrets
@@ -1068,10 +1073,19 @@ stages:
             patterns: |
                 $(artifactName)/*.deb
                 $(artifactName)/*.rpm
+                IotEdgeSecurityDaemon.ps1
+                Microsoft-Azure-IoTEdge.cab
         - bash: |
             BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
-            sudo chmod +x $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh 
-            $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh -p $(os) -w $(System.ArtifactsDirectory) -d $(System.ArtifactsDirectory)/$(artifactName) -v "$BASE_VERSION" -s "github.com" -b $(Build.SourceBranch)
+            sudo chmod +x $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh
+
+            #BEARWASHERE -- Does this work?
+            artifactNames=($(artifactName))
+            for eachArtifact in "${artifactNames[@]}"
+            do
+              $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh -p $(os) -w $(System.ArtifactsDirectory) -d "$(System.ArtifactsDirectory)/$eachArtifact" -v "$BASE_VERSION" -s "github.com" -b $(Build.SourceBranch)
+              echo "$eachArtifact"
+            done
           env:
             GITHUB_PAT: "$(GitHubAccessToken)"    
           name: publish_artifacts 
