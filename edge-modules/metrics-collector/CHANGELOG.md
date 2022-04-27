@@ -1,6 +1,7 @@
-# 1.0.7
+# 1.0.7 (2022-04-27)
+
 ### Bug Fixes
-* Update Base Images to address gzip vulnerability [CVE-2022-1271](https://ubuntu.com/security/CVE-2022-1271)
+- Update Base Images to address gzip vulnerability [CVE-2022-1271](https://ubuntu.com/security/CVE-2022-1271)
 
 # 1.0.6 (2022-03-15)
 
