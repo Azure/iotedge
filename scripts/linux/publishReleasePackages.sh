@@ -188,68 +188,68 @@ fi
 }
 
 publish_to_github()
-{   #BEARWASHERE -- Commented out for testing
-    # # Investigate if this can be derived from a commit, Hardcode for now.
-    # if [[ -z $BRANCH_NAME ]]; then
-    #     echo "No Branch Name Provided"
-    #     exit 1
-    # fi
+{
+    # Investigate if this can be derived from a commit, Hardcode for now.
+    if [[ -z $BRANCH_NAME ]]; then
+        echo "No Branch Name Provided"
+        exit 1
+    fi
     
-    # branch_name=${BRANCH_NAME/"refs/heads/"/""}
-    # echo "Branch Name is $branch_name"
+    branch_name=${BRANCH_NAME/"refs/heads/"/""}
+    echo "Branch Name is $branch_name"
     
-    # # Get the latest release from a given branch
-    # echo "Fetch the latest release: "
-    # url="https://api.github.com/repos/Azure/iotedge/releases"
-    # header_content="Accept:application/vnd.github.v3+json"
-    # header_auth="Authorization:token $GITHUB_PAT"
-    # content=$(curl -X GET -H "$header_content" -H "$header_auth" "$url")
-    # latest_release=$(echo $content | jq --arg branch "$branch_name" '[.[] | select(.target_commitish==$branch)][0]' | jq '.name' | tr -d '"')
-    # echo "Latest Release is $latest_release"
+    # Get the latest release from a given branch
+    echo "Fetch the latest release: "
+    url="https://api.github.com/repos/Azure/iotedge/releases"
+    header_content="Accept:application/vnd.github.v3+json"
+    header_auth="Authorization:token $GITHUB_PAT"
+    content=$(curl -X GET -H "$header_content" -H "$header_auth" "$url")
+    latest_release=$(echo $content | jq --arg branch "$branch_name" '[.[] | select(.target_commitish==$branch)][0]' | jq '.name' | tr -d '"')
+    echo "Latest Release is $latest_release"
 
-    # if [[ -z $latest_release || $latest_release == null ]];then
-    #     echo "Invalid Response when Querying for Last Release"
-    #     exit
-    # fi
+    if [[ -z $latest_release || $latest_release == null ]];then
+        echo "Invalid Response when Querying for Last Release"
+        exit
+    fi
     
-    # url="https://api.github.com/repos/Azure/azure-iotedge/releases"
-    # content=$(curl -X GET -H "$header_content" -H "$header_auth" "$url")
+    url="https://api.github.com/repos/Azure/azure-iotedge/releases"
+    content=$(curl -X GET -H "$header_content" -H "$header_auth" "$url")
     
-    # # TODO: Check if the repository is tagged with a given version. Otherwise, tag the commit with the releasing version
+    # TODO: Check if the repository is tagged with a given version. Otherwise, tag the commit with the releasing version
 
-    # # Check if Release Page has already been created
-    # release_created=$(echo $content | jq --arg version $VERSION '.[] | select(.name==$version)')
+    # Check if Release Page has already been created
+    release_created=$(echo $content | jq --arg version $VERSION '.[] | select(.name==$version)')
     
-    # if [[ -z $release_created ]];then
+    if [[ -z $release_created ]];then
         
-    #     echo "Fetch Changelog"
-    #     url="https://api.github.com/repos/Azure/iotedge/contents?path=iotedge/&ref=$branch_name"
-    #     content=$(curl -X GET  -H "$header_content" -H "$header_auth" "$url")
-    #     download_uri=$(echo $content | jq '.[] | select(.name=="CHANGELOG.md")' | jq '.download_url')
-    #     download_uri=$(echo $download_uri | tr -d '"')
-    #     echo "download_url is $download_uri"
+        echo "Fetch Changelog"
+        url="https://api.github.com/repos/Azure/iotedge/contents?path=iotedge/&ref=$branch_name"
+        content=$(curl -X GET  -H "$header_content" -H "$header_auth" "$url")
+        download_uri=$(echo $content | jq '.[] | select(.name=="CHANGELOG.md")' | jq '.download_url')
+        download_uri=$(echo $download_uri | tr -d '"')
+        echo "download_url is $download_uri"
                 
-    #     echo "$(curl -X GET  -H "$header_content" -H "$header_auth" "$download_uri")" > $WDIR/content.txt
+        echo "$(curl -X GET  -H "$header_content" -H "$header_auth" "$download_uri")" > $WDIR/content.txt
         
-    #     #Find Content of New Release between (# NEW_VERSION) and (# PREVIOUS_VERSION)    
-    #     echo "$(sed -n "/# $VERSION/,/# $latest_release/p" $WDIR/content.txt)" > $WDIR/content.txt
+        #Find Content of New Release between (# NEW_VERSION) and (# PREVIOUS_VERSION)    
+        echo "$(sed -n "/# $VERSION/,/# $latest_release/p" $WDIR/content.txt)" > $WDIR/content.txt
 
-    #     #Remove Last Line
-    #     sed -i "$ d" $WDIR/content.txt
+        #Remove Last Line
+        sed -i "$ d" $WDIR/content.txt
 
-    #     #Create Release Page
-    #     url="https://api.github.com/repos/Azure/azure-iotedge/releases"
-    #     body=$(jq -n --arg version "$VERSION" --arg body "$(cat $WDIR/content.txt)" '{tag_name: $version, name: $version, target_commitish:"main", body: $body}')
-    #     sudo rm -rf $WDIR/content.txt
+        #Create Release Page
+        url="https://api.github.com/repos/Azure/azure-iotedge/releases"
+        body=$(jq -n --arg version "$VERSION" --arg body "$(cat $WDIR/content.txt)" '{tag_name: $version, name: $version, target_commitish:"main", body: $body}')
+        sudo rm -rf $WDIR/content.txt
         
-    #     echo "Body for Release is $body"
-    #     content=$(curl -X POST -H "$header_content" -H "$header_auth" "$url" -d "$body")
-    #     release_id=$(echo $content | jq '.id')
-    # else
-    #     release_id=$(echo $release_created | jq '.id')
-    # fi
+        echo "Body for Release is $body"
+        content=$(curl -X POST -H "$header_content" -H "$header_auth" "$url" -d "$body")
+        release_id=$(echo $content | jq '.id')
+    else
+        release_id=$(echo $release_created | jq '.id')
+    fi
 
-    # echo "Release ID is $release_id"
+    echo "Release ID is $release_id"
 
     if [[ $SKIP_UPLOAD == "false" ]]; then
         #Upload Artifact
@@ -261,8 +261,7 @@ publish_to_github()
             case ${f##*.} in 
                 'deb')
                     mimetype="application/vnd.debian.binary-package"
-                    #Modify Name to be of form {name}_{os}_{arch}.{extension}
-                    # BEARWASHERE -- Do the same for windows *.cab artifact (under octet-stream). The input to here was basically `iotedge_1.1.9-1_armhf.deb`
+                    # Modify Name to be of form {name}_{os}_{arch}.{extension}
                     name="${f%_*}_$PACKAGE_OS"
                     name+="_${f##*_}"
                     ;;
@@ -281,20 +280,17 @@ publish_to_github()
             esac
             
             upload_url="https://uploads.github.com/repos/Azure/azure-iotedge/releases/$release_id/assets?name=$name"
-            # BEARWASHERE -- debug
-            echo "Name is $name"
             echo "Upload URL is $upload_url"
             echo "Mime Type is $mimetype"
 
-            #BEARWASHERE -- Commented out for testing        
-            # response=$(curl -X POST -H "Content-Type:$mimetype" -H "$header_content" -H "$header_auth" "$upload_url" --data-binary @$DIR/$f)
+            response=$(curl -X POST -H "Content-Type:$mimetype" -H "$header_content" -H "$header_auth" "$upload_url" --data-binary @$DIR/$f)
             
-            # state=$(echo "$response" | jq '.state')
-            # if [[  $state != "\"uploaded\"" ]]; then
-            #     echo "failed to Upload Package. Response is"
-            #     echo $response
-            #     exit 1
-            # fi
+            state=$(echo "$response" | jq '.state')
+            if [[  $state != "\"uploaded\"" ]]; then
+                echo "failed to Upload Package. Response is"
+                echo $response
+                exit 1
+            fi
         done;
     fi
 
