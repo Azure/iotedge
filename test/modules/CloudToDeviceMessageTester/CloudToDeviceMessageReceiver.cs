@@ -8,11 +8,13 @@ namespace CloudToDeviceMessageTester
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
 
     sealed class CloudToDeviceMessageReceiver : ICloudToDeviceMessageTester
@@ -85,7 +87,14 @@ namespace CloudToDeviceMessageTester
                 Microsoft.Azure.Devices.Device device = await registryManager.AddDeviceAsync(leafDevice, ct);
                 string deviceConnectionString = $"HostName={this.iotHubHostName};DeviceId={this.deviceId};SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.gatewayHostName}";
                 this.deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, new ITransportSettings[] { transportSettings });
-                await this.deviceClient.OpenAsync();
+
+                var retryStrategy = new Incremental(15, RetryStrategy.DefaultRetryInterval, RetryStrategy.DefaultRetryIncrement);
+                var retryPolicy = new RetryPolicy(new FailingConnectionErrorDetectionStrategy(), retryStrategy);
+                await retryPolicy.ExecuteAsync(
+                    async () =>
+                {
+                    await this.deviceClient.OpenAsync(ct);
+                }, ct);
 
                 while (!ct.IsCancellationRequested)
                 {
@@ -128,6 +137,14 @@ namespace CloudToDeviceMessageTester
             {
                 registryManager?.Dispose();
             }
+        }
+    }
+
+    class FailingConnectionErrorDetectionStrategy : ITransientErrorDetectionStrategy
+    {
+        public bool IsTransient(Exception ex)
+        {
+            return ex is IotHubCommunicationException;
         }
     }
 }
