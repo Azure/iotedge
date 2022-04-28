@@ -61,7 +61,7 @@ where
     async fn get_cert(
         &mut self,
         cert_id: &str,
-    ) -> Result<openssl::x509::X509, cert_renewal::Error> {
+    ) -> Result<Vec<openssl::x509::X509>, cert_renewal::Error> {
         let cert_client = self.cert_client.lock().await;
 
         let cert = cert_client
@@ -69,8 +69,14 @@ where
             .await
             .map_err(|_| cert_renewal::Error::retryable_error("failed to retrieve edge CA cert"))?;
 
-        openssl::x509::X509::from_pem(&cert)
-            .map_err(|_| cert_renewal::Error::fatal_error("failed to parse edge CA cert"))
+        let cert_chain = openssl::x509::X509::stack_from_pem(&cert)
+            .map_err(|_| cert_renewal::Error::fatal_error("failed to parse edge CA cert"))?;
+
+        if cert_chain.is_empty() {
+            Err(cert_renewal::Error::fatal_error("no certs in chain"))
+        } else {
+            Ok(cert_chain)
+        }
     }
 
     async fn get_key(
@@ -92,9 +98,9 @@ where
 
     async fn renew_cert(
         &mut self,
-        old_cert: &openssl::x509::X509,
+        old_cert_chain: &[openssl::x509::X509],
         key_id: &str,
-    ) -> Result<(openssl::x509::X509, Self::NewKey), cert_renewal::Error> {
+    ) -> Result<(Vec<openssl::x509::X509>, Self::NewKey), cert_renewal::Error> {
         // Generate a new key if needed. Otherwise, retrieve the existing key.
         let (key_id, key_handle) = {
             let key_client = self.key_client.lock().await;
@@ -129,7 +135,7 @@ where
             .map_err(cert_renewal::Error::retryable_error)?;
 
         // Determine the subject of the old cert. This will be the subject of the new cert.
-        let subject = if let Some(subject) = old_cert
+        let subject = if let Some(subject) = old_cert_chain[0]
             .subject_name()
             .entries_by_nid(openssl::nid::Nid::COMMONNAME)
             .next()
@@ -170,35 +176,55 @@ where
             new_cert
         };
 
-        let new_cert = openssl::x509::X509::from_pem(&new_cert)
+        let new_cert_chain = openssl::x509::X509::stack_from_pem(&new_cert)
             .map_err(|_| cert_renewal::Error::retryable_error("failed to parse new cert"))?;
 
-        Ok((new_cert, key_id))
+        if new_cert_chain.is_empty() {
+            Err(cert_renewal::Error::retryable_error("no certs in chain"))
+        } else {
+            Ok((new_cert_chain, key_id))
+        }
     }
 
     async fn write_credentials(
         &mut self,
-        old_cert: &openssl::x509::X509,
-        new_cert: (&str, &openssl::x509::X509),
+        old_cert_chain: &[openssl::x509::X509],
+        new_cert_chain: (&str, &[openssl::x509::X509]),
         key: (&str, Self::NewKey),
     ) -> Result<(), cert_renewal::Error> {
-        let (cert_id, new_cert) = (new_cert.0, new_cert.1);
+        let (cert_id, new_cert_chain) = (new_cert_chain.0, new_cert_chain.1);
         let (old_key, new_key) = (key.0, key.1);
 
-        let new_cert_pem = new_cert
-            .to_pem()
-            .map_err(|_| cert_renewal::Error::retryable_error("bad cert"))?;
+        if old_cert_chain.is_empty() || new_cert_chain.is_empty() {
+            return Err(cert_renewal::Error::retryable_error("no certs in chain"));
+        }
 
-        let old_cert_pem = old_cert
-            .to_pem()
-            .map_err(|_| cert_renewal::Error::retryable_error("bad cert"))?;
+        let mut new_cert_chain_pem = Vec::new();
+
+        for cert in new_cert_chain {
+            let mut cert = cert
+                .to_pem()
+                .map_err(|_| cert_renewal::Error::retryable_error("bad cert"))?;
+
+            new_cert_chain_pem.append(&mut cert);
+        }
+
+        let mut old_cert_chain_pem = Vec::new();
+
+        for cert in old_cert_chain {
+            let mut cert = cert
+                .to_pem()
+                .map_err(|_| cert_renewal::Error::retryable_error("bad cert"))?;
+
+            old_cert_chain_pem.append(&mut cert);
+        }
 
         // Commit the new cert to storage.
         {
             let cert_client = self.cert_client.lock().await;
 
             cert_client
-                .import_cert(cert_id, &new_cert_pem)
+                .import_cert(cert_id, &new_cert_chain_pem)
                 .await
                 .map_err(|_| cert_renewal::Error::retryable_error("failed to import new cert"))?;
         }
@@ -219,7 +245,7 @@ where
             let cert_client = self.cert_client.lock().await;
 
             cert_client
-                .import_cert(cert_id, &old_cert_pem)
+                .import_cert(cert_id, &old_cert_chain_pem)
                 .await
                 .map_err(|_| cert_renewal::Error::retryable_error("failed to restore old cert"))?;
         }
