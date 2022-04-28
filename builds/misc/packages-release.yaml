@@ -986,6 +986,7 @@ stages:
                 keyVaultName: $(kv.name)
                 secretsFilter: >-
                   GitHubAccessToken
+            - checkout: self
             - bash: |
                 echo "Approval Complete"
 
