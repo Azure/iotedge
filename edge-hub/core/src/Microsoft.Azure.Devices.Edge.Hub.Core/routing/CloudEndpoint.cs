@@ -28,22 +28,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     public class CloudEndpoint : Endpoint
     {
         readonly Func<string, Task<Try<ICloudProxy>>> cloudProxyGetterFunc;
-        readonly Func<Task> removeAllConnectionsFunc;
+
         readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
         readonly int maxBatchSize;
         readonly bool trackDeviceState;
-        IncidentIssue tracker;
-        enum IncidentIssue
-        {
-            None = 0,
-            OccurredOnce = 1,
-            OccurredTwice = 2
-        }
 
         public CloudEndpoint(
             string id,
             Func<string, Task<Try<ICloudProxy>>> cloudProxyGetterFunc,
-            Func<Task> removeAllConnectionsFunc,
             Core.IMessageConverter<IRoutingMessage> messageConverter,
             bool trackDeviceState,
             int maxBatchSize = 10,
@@ -51,13 +43,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             : base(id)
         {
             Preconditions.CheckArgument(maxBatchSize > 0, "MaxBatchSize should be greater than 0");
-            this.removeAllConnectionsFunc = Preconditions.CheckNotNull(removeAllConnectionsFunc);
             this.cloudProxyGetterFunc = Preconditions.CheckNotNull(cloudProxyGetterFunc);
             this.messageConverter = Preconditions.CheckNotNull(messageConverter);
             this.trackDeviceState = trackDeviceState;
             this.maxBatchSize = maxBatchSize;
             this.FanOutFactor = fanoutFactor;
-            this.tracker = IncidentIssue.None;
             Events.Created(id, maxBatchSize, fanoutFactor);
         }
 
@@ -248,24 +238,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     }
                     catch (EdgeHubCloudSDKException ex)
                     {
-                        // since this isnt production code just using an  enum should be fine?
-                        if (this.cloudEndpoint.tracker == IncidentIssue.None)
-                        {
-                            this.cloudEndpoint.tracker = IncidentIssue.OccurredOnce;
-                            await cp.CloseAsync();
-                            return this.HandleException(ex, id, routingMessages);
-                        }
-                        else if (this.cloudEndpoint.tracker == IncidentIssue.OccurredOnce)
-                        {
-                            this.cloudEndpoint.tracker = IncidentIssue.OccurredTwice;
-                            await this.cloudEndpoint.removeAllConnectionsFunc();
-                            return this.HandleException(ex, id, routingMessages);
-                        }
-                        else
-                        {
-                            Environment.Exit(1);
-                            return this.HandleException(ex, id, routingMessages);
-                        }
+                        await cp.CloseAsync();
+                        return this.HandleException(ex, id, routingMessages);
                     }
                     catch (Exception ex)
                     {

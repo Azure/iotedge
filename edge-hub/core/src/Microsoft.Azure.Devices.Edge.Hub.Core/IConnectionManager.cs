@@ -33,8 +33,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         Task RemoveDeviceConnection(string id);
 
-        Task RemoveAllCloudConnections();
-
         Task<Try<ICloudProxy>> CreateCloudConnectionAsync(IClientCredentials identity);
 
         Option<IDeviceProxy> GetDeviceConnection(string id);

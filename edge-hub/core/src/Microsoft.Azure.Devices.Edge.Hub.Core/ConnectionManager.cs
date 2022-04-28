@@ -56,8 +56,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public event EventHandler<IIdentity> DeviceDisconnected;
 
-        public event Action IncidentIssueOccured;
-
         public IEnumerable<IIdentity> GetConnectedClients() =>
             this.devices.Values
                 .Where(d => d.DeviceConnection.Map(dc => dc.IsActive).GetOrElse(false))
@@ -82,28 +80,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             return this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(id, nameof(id)), out ConnectedDevice device)
                 ? this.RemoveDeviceConnection(device, this.closeCloudConnectionOnDeviceDisconnect)
                 : Task.CompletedTask;
-        }
-
-        async Task RemoveCloudConnection(string id)
-        {
-            if (this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(id, nameof(id)), out ConnectedDevice device))
-            {
-                await device.CloudConnection.Filter(cp => cp.IsActive)
-                    .ForEachAsync(cp => cp.CloseAsync());
-            }
-
-            return;
-        }
-
-        public async Task RemoveAllCloudConnections()
-        {
-            foreach (IIdentity id in this.GetConnectedClients())
-            {
-               await this.RemoveCloudConnection(id.Id);
-            }
-
-            this.IncidentIssueOccured?.Invoke();
-            return;
         }
 
         public Option<IDeviceProxy> GetDeviceConnection(string id)

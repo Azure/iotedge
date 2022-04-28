@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Task completedTask = await Task.WhenAny(task, timerTask);
                 if (completedTask == timerTask)
                 {
-                    throw new EdgeHubCloudSDKException("SDK hanging");
+                    throw new EdgeHubCloudSDKException("Sending Messages upstream failed most likely due to SDK");
                 }
 
                 cts.Cancel();
