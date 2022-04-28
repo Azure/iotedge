@@ -13,6 +13,7 @@ stages:
     jobs:
     - job: linux
       displayName: Linux
+      dependsOn: safe_guard
       strategy:
         matrix:
           Centos75-amd64:
@@ -131,7 +132,7 @@ stages:
           deploy:
             steps:
               - bash: |
-                  echo "Approval Complete"   
+                  echo "Approval Complete"
     - job: linux
       displayName: Linux
       strategy:
