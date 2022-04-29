@@ -39,12 +39,15 @@ stages:
         inputs:
           targetType: inline
           script: >-
+            apt-get install tree -y
             echo "=============================================="
             echo "Build.SourcesDirectory: $(Build.SourcesDirectory)"
-            find $(Build.SourcesDirectory) -type d | sed -e "s/[^-][^\/]*\// |/g" -e "s/|\([^ ]\)/|-\1/"
+            tree $(Build.SourcesDirectory)
+            # find $(Build.SourcesDirectory) -type d | sed -e "s/[^-][^\/]*\// |/g" -e "s/|\([^ ]\)/|-\1/"
             # ls -R $(Build.SourcesDirectory) | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/   /' -e 's/-/|/'
             echo " "
             echo "=============================================="
             echo "Agent.BuildDirectory:   $(Agent.BuildDirectory)"
-            find $(Agent.BuildDirectory) -type d | sed -e "s/[^-][^\/]*\// |/g" -e "s/|\([^ ]\)/|-\1/"
+            tree $(Agent.BuildDirectory)
+            # find $(Agent.BuildDirectory) -type d | sed -e "s/[^-][^\/]*\// |/g" -e "s/|\([^ ]\)/|-\1/"
             # ls -R $(Agent.BuildDirectory) | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/   /' -e 's/-/|/'
