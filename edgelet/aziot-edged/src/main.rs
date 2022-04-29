@@ -189,18 +189,6 @@ async fn run() -> Result<(), EdgedError> {
         wait_time += poll_period;
     }
 
-    log::info!("Stopping all modules...");
-    let runtime = runtime.lock().await;
-
-    if let Err(err) = runtime
-        .stop_all(Some(std::time::Duration::from_secs(30)))
-        .await
-    {
-        log::warn!("Failed to stop modules on shutdown: {}", err);
-    } else {
-        log::info!("All modules stopped");
-    }
-
     if let edgelet_core::WatchdogAction::Reprovision = shutdown_reason {
         match provision::reprovision(&identity_client, &cache_dir).await {
             Ok(()) => log::info!("Successfully reprovisioned"),

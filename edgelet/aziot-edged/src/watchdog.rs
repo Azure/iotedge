@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use edgelet_core::ModuleRuntime;
+use edgelet_core::{Module, ModuleRuntime};
 use edgelet_settings::RuntimeSettings;
 
 use crate::error::Error as EdgedError;
@@ -51,8 +51,21 @@ pub(crate) async fn run_until_shutdown(
                 log::info!("{}", action);
 
                 if let edgelet_core::WatchdogAction::EdgeCaRenewal = action {
+                    restart_modules(&settings, &runtime).await;
                 } else {
                     log::info!("Watchdog stopped");
+
+                    log::info!("Stopping all modules...");
+                    let runtime = runtime.lock().await;
+
+                    if let Err(err) = runtime
+                        .stop_all(Some(std::time::Duration::from_secs(30)))
+                        .await
+                    {
+                        log::warn!("Failed to stop modules on shutdown: {}", err);
+                    } else {
+                        log::info!("All modules stopped");
+                    }
 
                     return Ok(action);
                 }
@@ -113,6 +126,63 @@ async fn watchdog(
     }
 
     Ok(())
+}
+
+async fn restart_modules(
+    settings: &edgelet_settings::docker::Settings,
+    runtime: &futures_util::lock::Mutex<edgelet_docker::DockerModuleRuntime>,
+) {
+    let agent_name = settings.agent().name();
+
+    let runtime = runtime.lock().await;
+
+    // Check if edgeAgent is running. If edgeAgent does not exist or is not running,
+    // return and let the periodic watchdog create and start it.
+    if let Ok((_, agent_status)) = runtime.get(agent_name).await {
+        match agent_status.status() {
+            edgelet_core::ModuleStatus::Running => {}
+            _ => return,
+        }
+    } else {
+        return;
+    }
+
+    // List and stop modules.
+    let modules = if let Ok(modules) = runtime.list().await {
+        modules
+    } else {
+        log::warn!("Failed to list modules");
+
+        return;
+    };
+
+    if let Err(err) = runtime.stop_all(None).await {
+        log::warn!("Edge CA renewal failed to stop modules: {}", err);
+
+        return;
+    }
+
+    log::info!("Edge CA renewal stopped all modules");
+
+    // Restart all modules. edgeAgent should be restarted last so that it does not
+    // also attempt to start modules.
+    for module in modules {
+        let module_name = module.name();
+
+        if module_name != agent_name {
+            if let Err(err) = runtime.start(module_name).await {
+                log::warn!("Edge CA renewal failed to restart {}: {}", module_name, err);
+            } else {
+                log::info!("Edge CA renewal restarted {}", module_name);
+            }
+        }
+    }
+
+    if let Err(err) = runtime.start(agent_name).await {
+        log::warn!("Edge CA renewal failed to restart {}: {}", agent_name, err);
+    } else {
+        log::info!("Edge CA renewal restarted {}", agent_name);
+    }
 }
 
 async fn create_and_start_agent(
