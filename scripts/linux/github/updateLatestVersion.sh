@@ -60,15 +60,21 @@ get_latest_release_per_branch_name()
 version_sanity_check()
 {
     # $1 - Proposed version
+    # $2 - Lastest Release Version from the github released branch
 
-    # BEARWASHERE -- TODO: Make $2 optional for $latestReleasedVersion
+    # The latest released version is optional argument, so fetch that if not provided.
+    if [ "$#" -le "2" ]; then
+        latestReleasedVersion=$(get_latest_release_per_branch_name)
+    else
+        latestReleasedVersion=$2
+    fi
 
     # Use the sort to compare, if the first result from sort() is not the input, then return false.
-    latestReleasedVersion=$(get_latest_release_per_branch_name)
     higherVersion=$(echo "$latestReleasedVersion $1" | tr " " "\n"  | sort --version-sort -r | head -1)
     if [[ "$higherVersion" == "$latestReleasedVersion" ]]; then
-        echo "FAILED: The proposed version ($1) cannot have a lower version value than the latest released version ($latestReleasedVersion)"
-        exit 1;
+        echo "FAILED: The proposed version ($1) cannot have a lower or equal version value than the latest released version ($latestReleasedVersion)"
+        # BEARWASHERE
+        #exit 1;
     else
         echo "PASSED: version sanity check"
     fi
@@ -90,9 +96,53 @@ update_latest_version_json()
 
     #sudo chmod +x $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh
     # BEARWASHERE -- Hmmm... We need to checkout azure-iotedge repo here to modify it. Let's take a look tmr
+    # $(Build.SourcesDirectory)/iotedge
     $IOTEDGE_REPO_PATH
 
-    #The /s for source that we can use
     # $(Build.SourcesDirectory)/azure-iotedge
-    # $(Build.SourcesDirectory)/iotedge
+    $AZURE_IOTEDGE_REPO_PATH
+
+    branchVersion=$(echo ${BRANCH_NAME##*/})
+
+    if [[ "$BRANCH_NAME" == "refs/heads/release/1.1" ]]; then
+        # proposedEdgeletVersion - iotedge/edgelet/version.txt
+        proposedEdgeletVersion=$(cat $IOTEDGE_REPO_PATH/edgelet/version.txt)
+        # proposedImageVersion - iotedge/versionInfo.json
+        proposedImageVersion=$(cat $IOTEDGE_REPO_PATH/versionInfo.json | jq ".version" | tr -d '"')
+
+        # latestEdgeletVersion - azure-iotedge/latest-iotedge-lts.json
+        content=$(cat $AZURE_IOTEDGE_REPO_PATH/latest-iotedge-lts.json)
+        latestEdgeletVersion=$(echo $content | jq ".iotedged" | tr -d '"')
+        # latestImageVersion - azure-iotedge/latest-iotedge-lts.json
+        latestImageVersion=$(echo $content | jq '."azureiotedge-agent"' | tr -d '"')
+
+        version_sanity_check $proposedEdgeletVersion $latestEdgeletVersion
+        version_sanity_check $proposedImageVersion $latestImageVersion
+
+        # Rewriting the latest-iotedge-lts.json
+        jqQuery=".iotedged = \"$proposedEdgeletVersion\" | .\"azureiotedge-agent\" = \"$proposedImageVersion\" | .\"azureiotedge-hub\" = \"$proposedImageVersion\""
+        echo $content | jq "$jqQuery" > $AZURE_IOTEDGE_REPO_PATH/latest-iotedge-lts.json
+
+    elif [[ "$BRANCH_NAME" == "refs/heads/release/1.2" ]]; then
+        OS_NAME="centos"
+        OS_VERSION="7"
+    elif [[ "$BRANCH_NAME" == "refs/heads/main" ]]; then
+        echo "I'm pretty sure you don't want to release the main branch."
+        # BEARWASHERE
+        #exit 1
+    else
+        echo "Oh dear, how did you get here?!?"
+        # BEARWASHERE
+        #exit 1
+    fi
+
+    #BEARWASHERE --
+    #  1. Determine the branch name
+    #  2. Read the file version from iotedge
+    #  3. Read the file version from azure-iotedge
+    #  4. Compare the versions
+    
+
+    version_sanity_check $proposedVersion $latestReleasedVersion
+    
 }
