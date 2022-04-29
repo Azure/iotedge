@@ -53,18 +53,6 @@ pub(crate) async fn run_until_shutdown(
                 log::info!("{}", shutdown_reason);
                 log::info!("Watchdog stopped");
 
-                log::info!("Stopping all modules...");
-                let runtime = runtime.lock().await;
-
-                if let Err(err) = runtime
-                    .stop_all(Some(std::time::Duration::from_secs(30)))
-                    .await
-                {
-                    log::warn!("Failed to stop modules on shutdown: {}", err);
-                } else {
-                    log::info!("All modules stopped");
-                }
-
                 return Ok(shutdown_reason);
             }
         }

@@ -308,6 +308,8 @@ where
                 .map_err(|_| cert_renewal::Error::retryable_error("failed to restore old cert"))?;
         }
 
+        log::info!("Edge CA was renewed");
+
         // Modules should be restarted so that they request new server certs.
         self.restart_modules().await;
 

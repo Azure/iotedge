@@ -150,7 +150,7 @@ async fn run() -> Result<(), EdgedError> {
     let shutdown_reason = watchdog::run_until_shutdown(
         settings,
         &device_info,
-        runtime,
+        runtime.clone(),
         &identity_client,
         shutdown_rx,
     )
@@ -186,6 +186,18 @@ async fn run() -> Result<(), EdgedError> {
 
         tokio::time::sleep(poll_period).await;
         wait_time += poll_period;
+    }
+
+    log::info!("Stopping all modules...");
+    let runtime = runtime.lock().await;
+
+    if let Err(err) = runtime
+        .stop_all(Some(std::time::Duration::from_secs(30)))
+        .await
+    {
+        log::warn!("Failed to stop modules on shutdown: {}", err);
+    } else {
+        log::info!("All modules stopped");
     }
 
     if let edgelet_core::ShutdownReason::Reprovision = shutdown_reason {
