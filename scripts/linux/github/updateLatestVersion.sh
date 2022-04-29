@@ -7,7 +7,7 @@ check_required_variables()
     [[ -z "$BRANCH_NAME" ]] && { echo "\$BRANCH_NAME is undefined"; return 1; }   
 }
 
-#    $1 is GitHub API endpoint
+
 send_github_request()
 {
     # BEARWASHERE -- change from "return" to "exit" once done debugging
@@ -18,9 +18,10 @@ send_github_request()
     url="https://api.github.com/repos/$1/$2"
     header_content="Accept:application/vnd.github.v3+json"
     header_auth="Authorization:token $GITHUB_PAT"
-    content=$(curl -X GET -H "$header_content" -H "$header_auth" "$url")
+    content=$(curl -s -X GET -H "$header_content" -H "$header_auth" "$url")
     echo $content
 }
+
 
 #######################################
 # NAME: 
@@ -41,9 +42,33 @@ get_latest_release_per_branch_name()
     check_required_variables
 
     # $BRANCH_NAME="refs/heads/release/1.1"  (Build.SourceBranch)
+    # Get the MAJOR.MINOR version
+    branchVersion=$(echo ${BRANCH_NAME##*/})
 
+    # Get the list of released version
     content=$(send_github_request "Azure/azure-iotedge" "releases")
-    echo $content | jq '.[].name'
+    jqQuery=".[].name | select(startswith(\"$branchVersion\"))"
+    versionList=$(echo $content | jq "$jqQuery")
+    
+    # Beware of the "N.N.N~rcN"
+    # We are not gonna handle the 'rc' in the tag
+    echo $versionList | tr " " "\n"  | sort --version-sort -r | head -1 | tr -d '"'
+}
+
+
+version_sanity_check()
+{
+    # $1 - Proposed version
+
+    # Use the sort to compare, if the first result from sort() is not the input, then return false.
+    latestReleasedVersion=$(get_latest_release_per_branch_name)
+    higherVersion=$(echo "$latestReleasedVersion $1" | tr " " "\n"  | sort --version-sort -r | head -1)
+    if [[ "$higherVersion" == "$latestReleasedVersion" ]]; then
+        echo "FAILED: The proposed version ($1) cannot have a lower version value than the latest released version ($latestReleasedVersion)"
+        #exit 1;
+    else
+        echo "PASSED: version sanity check"
+    fi
 }
 
 
