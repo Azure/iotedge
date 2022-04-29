@@ -318,14 +318,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 Log.Verbose($"Detected change in connection status:{Environment.NewLine}Changed Status: {status} Reason: {reason}");
             });
 
-            // This retry is needed to correct a variety of exceptions, however this failure should not happen.
-            var retryStrategy = new Incremental(15, RetryStrategy.DefaultRetryInterval, RetryStrategy.DefaultRetryIncrement);
-            var retryPolicy = new RetryPolicy(new FailingConnectionErrorDetectionStrategy(), retryStrategy);
-            await retryPolicy.ExecuteAsync(
-                async () =>
-            {
-                await client.SetMethodHandlerAsync(nameof(DirectMethod), DirectMethod, null, token);
-            }, token);
+            await client.SetMethodHandlerAsync(nameof(DirectMethod), DirectMethod, null, token);
 
             return new LeafDevice(device, client, iotHub);
         }
