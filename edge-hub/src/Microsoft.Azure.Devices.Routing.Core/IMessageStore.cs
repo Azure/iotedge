@@ -46,5 +46,10 @@ namespace Microsoft.Azure.Devices.Routing.Core
         /// Set the expiry time for messages in the store
         /// </summary>
         void SetTimeToLive(TimeSpan timeToLive);
+
+        /// <summary>
+        /// Returns the number of messages in the store from a offset
+        /// </summary>
+        Task<ulong> GetMessageCountFromOffset(string endpointId, long offset);
     }
 }

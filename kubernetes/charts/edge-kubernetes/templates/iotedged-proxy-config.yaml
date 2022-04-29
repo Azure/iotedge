@@ -20,3 +20,6 @@ data:
         entrypoint: "http://localhost:{{ .Values.iotedged.ports.workload }}"
         backend: "https://{{ .Values.iotedged.service.name }}:{{ .Values.iotedged.ports.workload }}"
         certificate: "/etc/trust-bundle/trust_bundle.pem"
+
+    api:
+      entrypoint: "http://localhost:8080"

@@ -10,6 +10,7 @@ namespace DirectMethodSender
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using TransportType = Microsoft.Azure.Devices.Client.TransportType;
 
     sealed class EventReporterClient : ReporterClientBase
     {

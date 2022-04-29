@@ -18,21 +18,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         {
             var theoryData = new List<object[]>();
 
-            theoryData.Add(new object[] { SessionStatePersistenceProvider.TwinSubscriptionTopicPrefix, DeviceSubscription.DesiredPropertyUpdates });
-            theoryData.Add(new object[] { $"{SessionStatePersistenceProvider.TwinSubscriptionTopicPrefix}/somemorestuff", DeviceSubscription.DesiredPropertyUpdates });
-            theoryData.Add(new object[] { $"SomeStartingStuff/{SessionStatePersistenceProvider.TwinSubscriptionTopicPrefix}", DeviceSubscription.Unknown });
+            theoryData.Add(new object[] { SessionStateParser.TwinSubscriptionTopicPrefix, DeviceSubscription.DesiredPropertyUpdates });
+            theoryData.Add(new object[] { $"{SessionStateParser.TwinSubscriptionTopicPrefix}/somemorestuff", DeviceSubscription.DesiredPropertyUpdates });
+            theoryData.Add(new object[] { $"SomeStartingStuff/{SessionStateParser.TwinSubscriptionTopicPrefix}", DeviceSubscription.Unknown });
 
-            theoryData.Add(new object[] { SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix, DeviceSubscription.Methods });
-            theoryData.Add(new object[] { $"{SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix}/somemorestuff", DeviceSubscription.Methods });
-            theoryData.Add(new object[] { $"SomeStartingStuff/{SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix}", DeviceSubscription.Unknown });
+            theoryData.Add(new object[] { SessionStateParser.MethodSubscriptionTopicPrefix, DeviceSubscription.Methods });
+            theoryData.Add(new object[] { $"{SessionStateParser.MethodSubscriptionTopicPrefix}/somemorestuff", DeviceSubscription.Methods });
+            theoryData.Add(new object[] { $"SomeStartingStuff/{SessionStateParser.MethodSubscriptionTopicPrefix}", DeviceSubscription.Unknown });
 
-            theoryData.Add(new object[] { SessionStatePersistenceProvider.C2DSubscriptionTopicPrefix, DeviceSubscription.C2D });
-            theoryData.Add(new object[] { $"{SessionStatePersistenceProvider.C2DSubscriptionTopicPrefix}/somemorestuff", DeviceSubscription.Unknown });
-            theoryData.Add(new object[] { $"devices/device1/{SessionStatePersistenceProvider.C2DSubscriptionTopicPrefix}", DeviceSubscription.C2D });
+            theoryData.Add(new object[] { SessionStateParser.C2DSubscriptionTopicPrefix, DeviceSubscription.C2D });
+            theoryData.Add(new object[] { $"{SessionStateParser.C2DSubscriptionTopicPrefix}/somemorestuff", DeviceSubscription.Unknown });
+            theoryData.Add(new object[] { $"devices/device1/{SessionStateParser.C2DSubscriptionTopicPrefix}", DeviceSubscription.C2D });
 
-            theoryData.Add(new object[] { SessionStatePersistenceProvider.TwinResponseTopicFilter, DeviceSubscription.TwinResponse });
-            theoryData.Add(new object[] { $"{SessionStatePersistenceProvider.TwinResponseTopicFilter}/somemorestuff", DeviceSubscription.Unknown });
-            theoryData.Add(new object[] { $"devices/device1/{SessionStatePersistenceProvider.TwinResponseTopicFilter}", DeviceSubscription.Unknown });
+            theoryData.Add(new object[] { SessionStateParser.TwinResponseTopicFilter, DeviceSubscription.TwinResponse });
+            theoryData.Add(new object[] { $"{SessionStateParser.TwinResponseTopicFilter}/somemorestuff", DeviceSubscription.Unknown });
+            theoryData.Add(new object[] { $"devices/device1/{SessionStateParser.TwinResponseTopicFilter}", DeviceSubscription.Unknown });
 
             theoryData.Add(new object[] { "devices/device1/modules/module1/#", DeviceSubscription.ModuleMessages });
             theoryData.Add(new object[] { "devices/device1/modules/module1/", DeviceSubscription.Unknown });
@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "d1");
             var sessionProvider = new SessionStatePersistenceProvider(edgeHub.Object);
             ISessionState sessionState = new SessionState(false);
-            sessionState.AddOrUpdateSubscription(SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix, QualityOfService.AtLeastOnce);
+            sessionState.AddOrUpdateSubscription(SessionStateParser.MethodSubscriptionTopicPrefix, QualityOfService.AtLeastOnce);
             Task setTask = sessionProvider.SetAsync(identity, sessionState);
 
             Assert.True(setTask.IsCompleted);
@@ -83,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "d1");
             var sessionProvider = new SessionStatePersistenceProvider(edgeHub.Object);
             ISessionState sessionState = new SessionState(false);
-            sessionState.RemoveSubscription(SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix);
+            sessionState.RemoveSubscription(SessionStateParser.MethodSubscriptionTopicPrefix);
             Task setTask = sessionProvider.SetAsync(identity, sessionState);
 
             Assert.True(setTask.IsCompleted);
@@ -127,8 +127,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var sessionProvider = new SessionStatePersistenceProvider(edgeHub.Object);
 
             ISessionState sessionState = new SessionState(false);
-            sessionState.AddOrUpdateSubscription(SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix, QualityOfService.AtLeastOnce);
-            sessionState.AddOrUpdateSubscription(SessionStatePersistenceProvider.TwinResponseTopicFilter, QualityOfService.AtLeastOnce);
+            sessionState.AddOrUpdateSubscription(SessionStateParser.MethodSubscriptionTopicPrefix, QualityOfService.AtLeastOnce);
+            sessionState.AddOrUpdateSubscription(SessionStateParser.TwinResponseTopicFilter, QualityOfService.AtLeastOnce);
             Task setTask = sessionProvider.SetAsync(identity, sessionState);
 
             Assert.True(setTask.IsCompleted);
@@ -146,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         public void GetSubscriptionTopicTest(string topicName, object subscriptionTopicObject)
         {
             var subscriptionTopic = (DeviceSubscription)subscriptionTopicObject;
-            Assert.Equal(SessionStatePersistenceProvider.GetDeviceSubscription(topicName), subscriptionTopic);
+            Assert.Equal(SessionStateParser.GetDeviceSubscription(topicName), subscriptionTopic);
         }
     }
 }

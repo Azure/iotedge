@@ -2,6 +2,8 @@
 
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
+//Skip For Code Coverage, Tarpaulin Gives an error about not finding OUT_DIR when running this test. Revisit Later
+#![cfg(not(tarpaulin))]
 //Skip ARM(cross-compile) until I figure out how to run ctest on this.
 #![cfg(not(any(target_arch = "arm", target_arch = "aarch64")))]
 

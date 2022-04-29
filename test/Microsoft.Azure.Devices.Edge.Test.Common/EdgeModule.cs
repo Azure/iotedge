@@ -107,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         data.SystemProperties.TryGetValue("iothub-connection-device-id", out object devId);
                         data.SystemProperties.TryGetValue("iothub-connection-module-id", out object modId);
 
-                        resultBody = Encoding.UTF8.GetString(data.Body);
+                        resultBody = Encoding.UTF8.GetString(data.Body.ToArray());
                         Log.Verbose($"Received event for '{devId}/{modId}' with body '{resultBody}'");
 
                         return devId != null && devId.ToString().Equals(this.deviceId)

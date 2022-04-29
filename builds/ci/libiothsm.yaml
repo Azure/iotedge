@@ -2,7 +2,7 @@ trigger:
   batch: true
   branches:
     include:
-      - master
+      - main
       - release/*
       - iiot
 pr: none
@@ -41,7 +41,9 @@ jobs:
 ################################################################################
     displayName: Windows amd64
     pool:
-      vmImage: 'vs2017-win2016'
+      name: $(pool.windows.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
     steps:
       - task: PowerShell@2
         displayName: Install

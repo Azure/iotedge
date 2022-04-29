@@ -285,7 +285,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             var runtimeInfoProvider = await RuntimeInfoProvider.CreateAsync(dockerClient);
 
             // Act
-            Stream receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, false, Option.None<int>(), Option.None<string>(), Option.None<string>(), CancellationToken.None);
+            Stream receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, false, Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.None<bool>(), CancellationToken.None);
 
             // Assert
             Assert.NotNull(receivedContainerLogsParameters);
@@ -301,7 +301,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(dummyLogs, receivedLogs);
 
             // Act
-            receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, true, Option.Some(1000), Option.None<string>(), Option.None<string>(), CancellationToken.None);
+            receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, true, Option.Some(1000), Option.None<string>(), Option.None<string>(), Option.None<bool>(), CancellationToken.None);
 
             // Assert
             Assert.NotNull(receivedContainerLogsParameters);
@@ -317,7 +317,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(dummyLogs, receivedLogs);
 
             // Act
-            receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, true, Option.None<int>(), Option.Some("1552887267"), Option.None<string>(), CancellationToken.None);
+            receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, true, Option.None<int>(), Option.Some("1552887267"), Option.None<string>(), Option.None<bool>(), CancellationToken.None);
 
             // Assert
             Assert.NotNull(receivedContainerLogsParameters);

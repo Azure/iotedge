@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common.WorkloadTestServer
                 PrivateKey = new PrivateKey()
                 {
                     Type = PrivateKeyType.Key,
-                    Bytes = CertificateHelper.PrivateKeyPem
+                    Bytes = CertificateHelper.PrivateKeyPemPkcs8
                 }
             };
 

@@ -71,18 +71,42 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                         async () =>
                         {
                             IModuleClient mc = await this.moduleClientProvider.Create(this.connectionStatusChangesHandler);
-                            mc.Closed += this.OnModuleClientClosed;
+
                             if (this.enableSubscriptions)
                             {
-                                await mc.SetDefaultMethodHandlerAsync(this.MethodCallback);
-                                await mc.SetDesiredPropertyUpdateCallbackAsync(this.desiredPropertyUpdateCallback);
+                                await this.EnableSubscriptions(mc);
                             }
 
+                            mc.Closed += this.OnModuleClientClosed;
                             this.moduleClient = Option.Some(mc);
                             Events.InitializedNewModuleClient(this.enableSubscriptions);
                             return mc;
                         });
                 return moduleClient;
+            }
+        }
+
+        async Task EnableSubscriptions(IModuleClient moduleClient)
+        {
+            try
+            {
+                await moduleClient.SetDefaultMethodHandlerAsync(this.MethodCallback);
+                await moduleClient.SetDesiredPropertyUpdateCallbackAsync(this.desiredPropertyUpdateCallback);
+            }
+            catch (Exception ex)
+            {
+                Events.ErrorSettingUpNewModule(ex);
+
+                try
+                {
+                    await moduleClient.CloseAsync();
+                }
+                catch
+                {
+                    // swallowing intentionally
+                }
+
+                throw;
             }
         }
 
@@ -134,12 +158,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 ReceivedMethodCallback,
                 DisposingModuleConnection,
                 DisposedModuleConnection,
-                ErrorDisposingModuleConnection
+                ErrorDisposingModuleConnection,
+                ErrorSettingUpNewModule
             }
 
             public static void ErrorHandlingModuleClosedEvent(Exception ex)
             {
                 Log.LogWarning((int)EventIds.ErrorHandlingModuleClosedEvent, ex, "Error handling module client closed event");
+            }
+
+            public static void ErrorSettingUpNewModule(Exception ex)
+            {
+                Log.LogWarning((int)EventIds.ErrorSettingUpNewModule, ex, "Error setting up new module client");
             }
 
             public static void ModuleClientClosed(bool enableSubscriptions)

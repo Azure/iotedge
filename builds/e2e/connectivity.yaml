@@ -1,10 +1,26 @@
 trigger: none
 pr: none
 
+schedules:
+- cron: "0 0 * * 0"
+  displayName: Daily build release/1.1
+  branches:
+    include:
+    - release/1.1
+  always: true
+
 variables:
   images.artifact.name.linux: 'core-linux'
-  vsts.project: $(System.TeamProjectId)
   NugetSecurityAnalysisWarningLevel: warn
+
+resources:
+  pipelines:
+  - pipeline: images
+    source: 'Azure-IoT-Edge-Core Build Images'
+    branch: 'release/1.1'
+  - pipeline: packages
+    source: 'Azure-IoT-Edge-Core Edgelet Packages'
+    branch: 'release/1.1'
 
 jobs:
 ################################################################################
@@ -64,12 +80,9 @@ jobs:
           testrun.network.runProfile: "Cellular3G"
           testrun.duration: "01:00:00"
     pool:
-      name: $(pool.name)
+      name: $(pool.linux.name)
       demands:
-        - agent-group -equals $(agent.group)
-        - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals X64
-        - run-connectivity -equals true
+      - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu18.04-amd64'
     steps:
@@ -94,7 +107,7 @@ jobs:
         displayName: 'Azure Key Vault'
         inputs:
           azureSubscription: $(azure.subscription)
-          KeyVaultName: $(azure.keyVault)
+          KeyVaultName: 'edgebuildkv'
           SecretsFilter: >-
             edgebuilds-azurecr-io-username,
             edgebuilds-azurecr-io-pwd,
@@ -114,9 +127,9 @@ jobs:
         displayName: 'Download Edgelet Artifacts'
         inputs:
           buildType: specific
-          project: $(vsts.project)
-          pipeline: $(edgelet.package.build)
-          branchName: $(edgelet.package.branchName)
+          project: $(resources.pipeline.packages.projectID)
+          pipeline: $(resources.pipeline.packages.pipelineName)
+          branchName: $(resources.pipeline.packages.sourceBranch)
           buildVersionToDownload: latestFromBranch
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
@@ -125,9 +138,9 @@ jobs:
         displayName: 'Download Images Artifacts'
         inputs:
           buildType: specific
-          project: $(vsts.project)
-          pipeline: $(images.build)
-          branchName: $(images.branchName)
+          project: $(resources.pipeline.images.projectID)
+          pipeline: $(resources.pipeline.images.pipelineName)
+          branchName: $(resources.pipeline.images.sourceBranch)
           buildVersionToDownload: latestFromBranch
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.linux)
@@ -144,8 +157,8 @@ jobs:
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
           build.source.branch: '$(Build.SourceBranchName)'
-          edgelet.source.branch: '$(edgelet.package.branchName)'
-          images.source.branch: '$(images.branchName)'
+          edgelet.source.branch: '$(resources.pipeline.packages.sourceBranch)'
+          images.source.branch: '$(resources.pipeline.images.sourceBranch)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
@@ -235,13 +248,9 @@ jobs:
           testrun.network.runProfile: "Cellular3G"
           testrun.duration: "01:00:00"
     pool:
-      name: $(pool.name)
+      name: $(pool.linux.name)
       demands:
-        - agent-group -equals $(agent.group)
-        - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals ARM
-        - agent-osbits -equals 32
-        - run-connectivity -equals true
+      - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
     variables:
       edgelet.artifact.name: 'iotedged-debian9-arm32v7'
     steps:
@@ -266,7 +275,7 @@ jobs:
         displayName: 'Azure Key Vault'
         inputs:
           azureSubscription: $(azure.subscription)
-          KeyVaultName: $(azure.keyVault)
+          KeyVaultName: 'edgebuildkv'
           SecretsFilter: >-
             edgebuilds-azurecr-io-username,
             edgebuilds-azurecr-io-pwd,
@@ -286,9 +295,9 @@ jobs:
         displayName: 'Download Edgelet Artifacts'
         inputs:
           buildType: specific
-          project: $(vsts.project)
+          project: $(resources.pipeline.packages.projectID)
           pipeline: $(edgelet.package.build)
-          branchName: $(edgelet.package.branchName)
+          branchName: $(resources.pipeline.packages.sourceBranch)
           buildVersionToDownload: latestFromBranch
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
@@ -297,9 +306,9 @@ jobs:
         displayName: 'Download Images Artifacts'
         inputs:
           buildType: specific
-          project: $(vsts.project)
+          project: $(resources.pipeline.packages.projectID)
           pipeline: $(images.build)
-          branchName: $(images.branchName)
+          branchName: $(resources.pipeline.images.sourceBranch)
           buildVersionToDownload: latestFromBranch
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.linux)
@@ -316,8 +325,8 @@ jobs:
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
           build.source.branch: '$(Build.SourceBranchName)'
-          edgelet.source.branch: '$(edgelet.package.branchName)'
-          images.source.branch: '$(images.branchName)'
+          edgelet.source.branch: '$(resources.pipeline.packages.sourceBranch)'
+          images.source.branch: '$(resources.pipeline.images.sourceBranch)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'

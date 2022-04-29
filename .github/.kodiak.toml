@@ -3,7 +3,7 @@ version = 1
 
 [update]
 # Update a PR whenever out of date with the base branch. The PR will be updated regardless of 
-# merge requirements (e.g. failing status checks, missing reviews, blacklist labels).
+# merge requirements (e.g. failing status checks, missing reviews).
 always = false # default: false
 
 # When enabled, Kodiak will only update PRs that have an automerge label. When disabled, any PR.
@@ -35,3 +35,6 @@ include_pull_request_author = false # default: false
 
 # remove html comments to auto remove PR templates.
 strip_html_comments = true # default: false
+
+# remove PR template from merge message body
+cut_body_after = "## Azure IoT Edge PR checklist:"

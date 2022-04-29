@@ -646,8 +646,7 @@ jobs:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - eflow -equals true
-        - run-long-haul -equals true
+        - run-long-haul-eflow -equals true
     variables:
       edgelet.artifact.name: 'iotedged-mariner-amd64'
     steps:

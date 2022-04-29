@@ -7,7 +7,7 @@ edition = "2018"
 
 [dependencies]
 clap = "2.32"
-env_logger = "0.5"
+env_logger = "0.9"
 failure = "0.1"
 git2 = "0.7"
 hex = "0.3"

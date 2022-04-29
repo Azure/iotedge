@@ -43,6 +43,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string EdgeModuleHubServerCertificateFileKey = "EdgeModuleHubServerCertificateFile";
 
+        public const string CheckImagePullBeforeModuleCreate = "CheckImagePullBeforeModuleCreate";
+
         public const string Unknown = "Unknown";
 
         public const string UpstreamProtocolKey = "UpstreamProtocol";
@@ -52,6 +54,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public const string EdgeletManagementUriVariableName = "IOTEDGE_MANAGEMENTURI";
 
         public const string EdgeletWorkloadUriVariableName = "IOTEDGE_WORKLOADURI";
+
+        public const string EdgeletWorkloadListenMntUriVariableName = "IOTEDGE_WORKLOADLISTEN_MNTURI";
 
         public const string IotHubHostnameVariableName = "IOTEDGE_IOTHUBHOSTNAME";
 

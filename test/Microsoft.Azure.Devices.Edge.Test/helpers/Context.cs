@@ -108,6 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.TestTimeout = TimeSpan.FromMinutes(context.GetValue("testTimeoutMinutes", 5));
             this.Verbose = context.GetValue<bool>("verbose");
             this.BlobSasUrl = Option.Maybe(Get("BLOB_STORE_SAS"));
+            this.GetSupportBundle = context.GetValue("getSupportBundle", false);
         }
 
         static readonly Lazy<Context> Default = new Lazy<Context>(() => new Context());
@@ -179,5 +180,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public bool Verbose { get; }
 
         public Option<string> BlobSasUrl { get; }
+
+        public bool GetSupportBundle { get; }
     }
 }

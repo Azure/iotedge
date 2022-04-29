@@ -9,8 +9,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
+    using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Primitives;
     using static System.FormattableString;
@@ -24,12 +24,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         readonly IDeviceListener deviceListener;
         readonly IMessageConverter<IProtocolGatewayMessage> messageConverter;
         readonly IByteBufferConverter byteBufferConverter;
+        readonly ISessionStatePersistenceProvider sessionStatePersistenceProvider;
 
-        public MessagingServiceClient(IDeviceListener deviceListener, IMessageConverter<IProtocolGatewayMessage> messageConverter, IByteBufferConverter byteBufferConverter)
+        public MessagingServiceClient(IDeviceListener deviceListener, IMessageConverter<IProtocolGatewayMessage> messageConverter, IByteBufferConverter byteBufferConverter, ISessionStatePersistenceProvider sessionStatePersistenceProvider)
         {
             this.deviceListener = Preconditions.CheckNotNull(deviceListener, nameof(deviceListener));
             this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
             this.byteBufferConverter = Preconditions.CheckNotNull(byteBufferConverter, nameof(byteBufferConverter));
+            this.sessionStatePersistenceProvider = Preconditions.CheckNotNull(sessionStatePersistenceProvider, nameof(sessionStatePersistenceProvider));
         }
 
         public int MaxPendingMessages => 100;
@@ -43,8 +45,38 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public void BindMessagingChannel(IMessagingChannel<IProtocolGatewayMessage> channel)
         {
+            var sessionStateQuery = this.sessionStatePersistenceProvider.GetAsync(new AuthenticatedIdentity(this.deviceListener.Identity.Id));
+
             IDeviceProxy deviceProxy = new DeviceProxy(channel, this.deviceListener.Identity, this.messageConverter, this.byteBufferConverter);
-            this.deviceListener.BindDeviceProxy(deviceProxy);
+            this.deviceListener.BindDeviceProxy(
+                                    deviceProxy,
+                                    async () =>
+                                    {
+                                        var sessionState = await sessionStateQuery;
+
+                                        if (sessionState is SessionState registrationSessionState)
+                                        {
+                                            var subscriptions = SessionStateParser.GetDeviceSubscriptions(registrationSessionState.SubscriptionRegistrations, this.deviceListener.Identity.Id);
+
+                                            foreach ((DeviceSubscription deviceSubscription, bool addSubscription) in subscriptions)
+                                            {
+                                                if (deviceSubscription == DeviceSubscription.Unknown)
+                                                {
+                                                    continue;
+                                                }
+
+                                                if (addSubscription)
+                                                {
+                                                    await this.deviceListener.AddSubscription(deviceSubscription);
+                                                }
+                                                else
+                                                {
+                                                    await this.deviceListener.RemoveSubscription(deviceSubscription);
+                                                }
+                                            }
+                                        }
+                                    });
+
             Events.BindMessageChannel(this.deviceListener.Identity);
         }
 

@@ -94,7 +94,7 @@ fn main() {
 
     println!("Starting server on {}", addr);
     let run = Http::new()
-        .bind_url(addr, router, None::<TlsAcceptorParams<'_, Crypto>>)
+        .bind_url(addr, router, None::<TlsAcceptorParams<'_, Crypto>>, 0o666)
         .unwrap()
         .run();
 

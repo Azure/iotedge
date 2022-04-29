@@ -4,9 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
-    using System.Diagnostics;
     using System.Linq;
-    using System.Runtime.CompilerServices;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Commands;
     using Microsoft.Azure.Devices.Edge.Storage;
@@ -14,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using Nito.AsyncEx;
-    using Org.BouncyCastle.Math.EC.Rfc7748;
     using DiffState = System.ValueTuple<
         // added modules
         System.Collections.Generic.IList<Microsoft.Azure.Devices.Edge.Agent.Core.IModule>,
@@ -29,6 +26,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
         System.Collections.Generic.IList<Microsoft.Azure.Devices.Edge.Agent.Core.IRuntimeModule>,
 
         // removed modules
+        System.Collections.Generic.IList<Microsoft.Azure.Devices.Edge.Agent.Core.IRuntimeModule>,
+
+        // dead modules
         System.Collections.Generic.IList<Microsoft.Azure.Devices.Edge.Agent.Core.IRuntimeModule>,
 
         // modules that are running great
@@ -117,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities)
         {
             // extract list of modules that need attention
-            (IList<IModule> added, IList<IModule> updateDeployed, IList<IModule> desiredStatusChanged, IList<IRuntimeModule> updateStateChanged, IList<IRuntimeModule> removed, IList<IRuntimeModule> runningGreat) = this.ProcessDiff(desired, current);
+            (IList<IModule> added, IList<IModule> updateDeployed, IList<IModule> desiredStatusChanged, IList<IRuntimeModule> updateStateChanged, IList<IRuntimeModule> removed, IList<IRuntimeModule> deadModules, IList<IRuntimeModule> runningGreat) = this.ProcessDiff(desired, current);
 
             List<ICommand> updateRuntimeCommands = await this.GetUpdateRuntimeCommands(updateDeployed, moduleIdentities, runtimeInfo);
 
@@ -129,6 +129,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             // create "remove" commands for modules that are being deleted in this deployment
             IEnumerable<Task<ICommand>> removeTasks = removed.Select(m => this.commandFactory.RemoveAsync(m));
             IEnumerable<ICommand> remove = await Task.WhenAll(removeTasks);
+
+            // Remove dead modules. The next deployment will recreate them if needed.
+            IEnumerable<Task<ICommand>> deadTasks = deadModules.Select(m => this.commandFactory.RemoveAsync(m));
+            IEnumerable<ICommand> dead = await Task.WhenAll(deadTasks);
 
             // create pull, create, update and start commands for added/updated modules
             IEnumerable<ICommand> addedCommands = await this.ProcessAddedUpdatedModules(
@@ -158,6 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             // are being updated because of a deployment
             IEnumerable<Task<ICommand>> removeStateTasks = removed
                 .Concat(updateDeployed)
+                .Concat(deadModules)
                 .Select(m => m.Name)
                 .Concat(desiredStatedChangedCommands.Select(d => d.module))
                 .Select(m => this.commandFactory.WrapAsync(new RemoveFromStoreCommand<ModuleState>(this.store, m)));
@@ -170,6 +175,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             return updateRuntimeCommands
                 .Concat(stop)
                 .Concat(remove)
+                .Concat(dead)
                 .Concat(removeState)
                 .Concat(addedCommands)
                 .Concat(updatedCommands)
@@ -355,7 +361,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
 
             // Find the modules whose desired and runtime status are not the same
             IList<IRuntimeModule> updateStateChanged = currentRuntimeModules
-                .Where(m => m.DesiredStatus != m.RuntimeStatus).ToList();
+                .Where(m => m.DesiredStatus != m.RuntimeStatus && m.RuntimeStatus != ModuleStatus.Dead).ToList();
+
+            // Identify dead modules
+            IList<IRuntimeModule> dead = currentRuntimeModules
+                .Where(m => m.RuntimeStatus == ModuleStatus.Dead).ToList();
 
             // Apart from all of the lists above, there can be modules in "current" where neither
             // the desired state has changed nor the runtime state has changed. For example, a module
@@ -369,7 +379,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             IList<IRuntimeModule> runningGreat = currentRuntimeModules
                 .Where(m => m.DesiredStatus == ModuleStatus.Running && m.RuntimeStatus == ModuleStatus.Running).ToList();
 
-            return (added, updateDeployed, desiredStatusUpdated, updateStateChanged, removed, runningGreat);
+            return (added, updateDeployed, desiredStatusUpdated, updateStateChanged, removed, dead, runningGreat);
         }
 
         async Task<List<ICommand>> GetUpdateRuntimeCommands(IList<IModule> updateDeployed, IImmutableDictionary<string, IModuleIdentity> moduleIdentities, IRuntimeInfo runtimeInfo)

@@ -131,5 +131,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         }
 
         public Task<ulong> Count() => this.underlyingKeyValueStore.Count();
+
+        public Task<ulong> GetCountFromOffset(TK offset) => this.underlyingKeyValueStore.GetCountFromOffset(offset);
     }
 }

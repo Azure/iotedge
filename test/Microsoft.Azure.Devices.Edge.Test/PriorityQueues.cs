@@ -16,7 +16,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
-    using Microsoft.Azure.EventHubs;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using NUnit.Framework;
@@ -34,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string DefaultLoadGenTestStartDelay = "00:00:20";
 
         [Test]
+        [Category("FlakyOnArm")]
         public async Task PriorityQueueModuleToModuleMessages()
         {
             // TODO: Fix PriorityQueue E2E tests for Windows and ARM32
@@ -59,6 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
+        [Category("Flaky")]
         public async Task PriorityQueueModuleToHubMessages()
         {
             // TODO: Add Windows and ARM32. Windows won't be able to work for this test until we add NetworkController Windows implementation
@@ -96,6 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
+        [Category("FlakyOnArm")]
         public async Task PriorityQueueTimeToLive()
         {
             // TODO: Fix PriorityQueue TTL E2E tests
