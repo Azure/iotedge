@@ -31,6 +31,7 @@ where
     identity_client: std::sync::Arc<futures_util::lock::Mutex<IdentityClient>>,
 
     runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
+    renewal_tx: tokio::sync::mpsc::UnboundedSender<edgelet_core::WatchdogAction>,
     renewal_engine: Option<
         std::sync::Arc<
             futures_util::lock::Mutex<cert_renewal::RenewalEngine<edge_ca::EdgeCaRenewal>>,
@@ -47,6 +48,7 @@ where
     pub fn new(
         settings: &impl edgelet_settings::RuntimeSettings,
         runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
+        renewal_tx: tokio::sync::mpsc::UnboundedSender<edgelet_core::WatchdogAction>,
         device_info: &aziot_identity_common::AzureIoTSpec,
     ) -> Result<Self, http_common::ConnectorError> {
         let endpoints = settings.endpoints();
@@ -91,6 +93,7 @@ where
             cert_client,
             identity_client,
             runtime,
+            renewal_tx,
             renewal_engine,
             config,
         })
@@ -158,6 +161,7 @@ where
                 self.cert_client.clone(),
                 self.key_client.clone(),
                 self.key_connector.clone(),
+                self.renewal_tx.clone(),
             );
 
             cert_renewal::engine::add_credential(
@@ -206,12 +210,19 @@ where
             edge_ca_auto_renew: None,
         };
 
+        // We won't use the renewal sender, but it must be created to construct the
+        // Service struct. Note that we drop the renewal receiver, which will cause
+        // tests to panic if they use the renewal sender.
+        let (renewal_tx, _) =
+            tokio::sync::mpsc::unbounded_channel::<edgelet_core::WatchdogAction>();
+
         Service {
             key_connector,
             key_client,
             cert_client,
             identity_client,
             runtime,
+            renewal_tx,
             renewal_engine: None,
             config,
         }

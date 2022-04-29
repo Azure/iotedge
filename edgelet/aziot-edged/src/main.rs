@@ -87,7 +87,7 @@ async fn run() -> Result<(), EdgedError> {
 
     let runtime = std::sync::Arc::new(futures_util::lock::Mutex::new(runtime));
 
-    let (shutdown_tx, shutdown_rx) =
+    let (watchdog_tx, watchdog_rx) =
         tokio::sync::mpsc::unbounded_channel::<edgelet_core::WatchdogAction>();
 
     // Keep track of running tasks to determine when all server tasks have shut down.
@@ -102,6 +102,7 @@ async fn run() -> Result<(), EdgedError> {
         &device_info,
         tasks.clone(),
         create_socket_channel_snd,
+        watchdog_tx.clone(),
     )
     .await?;
 
@@ -136,7 +137,7 @@ async fn run() -> Result<(), EdgedError> {
     let management_shutdown = management::start(
         &settings,
         runtime.clone(),
-        shutdown_tx.clone(),
+        watchdog_tx.clone(),
         tasks.clone(),
     )
     .await?;
@@ -144,7 +145,7 @@ async fn run() -> Result<(), EdgedError> {
     workload_manager::server(workload_manager, runtime.clone(), create_socket_channel_rcv).await?;
 
     // Set signal handlers for SIGTERM and SIGINT.
-    set_signal_handlers(shutdown_tx);
+    set_signal_handlers(watchdog_tx);
 
     // Run aziot-edged until the shutdown signal is received. This also runs the watchdog periodically.
     let shutdown_reason = watchdog::run_until_shutdown(
@@ -152,7 +153,7 @@ async fn run() -> Result<(), EdgedError> {
         &device_info,
         runtime.clone(),
         &identity_client,
-        shutdown_rx,
+        watchdog_rx,
     )
     .await?;
 

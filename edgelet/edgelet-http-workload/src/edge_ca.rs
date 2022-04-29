@@ -20,6 +20,7 @@ pub(crate) struct EdgeCaRenewal {
     cert_client: std::sync::Arc<futures_util::lock::Mutex<CertClient>>,
     key_client: std::sync::Arc<futures_util::lock::Mutex<KeyClient>>,
     key_connector: http_common::Connector,
+    renewal_tx: tokio::sync::mpsc::UnboundedSender<edgelet_core::WatchdogAction>,
 }
 
 impl EdgeCaRenewal {
@@ -29,6 +30,7 @@ impl EdgeCaRenewal {
         cert_client: std::sync::Arc<futures_util::lock::Mutex<CertClient>>,
         key_client: std::sync::Arc<futures_util::lock::Mutex<KeyClient>>,
         key_connector: http_common::Connector,
+        renewal_tx: tokio::sync::mpsc::UnboundedSender<edgelet_core::WatchdogAction>,
     ) -> Self {
         let temp_cert = format!("{}-temp", config.edge_ca_cert);
 
@@ -38,6 +40,7 @@ impl EdgeCaRenewal {
             cert_client,
             key_client,
             key_connector,
+            renewal_tx,
         }
     }
 }
@@ -241,6 +244,12 @@ impl cert_renewal::CertInterface for EdgeCaRenewal {
         log::info!("Edge CA was renewed");
 
         // Modules should be restarted so that they request new server certs.
+        if let Err(err) = self
+            .renewal_tx
+            .send(edgelet_core::WatchdogAction::EdgeCaRenewal)
+        {
+            log::warn!("Failed to request module restart: {}", err);
+        }
 
         Ok(())
     }
