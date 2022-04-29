@@ -5,6 +5,7 @@ check_required_variables()
     # BEARWASHERE -- change from "return" to "exit" once done debugging
     [[ -z "$GITHUB_PAT" ]] && { echo "\$GITHUB_PAT is undefined"; return 1; }
     [[ -z "$BRANCH_NAME" ]] && { echo "\$BRANCH_NAME is undefined"; return 1; }   
+    [[ -z "$IOTEDGE_REPO_PATH" ]] && { echo "\$IOTEDGE_REPO_PATH is undefined"; return 1; }   
 }
 
 
@@ -60,12 +61,14 @@ version_sanity_check()
 {
     # $1 - Proposed version
 
+    # BEARWASHERE -- TODO: Make $2 optional for $latestReleasedVersion
+
     # Use the sort to compare, if the first result from sort() is not the input, then return false.
     latestReleasedVersion=$(get_latest_release_per_branch_name)
     higherVersion=$(echo "$latestReleasedVersion $1" | tr " " "\n"  | sort --version-sort -r | head -1)
     if [[ "$higherVersion" == "$latestReleasedVersion" ]]; then
         echo "FAILED: The proposed version ($1) cannot have a lower version value than the latest released version ($latestReleasedVersion)"
-        #exit 1;
+        exit 1;
     else
         echo "PASSED: version sanity check"
     fi
@@ -83,5 +86,13 @@ update_latest_version_json()
 {
     check_required_variables
 
-    lastest_version=$(get_latest_release_per_branch_name)
+    latestReleasedVersion=$(get_latest_release_per_branch_name)
+
+    #sudo chmod +x $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh
+    # BEARWASHERE -- Hmmm... We need to checkout azure-iotedge repo here to modify it. Let's take a look tmr
+    $IOTEDGE_REPO_PATH
+
+    #The /s for source that we can use
+    # $(Build.SourcesDirectory)/azure-iotedge
+    # $(Build.SourcesDirectory)/iotedge
 }
