@@ -139,13 +139,10 @@ async fn restart_modules(
     // Check if edgeAgent is running. If edgeAgent does not exist or is not running,
     // return and let the periodic watchdog create and start it.
     if let Ok((_, agent_status)) = runtime.get(agent_name).await {
-        match agent_status.status() {
-            edgelet_core::ModuleStatus::Running => {}
-            _ => {
-                log::info!("Agent not running; skipping module restart");
+        if agent_status.status() != &edgelet_core::ModuleStatus::Running {
+            log::info!("Agent not running; skipping module restart");
 
-                return;
-            }
+            return;
         }
     } else {
         log::info!("Agent not found; skipping module restart");
