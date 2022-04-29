@@ -46,7 +46,7 @@ where
     #[cfg(not(test))]
     pub fn new(
         settings: &impl edgelet_settings::RuntimeSettings,
-        runtime: M,
+        runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
         device_info: &aziot_identity_common::AzureIoTSpec,
     ) -> Result<Self, http_common::ConnectorError> {
         let endpoints = settings.endpoints();
@@ -75,7 +75,6 @@ where
         );
         let identity_client = std::sync::Arc::new(futures_util::lock::Mutex::new(identity_client));
 
-        let runtime = std::sync::Arc::new(futures_util::lock::Mutex::new(runtime));
         let config = WorkloadConfig::new(settings, device_info);
 
         let renewal_engine = if config.edge_ca_auto_renew.is_some() {

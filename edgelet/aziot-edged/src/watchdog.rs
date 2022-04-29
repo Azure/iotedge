@@ -8,7 +8,7 @@ use crate::error::Error as EdgedError;
 pub(crate) async fn run_until_shutdown(
     settings: edgelet_settings::docker::Settings,
     device_info: &aziot_identity_common::AzureIoTSpec,
-    runtime: edgelet_docker::DockerModuleRuntime,
+    runtime: std::sync::Arc<futures_util::lock::Mutex<edgelet_docker::DockerModuleRuntime>>,
     identity_client: &aziot_identity_client_async::Client,
     mut shutdown_rx: tokio::sync::mpsc::UnboundedReceiver<edgelet_core::ShutdownReason>,
 ) -> Result<edgelet_core::ShutdownReason, EdgedError> {
@@ -54,6 +54,8 @@ pub(crate) async fn run_until_shutdown(
                 log::info!("Watchdog stopped");
 
                 log::info!("Stopping all modules...");
+                let runtime = runtime.lock().await;
+
                 if let Err(err) = runtime
                     .stop_all(Some(std::time::Duration::from_secs(30)))
                     .await
@@ -72,11 +74,13 @@ pub(crate) async fn run_until_shutdown(
 async fn watchdog(
     settings: &edgelet_settings::docker::Settings,
     device_info: &aziot_identity_common::AzureIoTSpec,
-    runtime: &edgelet_docker::DockerModuleRuntime,
+    runtime: &futures_util::lock::Mutex<edgelet_docker::DockerModuleRuntime>,
     identity_client: &aziot_identity_client_async::Client,
 ) -> Result<(), EdgedError> {
     log::info!("Watchdog checking Edge runtime status");
     let agent_name = settings.agent().name();
+
+    let runtime = runtime.lock().await;
 
     if let Ok((_, agent_status)) = runtime.get(agent_name).await {
         let agent_status = agent_status.status();
@@ -111,11 +115,11 @@ async fn watchdog(
                     .await
                     .map_err(|err| EdgedError::from_err("Failed to remove Edge runtime", err))?;
 
-                create_and_start_agent(settings, device_info, runtime, identity_client).await?;
+                create_and_start_agent(settings, device_info, &runtime, identity_client).await?;
             }
         }
     } else {
-        create_and_start_agent(settings, device_info, runtime, identity_client).await?;
+        create_and_start_agent(settings, device_info, &runtime, identity_client).await?;
     }
 
     Ok(())

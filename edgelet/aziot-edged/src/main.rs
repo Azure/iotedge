@@ -85,6 +85,8 @@ async fn run() -> Result<(), EdgedError> {
     .await
     .map_err(|err| EdgedError::from_err("Failed to initialize module runtime", err))?;
 
+    let runtime = std::sync::Arc::new(futures_util::lock::Mutex::new(runtime));
+
     let (shutdown_tx, shutdown_rx) =
         tokio::sync::mpsc::unbounded_channel::<edgelet_core::ShutdownReason>();
 
@@ -111,13 +113,17 @@ async fn run() -> Result<(), EdgedError> {
     // begin to fail. Resilient modules should be able to deal with this, but we'll
     // restart all modules to ensure a clean start.
     log::info!("Stopping all modules...");
-    if let Err(err) = runtime
-        .stop_all(Some(std::time::Duration::from_secs(30)))
-        .await
     {
-        log::warn!("Failed to stop modules on startup: {}", err);
-    } else {
-        log::info!("All modules stopped");
+        let runtime = runtime.lock().await;
+
+        if let Err(err) = runtime
+            .stop_all(Some(std::time::Duration::from_secs(30)))
+            .await
+        {
+            log::warn!("Failed to stop modules on startup: {}", err);
+        } else {
+            log::info!("All modules stopped");
+        }
     }
 
     provision::update_device_cache(&cache_dir, &device_info, &runtime).await?;

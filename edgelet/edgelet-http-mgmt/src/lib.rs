@@ -28,7 +28,7 @@ where
     #[cfg(not(test))]
     pub fn new(
         identity_socket: &url::Url,
-        runtime: M,
+        runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
         reprovision: tokio::sync::mpsc::UnboundedSender<edgelet_core::ShutdownReason>,
     ) -> Result<Self, http_common::ConnectorError> {
         let connector = http_common::Connector::new(identity_socket)?;
@@ -40,7 +40,6 @@ where
         );
 
         let identity = std::sync::Arc::new(futures_util::lock::Mutex::new(identity));
-        let runtime = std::sync::Arc::new(futures_util::lock::Mutex::new(runtime));
 
         Ok(Service {
             identity,

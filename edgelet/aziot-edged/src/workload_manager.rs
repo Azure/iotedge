@@ -26,7 +26,7 @@ where
 {
     pub(crate) async fn start(
         settings: &impl edgelet_settings::RuntimeSettings,
-        runtime: M,
+        runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
         device_info: &aziot_identity_common::AzureIoTSpec,
         tasks: std::sync::Arc<std::sync::atomic::AtomicUsize>,
         create_socket_channel_snd: tokio::sync::mpsc::UnboundedSender<ModuleAction>,
@@ -171,17 +171,21 @@ where
 
 pub(crate) async fn server<M>(
     mut workload_manager: WorkloadManager<M>,
-    runtime: M,
+    runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
     mut create_socket_channel_rcv: tokio::sync::mpsc::UnboundedReceiver<ModuleAction>,
 ) -> Result<(), EdgedError>
 where
     M: edgelet_core::ModuleRuntime + Clone + Send + Sync + 'static,
     M::Config: serde::Serialize,
 {
-    let module_list = runtime
-        .list()
-        .await
-        .map_err(|err| EdgedError::from_err("Could not list modules", err))?;
+    let module_list = {
+        let runtime = runtime.lock().await;
+
+        runtime
+            .list()
+            .await
+            .map_err(|err| EdgedError::from_err("Could not list modules", err))?
+    };
 
     let socket_name = workload_manager.legacy_workload_systemd_socket_name.clone();
     // Spawn a listener for module that are still running and uses old listen socket
@@ -236,7 +240,7 @@ where
 
 async fn stop<M>(
     create_socket_channel_snd: tokio::sync::mpsc::UnboundedSender<ModuleAction>,
-    runtime: M,
+    runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
     shutdown_rx: tokio::sync::oneshot::Receiver<()>,
     tasks: std::sync::Arc<std::sync::atomic::AtomicUsize>,
 ) -> Result<(), EdgedError>
@@ -247,6 +251,8 @@ where
     if let Err(err) = shutdown_rx.await {
         return  Err(EdgedError::from_err("Could wait on the stop signal, workload manager will continue but not shutdown properly", err));
     }
+
+    let runtime = runtime.lock().await;
 
     let module_list = runtime
         .list()
