@@ -24,6 +24,7 @@ where
     cert_client: std::sync::Arc<futures_util::lock::Mutex<CertClient>>,
     key_client: std::sync::Arc<futures_util::lock::Mutex<KeyClient>>,
     key_connector: http_common::Connector,
+    agent_name: String,
 }
 
 impl<M> EdgeCaRenewal<M>
@@ -32,13 +33,14 @@ where
 {
     pub fn new(
         rotate_key: bool,
-        edge_ca_id: &str,
+        config: &crate::WorkloadConfig,
         runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
         cert_client: std::sync::Arc<futures_util::lock::Mutex<CertClient>>,
         key_client: std::sync::Arc<futures_util::lock::Mutex<KeyClient>>,
         key_connector: http_common::Connector,
     ) -> Self {
-        let temp_cert = format!("{}-temp", edge_ca_id);
+        let temp_cert = format!("{}-temp", config.edge_ca_cert);
+        let agent_name = config.agent_name.clone();
 
         EdgeCaRenewal {
             rotate_key,
@@ -47,6 +49,7 @@ where
             cert_client,
             key_client,
             key_connector,
+            agent_name,
         }
     }
 }
