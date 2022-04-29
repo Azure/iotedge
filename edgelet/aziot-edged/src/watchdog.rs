@@ -10,10 +10,10 @@ pub(crate) async fn run_until_shutdown(
     device_info: &aziot_identity_common::AzureIoTSpec,
     runtime: std::sync::Arc<futures_util::lock::Mutex<edgelet_docker::DockerModuleRuntime>>,
     identity_client: &aziot_identity_client_async::Client,
-    mut shutdown_rx: tokio::sync::mpsc::UnboundedReceiver<edgelet_core::ShutdownReason>,
-) -> Result<edgelet_core::ShutdownReason, EdgedError> {
+    mut action_rx: tokio::sync::mpsc::UnboundedReceiver<edgelet_core::WatchdogAction>,
+) -> Result<edgelet_core::WatchdogAction, EdgedError> {
     // Run the watchdog every 60 seconds while waiting for any running task to send a
-    // shutdown signal.
+    // watchdog action.
     let watchdog_period = std::time::Duration::from_secs(60);
     let watchdog_retries = settings.watchdog().max_retries();
     let mut watchdog_errors = 0;
@@ -21,17 +21,17 @@ pub(crate) async fn run_until_shutdown(
     let mut watchdog_timer = tokio::time::interval(watchdog_period);
     watchdog_timer.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
 
-    let shutdown_loop = shutdown_rx.recv();
-    futures_util::pin_mut!(shutdown_loop);
-
     log::info!("Starting watchdog with 60 second period...");
 
     loop {
         let watchdog_next = watchdog_timer.tick();
-        futures_util::pin_mut!(watchdog_next);
+        tokio::pin!(watchdog_next);
 
-        match futures_util::future::select(watchdog_next, shutdown_loop).await {
-            futures_util::future::Either::Left((_, shutdown)) => {
+        let action_next = action_rx.recv();
+        tokio::pin!(action_next);
+
+        match futures_util::future::select(watchdog_next, action_next).await {
+            futures_util::future::Either::Left((_, _)) => {
                 if let Err(err) = watchdog(&settings, device_info, &runtime, identity_client).await
                 {
                     log::warn!("Error in watchdog: {}", err);
@@ -44,16 +44,18 @@ pub(crate) async fn run_until_shutdown(
                         ));
                     }
                 }
-
-                shutdown_loop = shutdown;
             }
 
-            futures_util::future::Either::Right((shutdown_reason, _)) => {
-                let shutdown_reason = shutdown_reason.expect("shutdown channel closed");
-                log::info!("{}", shutdown_reason);
-                log::info!("Watchdog stopped");
+            futures_util::future::Either::Right((action, _)) => {
+                let action = action.expect("shutdown channel closed");
+                log::info!("{}", action);
 
-                return Ok(shutdown_reason);
+                if let edgelet_core::WatchdogAction::EdgeCaRenewal = action {
+                } else {
+                    log::info!("Watchdog stopped");
+
+                    return Ok(action);
+                }
             }
         }
     }

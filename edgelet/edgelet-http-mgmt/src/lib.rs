@@ -18,7 +18,7 @@ where
 {
     identity: std::sync::Arc<futures_util::lock::Mutex<IdentityClient>>,
     runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
-    reprovision: tokio::sync::mpsc::UnboundedSender<edgelet_core::ShutdownReason>,
+    reprovision: tokio::sync::mpsc::UnboundedSender<edgelet_core::WatchdogAction>,
 }
 
 impl<M> Service<M>
@@ -29,7 +29,7 @@ where
     pub fn new(
         identity_socket: &url::Url,
         runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
-        reprovision: tokio::sync::mpsc::UnboundedSender<edgelet_core::ShutdownReason>,
+        reprovision: tokio::sync::mpsc::UnboundedSender<edgelet_core::WatchdogAction>,
     ) -> Result<Self, http_common::ConnectorError> {
         let connector = http_common::Connector::new(identity_socket)?;
 
@@ -60,7 +60,7 @@ where
         // Service struct. Note that we drop the reprovision receiver, which will cause
         // tests to panic if they use the reprovision sender.
         let (reprovision_tx, _) =
-            tokio::sync::mpsc::unbounded_channel::<edgelet_core::ShutdownReason>();
+            tokio::sync::mpsc::unbounded_channel::<edgelet_core::WatchdogAction>();
 
         Service {
             identity,
@@ -76,7 +76,7 @@ where
         runtime: M,
     ) -> (
         Self,
-        tokio::sync::mpsc::UnboundedReceiver<edgelet_core::ShutdownReason>,
+        tokio::sync::mpsc::UnboundedReceiver<edgelet_core::WatchdogAction>,
     ) {
         let identity = IdentityClient::default();
         let identity = std::sync::Arc::new(futures_util::lock::Mutex::new(identity));
@@ -84,7 +84,7 @@ where
         let runtime = std::sync::Arc::new(futures_util::lock::Mutex::new(runtime));
 
         let (reprovision_tx, reprovision_rx) =
-            tokio::sync::mpsc::unbounded_channel::<edgelet_core::ShutdownReason>();
+            tokio::sync::mpsc::unbounded_channel::<edgelet_core::WatchdogAction>();
 
         (
             Service {

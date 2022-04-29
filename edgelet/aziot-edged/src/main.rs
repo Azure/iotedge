@@ -88,7 +88,7 @@ async fn run() -> Result<(), EdgedError> {
     let runtime = std::sync::Arc::new(futures_util::lock::Mutex::new(runtime));
 
     let (shutdown_tx, shutdown_rx) =
-        tokio::sync::mpsc::unbounded_channel::<edgelet_core::ShutdownReason>();
+        tokio::sync::mpsc::unbounded_channel::<edgelet_core::WatchdogAction>();
 
     // Keep track of running tasks to determine when all server tasks have shut down.
     // Workload and management API each have one task, so start with 2 tasks total.
@@ -200,7 +200,7 @@ async fn run() -> Result<(), EdgedError> {
         log::info!("All modules stopped");
     }
 
-    if let edgelet_core::ShutdownReason::Reprovision = shutdown_reason {
+    if let edgelet_core::WatchdogAction::Reprovision = shutdown_reason {
         match provision::reprovision(&identity_client, &cache_dir).await {
             Ok(()) => log::info!("Successfully reprovisioned"),
             Err(err) => log::error!("Failed to reprovision: {}", err),
@@ -211,7 +211,7 @@ async fn run() -> Result<(), EdgedError> {
 }
 
 fn set_signal_handlers(
-    shutdown_tx: tokio::sync::mpsc::UnboundedSender<edgelet_core::ShutdownReason>,
+    shutdown_tx: tokio::sync::mpsc::UnboundedSender<edgelet_core::WatchdogAction>,
 ) {
     // Set the signal handler to listen for CTRL+C (SIGINT).
     let sigint_sender = shutdown_tx.clone();
@@ -223,7 +223,7 @@ fn set_signal_handlers(
 
         // Failure to send the shutdown signal means that the mpsc queue is closed.
         // Ignore this Result, as the process will be shutting down anyways.
-        let _ = sigint_sender.send(edgelet_core::ShutdownReason::Signal);
+        let _ = sigint_sender.send(edgelet_core::WatchdogAction::Signal);
     });
 
     // Set the signal handler to listen for systemctl stop (SIGTERM).
@@ -237,6 +237,6 @@ fn set_signal_handlers(
 
         // Failure to send the shutdown signal means that the mpsc queue is closed.
         // Ignore this Result, as the process will be shutting down anyways.
-        let _ = sigterm_sender.send(edgelet_core::ShutdownReason::Signal);
+        let _ = sigterm_sender.send(edgelet_core::WatchdogAction::Signal);
     });
 }

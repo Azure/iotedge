@@ -71,16 +71,18 @@ impl UrlExt for Url {
 pub const UNIX_SCHEME: &str = "unix";
 
 #[derive(Debug, PartialEq)]
-pub enum ShutdownReason {
+pub enum WatchdogAction {
+    EdgeCaRenewal,
     Reprovision,
     Signal,
 }
 
-impl std::fmt::Display for ShutdownReason {
+impl std::fmt::Display for WatchdogAction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ShutdownReason::Reprovision => f.write_str("Edge daemon will reprovision and restart"),
-            ShutdownReason::Signal => f.write_str("Received signal; shutting down"),
+            WatchdogAction::EdgeCaRenewal => f.write_str("Edge CA was renewed; restarting modules"),
+            WatchdogAction::Reprovision => f.write_str("Edge daemon will reprovision and restart"),
+            WatchdogAction::Signal => f.write_str("Received signal; shutting down"),
         }
     }
 }

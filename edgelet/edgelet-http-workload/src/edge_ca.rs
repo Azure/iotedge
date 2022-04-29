@@ -14,8 +14,7 @@ use test_common::client::KeyClient;
 #[cfg(test)]
 use test_common::client::KeyEngine;
 
-pub(crate) struct EdgeCaRenewal
-{
+pub(crate) struct EdgeCaRenewal {
     rotate_key: bool,
     temp_cert: String,
     cert_client: std::sync::Arc<futures_util::lock::Mutex<CertClient>>,
@@ -23,8 +22,7 @@ pub(crate) struct EdgeCaRenewal
     key_connector: http_common::Connector,
 }
 
-impl EdgeCaRenewal
-{
+impl EdgeCaRenewal {
     pub fn new(
         rotate_key: bool,
         config: &crate::WorkloadConfig,
@@ -45,8 +43,7 @@ impl EdgeCaRenewal
 }
 
 #[async_trait::async_trait]
-impl cert_renewal::CertInterface for EdgeCaRenewal
-{
+impl cert_renewal::CertInterface for EdgeCaRenewal {
     type NewKey = String;
 
     async fn get_cert(
