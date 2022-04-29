@@ -14,105 +14,38 @@ use test_common::client::KeyClient;
 #[cfg(test)]
 use test_common::client::KeyEngine;
 
-pub(crate) struct EdgeCaRenewal<M>
-where
-    M: edgelet_core::ModuleRuntime + Send + Sync,
+pub(crate) struct EdgeCaRenewal
 {
     rotate_key: bool,
     temp_cert: String,
-    runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
     cert_client: std::sync::Arc<futures_util::lock::Mutex<CertClient>>,
     key_client: std::sync::Arc<futures_util::lock::Mutex<KeyClient>>,
     key_connector: http_common::Connector,
-    agent_name: String,
 }
 
-impl<M> EdgeCaRenewal<M>
-where
-    M: edgelet_core::ModuleRuntime + Send + Sync,
+impl EdgeCaRenewal
 {
     pub fn new(
         rotate_key: bool,
         config: &crate::WorkloadConfig,
-        runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
         cert_client: std::sync::Arc<futures_util::lock::Mutex<CertClient>>,
         key_client: std::sync::Arc<futures_util::lock::Mutex<KeyClient>>,
         key_connector: http_common::Connector,
     ) -> Self {
         let temp_cert = format!("{}-temp", config.edge_ca_cert);
-        let agent_name = config.agent_name.clone();
 
         EdgeCaRenewal {
             rotate_key,
             temp_cert,
-            runtime,
             cert_client,
             key_client,
             key_connector,
-            agent_name,
-        }
-    }
-
-    async fn restart_modules(&self) {
-        let runtime = self.runtime.lock().await;
-
-        // Do nothing if edgeAgent does not exist or is not running. The Edge daemon
-        // watchdog will start edgeAgent and other modules.
-        if let Ok((_, agent_status)) = runtime.get(&self.agent_name).await {
-            match agent_status.status() {
-                edgelet_core::ModuleStatus::Running => {}
-                _ => return,
-            }
-        } else {
-            return;
-        }
-
-        // List and stop all modules.
-        let modules = match runtime.list().await {
-            Ok(modules) => modules,
-            Err(err) => {
-                log::warn!("Failed to list modules: {}", err);
-
-                return;
-            }
-        };
-
-        if let Err(err) = runtime.stop_all(None).await {
-            log::warn!("Failed to restart modules after Edge CA renewal: {}", err);
-        } else {
-            log::info!("Edge CA renewal stopped all modules");
-        }
-
-        // Restart modules. edgeAgent must be the last module to restart so that it does
-        // not attempt to restart modules while this function is running.
-        for module in modules {
-            let module_name = edgelet_core::Module::name(&module);
-
-            if module_name != &self.agent_name {
-                if let Err(err) = runtime.start(module_name).await {
-                    log::warn!("Edge CA renewal failed to restart {}: {}", module_name, err);
-                } else {
-                    log::info!("Edge CA renewal restarted {}", module_name);
-                }
-            }
-        }
-
-        if let Err(err) = runtime.start(&self.agent_name).await {
-            log::warn!(
-                "Edge CA renewal failed to restart {}: {}",
-                &self.agent_name,
-                err
-            );
-        } else {
-            log::info!("Edge CA renewal restarted {}", &self.agent_name);
         }
     }
 }
 
 #[async_trait::async_trait]
-impl<M> cert_renewal::CertInterface for EdgeCaRenewal<M>
-where
-    M: edgelet_core::ModuleRuntime + Send + Sync,
+impl cert_renewal::CertInterface for EdgeCaRenewal
 {
     type NewKey = String;
 
@@ -311,7 +244,6 @@ where
         log::info!("Edge CA was renewed");
 
         // Modules should be restarted so that they request new server certs.
-        self.restart_modules().await;
 
         Ok(())
     }

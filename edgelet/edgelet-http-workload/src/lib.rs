@@ -21,7 +21,7 @@ use test_common::client::KeyClient;
 #[derive(Clone)]
 pub struct Service<M>
 where
-    M: edgelet_core::ModuleRuntime + Send + Sync,
+    M: edgelet_core::ModuleRuntime,
 {
     // This connector is needed to contruct sync aziot_key_clients when using aziot_key_openssl_engine.
     key_connector: http_common::Connector,
@@ -33,7 +33,7 @@ where
     runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
     renewal_engine: Option<
         std::sync::Arc<
-            futures_util::lock::Mutex<cert_renewal::RenewalEngine<edge_ca::EdgeCaRenewal<M>>>,
+            futures_util::lock::Mutex<cert_renewal::RenewalEngine<edge_ca::EdgeCaRenewal>>,
         >,
     >,
     config: WorkloadConfig,
@@ -41,7 +41,7 @@ where
 
 impl<M> Service<M>
 where
-    M: edgelet_core::ModuleRuntime + Send + Sync + 'static,
+    M: edgelet_core::ModuleRuntime,
 {
     #[cfg(not(test))]
     pub fn new(
@@ -155,7 +155,6 @@ where
             let interface = edge_ca::EdgeCaRenewal::new(
                 rotate_key,
                 &self.config,
-                self.runtime.clone(),
                 self.cert_client.clone(),
                 self.key_client.clone(),
                 self.key_connector.clone(),
@@ -205,7 +204,6 @@ where
             edge_ca_cert: "test-ca-cert".to_string(),
             edge_ca_key: "test-ca-key".to_string(),
             edge_ca_auto_renew: None,
-            agent_name: "edgeAgent".to_string(),
         };
 
         Service {
@@ -254,7 +252,6 @@ struct WorkloadConfig {
     edge_ca_cert: String,
     edge_ca_key: String,
     edge_ca_auto_renew: Option<cert_renewal::AutoRenewConfig>,
-    agent_name: String,
 }
 
 impl WorkloadConfig {
@@ -281,7 +278,6 @@ impl WorkloadConfig {
             .unwrap_or(edgelet_settings::AZIOT_EDGED_CA_ALIAS)
             .to_string();
         let edge_ca_auto_renew = settings.edge_ca_auto_renew().to_owned();
-        let agent_name = settings.agent().name().to_string();
 
         WorkloadConfig {
             hub_name: device_info.hub_name.clone(),
@@ -293,7 +289,6 @@ impl WorkloadConfig {
             edge_ca_cert,
             edge_ca_key,
             edge_ca_auto_renew,
-            agent_name,
         }
     }
 }
@@ -326,7 +321,6 @@ mod tests {
                 edge_ca_cert: edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_string(),
                 edge_ca_key: edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_string(),
                 edge_ca_auto_renew: None,
-                agent_name: "edgeAgent".to_string(),
             },
             config
         );
@@ -364,7 +358,6 @@ mod tests {
                 edge_ca_cert: "test-ca-cert".to_string(),
                 edge_ca_key: "test-ca-key".to_string(),
                 edge_ca_auto_renew: None,
-                agent_name: "edgeAgent".to_string(),
             },
             config
         );
