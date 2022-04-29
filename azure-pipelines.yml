@@ -39,7 +39,7 @@ stages:
         inputs:
           targetType: inline
           script: >-
-            apt-get install tree -y
+            sudo apt-get install tree -y
             echo "=============================================="
             echo "Build.SourcesDirectory: $(Build.SourcesDirectory)"
             tree $(Build.SourcesDirectory)
