@@ -52,6 +52,61 @@ where
             agent_name,
         }
     }
+
+    async fn restart_modules(&self) {
+        let runtime = self.runtime.lock().await;
+
+        // Do nothing if edgeAgent does not exist or is not running. The Edge daemon
+        // watchdog will start edgeAgent and other modules.
+        if let Ok((_, agent_status)) = runtime.get(&self.agent_name).await {
+            match agent_status.status() {
+                edgelet_core::ModuleStatus::Running => {}
+                _ => return,
+            }
+        } else {
+            return;
+        }
+
+        // List and stop all modules.
+        let modules = match runtime.list().await {
+            Ok(modules) => modules,
+            Err(err) => {
+                log::warn!("Failed to list modules: {}", err);
+
+                return;
+            }
+        };
+
+        if let Err(err) = runtime.stop_all(None).await {
+            log::warn!("Failed to restart modules after Edge CA renewal: {}", err);
+        } else {
+            log::info!("Edge CA renewal stopped all modules");
+        }
+
+        // Restart modules. edgeAgent must be the last module to restart so that it does
+        // not attempt to restart modules while this function is running.
+        for module in modules {
+            let module_name = edgelet_core::Module::name(&module);
+
+            if module_name != &self.agent_name {
+                if let Err(err) = runtime.start(module_name).await {
+                    log::warn!("Edge CA renewal failed to restart {}: {}", module_name, err);
+                } else {
+                    log::info!("Edge CA renewal restarted {}", module_name);
+                }
+            }
+        }
+
+        if let Err(err) = runtime.start(&self.agent_name).await {
+            log::warn!(
+                "Edge CA renewal failed to restart {}: {}",
+                &self.agent_name,
+                err
+            );
+        } else {
+            log::info!("Edge CA renewal restarted {}", &self.agent_name);
+        }
+    }
 }
 
 #[async_trait::async_trait]
@@ -253,15 +308,8 @@ where
                 .map_err(|_| cert_renewal::Error::retryable_error("failed to restore old cert"))?;
         }
 
-        // Modules should be restarted so that they request new server certs. Stop all modules here;
-        // the Edge daemon watchdog will restart them.
-        let runtime = self.runtime.lock().await;
-
-        if let Err(err) = runtime.stop_all(None).await {
-            log::warn!("Failed to restart modules after Edge CA renewal: {}", err);
-        } else {
-            log::info!("Edge CA renewal stopped all modules");
-        }
+        // Modules should be restarted so that they request new server certs.
+        self.restart_modules().await;
 
         Ok(())
     }
