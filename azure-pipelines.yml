@@ -12,10 +12,10 @@ resources:
 trigger:
 - main
 
-steps:
-- checkout: self
-- checkout: iotedge
-- checkout: azure-iotedge
+# steps:
+# - checkout: self
+# - checkout: iotedge
+# - checkout: azure-iotedge
 
 stages:
   - stage: TestStage
