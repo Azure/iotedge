@@ -1,4 +1,4 @@
-﻿FROM mcr.microsoft.com/azure-functions/dotnet:3.0
+﻿FROM mcr.microsoft.com/azure-functions/dotnet:4.0
 
 ARG EXE_DIR=.
 
