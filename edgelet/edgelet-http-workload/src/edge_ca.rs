@@ -306,3 +306,106 @@ pub(crate) fn extensions(
 
     Ok(csr_extensions)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::EdgeCaRenewal;
+    use super::{CertClient, KeyClient};
+
+    use cert_renewal::CertInterface;
+
+    fn new_renewal(rotate_key: bool) -> EdgeCaRenewal {
+        let settings = edgelet_test_utils::Settings::default();
+
+        let device_info = aziot_identity_common::AzureIoTSpec {
+            hub_name: "test-hub.test.net".to_string(),
+            gateway_host: "gateway-host.test.net".to_string(),
+            device_id: aziot_identity_common::DeviceId("test-device".to_string()),
+            module_id: None,
+            gen_id: None,
+            auth: None,
+        };
+
+        let config = crate::WorkloadConfig::new(&settings, &device_info);
+
+        let cert_client = CertClient::default();
+        let cert_client = std::sync::Arc::new(futures_util::lock::Mutex::new(cert_client));
+
+        let key_client = KeyClient::default();
+        let key_client = std::sync::Arc::new(futures_util::lock::Mutex::new(key_client));
+
+        // Tests won't actually connect to keyd, so just put any URL in the key connector.
+        let key_connector = url::Url::parse("unix:///tmp/test.sock").unwrap();
+        let key_connector = http_common::Connector::new(&key_connector).unwrap();
+
+        // We won't use the renewal sender, but it must be created to construct the
+        // EdgeCaRenewal struct. Note that we drop the renewal receiver, which will cause
+        // tests to panic if they use the renewal sender.
+        let (renewal_tx, _) =
+            tokio::sync::mpsc::unbounded_channel::<edgelet_core::WatchdogAction>();
+
+        EdgeCaRenewal::new(
+            rotate_key,
+            &config,
+            cert_client,
+            key_client,
+            key_connector,
+            renewal_tx,
+        )
+    }
+
+    #[tokio::test]
+    async fn get_cert() {
+        let mut renewal = new_renewal(true);
+
+        // Generate a set of certs to use as a cert chain. It's not a valid chain, but that
+        // doesn't matter for this test.
+        let (cert_1, _) = test_common::credential::test_certificate("test-cert-1");
+        let (cert_2, _) = test_common::credential::test_certificate("test-cert-2");
+
+        let mut cert_1_pem = cert_1.to_pem().unwrap();
+        let mut cert_2_pem = cert_2.to_pem().unwrap();
+        cert_1_pem.append(&mut cert_2_pem);
+
+        let test_cert_chain = vec![cert_1, cert_2];
+
+        {
+            let cert_client = renewal.cert_client.lock().await;
+
+            cert_client.import_cert("empty-cert", &[]).await.unwrap();
+            cert_client
+                .import_cert("test-cert", &cert_1_pem)
+                .await
+                .unwrap();
+        }
+
+        renewal.get_cert("empty-cert").await.unwrap_err();
+        renewal.get_cert("does-not-exist").await.unwrap_err();
+
+        let cert_chain = renewal.get_cert("test-cert").await.unwrap();
+        assert_eq!(2, cert_chain.len());
+        assert_eq!(
+            test_cert_chain[0].to_pem().unwrap(),
+            cert_chain[0].to_pem().unwrap()
+        );
+        assert_eq!(
+            test_cert_chain[1].to_pem().unwrap(),
+            cert_chain[1].to_pem().unwrap()
+        );
+    }
+
+    #[tokio::test]
+    async fn get_key() {
+        let mut renewal = new_renewal(true);
+
+        renewal.get_key("test-key").await.unwrap();
+
+        {
+            let mut key_client = renewal.key_client.lock().await;
+
+            key_client.load_key_pair_ok = false;
+        }
+
+        renewal.get_key("test-key").await.unwrap_err();
+    }
+}
