@@ -1,19 +1,48 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
+resources:
+  repositories:
+  - repository: iotedge # The name used to reference this repository in the checkout step
+    type: github
+    endpoint: azure-iot-edge-iotedge1-github
+    name: azure/iotedge
+  - repository: azure-iotedge
+    type: github
+    endpoint: azure-iot-edge-iotedge1-github
+    name: azure/azure-iotedge
 
 trigger:
-- master
-
-pool:
-  vmImage: ubuntu-latest
+- main
 
 steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+- checkout: self
+- checkout: iotedge
+- checkout: azure-iotedge
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+stages:
+  - stage: TestStage
+    displayName: Stage 1
+    pool:
+      name: 'Azure-IoT-Edge-1ES-Hosted-Linux'
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+    jobs:
+    - job: job1
+      displayName: Ubuntu 18.04 - amd64
+      steps:
+      - checkout: self
+        submodules: recursive
+      - checkout: iotedge
+        submodules: recursive
+      - checkout: azure-iotedge
+        submodules: recursive
+      - task: Bash@3
+        displayName: Test Script
+        inputs:
+          targetType: inline
+          script: >-
+            echo "=============================================="
+            echo "Build.SourcesDirectory: $(Build.SourcesDirectory)"
+            ls -R $(Build.SourcesDirectory) | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/   /' -e 's/-/|/'
+            echo " "
+            echo "=============================================="
+            echo "Agent.BuildDirectory:   $(Agent.BuildDirectory)"
+            ls -R $(Agent.BuildDirectory) | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/   /' -e 's/-/|/'
