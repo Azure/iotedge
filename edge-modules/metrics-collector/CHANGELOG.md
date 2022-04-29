@@ -1,3 +1,13 @@
+# 1.0.7 (2022-04-27)
+
+### Bug Fixes
+- Update Base Images to address gzip vulnerability [CVE-2022-1271](https://ubuntu.com/security/CVE-2022-1271)
+
+# 1.0.6 (2022-03-15)
+
+### Bug Fixes
+- Update Base Images for a Security Patch [.NET Core 3.1.23 - March 8, 2022](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1.23/3.1.23.md)
+
 # 1.0.5 (2022-03-08)
 
 ### Bug Fixes
