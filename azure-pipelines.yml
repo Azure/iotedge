@@ -39,10 +39,10 @@ stages:
         inputs:
           targetType: inline
           script: >-
-            echo "=============================================="
-            echo "Build.SourcesDirectory: $(Build.SourcesDirectory)"
-            ls -R $(Build.SourcesDirectory) | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/   /' -e 's/-/|/'
-            echo " "
-            echo "=============================================="
-            echo "Agent.BuildDirectory:   $(Agent.BuildDirectory)"
+            echo "==============================================" \
+            echo "Build.SourcesDirectory: $(Build.SourcesDirectory)"  \
+            ls -R $(Build.SourcesDirectory) | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/   /' -e 's/-/|/'  \
+            echo " "  \
+            echo "=============================================="  \
+            echo "Agent.BuildDirectory:   $(Agent.BuildDirectory)"  \
             ls -R $(Agent.BuildDirectory) | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/   /' -e 's/-/|/'
