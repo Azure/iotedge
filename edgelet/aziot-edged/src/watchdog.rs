@@ -141,9 +141,15 @@ async fn restart_modules(
     if let Ok((_, agent_status)) = runtime.get(agent_name).await {
         match agent_status.status() {
             edgelet_core::ModuleStatus::Running => {}
-            _ => return,
+            _ => {
+                log::info!("Agent not running; skipping module restart");
+
+                return;
+            }
         }
     } else {
+        log::info!("Agent not found; skipping module restart");
+
         return;
     }
 
