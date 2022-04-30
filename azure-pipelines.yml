@@ -38,6 +38,8 @@ stages:
         submodules: recursive
       - checkout: azure-iotedge
         submodules: recursive
+      - checkout: iot-identity-service
+        submodules: recursive
       - task: Bash@3
         inputs:
           targetType: 'inline'
