@@ -102,6 +102,9 @@ update_latest_version_json()
     # $(Build.SourcesDirectory)/azure-iotedge
     $AZURE_IOTEDGE_REPO_PATH
 
+    # $(Build.SourcesDirectory)/iot-identity-service
+    $IIS_REPO_PATH
+
     branchVersion=$(echo ${BRANCH_NAME##*/})
 
     if [[ "$BRANCH_NAME" == "refs/heads/release/1.1" ]]; then
@@ -122,10 +125,33 @@ update_latest_version_json()
         # Rewriting the latest-iotedge-lts.json
         jqQuery=".iotedged = \"$proposedEdgeletVersion\" | .\"azureiotedge-agent\" = \"$proposedImageVersion\" | .\"azureiotedge-hub\" = \"$proposedImageVersion\""
         echo $content | jq "$jqQuery" > $AZURE_IOTEDGE_REPO_PATH/latest-iotedge-lts.json
+        cat $AZURE_IOTEDGE_REPO_PATH/latest-iotedge-lts.json
 
     elif [[ "$BRANCH_NAME" == "refs/heads/release/1.2" ]]; then
-        OS_NAME="centos"
-        OS_VERSION="7"
+
+        [[ -z "$IIS_REPO_PATH" ]] && { echo "\$IIS_REPO_PATH is undefined"; exit 1; }
+
+        # proposedEdgeletVersion - iotedge/edgelet/version.txt
+        proposedEdgeletVersion=$(cat $IOTEDGE_REPO_PATH/edgelet/version.txt)
+        # proposedImageVersion - iotedge/versionInfo.json
+        proposedImageVersion=$(cat $IOTEDGE_REPO_PATH/versionInfo.json | jq ".version" | tr -d '"')
+        # proposedIisVersion - iot-identity-service/
+        # BEARWASHERE -- Make sure the pipeline is checked out for proper release/1.2
+        proposedIisVersion=$(grep "PACKAGE_VERSION:" $IIS_REPO_PATH/.github/workflows/packages.yaml | awk '{print $2}' | tr -d "'" | tr -d '"')
+
+        # latestEdgeletVersion - azure-iotedge/latest-aziot-edge.json
+        content=$(cat $AZURE_IOTEDGE_REPO_PATH/latest-aziot-edge.json)
+        latestEdgeletVersion=$(echo $content | jq '."aziot-edge"' | tr -d '"')
+        # latestIisVersion - azure-iotedge/latest-aziot-identity-service.json
+        content=$(cat $AZURE_IOTEDGE_REPO_PATH/latest-aziot-identity-service.json)
+        latestIisVersion=$(echo $content | jq '."aziot-identity-service"' | tr -d '"')
+
+        version_sanity_check $proposedEdgeletVersion $latestEdgeletVersion
+        version_sanity_check $proposedImageVersion get_latest_release_per_branch_name
+        version_sanity_check $proposedIisVersion $latestIisVersion
+
+        # BEARWASHERE -- TODO: Write the proper version to the azure-iotedge version files.
+        
     elif [[ "$BRANCH_NAME" == "refs/heads/main" ]]; then
         echo "I'm pretty sure you don't want to release the main branch."
         # BEARWASHERE
