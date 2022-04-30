@@ -8,6 +8,10 @@ resources:
     type: github
     endpoint: azure-iot-edge-iotedge1-github
     name: azure/azure-iotedge
+  - repository: iot-identity-service
+    type: github
+    endpoint: azure-iot-edge-iotedge1-github
+    name: azure/iot-identity-service
 
 trigger:
 - main
