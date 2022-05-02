@@ -110,13 +110,8 @@ impl From<DockerError<serde_json::Value>> for Error {
 
 impl<'a> From<&'a Error> for ModuleRuntimeErrorReason {
     fn from(err: &'a Error) -> Self {
-        let mut err: &dyn std::error::Error = err;
-        while let Some(cause) = err.source() {
-            err = cause;
-        }
-
-        match err.downcast_ref() {
-            Some(Error::NotFound(_)) => ModuleRuntimeErrorReason::NotFound,
+        match err {
+            Error::NotFound(_) => ModuleRuntimeErrorReason::NotFound,
             _ => ModuleRuntimeErrorReason::Other,
         }
     }
