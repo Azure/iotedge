@@ -124,17 +124,29 @@ tar cf "${MARINER_BUILD_ROOT}/SPECS/aziot-edge/SOURCES/rust.tar.gz" "rust"
 popd
 
 # Download Mariner repo and build toolkit
-echo "Cloning the \"${MARINER_RELEASE}\" tag of the CBL-Mariner repo."
-git clone https://github.com/microsoft/CBL-Mariner.git
-pushd CBL-Mariner
-git checkout ${MARINER_RELEASE}
-pushd toolkit
-make package-toolkit REBUILD_TOOLS=y
-popd
-mv out/toolkit-*.tar.gz "${MARINER_BUILD_ROOT}/toolkit.tar.gz"
-popd
 
-rm -rf CBL-Mariner
+MarinerToolkitDir='/tmp/CBL-Mariner'
+if ! [ -f "$MarinerToolkitDir/toolkit.tar.gz" ]; then
+    rm -rf "$MarinerToolkitDir"
+    git clone 'https://github.com/microsoft/CBL-Mariner.git' --branch "$MARINER_RELEASE" --depth 1 "$MarinerToolkitDir"
+    pushd "$MarinerToolkitDir/toolkit/"
+    make package-toolkit REBUILD_TOOLS=y
+    popd
+    cp "$MarinerToolkitDir"/out/toolkit-*.tar.gz "${MARINER_BUILD_ROOT}/toolkit.tar.gz"
+    rm -rf MarinerToolkitDir
+fi
+
+# echo "Cloning the \"${MARINER_RELEASE}\" tag of the CBL-Mariner repo."
+# git clone https://github.com/microsoft/CBL-Mariner.git
+# pushd CBL-Mariner
+# git checkout ${MARINER_RELEASE}
+# pushd toolkit
+# make package-toolkit REBUILD_TOOLS=y
+# popd
+# mv out/toolkit-*.tar.gz "${MARINER_BUILD_ROOT}/toolkit.tar.gz"
+# popd
+
+
 
 # copy over IIS RPM
 mkdir -p ${MARINER_BUILD_ROOT}/out/RPMS/${MARINER_ARCH}
