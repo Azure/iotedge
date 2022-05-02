@@ -61,6 +61,7 @@ version_sanity_check()
 {
     # $1 - Proposed version
     # $2 - Lastest Release Version from the github released branch
+    # $3 - Terminate if failed
 
     # The latest released version is optional argument, so fetch that if not provided.
     if [ "$#" -le "2" ]; then
@@ -73,7 +74,7 @@ version_sanity_check()
     higherVersion=$(echo "$latestReleasedVersion $1" | tr " " "\n"  | sort --version-sort -r | head -1)
     if [[ "$higherVersion" == "$latestReleasedVersion" ]]; then
         echo "FAILED: The proposed version ($1) cannot have a lower or equal version value than the latest released version ($latestReleasedVersion)"
-        # BEARWASHERE
+        # BEARWASHERE -- check $3 if true or false. If true, exit; otherwise, warning error
         #exit 1;
     else
         echo "PASSED: version sanity check"
@@ -178,6 +179,7 @@ update_latest_version_json()
     fi
 
     #BEARWASHERE --
+    #  0. Git branch & check if git is installed
     #  1. Determine the branch name
     #  2. Read the file version from iotedge
     #  3. Read the file version from azure-iotedge
