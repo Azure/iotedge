@@ -16,11 +16,6 @@ resources:
 trigger:
 - main
 
-# steps:
-# - checkout: self
-# - checkout: iotedge
-# - checkout: azure-iotedge
-
 stages:
   - stage: TestStage
     displayName: Stage 1
@@ -30,7 +25,7 @@ stages:
         - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
     jobs:
     - job: job1
-      displayName: Ubuntu 18.04 - amd64
+      displayName: job1
       steps:
       - checkout: self
         submodules: recursive
@@ -41,6 +36,7 @@ stages:
       - checkout: iot-identity-service
         submodules: recursive
       - task: Bash@3
+        displayName: Directory layout
         inputs:
           targetType: 'inline'
           script: |
@@ -55,3 +51,29 @@ stages:
             ls -a $(Agent.BuildDirectory)
             # find $(Agent.BuildDirectory) -type d | sed -e "s/[^-][^\/]*\// |/g" -e "s/|\([^ ]\)/|-\1/"
             # ls -R $(Agent.BuildDirectory) | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/   /' -e 's/-/|/'
+      - task: Bash@3
+        displayName: Test GitHub
+        inputs:
+          targetType: 'inline'
+          script: |
+            echo "=============================================="
+
+            # echo "git config --global user.name IotEdge1"
+            # git config --global user.name "IotEdge1"
+
+            # echo "git config --global user.email \"iotedge1@microsoft.com\""
+            # git config --global user.email "iotedge1@microsoft.com"
+
+            # git push https://<GITHUB_ACCESS_TOKEN>@github.com/<GITHUB_USERNAME>/<REPOSITORY_NAME>.git
+
+            gitCmd="git remote -vv"
+            echo "$gitCmd"
+            $gitCmd || true
+
+            gitCmd="git branch -vv"
+            echo "$gitCmd"
+            $gitCmd || true
+
+            gitCmd="git branch -b yophilav/TestGhCli"
+            echo "$gitCmd"
+            $gitCmd || true
