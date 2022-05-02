@@ -51,6 +51,13 @@ stages:
             ls -a $(Agent.BuildDirectory)
             # find $(Agent.BuildDirectory) -type d | sed -e "s/[^-][^\/]*\// |/g" -e "s/|\([^ ]\)/|-\1/"
             # ls -R $(Agent.BuildDirectory) | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/   /' -e 's/-/|/'
+      - task: AzureKeyVault@1
+        displayName: Get secrets
+        inputs:
+          azureSubscription: azureiotedge-arm
+          keyVaultName: edgebuildkv
+          secretsFilter: >-
+            GitHubAccessToken
       - task: Bash@3
         displayName: Test GitHub
         inputs:
@@ -77,6 +84,14 @@ stages:
             echo "$gitCmd"
             $gitCmd || true
 
-            gitCmd="git branch -b yophilav/TestGhCli"
+            gitCmd="git checkout -b yophilav/TestGhCli"
             echo "$gitCmd"
             $gitCmd || true
+
+            echo "BearTest" > ./test
+            git add ./test
+            git commit -am "Testing $(Build.BuildId)"
+            git push https://$GITHUB_PAT@github.com/Azure/azure-iotedge.git
+
+        env:
+            GITHUB_PAT: "$(GitHubAccessToken)"
