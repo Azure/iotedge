@@ -12,7 +12,6 @@
 ## iotedged
 ### Bug Fixes
 * Update Rust `regex` version to address vulnerability [5573eff](https://github.com/Azure/iotedge/commit/5573eff191310e5a226d924b40d1cea035b0a3fd)
-* Publish arm32v7 packages for Debian 10 and 11 to packages.microsoft.com [3e9604b](https://github.com/Azure/iotedge/commit/3e9604b67b6320dba4aab22c4d81b4db67e0c974)
 
 
 ## Diagnostics Module
