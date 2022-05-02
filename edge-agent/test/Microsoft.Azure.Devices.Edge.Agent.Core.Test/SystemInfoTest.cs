@@ -113,8 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             SystemInfo systemInfo = new SystemInfo("A", "B", "C", new ReadOnlyDictionary<string, object>(properties));
             Assert.Equal(
                 @"{""OperatingSystemType"":""A"",""Architecture"":""B"",""Version"":""C"",""first"":""1"",""second"":""2"",""third"":""3""}",
-                Newtonsoft.Json.JsonConvert.SerializeObject(systemInfo)
-            );
+                Newtonsoft.Json.JsonConvert.SerializeObject(systemInfo));
         }
     }
 }
