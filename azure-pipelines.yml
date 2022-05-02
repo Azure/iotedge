@@ -66,6 +66,9 @@ stages:
 
             # git push https://<GITHUB_ACCESS_TOKEN>@github.com/<GITHUB_USERNAME>/<REPOSITORY_NAME>.git
 
+            echo "cd $(Build.SourcesDirectory)/iotedge"
+            cd $(Build.SourcesDirectory)/iotedge
+
             gitCmd="git remote -vv"
             echo "$gitCmd"
             $gitCmd || true
