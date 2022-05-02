@@ -185,7 +185,19 @@
 # method = "local_ca"                                                # - a local CA
 # common_name = "my-device"                                          # with the given common name, or...
 # subject = { L = "AQ", ST = "Antarctica", CN = "my-device" }        # with the given DN fields
-
+#
+## Uncomment the section below to enable automatic renewal of the device ID certificate.
+## Auto-renewal requires a known certificate issuance method. This generally means that
+## 'method' is either 'est' or 'local_ca'.
+##
+## IMPORTANT:
+## ONLY ENABLE AUTO-RENEWAL IF THIS DEVICE IS CONFIGURED FOR CA-BASED DPS ENROLLMENT.
+## USING AUTO-RENEWAL FOR AN INDIVIDUAL ENROLLMENT WILL CAUSE THE DEVICE TO BE UNABLE
+## TO REPROVISION.
+# [provisioning.attestation.identity_cert.auto_renew]
+# rotate_key = true
+# threshold = "80%"
+# retry = "4%"
 
 ## DPS provisioning with TPM
 # [provisioning]
@@ -229,6 +241,13 @@
 #
 # bootstrap_identity_pk = "file:///var/secrets/est-bootstrap-id.key.pem"            # file URI, or...
 # bootstrap_identity_pk = "pkcs11:slot-id=0;object=est-bootstrap-id?pin-value=1234" # PKCS#11 URI
+#
+## Controls the renewal of EST identity certs. These certs are issued by the EST server after
+## initial authentication with the bootstrap cert and managed by Certificates Service.
+# [cert_issuance.est.identity_auto_renew]
+# rotate_key = true
+# threshold = "80%"
+# retry = "4%"
 #
 # [cert_issuance.est.urls]
 # default = "https://example.org/.well-known/est"
