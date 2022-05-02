@@ -99,5 +99,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 + "first+first=1%2B1;second%2Bsecond=2+2;third+third=3%2B3;",
                 new SystemInfo("A", "B", "C", new ReadOnlyDictionary<string, object>(properties)).ToQueryString());
         }
+
+        [Fact]
+        [Unit]
+        public void FlattenedSerializationTest()
+        {
+            Dictionary<string, object> properties = new Dictionary<string, object>();
+
+            properties.Add("first", "1");
+            properties.Add("second", "2");
+            properties.Add("third", "3");
+
+            SystemInfo systemInfo = new SystemInfo("A", "B", "C", new ReadOnlyDictionary<string, object>(properties));
+            Assert.Equal(
+                @"{""OperatingSystemType"":""A"",""Architecture"":""B"",""Version"":""C"",""first"":""1"",""second"":""2"",""third"":""3""}",
+                Newtonsoft.Json.JsonConvert.SerializeObject(systemInfo)
+            );
+        }
     }
 }
