@@ -53,7 +53,7 @@ case "${MARINER_ARCH}" in
     'x86_64')
         rustup target add x86_64-unknown-linux-gnu
         ;;
-    'arm64')
+    'aarch64')
         rustup target add aarch64-unknown-linux-gnu
         ;;
 esac
