@@ -221,24 +221,24 @@ impl cert_renewal::CertInterface for EdgeCaRenewal {
         }
 
         // Commit the new key to storage if the key was rotated.
-        let mut revert_cert = false;
-
         if old_key != new_key {
-            let key_client = self.key_client.lock().await;
+            let res = {
+                let key_client = self.key_client.lock().await;
 
-            if key_client.move_key_pair(&new_key, old_key).await.is_err() {
-                revert_cert = true;
+                key_client.move_key_pair(&new_key, old_key).await
+            };
+
+            if res.is_err() {
+                // Revert to the previous cert if the key could not be written.
+                let cert_client = self.cert_client.lock().await;
+
+                cert_client
+                    .import_cert(cert_id, &old_cert_chain_pem)
+                    .await
+                    .map_err(|_| {
+                        cert_renewal::Error::retryable_error("failed to restore old cert")
+                    })?;
             }
-        }
-
-        // Revert to the previous cert if the key could not be written.
-        if revert_cert {
-            let cert_client = self.cert_client.lock().await;
-
-            cert_client
-                .import_cert(cert_id, &old_cert_chain_pem)
-                .await
-                .map_err(|_| cert_renewal::Error::retryable_error("failed to restore old cert"))?;
         }
 
         log::info!("Edge CA was renewed");
