@@ -648,12 +648,6 @@ pub trait ModuleRuntime: Sized {
     fn stop_all(&self, wait_before_kill: Option<Duration>) -> Self::StopAllFuture;
 }
 
-#[derive(Clone, Copy, Debug)]
-pub enum ModuleRuntimeErrorReason {
-    NotFound,
-    Other,
-}
-
 // Useful for error contexts
 #[derive(Clone, Copy, Debug)]
 pub enum ModuleOperation {

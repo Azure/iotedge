@@ -4,7 +4,7 @@ use hyper::StatusCode;
 
 use docker::apis::{ApiError as DockerApiError, Error as DockerError};
 use edgelet_core::{
-    ModuleOperation, ModuleRuntimeErrorReason, RegistryOperation, RuntimeOperation,
+    ModuleOperation, RegistryOperation, RuntimeOperation,
 };
 
 fn get_message(
@@ -104,15 +104,6 @@ impl From<DockerError<serde_json::Value>> for Error {
                     Err(e) => Error::Docker(anyhow::anyhow!("{:?}", e)),
                 },
             },
-        }
-    }
-}
-
-impl<'a> From<&'a Error> for ModuleRuntimeErrorReason {
-    fn from(err: &'a Error) -> Self {
-        match err {
-            Error::NotFound(_) => ModuleRuntimeErrorReason::NotFound,
-            _ => ModuleRuntimeErrorReason::Other,
         }
     }
 }
