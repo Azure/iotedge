@@ -101,7 +101,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 return result;
             }
 
-            // incident related?
             public Task<ISinkResult> ProcessAsync(ICollection<IRoutingMessage> routingMessages, CancellationToken token)
             {
                 Events.ProcessingMessages(Preconditions.CheckNotNull(routingMessages, nameof(routingMessages)));
@@ -147,7 +146,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 return new SinkResult<IRoutingMessage>(ImmutableList<IRoutingMessage>.Empty, ImmutableList<IRoutingMessage>.Empty, invalid, sendFailureDetails);
             }
 
-            // incident related
             async Task<ISinkResult> ProcessByClients(ICollection<IRoutingMessage> routingMessages, CancellationToken token)
             {
                 var result = new MergingSinkResult<IRoutingMessage>();
@@ -175,7 +173,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 return result;
             }
 
-            // Incident related
             // Process all messages for a particular client
             async Task<ISinkResult<IRoutingMessage>> ProcessClientMessages(string id, List<IRoutingMessage> routingMessages, CancellationToken token)
             {
