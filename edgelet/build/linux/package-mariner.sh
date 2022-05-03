@@ -13,6 +13,20 @@ EDGELET_ROOT="${BUILD_REPOSITORY_LOCALPATH}/edgelet"
 MARINER_BUILD_ROOT="${BUILD_REPOSITORY_LOCALPATH}/builds/${MarinerIdentity}"
 REVISION="${REVISION:-1}"
 
+# need to use preview repo for the next 2 weeks untill mariner 2.0 gets moved to prod
+case "${MARINER_RELEASE}" in
+    '1.0-stable')
+        UsePreview=n
+        MarinerIdentity=mariner1
+        PackageExtension="cm1"
+        ;;
+    '2.0-stable')
+        UsePreview=y
+        MarinerIdentity=mariner2
+        PackageExtension="cm2"
+        ;;
+esac
+
 apt-get update -y
 apt-get upgrade -y
 apt-get install -y software-properties-common
@@ -44,20 +58,6 @@ fi
 echo 'Installing rustup'
 curl -sSLf https://sh.rustup.rs | sh -s -- -y
 . ~/.cargo/env
-
-# need to use preview repo for the next 2 weeks untill mariner 2.0 gets moved to prod
-case "${MARINER_RELEASE}" in
-    '1.0-stable')
-        UsePreview=n
-        MarinerIdentity=mariner1
-        PackageExtension="cm1"
-        ;;
-    '2.0-stable')
-        UsePreview=y
-        MarinerIdentity=mariner2
-        PackageExtension="cm2"
-        ;;
-esac
 
 pushd $EDGELET_ROOT
 case "${MARINER_ARCH}" in
