@@ -42,9 +42,8 @@ pub use identity::{AuthType, Identity, IdentityManager, IdentityOperation, Ident
 pub use logs::{Chunked, LogChunk, LogDecode};
 pub use module::{
     DiskInfo, ImagePullPolicy, LogOptions, LogTail, MakeModuleRuntime, Module, ModuleAction,
-    ModuleOperation, ModuleRegistry, ModuleRuntime, ModuleRuntimeState,
-    ModuleSpec, ModuleStatus, ModuleTop, ProvisioningInfo, RegistryOperation, RuntimeOperation,
-    SystemInfo, SystemResources,
+    ModuleOperation, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec, ModuleStatus,
+    ModuleTop, ProvisioningInfo, RegistryOperation, RuntimeOperation, SystemInfo, SystemResources,
 };
 pub use network::{Ipam, IpamConfig, MobyNetwork, Network};
 pub use parse_since::parse_since;

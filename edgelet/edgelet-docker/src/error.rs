@@ -3,9 +3,7 @@
 use hyper::StatusCode;
 
 use docker::apis::{ApiError as DockerApiError, Error as DockerError};
-use edgelet_core::{
-    ModuleOperation, RegistryOperation, RuntimeOperation,
-};
+use edgelet_core::{ModuleOperation, RegistryOperation, RuntimeOperation};
 
 fn get_message(
     error: DockerApiError<serde_json::Value>,
