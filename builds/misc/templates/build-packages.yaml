@@ -246,7 +246,7 @@ stages:
         pool:
           name: 'Azure-IoT-Edge-1ES-Hosted-Linux-Arm64'
           demands:
-          - ImageOverride -equals agent-aziotedge-ubuntu-20.04-arm64
+          - ImageOverride -equals agent-aziotedge-ubuntu-18.04-arm64
         variables:
           NugetSecurityAnalysisWarningLevel: warn
         strategy:
