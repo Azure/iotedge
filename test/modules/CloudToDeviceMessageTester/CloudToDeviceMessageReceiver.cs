@@ -93,7 +93,15 @@ namespace CloudToDeviceMessageTester
                 await retryPolicy.ExecuteAsync(
                     async () =>
                 {
-                    await this.deviceClient.OpenAsync(ct);
+                    try
+                    {
+                        await this.deviceClient.OpenAsync(ct);
+                    }
+                    catch (Exception e)
+                    {
+                        this.logger.LogInformation("Device client encountered exception on connection attempt: {0}", e);
+                        throw;
+                    }
                 }, ct);
 
                 while (!ct.IsCancellationRequested)
