@@ -8,7 +8,7 @@ use crate::error::Error as EdgedError;
 pub(crate) async fn run_until_shutdown(
     settings: edgelet_settings::docker::Settings,
     device_info: &aziot_identity_common::AzureIoTSpec,
-    runtime: std::sync::Arc<futures_util::lock::Mutex<edgelet_docker::DockerModuleRuntime>>,
+    runtime: edgelet_docker::DockerModuleRuntime,
     identity_client: &aziot_identity_client_async::Client,
     mut action_rx: tokio::sync::mpsc::UnboundedReceiver<edgelet_core::WatchdogAction>,
 ) -> Result<edgelet_core::WatchdogAction, EdgedError> {
@@ -56,7 +56,6 @@ pub(crate) async fn run_until_shutdown(
                     log::info!("Watchdog stopped");
 
                     log::info!("Stopping all modules...");
-                    let runtime = runtime.lock().await;
 
                     if let Err(err) = runtime
                         .stop_all(Some(std::time::Duration::from_secs(30)))
@@ -77,13 +76,11 @@ pub(crate) async fn run_until_shutdown(
 async fn watchdog(
     settings: &edgelet_settings::docker::Settings,
     device_info: &aziot_identity_common::AzureIoTSpec,
-    runtime: &futures_util::lock::Mutex<edgelet_docker::DockerModuleRuntime>,
+    runtime: &edgelet_docker::DockerModuleRuntime,
     identity_client: &aziot_identity_client_async::Client,
 ) -> Result<(), EdgedError> {
     log::info!("Watchdog checking Edge runtime status");
     let agent_name = settings.agent().name();
-
-    let runtime = runtime.lock().await;
 
     if let Ok((_, agent_status)) = runtime.get(agent_name).await {
         let agent_status = agent_status.status();
@@ -130,11 +127,9 @@ async fn watchdog(
 
 async fn restart_modules(
     settings: &edgelet_settings::docker::Settings,
-    runtime: &futures_util::lock::Mutex<edgelet_docker::DockerModuleRuntime>,
+    runtime: &edgelet_docker::DockerModuleRuntime,
 ) {
     let agent_name = settings.agent().name();
-
-    let runtime = runtime.lock().await;
 
     // Check if edgeAgent is running. If edgeAgent does not exist or is not running,
     // return and let the periodic watchdog create and start it.

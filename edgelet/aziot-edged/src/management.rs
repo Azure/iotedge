@@ -8,7 +8,7 @@ const SOCKET_DEFAULT_PERMISSION: u32 = 0o660;
 
 pub(crate) async fn start<M>(
     settings: &impl edgelet_settings::RuntimeSettings,
-    runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
+    runtime: M,
     sender: tokio::sync::mpsc::UnboundedSender<edgelet_core::WatchdogAction>,
     tasks: std::sync::Arc<std::sync::atomic::AtomicUsize>,
 ) -> Result<tokio::sync::oneshot::Sender<()>, EdgedError>
