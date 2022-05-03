@@ -277,7 +277,7 @@ stages:
           # build iot-identity-service here since they cannot build native aarch64 packages
           - bash: |
               git clone --recurse-submodules https://github.com/josephknierman/iot-identity-service.git -b user/joknierm/add-mariner-arm64-build
-              pushd iotedge
+              pushd iot-identity-service
               docker run --rm \
                 -v "$(Build.SourcesDirectory)/iot-identity-service:/src" \
                 -e "ARCH=$arch" \
@@ -288,8 +288,8 @@ stages:
                 "ubuntu:18.04" \
                 '/src/ci/package.sh'
               popd
-              cp iotedge/packages/*.rpm .
-              rm -rf iotedge
+              cp iot-identity-service/packages/*.rpm .
+              rm -rf iot-identity-service
           
           - bash: |
               docker run --rm \
