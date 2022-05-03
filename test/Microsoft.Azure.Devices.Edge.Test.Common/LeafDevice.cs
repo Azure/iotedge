@@ -389,10 +389,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         }
 
         // This error detection strategy is intended for SDK clients connecting
-        // to EdgeHub encountering a variety of issues.
+        // to EdgeHub encountering a variety of issues related to dotnet 6.
         //
         // Can be removed when the below are fixed:
-        // 1 (AuthenticationException) - Sometimes tls auth error occurs because EdgeHub sends an unexpected message (work item 14057676).
+        // 1 (AuthenticationException) - Sometimes tls auth error occurs because EdgeHub sends an unexpected message (https://github.com/Azure/azure-iot-sdk-csharp/issues/2370).
         // 2 (ObjectDisposedException) - Devices SDK Issue: ObjectDisposed exception (https://github.com/Azure/azure-iot-sdk-csharp/issues/2337)
         // 3 (InvalidOperationException) - Devices SDK Issue: No authenticated context (https://github.com/Azure/azure-iot-sdk-csharp/issues/2353)
         class FailingConnectionErrorDetectionStrategy : ITransientErrorDetectionStrategy
