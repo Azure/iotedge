@@ -285,6 +285,8 @@ stages:
               rm microsoft-prod.list microsoft.gpg
               sudo apt-get update
               ps aux | grep -i apt
+              sleep 300
+              ps aux | grep -i apt
               sudo apt-get -o DPkg::Lock::Timeout=120 install -y moby-engine
             displayName: Install moby
 
