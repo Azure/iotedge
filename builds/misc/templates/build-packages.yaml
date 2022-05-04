@@ -279,7 +279,7 @@ stages:
               set -ex
               sudo apt-get update
               ps aux | grep -i apt
-              sleep 400
+              sleep 600
               ps aux | grep -i apt
               sudo apt-get install -y docker
             displayName: Install moby
