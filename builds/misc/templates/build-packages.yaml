@@ -277,10 +277,9 @@ stages:
 
           - bash: |
               set -ex
-              
               sudo apt-get update
               ps aux | grep -i apt
-              sleep 300
+              sleep 600
               ps aux | grep -i apt
               sudo apt-get install -y docker-ce
             displayName: Install moby
