@@ -20,7 +20,7 @@ jobs:
     variables:
       parentName: $[ dependencies.SetupVM_level4_${{ parameters['upstream.protocol'] }}.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level4_${{ parameters['upstream.protocol'] }}.outputs['createIdentity.parentDeviceId'] ] 
-      edgelet.artifact.name: 'iotedged-debian9-arm32v7'
+      edgelet.artifact.name: 'iotedged-debian10-arm32v7'
       identityServiceArtifactName: 'packages_debian-9-slim_arm32v7'
       identityServicePackageFilter: 'aziot-identity-service_*_armhf.deb'
       hostPlatform: 'linux_arm32v7_moby'

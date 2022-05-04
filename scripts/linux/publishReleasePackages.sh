@@ -15,7 +15,7 @@ function usage() {
     echo ""
     echo "options"
     echo " -h,  --help                   Print this help and exit."
-    echo " -p,  --packageos              packageos: ubuntu18.04|ubuntu20.04|debian9"
+    echo " -p,  --packageos              packageos: ubuntu18.04|ubuntu20.04"
     echo " -d,  --dir                    package directory to publish"
     echo " -w,  --wdir                   working directory for secrets.Default is $(pwd)."
     echo " -s,  --server                 server name for package upload"
@@ -36,9 +36,6 @@ check_os() {
     elif [[ "$PACKAGE_OS" == "ubuntu20.04" ]]; then
         OS_NAME="ubuntu"
         OS_VERSION="focal"
-    elif [[ "$PACKAGE_OS" == "debian9" ]]; then
-        OS_NAME="debian"
-        OS_VERSION="stretch"
     elif [[ "$PACKAGE_OS" == "debian10" ]]; then
         OS_NAME="debian"
         OS_VERSION="buster"
