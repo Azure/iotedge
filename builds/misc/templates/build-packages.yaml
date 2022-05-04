@@ -276,9 +276,12 @@ stages:
             displayName: Set Version
           # build iot-identity-service here since they cannot build native aarch64 packages
           - bash: |
-              sudo apt-get update
-              sudo apt-get -o DPkg::Lock::Timeout=-1 install moby-engine
-              sudo apt-get -o DPkg::Lock::Timeout=-1 install docker
+              set -e
+              set -x
+
+              sudo apt update && sudo apt upgrade -y
+              sudo apt-get install moby-engine
+              sudo apt-get install docker
               sudo systemctl restart docker
               git clone --recurse-submodules https://github.com/josephknierman/iot-identity-service.git -b user/joknierm/add-mariner-arm64-build
               pushd iot-identity-service
