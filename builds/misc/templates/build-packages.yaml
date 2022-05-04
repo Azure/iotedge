@@ -274,13 +274,22 @@ stages:
               fi
               echo "##vso[task.setvariable variable=MARINER_ARCH;]$mariner_arch"
             displayName: Set Version
+
+          - bash: |
+              set -e
+              # Install Moby
+              curl https://packages.microsoft.com/config/ubuntu/18.04/prod.list > ./microsoft-prod.list
+              sudo cp ./microsoft-prod.list /etc/apt/sources.list.d/
+              curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
+              sudo cp ./microsoft.gpg /etc/apt/trusted.gpg.d/
+              rm microsoft-prod.list microsoft.gpg
+              sudo apt-get update
+              sudo apt-get install -y moby-engine
+            displayName: Install moby
+
           # build iot-identity-service here since they cannot build native aarch64 packages
           - bash: |
               set -e
-              set -x
-
-              sudo apt-get install docker -y
-              sudo systemctl restart docker
               git clone --recurse-submodules https://github.com/josephknierman/iot-identity-service.git -b user/joknierm/add-mariner-arm64-build
               pushd iot-identity-service
               docker run --rm \
