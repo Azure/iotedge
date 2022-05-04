@@ -277,11 +277,15 @@ stages:
 
           - bash: |
               set -ex
-              sudo apt-get update
               ps aux | grep -i apt
               sleep 600
               ps aux | grep -i apt
-              sudo apt-get install -y docker
+              sudo apt-get update
+              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+              echo \
+              "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+              $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+              sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
             displayName: Install moby
 
           # build iot-identity-service here since they cannot build native aarch64 packages
