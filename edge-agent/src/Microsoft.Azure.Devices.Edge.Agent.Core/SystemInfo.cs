@@ -10,13 +10,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public class SystemInfo
     {
-        public SystemInfo(string operatingSystemType, string architecture, string version, IReadOnlyDictionary<string, object> additionalProperties)
+        public SystemInfo(string operatingSystemType, string architecture, string version, IDictionary<string, object> additionalProperties)
         {
             this.OperatingSystemType = operatingSystemType;
             this.Architecture = architecture;
             this.Version = version;
-
-            this.AdditionalProperties = additionalProperties?.ToDictionary(entry => entry.Key, entry => entry.Value?.ToString());
+            this.AdditionalProperties = additionalProperties;
         }
 
         public SystemInfo(string operatingSystemType, string architecture, string version)
@@ -24,13 +23,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         {
         }
 
+        // NOTE: changed to snake-case to reflect edgelet
         public string OperatingSystemType { get; }
 
         public string Architecture { get; }
 
         public string Version { get; }
 
-        public IReadOnlyDictionary<string, string> AdditionalProperties { get; }
+        // NOTE: changed to IDictionary from IReadOnlyDictionary since the
+        // latter cannot be used as extension data.  Likewise for <string,
+        // object> from <string, string>.
+        [Newtonsoft.Json.JsonExtensionData]
+        public IDictionary<string, object> AdditionalProperties { get; }
 
         public string ToQueryString()
         {
@@ -41,11 +45,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
             if (this.AdditionalProperties != null)
             {
-                foreach ((string k, string v) in this.AdditionalProperties)
+                foreach ((string k, object v) in this.AdditionalProperties)
                 {
                     if (!string.IsNullOrEmpty(k))
                     {
-                        b.Append($"{UrlEncode(k)}={UrlEncode(v ?? string.Empty)};");
+                        b.Append($"{UrlEncode(k)}={UrlEncode(v?.ToString() ?? string.Empty)};");
                     }
                 }
             }
