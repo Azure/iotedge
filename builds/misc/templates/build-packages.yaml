@@ -280,7 +280,6 @@ stages:
               set -x
 
               sudo apt update && sudo apt upgrade -y
-              sudo apt-get install moby-engine
               sudo apt-get install docker
               sudo systemctl restart docker
               git clone --recurse-submodules https://github.com/josephknierman/iot-identity-service.git -b user/joknierm/add-mariner-arm64-build
