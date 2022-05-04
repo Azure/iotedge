@@ -280,7 +280,7 @@ stages:
               ps aux | grep -i apt
               sleep 600
               ps aux | grep -i apt
-              sudo apt install apt-transport-https ca-certificates curl software-properties-common
+              sudo apt install apt-transport-https ca-certificates curl software-properties-common -y
               curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
               sudo add-apt-repository "deb [arch=arm64] https://download.docker.com/linux/ubuntu `lsb_release -cs` test"
               sudo apt update
