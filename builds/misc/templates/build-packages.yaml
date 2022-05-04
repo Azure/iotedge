@@ -276,7 +276,7 @@ stages:
             displayName: Set Version
 
           - bash: |
-              set -e
+              set -ex
               # Install Moby
               curl https://packages.microsoft.com/config/ubuntu/18.04/prod.list > ./microsoft-prod.list
               sudo cp ./microsoft-prod.list /etc/apt/sources.list.d/
@@ -284,12 +284,12 @@ stages:
               sudo cp ./microsoft.gpg /etc/apt/trusted.gpg.d/
               rm microsoft-prod.list microsoft.gpg
               sudo apt-get update
-              sudo apt-get install -y moby-engine
+              sudo apt-get -o DPkg::Lock::Timeout=120 install -y moby-engine
             displayName: Install moby
 
           # build iot-identity-service here since they cannot build native aarch64 packages
           - bash: |
-              set -e
+              set -ex
               git clone --recurse-submodules https://github.com/josephknierman/iot-identity-service.git -b user/joknierm/add-mariner-arm64-build
               pushd iot-identity-service
               docker run --rm \
