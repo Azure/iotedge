@@ -279,9 +279,9 @@ stages:
               set -ex
               sudo apt-get update
               ps aux | grep -i apt
-              sleep 600
+              sleep 400
               ps aux | grep -i apt
-              sudo apt-get install -y docker-ce
+              sudo apt-get install -y docker
             displayName: Install moby
 
           # build iot-identity-service here since they cannot build native aarch64 packages
