@@ -277,12 +277,7 @@ stages:
 
           - bash: |
               set -ex
-              # Install Moby
-              curl https://packages.microsoft.com/config/ubuntu/18.04/prod.list > ./microsoft-prod.list
-              sudo cp ./microsoft-prod.list /etc/apt/sources.list.d/
-              curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
-              sudo cp ./microsoft.gpg /etc/apt/trusted.gpg.d/
-              rm microsoft-prod.list microsoft.gpg
+              
               sudo apt-get update
               ps aux | grep -i apt
               sleep 300
