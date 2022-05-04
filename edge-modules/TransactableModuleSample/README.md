@@ -150,7 +150,7 @@ These commands are similar and built upon the existing marketplace terms of use 
 1. Once the terms of use are accepted, deploy the module on an IoT Edge device. Here, the `--auth-type login` is important as deployment must be done with AAD authentication:
 
     ```
-    az iot edge set-modules --hub-name myIoTHub --content ./contoso.deployment.json --auth-type login
+    az iot edge set-modules --hub-name myIoTHub --content ./contoso.deployment.json --auth-type login --device-id myEdgeDevice
     ```
 1. And here's where we should talk about the deployment manifest.
 
