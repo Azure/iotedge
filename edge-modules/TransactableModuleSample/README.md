@@ -100,7 +100,7 @@ This section shows steps to create a new transactable Edge module offer. For the
 1. Under **Notes for certification**, include a message to indicate that "this offer is created for the transactable edge module private preview". The certification team will contact us to approve the offer.
 1. Once certification and allow-listing is complete, click **Go live**. The offer must be live in order for module deployment to work.
 
-## Step 4: Give user "IoT Hub Data Contributor" role
+## Step 4: Give user "IoT Hub Data Contributor" role for the IoT Hub and "Contributor" for the subscription
 
 To deploy the module to an IoT Edge device, the user must use Azure AD authentication when interacting with IoT Hub. An IoT Hub Owner must grant the user (including themselves) the "IoT Hub Data Contributor" role
 
@@ -115,6 +115,16 @@ az role assignment create --role 'IoT Hub Data Contributor' --assignee myuser@co
 ```
 
 Specifically, the user deploying the module must have the "Microsoft.Devices/IotHubs/configurations/write" data action. This can be assigned through other ways like custom roles, but giving the Data Contributor role is the easiest.
+
+Also, the user must have [Contributor or Owner role on the subscription](https://docs.microsoft.com/marketplace/azure-purchasing-invoicing#permission-to-purchase) to be able to accept the terms. In Azure portal:
+
+![image](https://user-images.githubusercontent.com/2320572/166736192-bb2bd5a3-494c-4348-9214-7424eae2ab00.png)
+
+With Azure CLI:
+
+```
+az role assignment create --role 'Contributor' --assignee myuser@contoso.com --scope '/subscriptions/<your subscription>'
+```
 
 ## Step 5: Deploying a transactable module to IoT Edge device
 
@@ -140,7 +150,7 @@ These commands are similar and built upon the existing marketplace terms of use 
 1. Once the terms of use are accepted, deploy the module on an IoT Edge device. Here, the `--auth-type login` is important as deployment must be done with AAD authentication:
 
     ```
-    az iot edge deployment create --hub-name myIoTHub --deployment-id contosoDeployment ---content ./contoso.deployment.json --target-condition "deviceId='myEdgeDevice'" --priority 10 --auth-type login
+    az iot edge set-modules --hub-name myIoTHub --content ./contoso.deployment.json --auth-type login
     ```
 1. And here's where we should talk about the deployment manifest.
 
