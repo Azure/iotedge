@@ -415,9 +415,9 @@ impl std::error::Error for PublishError {
 }
 
 #[derive(Debug)]
-struct PublishRequest {
-    publication: crate::proto::Publication,
-    ack_sender: futures_channel::oneshot::Sender<()>,
+pub struct PublishRequest {
+    pub publication: crate::proto::Publication,
+    pub ack_sender: futures_channel::oneshot::Sender<()>,
 }
 
 impl PublishRequest {
