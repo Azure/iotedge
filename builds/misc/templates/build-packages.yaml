@@ -283,7 +283,7 @@ stages:
               sleepDuration=10
               for (( i=0; $i<$waitAttempts; i++ ))
               do
-                if [[ $(ps aux | grep -c apt.systemd.daily) > 1 ]]; then
+                if [[ $(ps aux | grep -c apt.systemd.daily) == 1 ]]; then
                   break
                 fi
                 sleep $sleepDuration
