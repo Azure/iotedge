@@ -285,6 +285,7 @@ stages:
               sudo add-apt-repository "deb [arch=arm64] https://download.docker.com/linux/ubuntu `lsb_release -cs` test"
               sudo apt update
               sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+              sudo systemctl restart docker
             displayName: Install moby
 
           # build iot-identity-service here since they cannot build native aarch64 packages
@@ -292,7 +293,7 @@ stages:
               set -ex
               git clone --recurse-submodules https://github.com/josephknierman/iot-identity-service.git -b user/joknierm/add-mariner-arm64-build
               pushd iot-identity-service
-              docker run --rm \
+              sudo docker run --rm \
                 -v "$(Build.SourcesDirectory)/iot-identity-service:/src" \
                 -e "ARCH=$arch" \
                 -e "OS=$OS:$OSVERSION" \
@@ -306,7 +307,7 @@ stages:
               rm -rf iot-identity-service
           
           - bash: |
-              docker run --rm \
+              sudo docker run --rm \
                 -v "$(Build.SourcesDirectory):/src" \
                 -e "ARCH=$arch" \
                 -e "OS=$OS" \
