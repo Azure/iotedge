@@ -275,11 +275,23 @@ stages:
               echo "##vso[task.setvariable variable=MARINER_ARCH;]$mariner_arch"
             displayName: Set Version
 
+          # remove this one 1ES can prevent the daiy update from triggering
           - bash: |
               set -ex
               ps aux | grep -i apt
-              sleep 600
+              waitAttempts=60
+              sleepDuration=10
+              for (( i=0; i<$waitAttempts; i++ ))
+              do
+                if [[ $(ps aux | grep -i apt.systemd.daily) ]]; then
+                  break
+                fi
+                sleep $sleepDuration
+              done
               ps aux | grep -i apt
+            displayName: Wait for update
+
+          - bash: |
               sudo apt install apt-transport-https ca-certificates curl software-properties-common -y
               curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
               sudo add-apt-repository "deb [arch=arm64] https://download.docker.com/linux/ubuntu `lsb_release -cs` test"
