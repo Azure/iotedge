@@ -45,7 +45,7 @@ if [ -f /.dockerenv ]; then
 fi
 
 # Download Mariner repo and build toolkit
-pushd $MARINER_BUILD_ROOT
+mkdir -p ${MARINER_BUILD_ROOT}
 MarinerToolkitDir='/tmp/CBL-Mariner'
 if ! [ -f "$MarinerToolkitDir/toolkit.tar.gz" ]; then
     rm -rf "$MarinerToolkitDir"
@@ -56,7 +56,6 @@ if ! [ -f "$MarinerToolkitDir/toolkit.tar.gz" ]; then
     cp "$MarinerToolkitDir"/out/toolkit-*.tar.gz "${MARINER_BUILD_ROOT}/toolkit.tar.gz"
     rm -rf MarinerToolkitDir
 fi
-popd
 
 echo 'Installing rustup'
 curl -sSLf https://sh.rustup.rs | sh -s -- -y
