@@ -295,7 +295,7 @@ stages:
               pushd iot-identity-service
               sudo docker run --rm \
                 -v "$(Build.SourcesDirectory)/iot-identity-service:/src" \
-                -e "ARCH=$arch" \
+                -e "ARCH=$PACKAGE_ARCH" \
                 -e "OS=$OS:$OSVERSION" \
                 -e "PACKAGE_VERSION=1.2.6" \
                 -e "PACKAGE_RELEASE=1" \
