@@ -1,3 +1,29 @@
+# 1.1.13 (2022-04-27)
+## Edge Agent
+### Bug Fixes
+* Update Base Images to address gzip vulnerability [CVE-2022-1271](https://ubuntu.com/security/CVE-2022-1271)
+
+
+## Edge Hub
+### Bug Fixes
+* Update Base Images to address gzip vulnerability [CVE-2022-1271](https://ubuntu.com/security/CVE-2022-1271)
+
+
+## iotedged
+### Bug Fixes
+* Update Rust `regex` version to address vulnerability [5573eff](https://github.com/Azure/iotedge/commit/5573eff191310e5a226d924b40d1cea035b0a3fd)
+
+
+## Diagnostics Module
+### Bug Fixes
+* Update Base Images to address gzip vulnerability [CVE-2022-1271](https://ubuntu.com/security/CVE-2022-1271)
+
+
+## Simulated Temperature Sensor
+### Bug Fixes
+* Update Base Images to address gzip vulnerability [CVE-2022-1271](https://ubuntu.com/security/CVE-2022-1271)
+
+
 # 1.1.12 (2022-03-15)
 ## Edge Agent
 ### Bug Fixes
