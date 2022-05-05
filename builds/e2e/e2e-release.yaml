@@ -30,8 +30,8 @@ stages:
         variables:
           os: linux
           arch: arm32v7
-          artifactName: iotedged-debian10-arm32v7
-          identityServiceArtifactName: packages_debian-10-slim_arm32v7
+          artifactName: iotedged-debian11-arm32v7
+          identityServiceArtifactName: packages_debian-11-slim_arm32v7
           identityServicePackageFilter: aziot-identity-service_*_armhf.deb
           builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
           # skip notary installation as it is not supported for ARM platforms
