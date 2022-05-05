@@ -315,7 +315,7 @@ stages:
                 "ubuntu:18.04" \
                 '/src/ci/package.sh'
               popd
-              cp iot-identity-service/packages/*.rpm .
+              cp iot-identity-service/packages/mariner$(os_version)/$(arch)/*.rpm .
               rm -rf iot-identity-service
           
           - bash: |
