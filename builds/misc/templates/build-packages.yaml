@@ -281,9 +281,9 @@ stages:
               ps aux | grep -i apt
               waitAttempts=60
               sleepDuration=10
-              for (( i=0; i<$waitAttempts; i++ ))
+              for (( i=0; $i<$waitAttempts; i++ ))
               do
-                if [[ $(ps aux | grep -i apt.systemd.daily) ]]; then
+                if [[ $(ps aux | grep -c apt.systemd.daily) > 1 ]]; then
                   break
                 fi
                 sleep $sleepDuration
