@@ -315,8 +315,8 @@ stages:
                 "ubuntu:18.04" \
                 '/src/ci/package.sh'
               popd
-              cp iot-identity-service/packages/mariner$(os_version)/$(arch)/*.rpm .
-              rm -rf iot-identity-service
+              sudo cp iot-identity-service/packages/mariner$(os_version)/$(arch)/*.rpm .
+              sudo rm -rf iot-identity-service
           
           - bash: |
               sudo docker run --rm \
