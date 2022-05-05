@@ -8,10 +8,6 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 export DEBIAN_FRONTEND=noninteractive
 export TZ=UTC
 
-BUILD_REPOSITORY_LOCALPATH="$(realpath "${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}")"
-EDGELET_ROOT="${BUILD_REPOSITORY_LOCALPATH}/edgelet"
-MARINER_BUILD_ROOT="${BUILD_REPOSITORY_LOCALPATH}/builds/${MarinerIdentity}"
-REVISION="${REVISION:-1}"
 
 # need to use preview repo for the next 2 weeks untill mariner 2.0 gets moved to prod
 case "${MARINER_RELEASE}" in
@@ -26,6 +22,11 @@ case "${MARINER_RELEASE}" in
         PackageExtension="cm2"
         ;;
 esac
+
+BUILD_REPOSITORY_LOCALPATH="$(realpath "${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}")"
+EDGELET_ROOT="${BUILD_REPOSITORY_LOCALPATH}/edgelet"
+MARINER_BUILD_ROOT="${BUILD_REPOSITORY_LOCALPATH}/builds/${MarinerIdentity}"
+REVISION="${REVISION:-1}"
 
 apt-get update -y
 apt-get upgrade -y
