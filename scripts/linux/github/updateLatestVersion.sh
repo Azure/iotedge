@@ -75,7 +75,7 @@ version_sanity_check()
     if [[ "$higherVersion" == "$latestReleasedVersion" ]]; then
         echo "FAILED: The proposed version ($1) cannot have a lower or equal version value than the latest released version ($latestReleasedVersion)"
         # BEARWASHERE -- check $3 if true or false. If true, exit; otherwise, warning error
-        #exit 1;
+        # exit 1;
     else
         echo "PASSED: version sanity check"
     fi
@@ -134,7 +134,7 @@ update_latest_version_json()
 
     elif [[ "$BRANCH_NAME" == "refs/heads/release/1.2" ]]; then
 
-        [[ -z "$IIS_REPO_PATH" ]] && { echo "\$IIS_REPO_PATH is undefined"; exit 1; }
+        [[ -z "$IIS_REPO_PATH" ]] && { echo "\$IIS_REPO_PATH is undefined"; # exit 1; }
         # Set target version file to be updated
         # BEARWASHERE -- Make sure the pipeline is checked out for proper release/1.2
         TARGET_IE_FILE="$AZURE_IOTEDGE_REPO_PATH/latest-aziot-edge.json"
@@ -171,11 +171,11 @@ update_latest_version_json()
 
     elif [[ "$BRANCH_NAME" == "refs/heads/main" ]]; then
         echo "I'm pretty sure you don't want to release from the main branch."
-        exit 1
+        # exit 1
     else
         echo "Oh dear, how did you get here?!?"
         echo "Let me not let you do the release from your pull request branch"
-        exit 1
+        # exit 1
     fi
 
     #BEARWASHERE --
