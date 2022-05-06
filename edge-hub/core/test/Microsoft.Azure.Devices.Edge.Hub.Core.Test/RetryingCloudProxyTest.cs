@@ -446,21 +446,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 return new Shared.Twin();
             }
 
-            public async Task SendEventAsync(Message message, CancellationToken cancellationToken = default(CancellationToken))
+            public async Task SendEventAsync(Message message)
             {
                 this.UpdateOperationCounter();
                 await Task.Delay(TimeSpan.FromMilliseconds(100 + this.random.Next(50)));
                 this.clientWatcher.AddReceivedMessage(message);
             }
 
-            public async Task SendEventBatchAsync(IEnumerable<Message> messages, CancellationToken cancellationToken = default(CancellationToken))
-            {
-                this.UpdateOperationCounter();
-                await Task.Delay(TimeSpan.FromMilliseconds(50 + this.random.Next(50)));
-                this.clientWatcher.AddReceivedMessages(messages);
-            }
-
-            public async Task SendEventBatchAsyncCancellable(IEnumerable<Message> messages, CancellationToken token)
+            public async Task SendEventBatchAsync(IEnumerable<Message> messages)
             {
                 this.UpdateOperationCounter();
                 await Task.Delay(TimeSpan.FromMilliseconds(50 + this.random.Next(50)));

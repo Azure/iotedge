@@ -127,6 +127,38 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
+        public static async Task<T> TimeoutAfter<T>(this Task<T> task, TimeSpan timeout, Exception ex)
+        {
+            using (var cts = new CancellationTokenSource())
+            {
+                Task timerTask = Task.Delay(timeout, cts.Token);
+                Task completedTask = await Task.WhenAny(task, timerTask);
+                if (completedTask == timerTask)
+                {
+                    throw ex;
+                }
+
+                cts.Cancel();
+                return await task;
+            }
+        }
+
+        public static async Task TimeoutAfter(this Task task, TimeSpan timeout, Exception ex)
+        {
+            using (var cts = new CancellationTokenSource())
+            {
+                Task timerTask = Task.Delay(timeout, cts.Token);
+                Task completedTask = await Task.WhenAny(task, timerTask);
+                if (completedTask == timerTask)
+                {
+                    throw ex;
+                }
+
+                cts.Cancel();
+                await task;
+            }
+        }
+
         public static async Task TimeoutAfter(this Task task, TimeSpan timeout)
         {
             using (var cts = new CancellationTokenSource())

@@ -14,9 +14,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         Task<Twin> GetTwinAsync();
 
-        Task SendEventAsync(Message message, CancellationToken cancellationToken = default(CancellationToken));
+        Task SendEventAsync(Message message);
 
-        Task SendEventBatchAsync(IEnumerable<Message> messages, CancellationToken cancellationToken = default(CancellationToken));
+        Task SendEventBatchAsync(IEnumerable<Message> messages);
 
         Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties);
 

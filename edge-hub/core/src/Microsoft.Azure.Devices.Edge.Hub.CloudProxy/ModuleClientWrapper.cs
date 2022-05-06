@@ -63,9 +63,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        public Task SendEventAsync(Message message, CancellationToken cancellationToken = default(CancellationToken)) => this.underlyingModuleClient.SendEventAsync(message, cancellationToken);
+        public Task SendEventAsync(Message message) => this.underlyingModuleClient.SendEventAsync(message);
 
-        public Task SendEventBatchAsync(IEnumerable<Message> messages, CancellationToken cancellationToken = default(CancellationToken)) => this.underlyingModuleClient.SendEventBatchAsync(messages, cancellationToken);
+        public Task SendEventBatchAsync(IEnumerable<Message> messages) => this.underlyingModuleClient.SendEventBatchAsync(messages);
 
         public void SetConnectionStatusChangedHandler(ConnectionStatusChangesHandler handler) => this.underlyingModuleClient.SetConnectionStatusChangesHandler(handler);
 

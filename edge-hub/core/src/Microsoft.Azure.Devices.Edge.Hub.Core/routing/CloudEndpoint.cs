@@ -235,7 +235,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     }
                     catch (EdgeHubCloudSDKException ex)
                     {
-                        await cp.CloseAsync();
                         return this.HandleException(ex, id, routingMessages);
                     }
                     catch (Exception ex)
@@ -301,7 +300,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 InvalidMessageNoIdentity,
                 CancelledProcessing,
                 Created,
-                DoneProcessing,
+                DoneProcessing
             }
 
             public static void DeviceIdNotFound(IRoutingMessage routingMessage)

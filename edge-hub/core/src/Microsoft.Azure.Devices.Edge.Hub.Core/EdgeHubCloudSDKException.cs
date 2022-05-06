@@ -6,6 +6,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
     public class EdgeHubCloudSDKException : IOException
     {
+        public EdgeHubCloudSDKException()
+        {
+        }
+
         public EdgeHubCloudSDKException(string message)
             : this(message, null)
         {
