@@ -84,7 +84,7 @@ stages:
             echo "$gitCmd"
             $gitCmd || true
 
-            gitCmd="git checkout -b yophilav/TestGhCli"
+            gitCmd="git checkout main"
             echo "$gitCmd"
             $gitCmd || true
 
