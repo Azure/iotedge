@@ -73,8 +73,8 @@ stages:
 
             # git push https://<GITHUB_ACCESS_TOKEN>@github.com/<GITHUB_USERNAME>/<REPOSITORY_NAME>.git
 
-            echo "cd $(Build.SourcesDirectory)/iotedge"
-            cd $(Build.SourcesDirectory)/iotedge
+            echo "cd $(Build.SourcesDirectory)/azure-iotedge"
+            cd $(Build.SourcesDirectory)/azure-iotedge
 
             gitCmd="git remote -vv"
             echo "$gitCmd"
@@ -88,8 +88,8 @@ stages:
             echo "$gitCmd"
             $gitCmd || true
 
-            echo "BearTest" > ./test
-            git add ./test
+            echo "BearTest $(Build.BuildId)" > ./tools/test$(Build.BuildId)
+            git add ./tools/test$(Build.BuildId)
             git commit -am "Testing $(Build.BuildId)"
             git push https://$GITHUB_PAT@github.com/Azure/azure-iotedge.git
 
