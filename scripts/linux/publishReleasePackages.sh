@@ -51,9 +51,6 @@ check_os() {
     elif [[ "$PACKAGE_OS" == "redhat8" ]]; then
         OS_NAME="redhat"
         OS_VERSION="8"
-    elif [[ "$PACKAGE_OS" == "windows" ]]; then
-        OS_NAME="windows"
-        OS_VERSION="10"
     else
         echo "Unsupported OS: $PACKAGE_OS"
         exit 1
@@ -272,12 +269,6 @@ publish_to_github()
                     ;;
                 'rpm')
                     mimetype="application/x-rpm"
-                    ;;
-                'cab')
-                    mimetype="application/octet-stream"
-                    # Rename Microsoft-Azure-IoTEdge.cab --> Microsoft-Azure-IoTEdge-amd64.cab
-                    name="${f%.*}-amd64."
-                    name+="${f##*.}"
                     ;;
                 *)
                     mimetype="application/octet-stream"
