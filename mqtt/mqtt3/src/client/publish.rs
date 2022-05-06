@@ -365,7 +365,7 @@ impl Default for State {
 pub struct PublishHandle(futures_channel::mpsc::Sender<PublishRequest>);
 
 impl PublishHandle {
-    /// Create a new PublishHandle
+    /// Create a new `PublishHandle`
     pub fn new(sender: futures_channel::mpsc::Sender<PublishRequest>) -> PublishHandle {
         Self(sender)
     }
