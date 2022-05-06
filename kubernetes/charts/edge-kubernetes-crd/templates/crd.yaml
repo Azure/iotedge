@@ -10,7 +10,12 @@ spec:
     plural: edgedeployments
     singular: edgedeployment
   scope: Namespaced
-  subresources:
-    # status enables the status subresource.
-    status: {}
-  version: v1
+  versions:
+    - name: v1
+      storage: true
+      served: true
+      subresources:
+        status: {}
+      schema:
+        openAPIV3Schema:
+          type: object
