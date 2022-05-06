@@ -310,7 +310,7 @@ stages:
           # build iot-identity-service here since they cannot build native aarch64 packages
           - bash: |
               set -ex
-              git clone --recurse-submodules https://github.com/josephknierman/iot-identity-service.git -b user/joknierm/add-mariner-arm64-build
+              git clone --recurse-submodules https://github.com/Azure/iot-identity-service.git -b release/1.2
               pushd iot-identity-service
               sudo docker run --rm \
                 -v "$(Build.SourcesDirectory)/iot-identity-service:/src" \

@@ -136,18 +136,6 @@ cp -r ~/.rustup "rust"
 tar cf "${MARINER_BUILD_ROOT}/SPECS/aziot-edge/SOURCES/rust.tar.gz" "rust"
 popd
 
-# echo "Cloning the \"${MARINER_RELEASE}\" tag of the CBL-Mariner repo."
-# git clone https://github.com/microsoft/CBL-Mariner.git
-# pushd CBL-Mariner
-# git checkout ${MARINER_RELEASE}
-# pushd toolkit
-# make package-toolkit REBUILD_TOOLS=y
-# popd
-# mv out/toolkit-*.tar.gz "${MARINER_BUILD_ROOT}/toolkit.tar.gz"
-# popd
-
-
-
 # copy over IIS RPM
 mkdir -p ${MARINER_BUILD_ROOT}/out/RPMS/${MARINER_ARCH}
 mv /src/aziot-identity-service-*.$PackageExtension.${MARINER_ARCH}.rpm ${MARINER_BUILD_ROOT}/out/RPMS/${MARINER_ARCH}
