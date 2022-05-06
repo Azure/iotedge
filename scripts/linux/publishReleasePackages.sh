@@ -238,6 +238,8 @@ publish_to_github()
         sed -i "$ d" $WDIR/content.txt
 
         #Create Release Page
+        #  This unintentionally create a github tag associate with the latest commit which is an undesired behavior. 
+        #  We will need to update the tag to the proper commit once the /azure-iotege latest json are ready to go.
         url="https://api.github.com/repos/Azure/azure-iotedge/releases"
         body=$(jq -n --arg version "$VERSION" --arg body "$(cat $WDIR/content.txt)" '{tag_name: $version, name: $version, target_commitish:"main", draft: true, body: $body}')
         sudo rm -rf $WDIR/content.txt
