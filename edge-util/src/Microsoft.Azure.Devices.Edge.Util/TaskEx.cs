@@ -111,15 +111,21 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return (val1, val2, val3, val4, val5, val6, val7, val8, val9);
         }
 
-        public static async Task<T> TimeoutAfter<T>(this Task<T> task, TimeSpan timeout)
+        static Action defaultTimeoutAction = () => throw new TimeoutException("Operation timed out");
+
+        public static async Task<T> TimeoutAfter<T>(this Task<T> task, TimeSpan timeout, Action action = null)
         {
             using (var cts = new CancellationTokenSource())
             {
                 Task timerTask = Task.Delay(timeout, cts.Token);
                 Task completedTask = await Task.WhenAny(task, timerTask);
-                if (completedTask == timerTask)
+                if (action == null)
                 {
-                    throw new TimeoutException("Operation timed out");
+                    defaultTimeoutAction();
+                }
+                else
+                {
+                    action();
                 }
 
                 cts.Cancel();
@@ -127,47 +133,19 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
-        public static async Task<T> TimeoutAfter<T>(this Task<T> task, TimeSpan timeout, Exception ex)
+        public static async Task TimeoutAfter(this Task task, TimeSpan timeout, Action action = null)
         {
             using (var cts = new CancellationTokenSource())
             {
                 Task timerTask = Task.Delay(timeout, cts.Token);
                 Task completedTask = await Task.WhenAny(task, timerTask);
-                if (completedTask == timerTask)
+                if (action == null)
                 {
-                    throw ex;
+                    defaultTimeoutAction();
                 }
-
-                cts.Cancel();
-                return await task;
-            }
-        }
-
-        public static async Task TimeoutAfter(this Task task, TimeSpan timeout, Exception ex)
-        {
-            using (var cts = new CancellationTokenSource())
-            {
-                Task timerTask = Task.Delay(timeout, cts.Token);
-                Task completedTask = await Task.WhenAny(task, timerTask);
-                if (completedTask == timerTask)
+                else
                 {
-                    throw ex;
-                }
-
-                cts.Cancel();
-                await task;
-            }
-        }
-
-        public static async Task TimeoutAfter(this Task task, TimeSpan timeout)
-        {
-            using (var cts = new CancellationTokenSource())
-            {
-                Task timerTask = Task.Delay(timeout, cts.Token);
-                Task completedTask = await Task.WhenAny(task, timerTask);
-                if (completedTask == timerTask)
-                {
-                    throw new TimeoutException("Operation timed out");
+                    action();
                 }
 
                 cts.Cancel();
