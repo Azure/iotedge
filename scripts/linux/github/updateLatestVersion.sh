@@ -1,14 +1,45 @@
 #!/bin/bash
 
+#######################################
+# NAME: 
+#    check_required_variables
+# DESCRIPTION:
+#    Check the commonly used variable in the script if they are provided.
+#    
+# GLOBALS:
+#    GITHUB_PAT
+#    BRANCH_NAME
+#    IOTEDGE_REPO_PATH
+# ARGUMENTS:
+#    None
+# OUTPUTS:
+#    Error message
+# RETURN:
+#    1 if the variable is not provided otherwise return 0.
+#######################################
 check_required_variables()
 {
     # BEARWASHERE -- change from "return" to "exit" once done debugging
     [[ -z "$GITHUB_PAT" ]] && { echo "\$GITHUB_PAT is undefined"; return 1; }
     [[ -z "$BRANCH_NAME" ]] && { echo "\$BRANCH_NAME is undefined"; return 1; }   
-    [[ -z "$IOTEDGE_REPO_PATH" ]] && { echo "\$IOTEDGE_REPO_PATH is undefined"; return 1; }   
+    [[ -z "$IOTEDGE_REPO_PATH" ]] && { echo "\$IOTEDGE_REPO_PATH is undefined"; return 1; }
 }
 
 
+#######################################
+# NAME: 
+#    send_github_request
+# DESCRIPTION:
+#    A helper function to send a GET request to a specified GitHub API endpoint
+#    
+# GLOBALS:
+#    GITHUB_PAT
+# ARGUMENTS:
+#    $1 _________________ GitHub repository (string)
+#    $2 _________________ GitHub API Endpoint (string)
+# OUTPUTS:
+#    A content response from the GitHub endpoint
+#######################################
 send_github_request()
 {
     # BEARWASHERE -- change from "return" to "exit" once done debugging
@@ -30,13 +61,13 @@ send_github_request()
 # DESCRIPTION:
 #    Get latest release version given the branch name
 # GLOBALS:
-#    A_STRING_PREFIX
+#    BRANCH_NAME
+#    GITHUB_PAT
+#    IOTEDGE_REPO_PATH
 # ARGUMENTS:
-#    String to print
+#    None
 # OUTPUTS:
-#    Write String to stdout
-# RETURN:
-#    0 if print succeeds, non-zero on error.
+#    Lastest release version string of either edgelet or docker runtime images
 #######################################
 get_latest_release_per_branch_name()
 {
@@ -61,7 +92,6 @@ version_sanity_check()
 {
     # $1 - Proposed version
     # $2 - Lastest Release Version from the github released branch
-    # $3 - Terminate if failed
 
     # The latest released version is optional argument, so fetch that if not provided.
     if [ "$#" -le "2" ]; then
@@ -74,10 +104,9 @@ version_sanity_check()
     higherVersion=$(echo "$latestReleasedVersion $1" | tr " " "\n"  | sort --version-sort -r | head -1)
     if [[ "$higherVersion" == "$latestReleasedVersion" ]]; then
         echo "FAILED: The proposed version ($1) cannot have a lower or equal version value than the latest released version ($latestReleasedVersion)"
-        # BEARWASHERE -- check $3 if true or false. If true, exit; otherwise, warning error
-        # exit 1;
+        return 1;
     else
-        echo "PASSED: version sanity check"
+        echo "PASSED: version sanity check ($1)"
     fi
 }
 
@@ -101,14 +130,14 @@ update_latest_version_json()
     $IOTEDGE_REPO_PATH
 
     # $(Build.SourcesDirectory)/azure-iotedge
-    $AZURE_IOTEDGE_REPO_PATH
+    [[ -z "$AZURE_IOTEDGE_REPO_PATH" ]] && { echo "\$IOTEDGE_REPO_PATH is undefined"; return 1; }
 
     # $(Build.SourcesDirectory)/iot-identity-service
     $IIS_REPO_PATH
 
     branchVersion=$(echo ${BRANCH_NAME##*/})
 
-    if [[ "$BRANCH_NAME" == "refs/heads/release/1.1" ]]; then
+    if [ "$BRANCH_NAME" == "refs/heads/release/1.1" ]; then
         # Set target version file to be updated
         TARGET_IE_FILE="$AZURE_IOTEDGE_REPO_PATH/latest-iotedge-lts.json"
 
@@ -121,7 +150,9 @@ update_latest_version_json()
         latestImageVersion=$(echo $content | jq '."azureiotedge-agent"' | tr -d '"')
 
         # Verify
+        echo "Sanity check iotedge version"
         version_sanity_check $proposedEdgeletVersion $latestEdgeletVersion
+        echo "Sanity check docker image version"
         version_sanity_check $proposedImageVersion $latestImageVersion
 
         # Rewriting the latest-iotedge-lts.json
@@ -132,11 +163,10 @@ update_latest_version_json()
         echo "Update $TARGET_IE_FILE:"
         cat $TARGET_IE_FILE | jq '.'
 
-    elif [[ "$BRANCH_NAME" == "refs/heads/release/1.2" ]]; then
+    elif [ "$BRANCH_NAME" == "refs/heads/release/1.2" ]; then
 
-        [[ -z "$IIS_REPO_PATH" ]] && { echo "\$IIS_REPO_PATH is undefined"; # exit 1; }
+        [[ -z "$IIS_REPO_PATH" ]] && { echo "\$IIS_REPO_PATH is undefined"; return 1; }
         # Set target version file to be updated
-        # BEARWASHERE -- Make sure the pipeline is checked out for proper release/1.2
         TARGET_IE_FILE="$AZURE_IOTEDGE_REPO_PATH/latest-aziot-edge.json"
         TARGET_IIS_FILE="$AZURE_IOTEDGE_REPO_PATH/latest-aziot-identity-service.json"
 
@@ -151,8 +181,11 @@ update_latest_version_json()
         latestIisVersion=$(echo $contentIis | jq '."aziot-identity-service"' | tr -d '"')
 
         # Verify
+        echo "Sanity check iotedge version"
         version_sanity_check $proposedEdgeletVersion $latestEdgeletVersion
+        echo "Sanity check docker image version"
         version_sanity_check $proposedImageVersion get_latest_release_per_branch_name
+        echo "Sanity check iot-identity-service version"
         version_sanity_check $proposedIisVersion $latestIisVersion
 
         # Update the version files
@@ -169,13 +202,13 @@ update_latest_version_json()
         echo "Update $TARGET_IIS_FILE:"
         cat $TARGET_IIS_FILE | jq '.'
 
-    elif [[ "$BRANCH_NAME" == "refs/heads/main" ]]; then
+    elif [ "$BRANCH_NAME" == "refs/heads/main" ]; then
         echo "I'm pretty sure you don't want to release from the main branch."
-        # exit 1
+        return 1
     else
         echo "Oh dear, how did you get here?!?"
         echo "Let me not let you do the release from your pull request branch"
-        # exit 1
+        return 1
     fi
 
     #BEARWASHERE --
@@ -190,5 +223,5 @@ update_latest_version_json()
     #  8. Git tag
     
     lastCommitHash=$(git log -n 1 --pretty=format:"%H")
-    
+
 }
