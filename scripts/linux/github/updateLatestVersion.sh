@@ -187,8 +187,8 @@ update_latest_version_json()
     #  5. Update the version files respective to branch  <<< HERE
     #  6. Git Commit
     #  7. Git push
-    #  8. Git PR with template "Prepare for Release $maxProposedVersion"
-    #  9. Git merge
-    # 10. Git tag
+    #  8. Git tag
+    
+    lastCommitHash=$(git log -n 1 --pretty=format:"%H")
     
 }
