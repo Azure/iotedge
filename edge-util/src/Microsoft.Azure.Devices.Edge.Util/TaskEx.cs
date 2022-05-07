@@ -119,13 +119,16 @@ namespace Microsoft.Azure.Devices.Edge.Util
             {
                 Task timerTask = Task.Delay(timeout, cts.Token);
                 Task completedTask = await Task.WhenAny(task, timerTask);
-                if (action == null)
+                if (completedTask == timerTask)
                 {
-                    defaultTimeoutAction();
-                }
-                else
-                {
-                    action();
+                    if (action == null)
+                    {
+                        defaultTimeoutAction();
+                    }
+                    else
+                    {
+                        action();
+                    }
                 }
 
                 cts.Cancel();
@@ -139,13 +142,16 @@ namespace Microsoft.Azure.Devices.Edge.Util
             {
                 Task timerTask = Task.Delay(timeout, cts.Token);
                 Task completedTask = await Task.WhenAny(task, timerTask);
-                if (action == null)
+                if (completedTask == timerTask)
                 {
-                    defaultTimeoutAction();
-                }
-                else
-                {
-                    action();
+                    if (action == null)
+                    {
+                        defaultTimeoutAction();
+                    }
+                    else
+                    {
+                        action();
+                    }
                 }
 
                 cts.Cancel();
