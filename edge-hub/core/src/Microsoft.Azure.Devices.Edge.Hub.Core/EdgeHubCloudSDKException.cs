@@ -2,9 +2,8 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
-    using System.IO;
 
-    public class EdgeHubCloudSDKException : IOException
+    public class EdgeHubCloudSDKException : Exception
     {
         public EdgeHubCloudSDKException()
         {

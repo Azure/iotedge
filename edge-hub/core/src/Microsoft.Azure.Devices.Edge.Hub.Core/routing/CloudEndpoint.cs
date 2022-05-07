@@ -233,10 +233,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
                         return new SinkResult<IRoutingMessage>(routingMessages);
                     }
-                    catch (EdgeHubCloudSDKException ex)
-                    {
-                        return this.HandleException(ex, id, routingMessages);
-                    }
                     catch (Exception ex)
                     {
                         return this.HandleException(ex, id, routingMessages);
