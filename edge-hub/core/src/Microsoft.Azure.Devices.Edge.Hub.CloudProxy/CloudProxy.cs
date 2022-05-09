@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly ResettableTimer timer;
         readonly AsyncLock timerGuard = new AsyncLock();
         readonly bool closeOnIdleTimeout;
-        readonly TimeSpan sdkWaitTimeSeconds = TimeSpan.FromSeconds(50);
+        readonly TimeSpan sdkWaitTimeSeconds;
         SubscriptionState subscriptionState = new SubscriptionState();
         static Action sdkTimeoutAction = () => throw new EdgeHubCloudSDKException("Operation timed out due to SDK hanging");
 
@@ -57,7 +57,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Action<string, CloudConnectionStatus> connectionStatusChangedHandler,
             ICloudListener cloudListener,
             TimeSpan idleTimeout,
-            bool closeOnIdleTimeout)
+            bool closeOnIdleTimeout,
+            TimeSpan cloudConnectionHangingTimeout)
         {
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.messageConverterProvider = Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
@@ -66,6 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.timer = new ResettableTimer(this.HandleIdleTimeout, idleTimeout, Events.Log, true);
             this.timer.Start();
             this.closeOnIdleTimeout = closeOnIdleTimeout;
+            this.sdkWaitTimeSeconds = cloudConnectionHangingTimeout;
             if (connectionStatusChangedHandler != null)
             {
                 this.connectionStatusChangedHandler = connectionStatusChangedHandler;
