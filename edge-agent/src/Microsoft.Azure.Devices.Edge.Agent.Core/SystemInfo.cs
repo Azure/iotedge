@@ -4,18 +4,30 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     using System.Collections.Generic;
     using System.Linq;
+    using System.Reflection;
     using System.Text;
 
     using static System.Net.WebUtility;
 
     public class SystemInfo
     {
-        public SystemInfo(string operatingSystemType, string architecture, string version, IDictionary<string, object> additionalProperties)
+        public SystemInfo(string operatingSystemType, string architecture, string version, ProvisioningInfo provisioning, string serverVersion, string kernelVersion, string operatingSystem, int numCpus, string virtualized, IDictionary<string, object> additionalProperties)
         {
             this.OperatingSystemType = operatingSystemType;
             this.Architecture = architecture;
             this.Version = version;
+            this.Provisioning = provisioning;
+            this.ServerVersion = serverVersion;
+            this.KernelVersion = kernelVersion;
+            this.OperatingSystem = operatingSystem;
+            this.NumCpus = numCpus;
+            this.Virtualized = virtualized;
             this.AdditionalProperties = additionalProperties;
+        }
+
+        public SystemInfo(string operatingSystemType, string architecture, string version, IDictionary<string, object> additionalProperties)
+            : this(operatingSystemType, architecture, version, ProvisioningInfo.Empty, string.Empty, string.Empty, string.Empty, 0, string.Empty, additionalProperties)
+        {
         }
 
         public SystemInfo(string operatingSystemType, string architecture, string version)
@@ -23,12 +35,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         {
         }
 
-        // NOTE: changed to snake-case to reflect edgelet
         public string OperatingSystemType { get; }
 
         public string Architecture { get; }
 
         public string Version { get; }
+
+        public ProvisioningInfo Provisioning { get; }
+
+        public string ServerVersion { get; }
+
+        public string KernelVersion { get; }
+
+        public string OperatingSystem { get; }
+
+        public int NumCpus { get; }
+
+        public string Virtualized { get; }
 
         // NOTE: changed to IDictionary from IReadOnlyDictionary since the
         // latter cannot be used as extension data.  Likewise for <string,
@@ -38,10 +61,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public string ToQueryString()
         {
-            // NOTE (from author): Reflection will not work due to name mappings
-            StringBuilder b = new StringBuilder()
-                .Append($"kernel_name={UrlEncode(this.OperatingSystemType ?? string.Empty)};")
-                .Append($"cpu_architecture={UrlEncode(this.Architecture ?? string.Empty)};");
+            StringBuilder b = new StringBuilder();
+
+            foreach (PropertyInfo property in this.GetType().GetProperties())
+            {
+                if (property.PropertyType == typeof(string) || property.PropertyType == typeof(int))
+                {
+                    b.Append($"{property.Name}={UrlEncode(property.GetValue(this)?.ToString() ?? string.Empty)};");
+                }
+            }
 
             if (this.AdditionalProperties != null)
             {
