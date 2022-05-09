@@ -19,10 +19,9 @@
 #######################################
 check_required_variables()
 {
-    # BEARWASHERE -- change from "return" to "exit" once done debugging
-    [[ -z "$GITHUB_PAT" ]] && { echo "\$GITHUB_PAT is undefined"; return 1; }
-    [[ -z "$BRANCH_NAME" ]] && { echo "\$BRANCH_NAME is undefined"; return 1; }   
-    [[ -z "$IOTEDGE_REPO_PATH" ]] && { echo "\$IOTEDGE_REPO_PATH is undefined"; return 1; }
+    [[ -z "$GITHUB_PAT" ]] && { echo "\$GITHUB_PAT is undefined"; exit 1; }
+    [[ -z "$BRANCH_NAME" ]] && { echo "\$BRANCH_NAME is undefined"; exit 1; }   
+    [[ -z "$IOTEDGE_REPO_PATH" ]] && { echo "\$IOTEDGE_REPO_PATH is undefined"; exit 1; }
 }
 
 
@@ -42,8 +41,7 @@ check_required_variables()
 #######################################
 send_github_request()
 {
-    # BEARWASHERE -- change from "return" to "exit" once done debugging
-    [[ -z "$GITHUB_PAT" ]] && { echo "\$GITHUB_PAT is undefined"; return 1; }
+    [[ -z "$GITHUB_PAT" ]] && { echo "\$GITHUB_PAT is undefined"; exit 1; }
 
     # $1 - Repo (Azure/azure-iotedge)
     # $2 - Endpoint
@@ -61,19 +59,20 @@ send_github_request()
 # DESCRIPTION:
 #    Get latest release version given the branch name
 # GLOBALS:
-#    BRANCH_NAME
-#    GITHUB_PAT
-#    IOTEDGE_REPO_PATH
+#    BRANCH_NAME __________ Git Branch name (string)
+#      i.e. $(Build.SourceBranch)
+#    GITHUB_PAT ___________ Github Personal Access Token
+#    IOTEDGE_REPO_PATH ____ Path to /iotedge
 # ARGUMENTS:
 #    None
 # OUTPUTS:
-#    Lastest release version string of either edgelet or docker runtime images
+#    The lastest release version string of either edgelet or docker runtime images
+#    from Github release page.
 #######################################
 get_latest_release_per_branch_name()
 {
     check_required_variables
 
-    # $BRANCH_NAME="refs/heads/release/1.1"  (Build.SourceBranch)
     # Get the MAJOR.MINOR version
     branchVersion=$(echo ${BRANCH_NAME##*/})
 
@@ -88,11 +87,24 @@ get_latest_release_per_branch_name()
 }
 
 
+#######################################
+# NAME: 
+#    version_sanity_check
+# DESCRIPTION:
+#    Verify if the Proposed Version is a later version than the Latest Release version
+# GLOBALS:
+#    BRANCH_NAME
+#    GITHUB_PAT
+#    IOTEDGE_REPO_PATH
+# ARGUMENTS:
+#    $1 __________ Proposed Version (string)
+#    $2 __________ Latest Released Version (string)
+# OUTPUTS:
+#    If Passed, print a log message
+#    If Failed, print a log error message withe SIGINT=1
+#######################################
 version_sanity_check()
 {
-    # $1 - Proposed version
-    # $2 - Lastest Release Version from the github released branch
-
     # The latest released version is optional argument, so fetch that if not provided.
     if [ "$#" -le "2" ]; then
         latestReleasedVersion=$(get_latest_release_per_branch_name)
@@ -104,38 +116,39 @@ version_sanity_check()
     higherVersion=$(echo "$latestReleasedVersion $1" | tr " " "\n"  | sort --version-sort -r | head -1)
     if [[ "$higherVersion" == "$latestReleasedVersion" ]]; then
         echo "FAILED: The proposed version ($1) cannot have a lower or equal version value than the latest released version ($latestReleasedVersion)"
-        return 1;
+        exit 1;
     else
         echo "PASSED: version sanity check ($1)"
     fi
 }
 
 
-
-# Simple logic: 
-# Check the current branch of the current source code
-# 1. Depending on 1.1 or 1.2, correspondingly update the necessary version file. 
-# 2. Open a PR
-# 3. Push and merge the commit
-# 4. Tag the repository
+#######################################
+# NAME: 
+#    update_latest_version_json
+# DESCRIPTION:
+#    Update the necessary version.json files for the last step of the IoTEdge release.
+# GLOBALS:
+#    IOTEDGE_REPO_PATH __________ Path to /iotedge directory    (string)
+#        i.e. $(Build.SourcesDirectory)/iotedge
+#    AZURE_IOTEDGE_REPO_PATH ____ Path to /azure-iotedge        (string)
+#        i.e. $(Build.SourcesDirectory)/azure-iotedge
+#    IIS_REPO_PATH ______________ Path to /iot-identity-service (string)
+#        i.e. $(Build.SourcesDirectory)/iot-identity-service
+# OUTPUTS:
+#    Updated latest version JSON files
+# REMARK:
+#    Please make sure the directories provided need to have a proper branch/commit 
+#    checked out.
+#######################################
 update_latest_version_json()
 {
     check_required_variables
 
-    latestReleasedVersion=$(get_latest_release_per_branch_name)
-
-    #sudo chmod +x $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh
-    # BEARWASHERE -- Hmmm... We need to checkout azure-iotedge repo here to modify it. Let's take a look tmr
-    # $(Build.SourcesDirectory)/iotedge
-    $IOTEDGE_REPO_PATH
-
-    # $(Build.SourcesDirectory)/azure-iotedge
-    [[ -z "$AZURE_IOTEDGE_REPO_PATH" ]] && { echo "\$IOTEDGE_REPO_PATH is undefined"; return 1; }
-
-    # $(Build.SourcesDirectory)/iot-identity-service
-    $IIS_REPO_PATH
+    [[ -z "$AZURE_IOTEDGE_REPO_PATH" ]] && { echo "\$IOTEDGE_REPO_PATH is undefined"; exit 1; }
 
     branchVersion=$(echo ${BRANCH_NAME##*/})
+    latestReleasedVersion=$(get_latest_release_per_branch_name)
 
     if [ "$BRANCH_NAME" == "refs/heads/release/1.1" ]; then
         # Set target version file to be updated
@@ -165,7 +178,7 @@ update_latest_version_json()
 
     elif [ "$BRANCH_NAME" == "refs/heads/release/1.2" ]; then
 
-        [[ -z "$IIS_REPO_PATH" ]] && { echo "\$IIS_REPO_PATH is undefined"; return 1; }
+        [[ -z "$IIS_REPO_PATH" ]] && { echo "\$IIS_REPO_PATH is undefined"; exit 1; }
         # Set target version file to be updated
         TARGET_IE_FILE="$AZURE_IOTEDGE_REPO_PATH/latest-aziot-edge.json"
         TARGET_IIS_FILE="$AZURE_IOTEDGE_REPO_PATH/latest-aziot-identity-service.json"
@@ -189,7 +202,6 @@ update_latest_version_json()
         version_sanity_check $proposedIisVersion $latestIisVersion
 
         # Update the version files
-        # BEARWASHERE -- TODO: Write the proper version to the azure-iotedge version files.
         jqQuery=".\"aziot-edge\" = \"$proposedEdgeletVersion\""
         echo $contentIe | jq "$jqQuery" > $TARGET_IE_FILE
         jqQuery=".\"aziot-identity-service\" = \"$proposedIisVersion\""
@@ -204,24 +216,16 @@ update_latest_version_json()
 
     elif [ "$BRANCH_NAME" == "refs/heads/main" ]; then
         echo "I'm pretty sure you don't want to release from the main branch."
-        return 1
+        exit 1;
     else
         echo "Oh dear, how did you get here?!?"
         echo "Let me not let you do the release from your pull request branch"
-        return 1
+        exit 1;
     fi
-
-    #BEARWASHERE --
-    #  0. Git branch & check if git is installed
-    #  1. Determine the branch name
-    #  2. Read the file version from iotedge
-    #  3. Read the file version from azure-iotedge
-    #  4. Compare the versions
-    #  5. Update the version files respective to branch  <<< HERE
-    #  6. Git Commit
-    #  7. Git push
-    #  8. Git tag
-    
-    lastCommitHash=$(git log -n 1 --pretty=format:"%H")
-
 }
+
+# TODO: Integrate the script with the execution of the pipeline for the release page.
+    #  1. Git Commit
+    #  2. Git push
+    #  3. Git tag e.g. lastCommitHash=$(git log -n 1 --pretty=format:"%H")
+    #  4. Git publish github release page
