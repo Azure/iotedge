@@ -816,9 +816,8 @@ impl ModuleRuntime for DockerModuleRuntime {
                 .system_info()
                 .then(move |result| match result {
                     Ok(docker_info) => {
-                        core_info.server_version = docker_info
-                            .server_version()
-                            .map(ToString::to_string);
+                        core_info.server_version =
+                            docker_info.server_version().map(ToString::to_string);
                         core_info.merge_additional(additional_info);
                         Ok(core_info)
                     }
@@ -830,9 +829,8 @@ impl ModuleRuntime for DockerModuleRuntime {
                         log_failure(Level::Warn, &err);
                         Err(err)
                     }
-                })
-            )
-                        
+                }),
+        )
     }
 
     fn system_resources(&self) -> Self::SystemResourcesFuture {
