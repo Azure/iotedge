@@ -902,6 +902,8 @@ mod tests {
             system_vendor: None,
 
             version: crate::version_with_source_version().to_owned(),
+            server_version: None,
+
             provisioning: ProvisioningInfo {
                 r#type: "ProvisioningType".into(),
                 dynamic_reprovisioning: false,
@@ -929,6 +931,8 @@ mod tests {
             system_vendor: None,
 
             version: crate::version_with_source_version().to_owned(),
+            server_version: None,
+
             provisioning: ProvisioningInfo {
                 r#type: "ProvisioningType".into(),
                 dynamic_reprovisioning: false,
@@ -947,10 +951,10 @@ mod tests {
 
         let additional = BTreeMap::from_iter(
             [
-                ("kernel_name".to_owned(), "linux".to_owned()),
+                ("kernel".to_owned(), "linux".to_owned()),
                 ("kernel_release".to_owned(), "5.0".to_owned()),
                 ("kernel_version".to_owned(), "1".to_owned()),
-                ("os_name".to_owned(), "OS".to_owned()),
+                ("operating_system".to_owned(), "OS".to_owned()),
                 ("foo".to_owned(), "foofoo".to_owned()),
                 ("bar".to_owned(), "barbar".to_owned()),
             ]

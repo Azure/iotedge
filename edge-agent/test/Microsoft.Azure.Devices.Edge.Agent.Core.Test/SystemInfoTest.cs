@@ -22,8 +22,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public void BasicValueTest()
         {
             Assert.Equal(
-                "OperatingSystemType=A;Architecture=B;Version=C;ServerVersion=;KernelVersion=;OperatingSystem=;NumCpus=0;Virtualized=;",
-                new SystemInfo("A", "B", "C").ToQueryString());
+                "OperatingSystemType=A;Architecture=B;Version=C;ServerVersion=D;KernelVersion=E;OperatingSystem=F;NumCpus=0;Virtualized=G;",
+                new SystemInfo("A", "B", "C", ProvisioningInfo.Empty, "D", "E", "F", 0, "G", new Dictionary<string, object>()).ToQueryString());
         }
 
         [Fact]
@@ -31,8 +31,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public void EncodedValueTest()
         {
             Assert.Equal(
-                "OperatingSystemType=A+A;Architecture=B%2BB;Version=C+C;ServerVersion=;KernelVersion=;OperatingSystem=;NumCpus=0;Virtualized=;",
-                new SystemInfo("A A", "B+B", "C C").ToQueryString());
+                "OperatingSystemType=A+A;Architecture=B%2BB;Version=C+C;ServerVersion=D%2BD;KernelVersion=E+E;OperatingSystem=F%2BF;NumCpus=0;Virtualized=G+G;",
+                new SystemInfo("A A", "B+B", "C C", ProvisioningInfo.Empty, "D+D", "E E", "F+F", 0, "G G", new Dictionary<string, object>()).ToQueryString());
         }
 
         [Fact]

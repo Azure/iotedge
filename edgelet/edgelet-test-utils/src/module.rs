@@ -402,6 +402,8 @@ where
                 system_vendor: "vendor".to_owned().into(),
 
                 version: edgelet_core::version_with_source_version().to_owned(),
+                server_version: None,
+
                 provisioning: ProvisioningInfo {
                     r#type: "test".to_string(),
                     dynamic_reprovisioning: false,
