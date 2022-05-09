@@ -310,9 +310,9 @@ stages:
           # build iot-identity-service here since they cannot build native aarch64 packages
           - bash: |
               set -ex
-              packageVersion=$(git tag | grep 1.2.[0-9]*$ | tail -1)
               git clone --recurse-submodules https://github.com/Azure/iot-identity-service.git -b release/1.2
               pushd iot-identity-service
+              packageVersion=$(git tag | grep 1.2.[0-9]*$ | tail -1)
               sudo docker run --rm \
                 -v "$(Build.SourcesDirectory)/iot-identity-service:/src" \
                 -e "ARCH=$PACKAGE_ARCH" \
