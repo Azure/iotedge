@@ -8,11 +8,13 @@ namespace CloudToDeviceMessageTester
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
 
     sealed class CloudToDeviceMessageReceiver : ICloudToDeviceMessageTester
@@ -85,7 +87,22 @@ namespace CloudToDeviceMessageTester
                 Microsoft.Azure.Devices.Device device = await registryManager.AddDeviceAsync(leafDevice, ct);
                 string deviceConnectionString = $"HostName={this.iotHubHostName};DeviceId={this.deviceId};SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.gatewayHostName}";
                 this.deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, new ITransportSettings[] { transportSettings });
-                await this.deviceClient.OpenAsync();
+
+                var retryStrategy = new Incremental(15, RetryStrategy.DefaultRetryInterval, RetryStrategy.DefaultRetryIncrement);
+                var retryPolicy = new RetryPolicy(new FailingConnectionErrorDetectionStrategy(), retryStrategy);
+                await retryPolicy.ExecuteAsync(
+                    async () =>
+                {
+                    try
+                    {
+                        await this.deviceClient.OpenAsync(ct);
+                    }
+                    catch (Exception e)
+                    {
+                        this.logger.LogInformation("Device client encountered exception on connection attempt: {0}", e);
+                        throw;
+                    }
+                }, ct);
 
                 while (!ct.IsCancellationRequested)
                 {
@@ -128,6 +145,19 @@ namespace CloudToDeviceMessageTester
             {
                 registryManager?.Dispose();
             }
+        }
+    }
+
+    // This error detection strategy is intended for SDK clients connecting
+    // to EdgeHub encountering auth issue related to dotnet 6.
+    //
+    // Can be removed when the below is fixed:
+    // (InvalidOperationException) - Devices SDK Issue: No authenticated context (https://github.com/Azure/azure-iot-sdk-csharp/issues/2353)
+    class FailingConnectionErrorDetectionStrategy : ITransientErrorDetectionStrategy
+    {
+        public bool IsTransient(Exception ex)
+        {
+            return ex is InvalidOperationException && ex.Message.Contains("This operation is only allowed using a successfully authenticated context.");
         }
     }
 }
