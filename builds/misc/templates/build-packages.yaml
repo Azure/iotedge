@@ -244,7 +244,7 @@ stages:
       ################################################################################
         displayName: Mariner_Linux on ARM64
         pool:
-          name: 'Azure-IoT-Edge-1ES-Hosted-Linux-Arm64'
+          name: $(pool.linux.arm.name)
           demands:
           - ImageOverride -equals agent-aziotedge-ubuntu-18.04-arm64
         variables:
@@ -296,7 +296,7 @@ stages:
                 sleep $sleepDuration
               done
               ps aux | grep -i apt
-            displayName: Wait for update
+            displayName: Wait for 1ES agent update
 
           - bash: |
               sudo apt install apt-transport-https ca-certificates curl software-properties-common -y
@@ -310,13 +310,14 @@ stages:
           # build iot-identity-service here since they cannot build native aarch64 packages
           - bash: |
               set -ex
+              packageVersion=$(git tag | grep 1.2.[0-9]*$ | tail -1)
               git clone --recurse-submodules https://github.com/Azure/iot-identity-service.git -b release/1.2
               pushd iot-identity-service
               sudo docker run --rm \
                 -v "$(Build.SourcesDirectory)/iot-identity-service:/src" \
                 -e "ARCH=$PACKAGE_ARCH" \
                 -e "OS=$OS:$OSVERSION" \
-                -e "PACKAGE_VERSION=1.2.6" \
+                -e "PACKAGE_VERSION=$packageVersion" \
                 -e "PACKAGE_RELEASE=1" \
                 --privileged \
                 "ubuntu:18.04" \
