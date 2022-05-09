@@ -4,7 +4,7 @@ pub(crate) mod reported;
 pub use reported::{ ReportTwinStateHandle, ReportTwinStateRequest };
 
 /// The full twin state stored in the Azure IoT Hub.
-#[derive(Debug, serde_derive::Deserialize)]
+#[derive(Clone, Debug, serde_derive::Deserialize)]
 pub struct TwinState {
 	/// The desired twin state
 	pub desired: TwinProperties,
@@ -14,7 +14,7 @@ pub struct TwinState {
 }
 
 /// A collection of twin properties, including a version number
-#[derive(Debug, serde_derive::Deserialize)]
+#[derive(Clone, Debug, serde_derive::Deserialize)]
 pub struct TwinProperties {
 	#[serde(rename = "$version")]
 	pub version: usize,
