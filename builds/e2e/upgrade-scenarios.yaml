@@ -62,6 +62,7 @@ jobs:
     #   1. The correct version of the .NET test framework is run
     #   2. The correct version of aziot-identity-service is installed
     - bash: |
+        cd $(Build.SourcesDirectory)
         git checkout $(edgeDaemonVersion)
       condition: ne(variables['edgeDaemonVersion'], 'resources.pipeline.packages')
     - template: templates/e2e-setup.yaml
