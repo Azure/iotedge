@@ -169,8 +169,7 @@ process_args() {
 #
 #   @param[1] - imagename; Name of the docker edge image to publish; Required;
 #   @param[2] - arch; Arch of base image; Required;
-#   @param[3] - dockerfile; Path to the dockerfile; Optional;
-#               Leave as "" and defaults will be chosen.
+#   @param[3] - dockerfile; Path to the dockerfile; Required;
 #   @param[4] - context_path; docker context path; Required;
 #   @param[5] - build_args; docker context path; Optional;
 #               Leave as "" and no build args will be supplied.
@@ -182,48 +181,43 @@ docker_build_and_tag_and_push() {
     context_path="$4"
     build_args="$5"
 
-    if [[ -z "${imagename}" ]] || [[ -z "${arch}" ]] || [[ -z "${context_path}" ]]; then
-        echo "Error: Arguments are invalid [$imagename] [$arch] [$context_path]"
+    if [[ -z "$imagename" ]] || [[ -z "$arch" ]] || [[ -z "$dockerfile" ]] || [[ -z "$context_path" ]]; then
+        echo "Error: Arguments are invalid [$imagename] [$arch] [$dockerfile] [$context_path]"
         exit 1
     fi
+
     echo "Building and pushing Docker image $imagename for $arch"
+
+    image="$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch"
+    echo "Building image '$image'"
 
     if [[ $DOCKER_USE_BUILDX = "true" ]]; then
         docker buildx ls
         docker buildx prune --all --force
 
-        docker_build_cmd="docker buildx build --no-cache"
+        case "$arch" in
+        'amd64') platform='linux/amd64' ;;
+        'arm32v7') platform='linux/arm/v7' ;;
+        'arm64v8') platform='linux/arm64' ;;
+        esac
 
-        if [[ $arch = "amd64" ]]; then
-            docker_build_cmd+=" --platform linux/amd64"
-        fi
-
-        if [[ $arch = "arm32v7" ]]; then
-            docker_build_cmd+=" --platform linux/arm/v7"
-        fi
-
-        if [[ $arch = "arm64v8" ]]; then
-            docker_build_cmd+=" --platform linux/arm64"
-        fi
-
-        docker_build_cmd+=" -t $DOCKER_REGISTRY/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch"
-        if [[ -n "${dockerfile}" ]]; then
-            docker_build_cmd+=" --file $dockerfile"
-        fi
-        docker_build_cmd+=" $build_args $context_path --load"
+        docker buildx build \
+            --load \
+            --no-cache \
+            --platform $platform \
+            --build-arg 'EXE_DIR=.' \
+            --tag $image \
+            --metadata-file metadata.json . \
+            --file $dockerfile \
+            $context_path
     else
-        docker_build_cmd="docker build --no-cache"
-        docker_build_cmd+=" -t $DOCKER_REGISTRY/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch"
-
-        if [[ -n "${dockerfile}" ]]; then
-            docker_build_cmd+=" --file $dockerfile"
-        fi
-        docker_build_cmd+=" $build_args $context_path"
+        docker build \
+            --no-cache \
+            -t $image \
+            --file $dockerfile \
+            --build-arg 'EXE_DIR=.' \
+            $context_path
     fi
-
-    echo "Running... $docker_build_cmd"
-
-    ${docker_build_cmd}
 
     if [[ $? -ne 0 ]]; then
         echo "Docker build failed with exit code $?"
@@ -231,9 +225,8 @@ docker_build_and_tag_and_push() {
     fi
 
     if [[ ${SKIP_PUSH} -eq 0 ]]; then
-        docker_push_cmd="docker push $DOCKER_REGISTRY/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch"
-        echo "Running... $docker_push_cmd"
-        ${docker_push_cmd}
+        echo "Pushing image '$image'"
+        docker push $image
         if [[ $? -ne 0 ]]; then
             echo "Docker push failed with exit code $?"
             exit 1
