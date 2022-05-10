@@ -199,8 +199,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "jsoncanonicalizer", "edge-u
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "es6numberserializer", "edge-util\src\es6numberserializer\es6numberserializer.csproj", "{BE39EC1F-7E7C-4421-93BF-1DF02C1E6A15}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ManifestSignerClient", "samples\dotnet\ManifestSignerClient\ManifestSignerClient.csproj", "{C4C3CEB4-1177-4D1C-9BAE-EE0453831905}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IotedgeDiagnosticsDotnet", "edge-modules\iotedge-diagnostics-dotnet\IotedgeDiagnosticsDotnet.csproj", "{59CF2F3B-5FCC-43BE-B221-1E7A956D4792}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "edge-modules", "edge-modules", "{17D4D30E-7C88-479D-AF04-735DCCBA3AD4}"
