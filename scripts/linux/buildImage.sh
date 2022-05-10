@@ -92,9 +92,6 @@ process_args() {
         elif [[ ${save_next_arg} -eq 8 ]]; then
             DOCKER_NAMESPACE="$arg"
             save_next_arg=0
-        elif [[ ${save_next_arg} -eq 9 ]]; then
-            DOCKER_USE_BUILDX="$arg"
-            save_next_arg=0
         else
             case "$arg" in
             "-h" | "--help") usage ;;
@@ -105,7 +102,6 @@ process_args() {
             "-P" | "--project") save_next_arg=6 ;;
             "-i" | "--image-name") save_next_arg=7 ;;
             "-n" | "--namespace") save_next_arg=8 ;;
-            "-b" | "--buildx_flag") save_next_arg=9 ;;
             "--skip-push") SKIP_PUSH=1 ;;
             *) usage ;;
             esac
@@ -155,13 +151,6 @@ process_args() {
         echo "No Dockerfile at $DOCKERFILE"
         print_help_and_exit
     fi
-
-    if [[ -z ${DOCKER_USE_BUILDX} ]]; then
-        echo "Using regular docker feature to build docker image"
-        DOCKER_USE_BUILDX="false"
-    else
-        echo "Using experimental feature Buildx to build docker image"
-    fi
 }
 
 ###############################################################################
@@ -191,33 +180,24 @@ docker_build_and_tag_and_push() {
     image="$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch"
     echo "Building image '$image'"
 
-    if [[ $DOCKER_USE_BUILDX = "true" ]]; then
-        docker buildx ls
-        docker buildx prune --all --force
+    docker buildx ls
+    docker buildx prune --all --force
 
-        case "$arch" in
-        'amd64') platform='linux/amd64' ;;
-        'arm32v7') platform='linux/arm/v7' ;;
-        'arm64v8') platform='linux/arm64' ;;
-        esac
+    case "$arch" in
+    'amd64') platform='linux/amd64' ;;
+    'arm32v7') platform='linux/arm/v7' ;;
+    'arm64v8') platform='linux/arm64' ;;
+    esac
 
-        docker buildx build \
-            --load \
-            --no-cache \
-            --platform $platform \
-            --build-arg 'EXE_DIR=.' \
-            --tag $image \
-            --metadata-file metadata.json . \
-            --file $dockerfile \
-            $context_path
-    else
-        docker build \
-            --no-cache \
-            -t $image \
-            --file $dockerfile \
-            --build-arg 'EXE_DIR=.' \
-            $context_path
-    fi
+    docker buildx build \
+        --load \
+        --no-cache \
+        --platform $platform \
+        --build-arg 'EXE_DIR=.' \
+        --tag $image \
+        --metadata-file metadata.json . \
+        --file $dockerfile \
+        $context_path
 
     if [[ $? -ne 0 ]]; then
         echo "Docker build failed with exit code $?"
