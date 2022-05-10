@@ -61,7 +61,8 @@ jobs:
     # This ensures the following:
     #   1. The correct version of the .NET test framework is run
     #   2. The correct version of aziot-identity-service is installed
-    - checkout: git://Azure/iotedge@refs/tags/$(edgeDaemonVersion)
+    - bash: |
+        git checkout $(edgeDaemonVersion)
       condition: ne(variables['edgeDaemonVersion'], 'resources.pipeline.packages')
     - template: templates/e2e-setup.yaml
     # Run sed command on context.json to set edgeAgentBootstrapImage,
