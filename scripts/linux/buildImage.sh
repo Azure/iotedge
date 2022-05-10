@@ -55,7 +55,6 @@ usage() {
     echo " -t, --target-arch    Target architecture (default: uname -m)"
     echo "--bin-dir             Directory containing the output binaries. Either use this option or set env variable BUILD_BINARIESDIRECTORY"
     echo "--skip-push           Build images, but don't push them"
-    echo "-b, --buildx_flag     Use buildx to cross build images from amd64 to arm target"
     exit 1
 }
 
@@ -175,13 +174,8 @@ docker_build_and_tag_and_push() {
         exit 1
     fi
 
-    echo "Building and pushing Docker image $imagename for $arch"
-
     image="$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch"
     echo "Building image '$image'"
-
-    docker buildx ls
-    docker buildx prune --all --force
 
     case "$arch" in
     'amd64') platform='linux/amd64' ;;
@@ -189,13 +183,18 @@ docker_build_and_tag_and_push() {
     'arm64v8') platform='linux/arm64' ;;
     esac
 
+    docker buildx ls
+    docker buildx prune --all --force
+
+    docker buildx create --use --bootstrap --name mybuilder
+
     docker buildx build \
         --load \
         --no-cache \
         --platform $platform \
         --build-arg 'EXE_DIR=.' \
         --tag $image \
-        --metadata-file metadata.json . \
+        --metadata-file metadata.json \
         --file $dockerfile \
         $context_path
 
