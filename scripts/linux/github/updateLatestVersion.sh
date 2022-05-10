@@ -7,9 +7,9 @@
 #    Check the commonly used variable in the script if they are provided.
 #    
 # GLOBALS:
-#    GITHUB_PAT
-#    BRANCH_NAME
-#    IOTEDGE_REPO_PATH
+#    GITHUB_PAT ___________ Github Personal Access Token (string)
+#    BRANCH_NAME __________ Git Branch name              (string)
+#    IOTEDGE_REPO_PATH ____ Path to /iotedge             (string)
 # ARGUMENTS:
 #    None
 # OUTPUTS:
@@ -32,9 +32,9 @@ check_required_variables()
 #    A helper function to send a GET request to a specified GitHub API endpoint
 #    
 # GLOBALS:
-#    GITHUB_PAT
+#    GITHUB_PAT ___________ Github Personal Access Token (string)
 # ARGUMENTS:
-#    $1 _________________ GitHub repository (string)
+#    $1 _________________ GitHub repository   (string)
 #    $2 _________________ GitHub API Endpoint (string)
 # OUTPUTS:
 #    A content response from the GitHub endpoint
@@ -59,10 +59,10 @@ send_github_request()
 # DESCRIPTION:
 #    Get latest release version given the branch name
 # GLOBALS:
-#    BRANCH_NAME __________ Git Branch name (string)
+#    BRANCH_NAME __________ Git Branch name              (string)
 #      i.e. $(Build.SourceBranch)
-#    GITHUB_PAT ___________ Github Personal Access Token
-#    IOTEDGE_REPO_PATH ____ Path to /iotedge
+#    GITHUB_PAT ___________ Github Personal Access Token (string)
+#    IOTEDGE_REPO_PATH ____ Path to /iotedge             (string)
 # ARGUMENTS:
 #    None
 # OUTPUTS:
@@ -97,7 +97,7 @@ get_latest_release_per_branch_name()
 #    GITHUB_PAT
 #    IOTEDGE_REPO_PATH
 # ARGUMENTS:
-#    $1 __________ Proposed Version (string)
+#    $1 __________ Proposed Version        (string)
 #    $2 __________ Latest Released Version (string)
 # OUTPUTS:
 #    If Passed, print a log message
