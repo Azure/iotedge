@@ -69,11 +69,11 @@ jobs:
     - bash: |
         cd $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net*
         less context.json
-        if [ $(runtimeModulesVersion) != "resources.pipeline.images" ]
+        if [ $(runtimeModulesVersion) != "resources.pipeline.images" ]; then
           sed -i 's/"edgeAgentImage.*/"edgeAgentImage": "mcr.microsoft.com\/azureiotedge-agent:$(runtimeModulesVersion)",/' context.json
           sed -i 's/"edgeHubImage.*/"edgeHubImage": "mcr.microsoft.com\/azureiotedge-hub:$(runtimeModulesVersion)",/' context.json
         fi
-        if [ $(bootstrapAgentVersion) != "resources.pipeline.images" ]
+        if [ $(bootstrapAgentVersion) != "resources.pipeline.images" ]; then
           sed -i 's/"edgeAgentBootstrapImage.*/"edgeAgentBootstrapImage": "mcr.microsoft.com\/azureiotedge-agent:$(bootstrapAgentVersion)",/' context.json
         fi
         less context.json
