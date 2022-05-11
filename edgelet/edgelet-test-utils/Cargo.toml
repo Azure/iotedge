@@ -23,3 +23,5 @@ edgelet-settings = { path = "../edgelet-settings" }
 aziot-key-client = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 aziot-key-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+
+cert-renewal = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }

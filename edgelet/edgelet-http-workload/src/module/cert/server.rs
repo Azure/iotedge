@@ -58,7 +58,6 @@ where
         };
 
         let api = super::CertApi::new(
-            service.key_connector.clone(),
             service.key_client.clone(),
             service.cert_client.clone(),
             &service.config,

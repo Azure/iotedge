@@ -93,7 +93,15 @@ namespace CloudToDeviceMessageTester
                 await retryPolicy.ExecuteAsync(
                     async () =>
                 {
-                    await this.deviceClient.OpenAsync(ct);
+                    try
+                    {
+                        await this.deviceClient.OpenAsync(ct);
+                    }
+                    catch (Exception e)
+                    {
+                        this.logger.LogInformation("Device client encountered exception on connection attempt: {0}", e);
+                        throw;
+                    }
                 }, ct);
 
                 while (!ct.IsCancellationRequested)
@@ -140,11 +148,16 @@ namespace CloudToDeviceMessageTester
         }
     }
 
+    // This error detection strategy is intended for SDK clients connecting
+    // to EdgeHub encountering auth issue related to dotnet 6.
+    //
+    // Can be removed when the below is fixed:
+    // (InvalidOperationException) - Devices SDK Issue: No authenticated context (https://github.com/Azure/azure-iot-sdk-csharp/issues/2353)
     class FailingConnectionErrorDetectionStrategy : ITransientErrorDetectionStrategy
     {
         public bool IsTransient(Exception ex)
         {
-            return ex is IotHubCommunicationException;
+            return ex is InvalidOperationException && ex.Message.Contains("This operation is only allowed using a successfully authenticated context.");
         }
     }
 }
