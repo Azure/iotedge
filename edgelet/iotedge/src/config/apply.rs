@@ -180,7 +180,7 @@ fn execute_inner(
         allow_elevated_docker_permissions,
         auto_reprovisioning_mode,
         imported_master_encryption_key,
-        manifest_trust_bundle_cert,
+        manifest_trust_bundle_cert: _,
         additional_info,
         aziot,
         agent,
@@ -429,8 +429,8 @@ fn execute_inner(
     );
 
     let manifest_trust_bundle_cert = None;
-    
-    // Skip Manifest trust 
+
+    // Skip Manifest trust
     /*
     manifest_trust_bundle_cert.map(|manifest_trust_bundle_cert| {
         certd_config.preloaded_certs.insert(
