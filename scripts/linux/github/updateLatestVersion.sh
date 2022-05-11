@@ -224,6 +224,18 @@ update_latest_version_json()
     fi
 }
 
+
+github_update()
+{
+    #Push github
+    cd $(Build.SourcesDirectory)/azure-iotedge 
+    git config user.name iotedge1
+    git commit -am "Prepare for Release $VERSION"
+    lastCommitHash=$(git log -n 1 --pretty=format:"%H")
+    git tag "$VERSION" $lastCommitHash
+    # BEARWASHERE -- push to test repo
+    git push https://$GITHUB_PAT@github.com/yophilav/azure-iotedge.git
+}
 # TODO: Integrate the script with the execution of the pipeline for the release page.
     #  1. Git Commit
     #  2. Git push
