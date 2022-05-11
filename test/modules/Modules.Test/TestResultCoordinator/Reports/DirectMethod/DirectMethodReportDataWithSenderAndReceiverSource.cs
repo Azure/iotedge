@@ -217,7 +217,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     },
                     10, 6, 0, 0, 0, 0, 0, 1, 0, true,
                     NetworkControllerType.Satellite
-                },
+                }
             };
     }
 }

@@ -262,7 +262,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
 
             // Act
-            Stream logsStream = await client.GetModuleLogs("edgeHub", false, Option.None<int>(), Option.None<string>(), Option.None<string>(), CancellationToken.None);
+            Stream logsStream = await client.GetModuleLogs("edgeHub", false, Option.None<int>(), Option.None<string>(), Option.None<string>(),  Option.Some(false), CancellationToken.None);
 
             // Assert
             Assert.NotNull(logsStream);

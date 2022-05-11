@@ -347,5 +347,62 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var protocolGatewayMessageConverter = new ProtocolGatewayMessageConverter(converter, ByteBufferConverter);
             Assert.Throws<InvalidOperationException>(() => protocolGatewayMessageConverter.ToMessage(protocolGatewayMessage));
         }
+
+        [Fact]
+        public void RpSenderTest()
+        {
+            // Setup
+            const string DeviceId = "Device1";
+            const string ModuleId = "Module1";
+            const string Input = "input1";
+            var outputTemplates = new Dictionary<string, string>
+            {
+                ["ModuleEndpoint"] = "devices/{deviceId}/modules/{moduleId}/inputs/{inputName}"
+            };
+            var inputTemplates = new List<string>
+            {
+                "devices/{deviceId}/messages/events/{params}/"
+            };
+            var config = new MessageAddressConversionConfiguration(
+                inputTemplates,
+                outputTemplates);
+            var converter = new MessageAddressConverter(config);
+
+            var properties = new Dictionary<string, string>();
+
+            var systemProperties = new Dictionary<string, string>
+            {
+                [SystemProperties.OutboundUri] = Constants.OutboundUriModuleEndpoint,
+                [SystemProperties.LockToken] = Guid.NewGuid().ToString(),
+                [TemplateParameters.DeviceIdTemplateParam] = DeviceId,
+                [Constants.ModuleIdTemplateParameter] = ModuleId,
+                [SystemProperties.InputName] = Input,
+                [SystemProperties.OutputName] = "output",
+                [SystemProperties.ContentEncoding] = "utf-8",
+                [SystemProperties.ContentType] = "application/json",
+
+                [SystemProperties.ConnectionDeviceId] = "edgeDevice1",
+                [SystemProperties.ConnectionModuleId] = "$edgeHub",
+                [SystemProperties.RpConnectionDeviceIdInternal] = "leafDevice1",
+                [SystemProperties.RpConnectionModuleIdInternal] = "leafModule1",
+            };
+
+            var message = Mock.Of<IMessage>(
+                m =>
+                    m.Body == new byte[] { 1, 2, 3 } &&
+                    m.Properties == properties &&
+                    m.SystemProperties == systemProperties);
+
+            var protocolGatewayMessageConverter = new ProtocolGatewayMessageConverter(converter, ByteBufferConverter);
+
+            // Act
+            IProtocolGatewayMessage pgMessage = protocolGatewayMessageConverter.FromMessage(message);
+
+            // Verify
+            Assert.NotNull(pgMessage);
+            Assert.Equal(@"devices/Device1/modules/Module1/inputs/input1/%24.ce=utf-8&%24.ct=application%2Fjson&%24.cdid=leafDevice1&%24.cmid=leafModule1", pgMessage.Address);
+            Assert.Equal("leafDevice1", pgMessage.Properties["$.cdid"]);
+            Assert.Equal("leafModule1", pgMessage.Properties["$.cmid"]);
+        }
     }
 }

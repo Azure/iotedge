@@ -19,7 +19,7 @@ use test_utils::TestHSMEnvSetup;
 const DEVICE_IDENTITY_CERT_KEY: &str = "IOTEDGE_DEVICE_IDENTITY_CERT";
 const DEVICE_IDENTITY_PK_KEY: &str = "IOTEDGE_DEVICE_IDENTITY_PK";
 // the leaf device certificate created below was created using the instructions
-// https://github.com/Azure/iotedge/tree/master/tools/CACertificates
+// https://github.com/Azure/iotedge/tree/main/tools/CACertificates
 // Essentially follow the instruction to create an IoT Leaf Device and simply
 // copy the contents of the generated certificate here. For this test the key
 // needn't be copied.

@@ -306,6 +306,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     Events.HandleNre(ex, this);
                     return this.CloseAsync();
                 }
+                else if (ex.IsFailOver())
+                {
+                    Events.FailOverDetected(ex, this);
+                    return this.CloseAsync();
+                }
             }
             catch (Exception e)
             {
@@ -491,7 +496,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 ErrorUpdatingReportedProperties,
                 ErrorSendingFeedbackMessageAsync,
                 ErrorGettingTwin,
-                HandleNre
+                HandleNre,
+                FailOverDetected
             }
 
             public static void Closed(CloudProxy cloudProxy)
@@ -602,6 +608,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             public static void HandleNre(Exception ex, CloudProxy cloudProxy)
             {
                 Log.LogDebug((int)EventIds.HandleNre, ex, Invariant($"Got a non-recoverable error from client for {cloudProxy.clientId}. Closing the cloud proxy since it may be in a bad state."));
+            }
+
+            public static void FailOverDetected(Exception ex, CloudProxy cloudProxy)
+            {
+                Log.LogInformation((int)EventIds.FailOverDetected, ex, Invariant($"Fail-over detected, closing cloud proxy for {cloudProxy.clientId}."));
             }
 
             internal static void ExceptionInHandleException(CloudProxy cloudProxy, Exception handlingException, Exception caughtException)

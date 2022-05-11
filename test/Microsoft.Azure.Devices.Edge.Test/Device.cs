@@ -17,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     {
         [Test]
         [Category("CentOsSafe")]
+        [Category("FlakyOnWindows")]
         public async Task QuickstartCerts()
         {
             CancellationToken token = this.TestToken;

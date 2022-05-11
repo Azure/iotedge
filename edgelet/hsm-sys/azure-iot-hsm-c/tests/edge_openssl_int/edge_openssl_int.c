@@ -249,7 +249,6 @@ static CERT_PROPS_HANDLE test_helper_create_certificate_props
 static void test_helper_generate_pki_certificate
 (
     CERT_PROPS_HANDLE cert_props_handle,
-    int serial_num,
     int path_len,
     const char *private_key_file,
     const char *cert_file,
@@ -258,7 +257,6 @@ static void test_helper_generate_pki_certificate
 )
 {
     int result = generate_pki_cert_and_key(cert_props_handle,
-                                           serial_num,
                                            path_len,
                                            private_key_file,
                                            cert_file,
@@ -270,7 +268,7 @@ static void test_helper_generate_pki_certificate
 static void test_helper_generate_self_signed
 (
     CERT_PROPS_HANDLE cert_props_handle,
-    int serial_num,
+    long serial_num,
     int path_len,
     const char *private_key_file,
     const char *cert_file,
@@ -320,7 +318,6 @@ void test_helper_server_chain_validator(const PKI_KEY_PROPS *key_props)
                                      key_props);
 
     test_helper_generate_pki_certificate(int_ca_root_handle,
-                                         TEST_SERIAL_NUM + 2,
                                          1,
                                          TEST_CA_PK_RSA_FILE_2,
                                          TEST_CA_CERT_RSA_FILE_2,
@@ -328,7 +325,6 @@ void test_helper_server_chain_validator(const PKI_KEY_PROPS *key_props)
                                          TEST_CA_CERT_RSA_FILE_1);
 
     test_helper_generate_pki_certificate(server_root_handle,
-                                         TEST_SERIAL_NUM + 3,
                                          0,
                                          TEST_SERVER_PK_RSA_FILE_3,
                                          TEST_SERVER_CERT_RSA_FILE_3,
@@ -609,7 +605,6 @@ void test_helper_x509_ext_validator(const PKI_KEY_PROPS *key_props)
                                      key_props);
 
     test_helper_generate_pki_certificate(int_ca_root_handle,
-                                         TEST_SERIAL_NUM + 2,
                                          1,
                                          TEST_CA_PK_RSA_FILE_2,
                                          TEST_CA_CERT_RSA_FILE_2,
@@ -617,7 +612,6 @@ void test_helper_x509_ext_validator(const PKI_KEY_PROPS *key_props)
                                          TEST_CA_CERT_RSA_FILE_1);
 
     test_helper_generate_pki_certificate(server_root_handle,
-                                         TEST_SERIAL_NUM + 3,
                                          0,
                                          TEST_SERVER_PK_RSA_FILE_3,
                                          TEST_SERVER_CERT_RSA_FILE_3,
@@ -625,7 +619,6 @@ void test_helper_x509_ext_validator(const PKI_KEY_PROPS *key_props)
                                          TEST_CA_CERT_RSA_FILE_2);
 
     test_helper_generate_pki_certificate(client_root_handle,
-                                         TEST_SERIAL_NUM + 4,
                                          0,
                                          TEST_CLIENT_PK_RSA_FILE_1,
                                          TEST_CLIENT_CERT_RSA_FILE_1,

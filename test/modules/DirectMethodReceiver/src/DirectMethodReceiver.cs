@@ -12,6 +12,7 @@ namespace DirectMethodReceiver
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json.Linq;
+    using TransportType = Microsoft.Azure.Devices.Client.TransportType;
 
     class DirectMethodReceiver : IDisposable
     {

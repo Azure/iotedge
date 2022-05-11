@@ -32,20 +32,22 @@ parameters:
   test.runtimeLogLevel: ''
 
 steps:
-  - task: CopyFiles@2
+  - task: Bash@3
     condition: and(succeeded(), eq(variables['run.flag'], 1))
-    displayName: 'Copy Edgelet Artifact'
+    displayName: 'Make staging artifact directory'
     inputs:
-      SourceFolder: "$(Build.StagingDirectory)/${{ parameters['edgelet.artifact.name'] }}"
-      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['edgelet.artifact.name'] }}"
-      CleanTargetFolder: true
-  - task: CopyFiles@2
-    condition: and(succeeded(), eq(variables['run.flag'], 1))
-    displayName: 'Copy Images Artifact'
-    inputs:
-      SourceFolder: "$(Build.StagingDirectory)/${{ parameters['images.artifact.name'] }}"
-      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}"
-      CleanTargetFolder: true
+      targetType: inline
+      script: |
+        sudo mkdir $(Agent.HomeDirectory)/../artifacts
+
+        echo "Copy Edgelet Artifact"
+        sudo cp -rf "$(Build.StagingDirectory)/${{ parameters['edgelet.artifact.name'] }}" "$(Agent.HomeDirectory)/../artifacts/${{ parameters['edgelet.artifact.name'] }}"
+
+        echo "Copy Images Artifact"
+        sudo cp -rf "$(Build.StagingDirectory)/${{ parameters['images.artifact.name'] }}" "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}"
+
+        sudo chmod 775 -R $(Agent.HomeDirectory)/../artifacts
+
   - task: Bash@3
     condition: and(succeeded(), eq(variables['run.flag'], 1))
     displayName: 'Run Connectivity Deployment'
@@ -109,3 +111,17 @@ steps:
         exit $scriptExitCode
 
       workingDirectory: "$(Agent.HomeDirectory)/.."
+       
+  # The Step Takes the Test Description which may have special characters and replaces them with '-'
+  - pwsh: |
+      $artifactSuffix = '$(Build.BuildNumber)-${{ parameters['networkController.description'] }}' -replace '[_|/|(]','-' -replace '[)]',''
+      Write-Output "##vso[task.setvariable variable=artifactSuffix] $artifactSuffix"
+    displayName: "Set Artifact Name"
+    condition: succeededOrFailed()
+
+  - task: PublishBuildArtifacts@1
+    displayName: "Publish Support Bundle"
+    inputs:
+      pathToPublish: $(Agent.HomeDirectory)/../working/support
+      artifactName: logs-$(artifactSuffix)
+    condition: succeededOrFailed()

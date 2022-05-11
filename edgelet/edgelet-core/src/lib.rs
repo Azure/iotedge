@@ -43,9 +43,9 @@ pub use error::{Error, ErrorKind};
 pub use identity::{AuthType, Identity, IdentityManager, IdentityOperation, IdentitySpec};
 pub use logs::{Chunked, LogChunk, LogDecode};
 pub use module::{
-    DiskInfo, ImagePullPolicy, LogOptions, LogTail, MakeModuleRuntime, Module, ModuleOperation,
-    ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleSpec,
-    ModuleStatus, ModuleTop, ProvisioningInfo, ProvisioningResult, RegistryOperation,
+    DiskInfo, ImagePullPolicy, LogOptions, LogTail, MakeModuleRuntime, Module, ModuleAction,
+    ModuleOperation, ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleRuntimeState,
+    ModuleSpec, ModuleStatus, ModuleTop, ProvisioningInfo, ProvisioningResult, RegistryOperation,
     RuntimeOperation, SystemInfo, SystemResources,
 };
 pub use network::{Ipam, IpamConfig, MobyNetwork, Network};

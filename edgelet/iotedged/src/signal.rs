@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 // Adapted from the conduit proxy signal handling:
-// https://github.com/runconduit/conduit/blob/master/proxy/src/signal.rs
+// https://github.com/linkerd/linkerd2-proxy/blob/79b6285f8/proxy/src/signal.rs
 
 use futures::Future;
 

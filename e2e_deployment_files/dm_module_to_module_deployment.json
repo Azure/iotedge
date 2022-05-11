@@ -25,7 +25,7 @@
               "createOptions": ""
             },
             "env": {
-              "UpstreamProtocol" : {
+              "UpstreamProtocol": {
                 "value": "<UpstreamProtocol>"
               }
             }
@@ -37,8 +37,11 @@
               "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"443/tcp\": [{\"HostPort\": \"443\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
             },
             "env": {
-              "UpstreamProtocol" : {
+              "UpstreamProtocol": {
                 "value": "<UpstreamProtocol>"
+              },
+              "SslProtocols": {
+                "value": "tls1.2"
               }
             },
             "status": "running",
@@ -55,7 +58,7 @@
               "TargetModuleId": {
                 "value": "DirectMethodReceiver"
               },
-              "ClientTransportType" : {
+              "ClientTransportType": {
                 "value": "<ClientTransportType>"
               }
             },
@@ -70,7 +73,7 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "ClientTransportType" : {
+              "ClientTransportType": {
                 "value": "<ClientTransportType>"
               }
             },

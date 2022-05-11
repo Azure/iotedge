@@ -206,7 +206,7 @@ edgeAgent:
     # storageClassName: ""
 
     # Set this to true if you wish to turn on experimental features support. Please see 
-    # https://github.com/Azure/iotedge/blob/master/kubernetes/doc/create-options.md to
+    # https://github.com/Azure/iotedge/blob/release/1.1/kubernetes/doc/create-options.md to
     # find more information about experimental create options feature.
     enableExperimentalFeatures: true
     

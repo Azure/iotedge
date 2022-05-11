@@ -60,7 +60,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         /// which would mean that a new deployment is required.
         /// </summary>
         [EnumMember(Value = "failed")]
-        Failed
+        Failed,
+
+        /// <summary>
+        /// This is the state that of modules that couldn't be removed for some reason. Dead
+        /// modules cannot be started, only removed.
+        /// </summary>
+        [EnumMember(Value = "dead")]
+        Dead
     }
 
     [JsonConverter(typeof(StringEnumConverter))]

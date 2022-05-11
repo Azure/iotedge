@@ -1,0 +1,770 @@
+trigger: none
+pr: none
+
+name: $(version)
+
+stages:
+# This stage builds Rocks DB and adds the files to staging directory
+################################################################################
+- template: templates/build-rocksdb.yaml
+################################################################################
+
+- stage: BuildReleaseImages
+  dependsOn: [ BuildRocksDB ]
+
+  jobs: 
+################################################################################
+  - job: linux_dotnet_projects
+################################################################################
+    # The code sign steps will fail unless we explicitly say to use dotnet 2 before.
+    # This means we have to toggle back and forth between primary dotnet installations for the sign and build.
+    # TODO: Investigate why we have to toggle primary installs on linux, but not on windows.
+    displayName: LinuxDotnet
+    pool:
+        name: $(pool.linux.name)
+        demands:
+          - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+    steps:
+      - task: Docker@2
+        displayName: Docker login edgerelease
+        inputs:
+          command: login
+          containerRegistry: iotedge-release-acr
+      - template: ../templates/dotnet3-globaljson.yaml # use dotnet 3 as primary install for build
+      - task: ShellScript@2
+        displayName: "Build Azure-IoT-Edge-Core"
+        inputs: 
+          args: "-c Release"
+          scriptPath: scripts/linux/buildBranch.sh
+      - template: ../templates/dotnet2-globaljson.yaml # switch to dotnet 2 as primary install for code sign
+      - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+        displayName: "Edge Agent Code Sign"
+        inputs: 
+          ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+          FolderPath: $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Agent.Service
+          Pattern: Microsoft.Azure.Devices.Edge.*.dll
+          SessionTimeout: 20
+          inlineOperation: |
+              [
+                {
+                    "keyCode": "CP-230012",
+                    "operationSetCode": "SigntoolSign",
+                    "parameters": [
+                    {
+                        "parameterName": "OpusName",
+                        "parameterValue": "Microsoft"
+                    },
+                    {
+                        "parameterName": "OpusInfo",
+                        "parameterValue": "http://www.microsoft.com"
+                    },
+                    {
+                        "parameterName": "Append",
+                        "parameterValue": "/as"
+                    },
+                    {
+                        "parameterName": "FileDigest",
+                        "parameterValue": "/fd \"SHA256\""
+                    },
+                    {
+                        "parameterName": "PageHash",
+                        "parameterValue": "/NPH"
+                    },
+                    {
+                        "parameterName": "TimeStamp",
+                        "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
+                    }
+                    ],
+                    "toolName": "sign",
+                    "toolVersion": "1.0"
+                },
+                {
+                    "keyCode": "CP-230012",
+                    "operationSetCode": "SigntoolVerify",
+                    "parameters": [
+                    {
+                        "parameterName": "VerifyAll",
+                        "parameterValue": "/all"
+                    }
+                    ],
+                    "toolName": "sign",
+                    "toolVersion": "1.0"
+                }
+              ]
+          signConfigType: inlineSignParams
+      - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+        displayName: "Edge Hub Code Sign"
+        inputs: 
+          ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+          FolderPath: $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service
+          Pattern: "Microsoft.Azure.Devices.Edge.*.dll,Microsoft.Azure.Devices.Routing.*.dll"
+          SessionTimeout: 20
+          inlineOperation: |
+              [
+                {
+                    "keyCode": "CP-230012",
+                    "operationSetCode": "SigntoolSign",
+                    "parameters": [
+                    {
+                        "parameterName": "OpusName",
+                        "parameterValue": "Microsoft"
+                    },
+                    {
+                        "parameterName": "OpusInfo",
+                        "parameterValue": "http://www.microsoft.com"
+                    },
+                    {
+                        "parameterName": "Append",
+                        "parameterValue": "/as"
+                    },
+                    {
+                        "parameterName": "FileDigest",
+                        "parameterValue": "/fd \"SHA256\""
+                    },
+                    {
+                        "parameterName": "PageHash",
+                        "parameterValue": "/NPH"
+                    },
+                    {
+                        "parameterName": "TimeStamp",
+                        "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
+                    }
+                    ],
+                    "toolName": "sign",
+                    "toolVersion": "1.0"
+                },
+                {
+                    "keyCode": "CP-230012",
+                    "operationSetCode": "SigntoolVerify",
+                    "parameters": [
+                    {
+                        "parameterName": "VerifyAll",
+                        "parameterValue": "/all"
+                    }
+                    ],
+                    "toolName": "sign",
+                    "toolVersion": "1.0"
+                }
+              ]
+          signConfigType: inlineSignParams
+      - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+        displayName: "Temp Sensor Code Sign"
+        inputs: 
+          ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+          FolderPath: $(Build.BinariesDirectory)/publish/SimulatedTemperatureSensor
+          Pattern: "Microsoft.Azure.Devices.Edge.*.dll,SimulatedTemperatureSensor.dll"
+          SessionTimeout: 20
+          inlineOperation: |
+              [
+                {
+                    "keyCode": "CP-230012",
+                    "operationSetCode": "SigntoolSign",
+                    "parameters": [
+                    {
+                        "parameterName": "OpusName",
+                        "parameterValue": "Microsoft"
+                    },
+                    {
+                        "parameterName": "OpusInfo",
+                        "parameterValue": "http://www.microsoft.com"
+                    },
+                    {
+                        "parameterName": "Append",
+                        "parameterValue": "/as"
+                    },
+                    {
+                        "parameterName": "FileDigest",
+                        "parameterValue": "/fd \"SHA256\""
+                    },
+                    {
+                        "parameterName": "PageHash",
+                        "parameterValue": "/NPH"
+                    },
+                    {
+                        "parameterName": "TimeStamp",
+                        "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
+                    }
+                    ],
+                    "toolName": "sign",
+                    "toolVersion": "1.0"
+                },
+                {
+                    "keyCode": "CP-230012",
+                    "operationSetCode": "SigntoolVerify",
+                    "parameters": [
+                    {
+                        "parameterName": "VerifyAll",
+                        "parameterValue": "/all"
+                    }
+                    ],
+                    "toolName": "sign",
+                    "toolVersion": "1.0"
+                }
+              ]
+          signConfigType: inlineSignParams
+      - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+        displayName: "Functions Binding Code Sign"
+        inputs: 
+          ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+          FolderPath: $(Build.BinariesDirectory)/publish/Microsoft.Azure.WebJobs.Extensions.EdgeHub
+          Pattern: Microsoft.Azure.WebJobs.Extensions*.dll
+          SessionTimeout: 20
+          inlineOperation: |
+              [
+                {
+                    "keyCode": "CP-230012",
+                    "operationSetCode": "SigntoolSign",
+                    "parameters": [
+                    {
+                        "parameterName": "OpusName",
+                        "parameterValue": "Microsoft"
+                    },
+                    {
+                        "parameterName": "OpusInfo",
+                        "parameterValue": "http://www.microsoft.com"
+                    },
+                    {
+                        "parameterName": "Append",
+                        "parameterValue": "/as"
+                    },
+                    {
+                        "parameterName": "FileDigest",
+                        "parameterValue": "/fd \"SHA256\""
+                    },
+                    {
+                        "parameterName": "PageHash",
+                        "parameterValue": "/NPH"
+                    },
+                    {
+                        "parameterName": "TimeStamp",
+                        "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
+                    }
+                    ],
+                    "toolName": "sign",
+                    "toolVersion": "1.0"
+                },
+                {
+                    "keyCode": "CP-230012",
+                    "operationSetCode": "SigntoolVerify",
+                    "parameters": [
+                    {
+                        "parameterName": "VerifyAll",
+                        "parameterValue": "/all"
+                    }
+                    ],
+                    "toolName": "sign",
+                    "toolVersion": "1.0"
+                }
+              ]
+          signConfigType: inlineSignParams       
+      - template: ../templates/dotnet3-globaljson.yaml # switch to dotnet 3 as primary install for nuget package
+      - task: DotNetCoreCLI@2
+        displayName: "Functions Binding nuget package"
+        inputs:
+          buildProperties: OutDir=$(Build.BinariesDirectory)/publish/Microsoft.Azure.WebJobs.Extensions.EdgeHub
+          command: pack
+          nobuild: true
+          packDirectory: $(Build.BinariesDirectory)/publish/
+          packagesToPack: "**/Microsoft.Azure.WebJobs.Extensions.EdgeHub.csproj"
+          versionEnvVar: version
+          versioningScheme: byEnvVar
+      - template: ../templates/dotnet2-globaljson.yaml # switch to dotnet 2 as primary install for code sign
+      - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+        displayName: "Functions Binding nuget package Sign"
+        inputs:
+          ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+          FolderPath: $(Build.BinariesDirectory)/publish
+          Pattern: Microsoft.Azure.WebJobs.Extensions*.nupkg
+          inlineOperation: |
+              [
+                {
+                    "keyCode": "CP-401405",
+                    "operationSetCode": "NuGetSign",
+                    "parameters": [],
+                    "toolName": "sign",
+                    "toolVersion": "1.0"
+                },
+                {
+                    "keyCode": "CP-401405",
+                    "operationSetCode": "NuGetVerify",
+                    "parameters": [],
+                    "toolName": "sign",
+                    "toolVersion": "1.0"
+                }
+              ]
+          signConfigType: inlineSignParams
+
+      - task: DownloadPipelineArtifact@2
+        inputs:
+          artifact: 'librocksdb'
+          # place in '$(Pipeline.Workspace)/librocksdb'
+          path: '$(Pipeline.Workspace)/librocksdb'
+
+      - task: CopyFiles@2
+        displayName: Copy rocksdb libs
+        inputs:
+          sourceFolder: '$(Pipeline.Workspace)/librocksdb'
+          contents: '**'
+          targetFolder: '$(Build.BinariesDirectory)/publish/librocksdb'
+
+      - template: templates/image-linux.yaml
+        parameters: 
+          imageName: azureiotedge-agent
+          name: "Edge Agent"
+          project: Microsoft.Azure.Devices.Edge.Agent.Service
+          version: $(version)
+          buildx_flag: 'true'
+          use_rocksdb: true
+      - template: templates/image-linux.yaml
+        parameters: 
+          imageName: azureiotedge-hub
+          name: "Edge Hub"
+          project: Microsoft.Azure.Devices.Edge.Hub.Service
+          version: $(version)
+          buildx_flag: 'true'
+          use_rocksdb: true
+      - template: templates/image-linux.yaml
+        parameters: 
+          imageName: azureiotedge-simulated-temperature-sensor
+          name: "Temperature Sensor"
+          project: SimulatedTemperatureSensor
+          version: $(version)
+          buildx_flag: 'true'
+      - template: templates/image-linux.yaml
+        parameters:
+          imageName: azureiotedge-diagnostics
+          name: "Diagnostics Module"
+          project: IotedgeDiagnosticsDotnet
+          version: $(version)
+          buildx_flag: 'true'
+
+      # for E2E tests
+      - template: templates/image-linux.yaml
+        parameters:
+          name: "Metrics Validator"
+          imageName: azureiotedge-metrics-validator
+          project: MetricsValidator
+          bin_dir: '$(Build.BinariesDirectory)'
+          buildx_flag: 'true'
+      - template: templates/image-linux.yaml
+        parameters:
+          name: "Metrics Collector"
+          imageName: azureiotedge-metrics-collector
+          project: Microsoft.Azure.Devices.Edge.Azure.Monitor
+          buildx_flag: 'true'
+      - template: templates/image-linux.yaml
+        parameters:
+          name: "Direct Method Sender"
+          imageName: azureiotedge-direct-method-sender
+          project: DirectMethodSender
+          bin_dir: '$(Build.BinariesDirectory)'
+          buildx_flag: 'true'
+      - template: templates/image-linux.yaml
+        parameters:
+          name: "Direct Method Receiver"
+          imageName: azureiotedge-direct-method-receiver
+          project: DirectMethodReceiver
+          bin_dir: '$(Build.BinariesDirectory)'
+          buildx_flag: 'true'
+      - template: templates/image-linux.yaml
+        parameters:
+          name: "Number Logger"
+          imageName: azureiotedge-number-logger
+          project: NumberLogger
+          bin_dir: '$(Build.BinariesDirectory)'
+          buildx_flag: 'true'
+      - template: templates/image-linux.yaml
+        parameters:
+          name: "Temperature Filter"
+          imageName: azureiotedge-temperature-filter
+          project: TemperatureFilter
+          bin_dir: '$(Build.BinariesDirectory)'
+          buildx_flag: 'true'
+      - template: templates/image-linux.yaml
+        parameters:
+          name: "Load Gen"
+          imageName: azureiotedge-load-gen
+          project: load-gen
+          bin_dir: '$(Build.BinariesDirectory)'
+          buildx_flag: 'true'
+      - template: templates/image-linux.yaml
+        parameters:
+          name: "TestResultCoordinator"
+          imageName: azureiotedge-test-result-coordinator
+          project: TestResultCoordinator
+          bin_dir: '$(Build.BinariesDirectory)'
+          buildx_flag: 'true'
+          use_rocksdb: true
+      - template: templates/image-linux.yaml
+        parameters:
+          name: "Relayer"
+          imageName: azureiotedge-relayer
+          project: Relayer
+          bin_dir: '$(Build.BinariesDirectory)'
+          buildx_flag: 'true'
+
+      - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
+        displayName: 'SBOM Generation Task'
+        inputs:
+            BuildDropPath: '$(Build.BinariesDirectory)/publish'             
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifacts to VSTS'
+        inputs:
+          PathtoPublish: '$(Build.BinariesDirectory)/publish'
+          ArtifactName: 'publish-linux'          
+
+################################################################################
+  - job: windows
+################################################################################
+    displayName: Windows
+    pool:
+      name: $(pool.windows.name)
+      demands: 
+       - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
+    steps:
+      - task: Docker@2
+        displayName: Docker login edgerelease
+        inputs:
+          command: login
+          containerRegistry: iotedge-release-acr
+      - powershell: "scripts/windows/build/Publish-Branch.ps1 -Configuration:\"$(configuration)\" -PublishTests:$False -UpdateVersion"
+        displayName: "Build ($(configuration))"
+        name: build
+      - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+        displayName: "Edge Agent Code Sign"
+        inputs: 
+          ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+          FolderPath: $(Build.BinariesDirectory)\publish\Microsoft.Azure.Devices.Edge.Agent.Service
+          Pattern: Microsoft.Azure.Devices.Edge.*.dll
+          SessionTimeout: 20
+          inlineOperation: |
+              [
+                {
+                    "keyCode": "CP-230012",
+                    "operationSetCode": "SigntoolSign",
+                    "parameters": [
+                    {
+                        "parameterName": "OpusName",
+                        "parameterValue": "Microsoft"
+                    },
+                    {
+                        "parameterName": "OpusInfo",
+                        "parameterValue": "http://www.microsoft.com"
+                    },
+                    {
+                        "parameterName": "Append",
+                        "parameterValue": "/as"
+                    },
+                    {
+                        "parameterName": "FileDigest",
+                        "parameterValue": "/fd \"SHA256\""
+                    },
+                    {
+                        "parameterName": "PageHash",
+                        "parameterValue": "/NPH"
+                    },
+                    {
+                        "parameterName": "TimeStamp",
+                        "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
+                    }
+                    ],
+                    "toolName": "sign",
+                    "toolVersion": "1.0"
+                },
+                {
+                    "keyCode": "CP-230012",
+                    "operationSetCode": "SigntoolVerify",
+                    "parameters": [
+                    {
+                        "parameterName": "VerifyAll",
+                        "parameterValue": "/all"
+                    }
+                    ],
+                    "toolName": "sign",
+                    "toolVersion": "1.0"
+                }
+              ]
+          signConfigType: inlineSignParams
+      - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+        displayName: "Edge Hub Code Sign"
+        inputs: 
+          ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+          FolderPath: $(Build.BinariesDirectory)\publish\Microsoft.Azure.Devices.Edge.Hub.Service
+          Pattern: "Microsoft.Azure.Devices.Edge.*.dll,Microsoft.Azure.Devices.Routing.*.dll"
+          SessionTimeout: 20
+          inlineOperation: |
+              [
+                {
+                    "keyCode": "CP-230012",
+                    "operationSetCode": "SigntoolSign",
+                    "parameters": [
+                    {
+                        "parameterName": "OpusName",
+                        "parameterValue": "Microsoft"
+                    },
+                    {
+                        "parameterName": "OpusInfo",
+                        "parameterValue": "http://www.microsoft.com"
+                    },
+                    {
+                        "parameterName": "Append",
+                        "parameterValue": "/as"
+                    },
+                    {
+                        "parameterName": "FileDigest",
+                        "parameterValue": "/fd \"SHA256\""
+                    },
+                    {
+                        "parameterName": "PageHash",
+                        "parameterValue": "/NPH"
+                    },
+                    {
+                        "parameterName": "TimeStamp",
+                        "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
+                    }
+                    ],
+                    "toolName": "sign",
+                    "toolVersion": "1.0"
+                },
+                {
+                    "keyCode": "CP-230012",
+                    "operationSetCode": "SigntoolVerify",
+                    "parameters": [
+                    {
+                        "parameterName": "VerifyAll",
+                        "parameterValue": "/all"
+                    }
+                    ],
+                    "toolName": "sign",
+                    "toolVersion": "1.0"
+                }
+              ]
+          signConfigType: inlineSignParams
+      - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+        displayName: "Temp Sensor Code Sign"
+        inputs: 
+          ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+          FolderPath: $(Build.BinariesDirectory)\publish\SimulatedTemperatureSensor
+          Pattern: "Microsoft.Azure.Devices.Edge.*.dll,SimulatedTemperatureSensor.dll"
+          SessionTimeout: 20
+          inlineOperation: |
+              [
+                {
+                    "keyCode": "CP-230012",
+                    "operationSetCode": "SigntoolSign",
+                    "parameters": [
+                    {
+                        "parameterName": "OpusName",
+                        "parameterValue": "Microsoft"
+                    },
+                    {
+                        "parameterName": "OpusInfo",
+                        "parameterValue": "http://www.microsoft.com"
+                    },
+                    {
+                        "parameterName": "Append",
+                        "parameterValue": "/as"
+                    },
+                    {
+                        "parameterName": "FileDigest",
+                        "parameterValue": "/fd \"SHA256\""
+                    },
+                    {
+                        "parameterName": "PageHash",
+                        "parameterValue": "/NPH"
+                    },
+                    {
+                        "parameterName": "TimeStamp",
+                        "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
+                    }
+                    ],
+                    "toolName": "sign",
+                    "toolVersion": "1.0"
+                },
+                {
+                    "keyCode": "CP-230012",
+                    "operationSetCode": "SigntoolVerify",
+                    "parameters": [
+                    {
+                        "parameterName": "VerifyAll",
+                        "parameterValue": "/all"
+                    }
+                    ],
+                    "toolName": "sign",
+                    "toolVersion": "1.0"
+                }
+              ]
+          signConfigType: inlineSignParams
+      - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+        displayName: "azureiotedge-diagnostics Code Sign"
+        inputs:
+          ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+          FolderPath: $(Build.BinariesDirectory)\publish\IotedgeDiagnosticsDotnet
+          Pattern: "Microsoft.Azure.Devices.Edge.*.dll,IotedgeDiagnosticsDotnet.dll"
+          SessionTimeout: 20
+          inlineOperation: |
+              [
+                {
+                    "keyCode": "CP-230012",
+                    "operationSetCode": "SigntoolSign",
+                    "parameters": [
+                    {
+                        "parameterName": "OpusName",
+                        "parameterValue": "Microsoft"
+                    },
+                    {
+                        "parameterName": "OpusInfo",
+                        "parameterValue": "http://www.microsoft.com"
+                    },
+                    {
+                        "parameterName": "Append",
+                        "parameterValue": "/as"
+                    },
+                    {
+                        "parameterName": "FileDigest",
+                        "parameterValue": "/fd \"SHA256\""
+                    },
+                    {
+                        "parameterName": "PageHash",
+                        "parameterValue": "/NPH"
+                    },
+                    {
+                        "parameterName": "TimeStamp",
+                        "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
+                    }
+                    ],
+                    "toolName": "sign",
+                    "toolVersion": "1.0"
+                },
+                {
+                    "keyCode": "CP-230012",
+                    "operationSetCode": "SigntoolVerify",
+                    "parameters": [
+                    {
+                        "parameterName": "VerifyAll",
+                        "parameterValue": "/all"
+                    }
+                    ],
+                    "toolName": "sign",
+                    "toolVersion": "1.0"
+                }
+              ]
+          signConfigType: inlineSignParams
+      - task: PowerShell@2
+        displayName: "Build Image - Edge Agent - amd64"
+        inputs: 
+          arguments: "-Name 'azureiotedge-agent' -Project 'Microsoft.Azure.Devices.Edge.Agent.Service' -Version '$(version)' -Registry '$(registry.address)' -Namespace '$(namespace)' -Push"
+          filePath: ./scripts/windows/build/Publish-DockerImage.ps1
+          targetType: filePath
+      - task: PowerShell@2
+        displayName: "Build Image - Edge Hub - amd64"
+        inputs: 
+          arguments: "-Name 'azureiotedge-hub' -Project 'Microsoft.Azure.Devices.Edge.Hub.Service' -Version '$(version)' -Registry '$(registry.address)' -Namespace '$(namespace)' -Push"
+          filePath: ./scripts/windows/build/Publish-DockerImage.ps1
+          targetType: filePath
+      - task: PowerShell@2
+        displayName: "Build Image - Temp Sensor - amd64"
+        inputs: 
+          arguments: "-Name 'azureiotedge-simulated-temperature-sensor' -Project 'SimulatedTemperatureSensor' -Version '$(version)' -Registry '$(registry.address)' -Namespace '$(namespace)' -Push"
+          filePath: ./scripts/windows/build/Publish-DockerImage.ps1
+          targetType: filePath
+      - task: PowerShell@2
+        displayName: "Build Image - Diagnostics Module- amd64"
+        inputs:
+          arguments: "-Name 'azureiotedge-diagnostics' -Project 'IotedgeDiagnosticsDotnet' -Version '$(version)' -Registry '$(registry.address)' -Namespace '$(namespace)' -Push"
+          filePath: ./scripts/windows/build/Publish-DockerImage.ps1
+          targetType: filePath
+      # for E2E tests
+      - task: PowerShell@2
+        displayName: "Build Image - Metrics Validator - amd64"
+        inputs:
+          arguments: "-Name 'azureiotedge-metrics-validator' -Project 'MetricsValidator' -Version '$(version)' -Registry '$(registry.address)' -Namespace '$(namespace)' -Push"
+          filePath: ./scripts/windows/build/Publish-DockerImage.ps1
+          targetType: filePath
+      - task: PowerShell@2
+        displayName: "Build Image - Metrics Collector - amd64"
+        inputs:
+          arguments: "-Name 'azureiotedge-metrics-collector' -Project 'Microsoft.Azure.Devices.Edge.Azure.Monitor' -Version '$(version)' -Registry '$(registry.address)' -Namespace '$(namespace)' -Push"
+          filePath: ./scripts/windows/build/Publish-DockerImage.ps1
+          targetType: filePath
+      - task: PowerShell@2
+        displayName: "Build Image - Direct Method Sender - amd64"
+        inputs:
+          arguments: "-Name 'azureiotedge-direct-method-sender' -Project 'DirectMethodSender' -Version '$(version)' -Registry '$(registry.address)' -Namespace '$(namespace)' -Push"
+          filePath: ./scripts/windows/build/Publish-DockerImage.ps1
+          targetType: filePath
+      - task: PowerShell@2
+        displayName: "Build Image - Direct Method Receiver - amd64"
+        inputs:
+          arguments: "-Name 'azureiotedge-direct-method-receiver' -Project 'DirectMethodReceiver' -Version '$(version)' -Registry '$(registry.address)' -Namespace '$(namespace)' -Push"
+          filePath: ./scripts/windows/build/Publish-DockerImage.ps1
+          targetType: filePath
+      - task: PowerShell@2
+        displayName: "Build Image - Number Logger - amd64"
+        inputs:
+          arguments: "-Name 'azureiotedge-number-logger' -Project 'NumberLogger' -Version '$(version)' -Registry '$(registry.address)' -Namespace '$(namespace)' -Push"
+          filePath: ./scripts/windows/build/Publish-DockerImage.ps1
+          targetType: filePath
+      - task: PowerShell@2
+        displayName: "Build Image - Temperature Filter - amd64"
+        inputs:
+          arguments: "-Name 'azureiotedge-temperature-filter' -Project 'TemperatureFilter' -Version '$(version)' -Registry '$(registry.address)' -Namespace '$(namespace)' -Push"
+          filePath: ./scripts/windows/build/Publish-DockerImage.ps1
+          targetType: filePath
+      - task: PowerShell@2
+        displayName: "Build Image - Load Gen - amd64"
+        inputs:
+          arguments: "-Name 'azureiotedge-load-gen' -Project 'load-gen' -Version '$(version)' -Registry '$(registry.address)' -Namespace '$(namespace)' -Push"
+          filePath: ./scripts/windows/build/Publish-DockerImage.ps1
+          targetType: filePath
+      - task: PowerShell@2
+        displayName: "Build Image - TestResultCoordinator - amd64"
+        inputs:
+          arguments: "-Name 'azureiotedge-test-result-coordinator' -Project 'TestResultCoordinator' -Version '$(version)' -Registry '$(registry.address)' -Namespace '$(namespace)' -Push"
+          filePath: ./scripts/windows/build/Publish-DockerImage.ps1
+          targetType: filePath
+      - task: PowerShell@2
+        displayName: "Build Image - Relayer - amd64"
+        inputs:
+          arguments: "-Name 'azureiotedge-relayer' -Project 'Relayer' -Version '$(version)' -Registry '$(registry.address)' -Namespace '$(namespace)' -Push"
+          filePath: ./scripts/windows/build/Publish-DockerImage.ps1
+          targetType: filePath
+
+      - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
+        displayName: 'SBOM Generation Task'
+        inputs:
+            BuildDropPath: '$(Build.BinariesDirectory)/publish'            
+      - task: PublishBuildArtifacts@1
+        displayName: "Publish Artifacts to VSTS"
+        inputs: 
+          ArtifactName: publish-win
+          PathtoPublish: $(Build.BinariesDirectory)\publish           
+################################################################################
+- stage: PublishManifests
+################################################################################
+  displayName: Publish Manifest Images
+  pool:
+    name: $(pool.linux.name)
+    demands:
+          - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+  dependsOn: BuildReleaseImages
+  jobs:
+  - job:
+    steps:
+    - task: Docker@2
+      displayName: Docker login edgerelease
+      inputs:
+        command: login
+        containerRegistry: iotedge-release-acr
+    - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
+      displayName: 'Publish azureiotedge-diagnostics Manifest'
+    - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-agent/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
+      displayName: 'Publish Edge Agent Manifest'
+    - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-hub/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
+      displayName: 'Publish Edge Hub Manifest'
+    - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
+      displayName: 'Publish Temperature Sensor Manifest'
+
+################################################################################
+- template: ../e2e/e2e-release.yaml
+################################################################################

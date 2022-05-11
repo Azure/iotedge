@@ -6,7 +6,7 @@ publish = false
 edition = "2018"
 
 [dependencies]
-env_logger = "0.5"
+env_logger = "0.9"
 futures = "0.1"
 handlebars = "1.0"
 hyper = "0.12"
