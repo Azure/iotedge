@@ -28,7 +28,7 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "syn
 tokio-util = { version = "0.7", features = ["codec"] }
 url = { version = "2", features = ["serde"] }
 
-aziotctl-common = { git = "https://github.com/Azure/iot-identity-service.git", branch = "feature/dps_certs" }
+aziotctl-common = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/dps_certs" }
 edgelet-settings = { path = "../edgelet-settings" }
 
 [dev-dependencies]

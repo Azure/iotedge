@@ -47,14 +47,28 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     $"apt-get install -y --option DPkg::Lock::Timeout=600 {string.Join(' ', packages)}",
                     $"apt-get install -f --option DPkg::Lock::Timeout=600"
                 },
-                SupportedPackageExtension.Rpm => new[]
-                {
-                    "set -e",
-                    $"rpm --nodeps -i {string.Join(' ', packages)}",
-                    "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
-                    "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
-                    "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
-                    "sudo systemctl daemon-reload"
+                SupportedPackageExtension.Rpm => this.os switch {
+                    "centos" => new[]
+                    {
+                        "set -e",
+                        $"rpm --nodeps -i {string.Join(' ', packages)}",
+                        "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
+                        "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
+                        "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
+                        "sudo systemctl daemon-reload"
+                    },
+                    "rhel" => new[]
+                    {
+                        "set -e",
+                        $"sudo rpm --nodeps -i {string.Join(' ', packages)}",
+                        "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
+                        "pathToOverride=$(dirname ${pathToSystemdConfig#?})/aziot-edged.service.d",
+                        "sudo mkdir $pathToOverride",
+                        "echo -e \"[Service]\nRestart=no\" >  ~/override.conf",
+                        "sudo mv -f ~/override.conf ${pathToOverride}/overrides.conf",
+                        "sudo systemctl daemon-reload"
+                    },
+                    _ => throw new NotImplementedException($"RPM packaging is set up only for Centos and RHEL, current OS '.{this.os}'"),
                 },
                 _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.packageExtension}'"),
             };
@@ -79,15 +93,30 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     $"apt-get update",
                     $"apt-get install --option DPkg::Lock::Timeout=600 --yes aziot-edge"
                 },
-                SupportedPackageExtension.Rpm => new[]
-                {
-                    $"rpm -iv --replacepkgs https://packages.microsoft.com/config/{this.os}/{this.version}/packages-microsoft-prod.rpm",
-                    $"yum updateinfo",
-                    $"yum install --yes aziot-edge",
-                    "pathToSystemdConfig=$(systemctl cat aziot-edge | head -n 1)",
-                    "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
-                    "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
-                    "sudo systemctl daemon-reload"
+                SupportedPackageExtension.Rpm => this.os switch {
+                    "centos" => new[]
+                    {
+                        $"rpm -iv --replacepkgs https://packages.microsoft.com/config/{this.os}/{this.version}/packages-microsoft-prod.rpm",
+                        $"yum updateinfo",
+                        $"yum install -y aziot-edge",
+                        "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
+                        "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
+                        "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
+                        "sudo systemctl daemon-reload"
+                    },
+                    "rhel" => new[]
+                    {
+                        $"sudo rpm -iv --replacepkgs https://packages.microsoft.com/config/{this.os}/{this.version}/packages-microsoft-prod.rpm",
+                        $"sudo dnf updateinfo",
+                        $"sudo dnf install -y aziot-edge",
+                        "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
+                        "pathToOverride=$(dirname ${pathToSystemdConfig#?})/aziot-edged.service.d",
+                        "sudo mkdir $pathToOverride",
+                        "echo -e \"[Service]\nRestart=no\" >  ~/override.conf",
+                        "sudo mv -f ~/override.conf ${pathToOverride}/overrides.conf",
+                        "sudo systemctl daemon-reload"
+                    },
+                    _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.os}'")
                 },
                 _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.packageExtension}'"),
             };
@@ -105,10 +134,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             },
             SupportedPackageExtension.Rpm => new[]
             {
-                "yum remove -y --remove-leaves aziot-edge",
-                "yum remove -y --remove-leaves aziot-identity-service",
-                "yum remove -y --remove-leaves iotedge",
-                "yum remove -y --remove-leaves libiothsm-std",
+                "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
+                "pathToOverride=$(dirname ${pathToSystemdConfig#?})/aziot-edged.service.d",
+                "sudo rm -f ${pathToOverride}/overrides.conf",
+                "yum remove -y aziot-edge",
+                "yum remove -y aziot-identity-service",
+                "yum remove -y iotedge",
+                "yum remove -y libiothsm-std",
+                "yum autoremove -y",
                 "systemctl restart docker" // we can remove after this is fixed (https://github.com/moby/moby/issues/23302)
             },
             _ => throw new NotImplementedException($"Don't know how to uninstall daemon on for '.{this.packageExtension}'")

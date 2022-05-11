@@ -5,7 +5,7 @@ mod connect;
 mod ping;
 
 mod publish;
-pub use publish::{PublishError, PublishHandle};
+pub use publish::{PublishError, PublishHandle, PublishRequest};
 
 mod subscriptions;
 pub use subscriptions::{UpdateSubscriptionError, UpdateSubscriptionHandle};

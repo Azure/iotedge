@@ -136,7 +136,7 @@ stages:
           deploy:
             steps:
               - bash: |
-                  echo "Approval Complete"   
+                  echo "Approval Complete"
     - job: linux
       displayName: Linux
       strategy:
@@ -145,11 +145,6 @@ stages:
             os: debian9
             artifactName: iotedged-debian9-arm32v7
             identityServiceArtifactName: packages_debian-9-slim_arm32v7
-            identityServicePackageFilter: aziot-identity-service_*_armhf.deb
-          Debian10-arm32v7:
-            os: debian10
-            artifactName: iotedged-debian10-arm32v7
-            identityServiceArtifactName: packages_debian-10-slim_arm32v7
             identityServicePackageFilter: aziot-identity-service_*_armhf.deb
           Debian11-arm32v7:
             os: debian11
@@ -240,14 +235,16 @@ stages:
                   keyVaultName: $(kv.name)
                   secretsFilter: >-
                     GitHubAccessToken
+              - checkout: self
               - bash: | #Create Release Page Before Publishing Artifacts in Parallel in the Next Job.
                   echo "Approval Complete, Creating Release Page"
                   BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
                   $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh -p ubuntu20.04 -w $(Build.SourcesDirectory) -d $(Build.SourcesDirectory) -v "$BASE_VERSION" -s "github.com" -b  $(Build.SourceBranch) --skip-upload true
                 env:
-                  GITHUB_PAT: "$(GitHubAccessToken)"        
+                  GITHUB_PAT: "$(GitHubAccessToken)"
     - job: linux
       displayName: Linux
+      dependsOn: safe_guard
       strategy:
         matrix:
           Centos75-amd64:
