@@ -94,7 +94,7 @@ steps:
           @{
             address = '$(registry.address)';
             username = '$(registry.username)';
-          },
+          }
         );
         caCertScriptPath = "$caCertScriptPath";
         rootCaCertificatePath = "$rootCaCertificatePath";
