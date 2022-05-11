@@ -677,7 +677,7 @@ jobs:
           buildType: specific
           project: $(vsts.project)
           pipeline: $(edgelet.package.build)
-          branchName: $(edgelet.package.branchName)
+          runId: '54903328'
           buildVersionToDownload: latestFromBranch
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
@@ -687,7 +687,7 @@ jobs:
           buildType: specific
           project: $(vsts.project)
           pipeline: $(images.build)
-          branchName: $(images.branchName)
+          runId: '54903327'
           buildVersionToDownload: latestFromBranch
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.linux)
