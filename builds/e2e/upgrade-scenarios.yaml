@@ -41,10 +41,10 @@ jobs:
 
     strategy:
       matrix:
-        // Scenarios 1 to 5 test older versions of the bootstrap Edge Agent 
-        // module with the new 1.3 Edge Daemon and Runtime Modules. These represent
-        // scenarios where the Edge Daemon and Runtime Modules in the deployment 
-        // are upraded, but the bootstrap agent in config.toml/config.yaml is not.
+        # Scenarios 1 to 5 test older versions of the bootstrap Edge Agent 
+        # module with the new 1.3 Edge Daemon and Runtime Modules. These represent
+        # scenarios where the Edge Daemon and Runtime Modules in the deployment 
+        # are upraded, but the bootstrap agent in config.toml/config.yaml is not.
         scenario_1:
           edgeDaemonVersion: "new"
           bootstrapAgentVersion: "1.1.0"
@@ -66,10 +66,10 @@ jobs:
           bootstrapAgentVersion: "1.2.9"
           runtimeModulesVersion: "new"
 
-        // Scenarios 6 to 10 test the new 1.3 Edge Daemon with older versions of the 
-        // bootstrap Edge Agent, and runtime modules. These represent scenarios where
-        // the Edge Daemon is upgraded, but the config.toml/config.yaml and deployment 
-        // are left using older runtime images.
+        # Scenarios 6 to 10 test the new 1.3 Edge Daemon with older versions of the 
+        # bootstrap Edge Agent, and runtime modules. These represent scenarios where
+        # the Edge Daemon is upgraded, but the config.toml/config.yaml and deployment 
+        # are left using older runtime images.
         scenario_6:
           edgeDaemonVersion: "new"
           bootstrapAgentVersion: "1.1.0"
