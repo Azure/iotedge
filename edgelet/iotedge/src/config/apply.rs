@@ -344,7 +344,6 @@ fn execute_inner(
                         &mut certd_config,
                         aziotcs_uid,
                         expiry_days,
-                        subject,
                         cert.auto_renew.is_some(),
                     );
 
@@ -382,10 +381,6 @@ fn execute_inner(
                 &mut certd_config,
                 aziotcs_uid,
                 Some(auto_generated_edge_ca_expiry_days),
-                Some(aziot_certd_config::CertSubject::CommonName(format!(
-                    "{} {}",
-                    IOTEDGED_COMMONNAME_PREFIX, identityd_config.hostname
-                ))),
                 auto_renew.is_some(),
             );
 
@@ -583,13 +578,12 @@ fn set_quickstart_ca(
     certd_config: &mut aziot_certd_config::Config,
     aziotcs_uid: nix::unistd::Uid,
     expiry_days: Option<u32>,
-    subject: Option<aziot_certd_config::CertSubject>,
     auto_renew: bool,
 ) {
     let issuance = aziot_certd_config::CertIssuanceOptions {
         method: aziot_certd_config::CertIssuanceMethod::SelfSigned,
         expiry_days,
-        subject,
+        subject: None,
     };
 
     certd_config.cert_issuance.certs.insert(
