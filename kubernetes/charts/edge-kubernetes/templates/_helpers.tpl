@@ -208,4 +208,3 @@ Generate namespace from release namespace parameter.
 {{- define "edge-kubernetes.namespace" -}}
 {{ .Release.Namespace }}
 {{- end -}}
-

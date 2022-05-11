@@ -31,8 +31,6 @@ spec:
 {{ toYaml .Values.iotedged.data.resources | indent 12 }}
           {{- end }}
           env:
-          - name: "IOTEDGE_LOG"
-            value: "info"
           {{- if .Values.iotedged.data.httpsProxy }}
           - name: "https_proxy"
             value: {{ .Values.iotedged.data.httpsProxy | quote}}
@@ -41,6 +39,12 @@ spec:
           - name: "no_proxy"
             value: {{ .Values.iotedged.data.noProxy | quote}}
           {{- end}}
+          - name: "IOTEDGE_LOG"
+          {{- if .Values.iotedged.data.runtimeLogLevel}}
+            value: {{ .Values.iotedged.data.runtimeLogLevel | quote }}
+          {{- else }}
+            value: "info"
+          {{- end }}
           volumeMounts:
           - name: config
             mountPath: "/etc/iotedged"
