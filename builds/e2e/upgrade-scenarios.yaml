@@ -24,7 +24,7 @@ jobs:
 ################################################################################
   - job: ubuntu_1804_msmoby
 ################################################################################
-    displayName: Ubuntu 18.04 with iotedge-moby
+    displayName: Ubuntu 18.04
 
     pool:
       name: $(pool.linux.name)
@@ -38,6 +38,7 @@ jobs:
       identityServiceArtifactName: packages_ubuntu-18.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
       minimal: true
+      verbose: false
 
     strategy:
       matrix:
