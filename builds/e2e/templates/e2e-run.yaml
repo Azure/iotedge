@@ -13,6 +13,7 @@ parameters:
 #   NestedEdgeAmqpOnly: Only applies to nested edge cases using amqp upstream protocol
 #   LegacyMqttRequired: Only applies to cases with the edgehub legacy mqtt protocol head
 #   BrokerRequired: Only applies to cases with the broker enabled
+#   SkipManifestTrust: Only applies to manifest/content trust tests
 steps:
 - pwsh: |
     $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
@@ -20,6 +21,8 @@ steps:
 
     # Filter out flaky tests.
     $filter = 'Category!=Flaky'
+    # Filter out Manifest trust tests.
+    $filter += '&Category!=SkipManifestTrust'
     if ('$(minimal)' -eq 'true')
     {
       $filter += '&Name~TempSensor'
