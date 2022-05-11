@@ -9,7 +9,7 @@ resources:
     trigger:
       branches:
       - main
-      # TODO: Uncomment when release/1.3 is created
+      # TODO: Uncomment and remove "main" when release/1.3 is created
       #- release/1.3
   - pipeline: packages
     source: 'Azure-IoT-Edge-Core Edgelet Packages'
@@ -17,7 +17,7 @@ resources:
     trigger:
       branches:
       - main
-      # TODO: Uncomment when release/1.3 is created
+      # TODO: Uncomment and remove "main" when release/1.3 is created
       #- release/1.3
 
 jobs:
@@ -41,40 +41,72 @@ jobs:
 
     strategy:
       matrix:
+        // Scenarios 1 to 5 test older versions of the bootstrap Edge Agent 
+        // module with the new 1.3 Edge Daemon and Runtime Modules. These represent
+        // scenarios where the Edge Daemon and Runtime Modules in the deployment 
+        // are upraded, but the bootstrap agent in config.toml/config.yaml is not.
         scenario_1:
-          edgeDaemonVersion: "1.1.1"
-          bootstrapAgentVersion: "1.1.1"
-          runtimeModulesVersion: "resources.pipeline.images"
+          edgeDaemonVersion: "new"
+          bootstrapAgentVersion: "1.1.0"
+          runtimeModulesVersion: "new"
         scenario_2:
-          edgeDaemonVersion: "resources.pipeline.packages"
-          bootstrapAgentVersion: "1.1.1"
-          runtimeModulesVersion: "resources.pipeline.images"
+          edgeDaemonVersion: "new"
+          bootstrapAgentVersion: "1.1.8"
+          runtimeModulesVersion: "new"
         scenario_3:
-          edgeDaemonVersion: "resources.pipeline.packages"
-          bootstrapAgentVersion: "1.1.1"
-          runtimeModulesVersion: "resources.pipeline.images"                
+          edgeDaemonVersion: "new"
+          bootstrapAgentVersion: "1.1.13"
+          runtimeModulesVersion: "new"
+        scenario_4:
+          edgeDaemonVersion: "new"
+          bootstrapAgentVersion: "1.2.0"
+          runtimeModulesVersion: "new"
+        scenario_5:
+          edgeDaemonVersion: "new"
+          bootstrapAgentVersion: "1.2.9"
+          runtimeModulesVersion: "new"
+
+        // Scenarios 6 to 10 test the new 1.3 Edge Daemon with older versions of the 
+        // bootstrap Edge Agent, and runtime modules. These represent scenarios where
+        // the Edge Daemon is upgraded, but the config.toml/config.yaml and deployment 
+        // are left using older runtime images.
+        scenario_6:
+          edgeDaemonVersion: "new"
+          bootstrapAgentVersion: "1.1.0"
+          runtimeModulesVersion: "1.1.0"
+        scenario_7:
+          edgeDaemonVersion: "new"
+          bootstrapAgentVersion: "1.1.8"
+          runtimeModulesVersion: "1.1.8"
+        scenario_8:
+          edgeDaemonVersion: "new"
+          bootstrapAgentVersion: "1.1.13"
+          runtimeModulesVersion: "1.1.13"
+        scenario_9:
+          edgeDaemonVersion: "new"
+          bootstrapAgentVersion: "1.2.0"
+          runtimeModulesVersion: "1.2.0"
+        scenario_10:
+          edgeDaemonVersion: "new"
+          bootstrapAgentVersion: "1.2.9"
+          runtimeModulesVersion: "1.2.9"
 
     timeoutInMinutes: 90
 
     steps:
-    # Checkout the iotedge commit corresponding to the 'edgeDaemonVersion' matrix variable.
-    # This ensures the following:
-    #   1. The correct version of the .NET test framework is run
-    #   2. The correct version of aziot-identity-service is installed
-    - checkout: https://github.com/Azure/iotedge@refs/tags/$(edgeDaemonVersion)
-      condition: ne(variables['edgeDaemonVersion'], 'resources.pipeline.packages')
     - template: templates/e2e-setup.yaml
-    # Run sed command on context.json to set edgeAgentBootstrapImage,
-    # edgeAgentImage, and edgeHubImage
+
+    # Run sed command on context.json to set edgeAgentBootstrapImage, edgeAgentImage, and edgeHubImage
     - bash: |
         cd $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net*
         less context.json
-        if [ $(runtimeModulesVersion) != "resources.pipeline.images" ]; then
+        if [ $(runtimeModulesVersion) != "new" ]; then
           sed -i 's/"edgeAgentImage.*/"edgeAgentImage": "mcr.microsoft.com\/azureiotedge-agent:$(runtimeModulesVersion)",/' context.json
           sed -i 's/"edgeHubImage.*/"edgeHubImage": "mcr.microsoft.com\/azureiotedge-hub:$(runtimeModulesVersion)",/' context.json
         fi
-        if [ $(bootstrapAgentVersion) != "resources.pipeline.images" ]; then
+        if [ $(bootstrapAgentVersion) != "new" ]; then
           sed -i 's/"edgeAgentBootstrapImage.*/"edgeAgentBootstrapImage": "mcr.microsoft.com\/azureiotedge-agent:$(bootstrapAgentVersion)",/' context.json
         fi
         less context.json
+
     - template: templates/e2e-run.yaml
