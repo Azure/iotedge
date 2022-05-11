@@ -1,6 +1,5 @@
 auto_reprovisioning_mode = "OnErrorOnly"
 hostname = "my-device"
-manifest_trust_bundle_cert = "file:///var/secrets/manifest-trusted-ca.pem"
 
 [provisioning]
 source = "manual"

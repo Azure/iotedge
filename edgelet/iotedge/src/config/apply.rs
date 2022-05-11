@@ -428,13 +428,18 @@ fn execute_inner(
         aziot_certd_config::PreloadedCert::Ids(trust_bundle_certs),
     );
 
-    let manifest_trust_bundle_cert = manifest_trust_bundle_cert.map(|manifest_trust_bundle_cert| {
+    let manifest_trust_bundle_cert = None;
+    
+    // Skip Manifest trust 
+    /*
+    manifest_trust_bundle_cert.map(|manifest_trust_bundle_cert| {
         certd_config.preloaded_certs.insert(
             edgelet_settings::MANIFEST_TRUST_BUNDLE_ALIAS.to_owned(),
             aziot_certd_config::PreloadedCert::Uri(manifest_trust_bundle_cert),
         );
         edgelet_settings::MANIFEST_TRUST_BUNDLE_ALIAS.to_owned()
     });
+    */
 
     let additional_info = if let Some(additional_info) = additional_info {
         let scheme = additional_info.scheme();
