@@ -115,8 +115,8 @@ version_sanity_check()
     # Use the sort to compare, if the first result from sort() is not the input, then return false.
     higherVersion=$(echo "$latestReleasedVersion $1" | tr " " "\n"  | sort --version-sort -r | head -1)
     if [[ "$higherVersion" == "$latestReleasedVersion" ]]; then
-        echo "FAILED: The proposed version ($1) cannot have a lower or equal version value than the latest released version ($latestReleasedVersion)"
-        exit 1;
+        # Remark: We can't really do `exit 1` here it's not always gauranteed that we will update both `iotedge` and docker images at the same release
+        echo "##[warning]FAILED: The proposed version ($1) cannot have a lower or equal version value than the latest released version ($latestReleasedVersion)"
     else
         echo "PASSED: version sanity check ($1)"
     fi
@@ -225,19 +225,33 @@ update_latest_version_json()
 }
 
 
-github_update()
+#######################################
+# NAME: 
+#    github_update_and_push
+# DESCRIPTION:
+#    The function commits the changes, tag, and push them to remote repository
+# GLOBALS:
+#    AZURE_IOTEDGE_REPO_PATH ____ Path to /azure-iotedge        (string)
+#        i.e. $(Build.SourcesDirectory)/azure-iotedge
+#    VERSION ____________________ Current release version       (string)
+#    GITHUB_PAT _________________ Github Personal Access Token  (string)
+# OUTPUTS:
+#    Updated latest version JSON files
+# REMARK:
+#    Please make sure the directories provided need to have a proper branch/commit 
+#    checked out.
+#######################################
+github_update_and_push()
 {
-    #Push github
-    cd $(Build.SourcesDirectory)/azure-iotedge 
+    [[ -z "$AZURE_IOTEDGE_REPO_PATH" ]] && { echo "\$IOTEDGE_REPO_PATH is undefined"; exit 1; }
+    [[ -z "$VERSION" ]] && { echo "\$VERSION is undefined"; exit 1; }
+    [[ -z "$GITHUB_PAT" ]] && { echo "\$GITHUB_PAT is undefined"; exit 1; }
+
+    cd $AZURE_IOTEDGE_REPO_PATH
     git config user.name iotedge1
     git commit -am "Prepare for Release $VERSION"
     lastCommitHash=$(git log -n 1 --pretty=format:"%H")
     git tag "$VERSION" $lastCommitHash
-    # BEARWASHERE -- push to test repo
-    git push https://$GITHUB_PAT@github.com/yophilav/azure-iotedge.git
+    git push https://$GITHUB_PAT@github.com/Azure/azure-iotedge.git
+    git push https://$GITHUB_PAT@github.com/Azure/azure-iotedge.git "$VERSION"
 }
-# TODO: Integrate the script with the execution of the pipeline for the release page.
-    #  1. Git Commit
-    #  2. Git push
-    #  3. Git tag e.g. lastCommitHash=$(git log -n 1 --pretty=format:"%H")
-    #  4. Git publish github release page
