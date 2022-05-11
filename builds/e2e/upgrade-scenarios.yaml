@@ -1,0 +1,113 @@
+trigger: none
+pr: none
+
+resources:
+  pipelines:
+  - pipeline: images
+    source: 'Azure-IoT-Edge-Core Build Images'
+    branch: 'main'
+    trigger:
+      branches:
+      - release/1.1
+  - pipeline: packages
+    source: 'Azure-IoT-Edge-Core Edgelet Packages'
+    branch: 'main'
+    trigger:
+      branches:
+      - release/1.1
+
+jobs:
+################################################################################
+  - job: ubuntu_1804_msmoby
+################################################################################
+    displayName: Ubuntu 18.04 with iotedge-moby
+
+    pool:
+      name: $(pool.linux.name)
+      demands:
+      - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-ubuntu18.04-amd64
+      identityServiceArtifactName: packages_ubuntu-18.04_amd64
+      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+      minimal: true
+
+    strategy:
+      matrix:
+        # Scenarios 1 to 5 test older versions of the bootstrap Edge Agent 
+        # module with the new 1.3 Edge Daemon and Runtime Modules. These represent
+        # scenarios where the Edge Daemon and Runtime Modules in the deployment 
+        # are upraded, but the bootstrap agent in config.toml/config.yaml is not.
+        scenario_1:
+          edgeDaemonVersion: "new"
+          bootstrapAgentVersion: "1.1.0"
+          runtimeModulesVersion: "new"
+        scenario_2:
+          edgeDaemonVersion: "new"
+          bootstrapAgentVersion: "1.1.8"
+          runtimeModulesVersion: "new"
+        scenario_3:
+          edgeDaemonVersion: "new"
+          bootstrapAgentVersion: "1.1.13"
+          runtimeModulesVersion: "new"
+        scenario_4:
+          edgeDaemonVersion: "new"
+          bootstrapAgentVersion: "1.2.0"
+          runtimeModulesVersion: "new"
+        scenario_5:
+          edgeDaemonVersion: "new"
+          bootstrapAgentVersion: "1.2.9"
+          runtimeModulesVersion: "new"
+
+        # Scenarios 6 to 10 test the new 1.3 Edge Daemon with older versions of the 
+        # bootstrap Edge Agent, and runtime modules. These represent scenarios where
+        # the Edge Daemon is upgraded, but the config.toml/config.yaml and deployment 
+        # are left using older runtime images.
+        scenario_6:
+          edgeDaemonVersion: "new"
+          bootstrapAgentVersion: "1.1.0"
+          runtimeModulesVersion: "1.1.0"
+        scenario_7:
+          edgeDaemonVersion: "new"
+          bootstrapAgentVersion: "1.1.8"
+          runtimeModulesVersion: "1.1.8"
+        scenario_8:
+          edgeDaemonVersion: "new"
+          bootstrapAgentVersion: "1.1.13"
+          runtimeModulesVersion: "1.1.13"
+        scenario_9:
+          edgeDaemonVersion: "new"
+          bootstrapAgentVersion: "1.2.0"
+          runtimeModulesVersion: "1.2.0"
+        scenario_10:
+          edgeDaemonVersion: "new"
+          bootstrapAgentVersion: "1.2.9"
+          runtimeModulesVersion: "1.2.9"
+
+    timeoutInMinutes: 90
+
+    steps:
+    - template: templates/e2e-setup.yaml
+
+    # TODO: If edgeDaemonVersion != "new", remove the iotedge and
+    # libiothsm-std packages from $(System.ArtifactsDirectory) and download the desired
+    # versions.  
+    # - bash: |    
+
+    # Run sed command on context.json to set edgeAgentBootstrapImage, edgeAgentImage, and edgeHubImage
+    - bash: |
+        cd $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net*
+        less context.json
+        if [ $(runtimeModulesVersion) != "new" ]; then
+          sed -i 's/"edgeAgentImage.*/"edgeAgentImage": "mcr.microsoft.com\/azureiotedge-agent:$(runtimeModulesVersion)",/' context.json
+          sed -i 's/"edgeHubImage.*/"edgeHubImage": "mcr.microsoft.com\/azureiotedge-hub:$(runtimeModulesVersion)",/' context.json
+        fi
+        if [ $(bootstrapAgentVersion) != "new" ]; then
+          sed -i 's/"edgeAgentBootstrapImage.*/"edgeAgentBootstrapImage": "mcr.microsoft.com\/azureiotedge-agent:$(bootstrapAgentVersion)",/' context.json
+        fi
+        less context.json
+
+    - template: templates/e2e-run.yaml
