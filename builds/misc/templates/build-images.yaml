@@ -466,23 +466,23 @@ stages:
                 project: Microsoft.Azure.Devices.Edge.Azure.Monitor
                 version: $(Build.BuildNumber)
 
-          # linux - Rust amd64
-            - template: image-linux-rust-jobs.yaml
-              parameters:
-                archName: amd64
-                targetArch: x86_64
+  # linux - Rust amd64
+  - template: templates/image-linux-rust-jobs.yaml
+    parameters:
+      archName: amd64
+      targetArch: x86_64
 
-          # linux - Rust arm32
-            - template: image-linux-rust-jobs.yaml
-              parameters:
-                archName: arm32
-                targetArch: armv7l
+  # linux - Rust arm32
+  - template: templates/image-linux-rust-jobs.yaml
+    parameters:
+      archName: arm32
+      targetArch: armv7l
 
-          # linux - Rust arm64
-            - template: image-linux-rust-jobs.yaml
-              parameters:
-                archName: arm64
-                targetArch: aarch64
+# linux - Rust arm64
+  - template: templates/image-linux-rust-jobs.yaml
+    parameters:
+      archName: arm64
+      targetArch: aarch64
 
 ################################################################################
       - job: manifest
