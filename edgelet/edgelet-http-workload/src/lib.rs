@@ -210,6 +210,9 @@ where
             edge_ca_cert: "test-ca-cert".to_string(),
             edge_ca_key: "test-ca-key".to_string(),
             edge_ca_auto_renew: None,
+            edge_ca_subject: aziot_certd_config::CertSubject::CommonName(
+                "aziot-edge CA test-device".to_string(),
+            ),
         };
 
         // We won't use the renewal sender, but it must be created to construct the
@@ -341,6 +344,9 @@ mod tests {
                 edge_ca_cert: edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_string(),
                 edge_ca_key: edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_string(),
                 edge_ca_auto_renew: None,
+                edge_ca_subject: aziot_certd_config::CertSubject::CommonName(
+                    "aziot-edge CA test-device".to_string(),
+                )
             },
             config
         );
@@ -361,6 +367,9 @@ mod tests {
             edge_ca_cert: Some("test-ca-cert".to_string()),
             edge_ca_key: Some("test-ca-key".to_string()),
             edge_ca_auto_renew: None,
+            edge_ca_subject: Some(aziot_certd_config::CertSubject::CommonName(
+                "aziot-edge CA test-device".to_string(),
+            )),
             trust_bundle: Some("test-trust-bundle".to_string()),
             manifest_trust_bundle: Some("test-manifest-trust-bundle".to_string()),
         };
@@ -378,6 +387,9 @@ mod tests {
                 edge_ca_cert: "test-ca-cert".to_string(),
                 edge_ca_key: "test-ca-key".to_string(),
                 edge_ca_auto_renew: None,
+                edge_ca_subject: aziot_certd_config::CertSubject::CommonName(
+                    "aziot-edge CA test-device".to_string(),
+                )
             },
             config
         );
