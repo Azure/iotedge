@@ -1001,7 +1001,7 @@ stages:
 
                 #Create Release Page Before Publishing Artifacts in Parallel in the Next Job.
                 echo "Creating Release Page"
-                BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
+                BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/iotedge/edgelet/version.txt`
                 # BEARWASHERE -- Testing
                 sudo chmod +x $(Build.SourcesDirectory)/iotedge/scripts/linux/publishReleasePackages.sh 
                 $(Build.SourcesDirectory)/iotedge/scripts/linux/publishReleasePackages.sh -p ubuntu20.04 -w $(Build.SourcesDirectory)/iotedge -d $(Build.SourcesDirectory)/iotedge -v "$BASE_VERSION" -s "github.com" -b  $(Build.SourceBranch) --skip-upload true
