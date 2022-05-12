@@ -48,8 +48,11 @@ check_os() {
     elif [[ "$PACKAGE_OS" == "centos7" ]]; then
         OS_NAME="centos"
         OS_VERSION="7"
+    elif [[ "$PACKAGE_OS" == "windows" ]]; then
+        OS_NAME="windows"
+        OS_VERSION="10"
     else
-        echo "Unsupported OS $PACKAGE_OS"
+        echo "Unsupported OS: $PACKAGE_OS"
         exit 1
     fi
 }
@@ -121,7 +124,7 @@ process_args() {
 
 publish_to_microsoft_repo()
 {
-    #Cleanup
+#Cleanup
 sudo rm -rf $WDIR/private-key.pem || true
 sudo rm -rf $WDIR/$OS_NAME-$OS_VERSION-multi-aad.json || true
 
@@ -186,8 +189,8 @@ fi
 }
 
 publish_to_github()
-{   
-    #Investigate if this can be derived from a commit, Hardcode for now.
+{
+    # Investigate if this can be derived from a commit, Hardcode for now.
     if [[ -z $BRANCH_NAME ]]; then
         echo "No Branch Name Provided"
         exit 1
@@ -196,7 +199,7 @@ publish_to_github()
     branch_name=${BRANCH_NAME/"refs/heads/"/""}
     echo "Branch Name is $branch_name"
     
-     # Get the latest release from a given branch
+    # Get the latest release from a given branch
     echo "Fetch the latest release: "
     url="https://api.github.com/repos/Azure/iotedge/releases"
     header_content="Accept:application/vnd.github.v3+json"
@@ -213,6 +216,8 @@ publish_to_github()
     url="https://api.github.com/repos/Azure/azure-iotedge/releases"
     content=$(curl -X GET -H "$header_content" -H "$header_auth" "$url")
     
+    # TODO: Check if the repository is tagged with a given version. Otherwise, tag the commit with the releasing version
+
     # Check if Release Page has already been created
     release_created=$(echo $content | jq --arg version $VERSION '.[] | select(.name==$version)')
     
@@ -258,12 +263,18 @@ publish_to_github()
             case ${f##*.} in 
                 'deb')
                     mimetype="application/vnd.debian.binary-package"
-                    #Modify Name to be of form {name}_{os}_{arch}.{extension}
+                    # Modify Name to be of form {name}_{os}_{arch}.{extension}
                     name="${f%_*}_$PACKAGE_OS"
                     name+="_${f##*_}"
                     ;;
                 'rpm')
                     mimetype="application/x-rpm"
+                    ;;
+                'cab')
+                    mimetype="application/octet-stream"
+                    # Rename Microsoft-Azure-IoTEdge.cab --> Microsoft-Azure-IoTEdge-amd64.cab
+                    name="${f%.*}-amd64."
+                    name+="${f##*.}"
                     ;;
                 *)
                     mimetype="application/octet-stream"
@@ -273,7 +284,7 @@ publish_to_github()
             upload_url="https://uploads.github.com/repos/Azure/azure-iotedge/releases/$release_id/assets?name=$name"
             echo "Upload URL is $upload_url"
             echo "Mime Type is $mimetype"
-        
+
             response=$(curl -X POST -H "Content-Type:$mimetype" -H "$header_content" -H "$header_auth" "$upload_url" --data-binary @$DIR/$f)
             
             state=$(echo "$response" | jq '.state')
