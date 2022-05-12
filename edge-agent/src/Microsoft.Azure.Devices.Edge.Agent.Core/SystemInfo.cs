@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public class SystemInfo
     {
-        public SystemInfo(string operatingSystemType, string architecture, string version, ProvisioningInfo provisioning, string serverVersion, string kernelVersion, string operatingSystem, int numCpus, string virtualized, IDictionary<string, object> additionalProperties)
+        public SystemInfo(string operatingSystemType, string architecture, string version, ProvisioningInfo provisioning, string serverVersion, string kernelVersion, string operatingSystem, int numCpus, string virtualized, IReadOnlyDictionary<string, object> additionalProperties)
         {
             this.OperatingSystemType = operatingSystemType;
             this.Architecture = architecture;
@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             this.AdditionalProperties = additionalProperties;
         }
 
-        public SystemInfo(string operatingSystemType, string architecture, string version, IDictionary<string, object> additionalProperties)
+        public SystemInfo(string operatingSystemType, string architecture, string version, IReadOnlyDictionary<string, object> additionalProperties)
             : this(operatingSystemType, architecture, version, ProvisioningInfo.Empty, string.Empty, string.Empty, string.Empty, 0, string.Empty, additionalProperties)
         {
         }
@@ -53,23 +53,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public string Virtualized { get; }
 
-        // NOTE: changed to IDictionary from IReadOnlyDictionary since the
-        // latter cannot be used as extension data.  Likewise for <string,
-        // object> from <string, string>.
-        [Newtonsoft.Json.JsonExtensionData]
-        public IDictionary<string, object> AdditionalProperties { get; }
+        [Newtonsoft.Json.JsonIgnore]
+        public IReadOnlyDictionary<string, object> AdditionalProperties { get; }
 
         public string ToQueryString()
         {
-            StringBuilder b = new StringBuilder();
-
-            foreach (PropertyInfo property in this.GetType().GetProperties())
-            {
-                if (property.PropertyType == typeof(string) || property.PropertyType == typeof(int))
-                {
-                    b.Append($"{property.Name}={UrlEncode(property.GetValue(this)?.ToString() ?? string.Empty)};");
-                }
-            }
+            StringBuilder b = new StringBuilder()
+                .Append($"kernel={UrlEncode(this.OperatingSystemType ?? string.Empty)};")
+                .Append($"architecture={UrlEncode(this.Architecture ?? string.Empty)};")
+                .Append($"version={UrlEncode(this.Version ?? string.Empty)};")
+                .Append($"server_version={UrlEncode(this.ServerVersion ?? string.Empty)};")
+                .Append($"kernel_version={UrlEncode(this.KernelVersion ?? string.Empty)};")
+                .Append($"operating_system={UrlEncode(this.OperatingSystem ?? string.Empty)};")
+                .Append($"cpus={this.NumCpus};")
+                .Append($"virtualized={UrlEncode(this.Virtualized ?? string.Empty)};");
 
             if (this.AdditionalProperties != null)
             {

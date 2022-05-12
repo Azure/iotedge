@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public void NullEntryTest()
         {
             Assert.Equal(
-                "OperatingSystemType=;Architecture=;Version=;ServerVersion=;KernelVersion=;OperatingSystem=;NumCpus=0;Virtualized=;",
+                "kernel=;architecture=;version=;server_version=;kernel_version=;operating_system=;cpus=0;virtualized=;",
                 new SystemInfo(null, null, null, null, null, null, null, 0, null, null).ToQueryString());
         }
 
@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public void BasicValueTest()
         {
             Assert.Equal(
-                "OperatingSystemType=A;Architecture=B;Version=C;ServerVersion=D;KernelVersion=E;OperatingSystem=F;NumCpus=0;Virtualized=G;",
+                "kernel=A;architecture=B;version=C;server_version=D;kernel_version=E;operating_system=F;cpus=0;virtualized=G;",
                 new SystemInfo("A", "B", "C", ProvisioningInfo.Empty, "D", "E", "F", 0, "G", new Dictionary<string, object>()).ToQueryString());
         }
 
@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public void EncodedValueTest()
         {
             Assert.Equal(
-                "OperatingSystemType=A+A;Architecture=B%2BB;Version=C+C;ServerVersion=D%2BD;KernelVersion=E+E;OperatingSystem=F%2BF;NumCpus=0;Virtualized=G+G;",
+                "kernel=A+A;architecture=B%2BB;version=C+C;server_version=D%2BD;kernel_version=E+E;operating_system=F%2BF;cpus=0;virtualized=G+G;",
                 new SystemInfo("A A", "B+B", "C C", ProvisioningInfo.Empty, "D+D", "E E", "F+F", 0, "G G", new Dictionary<string, object>()).ToQueryString());
         }
 
@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             properties.Add("third", "3");
 
             Assert.Equal(
-                "OperatingSystemType=A;Architecture=B;Version=C;ServerVersion=;KernelVersion=;OperatingSystem=;NumCpus=0;Virtualized=;"
+                "kernel=A;architecture=B;version=C;server_version=;kernel_version=;operating_system=;cpus=0;virtualized=;"
                 + "first=1;second=2;third=3;",
                 new SystemInfo("A", "B", "C", new ReadOnlyDictionary<string, object>(properties)).ToQueryString());
         }
@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             properties.Add("third", "3");
 
             Assert.Equal(
-                "OperatingSystemType=A;Architecture=B;Version=C;ServerVersion=;KernelVersion=;OperatingSystem=;NumCpus=0;Virtualized=;"
+                "kernel=A;architecture=B;version=C;server_version=;kernel_version=;operating_system=;cpus=0;virtualized=;"
                 + "first=1;second=2;third=3;",
                 new SystemInfo("A", "B", "C", new ReadOnlyDictionary<string, object>(properties)).ToQueryString());
         }
@@ -79,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             properties.Add("third", "3");
 
             Assert.Equal(
-                "OperatingSystemType=A;Architecture=B;Version=C;ServerVersion=;KernelVersion=;OperatingSystem=;NumCpus=0;Virtualized=;"
+                "kernel=A;architecture=B;version=C;server_version=;kernel_version=;operating_system=;cpus=0;virtualized=;"
                 + "first=1;second=;third=3;",
                 new SystemInfo("A", "B", "C", new ReadOnlyDictionary<string, object>(properties)).ToQueryString());
         }
@@ -95,14 +95,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             properties.Add("third third", "3+3");
 
             Assert.Equal(
-                "OperatingSystemType=A;Architecture=B;Version=C;ServerVersion=;KernelVersion=;OperatingSystem=;NumCpus=0;Virtualized=;"
+                "kernel=A;architecture=B;version=C;server_version=;kernel_version=;operating_system=;cpus=0;virtualized=;"
                 + "first+first=1%2B1;second%2Bsecond=2+2;third+third=3%2B3;",
                 new SystemInfo("A", "B", "C", new ReadOnlyDictionary<string, object>(properties)).ToQueryString());
         }
 
         [Fact]
         [Unit]
-        public void FlattenedSerializationTest()
+        public void MetricsSerializationTest()
         {
             Dictionary<string, object> properties = new Dictionary<string, object>();
 
@@ -112,7 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
             SystemInfo systemInfo = new SystemInfo("A", "B", "C", new ReadOnlyDictionary<string, object>(properties));
             Assert.Equal(
-                @"{""OperatingSystemType"":""A"",""Architecture"":""B"",""Version"":""C"",""Provisioning"":{""Type"":"""",""DynamicReprovisioning"":false},""ServerVersion"":"""",""KernelVersion"":"""",""OperatingSystem"":"""",""NumCpus"":0,""Virtualized"":"""",""first"":""1"",""second"":""2"",""third"":""3""}",
+                @"{""OperatingSystemType"":""A"",""Architecture"":""B"",""Version"":""C"",""Provisioning"":{""Type"":"""",""DynamicReprovisioning"":false},""ServerVersion"":"""",""KernelVersion"":"""",""OperatingSystem"":"""",""NumCpus"":0,""Virtualized"":""""}",
                 Newtonsoft.Json.JsonConvert.SerializeObject(systemInfo));
         }
     }
