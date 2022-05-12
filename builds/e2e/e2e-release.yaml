@@ -34,8 +34,6 @@ stages:
           identityServiceArtifactName: packages_debian-11-slim_arm32v7
           identityServicePackageFilter: aziot-identity-service_*_armhf.deb
           builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
-          # skip notary installation as it is not supported for ARM platforms
-          skip_notary: true
 
         timeoutInMinutes: 120
 
@@ -68,7 +66,6 @@ stages:
           identityServiceArtifactName: packages_ubuntu-18.04_amd64
           identityServicePackageFilter: aziot-identity-service_*_amd64.deb
           builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
-          skip_notary: false
 
         steps:
         - template: templates/e2e-setup-base-image-update-release.yaml
@@ -93,7 +90,6 @@ stages:
           identityServicePackageFilter: aziot-identity-service_*_amd64.deb
           builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
           minimal: true
-          skip_notary: false
 
         steps:
         - template: templates/e2e-setup-base-image-update-release.yaml
@@ -117,7 +113,6 @@ stages:
           identityServiceArtifactName: packages_ubuntu-20.04_amd64
           identityServicePackageFilter: aziot-identity-service_*_amd64.deb
           builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
-          skip_notary: false
 
         steps:
         - template: templates/e2e-setup-base-image-update-release.yaml
@@ -141,7 +136,6 @@ stages:
           identityServicePackageFilter: aziot-identity-service_*_amd64.deb
           builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
           minimal: true
-          skip_notary: false
 
         steps:
         - template: templates/e2e-setup-base-image-update-release.yaml
@@ -163,8 +157,6 @@ stages:
           identityServiceArtifactName: packages_ubuntu-20.04_aarch64
           identityServicePackageFilter: aziot-identity-service_*_arm64.deb
           builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
-          # skip notary installation as it is not supported for ARM platforms
-          skip_notary: true
 
         timeoutInMinutes: 120
 
