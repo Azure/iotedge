@@ -1011,7 +1011,7 @@ stages:
                 source $(Build.SourcesDirectory)/iotedge/scripts/linux/github/updateLatestVersion.sh
                 VERSION=$BASE_VERSION
                 # BEARWASHERE -- Disabled for testing
-                # github_update_and_push
+                github_update_and_push
               env:
                 GITHUB_PAT: "$(GitHubAccessToken)"
                 AZURE_IOTEDGE_REPO_PATH: "$(Build.SourcesDirectory)/azure-iotedge"
