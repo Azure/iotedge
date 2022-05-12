@@ -74,24 +74,26 @@ stages:
             # git push https://<GITHUB_ACCESS_TOKEN>@github.com/<GITHUB_USERNAME>/<REPOSITORY_NAME>.git
 
             echo "cd $(Build.SourcesDirectory)/azure-iotedge"
-            cd $(Build.SourcesDirectory)/azure-iotedge
+            # cd $(Build.SourcesDirectory)/azure-iotedge
 
-            gitCmd="git remote -vv"
-            echo "$gitCmd"
-            $gitCmd || true
+            # gitCmd="git remote -vv"
+            # echo "$gitCmd"
+            # $gitCmd || true
 
-            gitCmd="git branch -vv"
-            echo "$gitCmd"
-            $gitCmd || true
+            # gitCmd="git branch -vv"
+            # echo "$gitCmd"
+            # $gitCmd || true
 
-            gitCmd="git checkout main"
-            echo "$gitCmd"
-            $gitCmd || true
+            # gitCmd="git checkout main"
+            # echo "$gitCmd"
+            # $gitCmd || true
 
-            echo "BearTest $(Build.BuildId)" > ./tools/test$(Build.BuildId)
-            git add ./tools/test$(Build.BuildId)
-            git commit -am "Testing $(Build.BuildId)"
-            git push https://$GITHUB_PAT@github.com/Azure/azure-iotedge.git
+            # echo "BearTest $(Build.BuildId)" > ./tools/test$(Build.BuildId)
+            # git add ./tools/test$(Build.BuildId)
+            # git commit -am "Testing $(Build.BuildId)"
+            # git push https://$GITHUB_PAT@github.com/Azure/azure-iotedge.git
+
+            echo "pwd: $(pwd)"
 
         env:
             GITHUB_PAT: "$(GitHubAccessToken)"
