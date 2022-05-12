@@ -194,17 +194,13 @@ publish_to_github()
         echo "No Branch Name Provided"
         exit 1
     fi
-    
+
     branch_name=${BRANCH_NAME/"refs/heads/"/""}
     echo "Branch Name is $branch_name"
-    
-    # Get the latest release from a given branch
-    echo "Fetch the latest release: "
-    url="https://api.github.com/repos/Azure/iotedge/releases"
-    header_content="Accept:application/vnd.github.v3+json"
-    header_auth="Authorization:token $GITHUB_PAT"
-    content=$(curl -X GET -H "$header_content" -H "$header_auth" "$url")
-    latest_release=$(echo $content | jq --arg branch "$branch_name" '[.[] | select(.target_commitish==$branch)][0]' | jq '.name' | tr -d '"')
+
+    # Note: $(pwd) is the $(Build.SourcesDirectory)
+    source ./iotedge/scripts/linux/github/updateLatestVersion.sh
+    latest_release=$(get_latest_release_per_branch_name)
     echo "Latest Release is $latest_release"
 
     if [[ -z $latest_release || $latest_release == null ]];then
@@ -213,9 +209,9 @@ publish_to_github()
     fi
     
     url="https://api.github.com/repos/Azure/azure-iotedge/releases"
+    header_content="Accept:application/vnd.github.v3+json"
+    header_auth="Authorization:token $GITHUB_PAT"
     content=$(curl -X GET -H "$header_content" -H "$header_auth" "$url")
-    
-    # TODO: Check if the repository is tagged with a given version. Otherwise, tag the commit with the releasing version
 
     # Check if Release Page has already been created
     release_created=$(echo $content | jq --arg version $VERSION '.[] | select(.name==$version)')
@@ -238,10 +234,12 @@ publish_to_github()
         sed -i "$ d" $WDIR/content.txt
 
         #Create Release Page
-        #  This unintentionally create a github tag associate with the latest commit which is an undesired behavior. 
-        #  We will need to update the tag to the proper commit once the /azure-iotege latest json are ready to go.
         url="https://api.github.com/repos/Azure/azure-iotedge/releases"
-        body=$(jq -n --arg version "$VERSION" --arg body "$(cat $WDIR/content.txt)" '{tag_name: $version, name: $version, target_commitish:"main", draft: true, body: $body}')
+        reqBody='{tag_name: $version, name: $version, target_commitish:"main", draft: true, body: $body}'
+        if [[ $SKIP_UPLOAD == "false" ]]; then
+            reqBody='{tag_name: $version, name: $version, target_commitish:"main", body: $body}'
+        fi
+        body=$(jq -n --arg version "$VERSION" --arg body "$(cat $WDIR/content.txt)" "$reqBody")
         sudo rm -rf $WDIR/content.txt
         
         echo "Body for Release is $body"
