@@ -265,7 +265,7 @@ stages:
             imageName: azureiotedge-metrics-collector
             project: Microsoft.Azure.Devices.Edge.Azure.Monitor
             buildx_flag: 'true'
-  
+
 ################################################################################
       - job: windows
 ################################################################################
@@ -465,7 +465,25 @@ stages:
                 imageName: azureiotedge-metrics-collector
                 project: Microsoft.Azure.Devices.Edge.Azure.Monitor
                 version: $(Build.BuildNumber)
-      
+
+          # linux - Rust amd64
+            - template: templates/image-linux-rust-jobs.yaml
+              parameters:
+                archName: amd64
+                targetArch: x86_64
+
+          # linux - Rust arm32
+            - template: templates/image-linux-rust-jobs.yaml
+              parameters:
+                archName: arm32
+                targetArch: armv7l
+
+          # linux - Rust arm64
+            - template: templates/image-linux-rust-jobs.yaml
+              parameters:
+                archName: arm64
+                targetArch: aarch64
+
 ################################################################################
       - job: manifest
 ################################################################################
@@ -495,3 +513,5 @@ stages:
             displayName: 'Publish azureiotedge-diagnostics Manifest'
           - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/metrics-collector/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
             displayName: 'Publish azureiotedge-metrics-collector Manifest'
+          - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edgelet/iotedged/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+            displayName: 'Publish azureiotedge-iotedged Manifest'
