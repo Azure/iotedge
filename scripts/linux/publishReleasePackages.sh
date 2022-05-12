@@ -234,7 +234,8 @@ publish_to_github()
         sed -i "$ d" $WDIR/content.txt
 
         #Create Release Page
-        url="https://api.github.com/repos/Azure/azure-iotedge/releases"
+        # BEARWASHERE -- Disabled for testing
+        url="https://api.github.com/repos/yophilav/azure-iotedge/releases"
         reqBody='{tag_name: $version, name: $version, target_commitish:"main", draft: true, body: $body}'
         if [[ $SKIP_UPLOAD == "false" ]]; then
             reqBody='{tag_name: $version, name: $version, target_commitish:"main", body: $body}'
