@@ -1077,9 +1077,10 @@ stages:
             os: ubuntu20.04
             artifactName: iotedged-ubuntu20.04-aarch64
 
-          Windows-amd64:
-            os: windows
-            artifactName: iotedged-windows-amd64
+          # BEARWASHERE -- Testing
+          # Windows-amd64:
+          #   os: windows
+          #   artifactName: iotedged-windows-amd64
 
       steps:
         - task: AzureKeyVault@1
