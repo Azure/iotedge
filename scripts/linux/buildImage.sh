@@ -183,19 +183,15 @@ docker_build_and_tag_and_push() {
     'arm64v8') platform='linux/arm64' ;;
     esac
 
+    docker buildx create --use --bootstrap
     docker buildx ls
-    docker buildx prune --all --force
-
-    docker buildx create --use --bootstrap --name mybuilder
 
     docker buildx build \
-        --load \
         --no-cache \
         --platform $platform \
         --build-arg 'EXE_DIR=.' \
-        --tag $image \
-        --metadata-file metadata.json \
         --file $dockerfile \
+        --output=type=image,name=$image,buildinfo-attrs=true \
         $context_path
 
     if [[ $? -ne 0 ]]; then
