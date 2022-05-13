@@ -1,5 +1,4 @@
-ARG base_tag=6.0-focal-arm64v8
-FROM mcr.microsoft.com/dotnet/aspnet:${base_tag}
+FROM mcr.microsoft.com/dotnet/aspnet:6.0-focal-arm64v8
 
 RUN apt-get update && \
     apt-get install -y libsnappy1v5 && \

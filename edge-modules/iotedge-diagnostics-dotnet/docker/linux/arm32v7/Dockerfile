@@ -1,5 +1,4 @@
-ARG base_tag=6.0-focal-arm32v7
-FROM mcr.microsoft.com/dotnet/runtime:${base_tag}
+FROM mcr.microsoft.com/dotnet/runtime:6.0-focal-arm32v7
 
 ARG EXE_DIR=.
 

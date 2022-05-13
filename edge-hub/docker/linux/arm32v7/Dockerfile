@@ -1,5 +1,4 @@
-ARG base_tag=6.0-focal-arm32v7
-FROM mcr.microsoft.com/dotnet/aspnet:${base_tag}
+FROM mcr.microsoft.com/dotnet/aspnet:6.0-focal-arm32v7
 
 # Add an unprivileged user account for running Edge Hub
 # value was chosen as a large value to avoid a typical regular uid

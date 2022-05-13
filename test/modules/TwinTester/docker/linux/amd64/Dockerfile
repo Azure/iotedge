@@ -1,6 +1,4 @@
-﻿ARG base_tag=6.0-alpine
-
-FROM mcr.microsoft.com/dotnet/runtime:${base_tag}
+﻿FROM mcr.microsoft.com/dotnet/runtime:6.0-alpine
 
 ARG EXE_DIR=.
 
