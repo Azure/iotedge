@@ -1097,6 +1097,7 @@ stages:
             keyVaultName: $(kv.name)
             secretsFilter: >-
               GitHubAccessToken
+        - checkout: self
         - task: DownloadPipelineArtifact@2
           displayName: Download Pipeline Build Packages
           inputs:
