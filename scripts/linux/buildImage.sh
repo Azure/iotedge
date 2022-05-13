@@ -175,7 +175,6 @@ docker_build_and_tag_and_push() {
     fi
 
     image="$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch"
-    echo "Building image '$image'"
 
     case "$arch" in
     'amd64') platform='linux/amd64' ;;
@@ -183,29 +182,26 @@ docker_build_and_tag_and_push() {
     'arm64v8') platform='linux/arm64' ;;
     esac
 
+    if [[ ${SKIP_PUSH} -ne 0 ]]; then
+        echo "Can't build without push, sorry..."
+        exit 1
+    fi
+
     docker buildx create --use --bootstrap
     docker buildx ls
 
+    echo "Building and pushing image '$image'"
     docker buildx build \
         --no-cache \
         --platform $platform \
         --build-arg 'EXE_DIR=.' \
         --file $dockerfile \
-        --output=type=image,name=$image,buildinfo-attrs=true \
+        --output=type=image,name=$image,buildinfo-attrs=true,push=true \
         $context_path
 
     if [[ $? -ne 0 ]]; then
         echo "Docker build failed with exit code $?"
         exit 1
-    fi
-
-    if [[ ${SKIP_PUSH} -eq 0 ]]; then
-        echo "Pushing image '$image'"
-        docker push $image
-        if [[ $? -ne 0 ]]; then
-            echo "Docker push failed with exit code $?"
-            exit 1
-        fi
     fi
 
     return $?
