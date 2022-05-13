@@ -275,6 +275,10 @@ github_update_and_push()
 
     cd $AZURE_IOTEDGE_REPO_PATH
     git config user.name iotedge1
+
+    # BEARWASHERE -- Testing
+    git checkout -b "yophilav/testing$(date +%s)"
+
     git commit -am "Prepare for Release $VERSION"
     lastCommitHash=$(git log -n 1 --pretty=format:"%H")
     git tag "$VERSION" $lastCommitHash
