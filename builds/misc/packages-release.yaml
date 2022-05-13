@@ -999,7 +999,7 @@ stages:
             - bash: |
                 echo "Approval Complete"
 
-                BASE_VERSION="cat $BUILD_SOURCESDIRECTORY/iotedge/edgelet/version.txt"
+                BASE_VERSION="$(cat $BUILD_SOURCESDIRECTORY/iotedge/edgelet/version.txt)"
                 VERSION="$BASE_VERSION"
                 AZURE_IOTEDGE_REPO_PATH="$(Build.SourcesDirectory)/azure-iotedge"
                 IOTEDGE_REPO_PATH="$(Build.SourcesDirectory)/iotedge"
@@ -1017,6 +1017,7 @@ stages:
                 # Update Github and tag
                 sudo chmod +x $(Build.SourcesDirectory)/iotedge/scripts/linux/github/updateLatestVersion.sh
                 source $(Build.SourcesDirectory)/iotedge/scripts/linux/github/updateLatestVersion.sh
+                update_latest_version_json
 
                 # BEARWASHERE -- Disabled for testing
                 github_update_and_push
