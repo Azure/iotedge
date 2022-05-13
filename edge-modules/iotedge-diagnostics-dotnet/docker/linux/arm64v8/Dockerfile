@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.4
+
 FROM mcr.microsoft.com/dotnet/runtime:6.0-focal-arm64v8
 
 ARG EXE_DIR=.

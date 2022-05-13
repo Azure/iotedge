@@ -1,4 +1,6 @@
-﻿# Use the same base image as prod edgehub images
+﻿# syntax=docker/dockerfile:1.4
+
+# Use the same base image as prod edgehub images
 FROM mcr.microsoft.com/dotnet/aspnet:6.0-alpine
 
 ADD ./x86_64-unknown-linux-musl/release/mqttd /usr/local/bin/mqttd
