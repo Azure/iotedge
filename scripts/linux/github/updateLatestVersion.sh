@@ -269,7 +269,7 @@ update_latest_version_json()
 #######################################
 github_update_and_push()
 {
-    [[ -z "$AZURE_IOTEDGE_REPO_PATH" ]] && { echo "\$IOTEDGE_REPO_PATH is undefined"; exit 1; }
+    [[ -z "$AZURE_IOTEDGE_REPO_PATH" ]] && { echo "\$AZURE_IOTEDGE_REPO_PATH is undefined"; exit 1; }
     [[ -z "$VERSION" ]] && { echo "\$VERSION is undefined"; exit 1; }
     [[ -z "$GITHUB_PAT" ]] && { echo "\$GITHUB_PAT is undefined"; exit 1; }
 
