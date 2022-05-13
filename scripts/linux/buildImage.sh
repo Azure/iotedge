@@ -182,21 +182,23 @@ docker_build_and_tag_and_push() {
     'arm64v8') platform='linux/arm64' ;;
     esac
 
-    if [[ ${SKIP_PUSH} -ne 0 ]]; then
-        echo "Can't build without push, sorry..."
-        exit 1
-    fi
-
     docker buildx create --use --bootstrap
     docker buildx ls
 
-    echo "Building and pushing image '$image'"
+    if [[ ${SKIP_PUSH} -eq 0 ]]; then
+        attrs='type=image,push=true'
+        echo "Building and pushing image '$image'"
+    else
+        attrs='type=docker'
+        echo "Building image '$image', skipping push"
+    fi
+
     docker buildx build \
         --no-cache \
         --platform $platform \
         --build-arg 'EXE_DIR=.' \
         --file $dockerfile \
-        --output=type=image,name=$image,buildinfo-attrs=true,push=true \
+        --output=$attrs,name=$image,buildinfo-attrs=true \
         $context_path
 
     if [[ $? -ne 0 ]]; then
