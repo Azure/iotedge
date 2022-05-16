@@ -234,8 +234,7 @@ publish_to_github()
         sed -i "$ d" $WDIR/content.txt
 
         #Create Release Page
-        # BEARWASHERE -- Testing
-        url="https://api.github.com/repos/yophilav/azure-iotedge/releases"
+        url="https://api.github.com/repos/Azure/azure-iotedge/releases"
         reqBody='{tag_name: $version, name: $version, target_commitish:"main", draft: true, body: $body}'
         if [[ $SKIP_UPLOAD == "false" ]]; then
             reqBody='{tag_name: $version, name: $version, target_commitish:"main", body: $body}'
@@ -279,9 +278,8 @@ publish_to_github()
                     mimetype="application/octet-stream"
                     ;;
             esac
-            # BEARWASHERE -- Testing
-            upload_url="https://uploads.github.com/repos/yophilav/azure-iotedge/releases/$release_id/assets?name=$name"
-            #upload_url="https://uploads.github.com/repos/Azure/azure-iotedge/releases/$release_id/assets?name=$name"
+
+            upload_url="https://uploads.github.com/repos/Azure/azure-iotedge/releases/$release_id/assets?name=$name"
             echo "Upload URL is $upload_url"
             echo "Mime Type is $mimetype"
 

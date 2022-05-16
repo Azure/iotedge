@@ -218,35 +218,9 @@ update_latest_version_json()
         echo "I'm pretty sure you don't want to release from the main branch."
         exit 1;
     else
-        # echo "Oh dear, how did you get here?!?"
-        # echo "Let me not let you do the release from your pull request branch"
-        # exit 1;
-
-        # BEARWASHERE -- Testing
-        # Set target version file to be updated
-        TARGET_IE_FILE="$AZURE_IOTEDGE_REPO_PATH/latest-iotedge-lts.json"
-
-        # Get all the relevant version to be verified
-        proposedEdgeletVersion=$(cat $IOTEDGE_REPO_PATH/edgelet/version.txt)
-        proposedImageVersion=$(cat $IOTEDGE_REPO_PATH/versionInfo.json | jq ".version" | tr -d '"')
-
-        content=$(cat $AZURE_IOTEDGE_REPO_PATH/latest-iotedge-lts.json)
-        latestEdgeletVersion=$(echo $content | jq ".iotedged" | tr -d '"')
-        latestImageVersion=$(echo $content | jq '."azureiotedge-agent"' | tr -d '"')
-
-        # Verify
-        echo "Sanity check iotedge version"
-        version_sanity_check $proposedEdgeletVersion $latestEdgeletVersion
-        echo "Sanity check docker image version"
-        version_sanity_check $proposedImageVersion $latestImageVersion
-
-        # Rewriting the latest-iotedge-lts.json
-        jqQuery=".iotedged = \"$proposedEdgeletVersion\" | .\"azureiotedge-agent\" = \"$proposedImageVersion\" | .\"azureiotedge-hub\" = \"$proposedImageVersion\""
-        echo $content | jq "$jqQuery" > $TARGET_IE_FILE
-
-        # Pring log for debugging
-        echo "Update $TARGET_IE_FILE:"
-        cat $TARGET_IE_FILE | jq '.'
+        echo "Oh dear, how did you get here?!?"
+        echo "Let me not let you do the release from your pull request branch"
+        exit 1;
     fi
 }
 
@@ -276,13 +250,13 @@ github_update_and_push()
     cd $AZURE_IOTEDGE_REPO_PATH
     git config user.name iotedge1
 
-    # BEARWASHERE -- Testing
-    git checkout -b "yophilav/testing$(date +%s)"
+    git checkout main
+    git pull
 
     git commit -am "Prepare for Release $VERSION"
     lastCommitHash=$(git log -n 1 --pretty=format:"%H")
     git tag "$VERSION" $lastCommitHash
     # BEARWASHERE -- Testing
-    git push https://$GITHUB_PAT@github.com/yophilav/azure-iotedge.git
-    git push https://$GITHUB_PAT@github.com/yophilav/azure-iotedge.git "$VERSION"
+    git push https://$GITHUB_PAT@github.com/Azure/azure-iotedge.git
+    git push https://$GITHUB_PAT@github.com/Azure/azure-iotedge.git "$VERSION"
 }
