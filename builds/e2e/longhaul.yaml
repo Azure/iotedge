@@ -108,9 +108,9 @@ jobs:
     steps:
       - template: templates/longhaul-setup.yaml
         parameters:
-          edgelet.artifact.name: 'iotedged-debian9-arm32v7'
+          edgelet.artifact.name: 'iotedged-debian11-arm32v7'
           images.artifact.name: '$(images.artifact.name.linux)'
-          aziotis.artifact.name: 'packages_debian-9-slim_arm32v7'
+          aziotis.artifact.name: 'packages_debian-11-slim_arm32v7'
           aziotis.package.filter: 'aziot-identity-service_*_armhf.deb'
           quickstart.artifactName: 'IotEdgeQuickstart.linux-arm.tar.gz'
       - template: templates/longhaul-deploy.yaml
@@ -169,9 +169,9 @@ jobs:
     steps:
       - template: templates/longhaul-setup.yaml
         parameters:
-          edgelet.artifact.name: 'iotedged-debian9-arm32v7'
+          edgelet.artifact.name: 'iotedged-debian11-arm32v7'
           images.artifact.name: '$(images.artifact.name.linux)'
-          aziotis.artifact.name: 'packages_debian-9-slim_arm32v7'
+          aziotis.artifact.name: 'packages_debian-11-slim_arm32v7'
           aziotis.package.filter: 'aziot-identity-service_*_armhf.deb'
           quickstart.artifactName: 'IotEdgeQuickstart.linux-arm.tar.gz'
       - template: templates/longhaul-deploy.yaml
