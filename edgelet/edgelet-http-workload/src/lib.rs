@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+mod edge_ca;
 mod module;
 mod trust_bundle;
 
@@ -30,6 +31,12 @@ where
     identity_client: std::sync::Arc<futures_util::lock::Mutex<IdentityClient>>,
 
     runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
+    renewal_tx: tokio::sync::mpsc::UnboundedSender<edgelet_core::WatchdogAction>,
+    renewal_engine: Option<
+        std::sync::Arc<
+            futures_util::lock::Mutex<cert_renewal::RenewalEngine<edge_ca::EdgeCaRenewal>>,
+        >,
+    >,
     config: WorkloadConfig,
 }
 
@@ -41,6 +48,7 @@ where
     pub fn new(
         settings: &impl edgelet_settings::RuntimeSettings,
         runtime: M,
+        renewal_tx: tokio::sync::mpsc::UnboundedSender<edgelet_core::WatchdogAction>,
         device_info: &aziot_identity_common::AzureIoTSpec,
     ) -> Result<Self, http_common::ConnectorError> {
         let endpoints = settings.endpoints();
@@ -72,31 +80,105 @@ where
         let runtime = std::sync::Arc::new(futures_util::lock::Mutex::new(runtime));
         let config = WorkloadConfig::new(settings, device_info);
 
+        let renewal_engine = if config.edge_ca_auto_renew.is_some() {
+            let engine = cert_renewal::engine::new();
+
+            Some(engine)
+        } else {
+            None
+        };
+
         Ok(Service {
             key_connector,
             key_client,
             cert_client,
             identity_client,
             runtime,
+            renewal_tx,
+            renewal_engine,
             config,
         })
     }
 
     pub async fn check_edge_ca(&self) -> Result<(), String> {
-        let key_handle =
-            module::cert::edge_ca_key_handle(self.key_client.clone(), &self.config.edge_ca_key)
-                .await
-                .map_err(|err| err.message)?;
+        // Create the Edge CA if it does not exist.
+        let key_handle = {
+            let key_client = self.key_client.lock().await;
 
-        module::cert::check_edge_ca(
-            self.cert_client.clone(),
-            &self.config.edge_ca_cert,
-            &self.config.device_id,
-            &key_handle,
-            self.key_connector.clone(),
-        )
-        .await
-        .map_err(|err| err.message)?;
+            key_client
+                .create_key_pair_if_not_exists(&self.config.edge_ca_key, Some("rsa-2048:*"))
+                .await
+                .map_err(|err| err.to_string())?
+        };
+
+        {
+            let cert_client = self.cert_client.lock().await;
+
+            if cert_client
+                .get_cert(&self.config.edge_ca_cert)
+                .await
+                .is_err()
+            {
+                log::info!("Requesting new Edge CA certificate...");
+
+                let keys = edge_ca::keys(self.key_connector.clone(), &key_handle)?;
+                let extensions = edge_ca::extensions()
+                    .map_err(|_| "failed to set edge ca csr extensions".to_string())?;
+
+                let common_name = format!("aziot-edge CA {}", self.config.device_id);
+                let csr = module::cert::new_csr(common_name, keys, Vec::new(), extensions)
+                    .map_err(|_| "failed to generate edge ca csr".to_string())?;
+
+                cert_client
+                    .create_cert(&self.config.edge_ca_cert, &csr, None)
+                    .await
+                    .map_err(|_| "failed to create edge ca cert".to_string())?;
+
+                log::info!("Created new Edge CA certificate");
+            } else {
+                log::info!("Using existing Edge CA certificate");
+            }
+        }
+
+        if let Some(engine) = &self.renewal_engine {
+            let policy = self
+                .config
+                .edge_ca_auto_renew
+                .as_ref()
+                .expect("auto renew config should exist if engine exists")
+                .policy
+                .to_owned();
+
+            let rotate_key = self
+                .config
+                .edge_ca_auto_renew
+                .as_ref()
+                .expect("auto renew config should exist if engine exists")
+                .rotate_key;
+
+            let interface = edge_ca::EdgeCaRenewal::new(
+                rotate_key,
+                &self.config,
+                self.cert_client.clone(),
+                self.key_client.clone(),
+                self.key_connector.clone(),
+                self.renewal_tx.clone(),
+            );
+
+            cert_renewal::engine::add_credential(
+                engine,
+                &self.config.edge_ca_cert,
+                &self.config.edge_ca_key,
+                policy,
+                interface,
+            )
+            .await
+            .map_err(|err| format!("failed to configure Edge CA auto renew: {}", err))?;
+        } else {
+            log::warn!(
+                "Auto renewal of the Edge CA is not configured. Edge CA will not be automatically renewed",
+            );
+        }
 
         Ok(())
     }
@@ -126,7 +208,14 @@ where
             manifest_trust_bundle: "test-manifest-trust-bundle".to_string(),
             edge_ca_cert: "test-ca-cert".to_string(),
             edge_ca_key: "test-ca-key".to_string(),
+            edge_ca_auto_renew: None,
         };
+
+        // We won't use the renewal sender, but it must be created to construct the
+        // Service struct. Note that we drop the renewal receiver, which will cause
+        // tests to panic if they use the renewal sender.
+        let (renewal_tx, _) =
+            tokio::sync::mpsc::unbounded_channel::<edgelet_core::WatchdogAction>();
 
         Service {
             key_connector,
@@ -134,6 +223,8 @@ where
             cert_client,
             identity_client,
             runtime,
+            renewal_tx,
+            renewal_engine: None,
             config,
         }
     }
@@ -172,6 +263,7 @@ struct WorkloadConfig {
 
     edge_ca_cert: String,
     edge_ca_key: String,
+    edge_ca_auto_renew: Option<cert_renewal::AutoRenewConfig>,
 }
 
 impl WorkloadConfig {
@@ -197,6 +289,7 @@ impl WorkloadConfig {
             .edge_ca_key()
             .unwrap_or(edgelet_settings::AZIOT_EDGED_CA_ALIAS)
             .to_string();
+        let edge_ca_auto_renew = settings.edge_ca_auto_renew().to_owned();
 
         WorkloadConfig {
             hub_name: device_info.hub_name.clone(),
@@ -207,6 +300,7 @@ impl WorkloadConfig {
 
             edge_ca_cert,
             edge_ca_key,
+            edge_ca_auto_renew,
         }
     }
 }
@@ -238,6 +332,7 @@ mod tests {
 
                 edge_ca_cert: edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_string(),
                 edge_ca_key: edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_string(),
+                edge_ca_auto_renew: None,
             },
             config
         );
@@ -257,6 +352,7 @@ mod tests {
         let settings = edgelet_test_utils::Settings {
             edge_ca_cert: Some("test-ca-cert".to_string()),
             edge_ca_key: Some("test-ca-key".to_string()),
+            edge_ca_auto_renew: None,
             trust_bundle: Some("test-trust-bundle".to_string()),
             manifest_trust_bundle: Some("test-manifest-trust-bundle".to_string()),
         };
@@ -273,6 +369,7 @@ mod tests {
 
                 edge_ca_cert: "test-ca-cert".to_string(),
                 edge_ca_key: "test-ca-key".to_string(),
+                edge_ca_auto_renew: None,
             },
             config
         );

@@ -1,7 +1,8 @@
-ARG base_tag=6.0-focal-arm64v8
+# syntax=docker/dockerfile:1.4
+
 ARG num_procs=4
 
-FROM mcr.microsoft.com/dotnet/aspnet:${base_tag}
+FROM mcr.microsoft.com/dotnet/aspnet:6.0-focal-arm64v8
 
 RUN mkdir -p ../publish
 

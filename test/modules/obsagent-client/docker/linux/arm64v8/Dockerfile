@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.4
+
 FROM arm64v8/ubuntu:18.04
 
 RUN apt-get update && apt-get install -y libssl-dev 

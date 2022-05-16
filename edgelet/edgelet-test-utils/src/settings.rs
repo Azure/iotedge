@@ -4,6 +4,7 @@
 pub struct Settings {
     pub edge_ca_cert: Option<String>,
     pub edge_ca_key: Option<String>,
+    pub edge_ca_auto_renew: Option<cert_renewal::AutoRenewConfig>,
 
     pub trust_bundle: Option<String>,
     pub manifest_trust_bundle: Option<String>,
@@ -18,6 +19,10 @@ impl edgelet_settings::RuntimeSettings for Settings {
 
     fn edge_ca_key(&self) -> Option<&str> {
         self.edge_ca_key.as_deref()
+    }
+
+    fn edge_ca_auto_renew(&self) -> &Option<cert_renewal::AutoRenewConfig> {
+        &self.edge_ca_auto_renew
     }
 
     fn trust_bundle_cert(&self) -> Option<&str> {
