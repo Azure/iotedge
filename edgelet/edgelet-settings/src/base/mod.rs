@@ -12,6 +12,7 @@ pub trait RuntimeSettings {
 
     fn edge_ca_cert(&self) -> Option<&str>;
     fn edge_ca_key(&self) -> Option<&str>;
+    fn edge_ca_auto_renew(&self) -> &Option<cert_renewal::AutoRenewConfig>;
 
     fn trust_bundle_cert(&self) -> Option<&str>;
     fn manifest_trust_bundle_cert(&self) -> Option<&str>;
@@ -99,6 +100,10 @@ impl<T: Clone> RuntimeSettings for Settings<T> {
 
     fn edge_ca_key(&self) -> Option<&str> {
         self.edge_ca_key.as_deref()
+    }
+
+    fn edge_ca_auto_renew(&self) -> &Option<cert_renewal::AutoRenewConfig> {
+        &self.edge_ca_auto_renew
     }
 
     fn trust_bundle_cert(&self) -> Option<&str> {
