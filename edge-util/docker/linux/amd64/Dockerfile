@@ -1,4 +1,6 @@
-﻿FROM alpine:3.14
+﻿# syntax=docker/dockerfile:1.4
+
+FROM alpine:3.14
 
 ARG num_procs=4
 

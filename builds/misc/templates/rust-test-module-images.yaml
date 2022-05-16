@@ -54,9 +54,9 @@ steps:
   displayName: Build Image - ${{ parameters['module.path'] }} - arm32
   inputs:
     filePath: scripts/linux/buildImage.sh
-    arguments: -r "$(registry.address)" -i "azureiotedge-${{ parameters['module.name'] }}" -n "microsoft" -P "${{ parameters['module.path'] }}" --target-arch armv7l --bin-dir rust --buildx_flag true  
+    arguments: -r "$(registry.address)" -i "azureiotedge-${{ parameters['module.name'] }}" -n "microsoft" -P "${{ parameters['module.path'] }}" --target-arch armv7l --bin-dir rust
 - task: Bash@3
   displayName: Build Image - ${{ parameters['module.path'] }} - arm64 
   inputs:
     filePath: scripts/linux/buildImage.sh
-    arguments: -r "$(registry.address)" -i "azureiotedge-${{ parameters['module.name'] }}" -n "microsoft" -P "${{ parameters['module.path'] }}" --target-arch aarch64 --bin-dir rust --buildx_flag true
+    arguments: -r "$(registry.address)" -i "azureiotedge-${{ parameters['module.name'] }}" -n "microsoft" -P "${{ parameters['module.path'] }}" --target-arch aarch64 --bin-dir rust
