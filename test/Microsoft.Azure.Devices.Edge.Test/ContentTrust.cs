@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         // Content trust is not supported as of now on ARM platforms
         [Category("contenttrust")]
         [Category("FlakyOnArm")]
-        [Test]
+        // [Test]
         public async Task TestContentTrustDeployment()
         {
             // Create the input dictionary of the mapping of container registry name and its corresponding root CA

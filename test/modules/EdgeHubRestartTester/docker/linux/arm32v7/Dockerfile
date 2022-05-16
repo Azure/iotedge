@@ -1,5 +1,6 @@
-ARG base_tag=6.0-focal-arm32v7
-FROM mcr.microsoft.com/dotnet/runtime:${base_tag}
+# syntax=docker/dockerfile:1.4
+
+FROM mcr.microsoft.com/dotnet/runtime:6.0-focal-arm32v7
 
 # Add an unprivileged user account for running the module
 RUN useradd -ms /bin/bash moduleuser
