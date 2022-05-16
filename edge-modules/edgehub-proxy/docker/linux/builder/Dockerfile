@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.4
+
 FROM debian:stretch
 
 RUN dpkg --add-architecture armhf && \
