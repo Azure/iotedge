@@ -28,6 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     public class CloudEndpoint : Endpoint
     {
         readonly Func<string, Task<Try<ICloudProxy>>> cloudProxyGetterFunc;
+
         readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
         readonly int maxBatchSize;
         readonly bool trackDeviceState;
@@ -68,6 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 typeof(TimeoutException),
                 typeof(IOException),
                 typeof(IotHubException),
+                typeof(EdgeHubCloudSDKException),
                 typeof(UnauthorizedException) // This indicates the SAS token has expired, and will get a new one.
             };
 

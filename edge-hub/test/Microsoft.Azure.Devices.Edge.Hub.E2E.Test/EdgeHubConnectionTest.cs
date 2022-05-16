@@ -92,6 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
+                TimeSpan.FromSeconds(50),
                 false,
                 Option.None<IWebProxy>(),
                 metadataStore.Object,

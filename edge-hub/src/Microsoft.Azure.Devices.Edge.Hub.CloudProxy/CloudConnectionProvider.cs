@@ -30,6 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly ICredentialsCache credentialsCache;
         readonly IIdentity edgeHubIdentity;
         readonly TimeSpan operationTimeout;
+        readonly TimeSpan cloudConnectionHangingTimeout;
         readonly IMetadataStore metadataStore;
         readonly bool scopeAuthenticationOnly;
         readonly bool trackDeviceState;
@@ -47,6 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             TimeSpan idleTimeout,
             bool closeOnIdleTimeout,
             TimeSpan operationTimeout,
+            TimeSpan cloudConnectionHangingTimeout,
             bool useServerHeartbeat,
             Option<IWebProxy> proxy,
             IMetadataStore metadataStore,
@@ -66,6 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(credentialsCache));
             this.edgeHubIdentity = Preconditions.CheckNotNull(edgeHubIdentity, nameof(edgeHubIdentity));
             this.operationTimeout = operationTimeout;
+            this.cloudConnectionHangingTimeout = cloudConnectionHangingTimeout;
             this.metadataStore = Preconditions.CheckNotNull(metadataStore, nameof(metadataStore));
             this.scopeAuthenticationOnly = scopeAuthenticationOnly;
             this.trackDeviceState = trackDeviceState;
@@ -100,6 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         this.idleTimeout,
                         this.closeOnIdleTimeout,
                         this.operationTimeout,
+                        this.cloudConnectionHangingTimeout,
                         productInfo,
                         modelId);
                     Events.SuccessCreatingCloudConnection(clientCredentials.Identity);
@@ -117,6 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         this.idleTimeout,
                         this.closeOnIdleTimeout,
                         this.operationTimeout,
+                        this.cloudConnectionHangingTimeout,
                         productInfo,
                         modelId);
                     Events.SuccessCreatingCloudConnection(clientCredentials.Identity);
@@ -168,6 +173,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                                 this.idleTimeout,
                                 this.closeOnIdleTimeout,
                                 this.operationTimeout,
+                                this.cloudConnectionHangingTimeout,
                                 productInfo,
                                 modelId);
                             Events.SuccessCreatingCloudConnection(identity);
@@ -238,6 +244,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                                this.idleTimeout,
                                this.closeOnIdleTimeout,
                                this.operationTimeout,
+                               this.cloudConnectionHangingTimeout,
                                productInfo,
                                modelId);
                 Events.SuccessCreatingCloudConnection(identity);
