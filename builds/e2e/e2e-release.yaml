@@ -30,8 +30,8 @@ stages:
         variables:
           os: linux
           arch: arm32v7
-          artifactName: iotedged-debian9-arm32v7
-          identityServiceArtifactName: packages_debian-9-slim_arm32v7
+          artifactName: iotedged-debian11-arm32v7
+          identityServiceArtifactName: packages_debian-11-slim_arm32v7
           identityServicePackageFilter: aziot-identity-service_*_armhf.deb
           builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
 
