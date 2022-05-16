@@ -256,7 +256,7 @@ github_update_and_push()
     git commit -am "Prepare for Release $VERSION"
     lastCommitHash=$(git log -n 1 --pretty=format:"%H")
     git tag "$VERSION" $lastCommitHash
-    # BEARWASHERE -- Testing
+
     git push https://$GITHUB_PAT@github.com/Azure/azure-iotedge.git
     git push https://$GITHUB_PAT@github.com/Azure/azure-iotedge.git "$VERSION"
 }
