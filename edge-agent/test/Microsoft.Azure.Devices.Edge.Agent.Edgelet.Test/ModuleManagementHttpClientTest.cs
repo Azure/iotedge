@@ -94,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         {
             ModuleManagementHttpClient mm = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
 
-            Assert.Equal("EdgeAgent (OperatingSystemType=foo;Architecture=bar;Version=baz;ServerVersion=;KernelVersion=;OperatingSystem=;NumCpus=0;Virtualized=;)", await mm.GetProductInfoAsync(CancellationToken.None, "EdgeAgent"));
+            Assert.Equal("EdgeAgent (kernel=foo;architecture=bar;version=baz;server_version=;kernel_version=;operating_system=;cpus=0;virtualized=;)", await mm.GetProductInfoAsync(CancellationToken.None, "EdgeAgent"));
         }
 
         [Theory]
