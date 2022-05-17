@@ -6,6 +6,7 @@ using System;
 using System.Diagnostics.Tracing;
 using System.Linq;
 using Microsoft.Extensions.Logging;
+using Serilog;
 
 namespace Microsoft.Azure.Devices.Logging
 {
@@ -15,19 +16,17 @@ namespace Microsoft.Azure.Devices.Logging
     public sealed class ConsoleEventListener : EventListener
     {
         private readonly string[] _eventFilters;
-        private readonly ILogger _logger;
         private readonly object _lock = new object();
 
-        public ConsoleEventListener(string filter, ILogger logger)
+        public ConsoleEventListener(string filter)
         {
             _eventFilters = new string[1];
             _eventFilters[0] = filter ?? throw new ArgumentNullException(nameof(filter));
-            _logger = logger;
 
             InitializeEventSources();
         }
 
-        public ConsoleEventListener(string[] filters, ILogger logger)
+        public ConsoleEventListener(string[] filters)
         {
             _eventFilters = filters ?? throw new ArgumentNullException(nameof(filters));
             if (_eventFilters.Length == 0) throw new ArgumentException("Filters cannot be empty", nameof(filters));
@@ -39,7 +38,6 @@ namespace Microsoft.Azure.Devices.Logging
                     throw new ArgumentNullException(nameof(filters));
                 }
             }
-            _logger = logger;
 
             InitializeEventSources();
         }
@@ -80,7 +78,7 @@ namespace Microsoft.Azure.Devices.Logging
                     eventIdent = eventData.EventName;
 #endif
                     string text = $"[{eventData.EventSource.Name}-{eventIdent}]{(eventData.Payload != null ? $" ({string.Join(", ", eventData.Payload)})." : "")}";
-                    _logger.LogTrace(text);
+                    Log.Information(text);
                 }
             }
         }

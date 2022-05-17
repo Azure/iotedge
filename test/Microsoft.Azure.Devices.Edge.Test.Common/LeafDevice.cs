@@ -315,12 +315,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         static async Task<LeafDevice> CreateLeafDeviceAsync(Device device, Func<DeviceClient> clientFactory, IotHub iotHub, CancellationToken token)
         {
-            ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
-            builder.AddFilter("*", LogLevel.Trace)
-                   .AddConsole());
-            Microsoft.Extensions.Logging.ILogger logger = loggerFactory.CreateLogger<LeafDevice>();
-            logger.LogInformation("Enabled Microsoft.Extensions.Logging temporarily");
-            _ = new ConsoleEventListener("Microsoft-Azure-", logger);
+            ConsoleEventListener consoleEventListener = new ConsoleEventListener("Microsoft-Azure-");
 
             DeviceClient client = clientFactory();
 
@@ -330,6 +325,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             });
 
             await client.SetMethodHandlerAsync(nameof(DirectMethod), DirectMethod, null, token);
+
+            Log.Information("Successfully set client method handler (using console event listener {0})", consoleEventListener.GetType());
 
             return new LeafDevice(device, client, iotHub);
         }
