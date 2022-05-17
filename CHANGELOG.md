@@ -1,3 +1,18 @@
+# 1.2.9 (2021-05-27)
+## Edge Agent
+### Bug Fixes
+* Flatten additional properties of SystemInfo metrics ( [12b52ba](https://github.com/Azure/iotedge/commit/12b52babe6fba24b136971a5d1ce1b8df387b1d7) )
+
+
+## Edge Hub
+### Bug Fixes
+* Configurable task for cancelling hanging upstream calls ( [124cfff](https://github.com/Azure/iotedge/commit/124cfff3110ab5f2a6fdf449c7b0cc6a02e10208) )
+
+
+## aziot-edge
+### Bug Fixes
+* Improve error logging for WorkloadManager ( [f2e5a47](https://github.com/Azure/iotedge/commit/f2e5a47bb3fd109b5523cb2ae9849401f0fcc99d) )
+
 # 1.2.9 (2021-04-04)
 ## Edge Agent
 ### Bug Fixes
