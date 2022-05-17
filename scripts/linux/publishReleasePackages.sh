@@ -152,8 +152,8 @@ if [[ $status != "202" ]]; then
     exit 1
 fi
 
-#Wait upto 10 Minutes to see if package uploaded
-end_time=$((SECONDS + 600))
+#Wait upto 30 Minutes to see if package uploaded
+end_time=$((SECONDS + 1800))
 uploaded=false
 while [[ $SECONDS -lt $end_time ]]; do
     #Check for Successful Upload of Each of the Packages
@@ -171,7 +171,7 @@ while [[ $SECONDS -lt $end_time ]]; do
     done
     if [[ $uploaded == false ]]; then
         echo "Retrying.."
-        sleep 10
+        sleep 30
     else
         break
     fi
