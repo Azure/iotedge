@@ -1,4 +1,4 @@
-# 1.2.9 (2021-05-27)
+# 1.2.10 (2021-05-27)
 ## Edge Agent
 ### Bug Fixes
 * Flatten additional properties of SystemInfo metrics ( [12b52ba](https://github.com/Azure/iotedge/commit/12b52babe6fba24b136971a5d1ce1b8df387b1d7) )
