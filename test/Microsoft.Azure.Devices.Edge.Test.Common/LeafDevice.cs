@@ -19,6 +19,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
+    using Microsoft.Azure.Devices.Logging;
+    using Microsoft.Extensions.Logging;
+    using Microsoft.Extensions.Logging.Console;
     using Serilog;
 
     public class LeafDevice
@@ -27,8 +30,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         readonly Device device;
         readonly IotHub iotHub;
         readonly string messageId;
-
-        private static readonly ConsoleEventListener listener = new ConsoleEventListener();
 
         LeafDevice(Device device, DeviceClient client, IotHub iotHub)
         {
@@ -314,6 +315,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         static async Task<LeafDevice> CreateLeafDeviceAsync(Device device, Func<DeviceClient> clientFactory, IotHub iotHub, CancellationToken token)
         {
+            ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
+            builder.AddFilter("*", LogLevel.Trace)
+                   .AddConsole());
+            Microsoft.Extensions.Logging.ILogger logger = loggerFactory.CreateLogger<LeafDevice>();
+            logger.LogInformation("Enabled Microsoft.Extensions.Logging temporarily");
+            _ = new ConsoleEventListener("Microsoft-Azure-", logger);
+
             DeviceClient client = clientFactory();
 
             client.SetConnectionStatusChangesHandler((status, reason) =>
