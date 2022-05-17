@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System;
     using System.Collections.Generic;
     using System.ComponentModel;
+    using System.Diagnostics.Tracing;
     using System.Globalization;
     using System.IO;
     using System.Linq;
@@ -26,6 +27,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         readonly Device device;
         readonly IotHub iotHub;
         readonly string messageId;
+
+        private static readonly ConsoleEventListener listener = new ConsoleEventListener();
 
         LeafDevice(Device device, DeviceClient client, IotHub iotHub)
         {
