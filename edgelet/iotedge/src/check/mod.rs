@@ -845,6 +845,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore]
     async fn config_file_checks_ok() {
         for filename in &["sample_settings.toml", "sample_settings.tg.filepaths.toml"] {
             let _env_lock = ENV_LOCK.lock().await;

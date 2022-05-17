@@ -369,6 +369,7 @@ fn execute_inner(
 
         imported_master_encryption_key: old_master_encryption_key_path,
 
+        #[cfg(contenttrust)]
         manifest_trust_bundle_cert: None,
 
         additional_info: None,
