@@ -115,11 +115,11 @@ async fn watchdog(
                     .await
                     .map_err(|err| EdgedError::from_err("Failed to remove Edge runtime", err))?;
 
-                create_and_start_agent(settings, device_info, &runtime, identity_client).await?;
+                create_and_start_agent(settings, device_info, runtime, identity_client).await?;
             }
         }
     } else {
-        create_and_start_agent(settings, device_info, &runtime, identity_client).await?;
+        create_and_start_agent(settings, device_info, runtime, identity_client).await?;
     }
 
     Ok(())

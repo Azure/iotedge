@@ -76,7 +76,7 @@ function get_iotedged_artifact_folder() {
     elif [ "$image_architecture_label" = 'arm64v8' ]; then
         path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu18.04-aarch64"
     else
-        path="$E2E_TEST_DIR/artifacts/iotedged-debian9-arm32v7"
+        path="$E2E_TEST_DIR/artifacts/iotedged-debian11-arm32v7"
     fi
 
     echo "$path"

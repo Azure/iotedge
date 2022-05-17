@@ -69,7 +69,14 @@ impl CertApi {
             .map_err(|_| edgelet_http::error::server_error("failed to generate csr keys"))?;
         let private_key = key_to_pem(&keys.0);
 
-        let csr = new_csr(common_name, keys, subject_alt_names, extensions)
+        let mut subject = openssl::x509::X509Name::builder()
+            .map_err(|_| edgelet_http::error::server_error("failed to generate csr subject"))?;
+        subject
+            .append_entry_by_nid(openssl::nid::Nid::COMMONNAME, &common_name)
+            .map_err(|_| edgelet_http::error::server_error("failed to generate csr subject"))?;
+        let subject = subject.build();
+
+        let csr = new_csr(&subject, keys, subject_alt_names, extensions)
             .map_err(|_| edgelet_http::error::server_error("failed to generate csr"))?;
 
         let edge_ca_key_handle = {
@@ -138,7 +145,7 @@ fn new_keys() -> Result<
 }
 
 pub(crate) fn new_csr(
-    common_name: String,
+    subject: &openssl::x509::X509NameRef,
     keys: (
         openssl::pkey::PKey<openssl::pkey::Private>,
         openssl::pkey::PKey<openssl::pkey::Public>,
@@ -151,11 +158,7 @@ pub(crate) fn new_csr(
 
     let mut csr = openssl::x509::X509Req::builder()?;
     csr.set_version(0)?;
-
-    let mut subject_name = openssl::x509::X509Name::builder()?;
-    subject_name.append_entry_by_text("CN", &common_name)?;
-    let subject_name = subject_name.build();
-    csr.set_subject_name(&subject_name)?;
+    csr.set_subject_name(&subject)?;
 
     csr.set_pubkey(&public_key)?;
 

@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.4
+
 FROM rustlang/rust:nightly
 
 RUN cargo +nightly install cargo-test-junit

@@ -1,4 +1,6 @@
-﻿FROM haproxy:1.8.23-alpine
+﻿# syntax=docker/dockerfile:1.4
+
+FROM haproxy:1.8.23-alpine
 
 RUN apk add --no-cache curl jq
 
