@@ -195,10 +195,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Rou
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NumberLogger", "test\modules\NumberLogger\NumberLogger.csproj", "{B0151FFD-85C4-42B9-81CC-9193BADFE9F8}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "jsoncanonicalizer", "edge-util\src\jsoncanonicalizer\jsoncanonicalizer.csproj", "{1915CE7E-E949-4633-9862-D92BD5E873B5}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "es6numberserializer", "edge-util\src\es6numberserializer\es6numberserializer.csproj", "{BE39EC1F-7E7C-4421-93BF-1DF02C1E6A15}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IotedgeDiagnosticsDotnet", "edge-modules\iotedge-diagnostics-dotnet\IotedgeDiagnosticsDotnet.csproj", "{59CF2F3B-5FCC-43BE-B221-1E7A956D4792}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "edge-modules", "edge-modules", "{17D4D30E-7C88-479D-AF04-735DCCBA3AD4}"

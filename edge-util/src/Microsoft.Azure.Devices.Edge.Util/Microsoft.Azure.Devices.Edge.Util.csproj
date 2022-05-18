@@ -25,11 +25,6 @@
   <ItemGroup>
     <AdditionalFiles Include="..\..\..\stylecop.json" Link="stylecop.json" />
   </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\es6numberserializer\es6numberserializer.csproj" />
-    <ProjectReference Include="..\jsoncanonicalizer\jsoncanonicalizer.csproj" />
-  </ItemGroup>
   <PropertyGroup>
     <CodeAnalysisRuleSet>..\..\..\stylecop.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>  
