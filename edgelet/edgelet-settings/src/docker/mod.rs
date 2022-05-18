@@ -71,6 +71,10 @@ impl crate::RuntimeSettings for Settings {
         self.base.edge_ca_auto_renew()
     }
 
+    fn edge_ca_subject(&self) -> &Option<aziot_certd_config::CertSubject> {
+        self.base.edge_ca_subject()
+    }
+
     fn trust_bundle_cert(&self) -> Option<&str> {
         self.base.trust_bundle_cert()
     }
