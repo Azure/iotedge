@@ -92,6 +92,9 @@ pub enum EdgeCa {
 
         #[serde(skip_serializing_if = "Option::is_none")]
         auto_renew: Option<cert_renewal::AutoRenewConfig>,
+
+        #[serde(flatten, skip_serializing_if = "Option::is_none")]
+        subject: Option<aziot_certd_config::CertSubject>,
     },
 }
 
