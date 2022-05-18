@@ -70,11 +70,11 @@ steps:
     #Dotnet SDK 3.1.415 package on Centos doesn't allow dotnet to be accessed via sudo command due to Path issues. Use the below workaround for centos only.
     if ('$(artifactName)'.Contains('centos'))
     {
-      sudo --preserve-env $(command -v dotnet) test $testFile --no-build --logger 'trx' --filter "$filter"
+      sudo --preserve-env $(command -v dotnet) test $testFile --no-build --logger 'trx' --filter "Name~QuickstartCerts"
     }
     else
     {
-      sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
+      sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "Name~QuickstartCerts"
     }
 
   displayName: Run tests ${{ parameters.test_type }}
