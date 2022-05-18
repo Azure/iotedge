@@ -30,6 +30,7 @@ pub struct Config {
     pub imported_master_encryption_key: Option<std::path::PathBuf>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg(contenttrust)]
     pub manifest_trust_bundle_cert: Option<Url>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -91,6 +92,9 @@ pub enum EdgeCa {
 
         #[serde(skip_serializing_if = "Option::is_none")]
         auto_renew: Option<cert_renewal::AutoRenewConfig>,
+
+        #[serde(flatten, skip_serializing_if = "Option::is_none")]
+        subject: Option<aziot_certd_config::CertSubject>,
     },
 }
 

@@ -13,9 +13,6 @@ const AZIOT_EDGED_HOMEDIR_PATH: &str = "/var/lib/aziot/edged";
 
 const TRUST_BUNDLE_USER_ALIAS: &str = "trust-bundle-user";
 
-// TODO: Dedupe this with edgelet-http-workload
-const IOTEDGED_COMMONNAME_PREFIX: &str = "aziot-edge CA";
-
 pub fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>> {
     // In production, running as root is the easiest way to guarantee the tool has write access to every service's config file.
     // But it's convenient to not do this for the sake of development because the the development machine doesn't necessarily
@@ -180,7 +177,8 @@ fn execute_inner(
         allow_elevated_docker_permissions,
         auto_reprovisioning_mode,
         imported_master_encryption_key,
-        manifest_trust_bundle_cert,
+        #[cfg(contenttrust)]
+            manifest_trust_bundle_cert: _,
         additional_info,
         aziot,
         agent,
@@ -247,18 +245,11 @@ fn execute_inner(
     let edge_ca = edge_ca.unwrap_or(super_config::EdgeCa::Quickstart {
         auto_generated_edge_ca_expiry_days: 90,
         auto_renew: None,
+        subject: None,
     });
 
-    let (edge_ca_cert, edge_ca_key, edge_ca_auto_renew) = match edge_ca {
+    let edge_ca_config = match edge_ca {
         super_config::EdgeCa::Issued { cert } => {
-            let subject = cert.subject.or_else(|| {
-                Some(aziot_certd_config::CertSubject::CommonName(format!(
-                    "{} {}",
-                    IOTEDGED_COMMONNAME_PREFIX, identityd_config.hostname
-                )))
-            });
-            let expiry_days = cert.expiry_days;
-
             match cert.method {
                 common_config::super_config::CertIssuanceMethod::Est { url, auth } => {
                     let mut aziotcs_principal = aziot_keyd_config::Principal {
@@ -287,8 +278,14 @@ fn execute_inner(
 
                     let issuance = aziot_certd_config::CertIssuanceOptions {
                         method: aziot_certd_config::CertIssuanceMethod::Est { url, auth },
-                        expiry_days,
-                        subject,
+
+                        // Ignore expiry_days set in the super config. There's no place for it in an
+                        // EST request.
+                        expiry_days: None,
+
+                        // The subject will be used by Edge daemon to generate the CSR. Ignore it in
+                        // certd's settings; certd cannot modify the CSR anyways.
+                        subject: None,
                     };
 
                     certd_config.cert_issuance.certs.insert(
@@ -302,17 +299,18 @@ fn execute_inner(
                         certd_config.cert_issuance.certs.insert(temp_cert, issuance);
                     }
 
-                    (
-                        Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
-                        Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
-                        cert.auto_renew,
-                    )
+                    edgelet_settings::base::EdgeCa {
+                        cert: Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                        key: Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                        auto_renew: cert.auto_renew,
+                        subject: cert.subject,
+                    }
                 }
                 common_config::super_config::CertIssuanceMethod::LocalCa => {
                     let issuance = aziot_certd_config::CertIssuanceOptions {
                         method: aziot_certd_config::CertIssuanceMethod::LocalCa,
-                        expiry_days,
-                        subject,
+                        expiry_days: cert.expiry_days,
+                        subject: cert.subject,
                     };
 
                     certd_config.cert_issuance.certs.insert(
@@ -331,11 +329,15 @@ fn execute_inner(
                         keys: vec![edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()],
                     });
 
-                    (
-                        Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
-                        Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
-                        cert.auto_renew,
-                    )
+                    edgelet_settings::base::EdgeCa {
+                        cert: Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                        key: Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                        auto_renew: cert.auto_renew,
+
+                        // The cert subject override is set in certd's settings and does not need
+                        // to be set in Edge daemon.
+                        subject: None,
+                    }
                 }
                 common_config::super_config::CertIssuanceMethod::SelfSigned => {
                     // This is equivalent to a quickstart CA.
@@ -343,16 +345,20 @@ fn execute_inner(
                         &mut keyd_config,
                         &mut certd_config,
                         aziotcs_uid,
-                        expiry_days,
-                        subject,
+                        cert.expiry_days,
+                        cert.subject,
                         cert.auto_renew.is_some(),
                     );
 
-                    (
-                        Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
-                        Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
-                        cert.auto_renew,
-                    )
+                    edgelet_settings::base::EdgeCa {
+                        cert: Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                        key: Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                        auto_renew: cert.auto_renew,
+
+                        // The cert subject override is set in certd's settings and does not need
+                        // to be set in Edge daemon.
+                        subject: None,
+                    }
                 }
             }
         }
@@ -367,34 +373,38 @@ fn execute_inner(
                 aziot_certd_config::PreloadedCert::Uri(cert),
             );
 
-            (
-                Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
-                Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
-                None,
-            )
+            edgelet_settings::base::EdgeCa {
+                cert: Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                key: Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                auto_renew: None,
+                subject: None,
+            }
         }
         super_config::EdgeCa::Quickstart {
             auto_generated_edge_ca_expiry_days,
             auto_renew,
+            subject,
         } => {
             set_quickstart_ca(
                 &mut keyd_config,
                 &mut certd_config,
                 aziotcs_uid,
                 Some(auto_generated_edge_ca_expiry_days),
-                Some(aziot_certd_config::CertSubject::CommonName(format!(
-                    "{} {}",
-                    IOTEDGED_COMMONNAME_PREFIX, identityd_config.hostname
-                ))),
+                subject,
                 auto_renew.is_some(),
             );
 
-            (None, None, auto_renew)
+            edgelet_settings::base::EdgeCa {
+                cert: None,
+                key: None,
+                auto_renew,
+                subject: None,
+            }
         }
     };
 
     // Edge daemon needs authorization to manage temporary credentials for Edge CA renewal.
-    if let Some(auto_renew) = &edge_ca_auto_renew {
+    if let Some(auto_renew) = &edge_ca_config.auto_renew {
         let temp = format!("{}-temp", edgelet_settings::AZIOT_EDGED_CA_ALIAS);
 
         iotedge_authorized_certs.push(temp.clone());
@@ -428,6 +438,7 @@ fn execute_inner(
         aziot_certd_config::PreloadedCert::Ids(trust_bundle_certs),
     );
 
+    #[cfg(contenttrust)]
     let manifest_trust_bundle_cert = manifest_trust_bundle_cert.map(|manifest_trust_bundle_cert| {
         certd_config.preloaded_certs.insert(
             edgelet_settings::MANIFEST_TRUST_BUNDLE_ALIAS.to_owned(),
@@ -435,6 +446,7 @@ fn execute_inner(
         );
         edgelet_settings::MANIFEST_TRUST_BUNDLE_ALIAS.to_owned()
     });
+    let manifest_trust_bundle_cert = None;
 
     let additional_info = if let Some(additional_info) = additional_info {
         let scheme = additional_info.scheme();
@@ -456,9 +468,7 @@ fn execute_inner(
         base: edgelet_settings::base::Settings {
             hostname: identityd_config.hostname.clone(),
 
-            edge_ca_cert,
-            edge_ca_key,
-            edge_ca_auto_renew,
+            edge_ca: edge_ca_config,
             trust_bundle_cert: Some(edgelet_settings::TRUST_BUNDLE_ALIAS.to_owned()),
             manifest_trust_bundle_cert,
             additional_info,
@@ -630,6 +640,10 @@ mod tests {
             let case_directory = entry.path();
 
             let test_name = case_directory.file_name().unwrap().to_str().unwrap();
+
+            if test_name.eq("manifest-trust-bundle") {
+                continue;
+            }
 
             println!(".\n.\n=========\n.\nRunning test {}", test_name);
 
