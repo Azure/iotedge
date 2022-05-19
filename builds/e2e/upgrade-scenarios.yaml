@@ -94,9 +94,9 @@ jobs:
     # versions.  
     - bash: |
         if [ $(edgeDaemonVersion) != "release/1.1" ]; then
-          rm $(System.ArtifactsDirectory)/iotedge*.deb
-          rm $(System.ArtifactsDirectory)/libiothsm-std*.deb
-          pushd $(System.ArtifactsDirectory)
+          pushd $(System.ArtifactsDirectory)/$(artifactName)
+          rm iotedge*.deb
+          rm libiothsm-std*.deb
           apt-get download iotedge='$(edgeDaemonVersion)-1'
           apt-get download libiothsm-std='$(edgeDaemonVersion)-1'
           popd
@@ -115,7 +115,7 @@ jobs:
         itemPattern: $(az.pipeline.images.artifacts)/artifactInfo.txt
 
     # If $runtimeModulesVersion or $bootstrapAgentVersion is set to 'main', retrieve
-    # image ID from artifactInfo.json and update context.json with it.
+    # image ID from artifactInfo.txt and update context.json with it.
     - bash: |
         $imageId = Get-Content -Encoding Utf8 `
           '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'
@@ -144,7 +144,7 @@ jobs:
         itemPattern: $(az.pipeline.images.artifacts)/artifactInfo.txt
 
     # If $runtimeModulesVersion or $bootstrapAgentVersion is set to 'release/1.2', retrieve
-    # image ID from artifactInfo.json and update context.json with it.
+    # image ID from artifactInfo.txt and update context.json with it.
     - bash: |
         $imageId = Get-Content -Encoding Utf8 `
           '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'
