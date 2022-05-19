@@ -117,9 +117,10 @@ jobs:
     # If $runtimeModulesVersion or $bootstrapAgentVersion is set to 'main', retrieve
     # image ID from artifactInfo.txt and update context.json with it.
     - bash: |
-        $imageId = Get-Content -Encoding Utf8 `
-          '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'
-        $imageId = ($imageId -split '=')[1]
+        artifactInfoStr=`cat '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'`
+        IFS='='
+        read -ra artifactInfo <<< "$artifactInfoStr"
+        imageId="${artifactInfo[1]}"
         cd $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net*
         less context.json
         if [ $(runtimeModulesVersion) = "main" ]; then
@@ -146,9 +147,10 @@ jobs:
     # If $runtimeModulesVersion or $bootstrapAgentVersion is set to 'release/1.2', retrieve
     # image ID from artifactInfo.txt and update context.json with it.
     - bash: |
-        $imageId = Get-Content -Encoding Utf8 `
-          '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'
-        $imageId = ($imageId -split '=')[1]
+        artifactInfoStr=`cat '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'`
+        IFS='='
+        read -ra artifactInfo <<< "$artifactInfoStr"
+        imageId="${artifactInfo[1]}"
         cd $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net*
         less context.json
         if [ $(runtimeModulesVersion) = "release/1.2" ]; then
