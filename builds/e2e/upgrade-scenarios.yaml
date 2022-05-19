@@ -101,6 +101,7 @@ jobs:
           apt-get download libiothsm-std='$(edgeDaemonVersion)-1'
           popd
         fi
+      displayName: Replace Downloaded Edgelet Packages
 
     - task: DownloadBuildArtifacts@0
       displayName: Download Main Images
@@ -121,16 +122,18 @@ jobs:
         IFS='='
         read -ra artifactInfo <<< "$artifactInfoStr"
         imageId="${artifactInfo[1]}"
+        echo "imageId: ${imageId}"
         cd $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net*
         less context.json
         if [ $(runtimeModulesVersion) = "main" ]; then
-          sed -i 's/"edgeAgentImage.*/"edgeAgentImage": "mcr.microsoft.com\/azureiotedge-agent:$imageId",/' context.json
-          sed -i 's/"edgeHubImage.*/"edgeHubImage": "mcr.microsoft.com\/azureiotedge-hub:$imageId",/' context.json
+          sed -i 's/"edgeAgentImage.*/"edgeAgentImage": "mcr.microsoft.com\/azureiotedge-agent:'${imageId}'",/' context.json
+          sed -i 's/"edgeHubImage.*/"edgeHubImage": "mcr.microsoft.com\/azureiotedge-hub:'${imageId}'",/' context.json
         fi
         if [ $(bootstrapAgentVersion) = "main" ]; then
-          sed -i 's/"edgeAgentBootstrapImage.*/"edgeAgentBootstrapImage": "mcr.microsoft.com\/azureiotedge-agent:$imageId",/' context.json
+          sed -i 's/"edgeAgentBootstrapImage.*/"edgeAgentBootstrapImage": "mcr.microsoft.com\/azureiotedge-agent:'${imageId}'",/' context.json
         fi
         less context.json
+      displayName: Update context.json w/ Main images 
 
     - task: DownloadBuildArtifacts@0
       displayName: Download Release/1.2 Images
@@ -151,15 +154,17 @@ jobs:
         IFS='='
         read -ra artifactInfo <<< "$artifactInfoStr"
         imageId="${artifactInfo[1]}"
+        echo "imageId: ${imageId}"
         cd $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net*
         less context.json
         if [ $(runtimeModulesVersion) = "release/1.2" ]; then
-          sed -i 's/"edgeAgentImage.*/"edgeAgentImage": "mcr.microsoft.com\/azureiotedge-agent:$imageId",/' context.json
-          sed -i 's/"edgeHubImage.*/"edgeHubImage": "mcr.microsoft.com\/azureiotedge-hub:$imageId",/' context.json
+          sed -i 's/"edgeAgentImage.*/"edgeAgentImage": "mcr.microsoft.com\/azureiotedge-agent:'${imageId}'",/' context.json
+          sed -i 's/"edgeHubImage.*/"edgeHubImage": "mcr.microsoft.com\/azureiotedge-hub:'${imageId}'",/' context.json
         fi
         if [ $(bootstrapAgentVersion) = "release/1.2" ]; then
-          sed -i 's/"edgeAgentBootstrapImage.*/"edgeAgentBootstrapImage": "mcr.microsoft.com\/azureiotedge-agent:$imageId",/' context.json
+          sed -i 's/"edgeAgentBootstrapImage.*/"edgeAgentBootstrapImage": "mcr.microsoft.com\/azureiotedge-agent:'${imageId}'",/' context.json
         fi
-        less context.json        
+        less context.json
+      displayName: Update context.json w/ Release/1.2 images             
 
     - template: templates/e2e-run.yaml
