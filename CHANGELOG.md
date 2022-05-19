@@ -2,13 +2,13 @@
 ## Edge Agent
 ### Bug Fixes
 * Flatten additional properties of SystemInfo metrics ( [12b52ba](https://github.com/Azure/iotedge/commit/12b52babe6fba24b136971a5d1ce1b8df387b1d7) )
-* Update Base Images to address gzip vulnerability [CVE-2022-23267](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-23267) [CVE-2022-29117](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-29117)
+* Update Base Image to address security vulnerabilities [CVE-2022-23267](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-23267) [CVE-2022-29117](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-29117) [CVE-2022-1271](https://ubuntu.com/security/CVE-2022-1271)
 
 
 ## Edge Hub
 ### Bug Fixes
 * Configurable task for cancelling hanging upstream calls ( [124cfff](https://github.com/Azure/iotedge/commit/124cfff3110ab5f2a6fdf449c7b0cc6a02e10208) )
-* Update Base Images to address gzip vulnerability [CVE-2022-23267](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-23267) [CVE-2022-29117](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-29117)
+* Update Base Image to address security vulnerabilities [CVE-2022-23267](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-23267) [CVE-2022-29117](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-29117) [CVE-2022-1271](https://ubuntu.com/security/CVE-2022-1271)
 
 
 ## aziot-edge
