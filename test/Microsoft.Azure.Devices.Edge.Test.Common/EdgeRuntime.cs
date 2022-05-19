@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             ManifestSettings enableManifestSigning1 = null)
         {
             var enableManifestSigning = Option.Maybe(enableManifestSigning1);
-            (string, string)[] hubEnvVar = new (string, string)[] { ("RuntimeLogLevel", "debug"), ("SslProtocols", "tls1.2") };
+            (string, string)[] hubEnvVar = new (string, string)[] { ("RuntimeLogLevel", "debug"), ("SslProtocols", "tls1.2"), ("MaxUpstreamBatchSize", "1") };
 
             if (nestedEdge == true)
             {
