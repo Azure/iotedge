@@ -126,11 +126,11 @@ jobs:
         cd $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net*
         less context.json
         if [ $(runtimeModulesVersion) = "main" ]; then
-          sed -i 's/"edgeAgentImage.*/"edgeAgentImage": "mcr.microsoft.com\/azureiotedge-agent:'${imageId}'",/' context.json
-          sed -i 's/"edgeHubImage.*/"edgeHubImage": "mcr.microsoft.com\/azureiotedge-hub:'${imageId}'",/' context.json
+          sed -i 's/"edgeAgentImage.*/"edgeAgentImage": "edgebuilds.azurecr.io\/microsoft\/azureiotedge-agent:'${imageId}'",/' context.json
+          sed -i 's/"edgeHubImage.*/"edgeHubImage": "edgebuilds.azurecr.io\/microsoft\/azureiotedge-hub:'${imageId}'",/' context.json
         fi
         if [ $(bootstrapAgentVersion) = "main" ]; then
-          sed -i 's/"edgeAgentBootstrapImage.*/"edgeAgentBootstrapImage": "mcr.microsoft.com\/azureiotedge-agent:'${imageId}'",/' context.json
+          sed -i 's/"edgeAgentBootstrapImage.*/"edgeAgentBootstrapImage": "edgebuilds.azurecr.io\/microsoft\/azureiotedge-agent:'${imageId}'",/' context.json
         fi
         less context.json
       displayName: Update context.json w/ Main images 
@@ -158,11 +158,11 @@ jobs:
         cd $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net*
         less context.json
         if [ $(runtimeModulesVersion) = "release/1.2" ]; then
-          sed -i 's/"edgeAgentImage.*/"edgeAgentImage": "mcr.microsoft.com\/azureiotedge-agent:'${imageId}'",/' context.json
-          sed -i 's/"edgeHubImage.*/"edgeHubImage": "mcr.microsoft.com\/azureiotedge-hub:'${imageId}'",/' context.json
+          sed -i 's/"edgeAgentImage.*/"edgeAgentImage": "edgebuilds.azurecr.io\/microsoft\/azureiotedge-agent:'${imageId}'",/' context.json
+          sed -i 's/"edgeHubImage.*/"edgeHubImage": "edgebuilds.azurecr.io\/microsoft\/azureiotedge-hub:'${imageId}'",/' context.json
         fi
         if [ $(bootstrapAgentVersion) = "release/1.2" ]; then
-          sed -i 's/"edgeAgentBootstrapImage.*/"edgeAgentBootstrapImage": "mcr.microsoft.com\/azureiotedge-agent:'${imageId}'",/' context.json
+          sed -i 's/"edgeAgentBootstrapImage.*/"edgeAgentBootstrapImage": "edgebuilds.azurecr.io\/microsoft\/azureiotedge-agent:'${imageId}'",/' context.json
         fi
         less context.json
       displayName: Update context.json w/ Release/1.2 images             
