@@ -18,7 +18,7 @@ resources:
   - pipeline: images_main
     source: 'Azure-IoT-Edge-Core Build Images'
     branch: 'main'
-  - pipeline: images_release_1.2
+  - pipeline: images_release_1_2
     source: 'Azure-IoT-Edge-Core Build Images'
     branch: 'release/1.2'    
 
@@ -89,28 +89,75 @@ jobs:
     steps:
     - template: templates/e2e-setup.yaml
 
-    # TODO: If edgeDaemonVersion != "release/1.1", remove the iotedge and
+    # If edgeDaemonVersion != "release/1.1", remove the iotedge and
     # libiothsm-std packages from $(System.ArtifactsDirectory) and download the desired
     # versions.  
-    # - bash: |
-
-    # TODO: Get artifact.json from resources.pipeline.images_main and set $runtimeModulesVersion
-    # and $bootstrapAgentVersion equal to it's content if they are set to "main"
-
-    # TODO: Get artifact.json from resources.pipeline.images_release_1.2 and set $runtimeModulesVersion
-    # and $bootstrapAgentVersion equal to it's content if they are set to "main"
-
-    # Run sed command on context.json to set edgeAgentBootstrapImage, edgeAgentImage, and edgeHubImage
     - bash: |
+        if [ $(edgeDaemonVersion) != "release/1.1" ]; then
+          rm $(System.ArtifactsDirectory)/iotedge*.deb
+          rm $(System.ArtifactsDirectory)/libiothsm-std*.deb
+          pushd $(System.ArtifactsDirectory)
+          apt-get download iotedge='$(edgeDaemonVersion)-1'
+          apt-get download libiothsm-std='$(edgeDaemonVersion)-1'
+          popd
+        fi
+
+    - task: DownloadBuildArtifacts@0
+      displayName: Download Main Images
+      inputs:
+        buildType: specific
+        project: $(resources.pipeline.images_main.projectID)
+        pipeline: $(resources.pipeline.images_main.pipelineName)
+        buildVersionToDownload: specific
+        buildId: $(resources.pipeline.images_main.runID)
+        downloadType: single
+        artifactName: $(az.pipeline.images.artifacts)
+        itemPattern: $(az.pipeline.images.artifacts)/artifactInfo.txt
+
+    # If $runtimeModulesVersion or $bootstrapAgentVersion is set to 'main', retrieve
+    # image ID from artifactInfo.json and update context.json with it.
+    - bash: |
+        $imageId = Get-Content -Encoding Utf8 `
+          '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'
+        $imageId = ($imageId -split '=')[1]
         cd $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net*
         less context.json
-        if [ $(runtimeModulesVersion) != "release/1.1" ]; then
-          sed -i 's/"edgeAgentImage.*/"edgeAgentImage": "mcr.microsoft.com\/azureiotedge-agent:$(runtimeModulesVersion)",/' context.json
-          sed -i 's/"edgeHubImage.*/"edgeHubImage": "mcr.microsoft.com\/azureiotedge-hub:$(runtimeModulesVersion)",/' context.json
+        if [ $(runtimeModulesVersion) = "main" ]; then
+          sed -i 's/"edgeAgentImage.*/"edgeAgentImage": "mcr.microsoft.com\/azureiotedge-agent:$imageId",/' context.json
+          sed -i 's/"edgeHubImage.*/"edgeHubImage": "mcr.microsoft.com\/azureiotedge-hub:$imageId",/' context.json
         fi
-        if [ $(bootstrapAgentVersion) != "release/1.1" ]; then
-          sed -i 's/"edgeAgentBootstrapImage.*/"edgeAgentBootstrapImage": "mcr.microsoft.com\/azureiotedge-agent:$(bootstrapAgentVersion)",/' context.json
+        if [ $(bootstrapAgentVersion) = "main" ]; then
+          sed -i 's/"edgeAgentBootstrapImage.*/"edgeAgentBootstrapImage": "mcr.microsoft.com\/azureiotedge-agent:$imageId",/' context.json
         fi
         less context.json
+
+    - task: DownloadBuildArtifacts@0
+      displayName: Download Release/1.2 Images
+      inputs:
+        buildType: specific
+        project: $(resources.pipeline.images_release_1_2.projectID)
+        pipeline: $(resources.pipeline.images_release_1_2.pipelineName)
+        buildVersionToDownload: specific
+        buildId: $(resources.pipeline.images_release_1_2.runID)
+        downloadType: single
+        artifactName: $(az.pipeline.images.artifacts)
+        itemPattern: $(az.pipeline.images.artifacts)/artifactInfo.txt
+
+    # If $runtimeModulesVersion or $bootstrapAgentVersion is set to 'release/1.2', retrieve
+    # image ID from artifactInfo.json and update context.json with it.
+    - bash: |
+        $imageId = Get-Content -Encoding Utf8 `
+          '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'
+        $imageId = ($imageId -split '=')[1]
+        cd $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net*
+        less context.json
+        if [ $(runtimeModulesVersion) = "release/1.2" ]; then
+          sed -i 's/"edgeAgentImage.*/"edgeAgentImage": "mcr.microsoft.com\/azureiotedge-agent:$imageId",/' context.json
+          sed -i 's/"edgeHubImage.*/"edgeHubImage": "mcr.microsoft.com\/azureiotedge-hub:$imageId",/' context.json
+        fi
+        if [ $(bootstrapAgentVersion) = "release/1.2" ]; then
+          sed -i 's/"edgeAgentBootstrapImage.*/"edgeAgentBootstrapImage": "mcr.microsoft.com\/azureiotedge-agent:$imageId",/' context.json
+        fi
+        less context.json        
 
     - template: templates/e2e-run.yaml
