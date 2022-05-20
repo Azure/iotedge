@@ -323,10 +323,14 @@ where
 
         if should_reprovision {
             tokio_runtime.block_on(reprovision_device(&client, provisioning_cache))?;
-        }
+            info!("Reprovisioning complete. Shutting down.");
 
-        info!("Shutdown complete.");
-        Ok(())
+            // This function must return an error value so that systemd restarts the process.
+            Err(Error::from(ErrorKind::DeviceDeprovisioned))
+        } else {
+            info!("Shutdown complete.");
+            Ok(())
+        }
     }
 }
 
