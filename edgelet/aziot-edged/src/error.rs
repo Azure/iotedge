@@ -40,7 +40,7 @@ impl Error {
 
     pub fn reprovisioned() -> Self {
         Error {
-            message: "Device provisioning has changed. Restarting Edge daemon to get new provisioining info.".to_string(),
+            message: "Device provisioning has changed. Restarting Edge daemon to get new provisioning info.".to_string(),
 
             // A nonzero exit code is required so systemd restarts this process.
             exit_code: 154,
