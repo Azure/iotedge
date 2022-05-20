@@ -16,7 +16,7 @@
 )]
 
 pub mod app;
-mod error;
+pub mod error;
 pub mod logging;
 pub mod signal;
 pub mod watchdog;
