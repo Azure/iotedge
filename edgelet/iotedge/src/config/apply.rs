@@ -208,12 +208,11 @@ fn execute_inner(
 
         let new_hostname = &identityd_config.hostname;
 
-        if hostname.ne(new_hostname) {
-            panic!("Couldn't apply configuration because there is a mismatch between the current hostname <old hostname value> 
+        //Of course, there must be a better way to do this, right? 
+        assert!(!hostname.ne(new_hostname), "Couldn't apply configuration because there is a mismatch between the current hostname <old hostname value> 
                     and the new hostname in the config.toml <new hostname value>. To apply the new hostname value, all containers must be stopped and 
                     recreated by running the following command. Warning: stored data in the container will be lost when recreated. 
                     If you don't want this, revert the hostname configuration back to the <old hostname value>.");
-        }
     }
 
     let mut iotedge_authorized_certs = vec![
