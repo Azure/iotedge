@@ -119,6 +119,7 @@ pub fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>> {
     )
     .map_err(|err| format!("{:?}", err))?;
 
+    //read old hostname from this file location???
     common_config::write_file(
         "/etc/aziot/identityd/config.d/00-super.toml",
         &identityd_config,
@@ -196,6 +197,30 @@ fn execute_inner(
         preloaded_device_id_pk_bytes,
     } = aziotctl_common::config::apply::run(aziot, aziotcs_uid, aziotid_uid)
         .map_err(|err| format!("{:?}", err))?;
+
+    let hostname_path = Path::new("/etc/aziot/identityd/config.d/00-super.toml");
+    if hostname_path.exists() {
+        let old_identity_config = std::fs::read(&hostname_path)
+        .map_err(|err| format!("could not read identity config file: {}", err))?;
+
+        let aziot_identityd_config::Settings {
+            hostname, 
+            ..
+        } = toml::from_slice(&old_identity_config).map_err(|err| format!("could not parse identity config file: {}", err))?;
+
+        let new_hostname = &identityd_config.hostname;
+
+        if hostname.ne(new_hostname) {
+
+            panic!("Couldn't apply configuration because there is a mismatch between the current hostname <old hostname value> 
+                    and the new hostname in the config.toml <new hostname value>. To apply the new hostname value, all containers must be stopped and 
+                    recreated by running the following command. Warning: stored data in the container will be lost when recreated. 
+                    If you don't want this, revert the hostname configuration back to the <old hostname value>.");
+        }
+    }
+    
+
+
 
     let mut iotedge_authorized_certs = vec![
         edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned(),
