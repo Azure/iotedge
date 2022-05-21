@@ -438,14 +438,6 @@ fn execute_inner(
         aziot_certd_config::PreloadedCert::Ids(trust_bundle_certs),
     );
 
-    #[cfg(contenttrust)]
-    let manifest_trust_bundle_cert = manifest_trust_bundle_cert.map(|manifest_trust_bundle_cert| {
-        certd_config.preloaded_certs.insert(
-            edgelet_settings::MANIFEST_TRUST_BUNDLE_ALIAS.to_owned(),
-            aziot_certd_config::PreloadedCert::Uri(manifest_trust_bundle_cert),
-        );
-        edgelet_settings::MANIFEST_TRUST_BUNDLE_ALIAS.to_owned()
-    });
     let manifest_trust_bundle_cert = None;
 
     let additional_info = if let Some(additional_info) = additional_info {
@@ -640,10 +632,6 @@ mod tests {
             let case_directory = entry.path();
 
             let test_name = case_directory.file_name().unwrap().to_str().unwrap();
-
-            if test_name.eq("manifest-trust-bundle") {
-                continue;
-            }
 
             println!(".\n.\n=========\n.\nRunning test {}", test_name);
 
