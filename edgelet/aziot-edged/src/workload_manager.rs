@@ -177,7 +177,7 @@ where
             Ok(run)
         })
         .flatten()
-        .map_err(|_| ());
+        .map_err(|err| log_failure(Level::Error, err.as_ref()));
 
         tokio::spawn(future);
 

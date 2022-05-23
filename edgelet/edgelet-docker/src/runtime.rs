@@ -773,7 +773,29 @@ impl<C: Clone + Connect + 'static> ModuleRuntime for DockerModuleRuntime<C> {
     fn system_info(&self) -> Self::SystemInfoFuture {
         info!("Querying system info...");
 
-        Box::new(future::ok(CoreSystemInfo::from_system()))
+        let mut core_info = CoreSystemInfo::from_system();
+        let additional_info = self.additional_info.clone();
+
+        // system_info.merge_additional(self.additional_info.clone());
+        Box::new(
+            self.client
+                .system_api()
+                .system_info()
+                .then(move |result| match result {
+                    Ok(docker_info) => {
+                        core_info.server_version =
+                            docker_info.server_version().map(ToString::to_string);
+                        core_info.merge_additional(additional_info);
+                        Ok(core_info)
+                    }
+                    Err(err) => {
+                        let err = anyhow::anyhow!(Error::from(err))
+                            .context(Error::RuntimeOperation(RuntimeOperation::SystemInfo));
+                        log_failure(Level::Warn, err.as_ref());
+                        Err(err)
+                    }
+                }),
+        )
     }
 
     fn system_resources(&self) -> Self::SystemResourcesFuture {
