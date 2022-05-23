@@ -1,4 +1,26 @@
-# 1.2.9 (2021-04-04)
+# 1.2.10 (2022-05-27)
+## Edge Agent
+### Bug Fixes
+* Restore SystemInfo structure for product information ( [bf31d16](https://github.com/Azure/iotedge/commit/bf31d16705d3fe63a9fc411e84635348a78daeb6) )
+* Update Base Image to address security vulnerabilities [CVE-2022-23267](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-23267) [CVE-2022-29117](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-29117) [CVE-2022-1271](https://ubuntu.com/security/CVE-2022-1271)
+
+## Edge Hub
+### Bug Fixes
+* Configurable task for cancelling hanging upstream calls( [12b52ba](https://github.com/Azure/iotedge/commit/12b52babe6fba24b136971a5d1ce1b8df387b1d7) )
+* Update Base Image to address security vulnerabilities [CVE-2022-23267](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-23267) [CVE-2022-29117](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-29117) [CVE-2022-1271](https://ubuntu.com/security/CVE-2022-1271)
+
+## aziot-edge
+### Bug Fixes
+* Improve error logging for WorkloadManager ( [f2e5a47](https://github.com/Azure/iotedge/commit/f2e5a47bb3fd109b5523cb2ae9849401f0fcc99d) )
+* Fix exit code when restarting due to reprovision( [d7d98d0](https://github.com/Azure/iotedge/commit/d7d98d0b606018c6cf5a60f15c44c01c663e0655) )
+* Mariner 2.0 Package Build for IoTEdge( [63273b1](https://github.com/Azure/iotedge/commit/63273b1a6b543eee64d1cb6a8a8fdd8caed47c63) )
+
+
+### Features
+*  Flatten additional properties of metrics ( [4983128](https://github.com/Azure/iotedge/commit/12b52babe6fba24b136971a5d1ce1b8df387b1d7) )
+
+
+# 1.2.9 (2022-04-04)
 ## Edge Agent
 ### Bug Fixes
 * Dev identity issues when switching identities ( [fb8d034](https://github.com/Azure/iotedge/commit/fb8d034626e43c413371274d7f9f685617c5b03f) )
@@ -19,7 +41,7 @@
 * Device product information ( [477814d](https://github.com/Azure/iotedge/commit/477814d9caaeba0c5318e418d1b44ddfc5206249) )
 
 
-# 1.2.8 (2021-02-24)
+# 1.2.8 (2022-02-24)
 ## Edge Agent
 ### Bug Fixes
 * Fix underflow possibility on ColumnFamilyDbStore  ( [bc78f1c](https://github.com/Azure/iotedge/commit/bc78f1c0b0ab0dfa305b817c030b82cea035f6e0) )
@@ -42,7 +64,7 @@
 * Update vulnerable regex package ( [a34fd5b](https://github.com/Azure/iotedge/commit/a34fd5bca7e58c01819da56dd73df817fbefeb7e), [fe7de0b](https://github.com/Azure/iotedge/commit/fe7de0b45363594d1f23b575eddb2947d38ace6a) )
 
 
-# 1.2.7 (2021-01-19)
+# 1.2.7 (2022-01-19)
 ## Edge Agent
 ### Bug Fixes
 * Update base image for security patch ( [8194a93](https://github.com/Azure/iotedge/commit/8194a93ab147658ca545dd8da97c0088904f284d) )
