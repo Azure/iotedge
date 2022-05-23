@@ -22,9 +22,9 @@ resources:
 
 jobs:
 ################################################################################
-  - job: ubuntu_1804_msmoby
+  - job: partial_upgrade_ubuntu_1804_msmoby
 ################################################################################
-    displayName: Ubuntu 18.04
+    displayName: Partial Upgrade
 
     pool:
       name: $(pool.linux.name)
@@ -45,24 +45,24 @@ jobs:
         # Scenarios 1 to 5 test older versions of the bootstrap Edge Agent 
         # module with the main/1.3 Edge Daemon and Runtime Modules. These represent
         # scenarios where the Edge Daemon and Runtime Modules in the deployment 
-        # are upraded, but the bootstrap agent in config.toml/config.yaml is not.
-        scenario_1:
+        # are upgraded, but the bootstrap agent in config.toml/config.yaml is not.
+        1.1.0_to_1.3_no_bootstrap_agent:
           edgeDaemonVersion: "main"
           bootstrapAgentVersion: "1.1.0"
           runtimeModulesVersion: "main"
-        scenario_2:
+        1.1.8_to_1.3_no_bootstrap_agent:
           edgeDaemonVersion: "main"
           bootstrapAgentVersion: "1.1.8"
           runtimeModulesVersion: "main"
-        scenario_3:
+        1.1.13_to_1.3_no_bootstrap_agent:
           edgeDaemonVersion: "main"
           bootstrapAgentVersion: "1.1.13"
           runtimeModulesVersion: "main"
-        scenario_4:
+        1.2.0_to_1.3_no_bootstrap_agent:
           edgeDaemonVersion: "main"
           bootstrapAgentVersion: "1.2.0"
           runtimeModulesVersion: "main"
-        scenario_5:
+        1.2.9_to_1.3_no_bootstrap_agent:
           edgeDaemonVersion: "main"
           bootstrapAgentVersion: "1.2.9"
           runtimeModulesVersion: "main"
@@ -71,23 +71,23 @@ jobs:
         # bootstrap Edge Agent, and runtime modules. These represent scenarios where
         # the Edge Daemon is upgraded, but the config.toml/config.yaml and deployment 
         # are left using older runtime images.
-        scenario_6:
+        1.1.0_to_1.3_only_edge_daemon:
           edgeDaemonVersion: "main"
           bootstrapAgentVersion: "1.1.0"
           runtimeModulesVersion: "1.1.0"
-        scenario_7:
+        1.1.8_to_1.3_only_edge_daemon:
           edgeDaemonVersion: "main"
           bootstrapAgentVersion: "1.1.8"
           runtimeModulesVersion: "1.1.8"
-        scenario_8:
+        1.1.13_to_1.3_only_edge_daemon:
           edgeDaemonVersion: "main"
           bootstrapAgentVersion: "1.1.13"
           runtimeModulesVersion: "1.1.13"
-        scenario_9:
+        1.2.0_to_1.3_only_edge_daemon:
           edgeDaemonVersion: "main"
           bootstrapAgentVersion: "1.2.0"
           runtimeModulesVersion: "1.2.0"
-        scenario_10:
+        1.2.9_to_1.3_only_edge_daemon:
           edgeDaemonVersion: "main"
           bootstrapAgentVersion: "1.2.9"
           runtimeModulesVersion: "1.2.9"
