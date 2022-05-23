@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2021_12_07.Generate
     using System = global::System;
 
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "13.15.5.0 (NJsonSchema v10.6.6.0 (Newtonsoft.Json v12.0.0.0))")]
-    public partial class EdgeletHttpClient 
+    public partial class EdgeletHttpClient
     {
         private string _baseUrl = "http://";
         private System.Net.Http.HttpClient _httpClient;
@@ -1955,7 +1955,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2021_12_07.Generate
                     var field = System.Reflection.IntrospectionExtensions.GetTypeInfo(value.GetType()).GetDeclaredField(name);
                     if (field != null)
                     {
-                        var attribute = System.Reflection.CustomAttributeExtensions.GetCustomAttribute(field, typeof(System.Runtime.Serialization.EnumMemberAttribute)) 
+                        var attribute = System.Reflection.CustomAttributeExtensions.GetCustomAttribute(field, typeof(System.Runtime.Serialization.EnumMemberAttribute))
                             as System.Runtime.Serialization.EnumMemberAttribute;
                         if (attribute != null)
                         {
@@ -1967,7 +1967,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2021_12_07.Generate
                     return converted == null ? string.Empty : converted;
                 }
             }
-            else if (value is bool) 
+            else if (value is bool)
             {
                 return System.Convert.ToString((bool)value, cultureInfo).ToLowerInvariant();
             }
@@ -2114,11 +2114,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2021_12_07.Generate
         [Newtonsoft.Json.JsonProperty("version", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public string Version { get; set; }
 
-        [Newtonsoft.Json.JsonProperty("serverVersion", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
-        public string ServerVersion { get; set; }
-
         [Newtonsoft.Json.JsonProperty("provisioning", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
-        public Provisioning Provisioning { get; set; }
+        public ProvisioningInfo Provisioning { get; set; }
+
+        [Newtonsoft.Json.JsonProperty("server_version", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string Server_version { get; set; }
+
+        [Newtonsoft.Json.JsonProperty("kernel_version", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string Kernel_version { get; set; }
+
+        [Newtonsoft.Json.JsonProperty("operating_system", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string Operating_system { get; set; }
+
+        [Newtonsoft.Json.JsonProperty("cpus", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public int? Cpus { get; set; }
+
+        [Newtonsoft.Json.JsonProperty("virtualized", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string Virtualized { get; set; }
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties = new System.Collections.Generic.Dictionary<string, object>();
 
