@@ -3,17 +3,19 @@
 //! This subcommand takes the super-config file, converts it into the individual services' config files,
 //! writes those files, and restarts the services.
 
-use std::path::Path;
+use std::{collections::HashMap, path::Path};
 
 use aziotctl_common::config as common_config;
 
 use super::super_config;
+use docker::{DockerApi, DockerApiClient};
+use http_common::Connector;
 
 const AZIOT_EDGED_HOMEDIR_PATH: &str = "/var/lib/aziot/edged";
 
 const TRUST_BUNDLE_USER_ALIAS: &str = "trust-bundle-user";
 
-pub fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>> {
+pub async fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>> {
     // In production, running as root is the easiest way to guarantee the tool has write access to every service's config file.
     // But it's convenient to not do this for the sake of development because the the development machine doesn't necessarily
     // have the package installed and the users created, and it's easier to have the config files owned by the current user anyway.
@@ -73,7 +75,7 @@ pub fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>> {
         edged_config,
         preloaded_device_id_pk_bytes,
         preloaded_master_encryption_key_bytes,
-    } = execute_inner(config, aziotcs_user.uid, aziotid_user.uid, iotedge_user.uid)?;
+    } = execute_inner(config, aziotcs_user.uid, aziotid_user.uid, iotedge_user.uid).await?;
 
     if let Some(preloaded_device_id_pk_bytes) = preloaded_device_id_pk_bytes {
         println!("Note: Symmetric key will be written to /var/secrets/aziot/keyd/device-id");
@@ -163,7 +165,7 @@ struct RunOutput {
     preloaded_master_encryption_key_bytes: Option<Vec<u8>>,
 }
 
-fn execute_inner(
+async fn execute_inner(
     config: &std::path::Path,
     aziotcs_uid: nix::unistd::Uid,
     aziotid_uid: nix::unistd::Uid,
@@ -197,9 +199,9 @@ fn execute_inner(
     } = aziotctl_common::config::apply::run(aziot, aziotcs_uid, aziotid_uid)
         .map_err(|err| format!("{:?}", err))?;
 
-    let hostname_path = Path::new("/etc/aziot/identityd/config.d/00-super.toml");
-    if hostname_path.exists() {
-        let old_identity_config = std::fs::read(&hostname_path)
+    let old_identityd_path = Path::new("/etc/aziot/identityd/config.d/00-super.toml");
+    if old_identityd_path.exists() {
+        let old_identity_config = std::fs::read(&old_identityd_path)
             .map_err(|err| format!("could not read identity config file: {}", err))?;
 
         let aziot_identityd_config::Settings { hostname, .. } =
@@ -207,12 +209,35 @@ fn execute_inner(
                 .map_err(|err| format!("could not parse identity config file: {}", err))?;
 
         let new_hostname = &identityd_config.hostname;
+        let moby_runtime = &moby_runtime;
+        let uri = &moby_runtime.uri;
 
-        //Of course, there must be a better way to do this, right? 
-        assert!(!hostname.ne(new_hostname), "Couldn't apply configuration because there is a mismatch between the current hostname {}
-                    and the new hostname in the config.toml {}. To apply the new hostname value, all containers must be stopped and 
-                    recreated by running the following command. Warning: stored data in the container will be lost when recreated. 
-                    If you don't want this, revert the hostname configuration back to the current hostname.", &hostname, &new_hostname);
+        let client = DockerApiClient::new(
+            Connector::new(uri).map_err(|err| format!("Failed to make docker client: {}", err))?,
+        );
+
+        const LABELS: &[&str] =
+            &["net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent"];
+        let mut filters = HashMap::new();
+        filters.insert("label", LABELS);
+        let filters = serde_json::to_string(&filters).map_err(|err| format!("{:?}", err))?;
+
+        let containers = client
+            .container_list(
+                true,  /*all*/
+                0,     /*limit*/
+                false, /*size*/
+                &filters,
+            )
+            .await
+            .map_err(|err| format!("{:?}", err))?;
+
+        if hostname.ne(new_hostname) {
+            assert!(containers.is_empty(), "Couldn't apply configuration because there is a mismatch between the current hostname {}
+            and the new hostname in the config.toml {}. To apply the new hostname value, all containers must be stopped and 
+            recreated by running the following command: sudo iotedge system stop && sudo docker system prune && sudo iotedge config apply. Warning: stored data in the container will be lost when recreated. 
+            If you don't want this, revert the hostname configuration back to the current hostname.", &hostname, &new_hostname);
+        }
     }
 
     let mut iotedge_authorized_certs = vec![
@@ -713,6 +738,7 @@ mod tests {
                 nix::unistd::Uid::from_raw(5556),
                 nix::unistd::Uid::from_raw(5558),
             )
+            .await
             .unwrap();
 
             // Convert the file contents to bytes::Bytes before asserting, because bytes::Bytes's Debug format
