@@ -15,6 +15,7 @@
 ## aziot-edge
 ### Bug Fixes
 * Improve error logging for WorkloadManager ( [f2e5a47](https://github.com/Azure/iotedge/commit/f2e5a47bb3fd109b5523cb2ae9849401f0fcc99d) )
+* Fix exit code when restarting due to reprovision( [d7d98d0](https://github.com/Azure/iotedge/commit/d7d98d0b606018c6cf5a60f15c44c01c663e0655) )
 
 
 # 1.2.9 (2021-04-04)
