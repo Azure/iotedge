@@ -51,12 +51,13 @@ impl AsyncWrite for StaticStream {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct JsonConnector {
     body: Vec<u8>,
 }
 
 impl JsonConnector {
-    pub fn new<T: Serialize>(body: &T) -> JsonConnector {
+    pub fn ok<T: Serialize>(body: &T) -> JsonConnector {
         let body = serde_json::to_string(body).unwrap();
         let body = format!(
             "HTTP/1.1 200 OK\r\n\
@@ -71,6 +72,23 @@ impl JsonConnector {
 
         JsonConnector { body }
     }
+
+    pub fn not_found<T: Serialize>(body: &T) -> JsonConnector {
+        let body = serde_json::to_string(body).unwrap();
+        let body = format!(
+            "HTTP/1.1 404 Not Found\r\n\
+             Content-Type: application/json; charset=utf-8\r\n\
+             Content-Length: {}\r\n\
+             \r\n\
+             {}",
+            body.len(),
+            body,
+        )
+        .into();
+
+        JsonConnector { body }
+    }
+
 }
 
 impl Connect for JsonConnector {

@@ -4,7 +4,7 @@ use crate::app;
 use crate::signal;
 
 #[cfg(feature = "runtime-docker")]
-type ModuleRuntime = edgelet_docker::DockerModuleRuntime;
+type ModuleRuntime = edgelet_docker::DockerModuleRuntime<edgelet_http::UrlConnector>;
 
 pub fn run() -> anyhow::Result<()> {
     let settings = app::init()?;

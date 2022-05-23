@@ -726,6 +726,7 @@ dependencies = [
  "libc",
  "log",
  "maplit",
+ "matches",
  "serde",
  "serde_derive",
  "serde_json",

@@ -22,7 +22,7 @@ type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead
 pub const MODULE_TYPE: &str = "docker";
 pub const MIN_DATE: &str = "0001-01-01T00:00:00Z";
 
-pub struct DockerModule<C: Connect> {
+pub struct DockerModule<C: Connect + 'static> {
     client: DockerClient<C>,
     name: String,
     config: DockerConfig,
@@ -30,14 +30,14 @@ pub struct DockerModule<C: Connect> {
 
 impl<C> std::fmt::Debug for DockerModule<C>
 where
-    C: Connect,
+    C: Connect + 'static,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("DockerModule").finish()
     }
 }
 
-impl<C: 'static + Connect> DockerModule<C> {
+impl<C: Connect + 'static> DockerModule<C> {
     pub fn new(
         client: DockerClient<C>,
         name: String,
@@ -223,12 +223,9 @@ mod tests {
     use crate::module::DockerModule;
 
     fn create_api_client<T: Serialize>(body: T) -> DockerClient<JsonConnector> {
-        let client = Client::builder().build(JsonConnector::new(&body));
+        let client = Client::builder().build(JsonConnector::ok(&body));
 
-        let mut config = Configuration::new(client);
-        config.base_path = "http://localhost/".to_string();
-        config.uri_composer =
-            Box::new(|base_path, path| Ok(format!("{}{}", base_path, path).parse().unwrap()));
+        let config = Configuration::new(client);
 
         DockerClient::new(APIClient::new(config))
     }

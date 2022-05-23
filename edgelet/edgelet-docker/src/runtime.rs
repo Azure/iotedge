@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::collections::{BTreeMap, HashMap};
+use std::convert::TryInto;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::str;
@@ -15,6 +16,7 @@ use futures::sync::oneshot;
 use futures::sync::oneshot::{Receiver, Sender};
 use futures::{future, stream, Async, Stream};
 use hyper::{Body, Chunk as HyperChunk, Client, Request};
+use hyper::client::connect::Connect;
 use lazy_static::lazy_static;
 use log::{debug, error, info, warn, Level};
 use url::Url;
@@ -41,7 +43,6 @@ use crate::notary;
 use crate::settings::{ContentTrust, Settings};
 
 use edgelet_core::DiskInfo;
-use std::convert::TryInto;
 #[cfg(target_os = "linux")]
 use std::mem;
 use std::process;
@@ -63,8 +64,8 @@ lazy_static! {
 }
 
 #[derive(Clone)]
-pub struct DockerModuleRuntime {
-    client: DockerClient<UrlConnector>,
+pub struct DockerModuleRuntime<C: Connect + 'static> {
+    client: DockerClient<C>,
     system_resources: Arc<Mutex<System>>,
     notary_registries: BTreeMap<String, PathBuf>,
     notary_lock: tokio::sync::lock::Lock<BTreeMap<String, String>>,
@@ -73,31 +74,7 @@ pub struct DockerModuleRuntime {
     additional_info: BTreeMap<String, String>,
 }
 
-impl DockerModuleRuntime {
-    fn merge_env(cur_env: Option<&[String]>, new_env: &BTreeMap<String, String>) -> Vec<String> {
-        // build a new merged map containing string slices for keys and values
-        // pointing into String instances in new_env
-        let mut merged_env = BTreeMap::new();
-        merged_env.extend(new_env.iter().map(|(k, v)| (k.as_str(), v.as_str())));
-
-        if let Some(env) = cur_env {
-            // extend merged_env with variables in cur_env (again, these are
-            // only string slices pointing into strings inside cur_env)
-            merged_env.extend(env.iter().filter_map(|s| {
-                let mut tokens = s.splitn(2, '=');
-                tokens.next().map(|key| (key, tokens.next().unwrap_or("")))
-            }));
-        }
-
-        // finally build a new Vec<String>; we alloc new strings here
-        merged_env
-            .iter()
-            .map(|(key, value)| format!("{}={}", key, value))
-            .collect()
-    }
-}
-
-impl std::fmt::Debug for DockerModuleRuntime {
+impl<C: Connect + 'static> std::fmt::Debug for DockerModuleRuntime<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("DockerModuleRuntime").finish()
     }
@@ -114,7 +91,7 @@ impl<T> Future for MutexFuture<T> {
     }
 }
 
-impl ModuleRegistry for DockerModuleRuntime {
+impl<C: Connect + 'static> ModuleRegistry for DockerModuleRuntime<C> {
     type PullFuture = Box<dyn Future<Item = (), Error = anyhow::Error> + Send>;
     type RemoveFuture = Box<dyn Future<Item = (), Error = anyhow::Error>>;
     type Config = DockerConfig;
@@ -229,6 +206,28 @@ impl ModuleRegistry for DockerModuleRuntime {
     }
 }
 
+fn merge_env(cur_env: Option<&[String]>, new_env: &BTreeMap<String, String>) -> Vec<String> {
+    // build a new merged map containing string slices for keys and values
+    // pointing into String instances in new_env
+    let mut merged_env = BTreeMap::new();
+    merged_env.extend(new_env.iter().map(|(k, v)| (k.as_str(), v.as_str())));
+
+    if let Some(env) = cur_env {
+        // extend merged_env with variables in cur_env (again, these are
+        // only string slices pointing into strings inside cur_env)
+        merged_env.extend(env.iter().filter_map(|s| {
+            let mut tokens = s.splitn(2, '=');
+            tokens.next().map(|key| (key, tokens.next().unwrap_or("")))
+        }));
+    }
+
+    // finally build a new Vec<String>; we alloc new strings here
+    merged_env
+        .iter()
+        .map(|(key, value)| format!("{}={}", key, value))
+        .collect()
+}
+
 fn parse_get_response<'de, D>(resp: &InlineResponse200) -> std::result::Result<String, D::Error>
 where
     D: serde::Deserializer<'de>,
@@ -240,7 +239,7 @@ where
     Ok(name)
 }
 
-impl MakeModuleRuntime for DockerModuleRuntime {
+impl MakeModuleRuntime for DockerModuleRuntime<UrlConnector> {
     type Config = DockerConfig;
     type Settings = Settings;
     type ModuleRuntime = Self;
@@ -393,9 +392,9 @@ fn get_ipv6_settings(network_configuration: &MobyNetwork) -> (bool, Option<Ipam>
     }
 }
 
-impl ModuleRuntime for DockerModuleRuntime {
+impl<C: Clone + Connect + 'static> ModuleRuntime for DockerModuleRuntime<C> {
     type Config = DockerConfig;
-    type Module = DockerModule<UrlConnector>;
+    type Module = DockerModule<C>;
     type ModuleRegistry = Self;
     type Chunk = Chunk;
     type Logs = Logs;
@@ -503,7 +502,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                     .clone_create_options()
                     .map(move |create_options| {
                         let merged_env =
-                            DockerModuleRuntime::merge_env(create_options.env(), module.env());
+                            merge_env(create_options.env(), module.env());
 
                         let mut labels = create_options
                             .labels()
@@ -684,16 +683,10 @@ impl ModuleRuntime for DockerModuleRuntime {
                         }
                     }
                     Err(err) => {
-                        let err = Error::from(err);
-                        if let Error::NotFound(_) = &err {
-                            Ok(())
-                        }
-                        else {
-                            let err = anyhow::anyhow!(err)
-                                .context(Error::RuntimeOperation(RuntimeOperation::StopModule(id)));
-                            log_failure(Level::Warn, err.as_ref());
-                            Err(err)
-                        }
+                        let err = anyhow::anyhow!(Error::from(err))
+                            .context(Error::RuntimeOperation(RuntimeOperation::StopModule(id)));
+                        log_failure(Level::Warn, err.as_ref());
+                        Err(err)
                     }
                 }),
         )
@@ -994,7 +987,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         let self_for_remove = self.clone();
         Box::new(self.list().and_then(move |list| {
             let n = list.into_iter().map(move |c| {
-                <DockerModuleRuntime as ModuleRuntime>::remove(&self_for_remove, c.name())
+                <Self as ModuleRuntime>::remove(&self_for_remove, c.name())
             });
             future::join_all(n).map(|_| ())
         }))
@@ -1004,7 +997,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         let self_for_stop = self.clone();
         Box::new(self.list().and_then(move |list| {
             let n = list.into_iter().map(move |c| {
-                <DockerModuleRuntime as ModuleRuntime>::stop(
+                <Self as ModuleRuntime>::stop(
                     &self_for_stop,
                     c.name(),
                     wait_before_kill,
@@ -1019,7 +1012,7 @@ impl ModuleRuntime for DockerModuleRuntime {
     }
 }
 
-impl Authenticator for DockerModuleRuntime {
+impl<C: Clone + Connect + 'static> Authenticator for DockerModuleRuntime<C> {
     type Request = Request<Body>;
     type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = anyhow::Error> + Send>;
 
@@ -1157,7 +1150,7 @@ where
         .extensions()
         .get::<Pid>()
         .cloned()
-        .unwrap_or_else(|| Pid::None);
+        .unwrap_or(Pid::None);
 
     let expected_module_id = req.extensions().get::<ModuleId>().cloned();
 
@@ -1308,30 +1301,50 @@ fn drop_unsafe_privileges(
 #[cfg(test)]
 mod tests {
     use super::{
-        authenticate, drop_unsafe_privileges, future, list_with_details, parse_get_response,
+        authenticate, drop_unsafe_privileges, future, list_with_details, merge_env, parse_get_response,
         unset_privileged, AuthId, Authenticator, BTreeMap, Body, ContainerCreateBody,
-        CoreSystemInfo, Deserializer, DockerModuleRuntime, DockerModuleTop, Duration, Error,
+        CoreSystemInfo, Deserializer, DockerClient, DockerModuleRuntime, DockerModuleTop, Duration, Error,
         Future, HostConfig, InlineResponse200, LogOptions, MakeModuleRuntime, Module, ModuleId,
         ModuleRuntime, ModuleRuntimeState, ModuleSpec, Pid, Request, Stream, SystemResources,
     };
 
     use std::path::Path;
 
-    use edgelet_core::ModuleAction;
-    use futures::future::FutureResult;
-    use futures::stream::Empty;
-
     use edgelet_core::{
-        settings::AutoReprovisioningMode, Connect, Endpoints, Listen, ModuleRegistry, ModuleTop,
+        settings::AutoReprovisioningMode, Connect, Endpoints, Listen, ModuleAction, ModuleRegistry, ModuleTop,
         RuntimeSettings, WatchdogSettings,
     };
-    use futures::sync::mpsc::UnboundedSender;
+    use edgelet_test_utils::JsonConnector;
+    use futures::future::FutureResult;
+    use futures::stream::Empty;
+    use futures::sync::mpsc::{self, UnboundedSender};
+    use matches::assert_matches;
+
+    fn simulate_not_found(message: &str) -> DockerClient<JsonConnector> {
+        let client = hyper::Client::builder().build(JsonConnector::not_found(&serde_json::json!({
+            "message": message
+        })));
+
+        let config = docker::apis::configuration::Configuration::new(client);
+
+        DockerClient::new(docker::apis::client::APIClient::new(config))
+    }
+
+    fn expect_not_found<T>(res: anyhow::Result<T>)
+    where
+        T: std::fmt::Debug
+    {
+        assert_matches!(
+            res.unwrap_err().root_cause().downcast_ref().unwrap(),
+            Error::NotFound(_)
+        );
+    }
 
     #[test]
     fn merge_env_empty() {
         let cur_env = Some(&[][..]);
         let new_env = BTreeMap::new();
-        assert_eq!(0, DockerModuleRuntime::merge_env(cur_env, &new_env).len());
+        assert_eq!(0, merge_env(cur_env, &new_env).len());
     }
 
     #[test]
@@ -1339,7 +1352,7 @@ mod tests {
         let cur_env = Some(vec!["k1=v1".to_string(), "k2=v2".to_string()]);
         let new_env = BTreeMap::new();
         let mut merged_env =
-            DockerModuleRuntime::merge_env(cur_env.as_ref().map(AsRef::as_ref), &new_env);
+            merge_env(cur_env.as_ref().map(AsRef::as_ref), &new_env);
         merged_env.sort();
         assert_eq!(vec!["k1=v1", "k2=v2"], merged_env);
     }
@@ -1350,7 +1363,7 @@ mod tests {
         let mut new_env = BTreeMap::new();
         new_env.insert("k3".to_string(), "v3".to_string());
         let mut merged_env =
-            DockerModuleRuntime::merge_env(cur_env.as_ref().map(AsRef::as_ref), &new_env);
+            merge_env(cur_env.as_ref().map(AsRef::as_ref), &new_env);
         merged_env.sort();
         assert_eq!(vec!["k1=v1", "k2=v2", "k3=v3"], merged_env);
     }
@@ -1362,7 +1375,7 @@ mod tests {
         new_env.insert("k2".to_string(), "v02".to_string());
         new_env.insert("k3".to_string(), "v3".to_string());
         let mut merged_env =
-            DockerModuleRuntime::merge_env(cur_env.as_ref().map(AsRef::as_ref), &new_env);
+            merge_env(cur_env.as_ref().map(AsRef::as_ref), &new_env);
         merged_env.sort();
         assert_eq!(vec!["k1=v1", "k2=v2", "k3=v3"], merged_env);
     }
@@ -1384,6 +1397,37 @@ mod tests {
                 ),
             ]
         );
+    }
+
+    #[test]
+    fn error_root_cause_downcast_is_sound() {
+        let runtime = prepare_module_runtime_with_known_modules();
+        let module = "not_a_module_name";
+
+        expect_not_found(runtime.get(module).wait());
+        expect_not_found(runtime.start(module).wait());
+        expect_not_found(runtime.stop(module, None).wait());
+        expect_not_found(runtime.restart(module).wait());
+        expect_not_found(ModuleRuntime::remove(&runtime, module).wait());
+    }
+
+    #[test]
+    fn error_properly_converted_and_propagated() {
+        let (create_socket_channel, _) = mpsc::unbounded();
+        let client = simulate_not_found("MESSAGE");
+        let runtime = DockerModuleRuntime {
+            client,
+            system_resources: Default::default(),
+            notary_registries: Default::default(),
+            notary_lock: Default::default(),
+            allow_elevated_docker_permissions: false,
+            create_socket_channel,
+            additional_info: Default::default()
+        };
+        let res = tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(runtime.stop("FOO", None));
+        expect_not_found(res);
     }
 
     #[test]
@@ -1466,33 +1510,6 @@ mod tests {
         assert_eq!(AuthId::Value("d".into()), auth_id);
     }
 
-    fn prepare_module_runtime_with_known_modules() -> TestModuleList {
-        TestModuleList {
-            modules: vec![
-                TestModule {
-                    name: "a".to_string(),
-                    runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
-                    process_ids: vec![1000],
-                },
-                TestModule {
-                    name: "b".to_string(),
-                    runtime_state_behavior: TestModuleRuntimeStateBehavior::NotFound,
-                    process_ids: vec![2000, 2001],
-                },
-                TestModule {
-                    name: "c".to_string(),
-                    runtime_state_behavior: TestModuleRuntimeStateBehavior::NotFound,
-                    process_ids: vec![3000],
-                },
-                TestModule {
-                    name: "d".to_string(),
-                    runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
-                    process_ids: vec![4000, 4001],
-                },
-            ],
-        }
-    }
-
     #[test]
     fn parse_get_response_returns_the_name() {
         let response = InlineResponse200::new().with_name("hello".to_string());
@@ -1556,6 +1573,33 @@ mod tests {
             create_options.host_config().unwrap().cap_drop(),
             Some(&vec!["CAP_SETUID".to_owned()])
         );
+    }
+
+    fn prepare_module_runtime_with_known_modules() -> TestModuleList {
+        TestModuleList {
+            modules: vec![
+                TestModule {
+                    name: "a".to_string(),
+                    runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
+                    process_ids: vec![1000],
+                },
+                TestModule {
+                    name: "b".to_string(),
+                    runtime_state_behavior: TestModuleRuntimeStateBehavior::NotFound,
+                    process_ids: vec![2000, 2001],
+                },
+                TestModule {
+                    name: "c".to_string(),
+                    runtime_state_behavior: TestModuleRuntimeStateBehavior::NotFound,
+                    process_ids: vec![3000],
+                },
+                TestModule {
+                    name: "d".to_string(),
+                    runtime_state_behavior: TestModuleRuntimeStateBehavior::Default,
+                    process_ids: vec![4000, 4001],
+                },
+            ],
+        }
     }
 
     #[derive(Clone)]
@@ -1655,7 +1699,7 @@ mod tests {
                     future::ok(ModuleRuntimeState::default().with_pid(top_pid))
                 }
                 TestModuleRuntimeStateBehavior::NotFound => {
-                    future::err(Error::NotFound(String::new()).into())
+                    future::err(Error::NotFound(self.name().to_string()).into())
                 }
             }
         }
@@ -1664,6 +1708,20 @@ mod tests {
     #[derive(Clone)]
     struct TestModuleList {
         modules: Vec<TestModule>,
+    }
+
+    impl TestModuleList {
+        fn action_with_module_and_state<F, T>(&self, id: &str, f: F) -> anyhow::Result<T>
+        where
+            F: FnOnce(TestModule, ModuleRuntimeState) -> T
+        {
+            if let Some(module) = self.modules.iter().find(|m| m.name() == id) {
+                let module = module.clone();
+                module.runtime_state().wait().map(move |state| f(module, state))
+            } else {
+                Err(Error::NotFound(id.to_string()).into())
+            }
+        }
     }
 
     impl ModuleRegistry for TestModuleList {
@@ -1737,24 +1795,24 @@ mod tests {
             unimplemented!()
         }
 
-        fn get(&self, _id: &str) -> Self::GetFuture {
-            unimplemented!()
+        fn get(&self, id: &str) -> Self::GetFuture {
+            future::result(self.action_with_module_and_state(id, |module, state| (module, state)))
         }
 
-        fn start(&self, _id: &str) -> Self::StartFuture {
-            unimplemented!()
+        fn start(&self, id: &str) -> Self::StartFuture {
+            future::result(self.action_with_module_and_state(id, |_, _| ()))
         }
 
-        fn stop(&self, _id: &str, _wait_before_kill: Option<Duration>) -> Self::StopFuture {
-            unimplemented!()
+        fn stop(&self, id: &str, _wait_before_kill: Option<Duration>) -> Self::StopFuture {
+            future::result(self.action_with_module_and_state(id, |_, _| ()))
         }
 
-        fn restart(&self, _id: &str) -> Self::RestartFuture {
-            unimplemented!()
+        fn restart(&self, id: &str) -> Self::RestartFuture {
+            future::result(self.action_with_module_and_state(id, |_, _| ()))
         }
 
-        fn remove(&self, _id: &str) -> Self::RemoveFuture {
-            unimplemented!()
+        fn remove(&self, id: &str) -> Self::RemoveFuture {
+            future::result(self.action_with_module_and_state(id, |_, _| ()))
         }
 
         fn system_info(&self) -> Self::SystemInfoFuture {

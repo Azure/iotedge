@@ -90,7 +90,10 @@ where
     info!("Stopping edge runtime module {}", name);
     runtime
         .stop(name, Some(EDGE_RUNTIME_STOP_TIME))
-        .map_err(|err| anyhow::anyhow!(err).context(Error::ModuleRuntime))
+        .or_else(|err| match err.root_cause().downcast_ref() {
+            Some(edgelet_docker::Error::NotFound(_)) => Ok(()),
+            _ => Err(err.context(Error::ModuleRuntime))
+        })
 }
 
 // Start watchdog on a timer for 1 minute

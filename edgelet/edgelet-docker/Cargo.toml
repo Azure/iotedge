@@ -36,6 +36,7 @@ libc = "0.2.66"
 
 [dev_dependencies]
 maplit = "1.0"
+matches = "0.1"
 time = "0.1"
 tempdir = "0.3.7"
 tempfile = "3"
