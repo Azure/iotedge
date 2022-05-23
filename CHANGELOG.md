@@ -1,6 +1,7 @@
 # 1.2.10 (2021-05-27)
 ## Edge Agent
 ### Bug Fixes
+* Restore SystemInfo structure for product information ( [bf31d16](https://github.com/Azure/iotedge/commit/bf31d16705d3fe63a9fc411e84635348a78daeb6) )
 * Flatten additional properties of SystemInfo metrics ( [12b52ba](https://github.com/Azure/iotedge/commit/12b52babe6fba24b136971a5d1ce1b8df387b1d7) )
 * Update Base Image to address security vulnerabilities [CVE-2022-23267](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-23267) [CVE-2022-29117](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-29117) [CVE-2022-1271](https://ubuntu.com/security/CVE-2022-1271)
 
