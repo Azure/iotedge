@@ -91,11 +91,19 @@ jobs:
           edgeDaemonVersion: "main"
           bootstrapAgentVersion: "1.2.9"
           runtimeModulesVersion: "1.2.9"
+        
+        scenario_11:
+          edgeDaemonVersion: "release/1.2"
+          bootstrapAgentVersion: "1.2.9"
+          runtimeModulesVersion: "1.2.9"
 
     timeoutInMinutes: 90
 
     steps:
     - template: templates/e2e-setup.yaml
+
+    - bash: |
+        git checkout $(edgeDaemonVersion)
 
     # Run sed command on context.json to set edgeAgentBootstrapImage, edgeAgentImage, and edgeHubImage
     - bash: |
