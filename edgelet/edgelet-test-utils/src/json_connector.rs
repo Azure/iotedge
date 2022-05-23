@@ -88,7 +88,6 @@ impl JsonConnector {
 
         JsonConnector { body }
     }
-
 }
 
 impl Connect for JsonConnector {

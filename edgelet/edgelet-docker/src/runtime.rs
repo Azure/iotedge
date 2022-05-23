@@ -15,8 +15,8 @@ use futures::sync::mpsc::UnboundedSender;
 use futures::sync::oneshot;
 use futures::sync::oneshot::{Receiver, Sender};
 use futures::{future, stream, Async, Stream};
-use hyper::{Body, Chunk as HyperChunk, Client, Request};
 use hyper::client::connect::Connect;
+use hyper::{Body, Chunk as HyperChunk, Client, Request};
 use lazy_static::lazy_static;
 use log::{debug, error, info, warn, Level};
 use url::Url;
@@ -501,8 +501,7 @@ impl<C: Clone + Connect + 'static> ModuleRuntime for DockerModuleRuntime<C> {
                     .config()
                     .clone_create_options()
                     .map(move |create_options| {
-                        let merged_env =
-                            merge_env(create_options.env(), module.env());
+                        let merged_env = merge_env(create_options.env(), module.env());
 
                         let mut labels = create_options
                             .labels()
@@ -1008,9 +1007,9 @@ impl<C: Clone + Connect + 'static> ModuleRuntime for DockerModuleRuntime<C> {
     fn remove_all(&self) -> Self::RemoveAllFuture {
         let self_for_remove = self.clone();
         Box::new(self.list().and_then(move |list| {
-            let n = list.into_iter().map(move |c| {
-                <Self as ModuleRuntime>::remove(&self_for_remove, c.name())
-            });
+            let n = list
+                .into_iter()
+                .map(move |c| <Self as ModuleRuntime>::remove(&self_for_remove, c.name()));
             future::join_all(n).map(|_| ())
         }))
     }
@@ -1019,15 +1018,12 @@ impl<C: Clone + Connect + 'static> ModuleRuntime for DockerModuleRuntime<C> {
         let self_for_stop = self.clone();
         Box::new(self.list().and_then(move |list| {
             let n = list.into_iter().map(move |c| {
-                <Self as ModuleRuntime>::stop(
-                    &self_for_stop,
-                    c.name(),
-                    wait_before_kill,
+                <Self as ModuleRuntime>::stop(&self_for_stop, c.name(), wait_before_kill).or_else(
+                    |err| match err.root_cause().downcast_ref() {
+                        Some(Error::NotFound(_)) | Some(Error::NotModified) => Ok(()),
+                        _ => Err(err),
+                    },
                 )
-                .or_else(|err| match err.root_cause().downcast_ref() {
-                    Some(Error::NotFound(_)) | Some(Error::NotModified) => Ok(()),
-                    _ => Err(err),
-                })
             });
             future::join_all(n).map(|_| ())
         }))
@@ -1168,11 +1164,7 @@ where
     <MR as ModuleRuntime>::ListFuture: 'static,
     MR::Module: DockerModuleTop + 'static,
 {
-    let pid = req
-        .extensions()
-        .get::<Pid>()
-        .cloned()
-        .unwrap_or(Pid::None);
+    let pid = req.extensions().get::<Pid>().cloned().unwrap_or(Pid::None);
 
     let expected_module_id = req.extensions().get::<ModuleId>().cloned();
 
@@ -1323,18 +1315,19 @@ fn drop_unsafe_privileges(
 #[cfg(test)]
 mod tests {
     use super::{
-        authenticate, drop_unsafe_privileges, future, list_with_details, merge_env, parse_get_response,
-        unset_privileged, AuthId, Authenticator, BTreeMap, Body, ContainerCreateBody,
-        CoreSystemInfo, Deserializer, DockerClient, DockerModuleRuntime, DockerModuleTop, Duration, Error,
-        Future, HostConfig, InlineResponse200, LogOptions, MakeModuleRuntime, Module, ModuleId,
-        ModuleRuntime, ModuleRuntimeState, ModuleSpec, Pid, Request, Stream, SystemResources,
+        authenticate, drop_unsafe_privileges, future, list_with_details, merge_env,
+        parse_get_response, unset_privileged, AuthId, Authenticator, BTreeMap, Body,
+        ContainerCreateBody, CoreSystemInfo, Deserializer, DockerClient, DockerModuleRuntime,
+        DockerModuleTop, Duration, Error, Future, HostConfig, InlineResponse200, LogOptions,
+        MakeModuleRuntime, Module, ModuleId, ModuleRuntime, ModuleRuntimeState, ModuleSpec, Pid,
+        Request, Stream, SystemResources,
     };
 
     use std::path::Path;
 
     use edgelet_core::{
-        settings::AutoReprovisioningMode, Connect, Endpoints, Listen, ModuleAction, ModuleRegistry, ModuleTop,
-        RuntimeSettings, WatchdogSettings,
+        settings::AutoReprovisioningMode, Connect, Endpoints, Listen, ModuleAction, ModuleRegistry,
+        ModuleTop, RuntimeSettings, WatchdogSettings,
     };
     use edgelet_test_utils::JsonConnector;
     use futures::future::FutureResult;
@@ -1343,9 +1336,10 @@ mod tests {
     use matches::assert_matches;
 
     fn simulate_not_found(message: &str) -> DockerClient<JsonConnector> {
-        let client = hyper::Client::builder().build(JsonConnector::not_found(&serde_json::json!({
-            "message": message
-        })));
+        let client =
+            hyper::Client::builder().build(JsonConnector::not_found(&serde_json::json!({
+                "message": message
+            })));
 
         let config = docker::apis::configuration::Configuration::new(client);
 
@@ -1354,7 +1348,7 @@ mod tests {
 
     fn expect_not_found<T>(res: anyhow::Result<T>)
     where
-        T: std::fmt::Debug
+        T: std::fmt::Debug,
     {
         assert_matches!(
             res.unwrap_err().root_cause().downcast_ref().unwrap(),
@@ -1373,8 +1367,7 @@ mod tests {
     fn merge_env_new_empty() {
         let cur_env = Some(vec!["k1=v1".to_string(), "k2=v2".to_string()]);
         let new_env = BTreeMap::new();
-        let mut merged_env =
-            merge_env(cur_env.as_ref().map(AsRef::as_ref), &new_env);
+        let mut merged_env = merge_env(cur_env.as_ref().map(AsRef::as_ref), &new_env);
         merged_env.sort();
         assert_eq!(vec!["k1=v1", "k2=v2"], merged_env);
     }
@@ -1384,8 +1377,7 @@ mod tests {
         let cur_env = Some(vec!["k1=v1".to_string(), "k2=v2".to_string()]);
         let mut new_env = BTreeMap::new();
         new_env.insert("k3".to_string(), "v3".to_string());
-        let mut merged_env =
-            merge_env(cur_env.as_ref().map(AsRef::as_ref), &new_env);
+        let mut merged_env = merge_env(cur_env.as_ref().map(AsRef::as_ref), &new_env);
         merged_env.sort();
         assert_eq!(vec!["k1=v1", "k2=v2", "k3=v3"], merged_env);
     }
@@ -1396,8 +1388,7 @@ mod tests {
         let mut new_env = BTreeMap::new();
         new_env.insert("k2".to_string(), "v02".to_string());
         new_env.insert("k3".to_string(), "v3".to_string());
-        let mut merged_env =
-            merge_env(cur_env.as_ref().map(AsRef::as_ref), &new_env);
+        let mut merged_env = merge_env(cur_env.as_ref().map(AsRef::as_ref), &new_env);
         merged_env.sort();
         assert_eq!(vec!["k1=v1", "k2=v2", "k3=v3"], merged_env);
     }
@@ -1444,7 +1435,7 @@ mod tests {
             notary_lock: Default::default(),
             allow_elevated_docker_permissions: false,
             create_socket_channel,
-            additional_info: Default::default()
+            additional_info: Default::default(),
         };
         let res = tokio::runtime::current_thread::Runtime::new()
             .unwrap()
@@ -1735,14 +1726,19 @@ mod tests {
     impl TestModuleList {
         fn action_with_module_and_state<F, T>(&self, id: &str, f: F) -> anyhow::Result<T>
         where
-            F: FnOnce(TestModule, ModuleRuntimeState) -> T
+            F: FnOnce(TestModule, ModuleRuntimeState) -> T,
         {
-            if let Some(module) = self.modules.iter().find(|m| m.name() == id) {
-                let module = module.clone();
-                module.runtime_state().wait().map(move |state| f(module, state))
-            } else {
-                Err(Error::NotFound(id.to_string()).into())
-            }
+            self.modules
+                .iter()
+                .find(|m| m.name() == id)
+                .cloned()
+                .ok_or_else(|| Error::NotFound(id.to_string()).into())
+                .and_then(|module| {
+                    module
+                        .runtime_state()
+                        .wait()
+                        .map(move |state| f(module, state))
+                })
         }
     }
 

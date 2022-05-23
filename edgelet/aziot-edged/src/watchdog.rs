@@ -92,7 +92,7 @@ where
         .stop(name, Some(EDGE_RUNTIME_STOP_TIME))
         .or_else(|err| match err.root_cause().downcast_ref() {
             Some(edgelet_docker::Error::NotFound(_)) => Ok(()),
-            _ => Err(err.context(Error::ModuleRuntime))
+            _ => Err(err.context(Error::ModuleRuntime)),
         })
 }
 
