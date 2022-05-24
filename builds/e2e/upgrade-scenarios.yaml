@@ -44,56 +44,56 @@ jobs:
     strategy:
       matrix:
         1.1_to_1.3_no_edge_daemon:
-          edgeDaemonVersion: "release/1.1"
-          bootstrapAgentVersion: "main"
-          runtimeModulesVersion: "main"
+          edgeDaemonVersion: 'release/1.1'
+          bootstrapAgentVersion: 'main'
+          runtimeModulesVersion: 'main'
         1.1_to_1.3_no_runtime_modules:
-          edgeDaemonVersion: "release/1.1"
-          bootstrapAgentVersion: "release/1.1"
-          runtimeModulesVersion: "main"
+          edgeDaemonVersion: 'release/1.1'
+          bootstrapAgentVersion: 'release/1.1'
+          runtimeModulesVersion: 'main'
         1.1_to_1.2_no_edge_daemon:
-          edgeDaemonVersion: "release/1.1"
-          bootstrapAgentVersion: "release/1.2"
-          runtimeModulesVersion: "release/1.2"
+          edgeDaemonVersion: 'release/1.1'
+          bootstrapAgentVersion: 'release/1.2'
+          runtimeModulesVersion: 'release/1.2'
         1.1_to_1.2_only_runtime_modules:
-          edgeDaemonVersion: "release/1.1"
-          bootstrapAgentVersion: "release/1.1"
-          runtimeModulesVersion: "release/1.2"
+          edgeDaemonVersion: 'release/1.1'
+          bootstrapAgentVersion: 'release/1.1'
+          runtimeModulesVersion: 'release/1.2'
         1.1.0_to_1.3_no_edge_daemon:
-          edgeDaemonVersion: "1.1.0"
-          bootstrapAgentVersion: "main"
-          runtimeModulesVersion: "main"
+          edgeDaemonVersion: '1.1.0'
+          bootstrapAgentVersion: 'main'
+          runtimeModulesVersion: 'main'
         1.1.0_to_1.3_only_runtime_modules:
-          edgeDaemonVersion: "1.1.0"
-          bootstrapAgentVersion: "1.1.0"
-          runtimeModulesVersion: "main"
+          edgeDaemonVersion: '1.1.0'
+          bootstrapAgentVersion: '1.1.0'
+          runtimeModulesVersion: 'main'
         1.1.8_to_1.3_no_edge_daemon:
-          edgeDaemonVersion: "1.1.8"
-          bootstrapAgentVersion: "main"
-          runtimeModulesVersion: "main"
+          edgeDaemonVersion: '1.1.8'
+          bootstrapAgentVersion: 'main'
+          runtimeModulesVersion: 'main'
         1.1.8_to_1.3_only_runtime_modules:
-          edgeDaemonVersion: "1.1.8"
-          bootstrapAgentVersion: "1.1.8"
-          runtimeModulesVersion: "main"
+          edgeDaemonVersion: '1.1.8'
+          bootstrapAgentVersion: '1.1.8'
+          runtimeModulesVersion: 'main'
         1.1.13_to_1.3_no_edge_daemon:
-          edgeDaemonVersion: "1.1.13"
-          bootstrapAgentVersion: "main"
-          runtimeModulesVersion: "main"
+          edgeDaemonVersion: '1.1.13'
+          bootstrapAgentVersion: 'main'
+          runtimeModulesVersion: 'main'
         1.1.13_to_1.3_only_runtime_modules:
-          edgeDaemonVersion: "1.1.13"
-          bootstrapAgentVersion: "1.1.13"
-          runtimeModulesVersion: "main"
+          edgeDaemonVersion: '1.1.13'
+          bootstrapAgentVersion: '1.1.13'
+          runtimeModulesVersion: 'main'
 
     timeoutInMinutes: 90
 
     steps:
     - template: templates/e2e-setup.yaml
 
-    # If edgeDaemonVersion != "release/1.1", remove the iotedge and
+    # If edgeDaemonVersion != 'release/1.1', remove the iotedge and
     # libiothsm-std packages from $(System.ArtifactsDirectory) and download the desired
     # versions.  
     - bash: |
-        if [ $(edgeDaemonVersion) != "release/1.1" ]; then
+        if [ $(edgeDaemonVersion) != 'release/1.1' ]; then
           pushd $(System.ArtifactsDirectory)/$(artifactName)
           rm iotedge*.deb
           rm libiothsm-std*.deb
@@ -107,10 +107,10 @@ jobs:
     # image tag from artifactInfo.txt and update context.json with it.
     - template: templates/upgrade-scenarios-setup.yaml
       parameters:
-        useArtifactInfoFile: 'true'
+        useArtifactInfoFile: 'True'
         artifactBranch: 'main'
-        updateRuntimeImages: ${{ eq(variables['runtimeModulesVersion'], 'main') }}
-        updateBootstrapAgentImage: ${{ eq(variables['runtimeModulesVersion'], 'main') }}
+        updateRuntimeImages: '${{ eq(variables['runtimeModulesVersion'], 'main') }}'
+        updateBootstrapAgentImage: '${{ eq(variables['runtimeModulesVersion'], 'main') }}'
         project: $(resources.pipeline.images_main.projectID)
         pipeline: $(resources.pipeline.images_main.pipelineName)
         buildId: $(resources.pipeline.images_main.runID)
@@ -119,10 +119,10 @@ jobs:
     # image tag from artifactInfo.txt and update context.json with it.
     - template: templates/upgrade-scenarios-setup.yaml
       parameters:
-        useArtifactInfoFile: 'true'
+        useArtifactInfoFile: 'True'
         artifactBranch: 'release/1.2'
-        updateRuntimeImages: ${{ eq(variables['runtimeModulesVersion'], 'release/1.2') }}
-        updateBootstrapAgentImage: ${{ eq(variables['runtimeModulesVersion'], 'release/1.2') }}
+        updateRuntimeImages: '${{ eq(variables['runtimeModulesVersion'], 'release/1.2') }}'
+        updateBootstrapAgentImage: '${{ eq(variables['runtimeModulesVersion'], 'release/1.2') }}'
         project: $(resources.pipeline.images_release_1_2.projectID)
         pipeline: $(resources.pipeline.images_release_1_2.pipelineName)
         buildId: $(resources.pipeline.images_release_1_2.runID)
