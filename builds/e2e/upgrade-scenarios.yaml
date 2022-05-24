@@ -103,26 +103,46 @@ jobs:
         fi
       displayName: Replace Downloaded Edgelet Packages
 
-    # If $runtimeModulesVersion or $bootstrapAgentVersion is set to 'main', retrieve
-    # image tag from artifactInfo.txt and update context.json with it.
+    - bash: |
+        echo "##vso[task.setvariable variable=updateRuntimeImages;]False"
+        if [ $(runtimeModulesVersion) = 'main' ]; then
+          echo "##vso[task.setvariable variable=updateRuntimeImages;]True"
+        fi
+        echo "##vso[task.setvariable variable=updateBootstrapAgentImage;]False"
+        if [ $(bootstrapAgentVersion) = 'main' ]; then
+          echo "##vso[task.setvariable variable=updateBootstrapAgentImage;]True"
+        fi
+      displayName: Set Boolean Variables (main)
+
+    # If necessary, update context.json w/ image tag from main artifactInfo.txt
     - template: templates/upgrade-scenarios-setup.yaml
       parameters:
         useArtifactInfoFile: 'True'
         artifactBranch: 'main'
-        updateRuntimeImages: ${{ eq(variables['runtimeModulesVersion'], 'main') }}
-        updateBootstrapAgentImage: ${{ eq(variables['bootstrapAgentVersion'], 'main') }}
+        updateRuntimeImages: $(updateRuntimeImages)
+        updateBootstrapAgentImage: $(updateBootstrapAgentImage)
         project: $(resources.pipeline.images_main.projectID)
         pipeline: $(resources.pipeline.images_main.pipelineName)
         buildId: $(resources.pipeline.images_main.runID)
 
-    # If $runtimeModulesVersion or $bootstrapAgentVersion is set to 'release/1.2', retrieve
-    # image tag from artifactInfo.txt and update context.json with it.
+    - bash: |
+        echo "##vso[task.setvariable variable=updateRuntimeImages;]False"
+        if [ $(runtimeModulesVersion) = 'release/1.2' ]; then
+          echo "##vso[task.setvariable variable=updateRuntimeImages;]True"
+        fi
+        echo "##vso[task.setvariable variable=updateBootstrapAgentImage;]False"
+        if [ $(bootstrapAgentVersion) = 'release/1.2' ]; then
+          echo "##vso[task.setvariable variable=updateBootstrapAgentImage;]True"
+        fi
+      displayName: Set Boolean Variables (release/1.2)
+
+    # If necessary, update context.json w/ image tag from release/1.2 artifactInfo.txt
     - template: templates/upgrade-scenarios-setup.yaml
       parameters:
         useArtifactInfoFile: 'True'
         artifactBranch: 'release/1.2'
-        updateRuntimeImages: ${{ eq(variables['runtimeModulesVersion'], 'release/1.2') }}
-        updateBootstrapAgentImage: ${{ eq(variables['bootstrapAgentVersion'], 'release/1.2') }}
+        updateRuntimeImages: $(updateRuntimeImages)
+        updateBootstrapAgentImage: $(updateBootstrapAgentImage)
         project: $(resources.pipeline.images_release_1_2.projectID)
         pipeline: $(resources.pipeline.images_release_1_2.pipelineName)
         buildId: $(resources.pipeline.images_release_1_2.runID)
