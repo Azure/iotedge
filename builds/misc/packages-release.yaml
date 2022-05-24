@@ -5,6 +5,13 @@
 # Variable 'WIN_PACKAGE_VERSION' was defined in the Variables tab
 name: $(VERSION)
 
+resources:
+  repositories:
+  - repository: azure-iotedge
+    type: github
+    endpoint: azure-iot-edge-iotedge1-github
+    name: azure/azure-iotedge
+
 trigger: none
 pr: none
 stages:
@@ -987,14 +994,33 @@ stages:
                 secretsFilter: >-
                   GitHubAccessToken
             - checkout: self
+            - checkout: azure-iotedge
+              submodules: recursive
             - bash: |
                 echo "Approval Complete"
 
+                BASE_VERSION="$(cat $BUILD_SOURCESDIRECTORY/iotedge/edgelet/version.txt)"
+                VERSION="$BASE_VERSION"
+                AZURE_IOTEDGE_REPO_PATH="$(Build.SourcesDirectory)/azure-iotedge"
+                IOTEDGE_REPO_PATH="$(Build.SourcesDirectory)/iotedge"
+                BRANCH_NAME="$(Build.SourceBranch)"
+                echo "Version: $VERSION"
+                echo "Branch name: $BRANCH_NAME"
+                echo "azure-iotedge repo path: $AZURE_IOTEDGE_REPO_PATH"
+                echo "iotedge repo path: $IOTEDGE_REPO_PATH"
+
                 #Create Release Page Before Publishing Artifacts in Parallel in the Next Job.
                 echo "Creating Release Page"
-                BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
-                sudo chmod +x $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh 
-                $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh -p ubuntu20.04 -w $(Build.SourcesDirectory) -d $(Build.SourcesDirectory) -v "$BASE_VERSION" -s "github.com" -b  $(Build.SourceBranch) --skip-upload true
+                sudo chmod +x $(Build.SourcesDirectory)/iotedge/scripts/linux/publishReleasePackages.sh 
+                $(Build.SourcesDirectory)/iotedge/scripts/linux/publishReleasePackages.sh -p ubuntu20.04 -w $(Build.SourcesDirectory)/iotedge -d $(Build.SourcesDirectory)/iotedge -v "$BASE_VERSION" -s "github.com" -b  $(Build.SourceBranch) --skip-upload true
+
+                # Source the scripts & Update version files
+                sudo chmod +x $(Build.SourcesDirectory)/iotedge/scripts/linux/github/updateLatestVersion.sh
+                source $(Build.SourcesDirectory)/iotedge/scripts/linux/github/updateLatestVersion.sh
+                update_latest_version_json
+
+                # Update Github and tag
+                github_update_and_push
               env:
                 GITHUB_PAT: "$(GitHubAccessToken)"
     - job: linux

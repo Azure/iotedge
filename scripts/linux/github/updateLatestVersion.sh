@@ -243,15 +243,20 @@ update_latest_version_json()
 #######################################
 github_update_and_push()
 {
-    [[ -z "$AZURE_IOTEDGE_REPO_PATH" ]] && { echo "\$IOTEDGE_REPO_PATH is undefined"; exit 1; }
+    [[ -z "$AZURE_IOTEDGE_REPO_PATH" ]] && { echo "\$AZURE_IOTEDGE_REPO_PATH is undefined"; exit 1; }
     [[ -z "$VERSION" ]] && { echo "\$VERSION is undefined"; exit 1; }
     [[ -z "$GITHUB_PAT" ]] && { echo "\$GITHUB_PAT is undefined"; exit 1; }
 
     cd $AZURE_IOTEDGE_REPO_PATH
     git config user.name iotedge1
+
+    git checkout main
+    git pull
+
     git commit -am "Prepare for Release $VERSION"
     lastCommitHash=$(git log -n 1 --pretty=format:"%H")
     git tag "$VERSION" $lastCommitHash
+
     git push https://$GITHUB_PAT@github.com/Azure/azure-iotedge.git
     git push https://$GITHUB_PAT@github.com/Azure/azure-iotedge.git "$VERSION"
 }
