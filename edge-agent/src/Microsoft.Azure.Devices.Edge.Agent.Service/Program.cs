@@ -69,6 +69,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             LogLogo(logger);
 
+            logger.LogInformation("HELLO, WORLD!");
+
             string mode;
 
             string configSourceConfig;
