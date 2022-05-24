@@ -109,7 +109,7 @@ jobs:
       parameters:
         useArtifactInfoFile: 'True'
         artifactBranch: 'main'
-        updateRuntimeImages: ${{ variables['runtimeModulesVersion'], 'main') }}
+        updateRuntimeImages: ${{ eq(variables['runtimeModulesVersion'], 'main') }}
         updateBootstrapAgentImage: ${{ eq(variables['bootstrapAgentVersion'], 'main') }}
         project: $(resources.pipeline.images_main.projectID)
         pipeline: $(resources.pipeline.images_main.pipelineName)
