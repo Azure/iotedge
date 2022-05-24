@@ -15,6 +15,8 @@ const AZIOT_EDGED_HOMEDIR_PATH: &str = "/var/lib/aziot/edged";
 
 const TRUST_BUNDLE_USER_ALIAS: &str = "trust-bundle-user";
 
+const LABELS: &[&str] = &["net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent"];
+
 pub async fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>> {
     // In production, running as root is the easiest way to guarantee the tool has write access to every service's config file.
     // But it's convenient to not do this for the sake of development because the the development machine doesn't necessarily
@@ -216,8 +218,6 @@ async fn execute_inner(
             Connector::new(uri).map_err(|err| format!("Failed to make docker client: {}", err))?,
         );
 
-        const LABELS: &[&str] =
-            &["net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent"];
         let mut filters = HashMap::new();
         filters.insert("label", LABELS);
         let filters = serde_json::to_string(&filters).map_err(|err| format!("{:?}", err))?;
