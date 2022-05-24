@@ -71,18 +71,6 @@ jobs:
         # bootstrap Edge Agent, and runtime modules. These represent scenarios where
         # the Edge Daemon is upgraded, but the config.toml/config.yaml and deployment 
         # are left using older runtime images.
-        1.1.0_to_1.3_only_edge_daemon:
-          edgeDaemonVersion: "main"
-          bootstrapAgentVersion: "1.1.0"
-          runtimeModulesVersion: "1.1.0"
-        1.1.8_to_1.3_only_edge_daemon:
-          edgeDaemonVersion: "main"
-          bootstrapAgentVersion: "1.1.8"
-          runtimeModulesVersion: "1.1.8"
-        1.1.13_to_1.3_only_edge_daemon:
-          edgeDaemonVersion: "main"
-          bootstrapAgentVersion: "1.1.13"
-          runtimeModulesVersion: "1.1.13"
         1.2.0_to_1.3_only_edge_daemon:
           edgeDaemonVersion: "main"
           bootstrapAgentVersion: "1.2.0"
@@ -91,6 +79,21 @@ jobs:
           edgeDaemonVersion: "main"
           bootstrapAgentVersion: "1.2.9"
           runtimeModulesVersion: "1.2.9"
+        # TODO: Uncomment if/when the .NET test framework is updated to allow overriding
+        # the default 1.2 schema version used in the EH desired properties section
+        # of the deployment file. Until then, these scenarios will fail
+        # 1.1.0_to_1.3_only_edge_daemon:
+        #   edgeDaemonVersion: "main"
+        #   bootstrapAgentVersion: "1.1.0"
+        #   runtimeModulesVersion: "1.1.0"
+        # 1.1.8_to_1.3_only_edge_daemon:
+        #   edgeDaemonVersion: "main"
+        #   bootstrapAgentVersion: "1.1.8"
+        #   runtimeModulesVersion: "1.1.8"
+        # 1.1.13_to_1.3_only_edge_daemon:
+        #   edgeDaemonVersion: "main"
+        #   bootstrapAgentVersion: "1.1.13"
+        #   runtimeModulesVersion: "1.1.13"
 
     timeoutInMinutes: 90
 
