@@ -1,3 +1,4 @@
+name: $(VERSION)
 trigger: none
 pr: none
 
