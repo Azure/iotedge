@@ -11,6 +11,7 @@ resources:
     type: github
     endpoint: azure-iot-edge-iotedge1-github
     name: azure/iot-identity-service
+    ref: release/1.2 # Warning: Update this ref as appropriate
 
 stages:
 ################################################################################
