@@ -1,0 +1,35 @@
+parameters:
+  useArtifactInfoFile: 'false'
+  updateRuntimeImages: 'false'
+  edgeAgentImageTag: ''
+  edgeHubImageTag: ''
+  updateBootstrapAgentImage: 'false'
+  bootstrapAgentImageTag: ''
+
+steps:
+  bash: |
+    bootstrapAgentTag=${{ parameters['bootstrapAgentImageTag'] }}
+    edgeAgentTag=${{ parameters['edgeAgentImageTag'] }}
+    edgeHubTag=${{ parameters['edgeHubImageTag'] }}
+    if [ ${{ parameters['useArtifactInfoFile'] }} = 'true' ]; then
+      artifactInfoStr=`cat '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'`
+      IFS='='
+      read -ra artifactInfo <<< "$artifactInfoStr"
+      bootstrapAgentTag="${artifactInfo[1]}"
+      edgeAgentTag="${artifactInfo[1]}"
+      edgeHubTag="${artifactInfo[1]}"
+    fi
+    echo "bootstrapAgentTag: ${bootstrapAgentTag}"
+    echo "edgeAgentTag: ${edgeAgentTag}"
+    echo "edgeHubTag: ${edgeHubTag}"
+    cd $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net*
+    less context.json
+    if [ ${{ parameters['updateRuntimeImages'] }} = 'true' ]; then
+        sed -i 's/"edgeHubImage.*/"edgeHubImage": "edgebuilds.azurecr.io\/microsoft\/azureiotedge-hub:'${edgeHubTab}'",/' context.json
+        sed -i 's/"edgeAgentImage.*/"edgeAgentImage": "edgebuilds.azurecr.io\/microsoft\/azureiotedge-agent:'${edgeAgentTag}'",/' context.json
+    fi
+    if [ ${{ parameters['updateBootstrapAgentImage'] }}  = 'true' ]; then
+      sed -i 's/"edgeAgentBootstrapImage.*/"edgeAgentBootstrapImage": "edgebuilds.azurecr.io\/microsoft\/azureiotedge-agent:'${bootstrapAgentTag}'",/' context.json    
+    fi
+    less context.json
+  displayName: Update context.json

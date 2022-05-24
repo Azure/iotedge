@@ -24,9 +24,9 @@ resources:
 
 jobs:
 ################################################################################
-  - job: ubuntu_1804_msmoby
+  - job: partial_upgrade_ubuntu_1804_msmoby
 ################################################################################
-    displayName: Ubuntu 18.04 with iotedge-moby
+    displayName: Partial Upgrade
 
     pool:
       name: $(pool.linux.name)
@@ -43,27 +43,27 @@ jobs:
 
     strategy:
       matrix:
-        scenario_1:
+        1.1_to_1.3_no_edge_daemon:
           edgeDaemonVersion: "release/1.1"
           bootstrapAgentVersion: "main"
           runtimeModulesVersion: "main"
-        scenario_2:
+        1.1_to_1.3_no_runtime_modules:
           edgeDaemonVersion: "release/1.1"
           bootstrapAgentVersion: "release/1.1"
           runtimeModulesVersion: "main"
-        scenario_3:
+        1.1_to_1.2_no_edge_daemon:
           edgeDaemonVersion: "release/1.1"
           bootstrapAgentVersion: "release/1.2"
           runtimeModulesVersion: "release/1.2"
-        scenario_4:
+        1.1_to_1.2_only_runtime_modules:
           edgeDaemonVersion: "release/1.1"
           bootstrapAgentVersion: "release/1.1"
           runtimeModulesVersion: "release/1.2"
-        scenario_5:
+        1.1.0_to_1.3_no_edge_daemon:
           edgeDaemonVersion: "1.1.0"
           bootstrapAgentVersion: "main"
           runtimeModulesVersion: "main"
-        scenario_6:
+        1.1.0_to_1.3_only_runtime_modules:
           edgeDaemonVersion: "1.1.0"
           bootstrapAgentVersion: "1.1.0"
           runtimeModulesVersion: "main"
@@ -117,23 +117,12 @@ jobs:
 
     # If $runtimeModulesVersion or $bootstrapAgentVersion is set to 'main', retrieve
     # image ID from artifactInfo.txt and update context.json with it.
-    - bash: |
-        artifactInfoStr=`cat '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'`
-        IFS='='
-        read -ra artifactInfo <<< "$artifactInfoStr"
-        imageId="${artifactInfo[1]}"
-        echo "imageId: ${imageId}"
-        cd $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net*
-        less context.json
-        if [ $(runtimeModulesVersion) = "main" ]; then
-          sed -i 's/"edgeAgentImage.*/"edgeAgentImage": "edgebuilds.azurecr.io\/microsoft\/azureiotedge-agent:'${imageId}'",/' context.json
-          sed -i 's/"edgeHubImage.*/"edgeHubImage": "edgebuilds.azurecr.io\/microsoft\/azureiotedge-hub:'${imageId}'",/' context.json
-        fi
-        if [ $(bootstrapAgentVersion) = "main" ]; then
-          sed -i 's/"edgeAgentBootstrapImage.*/"edgeAgentBootstrapImage": "edgebuilds.azurecr.io\/microsoft\/azureiotedge-agent:'${imageId}'",/' context.json
-        fi
-        less context.json
-      displayName: Update context.json w/ Main images 
+    - template: templates/upgrade-scenarios-setup.yaml
+      parameters:
+        useArtifactInfoFIle: 'true'
+        updateRuntimeImages: ${{ eq(variables['runtimeModulesVersion'], 'main') }}
+        updateBootstrapAgentImage: ${{ eq(variables['runtimeModulesVersion'], 'main') }}
+      displayName: Update context.json w/ Main images
 
     - task: DownloadBuildArtifacts@0
       displayName: Download Release/1.2 Images
@@ -149,22 +138,11 @@ jobs:
 
     # If $runtimeModulesVersion or $bootstrapAgentVersion is set to 'release/1.2', retrieve
     # image ID from artifactInfo.txt and update context.json with it.
-    - bash: |
-        artifactInfoStr=`cat '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'`
-        IFS='='
-        read -ra artifactInfo <<< "$artifactInfoStr"
-        imageId="${artifactInfo[1]}"
-        echo "imageId: ${imageId}"
-        cd $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net*
-        less context.json
-        if [ $(runtimeModulesVersion) = "release/1.2" ]; then
-          sed -i 's/"edgeAgentImage.*/"edgeAgentImage": "edgebuilds.azurecr.io\/microsoft\/azureiotedge-agent:'${imageId}'",/' context.json
-          sed -i 's/"edgeHubImage.*/"edgeHubImage": "edgebuilds.azurecr.io\/microsoft\/azureiotedge-hub:'${imageId}'",/' context.json
-        fi
-        if [ $(bootstrapAgentVersion) = "release/1.2" ]; then
-          sed -i 's/"edgeAgentBootstrapImage.*/"edgeAgentBootstrapImage": "edgebuilds.azurecr.io\/microsoft\/azureiotedge-agent:'${imageId}'",/' context.json
-        fi
-        less context.json
-      displayName: Update context.json w/ Release/1.2 images             
+    - template: templates/upgrade-scenarios-setup.yaml
+      parameters:
+        useArtifactInfoFIle: 'true'
+        updateRuntimeImages: ${{ eq(variables['runtimeModulesVersion'], 'release/1.2') }}
+        updateBootstrapAgentImage: ${{ eq(variables['runtimeModulesVersion'], 'release/1.2') }}
+      displayName: Update context.json w/ Release/1.2 images
 
     - template: templates/e2e-run.yaml
