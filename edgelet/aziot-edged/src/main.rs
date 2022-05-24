@@ -33,7 +33,11 @@ async fn main() {
     log::info!("Version - {}", edgelet_core::version_with_source_version());
 
     if let Err(err) = run().await {
-        log::error!("{}", err);
+        if err.exit_code() == EdgedError::reprovisioned().exit_code() {
+            log::info!("{}", err);
+        } else {
+            log::error!("{}", err);
+        }
 
         std::process::exit(err.into());
     }
@@ -184,13 +188,16 @@ async fn run() -> Result<(), EdgedError> {
     }
 
     if let edgelet_core::WatchdogAction::Reprovision = shutdown_reason {
-        match provision::reprovision(&identity_client, &cache_dir).await {
-            Ok(()) => log::info!("Successfully reprovisioned"),
-            Err(err) => log::error!("Failed to reprovision: {}", err),
-        }
-    }
+        provision::reprovision(&identity_client, &cache_dir)
+            .await
+            .map_err(|err| EdgedError::from_err("Failed to reprovision", err))?;
 
-    Ok(())
+        log::info!("Successfully reprovisioned");
+
+        Err(EdgedError::reprovisioned())
+    } else {
+        Ok(())
+    }
 }
 
 fn set_signal_handlers(
