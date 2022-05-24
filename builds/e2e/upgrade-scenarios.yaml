@@ -24,9 +24,9 @@ resources:
 
 jobs:
 ################################################################################
-  - job: ubuntu_1804_msmoby
+  - job: partial_upgrade_ubuntu_1804_msmoby
 ################################################################################
-    displayName: Ubuntu 18.04 with iotedge-moby
+    displayName: Partial Upgrade
 
     pool:
       name: $(pool.linux.name)
