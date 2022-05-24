@@ -1,6 +1,5 @@
 trigger: none
 pr: none
-stages:
 
 resources:
   repositories:
@@ -13,6 +12,7 @@ resources:
     endpoint: azure-iot-edge-iotedge1-github
     name: azure/iot-identity-service
 
+stages:
 ################################################################################
   - stage: BuildPackages
 ################################################################################
