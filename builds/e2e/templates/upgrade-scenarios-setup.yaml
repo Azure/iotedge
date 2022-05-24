@@ -12,8 +12,8 @@ parameters:
 
 steps:
 - task: DownloadBuildArtifacts@0
-  condition: eq(variables['useArtifactInfoFile'], 'true')
-  displayName: Download ${{ parameters['artifactBranch'] }} Images
+  condition: eq(${{ parameters['useArtifactInfoFile'] }}, 'true')
+  displayName: Download ${{ parameters['artifactBranch'] }} artifactInfo.txt
   inputs:
     buildType: specific
     project: ${{ parameters['project'] }}
@@ -48,4 +48,5 @@ steps:
     fi
     echo "Updated context.json:"
     less context.json
+  condition: or(eq(variables['updateRuntimeImages'], 'true'), eq(variables['updateBootstrapAgentImage'], 'true'))
   displayName: Update context.json w/ ${{ parameters['artifactBranch'] }} tags
