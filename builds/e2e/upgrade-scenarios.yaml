@@ -109,8 +109,8 @@ jobs:
       parameters:
         useArtifactInfoFile: 'True'
         artifactBranch: 'main'
-        updateRuntimeImages: '${{ eq(variables['runtimeModulesVersion'], 'main') }}'
-        updateBootstrapAgentImage: '${{ eq(variables['runtimeModulesVersion'], 'main') }}'
+        updateRuntimeImages: ${{ eq(variables['runtimeModulesVersion'], 'main') }}
+        updateBootstrapAgentImage: ${{ eq(variables['runtimeModulesVersion'], 'main') }}
         project: $(resources.pipeline.images_main.projectID)
         pipeline: $(resources.pipeline.images_main.pipelineName)
         buildId: $(resources.pipeline.images_main.runID)
@@ -121,8 +121,8 @@ jobs:
       parameters:
         useArtifactInfoFile: 'True'
         artifactBranch: 'release/1.2'
-        updateRuntimeImages: '${{ eq(variables['runtimeModulesVersion'], 'release/1.2') }}'
-        updateBootstrapAgentImage: '${{ eq(variables['runtimeModulesVersion'], 'release/1.2') }}'
+        updateRuntimeImages: ${{ eq(variables['runtimeModulesVersion'], 'release/1.2') }}
+        updateBootstrapAgentImage: ${{ eq(variables['runtimeModulesVersion'], 'release/1.2') }}
         project: $(resources.pipeline.images_release_1_2.projectID)
         pipeline: $(resources.pipeline.images_release_1_2.pipelineName)
         buildId: $(resources.pipeline.images_release_1_2.runID)
