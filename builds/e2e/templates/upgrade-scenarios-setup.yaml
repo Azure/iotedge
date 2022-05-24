@@ -7,7 +7,7 @@ parameters:
   bootstrapAgentImageTag: ''
 
 steps:
-  bash: |
+- bash: |
     bootstrapAgentTag=${{ parameters['bootstrapAgentImageTag'] }}
     edgeAgentTag=${{ parameters['edgeAgentImageTag'] }}
     edgeHubTag=${{ parameters['edgeHubImageTag'] }}
