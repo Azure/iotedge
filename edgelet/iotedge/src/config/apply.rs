@@ -203,10 +203,7 @@ async fn execute_inner(
         .map_err(|err| format!("{:?}", err))?;
 
     let old_identityd_path = Path::new("/etc/aziot/identityd/config.d/00-super.toml");
-    if old_identityd_path.exists() {
-        let old_identity_config = std::fs::read(&old_identityd_path)
-            .map_err(|err| format!("could not read identity config file: {}", err))?;
-
+    if let Ok(old_identity_config) = std::fs::read(&old_identityd_path) {
         let aziot_identityd_config::Settings { hostname, .. } =
             toml::from_slice(&old_identity_config)
                 .map_err(|err| format!("could not parse identity config file: {}", err))?;
@@ -233,14 +230,13 @@ async fn execute_inner(
             .await
             .map_err(|err| format!("{:?}", err))?;
 
-        if hostname.ne(new_hostname) {
-            assert!(containers.is_empty(), "Couldn't apply configuration because there is a mismatch between the current hostname {}
+        if hostname.ne(new_hostname) & !containers.is_empty() {
+            return Err(format!("Couldn't apply configuration because there is a mismatch between the current hostname {}
             and the new hostname in the config.toml {}. To apply the new hostname value, all containers must be stopped and 
             recreated by running the following command: sudo iotedge system stop && sudo docker system prune && sudo iotedge config apply. Warning: stored data in the container will be lost when recreated. 
-            If you don't want this, revert the hostname configuration back to the current hostname.", &hostname, &new_hostname);
+            If you don't want this, revert the hostname configuration back to the current hostname.", &hostname, &new_hostname).into());
         }
     }
-
     let mut iotedge_authorized_certs = vec![
         edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned(),
         "aziot-edged/module/*".to_owned(),
@@ -622,7 +618,6 @@ async fn execute_inner(
         preloaded_master_encryption_key_bytes,
     })
 }
-
 fn set_quickstart_ca(
     keyd_config: &mut aziot_keyd_config::Config,
     certd_config: &mut aziot_certd_config::Config,
@@ -662,8 +657,8 @@ fn set_quickstart_ca(
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn test() {
+    #[tokio::test]
+    async fn test() {
         let files_directory =
             std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/test-files/config"));
         for entry in std::fs::read_dir(files_directory).unwrap() {
