@@ -49,7 +49,7 @@ jobs:
       # skip notary installation as it is not supported for ARM platforms
       skip_notary: true
 
-    timeoutInMinutes: 120
+    timeoutInMinutes: 30
 
     steps:
     - template: templates/e2e-clean-directory.yaml
