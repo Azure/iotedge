@@ -12,7 +12,7 @@ parameters:
 
 steps:
 - task: DownloadBuildArtifacts@0
-  condition: eq(variables['useArtifactInfo'], 'true')
+  condition: eq(variables['useArtifactInfoFile'], 'true')
   displayName: Download ${{ parameters['artifactBranch'] }} Images
   inputs:
     buildType: specific

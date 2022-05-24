@@ -107,36 +107,24 @@ jobs:
     # image tag from artifactInfo.txt and update context.json with it.
     - template: templates/upgrade-scenarios-setup.yaml
       parameters:
-        useArtifactInfoFIle: 'true'
+        useArtifactInfoFile: 'true'
         artifactBranch: 'main'
         updateRuntimeImages: ${{ eq(variables['runtimeModulesVersion'], 'main') }}
         updateBootstrapAgentImage: ${{ eq(variables['runtimeModulesVersion'], 'main') }}
         project: $(resources.pipeline.images_main.projectID)
         pipeline: $(resources.pipeline.images_main.pipelineName)
-        biuldId: $(resources.pipeline.images_main.runID)
-
-    - task: DownloadBuildArtifacts@0
-      displayName: Download Release/1.2 Images
-      inputs:
-        buildType: specific
-        project: $(resources.pipeline.images_release_1_2.projectID)
-        pipeline: $(resources.pipeline.images_release_1_2.pipelineName)
-        buildVersionToDownload: specific
-        buildId: $(resources.pipeline.images_release_1_2.runID)
-        downloadType: single
-        artifactName: $(az.pipeline.images.artifacts)
-        itemPattern: $(az.pipeline.images.artifacts)/artifactInfo.txt
+        buildId: $(resources.pipeline.images_main.runID)
 
     # If $runtimeModulesVersion or $bootstrapAgentVersion is set to 'release/1.2', retrieve
     # image tag from artifactInfo.txt and update context.json with it.
     - template: templates/upgrade-scenarios-setup.yaml
       parameters:
-        useArtifactInfoFIle: 'true'
+        useArtifactInfoFile: 'true'
         artifactBranch: 'release/1.2'
         updateRuntimeImages: ${{ eq(variables['runtimeModulesVersion'], 'release/1.2') }}
         updateBootstrapAgentImage: ${{ eq(variables['runtimeModulesVersion'], 'release/1.2') }}
         project: $(resources.pipeline.images_release_1_2.projectID)
         pipeline: $(resources.pipeline.images_release_1_2.pipelineName)
-        biuldId: $(resources.pipeline.images_release_1_2.runID)
+        buildId: $(resources.pipeline.images_release_1_2.runID)
 
     - template: templates/e2e-run.yaml
