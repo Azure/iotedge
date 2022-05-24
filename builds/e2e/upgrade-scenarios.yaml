@@ -122,7 +122,6 @@ jobs:
         useArtifactInfoFIle: 'true'
         updateRuntimeImages: ${{ eq(variables['runtimeModulesVersion'], 'main') }}
         updateBootstrapAgentImage: ${{ eq(variables['runtimeModulesVersion'], 'main') }}
-      displayName: Update context.json w/ Main images
 
     - task: DownloadBuildArtifacts@0
       displayName: Download Release/1.2 Images
@@ -143,6 +142,5 @@ jobs:
         useArtifactInfoFIle: 'true'
         updateRuntimeImages: ${{ eq(variables['runtimeModulesVersion'], 'release/1.2') }}
         updateBootstrapAgentImage: ${{ eq(variables['runtimeModulesVersion'], 'release/1.2') }}
-      displayName: Update context.json w/ Release/1.2 images
 
     - template: templates/e2e-run.yaml
