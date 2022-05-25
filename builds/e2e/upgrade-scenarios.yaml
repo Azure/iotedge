@@ -103,6 +103,24 @@ jobs:
         fi
       displayName: Replace Downloaded Edgelet Packages
 
+    # If $bootstrapAgentVersion is set to 'release/1.1', the value of edgeAgentBootstrapImage in context.json 
+    # must be modified here so that it is not set to the default E2E test version (i.e. azureiotedge-agent-bootstrap-e2e-linux-amd64)
+    - bash: |
+        artifactInfoStr=`cat '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'`
+        IFS='='
+        read -ra artifactInfo <<< "$artifactInfoStr"
+        imageId="${artifactInfo[1]}"
+        echo "imageId: ${imageId}"
+        cd $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net*
+        echo "Original context.json:"
+        less context.json
+        if [ $(bootstrapAgentVersion) = "release/1.1" ]; then
+          sed -i 's/"edgeAgentBootstrapImage.*/"edgeAgentBootstrapImage": "edgebuilds.azurecr.io\/microsoft\/azureiotedge-agent:'${imageId}'",/' context.json
+        fi
+        echo "Updated context.json:"
+        less context.json
+      displayName: Update context.json w/ release/1.1 bootstrap image
+
     - task: DownloadBuildArtifacts@0
       displayName: Download Main Images
       inputs:
@@ -169,6 +187,25 @@ jobs:
         fi
         echo "Updated context.json:"        
         less context.json
-      displayName: Update context.json w/ Release/1.2 images             
+      displayName: Update context.json w/ Release/1.2 images
+
+    # If $runtimeModulesVersion or $bootstrapAgentVersion is set to 1.x.y,
+    # run sed command to set edgeAgentBootstrapImage, edgeAgentImage, and edgeHubImage
+    # to released images from mcr.microsoft.com
+    - bash: |
+        cd $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net*
+        echo "Original context.json:"
+        less context.json
+        if [ `echo $(runtimeModulesVersion) | sed -En "/1.[0-9]+.[0-9]+/p"` ]; then
+          sed -i 's/"edgeAgentImage.*/"edgeAgentImage": "mcr.microsoft.com\/azureiotedge-agent:$(runtimeModulesVersion)",/' context.json
+          sed -i 's/"edgeHubImage.*/"edgeHubImage": "mcr.microsoft.com\/azureiotedge-hub:$(runtimeModulesVersion)",/' context.json
+        fi
+        if [ `echo $(bootstrapAgentVersion) | sed -En "/1.[0-9]+.[0-9]+/p"` ]; then
+          sed -i 's/"edgeAgentBootstrapImage.*/"edgeAgentBootstrapImage": "mcr.microsoft.com\/azureiotedge-agent:$(bootstrapAgentVersion)",/' context.json
+        fi
+        echo "Updated context.json:"
+        less context.json
+      displayName: Update context.json w/ mcr.microsoft.com images
 
     - template: templates/e2e-run.yaml
+    
