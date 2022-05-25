@@ -229,12 +229,13 @@ async fn execute_inner(
                 )
                 .await
                 .map_err(|err| format!("{:?}", err))?;
-            let _ = !containers.is_empty();
-            if &hostname != new_hostname {
+            if &hostname != new_hostname && !containers.is_empty() {
                 return Err(format!("Cannot apply config because the hostname in the config {} is different from the previous hostname {}. To update the hostname, run the following command which deletes all modules and reapplies the configuration. Or, revert the hostname change in the config.toml file.
                     sudo iotedge system stop && sudo docker rm -f $(docker ps -aq) && sudo iotedge config apply.
                 Warning: Data stored in the modules is lost when above command is executed.", &hostname, &new_hostname).into());
             }
+        } else {
+            println!("Warning: the previous identity config file is unreadable");
         }
     }
     let mut iotedge_authorized_certs = vec![
