@@ -204,37 +204,37 @@ async fn execute_inner(
 
     let old_identityd_path = Path::new("/etc/aziot/identityd/config.d/00-super.toml");
     if let Ok(old_identity_config) = std::fs::read(&old_identityd_path) {
-        let aziot_identityd_config::Settings { hostname, .. } =
+        if let Ok(aziot_identityd_config::Settings { hostname, .. }) =
             toml::from_slice(&old_identity_config)
-                .map_err(|err| format!("could not parse identity config file: {}", err))?;
+        {
+            let new_hostname = &identityd_config.hostname;
+            let moby_runtime = &moby_runtime;
+            let uri = &moby_runtime.uri;
 
-        let new_hostname = &identityd_config.hostname;
-        let moby_runtime = &moby_runtime;
-        let uri = &moby_runtime.uri;
+            let client = DockerApiClient::new(
+                Connector::new(uri)
+                    .map_err(|err| format!("Failed to make docker client: {}", err))?,
+            );
 
-        let client = DockerApiClient::new(
-            Connector::new(uri).map_err(|err| format!("Failed to make docker client: {}", err))?,
-        );
+            let mut filters = HashMap::new();
+            filters.insert("label", LABELS);
+            let filters = serde_json::to_string(&filters).map_err(|err| format!("{:?}", err))?;
 
-        let mut filters = HashMap::new();
-        filters.insert("label", LABELS);
-        let filters = serde_json::to_string(&filters).map_err(|err| format!("{:?}", err))?;
-
-        let containers = client
-            .container_list(
-                true,  /*all*/
-                0,     /*limit*/
-                false, /*size*/
-                &filters,
-            )
-            .await
-            .map_err(|err| format!("{:?}", err))?;
-
-        if hostname.ne(new_hostname) & !containers.is_empty() {
-            return Err(format!("Couldn't apply configuration because there is a mismatch between the current hostname {}
-            and the new hostname in the config.toml {}. To apply the new hostname value, all containers must be stopped and 
-            recreated by running the following command: sudo iotedge system stop && sudo docker system prune && sudo iotedge config apply. Warning: stored data in the container will be lost when recreated. 
-            If you don't want this, revert the hostname configuration back to the current hostname.", &hostname, &new_hostname).into());
+            let containers = client
+                .container_list(
+                    true,  /*all*/
+                    0,     /*limit*/
+                    false, /*size*/
+                    &filters,
+                )
+                .await
+                .map_err(|err| format!("{:?}", err))?;
+            let _ = !containers.is_empty();
+            if &hostname != new_hostname {
+                return Err(format!("Cannot apply config because the hostname in the config {} is different from the previous hostname {}. To update the hostname, run the following command which deletes all modules and reapplies the configuration. Or, revert the hostname change in the config.toml file.
+                    sudo iotedge system stop && sudo docker rm -f $(docker ps -aq) && sudo iotedge config apply.
+                Warning: Data stored in the modules is lost when above command is executed.", &hostname, &new_hostname).into());
+            }
         }
     }
     let mut iotedge_authorized_certs = vec![
