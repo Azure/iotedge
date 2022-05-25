@@ -91,8 +91,8 @@ jobs:
           rm aziot-edge*.deb
           rm aziot-identity-service*.deb
           apt-get download aziot-edge='$(edgeDaemonVersion)-1'
-          is_version=`sudo apt depends aziot-edge=1.2.9-1 | sed -En "s/Depends: aziot-identity-service \(= ([0-9]+.[0-9]+.[0-9]+-[0-9]+)\)/\1/p"`
-          apt-get download aziot-identity-service=${is_version}
+          is_version=`sudo apt depends aziot-edge='$(edgeDaemonVersion)-1' | sed -En "s/Depends: aziot-identity-service \(= ([0-9]+.[0-9]+.[0-9]+-[0-9]+)\)/\1/p"`
+          apt-get download aziot-identity-service=`echo $is_version`
           popd
         fi
       displayName: Replace Downloaded Packages
