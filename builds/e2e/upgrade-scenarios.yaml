@@ -40,6 +40,7 @@ jobs:
       identityServiceArtifactName: packages_ubuntu-18.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
       minimal: true
+      verbose: false
 
     strategy:
       matrix:
@@ -94,7 +95,7 @@ jobs:
           git stash
           git checkout $(Build.SourceBranchName)
         fi
-      displayName: Replace Downloaded Edgelet Packages
+      displayName: Remove Downloaded Packages
 
     - task: PowerShell@2
       displayName: 'Download aziot-identity-service'
