@@ -28,6 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     public class CloudEndpoint : Endpoint
     {
         readonly Func<string, Task<Try<ICloudProxy>>> cloudProxyGetterFunc;
+
         readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
         readonly int maxBatchSize;
         readonly bool trackDeviceState;
@@ -68,6 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 typeof(TimeoutException),
                 typeof(IOException),
                 typeof(IotHubException),
+                typeof(EdgeHubCloudSDKException),
                 typeof(UnauthorizedException) // This indicates the SAS token has expired, and will get a new one.
             };
 
@@ -216,25 +218,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     var cp = cloudProxy.Value;
                     try
                     {
-                            List<IMessage> messages = routingMessages
-                                .Select(r => this.cloudEndpoint.messageConverter.ToMessage(r))
-                                .ToList();
+                        List<IMessage> messages = routingMessages
+                            .Select(r => this.cloudEndpoint.messageConverter.ToMessage(r))
+                            .ToList();
 
-                            if (messages.Count == 1)
-                            {
-                                await cp.SendMessageAsync(messages[0]);
-                            }
-                            else
-                            {
-                                await cp.SendMessageBatchAsync(messages);
-                            }
-
-                            return new SinkResult<IRoutingMessage>(routingMessages);
-                        }
-                        catch (Exception ex)
+                        if (messages.Count == 1)
                         {
-                            return this.HandleException(ex, id, routingMessages);
+                            await cp.SendMessageAsync(messages[0]);
                         }
+                        else
+                        {
+                            await cp.SendMessageBatchAsync(messages);
+                        }
+
+                        return new SinkResult<IRoutingMessage>(routingMessages);
+                    }
+                    catch (Exception ex)
+                    {
+                        return this.HandleException(ex, id, routingMessages);
+                    }
                 }
                 else
                 {
