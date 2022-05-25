@@ -111,6 +111,7 @@ impl DockerModuleRuntime {
         }
     }
 
+    #[allow(dead_code)]
     async fn check_for_notary_image(
         &self,
         config: &DockerConfig,
@@ -158,6 +159,7 @@ impl DockerModuleRuntime {
         }
     }
 
+    #[allow(dead_code)]
     fn get_notary_parameters(
         &self,
         config: &DockerConfig,
@@ -206,7 +208,9 @@ impl ModuleRegistry for DockerModuleRuntime {
     type Config = DockerConfig;
 
     async fn pull(&self, config: &Self::Config) -> anyhow::Result<()> {
-        let (image, is_content_trust_enabled) = self.check_for_notary_image(config).await?;
+        let image = config.image().to_owned();
+        let is_content_trust_enabled= false;
+
         if is_content_trust_enabled {
             info!("Pulling image via digest {}...", image);
         } else {
@@ -421,8 +425,9 @@ impl ModuleRuntime for DockerModuleRuntime {
             module.config_mut().create_options_mut(),
         );
 
-        let (image, is_content_trust_enabled) =
-            self.check_for_notary_image(module.config()).await?;
+        let image = module.config().image().to_owned();
+        let is_content_trust_enabled= false;
+        
         if is_content_trust_enabled {
             info!("Creating image via digest {}...", image);
         } else {
