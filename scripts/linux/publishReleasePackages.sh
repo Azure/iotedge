@@ -254,7 +254,7 @@ publish_to_github()
     echo "Branch Name is $branch_name"
 
     # Note: $(pwd) is the $(Build.SourcesDirectory)
-    source ./scripts/linux/github/updateLatestVersion.sh
+    source "$(pwd)/scripts/linux/github/updateLatestVersion.sh"
     latest_release=$(get_latest_release_per_branch_name)
     echo "Latest Release is $latest_release"
 
