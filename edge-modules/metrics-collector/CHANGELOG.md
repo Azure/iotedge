@@ -1,3 +1,8 @@
+# 1.0.8 (2022-05-24)
+
+### Bug Fixes
+- Update Base Images to address Microsoft .NET Security Updates for [CVE-2022-23267](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-23267), [CVE-2022-29117](https://github.com/dotnet/announcements/issues/220), [CVE-2022-29145](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-29145), and OpenSSL vulnerability [USN-5402-1](https://ubuntu.com/security/notices/USN-5402-1)
+
 # 1.0.7 (2022-04-27)
 
 ### Bug Fixes

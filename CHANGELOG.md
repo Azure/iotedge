@@ -1,3 +1,24 @@
+# 1.1.14 (2022-05-24)
+## Edge Agent
+### Bug Fixes
+* Update Base Images to address Microsoft .NET Security Updates for [CVE-2022-23267](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-23267), [CVE-2022-29117](https://github.com/dotnet/announcements/issues/220), [CVE-2022-29145](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-29145), and OpenSSL vulnerability [USN-5402-1](https://ubuntu.com/security/notices/USN-5402-1)
+
+
+## Edge Hub
+### Bug Fixes
+* Update Base Images to address Microsoft .NET Security Updates for [CVE-2022-23267](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-23267), [CVE-2022-29117](https://github.com/dotnet/announcements/issues/220), [CVE-2022-29145](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-29145), and OpenSSL vulnerability [USN-5402-1](https://ubuntu.com/security/notices/USN-5402-1)
+
+
+## Diagnostics Module
+### Bug Fixes
+* Update Base Images to address Microsoft .NET Security Updates for [CVE-2022-23267](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-23267), [CVE-2022-29117](https://github.com/dotnet/announcements/issues/220), [CVE-2022-29145](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-29145), and OpenSSL vulnerability [USN-5402-1](https://ubuntu.com/security/notices/USN-5402-1)
+
+
+## Simulated Temperature Sensor
+### Bug Fixes
+* Update Base Images to address Microsoft .NET Security Updates for [CVE-2022-23267](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-23267), [CVE-2022-29117](https://github.com/dotnet/announcements/issues/220), [CVE-2022-29145](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-29145), and OpenSSL vulnerability [USN-5402-1](https://ubuntu.com/security/notices/USN-5402-1)
+
+
 # 1.1.13 (2022-04-27)
 ## Edge Agent
 ### Bug Fixes
