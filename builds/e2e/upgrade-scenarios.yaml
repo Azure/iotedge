@@ -91,29 +91,11 @@ jobs:
           rm aziot-edge*.deb
           rm aziot-identity-service*.deb
           apt-get download aziot-edge='$(edgeDaemonVersion)-1'
+          is_version=`sudo apt depends aziot-edge=1.2.9-1 | sed -En "s/Depends: aziot-identity-service \(= ([0-9]+.[0-9]+.[0-9]+-[0-9]+)\)/\1/p"`
+          apt-get download aziot-identity-service=${is_version}
           popd
-          git stash
-          git checkout $(edgeDaemonVersion)
         fi
-      displayName: Remove Downloaded Packages
-
-    - task: PowerShell@2
-      displayName: 'Download aziot-identity-service'
-      inputs:
-        filePath: $(Build.SourcesDirectory)/scripts/local/test/DownloadIdentityService.ps1
-        workingDirectory: $(Build.SourcesDirectory)
-      env:
-        GITHUB_TOKEN: $(TestGitHubAccessToken)
-        ARTIFACT_NAME: $(identityServiceArtifactName)
-        PACKAGE_FILTER: $(identityServicePackageFilter)
-        DOWNLOAD_PATH: $(System.ArtifactsDirectory)/$(artifactName)
-        IDENTITY_SERVICE_COMMIT: ''
-
-    - bash: |
-        if [ $(edgeDaemonVersion) != "release/1.2" ]; then
-          git checkout $(Build.SourceBranchName)
-          git stash pop
-        fi
+      displayName: Replace Downloaded Packages
 
     - task: DownloadBuildArtifacts@0
       displayName: Download Main Images
