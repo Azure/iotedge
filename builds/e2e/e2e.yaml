@@ -38,7 +38,7 @@ jobs:
 
     pool:
       name: $(pool.custom.name)
-      demands: deb11-e2e-tests
+      demands: deb11-e2e-tests-andsmi
 
     variables:
       os: linux
