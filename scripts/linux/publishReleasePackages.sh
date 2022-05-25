@@ -221,22 +221,22 @@ fi
 # DESCRIPTION:
 #    The function has two operating mode depending the value of $SKIP_UPLOAD
 #
-#    If SKIP_UPLOAD=true, the script creates a github release page on /azure-iotedge 
+#    If SKIP_UPLOAD=false, the script creates a github release page on /azure-iotedge 
 #    repository with a VERSION tag to the latest commit. The release page comprises of
 #      - Change log as a description which is parsed from CHANGELOG.MD
 #      - Renamed production artifacts from the build pipeline in the format of
 #        <component>_<version>_<os>_<architecture>.<fileExtension> 
 #        i.e. iotedge_1.1.13-1_debian11_arm64.deb
 #
-#    If SKIP_UPLOAD=false, the script creates a DRAFT github release page on /azure-iotedge
+#    If SKIP_UPLOAD=true, the script creates a DRAFT github release page on /azure-iotedge
 #    without a github tag AND no production artifacts are uploaded to draft.
 #    
 # GLOBALS:
 #    BRANCH_NAME ________________ Source Branch name            (string)
 #    GITHUB_PAT _________________ Github Personal Access Token  (string)
 #    SKIP_UPLOAD ________________ Skip Github artifact upload   (bool)
-#      if true, upload artifacts to github release page
-#      if false, create the release page in draft mode without artifacts uploaded.
+#      if false, upload artifacts to github release page
+#      if true, create the release page in draft mode without artifacts uploaded.
 #    VERSION ____________________ Current release version       (string)
 #    WDIR _______________________ Current work directory        (string)
 #
