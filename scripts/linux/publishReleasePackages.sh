@@ -254,8 +254,8 @@ publish_to_github()
     branch_name=${BRANCH_NAME/"refs/heads/"/""}
     echo "Branch Name is $branch_name"
 
-    # Note: $(pwd) is the $(Build.SourcesDirectory)
-    source ./iotedge/scripts/linux/github/updateLatestVersion.sh
+    # Using relative path from this script to source the helper script
+    source "$(dirname "$(realpath "$0")")/github/updateLatestVersion.sh"
     latest_release=$(get_latest_release_per_branch_name)
     echo "Latest Release is $latest_release"
 
