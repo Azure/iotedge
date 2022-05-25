@@ -187,6 +187,7 @@ jobs:
     # run sed command to set edgeAgentBootstrapImage, edgeAgentImage, and edgeHubImage
     # to released images from mcr.microsoft.com
     - bash: |
+        cd $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net*
         echo "Original context.json:"
         less context.json
         if [ $(echo $runtimeModulesVersion | sed -En "/1.[0-9]+.[0-9]+/p") ]; then
@@ -198,6 +199,6 @@ jobs:
         fi
         echo "Updated context.json:"
         less context.json
+      displayName: Update context.json w/ mcr.microsoft.com images
 
     - template: templates/e2e-run.yaml
-    
