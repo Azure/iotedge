@@ -234,8 +234,8 @@ fi
 #    BRANCH_NAME ________________ Source Branch name            (string)
 #    GITHUB_PAT _________________ Github Personal Access Token  (string)
 #    SKIP_UPLOAD ________________ Skip Github artifact upload   (bool)
-#      if true, upload artifacts to github release page
-#      if false, create the release page in draft mode without artifacts uploaded.
+#      if false, upload artifacts to github release page
+#      if true, create the release page in draft mode without artifacts uploaded.
 #    VERSION ____________________ Current release version       (string)
 #    WDIR _______________________ Current work directory        (string)
 #
