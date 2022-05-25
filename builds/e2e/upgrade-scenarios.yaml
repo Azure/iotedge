@@ -19,6 +19,12 @@ resources:
       - main
       # TODO: Uncomment and remove "main" when release/1.3 is created
       #- release/1.3
+  - pipeline: images_release_1_1
+    source: 'Azure-IoT-Edge-Core Build Images'
+    branch: 'release/1.1'
+  - pipeline: images_release_1_2
+    source: 'Azure-IoT-Edge-Core Build Images'
+    branch: 'release/1.2'
 
 jobs:
 ################################################################################
@@ -43,55 +49,55 @@ jobs:
     strategy:
       matrix:
         # Scenarios 1 to 5 test older versions of the bootstrap Edge Agent 
-        # module with the main/1.3 Edge Daemon and Runtime Modules. These represent
+        # module with the 1.3 Edge Daemon and Runtime Modules. These represent
         # scenarios where the Edge Daemon and Runtime Modules in the deployment 
         # are upgraded, but the bootstrap agent in config.toml/config.yaml is not.
         1.1.0_to_1.3_no_bootstrap_agent:
-          edgeDaemonVersion: "main"
+          edgeDaemonVersion: "release/1.3"
           bootstrapAgentVersion: "1.1.0"
-          runtimeModulesVersion: "main"
+          runtimeModulesVersion: "release/1.3"
         1.1.8_to_1.3_no_bootstrap_agent:
-          edgeDaemonVersion: "main"
+          edgeDaemonVersion: "release/1.3"
           bootstrapAgentVersion: "1.1.8"
-          runtimeModulesVersion: "main"
+          runtimeModulesVersion: "release/1.3"
         1.1.13_to_1.3_no_bootstrap_agent:
-          edgeDaemonVersion: "main"
+          edgeDaemonVersion: "release/1.3"
           bootstrapAgentVersion: "1.1.13"
-          runtimeModulesVersion: "main"
+          runtimeModulesVersion: "release/1.3"
         1.2.0_to_1.3_no_bootstrap_agent:
-          edgeDaemonVersion: "main"
+          edgeDaemonVersion: "release/1.3"
           bootstrapAgentVersion: "1.2.0"
-          runtimeModulesVersion: "main"
+          runtimeModulesVersion: "release/1.3"
         1.2.9_to_1.3_no_bootstrap_agent:
-          edgeDaemonVersion: "main"
+          edgeDaemonVersion: "release/1.3"
           bootstrapAgentVersion: "1.2.9"
-          runtimeModulesVersion: "main"
+          runtimeModulesVersion: "release/1.3"
 
-        # Scenarios 6 to 10 test the main/1.3 Edge Daemon with older versions of the 
+        # Scenarios 6 to 10 test the 1.3 Edge Daemon with older versions of the 
         # bootstrap Edge Agent, and runtime modules. These represent scenarios where
         # the Edge Daemon is upgraded, but the config.toml/config.yaml and deployment 
         # are left using older runtime images.
         1.2.0_to_1.3_only_edge_daemon:
-          edgeDaemonVersion: "main"
+          edgeDaemonVersion: "release/1.3"
           bootstrapAgentVersion: "1.2.0"
           runtimeModulesVersion: "1.2.0"
         1.2.9_to_1.3_only_edge_daemon:
-          edgeDaemonVersion: "main"
+          edgeDaemonVersion: "release/1.3"
           bootstrapAgentVersion: "1.2.9"
           runtimeModulesVersion: "1.2.9"
         # TODO: Uncomment if/when the .NET test framework is updated to allow overriding
         # the default 1.2 schema version used in the EH desired properties section
         # of the deployment file. Until then, these scenarios will fail
         # 1.1.0_to_1.3_only_edge_daemon:
-        #   edgeDaemonVersion: "main"
+        #   edgeDaemonVersion: "release/1.3"
         #   bootstrapAgentVersion: "1.1.0"
         #   runtimeModulesVersion: "1.1.0"
         # 1.1.8_to_1.3_only_edge_daemon:
-        #   edgeDaemonVersion: "main"
+        #   edgeDaemonVersion: "release/1.3"
         #   bootstrapAgentVersion: "1.1.8"
         #   runtimeModulesVersion: "1.1.8"
         # 1.1.13_to_1.3_only_edge_daemon:
-        #   edgeDaemonVersion: "main"
+        #   edgeDaemonVersion: "release/1.3"
         #   bootstrapAgentVersion: "1.1.13"
         #   runtimeModulesVersion: "1.1.13"
 
@@ -100,17 +106,124 @@ jobs:
     steps:
     - template: templates/e2e-setup.yaml
 
-    # Run sed command on context.json to set edgeAgentBootstrapImage, edgeAgentImage, and edgeHubImage
+    # If edgeDaemonVersion != "release/1.3", remove the aziot-edge and
+    # aziot-identity-service packages from $(System.ArtifactsDirectory) and download the desired
+    # versions.
+    - bash: |
+        if [ $(edgeDaemonVersion) != "release/1.3" ]; then
+          pushd $(System.ArtifactsDirectory)/$(artifactName)
+          rm aziot-edge*.deb
+          rm aziot-identity-service*.deb
+          apt-get download aziot-edge='$(edgeDaemonVersion)-1'
+          is_version=`sudo apt depends aziot-edge='$(edgeDaemonVersion)-1' | sed -En "s/Depends: aziot-identity-service \(= ([0-9]+.[0-9]+.[0-9]+-[0-9]+)\)/\1/p"`
+          apt-get download aziot-identity-service=`echo $is_version`
+          popd
+        fi
+      displayName: Replace Downloaded Packages
+
+    # If $bootstrapAgentVersion is set to 'release/1.3', the value of edgeAgentBootstrapImage in context.json 
+    # must be modified here so that it is not set to the default E2E test version (i.e. azureiotedge-agent-bootstrap-e2e-linux-amd64)
+    - bash: |
+        artifactInfoStr=`cat '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'`
+        IFS='='
+        read -ra artifactInfo <<< "$artifactInfoStr"
+        imageId="${artifactInfo[1]}"
+        echo "imageId: ${imageId}"
+        cd $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net*
+        echo "Original context.json:"
+        less context.json
+        if [ $(bootstrapAgentVersion) = "release/1.3" ]; then
+          sed -i 's/"edgeAgentBootstrapImage.*/"edgeAgentBootstrapImage": "edgebuilds.azurecr.io\/microsoft\/azureiotedge-agent:'${imageId}'",/' context.json
+        fi
+        echo "Updated context.json:"
+        less context.json
+      displayName: Update context.json w/ release/1.3 bootstrap image
+
+    - task: DownloadBuildArtifacts@0
+      displayName: Download 1.1 Images
+      inputs:
+        buildType: specific
+        project: $(resources.pipeline.images_1_1.projectID)
+        pipeline: $(resources.pipeline.images_1_1.pipelineName)
+        buildVersionToDownload: specific
+        buildId: $(resources.pipeline.images_1_1.runID)
+        downloadType: single
+        artifactName: $(az.pipeline.images.artifacts)
+        itemPattern: $(az.pipeline.images.artifacts)/artifactInfo.txt
+
+    # If $runtimeModulesVersion or $bootstrapAgentVersion is set to 'release/1.1', retrieve
+    # image ID from artifactInfo.txt and update context.json with it.
+    - bash: |
+        artifactInfoStr=`cat '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'`
+        IFS='='
+        read -ra artifactInfo <<< "$artifactInfoStr"
+        imageId="${artifactInfo[1]}"
+        echo "imageId: ${imageId}"
+        cd $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net*
+        echo "Original context.json:"        
+        less context.json
+        if [ $(runtimeModulesVersion) = "release/1.1" ]; then
+          sed -i 's/"edgeAgentImage.*/"edgeAgentImage": "edgebuilds.azurecr.io\/microsoft\/azureiotedge-agent:'${imageId}'",/' context.json
+          sed -i 's/"edgeHubImage.*/"edgeHubImage": "edgebuilds.azurecr.io\/microsoft\/azureiotedge-hub:'${imageId}'",/' context.json
+        fi
+        if [ $(bootstrapAgentVersion) = "release/1.1" ]; then
+          sed -i 's/"edgeAgentBootstrapImage.*/"edgeAgentBootstrapImage": "edgebuilds.azurecr.io\/microsoft\/azureiotedge-agent:'${imageId}'",/' context.json
+        fi
+        echo "Updated context.json:"        
+        less context.json
+      displayName: Update context.json w/ release/1.1 images 
+
+    - task: DownloadBuildArtifacts@0
+      displayName: Download Release/1.2 Images
+      inputs:
+        buildType: specific
+        project: $(resources.pipeline.images_release_1_2.projectID)
+        pipeline: $(resources.pipeline.images_release_1_2.pipelineName)
+        buildVersionToDownload: specific
+        buildId: $(resources.pipeline.images_release_1_2.runID)
+        downloadType: single
+        artifactName: $(az.pipeline.images.artifacts)
+        itemPattern: $(az.pipeline.images.artifacts)/artifactInfo.txt
+
+    # If $runtimeModulesVersion or $bootstrapAgentVersion is set to 'release/1.2', retrieve
+    # image ID from artifactInfo.txt and update context.json with it.
+    - bash: |
+        artifactInfoStr=`cat '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'`
+        IFS='='
+        read -ra artifactInfo <<< "$artifactInfoStr"
+        imageId="${artifactInfo[1]}"
+        echo "imageId: ${imageId}"
+        cd $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net*
+        echo "Original context.json:"
+        less context.json
+        if [ $(runtimeModulesVersion) = "release/1.2" ]; then
+          sed -i 's/"edgeAgentImage.*/"edgeAgentImage": "edgebuilds.azurecr.io\/microsoft\/azureiotedge-agent:'${imageId}'",/' context.json
+          sed -i 's/"edgeHubImage.*/"edgeHubImage": "edgebuilds.azurecr.io\/microsoft\/azureiotedge-hub:'${imageId}'",/' context.json
+        fi
+        if [ $(bootstrapAgentVersion) = "release/1.2" ]; then
+          sed -i 's/"edgeAgentBootstrapImage.*/"edgeAgentBootstrapImage": "edgebuilds.azurecr.io\/microsoft\/azureiotedge-agent:'${imageId}'",/' context.json
+        fi
+        echo "Updated context.json:"        
+        less context.json
+      displayName: Update context.json w/ release/1.2 images
+
+    # If $runtimeModulesVersion or $bootstrapAgentVersion is set to 1.x.y,
+    # run sed command to set edgeAgentBootstrapImage, edgeAgentImage, and edgeHubImage
+    # to released images from mcr.microsoft.com
     - bash: |
         cd $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net*
+        echo "Original context.json:"
         less context.json
-        if [ $(runtimeModulesVersion) != "main" ]; then
+        if [ `echo $(runtimeModulesVersion) | sed -En "/1.[0-9]+.[0-9]+/p"` ]; then
           sed -i 's/"edgeAgentImage.*/"edgeAgentImage": "mcr.microsoft.com\/azureiotedge-agent:$(runtimeModulesVersion)",/' context.json
           sed -i 's/"edgeHubImage.*/"edgeHubImage": "mcr.microsoft.com\/azureiotedge-hub:$(runtimeModulesVersion)",/' context.json
         fi
-        if [ $(bootstrapAgentVersion) != "main" ]; then
+        if [ `echo $(bootstrapAgentVersion) | sed -En "/1.[0-9]+.[0-9]+/p"` ]; then
           sed -i 's/"edgeAgentBootstrapImage.*/"edgeAgentBootstrapImage": "mcr.microsoft.com\/azureiotedge-agent:$(bootstrapAgentVersion)",/' context.json
         fi
+        echo "Updated context.json:"
         less context.json
+      displayName: Update context.json w/ mcr.microsoft.com images
 
     - template: templates/e2e-run.yaml
+
