@@ -1,7 +1,20 @@
+name: $(VERSION)
 trigger: none
 pr: none
+
+resources:
+  repositories:
+  - repository: azure-iotedge
+    type: github
+    endpoint: azure-iot-edge-iotedge1-github
+    name: azure/azure-iotedge
+  - repository: iot-identity-service
+    type: github
+    endpoint: azure-iot-edge-iotedge1-github
+    name: azure/iot-identity-service
+    ref: release/1.2 # Warning: Update this ref as appropriate
+
 stages:
-  
 ################################################################################
   - stage: BuildPackages
 ################################################################################
@@ -131,7 +144,7 @@ stages:
           deploy:
             steps:
               - bash: |
-                  echo "Approval Complete"   
+                  echo "Approval Complete"
     - job: linux
       displayName: Linux
       strategy:
@@ -140,11 +153,6 @@ stages:
             os: debian9
             artifactName: iotedged-debian9-arm32v7
             identityServiceArtifactName: packages_debian-9-slim_arm32v7
-            identityServicePackageFilter: aziot-identity-service_*_armhf.deb
-          Debian10-arm32v7:
-            os: debian10
-            artifactName: iotedged-debian10-arm32v7
-            identityServiceArtifactName: packages_debian-10-slim_arm32v7
             identityServicePackageFilter: aziot-identity-service_*_armhf.deb
           Debian11-arm32v7:
             os: debian11
@@ -235,14 +243,40 @@ stages:
                   keyVaultName: $(kv.name)
                   secretsFilter: >-
                     GitHubAccessToken
+              - checkout: self
+              - checkout: azure-iotedge
+                submodules: recursive
+              - checkout: iot-identity-service
+                submodules: recursive
               - bash: | #Create Release Page Before Publishing Artifacts in Parallel in the Next Job.
-                  echo "Approval Complete, Creating Release Page"
-                  BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
-                  $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh -p ubuntu20.04 -w $(Build.SourcesDirectory) -d $(Build.SourcesDirectory) -v "$BASE_VERSION" -s "github.com" -b  $(Build.SourceBranch) --skip-upload true
+                  echo "Approval Complete"
+                  BASE_VERSION="$(cat $BUILD_SOURCESDIRECTORY/iotedge/edgelet/version.txt)"
+                  VERSION="$BASE_VERSION"
+                  AZURE_IOTEDGE_REPO_PATH="$(Build.SourcesDirectory)/azure-iotedge"
+                  IOTEDGE_REPO_PATH="$(Build.SourcesDirectory)/iotedge"
+                  IIS_REPO_PATH="$(Build.SourcesDirectory)/iot-identity-service"
+                  BRANCH_NAME="$(Build.SourceBranch)"
+                  echo "Version: $VERSION"
+                  echo "Branch name: $BRANCH_NAME"
+                  echo "azure-iotedge repo path: $AZURE_IOTEDGE_REPO_PATH"
+                  echo "iotedge repo path: $IOTEDGE_REPO_PATH"
+                  echo "iot-identity-service repo path: $IIS_REPO_PATH"
+
+                  sudo chmod +x $(Build.SourcesDirectory)/iotedge/scripts/linux/publishReleasePackages.sh 
+                  $(Build.SourcesDirectory)/iotedge/scripts/linux/publishReleasePackages.sh -p ubuntu20.04 -w $(Build.SourcesDirectory)/iotedge -d $(Build.SourcesDirectory)/iotedge -v "$BASE_VERSION" -s "github.com" -b  $(Build.SourceBranch) --skip-upload true
+
+                  # Source the scripts & Update version files
+                  sudo chmod +x $(Build.SourcesDirectory)/iotedge/scripts/linux/github/updateLatestVersion.sh
+                  source $(Build.SourcesDirectory)/iotedge/scripts/linux/github/updateLatestVersion.sh
+                  update_latest_version_json
+
+                  # Update Github and tag
+                  github_update_and_push
                 env:
-                  GITHUB_PAT: "$(GitHubAccessToken)"        
+                  GITHUB_PAT: "$(GitHubAccessToken)"
     - job: linux
       displayName: Linux
+      dependsOn: safe_guard
       strategy:
         matrix:
           Centos75-amd64:
@@ -338,6 +372,7 @@ stages:
             keyVaultName: $(kv.name)
             secretsFilter: >-
               GitHubAccessToken
+        - checkout: self
         - task: DownloadPipelineArtifact@2
           displayName: Download Pipeline Build Packages
           inputs:
