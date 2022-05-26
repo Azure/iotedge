@@ -73,6 +73,8 @@ make \
     install
 
 install -D contrib/centos/00-aziot-edged.preset %{buildroot}%{_presetdir}/00-aziot-edged.preset
+install -m 0660 /dev/null %{buildroot}/%{iotedge_socketdir}/mgmt.sock
+install -m 0666 /dev/null %{buildroot}/%{iotedge_socketdir}/workload.sock
 %clean
 rm -rf $RPM_BUILD_ROOT
 
