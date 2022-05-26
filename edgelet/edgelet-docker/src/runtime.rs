@@ -209,7 +209,7 @@ impl ModuleRegistry for DockerModuleRuntime {
 
     async fn pull(&self, config: &Self::Config) -> anyhow::Result<()> {
         let image = config.image().to_owned();
-        let is_content_trust_enabled= false;
+        let is_content_trust_enabled = false;
 
         if is_content_trust_enabled {
             info!("Pulling image via digest {}...", image);
@@ -426,8 +426,8 @@ impl ModuleRuntime for DockerModuleRuntime {
         );
 
         let image = module.config().image().to_owned();
-        let is_content_trust_enabled= false;
-        
+        let is_content_trust_enabled = false;
+
         if is_content_trust_enabled {
             info!("Creating image via digest {}...", image);
         } else {
