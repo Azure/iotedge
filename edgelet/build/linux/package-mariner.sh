@@ -98,7 +98,7 @@ replace-with = "vendored-sources"
 
 [source."https://github.com/Azure/iot-identity-service"]
 git = "https://github.com/Azure/iot-identity-service"
-branch = "release/1.2"
+branch = "main"
 replace-with = "vendored-sources"
 
 [source.vendored-sources]
