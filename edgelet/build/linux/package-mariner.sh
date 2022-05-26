@@ -8,6 +8,26 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 export DEBIAN_FRONTEND=noninteractive
 export TZ=UTC
 
+
+# need to use preview repo for the next 2 weeks untill mariner 2.0 gets moved to prod
+case "${MARINER_RELEASE}" in
+    '1.0-stable')
+        UsePreview=n
+        MarinerIdentity=mariner1
+        PackageExtension="cm1"
+        ;;
+    '2.0-stable')
+        UsePreview=n
+        MarinerIdentity=mariner2
+        PackageExtension="cm2"
+        ;;
+esac
+
+BUILD_REPOSITORY_LOCALPATH="$(realpath "${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}")"
+EDGELET_ROOT="${BUILD_REPOSITORY_LOCALPATH}/edgelet"
+MARINER_BUILD_ROOT="${BUILD_REPOSITORY_LOCALPATH}/builds/${MarinerIdentity}"
+REVISION="${REVISION:-1}"
+
 apt-get update -y
 apt-get upgrade -y
 apt-get install -y software-properties-common
@@ -24,36 +44,29 @@ if [ -f /.dockerenv ]; then
     mv /.dockerenv /.dockerenv.old
 fi
 
+# Download Mariner repo and build toolkit
+mkdir -p ${MARINER_BUILD_ROOT}
+MarinerToolkitDir='/tmp/CBL-Mariner'
+if ! [ -f "$MarinerToolkitDir/toolkit.tar.gz" ]; then
+    rm -rf "$MarinerToolkitDir"
+    git clone 'https://github.com/microsoft/CBL-Mariner.git' --branch "$MARINER_RELEASE" --depth 1 "$MarinerToolkitDir"
+    pushd "$MarinerToolkitDir/toolkit/"
+    make package-toolkit REBUILD_TOOLS=y
+    popd
+    cp "$MarinerToolkitDir"/out/toolkit-*.tar.gz "${MARINER_BUILD_ROOT}/toolkit.tar.gz"
+    rm -rf MarinerToolkitDir
+fi
+
 echo 'Installing rustup'
 curl -sSLf https://sh.rustup.rs | sh -s -- -y
 . ~/.cargo/env
-
-
-# need to use preview repo for the next 2 weeks untill mariner 2.0 gets moved to prod
-case "${MARINER_RELEASE}" in
-    '1.0-stable')
-        UsePreview=n
-        MarinerIdentity=mariner1
-        PackageExtension="cm1"
-        ;;
-    '2.0-stable')
-        UsePreview=y
-        MarinerIdentity=mariner2
-        PackageExtension="cm2"
-        ;;
-esac
-
-BUILD_REPOSITORY_LOCALPATH="$(realpath "${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}")"
-EDGELET_ROOT="${BUILD_REPOSITORY_LOCALPATH}/edgelet"
-MARINER_BUILD_ROOT="${BUILD_REPOSITORY_LOCALPATH}/builds/${MarinerIdentity}"
-REVISION="${REVISION:-1}"
 
 pushd $EDGELET_ROOT
 case "${MARINER_ARCH}" in
     'x86_64')
         rustup target add x86_64-unknown-linux-gnu
         ;;
-    'arm64')
+    'aarch64')
         rustup target add aarch64-unknown-linux-gnu
         ;;
 esac
@@ -122,19 +135,6 @@ cp -r ~/.cargo "rust"
 cp -r ~/.rustup "rust"
 tar cf "${MARINER_BUILD_ROOT}/SPECS/aziot-edge/SOURCES/rust.tar.gz" "rust"
 popd
-
-# Download Mariner repo and build toolkit
-echo "Cloning the \"${MARINER_RELEASE}\" tag of the CBL-Mariner repo."
-git clone https://github.com/microsoft/CBL-Mariner.git
-pushd CBL-Mariner
-git checkout ${MARINER_RELEASE}
-pushd toolkit
-make package-toolkit REBUILD_TOOLS=y
-popd
-mv out/toolkit-*.tar.gz "${MARINER_BUILD_ROOT}/toolkit.tar.gz"
-popd
-
-rm -rf CBL-Mariner
 
 # copy over IIS RPM
 mkdir -p ${MARINER_BUILD_ROOT}/out/RPMS/${MARINER_ARCH}
