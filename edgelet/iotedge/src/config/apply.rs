@@ -237,6 +237,8 @@ async fn execute_inner(
         } else {
             println!("Warning: the previous identity config file is unreadable");
         }
+    } else {
+        println!("Warning: the previous identity config file is unreadable");
     }
     let mut iotedge_authorized_certs = vec![
         edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned(),
