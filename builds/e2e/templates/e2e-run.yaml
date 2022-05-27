@@ -13,6 +13,7 @@ parameters:
 #   NestedEdgeAmqpOnly: Only applies to nested edge cases using amqp upstream protocol
 #   LegacyMqttRequired: Only applies to cases with the edgehub legacy mqtt protocol head
 #   BrokerRequired: Only applies to cases with the broker enabled
+#   SkipManifestTrust: Only applies to manifest/content trust tests
 steps:
 - pwsh: |
     $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
@@ -20,6 +21,8 @@ steps:
 
     # Filter out flaky tests.
     $filter = 'Category!=Flaky'
+    # Filter out Manifest trust tests.
+    $filter += '&Category!=SkipManifestTrust'
     if ('$(minimal)' -eq 'true')
     {
       $filter += '&Name~TempSensor'
@@ -58,7 +61,7 @@ steps:
     elseif ($test_type -eq 'http_proxy')
     {
       #Disable tests that don't work in proxy environment. Renable post-investigation.
-      $filter += '&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~ValidateMetrics&FullyQualifiedName!~contenttrust'
+      $filter += '&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~ValidateMetrics'
       #Disable nested edge tests
       $filter += '&Category!=NestedEdgeOnly'
     }
@@ -83,7 +86,6 @@ steps:
     E2E_EVENT_HUB_ENDPOINT: ${{ parameters['EventHubCompatibleEndpoint'] }}
     E2E_IOT_HUB_CONNECTION_STRING: ${{ parameters['IotHubConnectionString'] }}
     E2E_REGISTRIES__0__PASSWORD: $(TestContainerRegistryPassword)
-    E2E_REGISTRIES__1__PASSWORD: $(TestContentTrustRegistryPassword)
     E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
     E2E_BLOB_STORE_SAS: $(TestBlobStoreSas)
     no_proxy: 'localhost'

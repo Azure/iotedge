@@ -68,11 +68,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
         }
 
-        // NOTE: temporarily marked as fully flaky.
         [Test]
-        [Category("Flaky")]
-        // [Category("FlakyOnArm")]
-        // [Category("FlakyOnRelease")]
+        [Category("SkipManifestTrust")]
         public async Task TestIfSignedDeploymentIsSuccessful()
         {
             // Edge Daemon is configured with a good root CA and manifest is signed.
@@ -105,8 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await this.sensor.WaitForEventsReceivedAsync(this.startTime, this.TestToken);
         }
 
-        [Category("Flaky")]
-        [Category("FlakyOnArm")]
+        [Category("SkipManifestTrust")]
         [Test]
         public async Task TestIfSignedDeploymentIsConfiguredWithBadRootCa()
         {
@@ -150,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
-        [Category("FlakyOnArm")]
+        [Category("SkipManifestTrust")]
         public async Task TestIfSignedDeploymentIsConfiguredWithNoRootCa()
         {
             // Edge Daemon is not configured but manifest is signed.
