@@ -342,7 +342,7 @@ jobs:
       os: linux
       arch: amd64
       artifactName: iotedged-mariner1-amd64
-      identityServiceArtifactName: packages_mariner_amd64
+      identityServiceArtifactName: packages_mariner-1_amd64
       identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
 
     timeoutInMinutes: 90
