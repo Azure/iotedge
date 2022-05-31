@@ -46,5 +46,7 @@ steps:
         rm microsoft-prod.list microsoft.gpg
         sudo apt-get update
         sudo apt-get install -y moby-engine
+        sudo groupadd docker || true
+        sudo usermod -aG docker $USER
       displayName: Install moby
       condition: and(succeeded(), startsWith(variables.arch, 'arm'))
