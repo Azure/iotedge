@@ -363,9 +363,9 @@ jobs:
         parameters:
           edgelet.artifact.name: 'iotedged-mariner-amd64'
           images.artifact.name: '$(images.artifact.name.linux)'
-          aziotis.artifact.name: 'packages_mariner_amd64'
+          aziotis.artifact.name: 'packages_mariner1_amd64'
           aziotis.package.filter: 'aziot-identity-service-*.x86_64.rpm'
-          identityServiceArtifactName: packages_mariner_amd64
+          identityServiceArtifactName: packages_mariner-1_amd64
           quickstart.artifactName: 'IotEdgeQuickstart.linux-x64.tar.gz'
       - task: DeleteFiles@1
         inputs:
