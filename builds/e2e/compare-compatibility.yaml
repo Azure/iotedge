@@ -164,10 +164,10 @@ jobs:
 ################################################################################
   - job: ubuntu_2004_arm64v8
 ################################################################################
-    displayName: Ubuntu 20.04 with arm64v8
+    displayName: Ubuntu 20.04 on arm64v8
 
     pool:
-      name: 'Azure-IoT-Edge-1ES-Hosted-Linux-Arm64'
+      name: $(pool.linux.arm.name)
       demands:
       - ImageOverride -equals agent-aziotedge-ubuntu-20.04-arm64
 
