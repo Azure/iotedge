@@ -361,9 +361,9 @@ jobs:
     steps:
       - template: templates/longhaul-setup.yaml
         parameters:
-          edgelet.artifact.name: 'iotedged-mariner-amd64'
+          edgelet.artifact.name: 'iotedged-mariner1-amd64'
           images.artifact.name: '$(images.artifact.name.linux)'
-          aziotis.artifact.name: 'packages_mariner1_amd64'
+          aziotis.artifact.name: 'packages_mariner-1_amd64'
           aziotis.package.filter: 'aziot-identity-service-*.x86_64.rpm'
           identityServiceArtifactName: packages_mariner-1_amd64
           quickstart.artifactName: 'IotEdgeQuickstart.linux-x64.tar.gz'
