@@ -120,17 +120,11 @@ stages:
           arch: $(arch)
           target: $(target)
 
-    # This stage first downloads the dotnet and rust artifacts from the previous stage, then
-    # copies the mqtt and watchdog artifacts into the appropriate directories
-    # required by consolidate-build-artifacts.sh. It then runs consolidate-build-artifacts.sh,
-    # which moves the EH dockerfile, edge-hub executable, watchdog executable, and mqttd
-    # executable into the appropriate directories for later building the edge-hub image in the
-    # 'Build Images' stage of this pipeline.  Finally, this stage consolidates the aforementioned
-    # EH artifacts with the other dotnet artifacts and publishes them all in an artifact named
-    # 'consolidated_artifacts'.
-  ################################################################################
+# This stage consolidates .NET binaries, Rocksdb binaries and the SBOM into a
+# single artifact from which all Docker images can be built.
+################################################################################
   - stage: ConsolidateAndPubishArtifacts
-  ################################################################################
+################################################################################
     displayName: Consolidate And Publish Artifacts
     pool:
       name: $(pool.linux.name)
@@ -190,9 +184,9 @@ stages:
           artifactName: 'consolidated_artifacts'
           StoreAsTar: true
 
-  ################################################################################
+################################################################################
   - stage:  BuildImages
-  ################################################################################
+################################################################################
     displayName: Build Images
     pool:
       name: $(pool.linux.name)
@@ -446,9 +440,9 @@ stages:
           module.name: $(moduleName)
           module.path: $(modulePath)
 
-  ################################################################################
+################################################################################
   - stage: PublishManifests
-  ################################################################################
+################################################################################
     displayName: Publish Manifests
     pool:
       name: $(pool.linux.name)
