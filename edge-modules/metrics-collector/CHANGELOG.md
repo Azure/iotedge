@@ -2,6 +2,7 @@
 
 ### Bug Fixes
 - Update Base Images to address Microsoft .NET Security Updates for [CVE-2022-23267](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-23267), [CVE-2022-29117](https://github.com/dotnet/announcements/issues/220), [CVE-2022-29145](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-29145), OpenSSL vulnerability [USN-5402-1](https://ubuntu.com/security/notices/USN-5402-1), curl vulnerability [USN-5412-1](https://ubuntu.com/security/notices/USN-5412-1), and OpenLDAP Vulnerability [USN-5424-1](https://ubuntu.com/security/notices/USN-5424-1)
+- Experimental feature to support scraping of 3rd party containers that provide prometheus metrics without iot edge specific tags. [User "alaendle" reported the issue, created the user voice feedback (that has received 12 upvotes so far), and contributed a way to enable it.]
 
 # 1.0.7 (2022-04-27)
 
