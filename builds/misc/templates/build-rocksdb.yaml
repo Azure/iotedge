@@ -31,20 +31,7 @@ stages:
           demands:
           - ImageOverride -equals $(agent_image)
       steps:
-      - bash: |
-          set -e
-          # Install Moby
-          curl https://packages.microsoft.com/config/ubuntu/20.04/prod.list > ./microsoft-prod.list
-          sudo cp ./microsoft-prod.list /etc/apt/sources.list.d/
-          curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
-          sudo cp ./microsoft.gpg /etc/apt/trusted.gpg.d/
-          rm microsoft-prod.list microsoft.gpg
-          sudo apt-get update
-          sudo apt-get install -y moby-engine
-          sudo groupadd docker || true
-          sudo usermod -aG docker $USER
-        condition: and(succeeded(), not(eq(variables.arch, 'amd64')))
-        displayName: Install moby (arm32/64 only)
+      - template: ../../templates/prep-arm-agent.yaml
       - script: |
           /usr/bin/newgrp docker <<EONG
           scripts/linux/buildRocksDb.sh --output-dir $(Build.ArtifactStagingDirectory) --postfix $(postfix) --build-number $(Build.BuildNumber) --arch $(arch)
