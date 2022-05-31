@@ -257,6 +257,6 @@ github_update_and_push()
     lastCommitHash=$(git log -n 1 --pretty=format:"%H")
     git tag "$VERSION" $lastCommitHash
 
-    git push https://$GITHUB_PAT@github.com/Azure/azure-iotedge.git
-    git push https://$GITHUB_PAT@github.com/Azure/azure-iotedge.git "$VERSION"
+    git push --force https://$GITHUB_PAT@github.com/Azure/azure-iotedge.git
+    git push --force https://$GITHUB_PAT@github.com/Azure/azure-iotedge.git "$VERSION"
 }
