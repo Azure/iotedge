@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.Devices" Version="1.31.2" />
-    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.36.6" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.36.5" />
     <PackageReference Include="Microsoft.Azure.Amqp" Version="2.5.12" />
     <PackageReference Include="Microsoft.Azure.EventHubs" Version="3.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
