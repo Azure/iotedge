@@ -77,7 +77,7 @@ sudo apt-get install -y \
     uuid-dev curl \
     libcurl4-openssl-dev \
     libssl-dev \
-    libssh2-sys-dev \
+    libssh2-1 \
     debhelper \
     dh-systemd \
     valgrind
