@@ -76,13 +76,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Update="..\..\..\docker\linux\arm32v7\base\Dockerfile">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Link>docker\linux\arm32v7\base\Dockerfile</Link>
-    </Content>
-  </ItemGroup>
-
-  <ItemGroup>
     <AdditionalFiles Include="..\..\..\..\stylecop.json" Link="stylecop.json" />
   </ItemGroup>
   <PropertyGroup>
