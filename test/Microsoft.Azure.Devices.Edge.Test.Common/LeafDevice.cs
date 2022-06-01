@@ -315,7 +315,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         static async Task<LeafDevice> CreateLeafDeviceAsync(Device device, Func<DeviceClient> clientFactory, IotHub iotHub, CancellationToken token)
         {
-            ConsoleEventListener consoleEventListener = new ConsoleEventListener("Microsoft-Azure-");
+            // ConsoleEventListener consoleEventListener = new ConsoleEventListener("Microsoft-Azure-");
 
             DeviceClient client = clientFactory();
 
@@ -326,7 +326,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             await client.SetMethodHandlerAsync(nameof(DirectMethod), DirectMethod, null, token);
 
-            Log.Information("Successfully set client method handler (using console event listener {0})", consoleEventListener.GetType());
+            Log.Information("Successfully set client method handler");
 
             return new LeafDevice(device, client, iotHub);
         }
