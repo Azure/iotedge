@@ -119,6 +119,31 @@ process_args() {
     done
 }
 
+
+#######################################
+# NAME: 
+#    publish_to_microsoft_repo
+#
+# DESCRIPTION:
+#    The function upload artifacts to Microsoft Linux Package Repository which is multiarch 
+#    repository at packages.microsoft.com (PMC). The upload of the artifacts is done via RepoClient
+#    app (which now avaiable as a docker image)
+#
+#    The script simply does the follow:
+#    1. Pull clean docker image for RepoClient app
+#    2. To upload the artifacts, the function runs the RepoClient image against 
+#       the config file an the uploading artifacts.
+#    3. Validate if the artifacts are readily available on PMC.
+# GLOBALS:
+#    BRANCH_NAME ________________ Source Branch name            (string)
+#    CONFIG_DIR _________________ Path to RepoClient config file(string)
+#    OS_NAME ____________________ Operating System name         (string)
+#    OS_VERSION _________________ Operating System version      (string)
+#    PACKAGE_DIR ________________ Path to artifact directory    (string)
+#
+# OUTPUTS:
+#    Uploaded linux artifacts in packages.microsoft.com
+#######################################
 publish_to_microsoft_repo()
 {
 #Cleanup
@@ -185,6 +210,36 @@ fi
 
 }
 
+
+#######################################
+# NAME: 
+#    publish_to_github
+#
+# DESCRIPTION:
+#    The function has two operating mode depending the value of $SKIP_UPLOAD
+#
+#    If SKIP_UPLOAD=false, the script creates a github release page on /azure-iotedge 
+#    repository with a VERSION tag to the latest commit. The release page comprises of
+#      - Change log as a description which is parsed from CHANGELOG.MD
+#      - Renamed production artifacts from the build pipeline in the format of
+#        <component>_<version>_<os>_<architecture>.<fileExtension> 
+#        i.e. iotedge_1.1.13-1_debian11_arm64.deb
+#
+#    If SKIP_UPLOAD=true, the script creates a DRAFT github release page on /azure-iotedge
+#    without a github tag AND no production artifacts are uploaded to draft.
+#    
+# GLOBALS:
+#    BRANCH_NAME ________________ Source Branch name            (string)
+#    GITHUB_PAT _________________ Github Personal Access Token  (string)
+#    SKIP_UPLOAD ________________ Skip Github artifact upload   (bool)
+#      if false, upload artifacts to github release page
+#      if true, create the release page in draft mode without artifacts uploaded.
+#    VERSION ____________________ Current release version       (string)
+#    WDIR _______________________ Current work directory        (string)
+#
+# OUTPUTS:
+#    Github release page on /azure-iotedge repository
+#######################################
 publish_to_github()
 {
     # Investigate if this can be derived from a commit, Hardcode for now.
@@ -192,17 +247,13 @@ publish_to_github()
         echo "No Branch Name Provided"
         exit 1
     fi
-    
+
     branch_name=${BRANCH_NAME/"refs/heads/"/""}
     echo "Branch Name is $branch_name"
-    
-    # Get the latest release from a given branch
-    echo "Fetch the latest release: "
-    url="https://api.github.com/repos/Azure/iotedge/releases"
-    header_content="Accept:application/vnd.github.v3+json"
-    header_auth="Authorization:token $GITHUB_PAT"
-    content=$(curl -X GET -H "$header_content" -H "$header_auth" "$url")
-    latest_release=$(echo $content | jq --arg branch "$branch_name" '[.[] | select(.target_commitish==$branch)][0]' | jq '.name')
+
+    # Using relative path from this script to source the helper script
+    source "$(dirname "$(realpath "$0")")/github/updateLatestVersion.sh"
+    latest_release=$(get_latest_release_per_branch_name)
     echo "Latest Release is $latest_release"
 
     if [[ -z $latest_release || $latest_release == null ]];then
@@ -211,9 +262,9 @@ publish_to_github()
     fi
     
     url="https://api.github.com/repos/Azure/azure-iotedge/releases"
+    header_content="Accept:application/vnd.github.v3+json"
+    header_auth="Authorization:token $GITHUB_PAT"
     content=$(curl -X GET -H "$header_content" -H "$header_auth" "$url")
-    
-    # TODO: Check if the repository is tagged with a given version. Otherwise, tag the commit with the releasing version
 
     # Check if Release Page has already been created
     release_created=$(echo $content | jq --arg version $VERSION '.[] | select(.name==$version)')
@@ -238,7 +289,11 @@ publish_to_github()
 
         #Create Release Page
         url="https://api.github.com/repos/Azure/azure-iotedge/releases"
-        body=$(jq -n --arg version "$VERSION" --arg body "$(cat $WDIR/content.txt)" '{tag_name: $version, name: $version, target_commitish:"main", body: $body}')
+        reqBody='{tag_name: $version, name: $version, target_commitish:"main", draft: true, body: $body}'
+        if [[ $SKIP_UPLOAD == "false" ]]; then
+            reqBody='{tag_name: $version, name: $version, target_commitish:"main", body: $body}'
+        fi
+        body=$(jq -n --arg version "$VERSION" --arg body "$(cat $WDIR/content.txt)" "$reqBody")
         sudo rm -rf $WDIR/content.txt
         
         echo "Body for Release is $body"
@@ -271,7 +326,7 @@ publish_to_github()
                     mimetype="application/octet-stream"
                     ;;
             esac
-            
+
             upload_url="https://uploads.github.com/repos/Azure/azure-iotedge/releases/$release_id/assets?name=$name"
             echo "Upload URL is $upload_url"
             echo "Mime Type is $mimetype"
