@@ -315,8 +315,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         static async Task<LeafDevice> CreateLeafDeviceAsync(Device device, Func<DeviceClient> clientFactory, IotHub iotHub, CancellationToken token)
         {
-            // ConsoleEventListener consoleEventListener = new ConsoleEventListener("Microsoft-Azure-");
-
             DeviceClient client = clientFactory();
 
             client.SetConnectionStatusChangesHandler((status, reason) =>
