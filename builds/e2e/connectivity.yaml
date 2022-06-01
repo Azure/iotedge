@@ -129,7 +129,7 @@ jobs:
           buildType: specific
           project: $(resources.pipeline.packages.projectID)
           pipeline: $(resources.pipeline.packages.pipelineName)
-          branchName: $(resources.pipeline.images.sourceBranch)
+          branchName: $(resources.pipeline.packages.sourceBranch)
           buildVersionToDownload: latestFromBranch
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
