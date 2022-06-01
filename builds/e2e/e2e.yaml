@@ -175,11 +175,11 @@ jobs:
 ################################################################################
   - job: ubuntu_2004_arm64v8
 ################################################################################
-    displayName: Ubuntu 20.04 with arm64v8
+    displayName: Ubuntu 20.04 on arm64v8
     pool:
-      name: $(pool.custom.name)
-      demands: 
-        - agent-group -equals rpi3-e2e-aarch64
+      name: $(pool.linux.arm.name)
+      demands:
+      - ImageOverride -equals agent-aziotedge-ubuntu-20.04-arm64
 
     variables:
       os: linux
@@ -191,6 +191,7 @@ jobs:
     timeoutInMinutes: 120
 
     steps:
+    - template: ../templates/prep-arm-agent.yaml
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-clear-docker-cached-images.yaml

@@ -3,17 +3,21 @@
 //! This subcommand takes the super-config file, converts it into the individual services' config files,
 //! writes those files, and restarts the services.
 
-use std::path::Path;
+use std::{collections::HashMap, path::Path};
 
 use aziotctl_common::config as common_config;
 
 use super::super_config;
+use docker::{DockerApi, DockerApiClient};
+use http_common::Connector;
 
 const AZIOT_EDGED_HOMEDIR_PATH: &str = "/var/lib/aziot/edged";
 
 const TRUST_BUNDLE_USER_ALIAS: &str = "trust-bundle-user";
 
-pub fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>> {
+const LABELS: &[&str] = &["net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent"];
+
+pub async fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>> {
     // In production, running as root is the easiest way to guarantee the tool has write access to every service's config file.
     // But it's convenient to not do this for the sake of development because the the development machine doesn't necessarily
     // have the package installed and the users created, and it's easier to have the config files owned by the current user anyway.
@@ -73,7 +77,7 @@ pub fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>> {
         edged_config,
         preloaded_device_id_pk_bytes,
         preloaded_master_encryption_key_bytes,
-    } = execute_inner(config, aziotcs_user.uid, aziotid_user.uid, iotedge_user.uid)?;
+    } = execute_inner(config, aziotcs_user.uid, aziotid_user.uid, iotedge_user.uid).await?;
 
     if let Some(preloaded_device_id_pk_bytes) = preloaded_device_id_pk_bytes {
         println!("Note: Symmetric key will be written to /var/secrets/aziot/keyd/device-id");
@@ -163,7 +167,7 @@ struct RunOutput {
     preloaded_master_encryption_key_bytes: Option<Vec<u8>>,
 }
 
-fn execute_inner(
+async fn execute_inner(
     config: &std::path::Path,
     aziotcs_uid: nix::unistd::Uid,
     aziotid_uid: nix::unistd::Uid,
@@ -198,6 +202,44 @@ fn execute_inner(
     } = aziotctl_common::config::apply::run(aziot, aziotcs_uid, aziotid_uid)
         .map_err(|err| format!("{:?}", err))?;
 
+    let old_identityd_path = Path::new("/etc/aziot/identityd/config.d/00-super.toml");
+    if let Ok(old_identity_config) = std::fs::read(&old_identityd_path) {
+        if let Ok(aziot_identityd_config::Settings { hostname, .. }) =
+            toml::from_slice(&old_identity_config)
+        {
+            let new_hostname = &identityd_config.hostname;
+            let moby_runtime = &moby_runtime;
+            let uri = &moby_runtime.uri;
+
+            let client = DockerApiClient::new(
+                Connector::new(uri)
+                    .map_err(|err| format!("Failed to make docker client: {}", err))?,
+            );
+
+            let mut filters = HashMap::new();
+            filters.insert("label", LABELS);
+            let filters = serde_json::to_string(&filters).map_err(|err| format!("{:?}", err))?;
+
+            let containers = client
+                .container_list(
+                    true,  /*all*/
+                    0,     /*limit*/
+                    false, /*size*/
+                    &filters,
+                )
+                .await
+                .map_err(|err| format!("{:?}", err))?;
+            if &hostname != new_hostname && !containers.is_empty() {
+                return Err(format!("Cannot apply config because the hostname in the config {} is different from the previous hostname {}. To update the hostname, run the following command which deletes all modules and reapplies the configuration. Or, revert the hostname change in the config.toml file.
+                    sudo iotedge system stop && sudo docker rm -f $(docker ps -aq) && sudo iotedge config apply.
+                Warning: Data stored in the modules is lost when above command is executed.", &hostname, &new_hostname).into());
+            }
+        } else {
+            println!("Warning: the previous identity config file is unreadable");
+        }
+    } else {
+        println!("Warning: the previous identity config file is unreadable");
+    }
     let mut iotedge_authorized_certs = vec![
         edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned(),
         "aziot-edged/module/*".to_owned(),
@@ -579,7 +621,6 @@ fn execute_inner(
         preloaded_master_encryption_key_bytes,
     })
 }
-
 fn set_quickstart_ca(
     keyd_config: &mut aziot_keyd_config::Config,
     certd_config: &mut aziot_certd_config::Config,
@@ -619,8 +660,8 @@ fn set_quickstart_ca(
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn test() {
+    #[tokio::test]
+    async fn test() {
         let files_directory =
             std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/test-files/config"));
         for entry in std::fs::read_dir(files_directory).unwrap() {
@@ -690,6 +731,7 @@ mod tests {
                 nix::unistd::Uid::from_raw(5556),
                 nix::unistd::Uid::from_raw(5558),
             )
+            .await
             .unwrap();
 
             // Convert the file contents to bytes::Bytes before asserting, because bytes::Bytes's Debug format
