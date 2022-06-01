@@ -37,7 +37,8 @@ impl AdditionalInfo {
 /// ---------------------+---------------------+------------
 ///  CentOS 7            | centos              | 7
 ///  RedHat EL 8         | rhel                | 8.5
-///  Debian 9            | debian              | 9
+///  Debian 10            | debian              | 10
+///  Debian 11            | debian              | 11
 ///  openSUSE Tumbleweed | opensuse-tumbleweed | 20190325
 ///  Ubuntu 18.04        | ubuntu              | 18.04
 /// ```
