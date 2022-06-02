@@ -71,9 +71,6 @@
                         "env": {
                             "NGINX_DEFAULT_PORT": {
                                 "value": "443"
-                            },
-                            "NGINX_DEFAULT_TLS": {
-                                "value": "TLSv1.2"
                             }
                         }
                     },
