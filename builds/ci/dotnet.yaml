@@ -6,6 +6,7 @@ trigger:
       - release/*
 pr: none
 variables:
+  DisableDockerDetector: true
   build.configuration: Release
   test.filter: Category=Integration&Category!=Stress
 jobs:
