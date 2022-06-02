@@ -8,7 +8,6 @@ trigger:
 pr: none
 variables:
   build.configuration: Release
-  DisableDockerDetector: true
   test.filter: Category=Integration&Category!=Stress
 jobs:
   - job: linux
