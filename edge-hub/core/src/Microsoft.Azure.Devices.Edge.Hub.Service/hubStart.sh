@@ -62,7 +62,7 @@ then
     chown -fR "${TARGET_UID}" "${backuppath}"
   fi
 
-  exec su "$username" -c "/usr/local/bin/watchdog"
+  exec su "$username" -c "/usr/bin/dotnet Microsoft.Azure.Devices.Edge.Hub.Service.dll"
 else
-  exec /usr/local/bin/watchdog
+  exec /usr/bin/dotnet Microsoft.Azure.Devices.Edge.Hub.Service.dll
 fi

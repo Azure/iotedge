@@ -1,0 +1,52 @@
+# Install required software on Ubuntu 20.04 ARM64 1ES-hosted agent. Normally we create custom agent
+# images with the needed software baked in, but 1ES doesn't support custom images for ARM64 yet.
+# Once they do, we can move these install steps into the custom image definition, and remove this
+# template.
+
+steps:
+    - bash: |
+        set -e
+        # Install PowerShell dependencies
+        sudo apt-get update
+        sudo apt-get install -y liblttng-ust0 jq
+        # Get the PowerShell tarball
+        release_id=$(curl -sSH 'Accept: application/vnd.github.v3+json' https://api.github.com/repos/powershell/powershell/releases/latest | jq '.id')
+        url=$(curl -sSH 'Accept: application/vnd.github.v3+json' https://api.github.com/repos/powershell/powershell/releases/$release_id/assets | jq -r ".[] | select(.name | contains(\"linux-arm64.tar.gz\")) | .browser_download_url")
+        echo "$release_id"
+        echo "$url"
+        file=$(basename $url)
+        curl -sSL $url -o /tmp/$file
+        # Install PowerShell
+        sudo mkdir -p /opt/microsoft/powershell/7
+        sudo tar zxf /tmp/$file -C /opt/microsoft/powershell/7
+        sudo chmod +x /opt/microsoft/powershell/7/pwsh
+        sudo ln -s /opt/microsoft/powershell/7/pwsh /usr/bin/pwsh
+      displayName: Install pwsh
+      condition: and(succeeded(), startsWith(variables.arch, 'arm'))
+
+    - bash: |
+        set -e
+        # Install .NET dependencies
+        sudo apt-get update
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            libc6 libgcc1 libgssapi-krb5-2 libicu66 libssl1.1 libstdc++6 zlib1g
+        # Install .NET
+        curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 6.0
+        sudo ln -s $HOME/.dotnet/dotnet /usr/bin/dotnet
+      displayName: Install .NET Core
+      condition: and(succeeded(), startsWith(variables.arch, 'arm'))
+
+    - bash: |
+        set -e
+        # Install Moby
+        curl https://packages.microsoft.com/config/ubuntu/20.04/prod.list > ./microsoft-prod.list
+        sudo cp ./microsoft-prod.list /etc/apt/sources.list.d/
+        curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
+        sudo cp ./microsoft.gpg /etc/apt/trusted.gpg.d/
+        rm microsoft-prod.list microsoft.gpg
+        sudo apt-get update
+        sudo apt-get install -y moby-engine
+        sudo groupadd docker || true
+        sudo usermod -aG docker $USER
+      displayName: Install moby
+      condition: and(succeeded(), startsWith(variables.arch, 'arm'))

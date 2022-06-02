@@ -1,4 +1,4 @@
-﻿# syntax=docker/dockerfile:1.4
+# syntax=docker/dockerfile:1.4
 
 FROM mcr.microsoft.com/dotnet/aspnet:6.0-alpine
 
@@ -24,5 +24,5 @@ USER moduleuser
 # Install RocksDB
 COPY $EXE_DIR/librocksdb/librocksdb.so.amd64 /usr/local/lib/librocksdb.so
 
-CMD echo "$(date --utc +"[%Y-%m-%d %H:%M:%S %:z]"): Starting Module" && \
+CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Module" && \
     exec /usr/bin/dotnet TestResultCoordinator.dll
