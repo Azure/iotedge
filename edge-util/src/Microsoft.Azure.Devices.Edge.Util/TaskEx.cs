@@ -111,9 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return (val1, val2, val3, val4, val5, val6, val7, val8, val9);
         }
 
-        static Action defaultTimeoutAction = () => throw new TimeoutException("Operation timed out");
-
-        public static async Task<T> TimeoutAfter<T>(this Task<T> task, TimeSpan timeout, Action action = null)
+        public static async Task<T> TimeoutAfter<T>(this Task<T> task, TimeSpan timeout)
         {
             using (var cts = new CancellationTokenSource())
             {
@@ -121,14 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 Task completedTask = await Task.WhenAny(task, timerTask);
                 if (completedTask == timerTask)
                 {
-                    if (action == null)
-                    {
-                        defaultTimeoutAction();
-                    }
-                    else
-                    {
-                        action();
-                    }
+                    throw new TimeoutException("Operation timed out");
                 }
 
                 cts.Cancel();
@@ -136,7 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
-        public static async Task TimeoutAfter(this Task task, TimeSpan timeout, Action action = null)
+        public static async Task TimeoutAfter(this Task task, TimeSpan timeout)
         {
             using (var cts = new CancellationTokenSource())
             {
@@ -144,14 +135,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 Task completedTask = await Task.WhenAny(task, timerTask);
                 if (completedTask == timerTask)
                 {
-                    if (action == null)
-                    {
-                        defaultTimeoutAction();
-                    }
-                    else
-                    {
-                        action();
-                    }
+                    throw new TimeoutException("Operation timed out");
                 }
 
                 cts.Cancel();

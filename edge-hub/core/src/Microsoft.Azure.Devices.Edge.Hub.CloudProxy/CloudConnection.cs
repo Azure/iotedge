@@ -23,7 +23,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly TimeSpan idleTimeout;
         readonly bool closeOnIdleTimeout;
         readonly TimeSpan operationTimeout;
-        readonly TimeSpan cloudConnectionHangingTimeout;
         readonly string productInfo;
         readonly Option<string> modelId;
         Option<ICloudProxy> cloudProxy;
@@ -38,7 +37,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             TimeSpan idleTimeout,
             bool closeOnIdleTimeout,
             TimeSpan operationTimeout,
-            TimeSpan cloudConnectionHangingTimeout,
             string productInfo,
             Option<string> modelId)
         {
@@ -50,7 +48,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.cloudListener = Preconditions.CheckNotNull(cloudListener, nameof(cloudListener));
             this.idleTimeout = idleTimeout;
             this.closeOnIdleTimeout = closeOnIdleTimeout;
-            this.cloudConnectionHangingTimeout = cloudConnectionHangingTimeout;
             this.cloudProxy = Option.None<ICloudProxy>();
             this.operationTimeout = operationTimeout;
             this.productInfo = productInfo;
@@ -80,7 +77,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             TimeSpan idleTimeout,
             bool closeOnIdleTimeout,
             TimeSpan operationTimeout,
-            TimeSpan cloudConnectionHangingTimeout,
             string productInfo,
             Option<string> modelId)
         {
@@ -95,7 +91,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 idleTimeout,
                 closeOnIdleTimeout,
                 operationTimeout,
-                cloudConnectionHangingTimeout,
                 productInfo,
                 modelId);
             ICloudProxy cloudProxy = await cloudConnection.CreateNewCloudProxyAsync(tokenProvider);
@@ -117,8 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 this.ConnectionStatusChangedHandler,
                 this.cloudListener,
                 this.idleTimeout,
-                this.closeOnIdleTimeout,
-                this.cloudConnectionHangingTimeout);
+                this.closeOnIdleTimeout);
             return proxy;
         }
 
