@@ -1,6 +1,9 @@
 trigger: none
 pr: none
 
+variables:
+  DisableDockerDetector: true
+
 jobs:
 ################################################################################
   - job: linux_arm32

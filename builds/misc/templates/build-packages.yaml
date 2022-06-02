@@ -3,6 +3,9 @@ parameters:
     type: boolean
     default: false
 
+variables:
+  DisableDockerDetector: true
+
 stages:
 
 ################################################################################
