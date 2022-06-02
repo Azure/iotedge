@@ -14,6 +14,9 @@ pr:
       - platform-validation
       - release/1.1-k8s-preview
 
+variables:
+  DisableDockerDetector: true
+
 resources:
   pipelines:
   - pipeline: images
