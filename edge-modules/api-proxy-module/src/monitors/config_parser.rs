@@ -6,7 +6,10 @@ use regex::{Captures, Regex};
 
 use crate::token_service::token_server;
 
-const PROXY_CONFIG_DEFAULT_VALUES: &[(&str, &str)] = &[("NGINX_DEFAULT_PORT", "8000")];
+const PROXY_CONFIG_DEFAULT_VALUES: &[(&str, &str)] = &[
+    ("NGINX_DEFAULT_PORT", "8000"),
+    ("NGINX_DEFAULT_TLS", "TLSv1.2"),
+];
 
 pub struct ConfigParser {
     default_values: HashMap<String, String>,
