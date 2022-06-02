@@ -12,6 +12,7 @@ pr:
   paths:
     exclude:
       - platform-validation
+      - release/1.1-k8s-preview
 
 resources:
   pipelines:
