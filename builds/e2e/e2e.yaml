@@ -19,6 +19,7 @@ resources:
       - release/*
 
 variables:
+  DisableDockerDetector: true
   # A 'minimal' pipeline only runs one end-to-end test (TempSensor). This is useful for platforms or
   # environments that are very similar to other platforms/environments in our matrix, Ubuntu 18.04
   # with the 'docker-ce' package vs. Ubuntu 18.04 with the 'iotedge-moby' package vs. the same
@@ -175,11 +176,11 @@ jobs:
 ################################################################################
   - job: ubuntu_2004_arm64v8
 ################################################################################
-    displayName: Ubuntu 20.04 with arm64v8
+    displayName: Ubuntu 20.04 on arm64v8
     pool:
-      name: $(pool.custom.name)
-      demands: 
-        - agent-group -equals rpi3-e2e-aarch64
+      name: $(pool.linux.arm.name)
+      demands:
+      - ImageOverride -equals agent-aziotedge-ubuntu-20.04-arm64
 
     variables:
       os: linux
@@ -191,6 +192,7 @@ jobs:
     timeoutInMinutes: 120
 
     steps:
+    - template: ../templates/prep-arm-agent.yaml
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-clear-docker-cached-images.yaml

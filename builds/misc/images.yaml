@@ -8,6 +8,7 @@ pr: none
 
 variables:
   NugetSecurityAnalysisWarningLevel: warn
+  DisableDockerDetector: true
   
 stages:
   - template: templates/build-images.yaml
