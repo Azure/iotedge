@@ -13,6 +13,9 @@ pr:
     exclude:
       - platform-validation
 
+variables:
+  DisableDockerDetector: true
+
 resources:
   pipelines:
   - pipeline: images
