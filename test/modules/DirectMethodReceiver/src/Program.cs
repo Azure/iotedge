@@ -7,6 +7,7 @@ namespace DirectMethodReceiver
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Logging;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
 
@@ -23,6 +24,7 @@ namespace DirectMethodReceiver
             try
             {
                 Logger.LogInformation("DirectMethodReceiver Main() started.");
+                ConsoleEventListener consoleEventListener = new ConsoleEventListener("Microsoft-Azure-");
 
                 (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 

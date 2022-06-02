@@ -13,6 +13,7 @@ namespace Relayer
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Logging;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
@@ -30,6 +31,8 @@ namespace Relayer
             Logger.LogInformation($"Starting Relayer with the following settings: \r\n{Settings.Current}");
             ModuleClient moduleClient = null;
 
+            ConsoleEventListener consoleEventListener = new ConsoleEventListener("Microsoft-Azure-");
+
             try
             {
                 moduleClient = await ModuleUtil.CreateModuleClientAsync(
@@ -38,6 +41,13 @@ namespace Relayer
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                     ModuleUtil.DefaultTransientRetryStrategy,
                     Logger);
+
+                moduleClient.SetConnectionStatusChangesHandler((status, reason) =>
+                {
+                    Logger.LogInformation($"Detected change in connection status:{Environment.NewLine}Changed Status: {status} Reason: {reason}");
+                });
+
+
                 DuplicateMessageAuditor duplicateMessageAuditor = new DuplicateMessageAuditor(Settings.Current.MessageDuplicateTolerance);
                 MessageHandlerContext messageHandlerContext = new MessageHandlerContext(moduleClient, duplicateMessageAuditor);
 
