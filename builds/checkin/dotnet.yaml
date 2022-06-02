@@ -6,9 +6,6 @@ pr:
       - release/*
       - iiot
 
-variables:
-  DisableDockerDetector: true
-
 jobs:
 
 ################################################################################
