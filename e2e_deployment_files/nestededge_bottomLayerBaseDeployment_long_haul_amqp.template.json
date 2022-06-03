@@ -485,7 +485,7 @@
                 "value": "<DesiredModulesToRestartCSV>"
               },
               "RestartIntervalInMins": {
-                "value": "<RestartIntervalInMins>"
+                "value": "60"
               }
             },
             "settings": {
