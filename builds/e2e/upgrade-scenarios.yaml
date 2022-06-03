@@ -223,7 +223,7 @@ jobs:
       displayName: Update context.json w/ mcr.microsoft.com images
 
     # If scenario uses edgeHub v1.1.x, set the schema version in the edgeHub desired properties to "1.1"
-    -bash: |
+    - bash: |
         cd $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net*
         echo "Original context.json:"
         less context.json
