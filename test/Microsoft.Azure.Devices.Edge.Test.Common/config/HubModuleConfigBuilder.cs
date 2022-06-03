@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 {
     using System.Collections.Generic;
+    using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public class HubModuleConfigBuilder : ModuleConfigBuilder
@@ -15,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             this.WithDesiredProperties(
                 new Dictionary<string, object>
                 {
-                    ["schemaVersion"] = "1.2",
+                    ["schemaVersion"] = Context.Current.EdgeHubSchemaVersion,
                     ["routes"] = new { route1 = "from /* INTO $upstream" },
                     ["storeAndForwardConfiguration"] = new { timeToLiveSecs = 7200 }
                 });
