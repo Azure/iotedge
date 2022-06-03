@@ -1,22 +1,22 @@
-ARG base_tag=6.0-focal-arm32v7
-FROM mcr.microsoft.com/dotnet/aspnet:${base_tag}
+# syntax=docker/dockerfile:1.4
 
-RUN apt-get update && \
-    apt-get install -y libsnappy1v5 && \
-    ln -s /lib/arm-linux-gnueabihf/libdl.so.2 /usr/lib/arm-linux-gnueabihf/libdl.so && \
-    ln -s /lib/arm-linux-gnueabihf/libc.so.6 /usr/lib/arm-linux-gnueabihf/libc.so && \
-    rm -rf /var/lib/apt/lists/*
+FROM mcr.microsoft.com/dotnet/aspnet:6.0-alpine
 
-# create a user to allow agent to optionally run as non-root
+ARG EXE_DIR=.
+
+# RocksDB requires snappy
+RUN apk update && \
+    apk add --no-cache snappy
+
+# create a default user to allow agent to run as non-root
 # value was chosen as a large value to avoid a typical regular uid, 
 # and matches the "edgeagentuser" created in install packages.
 ARG EDGEAGENTUSER_ID
 ENV EDGEAGENTUSER_ID ${EDGEAGENTUSER_ID:-13622}
-RUN useradd -ms /bin/bash -u ${EDGEAGENTUSER_ID} edgeagentuser 
+RUN adduser -Ds /bin/sh -u ${EDGEAGENTUSER_ID} edgeagentuser 
 
-COPY $EXE_DIR/librocksdb/librocksdb.so.armhf /usr/lib/librocksdb.so
-
-ARG EXE_DIR=.
+# Install RocksDB
+COPY $EXE_DIR/librocksdb/librocksdb.so.armhf /usr/local/lib/librocksdb.so
 
 WORKDIR /app
 

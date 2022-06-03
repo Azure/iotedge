@@ -18,6 +18,7 @@ schedules:
   always: true
 
 variables:
+  DisableDockerDetector: true
   images.artifact.name.linux: 'core-linux'
 
 resources:
@@ -286,7 +287,7 @@ jobs:
         - agent-osbits -equals 32
         - run-connectivity -equals true
     variables:
-      edgelet.artifact.name: 'iotedged-debian9-arm32v7'
+      edgelet.artifact.name: 'iotedged-debian11-arm32v7'
     steps:
       - task: Bash@3
         name: Print_test_parameters

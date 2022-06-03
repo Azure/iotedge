@@ -1,5 +1,6 @@
-﻿ARG base_tag=6.0-alpine
-FROM mcr.microsoft.com/dotnet/runtime:${base_tag}
+# syntax=docker/dockerfile:1.4
+
+FROM mcr.microsoft.com/dotnet/runtime:6.0-alpine
 
 ARG EXE_DIR=.
 
@@ -13,5 +14,5 @@ COPY $EXE_DIR/ ./
 RUN adduser -Ds /bin/sh moduleuser 
 USER moduleuser
 
-CMD echo "$(date --utc +"[%Y-%m-%d %H:%M:%S %:z]"): Starting Module" && \
+CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Module" && \
     exec /usr/bin/dotnet MetricsValidator.dll

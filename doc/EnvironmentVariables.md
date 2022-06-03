@@ -40,7 +40,7 @@
 |-------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|-------------------------------|
 | AmqpSettings__Enabled                     | Whether the AMQP protocol head should be enabled                                                                                                   | bool                                                                  | true                          |
 | AmqpSettings__Port                        | The port for the AMQP protocol head to listen on                                                                                                   | int32                                                                 | 5671                          |
-| AuthenticationMode                        | Determines who performs authentication                                                                                                             | Scope, Cloud, CloudAndScope                                           | CloudAndScope                 |
+| AuthenticationMode                        | Determines who performs authentication                                                                                                             | Scope, Cloud, CloudAndScope ([Cloud AuthenticationMode not supported in production](#cloudauthnote)) | Scope                 |
 | BackupFolder                              | Path to place the backup EdgeHub database directory                                                                                                | string                                                                | TempPath of the current OS    |
 | CacheTokens                               | Whether client authentication tokens are saved to disk                                                                                             | bool                                                                  | false                         |
 | CheckEntireQueueOnCleanup                 | Periodically check all pending messages for TTL expiry, incurs more I/O but saves more storage                                                     | bool                                                                  | false                         |
@@ -91,3 +91,11 @@
 | MqttBroker__MaxQueuedMessages             | Maximum number of messages that can be in the outgoing queue for a single session                                                                  | int32                                                                 | 1000                          |
 | MqttBroker__MaxQueuedBytes                | Maximum number of bytes that can be in the outgoing queue for a single session                                                                     | int32 (arm), int64 (amd64)                                            | 0 (no limit)                  |
 | MqttBroker__WhenFull                      | Defines what to do in case either max queued messages or max queued bytes is reached                                                               | drop_new, drop_old                                                    | drop_new                      |
+
+### <a id="cloudauthnote">Cloud AuthenticationMode not supported in production</a>
+
+Cloud authentication is not supported in production because of several known limitations:
+- Does not work for clients with x509 certitificate authentication (thumbprint or CA)
+- Does not work in offline mode
+- When a device sends telemetry and disconnects before EdgeHub, there is no way for EdgeHub to drain those messages to IoT Hub
+- Token refresh or validation requires dropping connection to the device and may cause stability issues.

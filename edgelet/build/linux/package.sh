@@ -51,10 +51,6 @@ case "$PACKAGE_OS" in
         esac
         ;;
 
-    'debian9')
-        DOCKER_IMAGE='debian:9-slim'
-        ;;
-
     'debian10')
         DOCKER_IMAGE='debian:10-slim'
         ;;
