@@ -57,9 +57,6 @@
               },
               "RuntimeLogLevel": {
                 "value": "debug"
-              },
-              "SslProtocols": {
-                "value": "tls1.2"
               }
             },
             "status": "running",
@@ -774,7 +771,6 @@
             "ReceiverSource": "directMethodReceiver2.receive",
             "TolerancePeriod": "00:03:00",
             "TestDescription": "direct method | cloud | mqtt"
-
           },
           "reportMetadata12": {
             "TestReportType": "DirectMethodConnectivityReport",

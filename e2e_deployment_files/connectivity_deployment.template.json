@@ -60,9 +60,6 @@
               },
               "OptimizeForPerformance": {
                 "value": "<OptimizeForPerformance>"
-              },
-              "SslProtocols": {
-                "value": "tls1.2"
               }
             },
             "status": "running",

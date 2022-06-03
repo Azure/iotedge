@@ -47,11 +47,7 @@
                             "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"443/tcp\":[{\"HostPort\":\"443\"}],\"5671/tcp\":[{\"HostPort\":\"5671\"}],\"8883/tcp\":[{\"HostPort\":\"8883\"}]}}}"
                         },
                         "type": "docker",
-                        "env": {
-                            "SslProtocols": {
-                                "value": "tls1.2"
-                            }
-                        },
+                        "env": {},
                         "status": "running",
                         "restartPolicy": "always"
                     }
