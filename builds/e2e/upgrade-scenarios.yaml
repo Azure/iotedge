@@ -22,6 +22,9 @@ resources:
     source: 'Azure-IoT-Edge-Core Build Images'
     branch: 'release/1.2'    
 
+variables:
+  DisableDockerDetector: true
+
 jobs:
 ################################################################################
   - job: partial_upgrade_ubuntu_1804_msmoby

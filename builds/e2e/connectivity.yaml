@@ -10,6 +10,7 @@ schedules:
   always: true
 
 variables:
+  DisableDockerDetector: true
   images.artifact.name.linux: 'core-linux'
   NugetSecurityAnalysisWarningLevel: warn
 
