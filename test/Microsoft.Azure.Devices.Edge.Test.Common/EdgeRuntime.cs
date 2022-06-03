@@ -11,8 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
-    using Serilog;
-
 
     public class EdgeRuntime
     {
@@ -77,7 +75,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 // Write the current config into a file: EdgeConfiguration ToString() outputs the ConfigurationContent
                 string deploymentPath = enableManifestSigning.OrDefault().ManifestSigningDeploymentPath.OrDefault();
                 File.WriteAllText(deploymentPath, edgeConfiguration.ToString());
-                Log.Verbose($"deploymentPath: {deploymentPath}");
 
                 // Run Manifest signer client
                 string projectDirectory = enableManifestSigning.OrDefault().ManifestSignerClientProjectPath.OrDefault();
@@ -100,7 +97,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 edgeConfiguration.Config = JsonConvert.DeserializeObject<ConfigurationContent>(signedConfig);
             }
 
-            Log.Verbose($"edgeConfiguration:\n {edgeConfiguration.ToString()}");
             await edgeConfiguration.DeployAsync(this.iotHub, token);
             EdgeModule[] modules = edgeConfiguration.ModuleNames
                 .Select(id => new EdgeModule(id, this.DeviceId, this.iotHub))
