@@ -141,7 +141,7 @@ jobs:
       inputs:
         buildType: specific
         project: $(resources.pipeline.images_release_1_1.projectID)
-        pipeline: $(resources.pipeline.images_release_1_1.pipelineName)
+        pipeline: "$(resources.pipeline.images_release_1_1.pipelineName)"
         buildVersionToDownload: specific
         buildId: $(resources.pipeline.images_release_1_1.runID)
         downloadType: single
@@ -175,7 +175,7 @@ jobs:
       inputs:
         buildType: specific
         project: $(resources.pipeline.images_release_1_2.projectID)
-        pipeline: $(resources.pipeline.images_release_1_2.pipelineName)
+        pipeline: "$(resources.pipeline.images_release_1_2.pipelineName)"
         buildVersionToDownload: specific
         buildId: $(resources.pipeline.images_release_1_2.runID)
         downloadType: single
