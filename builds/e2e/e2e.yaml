@@ -48,7 +48,7 @@ jobs:
       identityServiceArtifactName: packages_debian-11-slim_arm32v7
       identityServicePackageFilter: aziot-identity-service_*_armhf.deb
 
-    timeoutInMinutes: 30
+    timeoutInMinutes: 120
 
     steps:
     - template: templates/e2e-clean-directory.yaml
