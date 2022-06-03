@@ -85,21 +85,18 @@ jobs:
           edgeDaemonVersion: "release/1.3"
           bootstrapAgentVersion: "1.2.9"
           runtimeModulesVersion: "1.2.9"
-        # TODO: Uncomment if/when the .NET test framework is updated to allow overriding
-        # the default 1.2 schema version used in the EH desired properties section
-        # of the deployment file. Until then, these scenarios will fail
-        # 1.1.0_to_1.3_only_edge_daemon:
-        #   edgeDaemonVersion: "release/1.3"
-        #   bootstrapAgentVersion: "1.1.0"
-        #   runtimeModulesVersion: "1.1.0"
-        # 1.1.8_to_1.3_only_edge_daemon:
-        #   edgeDaemonVersion: "release/1.3"
-        #   bootstrapAgentVersion: "1.1.8"
-        #   runtimeModulesVersion: "1.1.8"
-        # 1.1.13_to_1.3_only_edge_daemon:
-        #   edgeDaemonVersion: "release/1.3"
-        #   bootstrapAgentVersion: "1.1.13"
-        #   runtimeModulesVersion: "1.1.13"
+        1.1.0_to_1.3_only_edge_daemon:
+          edgeDaemonVersion: "release/1.3"
+          bootstrapAgentVersion: "1.1.0"
+          runtimeModulesVersion: "1.1.0"
+        1.1.8_to_1.3_only_edge_daemon:
+          edgeDaemonVersion: "release/1.3"
+          bootstrapAgentVersion: "1.1.8"
+          runtimeModulesVersion: "1.1.8"
+        1.1.13_to_1.3_only_edge_daemon:
+          edgeDaemonVersion: "release/1.3"
+          bootstrapAgentVersion: "1.1.13"
+          runtimeModulesVersion: "1.1.13"
 
     timeoutInMinutes: 90
 
@@ -224,6 +221,18 @@ jobs:
         echo "Updated context.json:"
         less context.json
       displayName: Update context.json w/ mcr.microsoft.com images
+
+    # If scenario uses edgeHub v1.1.x, set the schema version in the edgeHub desired properties to "1.1"
+    -bash: |
+        cd $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net*
+        echo "Original context.json:"
+        less context.json
+        if [ `echo $(runtimeModulesVersion) | sed -En "/1.1.[0-9]+/p"` ]; then
+          sed -i 's/"edgeHubSchemaVersion.*/"edgeHubSchemaVersion": "1.1",/' context.json
+        fi
+        echo "Updated context.json:"
+        less context.json
+      displayName: Update schemaVersion in context.json
 
     - template: templates/e2e-run.yaml
 

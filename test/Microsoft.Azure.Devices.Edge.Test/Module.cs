@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
+    using Microsoft.Azure.Devices.Shared;
     using NUnit.Framework;
 
     [EndToEnd]
@@ -81,6 +82,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     Context.Current.NestedEdge);
                 sensor = deployment.Modules[SensorName];
                 startTime = deployment.StartTime;
+
+                // Update schema version in edgeHub desired properties
+                if (Context.Current.EdgeHubSchemaVersion.Exists(_ => true)) {
+                    EdgeModule edgeHub = deployment.Modules[ModuleName.EdgeHub];
+                    var desiredProperties = new TwinProperties();
+                    desiredProperties.Desired["schemaVersion"] = Context.Current.EdgeHubSchemaVersion;
+                    Twin patch = new Twin(desiredProperties);
+                    await edgeHub.UpdateDesiredPropertiesAsync(patch, token);
+                }
             }
             else
             {
