@@ -6,7 +6,7 @@
 usage()
 {
     echo "$SCRIPT_NAME [options]"
-    echo "This script is used for building a few rust components (i.e. broker, edge hub watchdog)."
+    echo "This script is used for building a few rust components (e.g., api proxy module)."
     echo "The logic here is similar to the edgelet packaging."
     echo ""
     echo "options"

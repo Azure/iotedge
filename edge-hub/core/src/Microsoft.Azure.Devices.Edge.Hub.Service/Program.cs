@@ -127,8 +127,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 double renewAfter = configuration.GetValue("ServerCertificateRenewAfterInMs", int.MaxValue);
                 renewAfter = renewAfter > int.MaxValue ? int.MaxValue : renewAfter;
                 TimeSpan maxRenewAfter = TimeSpan.FromMilliseconds(renewAfter);
-                using (IProtocolHead mqttBrokerProtocolHead = await GetMqttBrokerProtocolHeadAsync(experimentalFeatures, container))
-                using (IProtocolHead edgeHubProtocolHead = await GetEdgeHubProtocolHeadAsync(logger, configuration, experimentalFeatures, container, hosting))
+                using (IProtocolHead mqttBrokerProtocolHead = GetMqttBrokerProtocolHead(container))
+                using (IProtocolHead edgeHubProtocolHead = await GetEdgeHubProtocolHeadAsync(logger, configuration, container, hosting))
                 using (var renewal = new CertificateRenewal(certificates, logger, maxRenewAfter))
                 {
                     try
@@ -178,25 +178,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
         }
 
-        static async Task<IProtocolHead> GetMqttBrokerProtocolHeadAsync(ExperimentalFeatures experimentalFeatures, IContainer container)
-        {
-            if (!experimentalFeatures.EnableMqttBroker)
-            {
-                return EmptyProtocolHead.GetInstance();
-            }
+        static IProtocolHead GetMqttBrokerProtocolHead(IContainer container) => EmptyProtocolHead.GetInstance();
 
-            var orderedProtocolHeads = new List<IProtocolHead>();
-            orderedProtocolHeads.Add(container.Resolve<MqttBrokerProtocolHead>());
-            orderedProtocolHeads.Add(await container.Resolve<Task<AuthAgentProtocolHead>>());
-            return new OrderedProtocolHead(orderedProtocolHeads);
-        }
-
-        static async Task<IProtocolHead> GetEdgeHubProtocolHeadAsync(ILogger logger, IConfigurationRoot configuration, ExperimentalFeatures experimentalFeatures, IContainer container, Hosting hosting)
+        static async Task<IProtocolHead> GetEdgeHubProtocolHeadAsync(ILogger logger, IConfigurationRoot configuration, IContainer container, Hosting hosting)
         {
             var protocolHeads = new List<IProtocolHead>();
 
-            // MQTT broker overrides the legacy MQTT protocol head
-            if (configuration.GetValue("mqttSettings:enabled", true) && !experimentalFeatures.EnableMqttBroker)
+            if (configuration.GetValue("mqttSettings:enabled", true))
             {
                 protocolHeads.Add(await container.Resolve<Task<MqttProtocolHead>>());
             }
