@@ -111,7 +111,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.TestResultCoordinatorImage = Option.Maybe(Get("testResultCoordinatorImage"));
             this.LoadGenImage = Option.Maybe(Get("loadGenImage"));
             this.RelayerImage = Option.Maybe(Get("relayerImage"));
-            this.GenericMqttTesterImage = Option.Maybe(Get("genericMqttTesterImage"));
             this.NetworkControllerImage = Option.Maybe(Get("networkControllerImage"));
             this.TestTimeout = TimeSpan.FromMinutes(context.GetValue("testTimeoutMinutes", 5));
             this.Verbose = context.GetValue<bool>("verbose");
@@ -202,8 +201,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public Option<string> LoadGenImage { get; }
 
         public Option<string> RelayerImage { get; }
-
-        public Option<string> GenericMqttTesterImage { get; }
 
         public Option<string> NetworkControllerImage { get; }
 
