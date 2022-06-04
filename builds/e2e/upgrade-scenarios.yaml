@@ -98,7 +98,7 @@ jobs:
           bootstrapAgentVersion: "1.1.13"
           runtimeModulesVersion: "1.1.13"
 
-    timeoutInMinutes: 90
+    timeoutInMinutes: 20
 
     steps:
     - template: templates/e2e-setup.yaml
