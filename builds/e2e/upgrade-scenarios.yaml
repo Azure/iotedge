@@ -77,7 +77,7 @@ jobs:
           bootstrapAgentVersion: "1.2.9"
           runtimeModulesVersion: "main"
 
-    timeoutInMinutes: 90
+    timeoutInMinutes: 20
 
     steps:
     - template: templates/e2e-setup.yaml
@@ -120,7 +120,7 @@ jobs:
       inputs:
         buildType: specific
         project: $(resources.pipeline.images_main.projectID)
-        pipeline: $(resources.pipeline.images_main.pipelineName)
+        pipeline: "$(resources.pipeline.images_main.pipelineName)"
         buildVersionToDownload: specific
         buildId: $(resources.pipeline.images_main.runID)
         downloadType: single
@@ -154,7 +154,7 @@ jobs:
       inputs:
         buildType: specific
         project: $(resources.pipeline.images_release_1_1.projectID)
-        pipeline: $(resources.pipeline.images_release_1_1.pipelineName)
+        pipeline: "$(resources.pipeline.images_release_1_1.pipelineName)"
         buildVersionToDownload: specific
         buildId: $(resources.pipeline.images_release_1_1.runID)
         downloadType: single
