@@ -147,6 +147,7 @@ stages:
       ################################################################################
       - job: mariner_linux
       ################################################################################
+        condition: false #Disabling Mariner because the Mariner OS build failure from upstream.
         displayName: Mariner_Linux
         pool:
           # We are using Linux image that lives in Windows pool. The Windows pool by default uses Standard_D4s_v3 SKU.
@@ -242,6 +243,7 @@ stages:
       ################################################################################
       - job: mariner_linux_arm64
       ################################################################################
+        condition: false #Disabling Mariner because the Mariner OS build failure from upstream.
         displayName: Mariner_Linux on ARM64
         pool:
           name: $(pool.linux.arm.name)
