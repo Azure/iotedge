@@ -72,6 +72,12 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
                 Environment.Exit(ex.ErrorCode);
                 return default(T);
             }
+            catch (SocketException ex) when (ex.SocketErrorCode == SocketError.NotSocket)
+            {
+                Events.SocketClosedShutdown(ex, operation, this.WorkloadUri.ToString());
+                Environment.Exit(ex.ErrorCode);
+                return default(T);
+            }
             catch (Exception ex)
             {
                 Events.ErrorExecutingOperation(ex, operation, this.WorkloadUri.ToString());
@@ -100,7 +106,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
                 SuccessfullyExecutedOperation,
                 RetryingOperation,
                 ErrorExecutingOperation,
-                StaleSocketShutdown
+                StaleSocketShutdown,
+                SocketClosedShutdown
+            }
+
+            public static void SocketClosedShutdown(Exception ex, string operation, string url)
+            {
+                Log.LogError((int)EventIds.SocketClosedShutdown, ex, $"Shutting down because {url} closed");
             }
 
             public static void StaleSocketShutdown(Exception ex, string operation, string url)
