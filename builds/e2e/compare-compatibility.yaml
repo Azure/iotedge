@@ -2,6 +2,9 @@
 trigger: none
 pr: none
 
+variables:
+  DisableDockerDetector: true
+
 resources:
   pipelines:
   - pipeline: images

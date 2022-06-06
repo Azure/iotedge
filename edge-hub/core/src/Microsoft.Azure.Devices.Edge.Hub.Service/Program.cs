@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     public class Program
     {
         const int DefaultShutdownWaitPeriod = 60;
-        const SslProtocols DefaultSslProtocols = SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12;
+        const SslProtocols DefaultSslProtocols = SslProtocols.Tls12;
 
         public static int Main()
         {
