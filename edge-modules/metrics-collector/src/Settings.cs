@@ -90,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                     configuration.GetValue<UploadTarget>("UploadTarget", UploadTarget.AzureMonitor),
                     configuration.GetValue<bool>("CompressForUpload", true),
                     configuration.GetValue<bool>("TransformForIoTCentral", false),
-                    configuration.GetValue<bool>("experimentalFeatures__AddIdentifyingTags", false),
+                    configuration.GetValue<bool>("experimentalFeatures:AddIdentifyingTags", false),
                     configuration.GetValue<string>("AllowedMetrics", ""),
                     configuration.GetValue<string>("BlockedMetrics", ""),
                     configuration.GetValue<string>("ResourceID", ""),
