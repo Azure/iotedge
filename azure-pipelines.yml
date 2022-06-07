@@ -40,6 +40,10 @@ stages:
     jobs:
     - job: downloadArtifacts
       displayName: Download Artifacts from GitHub
+      pool:
+        name: 'Azure-IoT-Edge-1ES-Hosted-Linux'
+        demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
       # BEARWASHERE -- Version is here for testing purpose only
       variables:
         version: '1.2.10'
@@ -51,10 +55,7 @@ stages:
             os: ubuntu20.04
             ext: deb
             target.iotedged: edgelet/target/release
-      pool:
-      name: 'Azure-IoT-Edge-1ES-Hosted-Linux'
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+
       steps: 
       - task: Bash@3
         displayName: Download Edgelet GitHub
