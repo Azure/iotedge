@@ -77,8 +77,8 @@ stages:
             {
               # Use the 'apt' to get the latest version string from the linux repository
               # $1 - package name
-              # $2 - the Nth latest package (ex. 1 is the latest, 2 is the second latest)
-              apt-cache madison $1 | awk -F '|' '{print $2}' | sort --version-sort -r | sed -n $2p | tr -d '[:space:]'
+              # $2 - the Nth latest package (ex. 1 is the latest, 2 is the second latest), Optional
+              apt-cache madison $1 | awk -F '|' '{print $2}' | sort --version-sort -r | sed -n ${2:-1}p | tr -d '[:space:]'
             }
 
             check-matching-version()
@@ -96,7 +96,9 @@ stages:
 
             download-artifact-from-pmc-apt()
             {
-              # Download artifact named ($1) using uri acquired by `apt` to a location ($2)
+              # Download artifact for a package named ($1) using uri acquired by `apt` to a location ($2).
+              # Then suffix the name of the artifact with "_pmc".
+              #
               # $1 - downloading an artifact for a package name (latest by default)
               #    Note: To download a specific version, the ($1) can be specified as "aziot-edge=1.2.10-1"
               # $2 - target output directory
@@ -137,8 +139,22 @@ stages:
                 check-matching-version $latestVersionApt $edgeletVersion
 
                 echo "Download PMC artifacts"
-                download-artifact-from-pmc-apt "aziot-edge" "$(System.ArtifactsDirectory)"
-                download-artifact-from-pmc-apt "aziot-edge=$(get-latest-version-apt "aziot-edge" 2)" "$(System.ArtifactsDirectory)"
+                wgetRespCurrent=$(download-artifact-from-pmc-apt "aziot-edge" "$(System.ArtifactsDirectory)")
+                echo $wgetRespCurrent
+                currentArtifact=${wgetRespCurrent##* }
+
+                # Download the previous release artifact for comparison
+                wgetRespPrev=$(download-artifact-from-pmc-apt "aziot-edge=$(get-latest-version-apt "aziot-edge" 2)" "$(System.ArtifactsDirectory)")
+                echo $wgetRespPrev
+                previousArtifact=${wgetRespPrev##* }
+
+                # Compare the size diff -- BEARWASHERE: TODO
+                
+                # Compare the previous and current artifact content diff (by byte)
+                if cmp --silent $currentArtifact $previousArtifact; then
+                  echo "[FAIL] The current ($currentArtifact) and previous ($previousArtifact) artifacts are identical."
+                  exit 1;
+                fi
 
               else
                 echo "Unsupported OS: $(os)"
