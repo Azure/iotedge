@@ -150,6 +150,7 @@ stages:
 
                 # Compare the size diff -- BEARWASHERE: TODO
                 
+
                 # Compare the previous and current artifact content diff (by byte)
                 if cmp --silent $currentArtifact $previousArtifact; then
                   echo "[FAIL] The current ($currentArtifact) and previous ($previousArtifact) artifacts are identical."
