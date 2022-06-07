@@ -72,7 +72,6 @@ stages:
           targetType: 'inline'
           script: |
             echo "Setup artifact source repository"
-
             if [ "$(os)" == "ubuntu*" ]; then
             # Ubuntu
             # Ref: https://docs.microsoft.com/en-us/azure/iot-edge/how-to-provision-single-device-linux-symmetric?view=iotedge-2020-11&tabs=azure-portal%2Cubuntu
@@ -94,88 +93,11 @@ stages:
               exit 1;
             fi
 
-
-
+            
             # For Deb
             sudo apt-get update
 
             wget https://github.com/Azure/azure-iotedge/releases/download/$VERSION/aziot-edge_$VERSION-1_$(os)_$(arch).$(ext) -O $(System.ArtifactsDirectory)/aziot-edge_$(version)-1_$(os)_$(arch)_github.$(ext)
 
-
-    #     steps:
     #     - template: ../e2e/templates/e2e-setup.yaml
     #     - template: ../e2e/templates/e2e-run.yaml  
-    jobs:
-    - job: job1
-      displayName: job1
-      steps:
-      - checkout: self
-        submodules: recursive
-      - checkout: iotedge
-        submodules: recursive
-      - checkout: azure-iotedge
-        submodules: recursive
-      - checkout: iot-identity-service
-        submodules: recursive
-      - task: Bash@3
-        displayName: Directory layout
-        inputs:
-          targetType: 'inline'
-          script: |
-            echo "=============================================="
-            echo "Build.SourcesDirectory: $(Build.SourcesDirectory)"
-            ls -a $(Build.SourcesDirectory)
-            # find $(Build.SourcesDirectory) -type d | sed -e "s/[^-][^\/]*\// |/g" -e "s/|\([^ ]\)/|-\1/"
-            # ls -R $(Build.SourcesDirectory) | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/   /' -e 's/-/|/'
-            echo " "
-            echo "=============================================="
-            echo "Agent.BuildDirectory:   $(Agent.BuildDirectory)"
-            ls -a $(Agent.BuildDirectory)
-            # find $(Agent.BuildDirectory) -type d | sed -e "s/[^-][^\/]*\// |/g" -e "s/|\([^ ]\)/|-\1/"
-            # ls -R $(Agent.BuildDirectory) | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/   /' -e 's/-/|/'
-      - task: AzureKeyVault@1
-        displayName: Get secrets
-        inputs:
-          azureSubscription: azureiotedge-arm
-          keyVaultName: edgebuildkv
-          secretsFilter: >-
-            GitHubAccessToken
-      - task: Bash@3
-        displayName: Test GitHub
-        inputs:
-          targetType: 'inline'
-          script: |
-            echo "=============================================="
-
-            # echo "git config --global user.name IotEdge1"
-            # git config --global user.name "IotEdge1"
-
-            # echo "git config --global user.email \"iotedge1@microsoft.com\""
-            # git config --global user.email "iotedge1@microsoft.com"
-
-            # git push https://<GITHUB_ACCESS_TOKEN>@github.com/<GITHUB_USERNAME>/<REPOSITORY_NAME>.git
-
-            echo "cd $(Build.SourcesDirectory)/azure-iotedge"
-            # cd $(Build.SourcesDirectory)/azure-iotedge
-
-            # gitCmd="git remote -vv"
-            # echo "$gitCmd"
-            # $gitCmd || true
-
-            # gitCmd="git branch -vv"
-            # echo "$gitCmd"
-            # $gitCmd || true
-
-            # gitCmd="git checkout main"
-            # echo "$gitCmd"
-            # $gitCmd || true
-
-            # echo "BearTest $(Build.BuildId)" > ./tools/test$(Build.BuildId)
-            # git add ./tools/test$(Build.BuildId)
-            # git commit -am "Testing $(Build.BuildId)"
-            # git push https://$GITHUB_PAT@github.com/Azure/azure-iotedge.git
-
-            echo "pwd: $(pwd)"
-
-        env:
-            GITHUB_PAT: "$(GitHubAccessToken)"
