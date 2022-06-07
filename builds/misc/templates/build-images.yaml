@@ -97,21 +97,6 @@ stages:
             modulePath: test/modules/generic-mqtt-tester
             arch: aarch64
             target: aarch64-unknown-linux-gnu
-          ObsAgentClientAmd64:
-            moduleName: obsagent-client
-            modulePath: test/modules/obsagent-client
-            arch: amd64
-            target: x86_64-unknown-linux-gnu
-          ObsAgentClientArm32:
-            moduleName: obsagent-client
-            modulePath: test/modules/obsagent-client
-            arch: arm32v7
-            target: armv7-unknown-linux-gnueabihf
-          ObsAgentClientArm64:
-            moduleName: obsagent-client
-            modulePath: test/modules/obsagent-client
-            arch: aarch64
-            target: aarch64-unknown-linux-gnu
       steps:
       - template: rust-test-module-build.yaml
         parameters:
@@ -431,9 +416,6 @@ stages:
           GenericMqttTester:
             moduleName: generic-mqtt-tester
             modulePath: test/modules/generic-mqtt-tester
-          ObsAgentClient:
-            moduleName: obsagent-client
-            modulePath: test/modules/obsagent-client
       steps:
       - template: rust-test-module-images.yaml
         parameters:
