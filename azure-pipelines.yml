@@ -46,7 +46,7 @@ stages:
         - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
       # BEARWASHERE -- Version is here for testing purpose only
       variables:
-        version: '1.2.10'
+        edgeletVersion: '1.2.9'
       # BEARWASHERE -- have the test agents download a proper artifact for their OS & arch
       strategy:
         matrix:
@@ -63,7 +63,7 @@ stages:
         inputs:
           targetType: 'inline'
           script: |
-            wget https://github.com/Azure/azure-iotedge/releases/download/$VERSION/aziot-edge_$VERSION-1_$(os)_$(arch).$(ext) -O $(System.ArtifactsDirectory)/aziot-edge_$(version)-1_$(os)_$(arch)_github.$(ext)
+            wget https://github.com/Azure/azure-iotedge/releases/download/$VERSION/aziot-edge_$VERSION-1_$(os)_$(arch).$(ext) -O $(System.ArtifactsDirectory)/aziot-edge_$(edgeletVersion)-1_$(os)_$(arch)_github.$(ext)
 
       - task: Bash@3
         displayName: Download Edgelet PMC
@@ -72,27 +72,61 @@ stages:
         inputs:
           targetType: 'inline'
           script: |
-            if [ "$(os)" == "ubuntu"* ]; then
+            ####### Helper functions
+            get-latest-version-apt()
+            {
+              # Use the 'apt' to get the latest version string from the linux repository
+              apt-cache madison aziot-edge | awk -F '|' '{print $2}' | sort --version-sort -r | head -1 | tr -d '[:space:]'
+            }
+
+            check-matching-version()
+            {
+              # Compare if $2 is a substring of $1
+              # $1 - version string 1 (string)
+              # $2 - version string 2 (string)
+              if [[ ! "$1" =~ "$2" ]]; then
+                echo "[FAIL] Mismatch Version: The latest edgelet package version on linux repo is $1 (expecting: $2)"
+                exit 1
+              fi
+              echo "[PASS] Linux Repository Artifact Version Check ($1)"
+            }
+
+            ####### Main
+            if [[ "$(os)" == "ubuntu"* ]]; then
             # Ubuntu
             # Ref: https://docs.microsoft.com/en-us/azure/iot-edge/how-to-provision-single-device-linux-symmetric?view=iotedge-2020-11&tabs=azure-portal%2Cubuntu
-              if [ "$(os)" == *"20.04" ]; then
+              if [[ "$(os)" == *"20.04" ]]; then
                 echo "Setup source artifact repository"
                 wget https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
                 sudo dpkg -i packages-microsoft-prod.deb
                 rm packages-microsoft-prod.deb
+                sudo apt-get update
 
                 echo ""
-              elif [ "$(os)" == *"18.04" ]; then
+              elif [[ "$(os)" == *"18.04" ]]; then
                 echo "Setup source artifact repository"
                 wget https://packages.microsoft.com/config/ubuntu/18.04/multiarch/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
                 sudo dpkg -i packages-microsoft-prod.deb
                 rm packages-microsoft-prod.deb
+                sudo apt-get update
+
+                echo "Get the latest version string from linux repository"
+                # Note: $latestVersionApt includes the trailing revision: "1.2.10-1"
+                latestVersionApt=$(get-latest-version-apt)
+
+                check-matching-version $latestVersionApt $edgeletVersion
+
+                
+              else
+                echo "Unsupported OS: $(os)"
+                exit 1;
               fi
-            elif [ "$(os)" == "debian11" ]; then
+            elif [[ "$(os)" == "debian11" ]]; then
             # Debian
               echo "Setup source artifact repository"
               curl https://packages.microsoft.com/config/debian/11/packages-microsoft-prod.deb > ./packages-microsoft-prod.deb
               sudo apt install ./packages-microsoft-prod.deb
+              sudo apt-get update
             else
               echo "Unsupported OS: $(os)"
               exit 1;
@@ -102,7 +136,7 @@ stages:
             # For Deb
             sudo apt-get update
 
-            wget https://github.com/Azure/azure-iotedge/releases/download/$VERSION/aziot-edge_$VERSION-1_$(os)_$(arch).$(ext) -O $(System.ArtifactsDirectory)/aziot-edge_$(version)-1_$(os)_$(arch)_github.$(ext)
+            wget https://github.com/Azure/azure-iotedge/releases/download/$VERSION/aziot-edge_$VERSION-1_$(os)_$(arch).$(ext) -O $(System.ArtifactsDirectory)/aziot-edge_$(edgeletVersion)-1_$(os)_$(arch)_github.$(ext)
 
     #     - template: ../e2e/templates/e2e-setup.yaml
     #     - template: ../e2e/templates/e2e-run.yaml  
