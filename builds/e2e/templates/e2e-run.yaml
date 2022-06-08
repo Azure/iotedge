@@ -80,6 +80,7 @@ steps:
   condition: always()
 
 - pwsh: |
+    $test_type = '${{ parameters.test_type }}'
     $logDir = '$(Build.ArtifactStagingDirectory)/logs'
     New-Item $logDir -ItemType Directory -Force | Out-Null
     Out-File "$logDir/$(Build.DefinitionName)-$(Build.BuildNumber)"
@@ -90,7 +91,12 @@ steps:
     Copy-Item "$(binDir)/*-device-*.log" "$logDir/"
     Copy-Item "$(binDir)/testoutput.log" "$logDir/"
     Copy-Item "$(binDir)/supportbundle*" "$logDir/"
-    $artifactSuffix = '$(Build.BuildNumber)-$(System.JobName)' -replace '_','-'
+    if ($test_type -eq 'upgrade_scenarios')
+    {
+      $artifactSuffix = '$(Build.BuildNumber)-$(System.JobName)' -replace '_','-'
+    } else {
+      $artifactSuffix = '$(Build.BuildNumber)-$(System.PhaseName)' -replace '_','-'
+    }
     Write-Output "##vso[task.setvariable variable=artifactSuffix]$artifactSuffix"
   displayName: Collect Logs
   condition: always()
