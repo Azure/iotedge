@@ -109,8 +109,8 @@ stages:
               artifactName=${uri##*/}
               targetArtifactPath="$(realpath $2)/${artifactName%*.deb}_pmc.deb"
               
-              cmd="Running: wget -q $uri -O $targetArtifactPath"
-              echo $cmd
+              cmd="wget -q $uri -O $targetArtifactPath"
+              echo "Running: $cmd"
               $cmd
             }
 
@@ -149,7 +149,14 @@ stages:
                 previousArtifact=${wgetRespPrev##* }
 
                 # Compare the size diff -- BEARWASHERE: TODO
-                
+                curSize=$(stat -c%s $currentArtifact)
+                prevSize=$(stat -c%s $previousArtifact)
+                # BEARWASHERE -- $(edgelet.maxPercentAllowed) needs to be setup as pipeline var
+                maxAcceptingArtifactSize=$(echo "scale=0; ($prevSize*$(edgelet.maxPercentAllowed)/100)+$prevSize" | bc)
+                [[ "$curSize" -lt "$maxAcceptingArtifactSize" ]] || { echo "[FAIL] The current artifact size ($curSize) is more than $edgelet.maxPercentAllowed% larger than previous version file ($prevSize)"; exit 1; }
+                minAcceptingArtifactSize=$(echo "scale=0; $prevSize-($prevSize*$(edgelet.maxPercentAllowed)/100)" | bc)
+                [[ "$curSize" -gt "$minAcceptingArtifactSize" ]] || { echo "[FAIL] The current artifact size ($curSize) is more than $edgelet.maxPercentAllowed% smaller than previous version file ($prevSize)"; exit 1; }
+
 
                 # Compare the previous and current artifact content diff (by byte)
                 if cmp --silent $currentArtifact $previousArtifact; then
