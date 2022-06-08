@@ -46,8 +46,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly ResettableTimer timer;
         readonly AsyncLock timerGuard = new AsyncLock();
         readonly bool closeOnIdleTimeout;
-
+        readonly TimeSpan cloudConnectionHangingTimeout;
         SubscriptionState subscriptionState = new SubscriptionState();
+        static Action sdkTimeoutAction = () => throw new EdgeHubCloudSDKException("Operation timed out due to SDK hanging");
 
         public CloudProxy(
             IClient client,
@@ -56,7 +57,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Action<string, CloudConnectionStatus> connectionStatusChangedHandler,
             ICloudListener cloudListener,
             TimeSpan idleTimeout,
-            bool closeOnIdleTimeout)
+            bool closeOnIdleTimeout,
+            TimeSpan cloudConnectionHangingTimeout)
         {
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.messageConverterProvider = Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
@@ -65,6 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.timer = new ResettableTimer(this.HandleIdleTimeout, idleTimeout, Events.Log, true);
             this.timer.Start();
             this.closeOnIdleTimeout = closeOnIdleTimeout;
+            this.cloudConnectionHangingTimeout = cloudConnectionHangingTimeout;
             if (connectionStatusChangedHandler != null)
             {
                 this.connectionStatusChangedHandler = connectionStatusChangedHandler;
@@ -126,7 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 using (Metrics.TimeGetTwin(this.clientId))
                 {
-                    Twin twin = await this.client.GetTwinAsync();
+                    Twin twin = await this.client.GetTwinAsync().TimeoutAfter(this.cloudConnectionHangingTimeout, sdkTimeoutAction);
                     Events.GetTwin(this);
                     Metrics.AddGetTwin(this.clientId);
                     IMessageConverter<Twin> converter = this.messageConverterProvider.Get<Twin>();
@@ -153,7 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 using (Metrics.TimeMessageSend(this.clientId, outputRoute))
                 {
                     Metrics.MessageProcessingLatency(this.clientId, inputMessage);
-                    await this.client.SendEventAsync(message);
+                    await this.client.SendEventAsync(message).TimeoutAfter(this.cloudConnectionHangingTimeout, sdkTimeoutAction);
                     Events.SendMessage(this);
                     Metrics.AddSentMessages(this.clientId, 1, outputRoute, inputMessage.ProcessedPriority);
                 }
@@ -184,7 +187,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 using (Metrics.TimeMessageSend(this.clientId, metricOutputRoute))
                 {
-                    await this.client.SendEventBatchAsync(messages);
+                    await this.client.SendEventBatchAsync(messages).TimeoutAfter(this.cloudConnectionHangingTimeout, sdkTimeoutAction);
                     Events.SendMessage(this);
 
                     if (messages.Count > 0)
@@ -212,7 +215,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 using (Metrics.TimeReportedPropertiesUpdate(this.clientId))
                 {
-                    await this.client.UpdateReportedPropertiesAsync(reported);
+                    await this.client.UpdateReportedPropertiesAsync(reported).TimeoutAfter(this.cloudConnectionHangingTimeout, sdkTimeoutAction);
                     Metrics.AddUpdateReportedProperties(this.clientId);
                     Events.UpdateReportedProperties(this);
                 }
@@ -389,6 +392,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 if (ex is UnauthorizedException)
                 {
                     this.connectionStatusChangedHandler(this.clientId, CloudConnectionStatus.DisconnectedTokenExpired);
+                }
+                else if (ex is EdgeHubCloudSDKException)
+                {
+                    Events.SDKHangingException(ex, this);
+                    return this.CloseAsync();
                 }
                 else if (NonRecoverableExceptions.Any(nre => nre.IsInstanceOfType(ex)))
                 {
@@ -605,7 +613,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 ErrorSendingFeedbackMessageAsync,
                 ErrorGettingTwin,
                 HandleNre,
-                FailOverDetected
+                FailOverDetected,
+                SDKHangingException
             }
 
             public static void Closed(CloudProxy cloudProxy)
@@ -721,6 +730,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             public static void FailOverDetected(Exception ex, CloudProxy cloudProxy)
             {
                 Log.LogInformation((int)EventIds.FailOverDetected, ex, Invariant($"Fail-over detected, closing cloud proxy for {cloudProxy.clientId}."));
+            }
+
+            public static void SDKHangingException(Exception ex, CloudProxy cloudProxy)
+            {
+                Log.LogInformation((int)EventIds.SDKHangingException, ex, Invariant($"Error due to sdk hanging and upstream call timed out, closing cloud proxy for {cloudProxy.clientId}."));
             }
 
             internal static void ExceptionInHandleException(CloudProxy cloudProxy, Exception handlingException, Exception caughtException)

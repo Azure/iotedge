@@ -1,4 +1,4 @@
-﻿# syntax=docker/dockerfile:1.4
+# syntax=docker/dockerfile:1.4
 
 FROM mcr.microsoft.com/dotnet/runtime:6.0-alpine
 

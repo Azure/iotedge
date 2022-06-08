@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Test.Helpers
+namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     using System;
     using System.Collections.Generic;
@@ -87,6 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.DpsGroupKey = Option.Maybe(Get("DPS_GROUP_KEY"));
             this.EdgeAgentImage = Option.Maybe(Get("edgeAgentImage"));
             this.EdgeHubImage = Option.Maybe(Get("edgeHubImage"));
+            this.EdgeHubSchemaVersion = Option.Maybe(Get("edgeHubSchemaVersion"));
             this.DiagnosticsImage = Option.Maybe(Get("diagnosticsImage"));
             this.EventHubEndpoint = Get("EVENT_HUB_ENDPOINT");
             Preconditions.CheckArgument(!string.IsNullOrWhiteSpace(this.EventHubEndpoint), $"EVENT_HUB_ENDPOINT is missing from environment or context.json.");
@@ -155,6 +156,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public Option<string> EdgeAgentImage { get; }
 
         public Option<string> EdgeHubImage { get; }
+
+        public Option<string> EdgeHubSchemaVersion { get; }
 
         public Option<string> DiagnosticsImage { get; }
 

@@ -10,6 +10,9 @@ schedules:
     - main
   always: true
 
+variables:
+  DisableDockerDetector: true
+
 pool:
   vmImage: ubuntu-18.04
 
