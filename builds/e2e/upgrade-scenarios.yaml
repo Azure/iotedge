@@ -233,4 +233,6 @@ jobs:
       displayName: Update schemaVersion in context.json
 
     - template: templates/e2e-run.yaml
+      parameters:
+          test_type: upgrade_scenarios
 
