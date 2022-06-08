@@ -2,6 +2,9 @@ name: $(VERSION)
 trigger: none
 pr: none
 
+variables:
+  DisableDockerDetector: true
+
 resources:
   repositories:
   - repository: azure-iotedge
