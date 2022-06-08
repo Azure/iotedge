@@ -12,7 +12,6 @@ parameters:
 #   NestedEdgeOnly: Only applies to nested edge cases
 #   NestedEdgeAmqpOnly: Only applies to nested edge cases using amqp upstream protocol
 #   LegacyMqttRequired: Only applies to cases with the edgehub legacy mqtt protocol head
-#   BrokerRequired: Only applies to cases with the broker enabled
 #   SkipManifestTrust: Only applies to manifest/content trust tests
 steps:
 - pwsh: |
@@ -48,7 +47,6 @@ steps:
     elseif ($test_type -eq 'nestededge_amqp')
     {
       $filter += '&Category!=SingleNodeOnly'
-      $filter += '&Category!=BrokerRequired'
       $filter += '&Category!=FlakyOnNested'
       # Below tests were disabled and marked for re-enable when a blocking item was resolved.
       # When it was resolved the tests were never enabled. We need to re-enable these.
@@ -113,7 +111,7 @@ steps:
     Copy-Item "$(binDir)/*-device-*.log" "$logDir/"
     Copy-Item "$(binDir)/testoutput.log" "$logDir/"
     Copy-Item "$(binDir)/supportbundle*" "$logDir/"
-    $artifactSuffix = '$(Build.BuildNumber)-$(System.PhaseName)' -replace '_','-'
+    $artifactSuffix = '$(Build.BuildNumber)-$(System.JobName)' -replace '_','-'
     Write-Output "##vso[task.setvariable variable=artifactSuffix]$artifactSuffix"
   displayName: Collect Logs
   condition: always()
