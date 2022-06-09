@@ -169,6 +169,8 @@ jobs:
       arch: arm64v8
       artifactName: iotedged-ubuntu20.04-aarch64
 
+    timeoutInMinutes: 120
+
     steps:
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
