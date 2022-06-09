@@ -114,24 +114,30 @@ stages:
               $cmd
             }
 
+            setup-config-apt()
+            {
+              # Download the `apt` config file from the provided uri ($1), install it, and update the apt
+              #
+              # $1 - uri for the config deb package
+              # Ref: https://docs.microsoft.com/en-us/azure/iot-edge/how-to-provision-single-device-linux-symmetric?view=iotedge-2020-11&tabs=azure-portal%2Cubuntu
+
+              wget "$1" -O packages-microsoft-prod.deb
+              sudo dpkg -i packages-microsoft-prod.deb
+              rm packages-microsoft-prod.deb
+              sudo apt-get update
+            }
+
             ####### Main
             if [[ "$(os)" == "ubuntu"* ]]; then
             # Ubuntu
-            # Ref: https://docs.microsoft.com/en-us/azure/iot-edge/how-to-provision-single-device-linux-symmetric?view=iotedge-2020-11&tabs=azure-portal%2Cubuntu
               if [[ "$(os)" == *"20.04" ]]; then
                 echo "Setup source artifact repository"
-                wget https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
-                sudo dpkg -i packages-microsoft-prod.deb
-                rm packages-microsoft-prod.deb
-                sudo apt-get update
+                setup-config-apt "https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb"
 
                 echo ""
               elif [[ "$(os)" == *"18.04" ]]; then
                 echo "Setup source artifact repository"
-                wget https://packages.microsoft.com/config/ubuntu/18.04/multiarch/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
-                sudo dpkg -i packages-microsoft-prod.deb
-                rm packages-microsoft-prod.deb
-                sudo apt-get update
+                setup-config-apt "https://packages.microsoft.com/config/ubuntu/18.04/multiarch/packages-microsoft-prod.deb"
 
                 echo "Get the latest version string from linux repository"
                 # Note: $latestVersionApt includes the trailing revision: "1.2.10-1"
@@ -156,7 +162,6 @@ stages:
                 [[ "$curSize" -lt "$maxAcceptingArtifactSize" ]] || { echo "[FAIL] The current artifact size ($curSize) is more than $edgelet.maxPercentAllowed% larger than previous version file ($prevSize)"; exit 1; }
                 minAcceptingArtifactSize=$(echo "scale=0; $prevSize-($prevSize*$(edgelet.maxPercentAllowed)/100)" | bc)
                 [[ "$curSize" -gt "$minAcceptingArtifactSize" ]] || { echo "[FAIL] The current artifact size ($curSize) is more than $edgelet.maxPercentAllowed% smaller than previous version file ($prevSize)"; exit 1; }
-
 
                 # Compare the previous and current artifact content diff (by byte)
                 if cmp --silent $currentArtifact $previousArtifact; then
