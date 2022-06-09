@@ -6,8 +6,8 @@ use std::{
 
 use futures_util::{
     future::{self, BoxFuture},
-    stream::{FuturesUnordered, Stream},
-    FusedStream, FutureExt, StreamExt,
+    stream::{FusedStream, FuturesUnordered, Stream},
+    FutureExt, StreamExt,
 };
 use tokio::task::JoinError;
 use tracing::{debug, error, info_span, warn};
@@ -58,10 +58,26 @@ impl Bridges {
     }
 
     pub(crate) async fn send_update(&mut self, update: BridgeUpdate) {
-        if let Some(config) = self.config_updaters.get_mut(update.name()) {
-            if let Err(e) = config.send_update(update).await {
-                error!("error sending bridge update {:?}", e);
+        let endpoint = update.endpoint().to_owned();
+        if let Some(config) = self.config_updaters.get_mut(&endpoint) {
+            if let Err(err) = config.send_update(update).await {
+                error!(
+                    "error sending bridge update for {}, caused by: {:?}",
+                    &endpoint, err
+                );
             }
+        } else {
+            debug!("config for bridge {} not found", update.endpoint());
+        }
+    }
+
+    pub(crate) async fn shutdown_bridge(&mut self, name: &str) {
+        debug!("sending shutdown request to {} bridge...", name);
+
+        if let Some(bridge_handle) = self.bridge_handles.remove(name) {
+            bridge_handle.shutdown().await;
+        } else {
+            warn!("bridge {} not found", name);
         }
     }
 

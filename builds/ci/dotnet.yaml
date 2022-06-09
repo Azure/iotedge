@@ -2,12 +2,11 @@ trigger:
   batch: true
   branches:
     include:
-      - master
+      - main
       - release/*
-      - iiot
-      - preview/iiot
 pr: none
 variables:
+  DisableDockerDetector: true
   build.configuration: Release
   test.filter: Category=Integration&Category!=Stress
 jobs:
@@ -15,7 +14,7 @@ jobs:
     displayName: Linux
     timeoutInMinutes: 120
     pool:
-      vmImage: ubuntu-16.04
+      vmImage: ubuntu-18.04
     variables:
       testEnvironment: linux
     steps:
@@ -32,8 +31,6 @@ jobs:
             IotDevice3ConnStr2,
             IotHubConnStr2,
             IotHubMqttHeadCert
-      - template: ../templates/install-dotnet2.yaml
-      - template: ../templates/install-dotnet3.yaml
       - task: Bash@3
         displayName: Install Prerequisites
         inputs:

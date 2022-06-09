@@ -21,6 +21,7 @@ namespace NetworkController
         const string TrackingIdPropertyName = "TrackingId";
         const string ModuleIdPropertyName = "IOTEDGE_MODULEID";
         const string IotHubHostnamePropertyName = "IOTEDGE_IOTHUBHOSTNAME";
+        const string ParentHostnamePropertyName = "IOTEDGE_PARENTHOSTNAME";
         const string DefaultProfilesPropertyName = "DefaultProfiles";
         const string TransportTypePropertyName = "TransportType";
 
@@ -34,6 +35,7 @@ namespace NetworkController
             string trackingId,
             string moduleId,
             string iothubHostname,
+            string parentHostname,
             TransportType transportType)
         {
             this.StartAfter = startAfter;
@@ -46,6 +48,7 @@ namespace NetworkController
             this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.IotHubHostname = Preconditions.CheckNonWhiteSpace(iothubHostname, nameof(iothubHostname));
+            this.ParentHostname = Preconditions.CheckNotNull(parentHostname, nameof(parentHostname));
             this.TransportType = transportType;
         }
 
@@ -66,6 +69,8 @@ namespace NetworkController
         public string ModuleId { get; }
 
         public string IotHubHostname { get; }
+
+        public string ParentHostname { get; }
 
         public TransportType TransportType { get; }
 
@@ -97,6 +102,7 @@ namespace NetworkController
                 configuration.GetValue<string>(TrackingIdPropertyName),
                 configuration.GetValue<string>(ModuleIdPropertyName),
                 configuration.GetValue<string>(IotHubHostnamePropertyName),
+                configuration.GetValue<string>(ParentHostnamePropertyName, string.Empty),
                 configuration.GetValue(TransportTypePropertyName, TransportType.Amqp_Tcp_Only));
         }
     }

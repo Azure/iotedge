@@ -6,6 +6,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.AppMetrics
     using App.Metrics;
     using App.Metrics.Gauge;
 
+    // NOTE: AppMetrics is not used and doesn't support inc/dec on gauge natively.
+    // We currently only use the prometheus version of gauage.
     public class MetricsGauge : BaseMetric, IMetricsGauge
     {
         readonly IMeasureGaugeMetrics gaugeMetrics;
@@ -21,6 +23,12 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.AppMetrics
                 MeasurementUnit = Unit.Items
             };
         }
+
+        public void Decrement(string[] labelValues) => throw new System.NotImplementedException();
+
+        public double Get(string[] labelValues) => throw new System.NotImplementedException();
+
+        public void Increment(string[] labelValues) => throw new System.NotImplementedException();
 
         public void Set(double value, string[] labelValues)
         {

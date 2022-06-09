@@ -37,6 +37,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         Task RemoveSubscription(string id, DeviceSubscription deviceSubscription);
 
+        Task RemoveSubscriptions(string id);
+
         Task ProcessSubscriptions(string id, IEnumerable<(DeviceSubscription, bool)> subscriptions);
 
         IDeviceScopeIdentitiesCache GetDeviceScopeIdentitiesCache();

@@ -8,60 +8,99 @@ use std::process::Command;
 
 use failure::ResultExt;
 use futures::Future;
-use log::{debug, info};
+use log::debug;
 use serde_json::json;
-use tokio_process::CommandExt;
 
 use crate::{Error, ErrorKind};
 
 pub fn notary_init(
     home_dir: &Path,
     registry_server_hostname: &str,
-    path: &PathBuf,
+    cert_buf: &[u8],
 ) -> Result<PathBuf, Error> {
     // Validate inputs
     if registry_server_hostname.is_empty() {
         return Err(ErrorKind::InitializeNotary("hostname is empty".to_owned()).into());
     }
 
-    if !path.exists() {
-        return Err(ErrorKind::InitializeNotary(format!(
-            "root ca at path {} does not exist",
-            path.display()
-        ))
-        .into());
+    if cert_buf.is_empty() {
+        return Err(
+            ErrorKind::InitializeNotary("root ca pem string content is empty".to_owned()).into(),
+        );
     }
 
-    // Create notary home directory
+    // Directory structure example
+    // home directory : /var/lib/aziot/edged
+    // notary directory : /var/lib/aziot/edged/notary
+    // hostname directory : /var/lib/aziot/edged/notary/sanitized_hostname
+    // trust collection directory : /var/lib/aziot/edged/notary/sanitized_hostname/trust_collection
+    // certs directory for each hostname : /var/lib/aziot/edged/notary/sanitized_hostname/certs
+    // notary config file path : /var/lib/aziot/edged/notary/sanitized_hostname/config
+
+    // Create notary directory under home directory
     let notary_dir = home_dir.join("notary");
 
     // Create a folder name with santized hostname
-    let mut trust_dir = notary_dir;
-    let mut file_name = String::new();
+    let mut hostname_dir = notary_dir.clone();
+    let mut sanitized_hostname = String::new();
     for c in registry_server_hostname.chars() {
         if c.is_ascii_alphanumeric() || !c.is_ascii() {
-            file_name.push(c);
+            sanitized_hostname.push(c);
         } else {
-            file_name.push_str(&format!("%{:02x}", c as u8));
+            sanitized_hostname.push_str(&format!("%{:02x}", c as u8));
         }
     }
-    trust_dir.push(file_name);
+    hostname_dir.push(&sanitized_hostname);
 
-    // Create trust directory
-    info!("Trust directory is {}", trust_dir.display());
-    if let Err(err) = fs::remove_dir_all(&trust_dir) {
+    // Build trust collection and certs directory for each hostname
+    let trust_dir = hostname_dir.join("trust_collection");
+    debug!(
+        "Trust directory for {} is {}",
+        sanitized_hostname,
+        trust_dir.display()
+    );
+    let certs_dir = hostname_dir.join("certs");
+    debug!(
+        "Certs directory for {} is {}",
+        sanitized_hostname,
+        certs_dir.display()
+    );
+
+    // Delete Notary directory for a clean start.
+    if let Err(err) = fs::remove_dir_all(&notary_dir) {
         if err.kind() != std::io::ErrorKind::NotFound {
             return Err(ErrorKind::InitializeNotary(format!(
-                "could not delete trust directory {}",
-                trust_dir.display()
+                "could not delete notary directory {}",
+                hostname_dir.display()
             ))
             .into());
         }
     }
+
+    // Create trust directory
     fs::create_dir_all(&trust_dir).with_context(|_| {
         ErrorKind::InitializeNotary(format!(
             "could not create trust directory {}",
             trust_dir.display()
+        ))
+    })?;
+
+    // Create certs directory
+    fs::create_dir_all(&certs_dir).with_context(|_| {
+        ErrorKind::InitializeNotary(format!(
+            "could not create certs directory {}",
+            certs_dir.display()
+        ))
+    })?;
+
+    // Create root CA file name
+    let root_ca_cert_name = sanitized_hostname + "_root_ca.pem";
+    let root_ca_file_path = certs_dir.join(root_ca_cert_name);
+
+    fs::write(&root_ca_file_path, cert_buf).with_context(|_| {
+        ErrorKind::InitializeNotary(format!(
+            "could not create root CA cert for notary hostname directory {}",
+            hostname_dir.display()
         ))
     })?;
 
@@ -77,7 +116,7 @@ pub fn notary_init(
       },
       "trust_pinning": {
         "ca": {
-          "": path,
+          "": root_ca_file_path,
         },
         "disable_tofu": "true"
       }
@@ -85,7 +124,16 @@ pub fn notary_init(
     debug!("Config JSON contents {}", config_contents);
 
     // Generate Notary Config.json path
-    let mut config_file_path = trust_dir;
+    let mut config_file_path = hostname_dir.join("config");
+
+    // Create config directory
+    fs::create_dir_all(&config_file_path).with_context(|_| {
+        ErrorKind::InitializeNotary(format!(
+            "could not config directory {}",
+            config_file_path.display()
+        ))
+    })?;
+
     config_file_path.push(r"config.json");
     debug!("Config file path {}", config_file_path.display());
 
@@ -98,7 +146,7 @@ pub fn notary_init(
     })?;
     serde_json::to_writer(file, &config_contents).with_context(|_| {
         ErrorKind::InitializeNotary(format!(
-            "could not create notary config file in {}",
+            "could not write contents to notary config file in {}",
             config_file_path.display()
         ))
     })?;
@@ -120,71 +168,34 @@ pub fn notary_lookup(
     Error = Error,
 > {
     let mut notary_cmd = Command::new("notary");
+
+    notary_cmd
+        .args(&["lookup", image_gun, tag, "-c"])
+        .arg(config_path);
+
     if let Some(notary_auth) = notary_auth {
         notary_cmd.env("NOTARY_AUTH", notary_auth);
     }
-    notary_cmd
-        .arg("lookup")
-        .args(&[image_gun, tag])
-        .arg("-c")
-        .arg(config_path)
-        .output_async()
-        .then(|notary_output| {
-            let notary_output = notary_output.with_context(|_| {
-                ErrorKind::LaunchNotary("could not spawn notary process".to_owned())
+
+    futures::future::poll_fn(move || {
+        tokio_threadpool::blocking(|| {
+            let std::process::Output { stdout, .. } = notary_cmd.output().with_context(|e| {
+                ErrorKind::LaunchNotary(format!("could not spawn notary process: {}", e))
             })?;
-            let notary_output_string =
-                String::from_utf8(notary_output.stdout).with_context(|_| {
-                    ErrorKind::LaunchNotary("could not retrieve notary output as string".to_owned())
-                })?;
-            debug!("Notary output string is {}", notary_output_string);
-            let split_array: Vec<&str> = notary_output_string.split_whitespace().collect();
-            if split_array.len() < 2 {
-                return Err(ErrorKind::LaunchNotary(
-                    "notary digest split array is empty".to_owned(),
-                )
-                .into());
-            }
+            let output_str = std::str::from_utf8(&stdout)
+                .with_context(|_| ErrorKind::LaunchNotary("received invalid utf8".to_owned()))?;
+            debug!("Notary output string is {}", output_str);
 
-            // Notary Server output on lookup is of the format [tag, digest, bytes]
-            Ok((split_array[1].to_string(), lock))
+            output_str
+                .split_whitespace()
+                .nth(2)
+                .map(ToOwned::to_owned)
+                .ok_or_else(|| {
+                    ErrorKind::LaunchNotary("notary digest split array is empty".to_owned()).into()
+                })
         })
-}
-
-#[cfg(test)]
-mod test {
-    use std::path::PathBuf;
-
-    use tempfile::NamedTempFile;
-
-    use crate::notary;
-    use crate::ErrorKind;
-
-    #[test]
-    fn check_for_empty_hostname() {
-        let registry_server_hostname = String::new();
-        let home_dir = NamedTempFile::new().unwrap();
-        let root_ca_file = NamedTempFile::new().unwrap();
-        let result = notary::notary_init(
-            home_dir.path(),
-            &registry_server_hostname,
-            &root_ca_file.path().to_path_buf(),
-        );
-        let err = result.unwrap_err();
-        assert!(matches!(err.kind(), ErrorKind::InitializeNotary(s) if s == "hostname is empty"));
-    }
-
-    #[test]
-    fn check_for_root_ca_file_does_not_exist() {
-        let registry_server_hostname = r"myregistry.azurecr.io";
-        let home_dir = NamedTempFile::new().unwrap();
-        let root_ca_file = PathBuf::from("filedoesnotexist.crt");
-        let result = notary::notary_init(home_dir.path(), &registry_server_hostname, &root_ca_file);
-        let err = result.unwrap_err();
-        let display_msg = format!("root ca at path {} does not exist", root_ca_file.display());
-        assert!(matches!(
-            err.kind(),
-            ErrorKind::InitializeNotary(s) if s == &display_msg
-        ));
-    }
+    })
+    .map_err(|e| ErrorKind::LaunchNotary(format!("should run in thread pool: {}", e)))
+    .flatten()
+    .map(|output| (output, lock))
 }

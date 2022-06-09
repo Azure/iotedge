@@ -5,8 +5,13 @@ namespace TestResultCoordinator.Reports
 
     class TwinCountingReportMetadata : CountingReportMetadata
     {
-        public TwinCountingReportMetadata(string testDescription, string expectedSource, string actualSource, TestReportType testReportType, TwinTestPropertyType twinTestPropertyType)
-            : base(testDescription, expectedSource, actualSource, TestOperationResultType.Twin, testReportType)
+        public TwinCountingReportMetadata(
+            string testDescription,
+            string expectedSource,
+            string actualSource,
+            TestReportType testReportType,
+            TwinTestPropertyType twinTestPropertyType)
+            : base(testDescription, expectedSource, actualSource, TestOperationResultType.Twin, testReportType, false)
         {
             this.TwinTestPropertyType = twinTestPropertyType;
         }

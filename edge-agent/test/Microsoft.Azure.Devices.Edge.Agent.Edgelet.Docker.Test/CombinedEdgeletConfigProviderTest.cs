@@ -73,6 +73,44 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
         }
 
         [Fact]
+        public void TestVolMountEdgelet()
+        {
+            // Arrange
+            var runtimeInfo = new Mock<IRuntimeInfo<DockerRuntimeConfig>>();
+            runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
+
+            var module = new Mock<IModule<DockerConfig>>();
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest"));
+            module.SetupGet(m => m.Name).Returns(Constants.EdgeAgentModuleName);
+
+            var unixUris = new Dictionary<string, string>
+            {
+                { Constants.EdgeletWorkloadUriVariableName, "unix:///path/to/workload.sock" },
+                { Constants.EdgeletWorkloadListenMntUriVariableName, "unix:///path/to/homedir/mnt" },
+                { Constants.EdgeletManagementUriVariableName, "unix:///path/to/mgmt.sock" }
+            };
+
+            IConfigurationRoot configRoot = new ConfigurationBuilder()
+                .AddInMemoryCollection(unixUris).Build();
+            var configSource = Mock.Of<IConfigSource>(s => s.Configuration == configRoot);
+            ICombinedConfigProvider<CombinedDockerConfig> provider = new CombinedEdgeletConfigProvider(new[] { new AuthConfig() }, configSource);
+
+            // Act
+            CombinedDockerConfig config = provider.GetCombinedConfig(module.Object, runtimeInfo.Object);
+
+            // Assert
+            Assert.NotNull(config.CreateOptions);
+            Assert.NotNull(config.CreateOptions.HostConfig);
+            Assert.NotNull(config.CreateOptions.HostConfig.Binds);
+            Assert.Equal(2, config.CreateOptions.HostConfig.Binds.Count);
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                Assert.Equal("/path/to/homedir/mnt/edgeAgent.sock:/path/to/workload.sock", config.CreateOptions.HostConfig.Binds[0]);
+                Assert.Equal("/path/to/mgmt.sock:/path/to/mgmt.sock", config.CreateOptions.HostConfig.Binds[1]);
+            }
+        }
+
+        [Fact]
         public void TestNoVolMountForNonUds()
         {
             // Arrange
@@ -250,6 +288,56 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
             {
                 Assert.Equal(
                     "{\"Binds\":[\"/var/run/iotedgedworkload.sock:/var/run/iotedgedworkload.sock\"],\"Devices\":[],\"DeviceRequests\":[{\"Driver\":\"\",\"Count\":-1,\"DeviceIDs\":null,\"Capabilities\":[[\"gpu\"]],\"Options\":{}}]}",
+                    reserializedHostConfig);
+            }
+        }
+
+        [Fact]
+        public void ExtensionDataFields_BackwardCompatibility_LowercaseToUppercase()
+        {
+            // Arrange
+            var runtimeInfo = new Mock<IRuntimeInfo<DockerRuntimeConfig>>();
+            runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
+
+            // capabilities will remain lowercase because there is no backward compatibility issue for those properties supported after 1.0.9
+            string createOptions = "{\"HostConfig\":{\"portBindings\":{\"8883/tcp\":[{\"hostPort\":\"8883\"}]},\"Devices\":[],\"runtime\":\"nvidia\",\"DeviceRequests\":[{\"Driver\":\"\",\"Count\":-1,\"DeviceIDs\":null,\"capabilities\":[[\"gpu\"]],\"Options\":{}}]}}";
+            var module = new Mock<IModule<DockerConfig>>();
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", createOptions, Option.None<string>()));
+            module.SetupGet(m => m.Name).Returns("mod1");
+
+            IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
+                new Dictionary<string, string>
+                {
+                    { Constants.EdgeletWorkloadUriVariableName, "unix:///var/run/iotedgedworkload.sock" },
+                    { Constants.EdgeletManagementUriVariableName, "unix:///var/run/iotedgedmgmt.sock" },
+                    { Constants.NetworkIdKey, "testnetwork1" },
+                    { Constants.EdgeDeviceHostNameKey, "edhk1" }
+                }).Build();
+            var configSource = Mock.Of<IConfigSource>(s => s.Configuration == configRoot);
+
+            ICombinedConfigProvider<CombinedDockerConfig> provider = new CombinedEdgeletConfigProvider(new[] { new AuthConfig() }, configSource);
+
+            // Act
+            CombinedDockerConfig config = provider.GetCombinedConfig(module.Object, runtimeInfo.Object);
+
+            // Assert
+            Assert.NotNull(config.CreateOptions);
+            Assert.NotNull(config.CreateOptions.HostConfig);
+
+            var otherProperties = config.CreateOptions.HostConfig.OtherProperties;
+            Assert.NotNull(otherProperties);
+
+            var reserializedHostConfig = Newtonsoft.Json.JsonConvert.SerializeObject(config.CreateOptions.HostConfig);
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                Assert.Equal(
+                    "{\"Binds\":[\"\\\\var\\\\run:\\\\var\\\\run\"],\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}]},\"Devices\":[],\"Runtime\":\"nvidia\",\"DeviceRequests\":[{\"Driver\":\"\",\"Count\":-1,\"DeviceIDs\":null,\"capabilities\":[[\"gpu\"]],\"Options\":{}}]}",
+                    reserializedHostConfig);
+            }
+            else
+            {
+                Assert.Equal(
+                    "{\"Binds\":[\"/var/run/iotedgedworkload.sock:/var/run/iotedgedworkload.sock\"],\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}]},\"Devices\":[],\"Runtime\":\"nvidia\",\"DeviceRequests\":[{\"Driver\":\"\",\"Count\":-1,\"DeviceIDs\":null,\"capabilities\":[[\"gpu\"]],\"Options\":{}}]}",
                     reserializedHostConfig);
             }
         }

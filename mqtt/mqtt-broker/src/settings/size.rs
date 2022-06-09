@@ -47,7 +47,7 @@ impl FromStr for HumanSize {
 
         let value = captures[1]
             .parse()
-            .map_err(|_| ParseHumanSizeError::Value(captures[1].to_string()))?;
+            .map_err(|e| ParseHumanSizeError::Value(captures[1].to_string(), e))?;
 
         match captures[2].to_lowercase().as_str() {
             "" | "b" => Ok(Some(Self::new_bytes(value))),
@@ -124,7 +124,7 @@ pub enum ParseHumanSizeError {
     MeasurementUnit(String),
 
     #[error("Unable to parse number: {0}")]
-    Value(String),
+    Value(String, std::num::ParseIntError),
 
     #[error("Size value is too big: {0}")]
     TooBig(String),
@@ -257,7 +257,7 @@ mod tests {
         }
 
         #[test]
-        fn it_cannot_parse_input(input in r".*[0-9]{9}.*(k|K|m|M|g|G)?.*") {
+        fn it_cannot_parse_input(input in r"[^0-9]+[0-9]{9}[^0-9]+(k|K|m|M|g|G)?.*") {
             let size = input.parse::<HumanSize>();
             prop_assert!(size.is_err())
         }

@@ -1,7 +1,8 @@
 #![allow(clippy::mut_mut)]
-use std::time::Duration;
+use std::{env, time::Duration};
 
 use bytes::Bytes;
+use env::VarError;
 use futures::{future::FutureExt, select, stream::StreamExt};
 use tokio::{
     net::ToSocketAddrs,
@@ -11,11 +12,16 @@ use tokio::{
     },
     task::JoinHandle,
 };
+use tracing::info;
 
 use mqtt3::{
     proto::{ClientId, Publication, QoS, SubscribeTo},
     Client, Event, PublishError, PublishHandle, ReceivedPublication, ShutdownHandle,
     UpdateSubscriptionHandle,
+};
+use mqtt_util::{
+    ClientIoSource, CredentialProviderSettings, Credentials, SasTokenSource, TcpConnection,
+    TrustBundleSource,
 };
 
 /// A wrapper on the [`mqtt3::Client`] to help simplify client event loop management.
@@ -257,7 +263,7 @@ where
                             Some(event) => {
                                 let event = event.expect("got error instead of event");
                                 match event {
-                                    Event::NewConnection { .. } => conn_sender
+                                    Event::NewConnection { .. } | Event::Disconnected(_) => conn_sender
                                         .send(event)
                                         .expect("can't send an event to a conn channel"),
                                     Event::Publication(publication) => pub_sender
@@ -266,9 +272,6 @@ where
                                     Event::SubscriptionUpdates(_) => sub_sender
                                         .send(event)
                                         .expect("can't send an event to a sub channel"),
-                                    Event::Disconnected(_) => conn_sender
-                                        .send(event)
-                                        .expect("can't send an event to a conn channel"),
                                 }
                             }
                             None => {
@@ -291,4 +294,73 @@ where
             event_loop_handle,
         }
     }
+}
+
+pub fn create_client_from_module_env(address: &str) -> Result<Client<ClientIoSource>, VarError> {
+    let provider_settings = get_provider_settings_from_env()?;
+    let io_source = io_source_from_provider(provider_settings.clone(), address);
+
+    let client_id = format!(
+        "{}/{}",
+        provider_settings.device_id().to_owned(),
+        provider_settings.module_id().to_owned()
+    );
+
+    let api_version = "2010-01-01";
+    let username = Some(format!(
+        "{}/{}/{}/?api-version={}",
+        provider_settings.iothub_hostname().to_owned(),
+        provider_settings.device_id().to_owned(),
+        provider_settings.module_id().to_owned(),
+        api_version.to_owned()
+    ));
+
+    info!(
+        "creating client with client id ({:?}), username ({:?}), and address ({:?})",
+        client_id, username, address
+    );
+
+    let max_reconnect_backoff = Duration::from_secs(60);
+    let keep_alive = Duration::from_secs(60);
+    let client = Client::new(
+        Some(client_id),
+        username,
+        None,
+        io_source,
+        max_reconnect_backoff,
+        keep_alive,
+    );
+
+    info!("successfully created client");
+    Ok(client)
+}
+
+fn get_provider_settings_from_env() -> Result<CredentialProviderSettings, VarError> {
+    let iothub_hostname = env::var("IOTEDGE_IOTHUBHOSTNAME")?;
+    let gateway_hostname = env::var("IOTEDGE_GATEWAYHOSTNAME")?;
+    let device_id = env::var("IOTEDGE_DEVICEID")?;
+    let module_id = env::var("IOTEDGE_MODULEID")?;
+    let generation_id = env::var("IOTEDGE_MODULEGENERATIONID")?;
+    let workload_uri = env::var("IOTEDGE_WORKLOADURI")?;
+
+    Ok(CredentialProviderSettings::new(
+        iothub_hostname,
+        gateway_hostname,
+        device_id,
+        module_id,
+        generation_id,
+        workload_uri,
+    ))
+}
+
+fn io_source_from_provider(
+    credential_provider_settings: CredentialProviderSettings,
+    address: &str,
+) -> ClientIoSource {
+    let credentials = Credentials::Provider(credential_provider_settings);
+    let trust_bundle_source = TrustBundleSource::new(credentials.clone());
+    let token_source = SasTokenSource::new(credentials);
+    let tcp_connection = TcpConnection::new(address, Some(token_source), Some(trust_bundle_source));
+
+    ClientIoSource::Tls(tcp_connection)
 }

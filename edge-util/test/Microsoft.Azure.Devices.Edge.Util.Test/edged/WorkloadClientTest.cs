@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Edged
             var response = await workloadClient.CreateServerCertificateAsync("hostname", DateTime.UtcNow.AddDays(1));
 
             Assert.Equal(new X509Certificate2(Encoding.UTF8.GetBytes(TestCertificateHelper.CertificatePem)), new X509Certificate2(Encoding.UTF8.GetBytes(response.Certificate)));
-            Assert.Equal(TestCertificateHelper.PrivateKeyPem, response.PrivateKey);
+            Assert.Equal(TestCertificateHelper.PrivateKeyPemPkcs8, response.PrivateKey);
         }
 
         [Theory]

@@ -89,6 +89,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     {
                         cloudProxy.ForEach(c => c.StartListening());
                     }
+                    else
+                    {
+                        cloudProxy.ForEach(c => c.StopListening());
+                    }
 
                     break;
 
@@ -109,8 +113,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
                     break;
 
-                case DeviceSubscription.ModuleMessages:
                 case DeviceSubscription.TwinResponse:
+                    // No need for handling addSubscription == true, because the SDK subscribes automatically,
+                    // and because of that the rest of the CloudProxy implementations were built that way later.
+                    if (!addSubscription)
+                    {
+                        await cloudProxy.ForEachAsync(c => c.RemoveTwinResponseAsync());
+                    }
+
+                    break;
+
+                case DeviceSubscription.ModuleMessages:
                 case DeviceSubscription.Unknown:
                     // No Action required
                     break;

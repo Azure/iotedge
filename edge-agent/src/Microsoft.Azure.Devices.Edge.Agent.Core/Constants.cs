@@ -43,6 +43,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string EdgeModuleHubServerCertificateFileKey = "EdgeModuleHubServerCertificateFile";
 
+        public const string CheckImagePullBeforeModuleCreate = "CheckImagePullBeforeModuleCreate";
+
         public const string Unknown = "Unknown";
 
         public const string UpstreamProtocolKey = "UpstreamProtocol";
@@ -52,6 +54,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public const string EdgeletManagementUriVariableName = "IOTEDGE_MANAGEMENTURI";
 
         public const string EdgeletWorkloadUriVariableName = "IOTEDGE_WORKLOADURI";
+
+        public const string EdgeletWorkloadListenMntUriVariableName = "IOTEDGE_WORKLOADLISTEN_MNTURI";
 
         public const string IotHubHostnameVariableName = "IOTEDGE_IOTHUBHOSTNAME";
 
@@ -79,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string NetworkIdKey = "NetworkId";
 
-        public const string EdgeletClientApiVersion = "2020-07-07";
+        public const string EdgeletClientApiVersion = "2021-12-07";
 
         public const string EdgeletInitializationVectorFileName = "IOTEDGE_BACKUP_IV";
 
@@ -96,6 +100,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public const string IoTEdgeAgentProductInfoIdentifier = "EdgeAgent";
 
         public const string StorageMaxTotalWalSize = "RocksDB_MaxTotalWalSize";
+
+        public const string StorageMaxManifestFileSize = "RocksDB_MaxManifestFileSize";
 
         public const string StorageMaxOpenFiles = "RocksDB_MaxOpenFiles";
 

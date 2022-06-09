@@ -51,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         public Bridge(string endpoint, IList<Settings> settings)
         {
             this.Endpoint = endpoint;
-            this.Settings = settings;
+            this.Settings = settings ?? new List<Settings>();
         }
 
         [JsonProperty("endpoint", Required = Required.Always)]

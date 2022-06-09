@@ -27,6 +27,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             return authChainIds.FirstOption(id => true);
         }
 
+        public static Option<string> GetAuthParent(Option<string> authChain)
+        {
+            return authChain.Match(
+                chain =>
+                {
+                    string[] authChainIds = GetAuthChainIds(chain);
+                    // The auth target is second element after the target
+                    return authChainIds.Skip(1).FirstOption(id => true);
+                },
+                () => Option.None<string>());
+        }
+
         public static Option<string> GetActorDeviceId(Option<string> authChain)
         {
             if (!authChain.HasValue)

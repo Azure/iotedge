@@ -2,6 +2,7 @@ use std::{
     env, fs,
     future::Future,
     path::{Path, PathBuf},
+    time::Duration as StdDuration,
 };
 
 use anyhow::{bail, Context, Result};
@@ -13,7 +14,7 @@ use futures_util::{
 };
 use tracing::{debug, error, info};
 
-use mqtt_bridge::{settings::BridgeSettings, BridgeController};
+use mqtt_bridge::BridgeController;
 use mqtt_broker::{
     auth::Authorizer,
     sidecar::{Sidecar, SidecarShutdownHandle},
@@ -50,7 +51,9 @@ impl Bootstrap for EdgeHubBootstrap {
 
     fn load_config<P: AsRef<Path>>(&self, path: P) -> Result<Self::Settings> {
         info!("loading settings from a file {}", path.as_ref().display());
-        Ok(Self::Settings::from_file(path)?)
+        let settings = Self::Settings::from_file(path)?;
+        debug!("broker settings are: {:?}", settings);
+        Ok(settings)
     }
 
     type Authorizer = LocalAuthorizer<EdgeHubAuthorizer<PolicyAuthorizer>>;
@@ -61,12 +64,20 @@ impl Bootstrap for EdgeHubBootstrap {
     ) -> Result<(Broker<Self::Authorizer>, FilePersistor<VersionedFileFormat>)> {
         info!("loading state...");
         let persistence_config = settings.broker().persistence();
-        let state_dir = persistence_config.file_path();
+        let state_dir = persistence_config.folder_path();
 
         fs::create_dir_all(state_dir.clone())?;
         let mut persistor = FilePersistor::new(state_dir, VersionedFileFormat::default());
-        let state = persistor.load().await?;
-        info!("state loaded.");
+        let state = match persistor.load().await {
+            Ok(state) => {
+                info!("state loaded.");
+                state
+            }
+            Err(e) => {
+                error!("failed to load broker state, most likely the broker was forcefully shut down and state file is corrupted: {}", e);
+                None
+            }
+        };
 
         let device_id = env::var(DEVICE_ID_ENV).context(DEVICE_ID_ENV)?;
         let iothub_id = env::var(IOTHUB_HOSTNAME_ENV).context(IOTHUB_HOSTNAME_ENV)?;
@@ -87,8 +98,16 @@ impl Bootstrap for EdgeHubBootstrap {
         Ok((broker, persistor))
     }
 
-    fn snapshot_interval(&self, settings: &Self::Settings) -> std::time::Duration {
+    fn snapshot_interval(&self, settings: &Self::Settings) -> StdDuration {
         settings.broker().persistence().time_interval()
+    }
+
+    fn session_expiration(&self, settings: &Self::Settings) -> StdDuration {
+        settings.broker().session().expiration()
+    }
+
+    fn session_cleanup_interval(&self, settings: &Self::Settings) -> StdDuration {
+        settings.broker().session().cleanup_interval()
     }
 
     async fn run(
@@ -96,7 +115,7 @@ impl Bootstrap for EdgeHubBootstrap {
         config: Self::Settings,
         broker: Broker<Self::Authorizer>,
     ) -> Result<BrokerSnapshot> {
-        let mut broker_handle = broker.handle();
+        let broker_handle = broker.handle();
         let sidecars = make_sidecars(&broker_handle, &config)?;
 
         info!("starting server...");
@@ -214,9 +233,11 @@ fn make_sidecars(
     let system_address = config.listener().system().addr().to_string();
     let device_id = env::var(DEVICE_ID_ENV).context(DEVICE_ID_ENV)?;
 
-    let settings = BridgeSettings::new()?;
-    let bridge_controller =
-        BridgeController::new(system_address.clone(), device_id.to_owned(), settings);
+    let bridge_controller = BridgeController::new(
+        system_address.clone(),
+        device_id.to_owned(),
+        config.bridge().clone(),
+    );
     let bridge_controller_handle = bridge_controller.handle();
 
     sidecars.push(Box::new(bridge_controller));

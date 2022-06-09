@@ -3,7 +3,7 @@
   <Import Project="..\..\..\netcoreappVersion.props" />
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.28.1-NestedEdge" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.36.4" />
   </ItemGroup>
 
   <ItemGroup>

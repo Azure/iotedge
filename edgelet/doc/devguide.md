@@ -13,7 +13,7 @@ There are two options for building the IoT Edge Security Daemon.
 
 Linux packages are built using the `edgelet/build/linux/package.sh` script. Set the following environment variables, then invoke the script:
 
-1. `PACKAGE_OS`: This is the OS on which the resulting packages will be installed. It should be one of `centos7`, `debian8`, `debian9`, `debian10`, `ubuntu16.04` or `ubuntu18.04`
+1. `PACKAGE_OS`: This is the OS on which the resulting packages will be installed. It should be one of `centos7`, `debian9`, `debian10`, `debian11`, `ubuntu18.04`, or `ubuntu20.04`
 
 1. `PACKAGE_ARCH`: This is the architecture of the OS on which the resulting packages will be installed. It should be one of `amd64`, `arm32v7` or `aarch64`.
 
@@ -65,7 +65,7 @@ cd iotedge/edgelet/
 
 rustup update   # Install / update the toolchain used to build the daemon binaries.
                 # This is controlled by the rust-toolchain file in this directory.
-                # For the master branch, this is the latest "stable" toolchain.
+                # For the main branch, this is the latest "stable" toolchain.
                 # For release branches, this is a pinned Rust release.
 ```
 
@@ -81,7 +81,17 @@ yum install \
     libcurl-devel libuuid-devel openssl-devel
 ```
 
-#### Debian 8-10, Ubuntu 16.04, Ubuntu 18.04
+#### Debian 9-11
+
+```sh
+apt-get update
+apt-get install \
+    binutils build-essential ca-certificates curl cmake debhelper file git make \
+    gcc g++ pkg-config \
+    libcurl4-openssl-dev libssl-dev uuid-dev
+```
+
+#### Ubuntu 18.04, 20.04
 
 ```sh
 apt-get update
@@ -144,15 +154,15 @@ To build the project, use:
 ```sh
 cd edgelet/
 
-cargo build -p iotedged -p iotedge
+cargo build -p aziot-edged -p iotedge
 ```
 
-This will create `iotedged` and `iotedge` binaries under `edgelet/target/debug`
+This will create `aziot-edged` and `iotedge` binaries under `edgelet/target/debug`
 
 
 ### Run
 
-To run `iotedged` locally:
+To run `aziot-edged` locally:
 
 1. Create a directory that it will use as its home directory, such as `~/iotedge`
 
@@ -175,7 +185,7 @@ To run `iotedged` locally:
 1. Run the daemon with the `IOTEDGE_HOMEDIR` environment variable set and with the path to the `config.yaml`
 
     ```sh
-    cargo run -p iotedged -- -c /absolute/path/to/config.yaml
+    cargo run -p aziot-edged -- -c /absolute/path/to/config.yaml
     ```
 
 
@@ -253,6 +263,8 @@ cargo test --all
     ```
 
     Note that we've manually fixed up the generated code so that it satisfies rustfmt and clippy. As such, if you ever need to run `swagger-codegen-cli` against new definitions, or need to regenerate existing ones, you will want to perform the same fixups manually. Make sure to run clippy and rustfmt against the new code yourself, and inspect the diffs of modified files before checking in.
+
+    For more details, please visit [**How to build Management API using Swagger-Codegen**](../api/README.md)
 
 - IDE
 

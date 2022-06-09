@@ -182,7 +182,9 @@ async fn subscribe(
                         subacks.remove(&sub.topic_filter);
                     }
                     SubscriptionUpdateEvent::RejectedByServer(sub) => {
-                        return Err(CommandHandlerError::SubscriptionRejectedByServer(sub));
+                        return Err(CommandHandlerError::SubscriptionRejectedByServer(
+                            sub.topic_filter,
+                        ));
                     }
                     SubscriptionUpdateEvent::Unsubscribe(_) => {}
                 }

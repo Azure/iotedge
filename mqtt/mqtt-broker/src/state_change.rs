@@ -95,6 +95,8 @@ mod tests {
         str::FromStr,
     };
 
+    use chrono::Utc;
+
     use mqtt3::proto;
 
     use crate::{
@@ -423,7 +425,7 @@ mod tests {
                 state,
             )
         } else {
-            Session::new_offline(state)
+            Session::new_offline(state, Utc::now())
         }
     }
 

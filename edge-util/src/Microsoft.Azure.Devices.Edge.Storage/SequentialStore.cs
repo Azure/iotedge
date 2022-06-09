@@ -60,6 +60,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return this.headOffset;
         }
 
+        public long GetTailOffset(CancellationToken _)
+        {
+            return this.tailOffset;
+        }
+
         public async Task<long> Append(T item, CancellationToken cancellationToken)
         {
             using (await this.tailLockObject.LockAsync(cancellationToken))
@@ -182,6 +187,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 cancellationToken);
             return batch;
         }
+
+        public Task<ulong> Count() => this.entityStore.Count();
+
+        public Task<ulong> GetCountFromOffset(long offset) => this.entityStore.GetCountFromOffset(StoreUtils.GetKeyFromOffset(offset));
 
         public void Dispose()
         {

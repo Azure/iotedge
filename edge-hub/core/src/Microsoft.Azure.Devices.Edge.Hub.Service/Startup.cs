@@ -2,13 +2,14 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System;
+    using System.Threading.Tasks;
     using Autofac;
     using Autofac.Extensions.DependencyInjection;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Mvc;
-    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Http.Middleware;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
@@ -55,10 +56,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             });
 
             app.UseHttpsRedirection();
-            app.UseWebSockets();
+
+            // We don't need to have server-initiated WebSocket ping requests,
+            // because the top level protocols (AMQT/MQTT) already do have
+            // keep-alive mechanisms implemented.
+            app.UseWebSockets(new WebSocketOptions
+            {
+                KeepAliveInterval = TimeSpan.Zero
+            });
 
             var webSocketListenerRegistry = app.ApplicationServices.GetService(typeof(IWebSocketListenerRegistry)) as IWebSocketListenerRegistry;
-            app.UseWebSocketHandlingMiddleware(webSocketListenerRegistry);
+            var httpProxiedCertificateExtractor = app.ApplicationServices.GetService(typeof(Task<IHttpProxiedCertificateExtractor>)) as Task<IHttpProxiedCertificateExtractor>;
+            app.UseWebSocketHandlingMiddleware(webSocketListenerRegistry, httpProxiedCertificateExtractor);
 
             app.Use(
                 async (context, next) =>

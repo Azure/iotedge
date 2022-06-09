@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         readonly string actorDeviceId;
         AsyncLock nodesLock = new AsyncLock();
-        Dictionary<string, ServiceIdentityTreeNode> nodes;
+        IDictionary<string, ServiceIdentityTreeNode> nodes;
 
         public ServiceIdentityTree(string actorDeviceId)
         {
@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public string GetActorDeviceId() => this.actorDeviceId;
 
-        public async Task InsertOrUpdate(ServiceIdentity identity)
+        public async Task<bool> AddOrUpdate(ServiceIdentity identity)
         {
             // There should always be a valid ServiceIdentity
             Preconditions.CheckNotNull(identity, nameof(identity));
@@ -40,9 +40,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
                 if (this.nodes.ContainsKey(identity.Id))
                 {
-                    // Update case - this is just remove + re-insert
-                    isUpdate = true;
-                    this.RemoveSingleNode(identity.Id);
+                    if (!this.nodes[identity.Id].Identity.Equals(identity))
+                    {
+                        // Update case - this is just remove + re-insert
+                        isUpdate = true;
+                        this.RemoveSingleNode(identity.Id);
+                    }
+                    else
+                    {
+                        Events.NodeNotChanged(identity.Id);
+                        return false;
+                    }
                 }
 
                 // Insert case
@@ -64,6 +72,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     Events.NodeAdded(identity.Id);
                 }
             }
+
+            return true;
         }
 
         public async Task Remove(string id)
@@ -151,6 +161,36 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             return Option.None<string>();
         }
 
+        public async Task<Try<string>> TryGetAuthChain(string targetId)
+        {
+            Preconditions.CheckNonWhiteSpace(targetId, nameof(targetId));
+
+            // Auth-chain for the acting device (when there aren't any nodes in the tree yet)
+            if (targetId == this.actorDeviceId)
+            {
+                return Try.Success(this.actorDeviceId);
+            }
+            else if (targetId == this.actorDeviceId + "/" + Constants.EdgeHubModuleId)
+            {
+                return Try.Success(this.actorDeviceId + "/" + Constants.EdgeHubModuleId + ";" + this.actorDeviceId);
+            }
+
+            using (await this.nodesLock.LockAsync())
+            {
+                // Auth-chain for a child somewhere in the tree
+                if (this.nodes.TryGetValue(targetId, out ServiceIdentityTreeNode treeNode))
+                {
+                    return treeNode.AuthChain.Match(
+                        chain => Try.Success(chain),
+                        () => Try<string>.Failure(new DeviceInvalidStateException("Device is out of scope.")));
+                }
+                else
+                {
+                    return Try<string>.Failure(new DeviceInvalidStateException("Device is out of scope."));
+                }
+            }
+        }
+
         public async Task<Option<string>> GetEdgeAuthChain(string id)
         {
             Preconditions.CheckNonWhiteSpace(id, nameof(id));
@@ -186,7 +226,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 if (this.nodes.TryGetValue(id, out ServiceIdentityTreeNode treeNode))
                 {
-                    IList<ServiceIdentityTreeNode> childNodes = treeNode.GetAllChildren();
                     children.AddRange(treeNode.GetAllChildren().Select(child => child.Identity));
                 }
             }
@@ -321,11 +360,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public void AddChild(ServiceIdentityTreeNode childNode)
             {
-                if (!this.Identity.IsEdgeDevice)
-                {
-                    throw new ArgumentException($"{this.Identity.Id} is not an Edge device, only Edge devices can have children");
-                }
-
                 this.children.Add(childNode);
                 childNode.Parent = Option.Some(this);
                 childNode.UpdateAuthChainFromParent(this, this.currentDepth + 1);
@@ -382,13 +416,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 }
             }
 
-            void RemoveAuthChain()
+            void RemoveAuthChain() => this.RemoveAuthChainRecursive(0);
+
+            void RemoveAuthChainRecursive(int traveled)
             {
+                if (traveled >= 2 * MaxNestingDepth)
+                {
+                    // The max length of a nested chain we can temporarily achieve
+                    // occurs when we try to stitch together two full hierarchies.
+                    // Anything past that is not valid and we can stop recursing.
+                    return;
+                }
+
                 this.AuthChain = Option.None<string>();
                 Events.AuthChainRemoved(this.Identity.Id);
 
                 // Recursively remove the authchains of children
-                this.children.ForEach(child => child.RemoveAuthChain());
+                this.children.ForEach(child => child.RemoveAuthChainRecursive(traveled + 1));
             }
 
             string MakeAuthChainFromParent(string parentAuthChain)
@@ -408,6 +452,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             NodeAdded = IdStart,
             NodeRemoved,
             NodeUpdated,
+            NodeNotChanged,
             AuthChainAdded,
             AuthChainRemoved,
             MaxDepthExceeded,
@@ -423,6 +468,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public static void NodeUpdated(string id) =>
             Log.LogInformation((int)EventIds.NodeUpdated, $"Updated node: {id}");
+
+        public static void NodeNotChanged(string id) =>
+            Log.LogInformation((int)EventIds.NodeNotChanged, $"Not changed node: {id}");
 
         public static void AuthChainAdded(string id, string authChain, int depth) =>
             Log.LogDebug((int)EventIds.AuthChainAdded, $"Auth-chain added for: {id}, at depth: {depth}, {authChain}");

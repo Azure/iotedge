@@ -96,7 +96,7 @@ impl ContainerConnectUpstream {
             .diagnostics_image_name
             .starts_with("/azureiotedge-diagnostics:")
         {
-            settings.parent_hostname().map_or_else(
+            check.parent_hostname.as_ref().map_or_else(
                 || "mcr.microsoft.com".to_string() + &check.diagnostics_image_name,
                 |upstream_hostname| upstream_hostname.to_string() + &check.diagnostics_image_name,
             )
@@ -105,7 +105,7 @@ impl ContainerConnectUpstream {
         };
 
         let parent_hostname: String;
-        let upstream_hostname = if let Some(upstream_hostname) = settings.parent_hostname() {
+        let upstream_hostname = if let Some(upstream_hostname) = check.parent_hostname.as_ref() {
             parent_hostname = upstream_hostname.to_string();
             &parent_hostname
         } else if let Some(iothub_hostname) = &check.iothub_hostname {
@@ -116,6 +116,10 @@ impl ContainerConnectUpstream {
 
         self.upstream_hostname = Some(upstream_hostname.clone());
 
+        let workload_uri = settings.connect().workload_uri().to_string();
+        let workload_uri_path = settings.connect().workload_uri().path().to_string();
+        let map_volume = format!("{}:{}", workload_uri_path, workload_uri_path);
+
         let network_name = settings.moby_runtime().network().name();
         self.network_name = Some(network_name.to_owned());
 
@@ -125,6 +129,10 @@ impl ContainerConnectUpstream {
 
         if self.use_container_runtime_network {
             args.extend(&["--network", network_name]);
+        }
+
+        if check.parent_hostname.is_some() {
+            args.extend(&["-v", &map_volume]);
         }
 
         self.diagnostics_image_name = Some(check.diagnostics_image_name.clone());
@@ -138,6 +146,11 @@ impl ContainerConnectUpstream {
             "--port",
             &port,
         ]);
+
+        if check.parent_hostname.is_some() {
+            args.extend(&["--isNested", "true"]);
+            args.extend(&["--workload_uri", &workload_uri]);
+        }
 
         if &port == "443" {
             let proxy = settings

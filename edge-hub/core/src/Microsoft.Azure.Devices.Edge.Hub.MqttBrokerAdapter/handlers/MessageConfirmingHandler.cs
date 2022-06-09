@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             var listener = default(IDeviceListener);
             try
             {
-                listener = (await this.connectionRegistry.GetDeviceListenerAsync(identity)).Expect(() => new Exception($"No device listener found for {identity.Id}"));
+                listener = (await this.connectionRegistry.GetOrCreateDeviceListenerAsync(identity)).Expect(() => new Exception($"No device listener found for {identity.Id}"));
             }
             catch (Exception)
             {

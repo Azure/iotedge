@@ -2,31 +2,34 @@
 
 use std::collections::{BTreeMap, HashMap};
 use std::ops::Deref;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::str;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use failure::{Fail, ResultExt};
 use futures::future::Either;
 use futures::prelude::*;
+use futures::sync::mpsc::UnboundedSender;
+use futures::sync::oneshot;
+use futures::sync::oneshot::{Receiver, Sender};
 use futures::{future, stream, Async, Stream};
 use hyper::{Body, Chunk as HyperChunk, Client, Request};
 use lazy_static::lazy_static;
-use log::{debug, info, Level};
+use log::{debug, error, info, warn, Level};
 use url::Url;
 
 use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
-use docker::models::{ContainerCreateBody, InlineResponse200, Ipam, NetworkConfig};
+use docker::models::{ContainerCreateBody, HostConfig, InlineResponse200, Ipam, NetworkConfig};
 use edgelet_core::{
-    AuthId, Authenticator, GetTrustBundle, Ipam as CoreIpam, LogOptions, MakeModuleRuntime,
-    MobyNetwork, Module, ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    ProvisioningInfo, RegistryOperation, RuntimeOperation, RuntimeSettings,
-    SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
+    AuthId, Authenticator, Ipam as CoreIpam, LogOptions, MakeModuleRuntime, MobyNetwork, Module,
+    ModuleAction, ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
+    RegistryOperation, RuntimeOperation, RuntimeSettings, SystemInfo as CoreSystemInfo,
+    SystemResources, UrlExt,
 };
 use edgelet_http::{Pid, UrlConnector};
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
-use provisioning::ProvisioningResult;
 
 use crate::client::DockerClient;
 use crate::config::DockerConfig;
@@ -65,7 +68,9 @@ pub struct DockerModuleRuntime {
     system_resources: Arc<Mutex<System>>,
     notary_registries: BTreeMap<String, PathBuf>,
     notary_lock: tokio::sync::lock::Lock<BTreeMap<String, String>>,
-    provisioning_info: ProvisioningInfo,
+    allow_elevated_docker_permissions: bool,
+    create_socket_channel: UnboundedSender<ModuleAction>,
+    additional_info: BTreeMap<String, String>,
 }
 
 impl DockerModuleRuntime {
@@ -243,38 +248,67 @@ where
 impl MakeModuleRuntime for DockerModuleRuntime {
     type Config = DockerConfig;
     type Settings = Settings;
-    type ProvisioningResult = ProvisioningResult;
     type ModuleRuntime = Self;
     type Error = Error;
     type Future = Box<dyn Future<Item = Self, Error = Self::Error> + Send>;
 
     fn make_runtime(
         settings: Settings,
-        _: ProvisioningResult,
-        _: impl GetTrustBundle,
+        create_socket_channel: UnboundedSender<ModuleAction>,
     ) -> Self::Future {
         info!("Initializing module runtime...");
 
-        let created = init_client(settings.moby_runtime().uri())
-            .and_then(move |client| {
-                let home_dir = settings.homedir();
+        let created = match init_client(settings.moby_runtime().uri()) {
+            Ok(client) => {
+                let home_dir: Arc<Path> = settings.homedir().into();
                 let network_id = settings.moby_runtime().network().name().to_string();
-                let mut notary_registries = BTreeMap::new();
-                if let Some(content_trust_map) = settings
+                let notary_registries = BTreeMap::new();
+                let certd_url = settings.endpoints().aziot_certd_url().clone();
+                let cert_client = cert_client::CertificateClient::new(
+                    aziot_cert_common_http::ApiVersion::V2020_09_01,
+                    &certd_url,
+                );
+
+                let notary_registries = if let Some(content_trust_map) = settings
                     .moby_runtime()
                     .content_trust()
                     .and_then(ContentTrust::ca_certs)
                 {
-                    info!("Notary Content Trust is enabled");
-                    for (registry_server_hostname, path) in content_trust_map {
-                        let config_path =
-                            notary::notary_init(home_dir, registry_server_hostname, path)
-                                .context(ErrorKind::Initialization)?;
-                        notary_registries.insert(registry_server_hostname.clone(), config_path);
-                    }
+                    debug!("Notary Content Trust is enabled");
+                    future::Either::A(futures::stream::iter_ok(content_trust_map.clone()).fold(
+                        (notary_registries, cert_client),
+                        move |(mut notary_registries, cert_client),
+                              (registry_server_hostname, cert_id)| {
+                            let home_dir = home_dir.clone();
+                            cert_client
+                                .get_cert(&cert_id)
+                                .then(move |cert_output| -> Result<_> {
+                                    match cert_output {
+                                        Ok(cert_buf) => {
+                                            let config_path = notary::notary_init(
+                                                &home_dir,
+                                                &registry_server_hostname,
+                                                &cert_buf,
+                                            )
+                                            .context(ErrorKind::Initialization)?;
+                                            notary_registries.insert(
+                                                registry_server_hostname.clone(),
+                                                config_path,
+                                            );
+                                            Ok((notary_registries, cert_client))
+                                        }
+                                        Err(_e) => Err(ErrorKind::NotaryRootCAReadError(
+                                            "Notary root CA read error".to_owned(),
+                                        )
+                                        .into()),
+                                    }
+                                })
+                        },
+                    ))
                 } else {
-                    info!("Notary Content Trust is disabled");
-                }
+                    debug!("Notary Content Trust is disabled");
+                    future::Either::B(future::ok((notary_registries, cert_client)))
+                };
                 let (enable_i_pv6, ipam) = get_ipv6_settings(settings.moby_runtime().network());
                 info!("Using runtime network id {}", network_id);
 
@@ -309,7 +343,10 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                         log_failure(Level::Warn, &e);
                         e
                     })
-                    .map(move |client| {
+                    .join(notary_registries)
+                    .map(move |(client, (notary_registries, _))| {
+                        // to avoid excessive FD usage, we will not allow sysinfo to keep files open.
+                        sysinfo::set_open_files_limit(0);
                         let mut system_resources = System::new_all();
                         system_resources.refresh_all();
                         info!("Successfully initialized module runtime");
@@ -319,16 +356,20 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                             system_resources: Arc::new(Mutex::new(system_resources)),
                             notary_registries,
                             notary_lock,
-                            provisioning_info: ProvisioningInfo::new(settings.provisioning()),
+                            allow_elevated_docker_permissions: settings
+                                .base
+                                .allow_elevated_docker_permissions,
+                            create_socket_channel,
+                            additional_info: settings.base.additional_info,
                         }
                     });
-                Ok(future::Either::A(fut))
-            })
-            .unwrap_or_else(|err| {
+                future::Either::A(fut)
+            }
+            Err(err) => {
                 log_failure(Level::Warn, &err);
                 future::Either::B(Err(err).into_future())
-            });
-
+            }
+        };
         Box::new(created)
     }
 }
@@ -392,7 +433,7 @@ impl ModuleRuntime for DockerModuleRuntime {
     type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type StopAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
 
-    fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
+    fn create(&self, mut module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
         info!("Creating module {}...", module.name());
 
         // we only want "docker" modules
@@ -405,6 +446,14 @@ impl ModuleRuntime for DockerModuleRuntime {
         let image_with_tag = module.config().image().to_string();
         let digest_from_manifest = module.config().digest().map(&str::to_owned);
 
+        unset_privileged(
+            self.allow_elevated_docker_permissions,
+            &mut module.config.create_options,
+        );
+        drop_unsafe_privileges(
+            self.allow_elevated_docker_permissions,
+            &mut module.config.create_options,
+        );
         let image_by_notary = if let Some((notary_auth, gun, tag, config_path)) =
             get_notary_parameters(module.config(), &self.notary_registries, &image_with_tag)
         {
@@ -580,23 +629,44 @@ impl ModuleRuntime for DockerModuleRuntime {
             return Box::new(future::err(Error::from(err)));
         }
 
+        let (sender, receiver): (Sender<()>, Receiver<()>) = oneshot::channel();
+
+        if let Err(err) = self
+            .create_socket_channel
+            .unbounded_send(ModuleAction::Start(id.clone(), sender))
+            .map_err(|_| {
+                Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(
+                    id.clone(),
+                )))
+            })
+        {
+            return Box::new(future::err(err));
+        }
+
+        let future = self.client.container_api().container_start(&id, "");
+
+        let id2 = id.clone();
+
         Box::new(
-            self.client
-                .container_api()
-                .container_start(&id, "")
-                .then(|result| match result {
-                    Ok(_) => {
-                        info!("Successfully started module {}", id);
-                        Ok(())
-                    }
-                    Err(err) => {
-                        let err = Error::from_docker_error(
-                            err,
-                            ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id)),
-                        );
-                        log_failure(Level::Warn, &err);
-                        Err(err)
-                    }
+            receiver
+                .map_err(move |_| {
+                    Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id)))
+                })
+                .and_then(move |()| {
+                    future.then(move |result| match result {
+                        Ok(_) => {
+                            info!("Successfully started module {}", id2);
+                            Ok(())
+                        }
+                        Err(err) => {
+                            let err = Error::from_docker_error(
+                                err,
+                                ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id2)),
+                            );
+                            log_failure(Level::Warn, &err);
+                            Err(err)
+                        }
+                    })
                 }),
         )
     }
@@ -617,14 +687,26 @@ impl ModuleRuntime for DockerModuleRuntime {
             s => s as i32,
         });
 
+        let create_socket_channel = self.create_socket_channel.clone();
         Box::new(
             self.client
                 .container_api()
                 .container_stop(&id, wait_timeout)
-                .then(|result| match result {
+                .then(move |result| match result {
                     Ok(_) => {
-                        info!("Successfully stopped module {}", id);
-                        Ok(())
+                        match create_socket_channel.unbounded_send(ModuleAction::Stop(id.clone())) {
+                            Ok(()) => {
+                                info!("Successfully stoppedmodule {}", id);
+                                Ok(())
+                            },
+                            Err(err) => {
+                                log_failure(Level::Warn, &err);
+                                info!("Successfully stoppedmodule {}, but could not stop listener on socket", id);
+                                Err(Error::from(ErrorKind::RuntimeOperation(
+                                    RuntimeOperation::GetModule(id),
+                                )))
+                            }
+                        }
                     }
                     Err(err) => {
                         let err = Error::from_docker_error(
@@ -680,6 +762,8 @@ impl ModuleRuntime for DockerModuleRuntime {
             return Box::new(future::err(Error::from(err)));
         }
 
+        let create_socket_channel = self.create_socket_channel.clone();
+
         Box::new(
             self.client
                 .container_api()
@@ -687,10 +771,25 @@ impl ModuleRuntime for DockerModuleRuntime {
                     &id, /* remove volumes */ false, /* force */ true,
                     /* remove link */ false,
                 )
-                .then(|result| match result {
+                .then(move |result| match result {
                     Ok(_) => {
-                        info!("Successfully removed module {}", id);
-                        Ok(())
+                        match create_socket_channel.unbounded_send(ModuleAction::Remove(id.clone()))
+                        {
+                            Ok(()) => {
+                                info!("Successfully removed module {}", id);
+                                Ok(())
+                            }
+                            Err(err) => {
+                                log_failure(Level::Warn, &err);
+                                error!(
+                                    "Successfully removed module {}, but could not remove socket",
+                                    id
+                                );
+                                Err(Error::from(ErrorKind::RuntimeOperation(
+                                    RuntimeOperation::GetModule(id),
+                                )))
+                            }
+                        }
                     }
                     Err(err) => {
                         let err = Error::from_docker_error(
@@ -707,46 +806,20 @@ impl ModuleRuntime for DockerModuleRuntime {
     fn system_info(&self) -> Self::SystemInfoFuture {
         info!("Querying system info...");
 
-        let provisioning = self.provisioning_info.clone();
+        let mut core_info = CoreSystemInfo::from_system();
+        let additional_info = self.additional_info.clone();
 
+        // system_info.merge_additional(self.additional_info.clone());
         Box::new(
             self.client
                 .system_api()
                 .system_info()
                 .then(move |result| match result {
-                    Ok(system_info) => {
-                        let system_info = CoreSystemInfo {
-                            os_type: system_info
-                                .os_type()
-                                .unwrap_or(&String::from("Unknown"))
-                                .to_string(),
-                            architecture: system_info
-                                .architecture()
-                                .unwrap_or(&String::from("Unknown"))
-                                .to_string(),
-                            version: edgelet_core::version_with_source_version(),
-                            provisioning,
-                            cpus: system_info.NCPU().unwrap_or_default(),
-                            virtualized: match edgelet_core::is_virtualized_env() {
-                                Ok(Some(true)) => "yes",
-                                Ok(Some(false)) => "no",
-                                Ok(None) | Err(_) => "unknown",
-                            },
-                            kernel_version: system_info
-                                .kernel_version()
-                                .map(std::string::ToString::to_string)
-                                .unwrap_or_default(),
-                            operating_system: system_info
-                                .operating_system()
-                                .map(std::string::ToString::to_string)
-                                .unwrap_or_default(),
-                            server_version: system_info
-                                .server_version()
-                                .map(std::string::ToString::to_string)
-                                .unwrap_or_default(),
-                        };
-                        info!("Successfully queried system info");
-                        Ok(system_info)
+                    Ok(docker_info) => {
+                        core_info.server_version =
+                            docker_info.server_version().map(ToString::to_string);
+                        core_info.merge_additional(additional_info);
+                        Ok(core_info)
                     }
                     Err(err) => {
                         let err = Error::from_docker_error(
@@ -805,9 +878,6 @@ impl ModuleRuntime for DockerModuleRuntime {
                 0
             }
         };
-
-        #[cfg(windows)]
-        let uptime: u64 = unsafe { winapi::um::sysinfoapi::GetTickCount64() / 1000 };
 
         let mut system_resources = self
             .system_resources
@@ -955,7 +1025,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                 true,
                 options.since(),
                 options.until(),
-                false,
+                options.timestamps(),
                 tail,
             )
             .then(|result| match result {
@@ -999,7 +1069,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                     wait_before_kill,
                 )
                 .or_else(|err| {
-                    match Fail::find_root_cause(&err).downcast_ref::<ErrorKind>() {
+                    match <dyn Fail>::find_root_cause(&err).downcast_ref::<ErrorKind>() {
                         Some(ErrorKind::NotFound(_)) | Some(ErrorKind::NotModified) => Ok(()),
                         _ => Err(err),
                     }
@@ -1022,8 +1092,11 @@ impl Authenticator for DockerModuleRuntime {
 
 fn init_client(docker_url: &Url) -> Result<DockerClient<UrlConnector>> {
     // build the hyper client
-    let client =
-        Client::builder().build(UrlConnector::new(docker_url).context(ErrorKind::Initialization)?);
+    let client = Client::builder()
+        // we don't need connection pool'ing for local docker socket.
+        .keep_alive(false)
+        .max_idle_per_host(0)
+        .build(UrlConnector::new(docker_url).context(ErrorKind::Initialization)?);
 
     // extract base path - the bit that comes after the scheme
     let base_path = docker_url
@@ -1244,225 +1317,83 @@ fn get_notary_parameters(
     Some((notary_auth, gun, tag, config_path.to_path_buf()))
 }
 
+// Disallow adding privileged and other capabilities if allow_elevated_docker_permissions is false
+fn unset_privileged(
+    allow_elevated_docker_permissions: bool,
+    create_options: &mut ContainerCreateBody,
+) {
+    if allow_elevated_docker_permissions {
+        return;
+    }
+    if let Some(config) = create_options.host_config() {
+        if config.privileged() == Some(&true) || config.cap_add().map_or(0, Vec::len) != 0 {
+            warn!("Privileged capabilities are disallowed on this device. Privileged capabilities can be used to gain root access. If a module needs to run as privileged, and you are aware of the consequences, set `allow_elevated_docker_permissions` to `true` in the config.toml and restart the service.");
+            let mut config = config.clone();
+
+            config.set_privileged(false);
+            config.reset_cap_add();
+
+            create_options.set_host_config(config);
+        }
+    }
+}
+
+fn drop_unsafe_privileges(
+    allow_elevated_docker_permissions: bool,
+    create_options: &mut ContainerCreateBody,
+) {
+    // Don't change default behavior unless privileged containers are disallowed
+    if allow_elevated_docker_permissions {
+        return;
+    }
+
+    // These capabilities are provided by default and can be used to gain root access:
+    // https://labs.f-secure.com/blog/helping-root-out-of-the-container/
+    // They must be explicitly enabled
+    let mut caps_to_drop = vec!["CAP_CHOWN".to_owned(), "CAP_SETUID".to_owned()];
+
+    // The suggested `Option::map_or_else` requires cloning `caps_to_drop`.
+    #[allow(clippy::option_if_let_else)]
+    let host_config = if let Some(config) = create_options.host_config() {
+        // Don't drop caps that the user added explicitly
+        if let Some(cap_add) = config.cap_add() {
+            caps_to_drop.retain(|cap_drop| !cap_add.contains(cap_drop));
+        }
+        // Add customer specified cap_drops
+        if let Some(cap_drop) = config.cap_drop() {
+            caps_to_drop.extend_from_slice(cap_drop);
+        }
+
+        config.clone().with_cap_drop(caps_to_drop)
+    } else {
+        HostConfig::new().with_cap_drop(caps_to_drop)
+    };
+
+    create_options.set_host_config(host_config);
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        authenticate, future, list_with_details, parse_get_response, AuthId, Authenticator,
-        BTreeMap, Body, CoreSystemInfo, Deserializer, DockerModuleRuntime, DockerModuleTop,
-        Duration, Error, ErrorKind, Future, GetTrustBundle, InlineResponse200, LogOptions,
-        MakeModuleRuntime, Module, ModuleId, ModuleRuntime, ModuleRuntimeState, ModuleSpec, Pid,
-        ProvisioningResult, Request, Settings, Stream, SystemResources,
+        authenticate, drop_unsafe_privileges, future, list_with_details, parse_get_response,
+        unset_privileged, AuthId, Authenticator, BTreeMap, Body, ContainerCreateBody,
+        CoreSystemInfo, Deserializer, DockerModuleRuntime, DockerModuleTop, Duration, Error,
+        ErrorKind, Future, HostConfig, InlineResponse200, LogOptions, MakeModuleRuntime, Module,
+        ModuleId, ModuleRuntime, ModuleRuntimeState, ModuleSpec, Pid, Request, Stream,
+        SystemResources,
     };
 
     use std::path::Path;
 
-    use config::{Config, File, FileFormat};
+    use edgelet_core::ModuleAction;
     use futures::future::FutureResult;
     use futures::stream::Empty;
-    use json_patch::merge;
-    use serde_json::{self, json, Value as JsonValue};
 
     use edgelet_core::{
-        Certificates, Connect, Listen, ModuleRegistry, ModuleTop, Provisioning, RuntimeSettings,
-        WatchdogSettings,
+        settings::AutoReprovisioningMode, Connect, Endpoints, Listen, ModuleRegistry, ModuleTop,
+        RuntimeSettings, WatchdogSettings,
     };
-    use edgelet_test_utils::crypto::TestHsm;
-    use provisioning::ReprovisioningStatus;
-    #[cfg(target_os = "linux")]
-    use std::fs;
-    #[cfg(target_os = "linux")]
-    use tempfile::NamedTempFile;
-    use tempfile::TempDir;
-
-    fn provisioning_result() -> ProvisioningResult {
-        ProvisioningResult::new(
-            "d1",
-            "h1",
-            None,
-            ReprovisioningStatus::DeviceDataNotUpdated,
-            None,
-        )
-    }
-
-    fn crypto() -> impl GetTrustBundle {
-        TestHsm::default()
-    }
-
-    fn make_settings(merge_json: Option<JsonValue>) -> (Settings, TempDir) {
-        let tmp_dir = TempDir::new().unwrap();
-        let mut config = Config::default();
-        let mut config_json = json!({
-            "provisioning": {
-                "source": "manual",
-                "device_connection_string": "HostName=moo.azure-devices.net;DeviceId=boo;SharedAccessKey=boo"
-            },
-            "agent": {
-                "name": "edgeAgent",
-                "type": "docker",
-                "env": {},
-                "config": {
-                    "image": "mcr.microsoft.com/azureiotedge-agent:1.0",
-                    "auth": {}
-                }
-            },
-            "hostname": "zoo",
-            "connect": {
-                "management_uri": "unix:///var/run/iotedge/mgmt.sock",
-                "workload_uri": "unix:///var/run/iotedge/workload.sock"
-            },
-            "listen": {
-                "management_uri": "unix:///var/run/iotedge/mgmt.sock",
-                "workload_uri": "unix:///var/run/iotedge/workload.sock"
-            },
-            "homedir": tmp_dir.path(),
-            "moby_runtime": {
-                 "uri": "unix:///var/run/docker.sock",
-                "network": "azure-iot-edge"
-            }
-        });
-
-        if let Some(merge_json) = merge_json {
-            merge(&mut config_json, &merge_json);
-        }
-
-        config
-            .merge(File::from_str(&config_json.to_string(), FileFormat::Json))
-            .unwrap();
-
-        (config.try_into().unwrap(), tmp_dir)
-    }
-
-    #[test]
-    fn invalid_uri_prefix_fails() {
-        let (settings, _tmp_dir) = make_settings(Some(json!({
-            "moby_runtime": {
-                "uri": "foo:///this/is/not/valid"
-            }
-        })));
-        let err = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
-            .wait()
-            .unwrap_err();
-        assert!(failure::Fail::iter_chain(&err).any(|err| err
-            .to_string()
-            .contains("URL does not have a recognized scheme")));
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn invalid_uds_path_fails() {
-        let (settings, _tmp_dir) = make_settings(Some(json!({
-            "moby_runtime": {
-                "uri": "unix:///this/file/does/not/exist"
-            }
-        })));
-        let err = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
-            .wait()
-            .unwrap_err();
-        assert!(failure::Fail::iter_chain(&err)
-            .any(|err| err.to_string().contains("Socket file could not be found")));
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn notary_initialization() {
-        // Docker Daemon is not installed in arm32v7 and arm64v8 of the CI build VMs.
-        // This test returns if the docker.sock file does not exist in such scenarios
-        let docker_path = Path::new("unix:///var/run/docker.sock");
-        if !cfg!(target_arch = "x86_64") && !docker_path.exists() {
-            return;
-        }
-
-        let hostname1 = r"myreg1.azurecr.io";
-        let hostname2 = r"myreg2.azurecr.io";
-        let file1 = NamedTempFile::new().unwrap();
-        let file2 = NamedTempFile::new().unwrap();
-        let (settings, tmp_home_dir) = make_settings(Some(json!({
-            "moby_runtime": {
-                "uri": docker_path,
-                "content_trust" : {
-                    "ca_certs" : {
-                        hostname1 : file1.path(),
-                        hostname2 : file2.path()
-                    }
-                }
-            }
-        })));
-
-        let runtime = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto());
-        let runtime = tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(runtime)
-            .unwrap();
-
-        let mut config_path1 = tmp_home_dir.path().to_owned();
-        config_path1.push("notary");
-        let mut filename1 = String::new();
-        for c in hostname1.chars() {
-            if c.is_ascii_alphanumeric() || !c.is_ascii() {
-                filename1.push(c);
-            } else {
-                filename1.push_str(&format!("%{:02x}", c as u8));
-            }
-        }
-        config_path1.push(filename1);
-        let trust_dir = config_path1.clone();
-        config_path1.push("config.json");
-        let actual_config1 = fs::read(&config_path1).unwrap();
-        let actual_json_content1: serde_json::Value =
-            serde_json::from_slice(&actual_config1).unwrap();
-        let expected_json_content1 = json!({
-            "trust_dir" : trust_dir,
-            "remote_server": {
-              "url": "https://myreg1.azurecr.io"
-            },
-            "trust_pinning": {
-              "ca": {
-                "": file1.path()
-              },
-              "disable_tofu": "true"
-            }
-        });
-
-        let mut config_path2 = tmp_home_dir.path().to_owned();
-        config_path2.push("notary");
-        let mut filename2 = String::new();
-        for c in hostname2.chars() {
-            if c.is_ascii_alphanumeric() || !c.is_ascii() {
-                filename2.push(c);
-            } else {
-                filename2.push_str(&format!("%{:02x}", c as u8));
-            }
-        }
-        config_path2.push(filename2);
-        let trust_dir = config_path2.clone();
-        config_path2.push("config.json");
-        let actual_config2 = fs::read(&config_path2).unwrap();
-        let actual_json_content2: serde_json::Value =
-            serde_json::from_slice(&actual_config2).unwrap();
-        let expected_json_content2 = json!({
-            "trust_dir" : trust_dir,
-            "remote_server": {
-              "url": "https://myreg2.azurecr.io"
-            },
-            "trust_pinning": {
-              "ca": {
-                "": file2.path()
-              },
-              "disable_tofu": "true"
-            }
-        });
-
-        assert_eq!(
-            runtime.notary_registries.get(hostname1),
-            Some(&config_path1)
-        );
-        assert_eq!(
-            runtime.notary_registries.get(hostname2),
-            Some(&config_path2)
-        );
-        assert_eq!(actual_json_content1, expected_json_content1);
-        assert_eq!(actual_json_content2, expected_json_content2);
-    }
+    use futures::sync::mpsc::UnboundedSender;
 
     #[test]
     fn merge_env_empty() {
@@ -1646,6 +1577,55 @@ mod tests {
         assert_eq!("missing field `Name`", format!("{}", name.unwrap_err()));
     }
 
+    #[test]
+    fn unset_privileged_works() {
+        let mut create_options =
+            ContainerCreateBody::new().with_host_config(HostConfig::new().with_privileged(true));
+
+        // Doesn't remove privileged
+        unset_privileged(true, &mut create_options);
+        assert!(create_options.host_config().unwrap().privileged().unwrap());
+        // Removes privileged
+        unset_privileged(false, &mut create_options);
+        assert!(!create_options.host_config().unwrap().privileged().unwrap());
+        create_options.set_host_config(
+            HostConfig::new().with_cap_add(vec!["CAP1".to_owned(), "CAP2".to_owned()]),
+        );
+
+        // Doesn't remove caps
+        unset_privileged(true, &mut create_options);
+        assert_eq!(
+            create_options.host_config().unwrap().cap_add(),
+            Some(&vec!["CAP1".to_owned(), "CAP2".to_owned()])
+        );
+
+        // Removes caps
+        unset_privileged(false, &mut create_options);
+        assert_eq!(create_options.host_config().unwrap().cap_add(), None);
+    }
+
+    #[test]
+    fn drop_unsafe_privileges_works() {
+        let mut create_options = ContainerCreateBody::new().with_host_config(HostConfig::new());
+        // Do nothing if privileged is allowed
+        drop_unsafe_privileges(true, &mut create_options);
+        assert_eq!(create_options.host_config().unwrap().cap_drop(), None);
+        // Drops privileges by if privileged is false
+        drop_unsafe_privileges(false, &mut create_options);
+        assert_eq!(
+            create_options.host_config().unwrap().cap_drop(),
+            Some(&vec!["CAP_CHOWN".to_owned(), "CAP_SETUID".to_owned()])
+        );
+        // Doesn't drop caps if specified
+        create_options
+            .set_host_config(HostConfig::new().with_cap_add(vec!["CAP_CHOWN".to_owned()]));
+        drop_unsafe_privileges(false, &mut create_options);
+        assert_eq!(
+            create_options.host_config().unwrap().cap_drop(),
+            Some(&vec!["CAP_SETUID".to_owned()])
+        );
+    }
+
     #[derive(Clone)]
     struct TestConfig;
 
@@ -1653,10 +1633,6 @@ mod tests {
 
     impl RuntimeSettings for TestSettings {
         type Config = TestConfig;
-
-        fn provisioning(&self) -> &Provisioning {
-            unimplemented!()
-        }
 
         fn agent(&self) -> &ModuleSpec<Self::Config> {
             unimplemented!()
@@ -1667,10 +1643,6 @@ mod tests {
         }
 
         fn hostname(&self) -> &str {
-            unimplemented!()
-        }
-
-        fn parent_hostname(&self) -> Option<&str> {
             unimplemented!()
         }
 
@@ -1686,11 +1658,31 @@ mod tests {
             unimplemented!()
         }
 
-        fn certificates(&self) -> &Certificates {
+        fn watchdog(&self) -> &WatchdogSettings {
             unimplemented!()
         }
 
-        fn watchdog(&self) -> &WatchdogSettings {
+        fn endpoints(&self) -> &Endpoints {
+            unimplemented!()
+        }
+
+        fn additional_info(&self) -> &BTreeMap<String, String> {
+            unimplemented!()
+        }
+
+        fn edge_ca_cert(&self) -> Option<&str> {
+            unimplemented!()
+        }
+
+        fn edge_ca_key(&self) -> Option<&str> {
+            unimplemented!()
+        }
+
+        fn trust_bundle_cert(&self) -> Option<&str> {
+            unimplemented!()
+        }
+
+        fn auto_reprovisioning_mode(&self) -> &AutoReprovisioningMode {
             unimplemented!()
         }
     }
@@ -1776,7 +1768,6 @@ mod tests {
 
     impl MakeModuleRuntime for TestModuleList {
         type Config = TestConfig;
-        type ProvisioningResult = ProvisioningResult;
         type ModuleRuntime = Self;
         type Settings = TestSettings;
         type Error = Error;
@@ -1784,8 +1775,7 @@ mod tests {
 
         fn make_runtime(
             _settings: Self::Settings,
-            _provisioning_result: Self::ProvisioningResult,
-            _crypto: impl GetTrustBundle,
+            _recv: UnboundedSender<ModuleAction>,
         ) -> Self::Future {
             unimplemented!()
         }

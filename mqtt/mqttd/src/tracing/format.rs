@@ -1,10 +1,11 @@
 use std::marker::PhantomData;
 
-use tracing::{Event, Level};
+use tracing::{Event, Level, Subscriber};
 use tracing_log::NormalizeEvent;
 use tracing_subscriber::fmt::{
-    time::ChronoLocal, time::FormatTime, Context, FormatEvent, NewVisitor,
+    time::ChronoLocal, time::FormatTime, FmtContext, FormatEvent, FormatFields,
 };
+use tracing_subscriber::registry::LookupSpan;
 
 /// Marker for `Format` that indicates that the syslog format should be used.
 pub(crate) struct EdgeHub;
@@ -24,14 +25,15 @@ impl Default for Format<EdgeHub, ChronoLocal> {
     }
 }
 
-impl<N, T> FormatEvent<N> for Format<EdgeHub, T>
+impl<S, N, T> FormatEvent<S, N> for Format<EdgeHub, T>
 where
-    N: for<'a> NewVisitor<'a>,
+    S: Subscriber + for<'a> LookupSpan<'a>,
+    N: for<'a> FormatFields<'a> + 'static,
     T: FormatTime,
 {
     fn format_event(
         &self,
-        ctx: &Context<'_, N>,
+        ctx: &FmtContext<'_, S, N>,
         writer: &mut dyn std::fmt::Write,
         event: &Event<'_>,
     ) -> std::fmt::Result {
@@ -43,12 +45,7 @@ where
         write!(writer, "<{}> ", fmt_level.syslog_level())?;
         self.timer.format_time(writer)?;
         write!(writer, "[{}] [{}{}] - ", fmt_level, fmt_ctx, meta.target(),)?;
-
-        {
-            let mut recorder = ctx.new_visitor(writer, true);
-            event.record(&mut recorder);
-        }
-
+        ctx.format_fields(writer, event)?;
         writeln!(writer)
     }
 }
@@ -86,20 +83,24 @@ impl<'a> std::fmt::Display for FmtLevel<'a> {
 }
 
 /// Wrapper around log entry context to format entry.
-struct FullCtx<'a, N> {
-    ctx: &'a Context<'a, N>,
+struct FullCtx<'a, S, N> {
+    ctx: &'a FmtContext<'a, S, N>,
 }
 
-impl<'a, N: 'a> FullCtx<'a, N> {
-    fn new(ctx: &'a Context<'a, N>) -> Self {
+impl<'a, S, N: 'a> FullCtx<'a, S, N> {
+    fn new(ctx: &'a FmtContext<'a, S, N>) -> Self {
         Self { ctx }
     }
 }
 
-impl<'a, N> std::fmt::Display for FullCtx<'a, N> {
+impl<'a, S, N> std::fmt::Display for FullCtx<'a, S, N>
+where
+    S: Subscriber + for<'b> LookupSpan<'b>,
+    N: for<'b> FormatFields<'b> + 'static,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut seen = false;
-        self.ctx.visit_spans(|_, span| {
+        self.ctx.visit_spans(|span| {
             write!(f, "{}", span.name())?;
             seen = true;
 

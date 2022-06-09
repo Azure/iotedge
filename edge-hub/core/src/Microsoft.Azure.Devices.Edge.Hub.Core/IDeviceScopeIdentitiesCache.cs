@@ -17,6 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         Task<Option<ServiceIdentity>> GetServiceIdentity(string id);
 
+        Task<string> VerifyServiceIdentityAuthChainState(string id, bool isNestedEdgeEnabled, bool refreshCachedIdentity);
+
         Task<IList<ServiceIdentity>> GetDevicesAndModulesInTargetScopeAsync(string targetDeviceId);
 
         Task<Option<string>> GetAuthChain(string id);

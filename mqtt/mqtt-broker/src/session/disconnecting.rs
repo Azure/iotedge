@@ -30,7 +30,7 @@ impl DisconnectingSession {
         self.will
     }
 
-    pub fn send(&mut self, event: ClientEvent) -> Result<(), Error> {
+    pub fn send(&self, event: ClientEvent) -> Result<(), Error> {
         let message = Message::Client(self.client_info().client_id().clone(), event);
         self.handle.send(message)
     }

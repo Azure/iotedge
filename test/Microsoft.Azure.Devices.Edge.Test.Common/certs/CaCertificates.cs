@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
             {
                 FixedPaths.DeviceCaCert.Cert(deviceId),
                 FixedPaths.DeviceCaCert.Key(deviceId),
-                FixedPaths.DeviceCaCert.TrustCert(deviceId)
+                FixedPaths.DeviceCaCert.TrustCert
             };
         }
 

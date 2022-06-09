@@ -1,0 +1,9 @@
+steps:
+  - task: Bash@3
+    displayName: 'Clean disk'
+    name: cleandisk        
+    inputs:
+      targetType: inline
+      script: |
+        sudo docker image prune -a -f
+        sudo rm -r -f /var/opt/microsoft/linuxmonagent

@@ -126,7 +126,7 @@ The Azure IoT Edge git repository contains scripts that you can use to generate 
 
 1. Open a PowerShell window in administrator mode.
 
-1. Clone the git repo that contains scripts to generate non-production certificates. These scripts help you create the necessary certificates to use X.509 attestation when creating a DPS enrollment. Use the `git clone` command or [download the ZIP](https://github.com/Azure/iotedge/archive/master.zip).
+1. Clone the git repo that contains scripts to generate non-production certificates. These scripts help you create the necessary certificates to use X.509 attestation when creating a DPS enrollment. Use the `git clone` command or [download the ZIP](https://github.com/Azure/iotedge/archive/main.zip).
 
    ```powershell
    git clone https://github.com/Azure/iotedge.git
@@ -141,7 +141,7 @@ The Azure IoT Edge git repository contains scripts that you can use to generate 
    copy <path>\iotedge\tools\CACertificates\ca-certs.ps1 .
    ```
 
-   If you downloaded the repo as a ZIP, then the folder name is `iotedge-master` and the rest of the path is the same.
+   If you downloaded the repo as a ZIP, then the folder name is `iotedge-main` and the rest of the path is the same.
 
 1. Enable PowerShell to run the scripts.
 
@@ -306,43 +306,21 @@ For more detailed information about installing IoT Edge on Windows, including pr
 
 If the runtime started successfully, you can go into your IoT Hub and start deploying IoT Edge modules to your device. Use the following commands on your device to verify that the runtime installed and started successfully.
 
-### Linux device
-
 Check the status of the IoT Edge service.
 
 ```cmd/sh
-systemctl status iotedge
+systemctl status aziot-edged
 ```
 
 Examine service logs.
 
 ```cmd/sh
-journalctl -u iotedge --no-pager --no-full
+journalctl -u aziot-edged --no-pager --no-full
 ```
 
 List running modules.
 
 ```cmd/sh
-iotedge list
-```
-
-### Windows device
-
-Check the status of the IoT Edge service.
-
-```powershell
-Get-Service iotedge
-```
-
-Examine service logs.
-
-```powershell
-. {Invoke-WebRequest -useb aka.ms/iotedge-win} | Invoke-Expression; Get-IoTEdgeLog
-```
-
-List running modules.
-
-```powershell
 iotedge list
 ```
 

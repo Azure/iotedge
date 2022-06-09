@@ -6,7 +6,6 @@
     clippy::similar_names,
     clippy::module_name_repetitions,
     clippy::use_self,
-    clippy::match_same_arms,
     clippy::must_use_candidate,
     clippy::missing_errors_doc
 )]
@@ -19,9 +18,11 @@ mod messages;
 mod persist;
 pub mod pump;
 pub mod settings;
-mod token_source;
 pub mod upstream;
 
-pub use crate::controller::{BridgeController, BridgeControllerHandle, Error};
-
-pub use crate::config_update::BridgeControllerUpdate;
+pub use crate::{
+    config_update::BridgeControllerUpdate,
+    controller::{BridgeController, BridgeControllerHandle, Error},
+    persist::FlushOptions,
+    settings::BridgeSettings,
+};

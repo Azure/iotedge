@@ -27,8 +27,8 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             string senderSource,
             string receiverSource,
             TestReportType testReportType,
-            ITestResultCollection<TestOperationResult> senderTestResults,
-            ITestResultCollection<TestOperationResult> receiverTestResults)
+            IAsyncEnumerator<TestOperationResult> senderTestResults,
+            IAsyncEnumerator<TestOperationResult> receiverTestResults)
         {
             this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
             this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
@@ -50,9 +50,9 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
         internal TestReportType TestReportType { get; }
 
-        internal ITestResultCollection<TestOperationResult> SenderTestResults { get; }
+        internal IAsyncEnumerator<TestOperationResult> SenderTestResults { get; }
 
-        internal ITestResultCollection<TestOperationResult> ReceiverTestResults { get; }
+        internal IAsyncEnumerator<TestOperationResult> ReceiverTestResults { get; }
 
         public async Task<ITestResultReport> CreateReportAsync()
         {
@@ -158,28 +158,28 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             long senderSeqNum,
             long receiverSeqNum)
         {
-                // Check if the current message is passing
-                bool isCurrentMessagePassing = true;
+            // Check if the current message is passing
+            bool isCurrentMessagePassing = true;
 
-                EdgeHubRestartMessageResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(this.SenderTestResults.Current.Result);
-                string receiverResult = this.ReceiverTestResults.Current.Result;
+            EdgeHubRestartMessageResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(this.SenderTestResults.Current.Result);
+            string receiverResult = this.ReceiverTestResults.Current.Result;
 
-                // Verified "TrackingId;BatchId;SequenceNumber" altogether.
-                isCurrentMessagePassing &= string.Compare(senderResult.GetMessageTestResult(), receiverResult) == 0;
+            // Verified "TrackingId;BatchId;SequenceNumber" altogether.
+            isCurrentMessagePassing &= string.Compare(senderResult.GetMessageTestResult(), receiverResult) == 0;
 
-                // Verify the sequence numbers
-                isCurrentMessagePassing &= senderSeqNum == receiverSeqNum;
+            // Verify the sequence numbers
+            isCurrentMessagePassing &= senderSeqNum == receiverSeqNum;
 
-                // Verify if the report status is passable
-                isCurrentMessagePassing &= senderResult.MessageCompletedStatusCode == HttpStatusCode.OK;
+            // Verify if the report status is passable
+            isCurrentMessagePassing &= senderResult.MessageCompletedStatusCode == HttpStatusCode.OK;
 
-                // Log the data if the reportin result is failing
-                if (!isCurrentMessagePassing)
-                {
-                    Logger.LogDebug($"\n MessageResultVerification = {string.Compare(senderResult.GetMessageTestResult(), receiverResult) == 0}\n\t\t|{senderResult.GetMessageTestResult()}|\n\t\t|{receiverResult}|\n SeqeunceNumber = {senderSeqNum} {receiverSeqNum}\n MessageStatusCode = {senderResult.MessageCompletedStatusCode}\n");
-                }
+            // Log the data if the reportin result is failing
+            if (!isCurrentMessagePassing)
+            {
+                Logger.LogDebug($"\n MessageResultVerification = {string.Compare(senderResult.GetMessageTestResult(), receiverResult) == 0}\n\t\t|{senderResult.GetMessageTestResult()}|\n\t\t|{receiverResult}|\n SeqeunceNumber = {senderSeqNum} {receiverSeqNum}\n MessageStatusCode = {senderResult.MessageCompletedStatusCode}\n");
+            }
 
-                return isCurrentMessagePassing;
+            return isCurrentMessagePassing;
         }
 
         async Task<(ulong resultCount, bool hasValue, long sequenceNum)> IterateResultToSequenceNumberAsync(

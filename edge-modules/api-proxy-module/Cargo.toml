@@ -15,9 +15,11 @@ futures = "0.3"
 futures-util = "0.3"
 log = "0.4"
 md5 = "0.7"
-regex = "1.3"
+regex = "1.5"
 serde_json = "1.0"
 tokio = { version = "0.2", features = ["tcp", "time", "process","signal","sync"] }
+percent-encoding = "1.0"
+url = "2.1"
 
 azure-iot-mqtt = { path = "./rust-sdk/azure-iot-mqtt" }
 edgelet-client = { path = "../../mqtt/edgelet-client" }
@@ -27,5 +29,4 @@ mqtt3 = { path = "../../mqtt/mqtt3" }
 lazy_static = "1.4"
 matches = "0.1"
 mockito = "0.25"
-test-case = "1.0"
 tokio = { version = "0.2", features = ["macros"] }

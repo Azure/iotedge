@@ -17,13 +17,11 @@ use std::fmt;
 use std::fmt::{Debug, Formatter};
 #[cfg(target_os = "linux")]
 use std::net;
-use std::net::ToSocketAddrs;
 #[cfg(target_os = "linux")]
 use std::os::unix::io::FromRawFd;
-#[cfg(windows)]
-use std::sync::Arc;
+use std::sync::atomic::{AtomicU32, Ordering};
 #[cfg(unix)]
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use failure::{Fail, ResultExt};
 use futures::{future, Future, Poll, Stream};
@@ -33,7 +31,6 @@ use hyper::{Body, Response};
 use log::{debug, error, Level};
 use native_tls::Identity;
 #[cfg(unix)]
-use native_tls::TlsAcceptor;
 use openssl::pkcs12::Pkcs12;
 use openssl::pkey::PKey;
 use openssl::stack::Stack;
@@ -45,13 +42,12 @@ use tokio::net::TcpListener;
 use tokio_uds::UnixListener;
 use url::Url;
 
-use edgelet_core::crypto::{Certificate, CreateCertificate, KeyBytes, PrivateKey};
-use edgelet_core::{Protocol, UrlExt, UNIX_SCHEME};
+use edgelet_core::crypto::{Certificate, KeyBytes, PrivateKey};
+use edgelet_core::{UrlExt, UNIX_SCHEME};
 use edgelet_utils::log_failure;
 
 pub mod authentication;
 pub mod authorization;
-pub mod certificate_manager;
 pub mod client;
 pub mod error;
 pub mod logging;
@@ -61,7 +57,6 @@ mod unix;
 mod util;
 mod version;
 
-pub use certificate_manager::CertificateManager;
 pub use error::{BindListenerType, Error, ErrorKind, InvalidUrlReason};
 pub use pid::Pid;
 pub use util::proxy::MaybeProxyClient;
@@ -72,13 +67,15 @@ use crate::pid::PidService;
 use crate::util::incoming::Incoming;
 
 const HTTP_SCHEME: &str = "http";
-#[cfg(unix)]
-const HTTPS_SCHEME: &str = "https";
-#[cfg(windows)]
-const PIPE_SCHEME: &str = "npipe";
 const TCP_SCHEME: &str = "tcp";
 #[cfg(target_os = "linux")]
 const FD_SCHEME: &str = "fd";
+
+#[derive(Clone, Copy)]
+pub enum ConcurrencyThrottling {
+    Limited(u32),
+    NoLimit,
+}
 
 #[derive(Clone)]
 pub struct PemCertificate {
@@ -212,10 +209,10 @@ where
     <S::Service as Service>::Future: Send + 'static,
 {
     pub fn run(self) -> Run {
-        self.run_until(future::empty())
+        self.run_until(future::empty(), ConcurrencyThrottling::NoLimit)
     }
 
-    pub fn run_until<F>(self, shutdown_signal: F) -> Run
+    pub fn run_until<F>(self, shutdown_signal: F, concurrency: ConcurrencyThrottling) -> Run
     where
         F: Future<Item = (), Error = ()> + Send + 'static,
     {
@@ -227,34 +224,64 @@ where
 
         let protocol = Arc::new(protocol);
 
-        let srv = incoming.for_each(move |(socket, addr)| {
-            let protocol = protocol.clone();
+        let lock = if let ConcurrencyThrottling::Limited(limit) = concurrency {
+            Some((Arc::new(AtomicU32::new(limit)), limit))
+        } else {
+            None
+        };
 
+        let srv = incoming.for_each(move |(socket, addr)| {
+
+            if let Some((lock, limit)) = lock.clone() {
+                let limit_reached = lock.fetch_update( Ordering::AcqRel,
+                    Ordering::Acquire,
+                    |current| current.checked_sub(1),
+                    ).is_err();
+
+                if limit_reached {
+                    error!("Maximum concurrency reached, {} simultaneous connections, dropping the connection request", limit);
+                    // Return Ok so the stream is not stopped.
+                    return Ok(());
+                }
+            }
+
+            let protocol = protocol.clone();
             debug!("accepted new connection ({})", addr);
             let pid = socket.pid()?;
             let fut = new_service
                 .new_service()
-                .then(move |srv| match srv {
+                .then({
+                    let lock = lock.clone();
+                    move |srv| match srv {
                     Ok(srv) => Ok((srv, addr)),
                     Err(err) => {
                         error!("server connection error: ({})", addr);
+                        if let Some((lock, _)) = lock {
+                            lock.fetch_add(1, Ordering::AcqRel);
+                        }
                         log_failure(Level::Error, &err);
                         Err(())
                     }
-                })
-                .and_then(move |(srv, addr)| {
+                }})
+                .and_then({
+                    let lock = lock.clone();
+                    move |(srv, addr)| {
                     let service = PidService::new(pid, srv);
                     protocol
                         .serve_connection(socket, service)
-                        .then(move |result| match result {
+                        .then(move |result| {
+                            if let Some((lock, _)) = lock {
+                                lock.fetch_add(1, Ordering::AcqRel);
+                            }
+                            match result {
                             Ok(_) => Ok(()),
                             Err(err) => {
                                 error!("server connection error: ({})", addr);
                                 log_failure(Level::Error, &err);
                                 Err(())
                             }
-                        })
-                });
+                        }})
+                }});
             tokio::spawn(fut);
             Ok(())
         });
@@ -278,102 +305,53 @@ where
     pub fn port(&self) -> Option<u16> {
         match &self.incoming {
             Incoming::Tcp(listener) => listener.local_addr().ok().map(|addr| addr.port()),
-            #[cfg(unix)]
-            Incoming::Tls(listener, _, _) => listener.local_addr().ok().map(|addr| addr.port()),
             Incoming::Unix(_) => None,
         }
     }
 }
 
 pub trait HyperExt {
-    fn bind_url<C, S>(
+    fn bind_url<S>(
         &self,
         url: Url,
         new_service: S,
-        cert_manager: Option<TlsAcceptorParams<'_, C>>,
+        unix_socket_permission: u32,
     ) -> Result<Server<S>, Error>
     where
-        C: CreateCertificate + Clone,
         S: NewService<ReqBody = Body>;
 }
 
 // This variable is used on Unix but not Windows
 impl HyperExt for Http {
     #[cfg_attr(not(unix), allow(unused_variables))]
-    fn bind_url<C, S>(
+    fn bind_url<S>(
         &self,
         url: Url,
         new_service: S,
-        tls_params: Option<TlsAcceptorParams<'_, C>>,
+        unix_socket_permission: u32,
     ) -> Result<Server<S>, Error>
     where
-        C: CreateCertificate + Clone,
         S: NewService<ReqBody = Body>,
     {
         let incoming = match url.scheme() {
             HTTP_SCHEME | TCP_SCHEME => {
                 let addr = url
-                    .to_socket_addrs()
-                    .context(ErrorKind::InvalidUrl(url.to_string()))?
-                    .next()
-                    .ok_or_else(|| {
-                        ErrorKind::InvalidUrlWithReason(
-                            url.to_string(),
-                            InvalidUrlReason::NoAddress,
-                        )
-                    })?;
+                    .socket_addrs(|| None)
+                    .context(ErrorKind::InvalidUrl(url.to_string()))?;
+                let addr = addr.get(0);
+                let addr = addr.ok_or_else(|| {
+                    ErrorKind::InvalidUrlWithReason(url.to_string(), InvalidUrlReason::NoAddress)
+                })?;
 
                 let listener = TcpListener::bind(&addr)
-                    .with_context(|_| ErrorKind::BindListener(BindListenerType::Address(addr)))?;
+                    .with_context(|_| ErrorKind::BindListener(BindListenerType::Address(*addr)))?;
                 Incoming::Tcp(listener)
-            }
-            #[cfg(unix)]
-            HTTPS_SCHEME => {
-                let addr = url
-                    .to_socket_addrs()
-                    .context(ErrorKind::InvalidUrl(url.to_string()))?
-                    .next()
-                    .ok_or_else(|| {
-                        ErrorKind::InvalidUrlWithReason(
-                            url.to_string(),
-                            InvalidUrlReason::NoAddress,
-                        )
-                    })?;
-
-                let cert = tls_params
-                    .as_ref()
-                    .map(|params| params.cert_manager.get_pkcs12_certificate())
-                    .ok_or(ErrorKind::CertificateCreationError)?;
-
-                let cert = cert.context(ErrorKind::TlsBootstrapError)?;
-
-                let cert_identity = Identity::from_pkcs12(&cert, "")
-                    .context(ErrorKind::TlsIdentityCreationError)?;
-
-                let min_protocol_version =
-                    tls_params
-                        .as_ref()
-                        .map(|params| match params.min_protocol_version {
-                            Protocol::Tls10 => native_tls::Protocol::Tlsv10,
-                            Protocol::Tls11 => native_tls::Protocol::Tlsv11,
-                            Protocol::Tls12 => native_tls::Protocol::Tlsv12,
-                        });
-
-                let tls_acceptor = TlsAcceptor::builder(cert_identity)
-                    .min_protocol_version(min_protocol_version)
-                    .build()
-                    .context(ErrorKind::TlsBootstrapError)?;
-                let tls_acceptor = tokio_tls::TlsAcceptor::from(tls_acceptor);
-
-                let listener = TcpListener::bind(&addr)
-                    .with_context(|_| ErrorKind::BindListener(BindListenerType::Address(addr)))?;
-                Incoming::Tls(listener, tls_acceptor, Mutex::new(vec![]))
             }
             UNIX_SCHEME => {
                 let path = url
                     .to_uds_file_path()
                     .map_err(|_| ErrorKind::InvalidUrl(url.to_string()))?;
-                unix::listener(path)?
+                unix::listener(path, unix_socket_permission)?
             }
             #[cfg(target_os = "linux")]
             FD_SCHEME => {
@@ -433,26 +411,5 @@ impl HyperExt for Http {
             new_service,
             incoming,
         })
-    }
-}
-
-#[cfg_attr(not(unix), allow(dead_code))]
-pub struct TlsAcceptorParams<'a, C>
-where
-    C: CreateCertificate + Clone,
-{
-    cert_manager: &'a CertificateManager<C>,
-    min_protocol_version: Protocol,
-}
-
-impl<'a, C> TlsAcceptorParams<'a, C>
-where
-    C: CreateCertificate + Clone,
-{
-    pub fn new(cert_manager: &'a CertificateManager<C>, min_protocol_version: Protocol) -> Self {
-        Self {
-            cert_manager,
-            min_protocol_version,
-        }
     }
 }

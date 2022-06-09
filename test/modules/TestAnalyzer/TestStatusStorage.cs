@@ -29,7 +29,13 @@ namespace TestAnalyzer
             {
                 var partitionsList = new List<string> { "messages", "directMethods", "twins" };
                 IDbStoreProvider dbStoreprovider = DbStoreProvider.Create(
-                    new RocksDbOptionsProvider(systemEnvironment, optimizeForPerformance, Option.None<ulong>(), Option.None<int>(), Option.None<StorageLogLevel>()),
+                    new RocksDbOptionsProvider(
+                        systemEnvironment,
+                        optimizeForPerformance,
+                        Option.None<ulong>(),
+                        Option.None<ulong>(),
+                        Option.None<int>(),
+                        Option.None<StorageLogLevel>()),
                     this.GetStoragePath(storagePath),
                     partitionsList);
 

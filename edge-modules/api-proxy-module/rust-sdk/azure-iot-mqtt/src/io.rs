@@ -127,7 +127,7 @@ impl mqtt3::IoSource for IoSource {
 									.map(move |result| match result {
 										Ok((signature, server_root_certificate)) => {
 											let sas_token = make_sas_token(&signature);
-											Ok((Some(sas_token), None, Some(server_root_certificate)))
+											Ok((Some(sas_token), None, server_root_certificate))
 										},
 
 										Err(err) => Err(std::io::Error::new(std::io::ErrorKind::Other, err)),
@@ -165,9 +165,10 @@ impl mqtt3::IoSource for IoSource {
 			if let Some(identity) = identity {
 				tls_connector_builder.identity(identity);
 			}
-			if let Some(server_root_certificate) = server_root_certificate {
-				tls_connector_builder.add_root_certificate(server_root_certificate);
+			for certificate in server_root_certificate {
+				tls_connector_builder.add_root_certificate(certificate);
 			}
+			
 			let connector =
 				tls_connector_builder.build()
 				.map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, format!("could not create TLS connector: {}", err)))?;

@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
         {
             var validator = new BrokerPropertiesValidator();
 
-            EdgeHubDesiredProperties properties = ConfigTestData.GetTestData();
+            EdgeHubDesiredProperties_1_2 properties = ConfigTestData.GetTestData();
 
             var authzProperties = properties.BrokerConfiguration.Authorizations;
 
@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
         {
             var validator = new BrokerPropertiesValidator();
 
-            EdgeHubDesiredProperties properties = ConfigTestData.GetTestData();
+            EdgeHubDesiredProperties_1_2 properties = ConfigTestData.GetTestData();
 
             var authzProperties = properties.BrokerConfiguration.Authorizations;
 
@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
         {
             var validator = new BrokerPropertiesValidator();
 
-            EdgeHubDesiredProperties properties = ConfigTestData.GetTestData();
+            EdgeHubDesiredProperties_1_2 properties = ConfigTestData.GetTestData();
 
             var authzProperties = properties.BrokerConfiguration.Authorizations;
 
@@ -73,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
         {
             var validator = new BrokerPropertiesValidator();
 
-            EdgeHubDesiredProperties properties = ConfigTestData.GetTestData();
+            EdgeHubDesiredProperties_1_2 properties = ConfigTestData.GetTestData();
 
             var authzProperties = properties.BrokerConfiguration.Authorizations;
 
@@ -93,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
         {
             var validator = new BrokerPropertiesValidator();
 
-            EdgeHubDesiredProperties properties = ConfigTestData.GetTestData();
+            EdgeHubDesiredProperties_1_2 properties = ConfigTestData.GetTestData();
 
             var authzProperties = properties.BrokerConfiguration.Authorizations;
 
@@ -114,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
         {
             var validator = new BrokerPropertiesValidator();
 
-            EdgeHubDesiredProperties properties = ConfigTestData.GetTestData();
+            EdgeHubDesiredProperties_1_2 properties = ConfigTestData.GetTestData();
 
             var authzProperties = properties.BrokerConfiguration.Authorizations;
 
@@ -133,7 +133,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
         {
             var validator = new BrokerPropertiesValidator();
 
-            EdgeHubDesiredProperties properties = ConfigTestData.GetTestData();
+            EdgeHubDesiredProperties_1_2 properties = ConfigTestData.GetTestData();
 
             IList<string> errors = validator.ValidateBridgeConfig(properties.BrokerConfiguration.Bridges);
 
@@ -157,8 +157,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
             IList<string> errors = validator.ValidateBridgeConfig(bridgeConfig);
 
             Assert.Equal(2, errors.Count);
-            Assert.Equal("Bridge 0: Endpoint must not be empty", errors[0]);
-            Assert.Equal("Bridge 1: Settings must not be empty", errors[1]);
+            Assert.Equal("Bridge endpoint must not be empty", errors[0]);
+            Assert.Equal("Bridge floor2: Settings must not be empty", errors[1]);
         }
 
         [Fact]
@@ -177,9 +177,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
             IList<string> errors = validator.ValidateBridgeConfig(bridgeConfig);
 
             Assert.Equal(3, errors.Count);
-            Assert.Equal("Bridge 0: Topic is invalid: topic/#/a", errors[0]);
-            Assert.Equal("Bridge 0: InPrefix must not contain wildcards (+, #)", errors[1]);
-            Assert.Equal("Bridge 0: OutPrefix must not contain wildcards (+, #)", errors[2]);
+            Assert.Equal("Bridge $upstream: Rule 0: Topic is invalid: topic/#/a", errors[0]);
+            Assert.Equal("Bridge $upstream: Rule 0: InPrefix must not contain wildcards (+, #)", errors[1]);
+            Assert.Equal("Bridge $upstream: Rule 0: OutPrefix must not contain wildcards (+, #)", errors[2]);
         }
     }
 }

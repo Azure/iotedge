@@ -67,48 +67,50 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         {
             Preconditions.CheckNotNull(properties, nameof(properties));
 
-            var order = 0;
             var errors = new List<string>();
             foreach (var bridge in properties)
             {
-                ValidateBridge(bridge, order, errors);
-                order++;
+                ValidateBridge(bridge, errors);
             }
 
             return errors;
         }
 
-        static void ValidateBridge(Bridge bridge, int order, List<string> errors)
+        static void ValidateBridge(Bridge bridge, List<string> errors)
         {
             if (string.IsNullOrEmpty(bridge.Endpoint))
             {
-                errors.Add($"Bridge {order}: Endpoint must not be empty");
+                errors.Add($"Bridge endpoint must not be empty");
             }
 
-            if (bridge.Settings.Count == 0)
+            if (!bridge.Endpoint.Equals("$upstream", StringComparison.InvariantCultureIgnoreCase)
+                && bridge.Settings.Count == 0)
             {
-                errors.Add($"Bridge {order}: Settings must not be empty");
+                errors.Add($"Bridge {bridge.Endpoint}: Settings must not be empty");
             }
 
+            var order = 0;
             foreach (var setting in bridge.Settings)
             {
                 if (setting.Topic != null
                     && !IsValidTopicFilter(setting.Topic))
                 {
-                    errors.Add($"Bridge {order}: Topic is invalid: {setting.Topic}");
+                    errors.Add($"Bridge {bridge.Endpoint}: Rule {order}: Topic is invalid: {setting.Topic}");
                 }
 
                 if (setting.InPrefix.Contains("+")
                     || setting.InPrefix.Contains("#"))
                 {
-                    errors.Add($"Bridge {order}: InPrefix must not contain wildcards (+, #)");
+                    errors.Add($"Bridge {bridge.Endpoint}: Rule {order}: InPrefix must not contain wildcards (+, #)");
                 }
 
                 if (setting.OutPrefix.Contains("+")
                     || setting.OutPrefix.Contains("#"))
                 {
-                    errors.Add($"Bridge {order}: OutPrefix must not contain wildcards (+, #)");
+                    errors.Add($"Bridge {bridge.Endpoint}: Rule {order}: OutPrefix must not contain wildcards (+, #)");
                 }
+
+                order++;
             }
         }
 

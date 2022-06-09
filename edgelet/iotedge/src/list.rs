@@ -76,7 +76,7 @@ where
 fn humanize_state(state: &ModuleRuntimeState) -> String {
     match *state.status() {
         ModuleStatus::Unknown => "Unknown".to_string(),
-        ModuleStatus::Stopped => state.finished_at().map_or_else(
+        ModuleStatus::Stopped | ModuleStatus::Dead => state.finished_at().map_or_else(
             || "Stopped".to_string(),
             |time| {
                 format!(

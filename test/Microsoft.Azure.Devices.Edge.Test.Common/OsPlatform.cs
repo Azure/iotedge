@@ -14,27 +14,24 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public class OsPlatform
     {
-        public static readonly IOsPlatform Current = IsWindows() ? new Windows.OsPlatform() as IOsPlatform : new Linux.OsPlatform();
-
-        public static bool IsWindows() => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+        public static readonly IOsPlatform Current = new Linux.OsPlatform();
 
         public static bool Is64Bit() => RuntimeInformation.OSArchitecture == Architecture.X64 || RuntimeInformation.OSArchitecture == Architecture.Arm64;
 
         public static bool IsArm() => RuntimeInformation.OSArchitecture == Architecture.Arm || RuntimeInformation.OSArchitecture == Architecture.Arm64;
 
-        protected CaCertificates GetEdgeQuickstartCertificates(string basePath) =>
+        public CaCertificates GetEdgeQuickstartCertificates(string deviceId) =>
             new CaCertificates(
-                    FixedPaths.QuickStartCaCert.Cert(basePath),
-                    FixedPaths.QuickStartCaCert.Key(basePath),
-                    FixedPaths.QuickStartCaCert.TrustCert(basePath));
+                    FixedPaths.QuickStartCaCert.Cert(deviceId),
+                    FixedPaths.QuickStartCaCert.Key(deviceId),
+                    FixedPaths.QuickStartCaCert.TrustCert(deviceId));
 
         protected async Task InstallRootCertificateAsync(
             string basePath,
             (string name, string args) command,
             CancellationToken token)
         {
-            string[] output = await Process.RunAsync(command.name, command.args, token);
-            Log.Verbose(string.Join("\n", output));
+            await Process.RunAsync(command.name, command.args, token);
 
             var files = new[]
             {
@@ -62,8 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             CancellationToken token)
         {
             Log.Verbose("Executing: " + command.name + ' ' + command.args);
-            string[] output = await Process.RunAsync(command.name, command.args, token);
-            Log.Verbose(string.Join("\n", output));
+            await Process.RunAsync(command.name, command.args, token);
         }
 
         static void CheckFiles(IEnumerable<string> paths, string basePath) => NormalizeFiles(paths, basePath);

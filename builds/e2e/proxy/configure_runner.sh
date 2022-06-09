@@ -39,9 +39,9 @@ cp ~/proxy-env.override.conf /etc/systemd/system/docker.service.d/
 systemctl daemon-reload
 systemctl restart docker
 
-# add iotedged's proxy settings (even though iotedged isn't installed--the tests do that later)
-mkdir -p /etc/systemd/system/iotedge.service.d
-cp ~/proxy-env.override.conf /etc/systemd/system/iotedge.service.d/
+# add aziot-identityd's proxy settings (even though aziot-identityd isn't installed--the tests do that later)
+mkdir -p /etc/systemd/system/aziot-identityd.service.d
+cp ~/proxy-env.override.conf /etc/systemd/system/aziot-identityd.service.d/
 
 echo 'Verifying VM behavior behind proxy server'
 

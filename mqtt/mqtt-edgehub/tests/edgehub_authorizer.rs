@@ -45,6 +45,7 @@ async fn pub_sub_not_allowed_identity_not_in_cache() {
         server_handle.address(),
         None,
         None,
+        None,
     )
     .await;
 
@@ -77,7 +78,7 @@ async fn pub_sub_not_allowed_identity_not_in_cache() {
                 false,
             ),
             retain: false,
-            topic_name: "$edgehub/device-1/twin/get?rid=42".into(),
+            topic_name: "$edgehub/device-1/twin/get?$rid=42".into(),
             payload: Bytes::from("qos 1"),
         })
         .await;
@@ -146,6 +147,7 @@ async fn auth_update_happy_case() {
     let mut device_client = PacketStream::connect(
         ClientId::IdWithCleanSession("device-1".into()),
         server_handle.address(),
+        None,
         None,
         None,
     )
@@ -234,6 +236,7 @@ async fn authorization_update_reevaluates_sessions() {
     let mut device_client = PacketStream::connect(
         ClientId::IdWithCleanSession("device-1".into()),
         server_handle.address(),
+        None,
         None,
         None,
     )

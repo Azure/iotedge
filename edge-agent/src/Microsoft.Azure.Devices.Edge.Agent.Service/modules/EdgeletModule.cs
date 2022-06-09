@@ -44,6 +44,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly TimeSpan performanceMetricsUpdateFrequency;
         readonly bool useServerHeartbeat;
         readonly string backupConfigFilePath;
+        readonly bool checkImagePullBeforeModuleCreate;
+        readonly bool disableDeviceAnalyticsTelemetry;
 
         public EdgeletModule(
             string iotHubHostname,
@@ -59,7 +61,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             TimeSpan idleTimeout,
             TimeSpan performanceMetricsUpdateFrequency,
             bool useServerHeartbeat,
-            string backupConfigFilePath)
+            string backupConfigFilePath,
+            bool checkImagePullBeforeModuleCreate,
+            bool disableDeviceAnalyticsTelemetry)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
@@ -75,20 +79,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.performanceMetricsUpdateFrequency = performanceMetricsUpdateFrequency;
             this.useServerHeartbeat = useServerHeartbeat;
             this.backupConfigFilePath = Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath));
+            this.checkImagePullBeforeModuleCreate = checkImagePullBeforeModuleCreate;
+            this.disableDeviceAnalyticsTelemetry = disableDeviceAnalyticsTelemetry;
         }
 
         protected override void Load(ContainerBuilder builder)
         {
             // IModuleClientProvider
-            builder.Register(
-                    c => new ModuleClientProvider(
-                        c.Resolve<ISdkModuleClientProvider>(),
-                        this.upstreamProtocol,
-                        this.proxy,
-                        this.productInfo,
-                        this.closeOnIdleTimeout,
-                        this.idleTimeout,
-                        this.useServerHeartbeat))
+            builder.Register(c => new ModuleClientProvider(
+                    c.Resolve<ISdkModuleClientProvider>(),
+                    this.disableDeviceAnalyticsTelemetry ?
+                        Option.None<Task<IRuntimeInfoProvider>>() :
+                        Option.Some(c.Resolve<Task<IRuntimeInfoProvider>>()),
+                    this.upstreamProtocol,
+                    this.proxy,
+                    this.productInfo,
+                    this.closeOnIdleTimeout,
+                    this.idleTimeout,
+                    this.useServerHeartbeat))
                 .As<IModuleClientProvider>()
                 .SingleInstance();
 
@@ -129,7 +137,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         ICommandFactory factory = new EdgeletCommandFactory<CombinedDockerConfig>(
                             moduleManager,
                             configSource,
-                            combinedDockerConfigProvider);
+                            combinedDockerConfigProvider,
+                            this.checkImagePullBeforeModuleCreate);
                         factory = new MetricsCommandFactory(factory, metricsProvider);
                         return new LoggingCommandFactory(factory, loggerFactory) as ICommandFactory;
                     })

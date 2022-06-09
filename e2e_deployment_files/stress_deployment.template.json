@@ -40,9 +40,6 @@
               "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
             },
             "env": {
-              "CollectMetrics": {
-                "value": "true"
-              },
               "amqpSettings__enabled": {
                 "value": "<amqpSettings__enabled>"
               },
@@ -57,6 +54,9 @@
               },
               "NestedEdgeEnabled": {
                 "value": "false"
+              },
+              "SslProtocols": {
+                "value": "tls1.2"
               }
             },
             "status": "running",
@@ -292,7 +292,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/snitcher:<Snitch.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Binds\":[\"/var/run/iotedge/mgmt.sock:/var/run/iotedge/mgmt.sock\"]}}"
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"/var/lib/iotedge/mgmt.sock:/var/lib/iotedge/mgmt.sock\"]}}"
             }
           },
           "analyzer": {
@@ -350,7 +350,7 @@
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-test-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           }

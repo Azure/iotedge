@@ -2,82 +2,102 @@
 namespace TestResultCoordinator.Reports
 {
     using System;
+    using System.Collections.Generic;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
 
-    class CloudTwinTestResultCollection : ITestResultCollection<TestOperationResult>
+    class CloudTwinTestResultCollection : IAsyncEnumerable<TestOperationResult>
     {
-        static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(CloudTwinTestResultCollection));
-        readonly RegistryManager registryManager;
-        readonly string moduleId;
-        readonly string trackingId;
-        readonly string source;
-        TestOperationResult current;
-        bool isLoaded;
+        CloudTwinTestResultCollectionEnumerator enumerator;
 
         public CloudTwinTestResultCollection(string source, string serviceClientConnectionString, string moduleId, string trackingId)
         {
-            this.registryManager = RegistryManager.CreateFromConnectionString(serviceClientConnectionString);
-            this.isLoaded = false;
-            this.moduleId = moduleId;
-            this.source = source;
-            this.trackingId = trackingId;
+            CloudTwinTestResultCollectionEnumerator enumerator = new CloudTwinTestResultCollectionEnumerator(source, serviceClientConnectionString, moduleId, trackingId);
+            this.enumerator = enumerator;
         }
 
-        TestOperationResult ITestResultCollection<TestOperationResult>.Current => this.current;
-
-        public void Dispose()
+        public IAsyncEnumerator<TestOperationResult> GetAsyncEnumerator(CancellationToken _)
         {
-            this.registryManager.Dispose();
+            return this.enumerator;
         }
 
-        public async Task<bool> MoveNextAsync()
+        public class CloudTwinTestResultCollectionEnumerator : IAsyncEnumerator<TestOperationResult>
         {
-            if (!this.isLoaded)
+            static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(CloudTwinTestResultCollection));
+            readonly RegistryManager registryManager;
+            readonly string moduleId;
+            readonly string trackingId;
+            readonly string source;
+            TestOperationResult current;
+            bool isLoaded;
+
+            internal CloudTwinTestResultCollectionEnumerator(string source, string serviceClientConnectionString, string moduleId, string trackingId)
             {
-                this.current = await this.GetTwinAsync();
-                this.isLoaded = true;
+                this.registryManager = RegistryManager.CreateFromConnectionString(serviceClientConnectionString);
+                this.isLoaded = false;
+                this.moduleId = moduleId;
+                this.source = source;
+                this.trackingId = trackingId;
+                this.current = default(TestOperationResult);
             }
-            else
+
+            public TestOperationResult Current => this.current;
+
+            public ValueTask DisposeAsync()
             {
+                RegistryManager rm = this.registryManager;
+                return new ValueTask(Task.Run(() => rm.Dispose()));
+            }
+
+            public async ValueTask<bool> MoveNextAsync()
+            {
+                if (!this.isLoaded)
+                {
+                    this.current = await this.GetTwinAsync();
+                    this.isLoaded = true;
+                }
+                else
+                {
+                    this.current = null;
+                }
+
+                return this.current != null;
+            }
+
+            public void Reset()
+            {
+                this.isLoaded = false;
                 this.current = null;
             }
 
-            return this.current != null;
-        }
-
-        public void Reset()
-        {
-            this.isLoaded = false;
-            this.current = null;
-        }
-
-        async Task<TestOperationResult> GetTwinAsync()
-        {
-            try
+            async Task<TestOperationResult> GetTwinAsync()
             {
-                Twin twin = await this.registryManager.GetTwinAsync(Settings.Current.DeviceId, this.moduleId);
-                if (twin == null)
+                try
                 {
-                    Logger.LogError($"Twin was null for {this.moduleId}");
+                    Twin twin = await this.registryManager.GetTwinAsync(Settings.Current.DeviceId, this.moduleId);
+                    if (twin == null)
+                    {
+                        Logger.LogError($"Twin was null for {this.moduleId}");
+                        return null;
+                    }
+
+                    Logger.LogDebug($"Twin reported properties from cloud {twin.Properties.Reported}");
+
+                    return new TwinTestResult(this.source, twin.LastActivityTime.HasValue ? twin.LastActivityTime.Value : DateTime.UtcNow)
+                    {
+                        TrackingId = this.trackingId,
+                        Properties = twin.Properties.Reported
+                    }.ToTestOperationResult();
+                }
+                catch (Exception e)
+                {
+                    Logger.LogError(e, $"Failed to get twin for {this.moduleId}");
                     return null;
                 }
-
-                Logger.LogDebug($"Twin reported properties from cloud {twin.Properties.Reported}");
-
-                return new TwinTestResult(this.source, twin.LastActivityTime.HasValue ? twin.LastActivityTime.Value : DateTime.UtcNow)
-                {
-                    TrackingId = this.trackingId,
-                    Properties = twin.Properties.Reported
-                }.ToTestOperationResult();
-            }
-            catch (Exception e)
-            {
-                Logger.LogError(e, $"Failed to get twin for {this.moduleId}");
-                return null;
             }
         }
     }

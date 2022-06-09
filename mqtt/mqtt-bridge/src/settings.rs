@@ -1,43 +1,36 @@
-#![allow(dead_code)] // TODO remove when ready
+use std::{
+    num::{NonZeroU64, NonZeroUsize},
+    path::PathBuf,
+    time::Duration,
+    vec::Vec,
+};
 
-use std::{path::Path, time::Duration, vec::Vec};
+use serde::{Deserialize, Deserializer};
 
-use config::{Config, ConfigError, Environment, File, FileFormat};
-use serde::Deserialize;
+use mqtt_util::{CredentialProviderSettings, Credentials};
 
-pub const DEFAULTS: &str = include_str!("../config/default.json");
+use crate::persist::FlushOptions;
+
 const DEFAULT_UPSTREAM_PORT: &str = "8883";
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct BridgeSettings {
     upstream: Option<ConnectionSettings>,
-
     remotes: Vec<ConnectionSettings>,
-
-    messages: MessagesSettings,
+    storage: StorageSettings,
 }
 
 impl BridgeSettings {
-    pub fn new() -> Result<Self, ConfigError> {
-        let mut config = Config::new();
-
-        config.merge(File::from_str(DEFAULTS, FileFormat::Json))?;
-        config.merge(Environment::new())?;
-
-        config.try_into()
-    }
-
-    pub fn from_file<P>(path: P) -> Result<Self, ConfigError>
-    where
-        P: AsRef<Path>,
-    {
-        let mut config = Config::new();
-
-        config.merge(File::from_str(DEFAULTS, FileFormat::Json))?;
-        config.merge(File::from(path.as_ref()))?;
-        config.merge(Environment::new())?;
-
-        config.try_into()
+    pub fn new(
+        upstream: Option<ConnectionSettings>,
+        remotes: Vec<ConnectionSettings>,
+        storage: StorageSettings,
+    ) -> Self {
+        BridgeSettings {
+            upstream,
+            remotes,
+            storage,
+        }
     }
 
     pub fn upstream(&self) -> Option<&ConnectionSettings> {
@@ -48,8 +41,8 @@ impl BridgeSettings {
         &self.remotes
     }
 
-    pub fn messages(&self) -> &MessagesSettings {
-        &self.messages
+    pub fn storage(&self) -> &StorageSettings {
+        &self.storage
     }
 }
 
@@ -62,26 +55,24 @@ impl<'de> serde::Deserialize<'de> for BridgeSettings {
         struct Inner {
             #[serde(flatten)]
             nested_bridge: Option<CredentialProviderSettings>,
-
             upstream: UpstreamSettings,
-
             remotes: Vec<ConnectionSettings>,
-
-            messages: MessagesSettings,
+            storage: StorageSettings,
         }
 
         let Inner {
             nested_bridge,
             upstream,
             remotes,
-            messages,
+            storage,
         } = serde::Deserialize::deserialize(deserializer)?;
 
         let upstream_connection_settings = nested_bridge.map(|nested_bridge| ConnectionSettings {
             name: "$upstream".into(),
             address: format!(
                 "{}:{}",
-                nested_bridge.gateway_hostname, DEFAULT_UPSTREAM_PORT
+                nested_bridge.gateway_hostname(),
+                DEFAULT_UPSTREAM_PORT
             ),
             subscriptions: upstream.subscriptions,
             credentials: Credentials::Provider(nested_bridge),
@@ -92,7 +83,7 @@ impl<'de> serde::Deserialize<'de> for BridgeSettings {
         Ok(BridgeSettings {
             upstream: upstream_connection_settings,
             remotes,
-            messages,
+            storage,
         })
     }
 }
@@ -100,21 +91,36 @@ impl<'de> serde::Deserialize<'de> for BridgeSettings {
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct ConnectionSettings {
     name: String,
-
     address: String,
 
     #[serde(flatten)]
     credentials: Credentials,
-
     subscriptions: Vec<Direction>,
 
     #[serde(with = "humantime_serde")]
     keep_alive: Duration,
-
     clean_session: bool,
 }
 
 impl ConnectionSettings {
+    pub fn new(
+        name: impl Into<String>,
+        address: impl Into<String>,
+        credentials: Credentials,
+        subscriptions: Vec<Direction>,
+        keep_alive: Duration,
+        clean_session: bool,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            address: address.into(),
+            credentials,
+            subscriptions,
+            keep_alive,
+            clean_session,
+        }
+    }
+
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -156,92 +162,6 @@ impl ConnectionSettings {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Deserialize)]
-#[serde(untagged)]
-pub enum Credentials {
-    Anonymous(String),
-    PlainText(AuthenticationSettings),
-    Provider(CredentialProviderSettings),
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
-pub struct AuthenticationSettings {
-    client_id: String,
-
-    username: String,
-
-    password: String,
-}
-
-impl AuthenticationSettings {
-    pub fn new(client_id: String, username: String, password: String) -> Self {
-        Self {
-            client_id,
-            username,
-            password,
-        }
-    }
-
-    pub fn client_id(&self) -> &str {
-        &self.client_id
-    }
-
-    pub fn username(&self) -> &str {
-        &self.username
-    }
-
-    pub fn password(&self) -> &str {
-        &self.password
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Deserialize)]
-pub struct CredentialProviderSettings {
-    #[serde(rename = "iotedge_iothubhostname")]
-    iothub_hostname: String,
-
-    #[serde(rename = "iotedge_gatewayhostname")]
-    gateway_hostname: String,
-
-    #[serde(rename = "iotedge_deviceid")]
-    device_id: String,
-
-    #[serde(rename = "iotedge_moduleid")]
-    module_id: String,
-
-    #[serde(rename = "iotedge_modulegenerationid")]
-    generation_id: String,
-
-    #[serde(rename = "iotedge_workloaduri")]
-    workload_uri: String,
-}
-
-impl CredentialProviderSettings {
-    pub fn iothub_hostname(&self) -> &str {
-        &self.iothub_hostname
-    }
-
-    pub fn gateway_hostname(&self) -> &str {
-        &self.gateway_hostname
-    }
-
-    pub fn device_id(&self) -> &str {
-        &self.device_id
-    }
-
-    pub fn module_id(&self) -> &str {
-        &self.module_id
-    }
-
-    pub fn generation_id(&self) -> &str {
-        &self.generation_id
-    }
-
-    pub fn workload_uri(&self) -> &str {
-        &self.workload_uri
-    }
-}
-
 #[derive(Debug, Default, Clone, PartialEq, Deserialize)]
 pub struct TopicRule {
     topic: String,
@@ -254,26 +174,34 @@ pub struct TopicRule {
 }
 
 impl TopicRule {
+    pub fn new(
+        topic: impl Into<String>,
+        in_prefix: Option<String>,
+        out_prefix: Option<String>,
+    ) -> Self {
+        Self {
+            topic: topic.into(),
+            out_prefix,
+            in_prefix,
+        }
+    }
+
     pub fn topic(&self) -> &str {
         &self.topic
     }
 
     pub fn out_prefix(&self) -> Option<&str> {
-        self.out_prefix.as_deref()
+        self.out_prefix.as_deref().filter(|s| !s.is_empty())
     }
 
     pub fn in_prefix(&self) -> Option<&str> {
-        self.in_prefix.as_deref()
+        self.in_prefix.as_deref().filter(|s| !s.is_empty())
     }
 
     pub fn subscribe_to(&self) -> String {
         match &self.in_prefix {
             Some(local) => {
-                if local.is_empty() {
-                    self.topic.clone()
-                } else {
-                    format!("{}/{}", local, self.topic)
-                }
+                format!("{}{}", local, self.topic)
             }
             None => self.topic.clone(),
         }
@@ -294,140 +222,116 @@ pub enum Direction {
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
-pub struct MessagesSettings {}
-
-#[derive(Debug, Clone, PartialEq, Deserialize)]
 struct UpstreamSettings {
     #[serde(with = "humantime_serde")]
     keep_alive: Duration,
-
     clean_session: bool,
-
     subscriptions: Vec<Direction>,
 }
 
-#[cfg(test)]
-mod tests {
-    use config::ConfigError;
-    use serial_test::serial;
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(tag = "type")]
+pub enum StorageSettings {
+    #[serde(rename = "memory")]
+    Memory(MemorySettings),
 
-    use super::BridgeSettings;
-    use super::Credentials;
-    use mqtt_broker_tests_util::env;
+    #[serde(rename = "ring_buffer")]
+    RingBuffer(RingBufferSettings),
+}
 
-    #[test]
-    #[serial(env_settings)]
-    fn new_overrides_settings_from_env() {
-        it_overrides_settings_from_env(BridgeSettings::new);
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+pub struct MemorySettings {
+    #[serde(deserialize_with = "deserialize_nonzerouusize")]
+    max_size: NonZeroUsize,
+}
+
+impl MemorySettings {
+    pub fn new(max_size: NonZeroUsize) -> Self {
+        Self { max_size }
     }
 
-    #[test]
-    #[serial(env_settings)]
-    fn new_no_upstream_settings() {
-        let settings = BridgeSettings::new().unwrap();
+    pub fn max_size(&self) -> NonZeroUsize {
+        self.max_size
+    }
+}
 
-        assert_eq!(settings.remotes().len(), 0);
-        assert_eq!(settings.upstream(), None);
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+pub struct RingBufferSettings {
+    #[serde(deserialize_with = "deserialize_nonzerou64")]
+    max_file_size: NonZeroU64,
+    directory: PathBuf,
+    flush_options: FlushOptions,
+}
+
+impl RingBufferSettings {
+    pub fn new(max_file_size: NonZeroU64, directory: PathBuf, flush_options: FlushOptions) -> Self {
+        Self {
+            max_file_size,
+            directory,
+            flush_options,
+        }
     }
 
-    #[test]
-    #[serial(env_settings)]
-    fn from_file_reads_nested_bridge_settings() {
-        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
-        let upstream = settings.upstream().unwrap();
-
-        assert_eq!(upstream.name(), "$upstream");
-        assert_eq!(upstream.address(), "edge1:8883");
-
-        match upstream.credentials() {
-            Credentials::Provider(provider) => {
-                assert_eq!(provider.iothub_hostname(), "iothub");
-                assert_eq!(provider.device_id(), "d1");
-                assert_eq!(provider.module_id(), "mymodule");
-                assert_eq!(provider.generation_id(), "321");
-                assert_eq!(provider.workload_uri(), "uri");
-            }
-            _ => panic!("Expected provider settings"),
-        };
+    pub fn max_file_size(&self) -> NonZeroU64 {
+        self.max_file_size
     }
 
-    #[test]
-    #[serial(env_settings)]
-    fn from_file_reads_remotes_settings() {
-        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
-        let len = settings.remotes().len();
-
-        assert_eq!(len, 1);
-        let remote = settings.remotes().first().unwrap();
-        assert_eq!(remote.name(), "r1");
-        assert_eq!(remote.address(), "remote:8883");
-        assert_eq!(remote.keep_alive().as_secs(), 60);
-        assert_eq!(remote.clean_session(), false);
-
-        match remote.credentials() {
-            Credentials::PlainText(auth_settings) => {
-                assert_eq!(auth_settings.username(), "mymodule");
-                assert_eq!(auth_settings.password(), "pass");
-                assert_eq!(auth_settings.client_id(), "client");
-            }
-            _ => panic!("Expected plaintext settings"),
-        };
+    pub fn directory(&self) -> &PathBuf {
+        &self.directory
     }
 
-    #[test]
-    #[serial(env_settings)]
-    fn from_default_sets_keepalive_settings() {
-        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
-
-        assert_eq!(settings.upstream().unwrap().keep_alive().as_secs(), 60);
+    pub fn flush_options(&self) -> &FlushOptions {
+        &self.flush_options
     }
+}
 
-    #[test]
-    #[serial(env_settings)]
-    fn from_file_overrides_settings_from_env() {
-        it_overrides_settings_from_env(|| BridgeSettings::from_file("tests/config.json"));
-    }
+fn deserialize_nonzerou64<'de, D>(deserializer: D) -> Result<NonZeroU64, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = match serde_json::value::Value::deserialize(deserializer)? {
+        serde_json::value::Value::String(value) => value.parse::<u64>().map_err(|err| {
+            serde::de::Error::custom(format!("Cannot parse string value into u64: {}", err))
+        })?,
+        serde_json::value::Value::Number(value) => value.as_u64().ok_or_else(|| {
+            serde::de::Error::custom(format!("Cannot parse numeric value {}", value))
+        })?,
+        _ => {
+            return Err(serde::de::Error::custom(
+                "Cannot parse value: wrong type, expected String or Number",
+            ))
+        }
+    };
+    Ok(NonZeroU64::new(value).ok_or_else(|| {
+        serde::de::Error::custom(format!(
+            "Cannot parse numeric value {} into NonZeroU64",
+            value
+        ))
+    })?)
+}
 
-    #[test]
-    #[serial(env_settings)]
-    fn from_env_no_gateway_hostname() {
-        let _device_id = env::set_var("IOTEDGE_DEVICEID", "device1");
-        let _module_id = env::set_var("IOTEDGE_MODULEID", "m1");
-        let _generation_id = env::set_var("IOTEDGE_MODULEGENERATIONID", "123");
-        let _workload_uri = env::set_var("IOTEDGE_WORKLOADURI", "workload");
-        let _iothub_hostname = env::set_var("IOTEDGE_IOTHUBHOSTNAME", "iothub");
-
-        let settings = BridgeSettings::new().unwrap();
-
-        assert_eq!(settings.upstream(), None);
-    }
-
-    fn it_overrides_settings_from_env<F>(make_settings: F)
-    where
-        F: FnOnce() -> Result<BridgeSettings, ConfigError>,
-    {
-        let _gateway_hostname = env::set_var("IOTEDGE_GATEWAYHOSTNAME", "upstream");
-        let _device_id = env::set_var("IOTEDGE_DEVICEID", "device1");
-        let _module_id = env::set_var("IOTEDGE_MODULEID", "m1");
-        let _generation_id = env::set_var("IOTEDGE_MODULEGENERATIONID", "123");
-        let _workload_uri = env::set_var("IOTEDGE_WORKLOADURI", "workload");
-        let _iothub_hostname = env::set_var("IOTEDGE_IOTHUBHOSTNAME", "iothub");
-
-        let settings = make_settings().unwrap();
-        let upstream = settings.upstream().unwrap();
-
-        assert_eq!(upstream.name(), "$upstream");
-        assert_eq!(upstream.address(), "upstream:8883");
-
-        match upstream.credentials() {
-            Credentials::Provider(provider) => {
-                assert_eq!(provider.iothub_hostname(), "iothub");
-                assert_eq!(provider.device_id(), "device1");
-                assert_eq!(provider.module_id(), "m1");
-                assert_eq!(provider.generation_id(), "123");
-                assert_eq!(provider.workload_uri(), "workload");
-            }
-            _ => panic!("Expected provider settings"),
-        };
-    }
+fn deserialize_nonzerouusize<'de, D>(deserializer: D) -> Result<NonZeroUsize, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[allow(clippy::cast_possible_truncation)]
+    let value = match serde_json::value::Value::deserialize(deserializer)? {
+        serde_json::value::Value::String(value) => value.parse::<usize>().map_err(|err| {
+            serde::de::Error::custom(format!("Cannot parse string value into usize: {}", err))
+        })?,
+        serde_json::value::Value::Number(value) => value.as_u64().ok_or_else(|| {
+            serde::de::Error::custom(format!("Cannot parse numeric value {}", value))
+        })? as usize,
+        _ => {
+            return Err(serde::de::Error::custom(
+                "Cannot parse value: wrong type, expected String or Number",
+            ))
+        }
+    };
+    Ok(NonZeroUsize::new(value).ok_or_else(|| {
+        serde::de::Error::custom(format!(
+            "Cannot parse numeric value {} into NonZeroUsize",
+            value
+        ))
+    })?)
 }

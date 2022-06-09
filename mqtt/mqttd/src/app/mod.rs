@@ -1,3 +1,4 @@
+mod cleanup;
 mod shutdown;
 mod snapshot;
 
@@ -17,7 +18,7 @@ cfg_if! {
     }
 }
 
-use std::path::Path;
+use std::{path::Path, time::Duration};
 
 use anyhow::{Context, Result};
 use async_trait::async_trait;
@@ -69,6 +70,10 @@ where
         let (mut snapshotter_shutdown_handle, snapshotter_join_handle) =
             snapshot::start_snapshotter(broker.handle(), persistor, snapshot_interval).await;
 
+        let expiration = self.bootstrap.session_expiration(&self.settings);
+        let cleanup_interval = self.bootstrap.session_cleanup_interval(&self.settings);
+        cleanup::start_cleanup(broker.handle(), cleanup_interval, expiration).await?;
+
         let state = self.bootstrap.run(self.settings, broker).await?;
 
         snapshotter_shutdown_handle.shutdown().await?;
@@ -107,7 +112,13 @@ pub trait Bootstrap {
     ) -> Result<(Broker<Self::Authorizer>, FilePersistor<VersionedFileFormat>)>;
 
     /// Returns update interval for snapshotter.
-    fn snapshot_interval(&self, settings: &Self::Settings) -> std::time::Duration;
+    fn snapshot_interval(&self, settings: &Self::Settings) -> Duration;
+
+    /// Returns session expiration.
+    fn session_expiration(&self, settings: &Self::Settings) -> Duration;
+
+    /// Returns session cleanup interval.
+    fn session_cleanup_interval(&self, settings: &Self::Settings) -> Duration;
 
     /// Runs all configured routines: MQTT server, sidecars, etc..
     async fn run(

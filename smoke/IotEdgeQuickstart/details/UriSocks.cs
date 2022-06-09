@@ -7,8 +7,8 @@ namespace IotEdgeQuickstart.Details
         {
             this.ConnectManagement = string.IsNullOrEmpty(ConnectManagementUri) ? "unix:///var/run/iotedge/mgmt.sock" : ConnectManagementUri;
             this.ConnectWorkload = string.IsNullOrEmpty(ConnectWorkloadUri) ? "unix:///var/run/iotedge/workload.sock" : ConnectWorkloadUri;
-            this.ListenManagement = string.IsNullOrEmpty(ListenManagementUri) ? "fd://iotedge.mgmt.socket" : ListenManagementUri;
-            this.ListenWorkload = string.IsNullOrEmpty(ListenWorkloadUri) ? "fd://iotedge.socket" : ListenWorkloadUri;
+            this.ListenManagement = string.IsNullOrEmpty(ListenManagementUri) ? "fd://aziot-edged.mgmt.socket" : ListenManagementUri;
+            this.ListenWorkload = string.IsNullOrEmpty(ListenWorkloadUri) ? "fd://aziot-edged.workload.socket" : ListenWorkloadUri;
         }
 
         public string ConnectManagement { get; }

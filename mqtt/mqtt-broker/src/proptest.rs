@@ -2,13 +2,15 @@
 use std::{net::IpAddr, net::SocketAddr, time::Duration};
 
 use bytes::Bytes;
-use mqtt3::proto;
+use chrono::Utc;
 use proptest::{
     bool,
     collection::{hash_map, vec, vec_deque},
     num,
     prelude::*,
 };
+
+use mqtt3::proto;
 
 use crate::{
     AuthId, BrokerSnapshot, ClientId, ClientInfo, Publish, Segment, SessionSnapshot, Subscription,
@@ -28,12 +30,15 @@ prop_compose! {
     pub fn arb_session_snapshot()(
         client_info in arb_client_info(),
         subscriptions in hash_map(arb_topic(), arb_subscription(), 0..5),
-        waiting_to_be_sent in vec_deque(arb_publication(), 0..5),
+        waiting_to_be_sent in vec_deque(arb_publication(), 0..3),
+        waiting_to_be_acked in vec_deque(arb_proto_publish(), 0..3),
     ) -> SessionSnapshot {
         SessionSnapshot::from_parts(
             client_info,
             subscriptions,
             waiting_to_be_sent,
+            waiting_to_be_acked,
+            Utc::now()
         )
     }
 }

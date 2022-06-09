@@ -2,16 +2,17 @@ use std::marker::PhantomData;
 use std::path::Path;
 use std::time::Duration;
 
+use edgelet_core::ModuleAction;
 use edgelet_core::{
-    AuthId, Authenticator, Certificates, Connect, DiskInfo, GetTrustBundle, Listen, LogOptions,
-    MakeModuleRuntime, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    Provisioning, ProvisioningInfo, ProvisioningResult, RuntimeSettings, SystemInfo,
-    SystemResources, WatchdogSettings,
+    settings::AutoReprovisioningMode, AuthId, Authenticator, Connect, DiskInfo, Endpoints, Listen,
+    LogOptions, MakeModuleRuntime, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState,
+    ModuleSpec, ProvisioningInfo, RuntimeSettings, SystemInfo, SystemResources, WatchdogSettings,
 };
 use failure::Fail;
 use futures::future::{self, FutureResult};
 use futures::prelude::*;
 use futures::stream;
+use futures::sync::mpsc::UnboundedSender;
 use futures::IntoFuture;
 use hyper::{Body, Request};
 
@@ -81,10 +82,6 @@ impl TestSettings {
 impl RuntimeSettings for TestSettings {
     type Config = TestConfig;
 
-    fn provisioning(&self) -> &Provisioning {
-        unimplemented!()
-    }
-
     fn agent(&self) -> &ModuleSpec<Self::Config> {
         unimplemented!()
     }
@@ -94,10 +91,6 @@ impl RuntimeSettings for TestSettings {
     }
 
     fn hostname(&self) -> &str {
-        unimplemented!()
-    }
-
-    fn parent_hostname(&self) -> Option<&str> {
         unimplemented!()
     }
 
@@ -113,11 +106,31 @@ impl RuntimeSettings for TestSettings {
         unimplemented!()
     }
 
-    fn certificates(&self) -> &Certificates {
+    fn watchdog(&self) -> &WatchdogSettings {
         unimplemented!()
     }
 
-    fn watchdog(&self) -> &WatchdogSettings {
+    fn endpoints(&self) -> &Endpoints {
+        unimplemented!()
+    }
+
+    fn additional_info(&self) -> &std::collections::BTreeMap<String, String> {
+        unimplemented!()
+    }
+
+    fn edge_ca_cert(&self) -> Option<&str> {
+        unimplemented!()
+    }
+
+    fn edge_ca_key(&self) -> Option<&str> {
+        unimplemented!()
+    }
+
+    fn trust_bundle_cert(&self) -> Option<&str> {
+        unimplemented!()
+    }
+
+    fn auto_reprovisioning_mode(&self) -> &AutoReprovisioningMode {
         unimplemented!()
     }
 }
@@ -275,25 +288,6 @@ impl<E> From<TestBody<E>> for Body {
     }
 }
 
-#[derive(Default)]
-pub struct TestProvisioningResult;
-
-impl TestProvisioningResult {
-    pub fn new() -> Self {
-        TestProvisioningResult {}
-    }
-}
-
-impl ProvisioningResult for TestProvisioningResult {
-    fn device_id(&self) -> &str {
-        unimplemented!()
-    }
-
-    fn hub_name(&self) -> &str {
-        unimplemented!()
-    }
-}
-
 impl<E, S> MakeModuleRuntime for TestRuntime<E, S>
 where
     E: Clone + Fail,
@@ -302,15 +296,13 @@ where
 {
     type Config = S::Config;
     type Settings = S;
-    type ProvisioningResult = TestProvisioningResult;
     type ModuleRuntime = Self;
     type Error = E;
     type Future = FutureResult<Self, Self::Error>;
 
     fn make_runtime(
         settings: Self::Settings,
-        _: Self::ProvisioningResult,
-        _: impl GetTrustBundle,
+        _create_socket_channel: UnboundedSender<ModuleAction>,
     ) -> Self::Future {
         future::ok(TestRuntime {
             module: None,
@@ -393,19 +385,32 @@ where
     fn system_info(&self) -> Self::SystemInfoFuture {
         match self.module.as_ref().unwrap() {
             Ok(_) => future::ok(SystemInfo {
-                os_type: "os_type_sample".to_string(),
-                architecture: "architecture_sample".to_string(),
-                version: edgelet_core::version_with_source_version(),
+                kernel: "linux".to_owned(),
+                kernel_release: "5.0".to_owned(),
+                kernel_version: "1".to_owned(),
+
+                operating_system: "os".to_owned().into(),
+                operating_system_version: "version".to_owned().into(),
+                operating_system_variant: "variant".to_owned().into(),
+                operating_system_build: "1".to_owned().into(),
+
+                architecture: "architecture_sample".to_owned(),
+                cpus: 0,
+                virtualized: "test".to_owned(),
+
+                product_name: "product".to_owned().into(),
+                system_vendor: "vendor".to_owned().into(),
+
+                version: edgelet_core::version_with_source_version().to_owned(),
+                server_version: None,
+
                 provisioning: ProvisioningInfo {
                     r#type: "test".to_string(),
                     dynamic_reprovisioning: false,
                     always_reprovision_on_startup: true,
                 },
-                cpus: 0,
-                virtualized: "test",
-                kernel_version: "test".to_string(),
-                operating_system: "test".to_string(),
-                server_version: "test".to_string(),
+
+                additional_properties: std::collections::BTreeMap::new(),
             }),
             Err(ref e) => future::err(e.clone()),
         }

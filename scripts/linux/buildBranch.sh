@@ -22,7 +22,6 @@ SRC_E2E_TEST_FILES_DIR=$ROOT_FOLDER/e2e_test_files
 SRC_CERT_TOOLS_DIR=$ROOT_FOLDER/tools/CACertificates
 FUNCTIONS_SAMPLE_DIR=$ROOT_FOLDER/edge-modules/functions/samples
 VERSIONINFO_FILE_PATH=$BUILD_REPOSITORY_LOCALPATH/versionInfo.json
-CONNECTIVITY_TEST_SCRIPT_DIR=$ROOT_FOLDER/test/connectivity/scripts
 DOTNET_RUNTIME=netcoreapp3.1
 
 usage()
@@ -237,7 +236,7 @@ publish_app "DirectMethodReceiver"
 publish_app "ModuleRestarter"
 publish_app "TwinTester"
 publish_app "Relayer"
-publish_app "MetricsCollector"
+publish_app "TestMetricsCollector"
 publish_app "TestResultCoordinator"
 publish_app "NetworkController"
 publish_app "DeploymentTester"
@@ -246,15 +245,14 @@ publish_app "MetricsValidator"
 publish_app "NumberLogger"
 publish_app "CloudToDeviceMessageTester"
 publish_app "IotedgeDiagnosticsDotnet"
+publish_app "EdgeHubTriggerCSharp"
 
-publish_lib "EdgeHubTriggerCSharp"
 publish_lib "Microsoft.Azure.WebJobs.Extensions.EdgeHub"
 
 publish_files $SRC_SCRIPTS_DIR $PUBLISH_FOLDER
 publish_files $SRC_E2E_TEMPLATES_DIR $PUBLISH_FOLDER
 publish_files $SRC_E2E_TEST_FILES_DIR $PUBLISH_FOLDER
 publish_files $SRC_CERT_TOOLS_DIR $PUBLISH_FOLDER
-publish_files $CONNECTIVITY_TEST_SCRIPT_DIR $PUBLISH_FOLDER
 
 publish_quickstart linux-arm
 publish_quickstart linux-x64

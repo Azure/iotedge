@@ -6,16 +6,18 @@ use mqtt3::ShutdownError;
 use tracing::{debug, error, info, info_span};
 use tracing_futures::Instrument;
 
+use mqtt_util::Credentials;
+
 use crate::{
     client::{ClientError, MqttClientConfig},
     config_update::BridgeDiff,
-    persist::{PersistError, PublicationStore, StreamWakeableState, WakingMemoryStore},
+    persist::{PersistError, PublicationStore, RingBuffer, StreamWakeableState, WakingMemoryStore},
     pump::{Builder, Pump, PumpError, PumpHandle, PumpMessage},
-    settings::{ConnectionSettings, Credentials},
+    settings::{ConnectionSettings, MemorySettings, RingBufferSettings},
     upstream::{
-        ConnectivityError, LocalUpstreamMqttEventHandler, LocalUpstreamPumpEvent,
-        LocalUpstreamPumpEventHandler, RemoteUpstreamMqttEventHandler, RemoteUpstreamPumpEvent,
-        RemoteUpstreamPumpEventHandler, RpcError,
+        ConnectivityError, ConnectivityState, LocalUpstreamMqttEventHandler,
+        LocalUpstreamPumpEvent, LocalUpstreamPumpEventHandler, RemoteUpstreamMqttEventHandler,
+        RemoteUpstreamPumpEvent, RemoteUpstreamPumpEventHandler, RpcError,
     },
 };
 
@@ -77,12 +79,11 @@ impl Bridge<WakingMemoryStore> {
         system_address: &str,
         device_id: &str,
         settings: &ConnectionSettings,
+        memory_settings: MemorySettings,
     ) -> Result<Self, BridgeError> {
-        const BATCH_SIZE: usize = 10;
-
         debug!("creating bridge {}...", settings.name());
 
-        let (local_pump, remote_pump) = Builder::default()
+        let (local_pump, remote_pump) = Builder::<WakingMemoryStore>::default()
             .with_local(|pump| {
                 pump.with_config(MqttClientConfig::new(
                     system_address,
@@ -101,7 +102,50 @@ impl Bridge<WakingMemoryStore> {
                 ))
                 .with_rules(settings.subscriptions());
             })
-            .with_store(|| PublicationStore::new_memory(BATCH_SIZE))
+            .with_store(move |_| Ok(PublicationStore::new_memory(&memory_settings)))
+            .build()?;
+
+        debug!("created bridge {}...", settings.name());
+
+        Ok(Bridge {
+            local_pump,
+            remote_pump,
+        })
+    }
+}
+
+impl Bridge<RingBuffer> {
+    pub fn new_upstream(
+        system_address: &str,
+        device_id: &str,
+        settings: &ConnectionSettings,
+        ring_buffer_settings: RingBufferSettings,
+    ) -> Result<Self, BridgeError> {
+        debug!("creating bridge {}...", settings.name());
+        let bridge_name = String::from(settings.name());
+
+        let (local_pump, remote_pump) = Builder::<RingBuffer>::default()
+            .with_local(|pump| {
+                pump.with_config(MqttClientConfig::new(
+                    system_address,
+                    settings.keep_alive(),
+                    settings.clean_session(),
+                    Credentials::Anonymous(format!("{}/{}/$bridge", device_id, settings.name())),
+                ))
+                .with_rules(settings.forwards());
+            })
+            .with_remote(|pump| {
+                pump.with_config(MqttClientConfig::new(
+                    settings.address(),
+                    settings.keep_alive(),
+                    settings.clean_session(),
+                    settings.credentials().clone(),
+                ))
+                .with_rules(settings.subscriptions());
+            })
+            .with_store(move |suffix| {
+                PublicationStore::new_ring_buffer(&ring_buffer_settings, &bridge_name, suffix)
+            })
             .build()?;
 
         debug!("created bridge {}...", settings.name());
@@ -120,11 +164,18 @@ where
     pub async fn run(self) -> Result<(), BridgeError> {
         info!("starting bridge...");
 
-        let shutdown_local_pump = self.local_pump.handle();
+        let mut local_pump_handle = self.local_pump.handle();
         let local_pump = self
             .local_pump
             .run()
             .instrument(info_span!("pump", name = "local"));
+
+        // Send initial state as disconnected
+        local_pump_handle
+            .send(PumpMessage::Event(
+                LocalUpstreamPumpEvent::ConnectivityUpdate(ConnectivityState::Disconnected),
+            ))
+            .await?;
 
         let shutdown_remote_pump = self.remote_pump.handle();
         let remote_pump = self
@@ -161,7 +212,7 @@ where
                 }
 
                 debug!("shutting down local pump...");
-                shutdown_local_pump.shutdown().await;
+                local_pump_handle.shutdown().await;
 
                 if let Err(e) = local_pump.await {
                     error!(error = %e, "local pump exited with error");
@@ -183,16 +234,16 @@ where
 /// Bridge error.
 #[derive(Debug, thiserror::Error)]
 pub enum BridgeError {
-    #[error("failed to save to store.")]
+    #[error("failed to save to store. Caused by: {0}")]
     Store(#[from] PersistError),
 
-    #[error("failed to subscribe to topic.")]
+    #[error("failed to subscribe to topic. Caused by: {0}")]
     Subscribe(#[source] ClientError),
 
-    #[error("failed to parse topic pattern.")]
+    #[error("failed to parse topic pattern. Caused by: {0}")]
     TopicFilterParse(#[from] mqtt_broker::Error),
 
-    #[error("failed to load settings.")]
+    #[error("failed to load settings. Caused by: {0}")]
     LoadingSettings(#[from] config::ConfigError),
 
     #[error("Failed to get send pump message.")]
@@ -201,24 +252,27 @@ pub enum BridgeError {
     #[error("Failed to send message to pump: {0}")]
     SendBridgeUpdate(#[from] PumpError),
 
-    #[error("failed to execute RPC command")]
+    #[error("failed to execute RPC command. Caused by: {0}")]
     Rpc(#[from] RpcError),
 
-    #[error("failed to execute connectivity event")]
+    #[error("failed to execute connectivity event. Caused by: {0}")]
     Connectivity(#[from] ConnectivityError),
 
     #[error("failed to signal bridge shutdown.")]
-    ShutdownBridge(()),
+    ShutdownBridge,
 
-    #[error("failed to get publish handle from client.")]
+    #[error("failed to get publish handle from client. Caused by: {0}")]
     PublishHandle(#[source] ClientError),
 
-    #[error("failed to validate client settings: {0}")]
+    #[error("failed to validate client settings. Caused by: {0}")]
     ValidationError(#[source] ClientError),
 
-    #[error("failed to get subscribe handle from client.")]
+    #[error("failed to get subscribe handle from client. Caused by: {0}")]
     UpdateSubscriptionHandle(#[source] ClientError),
 
-    #[error("failed to get publish handle from client.")]
+    #[error("failed to get publish handle from client. Caused by: {0}")]
     ClientShutdown(#[from] ShutdownError),
+
+    #[error("storage not set")]
+    UnsetStorage,
 }

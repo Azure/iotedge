@@ -10,15 +10,20 @@
 
   <ItemGroup>
     <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="2.3.2" />
-    <PackageReference Include="Microsoft.Azure.Devices" Version="1.22.4-NestedEdge" />
+    <PackageReference Include="Microsoft.Azure.Devices" Version="1.31.1" />
     <PackageReference Include="Microsoft.Azure.EventHubs" Version="3.0.0" />
     <PackageReference Include="RunProcessAsTask" Version="1.2.4" />
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="4.5.0" />
-    <PackageReference Include="YamlDotNet" Version="6.0.0" />
+    <PackageReference Include="Nett" Version="0.15.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\edge-util\test\Microsoft.Azure.Devices.Edge.Util.Test.Common\Microsoft.Azure.Devices.Edge.Util.Test.Common.csproj" />
+    <ProjectReference Include="..\..\test\Microsoft.Azure.Devices.Edge.Test.Common\Microsoft.Azure.Devices.Edge.Test.Common.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\test\Microsoft.Azure.Devices.Edge.Test.Common\TomlDocument.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -26,6 +31,6 @@
   </ItemGroup>
   <PropertyGroup>
     <CodeAnalysisRuleSet>..\..\stylecop.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>  
+  </PropertyGroup>
   <Import Project="..\..\stylecop.props" />
 </Project>

@@ -39,6 +39,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         Task<Option<IClientCredentials>> GetUpdatedIdentity();
 
-        bool IsDirectClient { get; }
+        IConnectionInfo ConnectionInfo { get; }
     }
 }

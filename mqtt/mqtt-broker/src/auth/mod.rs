@@ -57,7 +57,7 @@ impl<T: Into<Identity>> From<T> for AuthId {
 
 /// Non-anonymous client identity.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
-pub struct Identity(Arc<String>);
+pub struct Identity(Arc<str>);
 
 impl Identity {
     pub fn as_str(&self) -> &str {
@@ -65,9 +65,9 @@ impl Identity {
     }
 }
 
-impl<T: Into<String>> From<T> for Identity {
-    fn from(s: T) -> Self {
-        Self(Arc::new(s.into()))
+impl<T: AsRef<str>> From<T> for Identity {
+    fn from(identity: T) -> Self {
+        Self(identity.as_ref().into())
     }
 }
 

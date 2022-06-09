@@ -13,27 +13,30 @@ namespace TestResultCoordinator.Reports
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TwinCountingReportGenerator));
         readonly string testDescription;
+        readonly Topology topology;
         readonly string trackingId;
         readonly string expectedSource;
-        readonly ITestResultCollection<TestOperationResult> expectedTestResults;
+        readonly IAsyncEnumerator<TestOperationResult> expectedTestResults;
         readonly string actualSource;
-        readonly ITestResultCollection<TestOperationResult> actualTestResults;
+        readonly IAsyncEnumerator<TestOperationResult> actualTestResults;
         readonly string resultType;
         readonly ushort unmatchedResultsMaxSize;
         SimpleTestOperationResultComparer testResultComparer;
 
         internal TwinCountingReportGenerator(
             string testDescription,
+            Topology topology,
             string trackingId,
             string expectedSource,
-            ITestResultCollection<TestOperationResult> expectedTestResults,
+            IAsyncEnumerator<TestOperationResult> expectedTestResults,
             string actualSource,
-            ITestResultCollection<TestOperationResult> actualTestResults,
+            IAsyncEnumerator<TestOperationResult> actualTestResults,
             string testOperationResultType,
             SimpleTestOperationResultComparer testResultComparer,
             ushort unmatchedResultsMaxSize)
         {
             this.testDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
+            this.topology = topology;
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.expectedTestResults = Preconditions.CheckNotNull(expectedTestResults, nameof(expectedTestResults));
             this.expectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
@@ -119,6 +122,7 @@ namespace TestResultCoordinator.Reports
 
             return new TwinCountingReport(
                 this.testDescription,
+                this.topology,
                 this.trackingId,
                 this.expectedSource,
                 this.actualSource,

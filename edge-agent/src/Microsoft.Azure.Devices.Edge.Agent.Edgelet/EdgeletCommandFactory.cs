@@ -16,11 +16,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         readonly ICombinedConfigProvider<T> combinedConfigProvider;
         readonly string edgeDeviceHostname;
         readonly Option<string> parentEdgeHostname;
+        readonly bool checkImagePullBeforeModuleCreate;
 
         public EdgeletCommandFactory(
             IModuleManager moduleManager,
             IConfigSource configSource,
-            ICombinedConfigProvider<T> combinedConfigProvider)
+            ICombinedConfigProvider<T> combinedConfigProvider,
+            bool checkImagePullBeforeModuleCreate)
         {
             this.moduleManager = Preconditions.CheckNotNull(moduleManager, nameof(moduleManager));
             this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
@@ -32,19 +34,41 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             }
 
             this.parentEdgeHostname = Option.Maybe(this.configSource.Configuration.GetValue<string>(Constants.GatewayHostnameVariableName));
+            this.checkImagePullBeforeModuleCreate = checkImagePullBeforeModuleCreate;
         }
 
-        public Task<ICommand> CreateAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo) =>
-            Task.FromResult(
-                CreateOrUpdateCommand.BuildCreate(
-                    this.moduleManager,
-                    module.Module,
-                    module.ModuleIdentity,
-                    this.configSource,
-                    this.combinedConfigProvider.GetCombinedConfig(module.Module, runtimeInfo),
-                    this.edgeDeviceHostname,
-                    this.parentEdgeHostname)
-                as ICommand);
+        public Task<ICommand> CreateAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
+        {
+            if (this.checkImagePullBeforeModuleCreate)
+            {
+                T config = this.combinedConfigProvider.GetCombinedConfig(module.Module, runtimeInfo);
+                return Task.FromResult(
+                    new GroupCommand(
+                        new PrepareUpdateCommand(this.moduleManager, module.Module, config),
+                        CreateOrUpdateCommand.BuildCreate(
+                            this.moduleManager,
+                            module.Module,
+                            module.ModuleIdentity,
+                            this.configSource,
+                            config,
+                            this.edgeDeviceHostname,
+                            this.parentEdgeHostname)
+                        as ICommand) as ICommand);
+            }
+            else
+            {
+                return Task.FromResult(
+                    CreateOrUpdateCommand.BuildCreate(
+                        this.moduleManager,
+                        module.Module,
+                        module.ModuleIdentity,
+                        this.configSource,
+                        this.combinedConfigProvider.GetCombinedConfig(module.Module, runtimeInfo),
+                        this.edgeDeviceHostname,
+                        this.parentEdgeHostname)
+                    as ICommand);
+            }
+        }
 
         public Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo) =>
             this.UpdateAsync(Option.Some(current), next, runtimeInfo, false);

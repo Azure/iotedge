@@ -6,33 +6,28 @@ use failure::ResultExt;
 use futures::{Future, Stream};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Request, Response, StatusCode};
-use serde::Serialize;
 
-use edgelet_core::{Identity as CoreIdentity, IdentityManager, IdentityOperation, IdentitySpec};
+use aziot_identity_common::Identity as AziotIdentity;
+use edgelet_core::{IdentityOperation, IdentitySpec};
 use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
+use identity_client::client::IdentityClient;
 use management::models::{Identity, IdentitySpec as CreateIdentitySpec};
 
 use crate::error::{Error, ErrorKind};
 use crate::IntoResponse;
 
-pub struct CreateIdentity<I> {
-    id_manager: Arc<Mutex<I>>,
+pub struct CreateIdentity {
+    id_manager: Arc<Mutex<IdentityClient>>,
 }
 
-impl<I> CreateIdentity<I> {
-    pub fn new(id_manager: I) -> Self {
-        CreateIdentity {
-            id_manager: Arc::new(Mutex::new(id_manager)),
-        }
+impl CreateIdentity {
+    pub fn new(id_manager: Arc<Mutex<IdentityClient>>) -> Self {
+        CreateIdentity { id_manager }
     }
 }
 
-impl<I> Handler<Parameters> for CreateIdentity<I>
-where
-    I: 'static + IdentityManager + Send,
-    I::Identity: CoreIdentity + Serialize,
-{
+impl Handler<Parameters> for CreateIdentity {
     fn handle(
         &self,
         req: Request<Body>,
@@ -41,41 +36,50 @@ where
         let id_mgr = self.id_manager.clone();
         let response = read_request(req)
             .and_then(move |spec| {
-                let mut rid = id_mgr.lock().unwrap();
+                let rid = id_mgr.lock().unwrap();
 
                 let module_id = spec.module_id().to_string();
+                let managed_by = spec.managed_by().unwrap_or("iotedge").to_string();
 
-                rid.create(spec).then(|identity| -> Result<_, Error> {
-                    let identity = identity.with_context(|_| {
-                        ErrorKind::IdentityOperation(IdentityOperation::CreateIdentity(module_id))
-                    })?;
+                rid.create_module(module_id.as_ref())
+                    .then(move |identity| -> Result<_, Error> {
+                        let identity = identity.with_context(|_| ErrorKind::IotHub)?;
 
-                    let module_id = identity.module_id().to_string();
+                        let (module_id, generation_id, auth) = match identity {
+                            AziotIdentity::Aziot(spec) => (
+                                spec.module_id.ok_or(ErrorKind::IotHub)?,
+                                spec.gen_id.ok_or(ErrorKind::IotHub)?,
+                                spec.auth.ok_or(ErrorKind::IotHub)?,
+                            ),
+                            AziotIdentity::Local(_) => {
+                                return Err(Error::from(ErrorKind::InvalidIdentityType))
+                            }
+                        };
 
-                    let identity = Identity::new(
-                        module_id.clone(),
-                        identity.managed_by().to_string(),
-                        identity.generation_id().to_string(),
-                        identity.auth_type().to_string(),
-                    );
+                        let identity = Identity::new(
+                            module_id.0.clone(),
+                            managed_by,
+                            generation_id.0,
+                            auth.auth_type.to_string(),
+                        );
 
-                    let b = serde_json::to_string(&identity).with_context(|_| {
-                        ErrorKind::IdentityOperation(IdentityOperation::CreateIdentity(
-                            module_id.clone(),
-                        ))
-                    })?;
-                    let response = Response::builder()
-                        .status(StatusCode::OK)
-                        .header(CONTENT_TYPE, "application/json")
-                        .header(CONTENT_LENGTH, b.len().to_string().as_str())
-                        .body(b.into())
-                        .with_context(|_| {
+                        let b = serde_json::to_string(&identity).with_context(|_| {
                             ErrorKind::IdentityOperation(IdentityOperation::CreateIdentity(
-                                module_id,
+                                module_id.0.clone(),
                             ))
                         })?;
-                    Ok(response)
-                })
+                        let response = Response::builder()
+                            .status(StatusCode::OK)
+                            .header(CONTENT_TYPE, "application/json")
+                            .header(CONTENT_LENGTH, b.len().to_string().as_str())
+                            .body(b.into())
+                            .with_context(|_| {
+                                ErrorKind::IdentityOperation(IdentityOperation::CreateIdentity(
+                                    module_id.0,
+                                ))
+                            })?;
+                        Ok(response)
+                    })
             })
             .or_else(|e| Ok(e.into_response()));
 
@@ -94,151 +98,4 @@ fn read_request(req: Request<Body>) -> impl Future<Item = IdentitySpec, Error = 
         }
         Ok(spec)
     })
-}
-
-#[cfg(test)]
-mod tests {
-    use edgelet_core::AuthType;
-    use edgelet_test_utils::identity::{TestIdentity, TestIdentityManager};
-    use futures::Stream;
-    use management::models::ErrorResponse;
-    use serde_json::{json, Value};
-
-    use super::{
-        Body, CoreIdentity, CreateIdentity, Future, Handler, Parameters, Request, StatusCode,
-    };
-
-    #[test]
-    fn create_succeeds() {
-        let manager = TestIdentityManager::new(vec![]);
-        let handler = CreateIdentity::new(manager);
-        let val = json!({ "moduleId": "m1" });
-        let request = Request::post("http://localhost/identities")
-            .body(serde_json::to_string(&val).unwrap().into())
-            .unwrap();
-
-        let response = handler
-            .handle(request, Parameters::default())
-            .wait()
-            .unwrap();
-        response
-            .into_body()
-            .concat2()
-            .and_then(|body| {
-                // make sure the JSON matches what we expect
-                let json: Value = serde_json::from_slice(&body).unwrap();
-                let expected_json = json!({
-                    "moduleId": "m1",
-                    "managedBy": "",
-                    "generationId": "1",
-                    "authType": "Sas",
-                });
-                assert_eq!(expected_json, json);
-
-                let identity: TestIdentity = serde_json::from_slice(&body).unwrap();
-                assert_eq!("m1", identity.module_id());
-                assert_eq!("", identity.managed_by());
-                assert_eq!("1", identity.generation_id());
-                assert_eq!(AuthType::Sas, identity.auth_type());
-
-                Ok(())
-            })
-            .wait()
-            .unwrap();
-    }
-
-    #[test]
-    fn create_with_managed_by_succeeds() {
-        let manager = TestIdentityManager::new(vec![]);
-        let handler = CreateIdentity::new(manager);
-        let val = json!({ "moduleId": "m1", "managedBy": "foo" });
-        let request = Request::post("http://localhost/identities")
-            .body(serde_json::to_string(&val).unwrap().into())
-            .unwrap();
-
-        let response = handler
-            .handle(request, Parameters::default())
-            .wait()
-            .unwrap();
-        response
-            .into_body()
-            .concat2()
-            .and_then(|body| {
-                // make sure the JSON matches what we expect
-                let json: Value = serde_json::from_slice(&body).unwrap();
-                let expected_json = json!({
-                    "moduleId": "m1",
-                    "managedBy": "foo",
-                    "generationId": "1",
-                    "authType": "Sas",
-                });
-                assert_eq!(expected_json, json);
-
-                let identity: TestIdentity = serde_json::from_slice(&body).unwrap();
-                assert_eq!("m1", identity.module_id());
-                assert_eq!("foo", identity.managed_by());
-                assert_eq!("1", identity.generation_id());
-                assert_eq!(AuthType::Sas, identity.auth_type());
-
-                Ok(())
-            })
-            .wait()
-            .unwrap();
-    }
-
-    #[test]
-    fn create_no_body() {
-        let manager = TestIdentityManager::new(vec![]);
-        let handler = CreateIdentity::new(manager);
-        let request = Request::put("http://localhost/identities")
-            .body(Body::default())
-            .unwrap();
-        let response = handler
-            .handle(request, Parameters::default())
-            .wait()
-            .unwrap();
-
-        assert_eq!(StatusCode::BAD_REQUEST, response.status());
-
-        response
-            .into_body()
-            .concat2()
-            .and_then(|body| {
-                let error: ErrorResponse = serde_json::from_slice(&body).unwrap();
-                assert_eq!("Request body is malformed\n\tcaused by: EOF while parsing a value at line 1 column 0", error.message());
-                Ok(())
-            }).wait()
-            .unwrap();
-    }
-
-    #[test]
-    fn create_fails() {
-        let manager = TestIdentityManager::new(vec![]).with_fail_create(true);
-        let handler = CreateIdentity::new(manager);
-        let val = json!({ "moduleId": "m1" });
-        let request = Request::put("http://localhost/identities")
-            .body(serde_json::to_string(&val).unwrap().into())
-            .unwrap();
-
-        let response = handler
-            .handle(request, Parameters::default())
-            .wait()
-            .unwrap();
-
-        assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
-
-        response
-            .into_body()
-            .concat2()
-            .and_then(|body| {
-                let error: ErrorResponse = serde_json::from_slice(&body).unwrap();
-                assert_eq!(
-                    "Could not create identity m1\n\tcaused by: General error",
-                    error.message()
-                );
-                Ok(())
-            })
-            .wait()
-            .unwrap();
-    }
 }

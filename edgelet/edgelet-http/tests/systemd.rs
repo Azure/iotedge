@@ -12,8 +12,7 @@
 use std::sync::{Mutex, MutexGuard};
 use std::{env, io};
 
-use edgelet_hsm::Crypto;
-use edgelet_http::{HyperExt, TlsAcceptorParams};
+use edgelet_http::HyperExt;
 use futures::{future, Future};
 use hyper::server::conn::Http;
 use hyper::service::Service;
@@ -85,7 +84,7 @@ fn test_fd_ok() {
         // it's not possible to work around it by telling `Http` to bind to `fd://1/` - it'll just complain that `fd://0/` (ie fd 3)
         // isn't a valid fd.
         //
-        // On local builds, fd 3 *does* seem to be available, and E2E tests also use fds for the iotedged service, so we can just pretend
+        // On local builds, fd 3 *does* seem to be available, and E2E tests also use fds for the aziot-edged service, so we can just pretend
         // the test succeeded without losing coverage.
 
         unistd::close(fd).unwrap();
@@ -106,7 +105,7 @@ fn test_fd_ok() {
             };
             Ok::<_, io::Error>(service)
         },
-        None::<TlsAcceptorParams<'_, Crypto>>,
+        0o666,
     );
     if let Err(err) = run {
         unistd::close(fd).unwrap();
@@ -139,7 +138,7 @@ fn test_fd_err() {
             };
             Ok::<_, io::Error>(service)
         },
-        None::<TlsAcceptorParams<'_, Crypto>>,
+        0o666,
     );
 
     unistd::close(fd).unwrap();

@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -51,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public void SetConnector(IMqttBrokerConnector connector) => this.connector = connector;
 
-        public async Task<Option<IDeviceListener>> GetDeviceListenerAsync(IIdentity identity, bool directOnCreation)
+        public async Task<Option<IDeviceListener>> GetOrCreateDeviceListenerAsync(IIdentity identity, bool directOnCreation)
         {
             using (await this.guard.LockAsync())
             {
@@ -121,6 +122,44 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
         }
 
+        public async Task UpdateNestedParentInfoAsync(IEnumerable<IIdentity> childDevices, IIdentity parentIdentity)
+        {
+            using (await this.guard.LockAsync())
+            {
+                foreach (var children in childDevices)
+                {
+                    var maybeListener = default(Option<IDeviceListener>);
+                    if (!this.knownConnections.TryGetValue(children, out var listener))
+                    {
+                        maybeListener = await this.CreateDeviceListenerAsync(children, false);
+                    }
+                    else
+                    {
+                        maybeListener = Option.Some(listener);
+                    }
+
+                    maybeListener.ForEach(
+                        l =>
+                        {
+                            if (l is IDeviceProxy proxy)
+                            {
+                                proxy.ConnectionInfo.BindToParent(parentIdentity);
+                            }
+                        });
+                }
+            }
+        }
+
+        public async Task<IReadOnlyList<IIdentity>> GetNestedConnectionsAsync(IIdentity parentIdentity)
+        {
+            using (await this.guard.LockAsync())
+            {
+                return this.knownConnections.Values.OfType<IDeviceProxy>()
+                                                    .Where(p => !p.ConnectionInfo.IsDirectClient && p.ConnectionInfo.KnownParent.Filter(i => i.Id == parentIdentity.Id).HasValue)
+                                                    .Select(p => p.Identity).ToArray();
+            }
+        }
+
         async Task HandleDeviceConnectedAsync(MqttPublishInfo mqttPublishInfo)
         {
             var updatedIdentities = this.GetIdentitiesFromUpdateMessage(mqttPublishInfo);
@@ -157,7 +196,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                         // Clients connected indirectly (through a child edge device) will not be reported
                         // by broker events and appear in the 'identitiesRemoved' list as missing identities.
                         // Ignore those:
-                        if (!proxy.IsDirectClient)
+                        if (!proxy.ConnectionInfo.IsDirectClient)
                         {
                             continue;
                         }
@@ -166,6 +205,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
                 if (this.knownConnections.TryRemove(identity, out var deviceListener))
                 {
+                    await deviceListener.RemoveSubscriptions();
                     await deviceListener.CloseAsync();
                 }
                 else

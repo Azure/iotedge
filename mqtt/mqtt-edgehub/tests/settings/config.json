@@ -1,0 +1,98 @@
+{
+    "listener": {
+        "tcp": {
+            "address": "0.0.0.0:1883"
+        },
+        "tls": {
+            "address": "0.0.0.0:8883"
+        },
+        "system": {
+            "address": "0.0.0.0:1882"
+        }
+    },
+    "auth": {
+        "port": 7120,
+        "base_url": "/authenticate_file/"
+    },
+    "broker": {
+        "retained_messages": {
+            "max_count": 1000,
+            "expiration": "60d"
+        },
+        "session": {
+            "expiration": "60d",
+            "cleanup_interval": "1d",
+            "max_message_size": "256kb",
+            "max_inflight_messages": 16,
+            "max_queued_messages": 1000,
+            "max_queued_size": 0,
+            "when_full": "drop_new"
+        },
+        "persistence": {
+            "folder_path": "/tmp_file/mqttd/",
+            "time_interval": "5m"
+        }
+    },
+    "bridge": {
+        "iotedge_gatewayhostname": "edge1",
+        "iotedge_deviceid": "d1",
+        "iotedge_moduleid": "mymodule",
+        "iotedge_modulegenerationid": "321",
+        "iotedge_workloaduri": "uri",
+        "iotedge_iothubhostname": "iothub",
+        "upstream": {
+            "subscriptions": [
+                {
+                    "direction": "both",
+                    "topic": "temp/#",
+                    "outPrefix": "floor/kitchen"
+                },
+                {
+                    "direction": "out",
+                    "topic": "floor/#",
+                    "inPrefix": "local",
+                    "outPrefix": "remote"
+                },
+                {
+                    "direction": "out",
+                    "topic": "pattern/#"
+                },
+                {
+                    "direction": "out",
+                    "topic": "floor2/#",
+                    "inPrefix": "",
+                    "outPrefix": ""
+                }
+            ]
+        },
+        "remotes": [
+            {
+                "name": "r1",
+                "address": "remote:8883",
+                "client_id": "client",
+                "username": "mymodule",
+                "password": "pass",
+                "keep_alive": "1m",
+                "clean_session": false,
+                "subscriptions": [
+                    {
+                        "direction": "in",
+                        "topic": "temp/#",
+                        "outPrefix": "floor/kitchen"
+                    },
+                    {
+                        "direction": "out",
+                        "topic": "some",
+                        "outPrefix": "remote"
+                    }
+                ]
+            }
+        ],
+        "storage": {
+            "type": "ring_buffer",
+            "max_file_size": 33554432,
+            "directory": "/tmp_file/mqttd/",
+            "flush_options": "off"
+        }
+    }
+}

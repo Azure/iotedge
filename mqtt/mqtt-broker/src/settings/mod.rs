@@ -46,6 +46,8 @@ impl BrokerConfig {
 pub struct SessionConfig {
     #[serde(with = "humantime_serde")]
     expiration: Duration,
+    #[serde(with = "humantime_serde")]
+    cleanup_interval: Duration,
     max_message_size: Option<HumanSize>,
     max_inflight_messages: usize,
     max_queued_messages: usize,
@@ -56,6 +58,7 @@ pub struct SessionConfig {
 impl SessionConfig {
     pub fn new(
         expiration: Duration,
+        cleanup_interval: Duration,
         max_message_size: Option<HumanSize>,
         max_inflight_messages: usize,
         max_queued_messages: usize,
@@ -64,6 +67,7 @@ impl SessionConfig {
     ) -> Self {
         Self {
             expiration,
+            cleanup_interval,
             max_message_size,
             max_inflight_messages,
             max_queued_messages,
@@ -93,12 +97,21 @@ impl SessionConfig {
     pub fn when_full(&self) -> QueueFullAction {
         self.when_full
     }
+
+    pub fn expiration(&self) -> Duration {
+        self.expiration
+    }
+
+    pub fn cleanup_interval(&self) -> Duration {
+        self.cleanup_interval
+    }
 }
 
 impl Default for SessionConfig {
     fn default() -> Self {
         SessionConfig::new(
             Duration::from_secs(60 * DAYS),
+            Duration::from_secs(DAYS), // 1d
             Some(HumanSize::new_kilobytes(256).expect("256kb")),
             16,
             1000,
@@ -147,21 +160,21 @@ impl Default for RetainedMessagesConfig {
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct SessionPersistenceConfig {
-    path: PathBuf,
+    folder_path: PathBuf,
     #[serde(with = "humantime_serde")]
     time_interval: Duration,
 }
 
 impl SessionPersistenceConfig {
-    pub fn new(path: PathBuf, time_interval: Duration) -> Self {
+    pub fn new(folder_path: PathBuf, time_interval: Duration) -> Self {
         Self {
-            path,
+            folder_path,
             time_interval,
         }
     }
 
-    pub fn file_path(&self) -> PathBuf {
-        self.path.clone()
+    pub fn folder_path(&self) -> PathBuf {
+        self.folder_path.clone()
     }
 
     pub fn time_interval(&self) -> Duration {

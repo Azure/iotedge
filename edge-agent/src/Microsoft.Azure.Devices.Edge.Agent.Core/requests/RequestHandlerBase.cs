@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Newtonsoft.Json;
     using Prometheus;
 
     public abstract class RequestHandlerBase<TU, TV> : IRequestHandler
@@ -35,7 +36,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
         {
             try
             {
-                return payloadJson.Map(p => p.FromJson<TU>());
+                var jsonSerializerSettings = new JsonSerializerSettings { DateParseHandling = DateParseHandling.None };
+                return payloadJson.Map(p => p.FromJson<TU>(jsonSerializerSettings));
             }
             catch (Exception ex)
             {

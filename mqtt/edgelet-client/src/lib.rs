@@ -6,7 +6,6 @@
     clippy::similar_names,
     clippy::module_name_repetitions,
     clippy::use_self,
-    clippy::match_same_arms,
     clippy::must_use_candidate,
     clippy::missing_errors_doc
 )]
@@ -115,7 +114,7 @@ mod tests {
     #[test]
     #[cfg(unix)]
     fn it_creates_workload_client_for_unix() {
-        let client = workload("unix:///var/run/iotedge/workload.sock");
+        let client = workload("unix:///var/lib/iotedge/workload.sock");
         assert_matches!(client, Ok(_));
     }
 }

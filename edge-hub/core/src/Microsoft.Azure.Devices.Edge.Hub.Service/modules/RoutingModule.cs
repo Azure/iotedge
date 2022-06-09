@@ -56,10 +56,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly bool encryptTwinStore;
         readonly TimeSpan configUpdateFrequency;
         readonly bool checkEntireQueueOnCleanup;
+        readonly int messageCleanupIntervalSecs;
         readonly ExperimentalFeatures experimentalFeatures;
         readonly bool closeCloudConnectionOnDeviceDisconnect;
         readonly bool nestedEdgeEnabled;
         readonly bool isLegacyUpstream;
+        readonly bool scopeAuthenticationOnly;
+        readonly bool trackDeviceState;
+        readonly TimeSpan cloudConnectionHangingTimeout;
 
         public RoutingModule(
             string iotHubName,
@@ -80,6 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             TimeSpan cloudConnectionIdleTimeout,
             bool closeCloudConnectionOnIdleTimeout,
             TimeSpan operationTimeout,
+            TimeSpan cloudConnectionHangingTimeout,
             bool useServerHeartbeat,
             Option<TimeSpan> minTwinSyncPeriod,
             Option<TimeSpan> reportedPropertiesSyncFrequency,
@@ -89,10 +94,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             bool encryptTwinStore,
             TimeSpan configUpdateFrequency,
             bool checkEntireQueueOnCleanup,
+            int messageCleanupIntervalSecs,
             ExperimentalFeatures experimentalFeatures,
             bool closeCloudConnectionOnDeviceDisconnect,
             bool nestedEdgeEnabled,
-            bool isLegacyUpstream)
+            bool isLegacyUpstream,
+            bool scopeAuthenticationOnly,
+            bool trackDeviceState)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.gatewayHostname = gatewayHostname;
@@ -121,10 +129,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.encryptTwinStore = encryptTwinStore;
             this.configUpdateFrequency = configUpdateFrequency;
             this.checkEntireQueueOnCleanup = checkEntireQueueOnCleanup;
+            this.messageCleanupIntervalSecs = messageCleanupIntervalSecs;
             this.experimentalFeatures = experimentalFeatures;
             this.closeCloudConnectionOnDeviceDisconnect = closeCloudConnectionOnDeviceDisconnect;
             this.nestedEdgeEnabled = nestedEdgeEnabled;
             this.isLegacyUpstream = isLegacyUpstream;
+            this.scopeAuthenticationOnly = scopeAuthenticationOnly;
+            this.trackDeviceState = trackDeviceState;
+            this.cloudConnectionHangingTimeout = cloudConnectionHangingTimeout;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -194,19 +206,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<IMessageConverterProvider>()
                 .SingleInstance();
 
-            // IDeviceConnectivityManager
-            builder.Register(
-                    c =>
-                    {
-                        var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
-                        IDeviceConnectivityManager deviceConnectivityManager = this.experimentalFeatures.DisableConnectivityCheck
-                            ? new NullDeviceConnectivityManager()
-                            : new DeviceConnectivityManager(this.connectivityCheckFrequency, TimeSpan.FromMinutes(2), edgeHubCredentials.Identity) as IDeviceConnectivityManager;
-                        return deviceConnectivityManager;
-                    })
-                .As<IDeviceConnectivityManager>()
-                .SingleInstance();
-
             // IDeviceClientProvider
             builder.Register(
                     c =>
@@ -220,6 +219,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
             if (this.isLegacyUpstream)
             {
+                // IDeviceConnectivityManager
+                builder.Register(
+                        c =>
+                        {
+                            var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
+                            IDeviceConnectivityManager deviceConnectivityManager = this.experimentalFeatures.DisableConnectivityCheck
+                                ? new NullDeviceConnectivityManager()
+                                : new DeviceConnectivityManager(this.connectivityCheckFrequency, TimeSpan.FromMinutes(2), edgeHubCredentials.Identity) as IDeviceConnectivityManager;
+                            return deviceConnectivityManager;
+                        })
+                    .As<IDeviceConnectivityManager>()
+                    .SingleInstance();
+
                 // Task<ICloudConnectionProvider>
                 builder.Register(
                         async c =>
@@ -246,10 +258,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                                 this.cloudConnectionIdleTimeout,
                                 this.closeCloudConnectionOnIdleTimeout,
                                 this.operationTimeout,
+                                this.cloudConnectionHangingTimeout,
                                 this.useServerHeartbeat,
                                 proxy,
                                 metadataStore,
-                                this.nestedEdgeEnabled);
+                                scopeAuthenticationOnly: this.scopeAuthenticationOnly,
+                                trackDeviceState: this.trackDeviceState,
+                                nestedEdgeEnabled: this.nestedEdgeEnabled);
                             return cloudConnectionProvider;
                         })
                     .As<Task<ICloudConnectionProvider>>()
@@ -257,10 +272,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             }
             else
             {
+                // IDeviceConnectivityManager
                 builder.Register(
-                    c =>
+                        c =>
+                        {
+                            IDeviceConnectivityManager deviceConnectivityManager = this.experimentalFeatures.DisableConnectivityCheck
+                                ? new NullDeviceConnectivityManager() as IDeviceConnectivityManager
+                                : new BrokeredDeviceConnectivityManager(c.Resolve<BrokeredCloudProxyDispatcher>());
+                            return deviceConnectivityManager;
+                        })
+                    .As<IDeviceConnectivityManager>()
+                    .SingleInstance();
+
+                builder.Register(
+                    async c =>
                     {
-                        return Task.FromResult(new BrokeredCloudConnectionProvider(c.Resolve<BrokeredCloudProxyDispatcher>()) as ICloudConnectionProvider);
+                        var brokeredCloudProxyDispatcher = c.Resolve<BrokeredCloudProxyDispatcher>();
+                        IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = new NullDeviceScopeIdentitiesCache();
+                        if (this.trackDeviceState)
+                        {
+                            deviceScopeIdentitiesCache = await c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
+                        }
+
+                        return new BrokeredCloudConnectionProvider(brokeredCloudProxyDispatcher, deviceScopeIdentitiesCache) as ICloudConnectionProvider;
                     })
                 .As<Task<ICloudConnectionProvider>>()
                 .SingleInstance();
@@ -299,7 +333,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     {
                         var messageConverter = c.Resolve<Core.IMessageConverter<IRoutingMessage>>();
                         IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
-                        return new EndpointFactory(connectionManager, messageConverter, this.edgeDeviceId, this.maxUpstreamBatchSize, this.upstreamFanOutFactor) as IEndpointFactory;
+                        return new EndpointFactory(connectionManager, messageConverter, this.edgeDeviceId, this.maxUpstreamBatchSize, this.upstreamFanOutFactor, this.trackDeviceState) as IEndpointFactory;
                     })
                 .As<Task<IEndpointFactory>>()
                 .SingleInstance();
@@ -411,7 +445,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             var checkpointStore = await c.Resolve<Task<ICheckpointStore>>();
                             var dbStoreProvider = await c.Resolve<Task<IDbStoreProvider>>();
                             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
-                            IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, this.storeAndForwardConfiguration.TimeToLive, this.checkEntireQueueOnCleanup);
+                            IMessageStore messageStore = new MessageStore(
+                                storeProvider,
+                                checkpointStore,
+                                this.storeAndForwardConfiguration.TimeToLive,
+                                this.checkEntireQueueOnCleanup,
+                                this.messageCleanupIntervalSecs);
                             return messageStore;
                         })
                     .As<Task<IMessageStore>>()
@@ -473,18 +512,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     .As<Task<ITwinManager>>()
                     .SingleInstance();
             }
-
-            // IClientCredentials "EdgeHubCredentials"
-            builder.Register(
-                    c =>
-                    {
-                        var identityFactory = c.Resolve<IClientCredentialsFactory>();
-                        IClientCredentials edgeHubCredentials = this.connectionString.Map(cs => identityFactory.GetWithConnectionString(cs)).GetOrElse(
-                            () => identityFactory.GetWithIotEdged(this.edgeDeviceId, this.edgeModuleId));
-                        return edgeHubCredentials;
-                    })
-                .Named<IClientCredentials>("EdgeHubCredentials")
-                .SingleInstance();
 
             // Task<IInvokeMethodHandler>
             builder.Register(

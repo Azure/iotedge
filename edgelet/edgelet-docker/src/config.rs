@@ -3,6 +3,7 @@
 use failure::ResultExt;
 
 use docker::models::{AuthConfig, ContainerCreateBody};
+use edgelet_core::module::NestedEdgeBodge;
 use edgelet_utils::{ensure_not_empty_with_context, serde_clone};
 
 use crate::error::{ErrorKind, Result};
@@ -10,16 +11,16 @@ use crate::error::{ErrorKind, Result};
 #[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DockerConfig {
-    image: String,
+    pub image: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "imageHash")]
-    image_id: Option<String>,
+    pub image_id: Option<String>,
     #[serde(default = "ContainerCreateBody::new")]
-    create_options: ContainerCreateBody,
+    pub create_options: ContainerCreateBody,
     #[serde(skip_serializing_if = "Option::is_none")]
-    digest: Option<String>,
+    pub digest: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    auth: Option<AuthConfig>,
+    pub auth: Option<AuthConfig>,
 }
 
 impl DockerConfig {
@@ -87,6 +88,30 @@ impl DockerConfig {
     pub fn with_auth(mut self, auth: AuthConfig) -> Self {
         self.auth = Some(auth);
         self
+    }
+}
+
+pub const UPSTREAM_PARENT_KEYWORD: &str = "$upstream";
+
+impl NestedEdgeBodge for DockerConfig {
+    fn parent_hostname_resolve(&mut self, parent_hostname: &str) {
+        if let Some(rest) = self.image.strip_prefix(UPSTREAM_PARENT_KEYWORD) {
+            self.image = format!("{}{}", parent_hostname, rest);
+        }
+
+        let auth = match &self.auth {
+            Some(auth) => auth,
+            _ => return,
+        };
+
+        if let Some(serveraddress) = auth.serveraddress() {
+            if let Some(rest) = serveraddress.strip_prefix(UPSTREAM_PARENT_KEYWORD) {
+                let url = rest.to_string();
+                if let Some(auth) = &mut self.auth {
+                    auth.set_serveraddress(format!("{}{}", parent_hostname, url))
+                }
+            }
+        }
     }
 }
 

@@ -14,5 +14,6 @@ namespace Microsoft.Azure.Devices.Routing.Core
         public const string AuthMethod = "connectionAuthMethod";
         public const string ContentType = "contentType";
         public const string ContentEncoding = "contentEncoding";
+        public const string ComponentName = "componentName";
     }
 }

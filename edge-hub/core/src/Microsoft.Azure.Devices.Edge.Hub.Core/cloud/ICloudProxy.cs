@@ -40,6 +40,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 
         Task RemoveDesiredPropertyUpdatesAsync();
 
+        Task RemoveTwinResponseAsync();
+
         Task StartListening();
+
+        Task StopListening();
     }
 }

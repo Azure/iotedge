@@ -51,7 +51,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 
         public Task RemoveDesiredPropertyUpdatesAsync() => this.ExecuteOperation(c => c.RemoveDesiredPropertyUpdatesAsync(), "RemoveDesiredPropertyUpdatesAsync");
 
+        public Task RemoveTwinResponseAsync() => this.ExecuteOperation(c => c.RemoveTwinResponseAsync(), "RemoveTwinResponseAsync");
+
         public Task StartListening() => this.ExecuteOperation(c => c.StartListening(), "StartListening");
+
+        public Task StopListening() => this.ExecuteOperation(c => c.StopListening(), "StopListening");
 
         Task ExecuteOperation(Func<ICloudProxy, Task> func, string operation) => this.ExecuteOperation(
             async c =>

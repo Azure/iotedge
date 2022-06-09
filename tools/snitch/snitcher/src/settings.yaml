@@ -16,4 +16,4 @@ analyzer_url: http://analyzer:15000/api/report
 blob_storage_account: ''
 blob_storage_master_key: ''
 reporting_interval: null
-management_uri: unix:///var/run/iotedge/mgmt.sock
+management_uri: unix:///var/lib/iotedge/mgmt.sock

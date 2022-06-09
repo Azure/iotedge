@@ -8,7 +8,7 @@ edition = "2018"
 async-trait = "0.1"
 bincode = "1.2"
 bytes = "0.5"
-chrono = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
 criterion = { version = "0.3", optional = true }
 fail = "0.3"
 flate2 = "1.0"
@@ -44,7 +44,7 @@ proptest = "0.9"
 tempfile = "3"
 test-case = "1.0"
 tokio = { version = "0.2", features = ["dns", "macros", "io-util"] }
-tracing-subscriber = "0.1"
+tracing-subscriber = {version = "0.2", features = ["fmt"]}
 
 mqtt-broker-tests-util = { path = "../mqtt-broker-tests-util" }
 

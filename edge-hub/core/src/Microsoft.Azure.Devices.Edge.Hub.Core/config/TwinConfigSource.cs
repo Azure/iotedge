@@ -5,7 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
-    using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
@@ -64,8 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
                         if (twin.Properties.Desired.Count > 0)
                         {
-                            var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(twin.Properties.Desired.ToJson());
-                            return Option.Some(this.configParser.GetEdgeHubConfig(desiredProperties));
+                            return Option.Some(this.configParser.GetEdgeHubConfig(twin.Properties.Desired.ToJson()));
                         }
                         else
                         {
@@ -101,8 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 this.lastDesiredProperties = Option.Some(twin.Properties.Desired);
                 try
                 {
-                    var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(twin.Properties.Desired.ToJson());
-                    edgeHubConfig = Option.Some(this.configParser.GetEdgeHubConfig(desiredProperties));
+                    edgeHubConfig = Option.Some(this.configParser.GetEdgeHubConfig(twin.Properties.Desired.ToJson()));
                     await this.UpdateReportedProperties(twin.Properties.Desired.Version, new LastDesiredStatus(200, string.Empty));
                     Events.GetConfigSuccess();
                 }
@@ -154,8 +151,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             {
                 string desiredPropertiesJson = JsonEx.Merge(baseline, patch, true);
                 this.lastDesiredProperties = Option.Some(new TwinCollection(desiredPropertiesJson));
-                var desiredPropertiesPatch = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(desiredPropertiesJson);
-                edgeHubConfig = Option.Some(this.configParser.GetEdgeHubConfig(desiredPropertiesPatch));
+                edgeHubConfig = Option.Some(this.configParser.GetEdgeHubConfig(desiredPropertiesJson));
                 lastDesiredStatus = new LastDesiredStatus(200, string.Empty);
                 Events.PatchConfigSuccess();
             }
@@ -204,7 +200,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
             internal static void ErrorGettingEdgeHubConfig(Exception ex)
             {
-                Log.LogWarning(
+                Log.LogError(
                     (int)EventIds.ErrorPatchingDesiredProperties,
                     ex,
                     Invariant($"Error getting edge hub config from twin desired properties"));

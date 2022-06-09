@@ -25,7 +25,7 @@ mod snapshot;
 mod state_change;
 mod stream;
 mod subscription;
-mod tls;
+pub mod tls;
 mod transport;
 
 #[cfg(any(test, feature = "proptest"))]
@@ -38,6 +38,7 @@ use std::{
     sync::Arc,
 };
 
+use chrono::{DateTime, Utc};
 use proto::Publication;
 use serde::{Deserialize, Serialize};
 use tokio::sync::OwnedSemaphorePermit;
@@ -69,7 +70,7 @@ pub type BrokerReadySignal = ready::BrokerReadySignal<ready::BrokerReadyEvent>;
 pub type BrokerReadyHandle = ready::BrokerReadyHandle<ready::BrokerReadyEvent>;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
-pub struct ClientId(Arc<String>);
+pub struct ClientId(Arc<str>);
 
 impl ClientId {
     pub fn as_str(&self) -> &str {
@@ -77,9 +78,9 @@ impl ClientId {
     }
 }
 
-impl<T: Into<String>> From<T> for ClientId {
-    fn from(s: T) -> ClientId {
-        ClientId(Arc::new(s.into()))
+impl<T: AsRef<str>> From<T> for ClientId {
+    fn from(id: T) -> Self {
+        Self(id.as_ref().into())
     }
 }
 
@@ -385,6 +386,10 @@ pub enum SystemEvent {
     /// The main difference is `ClientEvent::Publish` it doesn't require
     /// ClientId of sender to be passed along with the event.
     Publish(Publication),
+
+    /// An event for a broker to go through offline sessions
+    /// and clean up ones that past provided expiration time.
+    SessionCleanup(DateTime<Utc>),
 }
 
 impl Debug for SystemEvent {
@@ -397,6 +402,9 @@ impl Debug for SystemEvent {
             }
             SystemEvent::Publish(publication) => {
                 f.debug_tuple("Publish").field(&publication).finish()
+            }
+            SystemEvent::SessionCleanup(instant) => {
+                f.debug_tuple("SessionCleanup").field(&instant).finish()
             }
         }
     }

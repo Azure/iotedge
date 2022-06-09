@@ -64,6 +64,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 systemProperties.AddIfNonEmpty(SystemProperties.InterfaceId, hubInterfaceId);
             }
 
+            if (sourceMessage.MessageAnnotations.Map.TryGetValue(SystemProperties.ComponentName, out string componentName))
+            {
+                systemProperties.AddIfNonEmpty(SystemProperties.ComponentName, componentName);
+            }
+
             if (sourceMessage.ApplicationProperties != null)
             {
                 foreach (KeyValuePair<MapKey, object> property in sourceMessage.ApplicationProperties.Map)
@@ -170,14 +175,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 amqpMessage.MessageAnnotations.Map[Constants.MessageAnnotationsInputNameKey] = inputName;
             }
 
-            if (message.SystemProperties.TryGetNonEmptyValue(SystemProperties.ConnectionDeviceId, out string connectionDeviceId))
+            if (message.SystemProperties.TryGetNonEmptyValue(SystemProperties.RpConnectionDeviceIdInternal, out string rpConnectionDeviceId))
+            {
+                amqpMessage.MessageAnnotations.Map[Constants.MessageAnnotationsConnectionDeviceId] = rpConnectionDeviceId;
+            }
+            else if (message.SystemProperties.TryGetNonEmptyValue(SystemProperties.ConnectionDeviceId, out string connectionDeviceId))
             {
                 amqpMessage.MessageAnnotations.Map[Constants.MessageAnnotationsConnectionDeviceId] = connectionDeviceId;
             }
 
-            if (message.SystemProperties.TryGetNonEmptyValue(SystemProperties.ConnectionModuleId, out string connectionModuleId))
+            if (message.SystemProperties.TryGetNonEmptyValue(SystemProperties.RpConnectionModuleIdInternal, out string rpConnectionModuleId))
+            {
+                amqpMessage.MessageAnnotations.Map[Constants.MessageAnnotationsConnectionModuleId] = rpConnectionModuleId;
+            }
+            else if (message.SystemProperties.TryGetNonEmptyValue(SystemProperties.ConnectionModuleId, out string connectionModuleId))
             {
                 amqpMessage.MessageAnnotations.Map[Constants.MessageAnnotationsConnectionModuleId] = connectionModuleId;
+            }
+
+            if (message.SystemProperties.TryGetNonEmptyValue(SystemProperties.ComponentName, out string componentName))
+            {
+                amqpMessage.MessageAnnotations.Map[Constants.MessageAnnotationsComponentName] = componentName;
             }
 
             if (message.SystemProperties.TryGetNonEmptyValue(SystemProperties.MessageSchema, out string messageSchema))

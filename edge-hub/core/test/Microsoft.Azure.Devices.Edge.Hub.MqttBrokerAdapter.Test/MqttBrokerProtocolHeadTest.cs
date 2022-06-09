@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var sut = new MqttBrokerProtocolHead(config, connector);
 
             await sut.StartAsync();
-            await sut.StartAsync(); 
+            await sut.StartAsync();
 
             Mock.Get(connector).Verify(c => c.ConnectAsync(It.IsAny<String>(), It.IsAny<int>()), Times.Once);
         }

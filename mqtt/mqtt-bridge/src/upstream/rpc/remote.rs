@@ -89,9 +89,12 @@ impl RemoteRpcMqttEventHandler {
                     return Ok(true);
                 }
             }
-            SubscriptionUpdateEvent::RejectedByServer(topic_filter) => {
-                if let Some(command_id) = self.subscriptions.remove(topic_filter) {
-                    let reason = format!("subscription rejected by server {}", topic_filter);
+            SubscriptionUpdateEvent::RejectedByServer(rejected_from) => {
+                if let Some(command_id) = self.subscriptions.remove(&rejected_from.topic_filter) {
+                    let reason = format!(
+                        "subscription rejected by server {}",
+                        rejected_from.topic_filter
+                    );
                     self.local_pump.send_nack(command_id, reason).await?;
                     return Ok(true);
                 }
@@ -231,7 +234,10 @@ mod tests {
                 topic_filter: "/foo/subscribed".into(),
                 qos: QoS::AtLeastOnce,
             }),
-            SubscriptionUpdateEvent::RejectedByServer("/foo/rejected".into()),
+            SubscriptionUpdateEvent::RejectedByServer(SubscribeTo {
+                qos: QoS::AtLeastOnce,
+                topic_filter: "/foo/rejected".into(),
+            }),
             SubscriptionUpdateEvent::Unsubscribe("/foo/unsubscribed".into()),
         ]);
 
@@ -288,8 +294,8 @@ mod tests {
     #[tokio::test]
     async fn it_sends_publications_twin_response() {
         it_sends_publication_when_known_topic(
-            "$iothub/device_1/module_a/twin/res/?rid=1",
-            "$downstream/device_1/module_a/twin/res/?rid=1",
+            "$iothub/device_1/module_a/twin/res/?$rid=1",
+            "$downstream/device_1/module_a/twin/res/?$rid=1",
         )
         .await;
     }
@@ -297,8 +303,8 @@ mod tests {
     #[tokio::test]
     async fn it_sends_publications_twin_desired() {
         it_sends_publication_when_known_topic(
-            "$iothub/device_1/module_a/twin/desired/?rid=1",
-            "$downstream/device_1/module_a/twin/desired/?rid=1",
+            "$iothub/device_1/module_a/twin/desired/?$rid=1",
+            "$downstream/device_1/module_a/twin/desired/?$rid=1",
         )
         .await;
     }
@@ -306,8 +312,8 @@ mod tests {
     #[tokio::test]
     async fn it_sends_publications_direct_method() {
         it_sends_publication_when_known_topic(
-            "$iothub/device_1/module_a/methods/post/?rid=1",
-            "$downstream/device_1/module_a/methods/post/?rid=1",
+            "$iothub/device_1/module_a/methods/post/?$rid=1",
+            "$downstream/device_1/module_a/methods/post/?$rid=1",
         )
         .await;
     }
@@ -354,13 +360,13 @@ mod tests {
         assert_matches!(res, Ok(Handled::Skipped(_)));
     }
 
-    #[test_case("$iothub/device_1/module_a/twin/res/?rid=1", Some("$downstream/device_1/module_a/twin/res/?rid=1"); "twin module")]
-    #[test_case("$iothub/device_1/twin/res/?rid=1", Some("$downstream/device_1/twin/res/?rid=1"); "twin device")]
-    #[test_case("$iothub/device_1/module_a/twin/desired/?rid=1", Some("$downstream/device_1/module_a/twin/desired/?rid=1"); "desired twin module")]
-    #[test_case("$iothub/device_1/twin/desired/?rid=1", Some("$downstream/device_1/twin/desired/?rid=1"); "desired twin device")]
-    #[test_case("$iothub/device_1/module_a/methods/post/?rid=1", Some("$downstream/device_1/module_a/methods/post/?rid=1"); "direct method module")]
-    #[test_case("$iothub/device_1/methods/post/?rid=1", Some("$downstream/device_1/methods/post/?rid=1"); "direct method device")]
-    #[test_case("$edgehub/device_1/module_a/twin/res/?rid=1", None; "wrong prefix")]
+    #[test_case("$iothub/device_1/module_a/twin/res/?$rid=1", Some("$downstream/device_1/module_a/twin/res/?$rid=1"); "twin module")]
+    #[test_case("$iothub/device_1/twin/res/?$rid=1", Some("$downstream/device_1/twin/res/?$rid=1"); "twin device")]
+    #[test_case("$iothub/device_1/module_a/twin/desired/?$rid=1", Some("$downstream/device_1/module_a/twin/desired/?$rid=1"); "desired twin module")]
+    #[test_case("$iothub/device_1/twin/desired/?$rid=1", Some("$downstream/device_1/twin/desired/?$rid=1"); "desired twin device")]
+    #[test_case("$iothub/device_1/module_a/methods/post/?$rid=1", Some("$downstream/device_1/module_a/methods/post/?$rid=1"); "direct method module")]
+    #[test_case("$iothub/device_1/methods/post/?$rid=1", Some("$downstream/device_1/methods/post/?$rid=1"); "direct method device")]
+    #[test_case("$edgehub/device_1/module_a/twin/res/?$rid=1", None; "wrong prefix")]
     fn it_translates_upstream_topic(topic_name: &str, expected: Option<&str>) {
         assert_eq!(translate(topic_name).as_deref(), expected);
     }

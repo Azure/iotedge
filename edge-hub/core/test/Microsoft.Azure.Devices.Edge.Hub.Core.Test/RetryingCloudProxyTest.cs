@@ -83,9 +83,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 TimeSpan.FromMinutes(10),
                 false,
                 TimeSpan.FromMinutes(10),
+                TimeSpan.FromSeconds(60),
                 false,
                 Option.None<IWebProxy>(),
                 metadataStore.Object,
+                scopeAuthenticationOnly: true,
+                trackDeviceState: true,
                 true);
             connectionProvider.BindEdgeHub(edgeHub.Object);
 
@@ -187,9 +190,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 TimeSpan.FromMinutes(10),
                 false,
                 TimeSpan.FromMinutes(10),
+                TimeSpan.FromSeconds(50),
                 false,
                 Option.None<IWebProxy>(),
                 metadataStore.Object,
+                scopeAuthenticationOnly: true,
+                trackDeviceState: true,
                 true);
             connectionProvider.BindEdgeHub(edgeHub.Object);
 
@@ -275,9 +281,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 TimeSpan.FromMinutes(10),
                 false,
                 TimeSpan.FromMinutes(10),
+                TimeSpan.FromSeconds(50),
                 false,
                 Option.None<IWebProxy>(),
                 metadataStore.Object,
+                scopeAuthenticationOnly: true,
+                trackDeviceState: true,
                 true);
             connectionProvider.BindEdgeHub(edgeHub.Object);
 

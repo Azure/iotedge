@@ -299,7 +299,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public bool IsActive => true;
 
-            public bool IsDirectClient => true;
+            public IConnectionInfo ConnectionInfo => NullConnectionInfo.Instance;
 
             public IIdentity Identity => this.edgeHubConnection.edgeHubIdentity;
 

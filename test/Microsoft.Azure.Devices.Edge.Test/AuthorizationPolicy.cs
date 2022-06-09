@@ -5,13 +5,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Test.Common;
-    using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using NUnit.Framework;
 
     [EndToEnd]
@@ -24,7 +25,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
         /// - Update deployment with new policy that allows the connection.
         /// - Validate that new device can connect.
         /// </summary>
+        /// <returns><see cref="Task"/> representing the asynchronous unit test.</returns>
         [Test]
+        [Category("BrokerRequired")]
         public async Task AuthorizationPolicyUpdateTest()
         {
             CancellationToken token = this.TestToken;
@@ -50,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 {
                                     new
                                     {
-                                        identities = new[] { $"{this.iotHub.Hostname}/{deviceId1}" },
+                                        identities = new[] { $"{this.IotHub.Hostname}/{deviceId1}" },
                                         deny = new[]
                                         {
                                             new
@@ -63,7 +66,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             }
                         });
                 },
-                token);
+                token,
+                this.device.NestedEdge.IsNestedEdge);
 
             EdgeModule edgeHub = deployment.Modules[ModuleName.EdgeHub];
             await edgeHub.WaitForReportedPropertyUpdatesAsync(
@@ -92,10 +96,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     AuthenticationType.Sas,
                     Option.Some(this.runtime.DeviceId),
                     false,
-                    CertificateAuthority.GetQuickstart(),
-                    this.iotHub,
+                    this.ca,
+                    this.IotHub,
+                    this.device.NestedEdge.DeviceHostname,
                     token,
-                    Option.None<string>());
+                    Option.None<string>(),
+                    this.device.NestedEdge.IsNestedEdge);
                 DateTime seekTime = DateTime.Now;
                 await leaf.SendEventAsync(token);
                 await leaf.WaitForEventsReceivedAsync(seekTime, token);
@@ -119,7 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 {
                                     new
                                     {
-                                        identities = new[] { $"{this.iotHub.Hostname}/{deviceId2}" },
+                                        identities = new[] { $"{this.IotHub.Hostname}/{deviceId2}" },
                                         allow = new[]
                                         {
                                             new
@@ -132,49 +138,44 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             }
                         });
                 },
-                token);
-
-            EdgeModule edgeHub2 = deployment2.Modules[ModuleName.EdgeHub];
-            await edgeHub2.WaitForReportedPropertyUpdatesAsync(
-                new
-                {
-                    properties = new
-                    {
-                        reported = new
-                        {
-                            lastDesiredStatus = new
-                            {
-                                code = 200,
-                                description = string.Empty
-                            }
-                        }
-                    }
-                },
-                token);
-
-            var leaf = await LeafDevice.CreateAsync(
-                deviceId2,
-                Protocol.Mqtt,
-                AuthenticationType.Sas,
-                Option.Some(this.runtime.DeviceId),
-                false,
-                CertificateAuthority.GetQuickstart(),
-                this.iotHub,
                 token,
-                Option.None<string>());
+                this.device.NestedEdge.IsNestedEdge);
 
-            // verify device is authorized after policy update.
-            await TryFinally.DoAsync(
-                 async () =>
-                 {
-                     DateTime seekTime = DateTime.Now;
-                     await leaf.SendEventAsync(token);
-                     await leaf.WaitForEventsReceivedAsync(seekTime, token);
-                 },
-                 async () =>
-                 {
-                     await leaf.DeleteIdentityAsync(token);
-                 });
+            // Create device manually. We can't use LeafDevice.CreateAsync() since it is not
+            // idempotent and cannot be retried reliably.
+            Devices.Device edge = await this.IotHub.GetDeviceIdentityAsync(this.runtime.DeviceId, token);
+            Devices.Device leaf = new Devices.Device(deviceId2)
+            {
+                Authentication = new AuthenticationMechanism
+                {
+                    Type = AuthenticationType.Sas
+                },
+                Scope = edge.Scope
+            };
+
+            leaf = await this.IotHub.CreateDeviceIdentityAsync(leaf, token);
+
+            string connectionString =
+                $"HostName={this.IotHub.Hostname};" +
+                $"DeviceId={leaf.Id};" +
+                $"SharedAccessKey={leaf.Authentication.SymmetricKey.PrimaryKey};" +
+                $"GatewayHostName={this.device.NestedEdge.DeviceHostname}";
+
+            // There is no reliable way to signal when the policy
+            // is updated in $edgehub, so need to retry several times.
+            //
+            // Custom retry policy => 120 sec max.
+            var retryStrategy = new Incremental(15, RetryStrategy.DefaultRetryInterval, RetryStrategy.DefaultRetryIncrement);
+            var retryPolicy = new RetryPolicy(new CatchAllErrorDetectionStrategy(), retryStrategy);
+
+            await retryPolicy.ExecuteAsync(
+                async () =>
+            {
+                using var client = DeviceClient.CreateFromConnectionString(connectionString, Client.TransportType.Mqtt);
+                await client.OpenAsync();
+            }, token);
+
+            await this.IotHub.DeleteDeviceIdentityAsync(leaf, token);
         }
 
         /// <summary>
@@ -183,7 +184,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
         ///     allow device1 connect, deny device2 connect.
         /// - Create devices and validate that they can/cannot connect.
         /// </summary>
+        /// <returns><see cref="Task"/> representing the asynchronous unit test.</returns>
         [Test]
+        [Category("BrokerRequired")]
         public async Task AuthorizationPolicyExplicitPolicyTest()
         {
             CancellationToken token = this.TestToken;
@@ -208,7 +211,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 {
                                     new
                                     {
-                                        identities = new[] { $"{this.iotHub.Hostname}/{deviceId1}" },
+                                        identities = new[] { $"{this.IotHub.Hostname}/{deviceId1}" },
                                         allow = new[]
                                         {
                                             new
@@ -219,7 +222,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                     },
                                     new
                                     {
-                                        identities = new[] { $"{this.iotHub.Hostname}/{deviceId2}" },
+                                        identities = new[] { $"{this.IotHub.Hostname}/{deviceId2}" },
                                         deny = new[]
                                         {
                                             new
@@ -232,7 +235,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             }
                         });
                 },
-                token);
+                token,
+                this.device.NestedEdge.IsNestedEdge);
 
             EdgeModule edgeHub = deployment.Modules[ModuleName.EdgeHub];
             await edgeHub.WaitForReportedPropertyUpdatesAsync(
@@ -259,10 +263,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 AuthenticationType.Sas,
                 Option.Some(this.runtime.DeviceId),
                 false,
-                CertificateAuthority.GetQuickstart(),
-                this.iotHub,
+                this.ca,
+                this.IotHub,
+                this.device.NestedEdge.DeviceHostname,
                 token,
-                Option.None<string>());
+                Option.None<string>(),
+                this.device.NestedEdge.IsNestedEdge);
 
             await TryFinally.DoAsync(
                 async () =>
@@ -285,14 +291,21 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     AuthenticationType.Sas,
                     Option.Some(this.runtime.DeviceId),
                     false,
-                    CertificateAuthority.GetQuickstart(),
-                    this.iotHub,
+                    this.ca,
+                    this.IotHub,
+                    this.device.NestedEdge.DeviceHostname,
                     token,
-                    Option.None<string>());
+                    Option.None<string>(),
+                    this.device.NestedEdge.IsNestedEdge);
                 DateTime seekTime = DateTime.Now;
                 await leaf.SendEventAsync(token);
                 await leaf.WaitForEventsReceivedAsync(seekTime, token);
             });
         }
+    }
+
+    class CatchAllErrorDetectionStrategy : ITransientErrorDetectionStrategy
+    {
+        public bool IsTransient(Exception ex) => true;
     }
 }

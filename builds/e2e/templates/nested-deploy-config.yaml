@@ -1,0 +1,44 @@
+parameters:
+  changeDeployConfigOnly: ''
+  deploymentFile: ''
+  deviceId: ''
+  level: ''
+  name: ''
+
+steps: 
+  - task: Bash@3
+    displayName: 'Deployment iotedge on agent'
+    name: "deployIoTEdge${{ parameters.name }}"
+    inputs:
+      targetType: inline
+      script: |
+        declare -a cnreg=( ${edgebuilds-azurecr-io-pwd} )
+        . $(Build.StagingDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt
+
+        chmod +x $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-agent.sh
+
+        sudo $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-agent.sh \
+          -testDir "$(Agent.HomeDirectory)/.." \
+          -releaseLabel "ct$(agent.group)" \
+          -artifactImageBuildNumber "$BuildNumber" \
+          -containerRegistry "$(cr.address)" \
+          -containerRegistryUsername "$(edgebuilds-azurecr-io-username)" \
+          -containerRegistryPassword "$(edgebuilds-azurecr-io-pwd)" \
+          -iotHubConnectionString "$(IotHub-ConnStr)" \
+          -deploymentFileName "${{ parameters.deploymentFile }}" \
+          -storageAccountConnectionString "$(EdgeConnectivityStorageAccountConnString)" \
+          -edgeRuntimeBuildNumber "$(Build.BuildNumber)" \
+          -customEdgeAgentImage "$(customEdgeAgent.image)" \
+          -customEdgeHubImage "$(customEdgeHub.image)" \
+          -subscription "$(azure.subscription)" \
+          -level "${{ parameters.level }}" \
+          -parentName "$(parentName)" \
+          -connectionString "$(connectionString)" \
+          -iotHubName "$(iotHubName)" \
+          -deviceId "${{ parameters.deviceId }}" \
+          -proxyAddress "$(proxyAddress)" \
+          -changeDeployConfigOnly "${{ parameters.changeDeployConfigOnly }}" \
+          -l3IpAddress "$(l3IpAddress)" \
+          -trackingId "$(trackingId)" \
+          -waitForTestComplete \
+          -cleanAll

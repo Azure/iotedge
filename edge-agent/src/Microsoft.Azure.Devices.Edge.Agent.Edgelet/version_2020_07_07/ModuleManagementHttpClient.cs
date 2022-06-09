@@ -130,7 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07
                     () => edgeletHttpClient.GetSystemInfoAsync(this.Version.Name, cancellationToken),
                     "Getting System Info");
                 var provisioning = new ProvisioningInfo(systemInfo.Provisioning.Type, systemInfo.Provisioning.DynamicReprovisioning, systemInfo.Provisioning.AlwaysReprovisionOnStartup ?? true);
-                return new SystemInfo(systemInfo.OsType, systemInfo.Architecture, systemInfo.Version, provisioning, systemInfo.Server_version, systemInfo.Kernel_version, systemInfo.Operating_system, systemInfo.Cpus ?? 0, systemInfo.Virtualized);
+                return new SystemInfo(systemInfo.OsType, systemInfo.Architecture, systemInfo.Version, provisioning, systemInfo.Server_version, systemInfo.Kernel_version, systemInfo.Operating_system, systemInfo.Cpus ?? 0, systemInfo.Virtualized, new Dictionary<string, object>());
             }
         }
 
@@ -152,7 +152,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
-                FileResponse response = await this.Execute(() => edgeletHttpClient.GetSupportBundleAsync(this.Version.Name, since.OrDefault(), until.OrDefault(), null, iothubHostname.OrDefault(), edgeRuntimeOnly.Map<bool?>(e => e).OrDefault()), "reprovision the device");
+                FileResponse response = await this.Execute(() => edgeletHttpClient.GetSupportBundleAsync(this.Version.Name, since.OrDefault(), until.OrDefault(), null, iothubHostname.OrDefault(), edgeRuntimeOnly.Map<bool?>(e => e).OrDefault()), "getting the support bundle");
 
                 return response.Stream;
             }

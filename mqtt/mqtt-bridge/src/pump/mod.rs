@@ -3,7 +3,7 @@ mod egress;
 mod ingress;
 mod messages;
 
-use std::{collections::HashMap, error::Error as StdError, future::Future, sync::Arc};
+use std::{collections::HashMap, error::Error as StdError, fmt::Debug, future::Future, sync::Arc};
 
 pub use builder::Builder;
 use egress::{Egress, EgressError, EgressShutdownHandle};
@@ -16,7 +16,7 @@ use futures_util::{
     join, pin_mut,
 };
 use mockall::automock;
-use parking_lot::Mutex;
+use parking_lot::RwLock;
 use tokio::sync::mpsc;
 use tracing::{debug, error, info, warn};
 
@@ -29,17 +29,17 @@ use crate::{
 };
 
 #[cfg(test)]
-pub fn channel<M: 'static>() -> (PumpHandle<M>, mpsc::Receiver<PumpMessage<M>>) {
+pub fn channel<M: Debug + Send + 'static>() -> (PumpHandle<M>, mpsc::Receiver<PumpMessage<M>>) {
     let (tx, rx) = tokio::sync::mpsc::channel(10);
     (PumpHandle::new(tx), rx)
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum PumpError {
-    #[error("unable to send command to pump. channel closed")]
-    Send,
+    #[error("unable to send command to pump. Caused by: {0:?}")]
+    Send(Box<dyn StdError + Send>),
 
-    #[error("error ocurred when running pump. {0}")]
+    #[error("error ocurred when running pump. Caused by: {0}")]
     Run(Box<dyn StdError + Send + Sync>),
 }
 
@@ -71,7 +71,7 @@ impl<S, H, M> Pump<S, H, M>
 where
     H: MqttEventHandler,
     M: PumpMessageHandler,
-    M::Message: 'static,
+    M::Message: Debug + Send + 'static,
     S: StreamWakeableState,
 {
     /// Creates a new instance of pump.
@@ -204,7 +204,7 @@ where
 async fn stop_messages<F, M>(messages: F, shutdown_handle: MessagesProcessorShutdownHandle<M>)
 where
     F: Future<Output = Result<(), MessageProcessorError>>,
-    M: 'static,
+    M: Debug + Send + 'static,
 {
     let (_, messages) = join!(shutdown_handle.shutdown(), messages);
 
@@ -229,7 +229,7 @@ pub struct PumpHandle<M> {
 }
 
 #[automock]
-impl<M: 'static> PumpHandle<M> {
+impl<M: Debug + Send + 'static> PumpHandle<M> {
     /// Creates a new instance of pump handle.
     fn new(sender: mpsc::Sender<PumpMessage<M>>) -> Self {
         Self { sender }
@@ -237,7 +237,10 @@ impl<M: 'static> PumpHandle<M> {
 
     /// Sends a control message to a pump.
     pub async fn send(&mut self, message: PumpMessage<M>) -> Result<(), PumpError> {
-        self.sender.send(message).await.map_err(|_| PumpError::Send)
+        self.sender
+            .send(message)
+            .await
+            .map_err(|e| PumpError::Send(Box::new(e)))
     }
 
     /// Sends a shutdown control message to a pump.
@@ -250,32 +253,32 @@ impl<M: 'static> PumpHandle<M> {
 
 /// Topic settings received as updates from twin or from initial configuration in the default config file
 #[derive(Clone)]
-pub struct TopicMapperUpdates(Arc<Mutex<HashMap<String, TopicMapper>>>);
+pub struct TopicMapperUpdates(Arc<RwLock<HashMap<String, TopicMapper>>>);
 
 impl TopicMapperUpdates {
     pub fn new(mappings: HashMap<String, TopicMapper>) -> Self {
-        Self(Arc::new(Mutex::new(mappings)))
+        Self(Arc::new(RwLock::new(mappings)))
     }
 
     pub fn insert(&self, topic_filter: &str, mapper: TopicMapper) -> Option<TopicMapper> {
-        self.0.lock().insert(topic_filter.into(), mapper)
+        self.0.write().insert(topic_filter.into(), mapper)
     }
 
     pub fn remove(&self, topic_filter: &str) -> Option<TopicMapper> {
-        self.0.lock().remove(topic_filter)
+        self.0.write().remove(topic_filter)
     }
 
     pub fn get(&self, topic_filter: &str) -> Option<TopicMapper> {
-        self.0.lock().get(topic_filter).cloned()
+        self.0.read().get(topic_filter).cloned()
     }
 
     pub fn contains_key(&self, topic_filter: &str) -> bool {
-        self.0.lock().contains_key(topic_filter)
+        self.0.read().contains_key(topic_filter)
     }
 
     pub fn subscriptions(&self) -> Vec<String> {
         self.0
-            .lock()
+            .read()
             .values()
             .map(TopicMapper::subscribe_to)
             .collect()

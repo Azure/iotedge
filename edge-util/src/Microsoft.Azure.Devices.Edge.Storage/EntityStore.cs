@@ -150,6 +150,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         public Task<bool> Contains(TK key, CancellationToken cancellationToken)
             => this.dbStore.Contains(key, cancellationToken);
 
+        public Task<ulong> Count() => this.dbStore.Count();
+
+        public Task<ulong> GetCountFromOffset(TK offset) => this.dbStore.GetCountFromOffset(offset);
+
         public void Dispose()
         {
             this.Dispose(true);

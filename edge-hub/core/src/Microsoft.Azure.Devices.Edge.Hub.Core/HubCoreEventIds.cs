@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         public const int ConnectionManager = EventIdStart;
         public const int DeviceListener = EventIdStart + 100;
+        public const int NestingInfo = EventIdStart + 150;
         public const int CloudEndpoint = EventIdStart + 200;
         public const int ModuleEndpoint = EventIdStart + 300;
         public const int Authenticator = EventIdStart + 400;

@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using System.Collections.Generic;
     using System.Dynamic;
     using System.IO;
+    using System.Net;
     using System.Text;
     using System.Text.RegularExpressions;
     using System.Threading;
@@ -25,6 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     {
         const string TelemetryTopicTemplate = "$iothub/{0}/messages/events/{1}";
         const string TwinDesiredUpdateSubscriptionTemplate = "$iothub/{0}/twin/desired/#";
+        const string TwinResultSubscriptionTemplate = "$iothub/{0}/twin/res/#";
         const string DirectMethodSubscriptionTemplate = "$iothub/{0}/methods/post/#";
         const string GetTwinTemplate = "$iothub/{0}/twin/get/?$rid={1}";
         const string UpdateReportedTemplate = "$iothub/{0}/twin/reported/?$rid={1}";
@@ -48,6 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         readonly byte[] emptyArray = new byte[0];
 
         long lastRid = 1;
+        AtomicBoolean isConnected = new AtomicBoolean(false);
 
         IEdgeHub edgeHub;
         TaskCompletionSource<IMqttBrokerConnector> connectorGetter = new TaskCompletionSource<IMqttBrokerConnector>();
@@ -58,6 +61,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         public event Action<CloudConnectionStatus> ConnectionStatusChangedEvent;
 
         public IReadOnlyCollection<string> Subscriptions => new string[] { DownstreamTopic, ConnectivityTopic };
+
+        public bool IsConnected => this.isConnected.Get();
 
         public void BindEdgeHub(IEdgeHub edgeHub)
         {
@@ -144,6 +149,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             await this.SendUpstreamMessageAsync(RpcCmdUnsub, topic, this.emptyArray);
         }
 
+        public async Task RemoveTwinResponseAsync(IIdentity identity)
+        {
+            Events.RemovingTwinResultSubscription(identity.Id);
+
+            var topic = string.Format(TwinResultSubscriptionTemplate, identity.Id);
+            await this.SendUpstreamMessageAsync(RpcCmdUnsub, topic, this.emptyArray);
+        }
+
         public Task SendFeedbackMessageAsync(IIdentity identity, string messageId, FeedbackStatus feedbackStatus)
         {
             // TODO: when M2M/C2D is implemented, this may need to do something
@@ -174,13 +187,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return Task.CompletedTask;
         }
 
+        public Task StopListening(IIdentity identity)
+        {
+            // No listener
+            return Task.CompletedTask;
+        }
+
         public async Task UpdateReportedPropertiesAsync(IIdentity identity, IMessage reportedPropertiesMessage, bool needSubscribe)
         {
             if (needSubscribe)
             {
                 // TODO c# sdk subscribes automatically when needed, so do we. Needs to reconsider if this is the good place
                 // and how to handle the related state (the needSubscribe flag)
-                await this.SendUpstreamMessageAsync(RpcCmdSub, string.Format("$iothub/{0}/twin/res/#", identity.Id), this.emptyArray);
+                await this.SendUpstreamMessageAsync(RpcCmdSub, string.Format(TwinResultSubscriptionTemplate, identity.Id), this.emptyArray);
             }
 
             var rid = this.GetRid();
@@ -204,7 +223,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             {
                 // TODO c# sdk subscribes automatically when needed, so do we. Needs to reconsider if this is the good place
                 // and how to handle the related state (the needSubscribe flag)
-                await this.SendUpstreamMessageAsync(RpcCmdSub, string.Format("$iothub/{0}/twin/res/#", identity.Id), this.emptyArray);
+                await this.SendUpstreamMessageAsync(RpcCmdSub, string.Format(TwinResultSubscriptionTemplate, identity.Id), this.emptyArray);
             }
 
             var rid = this.GetRid();
@@ -288,13 +307,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         {
             // TODO acquire the response timeout from the message
             var callingTask = this.edgeHub.InvokeMethodAsync(rid, new DirectMethodRequest(id, method, payload, TimeSpan.FromMinutes(1)));
-            callingTask.ContinueWith(
-                    async response =>
+            _ = callingTask.ContinueWith(
+                    async responseTask =>
                     {
-                        var status = response.IsCompletedSuccessfully ? response.Result.Status : 500; // TODO check the correct status code to return
-                        var topic = string.Format(DirectMethodResponseTemplate, id, response.Result.Status, rid);
+                        // DirectMethodResponse has a 'Status' and 'HttpStatusCode'. If everything is fine, 'Status' contains
+                        // the response of the device and HttpStatusCode is 200. In this case we pass back the response of the
+                        // device. If something went wrong, then HttpStatusCode is an error (typically 404). In this case we
+                        // pass back that value. The value 500/InternalServerError is just a fallback, edgeHub is supposed to
+                        // handle errors, so 500 always should be overwritten.
+                        var responseCode = Convert.ToInt32(HttpStatusCode.InternalServerError);
+                        var responseData = this.emptyArray;
+                        if (responseTask.IsCompletedSuccessfully)
+                        {
+                            var response = responseTask.Result;
+                            responseData = response.Data ?? responseData;
 
-                        await this.SendUpstreamMessageAsync(RpcCmdPub, topic, response.Result.Data ?? this.emptyArray);
+                            if (response.HttpStatusCode == HttpStatusCode.OK)
+                            {
+                                responseCode = response.Status;
+                            }
+                            else
+                            {
+                                responseCode = Convert.ToInt32(response.HttpStatusCode);
+                            }
+                        }
+
+                        var topic = string.Format(DirectMethodResponseTemplate, id, responseCode, rid);
+                        await this.SendUpstreamMessageAsync(RpcCmdPub, topic, responseData);
                     });
         }
 
@@ -419,10 +458,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                         switch (statusAsString)
                         {
                             case "Connected":
+                                this.isConnected.Set(true);
                                 this.CallConnectivityHandlers(true);
                                 break;
 
                             case "Disconnected":
+                                this.isConnected.Set(false);
                                 this.CallConnectivityHandlers(false);
                                 break;
 
@@ -440,7 +481,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         void CallConnectivityHandlers(bool isConnected)
         {
-            var currentHandlers = this.ConnectionStatusChangedEvent.GetInvocationList();
+            var currentHandlers = this.ConnectionStatusChangedEvent?.GetInvocationList();
+
+            if (currentHandlers == null)
+            {
+                return;
+            }
 
             foreach (var handler in currentHandlers)
             {
@@ -498,6 +544,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             RemovingDirectMethodCallSubscription,
             RemovingDesiredPropertyUpdateSubscription,
+            RemovingTwinResultSubscription,
             AddingDirectMethodCallSubscription,
             AddingDesiredPropertyUpdateSubscription,
 
@@ -542,6 +589,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         public static void AddingDesiredPropertyUpdateSubscription(string id) => Log.LogDebug((int)EventIds.AddingDesiredPropertyUpdateSubscription, $"Adding desired property update subscriptions for client: {id}");
         public static void RemovingDirectMethodCallSubscription(string id) => Log.LogDebug((int)EventIds.RemovingDirectMethodCallSubscription, $"Removing direct method call subscriptions for client: {id}");
         public static void RemovingDesiredPropertyUpdateSubscription(string id) => Log.LogDebug((int)EventIds.RemovingDesiredPropertyUpdateSubscription, $"Removing desired property update subscriptions for client: {id}");
+        public static void RemovingTwinResultSubscription(string id) => Log.LogDebug((int)EventIds.RemovingTwinResultSubscription, $"Removing twin result subscriptions for client: {id}");
 
         public static void ErrorHandlingDownstreamMessage(string topic, Exception e) => Log.LogError((int)EventIds.ErrorHandlingDownstreamMessage, e, $"Error handling downstream message on topic: {topic}");
         public static void CannotParseGuid(string guid) => Log.LogError((int)EventIds.CannotParseGuid, $"Cannot parse guid: {guid}");

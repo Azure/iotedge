@@ -7,11 +7,14 @@ schedules:
   displayName: Nightly build
   branches:
     include:
-    - master
+    - main
   always: true
 
+variables:
+  DisableDockerDetector: true
+
 pool:
-  vmImage: ubuntu-16.04
+  vmImage: ubuntu-18.04
 
 steps:
 - checkout: self

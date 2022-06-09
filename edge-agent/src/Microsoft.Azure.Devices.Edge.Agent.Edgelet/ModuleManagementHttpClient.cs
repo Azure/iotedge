@@ -15,7 +15,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
     public class ModuleManagementHttpClient : IModuleManager, IIdentityManager, IDeviceManager
     {
+        const int MaxConcurrentRequests = 5;
+
         readonly ModuleManagementHttpClientVersioned inner;
+
+        readonly TimeSpan clientPermitTimeout = TimeSpan.FromSeconds(240);
+        readonly SemaphoreSlim clientPermit = new SemaphoreSlim(MaxConcurrentRequests);
 
         public ModuleManagementHttpClient(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion)
         {
@@ -25,43 +30,50 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             this.inner = GetVersionedModuleManagement(managementUri, serverSupportedApiVersion, clientSupportedApiVersion);
         }
 
-        public Task<Identity> CreateIdentityAsync(string name, string managedBy) => this.inner.CreateIdentityAsync(name, managedBy);
+        public Task<Identity> CreateIdentityAsync(string name, string managedBy) => this.Throttle(() => this.inner.CreateIdentityAsync(name, managedBy));
 
-        public Task<Identity> UpdateIdentityAsync(string name, string generationId, string managedBy) => this.inner.UpdateIdentityAsync(name, generationId, managedBy);
+        public Task<Identity> UpdateIdentityAsync(string name, string generationId, string managedBy) => this.Throttle(() => this.inner.UpdateIdentityAsync(name, generationId, managedBy));
 
-        public Task DeleteIdentityAsync(string name) => this.inner.DeleteIdentityAsync(name);
+        public Task DeleteIdentityAsync(string name) => this.Throttle(() => this.inner.DeleteIdentityAsync(name));
 
-        public Task<IEnumerable<Identity>> GetIdentities() => this.inner.GetIdentities();
+        public Task<IEnumerable<Identity>> GetIdentities() => this.Throttle(() => this.inner.GetIdentities());
 
-        public Task CreateModuleAsync(ModuleSpec moduleSpec) => this.inner.CreateModuleAsync(moduleSpec);
+        public Task CreateModuleAsync(ModuleSpec moduleSpec) => this.Throttle(() => this.inner.CreateModuleAsync(moduleSpec));
 
-        public Task StartModuleAsync(string name) => this.inner.StartModuleAsync(name);
+        public Task StartModuleAsync(string name) => this.Throttle(() => this.inner.StartModuleAsync(name));
 
-        public Task StopModuleAsync(string name) => this.inner.StopModuleAsync(name);
+        public Task StopModuleAsync(string name) => this.Throttle(() => this.inner.StopModuleAsync(name));
 
-        public Task DeleteModuleAsync(string name) => this.inner.DeleteModuleAsync(name);
+        public Task DeleteModuleAsync(string name) => this.Throttle(() => this.inner.DeleteModuleAsync(name));
 
-        public Task RestartModuleAsync(string name) => this.inner.RestartModuleAsync(name);
+        public Task RestartModuleAsync(string name) => this.Throttle(() => this.inner.RestartModuleAsync(name));
 
-        public Task UpdateModuleAsync(ModuleSpec moduleSpec) => this.inner.UpdateModuleAsync(moduleSpec);
+        public Task UpdateModuleAsync(ModuleSpec moduleSpec) => this.Throttle(() => this.inner.UpdateModuleAsync(moduleSpec));
 
-        public Task UpdateAndStartModuleAsync(ModuleSpec moduleSpec) => this.inner.UpdateAndStartModuleAsync(moduleSpec);
+        public Task UpdateAndStartModuleAsync(ModuleSpec moduleSpec) => this.Throttle(() => this.inner.UpdateAndStartModuleAsync(moduleSpec));
 
-        public Task<SystemInfo> GetSystemInfoAsync(CancellationToken cancellationToken) => this.inner.GetSystemInfoAsync(cancellationToken);
+        public Task<SystemInfo> GetSystemInfoAsync(CancellationToken cancellationToken) => this.Throttle(() => this.inner.GetSystemInfoAsync(cancellationToken));
 
-        public Task<SystemResources> GetSystemResourcesAsync() => this.inner.GetSystemResourcesAsync();
+        public Task<SystemResources> GetSystemResourcesAsync() => this.Throttle(() => this.inner.GetSystemResourcesAsync());
 
-        public Task<IEnumerable<ModuleRuntimeInfo>> GetModules<T>(CancellationToken token) => this.inner.GetModules<T>(token);
+        public Task<IEnumerable<ModuleRuntimeInfo>> GetModules<T>(CancellationToken token) => this.Throttle(() => this.inner.GetModules<T>(token));
 
-        public Task PrepareUpdateAsync(ModuleSpec moduleSpec) => this.inner.PrepareUpdateAsync(moduleSpec);
+        public Task PrepareUpdateAsync(ModuleSpec moduleSpec) => this.Throttle(() => this.inner.PrepareUpdateAsync(moduleSpec));
 
-        public Task ReprovisionDeviceAsync() => this.inner.ReprovisionDeviceAsync();
+        public Task ReprovisionDeviceAsync() => this.Throttle(() => this.inner.ReprovisionDeviceAsync());
 
-        public Task<Stream> GetModuleLogs(string name, bool follow, Option<int> tail, Option<string> since, Option<string> until, CancellationToken cancellationToken) =>
-            this.inner.GetModuleLogs(name, follow, tail, since, until, cancellationToken);
+        public Task<Stream> GetModuleLogs(string name, bool follow, Option<int> tail, Option<string> since, Option<string> until, Option<bool> includeTimestamp, CancellationToken cancellationToken) =>
+            this.Throttle(() => this.inner.GetModuleLogs(name, follow, tail, since, until, includeTimestamp, cancellationToken));
 
         public Task<Stream> GetSupportBundle(Option<string> since, Option<string> until, Option<string> iothubHostname, Option<bool> edgeRuntimeOnly, CancellationToken token) =>
-            this.inner.GetSupportBundle(since, until, iothubHostname, edgeRuntimeOnly, token);
+            this.Throttle(() => this.inner.GetSupportBundle(since, until, iothubHostname, edgeRuntimeOnly, token));
+
+        public async Task<string> GetProductInfoAsync(CancellationToken token, string baseProductInfo)
+        {
+            SystemInfo systemInfo = await this.GetSystemInfoAsync(token);
+
+            return $"{baseProductInfo} ({systemInfo.ToQueryString()})";
+        }
 
         internal static ModuleManagementHttpClientVersioned GetVersionedModuleManagement(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion)
         {
@@ -92,6 +104,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
                 return new Version_2020_07_07.ModuleManagementHttpClient(managementUri);
             }
 
+            if (supportedVersion == ApiVersion.Version20211207)
+            {
+                return new Version_2021_12_07.ModuleManagementHttpClient(managementUri);
+            }
+
             return new Version_2018_06_28.ModuleManagementHttpClient(managementUri);
         }
 
@@ -111,6 +128,34 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             }
 
             return serverVersion.Value < clientVersion.Value ? serverVersion : clientVersion;
+        }
+
+        Task Throttle(Func<Task> identityOperation)
+        {
+            return this.Throttle<bool>(
+                            async () =>
+                            {
+                                await identityOperation();
+                                return true;
+                            });
+        }
+
+        async Task<T> Throttle<T>(Func<Task<T>> identityOperation)
+        {
+            bool permitAcquired = await this.clientPermit.WaitAsync(this.clientPermitTimeout);
+            if (!permitAcquired)
+            {
+                throw new TimeoutException($"Could not acquire permit to call ModuleManager, hit limit of {MaxConcurrentRequests} concurrent requests");
+            }
+
+            try
+            {
+                return await identityOperation();
+            }
+            finally
+            {
+                this.clientPermit.Release();
+            }
         }
     }
 }

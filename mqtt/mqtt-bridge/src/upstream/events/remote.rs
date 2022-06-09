@@ -81,7 +81,10 @@ impl RemoteUpstreamPumpEventHandler {
         match self.remote_sub_handle.subscribe(subscribe_to).await {
             Ok(_) => {
                 if let Some(existing) = self.subscriptions.insert(&topic_filter, command_id) {
-                    warn!("duplicating sub request found for {}", existing);
+                    warn!(
+                        command_id = ?existing,
+                        "duplicating sub request found for topic {}", topic_filter
+                    );
                 }
             }
             Err(e) => {
@@ -105,7 +108,10 @@ impl RemoteUpstreamPumpEventHandler {
         {
             Ok(_) => {
                 if let Some(existing) = self.subscriptions.insert(&topic_filter, command_id) {
-                    warn!("duplicating unsub request found for {}", existing);
+                    warn!(
+                        commands = ?existing,
+                        "duplicating unsub request found for topic {}", topic_filter
+                    );
                 }
             }
             Err(e) => {

@@ -110,6 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             edgeHub.Setup(e => e.UpdateReportedPropertiesAsync(It.IsAny<IIdentity>(), It.IsAny<IMessage>()))
                 .Callback<IIdentity, IMessage>((id, m) => receivedMessage = m)
                 .Returns(Task.CompletedTask);
+            edgeHub.Setup(e => e.GetEdgeDeviceId()).Returns("edgeDeviceId1");
             Mock.Get(connMgr).Setup(c => c.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(Option.Some(cloudProxy)));
             var listener = new DeviceMessageHandler(identity, edgeHub.Object, connMgr, DefaultMessageAckTimeout, Option.None<string>());
             var underlyingDeviceProxy = new Mock<IDeviceProxy>();
@@ -126,8 +127,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.NotNull(receivedMessage);
             Assert.Equal(Constants.TwinChangeNotificationMessageSchema, receivedMessage.SystemProperties[SystemProperties.MessageSchema]);
             Assert.Equal(Constants.TwinChangeNotificationMessageType, receivedMessage.SystemProperties[SystemProperties.MessageType]);
-            Assert.Equal("device1", receivedMessage.SystemProperties[SystemProperties.ConnectionDeviceId]);
-            Assert.Equal("module1", receivedMessage.SystemProperties[SystemProperties.ConnectionModuleId]);
+            Assert.Equal("edgeDeviceId1", receivedMessage.SystemProperties[SystemProperties.ConnectionDeviceId]);
+            Assert.Equal("$edgeHub", receivedMessage.SystemProperties[SystemProperties.ConnectionModuleId]);
+            Assert.Equal("device1", receivedMessage.SystemProperties[SystemProperties.RpConnectionDeviceIdInternal]);
+            Assert.Equal("module1", receivedMessage.SystemProperties[SystemProperties.RpConnectionModuleIdInternal]);
             Assert.True(receivedMessage.SystemProperties.ContainsKey(SystemProperties.EnqueuedTime));
         }
 
@@ -323,6 +326,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             await deviceMessageHandler.ProcessMessageFeedbackAsync(Guid.NewGuid().ToString(), FeedbackStatus.Complete);
 
+            await Task.Delay(TimeSpan.FromSeconds(1));
             Assert.False(sendMessageTask.IsCompleted);
         }
 
@@ -389,6 +393,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // send message to x509 device
             Task sendMessageTask = deviceMessageHandler.SendMessageAsync(message, "input1");
             await deviceMessageHandler.ProcessMessageFeedbackAsync(lockToken, FeedbackStatus.Complete);
+
+            await Task.Delay(TimeSpan.FromSeconds(1));
             Assert.True(messageReceived);
             Assert.True(sendMessageTask.IsCompletedSuccessfully);
         }

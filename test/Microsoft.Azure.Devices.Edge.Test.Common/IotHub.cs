@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Common;
+    using Microsoft.Azure.Devices.Common.Exceptions;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Azure.EventHubs;
@@ -65,9 +66,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public string Hostname =>
             IotHubConnectionStringBuilder.Create(this.iotHubConnectionString).HostName;
 
-        public string SharedAccessKey =>
-            IotHubConnectionStringBuilder.Create(this.iotHubConnectionString).SharedAccessKey;
-
         public string EntityPath =>
             new EventHubsConnectionStringBuilder(this.eventHubEndpoint).EntityPath;
 
@@ -85,26 +83,51 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             return await this.RegistryManager.AddDeviceAsync(device, token);
         }
 
-        public Task<Device> CreateEdgeDeviceIdentityAsync(string deviceId, AuthenticationType authType, X509Thumbprint x509Thumbprint, CancellationToken token)
+        public async Task<Device> CreateEdgeDeviceIdentityAsync(string deviceId, Option<string> parentDeviceId, AuthenticationType authType, X509Thumbprint x509Thumbprint, CancellationToken token)
         {
-            Device edge = new Device(deviceId)
+            Device edge = await parentDeviceId.Match(
+            async p =>
             {
-                Authentication = new AuthenticationMechanism()
-                {
-                    Type = authType,
-                    X509Thumbprint = x509Thumbprint
-                },
-                Capabilities = new DeviceCapabilities()
-                {
-                    IotEdge = true
-                }
-            };
+                Device parentDevice = await this.GetDeviceIdentityAsync(p, token);
+                string parentDeviceScope = parentDevice == null ? string.Empty : parentDevice.Scope;
+                Log.Verbose($"Parent scope: {parentDeviceScope}");
+                var result = new Device(deviceId)
+                                 {
+                                     Authentication = new AuthenticationMechanism()
+                                     {
+                                         Type = authType,
+                                         X509Thumbprint = x509Thumbprint
+                                     },
+                                     Capabilities = new DeviceCapabilities()
+                                     {
+                                         IotEdge = true
+                                     }
+                                 };
 
-            return this.CreateDeviceIdentityAsync(edge, token);
+                result.ParentScopes.Add(parentDeviceScope);
+                return result;
+            },
+            () =>
+            {
+                return Task.FromResult(new Device(deviceId)
+                {
+                    Authentication = new AuthenticationMechanism()
+                    {
+                        Type = authType,
+                        X509Thumbprint = x509Thumbprint
+                    },
+                    Capabilities = new DeviceCapabilities()
+                    {
+                        IotEdge = true
+                    }
+                });
+            });
+
+            return await this.CreateDeviceIdentityAsync(edge, token);
         }
 
         public Task DeleteDeviceIdentityAsync(Device device, CancellationToken token) =>
-            this.RegistryManager.RemoveDeviceAsync(device);
+            this.RegistryManager.RemoveDeviceAsync(device.Id);
 
         public Task DeployDeviceConfigurationAsync(
             string deviceId,
@@ -113,8 +136,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public Task<Twin> GetTwinAsync(
             string deviceId,
-            string moduleId,
-            CancellationToken token) => this.RegistryManager.GetTwinAsync(deviceId, moduleId, token);
+            Option<string> moduleId,
+            CancellationToken token)
+        {
+            return moduleId.Match(
+                m => this.RegistryManager.GetTwinAsync(deviceId, m, token),
+                () => this.RegistryManager.GetTwinAsync(deviceId, token));
+        }
 
         public async Task UpdateTwinAsync(
             string deviceId,
@@ -122,7 +150,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             object twinPatch,
             CancellationToken token)
         {
-            Twin twin = await this.GetTwinAsync(deviceId, moduleId, token);
+            Twin twin = await this.GetTwinAsync(deviceId, Option.Some(moduleId), token);
             string patch = JsonConvert.SerializeObject(twinPatch);
             await this.RegistryManager.UpdateTwinAsync(
                 deviceId,
@@ -140,7 +168,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             return Retry.Do(
                 () => this.ServiceClient.InvokeDeviceMethodAsync(deviceId, method, token),
                 result => result.Status == 200,
-                e => true,
+                e => !(e is DeviceNotFoundException) || ((DeviceNotFoundException)e).IsTransient,
                 TimeSpan.FromSeconds(5),
                 token);
         }
@@ -201,6 +229,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             }
 
             await receiver.CloseAsync();
+        }
+
+        public async Task UpdateEdgeEnableStatus(string deviceId, bool enabled)
+        {
+            var edge = await this.RegistryManager.GetDeviceAsync(deviceId);
+
+            if (!edge.Capabilities.IotEdge)
+            {
+                throw new ArgumentException($"{deviceId} is not an Edge device!");
+            }
+
+            edge.Status = enabled ? DeviceStatus.Enabled : DeviceStatus.Disabled;
+            var updated = await this.RegistryManager.UpdateDeviceAsync(edge);
+            Log.Verbose($"Updated enabled status for {deviceId}, enabled: {enabled}");
+            Log.Verbose($"{updated.Id}, enabled: {updated.Status}");
         }
     }
 }

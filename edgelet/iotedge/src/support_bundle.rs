@@ -71,7 +71,7 @@ where
                         let path = PathBuf::from(location);
                         println!(
                             "Created support bundle at {}",
-                            path.canonicalize().unwrap_or_else(|_| path).display()
+                            path.canonicalize().unwrap_or(path).display()
                         );
 
                         Ok(())

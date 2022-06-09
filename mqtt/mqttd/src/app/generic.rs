@@ -1,7 +1,4 @@
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{time::Duration, fs, path::{Path, PathBuf}};
 
 use anyhow::{Context, Result};
 use async_trait::async_trait;
@@ -37,12 +34,20 @@ impl Bootstrap for GenericBootstrap {
     ) -> Result<(Broker<Self::Authorizer>, FilePersistor<VersionedFileFormat>)> {
         info!("loading state...");
         let persistence_config = settings.broker().persistence();
-        let state_dir = persistence_config.file_path();
+        let state_dir = persistence_config.folder_path();
 
         fs::create_dir_all(state_dir.clone())?;
         let mut persistor = FilePersistor::new(state_dir, VersionedFileFormat::default());
-        let state = persistor.load().await?;
-        info!("state loaded.");
+        let state = match persistor.load().await {
+            Ok(state) => {
+                info!("state loaded.");
+                state
+            }
+            Err(e) => {
+                error!("failed to load broker state, most likely the broker was forcefully shut down and state file is corrupted: {}", e);
+                None
+            }
+        };
 
         let broker = BrokerBuilder::default()
             .with_authorizer(AllowAll)
@@ -53,8 +58,16 @@ impl Bootstrap for GenericBootstrap {
         Ok((broker, persistor))
     }
 
-    fn snapshot_interval(&self, settings: &Self::Settings) -> std::time::Duration {
+    fn snapshot_interval(&self, settings: &Self::Settings) -> Duration {
         settings.broker().persistence().time_interval()
+    }
+
+    fn session_expiration(&self, settings: &Self::Settings) -> Duration {
+        settings.broker().session().expiration()
+    }
+
+    fn session_cleanup_interval(&self, settings: &Self::Settings) -> Duration {
+        settings.broker().session().cleanup_interval()
     }
 
     async fn run(

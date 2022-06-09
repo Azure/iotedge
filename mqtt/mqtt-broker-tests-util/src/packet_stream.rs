@@ -10,7 +10,7 @@ use tokio_io_timeout::TimeoutStream;
 use tokio_util::codec::Framed;
 
 use mqtt3::{
-    proto::{ClientId, Connect, Packet, PacketCodec, Publish, Subscribe},
+    proto::{ClientId, Connect, Packet, PacketCodec, Publication, Publish, Subscribe},
     PROTOCOL_LEVEL, PROTOCOL_NAME,
 };
 
@@ -59,6 +59,7 @@ impl PacketStream {
         server_addr: impl ToSocketAddrs,
         username: Option<String>,
         password: Option<String>,
+        will: Option<Publication>,
     ) -> Self {
         let mut client = Self::open(server_addr).await;
         client
@@ -66,7 +67,7 @@ impl PacketStream {
                 username,
                 password,
                 client_id,
-                will: None,
+                will,
                 keep_alive: Duration::from_secs(30),
                 protocol_name: PROTOCOL_NAME.into(),
                 protocol_level: PROTOCOL_LEVEL,

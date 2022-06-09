@@ -79,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             return modules;
         }
 
-        public Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<string> since, Option<string> until, CancellationToken cancellationToken)
+        public Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<string> since, Option<string> until, Option<bool> includeTimestamp, CancellationToken cancellationToken)
         {
             var containerLogsParameters = new ContainerLogsParameters
             {
@@ -89,6 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             };
             tail.ForEach(t => containerLogsParameters.Tail = t.ToString());
             since.ForEach(t => containerLogsParameters.Since = t.ToString());
+            includeTimestamp.ForEach(t => containerLogsParameters.Timestamps = t);
 
             return this.client.Containers.GetContainerLogsAsync(module, containerLogsParameters, cancellationToken);
         }
@@ -171,11 +172,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     break;
 
                 case "removing":
-                case "dead":
                 case "exited":
                     // if the exit code is anything other than zero then the container is
                     // considered as having "failed"; otherwise it is considered as stopped
                     status = containerState.ExitCode == 0 ? ModuleStatus.Stopped : ModuleStatus.Failed;
+                    break;
+
+                case "dead":
+                    status = ModuleStatus.Dead;
                     break;
 
                 case "running":

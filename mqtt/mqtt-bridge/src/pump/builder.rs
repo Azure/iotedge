@@ -5,8 +5,8 @@ use tokio::sync::mpsc;
 use crate::{
     bridge::BridgeError,
     client::{MqttClient, MqttClientConfig, MqttClientExt},
-    messages::{StoreMqttEventHandler, TopicMapper},
-    persist::{PublicationStore, StreamWakeableState, WakingMemoryStore},
+    messages::{self, StoreMqttEventHandler, TopicMapper},
+    persist::{PersistResult, PublicationStore, StreamWakeableState},
     settings::TopicRule,
     upstream::{
         ConnectivityMqttEventHandler, LocalRpcMqttEventHandler, LocalUpstreamMqttEventHandler,
@@ -22,6 +22,9 @@ pub type PumpPair<S> = (
     Pump<S, RemoteUpstreamMqttEventHandler<S>, RemoteUpstreamPumpEventHandler>,
 );
 
+type StoreCreateFn<S> = dyn Fn(&str) -> PersistResult<PublicationStore<S>>;
+type BoxedStorageCreatedFn<S> = Box<StoreCreateFn<S>>;
+
 /// Constructs a pair of bridge pumps: local and remote.
 ///
 /// Local pump connects to a local broker, subscribes to topics to receive
@@ -34,15 +37,15 @@ pub type PumpPair<S> = (
 pub struct Builder<S> {
     local: PumpBuilder,
     remote: PumpBuilder,
-    store: Box<dyn Fn() -> PublicationStore<S>>,
+    store: Option<BoxedStorageCreatedFn<S>>,
 }
 
-impl Default for Builder<WakingMemoryStore> {
+impl<S> Default for Builder<S> {
     fn default() -> Self {
         Self {
             local: PumpBuilder::default(),
             remote: PumpBuilder::default(),
-            store: Box::new(|| PublicationStore::new_memory(0)),
+            store: None,
         }
     }
 }
@@ -72,19 +75,21 @@ where
     /// Setups a factory to create publication store.
     pub fn with_store<F, S1>(self, store: F) -> Builder<S1>
     where
-        F: Fn() -> PublicationStore<S1> + 'static,
+        F: Fn(&str) -> PersistResult<PublicationStore<S1>> + 'static,
     {
         Builder {
             local: self.local,
             remote: self.remote,
-            store: Box::new(store),
+            store: Some(Box::new(store)),
         }
     }
 
     /// Creates a pair of local and remote pump.
     pub fn build(&mut self) -> Result<PumpPair<S>, BridgeError> {
-        let remote_store = (self.store)();
-        let local_store = (self.store)();
+        let store = self.store.as_ref().ok_or(BridgeError::UnsetStorage)?;
+
+        let remote_store = (store)("remote")?;
+        let local_store = (store)("local")?;
 
         let (remote_messages_send, remote_messages_recv) = mpsc::channel(100);
         let (local_messages_send, local_messages_recv) = mpsc::channel(100);
@@ -96,6 +101,7 @@ where
         let rpc = LocalRpcMqttEventHandler::new(PumpHandle::new(remote_messages_send.clone()));
         let messages =
             StoreMqttEventHandler::new(remote_store.clone(), local_topic_mappers_updates.clone());
+
         let handler = LocalUpstreamMqttEventHandler::new(messages, rpc);
 
         let config = self.local.client.take().expect("local client config");
@@ -128,10 +134,14 @@ where
         let topic_filters = make_topics(&self.remote.rules)?;
         let remote_topic_mappers_updates = TopicMapperUpdates::new(topic_filters);
 
+        let (retry_send, retry_recv) = mpsc::unbounded_channel();
+
         let rpc_subscriptions = RpcSubscriptions::default();
         let rpc = RemoteRpcMqttEventHandler::new(rpc_subscriptions.clone(), local_pump.handle());
-        let messages =
+        let mut messages =
             StoreMqttEventHandler::new(local_store, remote_topic_mappers_updates.clone());
+        messages.set_retry_sub_sender(retry_send);
+
         let connectivity = ConnectivityMqttEventHandler::new(PumpHandle::new(local_messages_send));
         let handler = RemoteUpstreamMqttEventHandler::new(messages, rpc, connectivity);
 
@@ -143,6 +153,16 @@ where
         let remote_sub_handle = client
             .update_subscription_handle()
             .map_err(BridgeError::UpdateSubscriptionHandle)?;
+
+        let retry_sub_handle = client
+            .update_subscription_handle()
+            .map_err(BridgeError::UpdateSubscriptionHandle)?;
+
+        tokio::spawn(messages::retry_subscriptions(
+            retry_recv,
+            remote_topic_mappers_updates.clone(),
+            retry_sub_handle,
+        ));
 
         let handler = RemoteUpstreamPumpEventHandler::new(
             remote_sub_handle,

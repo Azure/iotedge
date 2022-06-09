@@ -10,14 +10,17 @@ use std::time::Duration;
 
 use chrono::prelude::*;
 use failure::{Fail, ResultExt};
+use futures::sync::mpsc::UnboundedSender;
 use futures::{Future, Stream};
 use serde_derive::Serialize;
+use serde_with::skip_serializing_none;
 
+use aziotctl_common::host_info::{DmiInfo, OsInfo};
 use edgelet_utils::ensure_not_empty_with_context;
+use futures::sync::oneshot::Sender;
 
 use crate::error::{Error, ErrorKind, Result};
-use crate::settings::{Provisioning, RuntimeSettings};
-use crate::GetTrustBundle;
+use crate::settings::RuntimeSettings;
 
 #[derive(Clone, Copy, Debug, serde_derive::Deserialize, PartialEq, serde_derive::Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -26,6 +29,13 @@ pub enum ModuleStatus {
     Running,
     Stopped,
     Failed,
+    Dead,
+}
+
+pub enum ModuleAction {
+    Start(String, Sender<()>),
+    Stop(String),
+    Remove(String),
 }
 
 impl FromStr for ModuleStatus {
@@ -140,15 +150,15 @@ impl ModuleRuntimeState {
 
 #[derive(serde_derive::Deserialize, Debug, serde_derive::Serialize)]
 pub struct ModuleSpec<T> {
-    name: String,
+    pub name: String,
     #[serde(rename = "type")]
-    type_: String,
-    config: T,
-    #[serde(default = "BTreeMap::new")]
-    env: BTreeMap<String, String>,
+    pub type_: String,
     #[serde(default)]
     #[serde(rename = "imagePullPolicy")]
-    image_pull_policy: ImagePullPolicy,
+    pub image_pull_policy: ImagePullPolicy,
+    pub config: T,
+    #[serde(default)]
+    pub env: BTreeMap<String, String>,
 }
 
 impl<T> Clone for ModuleSpec<T>
@@ -163,6 +173,33 @@ where
             env: self.env.clone(),
             image_pull_policy: self.image_pull_policy,
         }
+    }
+}
+
+/// In nested scenario, Agent image can be pulled from its parent.
+/// It is possible to specify the parent address using the keyword $upstream
+///
+/// Unfortunately, due to the particularly runtime-independent and generic
+/// nature of configurations, it's very difficult to do "late binding" of
+/// runtime specific configuration values, such as the the $upstream
+/// `parent_hostname` resolution, which can only be done _after_ fetching the
+/// `parent_hostname` value from the underlying aziot identity service.
+///
+/// As the name implies, this trait is a bodge that enables this functionality,
+/// and was added in the lead-up to 1.2 GA.
+///
+/// A proper rework of settings loading should be undertaken when there is more
+/// time, but for now, this will have to do...
+pub trait NestedEdgeBodge {
+    fn parent_hostname_resolve(&mut self, parent_hostname: &str);
+}
+
+impl<T> ModuleSpec<T>
+where
+    T: NestedEdgeBodge,
+{
+    pub fn parent_hostname_resolve(&mut self, parent_hostname: &str) {
+        self.config.parent_hostname_resolve(parent_hostname);
     }
 }
 
@@ -285,6 +322,7 @@ impl ToString for LogTail {
 pub struct LogOptions {
     follow: bool,
     tail: LogTail,
+    timestamps: bool,
     since: i32,
     until: Option<i32>,
 }
@@ -294,6 +332,7 @@ impl LogOptions {
         LogOptions {
             follow: false,
             tail: LogTail::All,
+            timestamps: false,
             since: 0,
             until: None,
         }
@@ -319,6 +358,11 @@ impl LogOptions {
         self
     }
 
+    pub fn with_timestamps(mut self, timestamps: bool) -> Self {
+        self.timestamps = timestamps;
+        self
+    }
+
     pub fn follow(&self) -> bool {
         self.follow
     }
@@ -333,6 +377,10 @@ impl LogOptions {
 
     pub fn until(&self) -> Option<i32> {
         self.until
+    }
+
+    pub fn timestamps(&self) -> bool {
+        self.timestamps
     }
 }
 
@@ -357,24 +405,109 @@ pub trait ModuleRegistry {
     fn remove(&self, name: &str) -> Self::RemoveFuture;
 }
 
-#[derive(Debug, Default, Serialize)]
+#[skip_serializing_none]
+#[derive(Debug, Default, PartialEq, Serialize)]
 pub struct SystemInfo {
-    /// OS Type of the Host. Example of value expected: \"linux\" and \"windows\".
     #[serde(rename = "osType")]
-    pub os_type: String,
-    /// Hardware architecture of the host. Example of value expected: arm32, x86, amd64
-    pub architecture: String,
-    /// iotedge version string
-    pub version: &'static str,
-    pub provisioning: ProvisioningInfo,
-    pub server_version: String,
+    pub kernel: String,
+    pub kernel_release: String,
     pub kernel_version: String,
-    pub operating_system: String,
-    pub cpus: i32,
-    pub virtualized: &'static str,
+
+    pub operating_system: Option<String>,
+    pub operating_system_version: Option<String>,
+    pub operating_system_variant: Option<String>,
+    pub operating_system_build: Option<String>,
+
+    pub architecture: String,
+    pub cpus: usize,
+    pub virtualized: String,
+
+    pub product_name: Option<String>,
+    pub system_vendor: Option<String>,
+
+    pub version: String,
+    pub server_version: Option<String>,
+
+    pub provisioning: ProvisioningInfo,
+
+    #[serde(default, flatten)]
+    pub additional_properties: BTreeMap<String, String>,
 }
 
-#[derive(Clone, Debug, Default, Serialize)]
+impl SystemInfo {
+    pub fn from_system() -> Self {
+        let kernel = nix::sys::utsname::uname();
+        let dmi = DmiInfo::default();
+        let os = OsInfo::default();
+
+        Self {
+            kernel: kernel.sysname().to_owned(),
+            kernel_release: kernel.release().to_owned(),
+            kernel_version: kernel.version().to_owned(),
+
+            operating_system: os.id,
+            operating_system_version: os.version_id,
+            operating_system_variant: os.variant_id,
+            operating_system_build: os.build_id,
+
+            architecture: os.arch.to_owned(),
+            cpus: num_cpus::get(),
+            virtualized: match crate::virtualization::is_virtualized_env() {
+                Ok(Some(true)) => "yes",
+                Ok(Some(false)) => "no",
+                _ => "unknown",
+            }
+            .to_owned(),
+
+            product_name: dmi.product,
+            system_vendor: dmi.vendor,
+
+            version: crate::version_with_source_version().to_owned(),
+            server_version: None,
+
+            provisioning: ProvisioningInfo {
+                r#type: "ProvisioningType".into(),
+                dynamic_reprovisioning: false,
+                always_reprovision_on_startup: false,
+            },
+
+            additional_properties: BTreeMap::new(),
+        }
+    }
+
+    pub fn merge_additional(&mut self, mut additional_info: BTreeMap<String, String>) -> &Self {
+        macro_rules! remove_assign {
+            ($key:ident) => {
+                if let Some((_, x)) = additional_info.remove_entry(stringify!($key)) {
+                    self.$key = x.into();
+                }
+            };
+        }
+
+        remove_assign!(kernel);
+        remove_assign!(kernel_release);
+        remove_assign!(kernel_version);
+
+        remove_assign!(operating_system);
+        remove_assign!(operating_system_version);
+        remove_assign!(operating_system_variant);
+        remove_assign!(operating_system_build);
+
+        remove_assign!(architecture);
+
+        remove_assign!(product_name);
+        remove_assign!(system_vendor);
+
+        remove_assign!(server_version);
+
+        self.additional_properties
+            .extend(additional_info.into_iter());
+
+        self
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize)]
 pub struct ProvisioningInfo {
     /// IoT Edge provisioning type, examples: manual.device_connection_string, dps.x509
     pub r#type: String,
@@ -382,16 +515,6 @@ pub struct ProvisioningInfo {
     pub dynamic_reprovisioning: bool,
     #[serde(rename = "alwaysReprovisionOnStartup")]
     pub always_reprovision_on_startup: bool,
-}
-
-impl ProvisioningInfo {
-    pub fn new(provisioning: &Provisioning) -> Self {
-        ProvisioningInfo {
-            r#type: provisioning.provisioning_type().to_string(),
-            dynamic_reprovisioning: provisioning.dynamic_reprovisioning(),
-            always_reprovision_on_startup: provisioning.always_reprovision_on_startup(),
-        }
-    }
 }
 
 #[derive(Debug, serde_derive::Serialize)]
@@ -484,15 +607,13 @@ pub trait ProvisioningResult {
 pub trait MakeModuleRuntime {
     type Config: Clone + Send;
     type Settings: RuntimeSettings<Config = Self::Config>;
-    type ProvisioningResult: ProvisioningResult;
     type ModuleRuntime: ModuleRuntime<Config = Self::Config>;
     type Error: Fail;
     type Future: Future<Item = Self::ModuleRuntime, Error = Self::Error> + Send;
 
     fn make_runtime(
         settings: Self::Settings,
-        provisioning_result: Self::ProvisioningResult,
-        crypto: impl GetTrustBundle + Send + 'static,
+        create_socket_channel: UnboundedSender<ModuleAction>,
     ) -> Self::Future;
 }
 
@@ -642,8 +763,9 @@ impl FromStr for ImagePullPolicy {
 
 #[cfg(test)]
 mod tests {
-    use super::{BTreeMap, Default, ImagePullPolicy, ModuleSpec};
+    use super::*;
 
+    use std::iter::FromIterator;
     use std::str::FromStr;
     use std::string::ToString;
 
@@ -656,6 +778,7 @@ mod tests {
             ("running", ModuleStatus::Running),
             ("stopped", ModuleStatus::Stopped),
             ("failed", ModuleStatus::Failed),
+            ("dead", ModuleStatus::Dead),
         ]
     }
 
@@ -757,5 +880,90 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn system_info_merge() {
+        let mut base = SystemInfo {
+            kernel: "FOO".into(),
+            kernel_release: "BAR".into(),
+            kernel_version: "BAZ".into(),
+
+            operating_system: "A".to_owned().into(),
+            operating_system_version: "B".to_owned().into(),
+            operating_system_variant: "C".to_owned().into(),
+            operating_system_build: "D".to_owned().into(),
+
+            architecture: "ARCH".into(),
+            cpus: 0,
+            virtualized: "UNKNOWN".into(),
+
+            product_name: None,
+            system_vendor: None,
+
+            version: crate::version_with_source_version().to_owned(),
+            server_version: None,
+
+            provisioning: ProvisioningInfo {
+                r#type: "ProvisioningType".into(),
+                dynamic_reprovisioning: false,
+                always_reprovision_on_startup: false,
+            },
+
+            additional_properties: BTreeMap::new(),
+        };
+
+        let result = SystemInfo {
+            kernel: "linux".into(),
+            kernel_release: "5.0".into(),
+            kernel_version: "1".into(),
+
+            operating_system: "OS".to_owned().into(),
+            operating_system_version: "B".to_owned().into(),
+            operating_system_variant: "C".to_owned().into(),
+            operating_system_build: "D".to_owned().into(),
+
+            architecture: "ARCH".into(),
+            cpus: 0,
+            virtualized: "UNKNOWN".into(),
+
+            product_name: None,
+            system_vendor: None,
+
+            version: crate::version_with_source_version().to_owned(),
+            server_version: None,
+
+            provisioning: ProvisioningInfo {
+                r#type: "ProvisioningType".into(),
+                dynamic_reprovisioning: false,
+                always_reprovision_on_startup: false,
+            },
+
+            additional_properties: BTreeMap::from_iter(
+                [
+                    ("foo".to_owned(), "foofoo".to_owned()),
+                    ("bar".to_owned(), "barbar".to_owned()),
+                ]
+                .iter()
+                .cloned(),
+            ),
+        };
+
+        let additional = BTreeMap::from_iter(
+            [
+                ("kernel".to_owned(), "linux".to_owned()),
+                ("kernel_release".to_owned(), "5.0".to_owned()),
+                ("kernel_version".to_owned(), "1".to_owned()),
+                ("operating_system".to_owned(), "OS".to_owned()),
+                ("foo".to_owned(), "foofoo".to_owned()),
+                ("bar".to_owned(), "barbar".to_owned()),
+            ]
+            .iter()
+            .cloned(),
+        );
+
+        base.merge_additional(additional);
+
+        assert_eq!(base, result);
     }
 }

@@ -23,6 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             ConfigHelper.TestConfig["UsePersistentStorage"] = usePersistentStorage.ToString();
             ConfigHelper.TestConfig["MaxStorageBytes"] = MaxStorageSize.ToString();
             ConfigHelper.TestConfig["TimeToLiveSecs"] = "0";
+            ConfigHelper.TestConfig["messageCleanupIntervalSecs"] = "10";
             ConfigHelper.TestConfig["Routes"] = JsonConvert.SerializeObject(Routes);
             this.protocolHeadFixture = EdgeHubFixtureCollection.GetFixture();
         }
@@ -46,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         /// </summary>
         static readonly IDictionary<string, string> Routes = new Dictionary<string, string>()
         {
-            ["r1"] = "FROM /messages/modules/sender1 INTO BrokeredEndpoint(\"/modules/receiver1/inputs/input1\")",
+            ["r1"] = "FROM /messages/modules/sender1forstorelimits INTO BrokeredEndpoint(\"/modules/receiver1/inputs/input1\")",
         };
 
         protected async Task StoreLimitValidationTestAsync()
@@ -58,10 +59,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
+            Guid guid = Guid.NewGuid();
             try
             {
                 await Task.Delay(TimeSpan.FromSeconds(10));
-                sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", StoreLimitTestTransportSettings, 0);
+                sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1forstorelimits", StoreLimitTestTransportSettings, 0);
 
                 // Send messages to ensure that the max storage size limit is reached.
                 int sentMessagesCount = 0;

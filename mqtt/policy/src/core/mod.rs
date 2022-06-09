@@ -36,30 +36,21 @@ where
     /// If no rules match the `&Request` - the default `Decision` is returned.
     pub fn evaluate(&self, request: &Request<RC>) -> Result<Decision> {
         match self.eval_static_rules(request) {
-            // static rules not defined. Need to check variable rules.
-            Ok(EffectOrd {
-                effect: EffectImpl::Undefined,
-                ..
-            }) => match self.eval_variable_rules(request) {
+            // static rules undefined. Need to check variable rules.
+            Ok(None) => match self.eval_variable_rules(request) {
                 // variable rules undefined as well. Return default decision.
-                Ok(EffectOrd {
-                    effect: EffectImpl::Undefined,
-                    ..
-                }) => Ok(self.default_decision),
+                Ok(None) => Ok(self.default_decision),
                 // variable rules defined. Return the decision.
-                Ok(effect) => Ok(effect.into()),
+                Ok(Some(effect)) => Ok(effect.into()),
                 Err(e) => Err(e),
             },
             // static rules are defined. Evaluate variable rules and compare priority.
-            Ok(static_effect) => {
+            Ok(Some(static_effect)) => {
                 match self.eval_variable_rules(request) {
                     // variable rules undefined. Proceed with static rule decision.
-                    Ok(EffectOrd {
-                        effect: EffectImpl::Undefined,
-                        ..
-                    }) => Ok(static_effect.into()),
+                    Ok(None) => Ok(static_effect.into()),
                     // variable rules defined. Compare priority and return.
-                    Ok(variable_effect) => {
+                    Ok(Some(variable_effect)) => {
                         // compare order.
                         Ok(if variable_effect > static_effect {
                             static_effect
@@ -76,7 +67,8 @@ where
         }
     }
 
-    fn eval_static_rules(&self, request: &Request<RC>) -> Result<EffectOrd> {
+    #[allow(clippy::unnecessary_wraps)]
+    fn eval_static_rules(&self, request: &Request<RC>) -> Result<Option<EffectOrd>> {
         // lookup an identity
         match self.static_rules.get(&request.identity) {
             // identity exists. Look up operations.
@@ -85,27 +77,29 @@ where
                 Some(resources) => {
                     // iterate over and match resources.
                     // we need to go through all resources and find one with highest priority (smallest order).
-                    let mut result = &EffectOrd::undefined();
+                    let mut result: Option<EffectOrd> = None;
                     for (resource, effect) in &resources.0 {
-                        if effect.order < result.order // check the order
+                        // check the order first
+                        if effect.order < result.map_or(usize::MAX, |e| e.order)
+                             // only then check that matches
                             && self.resource_matcher.do_match( // only then check that matches
                                 request,
                                 &request.resource,
                                 &resource,
                             )
                         {
-                            result = effect;
+                            result = Some(*effect);
                         }
                     }
-                    Ok(*result)
+                    Ok(result)
                 }
-                None => Ok(EffectOrd::undefined()),
+                None => Ok(None),
             },
-            None => Ok(EffectOrd::undefined()),
+            None => Ok(None),
         }
     }
 
-    fn eval_variable_rules(&self, request: &Request<RC>) -> Result<EffectOrd> {
+    fn eval_variable_rules(&self, request: &Request<RC>) -> Result<Option<EffectOrd>> {
         for (identity, operations) in &self.variable_rules {
             // process identity variables.
             let identity = self.substituter.visit_identity(identity, request)?;
@@ -117,25 +111,27 @@ where
                     Some(resources) => {
                         // iterate over and match resources.
                         // we need to go through all resources and find one with highest priority (smallest order).
-                        let mut result = &EffectOrd::undefined();
+                        let mut result: Option<EffectOrd> = None;
                         for (resource, effect) in &resources.0 {
                             let resource = self.substituter.visit_resource(resource, request)?;
-                            if effect.order < result.order // check the order
-                                && self.resource_matcher.do_match( // only then check that matches
+                            // check the order first
+                            if effect.order < result.map_or(usize::MAX, |e| e.order)
+                                // only then check that matches
+                                && self.resource_matcher.do_match(
                                     request,
                                     &request.resource,
                                     &resource,
                                 )
                             {
-                                result = effect;
+                                result = Some(*effect);
                             }
                         }
                         // continue to look for other identity variable rules
                         // if no resources matched the current one.
-                        if result == &EffectOrd::undefined() {
+                        if result == None {
                             continue;
                         }
-                        Ok(*result)
+                        Ok(result)
                     }
                     // continue to look for other identity variable rules
                     // if no operation found for the current one.
@@ -143,7 +139,7 @@ where
                 };
             }
         }
-        Ok(EffectOrd::undefined())
+        Ok(None)
     }
 }
 
@@ -304,29 +300,15 @@ pub enum Decision {
     Denied,
 }
 
-#[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
-enum EffectImpl {
-    Allow,
-    Deny,
-    Undefined,
-}
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 struct EffectOrd {
     order: usize,
-    effect: EffectImpl,
+    effect: Effect,
 }
 
 impl EffectOrd {
-    pub fn new(effect: EffectImpl, order: usize) -> Self {
+    pub fn new(effect: Effect, order: usize) -> Self {
         Self { order, effect }
-    }
-
-    pub fn undefined() -> Self {
-        Self {
-            order: usize::MAX,
-            effect: EffectImpl::Undefined,
-        }
     }
 
     /// Merges two `EffectOrd` by replacing with the one with higher priority.
@@ -348,9 +330,8 @@ impl PartialOrd for EffectOrd {
 impl From<EffectOrd> for Decision {
     fn from(effect: EffectOrd) -> Self {
         match effect.effect {
-            EffectImpl::Allow => Decision::Allowed,
-            EffectImpl::Deny => Decision::Denied,
-            EffectImpl::Undefined => Decision::Denied,
+            Effect::Allow => Decision::Allowed,
+            Effect::Deny => Decision::Denied,
         }
     }
 }
@@ -358,8 +339,8 @@ impl From<EffectOrd> for Decision {
 impl From<&Statement> for EffectOrd {
     fn from(statement: &Statement) -> Self {
         match statement.effect() {
-            builder::Effect::Allow => EffectOrd::new(EffectImpl::Allow, statement.order()),
-            builder::Effect::Deny => EffectOrd::new(EffectImpl::Deny, statement.order()),
+            builder::Effect::Allow => EffectOrd::new(Effect::Allow, statement.order()),
+            builder::Effect::Deny => EffectOrd::new(Effect::Deny, statement.order()),
         }
     }
 }
@@ -600,6 +581,21 @@ pub(crate) mod tests {
         let request = Request::new("other_actor", "connect", "").unwrap();
 
         assert_matches!(policy.evaluate(&request), Ok(Decision::Allowed));
+    }
+
+    #[test]
+    fn evaluate_definition_no_statements() {
+        let json = r#"{
+            "schemaVersion": "2020-10-30",
+            "statements": [ ]
+        }"#;
+
+        let policy = build_policy(json);
+
+        let request = Request::new("actor_a", "connect", "").unwrap();
+
+        // default decision expected.
+        assert_matches!(policy.evaluate(&request), Ok(Decision::Denied));
     }
 
     /// Scenario:

@@ -30,6 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         async c =>
                         {
                             var auth = await c.Resolve<Task<IAuthenticator>>();
+                            var metadataStore = await c.Resolve<Task<IMetadataStore>>();
                             var usernameParser = c.Resolve<IUsernameParser>();
                             var identityFactory = c.Resolve<IClientCredentialsFactory>();
                             var systemIdProvider = c.Resolve<ISystemComponentIdProvider>();
@@ -39,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
                             var config = new AuthAgentProtocolHeadConfig(port, baseUrl);
 
-                            return new AuthAgentProtocolHead(auth, usernameParser, identityFactory, systemIdProvider, config);
+                            return new AuthAgentProtocolHead(auth, metadataStore, usernameParser, identityFactory, systemIdProvider, config);
                         })
                     .As<Task<AuthAgentProtocolHead>>()
                     .SingleInstance();

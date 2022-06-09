@@ -2,15 +2,16 @@ trigger: none
 pr:
   branches:
     include:
-      - master
+      - main
       - release/*
+
 jobs:
   ################################################################################
   - job: check_run_pipeline
   ################################################################################
     displayName: Check pipeline preconditions (changes ARE in builds or mqtt)
     pool:
-      vmImage: "ubuntu-16.04"
+      vmImage: "ubuntu-18.04"
     steps:
       - checkout: self
         submodules: false
@@ -31,7 +32,7 @@ jobs:
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
-      vmImage: "ubuntu-16.04"
+      vmImage: "ubuntu-18.04"
     steps:
       - checkout: self
         submodules: false # mqtt broker does not use submodules
@@ -61,7 +62,7 @@ jobs:
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
-      vmImage: "ubuntu-16.04"
+      vmImage: "ubuntu-18.04"
     steps:
       - checkout: self
         submodules: false # mqtt broker does not use submodules

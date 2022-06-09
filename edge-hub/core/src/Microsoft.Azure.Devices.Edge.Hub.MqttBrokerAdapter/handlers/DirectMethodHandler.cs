@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         const string MethodPostIndirectDevice = "$iothub/+/methods/res/#";
 
         const string MethodSubscriptionForPostPattern = @"^((?<dialect>(\$edgehub)|(\$iothub)))/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/methods/post/\#$";
-        const string MethodResponsePattern = @"^((\$edgehub)|(\$iothub))/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/methods/res/(?<res>\d+)/\?\$rid=(?<rid>.+)";
+        const string MethodResponsePattern = @"^((?<dialect>(\$edgehub)|(\$iothub)))/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/methods/res/(?<res>\d+)/\?\$rid=(?<rid>.+)";
 
         const string MethodCallToDeviceTopicTemplate = "{0}/{1}/methods/post/{2}/?$rid={3}";
         const string MethodCallToModuleTopicTemplate = "{0}/{1}/{2}/methods/post/{3}/?$rid={4}";
@@ -85,11 +85,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             var rid = match.Groups["rid"];
             var res = match.Groups["res"];
 
+            var isDirect = string.Equals(match.Groups["dialect"].Value, MqttBrokerAdapterConstants.DirectTopicPrefix);
+
             var identity = id2.Success
                                 ? this.identityProvider.Create(id1.Value, id2.Value)
                                 : this.identityProvider.Create(id1.Value);
 
-            var maybeListener = await this.connectionRegistry.GetDeviceListenerAsync(identity);
+            var maybeListener = await this.connectionRegistry.GetOrCreateDeviceListenerAsync(identity, isDirect);
             var listener = default(IDeviceListener);
 
             try

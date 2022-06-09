@@ -52,6 +52,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             return Task.CompletedTask;
         }
 
+        public Task RemoveSubscriptions(string id)
+        {
+            Events.RemovingSubscriptions(id);
+            var toRemove = this.ConnectionManager.RemoveSubscriptions(id);
+
+            if (toRemove.Count > 0)
+            {
+                this.HandleSubscriptions(id, toRemove.Select(v => (v, false)).ToList());
+            }
+            else
+            {
+                Events.NothingToRemove(id);
+            }
+
+            return Task.CompletedTask;
+        }
+
         public Task ProcessSubscriptions(string id, IEnumerable<(DeviceSubscription, bool)> subscriptions)
         {
             Preconditions.CheckNonWhiteSpace(id, nameof(id));
@@ -84,8 +101,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 AddingSubscription = IdStart,
                 RemovingSubscription,
+                RemovingSubscriptions,
                 ProcessingSubscriptions,
                 UnchangedSubscription,
+                NothingToRemove
             }
 
             public static void AddingSubscription(string id, DeviceSubscription subscription)
@@ -98,9 +117,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Log.LogDebug((int)EventIds.RemovingSubscription, Invariant($"Removing subscription {subscription} for client {id}."));
             }
 
+            public static void RemovingSubscriptions(string id)
+            {
+                Log.LogDebug((int)EventIds.RemovingSubscription, Invariant($"Removing all subscriptions for client {id}."));
+            }
+
             public static void UnchangedSubscription(string id, DeviceSubscription subscription)
             {
-                Log.LogDebug((int)EventIds.UnchangedSubscription, Invariant($"subscription {subscription} did not change for client {id}, no action has taken."));
+                Log.LogDebug((int)EventIds.UnchangedSubscription, Invariant($"subscription {subscription} did not change for client {id}, no action has been taken."));
+            }
+
+            public static void NothingToRemove(string id)
+            {
+                Log.LogDebug((int)EventIds.NothingToRemove, Invariant($"Client {id} had no subscriptions, no action has been taken."));
             }
 
             internal static void ProcessingSubscriptions(string id, List<(DeviceSubscription, bool)> subscriptionsList)

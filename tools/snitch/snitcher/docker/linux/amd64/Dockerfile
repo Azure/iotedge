@@ -1,4 +1,4 @@
-FROM ubuntu:18.04 AS builder
+﻿FROM ubuntu:18.04 AS builder
 
 ARG SRC_DIR=.
 

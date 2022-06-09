@@ -39,7 +39,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return Task.FromResult(true);
         }
 
-        public Task<bool> OpenAsync() => Task.FromResult(true);
+        public Task<bool> OpenAsync()
+        {
+            this.connectionStatusChangedHandler?.Invoke(this.identity.Id, CloudConnectionStatus.ConnectionEstablished);
+            return Task.FromResult(true);
+        }
+
         public Task RemoveCallMethodAsync() => this.cloudProxyDispatcher.RemoveCallMethodAsync(this.identity);
         public Task RemoveDesiredPropertyUpdatesAsync() => this.cloudProxyDispatcher.RemoveDesiredPropertyUpdatesAsync(this.identity);
         public Task SendFeedbackMessageAsync(string messageId, FeedbackStatus feedbackStatus) => this.cloudProxyDispatcher.SendFeedbackMessageAsync(this.identity, messageId, feedbackStatus);
@@ -48,6 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         public Task SetupCallMethodAsync() => this.cloudProxyDispatcher.SetupCallMethodAsync(this.identity);
         public Task SetupDesiredPropertyUpdatesAsync() => this.cloudProxyDispatcher.SetupDesiredPropertyUpdatesAsync(this.identity);
         public Task StartListening() => this.cloudProxyDispatcher.StartListening(this.identity);
+        public Task StopListening() => this.cloudProxyDispatcher.StopListening(this.identity);
 
         public Task UpdateReportedPropertiesAsync(IMessage reportedPropertiesMessage)
         {
@@ -57,6 +63,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         public Task<IMessage> GetTwinAsync()
         {
             return this.cloudProxyDispatcher.GetTwinAsync(this.identity, this.twinNeedsSubscribe.GetAndSet(false));
+        }
+
+        public Task RemoveTwinResponseAsync()
+        {
+            this.twinNeedsSubscribe.Set(true);
+            return this.cloudProxyDispatcher.RemoveTwinResponseAsync(this.identity);
         }
 
         void ConnectionChangedEventHandler(CloudConnectionStatus cloudConnectionStatus)

@@ -9,17 +9,11 @@ use std::path::Path;
 
 use bytes::{Buf, BufMut};
 use futures::Poll;
-#[cfg(windows)]
-use mio_uds_windows::net::SocketAddr as UnixSocketAddr;
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::net::TcpStream;
-#[cfg(windows)]
-use tokio_named_pipe::PipeStream;
 use tokio_tls::TlsStream;
 #[cfg(unix)]
 use tokio_uds::UnixStream;
-#[cfg(windows)]
-use tokio_uds_windows::UnixStream;
 
 use crate::pid::{Pid, UnixStreamExt};
 
@@ -33,12 +27,7 @@ pub use incoming::Incoming;
 
 pub enum StreamSelector {
     Tcp(TcpStream),
-    #[cfg(not(windows))]
     Tls(TlsStream<TcpStream>),
-    #[cfg(windows)]
-    Tls(Box<TlsStream<TcpStream>>),
-    #[cfg(windows)]
-    Pipe(PipeStream),
     Unix(UnixStream),
 }
 
@@ -48,8 +37,6 @@ impl StreamSelector {
         match *self {
             StreamSelector::Tcp(_) => Ok(Pid::Any),
             StreamSelector::Tls(_) => Ok(Pid::Any),
-            #[cfg(windows)]
-            StreamSelector::Pipe(_) => Ok(Pid::Any),
             StreamSelector::Unix(ref stream) => stream.pid(),
         }
     }
@@ -60,8 +47,6 @@ impl Read for StreamSelector {
         match self {
             StreamSelector::Tcp(stream) => stream.read(buf),
             StreamSelector::Tls(stream) => stream.read(buf),
-            #[cfg(windows)]
-            StreamSelector::Pipe(stream) => stream.read(buf),
             StreamSelector::Unix(stream) => stream.read(buf),
         }
     }
@@ -72,8 +57,6 @@ impl Write for StreamSelector {
         match self {
             StreamSelector::Tcp(stream) => stream.write(buf),
             StreamSelector::Tls(stream) => stream.write(buf),
-            #[cfg(windows)]
-            StreamSelector::Pipe(stream) => stream.write(buf),
             StreamSelector::Unix(stream) => stream.write(buf),
         }
     }
@@ -82,8 +65,6 @@ impl Write for StreamSelector {
         match self {
             StreamSelector::Tcp(stream) => stream.flush(),
             StreamSelector::Tls(stream) => stream.flush(),
-            #[cfg(windows)]
-            StreamSelector::Pipe(stream) => stream.flush(),
             StreamSelector::Unix(stream) => stream.flush(),
         }
     }
@@ -95,8 +76,6 @@ impl AsyncRead for StreamSelector {
         match *self {
             StreamSelector::Tcp(ref stream) => stream.prepare_uninitialized_buffer(buf),
             StreamSelector::Tls(ref stream) => stream.prepare_uninitialized_buffer(buf),
-            #[cfg(windows)]
-            StreamSelector::Pipe(ref stream) => stream.prepare_uninitialized_buffer(buf),
             StreamSelector::Unix(ref stream) => stream.prepare_uninitialized_buffer(buf),
         }
     }
@@ -106,8 +85,6 @@ impl AsyncRead for StreamSelector {
         match self {
             StreamSelector::Tcp(stream) => stream.read_buf(buf),
             StreamSelector::Tls(stream) => stream.read_buf(buf),
-            #[cfg(windows)]
-            StreamSelector::Pipe(stream) => stream.read_buf(buf),
             StreamSelector::Unix(stream) => stream.read_buf(buf),
         }
     }
@@ -118,8 +95,6 @@ impl AsyncWrite for StreamSelector {
         match self {
             StreamSelector::Tcp(stream) => AsyncWrite::shutdown(stream),
             StreamSelector::Tls(stream) => TlsStream::shutdown(stream),
-            #[cfg(windows)]
-            StreamSelector::Pipe(stream) => PipeStream::shutdown(stream),
             StreamSelector::Unix(stream) => AsyncWrite::shutdown(stream),
         }
     }
@@ -129,8 +104,6 @@ impl AsyncWrite for StreamSelector {
         match self {
             StreamSelector::Tcp(stream) => stream.write_buf(buf),
             StreamSelector::Tls(stream) => stream.write_buf(buf),
-            #[cfg(windows)]
-            StreamSelector::Pipe(stream) => stream.write_buf(buf),
             StreamSelector::Unix(stream) => stream.write_buf(buf),
         }
     }
@@ -157,79 +130,26 @@ impl fmt::Display for IncomingSocketAddr {
 }
 
 pub fn socket_file_exists(path: &Path) -> bool {
-    if cfg!(windows) {
-        use std::fs;
-        // Unix domain socket files in Windows are reparse points, so path.exists()
-        // (which calls fs::metadata(path)) won't work. Use fs::symlink_metadata()
-        // instead.
-        fs::symlink_metadata(path).is_ok()
-    } else {
-        path.exists()
-    }
+    path.exists()
 }
 
 #[cfg(test)]
 mod tests {
-    #[cfg(windows)]
-    use tempdir::TempDir;
-    #[cfg(windows)]
-    use tokio::runtime::current_thread::Runtime;
-    #[cfg(unix)]
     use tokio_uds::UnixStream;
-    #[cfg(windows)]
-    use tokio_uds_windows::{UnixListener, UnixStream};
 
     use super::{Pid, UnixStreamExt};
 
     struct Pair {
-        #[cfg(windows)]
-        _dir: TempDir,
-        #[cfg(windows)]
-        _rt: Runtime,
-
         a: UnixStream,
         b: UnixStream,
     }
 
-    #[cfg(unix)]
     fn socket_pair() -> Pair {
         let (a, b) = UnixStream::pair().unwrap();
         Pair { a, b }
     }
 
-    #[cfg(windows)]
-    fn socket_pair() -> Pair {
-        // 'pair' not implemented on Windows
-        use futures::sync::oneshot;
-        use futures::{Future, Stream};
-        let dir = TempDir::new("uds").unwrap();
-        let addr = dir.path().join("sock");
-        let mut rt = Runtime::new().unwrap();
-        let server = UnixListener::bind(&addr).unwrap();
-        let (tx, rx) = oneshot::channel();
-        rt.spawn(
-            server
-                .incoming()
-                .into_future()
-                .and_then(move |(sock, _)| {
-                    tx.send(sock.unwrap()).unwrap();
-                    Ok(())
-                })
-                .map_err(|e| panic!("err={:?}", e)),
-        );
-
-        let a = rt.block_on(UnixStream::connect(&addr)).unwrap();
-        let b = rt.block_on(rx).unwrap();
-        Pair {
-            _dir: dir,
-            _rt: rt,
-            a,
-            b,
-        }
-    }
-
     #[test]
-    #[cfg_attr(windows, ignore)] // TODO: remove when windows build servers are upgraded to RS5
     fn test_pid() {
         let pair = socket_pair();
         assert_eq!(pair.a.pid().unwrap(), pair.b.pid().unwrap());

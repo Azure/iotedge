@@ -44,6 +44,7 @@ async fn connect_not_allowed_policy_not_set() {
         server_handle.address(),
         None,
         None,
+        None,
     )
     .await;
 
@@ -123,6 +124,7 @@ async fn auth_policy_happy_case() {
     let mut device_client = PacketStream::connect(
         ClientId::IdWithCleanSession("device-1".into()),
         server_handle.address(),
+        None,
         None,
         None,
     )
@@ -243,6 +245,7 @@ async fn policy_update_reevaluates_sessions() {
     let mut device_client = PacketStream::connect(
         ClientId::IdWithCleanSession("device-1".into()),
         server_handle.address(),
+        None,
         None,
         None,
     )

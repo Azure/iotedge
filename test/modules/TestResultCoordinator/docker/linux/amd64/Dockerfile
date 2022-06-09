@@ -1,7 +1,6 @@
-ARG base_tag=3.1.4-alpine3.11
-FROM azureiotedge/azureiotedge-runtime-base:1.1-linux-amd64 as builder
+﻿ARG base_tag=3.1-alpine
 
-FROM mcr.microsoft.com/dotnet/core/aspnet:${base_tag}
+FROM mcr.microsoft.com/dotnet/aspnet:${base_tag}
 
 ARG EXE_DIR=.
 
@@ -23,7 +22,7 @@ RUN adduser -Ds /bin/sh moduleuser
 USER moduleuser
 
 # Install RocksDB
-COPY --from=builder publish/* /usr/local/lib/
+COPY $EXE_DIR/librocksdb/librocksdb.so.amd64 /usr/local/lib/librocksdb.so
 
 CMD echo "$(date --utc +"[%Y-%m-%d %H:%M:%S %:z]"): Starting Module" && \
     exec /usr/bin/dotnet TestResultCoordinator.dll
