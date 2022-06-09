@@ -202,3 +202,5 @@ jobs:
       displayName: Update context.json w/ mcr.microsoft.com images
 
     - template: templates/e2e-run.yaml
+      parameters:
+          test_type: upgrade_scenarios
