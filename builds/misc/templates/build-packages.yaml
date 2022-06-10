@@ -284,11 +284,11 @@ stages:
               echo "##vso[task.setvariable variable=MARINER_ARCH;]$mariner_arch"
             displayName: Set Version
 
-          # remove this one 1ES can prevent the daiy update from triggering
+          # remove this one 1ES can prevent the daily update from triggering
           - bash: |
               set -ex
               ps aux | grep -i apt
-              waitAttempts=60
+              waitAttempts=120
               sleepDuration=10
               for (( i=0; $i<$waitAttempts; i++ ))
               do
