@@ -1,6 +1,7 @@
 name: $(version)
 
 variables:
+  DisableDockerDetector: true
   NugetSecurityAnalysisWarningLevel: warn
 
 stages:

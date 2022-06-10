@@ -19,6 +19,7 @@ resources:
       - release/*
 
 variables:
+  DisableDockerDetector: true
   # A 'minimal' pipeline only runs one end-to-end test (TempSensor). This is useful for platforms or
   # environments that are very similar to other platforms/environments in our matrix, Ubuntu 18.04
   # with the 'docker-ce' package vs. Ubuntu 18.04 with the 'iotedge-moby' package vs. the same
@@ -46,8 +47,6 @@ jobs:
       artifactName: iotedged-debian11-arm32v7
       identityServiceArtifactName: packages_debian-11-slim_arm32v7
       identityServicePackageFilter: aziot-identity-service_*_armhf.deb
-      # skip notary installation as it is not supported for ARM platforms
-      skip_notary: true
 
     timeoutInMinutes: 120
 
@@ -83,32 +82,6 @@ jobs:
     - template: templates/e2e-run.yaml
 
 ################################################################################
-  - job: debian_9_arm32v7
-################################################################################
-    displayName: Debian 9 arm32v7 (minimal)
-
-    pool:
-      name: $(pool.custom.name)
-      demands: deb9-e2e-tests
-
-    variables:
-      os: linux
-      arch: arm32v7
-      artifactName: iotedged-debian9-arm32v7
-      identityServiceArtifactName: packages_debian-9-slim_arm32v7
-      identityServicePackageFilter: aziot-identity-service_*_armhf.deb
-      minimal: true
-
-    timeoutInMinutes: 120
-
-    steps:
-    - template: templates/e2e-clean-directory.yaml
-    - template: templates/e2e-setup.yaml
-    - template: templates/e2e-clear-docker-cached-images.yaml
-    - template: templates/e2e-run.yaml
-
-
-################################################################################
   - job: ubuntu_1804_msmoby
 ################################################################################
     displayName: Ubuntu 18.04 with iotedge-moby
@@ -124,7 +97,6 @@ jobs:
       artifactName: iotedged-ubuntu18.04-amd64
       identityServiceArtifactName: packages_ubuntu-18.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      skip_notary: false
 
     timeoutInMinutes: 90
 
@@ -150,7 +122,6 @@ jobs:
       identityServiceArtifactName: packages_ubuntu-18.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
       minimal: true
-      skip_notary: false
 
     steps:
     - template: templates/e2e-setup.yaml
@@ -173,7 +144,6 @@ jobs:
       artifactName: iotedged-ubuntu20.04-amd64
       identityServiceArtifactName: packages_ubuntu-20.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      skip_notary: false
 
     timeoutInMinutes: 90
 
@@ -198,7 +168,6 @@ jobs:
       identityServiceArtifactName: packages_ubuntu-20.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
       minimal: true
-      skip_notary: false
 
     steps:
     - template: templates/e2e-setup.yaml
@@ -207,11 +176,11 @@ jobs:
 ################################################################################
   - job: ubuntu_2004_arm64v8
 ################################################################################
-    displayName: Ubuntu 20.04 with arm64v8
+    displayName: Ubuntu 20.04 on arm64v8
     pool:
-      name: $(pool.custom.name)
-      demands: 
-        - agent-group -equals rpi3-e2e-aarch64
+      name: $(pool.linux.arm.name)
+      demands:
+      - ImageOverride -equals agent-aziotedge-ubuntu-20.04-arm64
 
     variables:
       os: linux
@@ -219,12 +188,11 @@ jobs:
       artifactName: iotedged-ubuntu20.04-aarch64
       identityServiceArtifactName: packages_ubuntu-20.04_aarch64
       identityServicePackageFilter: aziot-identity-service_*_arm64.deb
-      # skip notary installation as it is not supported for ARM platforms
-      skip_notary: true
 
     timeoutInMinutes: 120
 
     steps:
+    - template: ../templates/prep-arm-agent.yaml
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-clear-docker-cached-images.yaml
@@ -246,7 +214,6 @@ jobs:
       artifactName: iotedged-centos7-amd64
       identityServiceArtifactName: packages_centos-7_amd64
       identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
-      skip_notary: false
 
     steps:
     - template: templates/e2e-clean-directory.yaml
@@ -270,7 +237,6 @@ jobs:
       artifactName: iotedged-redhat8-amd64
       identityServiceArtifactName: packages_redhat-ubi8-latest_amd64
       identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
-      skip_notary: false
 
     steps:
     - template: templates/e2e-setup.yaml
@@ -298,8 +264,6 @@ jobs:
       verbose: true
       # skip component governance detection to avoid proxy issues. It is checked in the other jobs.
       skipComponentGovernanceDetection: true
-      # skip notary installation as it has known issues working with proxy
-      skip_notary: true
 
     timeoutInMinutes: 120
 

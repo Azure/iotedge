@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Logs;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
+    using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
@@ -243,7 +244,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             var payload = JsonConvert.SerializeObject(request);
 
-            CloudToDeviceMethodResult result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("UploadSupportBundle", TimeSpan.FromSeconds(120), TimeSpan.FromSeconds(60)).SetPayloadJson(payload), token);
+            CloudToDeviceMethodResult result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("UploadSupportBundle", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(180)).SetPayloadJson(payload), token);
 
             var response = JsonConvert.DeserializeObject<TaskStatusResponse>(result.GetPayloadAsJson());
             await this.WaitForTaskCompletion(response.CorrelationId, token);

@@ -51,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         // Content trust is not supported as of now on ARM platforms
         [Category("contenttrust")]
-        [Category("FlakyOnArm")]
+        [Category("SkipManifestTrust")]
         [Test]
         public async Task TestContentTrustDeployment()
         {

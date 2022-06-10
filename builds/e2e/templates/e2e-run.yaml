@@ -12,7 +12,7 @@ parameters:
 #   NestedEdgeOnly: Only applies to nested edge cases
 #   NestedEdgeAmqpOnly: Only applies to nested edge cases using amqp upstream protocol
 #   LegacyMqttRequired: Only applies to cases with the edgehub legacy mqtt protocol head
-#   BrokerRequired: Only applies to cases with the broker enabled
+#   SkipManifestTrust: Only applies to manifest/content trust tests
 #   Amd64Only: Only applies to amd64 architecture
 steps:
 - pwsh: |
@@ -21,6 +21,8 @@ steps:
 
     # Filter out flaky tests.
     $filter = 'Category!=Flaky'
+    # Filter out Manifest trust tests.
+    $filter += '&Category!=SkipManifestTrust'
     if ('$(minimal)' -eq 'true')
     {
       $filter += '&Name~TempSensor'
@@ -47,7 +49,6 @@ steps:
     elseif ($test_type -eq 'nestededge_amqp')
     {
       $filter += '&Category!=SingleNodeOnly'
-      $filter += '&Category!=BrokerRequired'
       $filter += '&Category!=FlakyOnNested'
       # Below tests were disabled and marked for re-enable when a blocking item was resolved.
       # When it was resolved the tests were never enabled. We need to re-enable these.
@@ -60,7 +61,7 @@ steps:
     elseif ($test_type -eq 'http_proxy')
     {
       #Disable tests that don't work in proxy environment. Renable post-investigation.
-      $filter += '&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~ValidateMetrics&FullyQualifiedName!~contenttrust'
+      $filter += '&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~ValidateMetrics'
       #Disable nested edge tests
       $filter += '&Category!=NestedEdgeOnly'
     }
@@ -85,7 +86,6 @@ steps:
     E2E_EVENT_HUB_ENDPOINT: ${{ parameters['EventHubCompatibleEndpoint'] }}
     E2E_IOT_HUB_CONNECTION_STRING: ${{ parameters['IotHubConnectionString'] }}
     E2E_REGISTRIES__0__PASSWORD: $(TestContainerRegistryPassword)
-    E2E_REGISTRIES__1__PASSWORD: $(TestContentTrustRegistryPassword)
     E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
     E2E_BLOB_STORE_SAS: $(TestBlobStoreSas)
     no_proxy: 'localhost'
@@ -103,6 +103,7 @@ steps:
   condition: not(variables['Agent.ProxyUrl'])
 
 - pwsh: |
+    $test_type = '${{ parameters.test_type }}'
     $logDir = '$(Build.ArtifactStagingDirectory)/logs${{ parameters.test_type }}'
     New-Item $logDir -ItemType Directory -Force | Out-Null
     Out-File "$logDir/$(Build.DefinitionName)-$(Build.BuildNumber)"
@@ -113,7 +114,12 @@ steps:
     Copy-Item "$(binDir)/*-device-*.log" "$logDir/"
     Copy-Item "$(binDir)/testoutput.log" "$logDir/"
     Copy-Item "$(binDir)/supportbundle*" "$logDir/"
-    $artifactSuffix = '$(Build.BuildNumber)-$(System.PhaseName)' -replace '_','-'
+    if ($test_type -eq 'upgrade_scenarios')
+    {
+      $artifactSuffix = '$(Build.BuildNumber)-$(System.JobName)' -replace '_','-'
+    } else {
+      $artifactSuffix = '$(Build.BuildNumber)-$(System.PhaseName)' -replace '_','-'
+    }
     Write-Output "##vso[task.setvariable variable=artifactSuffix]$artifactSuffix"
   displayName: Collect Logs
   condition: always()

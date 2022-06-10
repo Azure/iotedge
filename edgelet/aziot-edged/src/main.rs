@@ -33,7 +33,11 @@ async fn main() {
     log::info!("Version - {}", edgelet_core::version_with_source_version());
 
     if let Err(err) = run().await {
-        log::error!("{}", err);
+        if err.exit_code() == EdgedError::reprovisioned().exit_code() {
+            log::info!("{}", err);
+        } else {
+            log::error!("{}", err);
+        }
 
         std::process::exit(err.into());
     }
@@ -85,8 +89,8 @@ async fn run() -> Result<(), EdgedError> {
     .await
     .map_err(|err| EdgedError::from_err("Failed to initialize module runtime", err))?;
 
-    let (shutdown_tx, shutdown_rx) =
-        tokio::sync::mpsc::unbounded_channel::<edgelet_core::ShutdownReason>();
+    let (watchdog_tx, watchdog_rx) =
+        tokio::sync::mpsc::unbounded_channel::<edgelet_core::WatchdogAction>();
 
     // Keep track of running tasks to determine when all server tasks have shut down.
     // Workload and management API each have one task, so start with 2 tasks total.
@@ -100,6 +104,7 @@ async fn run() -> Result<(), EdgedError> {
         &device_info,
         tasks.clone(),
         create_socket_channel_snd,
+        watchdog_tx.clone(),
     )
     .await?;
 
@@ -130,7 +135,7 @@ async fn run() -> Result<(), EdgedError> {
     let management_shutdown = management::start(
         &settings,
         runtime.clone(),
-        shutdown_tx.clone(),
+        watchdog_tx.clone(),
         tasks.clone(),
     )
     .await?;
@@ -138,7 +143,7 @@ async fn run() -> Result<(), EdgedError> {
     workload_manager::server(workload_manager, runtime.clone(), create_socket_channel_rcv).await?;
 
     // Set signal handlers for SIGTERM and SIGINT.
-    set_signal_handlers(shutdown_tx);
+    set_signal_handlers(watchdog_tx);
 
     // Run aziot-edged until the shutdown signal is received. This also runs the watchdog periodically.
     let shutdown_reason = watchdog::run_until_shutdown(
@@ -146,7 +151,7 @@ async fn run() -> Result<(), EdgedError> {
         &device_info,
         runtime,
         &identity_client,
-        shutdown_rx,
+        watchdog_rx,
     )
     .await?;
 
@@ -182,18 +187,21 @@ async fn run() -> Result<(), EdgedError> {
         wait_time += poll_period;
     }
 
-    if let edgelet_core::ShutdownReason::Reprovision = shutdown_reason {
-        match provision::reprovision(&identity_client, &cache_dir).await {
-            Ok(()) => log::info!("Successfully reprovisioned"),
-            Err(err) => log::error!("Failed to reprovision: {}", err),
-        }
-    }
+    if let edgelet_core::WatchdogAction::Reprovision = shutdown_reason {
+        provision::reprovision(&identity_client, &cache_dir)
+            .await
+            .map_err(|err| EdgedError::from_err("Failed to reprovision", err))?;
 
-    Ok(())
+        log::info!("Successfully reprovisioned");
+
+        Err(EdgedError::reprovisioned())
+    } else {
+        Ok(())
+    }
 }
 
 fn set_signal_handlers(
-    shutdown_tx: tokio::sync::mpsc::UnboundedSender<edgelet_core::ShutdownReason>,
+    shutdown_tx: tokio::sync::mpsc::UnboundedSender<edgelet_core::WatchdogAction>,
 ) {
     // Set the signal handler to listen for CTRL+C (SIGINT).
     let sigint_sender = shutdown_tx.clone();
@@ -205,7 +213,7 @@ fn set_signal_handlers(
 
         // Failure to send the shutdown signal means that the mpsc queue is closed.
         // Ignore this Result, as the process will be shutting down anyways.
-        let _ = sigint_sender.send(edgelet_core::ShutdownReason::Signal);
+        let _ = sigint_sender.send(edgelet_core::WatchdogAction::Signal);
     });
 
     // Set the signal handler to listen for systemctl stop (SIGTERM).
@@ -219,6 +227,6 @@ fn set_signal_handlers(
 
         // Failure to send the shutdown signal means that the mpsc queue is closed.
         // Ignore this Result, as the process will be shutting down anyways.
-        let _ = sigterm_sender.send(edgelet_core::ShutdownReason::Signal);
+        let _ = sigterm_sender.send(edgelet_core::WatchdogAction::Signal);
     });
 }

@@ -1,4 +1,6 @@
-﻿FROM mcr.microsoft.com/azure-functions/dotnet:4.0
+﻿# syntax=docker/dockerfile:1.4
+
+FROM mcr.microsoft.com/azure-functions/dotnet:4.0
 
 ARG EXE_DIR=.
 

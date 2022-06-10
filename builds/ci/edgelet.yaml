@@ -23,10 +23,6 @@ jobs:
           filePath: scripts/linux/generic-rust/install.sh
           arguments: --project-root "edgelet"
       - task: Bash@3
-        displayName: Check submodules
-        inputs:
-          filePath: edgelet/build/linux/check-submodules.sh
-      - task: Bash@3
         displayName: Build
         inputs:
           filePath: scripts/linux/generic-rust/build.sh

@@ -4,7 +4,7 @@ pub(crate) struct Route<M>
 where
     M: edgelet_core::ModuleRuntime + Send + Sync,
 {
-    reprovision: tokio::sync::mpsc::UnboundedSender<edgelet_core::ShutdownReason>,
+    reprovision: tokio::sync::mpsc::UnboundedSender<edgelet_core::WatchdogAction>,
     pid: libc::pid_t,
     runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
 }
@@ -52,7 +52,7 @@ where
 
         match self
             .reprovision
-            .send(edgelet_core::ShutdownReason::Reprovision)
+            .send(edgelet_core::WatchdogAction::Reprovision)
         {
             Ok(()) => Ok(http_common::server::response::no_content()),
             Err(_) => Err(edgelet_http::error::server_error(
@@ -112,6 +112,6 @@ mod tests {
 
         // Calling reprovision should have sent a shutdown message now available on the receiver.
         let shutdown_reason = reprovision_rx.recv().await.unwrap();
-        assert_eq!(edgelet_core::ShutdownReason::Reprovision, shutdown_reason);
+        assert_eq!(edgelet_core::WatchdogAction::Reprovision, shutdown_reason);
     }
 }
