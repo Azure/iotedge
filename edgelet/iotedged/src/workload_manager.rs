@@ -29,6 +29,7 @@ use crate::error::{Error, ErrorKind, InitializeErrorReason};
 
 const SOCKET_DEFAULT_PERMISSION: u32 = 0o666;
 const MAX_CONCURRENCY: ConcurrencyThrottling = ConcurrencyThrottling::Limited(10);
+const EDGEAGENT: &str = "edgeAgent";
 
 pub struct WorkloadManager<K, C, W, M>
 where
@@ -145,7 +146,7 @@ where
         // If edgeAgent's listener exists, then we do not create a new one
 
         match module_id {
-            "edgeAgent" => {
+            EDGEAGENT => {
                 info!(
                     "Listener {} already started, keeping old listener and socket",
                     module_id
@@ -331,7 +332,7 @@ where
             Ok(())
         }
         ModuleAction::Stop(module_id) => {
-            if let "edgeAgent" = module_id.as_ref() {
+            if let EDGEAGENT = module_id.as_ref() {
                 Ok(())
             } else {
                 if let Err(err) = workload_manager.stop(&module_id) {
