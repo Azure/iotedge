@@ -150,8 +150,7 @@ where
                     "Listener {} already started, keeping old listener and socket",
                     module_id
                 );
-                return Ok(())
-            
+                return Ok(());
             }
             _ => {
                 if let Some(shutdown_sender) = self.shutdown_senders.remove(module_id) {
@@ -164,7 +163,6 @@ where
                         .map_err(|()| Error::from(ErrorKind::WorkloadService))?;
                 }
             }
-   
         }
 
         let (shutdown_sender, shutdown_receiver) = oneshot::channel();
@@ -333,18 +331,16 @@ where
             Ok(())
         }
         ModuleAction::Stop(module_id) => {
-            match module_id.as_ref() {
-                "edgeAgent" => Ok(()),
-                _ => {
-                    if let Err(err) = workload_manager.stop(&module_id) {
-                        log_failure(Level::Warn, &err);
-                    }
-            
-                    Ok(())
+            if let "edgeAgent" = module_id.as_ref() {
+                Ok(())
+            } else {
+                if let Err(err) = workload_manager.stop(&module_id) {
+                    log_failure(Level::Warn, &err);
                 }
+
+                Ok(())
             }
         }
-
     });
 
     tokio::spawn(server);
