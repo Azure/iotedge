@@ -45,6 +45,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             return NullCommand.Instance;
         }
 
+        public Task<ICommand> PrepareUpdateAsync(IModule module, IRuntimeInfo runtimeInfo)
+        {
+            if (module is DockerModule dockerModule)
+            {
+                CombinedDockerConfig combinedDockerConfig = this.combinedConfigProvider.GetCombinedConfig(dockerModule, runtimeInfo);
+
+                if (module.ImagePullPolicy != ImagePullPolicy.Never)
+                {
+                    return Task.FromResult(new PullCommand(this.client, combinedDockerConfig) as ICommand);
+                }
+            }
+
+            return Task.FromResult(NullCommand.Instance as ICommand);
+        }
+
         public async Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo)
         {
             if (current is DockerModule currentDockerModule && next.Module is DockerModule nextDockerModule)

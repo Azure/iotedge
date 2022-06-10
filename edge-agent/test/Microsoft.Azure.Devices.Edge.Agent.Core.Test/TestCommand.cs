@@ -77,6 +77,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestCreate, module.Module, this.Recorder));
         }
 
+        public Task<ICommand> PrepareUpdateAsync(IModule module, IRuntimeInfo runtimeInfo)
+        {
+            Assert.True(module is TestModule);
+            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestPrepareUpdate, module, this.Recorder, true));
+        }
+
         public Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo)
         {
             Assert.True(current is TestModule);
@@ -134,6 +140,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         {
             Assert.True(module.Module is TestModule);
             return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestCreate, module.Module, this.Recorder, true));
+        }
+
+        public Task<ICommand> PrepareUpdateAsync(IModule module, IRuntimeInfo runtimeInfo)
+        {
+            Assert.True(module is TestModule);
+            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestPrepareUpdate, module, this.Recorder, true));
         }
 
         public Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo)

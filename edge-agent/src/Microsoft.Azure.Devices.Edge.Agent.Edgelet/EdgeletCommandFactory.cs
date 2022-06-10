@@ -70,6 +70,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             }
         }
 
+        public Task<ICommand> PrepareUpdateAsync(IModule module, IRuntimeInfo runtimeInfo)
+        {
+            T config = this.combinedConfigProvider.GetCombinedConfig(module, runtimeInfo);
+            return Task.FromResult(new PrepareUpdateCommand(this.moduleManager, module, config) as ICommand);
+        }
+
         public Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo) =>
             this.UpdateAsync(Option.Some(current), next, runtimeInfo, false);
 

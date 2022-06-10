@@ -21,6 +21,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
             return Task.FromResult(NullCommand.Instance as ICommand);
         }
 
+        public Task<ICommand> PrepareUpdateAsync(IModule module, IRuntimeInfo runtimeInfo)
+        {
+            this.RecordedCommands.Add(("prepareUpdate", module.Name));
+            return Task.FromResult(NullCommand.Instance as ICommand);
+        }
+
         public Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo)
         {
             this.RecordedCommands.Add(("update", next.Module.Name));

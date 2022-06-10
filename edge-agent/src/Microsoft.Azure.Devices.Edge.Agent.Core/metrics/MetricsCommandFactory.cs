@@ -29,6 +29,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             }
         }
 
+        public async Task<ICommand> PrepareUpdateAsync(IModule module, IRuntimeInfo runtimeInfo)
+        {
+            this.factoryMetrics.AddMessage(module, FactoryMetrics.ModuleCommandMetric.PrepareUpdate);
+            using (this.factoryMetrics.MeasureTime("prepareUpdate"))
+            {
+                return await this.underlying.PrepareUpdateAsync(module, runtimeInfo);
+            }
+        }
+
         public async Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo)
         {
             this.factoryMetrics.AddMessage(current, FactoryMetrics.ModuleCommandMetric.Start);
@@ -105,7 +114,8 @@ public class FactoryMetrics
     public enum ModuleCommandMetric
     {
         Start,
-        Stop
+        Stop,
+        PrepareUpdate
     }
 
     readonly Dictionary<ModuleCommandMetric, IMetricsCounter> commandCounters;
