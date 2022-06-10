@@ -141,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             return this.IterateBatch(iterator => iterator.SeekToFirst(), batchSize, callback, cancellationToken);
         }
 
-        public Task<ulong> Count() => Task.FromResult((ulong)Interlocked.Read(ref this.count));
+        public Task<ulong> Count() => Task.FromResult((ulong)Math.Max(Interlocked.Read(ref this.count), 0));
 
         public Task<ulong> GetCountFromOffset(byte[] offset)
         {

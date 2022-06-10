@@ -9,18 +9,21 @@ namespace Microsoft.Azure.Devices.Edge.Util
     using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
     using System.Text;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
     using Microsoft.Extensions.Logging;
-    using Org.BouncyCastle.Crypto;
-    using Org.BouncyCastle.Crypto.Parameters;
-    using Org.BouncyCastle.OpenSsl;
-    using Org.BouncyCastle.Pkcs;
-    using Org.BouncyCastle.Security;
-    using X509Certificate = Org.BouncyCastle.X509.X509Certificate;
 
     public static class CertificateHelper
     {
+        // The private-key import on windows randomly seems failing, however according to the tests, the second time
+        // after a failure it usually works. The number below is just a "big enough" number randomly chosen for
+        // self-healing, but gives a limit to avoid endless try.
+        const int MaxCertImportRetryCount = 10;
+
+        static Oid oidRsaEncryption = Oid.FromFriendlyName("RSA", OidGroup.All);
+        static Oid oidEcPublicKey = Oid.FromFriendlyName("ECC", OidGroup.All);
+
         public static string GetSha256Thumbprint(X509Certificate2 cert)
         {
             Preconditions.CheckNotNull(cert);
@@ -250,7 +253,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 .Select(c => new X509Certificate2(c))
                 .ToList();
 
-        public static async Task<(X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain)> GetServerCertificatesFromEdgelet(Uri workloadUri, string workloadApiVersion, string workloadClientApiVersion, string moduleId, string moduleGenerationId, string edgeHubHostname, DateTime expiration)
+        public static async Task<(X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain)> GetServerCertificatesFromEdgelet(Uri workloadUri, string workloadApiVersion, string workloadClientApiVersion, string moduleId, string moduleGenerationId, string edgeHubHostname, DateTime expiration, ILogger logger)
         {
             if (string.IsNullOrEmpty(edgeHubHostname))
             {
@@ -258,7 +261,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
 
             ServerCertificateResponse response = await new WorkloadClient(workloadUri, workloadApiVersion, workloadClientApiVersion, moduleId, moduleGenerationId).CreateServerCertificateAsync(edgeHubHostname, expiration);
-            return ParseCertificateResponse(response);
+            return ParseCertificateResponse(response, logger);
         }
 
         public static async Task<IEnumerable<X509Certificate2>> GetTrustBundleFromEdgelet(Uri workloadUri, string workloadApiVersion, string workloadClientApiVersion, string moduleId, string moduleGenerationId)
@@ -267,7 +270,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return ParseTrustedBundleCerts(response);
         }
 
-        public static (X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain) GetServerCertificateAndChainFromFile(string serverWithChainFilePath, string serverPrivateKeyFilePath)
+        public static (X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain) GetServerCertificateAndChainFromFile(string serverWithChainFilePath, string serverPrivateKeyFilePath, ILogger logger = null)
         {
             string cert, privateKey;
 
@@ -291,7 +294,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 privateKey = sr.ReadToEnd();
             }
 
-            return ParseCertificateAndKey(cert, privateKey);
+            return ParseCertificateAndKey(cert, privateKey, logger);
         }
 
         public static IEnumerable<X509Certificate2> GetServerCACertificatesFromFile(string chainPath)
@@ -340,10 +343,10 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return GetCertificatesFromPem(ParsePemCerts(trustedCACerts));
         }
 
-        internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateResponse(ServerCertificateResponse response) =>
-            ParseCertificateAndKey(response.Certificate, response.PrivateKey);
+        internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateResponse(ServerCertificateResponse response, ILogger logger = null) =>
+            ParseCertificateAndKey(response.Certificate, response.PrivateKey, logger);
 
-        internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateAndKey(string certificateWithChain, string privateKey)
+        internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateAndKey(string certificateWithChain, string privateKey, ILogger logger = null)
         {
             IEnumerable<string> pemCerts = ParsePemCerts(certificateWithChain);
 
@@ -354,53 +357,10 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
             IEnumerable<X509Certificate2> certsChain = GetCertificatesFromPem(pemCerts.Skip(1));
 
-            Pkcs12Store store = new Pkcs12StoreBuilder().Build();
-            IList<X509CertificateEntry> chain = new List<X509CertificateEntry>();
+            var certWithNoKey = new X509Certificate2(Encoding.UTF8.GetBytes(pemCerts.First()));
+            var certWithPrivateKey = AttachPrivateKey(certWithNoKey, privateKey, logger);
 
-            // note: the seperator between the certificate and private key is added for safety to delinate the cert and key boundary
-            var sr = new StringReader(pemCerts.First() + "\r\n" + privateKey);
-            var pemReader = new PemReader(sr);
-
-            AsymmetricKeyParameter keyParams = null;
-            object certObject = pemReader.ReadObject();
-            while (certObject != null)
-            {
-                if (certObject is X509Certificate x509Cert)
-                {
-                    chain.Add(new X509CertificateEntry(x509Cert));
-                }
-
-                // when processing certificates generated via openssl certObject type is of AsymmetricCipherKeyPair
-                if (certObject is AsymmetricCipherKeyPair keyPair)
-                {
-                    certObject = keyPair.Private;
-                }
-
-                if (certObject is RsaPrivateCrtKeyParameters rsaParameters)
-                {
-                    keyParams = rsaParameters;
-                }
-                else if (certObject is ECPrivateKeyParameters ecParameters)
-                {
-                    keyParams = ecParameters;
-                }
-
-                certObject = pemReader.ReadObject();
-            }
-
-            if (keyParams == null)
-            {
-                throw new InvalidOperationException("Private key is required");
-            }
-
-            store.SetKeyEntry("Edge", new AsymmetricKeyEntry(keyParams), chain.ToArray());
-            using (var p12File = new MemoryStream())
-            {
-                store.Save(p12File, new char[] { }, new SecureRandom());
-
-                var cert = new X509Certificate2(p12File.ToArray());
-                return (cert, certsChain);
-            }
+            return (certWithPrivateKey, certsChain);
         }
 
         static string ToHexString(byte[] bytes)
@@ -429,5 +389,144 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
             return commonName;
         }
+
+        static X509Certificate2 AttachPrivateKey(X509Certificate2 certificate, string pemEncodedKey, ILogger logger)
+        {
+            var retryCount = 0;
+
+            while (retryCount++ < MaxCertImportRetryCount)
+            {
+                var pkcs8Label = "PRIVATE KEY";
+                var rsaLabel = "RSA PRIVATE KEY";
+                var ecLabel = "EC PRIVATE KEY";
+                var keyAlgorithm = certificate.GetKeyAlgorithm();
+                var isPkcs8 = pemEncodedKey.IndexOf(Header(pkcs8Label)) >= 0;
+
+                X509Certificate2 result = null;
+
+                try
+                {
+                    if (oidRsaEncryption.Value == keyAlgorithm)
+                    {
+                        logger?.LogDebug("Importing RSA private key");
+
+                        var decodedKey = UnwrapPrivateKey(pemEncodedKey, isPkcs8 ? pkcs8Label : rsaLabel);
+                        var key = RSA.Create();
+
+                        if (isPkcs8)
+                        {
+                            key.ImportPkcs8PrivateKey(decodedKey, out _);
+                        }
+                        else
+                        {
+                            key.ImportRSAPrivateKey(decodedKey, out _);
+                        }
+
+                        result = certificate.CopyWithPrivateKey(key);
+
+                        logger?.LogDebug("RSA private key has been imported and assigned to certificate");
+                    }
+                    else if (oidEcPublicKey.Value == keyAlgorithm)
+                    {
+                        logger?.LogDebug("Importing ECC private key");
+
+                        var decodedKey = UnwrapPrivateKey(pemEncodedKey, isPkcs8 ? pkcs8Label : ecLabel);
+                        var key = ECDsa.Create();
+
+                        if (isPkcs8)
+                        {
+                            key.ImportPkcs8PrivateKey(decodedKey, out _);
+                        }
+                        else
+                        {
+                            key.ImportECPrivateKey(decodedKey, out _);
+                        }
+
+                        result = certificate.CopyWithPrivateKey(key);
+
+                        logger?.LogDebug("ECC private key has been imported and assigned to certificate");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    var errorMessage = "Cannot import private key";
+                    logger?.LogError(ex, errorMessage);
+                    throw new InvalidOperationException(errorMessage, ex);
+                }
+
+                if (result == null)
+                {
+                    var errorMessage = $"Cannot use certificate, not supported key algorithm: ${keyAlgorithm}";
+                    logger?.LogError(errorMessage);
+                    throw new InvalidOperationException(errorMessage);
+                }
+
+                var needsRetry = false;
+
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    // On Windows the certificate in 'result' gives an error when used with kestrel: "No credentials are available in the security"
+                    // This is a suggested workaround that seems working (https://github.com/dotnet/runtime/issues/45680)
+                    result = new X509Certificate2(result.Export(X509ContentType.Pkcs12));
+
+                    // On Windows the imported certificate sometimes fails to use the private key and kestrel fails accepting connections (this is not related
+                    // to the other problem above). Try to access the private key and catch the error early. If it fails, re-importing the certificate
+                    // solves the problem:
+                    try
+                    {
+                        if (oidRsaEncryption.Value == keyAlgorithm)
+                        {
+                            _ = result.GetRSAPrivateKey();
+                        }
+                        else
+                        {
+                            _ = result.GetECDsaPrivateKey();
+                        }
+                    }
+                    catch
+                    {
+                        needsRetry = true;
+                    }
+                }
+
+                if (!needsRetry)
+                {
+                    return result;
+                }
+
+                logger?.LogWarning("Error importing certificate, retrying");
+                Thread.Sleep(TimeSpan.FromSeconds(1)); // Slow down retries a bit
+            }
+
+            throw new InvalidOperationException("Cannot import server certificate, giving up");
+        }
+
+        static byte[] UnwrapPrivateKey(string pemEncodedKey, string algoLabel)
+        {
+            var headerIndex = pemEncodedKey.IndexOf(Header(algoLabel));
+            var footerIndex = pemEncodedKey.IndexOf(Footer(algoLabel));
+
+            if (headerIndex < 0 || footerIndex < 0)
+            {
+                throw new InvalidOperationException($"Certificate key algorithm indicates {algoLabel}, but cannot unwrap key - headers not found");
+            }
+
+            byte[] decodedKey;
+
+            try
+            {
+                var dataIndex = headerIndex + Header(algoLabel).Length;
+                decodedKey = Convert.FromBase64String(pemEncodedKey.Substring(dataIndex, footerIndex - dataIndex));
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Cannot decode private key: base64 decoding failed after removing headers", ex);
+            }
+
+            return decodedKey;
+        }
+
+        static string Header(string label) => $"-----BEGIN {label}-----";
+        static string Footer(string label) => $"-----END {label}-----";
     }
 }

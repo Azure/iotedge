@@ -5,10 +5,11 @@ trigger:
   batch: true
   branches:
     include:
-      - master
+      - main
       - release/*
 pr: none
 variables:
+  DisableDockerDetector: true
   REVISION: '1'
 jobs:
 

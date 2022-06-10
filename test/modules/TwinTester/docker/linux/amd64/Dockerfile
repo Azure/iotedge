@@ -1,6 +1,4 @@
-﻿ARG base_tag=3.1.19-alpine3.14
-# base dockerfile is located at \edge-util\docker\linux\amd64
-FROM azureiotedge/azureiotedge-runtime-base:1.2-linux-amd64 as builder
+﻿ARG base_tag=3.1-alpine
 
 FROM mcr.microsoft.com/dotnet/runtime:${base_tag}
 
@@ -17,7 +15,7 @@ WORKDIR /app
 COPY $EXE_DIR/ ./
 
 # Install RocksDB
-COPY --from=builder publish/* /usr/local/lib/
+COPY $EXE_DIR/librocksdb/librocksdb.so.amd64 /usr/local/lib/librocksdb.so
 
 # Add an unprivileged user account for running the module
 RUN adduser -Ds /bin/sh moduleuser 

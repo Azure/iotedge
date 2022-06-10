@@ -79,13 +79,13 @@
 		}
 	},
 	"variables": {
-		"agent_prep1_script_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/agent.sh",
-		"agent_prep2_script_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/agent_final.sh",
-		"create_linux_vm_template_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/create-linux-vm-template.json",
-		"create_windows_vm_template_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/create-windows-vm-template.json",
-		"finalize_agent_template_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/finalize-agent-template.json",
-		"runner1_prep_script_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/runner.sh",
-		"runner2_prep_script_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/Runner.ps1"
+		"agent_prep1_script_uri": "https://raw.githubusercontent.com/Azure/iotedge/main/builds/e2e/agent.sh",
+		"agent_prep2_script_uri": "https://raw.githubusercontent.com/Azure/iotedge/main/builds/e2e/agent_final.sh",
+		"create_linux_vm_template_uri": "https://raw.githubusercontent.com/Azure/iotedge/main/builds/e2e/create-linux-vm-template.json",
+		"create_windows_vm_template_uri": "https://raw.githubusercontent.com/Azure/iotedge/main/builds/e2e/create-windows-vm-template.json",
+		"finalize_agent_template_uri": "https://raw.githubusercontent.com/Azure/iotedge/main/builds/e2e/finalize-agent-template.json",
+		"runner1_prep_script_uri": "https://raw.githubusercontent.com/Azure/iotedge/main/builds/e2e/runner.sh",
+		"runner2_prep_script_uri": "https://raw.githubusercontent.com/Azure/iotedge/main/builds/e2e/Runner.ps1"
 	},
 	"resources": [{
 		"type": "Microsoft.KeyVault/vaults",

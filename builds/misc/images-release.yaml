@@ -2,11 +2,23 @@ trigger: none
 pr: none
 
 name: $(version)
-jobs: 
+
+variables:
+  DisableDockerDetector: true
+
+stages:
+# This stage builds Rocks DB and adds the files to staging directory
+################################################################################
+- template: templates/build-rocksdb.yaml
+################################################################################
+
+- stage: BuildReleaseImages
+  dependsOn: [ BuildRocksDB ]
+
+  jobs: 
 ################################################################################
   - job: linux_dotnet_projects
 ################################################################################
-    # This job is run on a hosted linux agent, which needs dotnet 2 and 3 installed as a manual step. 
     # The code sign steps will fail unless we explicitly say to use dotnet 2 before.
     # This means we have to toggle back and forth between primary dotnet installations for the sign and build.
     # TODO: Investigate why we have to toggle primary installs on linux, but not on windows.
@@ -14,7 +26,7 @@ jobs:
     pool:
         name: $(pool.linux.name)
         demands:
-          - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+          - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
     steps: 
       # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
       - task: Docker@2
@@ -27,9 +39,6 @@ jobs:
         inputs:
           command: login
           containerRegistry: iotedge-release-acr
-      # Dotnet 2 needed for codesign
-      - template: ../templates/install-dotnet2.yaml
-      - template: ../templates/install-dotnet3.yaml
       - template: ../templates/dotnet3-globaljson.yaml # use dotnet 3 as primary install for build
       - task: ShellScript@2
         displayName: "Build Azure-IoT-Edge-Core"
@@ -293,30 +302,51 @@ jobs:
                 }
               ]
           signConfigType: inlineSignParams
+
+      - task: DownloadPipelineArtifact@2
+        inputs:
+          artifact: 'librocksdb'
+          # place in '$(Pipeline.Workspace)/librocksdb'
+          path: '$(Pipeline.Workspace)/librocksdb'
+
+      - task: CopyFiles@2
+        displayName: Copy rocksdb libs
+        inputs:
+          sourceFolder: '$(Pipeline.Workspace)/librocksdb'
+          contents: '**'
+          targetFolder: '$(Build.BinariesDirectory)/publish/librocksdb'
+
       - template: templates/image-linux.yaml
         parameters: 
           imageName: azureiotedge-agent
           name: "Edge Agent"
           project: Microsoft.Azure.Devices.Edge.Agent.Service
           version: $(version)
+          buildx_flag: 'true'
+          use_rocksdb: true
       - template: templates/image-linux.yaml
         parameters: 
           imageName: azureiotedge-hub
           name: "Edge Hub"
           project: Microsoft.Azure.Devices.Edge.Hub.Service
           version: $(version)
+          buildx_flag: 'true'
+          use_rocksdb: true
       - template: templates/image-linux.yaml
         parameters: 
           imageName: azureiotedge-simulated-temperature-sensor
           name: "Temperature Sensor"
           project: SimulatedTemperatureSensor
           version: $(version)
+          buildx_flag: 'true'
       - template: templates/image-linux.yaml
         parameters:
           imageName: azureiotedge-diagnostics
           name: "Diagnostics Module"
           project: IotedgeDiagnosticsDotnet
           version: $(version)
+          buildx_flag: 'true'
+
       - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
         displayName: 'SBOM Generation Task'
         inputs:
@@ -326,6 +356,7 @@ jobs:
         inputs:
           PathtoPublish: '$(Build.BinariesDirectory)/publish'
           ArtifactName: 'publish-linux'          
+
 ################################################################################
   - job: windows
 ################################################################################
@@ -346,8 +377,6 @@ jobs:
         inputs:
           command: login
           containerRegistry: iotedge-release-acr
-      - template: ../templates/install-dotnet2.yaml
-      - template: ../templates/install-dotnet3.yaml
       - powershell: "scripts/windows/build/Publish-Branch.ps1 -Configuration:\"$(configuration)\" -PublishTests:$False -UpdateVersion"
         displayName: "Build ($(configuration))"
         name: build
@@ -611,7 +640,7 @@ jobs:
     pool:
         name: $(pool.linux.name)
         demands:
-          - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+          - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
     dependsOn:
       - linux_dotnet_projects
       - windows

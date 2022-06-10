@@ -2,6 +2,7 @@ trigger: none
 pr: none
 
 variables:
+  DisableDockerDetector: true
   NugetSecurityAnalysisWarningLevel: warn
   
 jobs:
@@ -12,7 +13,7 @@ jobs:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby    
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby    
     workspace:
       clean: all
     environment: 'Azure-IoT-Edge-Core Release Env'
@@ -89,7 +90,7 @@ jobs:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby 
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby 
     workspace:
       clean: all
     environment: 'Azure-IoT-Edge-Core Release Env'
@@ -117,4 +118,4 @@ jobs:
             inputs:
               targetType: filePath
               filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/buildManifest.sh'
-              arguments: '-r $(registry.address) -v $(version) -t $(System.DefaultWorkingDirectory)/edge-modules/azure-monitor/docker/manifest.yaml.template -n $(to.registry.namespace) --tags "$(tags)"'
+              arguments: '-r $(registry.address) -v $(version) -t $(System.DefaultWorkingDirectory)/edge-modules/metrics-collector/docker/manifest.yaml.template -n $(to.registry.namespace) --tags "$(tags)"'

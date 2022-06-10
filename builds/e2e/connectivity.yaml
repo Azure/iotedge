@@ -10,6 +10,7 @@ schedules:
   always: true
 
 variables:
+  DisableDockerDetector: true
   images.artifact.name.linux: 'core-linux'
   NugetSecurityAnalysisWarningLevel: warn
 
@@ -133,6 +134,7 @@ jobs:
           buildVersionToDownload: latestFromBranch
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
+          allowPartiallySucceededBuilds: true
       - task: DownloadBuildArtifacts@0
         condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Download Images Artifacts'
@@ -150,6 +152,7 @@ jobs:
             $(images.artifact.name.linux)/scripts/connectivityTest.sh
             $(images.artifact.name.linux)/scripts/testHelper.sh
             $(images.artifact.name.linux)/artifactInfo.txt
+          allowPartiallySucceededBuilds: true
       # Deploy connectivity test
       - template: templates/connectivity-deploy.yaml
         parameters:

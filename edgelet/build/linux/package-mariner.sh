@@ -39,17 +39,17 @@ replace-with = "vendored-sources"
 
 [source."https://github.com/Azure/hyperlocal-windows"]
 git = "https://github.com/Azure/hyperlocal-windows"
-branch = "master"
+branch = "main"
 replace-with = "vendored-sources"
 
 [source."https://github.com/Azure/mio-uds-windows.git"]
 git = "https://github.com/Azure/mio-uds-windows.git"
-branch = "master"
+branch = "main"
 replace-with = "vendored-sources"
 
 [source."https://github.com/Azure/tokio-uds-windows.git"]
 git = "https://github.com/Azure/tokio-uds-windows.git"
-branch = "master"
+branch = "main"
 replace-with = "vendored-sources"
 
 [source.vendored-sources]

@@ -243,7 +243,7 @@ where
 
         let file_name = format!("{}_log.txt", module_name);
         zip_writer
-            .start_file_from_path(&Path::new("logs").join(file_name), file_options)
+            .start_file(format!("logs/{}", file_name), file_options)
             .into_future()
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))
             .and_then(move |_| {
@@ -320,7 +320,7 @@ where
         };
 
         self.zip_writer
-            .start_file_from_path(&Path::new("logs").join(file_name), self.file_options)
+            .start_file(format!("logs/{}", file_name), self.file_options)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         self.zip_writer
@@ -375,7 +375,7 @@ where
         };
 
         self.zip_writer
-            .start_file_from_path(&Path::new("logs").join(file_name), self.file_options)
+            .start_file(format!("logs/{}", file_name), self.file_options)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         self.zip_writer
@@ -406,7 +406,7 @@ where
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         self.zip_writer
-            .start_file_from_path(&Path::new("check.json"), self.file_options)
+            .start_file("check.json", self.file_options)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         self.zip_writer
@@ -456,7 +456,7 @@ where
         };
 
         self.zip_writer
-            .start_file_from_path(&Path::new(&file_name), self.file_options)
+            .start_file(file_name, self.file_options)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         self.zip_writer
@@ -533,7 +533,7 @@ where
         };
 
         self.zip_writer
-            .start_file_from_path(&Path::new(&file_name), self.file_options)
+            .start_file(file_name, self.file_options)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         self.zip_writer

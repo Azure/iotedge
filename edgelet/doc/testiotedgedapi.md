@@ -3,12 +3,12 @@
 If you are a developer working on API endpoint changes, you will definitely want to test locally before committing any changes.  Follow below steps for IoT Edge daemon API endpoints testing.
 
 ### Pre-requisites
-1. A dev machine is set up according to [devguide](https://github.com/Azure/iotedge/blob/master/edgelet/doc/devguide.md) in Linux.
+1. A dev machine is set up according to [devguide](https://github.com/Azure/iotedge/blob/main/edgelet/doc/devguide.md) in Linux.
 2. Install Git on dev machine; refer details from [here](https://git-scm.com/download/linux).
 3. Make sure to get the latest version of [IoT Edge source code](https://github.com/Azure/iotedge).
 
 ### Steps
-Below are steps used to test API endpoints of iotedged running on Linux; and I will use [list_modules](https://github.com/Azure/iotedge/blob/master/edgelet/management/docs/ModuleApi.md#list_modules) as an example.
+Below are steps used to test API endpoints of iotedged running on Linux; and I will use [list_modules](https://github.com/Azure/iotedge/blob/main/edgelet/management/docs/ModuleApi.md#list_modules) as an example.
 
 1. Create your IoT Edge device in Azure Portal.
 2. Prepare config.yaml file.
@@ -81,7 +81,7 @@ Unhandled Exception: System.AggregateException: One or more errors occurred. (Pe
 2018-10-11T16:29:04Z [INFO] - [work] - - - [2018-10-11 16:29:04.627120292 UTC] "POST /modules/%24edgeAgent/genid/636748070676263768/encrypt?api-version=2018-06-28 HTTP/1.1" 200 OK 1261 "-" "-" pid(any)
 ```
 
-7. You can use `curl` to send request to API endpoint for testing.  For example, test [list_modules](https://github.com/Azure/iotedge/blob/master/edgelet/management/docs/ModuleApi.md#list_modules) endpoint:
+7. You can use `curl` to send request to API endpoint for testing.  For example, test [list_modules](https://github.com/Azure/iotedge/blob/main/edgelet/management/docs/ModuleApi.md#list_modules) endpoint:
 
     `curl -v http://172.17.0.1:8080/modules/?api-version=2018-06-28`
 
@@ -105,13 +105,13 @@ tus":"running","description":"running"}}},{"id":"id","name":"edgeAgent","type":"
 ```
 
 8. You should follow the structure of requests mentioned in Swagger-generated API documentation.
-    - [Management Identity API](https://github.com/Azure/iotedge/blob/master/edgelet/management/docs/IdentityApi.md)
-    - [Management Module API](https://github.com/Azure/iotedge/blob/master/edgelet/management/docs/ModuleApi.md)
-    - [Workload API](https://github.com/Azure/iotedge/blob/master/edgelet/workload/docs/WorkloadApi.md)
+    - [Management Identity API](https://github.com/Azure/iotedge/blob/main/edgelet/management/docs/IdentityApi.md)
+    - [Management Module API](https://github.com/Azure/iotedge/blob/main/edgelet/management/docs/ModuleApi.md)
+    - [Workload API](https://github.com/Azure/iotedge/blob/main/edgelet/workload/docs/WorkloadApi.md)
 
 ### How to construct API request
 
-1. Let's take [create_module](https://github.com/Azure/iotedge/blob/master/edgelet/management/docs/ModuleApi.md#create_module) endpoint as an example.
+1. Let's take [create_module](https://github.com/Azure/iotedge/blob/main/edgelet/management/docs/ModuleApi.md#create_module) endpoint as an example.
 2. On the top of this page, you will find which HTTP request method (Get, Post, Delete, Put) and path should be used for each API endpoint.
 3. You can see required parameters and HTTP request headers for create_module endpoint.  The required parameters are `api_version:String` and `module:ModuleSpec`.
     - `api_version` should be defined in request URI.

@@ -1,3 +1,116 @@
+# 1.1.14 (2022-05-24)
+## Edge Agent
+### Bug Fixes
+* Update Base Images to address Microsoft .NET Security Updates for [CVE-2022-23267](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-23267), [CVE-2022-29117](https://github.com/dotnet/announcements/issues/220), [CVE-2022-29145](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-29145), OpenSSL vulnerability [USN-5402-1](https://ubuntu.com/security/notices/USN-5402-1), curl vulnerability [USN-5412-1](https://ubuntu.com/security/notices/USN-5412-1), and OpenLDAP Vulnerability [USN-5424-1](https://ubuntu.com/security/notices/USN-5424-1)
+
+
+## Edge Hub
+### Bug Fixes
+* Update Base Images to address Microsoft .NET Security Updates for [CVE-2022-23267](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-23267), [CVE-2022-29117](https://github.com/dotnet/announcements/issues/220), [CVE-2022-29145](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-29145), OpenSSL vulnerability [USN-5402-1](https://ubuntu.com/security/notices/USN-5402-1), curl vulnerability [USN-5412-1](https://ubuntu.com/security/notices/USN-5412-1), and OpenLDAP Vulnerability [USN-5424-1](https://ubuntu.com/security/notices/USN-5424-1)
+
+
+## Diagnostics Module
+### Bug Fixes
+* Update Base Images to address Microsoft .NET Security Updates for [CVE-2022-23267](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-23267), [CVE-2022-29117](https://github.com/dotnet/announcements/issues/220), [CVE-2022-29145](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-29145), OpenSSL vulnerability [USN-5402-1](https://ubuntu.com/security/notices/USN-5402-1), curl vulnerability [USN-5412-1](https://ubuntu.com/security/notices/USN-5412-1), and OpenLDAP Vulnerability [USN-5424-1](https://ubuntu.com/security/notices/USN-5424-1)
+
+
+## Simulated Temperature Sensor
+### Bug Fixes
+* Update Base Images to address Microsoft .NET Security Updates for [CVE-2022-23267](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-23267), [CVE-2022-29117](https://github.com/dotnet/announcements/issues/220), [CVE-2022-29145](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-29145), OpenSSL vulnerability [USN-5402-1](https://ubuntu.com/security/notices/USN-5402-1), curl vulnerability [USN-5412-1](https://ubuntu.com/security/notices/USN-5412-1), and OpenLDAP Vulnerability [USN-5424-1](https://ubuntu.com/security/notices/USN-5424-1)
+
+
+# 1.1.13 (2022-04-27)
+## Edge Agent
+### Bug Fixes
+* Update Base Images to address gzip vulnerability [CVE-2022-1271](https://ubuntu.com/security/CVE-2022-1271)
+
+
+## Edge Hub
+### Bug Fixes
+* Update Base Images to address gzip vulnerability [CVE-2022-1271](https://ubuntu.com/security/CVE-2022-1271)
+
+
+## iotedged
+### Bug Fixes
+* Update Rust `regex` version to address vulnerability [5573eff](https://github.com/Azure/iotedge/commit/5573eff191310e5a226d924b40d1cea035b0a3fd)
+
+
+## Diagnostics Module
+### Bug Fixes
+* Update Base Images to address gzip vulnerability [CVE-2022-1271](https://ubuntu.com/security/CVE-2022-1271)
+
+
+## Simulated Temperature Sensor
+### Bug Fixes
+* Update Base Images to address gzip vulnerability [CVE-2022-1271](https://ubuntu.com/security/CVE-2022-1271)
+
+
+# 1.1.12 (2022-03-15)
+## Edge Agent
+### Bug Fixes
+* Update Base Images for a Security Patch [.NET Core 3.1.23 - March 8, 2022](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1.23/3.1.23.md)
+
+
+## Edge Hub
+### Bug Fixes
+* Update Base Images for a Security Patch [.NET Core 3.1.23 - March 8, 2022](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1.23/3.1.23.md)
+
+
+# 1.1.11 (2022-03-07)
+## Edge Agent
+### Bug Fixes
+* Remove `BouncyCastle` Dependency [f18f057](https://github.com/Azure/iotedge/commit/f18f057013367e8fbdf24b30c2529c7e1149a691)
+* Remove k8s Projects [ad08af1](https://github.com/Azure/iotedge/commit/ad08af1693dfa1f8185f351a4dfdb05e1a30f550)
+* Update Base Images for a Security Patch [2395776](https://github.com/Azure/iotedge/commit/23957760bad8ce8dcbbabb97994a2618eff38fa3)
+* Update `DotNetty.Common` Version [2a76f57](https://github.com/Azure/iotedge/commit/2a76f57cb60922a99472b42fe7b4d8659baf114e)
+
+
+## Edge Hub
+### Bug Fixes
+* Remove `BouncyCastle` Dependency [f18f057](https://github.com/Azure/iotedge/commit/f18f057013367e8fbdf24b30c2529c7e1149a691)
+* Update Base Images for a Security Patch [2395776](https://github.com/Azure/iotedge/commit/23957760bad8ce8dcbbabb97994a2618eff38fa3)
+* Improve Certifacte Import Logging.[c9f8daa](https://github.com/Azure/iotedge/commit/c9f8daa3599a51997e5209893ab881944bd2cb8f)
+* Workaround Windows-certificate import issue [4eb2bdd](https://github.com/Azure/iotedge/commit/4eb2bddeb60cfee9b98d64a29f7813efa9f94fb3) [cf22777](https://github.com/Azure/iotedge/commit/cf22777e5381cac91980c926de30474ea396e6ec)
+* Fix EdgeHub does not Restart to Renew Ceritificate due to MqttProtocolHead Failed to Close [9339550](https://github.com/Azure/iotedge/commit/9339550b5b267f56f0d198e85cb80e6ab08d7532)
+* Update `DotNetty.Common` Version [2a76f57](https://github.com/Azure/iotedge/commit/2a76f57cb60922a99472b42fe7b4d8659baf114e)
+
+
+## iotedged
+### Bug Fixes
+* Update `Regex` Vulnerability [9f56fd2](https://github.com/Azure/iotedge/commit/9f56fd2b03ad1caa8a5b7e8fd10e77cdd9156b5e)
+* Update `tokio`, `rayon`, and `crossbeam` [dc30b65](https://github.com/Azure/iotedge/commit/dc30b650c869595c0a028f4376dd5315eb571830)
+* Replace `rand()` for Serial Numbers of New Certificates with OpenSsl's `RAND_bytes` [e8d8240](https://github.com/Azure/iotedge/commit/e8d8240253fd445f54dfd2c422d2a0a47761e8a9)
+
+
+# 1.1.10 (2022-02-03)
+## Edge Agent
+### Bug Fixes
+* Update Base Images for a Security Patch [0ac3602](https://github.com/Azure/iotedge/commit/0ac3602f2fa5dd08b20826f68394a59f9434a691)
+
+
+## Edge Hub
+### Bug Fixes
+* Update Base Images for a Security Patch [0ac3602](https://github.com/Azure/iotedge/commit/0ac3602f2fa5dd08b20826f68394a59f9434a691)
+
+
+# 1.1.9 (2022-01-28)
+## iotedged
+### Bug Fixes
+* Removing moby check for non-windows [b71b828](https://github.com/Azure/iotedge/commit/b71b828f0304dace8c2c1225e8c29eced9ab285c)
+
+
+## Edge Agent
+### Bug Fixes
+* Fix for concurrent module creation with workload socket [1a30568](https://github.com/Azure/iotedge/commit/1a30568e55790011919295e23938f5b1cef2dc14)
+* Update Base Images for a Security Patch [7b689b3](https://github.com/Azure/iotedge/commit/7b689b3d58f2b732f7ff5138ba36c9c331449322)
+
+
+## Edge Hub
+### Bug Fixes
+* Fix for Edge hub queue length counting metric [32fbcfe](https://github.com/Azure/iotedge/commit/32fbcfe8e477b5c593bba5660fd8044031703742)
+* Update Base Images for a Security Patch [7b689b3](https://github.com/Azure/iotedge/commit/7b689b3d58f2b732f7ff5138ba36c9c331449322)
+
+
 # 1.1.8 (2021-11-02)
 ## iotedged
 ### Bug Fixes

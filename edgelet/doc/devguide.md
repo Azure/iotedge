@@ -65,7 +65,7 @@ cd iotedge/edgelet/
 
 rustup update   # Install / update the toolchain used to build the daemon binaries.
                 # This is controlled by the rust-toolchain file in this directory.
-                # For the master branch, this is the latest "stable" toolchain.
+                # For the main branch, this is the latest "stable" toolchain.
                 # For release branches, this is a pinned Rust release.
 ```
 

@@ -79,30 +79,39 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             };
         }
 
-        public string[] GetInstallCommandsFromMicrosoftProd() => this.packageExtension switch
+        public string[] GetInstallCommandsFromMicrosoftProd()
         {
-            SupportedPackageExtension.Deb => new[]
+            string repository = this.os.ToLower() switch
             {
-                // Based on instructions at:
-                // https://github.com/MicrosoftDocs/azure-docs/blob/058084949656b7df518b64bfc5728402c730536a/articles/iot-edge/how-to-install-iot-edge-linux.md
-                // TODO: 8/30/2019 support curl behind a proxy
-                $"curl https://packages.microsoft.com/config/{this.os}/{this.version}/multiarch/prod.list > /etc/apt/sources.list.d/microsoft-prod.list",
-                "curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg",
-                $"apt-get update",
-                $"apt-get install --yes iotedge"
-            },
-            SupportedPackageExtension.RpmCentOS => new[]
-            {
-                $"rpm -iv --replacepkgs https://packages.microsoft.com/config/{this.os}/{this.version}/packages-microsoft-prod.rpm",
-                $"yum updateinfo",
-                $"yum install --yes iotedge",
-                "pathToSystemdConfig=$(systemctl cat iotedge | head -n 1)",
-                "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
-                "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
-                "sudo systemctl daemon-reload"
-            },
-            _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.packageExtension}'"),
-        };
+                "ubuntu" => this.version == "18.04" ? "https://packages.microsoft.com/config/ubuntu/18.04/multiarch/prod.list" : "https://packages.microsoft.com/config/ubuntu/20.04/prod.list",
+                "debian" => $"https://packages.microsoft.com/config/debian/stretch/multiarch/prod.list",
+                _ => throw new NotImplementedException($"Don't know how to install daemon for '{this.os}'"),
+            };
+
+            return this.packageExtension switch {
+                SupportedPackageExtension.Deb => new[]
+                {
+                    // Based on instructions at:
+                    // https://github.com/MicrosoftDocs/azure-docs/blob/058084949656b7df518b64bfc5728402c730536a/articles/iot-edge/how-to-install-iot-edge-linux.md
+                    // TODO: 8/30/2019 support curl behind a proxy
+                    $"curl {repository} > /etc/apt/sources.list.d/microsoft-prod.list",
+                    "curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg",
+                    $"apt-get update",
+                    $"apt-get install --yes iotedge"
+                },
+                SupportedPackageExtension.RpmCentOS => new[]
+                {
+                    $"rpm -iv --replacepkgs https://packages.microsoft.com/config/{this.os}/{this.version}/packages-microsoft-prod.rpm",
+                    $"yum updateinfo",
+                    $"yum install --yes iotedge",
+                    "pathToSystemdConfig=$(systemctl cat iotedge | head -n 1)",
+                    "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
+                    "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
+                    "sudo systemctl daemon-reload"
+                },
+                _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.packageExtension}'"),
+            };
+        }
 
         public string[] GetUninstallCommands() => this.packageExtension switch
         {
