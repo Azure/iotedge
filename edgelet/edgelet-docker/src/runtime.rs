@@ -352,7 +352,21 @@ impl ModuleRuntime for DockerModuleRuntime {
         let id = module.name().to_string();
 
         let (sender, receiver): (Sender<()>, Receiver<()>) = oneshot::channel();
-        
+
+        if let Err(err) = self
+            .create_socket_channel
+            .unbounded_send(ModuleAction::Start(id.clone(), sender))
+            .map_err(|_| {
+                Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(
+                    id.clone(),
+                )))
+            })
+        {
+            return Box::new(future::err(err));
+        }
+        let socket_signal = self.create_socket_channel.clone();
+        let module_name = id.clone();
+
         let result = module
             .config()
             .clone_create_options()
@@ -401,6 +415,15 @@ impl ModuleRuntime for DockerModuleRuntime {
                     Ok(())
                 }
                 Err(err) => {
+                    let module_name = module_name;
+                    let socket_signal = socket_signal;
+
+                    if socket_signal
+                        .unbounded_send(ModuleAction::Stop(module_name.clone()))
+                        .is_err()
+                    {
+                        error!("Could not remove socket {}", module_name);
+                    }
                     log_failure(Level::Warn, &err);
                     Err(err)
                 }
@@ -452,7 +475,6 @@ impl ModuleRuntime for DockerModuleRuntime {
                         Ok((module, state))
                     }
                     Err(err) => {
-                        
                         let err = Error::from_docker_error(
                             err,
                             ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id)),
@@ -474,23 +496,6 @@ impl ModuleRuntime for DockerModuleRuntime {
             return Box::new(future::err(Error::from(err)));
         }
 
-        let (sender, receiver): (Sender<()>, Receiver<()>) = oneshot::channel();
-
-        if let Err(err) = self
-            .create_socket_channel
-            .unbounded_send(ModuleAction::Start(id.clone(), sender))
-            .map_err(|_| {
-                Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(
-                    id.clone(),
-                )))
-            })
-        {
-            return Box::new(future::err(err));
-        }
-
-        let socket_signal = self.create_socket_channel.clone();
-        let module_name = id.clone();
-
         Box::new(
             self.client
                 .container_api()
@@ -501,15 +506,6 @@ impl ModuleRuntime for DockerModuleRuntime {
                         Ok(())
                     }
                     Err(err) => {
-                        let module_name = module_name;
-                        let socket_signal = socket_signal;
-    
-                        if socket_signal
-                            .unbounded_send(ModuleAction::Stop(module_name.clone()))
-                            .is_err()
-                        {
-                            error!("Could not remove socket {}", module_name);
-                        }
                         let err = Error::from_docker_error(
                             err,
                             ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id)),
@@ -556,13 +552,6 @@ impl ModuleRuntime for DockerModuleRuntime {
                         Err(err)
                     }
                 }),
-        )
-        Box::new(
-            receiver
-                .map_err(move |_| {
-                    Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id)))
-                })
-                .and_then(move |()| result),
         )
     }
 
