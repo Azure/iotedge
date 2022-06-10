@@ -23,6 +23,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         public T FindExtension<T>() => this.underlyingAmqpConnection.Extensions.Find<T>();
 
-        public Task Close() => this.underlyingAmqpConnection.CloseAsync(this.underlyingAmqpConnection.DefaultCloseTimeout);
+        public Task Close() => this.underlyingAmqpConnection.CloseAsync(this.underlyingAmqpConnection.Settings.OperationTimeout);
     }
 }
