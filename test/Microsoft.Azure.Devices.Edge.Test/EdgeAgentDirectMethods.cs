@@ -237,7 +237,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             var request = new
             {
                 schemaVersion = "1.0",
-                since = "2d",
+                since = "5m",
                 edgeRuntimeOnly = false,
                 sasUrl,
             };
