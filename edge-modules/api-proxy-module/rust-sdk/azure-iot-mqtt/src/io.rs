@@ -128,7 +128,7 @@ impl mqtt3::IoSource for IoSource {
                 token,
                 server_root_certificate,
             } => futures_util::future::Either::Left(futures_util::future::ok((
-                Some(token.to_owned()),
+                Some(token.clone()),
                 None,
                 server_root_certificate.clone(),
             ))),
@@ -205,7 +205,7 @@ impl mqtt3::IoSource for IoSource {
             },
         };
 
-        let iothub_host = self.iothub_host.to_owned();
+        let iothub_host = self.iothub_host;
 
         Box::pin(async move {
             let stream = async {

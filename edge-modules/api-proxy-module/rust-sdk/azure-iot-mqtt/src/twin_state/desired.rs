@@ -85,7 +85,7 @@ impl State {
                     // We don't even need to `poll()` the future because `mqtt3::Client::publish` puts it in the send queue *synchronously*.
                     // But we do need to tell the caller client to poll the `mqtt3::Client` at least once more so that it attempts to send the message,
                     // so return `Response::Continue`.
-                    let _ = client.publish(mqtt3::proto::Publication {
+                    let _publish = client.publish(mqtt3::proto::Publication {
                         topic_name: format!("$iothub/twin/GET/?$rid={}", request_id),
                         qos: mqtt3::proto::QoS::AtMostOnce,
                         retain: false,
@@ -118,7 +118,7 @@ impl State {
                                         serde_json::from_slice(payload)
                                             .map_err(super::MessageParseError::Json)?;
 
-                                    let _ = message.take();
+                                    let _message = message.take();
 
                                     self.inner = Inner::HaveResponse {
                                         version: twin_state.desired.version,
@@ -128,14 +128,14 @@ impl State {
                                     )));
                                 }
 
-                                status @ crate::Status::TooManyRequests
-                                | status @ crate::Status::Error(_) => {
+                                status @ (crate::Status::TooManyRequests
+                                | crate::Status::Error(_)) => {
                                     log::warn!(
                                         "getting initial twin state failed with status {}",
                                         status
                                     );
 
-                                    let _ = message.take();
+                                    let _message = message.take();
 
                                     self.inner = Inner::BeginBackOff;
                                     continue;
@@ -143,7 +143,7 @@ impl State {
 
                                 status => {
                                     let status = *status;
-                                    let _ = message.take();
+                                    let _message = message.take();
                                     return Err(super::MessageParseError::IotHubStatus(status));
                                 }
                             }
