@@ -45,6 +45,5 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
             this.KeyPath = keyPath;
             this.TrustedCertificatesPath = trustedCertsPath;
         }
-        
     }
 }

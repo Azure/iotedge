@@ -86,6 +86,5 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 $"[{tableName}]\n" +
                 $"{key} = {v}\n");
         }
-        
     }
 }
