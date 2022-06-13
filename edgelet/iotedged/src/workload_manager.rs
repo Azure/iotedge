@@ -143,15 +143,22 @@ where
         // "stop"
         // There is still a chance that 2 concurrent servers are launch with concurrence,
         // But it is extremely unlikely and anyway doesn't have any side effect expect memory footprint.
-        // If edgeAgent's listener exists, then we do not create a new one
 
         match module_id {
+            // If edgeAgent's listener exists, then we do not create a new one
             EDGEAGENT => {
-                info!(
-                    "Listener {} already started, keeping old listener and socket",
-                    module_id
-                );
-                return Ok(());
+                if self.shutdown_senders.contains_key(EDGEAGENT) {
+                    info!(
+                        "Listener {} already started, keeping old listener and socket",
+                        module_id
+                    );
+                    if let Some(signal_socket_created) = signal_socket_created {
+                        signal_socket_created.send(()).map_err(|()| {
+                            ErrorKind::Initialize(InitializeErrorReason::WorkloadService)
+                        })?;
+                    }
+                    return Ok(());
+                }
             }
             _ => {
                 if let Some(shutdown_sender) = self.shutdown_senders.remove(module_id) {
