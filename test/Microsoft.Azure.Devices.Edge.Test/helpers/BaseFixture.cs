@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         protected CancellationToken TestToken => this.cts.Token;
 
         protected virtual Task BeforeTestTimerStarts() => Task.CompletedTask;
-        protected virtual Task qAfterTestTimerEnds() => Task.CompletedTask;
+        protected virtual Task AfterTestTimerEnds() => Task.CompletedTask;
 
         [SetUp]
         protected async Task BeforeEachTestAsync()
