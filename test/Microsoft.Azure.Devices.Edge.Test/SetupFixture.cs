@@ -230,30 +230,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             config.SetCertificates(new CaCertificates(certPath, keyPath, trustBundlePath));
         }
-
-        public void AddCertsToConfigForManifestTrust(DaemonConfiguration config, Option<string> inputManifestSigningTrustBundlePath, Option<Dictionary<string, string>> contentTrustInputs)
-        {
-            string path = Path.Combine(FixedPaths.E2E_TEST_DIR, this.deviceId);
-            string certPath = Path.Combine(path, "device_ca_cert.pem");
-            string keyPath = Path.Combine(path, "device_ca_cert_key.pem");
-            string trustBundlePath = Path.Combine(path, "trust_bundle.pem");
-            string manifestSigningTrustBundlePath = Path.Combine(path, "manifest_trust_bundle.pem");
-
-            Directory.CreateDirectory(path);
-            File.Copy(this.certs.TrustedCertificatesPath, trustBundlePath);
-            OsPlatform.Current.SetOwner(trustBundlePath, "aziotcs", "644");
-            File.Copy(this.certs.CertificatePath, certPath);
-            OsPlatform.Current.SetOwner(certPath, "aziotcs", "644");
-            File.Copy(this.certs.KeyPath, keyPath);
-            OsPlatform.Current.SetOwner(keyPath, "aziotks", "600");
-
-            if (inputManifestSigningTrustBundlePath.HasValue)
-            {
-                File.Copy(inputManifestSigningTrustBundlePath.OrDefault(), manifestSigningTrustBundlePath);
-                OsPlatform.Current.SetOwner(manifestSigningTrustBundlePath, "aziotcs", "644");
-            }
-
-            config.SetCertificates(new CaCertificates(certPath, keyPath, trustBundlePath, manifestSigningTrustBundlePath, contentTrustInputs.OrDefault()));
-        }
+        
     }
 }
