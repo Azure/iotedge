@@ -2,6 +2,9 @@ name: $(VERSION)
 trigger: none
 pr: none
 
+variables:
+  DisableDockerDetector: true
+
 resources:
   repositories:
   - repository: azure-iotedge
@@ -143,6 +146,14 @@ stages:
       displayName: Linux
       strategy:
         matrix:
+          # For ARM32 Debian10, we solely publishing iot-identity-service artifacts
+          # for the partner teams. We don't fully support edgelet upload because 
+          # there is a known docker issue with debian 10.
+          Debian10-arm32v7:
+            os: debian10
+            artifactName: empty_package
+            identityServiceArtifactName: packages_debian-10-slim_arm32v7
+            identityServicePackageFilter: aziot-identity-service_*_armhf.deb
           Debian11-arm32v7:
             os: debian11
             artifactName: iotedged-debian11-arm32v7

@@ -169,6 +169,7 @@ steps:
         isa95Tag = 'false';
         edgeAgentImage = "$edgeAgentImage";
         edgeHubImage = "$edgeHubImage";
+        edgeHubSchemaVersion = "1.2";
         diagnosticsImage = "$diagnosticImagePrefix-diagnostics:$imageTag";
         tempFilterFuncImage = "$imagePrefix-functions-filter:$imageTag";
         tempFilterImage = "$imagePrefix-temperature-filter:$imageTag";
