@@ -59,6 +59,6 @@ Once the `launchSettings.json` file is configured, the solution can be built and
 ### Step 4. Configure the IoT edge daemon to enable Manifest Signing
 The root CA of the device as mentioned in `MANIFEST_TRUST_DEVICE_ROOT_CA_PATH` must be configured in the IoT edge Daemon to enable Manifest Signing.
 
-In the `certd.toml`, under `preloaded_certs`, the mapping of the Manifest Trust Bundke and file path of the root CA must be configured as shown in [sample](https://github.com/Azure/iotedge/blob/main/edgelet/iotedge/test-files/config/manifest-trust-bundle/certd.toml#L11)
+In the `certd.toml`, under `preloaded_certs`, the mapping of the Manifest Trust Bundke and file path of the root CA must be configured as shown in [sample](https://github.com/Azure/iotedge/blob/feature/manifest-trust/edgelet/iotedge/test-files/config/manifest-trust-bundle/certd.toml#L11)
 
 Once configured in IoT edge daemon, the device is now capable of verifying the signed manifest contents. Once a signed deployment manifest is deployed and the signature verification is successful, then the modules are deployed. If the signature fails, then the modules are not deployed. This way we only deploy the verified twin data and thereby offer data integrity of deployment manifest JSON.
