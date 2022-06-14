@@ -158,6 +158,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 var configStore = Mock.Of<IEntityStore<string, string>>();
                 var deploymentConfigInfoSerde = Mock.Of<ISerde<DeploymentConfigInfo>>();
                 IRestartPolicyManager restartManager = new Mock<IRestartPolicyManager>().Object;
+                // const int MaxRestartCount = 5;
+                // const int CoolOffTimeUnitInSeconds = 10;
+                // var restartManager = new RestartPolicyManager(MaxRestartCount, CoolOffTimeUnitInSeconds);
 
                 var dockerCommandFactory = new DockerCommandFactory(client, loggingConfig, configSource.Object, new CombinedDockerConfigProvider(Enumerable.Empty<AuthConfig>()));
                 IRuntimeInfoProvider runtimeInfoProvider = await RuntimeInfoProvider.CreateAsync(client);
@@ -181,10 +184,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 moduleIdentityLifecycleManager.Setup(m => m.GetModuleIdentitiesAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>())).Returns(Task.FromResult(identities));
                 var availabilityMetric = Mock.Of<IDeploymentMetrics>();
 
+                var store = new Mock<IEntityStore<string, ModuleState>>();
+                TimeSpan IntensiveCareTime = TimeSpan.FromMinutes(10);
+                HealthRestartPlanner healthRestartPlanner = new HealthRestartPlanner(commandFactory, store.Object, IntensiveCareTime, restartManager);
+
                 Agent agent = await Agent.Create(
                     configSource.Object,
-                    new RestartPlanner(commandFactory),
-                    new OrderedRetryPlanRunner(25, 60, new SystemTime()),
+                    healthRestartPlanner,
+                    new OrderedRetryPlanRunner(20, 10, new SystemTime()),
                     reporter,
                     moduleIdentityLifecycleManager.Object,
                     environmentProvider,

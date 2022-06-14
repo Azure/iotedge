@@ -128,7 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
             Agent agent = await Agent.Create(
                 configSource.Object,
                 restartPlanner,
-                new OrderedRetryPlanRunner(25, 60, new SystemTime()),
+                new OrderedRetryPlanRunner(20, 10, new SystemTime()),
                 reporter,
                 moduleIdentityLifecycleManager.Object,
                 environmentProvider.Object,
