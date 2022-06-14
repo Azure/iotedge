@@ -230,6 +230,5 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             config.SetCertificates(new CaCertificates(certPath, keyPath, trustBundlePath));
         }
-        
     }
 }
