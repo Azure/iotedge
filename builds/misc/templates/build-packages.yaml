@@ -150,8 +150,6 @@ stages:
           name: $(pool.windows.name)
           demands:
           - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker-large-disk
-        variables:
-          NugetSecurityAnalysisWarningLevel: warn
         strategy:
           matrix:
             CBL-Mariner1.0-amd64:
@@ -243,8 +241,6 @@ stages:
           name: $(pool.linux.arm.name)
           demands:
           - ImageOverride -equals agent-aziotedge-ubuntu-18.04-arm64
-        variables:
-          NugetSecurityAnalysisWarningLevel: warn
         strategy:
           matrix:
             CBL-Mariner1.0-aarch64:
