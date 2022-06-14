@@ -297,9 +297,9 @@ impl WorkloadConfig {
         let edge_ca_auto_renew = settings.edge_ca_auto_renew().to_owned();
 
         let device_id = device_info.device_id.0.clone();
-        let edge_ca_subject = settings.edge_ca_subject().clone().unwrap_or(
-            aziot_certd_config::CertSubject::CommonName(format!("aziot-edge CA {}", device_id)),
-        );
+        let edge_ca_subject = settings.edge_ca_subject().clone().unwrap_or_else(|| {
+            aziot_certd_config::CertSubject::CommonName(format!("aziot-edge CA {}", device_id))
+        });
 
         WorkloadConfig {
             hub_name: device_info.hub_name.clone(),
