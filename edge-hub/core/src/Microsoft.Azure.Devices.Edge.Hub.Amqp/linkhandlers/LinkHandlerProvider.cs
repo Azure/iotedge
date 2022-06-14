@@ -36,14 +36,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
         readonly IIdentityProvider identityProvider;
         readonly IMetadataStore metadataStore;
         readonly IDictionary<(UriPathTemplate Template, bool IsReceiver), LinkType> templatesList;
+        readonly bool delayedBatchingEnabled;
 
         public LinkHandlerProvider(
             IMessageConverter<AmqpMessage> messageConverter,
             IMessageConverter<AmqpMessage> twinMessageConverter,
             IMessageConverter<AmqpMessage> methodMessageConverter,
             IIdentityProvider identityProvider,
-            IMetadataStore metadataStore)
-            : this(messageConverter, twinMessageConverter, methodMessageConverter, identityProvider, metadataStore, DefaultTemplatesList)
+            IMetadataStore metadataStore,
+            bool delayedBatchingEnabled)
+            : this(messageConverter, twinMessageConverter, methodMessageConverter, identityProvider, metadataStore, DefaultTemplatesList, delayedBatchingEnabled)
         {
         }
 
@@ -53,7 +55,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             IMessageConverter<AmqpMessage> methodMessageConverter,
             IIdentityProvider identityProvider,
             IMetadataStore metadataStore,
-            IDictionary<(UriPathTemplate Template, bool IsReceiver), LinkType> templatesList)
+            IDictionary<(UriPathTemplate Template, bool IsReceiver), LinkType> templatesList,
+            bool delayedBatchingEnabled)
         {
             this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
             this.twinMessageConverter = Preconditions.CheckNotNull(twinMessageConverter, nameof(twinMessageConverter));
@@ -61,6 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             this.identityProvider = Preconditions.CheckNotNull(identityProvider, nameof(identityProvider));
             this.metadataStore = Preconditions.CheckNotNull(metadataStore, nameof(metadataStore));
             this.templatesList = Preconditions.CheckNotNull(templatesList, nameof(templatesList));
+            this.delayedBatchingEnabled = delayedBatchingEnabled;
         }
 
         public ILinkHandler Create(IAmqpLink link, Uri uri)
@@ -89,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
                         return new DeviceBoundLinkHandler(identity, link as ISendingAmqpLink, uri, boundVariables, connectionHandler, this.messageConverter, this.metadataStore);
 
                     case LinkType.Events:
-                        return new EventsLinkHandler(identity, link as IReceivingAmqpLink, uri, boundVariables, connectionHandler, this.messageConverter, this.metadataStore);
+                        return new EventsLinkHandler(identity, link as IReceivingAmqpLink, uri, boundVariables, connectionHandler, this.messageConverter, this.metadataStore, this.delayedBatchingEnabled);
 
                     case LinkType.ModuleMessages:
                         return new ModuleMessageLinkHandler(identity, link as ISendingAmqpLink, uri, boundVariables, connectionHandler, this.messageConverter, this.metadataStore);
@@ -98,10 +102,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
                         return new MethodSendingLinkHandler(identity, link as ISendingAmqpLink, uri, boundVariables, connectionHandler, this.methodMessageConverter, this.metadataStore);
 
                     case LinkType.MethodReceiving:
-                        return new MethodReceivingLinkHandler(identity, link as IReceivingAmqpLink, uri, boundVariables, connectionHandler, this.methodMessageConverter, this.metadataStore);
+                        return new MethodReceivingLinkHandler(identity, link as IReceivingAmqpLink, uri, boundVariables, connectionHandler, this.methodMessageConverter, this.metadataStore, this.delayedBatchingEnabled);
 
                     case LinkType.TwinReceiving:
-                        return new TwinReceivingLinkHandler(identity, link as IReceivingAmqpLink, uri, boundVariables, connectionHandler, this.twinMessageConverter, this.metadataStore);
+                        return new TwinReceivingLinkHandler(identity, link as IReceivingAmqpLink, uri, boundVariables, connectionHandler, this.twinMessageConverter, this.metadataStore, this.delayedBatchingEnabled);
 
                     case LinkType.TwinSending:
                         return new TwinSendingLinkHandler(identity, link as ISendingAmqpLink, uri, boundVariables, connectionHandler, this.twinMessageConverter, this.metadataStore);
