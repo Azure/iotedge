@@ -215,7 +215,7 @@ impl futures_core::Stream for Client {
 				State::WaitingForSubscriptions { reset_session, acked } =>
 					if *reset_session {
 						match std::pin::Pin::new(&mut this.inner).poll_next(cx) {
-							std::task::Poll::Ready(Some(Ok(mqtt3::Event::NewConnection { .. }))) | std::task::Poll::Ready(Some(Ok(mqtt3::Event::Disconnected(_)))) => (),
+							std::task::Poll::Ready(Some(Ok(mqtt3::Event::NewConnection { .. } | mqtt3::Event::Disconnected(_)))) => (),
 
 							std::task::Poll::Ready(Some(Ok(mqtt3::Event::Publication(publication)))) => match InternalMessage::parse(publication) {
 								Ok(InternalMessage::DirectMethod { name, payload, request_id }) =>
