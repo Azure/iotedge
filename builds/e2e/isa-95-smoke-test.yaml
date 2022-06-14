@@ -21,6 +21,7 @@ variables:
   itProxy: http://10.16.8.4:3128
   otProxy: http://10.16.5.4:3128 
   ressourceGroup: nested-edge-isa95 
+  otProxyName: "otproxy" 
 
 resources:
   pipelines:
@@ -205,7 +206,7 @@ stages:
           lvl: 4
       - template: templates/nested-isa95-lock.yaml      
         parameters:
-          agentName: "otproxy"
+          agentName: $(otProxyName) 
           lvl: 35
       - template: templates/nested-isa95-lock.yaml      
         parameters:
