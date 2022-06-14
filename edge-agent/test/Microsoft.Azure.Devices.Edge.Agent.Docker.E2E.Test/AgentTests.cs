@@ -184,7 +184,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 Agent agent = await Agent.Create(
                     configSource.Object,
                     new RestartPlanner(commandFactory),
-                    new OrderedPlanRunner(),
+                    new OrderedRetryPlanRunner(25, 60, new SystemTime()),
                     reporter,
                     moduleIdentityLifecycleManager.Object,
                     environmentProvider,

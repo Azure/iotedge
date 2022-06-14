@@ -387,7 +387,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockConfigSource = new Mock<IConfigSource>();
             var mockEnvironment = new Mock<IEnvironment>();
             var mockPlanner = new Mock<IPlanner>();
-            var planRunner = new OrderedPlanRunner();
+            var planRunner = new OrderedRetryPlanRunner(20, 10, new SystemTime());
             var mockReporter = new Mock<IReporter>();
             var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
             var configStore = Mock.Of<IEntityStore<string, string>>();
@@ -436,7 +436,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockConfigSource = new Mock<IConfigSource>();
             var mockEnvironment = new Mock<IEnvironment>();
             var mockPlanner = new Mock<IPlanner>();
-            var planRunner = new OrderedPlanRunner();
+            var planRunner = new OrderedRetryPlanRunner(20, 10, new SystemTime());
             var mockReporter = new Mock<IReporter>();
             var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
             var configStore = Mock.Of<IEntityStore<string, string>>();
