@@ -304,7 +304,7 @@ stages:
               set -ex
               git clone --recurse-submodules https://github.com/Azure/iot-identity-service.git -b release/1.2
               pushd iot-identity-service
-              packageVersion=$(git tag | grep 1.2.[0-9]*$ | tail -1)
+              packageVersion=$(git tag | grep 1.2.[0-9]*$ | sort --version-sort -r | head -1)
               sudo docker run --rm \
                 -v "$(Build.SourcesDirectory)/iot-identity-service:/src" \
                 -e "ARCH=$PACKAGE_ARCH" \
