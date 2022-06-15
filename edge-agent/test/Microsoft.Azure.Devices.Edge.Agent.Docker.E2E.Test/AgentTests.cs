@@ -158,9 +158,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 var configStore = Mock.Of<IEntityStore<string, string>>();
                 var deploymentConfigInfoSerde = Mock.Of<ISerde<DeploymentConfigInfo>>();
                 IRestartPolicyManager restartManager = new Mock<IRestartPolicyManager>().Object;
-                // const int MaxRestartCount = 5;
-                // const int CoolOffTimeUnitInSeconds = 10;
-                // var restartManager = new RestartPolicyManager(MaxRestartCount, CoolOffTimeUnitInSeconds);
+
                 var dockerCommandFactory = new DockerCommandFactory(client, loggingConfig, configSource.Object, new CombinedDockerConfigProvider(Enumerable.Empty<AuthConfig>()));
                 IRuntimeInfoProvider runtimeInfoProvider = await RuntimeInfoProvider.CreateAsync(client);
                 IEnvironmentProvider environmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, restartStateStore, restartManager, CancellationToken.None);
