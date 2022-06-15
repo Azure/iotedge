@@ -255,9 +255,7 @@ publish_app "NumberLogger"
 publish_app "CloudToDeviceMessageTester"
 publish_app "IotedgeDiagnosticsDotnet"
 
-# Azure Functions Sample needs to be built on dotnet 3.1. Azure Functions Dotnet
-# base image needs to support dotnet 6.
-publish_app "EdgeHubTriggerCSharp" "netcoreapp3.1"
+publish_app "EdgeHubTriggerCSharp"
 publish_lib "Microsoft.Azure.WebJobs.Extensions.EdgeHub"
 
 publish_files $SRC_SCRIPTS_DIR $PUBLISH_FOLDER
