@@ -2,7 +2,7 @@ use std::borrow::Borrow;
 use std::error::Error;
 use std::sync::Arc;
 
-use futures::{Future, Stream};
+use futures_core::{Future, Stream};
 use serde_json;
 
 use http_common::{Connector, ErrorBody, HttpRequest};
@@ -147,25 +147,44 @@ impl DockerApi for DockerApiClient {
             .finish();
         let uri_str = format!("/images/create?{}", query);
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
-        let uri = uri.to_string();
 
-        let mut request = HttpRequest::post(self.connector.clone(), &uri, Some(input_image));
-        request.add_header(
-            hyper::header::HeaderName::from_static("x-registry-auth"),
-            x_registry_auth,
-        )?;
-        self.add_user_agent(&mut request)?;
+        // Response body is a sequence of JSON objects.
+        // Each object is either a `{ "status": ... }` or an `{ "errorDetail": ... }`
+        //
+        // The overall success or failure of the operation is determined by which one
+        // the last object is.
+        //
+        // HttpRequest does not handle this properly, so we handle the request manually.
+        let client = hyper::client::Client::builder()
+            .build::<_, Body>(self.connector.clone());
+        let mut request = hyper::Request::post(uri)
+            .header(hyper::header::HeaderName::from_static("x-registry-auth"), x_registry_auth);
+        if let Some(agent) = &self.configuration.user_agent {
+            request = request.header(hyper::header::USER_AGENT, agent);
+        }
+        let request = request.body(serde_json::to_string(input_image)?.into())?;
 
-        let response = request
-            .response(true)
-            .await
-            .map_err(ApiError::with_context("Could not create image."))?;
-        let (status, _) = response.into_parts();
+        let response = tokio::time::timeout(
+            std::time::Duration::from_secs(30),
+            client.request(request),
+        )
+        .await?
+        .map_err(ApiError::with_context("Could not create image."))?;
+        let (parts, body) = response.into_parts();
 
-        if status == hyper::StatusCode::OK {
-            Ok(())
+        if parts.status == hyper::StatusCode::OK {
+            let response_bytes = hyper::body::to_bytes(body).await?;
+            let last = serde_json::Deserializer::from_slice(&response_bytes)
+                .into_iter::<serde_json::Map<String, serde_json::Value>>()
+                .last()
+                .ok_or_else(|| ApiError::with_message("received empty response from container runtime"))??;
+            if let Some(detail) = last.get("errorDetail") {
+                Err(ApiError::with_message(serde_json::to_string(detail)?).into())
+            } else {
+                Ok(())
+            }
         } else {
-            Err(ApiError::with_message(format!("Bad status code: {}", status)).into())
+            Err(ApiError::with_message(format!("Bad status code: {}", parts.status)).into())
         }
     }
 
