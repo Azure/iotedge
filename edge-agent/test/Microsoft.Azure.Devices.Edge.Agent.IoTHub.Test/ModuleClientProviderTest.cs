@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             sdkModuleClientProvider.Verify(s => s.GetSdkModuleClient(It.IsAny<ITransportSettings>()), Times.Once);
 
             // Write product info explicitly
-            sdkModuleClient.Verify(s => s.SetProductInfo($"{productInfo} (kernel_name=foo;cpu_architecture=bar;)"), Times.Once);
+            sdkModuleClient.Verify(s => s.SetProductInfo($"{productInfo} (kernel=foo;architecture=bar;version=baz;server_version=;kernel_version=;operating_system=;cpus=0;virtualized=;)"), Times.Once);
 
             Assert.NotNull(receivedTransportSettings);
             UpstreamProtocol up = upstreamProtocol.GetOrElse(UpstreamProtocol.Amqp);
