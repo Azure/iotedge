@@ -1,0 +1,167 @@
+trigger: none
+pr: none
+
+schedules:
+- cron: "0 */1 * * *"
+  displayName: Hourly Canary Main
+  branches:
+    include:
+    - main
+  always: true
+
+resources:
+  repositories:
+  - repository: azure-iotedge
+    type: github
+    endpoint: azure-iot-edge-iotedge1-github
+    name: azure/azure-iotedge
+    ref: main
+
+stages:
+  - stage: RunSmokeTest
+    displayName: Smoke Test
+    jobs:
+    - job: downloadArtifacts
+      displayName: Release Artifact Smoke Tests
+      strategy:
+        matrix:
+          # Debian11-armhf:
+          #   pool_name: 'Azure-IoT-Edge-Core'
+          #   agent_demands: 'deb11-e2e-tests -equals true'
+          #   os: debian11
+          #   arch: armhf
+          #   ext: deb
+
+          Ubuntu1804-amd64:
+            pool_name: 'Azure-IoT-Edge-1ES-Hosted-Linux'
+            agent_demands: 'ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker'
+            os: ubuntu18.04
+            arch: amd64
+            ext: deb
+          Ubuntu1804-arm64:
+            pool_name: 'Azure-IoT-Edge-1ES-Hosted-Linux-Arm64'
+            agent_demands: 'ImageOverride -equals agent-aziotedge-ubuntu-18.04-arm64'
+            os: ubuntu18.04
+            arch: arm64
+            ext: deb
+          
+          Ubuntu2004-amd64:
+            pool_name: 'Azure-IoT-Edge-1ES-Hosted-Linux'
+            agent_demands: 'ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker'
+            os: ubuntu20.04
+            arch: amd64
+            ext: deb
+          Ubuntu2004-arm64:
+            pool_name: 'Azure-IoT-Edge-1ES-Hosted-Linux-Arm64'
+            agent_demands: 'ImageOverride -equals agent-aziotedge-ubuntu-20.04-arm64'
+            os: ubuntu20.04
+            arch: arm64
+            ext: deb
+      pool:
+        name: $(pool_name)
+        demands:
+        - $(agent_demands)
+
+      steps:
+      - checkout: azure-iotedge
+        submodules: recursive
+      - checkout: self
+      - task: Bash@3
+        displayName: Setup Test Agent
+        condition: true
+        name: SetupTestAgent
+        inputs:
+          targetType: 'inline'
+          script: |
+            # Source the scripts & Update version files
+            sudo chmod +x $(Build.SourcesDirectory)/iotedge/scripts/linux/smokeTestHelper.sh
+            source $(Build.SourcesDirectory)/iotedge/scripts/linux/smokeTestHelper.sh
+
+            wait-for-dpkg-lock 120
+
+            if [[ "$(arch)" == "arm"* ]]; then
+              sudo apt-get install jq -y
+            fi
+
+      - task: Bash@3
+        displayName: Get Parameters From Azure-iotedge
+        condition: true
+        name: GitHubParameters
+        inputs:
+          targetType: 'inline'
+          script: |
+            # Source the scripts and get versions
+            edgeletVersion=$(cat $(Build.SourcesDirectory)/azure-iotedge/latest-aziot-edge.json | jq ".\"aziot-edge\"" | tr -d '"')
+            iisVersion=$(cat cat $(Build.SourcesDirectory)/azure-iotedge/latest-aziot-identity-service.json | jq ".\"aziot-identity-service\"" | tr -d '"')
+
+            echo "##vso[task.setvariable variable=edgeletVersion;isOutput=true]$edgeletVersion"
+            echo "##vso[task.setvariable variable=iisVersion;isOutput=true]$iisVersion"
+        env:
+          GITHUB_PAT: "$(GitHubAccessToken)"
+      - task: Bash@3
+        displayName: Download Edgelet GitHub
+        condition: true
+        inputs:
+          targetType: 'inline'
+          script: |
+            edgeletVersion=$(GitHubParameters.edgeletVersion)
+            iisVersion=$(GitHubParameters.iisVersion)
+
+            wget https://github.com/Azure/azure-iotedge/releases/download/$edgeletVersion/aziot-edge_$edgeletVersion-1_$(os)_$(arch).$(ext) -O $(System.ArtifactsDirectory)/aziot-edge_$edgeletVersion-1_$(os)_$(arch)_github.$(ext)
+            wget https://github.com/Azure/azure-iotedge/releases/download/$edgeletVersion/aziot-identity-service_$iisVersion-1_$(os)_$(arch).$(ext) -O $(System.ArtifactsDirectory)/aziot-identity-service_$iisVersion-1_$(os)_$(arch)_github.$(ext)
+
+      - task: Bash@3
+        displayName: Released Artifacts Smoke Tests
+        condition: true
+        inputs:
+          targetType: 'inline'
+          script: |
+            # Source the scripts & Update version files
+            sudo chmod +x $(Build.SourcesDirectory)/iotedge/scripts/linux/smokeTestHelper.sh
+            source $(Build.SourcesDirectory)/iotedge/scripts/linux/smokeTestHelper.sh
+
+            if [[ "$(os)" == "ubuntu"* ]]; then
+            # Ubuntu
+              if [[ "$(os)" == *"20.04" ]]; then
+                setup-focal-source-apt
+                setup-config-apt "https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb"
+              elif [[ "$(os)" == *"18.04" ]]; then
+                setup-config-apt "https://packages.microsoft.com/config/ubuntu/18.04/multiarch/packages-microsoft-prod.deb"
+              else
+                echo "Unsupported OS: $(os)"
+                exit 1;
+              fi
+            elif [[ "$(os)" == "debian11" ]]; then
+              # Debian
+              echo "Setup source artifact repository"
+              curl https://packages.microsoft.com/config/debian/11/packages-microsoft-prod.deb > ./packages-microsoft-prod.deb
+              sudo apt install ./packages-microsoft-prod.deb
+              sudo apt-get update
+            else
+              echo "Unsupported OS: $(os)"
+              exit 1;
+            fi
+
+            echo $'\n\n================================================\n\n'
+            echo "Aziot-edge"
+            test-released-metadata "aziot-edge" "$(GitHubParameters.edgeletVersion)"
+
+            test-released-artifact \
+              "aziot-edge" \
+              "$(GitHubParameters.edgeletVersion)" \
+              "$(System.ArtifactsDirectory)" \
+              "$(GitHubParameters.edgeletVersion)-1_$(os)_$(arch)_github.$(ext)" \
+              "$(edgelet.maxPercentAllowed)" \
+              "$(IsCheckPreviousPkg)"
+
+            echo $'\n\n================================================\n\n'
+            echo "Aziot-identity-service"
+            test-released-metadata "aziot-identity-service" "$(GitHubParameters.iisVersion)"
+
+            test-released-artifact \
+              "aziot-identity-service" \
+              "$(GitHubParameters.iisVersion)" \
+              "$(System.ArtifactsDirectory)" \
+              "$(GitHubParameters.iisVersion)-1_$(os)_$(arch)_github.$(ext)" \
+              "$(edgelet.maxPercentAllowed)" \
+              "$(IsCheckPreviousPkg)"
