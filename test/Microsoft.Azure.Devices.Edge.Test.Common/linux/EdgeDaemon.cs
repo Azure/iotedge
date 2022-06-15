@@ -150,13 +150,19 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             await Process.RunAsync("systemctl", "start aziot-keyd aziot-certd aziot-identityd aziot-edged", token);
             await WaitForStatusAsync(ServiceControllerStatus.Running, token);
 
-            try
-            {
-                string[] output = await Process.RunAsync("iotedge", "list", token);
-            }
-            catch (Exception e)
-            {
-                Log.Warning($"Failed to run aziot-edge \nexception: {e.ToString()}");
+            int attempts = 0;
+            while (attempts < 3) {
+                await Task.Delay(30000);
+                try
+                {
+                    string[] output = await Process.RunAsync("iotedge", "list", token);
+                    break;
+                }
+                catch (Exception e)
+                {
+                    Log.Warning($"Failed to list iotedge modules on attempt {attempts+1} \nexception: {e.ToString()}");
+                }
+                attempts++;
             }
         }
 
