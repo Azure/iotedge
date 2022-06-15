@@ -13,6 +13,7 @@ parameters:
 #   NestedEdgeAmqpOnly: Only applies to nested edge cases using amqp upstream protocol
 #   LegacyMqttRequired: Only applies to cases with the edgehub legacy mqtt protocol head
 #   SkipManifestTrust: Only applies to manifest/content trust tests
+#   Amd64Only: Only applies to amd64 architecture
 steps:
 - pwsh: |
     $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
@@ -33,6 +34,7 @@ steps:
     elseif ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
     {
       $filter += '&Category!=FlakyOnArm'
+      $filter += '&Category!=Amd64Only'
     }
     if ($test_type -eq 'nestededge_mqtt')
     {

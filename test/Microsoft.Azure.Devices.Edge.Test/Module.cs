@@ -27,8 +27,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                     builder =>
                     {
-                         builder.GetModule(ModuleName.EdgeHub).WithEnvironment(("ServerCertificateRenewAfterInMs", "6000"));
-                         builder.GetModule(ModuleName.EdgeHub).WithEnvironment(new[] { ("UpstreamProtocol", protocol.ToString()) });
+                        builder.GetModule(ModuleName.EdgeHub).WithEnvironment(("ServerCertificateRenewAfterInMs", "6000"));
+                        builder.GetModule(ModuleName.EdgeHub).WithEnvironment(new[] { ("UpstreamProtocol", protocol.ToString()) });
                     },
                     token,
                     Context.Current.NestedEdge);
@@ -129,7 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
-        [Category("FlakyOnArm")]
+        [Category("Amd64Only")]
         [Category("CentOsSafe")]
         // Test Temperature Filter Function: https://docs.microsoft.com/en-us/azure/iot-edge/tutorial-deploy-function
         public async Task TempFilterFunc()
