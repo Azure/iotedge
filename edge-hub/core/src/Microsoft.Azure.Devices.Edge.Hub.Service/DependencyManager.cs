@@ -220,8 +220,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool checkEntireQueueOnCleanup = this.configuration.GetValue("CheckEntireQueueOnCleanup", false);
             int messageCleanupIntervalSecs = this.configuration.GetValue("MessageCleanupIntervalSecs", 1800);
             bool closeCloudConnectionOnDeviceDisconnect = this.configuration.GetValue("CloseCloudConnectionOnDeviceDisconnect", true);
-            bool isLegacyUpstream = !nestedEdgeEnabled
-                || !this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.GatewayHostname).HasValue;
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -257,7 +255,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     experimentalFeatures,
                     closeCloudConnectionOnDeviceDisconnect,
                     nestedEdgeEnabled,
-                    isLegacyUpstream,
                     scopeAuthenticationOnly: scopeAuthenticationOnly,
                     trackDeviceState: trackDeviceState,
                     this.manifestTrustBundle));

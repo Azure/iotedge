@@ -214,7 +214,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     experimentalFeatures,
                     true,
                     false,
-                    true,
                     scopeAuthenticationOnly: true,
                     trackDeviceState: true,
                     Option.None<X509Certificate2>()));
