@@ -161,7 +161,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 // const int MaxRestartCount = 5;
                 // const int CoolOffTimeUnitInSeconds = 10;
                 // var restartManager = new RestartPolicyManager(MaxRestartCount, CoolOffTimeUnitInSeconds);
-
                 var dockerCommandFactory = new DockerCommandFactory(client, loggingConfig, configSource.Object, new CombinedDockerConfigProvider(Enumerable.Empty<AuthConfig>()));
                 IRuntimeInfoProvider runtimeInfoProvider = await RuntimeInfoProvider.CreateAsync(client);
                 IEnvironmentProvider environmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, restartStateStore, restartManager, CancellationToken.None);
@@ -185,8 +184,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 var availabilityMetric = Mock.Of<IDeploymentMetrics>();
 
                 var store = new Mock<IEntityStore<string, ModuleState>>();
-                TimeSpan IntensiveCareTime = TimeSpan.FromMinutes(10);
-                HealthRestartPlanner healthRestartPlanner = new HealthRestartPlanner(commandFactory, store.Object, IntensiveCareTime, restartManager);
+                TimeSpan intensiveCareTime = TimeSpan.FromMinutes(10);
+                HealthRestartPlanner healthRestartPlanner = new HealthRestartPlanner(commandFactory, store.Object, intensiveCareTime, restartManager);
 
                 Agent agent = await Agent.Create(
                     configSource.Object,
