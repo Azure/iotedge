@@ -9,7 +9,6 @@
 	clippy::large_enum_variant,
 	clippy::missing_errors_doc,
 	clippy::module_name_repetitions,
-	clippy::pub_enum_variant_names,
 	clippy::similar_names,
 	clippy::single_match_else,
 	clippy::too_many_arguments,
