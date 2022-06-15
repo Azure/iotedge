@@ -28,6 +28,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 
     public class AgentTests
     {
+        const int CoolOffTimeUnitInSeconds = 10;
+        const int MaxRunCount = 10;
+
         public static IEnumerable<object[]> GenerateStartTestData()
         {
             IEnumerable<IConfigurationSection> testsToRun = ConfigHelper.TestConfig.GetSection("testSuite").GetChildren();
@@ -185,10 +188,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 TimeSpan intensiveCareTime = TimeSpan.FromMinutes(10);
                 HealthRestartPlanner healthRestartPlanner = new HealthRestartPlanner(commandFactory, store.Object, intensiveCareTime, restartManager);
 
+                var planRunner = new OrderedRetryPlanRunner(MaxRunCount, CoolOffTimeUnitInSeconds, new SystemTime());
+
                 Agent agent = await Agent.Create(
                     configSource.Object,
                     healthRestartPlanner,
-                    new OrderedRetryPlanRunner(20, 10, new SystemTime()),
+                    planRunner,
                     reporter,
                     moduleIdentityLifecycleManager.Object,
                     environmentProvider,
