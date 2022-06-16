@@ -1,7 +1,7 @@
 trigger: none
 pr: none
 
-# Test schedule the same between main and release/1.2, but offset 12 hours. 
+# Test schedule the same between main and release/1.2, but offset 12 hours.
 # Don't run any scheduled tests on Sunday, as release/1.1 runs its scheduled tests then.
 schedules:
 - cron: "0 0 * * 1,2,3,4,5,6"
@@ -121,7 +121,7 @@ jobs:
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: 'edgebuildkv'
-          SecretsFilter: >- 
+          SecretsFilter: >-
             edgebuilds-azurecr-io-username,
             edgebuilds-azurecr-io-pwd,
             kvLogAnalyticWorkspaceId,
@@ -133,7 +133,7 @@ jobs:
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: >- 
+          SecretsFilter: >-
             IotHub-ConnStr,
             IotHub-EventHubConnStr
       - task: DownloadBuildArtifacts@0
@@ -316,7 +316,7 @@ jobs:
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: 'edgebuildkv'
-          SecretsFilter: >- 
+          SecretsFilter: >-
             edgebuilds-azurecr-io-username,
             edgebuilds-azurecr-io-pwd,
             kvLogAnalyticWorkspaceId,
@@ -328,7 +328,7 @@ jobs:
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: >- 
+          SecretsFilter: >-
             IotHub-ConnStr,
             IotHub-EventHubConnStr
       - task: DownloadBuildArtifacts@0
