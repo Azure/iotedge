@@ -93,7 +93,7 @@ pub fn runtime_state(
 #[async_trait::async_trait]
 impl<C> Module for DockerModule<C>
 where
-    C: Clone + hyper::client::connect::Connect + Send + Sync + 'static
+    C: Clone + hyper::client::connect::Connect + Send + Sync + 'static,
 {
     type Config = DockerConfig;
 

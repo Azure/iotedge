@@ -206,7 +206,7 @@ impl<C> std::fmt::Debug for DockerModuleRuntime<C> {
 #[async_trait::async_trait]
 impl<C> ModuleRegistry for DockerModuleRuntime<C>
 where
-    C: Clone + hyper::client::connect::Connect + Send + Sync + 'static
+    C: Clone + hyper::client::connect::Connect + Send + Sync + 'static,
 {
     type Config = DockerConfig;
 
@@ -408,7 +408,7 @@ fn get_ipv6_settings(network_configuration: &MobyNetwork) -> (bool, Option<Ipam>
 #[async_trait::async_trait]
 impl<C> ModuleRuntime for DockerModuleRuntime<C>
 where
-    C: Clone + hyper::client::connect::Connect + Send + Sync + 'static
+    C: Clone + hyper::client::connect::Connect + Send + Sync + 'static,
 {
     type Config = DockerConfig;
     type Module = DockerModule<C>;
