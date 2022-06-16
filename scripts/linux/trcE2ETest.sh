@@ -869,7 +869,10 @@ function configure_longhaul_settings() {
 function configure_connectivity_settings() {
     NETWORK_CONTROLLER_RUNPROFILE=${NETWORK_CONTROLLER_RUNPROFILE:-Offline}
     TEST_DURATION="${TEST_DURATION:-01:00:00}"
-    VERIFICATION_DELAY="${VERIFICATION_DELAY:-00:15:00}"
+
+    # Needs to be high due to 1ES conncectivity issues.
+    # If this is ever resolved, can be bumped back to 15 mins.
+    VERIFICATION_DELAY="${VERIFICATION_DELAY:-00:35:00}"
 
     TEST_INFO="$TEST_INFO,TestDuration=${TEST_DURATION}"
 }
