@@ -566,6 +566,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "base64",
+ "edgelet-test-utils",
  "futures-core",
  "http-common",
  "hyper",
@@ -755,13 +756,13 @@ dependencies = [
  "cert-renewal",
  "edgelet-core",
  "edgelet-settings",
- "futures",
  "futures-util",
  "http",
  "hyper",
  "nix",
  "openssl",
  "serde",
+ "tokio",
 ]
 
 [[package]]

@@ -3,6 +3,9 @@
 pub mod route;
 pub mod runtime;
 
+mod json_connector;
+pub use json_connector::JsonConnector;
+
 mod settings;
 pub use settings::Settings;
 
