@@ -79,7 +79,7 @@ stages:
       - job: ubuntu_1804_docker
     ################################################################################
 
-        displayName: Ubuntu 18.04 with Docker minimal
+        displayName: Ubuntu 18.04 with Docker (minimal)
 
         pool:
           name: $(pool.linux.name)
@@ -125,7 +125,7 @@ stages:
     ################################################################################
       - job: ubuntu_2004_docker
     ################################################################################
-        displayName: Ubuntu 20.04 with Docker minimal
+        displayName: Ubuntu 20.04 with Docker (minimal)
 
         pool:
           name: $(pool.linux.name)
