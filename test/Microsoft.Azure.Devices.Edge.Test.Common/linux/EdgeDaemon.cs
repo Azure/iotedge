@@ -149,6 +149,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         {
             await Process.RunAsync("systemctl", "start aziot-keyd aziot-certd aziot-identityd aziot-edged", token);
             await WaitForStatusAsync(ServiceControllerStatus.Running, token);
+            await Task.Delay(10000);
 
             await Retry.Do(
                 async () =>
@@ -159,13 +160,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 output => true,
                 e =>
                 {
+                    Log.Warning($"Failed to list iotedge modules.\nException: {e.ToString()}");
+
                     // Retry if iotedged's management endpoint is still starting up,
                     // and therefore isn't responding to `iotedge list` yet
                     static bool DaemonNotReady(string details) =>
                         details.Contains("Incorrect function", StringComparison.OrdinalIgnoreCase) ||
                         details.Contains("Could not list modules", StringComparison.OrdinalIgnoreCase) ||
                         details.Contains("Operation not permitted", StringComparison.OrdinalIgnoreCase) ||
-                        details.Contains("Socket file could not be found", StringComparison.OrdinalIgnoreCase);
+                        details.Contains("Socket file could not be found", StringComparison.OrdinalIgnoreCase) ||
+                        details.Contains("Object reference not set to an instance of an object", StringComparison.OrdinalIgnoreCase);
 
                     return DaemonNotReady(e.ToString());
                 },
