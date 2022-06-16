@@ -127,6 +127,7 @@ stages:
   - stage: PublishPackagesMicrosoft
 ################################################################################
     displayName: Publish Packages Microsoft
+    condition: false
     dependsOn: [BuildPackages]
     pool:
       name: $(pool.linux.name)
@@ -224,6 +225,7 @@ stages:
 ##############################################################################
     displayName: Publish Packages Github
     dependsOn: [BuildPackages]
+    condition: false
     pool:
       name: $(pool.linux.name)
       demands:
