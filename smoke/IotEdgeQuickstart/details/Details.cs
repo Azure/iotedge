@@ -10,13 +10,16 @@ namespace IotEdgeQuickstart.Details
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
+    using Microsoft.Azure.Devices.Common.Exceptions;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Azure.EventHubs;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using EventHubClientTransportType = Microsoft.Azure.EventHubs.TransportType;
+    using RetryPolicy = Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.RetryPolicy;
     using ServiceClientTransportType = Microsoft.Azure.Devices.TransportType;
 
     public class Details
@@ -356,7 +359,14 @@ namespace IotEdgeQuickstart.Details
             }
 
             var config = JsonConvert.DeserializeObject<ConfigurationContent>(deployJson);
-            return this.context.RegistryManager.ApplyConfigurationContentOnDeviceAsync(this.context.DeviceId, config);
+
+            var retryStrategy = new Incremental(15, RetryStrategy.DefaultRetryInterval, RetryStrategy.DefaultRetryIncrement);
+            var retryPolicy = new RetryPolicy(new TransientNetworkErrorDetectionStrategy(), retryStrategy);
+            return retryPolicy.ExecuteAsync(
+                async () =>
+            {
+                await this.context.RegistryManager.ApplyConfigurationContentOnDeviceAsync(this.context.DeviceId, config);
+            }, new CancellationTokenSource(TimeSpan.FromMinutes(5)).Token);
         }
 
         protected async Task VerifyDataOnIoTHub(string moduleId)
@@ -594,6 +604,14 @@ namespace IotEdgeQuickstart.Details
                 });
 
             return (deployJson, new[] { edgeAgentImage, edgeHubImage, tempSensorImage });
+        }
+    }
+
+    class TransientNetworkErrorDetectionStrategy : ITransientErrorDetectionStrategy
+    {
+        public bool IsTransient(Exception ex)
+        {
+            return ex is IotHubCommunicationException && ex.Message.Contains("The POST operation timed out");
         }
     }
 
