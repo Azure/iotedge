@@ -150,20 +150,27 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             await Process.RunAsync("systemctl", "start aziot-keyd aziot-certd aziot-identityd aziot-edged", token);
             await WaitForStatusAsync(ServiceControllerStatus.Running, token);
 
-            int attempts = 0;
-            while (attempts < 3) {
-                await Task.Delay(30000);
-                try
+            await Retry.Do(
+                async () =>
                 {
                     string[] output = await Process.RunAsync("iotedge", "list", token);
-                    break;
-                }
-                catch (Exception e)
+                    return output;
+                },
+                output => true,
+                e =>
                 {
-                    Log.Warning($"Failed to list iotedge modules on attempt {attempts+1} \nexception: {e.ToString()}");
-                }
-                attempts++;
-            }
+                    // Retry if iotedged's management endpoint is still starting up,
+                    // and therefore isn't responding to `iotedge list` yet
+                    static bool DaemonNotReady(string details) =>
+                        details.Contains("Incorrect function", StringComparison.OrdinalIgnoreCase) ||
+                        details.Contains("Could not list modules", StringComparison.OrdinalIgnoreCase) ||
+                        details.Contains("Operation not permitted", StringComparison.OrdinalIgnoreCase) ||
+                        details.Contains("Socket file could not be found", StringComparison.OrdinalIgnoreCase);
+
+                    return DaemonNotReady(e.ToString());
+                },
+                TimeSpan.FromSeconds(5),
+                token);
         }
 
         public Task StopAsync(CancellationToken token) => Profiler.Run(
