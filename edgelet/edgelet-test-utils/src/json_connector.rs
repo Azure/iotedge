@@ -62,7 +62,9 @@ impl tokio::io::AsyncWrite for StaticStream {
     ) -> Poll<io::Result<usize>> {
         let this = self.get_mut();
         this.wrote = true;
-        this.waker.take().map(Waker::wake);
+        if let Some(waker) = this.waker.take() {
+            waker.wake();
+        }
         Poll::Ready(this.write(buf))
     }
 
