@@ -125,13 +125,13 @@ impl JsonConnector {
 impl hyper::service::Service<hyper::Uri> for JsonConnector {
     type Response = StaticStream;
     type Error = std::convert::Infallible;
-    type Future = futures_util::future::Ready<Result<Self::Response, Self::Error>>;
+    type Future = std::future::Ready<Result<Self::Response, Self::Error>>;
 
     fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         Poll::Ready(Ok(()))
     }
 
     fn call(&mut self, _req: hyper::Uri) -> Self::Future {
-        futures_util::future::ok(StaticStream::new(self.body.clone()))
+        std::future::ready(Ok(StaticStream::new(self.body.clone())))
     }
 }

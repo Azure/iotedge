@@ -8,12 +8,9 @@ edition = "2021"
 [dependencies]
 anyhow = "1"
 async-trait = "0.1"
-bytes = "1"
-futures-util = "0.3"
 http = "0.2"
 hyper = "0.14"
 nix = "0.23"
-openssl = "0.10"
 serde = "1"
 tokio = "1"
 
@@ -21,8 +18,5 @@ edgelet-core = { path = "../edgelet-core" }
 edgelet-settings = { path = "../edgelet-settings" }
 
 aziot-certd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-client = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 
 cert-renewal = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
