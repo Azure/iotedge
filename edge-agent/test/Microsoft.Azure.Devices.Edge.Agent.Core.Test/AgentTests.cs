@@ -20,6 +20,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
     [Unit]
     public class AgentTests
     {
+        const int CoolOffTimeInSeconds = 10;
+        const int MaxRunCount = 20;
+
         public static IEnumerable<object[]> GetExceptionsToTest() => new List<object[]>
         {
             new object[]
@@ -387,7 +390,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockConfigSource = new Mock<IConfigSource>();
             var mockEnvironment = new Mock<IEnvironment>();
             var mockPlanner = new Mock<IPlanner>();
-            var planRunner = new OrderedPlanRunner();
+            var planRunner = new OrderedRetryPlanRunner(MaxRunCount, CoolOffTimeInSeconds, new SystemTime());
             var mockReporter = new Mock<IReporter>();
             var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
             var configStore = Mock.Of<IEntityStore<string, string>>();
@@ -436,7 +439,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockConfigSource = new Mock<IConfigSource>();
             var mockEnvironment = new Mock<IEnvironment>();
             var mockPlanner = new Mock<IPlanner>();
-            var planRunner = new OrderedPlanRunner();
+            var planRunner = new OrderedRetryPlanRunner(MaxRunCount, CoolOffTimeInSeconds, new SystemTime());
             var mockReporter = new Mock<IReporter>();
             var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
             var configStore = Mock.Of<IEntityStore<string, string>>();
