@@ -159,8 +159,6 @@ where
         //
         // The overall success or failure of the operation is determined by which one
         // the last object is.
-        //
-        // HttpRequest does not handle this properly, so we handle the request manually.
         let client = hyper::client::Client::builder().build::<_, Body>(self.connector.clone());
         let mut request = hyper::Request::post(uri).header(
             hyper::header::HeaderName::from_static("x-registry-auth"),

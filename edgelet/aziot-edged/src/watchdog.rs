@@ -8,7 +8,7 @@ use crate::error::Error as EdgedError;
 pub(crate) async fn run_until_shutdown(
     settings: edgelet_settings::docker::Settings,
     device_info: &aziot_identity_common::AzureIoTSpec,
-    runtime: edgelet_docker::DockerModuleRuntime,
+    runtime: edgelet_docker::DockerModuleRuntime<http_common::Connector>,
     identity_client: &aziot_identity_client_async::Client,
     mut action_rx: tokio::sync::mpsc::UnboundedReceiver<edgelet_core::WatchdogAction>,
 ) -> Result<edgelet_core::WatchdogAction, EdgedError> {
@@ -76,7 +76,7 @@ pub(crate) async fn run_until_shutdown(
 async fn watchdog(
     settings: &edgelet_settings::docker::Settings,
     device_info: &aziot_identity_common::AzureIoTSpec,
-    runtime: &edgelet_docker::DockerModuleRuntime,
+    runtime: &edgelet_docker::DockerModuleRuntime<http_common::Connector>,
     identity_client: &aziot_identity_client_async::Client,
 ) -> Result<(), EdgedError> {
     log::info!("Watchdog checking Edge runtime status");
@@ -127,7 +127,7 @@ async fn watchdog(
 
 async fn restart_modules(
     settings: &edgelet_settings::docker::Settings,
-    runtime: &edgelet_docker::DockerModuleRuntime,
+    runtime: &edgelet_docker::DockerModuleRuntime<http_common::Connector>,
 ) {
     let agent_name = settings.agent().name();
 
@@ -186,7 +186,7 @@ async fn restart_modules(
 async fn create_and_start_agent(
     settings: &edgelet_settings::docker::Settings,
     device_info: &aziot_identity_common::AzureIoTSpec,
-    runtime: &edgelet_docker::DockerModuleRuntime,
+    runtime: &edgelet_docker::DockerModuleRuntime<http_common::Connector>,
     identity_client: &aziot_identity_client_async::Client,
 ) -> Result<(), EdgedError> {
     let agent_name = settings.agent().name();

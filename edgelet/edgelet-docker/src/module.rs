@@ -16,21 +16,21 @@ use crate::error::Error;
 pub const MODULE_TYPE: &str = "docker";
 pub const MIN_DATE: &str = "0001-01-01T00:00:00Z";
 
-pub struct DockerModule {
-    client: DockerApiClient,
+pub struct DockerModule<C> {
+    client: DockerApiClient<C>,
     name: String,
     config: DockerConfig,
 }
 
-impl std::fmt::Debug for DockerModule {
+impl<C> std::fmt::Debug for DockerModule<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("DockerModule").finish()
     }
 }
 
-impl DockerModule {
+impl<C> DockerModule<C> {
     pub fn new(
-        client: DockerApiClient,
+        client: DockerApiClient<C>,
         name: String,
         config: DockerConfig,
     ) -> anyhow::Result<Self> {
@@ -91,7 +91,10 @@ pub fn runtime_state(
 }
 
 #[async_trait::async_trait]
-impl Module for DockerModule {
+impl<C> Module for DockerModule<C>
+where
+    C: Clone + hyper::client::connect::Connect + Send + Sync + 'static
+{
     type Config = DockerConfig;
 
     fn name(&self) -> &str {
