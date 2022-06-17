@@ -2,10 +2,10 @@ use std::borrow::Borrow;
 use std::error::Error;
 use std::sync::Arc;
 
-use futures::{Future, Stream};
+use futures_core::{Future, Stream};
 use serde_json;
 
-use http_common::{Connector, ErrorBody, HttpRequest};
+use http_common::{ErrorBody, HttpRequest};
 use hyper::{Body, Client, Uri};
 
 use super::configuration::Configuration;
@@ -16,13 +16,16 @@ use crate::models;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 #[derive(Clone)]
-pub struct DockerApiClient {
-    connector: Connector,
+pub struct DockerApiClient<C> {
+    connector: C,
     configuration: Arc<Configuration>,
 }
 
-impl DockerApiClient {
-    pub fn new(connector: Connector) -> Self {
+impl<C> DockerApiClient<C>
+where
+    C: Clone + hyper::client::connect::Connect + Send + Sync + 'static,
+{
+    pub fn new(connector: C) -> Self {
         Self {
             connector,
             configuration: Arc::new(Configuration::default()),
@@ -34,7 +37,7 @@ impl DockerApiClient {
         self
     }
 
-    fn add_user_agent<TBody>(&self, request: &mut HttpRequest<TBody, Connector>) -> Result<()>
+    fn add_user_agent<TBody>(&self, request: &mut HttpRequest<TBody, C>) -> Result<()>
     where
         TBody: serde::Serialize,
     {
@@ -113,7 +116,10 @@ pub trait DockerApi {
 }
 
 #[async_trait::async_trait]
-impl DockerApi for DockerApiClient {
+impl<C> DockerApi for DockerApiClient<C>
+where
+    C: Clone + hyper::client::connect::Connect + Send + Sync + 'static,
+{
     async fn system_info(&self) -> Result<models::SystemInfo> {
         let uri_str = format!("/info");
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
@@ -147,25 +153,43 @@ impl DockerApi for DockerApiClient {
             .finish();
         let uri_str = format!("/images/create?{}", query);
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
-        let uri = uri.to_string();
 
-        let mut request = HttpRequest::post(self.connector.clone(), &uri, Some(input_image));
-        request.add_header(
+        // Response body is a sequence of JSON objects.
+        // Each object is either a `{ "status": ... }` or an `{ "errorDetail": ... }`
+        //
+        // The overall success or failure of the operation is determined by which one
+        // the last object is.
+        let client = hyper::client::Client::builder().build::<_, Body>(self.connector.clone());
+        let mut request = hyper::Request::post(uri).header(
             hyper::header::HeaderName::from_static("x-registry-auth"),
             x_registry_auth,
-        )?;
-        self.add_user_agent(&mut request)?;
+        );
+        if let Some(agent) = &self.configuration.user_agent {
+            request = request.header(hyper::header::USER_AGENT, agent);
+        }
+        let request = request.body(serde_json::to_string(input_image)?.into())?;
 
-        let response = request
-            .response(true)
-            .await
-            .map_err(ApiError::with_context("Could not create image."))?;
-        let (status, _) = response.into_parts();
+        let response =
+            tokio::time::timeout(std::time::Duration::from_secs(30), client.request(request))
+                .await?
+                .map_err(ApiError::with_context("Could not create image."))?;
+        let (parts, body) = response.into_parts();
 
-        if status == hyper::StatusCode::OK {
-            Ok(())
+        if parts.status == hyper::StatusCode::OK {
+            let response_bytes = hyper::body::to_bytes(body).await?;
+            let last = serde_json::Deserializer::from_slice(&response_bytes)
+                .into_iter::<serde_json::Map<String, serde_json::Value>>()
+                .last()
+                .ok_or_else(|| {
+                    ApiError::with_message("received empty response from container runtime")
+                })??;
+            if let Some(detail) = last.get("errorDetail") {
+                Err(ApiError::with_message(serde_json::to_string(detail)?).into())
+            } else {
+                Ok(())
+            }
         } else {
-            Err(ApiError::with_message(format!("Bad status code: {}", status)).into())
+            Err(ApiError::with_message(format!("Bad status code: {}", parts.status)).into())
         }
     }
 
@@ -459,7 +483,7 @@ impl DockerApi for DockerApiClient {
             .expect("could not build hyper::Request");
 
         // send request
-        let client = self.connector.clone().into_client();
+        let client = hyper::client::Client::builder().build(self.connector.clone());
         let resp = client.request(req).await?;
         let (hyper::http::response::Parts { status, .. }, body) = resp.into_parts();
         if status.is_success() {
@@ -512,5 +536,41 @@ impl DockerApi for DockerApiClient {
         let response = response.parse_expect_ok::<Vec<models::Network>, ErrorBody<'_>>()?;
 
         Ok(response)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::DockerApi;
+
+    #[tokio::test]
+    async fn image_create_stream_ok() {
+        let payload = format!(
+            "{}{}",
+            serde_json::to_string(&serde_json::json!({"status":"STATUS"})).unwrap(),
+            serde_json::to_string(&serde_json::json!({"status":"STATUS"})).unwrap(),
+        );
+        let client = super::DockerApiClient::new(edgelet_test_utils::JsonConnector::ok(&payload));
+        assert!(client
+            .image_create("", "", "", "", "", "", "")
+            .await
+            .is_ok());
+    }
+
+    #[tokio::test]
+    async fn image_create_stream_error() {
+        let payload = format!(
+            "{}{}",
+            serde_json::to_string(&serde_json::json!({"status":"STATUS"})).unwrap(),
+            serde_json::to_string(
+                &serde_json::json!({"errorDetail":{"code":"CODE","message":"MESSAGE"}})
+            )
+            .unwrap()
+        );
+        let client = super::DockerApiClient::new(edgelet_test_utils::JsonConnector::ok(&payload));
+        assert!(client
+            .image_create("", "", "", "", "", "", "")
+            .await
+            .is_err());
     }
 }

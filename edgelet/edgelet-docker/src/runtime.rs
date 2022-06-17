@@ -41,8 +41,8 @@ const ORIGINAL_IMAGE_LABEL_KEY: &str = "net.azure-devices.edge.original-image";
 const LABELS: &[&str] = &["net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent"];
 
 #[derive(Clone)]
-pub struct DockerModuleRuntime {
-    client: DockerApiClient,
+pub struct DockerModuleRuntime<C> {
+    client: DockerApiClient<C>,
     system_resources: Arc<Mutex<System>>,
     notary_registries: BTreeMap<String, PathBuf>,
     notary_lock: Arc<Mutex<BTreeMap<String, String>>>,
@@ -51,29 +51,7 @@ pub struct DockerModuleRuntime {
     additional_info: BTreeMap<String, String>,
 }
 
-impl DockerModuleRuntime {
-    fn merge_env(cur_env: Option<&[String]>, new_env: &BTreeMap<String, String>) -> Vec<String> {
-        // build a new merged map containing string slices for keys and values
-        // pointing into String instances in new_env
-        let mut merged_env = BTreeMap::new();
-        merged_env.extend(new_env.iter().map(|(k, v)| (k.as_str(), v.as_str())));
-
-        if let Some(env) = cur_env {
-            // extend merged_env with variables in cur_env (again, these are
-            // only string slices pointing into strings inside cur_env)
-            merged_env.extend(env.iter().filter_map(|s| {
-                let mut tokens = s.splitn(2, '=');
-                tokens.next().map(|key| (key, tokens.next().unwrap_or("")))
-            }));
-        }
-
-        // finally build a new Vec<String>; we alloc new strings here
-        merged_env
-            .iter()
-            .map(|(key, value)| format!("{}={}", key, value))
-            .collect()
-    }
-
+impl<C> DockerModuleRuntime<C> {
     async fn get_notary_registries(
         settings: &Settings,
     ) -> anyhow::Result<BTreeMap<String, PathBuf>> {
@@ -197,14 +175,39 @@ impl DockerModuleRuntime {
     }
 }
 
-impl std::fmt::Debug for DockerModuleRuntime {
+fn merge_env(cur_env: Option<&[String]>, new_env: &BTreeMap<String, String>) -> Vec<String> {
+    // build a new merged map containing string slices for keys and values
+    // pointing into String instances in new_env
+    let mut merged_env = BTreeMap::new();
+    merged_env.extend(new_env.iter().map(|(k, v)| (k.as_str(), v.as_str())));
+
+    if let Some(env) = cur_env {
+        // extend merged_env with variables in cur_env (again, these are
+        // only string slices pointing into strings inside cur_env)
+        merged_env.extend(env.iter().filter_map(|s| {
+            let mut tokens = s.splitn(2, '=');
+            tokens.next().map(|key| (key, tokens.next().unwrap_or("")))
+        }));
+    }
+
+    // finally build a new Vec<String>; we alloc new strings here
+    merged_env
+        .iter()
+        .map(|(key, value)| format!("{}={}", key, value))
+        .collect()
+}
+
+impl<C> std::fmt::Debug for DockerModuleRuntime<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("DockerModuleRuntime").finish()
     }
 }
 
 #[async_trait::async_trait]
-impl ModuleRegistry for DockerModuleRuntime {
+impl<C> ModuleRegistry for DockerModuleRuntime<C>
+where
+    C: Clone + hyper::client::connect::Connect + Send + Sync + 'static,
+{
     type Config = DockerConfig;
 
     async fn pull(&self, config: &Self::Config) -> anyhow::Result<()> {
@@ -264,7 +267,7 @@ impl ModuleRegistry for DockerModuleRuntime {
 }
 
 #[async_trait::async_trait]
-impl MakeModuleRuntime for DockerModuleRuntime {
+impl MakeModuleRuntime for DockerModuleRuntime<Connector> {
     type Config = DockerConfig;
     type Settings = Settings;
     type ModuleRuntime = Self;
@@ -298,7 +301,7 @@ impl MakeModuleRuntime for DockerModuleRuntime {
     }
 }
 
-pub fn init_client(docker_url: &Url) -> anyhow::Result<DockerApiClient> {
+pub fn init_client(docker_url: &Url) -> anyhow::Result<DockerApiClient<Connector>> {
     // build the hyper client
     let connector = Connector::new(docker_url).map_err(|e| Error::Initialization(e.to_string()))?;
 
@@ -329,7 +332,7 @@ pub fn init_client(docker_url: &Url) -> anyhow::Result<DockerApiClient> {
 
 async fn create_network_if_missing(
     settings: &Settings,
-    client: &DockerApiClient,
+    client: &DockerApiClient<Connector>,
 ) -> anyhow::Result<()> {
     let (enable_i_pv6, ipam) = get_ipv6_settings(settings.moby_runtime().network());
     let network_id = settings.moby_runtime().network().name();
@@ -403,9 +406,12 @@ fn get_ipv6_settings(network_configuration: &MobyNetwork) -> (bool, Option<Ipam>
 }
 
 #[async_trait::async_trait]
-impl ModuleRuntime for DockerModuleRuntime {
+impl<C> ModuleRuntime for DockerModuleRuntime<C>
+where
+    C: Clone + hyper::client::connect::Connect + Send + Sync + 'static,
+{
     type Config = DockerConfig;
-    type Module = DockerModule;
+    type Module = DockerModule<C>;
     type ModuleRegistry = Self;
 
     async fn create(&self, mut module: ModuleSpec<Self::Config>) -> anyhow::Result<()> {
@@ -436,7 +442,7 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         debug!("Creating container {} with image {}", module.name(), image);
         let create_options = module.config().create_options().clone();
-        let merged_env = DockerModuleRuntime::merge_env(create_options.env(), module.env());
+        let merged_env = merge_env(create_options.env(), module.env());
 
         let mut labels = create_options.labels().cloned().unwrap_or_default();
         labels.insert(OWNER_LABEL_KEY.to_string(), OWNER_LABEL_VALUE.to_string());
