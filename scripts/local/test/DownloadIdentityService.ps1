@@ -85,7 +85,7 @@ for($page = 1; ; $page++)
     Write-Output "Extract aziot-identity-service.zip"
     Expand-Archive -Path aziot-identity-service.zip -DestinationPath aziot-identity-service -Force
 
-    $packages = Get-ChildItem -Recurse aziot-identity-service -Filter $env:PACKAGE_FILTER
+    $packages = Get-ChildItem -Recurse aziot-identity-service -Filter $env:PACKAGE_FILTER -Exclude "*debug*","*devel*"
     $packagePath = Convert-Path $env:DOWNLOAD_PATH
 
     Write-Output "Copy $packages to $packagePath"
