@@ -88,7 +88,7 @@ pub trait DockerApi {
         &'a self,
         name: &'a str,
         force: bool,
-        noprune: bool,
+        no_prune: bool,
     ) -> BoxFutureResult<'a, Vec<models::ImageDeleteResponseItem>>;
 
     fn container_create<'a>(
@@ -100,7 +100,7 @@ pub trait DockerApi {
     fn container_delete<'a>(
         &'a self,
         id: &'a str,
-        v: bool,
+        verbose: bool,
         force: bool,
         link: bool,
     ) -> BoxFutureResult<'a, ()>;
@@ -119,14 +119,14 @@ pub trait DockerApi {
         filters: &'a str,
     ) -> BoxFutureResult<'a, Vec<models::ContainerSummary>>;
 
-    fn container_restart<'a>(&'a self, id: &'a str, t: Option<i32>) -> BoxFutureResult<'a, ()>;
+    fn container_restart<'a>(&'a self, id: &'a str, timeout: Option<i32>) -> BoxFutureResult<'a, ()>;
     fn container_start<'a>(&'a self, id: &'a str, detach_keys: &'a str) -> BoxFutureResult<'a, ()>;
     fn container_stats<'a>(
         &'a self,
         id: &'a str,
         stream: bool,
     ) -> BoxFutureResult<'a, serde_json::Value>;
-    fn container_stop<'a>(&'a self, id: &'a str, t: Option<i32>) -> BoxFutureResult<'a, ()>;
+    fn container_stop<'a>(&'a self, id: &'a str, timeout: Option<i32>) -> BoxFutureResult<'a, ()>;
     fn container_top<'a>(
         &'a self,
         id: &'a str,
@@ -252,7 +252,7 @@ where
     api_call! {
         image_delete : delete "/images/{name}" -> Vec<models::ImageDeleteResponseItem> ;
         path : [ name: &'a str ] ;
-        query : [ "force" = (force: bool), "noprune" = (noprune: bool)] ;
+        query : [ "force" = (force: bool), "noprune" = (no_prune: bool)] ;
         ok : [200]
     }
 
@@ -266,14 +266,14 @@ where
     api_call! {
         container_delete : delete "/containers/{id}" -> () ;
         path : [ id: &'a str ] ;
-        query : [ "v" = (v: bool), "force" = (force: bool), "link" = (link: bool)] ;
+        query : [ "v" = (verbose: bool), "force" = (force: bool), "link" = (link: bool)] ;
         ok : [204]
     }
 
     api_call! {
         container_restart : post "/containers/{id}/restart" -> () ;
         path : [ id: &'a str ] ;
-        query : [ "t" = (t: Option<i32>) ] ;
+        query : [ "t" = (timeout: Option<i32>) ] ;
         ok : [204]
     }
 
@@ -312,7 +312,7 @@ where
     api_call! {
         container_stop : post "/containers/{id}/stop" -> () ;
         path : [ id: &'a str ] ;
-        query : [ "t" = (t: Option<i32>) ] ;
+        query : [ "t" = (timeout: Option<i32>) ] ;
         ok : [204, 304]
     }
 
