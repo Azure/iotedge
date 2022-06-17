@@ -173,6 +173,7 @@ macro_rules! api_call {
     (@inner make_body) => { ::hyper::Body::empty() };
     (@inner make_body $body:ident $_:ty) => { ::hyper::Body::from(::serde_json::to_string(&$body)?) };
 
+    (@inner query $param:ident &$($_:lifetime)? str) => { $param };
     (@inner query $param:ident Option<$type:ty>) => {
         &$param.as_ref().map(ToString::to_string).unwrap_or_default()
     };
