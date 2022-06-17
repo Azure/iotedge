@@ -186,10 +186,10 @@ macro_rules! api_call {
             $($pparam:ident : $ptype:ty),*
         ] ;)?
         $(query : [
-            $($qname:literal ( $qparam:ident : $($qtype:tt)* ) ),*
+            $($qname:literal = ( $qparam:ident : $($qtype:tt)* ) ),*
         ] ;)?
         $(header : [
-            $($hname:literal ( $hparam:ident : $htype:ty ) ),*
+            $($hname:literal = ( $hparam:ident : $htype:ty ) ),*
         ] ;)?
         $(body : $btype:ty ;)?
         ok : [ $($code:literal),* ]
@@ -252,13 +252,13 @@ where
     api_call! {
         image_delete : delete "/images/{name}" -> Vec<models::ImageDeleteResponseItem> ;
         path : [ name: &'a str ] ;
-        query : [ "force"(force: bool), "noprune"(noprune: bool)] ;
+        query : [ "force" = (force: bool), "noprune" = (noprune: bool)] ;
         ok : [200]
     }
 
     api_call! {
         container_create : post "/containers/create" -> models::InlineResponse201 ;
-        query : [ "name"(name: &'a str) ] ;
+        query : [ "name" = (name: &'a str) ] ;
         body : models::ContainerCreateBody ;
         ok : [201]
     }
@@ -266,31 +266,31 @@ where
     api_call! {
         container_delete : delete "/containers/{id}" -> () ;
         path : [ id: &'a str ] ;
-        query : [ "v"(v: bool), "force"(force: bool), "link"(link: bool)] ;
+        query : [ "v" = (v: bool), "force" = (force: bool), "link" = (link: bool)] ;
         ok : [204]
     }
 
     api_call! {
         container_restart : post "/containers/{id}/restart" -> () ;
         path : [ id: &'a str ] ;
-        query : [ "t"(t: Option<i32>) ] ;
+        query : [ "t" = (t: Option<i32>) ] ;
         ok : [204]
     }
 
     api_call! {
         container_inspect : get "/containers/{id}" -> models::InlineResponse200 ;
         path : [ id: &'a str ] ;
-        query : [ "size"(size: bool) ] ;
+        query : [ "size" = (size: bool) ] ;
         ok : [200]
     }
 
     api_call! {
         container_list : get "/containers/json" -> Vec<models::ContainerSummary> ;
         query : [
-            "all"(all: bool),
-            "limit"(limit: i32),
-            "size"(size: bool),
-            "filters"(filters: &'a str)
+            "all" = (all: bool),
+            "limit" = (limit: i32),
+            "size" = (size: bool),
+            "filters" = (filters: &'a str)
         ] ;
         ok : [200]
     }
@@ -298,28 +298,28 @@ where
     api_call! {
         container_start : post "/containers/{id}/start" -> () ;
         path : [ id: &'a str ] ;
-        query : [ "detachKeys"(detach_keys: &'a str) ] ;
+        query : [ "detachKeys" = (detach_keys: &'a str) ] ;
         ok : [204, 304]
     }
 
     api_call! {
         container_stats : get "/containers/{id}/stats" -> serde_json::Value ;
         path : [ id: &'a str ] ;
-        query : [ "stream"(stream: bool) ] ;
+        query : [ "stream" = (stream: bool) ] ;
         ok : [200]
     }
 
     api_call! {
         container_stop : post "/containers/{id}/stop" -> () ;
         path : [ id: &'a str ] ;
-        query : [ "t"(t: Option<i32>) ] ;
+        query : [ "t" = (t: Option<i32>) ] ;
         ok : [204, 304]
     }
 
     api_call! {
         container_top : get "/containers/{id}/top" -> models::InlineResponse2001 ;
         path : [ id: &'a str ] ;
-        query : [ "ps_args"(ps_args: &'a str) ] ;
+        query : [ "ps_args" = (ps_args: &'a str) ] ;
         ok : [200]
     }
 
@@ -331,21 +331,21 @@ where
 
     api_call! {
         network_list : get "/networks" -> Vec<models::Network> ;
-        query : [ "filters"(filters: &'a str) ] ;
+        query : [ "filters" = (filters: &'a str) ] ;
         ok : [200]
     }
 
     api_call! {
         image_create : post "/images/create" -> () ;
         query : [
-            "fromImage"(from_image: &'a str),
-            "fromSrc"(from_src: &'a str),
-            "repo"(repo: &'a str),
-            "tag"(tag: &'a str),
-            "platform"(platform: &'a str)
+            "fromImage" = (from_image: &'a str),
+            "fromSrc" = (from_src: &'a str),
+            "repo" = (repo: &'a str),
+            "tag" = (tag: &'a str),
+            "platform" = (platform: &'a str)
         ] ;
         header : [
-            "x-registry-auth"(x_registry_auth: &'a str)
+            "x-registry-auth" = (x_registry_auth: &'a str)
         ] ;
         body : &'a str ;
         ok : [200] ;
@@ -383,13 +383,13 @@ where
         container_logs : get "/containers/{id}/logs" -> Body ;
         path : [ id: &'a str ] ;
         query : [
-            "follow"(follow: bool),
-            "stdout"(stdout: bool),
-            "stderr"(stderr: bool),
-            "since"(since: i32),
-            "until"(until: Option<i32>),
-            "timestamps"(timestamps: bool),
-            "tail"(tail: &'a str)
+            "follow" = (follow: bool),
+            "stdout" = (stdout: bool),
+            "stderr" = (stderr: bool),
+            "since" = (since: i32),
+            "until" = (until: Option<i32>),
+            "timestamps" = (timestamps: bool),
+            "tail" = (tail: &'a str)
         ] ;
         ok : [200] ;
         and_then(response) : { Ok(response.into_body()) }
