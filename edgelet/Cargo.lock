@@ -564,11 +564,8 @@ dependencies = [
 name = "docker"
 version = "0.1.0"
 dependencies = [
- "async-trait",
- "base64",
+ "anyhow",
  "edgelet-test-utils",
- "futures-core",
- "http-common",
  "hyper",
  "serde",
  "serde_derive",

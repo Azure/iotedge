@@ -461,7 +461,7 @@ where
         // Here we don't add the container to the iot edge docker network as the edge-agent is expected to do that.
         // It contains the logic to add a container to the iot edge network only if a network is not already specified.
         self.client
-            .container_create(create_options, module.name())
+            .container_create(module.name(), create_options)
             .await
             .map_err(|e| Error::DockerRuntime(e.to_string()))
             .with_context(|| {
