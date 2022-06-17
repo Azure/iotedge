@@ -7,7 +7,7 @@ type BoxFutureResult<'a, T> =
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct ApiError {
-    pub status: u16,
+    pub status: hyper::StatusCode,
     pub message: String,
 }
 
@@ -25,7 +25,7 @@ impl ApiError {
         let error_bytes = hyper::body::to_bytes(body).await?;
         let error_str = String::from_utf8(error_bytes.to_vec())?;
         Ok(Self {
-            status: parts.status.as_u16(),
+            status: parts.status,
             message: if let Ok(mut obj) =
                 serde_json::from_str::<serde_json::Map<String, serde_json::Value>>(&error_str)
             {
@@ -190,7 +190,7 @@ macro_rules! api_call {
             $($hname:literal = ( $hparam:ident : $htype:ty ) ),*
         ] ;)?
         $(body : $btype:ty ;)?
-        ok : [ $($code:literal),* ]
+        ok : [ $($code:ident),* ]
         $(; and_then($transfer:ident) : $blk:block)?
     ) => {
         fn $name<'a>(
@@ -200,7 +200,7 @@ macro_rules! api_call {
             $($($hparam : $htype,)*)?
             $(body : $btype,)?
         ) -> ::std::pin::Pin<Box<dyn ::std::future::Future<Output = ::anyhow::Result<$output>> + Send + '_>> {
-            const OK: &[u16] = &[$($code),*];
+            const OK: &[::hyper::StatusCode] = &[$(::hyper::StatusCode::$code),*];
 
             Box::pin(async move {
                 let query = ::url::form_urlencoded::Serializer::new(String::new())
@@ -213,7 +213,7 @@ macro_rules! api_call {
                     &format!("{}?{}", format!($path), query)
                 )?;
 
-                let mut builder = ::hyper::Request:: $method (&uri)
+                let mut builder = ::hyper::Request::$method(&uri)
                     $($(
                         .header(::hyper::header::HeaderName::from_static($hname), $hparam)
                     )*)?;
@@ -228,7 +228,7 @@ macro_rules! api_call {
                 )
                 .await??;
 
-                if OK.contains(&response.status().as_u16()) {
+                if OK.contains(&response.status()) {
                     api_call!(@inner maybe_output response $output $(=> $transfer $blk)?)
                 } else {
                     Err(anyhow::anyhow!(ApiError::try_from_response(response).await?))
@@ -244,42 +244,42 @@ where
 {
     api_call! {
         system_info : get "/info" -> models::SystemInfo ;
-        ok : [200]
+        ok : [OK]
     }
 
     api_call! {
         image_delete : delete "/images/{name}" -> Vec<models::ImageDeleteResponseItem> ;
         path : [ name: &'a str ] ;
         query : [ "force" = (force: bool), "noprune" = (no_prune: bool)] ;
-        ok : [200]
+        ok : [OK]
     }
 
     api_call! {
         container_create : post "/containers/create" -> models::InlineResponse201 ;
         query : [ "name" = (name: &'a str) ] ;
         body : models::ContainerCreateBody ;
-        ok : [201]
+        ok : [CREATED]
     }
 
     api_call! {
         container_delete : delete "/containers/{id}" -> () ;
         path : [ id: &'a str ] ;
         query : [ "v" = (verbose: bool), "force" = (force: bool), "link" = (link: bool)] ;
-        ok : [204]
+        ok : [NO_CONTENT]
     }
 
     api_call! {
         container_restart : post "/containers/{id}/restart" -> () ;
         path : [ id: &'a str ] ;
         query : [ "t" = (timeout: Option<i32>) ] ;
-        ok : [204]
+        ok : [NO_CONTENT]
     }
 
     api_call! {
         container_inspect : get "/containers/{id}" -> models::InlineResponse200 ;
         path : [ id: &'a str ] ;
         query : [ "size" = (size: bool) ] ;
-        ok : [200]
+        ok : [OK]
     }
 
     api_call! {
@@ -290,47 +290,47 @@ where
             "size" = (size: bool),
             "filters" = (filters: &'a str)
         ] ;
-        ok : [200]
+        ok : [OK]
     }
 
     api_call! {
         container_start : post "/containers/{id}/start" -> () ;
         path : [ id: &'a str ] ;
         query : [ "detachKeys" = (detach_keys: &'a str) ] ;
-        ok : [204, 304]
+        ok : [NO_CONTENT, NOT_MODIFIED]
     }
 
     api_call! {
         container_stats : get "/containers/{id}/stats" -> serde_json::Value ;
         path : [ id: &'a str ] ;
         query : [ "stream" = (stream: bool) ] ;
-        ok : [200]
+        ok : [OK]
     }
 
     api_call! {
         container_stop : post "/containers/{id}/stop" -> () ;
         path : [ id: &'a str ] ;
         query : [ "t" = (timeout: Option<i32>) ] ;
-        ok : [204, 304]
+        ok : [NO_CONTENT, NOT_MODIFIED]
     }
 
     api_call! {
         container_top : get "/containers/{id}/top" -> models::InlineResponse2001 ;
         path : [ id: &'a str ] ;
         query : [ "ps_args" = (ps_args: &'a str) ] ;
-        ok : [200]
+        ok : [OK]
     }
 
     api_call! {
         network_create : post "/networks/create" -> models::InlineResponse2011 ;
         body : models::NetworkConfig ;
-        ok : [201]
+        ok : [CREATED]
     }
 
     api_call! {
         network_list : get "/networks" -> Vec<models::Network> ;
         query : [ "filters" = (filters: &'a str) ] ;
-        ok : [200]
+        ok : [OK]
     }
 
     api_call! {
@@ -346,7 +346,7 @@ where
             "x-registry-auth" = (x_registry_auth: &'a str)
         ] ;
         body : &'a str ;
-        ok : [200] ;
+        ok : [OK] ;
         and_then(response) : {
             let (parts, body) = response.into_parts();
 
@@ -368,7 +368,7 @@ where
 
             if let Some(detail) = last.get("errorDetail") {
                 Err(anyhow::anyhow!(ApiError {
-                    status: parts.status.as_u16(),
+                    status: parts.status,
                     message: serde_json::to_string(detail)?
                 }))
             } else {
@@ -389,7 +389,7 @@ where
             "timestamps" = (timestamps: bool),
             "tail" = (tail: &'a str)
         ] ;
-        ok : [200] ;
+        ok : [OK] ;
         and_then(response) : { Ok(response.into_body()) }
     }
 }
