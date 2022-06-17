@@ -211,7 +211,7 @@ macro_rules! api_call {
                     .finish();
                 let uri = (self.configuration.uri_composer)(
                     &self.configuration.base_path,
-                    &format!("{}?{}", format!($path), query)
+                    &format!("{}?{}", format_args!($path), query)
                 )?;
 
                 let mut builder = ::hyper::Request::$method(&uri)
@@ -397,7 +397,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{ApiError, DockerApi};
+    use edgelet_test_utils::JsonConnector;
+
+    use super::{ApiError, DockerApi, DockerApiClient};
 
     #[tokio::test]
     async fn image_create_stream_ok() {
@@ -406,7 +408,7 @@ mod tests {
             serde_json::to_string(&serde_json::json!({"status":"STATUS"})).unwrap(),
             serde_json::to_string(&serde_json::json!({"status":"STATUS"})).unwrap(),
         );
-        let client = super::DockerApiClient::new(edgelet_test_utils::JsonConnector::ok(&payload));
+        let client = DockerApiClient::new(JsonConnector::ok(&payload));
         assert!(client
             .image_create("", "", "", "", "", "", "")
             .await
@@ -423,7 +425,7 @@ mod tests {
             )
             .unwrap()
         );
-        let client = super::DockerApiClient::new(edgelet_test_utils::JsonConnector::ok(&payload));
+        let client = DockerApiClient::new(JsonConnector::ok(&payload));
         assert_eq!(
             client
                 .image_create("", "", "", "", "", "", "")
@@ -432,8 +434,27 @@ mod tests {
                 .downcast::<ApiError>()
                 .unwrap(),
             ApiError {
-                status: 200,
+                status: hyper::StatusCode::OK,
                 message: r#"{"code":"CODE","message":"MESSAGE"}"#.to_string()
+            }
+        );
+    }
+
+    #[tokio::test]
+    async fn container_inspect_not_found() {
+        let payload = serde_json::to_string(&serde_json::json!({
+            "message": "MESSAGE",
+        })).unwrap();
+        let client = DockerApiClient::new(JsonConnector::not_found(&payload));
+        assert_eq!(
+            client.container_inspect("foo", false)
+                .await
+                .unwrap_err()
+                .downcast::<ApiError>()
+                .unwrap(),
+            ApiError {
+                status: hyper::StatusCode::NOT_FOUND,
+                message: "MESSAGE".to_string()
             }
         );
     }
