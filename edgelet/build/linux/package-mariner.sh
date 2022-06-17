@@ -72,11 +72,22 @@ case "${MARINER_ARCH}" in
 esac
 popd
 
+# get aziot-identity-service version
+IIS_VERSION=$(find /src/aziot-identity-service-*.$PackageExtension.${MARINER_ARCH}.rpm | grep -o '[0-9.]\+-[0-9]\+' | sort --version-sort -r | head -1)
+
 # Update versions in specfiles
 pushd "${BUILD_REPOSITORY_LOCALPATH}"
 sed -i "s/@@VERSION@@/${VERSION}/g" ${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/aziot-edge/aziot-edge.signatures.json
 sed -i "s/@@VERSION@@/${VERSION}/g" ${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/aziot-edge/aziot-edge.spec
 sed -i "s/@@RELEASE@@/${REVISION}/g" ${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/aziot-edge/aziot-edge.spec
+
+# Update aziot-identity-service version dependency
+if [[ ! -z $IIS_VERSION ]]; then
+    sed -i "s/@@IIS_VERSION@@/${IIS_VERSION}/g" ${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/aziot-edge/aziot-edge.spec
+else
+    # if a version could not be parsed remove the version dependency
+    sed -i "s/aziot-identity-service = @@IIS_VERSION@@/aziot-identity-service/g" ${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/aziot-edge/aziot-edge.spec
+fi
 popd
 
 pushd "${EDGELET_ROOT}"
