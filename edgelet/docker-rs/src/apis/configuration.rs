@@ -1,11 +1,7 @@
-use super::ApiError;
-use hyper::Uri;
-use std::error::Error;
-
 pub struct Configuration {
     pub base_path: String,
     pub user_agent: Option<String>,
-    pub uri_composer: Box<dyn Fn(&str, &str) -> anyhow::Result<Uri> + Send + Sync>,
+    pub uri_composer: Box<dyn Fn(&str, &str) -> anyhow::Result<hyper::Uri> + Send + Sync>,
 }
 
 impl Default for Configuration {

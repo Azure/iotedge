@@ -444,10 +444,12 @@ mod tests {
     async fn container_inspect_not_found() {
         let payload = serde_json::to_string(&serde_json::json!({
             "message": "MESSAGE",
-        })).unwrap();
+        }))
+        .unwrap();
         let client = DockerApiClient::new(JsonConnector::not_found(&payload));
         assert_eq!(
-            client.container_inspect("foo", false)
+            client
+                .container_inspect("foo", false)
                 .await
                 .unwrap_err()
                 .downcast::<ApiError>()
