@@ -1,14 +1,8 @@
-use std::future::Future;
-use std::pin::Pin;
-use std::sync::Arc;
-
-use hyper::{Body, Client, Uri};
-
 use super::configuration::Configuration;
-
 use crate::models;
 
-type BoxFutureResult<'a, T> = Pin<Box<dyn Future<Output = anyhow::Result<T>> + Send + 'a>>;
+type BoxFutureResult<'a, T> =
+    std::pin::Pin<Box<dyn std::future::Future<Output = anyhow::Result<T>> + Send + 'a>>;
 
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq))]
@@ -26,7 +20,7 @@ impl std::fmt::Display for ApiError {
 impl std::error::Error for ApiError {}
 
 impl ApiError {
-    async fn try_from_response(value: hyper::Response<Body>) -> anyhow::Result<Self> {
+    async fn try_from_response(value: hyper::Response<hyper::Body>) -> anyhow::Result<Self> {
         let (parts, body) = value.into_parts();
         let error_bytes = hyper::body::to_bytes(body).await?;
         let error_str = String::from_utf8(error_bytes.to_vec())?;
@@ -49,8 +43,8 @@ impl ApiError {
 
 #[derive(Clone)]
 pub struct DockerApiClient<C> {
-    client: Client<C>,
-    configuration: Arc<Configuration>,
+    client: hyper::Client<C>,
+    configuration: std::sync::Arc<Configuration>,
 }
 
 impl<C> DockerApiClient<C>
@@ -60,12 +54,12 @@ where
     pub fn new(connector: C) -> Self {
         Self {
             client: hyper::Client::builder().build(connector),
-            configuration: Arc::new(Configuration::default()),
+            configuration: std::sync::Arc::new(Configuration::default()),
         }
     }
 
     pub fn with_configuration(mut self, configuration: Configuration) -> Self {
-        self.configuration = Arc::new(configuration);
+        self.configuration = std::sync::Arc::new(configuration);
         self
     }
 }
@@ -119,7 +113,11 @@ pub trait DockerApi {
         filters: &'a str,
     ) -> BoxFutureResult<'a, Vec<models::ContainerSummary>>;
 
-    fn container_restart<'a>(&'a self, id: &'a str, timeout: Option<i32>) -> BoxFutureResult<'a, ()>;
+    fn container_restart<'a>(
+        &'a self,
+        id: &'a str,
+        timeout: Option<i32>,
+    ) -> BoxFutureResult<'a, ()>;
     fn container_start<'a>(&'a self, id: &'a str, detach_keys: &'a str) -> BoxFutureResult<'a, ()>;
     fn container_stats<'a>(
         &'a self,
@@ -143,7 +141,7 @@ pub trait DockerApi {
         until: Option<i32>,
         timestamps: bool,
         tail: &'a str,
-    ) -> BoxFutureResult<'a, Body>;
+    ) -> BoxFutureResult<'a, hyper::Body>;
 
     fn network_create(
         &self,
@@ -380,7 +378,7 @@ where
     }
 
     api_call! {
-        container_logs : get "/containers/{id}/logs" -> Body ;
+        container_logs : get "/containers/{id}/logs" -> hyper::Body ;
         path : [ id: &'a str ] ;
         query : [
             "follow" = (follow: bool),
