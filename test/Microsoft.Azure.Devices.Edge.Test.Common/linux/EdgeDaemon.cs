@@ -39,21 +39,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             // Split potential version description (in case VERSION_ID was not available, the VERSION line can contain e.g. '7 (Core)')
             version = version.Split('=').Last().Split(' ').First().Trim(trimChr);
 
-            SupportedPackageExtension packageExtension;
+            PackageManagement packageManagement;
 
             switch (os)
             {
                 case "ubuntu":
-                    packageExtension = SupportedPackageExtension.Deb;
+                    packageManagement = new DebPackageCommands(os, version);
                     break;
                 case "raspbian":
                     os = "debian";
                     version = "stretch";
-                    packageExtension = SupportedPackageExtension.Deb;
+                    packageManagement = new YumPackageManagerRpmPackagesCommands(os, version);
                     break;
                 case "centos":
                     version = version.Split('.')[0];
-                    packageExtension = SupportedPackageExtension.Rpm;
+                    packageManagement = new YumPackageManagerRpmPackagesCommands(os, version);
 
                     if (version != "7")
                     {
@@ -61,11 +61,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     }
 
                     break;
+                case "mariner":
+                    packageManagement = new NoPackageManagerRpmPackageCommands(os, version);
+                    break;
                 default:
                     throw new NotImplementedException($"Don't know how to install daemon on operating system '{os}'");
             }
 
-            return new EdgeDaemon(new PackageManagement(os, version, packageExtension));
+            return new EdgeDaemon(packageManagement);
         }
 
         EdgeDaemon(PackageManagement packageManagement)
@@ -86,8 +89,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
             string[] commands = packagesPath.Match(
                 p => this.packageManagement.GetInstallCommandsFromLocal(p),
-                () => this.packageManagement.GetInstallCommandsFromMicrosoftProd(proxy));
-
+                () => this.packageManagement.GetInstallCommandsFromMicrosoftProd());
+            string appendcommands = string.Join(' ', commands);
             await Profiler.Run(
                 async () =>
                 {

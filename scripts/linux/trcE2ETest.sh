@@ -90,8 +90,8 @@ function get_artifact_file() {
 
     local filter
     case "$fileType" in
-        'aziot_edge' ) filter='aziot-edge_*.deb';;
-        'aziot_is' ) filter='aziot-identity-service_*.deb';;
+        'aziot_edge' ) filter="aziot-edge*.$PACKAGE_TYPE";;
+        'aziot_is' ) filter="aziot-identity-service*.$PACKAGE_TYPE";;
         'quickstart' ) filter='core-linux/IotEdgeQuickstart.linux*.tar.gz';;
         *) print_error "Unknown file type: $fileType"; exit 1;;
     esac
@@ -461,6 +461,9 @@ function process_args() {
         elif [ $saveNextArg -eq 48 ]; then
             TOPOLOGY="$arg"
             saveNextArg=0;
+        elif [ $saveNextArg -eq 49 ]; then
+            PACKAGE_TYPE="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -512,6 +515,7 @@ function process_args() {
                 '-clientModuleTransportType' ) saveNextArg=46;;
                 '-trackingId' ) saveNextArg=47;;
                 '-topology' ) saveNextArg=48;;
+                '-packageType' ) saveNextArg=49;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
 
@@ -657,6 +661,7 @@ function run_connectivity_test() {
             --trusted_ca_certs "$TRUSTED_CA_CERTS" \
             --runtime-log-level "$TEST_RUNTIME_LOG_LEVEL" \
             --no-verify \
+            $PACKAGE_TYPE_ARG \
             --overwrite-packages && funcRet=$? || funcRet=$?
     fi
 
@@ -811,6 +816,7 @@ function run_longhaul_test() {
             --device_ca_pk "$DEVICE_CA_PRIVATE_KEY" \
             --trusted_ca_certs "$TRUSTED_CA_CERTS" \
             $BYPASS_EDGE_INSTALLATION \
+            $PACKAGE_TYPE_ARG \
             --no-verify && ret=$? || ret=$?
     fi
 
@@ -927,6 +933,12 @@ TEST_INFO="$TEST_INFO,UpstreamProtocol=$UPSTREAM_PROTOCOL"
 TEST_INFO="$TEST_INFO,NetworkControllerOfflineFrequency=${NETWORK_CONTROLLER_FREQUENCIES[0]}"
 TEST_INFO="$TEST_INFO,NetworkControllerOnlineFrequency=${NETWORK_CONTROLLER_FREQUENCIES[1]}"
 TEST_INFO="$TEST_INFO,NetworkControllerRunsCount=${NETWORK_CONTROLLER_FREQUENCIES[2]}"
+
+if [ ! -z $PACKAGE_TYPE ]; then
+    PACKAGE_TYPE_ARG=--package-type="$PACKAGE_TYPE"
+else
+    $PACKAGE_TYPE="deb"
+fi
 
 testRet=0
 if [[ "${TEST_NAME,,}" == "${LONGHAUL_TEST_NAME,,}" ]]; then
