@@ -73,7 +73,7 @@ esac
 popd
 
 # get aziot-identity-service version
-IIS_VERSION=$(find /src/aziot-identity-service-*.$PackageExtension.${MARINER_ARCH}.rpm | grep -o '[0-9.]\+-[0-9]\+' | sort --version-sort -r | head -1)
+IIS_VERSION=$(rpm -qp --querryformat '%{Version}' /src/aziot-identity-service-*.$PackageExtension.${MARINER_ARCH}.rpm | head -1)
 
 # Update versions in specfiles
 pushd "${BUILD_REPOSITORY_LOCALPATH}"
