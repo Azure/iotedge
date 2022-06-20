@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -ex
 
 # Get directory of running script
 DIR="$(cd "$(dirname "$0")" && pwd)"
