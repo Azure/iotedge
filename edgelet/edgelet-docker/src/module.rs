@@ -114,7 +114,7 @@ where
             .client
             .container_inspect(&self.name, false)
             .await
-            .map_err(|e| Error::DockerRuntime(e.to_string()))
+            .context(Error::Docker)
             .context(Error::ModuleOperation(ModuleOperation::RuntimeState))?;
 
         Ok(runtime_state(inspect.id(), inspect.state()))

@@ -24,11 +24,10 @@ impl std::error::Error for ApiError {}
 
 fn try_from_u16<'de, D>(de: D) -> Result<hyper::StatusCode, D::Error>
 where
-    D: serde::de::Deserializer<'de>
+    D: serde::de::Deserializer<'de>,
 {
     let code = u16::deserialize(de)?;
-    hyper::StatusCode::try_from(code)
-        .map_err(<D::Error as serde::de::Error>::custom)
+    hyper::StatusCode::try_from(code).map_err(<D::Error as serde::de::Error>::custom)
 }
 
 impl ApiError {
@@ -382,9 +381,9 @@ where
             if let Some(detail) = last.remove("errorDetail") {
                 let fallback_msg = serde_json::to_string(&detail)?;
                 Err(anyhow::anyhow!(
-                    serde_json::from_value::<ApiError>(detail)
+                    serde_json::from_value(detail)
                         .unwrap_or(ApiError {
-                            code: parts.status,
+                            code: hyper::StatusCode::INTERNAL_SERVER_ERROR,
                             message: fallback_msg
                         })
                 ))
@@ -475,7 +474,7 @@ mod tests {
                 .downcast::<ApiError>()
                 .unwrap(),
             ApiError {
-                code: hyper::StatusCode::OK,
+                code: hyper::StatusCode::INTERNAL_SERVER_ERROR,
                 message: r#"{"code":"NOT U16","foo":"bar"}"#.to_owned()
             }
         );

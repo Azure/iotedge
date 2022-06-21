@@ -280,7 +280,7 @@ pub trait ModuleRegistry {
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Default, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize)]
 pub struct SystemInfo {
     #[serde(rename = "osType")]
     pub kernel: String,
@@ -308,7 +308,38 @@ pub struct SystemInfo {
 }
 
 impl SystemInfo {
-    pub fn from_system() -> Result<Self, Error> {
+    pub fn merge_additional(&mut self, mut additional_info: BTreeMap<String, String>) -> &Self {
+        macro_rules! remove_assign {
+            ($src:literal, $dest:ident) => {
+                if let Some((_, x)) = additional_info.remove_entry($src) {
+                    self.$dest = x.into();
+                }
+            };
+        }
+
+        remove_assign!("kernel_name", kernel);
+        remove_assign!("kernel_release", kernel_release);
+        remove_assign!("kernel_version", kernel_version);
+
+        remove_assign!("os_name", operating_system);
+        remove_assign!("os_version", operating_system_version);
+        remove_assign!("os_variant", operating_system_variant);
+        remove_assign!("os_build", operating_system_build);
+
+        remove_assign!("cpu_architecture", architecture);
+
+        remove_assign!("product_name", product_name);
+        remove_assign!("product_vendor", system_vendor);
+
+        self.additional_properties
+            .extend(additional_info.into_iter());
+
+        self
+    }
+}
+
+impl Default for SystemInfo {
+    fn default() -> Self {
         let kernel = nix::sys::utsname::uname();
         let dmi = DmiInfo::default();
         let os = OsInfo::default();
@@ -345,36 +376,7 @@ impl SystemInfo {
             additional_properties: BTreeMap::new(),
         };
 
-        Ok(res)
-    }
-
-    pub fn merge_additional(&mut self, mut additional_info: BTreeMap<String, String>) -> &Self {
-        macro_rules! remove_assign {
-            ($src:literal, $dest:ident) => {
-                if let Some((_, x)) = additional_info.remove_entry($src) {
-                    self.$dest = x.into();
-                }
-            };
-        }
-
-        remove_assign!("kernel_name", kernel);
-        remove_assign!("kernel_release", kernel_release);
-        remove_assign!("kernel_version", kernel_version);
-
-        remove_assign!("os_name", operating_system);
-        remove_assign!("os_version", operating_system_version);
-        remove_assign!("os_variant", operating_system_variant);
-        remove_assign!("os_build", operating_system_build);
-
-        remove_assign!("cpu_architecture", architecture);
-
-        remove_assign!("product_name", product_name);
-        remove_assign!("product_vendor", system_vendor);
-
-        self.additional_properties
-            .extend(additional_info.into_iter());
-
-        self
+        res
     }
 }
 

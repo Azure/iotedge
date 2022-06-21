@@ -14,7 +14,6 @@
 // mod client;
 mod error;
 mod module;
-mod notary;
 mod runtime;
 
 pub use error::Error;
