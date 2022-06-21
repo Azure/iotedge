@@ -13,7 +13,7 @@ use super::ApiError;
 
 use crate::models;
 
-type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync + 'static>>;
 
 #[derive(Clone)]
 pub struct DockerApiClient<C> {
