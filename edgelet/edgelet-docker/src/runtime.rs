@@ -435,9 +435,9 @@ where
         let is_content_trust_enabled = false;
 
         if is_content_trust_enabled {
-            info!("Creating image via digest {}...", image);
+            info!("Creating image via digest {}...", &image);
         } else {
-            info!("Creating image via tag {}...", image);
+            info!("Creating image via tag {}...", &image);
         }
 
         debug!("Creating container {} with image {}", module.name(), image);

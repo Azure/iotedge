@@ -16,9 +16,6 @@ pub enum Error {
     #[error("Container runtime error - {0}")]
     DockerRuntime(String),
 
-    #[error("{0}")]
-    FormattedDockerRuntime(String),
-
     #[error("Could not initialize module runtime - {0}")]
     Initialization(String),
 

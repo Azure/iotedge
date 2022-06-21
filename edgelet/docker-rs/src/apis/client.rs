@@ -1,23 +1,35 @@
+use serde::Deserialize;
+
 use super::configuration::Configuration;
 use crate::models;
 
 type BoxFutureResult<'a, T> =
     std::pin::Pin<Box<dyn std::future::Future<Output = anyhow::Result<T>> + Send + 'a>>;
 
-#[derive(Debug)]
+#[derive(Debug, serde_derive::Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct ApiError {
-    pub status: hyper::StatusCode,
+    #[serde(deserialize_with = "try_from_u16")]
+    pub code: hyper::StatusCode,
     pub message: String,
 }
 
 impl std::fmt::Display for ApiError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "HTTP {}: {}", &self.status, &self.message)
+        write!(f, "HTTP {}: {}", &self.code, &self.message)
     }
 }
 
 impl std::error::Error for ApiError {}
+
+fn try_from_u16<'de, D>(de: D) -> Result<hyper::StatusCode, D::Error>
+where
+    D: serde::de::Deserializer<'de>
+{
+    let code = u16::deserialize(de)?;
+    hyper::StatusCode::try_from(code)
+        .map_err(<D::Error as serde::de::Error>::custom)
+}
 
 impl ApiError {
     async fn try_from_response(value: hyper::Response<hyper::Body>) -> anyhow::Result<Self> {
@@ -25,7 +37,7 @@ impl ApiError {
         let error_bytes = hyper::body::to_bytes(body).await?;
         let error_str = String::from_utf8(error_bytes.to_vec())?;
         Ok(Self {
-            status: parts.status,
+            code: parts.status,
             message: if let Ok(mut obj) =
                 serde_json::from_str::<serde_json::Map<String, serde_json::Value>>(&error_str)
             {
@@ -360,18 +372,22 @@ where
             );
 
             let response_bytes = hyper::body::to_bytes(body).await?;
-            let last = serde_json::Deserializer::from_slice(&response_bytes)
+            let mut last = serde_json::Deserializer::from_slice(&response_bytes)
                 .into_iter::<serde_json::Map<String, serde_json::Value>>()
                 .last()
                 .ok_or_else(|| {
                     anyhow::anyhow!("received empty response from container runtime")
                 })??;
 
-            if let Some(detail) = last.get("errorDetail") {
-                Err(anyhow::anyhow!(ApiError {
-                    status: parts.status,
-                    message: serde_json::to_string(detail)?
-                }))
+            if let Some(detail) = last.remove("errorDetail") {
+                let fallback_msg = serde_json::to_string(&detail)?;
+                Err(anyhow::anyhow!(
+                    serde_json::from_value::<ApiError>(detail)
+                        .unwrap_or(ApiError {
+                            code: parts.status,
+                            message: fallback_msg
+                        })
+                ))
             } else {
                 Ok(())
             }
@@ -421,7 +437,7 @@ mod tests {
             "{}{}",
             serde_json::to_string(&serde_json::json!({"status":"STATUS"})).unwrap(),
             serde_json::to_string(
-                &serde_json::json!({"errorDetail":{"code":"CODE","message":"MESSAGE"}})
+                &serde_json::json!({"errorDetail":{"code":418,"message":"MESSAGE"}})
             )
             .unwrap()
         );
@@ -434,8 +450,33 @@ mod tests {
                 .downcast::<ApiError>()
                 .unwrap(),
             ApiError {
-                status: hyper::StatusCode::OK,
-                message: r#"{"code":"CODE","message":"MESSAGE"}"#.to_string()
+                code: hyper::StatusCode::IM_A_TEAPOT,
+                message: "MESSAGE".to_owned()
+            }
+        );
+    }
+
+    #[tokio::test]
+    async fn image_create_stream_error_unrecognized_structure() {
+        let payload = format!(
+            "{}{}",
+            serde_json::to_string(&serde_json::json!({"status":"STATUS"})).unwrap(),
+            serde_json::to_string(
+                &serde_json::json!({"errorDetail":{"code":"NOT U16","foo":"bar"}})
+            )
+            .unwrap()
+        );
+        let client = DockerApiClient::new(JsonConnector::ok(&payload));
+        assert_eq!(
+            client
+                .image_create("", "", "", "", "", "", "")
+                .await
+                .unwrap_err()
+                .downcast::<ApiError>()
+                .unwrap(),
+            ApiError {
+                code: hyper::StatusCode::OK,
+                message: r#"{"code":"NOT U16","foo":"bar"}"#.to_owned()
             }
         );
     }
@@ -455,8 +496,8 @@ mod tests {
                 .downcast::<ApiError>()
                 .unwrap(),
             ApiError {
-                status: hyper::StatusCode::NOT_FOUND,
-                message: "MESSAGE".to_string()
+                code: hyper::StatusCode::NOT_FOUND,
+                message: "MESSAGE".to_owned()
             }
         );
     }
