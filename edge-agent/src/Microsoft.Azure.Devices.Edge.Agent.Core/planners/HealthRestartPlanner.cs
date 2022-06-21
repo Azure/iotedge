@@ -41,17 +41,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
         readonly IEntityStore<string, ModuleState> store;
         readonly TimeSpan intensiveCareTime;
         readonly IRestartPolicyManager restartManager;
+        readonly ModuleUpdateMode moduleUpdateMode;
 
         public HealthRestartPlanner(
             ICommandFactory commandFactory,
             IEntityStore<string, ModuleState> store,
             TimeSpan intensiveCareTime,
-            IRestartPolicyManager restartManager)
+            IRestartPolicyManager restartManager,
+            ModuleUpdateMode moduleUpdateMode)
         {
             this.commandFactory = Preconditions.CheckNotNull(commandFactory, nameof(commandFactory));
             this.store = Preconditions.CheckNotNull(store, nameof(store));
             this.intensiveCareTime = intensiveCareTime;
             this.restartManager = Preconditions.CheckNotNull(restartManager, nameof(restartManager));
+            this.moduleUpdateMode = moduleUpdateMode;
         }
 
         public async Task<Plan> CreateShutdownPlanAsync(ModuleSet current)

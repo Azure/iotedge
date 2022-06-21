@@ -36,6 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly Option<ulong> storageMaxManifestFileSize;
         readonly Option<int> storageMaxOpenFiles;
         readonly Option<StorageLogLevel> storageLogLevel;
+        readonly ModuleUpdateMode moduleUpdateMode;
 
         public AgentModule(
             int maxRestartCount,
@@ -48,7 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             Option<ulong> storageTotalMaxWalSize,
             Option<ulong> storageMaxManifestFileSize,
             Option<int> storageMaxOpenFiles,
-            Option<StorageLogLevel> storageLogLevel)
+            Option<StorageLogLevel> storageLogLevel,
+            ModuleUpdateMode moduleUpdateMode)
             : this(
                 maxRestartCount,
                 intensiveCareTime,
@@ -64,7 +66,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 storageTotalMaxWalSize,
                 storageMaxManifestFileSize,
                 storageMaxOpenFiles,
-                storageLogLevel)
+                storageLogLevel,
+                moduleUpdateMode)
         {
         }
 
@@ -83,7 +86,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             Option<ulong> storageTotalMaxWalSize,
             Option<ulong> storageMaxManifestFileSize,
             Option<int> storageMaxOpenFiles,
-            Option<StorageLogLevel> storageLogLevel)
+            Option<StorageLogLevel> storageLogLevel,
+            ModuleUpdateMode moduleUpdateMode)
         {
             this.maxRestartCount = maxRestartCount;
             this.intensiveCareTime = intensiveCareTime;
@@ -100,6 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.storageMaxManifestFileSize = storageMaxManifestFileSize;
             this.storageMaxOpenFiles = storageMaxOpenFiles;
             this.storageLogLevel = storageLogLevel;
+            this.moduleUpdateMode = moduleUpdateMode;
         }
 
         static Dictionary<Type, IDictionary<string, Type>> DeploymentConfigTypeMapping
@@ -273,7 +278,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         var entityStore = c.Resolve<Task<IEntityStore<string, ModuleState>>>();
                         var policyManager = c.Resolve<IRestartPolicyManager>();
 
-                        return new HealthRestartPlanner(await commandFactory, await entityStore, this.intensiveCareTime, policyManager) as IPlanner;
+                        return new HealthRestartPlanner(await commandFactory, await entityStore, this.intensiveCareTime, policyManager, this.moduleUpdateMode) as IPlanner;
                     })
                 .As<Task<IPlanner>>()
                 .SingleInstance();
