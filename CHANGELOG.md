@@ -5,6 +5,7 @@
 * Flatten additional device product properties of metrics                     ( [dbc6af347](https://github.com/Azure/iotedge/commit/dbc6af347adef00a3091be7ae188a1c75fb58181) )
 * Update rumtime module images to be using Alpine                             ( [059aaea2d](https://github.com/Azure/iotedge/commit/059aaea2d23d11bfb5b46dac3b28f9a563395647) )
 * Migrate to Dotnet 6                                                         ( [37234e02b](https://github.com/Azure/iotedge/commit/37234e02b500e6930d389275ac09a5aee80f7445) )
+* Device product information                                                  ( [9faf5a5c0](https://github.com/Azure/iotedge/commit/9faf5a5c09fd3ef058201075f813da2a0a81cdd6) )
 
 #### MQTT
 
@@ -18,6 +19,7 @@
 * Update rumtime module images to be using Alpine                             ( [059aaea2d](https://github.com/Azure/iotedge/commit/059aaea2d23d11bfb5b46dac3b28f9a563395647) )
 * Configurable task to cancel when upstream call hangs                        ( [cf9e04987](https://github.com/Azure/iotedge/commit/cf9e049874c72ea86ee804d2f1b57132da421c45) )
 * Migrate to Dotnet 6                                                         ( [37234e02b](https://github.com/Azure/iotedge/commit/37234e02b500e6930d389275ac09a5aee80f7445) )
+* Update regex to 1.5.5                                                       ( [9f0f7f424](https://github.com/Azure/iotedge/commit/9f0f7f42472f658893ff876ad730338ab9833590) )
 
 ### Features
 * Turning for batch of incoming amqp messages for quicker sender feedback     ( [5667c58ce](https://github.com/Azure/iotedge/commit/5667c58ce0a70f47026efa87fabf29b3ef92c9c1) )
@@ -36,16 +38,31 @@
 * Add settings for auto-renewal of Edge CA                                    ( [a8fb6465e](https://github.com/Azure/iotedge/commit/a8fb6465ea1f0cb23b22533bbefa7117aa54b71e) )
 * Remove `failure` dependency                                                 ( [496c89924](https://github.com/Azure/iotedge/commit/496c89924e53b5225b0d5cff813b05e3acb10dae) )
 * Rust toolchain upgrade fixes                                                ( [a45cc5f71](https://github.com/Azure/iotedge/commit/a45cc5f71e200e78e4e93ae41e2731244bb20ac9) )
+* Device product information                                                  ( [9faf5a5c0](https://github.com/Azure/iotedge/commit/9faf5a5c09fd3ef058201075f813da2a0a81cdd6) )
+* Update regex to 1.5.5                                                       ( [9f0f7f424](https://github.com/Azure/iotedge/commit/9f0f7f42472f658893ff876ad730338ab9833590) )
+
 
 ### Content Trust
 * Remove Content Trust                                                        ( [661f02d3b](https://github.com/Azure/iotedge/commit/661f02d3b188444a924a56f0a919e67f13f717c7) )
 * Remove manifest trust from public access                                    ( [9d955cdb2](https://github.com/Azure/iotedge/commit/9d955cdb224bf1a2fab9395df8be0a0ecc92d037) )
 
+
 ### Compatibility Script
 * UI for Platform compatibility script                                        ( [35be5feab](https://github.com/Azure/iotedge/commit/35be5feabfd20cbe992b156dbfb150ab188aec23) )
 * Use Docker Socket For Docker Engine API Check                               ( [58f3a2842](https://github.com/Azure/iotedge/commit/58f3a2842d5ee4608aa9fc1741fc3220b337bed2) )
+* Fix Resource Profiling for IoT Edge                                         ( [c34513bae](https://github.com/Azure/iotedge/commit/c34513bae7e6a1a2a953bdc440d0920f8c854511) )
+* Document for IoT edge compatibility script                                  ( [0126630cb](https://github.com/Azure/iotedge/commit/0126630cb9f71f9260c30bbae762ac763d39a9f1) )
+* Addition of libssl1.0 check and refactor the script                         ( [e185b7458](https://github.com/Azure/iotedge/commit/e185b74583f651b6217beb90fe512ff0c294e7f9) )
+* Update CA cert check to query certificates directory from OpenSSL           ( [be2dfa09a](https://github.com/Azure/iotedge/commit/be2dfa09ad3e66759dc8adf10e4401bc77fed826) )
+* Automate shared library dependency check                                    ( [bba4135bb](https://github.com/Azure/iotedge/commit/bba4135bb5d48ac23f9f7d17124a7c62cbd27414) )
+* Use Approximations for Storage and Memory Check                             ( [8c87f025c](https://github.com/Azure/iotedge/commit/8c87f025cec7fb6571fd5f566a1f3ab0c6cc4ffd) )
+* Add Script that Detects Changes required                                    ( [d32ed23b7](https://github.com/Azure/iotedge/commit/d32ed23b727ac603ffdbac69aaef14806dba1e63) )
+* Add Options for Verbose Logging and Some Bug Fixes                          ( [aa5d58ab0](https://github.com/Azure/iotedge/commit/aa5d58ab0f3a1f80d1bfacd169e5743b69a5dd9c) )
+* Change memory check from free command                                       ( [6563717b3](https://github.com/Azure/iotedge/commit/6563717b303f96ae6049a5a5c555912dfc03b3a8) )
+* Checking the current free memory in the platform                            ( [4417a86fb](https://github.com/Azure/iotedge/commit/4417a86fb86ec6e211e0f4edb1ee11b2cecea8b3) )
+* Package manager check and CA cert check                                     ( [5f6d339dc](https://github.com/Azure/iotedge/commit/5f6d339dcea5463da9bae4e304adf65450fc73cf) )
+* Check for Storage Space for IoT Edge                                        ( [99ae1e3e8](https://github.com/Azure/iotedge/commit/99ae1e3e80b5997d9b6eefc6ce6d97cc22111eff) )
 
- 
 ## Sample Modules
 ### Bug Fixes
 * Update rumtime module images to be using Alpine                             ( [059aaea2d](https://github.com/Azure/iotedge/commit/059aaea2d23d11bfb5b46dac3b28f9a563395647) )
@@ -56,7 +73,9 @@
 
 ## MQTT
 ### I don't know what do with these
-* Remove experimental mqtt broker code (#6410)                                ( [85084e4f0](https://github.com/Azure/iotedge/commit/85084e4f04aafbd7b68931e80d3c84f28eb47585) )
+* Remove experimental mqtt broker code                                        ( [85084e4f0](https://github.com/Azure/iotedge/commit/85084e4f04aafbd7b68931e80d3c84f28eb47585) )
+* Add must_use attributes to methods returning Self                           ( [e0474075d](https://github.com/Azure/iotedge/commit/e0474075dc09811590d0a0a03a41f558dcddd445) )
+* Update regex to 1.5.5                                                       ( [9f0f7f424](https://github.com/Azure/iotedge/commit/9f0f7f42472f658893ff876ad730338ab9833590) )
 
 
 # 1.1.0 (2021-02-10)
