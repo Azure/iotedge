@@ -1,3 +1,75 @@
+# 1.3.0 (2021-02-24)
+## Edge Agent
+### Bug Fixes
+* Remove EdgeAgent's unused plan runner and planner ( [2159dfa](https://github.com/Azure/iotedge/commit/2159dfad36f04c61ed1df6df4afd69ea57439650) )
+* Flatten additional device product properties of metrics ( [dbc6af3](https://github.com/Azure/iotedge/commit/dbc6af347adef00a3091be7ae188a1c75fb58181) )
+* Update rumtime module images to be using Alpine ( [059aaea](https://github.com/Azure/iotedge/commit/059aaea2d23d11bfb5b46dac3b28f9a563395647) )
+
+#### MQTT
+
+#### Manifest Trust
+
+
+## Edge Hub
+### Bug Fixes
+* Update Device SDk to the latest LTS version ( [90e5b32](https://github.com/Azure/iotedge/commit/90e5b3264ac0befe1eeebce898f01635f4ac7d14) )
+* Restrict TLS protocol to 1.2 for EdgeHub and ApiProxy modules ( [4a76a20](https://github.com/Azure/iotedge/commit/4a76a20b142fd59e6bb44110e1ecd6e6519fc1d7) )
+* Update rumtime module images to be using Alpine ( [059aaea](https://github.com/Azure/iotedge/commit/059aaea2d23d11bfb5b46dac3b28f9a563395647) )
+* Configurable task to cancel when upstream call hangs ( [cf9e049](https://github.com/Azure/iotedge/commit/cf9e049874c72ea86ee804d2f1b57132da421c45) ) **
+
+### Features
+* Turning for batch of incoming amqp messages for quicker sender feedback ( [5667c58](https://github.com/Azure/iotedge/commit/5667c58ce0a70f47026efa87fabf29b3ef92c9c1) )
+
+
+## aziot-edge
+### Bug Fixes
+* Correct handling of /images/create response stream ( [287629d](https://github.com/Azure/iotedge/commit/287629d09e5265736c0374ce406566fa959ce5f8) )
+* Flatten additional device product properties of metrics ( [dbc6af3](https://github.com/Azure/iotedge/commit/dbc6af347adef00a3091be7ae188a1c75fb58181) )
+* Upgrade rust-toolchain to 1.61 ( [9f674bd](https://github.com/Azure/iotedge/commit/9f674bdf5e47b21d8ad24ee983f7259fd9379bd8) )
+* Update Device SDk to the latest LTS version ( [90e5b32](https://github.com/Azure/iotedge/commit/90e5b3264ac0befe1eeebce898f01635f4ac7d14) )
+* Fix hostname conflict with deployed module ( [bb844b5](https://github.com/Azure/iotedge/commit/bb844b5a8d7f132c003590296e68647cf315faec) )
+
+### Content Trust
+* Remove Content Trust ( [661f02d](https://github.com/Azure/iotedge/commit/661f02d3b188444a924a56f0a919e67f13f717c7) )
+* Remove manifest trust from public access ( [9d955cd](https://github.com/Azure/iotedge/commit/9d955cdb224bf1a2fab9395df8be0a0ecc92d037) )
+
+## Sample Modules
+### Bug Fixes
+* Update rumtime module images to be using Alpine ( [059aaea](https://github.com/Azure/iotedge/commit/059aaea2d23d11bfb5b46dac3b28f9a563395647) )
+
+### Feature
+* Migrate Azure Functions sample to Dotnet 6 ( [c574462](https://github.com/Azure/iotedge/commit/c57446255b9d4a04a15271d728b89268d4c35bf1) )
+
+
+## MQTT
+### I don't know what do with these
+* https://github.com/Azure/iotedge/commit/85084e4f04aafbd7b68931e80d3c84f28eb47585
+
+
+Current Commit:
+https://github.com/Azure/iotedge/commit/9f674bdf5e47b21d8ad24ee983f7259fd9379bd8
+
+
+# 1.1.0 (2021-02-10)
+## Change to Supported Systems
+* **Remove support for Ubuntu 16.04**. Ubuntu will soon end their support for 16.04, so we're changing our support to match. Ubuntu 18.04 continues to be supported.
+* **Remove support for Windows IoT Core**.
+## Edge Agent
+### Bug Fixes
+* Fix `since` parameter in `GetModuleLogs` direct method [8d9a8e0](https://github.com/Azure/iotedge/commit/8d9a8e0eff2b47b99a4bfb28af2d3501f901c8af)
+* Don't pass HTTPS proxy information to the cloud connection for protocols that don't use port 443 [ca2fa42](https://github.com/Azure/iotedge/commit/ca2fa428e3c61fc53ce4d9a58d4d6094e51c4e5c)
+* Update config version even when plan is empty [97532d0](https://github.com/Azure/iotedge/commit/97532d05f8ec0777dc41290dc25b2cee0813b66e)
+* Fix vulnerability issues in docker images [4dbaa62](https://github.com/Azure/iotedge/commit/4dbaa6207e8e899fdd50dfd3a3b031713964bdb6), [3c569ac](https://github.com/Azure/iotedge/commit/3c569ac868b584cbe048447c6783a5fc93985082)
+
+## Edge Hub
+### Changes
+* **Edge Hub allows only child devices to connect by default**. To connect a leaf device to the Edge Hub, users must [establish a parent/child relationship](https://docs.microsoft.com/en-us/azure/iot-edge/offline-capabilities?view=iotedge-2018-06#set-up-parent-and-child-devices) between the edge device and the leaf device. In previous versions, this was required only for offline scenarios or when using certificate-based authentication. For online scenarios Edge Hub could fall back to cloud-based authentication for leaf devices that were using SAS key-based authentication. With this change, leaf devices with SAS key-based authentication need to be a children of the edge device. You can configure Edge Hub to go back to the previous behavior by setting the environment variable "AuthenticationMode" to the value "CloudAndScope".
+### Bug Fixes
+* Continue message store cleanup after encountering db error [4a196f0](https://github.com/Azure/iotedge/commit/4a196f0b4a2f04f9bd8988fdea4c3f308fd67546)
+* Don't pass HTTPS proxy information to the cloud connection for protocols that don't use port 443 [ca2fa42](https://github.com/Azure/iotedge/commit/ca2fa428e3c61fc53ce4d9a58d4d6094e51c4e5c)
+* Fix vulnerability issues in docker images [4dbaa62](https://github.com/Azure/iotedge/commit/4dbaa6207e8e899fdd50dfd3a3b031713964bdb6), [3c569ac](https://github.com/Azure/iotedge/commit/3c569ac868b584cbe048447c6783a5fc93985082)
+
+
 # 1.0.8 (2019-07-22)
 * Preview support for Linux arm64
 * Upgrade Moby version in .cab file to 3.0.5 ([f23aca1](https://github.com/Azure/iotedge/commit/f23aca1fb532574e6ee7ebb0b70452d4c672ae1a))
