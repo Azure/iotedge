@@ -6,7 +6,6 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{process, str};
 
 use anyhow::Context;
-use hyper::Uri;
 use sysinfo::{DiskExt, PidExt, ProcessExt, ProcessorExt, System, SystemExt};
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::Mutex;
@@ -174,22 +173,22 @@ impl MakeModuleRuntime for DockerModuleRuntime<Connector> {
 
 pub fn init_client(docker_url: &Url) -> anyhow::Result<DockerApiClient<Connector>> {
     // build the hyper client
-    let connector = Connector::new(docker_url).map_err(|e| Error::Initialization(e.to_string()))?;
+    let connector = Connector::new(docker_url)
+        .context(Error::Initialization)?;
 
     // extract base path - the bit that comes after the scheme
     let base_path = docker_url
         .to_base_path()
-        .with_context(|| Error::Initialization("".to_owned()))?
+        .context(Error::Initialization)?
         .to_str()
-        .ok_or_else(|| Error::Initialization("".to_owned()))?
+        .ok_or(Error::Initialization)?
         .to_string();
     let uri_composer = Box::new(|base_path: &str, path: &str| {
         // https://docs.rs/hyperlocal/0.6.0/src/hyperlocal/lib.rs.html#59
         let host = hex::encode(base_path.as_bytes());
         let host_str = format!("unix://{}:0{}", host, path);
-        let result: Uri = host_str.parse()?;
 
-        Ok(result)
+        Ok(host_str.parse()?)
     });
 
     let configuration = Configuration {

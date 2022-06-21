@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::io::Write;
-use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 
 use anyhow::Context;
@@ -68,8 +67,8 @@ where
 }
 
 fn humanize_status(status: &ModuleStatus) -> String {
-    let status_enum = ModuleStatusEnum::from_str(&status.runtime_status.status)
-        .unwrap_or(ModuleStatusEnum::Unknown);
+    let status_enum = serde_json::from_str(&format!("\"{}\"", status.runtime_status.status))
+        .unwrap_or_default();
     match status_enum {
         ModuleStatusEnum::Unknown => "Unknown".to_string(),
         ModuleStatusEnum::Stopped | ModuleStatusEnum::Dead => {

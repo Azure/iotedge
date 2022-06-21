@@ -66,13 +66,12 @@ pub fn runtime_state(
                 "removing" | "exited" => status_from_exit_code(state.exit_code()),
                 "dead" => Some(ModuleStatus::Dead),
                 "running" => Some(ModuleStatus::Running),
-                _ => Some(ModuleStatus::Unknown),
+                _ => None,
             })
-            .unwrap_or(ModuleStatus::Unknown);
+            .unwrap_or_default();
         ModuleRuntimeState::default()
             .with_status(status)
             .with_exit_code(state.exit_code())
-            .with_status_description(state.status().map(ToOwned::to_owned))
             .with_started_at(
                 state
                     .started_at()

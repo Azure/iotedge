@@ -177,7 +177,7 @@ impl std::convert::From<edgelet_core::ModuleRuntimeState> for ModuleStatus {
             exit_status,
             runtime_status: RuntimeStatus {
                 status: state.status().to_string(),
-                description: state.status_description().map(String::from),
+                description: None, // The description was only ever `state.status().to_owned()` anyway.
             },
         }
     }

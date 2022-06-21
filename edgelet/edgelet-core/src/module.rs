@@ -3,7 +3,6 @@
 use std::collections::BTreeMap;
 use std::default::Default;
 use std::fmt;
-use std::result::Result;
 use std::str::FromStr;
 use std::string::ToString;
 use std::time::Duration;
@@ -30,17 +29,9 @@ pub enum ModuleStatus {
     Dead,
 }
 
-pub enum ModuleAction {
-    Start(String, tokio::sync::oneshot::Sender<()>),
-    Stop(String),
-    Remove(String),
-}
-
-impl FromStr for ModuleStatus {
-    type Err = serde_json::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        serde_json::from_str(&format!("\"{}\"", s))
+impl Default for ModuleStatus {
+    fn default() -> Self {
+        Self::Unknown
     }
 }
 
@@ -56,29 +47,20 @@ impl fmt::Display for ModuleStatus {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub enum ModuleAction {
+    Start(String, tokio::sync::oneshot::Sender<()>),
+    Stop(String),
+    Remove(String),
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct ModuleRuntimeState {
     status: ModuleStatus,
     exit_code: Option<i64>,
-    status_description: Option<String>,
     started_at: Option<DateTime<Utc>>,
     finished_at: Option<DateTime<Utc>>,
     image_id: Option<String>,
     pid: Option<i32>,
-}
-
-impl Default for ModuleRuntimeState {
-    fn default() -> Self {
-        ModuleRuntimeState {
-            status: ModuleStatus::Unknown,
-            exit_code: None,
-            status_description: None,
-            started_at: None,
-            finished_at: None,
-            image_id: None,
-            pid: None,
-        }
-    }
 }
 
 impl ModuleRuntimeState {
@@ -99,16 +81,6 @@ impl ModuleRuntimeState {
     #[must_use]
     pub fn with_exit_code(mut self, exit_code: Option<i64>) -> Self {
         self.exit_code = exit_code;
-        self
-    }
-
-    pub fn status_description(&self) -> Option<&str> {
-        self.status_description.as_ref().map(AsRef::as_ref)
-    }
-
-    #[must_use]
-    pub fn with_status_description(mut self, status_description: Option<String>) -> Self {
-        self.status_description = status_description;
         self
     }
 
@@ -506,7 +478,7 @@ pub enum ModuleOperation {
 impl fmt::Display for ModuleOperation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ModuleOperation::RuntimeState => write!(f, "Could not query module runtime state"),
+            ModuleOperation::RuntimeState => write!(f, "query module runtime state"),
         }
     }
 }
@@ -521,8 +493,8 @@ pub enum RegistryOperation {
 impl fmt::Display for RegistryOperation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            RegistryOperation::PullImage(name) => write!(f, "Could not pull image {}", name),
-            RegistryOperation::RemoveImage(name) => write!(f, "Could not remove image {}", name),
+            RegistryOperation::PullImage(name) => write!(f, "pull image {:?}", name),
+            RegistryOperation::RemoveImage(name) => write!(f, "remove image {:?}", name),
         }
     }
 }
@@ -548,22 +520,22 @@ pub enum RuntimeOperation {
 impl fmt::Display for RuntimeOperation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            RuntimeOperation::CreateModule(name) => write!(f, "Could not create module {}", name),
-            RuntimeOperation::GetModule(name) => write!(f, "Could not get module {}", name),
+            RuntimeOperation::CreateModule(name) => write!(f, "create module {:?}", name),
+            RuntimeOperation::GetModule(name) => write!(f, "get module {:?}", name),
             RuntimeOperation::GetModuleLogs(name) => {
-                write!(f, "Could not get logs for module {}", name)
+                write!(f, "get logs for module {:?}", name)
             }
-            RuntimeOperation::GetSupportBundle => write!(f, "Could not get support bundle"),
-            RuntimeOperation::Init => write!(f, "Could not initialize module runtime"),
-            RuntimeOperation::ListModules => write!(f, "Could not list modules"),
-            RuntimeOperation::RemoveModule(name) => write!(f, "Could not remove module {}", name),
-            RuntimeOperation::RestartModule(name) => write!(f, "Could not restart module {}", name),
-            RuntimeOperation::StartModule(name) => write!(f, "Could not start module {}", name),
-            RuntimeOperation::StopModule(name) => write!(f, "Could not stop module {}", name),
-            RuntimeOperation::SystemInfo => write!(f, "Could not query system info"),
-            RuntimeOperation::SystemResources => write!(f, "Could not query system resources"),
+            RuntimeOperation::GetSupportBundle => write!(f, "get support bundle"),
+            RuntimeOperation::Init => write!(f, "initialize module runtime"),
+            RuntimeOperation::ListModules => write!(f, "list modules"),
+            RuntimeOperation::RemoveModule(name) => write!(f, "remove module {:?}", name),
+            RuntimeOperation::RestartModule(name) => write!(f, "restart module {:?}", name),
+            RuntimeOperation::StartModule(name) => write!(f, "start module {:?}", name),
+            RuntimeOperation::StopModule(name) => write!(f, "stop module {:?}", name),
+            RuntimeOperation::SystemInfo => write!(f, "query system info"),
+            RuntimeOperation::SystemResources => write!(f, "query system resources"),
             RuntimeOperation::TopModule(name) => {
-                write!(f, "Could not top module {}.", name)
+                write!(f, "top module {:?}", name)
             }
         }
     }

@@ -4,30 +4,24 @@ use edgelet_core::{ModuleOperation, RegistryOperation, RuntimeOperation};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("Container runtime error")]
+    #[error("container runtime error")]
     Docker,
 
-    #[error("Could not initialize module runtime - {0}")]
-    Initialization(String),
+    #[error("initialization failure")]
+    Initialization,
 
-    #[error("Invalid docker image {0:?}")]
-    InvalidImage(String),
-
-    #[error("Invalid module name {0:?}")]
+    #[error("invalid module name: {0:?}")]
     InvalidModuleName(String),
 
-    #[error("Invalid module type {0:?}")]
+    #[error("invalid module type: {0:?}")]
     InvalidModuleType(String),
 
-    #[error("Invalid socket URI: {0:?}")]
-    InvalidSocketUri(String),
-
-    #[error("{0}")]
+    #[error("module operation error: {0}")]
     ModuleOperation(ModuleOperation),
 
-    #[error("{0}")]
+    #[error("registry operation error: {0}")]
     RegistryOperation(RegistryOperation),
 
-    #[error("{0}")]
+    #[error("runtime operation error: {0}")]
     RuntimeOperation(RuntimeOperation),
 }

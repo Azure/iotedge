@@ -12,7 +12,7 @@ pub fn is_virtualized_env() -> anyhow::Result<Option<bool>> {
             .status()
             .context(Error::GetVirtualizationStatus)?;
 
-        Ok(Some(status.code() == Some(0)))
+        Ok(Some(status.success()))
     } else {
         Ok(None)
     }
