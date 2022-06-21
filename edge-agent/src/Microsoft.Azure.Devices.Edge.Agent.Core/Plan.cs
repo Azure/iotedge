@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public bool IsEmpty => this.Commands.IsEmpty;
 
+        // TODO ANDREW: Change plan structure to be double nested list of commands
         public ImmutableList<ICommand> Commands { get; }
     }
 }

@@ -16,6 +16,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         readonly ICombinedConfigProvider<T> combinedConfigProvider;
         readonly string edgeDeviceHostname;
         readonly Option<string> parentEdgeHostname;
+
+        // TODO ANDREW: Remove this here and elsewhere
         readonly bool checkImagePullBeforeModuleCreate;
 
         public EdgeletCommandFactory(
@@ -43,8 +45,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             {
                 T config = this.combinedConfigProvider.GetCombinedConfig(module.Module, runtimeInfo);
                 return Task.FromResult(
+                    // TODO ANDREW: Remove GroupCommand
                     new GroupCommand(
-                        new PrepareUpdateCommand(this.moduleManager, module.Module, config),
                         CreateOrUpdateCommand.BuildCreate(
                             this.moduleManager,
                             module.Module,
@@ -96,7 +98,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         {
             T config = this.combinedConfigProvider.GetCombinedConfig(next.Module, runtimeInfo);
             return new GroupCommand(
-                new PrepareUpdateCommand(this.moduleManager, next.Module, config),
                 await current.Match(this.StopAsync, () => Task.FromResult<ICommand>(NullCommand.Instance)),
                 CreateOrUpdateCommand.BuildUpdate(
                     this.moduleManager,

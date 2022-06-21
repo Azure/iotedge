@@ -24,6 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
 
         public Task ExecuteAsync(CancellationToken token)
         {
+            // TODO ANDREW: Add sepcial exception type
             return this.moduleManager.PrepareUpdateAsync(this.module);
         }
 

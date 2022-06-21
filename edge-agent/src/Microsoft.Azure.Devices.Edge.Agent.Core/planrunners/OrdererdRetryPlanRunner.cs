@@ -34,6 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
             this.commandRunStatus = new Dictionary<string, CommandRunStats>();
         }
 
+        // TODO ANDREW: Convert to double nested list loop, where we will detect image pull exception type and continue outer loop.
         public async Task<bool> ExecuteAsync(long deploymentId, Plan plan, CancellationToken token)
         {
             Preconditions.CheckRange(deploymentId, -1, nameof(deploymentId));
@@ -70,6 +71,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
                 foreach (ICommand command in plan.Commands)
                 {
                     (bool shouldRun, int runCount, TimeSpan coolOffPeriod, TimeSpan elapsedTime) = this.ShouldRunCommand(command);
+
+                    // TODO ANDREW: If this command is an image pull command and should run is false, continue loop
+
                     try
                     {
                         if (token.IsCancellationRequested)

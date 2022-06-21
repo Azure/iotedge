@@ -138,6 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             IEnumerable<ICommand> dead = await Task.WhenAll(deadTasks);
 
             // create pull, create, update and start commands for added/updated modules
+            // TODO ANDREW: Return 2 groups of commands (Option<ImagePulls>, addedCommands)
             IEnumerable<ICommand> addedCommands = await this.ProcessAddedUpdatedModules(
                 added,
                 moduleIdentities,
@@ -175,6 +176,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             // for more than "IntensiveCareTime" & still have an entry for them in the store
             IEnumerable<ICommand> resetHealthStatus = await this.ResetStatsForHealthyModulesAsync(runningGreat);
 
+            // TODO ANDREW: Pre-empt add image pull commands
             return updateRuntimeCommands
                 .Concat(stop)
                 .Concat(remove)
@@ -268,6 +270,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             return restart;
         }
 
+        // TODO ANDREW: Need to return separate command collections. Optional one for image pull if feature flag, then normal one of commands after that.
+        // 2 collections will get reordered at higher level.
         async Task<IEnumerable<ICommand>> ProcessAddedUpdatedModules(
             IList<IModule> modules,
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities,
