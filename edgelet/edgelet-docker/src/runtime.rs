@@ -19,8 +19,7 @@ use edgelet_core::{
     SystemResources, UrlExt,
 };
 use edgelet_settings::{
-    DockerConfig, Ipam as CoreIpam, MobyNetwork, ModuleSpec, RuntimeSettings,
-    Settings,
+    DockerConfig, Ipam as CoreIpam, MobyNetwork, ModuleSpec, RuntimeSettings, Settings,
 };
 use edgelet_utils::ensure_not_empty;
 use http_common::Connector;
@@ -173,8 +172,7 @@ impl MakeModuleRuntime for DockerModuleRuntime<Connector> {
 
 pub fn init_client(docker_url: &Url) -> anyhow::Result<DockerApiClient<Connector>> {
     // build the hyper client
-    let connector = Connector::new(docker_url)
-        .context(Error::Initialization)?;
+    let connector = Connector::new(docker_url).context(Error::Initialization)?;
 
     // extract base path - the bit that comes after the scheme
     let base_path = docker_url
@@ -514,7 +512,9 @@ where
                     "Could not notify workload manager, remove of module: {}",
                     id
                 );
-                anyhow::anyhow!(Error::RuntimeOperation(RuntimeOperation::GetModule(id.to_string())))
+                anyhow::anyhow!(Error::RuntimeOperation(RuntimeOperation::GetModule(
+                    id.to_string()
+                )))
             })
     }
 
@@ -532,9 +532,7 @@ where
     async fn system_resources(&self) -> anyhow::Result<SystemResources> {
         log::info!("Querying system resources...");
 
-        let uptime = nix::sys::sysinfo::sysinfo()?
-            .uptime()
-            .as_secs();
+        let uptime = nix::sys::sysinfo::sysinfo()?.uptime().as_secs();
 
         // Get system resources
         let mut system_resources = self.system_resources.as_ref().lock().await;

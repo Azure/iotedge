@@ -1,16 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::collections::BTreeMap;
-use std::default::Default;
 use std::fmt;
-use std::str::FromStr;
-use std::string::ToString;
 use std::time::Duration;
 
 use anyhow::Context;
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
 use tokio::sync::mpsc::UnboundedSender;
 
 use aziotctl_common::host_info::{DmiInfo, OsInfo};
@@ -44,6 +40,14 @@ impl fmt::Display for ModuleStatus {
                 .map(|s| s.trim_matches('"').to_string())
                 .map_err(|_| fmt::Error)?
         )
+    }
+}
+
+impl std::str::FromStr for ModuleStatus {
+    type Err = serde_json::Error;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        serde_json::from_str(&format!("\"{}\"", value))
     }
 }
 
@@ -133,11 +137,20 @@ pub enum LogTail {
 
 impl Default for LogTail {
     fn default() -> Self {
-        LogTail::All
+        Self::All
     }
 }
 
-impl FromStr for LogTail {
+impl fmt::Display for LogTail {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::All => write!(formatter, "all"),
+            Self::Num(n) => write!(formatter, "{}", n),
+        }
+    }
+}
+
+impl std::str::FromStr for LogTail {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> anyhow::Result<Self> {
@@ -150,15 +163,6 @@ impl FromStr for LogTail {
             LogTail::Num(num)
         };
         Ok(tail)
-    }
-}
-
-impl ToString for LogTail {
-    fn to_string(&self) -> String {
-        match self {
-            LogTail::All => "all".to_string(),
-            LogTail::Num(n) => n.to_string(),
-        }
     }
 }
 
@@ -251,8 +255,8 @@ pub trait ModuleRegistry {
     async fn remove(&self, name: &str) -> anyhow::Result<()>;
 }
 
-#[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize)]
+#[serde_with::skip_serializing_none]
 pub struct SystemInfo {
     #[serde(rename = "osType")]
     pub kernel: String,
@@ -546,8 +550,6 @@ mod tests {
     use super::*;
 
     use std::collections::BTreeMap;
-    use std::str::FromStr;
-    use std::string::ToString;
 
     use edgelet_settings::module::ImagePullPolicy;
 
@@ -574,8 +576,8 @@ mod tests {
     #[test]
     fn module_status_deser() {
         let inputs = get_inputs();
-        for &(status, ref expected) in &inputs {
-            assert_eq!(*expected, ModuleStatus::from_str(status).unwrap());
+        for (status, expected) in inputs {
+            assert_eq!(expected, status.parse().unwrap());
         }
     }
 

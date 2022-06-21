@@ -67,8 +67,7 @@ where
 }
 
 fn humanize_status(status: &ModuleStatus) -> String {
-    let status_enum = serde_json::from_str(&format!("\"{}\"", status.runtime_status.status))
-        .unwrap_or_default();
+    let status_enum = status.runtime_status.status.parse().unwrap_or_default();
     match status_enum {
         ModuleStatusEnum::Unknown => "Unknown".to_string(),
         ModuleStatusEnum::Stopped | ModuleStatusEnum::Dead => {
