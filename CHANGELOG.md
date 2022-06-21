@@ -6,10 +6,7 @@
 * Update rumtime module images to be using Alpine                             ( [059aaea2d](https://github.com/Azure/iotedge/commit/059aaea2d23d11bfb5b46dac3b28f9a563395647) )
 * Migrate to Dotnet 6                                                         ( [37234e02b](https://github.com/Azure/iotedge/commit/37234e02b500e6930d389275ac09a5aee80f7445) )
 * Device product information                                                  ( [9faf5a5c0](https://github.com/Azure/iotedge/commit/9faf5a5c09fd3ef058201075f813da2a0a81cdd6) )
-
-#### MQTT
-
-#### Manifest Trust
+* Remove `BouncyCastle` dependency                                            ( [aa2237988](https://github.com/Azure/iotedge/commit/aa22379885dff7cbb89cbdf1e4c870460f6f5576) )
 
 
 ## Edge Hub
@@ -20,6 +17,13 @@
 * Configurable task to cancel when upstream call hangs                        ( [cf9e04987](https://github.com/Azure/iotedge/commit/cf9e049874c72ea86ee804d2f1b57132da421c45) )
 * Migrate to Dotnet 6                                                         ( [37234e02b](https://github.com/Azure/iotedge/commit/37234e02b500e6930d389275ac09a5aee80f7445) )
 * Update regex to 1.5.5                                                       ( [9f0f7f424](https://github.com/Azure/iotedge/commit/9f0f7f42472f658893ff876ad730338ab9833590) )
+* Added more logging to certificate import                                    ( [49d41df98](https://github.com/Azure/iotedge/commit/49d41df98fbd3abe246a582a9169a8e7d137068d) )
+* Fix edgeHub shutdown for renew certificate                                  ( [fcd4d007a](https://github.com/Azure/iotedge/commit/fcd4d007acad0a746916da0b7f6bc933c4b6e641) )
+* AMQP CBS token message dispose                                              ( [4179221bc](https://github.com/Azure/iotedge/commit/4179221bcc9596388386e3faca87cc28bc6af8f2) )
+* Remove `BouncyCastle` dependency                                            ( [aa2237988](https://github.com/Azure/iotedge/commit/aa22379885dff7cbb89cbdf1e4c870460f6f5576) )
+* Fix underflow possibility on ColumnFamilyDbStore                            ( [e9652b224](https://github.com/Azure/iotedge/commit/e9652b2248d88a2c4c723fa3752845773813deef) )
+* Allow identity translation for subscriptions                                ( [5fbd0d9f3](https://github.com/Azure/iotedge/commit/5fbd0d9f30fe9fea0f2fcc2a2e7586068131ef5e) )
+* Update vulnerable nix version                                               ( [33c8a778f](https://github.com/Azure/iotedge/commit/33c8a778fec079a0045c9abadb832824b39368bd) )
 
 ### Features
 * Turning for batch of incoming amqp messages for quicker sender feedback     ( [5667c58ce](https://github.com/Azure/iotedge/commit/5667c58ce0a70f47026efa87fabf29b3ef92c9c1) )
@@ -43,9 +47,12 @@
 * Upgrade IIS to branch with crossbeam patch                                  ( [ed000a930](https://github.com/Azure/iotedge/commit/ed000a9306279e04416b0bc782ae7b7e8097d104) )
 * Update tokio, rayon, and crossbeam to latest compatible versions            ( [54163699b](https://github.com/Azure/iotedge/commit/54163699b0db1b1c8eb3ff5b7ab15fd5f6137857) )
 * Update cargo dependency                                                     ( [512f1364b](https://github.com/Azure/iotedge/commit/512f1364b40d8b0d9fe2102d459696f7cc1538d5) )
+* Remove `thread_local` for non-edgelet projects                              ( [6db976def](https://github.com/Azure/iotedge/commit/6db976def4930a6a5a0f5630170ea4d3d6f8f1b7) )
+* Change default common name of Edge CA cert to `aziot-edge CA`               ( [a62e2cad6](https://github.com/Azure/iotedge/commit/a62e2cad6e42d3a97dabfc37c12cb3ac52ef1ecb) )
+* Update vulnerable nix version                                               ( [33c8a778f](https://github.com/Azure/iotedge/commit/33c8a778fec079a0045c9abadb832824b39368bd) )
 
 
-### Compatibility Script
+### Compatibility Script (Under Development)
 * UI for Platform compatibility script                                        ( [35be5feab](https://github.com/Azure/iotedge/commit/35be5feabfd20cbe992b156dbfb150ab188aec23) )
 * Use Docker Socket For Docker Engine API Check                               ( [58f3a2842](https://github.com/Azure/iotedge/commit/58f3a2842d5ee4608aa9fc1741fc3220b337bed2) )
 * Fix Resource Profiling for IoT Edge                                         ( [c34513bae](https://github.com/Azure/iotedge/commit/c34513bae7e6a1a2a953bdc440d0920f8c854511) )
@@ -66,22 +73,24 @@
 * Check for shared library dependency in Platform validation tool             ( [ea0938a05](https://github.com/Azure/iotedge/commit/ea0938a051ff4745292205e65001b69e5b515323) )
 * Add Check for Architecture and Minimum Docker API Version                   ( [627f520f3](https://github.com/Azure/iotedge/commit/627f520f34a5df82449cdc2a18400d51cc4b7040) )
 * Added CGROUP HEIRACHY and Systemd Checks                                    ( [b4a317aac](https://github.com/Azure/iotedge/commit/b4a317aac8d74de4a97c02566ec2479adfee12d7) )
+* Add Template Code                                                           ( [011586552](https://github.com/Azure/iotedge/commit/011586552ec9104fbbafa86f3f4415c19fd3d29d) )
 
 
 ## Sample Modules
 ### Bug Fixes
 * Update rumtime module images to be using Alpine                             ( [059aaea2d](https://github.com/Azure/iotedge/commit/059aaea2d23d11bfb5b46dac3b28f9a563395647) )
+* Remove `BouncyCastle` dependency                                            ( [aa2237988](https://github.com/Azure/iotedge/commit/aa22379885dff7cbb89cbdf1e4c870460f6f5576) )
 
 ### Feature
 * Migrate Azure Functions sample to Dotnet 6                                  ( [c57446255](https://github.com/Azure/iotedge/commit/c57446255b9d4a04a15271d728b89268d4c35bf1) )
 
 
 ## MQTT
-### I don't know what do with these
 * Remove experimental mqtt broker code                                        ( [85084e4f0](https://github.com/Azure/iotedge/commit/85084e4f04aafbd7b68931e80d3c84f28eb47585) )
 * Add must_use attributes to methods returning Self                           ( [e0474075d](https://github.com/Azure/iotedge/commit/e0474075dc09811590d0a0a03a41f558dcddd445) )
 * Update regex to 1.5.5                                                       ( [9f0f7f424](https://github.com/Azure/iotedge/commit/9f0f7f42472f658893ff876ad730338ab9833590) )
 * Update tokio, rayon, and crossbeam to latest compatible versions            ( [54163699b](https://github.com/Azure/iotedge/commit/54163699b0db1b1c8eb3ff5b7ab15fd5f6137857) )
+* Don't stop the broker if unable to restore persisted state                  ( [ca22a6b9c](https://github.com/Azure/iotedge/commit/ca22a6b9c445c3933b648136329a9398f0ab91a8) )
 
 
 # 1.1.0 (2021-02-10)
