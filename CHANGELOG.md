@@ -40,11 +40,9 @@
 * Rust toolchain upgrade fixes                                                ( [a45cc5f71](https://github.com/Azure/iotedge/commit/a45cc5f71e200e78e4e93ae41e2731244bb20ac9) )
 * Device product information                                                  ( [9faf5a5c0](https://github.com/Azure/iotedge/commit/9faf5a5c09fd3ef058201075f813da2a0a81cdd6) )
 * Update regex to 1.5.5                                                       ( [9f0f7f424](https://github.com/Azure/iotedge/commit/9f0f7f42472f658893ff876ad730338ab9833590) )
-
-
-### Content Trust
-* Remove Content Trust                                                        ( [661f02d3b](https://github.com/Azure/iotedge/commit/661f02d3b188444a924a56f0a919e67f13f717c7) )
-* Remove manifest trust from public access                                    ( [9d955cdb2](https://github.com/Azure/iotedge/commit/9d955cdb224bf1a2fab9395df8be0a0ecc92d037) )
+* Upgrade IIS to branch with crossbeam patch                                  ( [ed000a930](https://github.com/Azure/iotedge/commit/ed000a9306279e04416b0bc782ae7b7e8097d104) )
+* Update tokio, rayon, and crossbeam to latest compatible versions            ( [54163699b](https://github.com/Azure/iotedge/commit/54163699b0db1b1c8eb3ff5b7ab15fd5f6137857) )
+* Update cargo dependency                                                     ( [512f1364b](https://github.com/Azure/iotedge/commit/512f1364b40d8b0d9fe2102d459696f7cc1538d5) )
 
 
 ### Compatibility Script
@@ -62,6 +60,13 @@
 * Checking the current free memory in the platform                            ( [4417a86fb](https://github.com/Azure/iotedge/commit/4417a86fb86ec6e211e0f4edb1ee11b2cecea8b3) )
 * Package manager check and CA cert check                                     ( [5f6d339dc](https://github.com/Azure/iotedge/commit/5f6d339dcea5463da9bae4e304adf65450fc73cf) )
 * Check for Storage Space for IoT Edge                                        ( [99ae1e3e8](https://github.com/Azure/iotedge/commit/99ae1e3e80b5997d9b6eefc6ce6d97cc22111eff) )
+* Add Memory and CPU Usage Analysis Script                                    ( [94087d979](https://github.com/Azure/iotedge/commit/94087d979a2243acb6e5db85747a88ad13072a3f) )
+* Generalize Platform Compatibility Tool                                      ( [7b70d865d](https://github.com/Azure/iotedge/commit/7b70d865d121be469d752ec26be2d22dc9d582c8) )
+* Add Kernel Config Checks Platform Compatibility Tool                        ( [5796116b8](https://github.com/Azure/iotedge/commit/5796116b8075fd7bce6fc5e2ff2e21a46554241a) )
+* Check for shared library dependency in Platform validation tool             ( [ea0938a05](https://github.com/Azure/iotedge/commit/ea0938a051ff4745292205e65001b69e5b515323) )
+* Add Check for Architecture and Minimum Docker API Version                   ( [627f520f3](https://github.com/Azure/iotedge/commit/627f520f34a5df82449cdc2a18400d51cc4b7040) )
+* Added CGROUP HEIRACHY and Systemd Checks                                    ( [b4a317aac](https://github.com/Azure/iotedge/commit/b4a317aac8d74de4a97c02566ec2479adfee12d7) )
+
 
 ## Sample Modules
 ### Bug Fixes
@@ -76,6 +81,7 @@
 * Remove experimental mqtt broker code                                        ( [85084e4f0](https://github.com/Azure/iotedge/commit/85084e4f04aafbd7b68931e80d3c84f28eb47585) )
 * Add must_use attributes to methods returning Self                           ( [e0474075d](https://github.com/Azure/iotedge/commit/e0474075dc09811590d0a0a03a41f558dcddd445) )
 * Update regex to 1.5.5                                                       ( [9f0f7f424](https://github.com/Azure/iotedge/commit/9f0f7f42472f658893ff876ad730338ab9833590) )
+* Update tokio, rayon, and crossbeam to latest compatible versions            ( [54163699b](https://github.com/Azure/iotedge/commit/54163699b0db1b1c8eb3ff5b7ab15fd5f6137857) )
 
 
 # 1.1.0 (2021-02-10)
