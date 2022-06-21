@@ -610,12 +610,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "aziot-cert-client-async",
- "aziot-cert-common-http",
  "base64",
- "bytes",
- "chrono",
- "config-common",
  "docker",
  "edgelet-core",
  "edgelet-settings",

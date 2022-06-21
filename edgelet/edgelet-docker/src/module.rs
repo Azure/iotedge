@@ -1,9 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::str::FromStr;
-
 use anyhow::Context;
-use chrono::prelude::*;
 
 use docker::apis::{DockerApi, DockerApiClient};
 use docker::models::InlineResponse200State;
@@ -76,13 +73,13 @@ pub fn runtime_state(
                 state
                     .started_at()
                     .and_then(|d| if d == MIN_DATE { None } else { Some(d) })
-                    .and_then(|started_at| DateTime::from_str(started_at).ok()),
+                    .and_then(|started_at| started_at.parse().ok()),
             )
             .with_finished_at(
                 state
                     .finished_at()
                     .and_then(|d| if d == MIN_DATE { None } else { Some(d) })
-                    .and_then(|finished_at| DateTime::from_str(finished_at).ok()),
+                    .and_then(|finished_at| finished_at.parse().ok()),
             )
             .with_image_id(id.map(ToOwned::to_owned))
             .with_pid(state.pid())
