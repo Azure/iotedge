@@ -1,9 +1,10 @@
 # 1.3.0 (2021-02-24)
 ## Edge Agent
 ### Bug Fixes
-* Remove EdgeAgent's unused plan runner and planner ( [2159dfa](https://github.com/Azure/iotedge/commit/2159dfad36f04c61ed1df6df4afd69ea57439650) )
-* Flatten additional device product properties of metrics ( [dbc6af3](https://github.com/Azure/iotedge/commit/dbc6af347adef00a3091be7ae188a1c75fb58181) )
-* Update rumtime module images to be using Alpine ( [059aaea](https://github.com/Azure/iotedge/commit/059aaea2d23d11bfb5b46dac3b28f9a563395647) )
+* Remove EdgeAgent's unused plan runner and planner                           ( [2159dfad3](https://github.com/Azure/iotedge/commit/2159dfad36f04c61ed1df6df4afd69ea57439650) )
+* Flatten additional device product properties of metrics                     ( [dbc6af347](https://github.com/Azure/iotedge/commit/dbc6af347adef00a3091be7ae188a1c75fb58181) )
+* Update rumtime module images to be using Alpine                             ( [059aaea2d](https://github.com/Azure/iotedge/commit/059aaea2d23d11bfb5b46dac3b28f9a563395647) )
+* Migrate to Dotnet 6                                                         ( [37234e02b](https://github.com/Azure/iotedge/commit/37234e02b500e6930d389275ac09a5aee80f7445) )
 
 #### MQTT
 
@@ -12,42 +13,50 @@
 
 ## Edge Hub
 ### Bug Fixes
-* Update Device SDk to the latest LTS version ( [90e5b32](https://github.com/Azure/iotedge/commit/90e5b3264ac0befe1eeebce898f01635f4ac7d14) )
-* Restrict TLS protocol to 1.2 for EdgeHub and ApiProxy modules ( [4a76a20](https://github.com/Azure/iotedge/commit/4a76a20b142fd59e6bb44110e1ecd6e6519fc1d7) )
-* Update rumtime module images to be using Alpine ( [059aaea](https://github.com/Azure/iotedge/commit/059aaea2d23d11bfb5b46dac3b28f9a563395647) )
-* Configurable task to cancel when upstream call hangs ( [cf9e049](https://github.com/Azure/iotedge/commit/cf9e049874c72ea86ee804d2f1b57132da421c45) ) **
+* Update Device SDk to the latest LTS version                                 ( [90e5b3264](https://github.com/Azure/iotedge/commit/90e5b3264ac0befe1eeebce898f01635f4ac7d14) )
+* Restrict TLS protocol to 1.2 for EdgeHub and ApiProxy modules               ( [4a76a20b1](https://github.com/Azure/iotedge/commit/4a76a20b142fd59e6bb44110e1ecd6e6519fc1d7) )
+* Update rumtime module images to be using Alpine                             ( [059aaea2d](https://github.com/Azure/iotedge/commit/059aaea2d23d11bfb5b46dac3b28f9a563395647) )
+* Configurable task to cancel when upstream call hangs                        ( [cf9e04987](https://github.com/Azure/iotedge/commit/cf9e049874c72ea86ee804d2f1b57132da421c45) )
+* Migrate to Dotnet 6                                                         ( [37234e02b](https://github.com/Azure/iotedge/commit/37234e02b500e6930d389275ac09a5aee80f7445) )
 
 ### Features
-* Turning for batch of incoming amqp messages for quicker sender feedback ( [5667c58](https://github.com/Azure/iotedge/commit/5667c58ce0a70f47026efa87fabf29b3ef92c9c1) )
+* Turning for batch of incoming amqp messages for quicker sender feedback     ( [5667c58ce](https://github.com/Azure/iotedge/commit/5667c58ce0a70f47026efa87fabf29b3ef92c9c1) )
 
 
 ## aziot-edge
 ### Bug Fixes
-* Correct handling of /images/create response stream ( [287629d](https://github.com/Azure/iotedge/commit/287629d09e5265736c0374ce406566fa959ce5f8) )
-* Flatten additional device product properties of metrics ( [dbc6af3](https://github.com/Azure/iotedge/commit/dbc6af347adef00a3091be7ae188a1c75fb58181) )
-* Upgrade rust-toolchain to 1.61 ( [9f674bd](https://github.com/Azure/iotedge/commit/9f674bdf5e47b21d8ad24ee983f7259fd9379bd8) )
-* Update Device SDk to the latest LTS version ( [90e5b32](https://github.com/Azure/iotedge/commit/90e5b3264ac0befe1eeebce898f01635f4ac7d14) )
-* Fix hostname conflict with deployed module ( [bb844b5](https://github.com/Azure/iotedge/commit/bb844b5a8d7f132c003590296e68647cf315faec) )
+* Correct handling of /images/create response stream                          ( [287629d09](https://github.com/Azure/iotedge/commit/287629d09e5265736c0374ce406566fa959ce5f8) )
+* Flatten additional device product properties of metrics                     ( [dbc6af347](https://github.com/Azure/iotedge/commit/dbc6af347adef00a3091be7ae188a1c75fb58181) )
+* Upgrade rust-toolchain to 1.61                                              ( [9f674bdf5](https://github.com/Azure/iotedge/commit/9f674bdf5e47b21d8ad24ee983f7259fd9379bd8) )
+* Update Device SDk to the latest LTS version                                 ( [90e5b3264](https://github.com/Azure/iotedge/commit/90e5b3264ac0befe1eeebce898f01635f4ac7d14) )
+* Fix hostname conflict with deployed module                                  ( [bb844b5a8](https://github.com/Azure/iotedge/commit/bb844b5a8d7f132c003590296e68647cf315faec) )
+* Fix exit code when restarting due to reprovision                            ( [223f3922a](https://github.com/Azure/iotedge/commit/223f3922a7b923f2d3e1e228ea8a2b204fb30f4c) )
+* Fix subject name setting of Edge CA                                         ( [921840e02](https://github.com/Azure/iotedge/commit/921840e027f1e8f2d6635f75230e4616bab2e468) )
+* Add auto-renewal of the Edge CA cert                                        ( [d8ae9bd7d](https://github.com/Azure/iotedge/commit/d8ae9bd7d4efc0f355ecf9c8d99d5f4b7b606c73) )
+* Add settings for auto-renewal of Edge CA                                    ( [a8fb6465e](https://github.com/Azure/iotedge/commit/a8fb6465ea1f0cb23b22533bbefa7117aa54b71e) )
+* Remove `failure` dependency                                                 ( [496c89924](https://github.com/Azure/iotedge/commit/496c89924e53b5225b0d5cff813b05e3acb10dae) )
+* Rust toolchain upgrade fixes                                                ( [a45cc5f71](https://github.com/Azure/iotedge/commit/a45cc5f71e200e78e4e93ae41e2731244bb20ac9) )
 
 ### Content Trust
-* Remove Content Trust ( [661f02d](https://github.com/Azure/iotedge/commit/661f02d3b188444a924a56f0a919e67f13f717c7) )
-* Remove manifest trust from public access ( [9d955cd](https://github.com/Azure/iotedge/commit/9d955cdb224bf1a2fab9395df8be0a0ecc92d037) )
+* Remove Content Trust                                                        ( [661f02d3b](https://github.com/Azure/iotedge/commit/661f02d3b188444a924a56f0a919e67f13f717c7) )
+* Remove manifest trust from public access                                    ( [9d955cdb2](https://github.com/Azure/iotedge/commit/9d955cdb224bf1a2fab9395df8be0a0ecc92d037) )
 
+### Compatibility Script
+* UI for Platform compatibility script                                        ( [35be5feab](https://github.com/Azure/iotedge/commit/35be5feabfd20cbe992b156dbfb150ab188aec23) )
+* Use Docker Socket For Docker Engine API Check                               ( [58f3a2842](https://github.com/Azure/iotedge/commit/58f3a2842d5ee4608aa9fc1741fc3220b337bed2) )
+
+ 
 ## Sample Modules
 ### Bug Fixes
-* Update rumtime module images to be using Alpine ( [059aaea](https://github.com/Azure/iotedge/commit/059aaea2d23d11bfb5b46dac3b28f9a563395647) )
+* Update rumtime module images to be using Alpine                             ( [059aaea2d](https://github.com/Azure/iotedge/commit/059aaea2d23d11bfb5b46dac3b28f9a563395647) )
 
 ### Feature
-* Migrate Azure Functions sample to Dotnet 6 ( [c574462](https://github.com/Azure/iotedge/commit/c57446255b9d4a04a15271d728b89268d4c35bf1) )
+* Migrate Azure Functions sample to Dotnet 6                                  ( [c57446255](https://github.com/Azure/iotedge/commit/c57446255b9d4a04a15271d728b89268d4c35bf1) )
 
 
 ## MQTT
 ### I don't know what do with these
-* https://github.com/Azure/iotedge/commit/85084e4f04aafbd7b68931e80d3c84f28eb47585
-
-
-Current Commit:
-https://github.com/Azure/iotedge/commit/9f674bdf5e47b21d8ad24ee983f7259fd9379bd8
+* Remove experimental mqtt broker code (#6410)                                ( [85084e4f0](https://github.com/Azure/iotedge/commit/85084e4f04aafbd7b68931e80d3c84f28eb47585) )
 
 
 # 1.1.0 (2021-02-10)
