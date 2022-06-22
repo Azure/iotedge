@@ -256,30 +256,35 @@ pub trait ModuleRegistry {
 }
 
 #[derive(Debug, PartialEq, Serialize)]
-#[serde_with::skip_serializing_none]
 pub struct SystemInfo {
     #[serde(rename = "osType")]
     pub kernel: String,
     pub kernel_release: String,
     pub kernel_version: String,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub operating_system: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub operating_system_version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub operating_system_variant: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub operating_system_build: Option<String>,
 
     pub architecture: String,
     pub cpus: usize,
     pub virtualized: String,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub product_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub system_vendor: Option<String>,
 
     pub version: String,
 
     pub provisioning: ProvisioningInfo,
 
-    #[serde(default, flatten)]
+    #[serde(default, flatten, skip_serializing_if = "BTreeMap::is_empty")]
     pub additional_properties: BTreeMap<String, String>,
 }
 

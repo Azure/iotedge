@@ -443,12 +443,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "consistenttime"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a079bddaa385eab2a88dc5816a378921852ab3af6646748da14681b2facf502"
-
-[[package]]
 name = "core-foundation-sys"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -581,12 +575,8 @@ dependencies = [
  "anyhow",
  "async-trait",
  "aziotctl-common",
- "base64",
- "bytes",
  "chrono",
- "consistenttime",
  "edgelet-settings",
- "futures",
  "humantime",
  "hyper",
  "lazy_static",
@@ -594,13 +584,9 @@ dependencies = [
  "nix",
  "num_cpus",
  "serde",
- "serde_derive",
  "serde_json",
- "serde_with",
- "test-case",
  "thiserror",
  "tokio",
- "tokio-util",
  "url",
 ]
 
