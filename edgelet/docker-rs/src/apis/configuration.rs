@@ -5,7 +5,9 @@ use std::error::Error;
 pub struct Configuration {
     pub base_path: String,
     pub user_agent: Option<String>,
-    pub uri_composer: Box<dyn Fn(&str, &str) -> Result<Uri, Box<dyn Error>> + Send + Sync>,
+    pub uri_composer: Box<
+        dyn Fn(&str, &str) -> Result<Uri, Box<dyn Error + Send + Sync + 'static>> + Send + Sync,
+    >,
 }
 
 impl Default for Configuration {
