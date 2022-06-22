@@ -54,7 +54,7 @@ fn merge_env(cur_env: Option<&[String]>, new_env: &BTreeMap<String, String>) -> 
         // only string slices pointing into strings inside cur_env)
         merged_env.extend(env.iter().filter_map(|s| {
             let mut tokens = s.splitn(2, '=');
-            tokens.next().map(|key| (key, tokens.next().unwrap_or("")))
+            tokens.next().map(|key| (key, tokens.next().unwrap_or_default()))
         }));
     }
 
@@ -181,17 +181,15 @@ pub fn init_client(docker_url: &Url) -> anyhow::Result<DockerApiClient<Connector
         .to_str()
         .ok_or(Error::Initialization)?
         .to_string();
-    let uri_composer = Box::new(|base_path: &str, path: &str| {
-        // https://docs.rs/hyperlocal/0.6.0/src/hyperlocal/lib.rs.html#59
-        let host = hex::encode(base_path.as_bytes());
-        let host_str = format!("unix://{}:0{}", host, path);
-
-        Ok(host_str.parse()?)
-    });
 
     let configuration = Configuration {
         base_path,
-        uri_composer,
+        uri_composer: Box::new(|base_path, path| {
+            // https://docs.rs/hyperlocal/0.6.0/src/hyperlocal/lib.rs.html#59
+            let host = hex::encode(base_path.as_bytes());
+            let host_str = format!("unix://{}:0{}", host, path);
+            Ok(host_str.parse()?)
+        }),
         ..Default::default()
     };
 
