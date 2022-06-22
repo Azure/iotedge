@@ -300,6 +300,7 @@ pub struct SystemInfo {
     pub system_vendor: Option<String>,
 
     pub version: String,
+    pub server_version: Option<String>,
 
     pub provisioning: ProvisioningInfo,
 
@@ -336,6 +337,8 @@ impl SystemInfo {
             system_vendor: dmi.vendor,
 
             version: crate::version_with_source_version(),
+            server_version: None,
+
             provisioning: ProvisioningInfo {
                 r#type: "ProvisioningType".into(),
                 dynamic_reprovisioning: false,
@@ -350,26 +353,28 @@ impl SystemInfo {
 
     pub fn merge_additional(&mut self, mut additional_info: BTreeMap<String, String>) -> &Self {
         macro_rules! remove_assign {
-            ($src:literal, $dest:ident) => {
-                if let Some((_, x)) = additional_info.remove_entry($src) {
-                    self.$dest = x.into();
+            ($key:ident) => {
+                if let Some((_, x)) = additional_info.remove_entry(stringify!($key)) {
+                    self.$key = x.into();
                 }
             };
         }
 
-        remove_assign!("kernel_name", kernel);
-        remove_assign!("kernel_release", kernel_release);
-        remove_assign!("kernel_version", kernel_version);
+        remove_assign!(kernel);
+        remove_assign!(kernel_release);
+        remove_assign!(kernel_version);
 
-        remove_assign!("os_name", operating_system);
-        remove_assign!("os_version", operating_system_version);
-        remove_assign!("os_variant", operating_system_variant);
-        remove_assign!("os_build", operating_system_build);
+        remove_assign!(operating_system);
+        remove_assign!(operating_system_version);
+        remove_assign!(operating_system_variant);
+        remove_assign!(operating_system_build);
 
-        remove_assign!("cpu_architecture", architecture);
+        remove_assign!(architecture);
 
-        remove_assign!("product_name", product_name);
-        remove_assign!("product_vendor", system_vendor);
+        remove_assign!(product_name);
+        remove_assign!(system_vendor);
+
+        remove_assign!(server_version);
 
         self.additional_properties
             .extend(additional_info.into_iter());
@@ -677,6 +682,8 @@ mod tests {
             system_vendor: None,
 
             version: crate::version_with_source_version(),
+            server_version: None,
+
             provisioning: ProvisioningInfo {
                 r#type: "ProvisioningType".into(),
                 dynamic_reprovisioning: false,
@@ -704,6 +711,8 @@ mod tests {
             system_vendor: None,
 
             version: crate::version_with_source_version(),
+            server_version: None,
+
             provisioning: ProvisioningInfo {
                 r#type: "ProvisioningType".into(),
                 dynamic_reprovisioning: false,
@@ -717,10 +726,10 @@ mod tests {
         };
 
         let additional = BTreeMap::from([
-            ("kernel_name".to_owned(), "linux".to_owned()),
+            ("kernel".to_owned(), "linux".to_owned()),
             ("kernel_release".to_owned(), "5.0".to_owned()),
             ("kernel_version".to_owned(), "1".to_owned()),
-            ("os_name".to_owned(), "OS".to_owned()),
+            ("operating_system".to_owned(), "OS".to_owned()),
             ("foo".to_owned(), "foofoo".to_owned()),
             ("bar".to_owned(), "barbar".to_owned()),
         ]);
