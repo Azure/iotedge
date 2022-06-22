@@ -26,6 +26,7 @@ use tempfile::tempdir;
 
 const IOTEDGED_TLS_COMMONNAME: &str = "iotedged";
 const TIME_FOR_CERT: u64 = 100;
+const TIME_FOR_SERVER_UP: time::Duration = time::Duration::from_millis(100);
 
 fn make_settings(workloadurl: &str, path: &PathBuf) -> TestSettings {
     let mut config = Config::default();
@@ -108,21 +109,15 @@ fn start_edgeagent_socket_succeeds() {
     )
     .unwrap();
 
-    let ten_millis = time::Duration::from_millis(10);
-    thread::sleep(ten_millis);
-    let (sender, _receiver): (Sender<()>, Receiver<()>) = oneshot::channel();
-    runtime
-        .create_socket_channel
-        .unbounded_send(ModuleAction::Start("edgeAgent".to_string(), sender))
-        .unwrap();
+    thread::sleep(TIME_FOR_SERVER_UP);
 
     let (sender, _receiver): (Sender<()>, Receiver<()>) = oneshot::channel();
     runtime
         .create_socket_channel
         .unbounded_send(ModuleAction::Start("edgeAgent".to_string(), sender))
         .unwrap();
-    thread::sleep(ten_millis);
 
+    thread::sleep(TIME_FOR_SERVER_UP);
     let socketpath = path.join("mnt/edgeAgent.sock");
     assert!(socketpath.exists());
     std::fs::remove_dir_all(path).unwrap();
@@ -191,13 +186,13 @@ fn stop_edgeagent_workload_socket_fails() {
         create_socket_channel_rcv,
     )
     .unwrap();
-    let ten_millis = time::Duration::from_millis(10);
 
+    thread::sleep(TIME_FOR_SERVER_UP);
     runtime
         .create_socket_channel
         .unbounded_send(ModuleAction::Stop("edgeAgent".to_string()))
         .unwrap();
-    thread::sleep(ten_millis);
+    thread::sleep(TIME_FOR_SERVER_UP);
     let socketpath = path.join("mnt/edgeAgent.sock");
     assert!(socketpath.exists());
     std::fs::remove_dir_all(path).unwrap();
@@ -267,15 +262,14 @@ fn start_workload_socket_succeeds() {
     )
     .unwrap();
 
-    let ten_millis = time::Duration::from_millis(100);
-    thread::sleep(ten_millis);
+    thread::sleep(TIME_FOR_SERVER_UP);
     let (sender, _receiver): (Sender<()>, Receiver<()>) = oneshot::channel();
     runtime
         .create_socket_channel
         .unbounded_send(ModuleAction::Start("test-agent".to_string(), sender))
         .unwrap();
 
-    thread::sleep(ten_millis);
+    thread::sleep(TIME_FOR_SERVER_UP);
     let socketpath = path.join("mnt/test-agent.sock");
     assert!(socketpath.exists());
     std::fs::remove_dir_all(path).unwrap();
@@ -345,21 +339,21 @@ fn stop_workload_socket_succeeds() {
     )
     .unwrap();
 
-    let ten_millis = time::Duration::from_millis(100);
-    thread::sleep(ten_millis);
+    thread::sleep(TIME_FOR_SERVER_UP);
+
     let (sender, _receiver): (Sender<()>, Receiver<()>) = oneshot::channel();
     runtime
         .create_socket_channel
         .unbounded_send(ModuleAction::Start("test-agent".to_string(), sender))
         .unwrap();
 
-    thread::sleep(ten_millis);
+    thread::sleep(TIME_FOR_SERVER_UP);
 
     runtime
         .create_socket_channel
         .unbounded_send(ModuleAction::Stop("test-agent".to_string()))
         .unwrap();
-    thread::sleep(ten_millis);
+    thread::sleep(TIME_FOR_SERVER_UP);
 
     let socketpath = path.join("mnt/test-agent.sock");
     assert!(!socketpath.exists());
