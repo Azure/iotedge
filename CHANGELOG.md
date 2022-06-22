@@ -1,12 +1,19 @@
 # 1.3.0 (2021-02-24)
-## AWARENESS
-This release contains a significant refactoring to the IoT Edge security daemon. It separates out the daemon's functionality for provisioning and providing cryptographic services for Linux-based devices into a set of stand-alone system services. Details on these individual system services can be found in the [Overview](https://azure.github.io/iot-identity-service) of the related github repository in which they reside.
 
-### Impact to Edge modules
-Every attempt has been made to ensure that the APIs on which Edge modules depend will remain unaffected and backward compatible. Issues affecting Edge modules will be treated with the highest priority.
+## OS Support
+### Known Issue: Debian 10 (Buster) on ARMv7
+We recommend using Bullseye instead of Buster as the host OS.  Seccomp on Buster may not be aware of new system calls used by your container resulting in crashes.
 
-### Impact to installing / configuring IoT Edge
-The refactoring does affect the packaging and installation of IoT Edge. While we've attempted to minimize the impact of these there are expected differences. For more details on these changes please refer to the discussion of [Packaging](https://github.com/Azure/iotedge/blob/main/doc/packaging.md).
+If you need to use Buster, then apply the following workaround to change the default seccomp profile for Moby's `defaultAction` to `SCMP_ACT_TRACE`:
+1. Make sure you are runing latest docker and latest seccomp package from oldstable channel
+2. Download [Moby's default seccomp profile](https://github.com/moby/moby/blob/master/profiles/seccomp/default.json) and put it somewhere. 
+3. On line 2 change the value for _defaultAction_ from `SCMP_ACT_ERRNO` to `SCMP_ACT_TRACE`
+4. Edit file _/etc/systemd/system/multi-user.target.wants/docker.service_ to have it contain: `--seccomp-profile=/path/to/default.json`
+5. Restart your container engine by running:
+   ```bash
+   sudo systemctl daemon-reload
+   sudo systemctl restart docker
+   ```
 
 
 ## Edge Agent
@@ -17,6 +24,8 @@ The refactoring does affect the packaging and installation of IoT Edge. While we
 * Migrate to Dotnet 6                                                         ( [37234e02b](https://github.com/Azure/iotedge/commit/37234e02b500e6930d389275ac09a5aee80f7445) )
 * Device product information                                                  ( [9faf5a5c0](https://github.com/Azure/iotedge/commit/9faf5a5c09fd3ef058201075f813da2a0a81cdd6) )
 * Remove `BouncyCastle` dependency                                            ( [aa2237988](https://github.com/Azure/iotedge/commit/aa22379885dff7cbb89cbdf1e4c870460f6f5576) )
+* Fix Workload socket issue for concurrent module create                      ( [26bbf7145](https://github.com/Azure/iotedge/commit/26bbf7145b1cd76fd55cb7b7d990a3907616ac5a) )
+* Handle Return Code From Get Module Logs Failure                             ( [5015eca6d](https://github.com/Azure/iotedge/commit/5015eca6d497e317a28ed0dc3bc013315c34b53b) )
 
 
 ## Edge Hub
@@ -60,6 +69,12 @@ The refactoring does affect the packaging and installation of IoT Edge. While we
 * Remove `thread_local` for non-edgelet projects                              ( [6db976def](https://github.com/Azure/iotedge/commit/6db976def4930a6a5a0f5630170ea4d3d6f8f1b7) )
 * Change default common name of Edge CA cert to `aziot-edge CA`               ( [a62e2cad6](https://github.com/Azure/iotedge/commit/a62e2cad6e42d3a97dabfc37c12cb3ac52ef1ecb) )
 * Update vulnerable nix version                                               ( [33c8a778f](https://github.com/Azure/iotedge/commit/33c8a778fec079a0045c9abadb832824b39368bd) )
+* Update tokio to 1.15.0                                                      ( [c941f0605](https://github.com/Azure/iotedge/commit/c941f06055e827e75c606cd02dab37aebd4b87ed) )
+* Add cloud_timeout_sec and cloud_retry documentation to config.toml template ( [d0ec8f751](https://github.com/Azure/iotedge/commit/d0ec8f751647690fc32bd87709a3c6f849711b49) )
+* Iotedge check proxy-settings                                                ( [dc6d0d093](https://github.com/Azure/iotedge/commit/dc6d0d093f88439fce97f3115f003a0f50dde9db) )
+* Removing moby check                                                         ( [3b95ec7c9](https://github.com/Azure/iotedge/commit/3b95ec7c9a9b6a7226828e6628adfa4fb963be6f) )
+* Remove Subject Alternate Name Sanitization in Workload Cert Creation        ( [070610dbc](https://github.com/Azure/iotedge/commit/070610dbc54ec9078e149dcd8457e4c5a54b2280) )
+* Reorder identity_pk and identity_cert                                       ( [cb3d8b552](https://github.com/Azure/iotedge/commit/cb3d8b552a9a8d1e546853c8b430c3dbccda07f3) )
 
 
 ### Compatibility Script (Under Development)
@@ -101,6 +116,8 @@ The refactoring does affect the packaging and installation of IoT Edge. While we
 * Update regex to 1.5.5                                                       ( [9f0f7f424](https://github.com/Azure/iotedge/commit/9f0f7f42472f658893ff876ad730338ab9833590) )
 * Update tokio, rayon, and crossbeam to latest compatible versions            ( [54163699b](https://github.com/Azure/iotedge/commit/54163699b0db1b1c8eb3ff5b7ab15fd5f6137857) )
 * Don't stop the broker if unable to restore persisted state                  ( [ca22a6b9c](https://github.com/Azure/iotedge/commit/ca22a6b9c445c3933b648136329a9398f0ab91a8) )
+* Update tokio to 1.15.0                                                      ( [c941f0605](https://github.com/Azure/iotedge/commit/c941f06055e827e75c606cd02dab37aebd4b87ed) )
+* Use proper name for $rid parameter                                          ( [d9fff230f](https://github.com/Azure/iotedge/commit/d9fff230f74b0084af56eea20ce5f849496471e5) )
 
 
 # 1.2.10 (2022-05-27)
