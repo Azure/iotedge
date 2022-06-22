@@ -18,7 +18,7 @@ use iotedged::{workload::WorkloadData, workload_manager::WorkloadManager};
 use serde_json::{self, json};
 use std::ffi::OsString;
 use std::fs::File as FileCreate;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 use std::thread;
 use std::time;
@@ -28,7 +28,7 @@ const IOTEDGED_TLS_COMMONNAME: &str = "iotedged";
 const TIME_FOR_CERT: u64 = 100;
 const TIME_FOR_SERVER_UP: time::Duration = time::Duration::from_millis(100);
 
-fn make_settings(workloadurl: &str, path: &PathBuf) -> TestSettings {
+fn make_settings(workloadurl: &str, path: &Path) -> TestSettings {
     let mut config = Config::default();
     let config_json = json!({
         "listen": {
@@ -48,7 +48,7 @@ fn make_settings(workloadurl: &str, path: &PathBuf) -> TestSettings {
 #[test]
 fn start_edgeagent_socket_succeeds() {
     let dir = tempdir().unwrap();
-    let path = dir.into_path();
+    let path = dir.path();
 
     let legacyworkloadpath = path.join("workload.sock");
 
@@ -120,13 +120,12 @@ fn start_edgeagent_socket_succeeds() {
     thread::sleep(TIME_FOR_SERVER_UP);
     let socketpath = path.join("mnt/edgeAgent.sock");
     assert!(socketpath.exists());
-    std::fs::remove_dir_all(path).unwrap();
 }
 
 #[test]
 fn stop_edgeagent_workload_socket_fails() {
     let dir = tempdir().unwrap();
-    let path = dir.into_path();
+    let path = dir.path();
 
     let legacyworkloadpath = path.join("workload.sock");
 
@@ -195,13 +194,12 @@ fn stop_edgeagent_workload_socket_fails() {
     thread::sleep(TIME_FOR_SERVER_UP);
     let socketpath = path.join("mnt/edgeAgent.sock");
     assert!(socketpath.exists());
-    std::fs::remove_dir_all(path).unwrap();
 }
 
 #[test]
 fn start_workload_socket_succeeds() {
     let dir = tempdir().unwrap();
-    let path = dir.into_path();
+    let path = dir.path();
 
     let legacyworkloadpath = path.join("workload.sock");
 
@@ -272,13 +270,12 @@ fn start_workload_socket_succeeds() {
     thread::sleep(TIME_FOR_SERVER_UP);
     let socketpath = path.join("mnt/test-agent.sock");
     assert!(socketpath.exists());
-    std::fs::remove_dir_all(path).unwrap();
 }
 
 #[test]
 fn stop_workload_socket_succeeds() {
     let dir = tempdir().unwrap();
-    let path = dir.into_path();
+    let path = dir.path();
 
     let legacyworkloadpath = path.join("workload.sock");
 
@@ -357,5 +354,4 @@ fn stop_workload_socket_succeeds() {
 
     let socketpath = path.join("mnt/test-agent.sock");
     assert!(!socketpath.exists());
-    std::fs::remove_dir_all(path).unwrap();
 }
