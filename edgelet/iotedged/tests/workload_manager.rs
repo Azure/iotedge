@@ -27,7 +27,7 @@ use tempfile::tempdir;
 const IOTEDGED_TLS_COMMONNAME: &str = "iotedged";
 const TIME_FOR_CERT: u64 = 100;
 
-fn make_settings(workloadurl: String, path: &PathBuf) -> TestSettings {
+fn make_settings(workloadurl: &str, path: &PathBuf) -> TestSettings {
     let mut config = Config::default();
     let config_json = json!({
         "listen": {
@@ -70,7 +70,7 @@ fn start_edgeagent_socket_succeeds() {
     let config = TestConfig::new("microsoft/test-image".to_string());
     let module: TestModule = TestModule::new("edgeAgent".to_string(), config);
 
-    let settings = make_settings(unixprefix, &path);
+    let settings = make_settings(&unixprefix, &path);
     let runtime = TestRuntime::make_runtime(
         settings.clone(),
         TestProvisioningResult::new(),
@@ -125,6 +125,7 @@ fn start_edgeagent_socket_succeeds() {
 
     let socketpath = path.join("mnt/edgeAgent.sock");
     assert!(socketpath.exists());
+    std::fs::remove_dir_all(path).unwrap();
 }
 
 #[test]
@@ -153,7 +154,7 @@ fn stop_edgeagent_workload_socket_fails() {
     let config = TestConfig::new("microsoft/test-image".to_string());
     let module: TestModule = TestModule::new("edgeAgent".to_string(), config);
 
-    let settings = make_settings(unixprefix, &path);
+    let settings = make_settings(&unixprefix, &path);
     let runtime = TestRuntime::make_runtime(
         settings.clone(),
         TestProvisioningResult::new(),
@@ -199,6 +200,7 @@ fn stop_edgeagent_workload_socket_fails() {
     thread::sleep(ten_millis);
     let socketpath = path.join("mnt/edgeAgent.sock");
     assert!(socketpath.exists());
+    std::fs::remove_dir_all(path).unwrap();
 }
 
 #[test]
@@ -227,7 +229,7 @@ fn start_workload_socket_succeeds() {
     let config = TestConfig::new("microsoft/test-image".to_string());
     let module: TestModule = TestModule::new("edgeAgent".to_string(), config);
 
-    let settings = make_settings(unixprefix, &path);
+    let settings = make_settings(&unixprefix, &path);
     let runtime = TestRuntime::make_runtime(
         settings.clone(),
         TestProvisioningResult::new(),
@@ -276,6 +278,7 @@ fn start_workload_socket_succeeds() {
     thread::sleep(ten_millis);
     let socketpath = path.join("mnt/test-agent.sock");
     assert!(socketpath.exists());
+    std::fs::remove_dir_all(path).unwrap();
 }
 
 #[test]
@@ -304,7 +307,7 @@ fn stop_workload_socket_succeeds() {
     let config = TestConfig::new("microsoft/test-image".to_string());
     let module: TestModule = TestModule::new("test-agent".to_string(), config);
 
-    let settings = make_settings(unixprefix, &path);
+    let settings = make_settings(&unixprefix, &path);
     let runtime = TestRuntime::make_runtime(
         settings.clone(),
         TestProvisioningResult::new(),
@@ -360,4 +363,5 @@ fn stop_workload_socket_succeeds() {
 
     let socketpath = path.join("mnt/test-agent.sock");
     assert!(!socketpath.exists());
+    std::fs::remove_dir_all(path).unwrap();
 }

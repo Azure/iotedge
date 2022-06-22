@@ -15,7 +15,7 @@ use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-/* */
+
 #[derive(Clone)]
 pub struct TestRegistry<TestConfig> {
     phantom: PhantomData<TestConfig>,
