@@ -136,6 +136,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             try
             {
                 var builder = new ContainerBuilder();
+                builder.RegisterModule(new LoggingModule());
                 string productInfo =
                     versionInfo != VersionInfo.Empty ?
                     $"{Constants.IoTEdgeAgentProductInfoIdentifier}/{versionInfo}" :
