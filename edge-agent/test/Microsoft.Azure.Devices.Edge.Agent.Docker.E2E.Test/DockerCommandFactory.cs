@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Docker
+namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 {
     using System.Collections.Generic;
     using System.Threading.Tasks;
