@@ -9,13 +9,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
     public class LoggingModule : Module
     {
-        readonly string dockerLoggingDriver;
-        readonly IDictionary<string, string> driverOptions;
-
-        public LoggingModule(string dockerLoggingDriver, IDictionary<string, string> loggingDriverOptions)
+        public LoggingModule()
         {
-            this.dockerLoggingDriver = Preconditions.CheckNotNull(dockerLoggingDriver, nameof(dockerLoggingDriver));
-            this.driverOptions = Preconditions.CheckNotNull(loggingDriverOptions, nameof(loggingDriverOptions));
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -23,11 +18,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             // ILoggerFactory
             builder.Register(c => Logger.Factory)
                 .As<ILoggerFactory>()
-                .SingleInstance();
-
-            // DockerLoggingConfig
-            builder.Register(c => new DockerLoggingConfig(this.dockerLoggingDriver, this.driverOptions))
-                .As<DockerLoggingConfig>()
                 .SingleInstance();
 
             base.Load(builder);
