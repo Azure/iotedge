@@ -26,6 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 
         public Task<ICommand> UpdateEdgeAgentAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo) => Task.FromResult(NullCommand.Instance as ICommand);
 
+        // TODO ANDREW: Don't pull on create or update
         public async Task<ICommand> CreateAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
         {
             if (module.Module is DockerModule dockerModule)
@@ -60,6 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
             return Task.FromResult(NullCommand.Instance as ICommand);
         }
 
+        // TODO ANDREW: Don't pull on create or update
         public async Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo)
         {
             if (current is DockerModule currentDockerModule && next.Module is DockerModule nextDockerModule)
