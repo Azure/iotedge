@@ -1,8 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
+namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunner
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.Immutable;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -34,7 +35,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
             this.commandRunStatus = new Dictionary<string, CommandRunStats>();
         }
 
-        // TODO ANDREW: Convert to double nested list loop, where we will detect image pull exception type and continue outer loop.
         public async Task<bool> ExecuteAsync(long deploymentId, Plan plan, CancellationToken token)
         {
             Preconditions.CheckRange(deploymentId, -1, nameof(deploymentId));
@@ -68,50 +68,56 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
 
                 Option<List<Exception>> failures = Option.None<List<Exception>>();
                 bool skippedModules = false;
-                foreach (ICommand command in plan.Commands)
+                foreach (ImmutableList<ICommand> commands in plan.Commands)
                 {
-                    (bool shouldRun, int runCount, TimeSpan coolOffPeriod, TimeSpan elapsedTime) = this.ShouldRunCommand(command);
-
-                    // TODO ANDREW: If this command is an image pull command and should run is false, continue loop
-
-                    try
+                    foreach (ICommand command in commands)
                     {
-                        if (token.IsCancellationRequested)
-                        {
-                            Events.PlanExecCancelled(deploymentId);
-                            break;
-                        }
+                        (bool shouldRun, int runCount, TimeSpan coolOffPeriod, TimeSpan elapsedTime) = this.ShouldRunCommand(command);
 
-                        if (shouldRun)
+                        try
                         {
-                            await command.ExecuteAsync(token);
-
-                            // since this command ran successfully reset its
-                            // run status
-                            if (this.commandRunStatus.ContainsKey(command.Id))
+                            if (token.IsCancellationRequested)
                             {
-                                this.commandRunStatus[command.Id] = CommandRunStats.Default;
+                                Events.PlanExecCancelled(deploymentId);
+                                break;
+                            }
+
+                            if (shouldRun)
+                            {
+                                await command.ExecuteAsync(token);
+
+                                // since this command ran successfully reset its
+                                // run status
+                                if (this.commandRunStatus.ContainsKey(command.Id))
+                                {
+                                    this.commandRunStatus[command.Id] = CommandRunStats.Default;
+                                }
+                            }
+                            else
+                            {
+                                skippedModules = true;
+                                Events.SkippingCommand(deploymentId, command, this.commandRunStatus[command.Id], this.maxRunCount, coolOffPeriod, elapsedTime);
                             }
                         }
-                        else
+                        catch (Exception ex) when (ex.IsFatal() == false)
                         {
-                            skippedModules = true;
-                            Events.SkippingCommand(deploymentId, command, this.commandRunStatus[command.Id], this.maxRunCount, coolOffPeriod, elapsedTime);
-                        }
-                    }
-                    catch (Exception ex) when (ex.IsFatal() == false)
-                    {
-                        Events.PlanExecStepFailed(deploymentId, command, coolOffPeriod, elapsedTime);
-                        if (!failures.HasValue)
-                        {
-                            failures = Option.Some(new List<Exception>());
-                        }
+                            Events.PlanExecStepFailed(deploymentId, command, coolOffPeriod, elapsedTime);
+                            if (!failures.HasValue)
+                            {
+                                failures = Option.Some(new List<Exception>());
+                            }
 
-                        failures.ForEach(f => f.Add(ex));
+                            failures.ForEach(f => f.Add(ex));
 
-                        // since this command failed, record its status
-                        int newRunCount = this.commandRunStatus.ContainsKey(command.Id) ? this.commandRunStatus[command.Id].RunCount : 0;
-                        this.commandRunStatus[command.Id] = new CommandRunStats(newRunCount + 1, this.systemTime.UtcNow, ex);
+                            // since this command failed, record its status
+                            int newRunCount = this.commandRunStatus.ContainsKey(command.Id) ? this.commandRunStatus[command.Id].RunCount : 0;
+                            this.commandRunStatus[command.Id] = new CommandRunStats(newRunCount + 1, this.systemTime.UtcNow, ex);
+
+                            if (ex is ExcecutionPrerequisiteException)
+                            {
+                                continue;
+                            }
+                        }
                     }
                 }
 

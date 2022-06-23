@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
+namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planner
 {
     using System;
     using System.Collections.Generic;
@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             ICommand[] stopCommands = await Task.WhenAll(stopTasks);
             ICommand parallelCommand = new ParallelGroupCommand(stopCommands);
             Events.ShutdownPlanCreated(stopCommands);
-            return new Plan(new[] { parallelCommand });
+            return new Plan(ImmutableList.Create(ImmutableList.Create<ICommand>(parallelCommand)));
         }
 
         public async Task<Plan> PlanAsync(
@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             Events.LogDesired(desired);
             Events.LogCurrent(current);
 
-            List<ICommand> commands = new List<ICommand>();
+            List<ImmutableList<ICommand>> commands = new List<ImmutableList<ICommand>>();
 
             // Create a grouping of desired and current modules based on their priority.
             // We want to process all the modules in the deployment (desired modules) and also include the modules
@@ -106,11 +106,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
                     .ToArray());
                 processedDesiredMatchingCurrentModules.UnionWith(desiredMatchingCurrentModules.Select(x => x.Key));
 
-                commands.AddRange(await this.ProcessDesiredAndCurrentSets(priorityBasedDesiredSet, priorityBasedCurrentSet, runtimeInfo, moduleIdentities));
+                commands.Add((await this.ProcessDesiredAndCurrentSets(priorityBasedDesiredSet, priorityBasedCurrentSet, runtimeInfo, moduleIdentities)).ToImmutableList());
             }
 
             Events.PlanCreated(commands);
-            return new Plan(commands);
+            return new Plan(commands.ToImmutableList());
         }
 
         async Task<IEnumerable<ICommand>> ProcessDesiredAndCurrentSets(
@@ -138,15 +138,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             IEnumerable<ICommand> dead = await Task.WhenAll(deadTasks);
 
             // create pull, create, update and start commands for added/updated modules
-            // TODO ANDREW: Return 2 groups of commands (Option<ImagePulls>, addedCommands)
-            IEnumerable<ICommand> addedCommands = await this.ProcessAddedUpdatedModules(
+            (Option<IEnumerable<ICommand>> upfrontPullCommandsForAdded, IEnumerable<ICommand> addedCommands) = await this.ProcessAddedUpdatedModules(
                 added,
                 moduleIdentities,
+                runtimeInfo,
                 m => this.commandFactory.CreateAsync(m, runtimeInfo));
 
-            IEnumerable<ICommand> updatedCommands = await this.ProcessAddedUpdatedModules(
+            (Option<IEnumerable<ICommand>> upfrontPullCommandsForUpdated, IEnumerable<ICommand> updatedCommands) = await this.ProcessAddedUpdatedModules(
                 updateDeployed,
                 moduleIdentities,
+                runtimeInfo,
                 m =>
                 {
                     current.TryGetModule(m.Module.Name, out IModule currentModule);
@@ -176,7 +177,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             // for more than "IntensiveCareTime" & still have an entry for them in the store
             IEnumerable<ICommand> resetHealthStatus = await this.ResetStatsForHealthyModulesAsync(runningGreat);
 
-            // TODO ANDREW: Pre-empt add image pull commands
+            upfrontPullCommandsForAdded.ForEach(pullCommands => updateRuntimeCommands.Concat(pullCommands));
+            upfrontPullCommandsForUpdated.ForEach(pullCommands => updateRuntimeCommands.Concat(pullCommands));
+
             return updateRuntimeCommands
                 .Concat(stop)
                 .Concat(remove)
@@ -270,16 +273,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             return restart;
         }
 
-        // TODO ANDREW: Need to return separate command collections. Optional one for image pull if feature flag, then normal one of commands after that.
-        // 2 collections will get reordered at higher level.
-        async Task<IEnumerable<ICommand>> ProcessAddedUpdatedModules(
+        async Task<(Option<IEnumerable<ICommand>> upfrontPullCommands, IEnumerable<ICommand> commands)> ProcessAddedUpdatedModules(
             IList<IModule> modules,
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities,
+            IRuntimeInfo runtimeInfo,
             Func<IModuleWithIdentity, Task<ICommand>> createUpdateCommandMaker)
         {
-            // new modules become a command group containing:
-            //   create followed by a start command if the desired
-            //   status is "running"
+            var upfrontPullCommands = new List<Task<ICommand>>();
+
+            // New modules need an image pull, create, and start command. Depending
+            // on `ModuleStartMode`, we will optionally split the image pulls into
+            // a separate collection so that all image pulls can be executed first.
             var addedTasks = new List<Task<ICommand[]>>();
             foreach (IModule module in modules)
             {
@@ -287,7 +291,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
                 {
                     var tasks = new List<Task<ICommand>>();
                     var moduleWithIdentity = new ModuleWithIdentity(module, moduleIdentity);
-                    tasks.Add(createUpdateCommandMaker(moduleWithIdentity));
+
+                    Task<ICommand> prepareUpdate = this.commandFactory.PrepareUpdateAsync(module, runtimeInfo);
+                    Task<ICommand> createUpdate = createUpdateCommandMaker(moduleWithIdentity);
+
+                    // TODO ANDREW: Convert to match?
+                    if (this.moduleUpdateMode == ModuleUpdateMode.NonBlocking)
+                    {
+                        IList<Task<ICommand>> cmds = new List<Task<ICommand>> { prepareUpdate, createUpdate };
+                        // Command needs to be grouped so that image pull is
+                        // guaranteed to succeed before we issue a create command.
+                        // This prevents multiple create commands from getting
+                        // executed within aziot-edged if EdgeAgent timesout
+                        // create request (which itself attempts to pull the image)
+                        // and reissues.
+                        Task<ICommand> createOrUpdateWithUpfrontPull = this.commandFactory.WrapAsync(new GroupCommand(await Task.WhenAll(cmds)));
+                        tasks.Add(createOrUpdateWithUpfrontPull);
+                    }
+                    else
+                    {
+                        upfrontPullCommands.Add(this.commandFactory.PrepareUpdateAsync(module, runtimeInfo));
+                        tasks.Add(createUpdateCommandMaker(moduleWithIdentity));
+                    }
+
                     if (module.DesiredStatus == ModuleStatus.Running)
                     {
                         tasks.Add(this.commandFactory.StartAsync(module));
@@ -305,7 +331,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             IEnumerable<Task<ICommand>> commands = (await Task.WhenAll(addedTasks))
                 .Select(cmds => this.commandFactory.WrapAsync(new GroupCommand(cmds)));
 
-            return await Task.WhenAll(commands);
+            Option<IEnumerable<ICommand>> maybeUpfrontPullCommands = this.moduleUpdateMode == ModuleUpdateMode.WaitForAll ? Option.Some<IEnumerable<ICommand>>(await Task.WhenAll(upfrontPullCommands)) : Option.None<IEnumerable<ICommand>>();
+
+            return (maybeUpfrontPullCommands, await Task.WhenAll(commands));
         }
 
         async Task<IEnumerable<ICommand>> ResetStatsForHealthyModulesAsync(IEnumerable<IRuntimeModule> modules)
@@ -427,9 +455,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
                 InvalidDesiredState
             }
 
-            public static void PlanCreated(IList<ICommand> commands)
+            // TODO ANDREW: How can we make this better
+            public static void PlanCreated(IList<ImmutableList<ICommand>> commands)
             {
-                Log.LogDebug((int)EventIds.PlanCreated, $"HealthRestartPlanner created Plan, with {commands.Count} command(s).");
+                Log.LogDebug((int)EventIds.PlanCreated, $"HealthRestartPlanner created Plan, with {commands.Count} priority group(s).");
             }
 
             public static void ClearingRestartStats(IRuntimeModule module, TimeSpan intensiveCareTime)

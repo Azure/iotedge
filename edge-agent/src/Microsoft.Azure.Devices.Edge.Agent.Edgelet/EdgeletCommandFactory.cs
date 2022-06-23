@@ -45,8 +45,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             {
                 T config = this.combinedConfigProvider.GetCombinedConfig(module.Module, runtimeInfo);
                 return Task.FromResult(
-                    // TODO ANDREW: Remove GroupCommand
-                    new GroupCommand(
                         CreateOrUpdateCommand.BuildCreate(
                             this.moduleManager,
                             module.Module,
@@ -54,8 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
                             this.configSource,
                             config,
                             this.edgeDeviceHostname,
-                            this.parentEdgeHostname)
-                        as ICommand) as ICommand);
+                            this.parentEdgeHostname) as ICommand);
             }
             else
             {

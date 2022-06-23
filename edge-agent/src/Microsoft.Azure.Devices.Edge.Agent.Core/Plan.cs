@@ -1,22 +1,20 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
-    using System.Collections.Generic;
     using System.Collections.Immutable;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public class Plan
     {
-        public Plan(IList<ICommand> commands)
+        public Plan(ImmutableList<ImmutableList<ICommand>> commands)
         {
-            this.Commands = Preconditions.CheckNotNull(commands.ToImmutableList(), nameof(commands));
+            this.Commands = Preconditions.CheckNotNull(commands, nameof(commands));
         }
 
-        public static Plan Empty { get; } = new Plan(ImmutableList<ICommand>.Empty);
+        public static Plan Empty { get; } = new Plan(ImmutableList<ImmutableList<ICommand>>.Empty);
 
         public bool IsEmpty => this.Commands.IsEmpty;
 
-        // TODO ANDREW: Change plan structure to be double nested list of commands
-        public ImmutableList<ICommand> Commands { get; }
+        public ImmutableList<ImmutableList<ICommand>> Commands { get; }
     }
 }
