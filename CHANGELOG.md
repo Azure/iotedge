@@ -16,12 +16,13 @@ When upgrading to 1.3 be aware of the following changes:
 
 
 ## OS Support
-### New Tier1
 * RedHat Enterprise Linux 8 for AMD and Intel 64-bit architectures.
 * Debian 11 (Bullseye) for ARM32v7 ( [Generally available: Azure IoT Edge supports Debian Bullseye on ARM32v7](https://azure.microsoft.com/en-us/updates/azure-iot-edge-supports-debian-bullseye-arm32v7/) )
 
 ### Retirement
 * Debian 9 (Stretch) for ARMHF ( [Update your IoT Edge devices on Raspberry Pi OS Stretch](https://azure.microsoft.com/en-us/updates/update-rpios-stretch-to-latest/) )
+
+The IoT Edge compatibility script performs a variety of checks to determine whether a platform has the necessary capabilities to run IoT Edge. This stand-alone script is still considered under development, but we invite anyone to give it a try and send us your feedback by posting in the Issues. Go [here ](https://github.com/Azure/iotedge/blob/main/platform-validation/docs/aziot-compatibility-get-started.md) to learn more about the checks it performs and how to use it.
 
 ### Known Issue: Debian 10 (Buster) on ARMv7
 We recommend using Bullseye instead of Buster as the host OS.  Seccomp on Buster may not be aware of new system calls used by your container resulting in crashes.
@@ -39,7 +40,6 @@ If you need to use Buster, then apply the following workaround to change the def
 
 
 ## Edge Agent
-### Bug Fixes
 * Remove unused plan runner and planner  ( [2159dfad3](https://github.com/Azure/iotedge/commit/2159dfad36f04c61ed1df6df4afd69ea57439650) )
 * Flatten additional properties of metrics  ( [dbc6af347](https://github.com/Azure/iotedge/commit/dbc6af347adef00a3091be7ae188a1c75fb58181) )
 * Update Device SDK to the latest LTS version  ( [90e5b3264](https://github.com/Azure/iotedge/commit/90e5b3264ac0befe1eeebce898f01635f4ac7d14) )
@@ -76,7 +76,6 @@ If you need to use Buster, then apply the following workaround to change the def
 
 
 ## Edge Hub
-### Bug Fixes
 * Remove experimental mqtt broker code  ( [85084e4f0](https://github.com/Azure/iotedge/commit/85084e4f04aafbd7b68931e80d3c84f28eb47585) )
 * Turning of batching for incoming amqp messages to gain faster feedback to the sender  ( [5667c58ce](https://github.com/Azure/iotedge/commit/5667c58ce0a70f47026efa87fabf29b3ef92c9c1) )
 * Bump Device SDK to latest LTS version  ( [90e5b3264](https://github.com/Azure/iotedge/commit/90e5b3264ac0befe1eeebce898f01635f4ac7d14) )
@@ -150,7 +149,6 @@ If you need to use Buster, then apply the following workaround to change the def
 
 
 ## aziot-edge
-### Bug Fixes
 * Correct handling of `/images/create` response stream  ( [287629d09](https://github.com/Azure/iotedge/commit/287629d09e5265736c0374ce406566fa959ce5f8) )
 * Fix debug artifacts being used in the release pipeline.  ( [59b192cff](https://github.com/Azure/iotedge/commit/59b192cff8427dd112ceed2709b37cf7a9421380) )
 * Flatten additional properties of metrics  ( [dbc6af347](https://github.com/Azure/iotedge/commit/dbc6af347adef00a3091be7ae188a1c75fb58181) )
@@ -269,81 +267,7 @@ If you need to use Buster, then apply the following workaround to change the def
 * Skip latest version check in nested scenarios  ( [941479382](https://github.com/Azure/iotedge/commit/9414793823f127eef12c4c0a2313d512e05df4a1) )
 
 
-## MQTT Broker
-* Remove experimental mqtt broker code  ( [85084e4f0](https://github.com/Azure/iotedge/commit/85084e4f04aafbd7b68931e80d3c84f28eb47585) )
-* Update agent ARM32/64 images to use Alpine  ( [059aaea2d](https://github.com/Azure/iotedge/commit/059aaea2d23d11bfb5b46dac3b28f9a563395647) )
-* Build docker images with embedded metadata  ( [a458af376](https://github.com/Azure/iotedge/commit/a458af376177adacb25349cc8f59df8aae9e1a15) )
-* Changes for obsagent testability  ( [ebc139bcd](https://github.com/Azure/iotedge/commit/ebc139bcdd43b05b656f39ac39cb55ce47e84fe0) )
-* Migrate to Dotnet 6  ( [37234e02b](https://github.com/Azure/iotedge/commit/37234e02b500e6930d389275ac09a5aee80f7445) )
-* Rust toolchain upgrade fixes  ( [a45cc5f71](https://github.com/Azure/iotedge/commit/a45cc5f71e200e78e4e93ae41e2731244bb20ac9) )
-* Add `must_use` attributes to methods returning Self  ( [e0474075d](https://github.com/Azure/iotedge/commit/e0474075dc09811590d0a0a03a41f558dcddd445) )
-* Update regex to 1.5.5  ( [9f0f7f424](https://github.com/Azure/iotedge/commit/9f0f7f42472f658893ff876ad730338ab9833590) )
-* Update `tokio`, `rayon`, and `crossbeam` to latest compatible versions  ( [54163699b](https://github.com/Azure/iotedge/commit/54163699b0db1b1c8eb3ff5b7ab15fd5f6137857) )
-* Upgrade Rust toolchain  ( [ab700e82a](https://github.com/Azure/iotedge/commit/ab700e82ad6ca15140832fbb9970075e2e331073) )
-* Remove `thread_local` for non-edgelet projects  ( [6db976def](https://github.com/Azure/iotedge/commit/6db976def4930a6a5a0f5630170ea4d3d6f8f1b7) )
-* Don't stop the broker if unable to restore persisted state.  ( [ca22a6b9c](https://github.com/Azure/iotedge/commit/ca22a6b9c445c3933b648136329a9398f0ab91a8) )
-* Update Base Images for a Security Patch  ( [e6d52d6f6](https://github.com/Azure/iotedge/commit/e6d52d6f6b0eb76e7ef250f3fcdeaf38e467ab4f), [7e0c1a5d3](https://github.com/Azure/iotedge/commit/7e0c1a5d38755a04ee0b802723a9474cd50eec87), [704250b04](https://github.com/Azure/iotedge/commit/704250b041be242938eb8a238513977a5b452600), [5cb16fb5d](https://github.com/Azure/iotedge/commit/5cb16fb5d8f2ad8f1b7df4092c29333af837df9b), [b00a78805](https://github.com/Azure/iotedge/commit/b00a78805384deff1ce2c252302a260f31c31faa) )
-* Update `tokio` to 1.15.0  ( [c941f0605](https://github.com/Azure/iotedge/commit/c941f06055e827e75c606cd02dab37aebd4b87ed) )
-* Use proper name for `$rid` parameter.  ( [d9fff230f](https://github.com/Azure/iotedge/commit/d9fff230f74b0084af56eea20ce5f849496471e5) )
-* Updated toolchain to 1.55  ( [bc8601851](https://github.com/Azure/iotedge/commit/bc8601851ff5f6ffbbe9080ed72fe208bd2c2db5) )
-* fix various RUSTSEC  ( [89917f1bb](https://github.com/Azure/iotedge/commit/89917f1bb59fe98c9872c16aea5cab855fa6e139) )
-* Update tokio and hyper dependencies  ( [39bd6dc31](https://github.com/Azure/iotedge/commit/39bd6dc31690ad5d65e9bb4a3062f50555149216) )
-* Fix `find_first_block` seek logic  ( [53412dfbf](https://github.com/Azure/iotedge/commit/53412dfbf9674bef6489b4a968af1b72d6837220) )
-* Update Base Images for a Security Patch (#5118)  ( [b592e4776](https://github.com/Azure/iotedge/commit/b592e47760d0b071c18a13c54de9125d990abcfd) )
-* Change default uid  ( [b443b0c2f](https://github.com/Azure/iotedge/commit/b443b0c2f130bbc18060dff9cd2dca26ca6e014e) )
-* Update rust toolchain to 1.52.1  ( [e5218d1e7](https://github.com/Azure/iotedge/commit/e5218d1e70ce71929cc1cabf2965e7a196ff9614) )
-* Make tracing looks like edgehub logs again  ( [944f9098d](https://github.com/Azure/iotedge/commit/944f9098d61db29d484aca8e432acf3c5d9a4366) )
-* Upgrade percent-encoding to v2  ( [2bffaf1cc](https://github.com/Azure/iotedge/commit/2bffaf1cc712e69ec03933c1aaf985b3959d503a) )
-* Upgrade mqtt to tokio1 release  ( [afb8f5494](https://github.com/Azure/iotedge/commit/afb8f5494bf3274a99d2804b3517e18f243f6ff6) )
-* Upgrade mockall crate  ( [3b061f229](https://github.com/Azure/iotedge/commit/3b061f22980dff69ec69e13989c543523597d91c) )
-* Ring buffer write succeeds when no space to fit a new insert  ( [1a2c97cad](https://github.com/Azure/iotedge/commit/1a2c97cad449faf3b14d54e934314158e3b2a4c7) )
-* Remove some stale clippy allows  ( [22d026868](https://github.com/Azure/iotedge/commit/22d02686802f7337028cd1d030fdaeffda846b4e) )
-* Update rust toolchain to 1.51  ( [0f1d90c7c](https://github.com/Azure/iotedge/commit/0f1d90c7c7cec47a087f749da8245c9f6e84a165) )
-* Update bridge config validation.  ( [78236a7ba](https://github.com/Azure/iotedge/commit/78236a7bad08bf98585f602f01030d47d66de141) )
-* Egress pump errors out when either persist or publish error occurred  ( [2b57fdda2](https://github.com/Azure/iotedge/commit/2b57fdda21d21ddd5936f5892abbd713bdf06654) )
-* Filter out publication duplicates in MessageLoader  ( [9ed34c948](https://github.com/Azure/iotedge/commit/9ed34c9488c22670bfda5c6f2fa63f2f634e6214) )
-* Fix topic mapping  ( [1c4b590b3](https://github.com/Azure/iotedge/commit/1c4b590b36c339964d9c6916767ca60d8a621cd8) )
-* Merge Broker and Bridge settings  ( [87ca4bb85](https://github.com/Azure/iotedge/commit/87ca4bb85d9c2f83b261d6969c62f0fda625139c) )
-* Update ASP.NET Core Runtime base images  ( [b00a78805](https://github.com/Azure/iotedge/commit/b00a78805384deff1ce2c252302a260f31c31faa) )
-* Add test for rare RB init edge case  ( [90e4e8749](https://github.com/Azure/iotedge/commit/90e4e87497881a2e7b4c54f3f5da2a108cade7f3) )
-* Simplify insert check logic in `RingBuffer`  ( [408bb0775](https://github.com/Azure/iotedge/commit/408bb07754962fd34f8ecd6d1ae1c0d21fcbbe58) )
-* Fix `RingBuffer` initialization logic  ( [e1d3e4fb6](https://github.com/Azure/iotedge/commit/e1d3e4fb6554d7987404e47c8b0ff80bfbe198af) )
-* Handle RPC sub requests  ( [491fd978d](https://github.com/Azure/iotedge/commit/491fd978dbd376891070e06d39b95baad10e304f) )
-* Fix clippy errors in mqtt-broker-tests-util  ( [407286af2](https://github.com/Azure/iotedge/commit/407286af21be95f30fbf80243564958270e84df2) )
-* Remove unnecessary (IMHO) clippy allowance  ( [15259b0e0](https://github.com/Azure/iotedge/commit/15259b0e09f9b31a86c9ed53f059d544ea874706) )
-* Fix wrap-around bug  ( [09988595c](https://github.com/Azure/iotedge/commit/09988595c01f92990655da9db02190bfc8f295ae) )
-* Updates bridge for RB integration  ( [295cfed97](https://github.com/Azure/iotedge/commit/295cfed9788c4aeb6b0e660d473ccc412eb9dc2e) )
-* Impl StreamWakeableState for RingBuffer  ( [a02780835](https://github.com/Azure/iotedge/commit/a027808352d6c7f971d810235411a0fd956f4653) )
-* support M2M subscription with both cases of `/input/` included or not  ( [a8223af8c](https://github.com/Azure/iotedge/commit/a8223af8c437ac5155e1c9b2b8341b734773ab5b) )
-* Adds storage settings  ( [6f12c88b6](https://github.com/Azure/iotedge/commit/6f12c88b6c1d9227f95e9f12c2c496083426415f) )
-* Generalize `find_first_block`  ( [2af9dacdc](https://github.com/Azure/iotedge/commit/2af9dacdc499f2f4326b5ef896d68df38ad3e43d) )
-
-
-### Compatibility Script (Under Development)
-* UI  ( [35be5feab](https://github.com/Azure/iotedge/commit/35be5feabfd20cbe992b156dbfb150ab188aec23) )
-* Use Docker Socket For Docker Engine API Check  ( [58f3a2842](https://github.com/Azure/iotedge/commit/58f3a2842d5ee4608aa9fc1741fc3220b337bed2) )
-* Fix Resource Profiling for IoT Edge  ( [c34513bae](https://github.com/Azure/iotedge/commit/c34513bae7e6a1a2a953bdc440d0920f8c854511) )
-* Addition of libssl1.0 check and refactor the script  ( [e185b7458](https://github.com/Azure/iotedge/commit/e185b74583f651b6217beb90fe512ff0c294e7f9) )
-* Update CA cert check to query certificates directory from OpenSSL  ( [be2dfa09a](https://github.com/Azure/iotedge/commit/be2dfa09ad3e66759dc8adf10e4401bc77fed826) )
-* Automate shared library dependency check  ( [bba4135bb](https://github.com/Azure/iotedge/commit/bba4135bb5d48ac23f9f7d17124a7c62cbd27414) )
-* Use Approximations for Storage and Memory Check  ( [8c87f025c](https://github.com/Azure/iotedge/commit/8c87f025cec7fb6571fd5f566a1f3ab0c6cc4ffd) )
-* Add Script that Detects Changes required  ( [d32ed23b7](https://github.com/Azure/iotedge/commit/d32ed23b727ac603ffdbac69aaef14806dba1e63) )
-* Add Options for Verbose Logging and Some Bug Fixes  ( [aa5d58ab0](https://github.com/Azure/iotedge/commit/aa5d58ab0f3a1f80d1bfacd169e5743b69a5dd9c) )
-* Change memory check from free command   ( [6563717b3](https://github.com/Azure/iotedge/commit/6563717b303f96ae6049a5a5c555912dfc03b3a8) )
-* Check the current free memory in the platform check ( [4417a86fb](https://github.com/Azure/iotedge/commit/4417a86fb86ec6e211e0f4edb1ee11b2cecea8b3) )
-* Package manager check and CA cert check  ( [5f6d339dc](https://github.com/Azure/iotedge/commit/5f6d339dcea5463da9bae4e304adf65450fc73cf) )
-* Implement Check for Storage Space for IoT Edge  ( [99ae1e3e8](https://github.com/Azure/iotedge/commit/99ae1e3e80b5997d9b6eefc6ce6d97cc22111eff) )
-* Add Memory and CPU Usage Analysis Script  ( [94087d979](https://github.com/Azure/iotedge/commit/94087d979a2243acb6e5db85747a88ad13072a3f) )
-* Generalize Platform Compatibility Tool  ( [7b70d865d](https://github.com/Azure/iotedge/commit/7b70d865d121be469d752ec26be2d22dc9d582c8) )
-* Add Kernel Config Checks  ( [5796116b8](https://github.com/Azure/iotedge/commit/5796116b8075fd7bce6fc5e2ff2e21a46554241a) )
-* Check for shared library dependency  ( [ea0938a05](https://github.com/Azure/iotedge/commit/ea0938a051ff4745292205e65001b69e5b515323) )
-* Add Check for Architecture and Minimum Docker API Version  ( [627f520f3](https://github.com/Azure/iotedge/commit/627f520f34a5df82449cdc2a18400d51cc4b7040) )
-* Added CGROUP HEIRACHY and Systemd  Checks  ( [b4a317aac](https://github.com/Azure/iotedge/commit/b4a317aac8d74de4a97c02566ec2479adfee12d7) )
-* Add Template Code  ( [011586552](https://github.com/Azure/iotedge/commit/011586552ec9104fbbafa86f3f4415c19fd3d29d) )
-
-
 ## Other Modules
-### Bug Fixes
 * Azure Functions Module supports only Amd64  ( [c57446255](https://github.com/Azure/iotedge/commit/c57446255b9d4a04a15271d728b89268d4c35bf1) )
 * Upgrade to latest Rust version  ( [9f674bdf5](https://github.com/Azure/iotedge/commit/9f674bdf5e47b21d8ad24ee983f7259fd9379bd8) )
 * Bump Device SDK to latest LTS version  ( [90e5b3264](https://github.com/Azure/iotedge/commit/90e5b3264ac0befe1eeebce898f01635f4ac7d14) )
