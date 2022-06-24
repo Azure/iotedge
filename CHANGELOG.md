@@ -16,8 +16,8 @@ When upgrading to 1.3 be aware of the following changes:
 
 
 ## OS Support
-* RedHat Enterprise Linux 8 for AMD and Intel 64-bit architectures.
-* Debian 11 (Bullseye) for ARM32v7 ( [Generally available: Azure IoT Edge supports Debian Bullseye on ARM32v7](https://azure.microsoft.com/en-us/updates/azure-iot-edge-supports-debian-bullseye-arm32v7/) )
+* Adding RedHat Enterprise Linux 8 for AMD and Intel 64-bit architectures.
+* Adding Debian 11 (Bullseye) for ARM32v7 ( [Generally available: Azure IoT Edge supports Debian Bullseye on ARM32v7](https://azure.microsoft.com/en-us/updates/azure-iot-edge-supports-debian-bullseye-arm32v7/) )
 
 ### Retirement
 * Debian 9 (Stretch) for ARMHF ( [Update your IoT Edge devices on Raspberry Pi OS Stretch](https://azure.microsoft.com/en-us/updates/update-rpios-stretch-to-latest/) )
