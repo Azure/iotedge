@@ -22,6 +22,7 @@ When upgrading to 1.3 be aware of the following changes:
 ### Retirement
 * Debian 9 (Stretch) for ARMHF ( [Update your IoT Edge devices on Raspberry Pi OS Stretch](https://azure.microsoft.com/en-us/updates/update-rpios-stretch-to-latest/) )
 
+### Compatibility Script (Under Development)
 The IoT Edge compatibility script performs a variety of checks to determine whether a platform has the necessary capabilities to run IoT Edge. This stand-alone script is still considered under development, but we invite anyone to give it a try and send us your feedback by posting in the Issues. Go [here ](https://github.com/Azure/iotedge/blob/main/platform-validation/docs/aziot-compatibility-get-started.md) to learn more about the checks it performs and how to use it.
 
 ### Known Issue: Debian 10 (Buster) on ARMv7
