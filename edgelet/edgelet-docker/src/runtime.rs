@@ -521,6 +521,13 @@ where
 
         let mut system_info = CoreSystemInfo::default();
 
+        let docker_info = self
+            .client
+            .system_info()
+            .await
+            .context(Error::Docker)
+            .context(Error::RuntimeOperation(RuntimeOperation::SystemInfo))?;
+        system_info.server_version = docker_info.server_version().map(ToOwned::to_owned);
         system_info.merge_additional(self.additional_info.clone());
 
         log::info!("Successfully queried system info");

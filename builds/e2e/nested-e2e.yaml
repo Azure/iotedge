@@ -1,23 +1,20 @@
 trigger: none
 pr: none
 
-# Nested E2E and Nested Connectivity share test agents.
-# Thus the schedules between these pipelines are offset by 6 hours.
-# This will ensure that enough agents are avaiable to service all tests.
-#
-# Test schedule the same between main and release/1.2, but offset 12 hours. 
+# Test agents are shared, so schedules must be coordinated to avoid conflicts:
+# - main and release/1.3 run daily, but are offset from each other by 12 hours
 schedules:
-- cron: "0 6 * * *"
-  displayName: Daily build main
+- cron: "0 0 * * *"
+  displayName: Daily run main
   branches:
     include:
     - main
   always: true
-- cron: "0 18 * * *"
-  displayName: Daily build release/1.2
+- cron: "0 12 * * *"
+  displayName: Daily run release/1.3
   branches:
     include:
-    - release/1.2
+    - release/1.3
   always: true
 
 variables:
@@ -42,7 +39,7 @@ resources:
     branch: 'main'
 
 stages:
-- stage: LockAgents 
+- stage: LockAgents
   jobs:
   - template: templates/lock-test-agents.yaml
     parameters:
@@ -53,7 +50,7 @@ stages:
   jobs:
   - template: templates/nested-parent-vm-setup.yaml
     parameters:
-      upstream.protocol: amqp 
+      upstream.protocol: amqp
       test.l4DeploymentFileName: 'nestededge_middleLayer_e2e_amqp.json'
   - job:  SetupVM_and_RunTest_level3
     dependsOn:
@@ -101,7 +98,7 @@ stages:
           IotHubConnectionString: '$(IotHub-ConnStr)'
           test_type: nestededge_amqp
 
-- stage: Cleanup 
+- stage: Cleanup
   condition: always()
   dependsOn:
     - LockAgents
@@ -109,7 +106,7 @@ stages:
   jobs:
   - job:  Unlock_agents
     displayName: Unlock agents
-    timeoutInMinutes: 2    
+    timeoutInMinutes: 2
     pool:
       name: $(pool.name)
       demands:
@@ -122,11 +119,11 @@ stages:
 
   - job:  Clean_up_identities
     displayName: Clean up identities
-    timeoutInMinutes: 2    
-    variables:    
-      deviceLvl5DeviceId: $[ stageDependencies.RunNestedTests.SetupVM_level5_amqp.outputs['createIdentity.parentDeviceId'] ] 
-      deviceLvl4DeviceId: $[ stageDependencies.RunNestedTests.SetupVM_level4_amqp.outputs['createIdentity.parentDeviceId'] ] 
-      deviceLvl5IoTHubName: $[ stageDependencies.RunNestedTests.SetupVM_level5_amqp.outputs['createIdentity.iotHubName'] ] 
+    timeoutInMinutes: 2
+    variables:
+      deviceLvl5DeviceId: $[ stageDependencies.RunNestedTests.SetupVM_level5_amqp.outputs['createIdentity.parentDeviceId'] ]
+      deviceLvl4DeviceId: $[ stageDependencies.RunNestedTests.SetupVM_level4_amqp.outputs['createIdentity.parentDeviceId'] ]
+      deviceLvl5IoTHubName: $[ stageDependencies.RunNestedTests.SetupVM_level5_amqp.outputs['createIdentity.iotHubName'] ]
       deviceLvl4IoTHubName: $[ stageDependencies.RunNestedTests.SetupVM_level4_amqp.outputs['createIdentity.iotHubName'] ]
     pool:
       name: $(pool.name)
