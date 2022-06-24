@@ -1,4 +1,19 @@
-# 1.3.0 (2021-02-24)
+# 1.3.0 (2022-06-24)
+## What's new in 1.3?
+The 1.3 release is the next stable release after the 1.2 and includes the following in preparation for the next LTS:
+* OS support changes
+* System modules based on .NET 6 with Alpine as the base layer
+* Required use of TLS 1.2 by default
+* Updates to the rust-based components to use tokio 1.0
+* Various bug fixes
+
+**With this release the 1.2.x is no longer serviced with bug fixes and security patches.**
+
+### Upgrade notes
+When upgrading to 1.3 be aware of the following changes:
+1. You can configure Edge Hub to still accept TLS 1.0 or 1.1 connections via the [SslProtocols environment variable](https://github.com/Azure/iotedge/blob/main/doc/EnvironmentVariables.md#edgehub).  Please note that support for [TLS 1.0 and 1.1 in IoT Hub is considered legacy](https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-tls-support) and may also be removed from Edge Hub in future releases. To avoid future issues, use TLS 1.2 as the only TLS version when connecting to Edge Hub or IoT Hub.
+2. The preview for the experimental MQTT broker in Edge Hub 1.2 has ended and is not included in Edge Hub 1.3. We are continuing to refine our plans for an MQTT broker based on feedback received. In the meantime, if you need a standards-compliant MQTT broker on IoT Edge, consider deploying an open-source broker like [Mosquitto](https://mosquitto.org/) as an IoT Edge module.
+
 
 ## OS Support
 ### New Tier1
