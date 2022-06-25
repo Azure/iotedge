@@ -286,7 +286,7 @@ async fn execute_inner(
 
     let edge_ca = edge_ca.unwrap_or(super_config::EdgeCa::Quickstart {
         auto_generated_edge_ca_expiry_days: 90,
-        auto_renew: None,
+        auto_renew: Some(cert_renewal::AutoRenewConfig::default()),
         subject: None,
     });
 
@@ -335,16 +335,14 @@ async fn execute_inner(
                         issuance.clone(),
                     );
 
-                    if cert.auto_renew.is_some() {
-                        let temp_cert = format!("{}-temp", edgelet_settings::AZIOT_EDGED_CA_ALIAS);
-
-                        certd_config.cert_issuance.certs.insert(temp_cert, issuance);
-                    }
+                    let auto_renew = cert.auto_renew.unwrap_or_default();
+                    let temp_cert = format!("{}-temp", edgelet_settings::AZIOT_EDGED_CA_ALIAS);
+                    certd_config.cert_issuance.certs.insert(temp_cert, issuance);
 
                     edgelet_settings::base::EdgeCa {
                         cert: Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
                         key: Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
-                        auto_renew: cert.auto_renew,
+                        auto_renew: Some(auto_renew),
                         subject: cert.subject,
                     }
                 }
@@ -360,11 +358,9 @@ async fn execute_inner(
                         issuance.clone(),
                     );
 
-                    if cert.auto_renew.is_some() {
-                        let temp_cert = format!("{}-temp", edgelet_settings::AZIOT_EDGED_CA_ALIAS);
-
-                        certd_config.cert_issuance.certs.insert(temp_cert, issuance);
-                    }
+                    let auto_renew = cert.auto_renew.unwrap_or_default();
+                    let temp_cert = format!("{}-temp", edgelet_settings::AZIOT_EDGED_CA_ALIAS);
+                    certd_config.cert_issuance.certs.insert(temp_cert, issuance);
 
                     keyd_config.principal.push(aziot_keyd_config::Principal {
                         uid: aziotcs_uid.as_raw(),
@@ -374,7 +370,7 @@ async fn execute_inner(
                     edgelet_settings::base::EdgeCa {
                         cert: Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
                         key: Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
-                        auto_renew: cert.auto_renew,
+                        auto_renew: Some(auto_renew),
 
                         // The cert subject override is set in certd's settings and does not need
                         // to be set in Edge daemon.
@@ -389,13 +385,14 @@ async fn execute_inner(
                         aziotcs_uid,
                         cert.expiry_days,
                         cert.subject,
-                        cert.auto_renew.is_some(),
                     );
+
+                    let auto_renew = cert.auto_renew.unwrap_or_default();
 
                     edgelet_settings::base::EdgeCa {
                         cert: Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
                         key: Some(edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()),
-                        auto_renew: cert.auto_renew,
+                        auto_renew: Some(auto_renew),
 
                         // The cert subject override is set in certd's settings and does not need
                         // to be set in Edge daemon.
@@ -433,13 +430,14 @@ async fn execute_inner(
                 aziotcs_uid,
                 Some(auto_generated_edge_ca_expiry_days),
                 subject,
-                auto_renew.is_some(),
             );
+
+            let auto_renew = auto_renew.unwrap_or_default();
 
             edgelet_settings::base::EdgeCa {
                 cert: None,
                 key: None,
-                auto_renew,
+                auto_renew: Some(auto_renew),
                 subject: None,
             }
         }
@@ -621,13 +619,13 @@ async fn execute_inner(
         preloaded_master_encryption_key_bytes,
     })
 }
+
 fn set_quickstart_ca(
     keyd_config: &mut aziot_keyd_config::Config,
     certd_config: &mut aziot_certd_config::Config,
     aziotcs_uid: nix::unistd::Uid,
     expiry_days: Option<u32>,
     subject: Option<aziot_certd_config::CertSubject>,
-    auto_renew: bool,
 ) {
     let issuance = aziot_certd_config::CertIssuanceOptions {
         method: aziot_certd_config::CertIssuanceMethod::SelfSigned,
@@ -642,15 +640,13 @@ fn set_quickstart_ca(
 
     let mut certd_keys = vec![edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_owned()];
 
-    if auto_renew {
-        let temp_cert = format!("{}-temp", edgelet_settings::AZIOT_EDGED_CA_ALIAS);
+    let temp_cert = format!("{}-temp", edgelet_settings::AZIOT_EDGED_CA_ALIAS);
 
-        certd_config
-            .cert_issuance
-            .certs
-            .insert(temp_cert.clone(), issuance);
-        certd_keys.push(temp_cert);
-    }
+    certd_config
+        .cert_issuance
+        .certs
+        .insert(temp_cert.clone(), issuance);
+    certd_keys.push(temp_cert);
 
     keyd_config.principal.push(aziot_keyd_config::Principal {
         uid: aziotcs_uid.as_raw(),
