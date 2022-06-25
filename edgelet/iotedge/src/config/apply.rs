@@ -286,7 +286,7 @@ async fn execute_inner(
 
     let edge_ca = edge_ca.unwrap_or(super_config::EdgeCa::Quickstart {
         auto_generated_edge_ca_expiry_days: 90,
-        auto_renew: Some(cert_renewal::AutoRenewConfig::default()),
+        auto_renew: cert_renewal::AutoRenewConfig::default(),
         subject: None,
     });
 
@@ -431,8 +431,6 @@ async fn execute_inner(
                 Some(auto_generated_edge_ca_expiry_days),
                 subject,
             );
-
-            let auto_renew = auto_renew.unwrap_or_default();
 
             edgelet_settings::base::EdgeCa {
                 cert: None,
