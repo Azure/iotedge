@@ -150,6 +150,7 @@ If you need to use Buster, then apply the following workaround to change the def
 
 
 ## aziot-edge
+* Enable Edge CA auto-renewal by default ( [04bd75d9c](https://github.com/Azure/iotedge/commit/04bd75d9c5e779603549ea070ce72b6def4dbc05) )
 * Correct handling of `/images/create` response stream  ( [287629d09](https://github.com/Azure/iotedge/commit/287629d09e5265736c0374ce406566fa959ce5f8) )
 * Fix debug artifacts being used in the release pipeline.  ( [59b192cff](https://github.com/Azure/iotedge/commit/59b192cff8427dd112ceed2709b37cf7a9421380) )
 * Flatten additional properties of metrics  ( [dbc6af347](https://github.com/Azure/iotedge/commit/dbc6af347adef00a3091be7ae188a1c75fb58181) )
