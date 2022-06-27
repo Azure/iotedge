@@ -25,7 +25,7 @@ The preview for the experimental MQTT broker in Edge Hub 1.2 has ended and is no
 
 ### Certificate renewal feature detail
 
-This new feature adds a way to set option in `config.toml` to have IoT Edge proactively renew device identity (for authentication to IoT Hub and DPS), Edge CA, and EST identity certificates. Use this feature along with an EST server like [GlobalSign IoT Edge Enroll](https://www.globalsign.com/en/iot-edge-enroll) or [DigiCert IoT Device Manager](https://www.digicert.com/iot/iot-device-manager) to automate certificate renewals customized to your needs.
+You can have IoT Edge proactively renew device identity (for authentication to IoT Hub and DPS), Edge CA, and EST identity certificates by configuring a few basic options in the `config.toml`. Use this feature along with an EST server like [GlobalSign IoT Edge Enroll](https://www.globalsign.com/en/iot-edge-enroll) or [DigiCert IoT Device Manager](https://www.digicert.com/iot/iot-device-manager) to automate certificate renewals customized to your needs.
 
 For example, adding below configuration enables device identity certificate auto-renewal when the certificate is at 80% of its lifetime, retry at increment of 4% of lifetime, and rotate the private key:
 
