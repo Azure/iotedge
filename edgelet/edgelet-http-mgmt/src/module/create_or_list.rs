@@ -51,11 +51,10 @@ where
     async fn get(self) -> http_common::server::RouteResponse {
         let runtime = self.runtime.lock().await;
 
-        let modules =
-            runtime
-                .list_with_details()
-                .await
-                .map_err(|err| edgelet_http::error::runtime_error(&*runtime, &err))?;
+        let modules = runtime
+            .list_with_details()
+            .await
+            .map_err(|err| edgelet_http::error::runtime_error(&*runtime, &err))?;
 
         let res: edgelet_http::ListModulesResponse = modules.into();
         let res = http_common::server::response::json(hyper::StatusCode::OK, &res);
