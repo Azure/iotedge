@@ -63,7 +63,7 @@ pub fn default_agent() -> edgelet_settings::ModuleSpec<edgelet_settings::DockerC
         /* type */ "docker".to_owned(),
         /* config */
         edgelet_settings::DockerConfig::new(
-            /* image */ "mcr.microsoft.com/azureiotedge-agent:1.2".to_owned(),
+            /* image */ "mcr.microsoft.com/azureiotedge-agent:1.3".to_owned(),
             /* create_options */ docker::models::ContainerCreateBody::new(),
             /* digest */ None,
             /* auth */ None,
