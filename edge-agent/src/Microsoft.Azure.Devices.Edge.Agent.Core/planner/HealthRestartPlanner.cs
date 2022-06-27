@@ -138,6 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planner
             IEnumerable<ICommand> dead = await Task.WhenAll(deadTasks);
 
             // create pull, create, update and start commands for added/updated modules
+            // TODO ANDREW: condense functions and make singular option
             (Option<IEnumerable<ICommand>> upfrontPullCommandsForAdded, IEnumerable<ICommand> addedCommands) = await this.ProcessAddedUpdatedModules(
                 added,
                 moduleIdentities,
@@ -177,8 +178,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planner
             // for more than "IntensiveCareTime" & still have an entry for them in the store
             IEnumerable<ICommand> resetHealthStatus = await this.ResetStatsForHealthyModulesAsync(runningGreat);
 
-            upfrontPullCommandsForAdded.ForEach(pullCommands => updateRuntimeCommands.Concat(pullCommands));
-            upfrontPullCommandsForUpdated.ForEach(pullCommands => updateRuntimeCommands.Concat(pullCommands));
+            upfrontPullCommandsForAdded.ForEach(pullCommands => updateRuntimeCommands.AddRange(pullCommands));
+            upfrontPullCommandsForUpdated.ForEach(pullCommands => updateRuntimeCommands.AddRange(pullCommands));
 
             return updateRuntimeCommands
                 .Concat(stop)

@@ -24,11 +24,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
 
         public string Show() => $"Prepare module {this.module.Name}";
 
-        public Task ExecuteAsync(CancellationToken token)
+        public async Task ExecuteAsync(CancellationToken token)
         {
             try
             {
-                return this.moduleManager.PrepareUpdateAsync(this.module);
+                await this.moduleManager.PrepareUpdateAsync(this.module);
             }
             catch (Exception e)
             {

@@ -100,6 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 coolOffTimeUnitInSeconds = configuration.GetValue("CoolOffTimeUnitInSeconds", 10);
                 usePersistentStorage = configuration.GetValue("UsePersistentStorage", true);
                 useServerHeartbeat = configuration.GetValue("UseServerHeartbeat", true);
+                // TODO ANDREW: If it can't parse this, then we need to pick default so we don't brick device. Test UpstreamProtocol.
                 moduleUpdateMode = configuration.GetValue("ModuleUpdateMode", ModuleUpdateMode.NonBlocking);
 
                 // Note: Keep in sync with iotedge-check's edge-agent-storage-mounted-from-host check (edgelet/iotedge/src/check/checks/storage_mounted_from_host.rs)

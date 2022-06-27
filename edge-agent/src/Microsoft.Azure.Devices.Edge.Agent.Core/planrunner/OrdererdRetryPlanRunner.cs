@@ -68,11 +68,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunner
 
                 Option<List<Exception>> failures = Option.None<List<Exception>>();
                 bool skippedModules = false;
-                foreach (ImmutableList<ICommand> commands in plan.Commands)
+                foreach (ImmutableList<ICommand> priorityGroupCommands in plan.Commands)
                 {
-                    foreach (ICommand command in commands)
+                    foreach (ICommand command in priorityGroupCommands)
                     {
                         (bool shouldRun, int runCount, TimeSpan coolOffPeriod, TimeSpan elapsedTime) = this.ShouldRunCommand(command);
+                        if (this.ShouldSkipRemaining(shouldRun, command))
+                        {
+                            Events.SkipRemainingCommandsInPriorityGroup(deploymentId, command);
+                            break;
+                        }
 
                         try
                         {
@@ -82,6 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunner
                                 break;
                             }
 
+                            // TODO ANDREW: if shouldn't run, shouldn't proceed from image pulls onto real commands
                             if (shouldRun)
                             {
                                 await command.ExecuteAsync(token);
@@ -113,9 +119,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunner
                             int newRunCount = this.commandRunStatus.ContainsKey(command.Id) ? this.commandRunStatus[command.Id].RunCount : 0;
                             this.commandRunStatus[command.Id] = new CommandRunStats(newRunCount + 1, this.systemTime.UtcNow, ex);
 
+                            // TODO ANDREW: skipped modules set here? thinking no
                             if (ex is ExcecutionPrerequisiteException)
                             {
-                                continue;
+                                Events.StopProcessingPriorityGroup(deploymentId, command);
+                                break;
                             }
                         }
                     }
@@ -125,6 +133,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunner
                 failures.ForEach(f => throw new AggregateException(f));
                 return !skippedModules;
             }
+        }
+
+        bool ShouldSkipRemaining(bool shouldRun, ICommand command)
+        {
+            bool didCommandFailWithPrereqException = this.commandRunStatus.ContainsKey(command.Id) && this.commandRunStatus[command.Id].Exception.Match(
+            e =>
+            {
+                return e is ExcecutionPrerequisiteException;
+            },
+            () =>
+            {
+                return false;
+            });
+
+            return !shouldRun && didCommandFailWithPrereqException;
         }
 
         (bool shouldRun, int runCount, TimeSpan coolOffPeriod, TimeSpan elapsedTime) ShouldRunCommand(ICommand command)
@@ -229,6 +252,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunner
             public static void PlanExecEnded(long deploymentId)
             {
                 Log.LogInformation((int)EventIds.PlanExecEnded, $"Plan execution ended for deployment {deploymentId}");
+            }
+
+            public static void StopProcessingPriorityGroup(long deploymentId, ICommand command)
+            {
+                Log.LogError(
+                    (int)EventIds.PlanExecStepFailed,
+                    $"Step failed in deployment {deploymentId}. Failure when running command {command.Show()}. Skipping remaining commands in deployment priority group.");
+            }
+
+            public static void SkipRemainingCommandsInPriorityGroup(long deploymentId, ICommand command)
+            {
+                Log.LogError(
+                    (int)EventIds.PlanExecStepFailed,
+                    $"Step previously failed in deployment {deploymentId} on prior attempt. Not running command {command.Show()}. Skipping remaining commands in deployment priority group.");
             }
         }
     }
