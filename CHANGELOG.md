@@ -617,20 +617,6 @@ The refactoring does affect the packaging and installation of IoT Edge. While we
 * Update `iotedge check` for version 1.2.0 ( [db18594](https://github.com/Azure/iotedge/commit/db18594197c1fd0eeacb474f31c95828f689b882), [ee73e76](https://github.com/Azure/iotedge/commit/ee73e76d18874ddfce416098df9096c0d484c63b) )
 
 
-## MQTT Broker
-### Bug Fixes
-* Makes egress pump exit with corresponding error ( [08678d5](https://github.com/Azure/iotedge/commit/08678d55e0ea52f2054c64cf4a97c880a4729568) )
-* Filter out publication duplicates in MessageLoader ( [0c0536a](https://github.com/Azure/iotedge/commit/0c0536a72cb5d53acf7d4be27bfc2fd38de21730) )
-* Fix topic mapping ( [a799291](https://github.com/Azure/iotedge/commit/a799291d06ab412cd1c85045faa3b2b5ba97e684) )
-* Fix RingBuffer initialization issue ( [b96b513](https://github.com/Azure/iotedge/commit/b96b513f6af7798bf2958982eb7be905d335760d), [c69ac53](https://github.com/Azure/iotedge/commit/c69ac53148c6fdf049d5d7f6346a470d8c5c407c) )
-* Fix flaky proptest ( [484f395](https://github.com/Azure/iotedge/commit/484f395d76514f95f1f08d9efefcdc5a5769d08e) )
-
-### Features
-* Merge Broker and Bridge settings ( [07155ad](https://github.com/Azure/iotedge/commit/07155ad3f288ff243b6fbef58b3ae75e7284d9bb) )
-* Support RPC subscription requests ( [b86dca7](https://github.com/Azure/iotedge/commit/b86dca7ed898f5eca203ffe281a63238c4cc4924) )
-* Improve RingBuffer ( [16c09f6](https://github.com/Azure/iotedge/commit/16c09f6fb8c1aaf359ded13c61ec3fc291ec8d57) )
-
-
 ## aziot-edge
 ### Bug Fixes
 * Fix for expired CA certificate not renewing ( [ac142d1](https://github.com/Azure/iotedge/commit/ac142d137a84f37f7417ade89a2ae2051689b76f) )
@@ -655,26 +641,6 @@ The refactoring does affect the packaging and installation of IoT Edge. While we
 * Allow Connection with trust bundle in the Nested topology ( [fb3f1a3](https://github.com/Azure/iotedge/commit/fb3f1a3df0dc48c4209bbbb0dd6fdd6392ecc249) )
 * Introduce check up_to_date_config ( [8e4f685](https://github.com/Azure/iotedge/commit/8e4f68522c07f51f70894f1813fa3b94027c92f9) )
 * Introduce optional proxy argument to iotedge ( [a0a883d](https://github.com/Azure/iotedge/commit/a0a883da44499a9f09a4de8794fbac83f752c214) )
-
-
-# 1.1.0 (2021-02-10)
-## Change to Supported Systems
-* **Remove support for Ubuntu 16.04**. Ubuntu will soon end their support for 16.04, so we're changing our support to match. Ubuntu 18.04 continues to be supported.
-* **Remove support for Windows IoT Core**.
-## Edge Agent
-### Bug Fixes
-* Fix `since` parameter in `GetModuleLogs` direct method [8d9a8e0](https://github.com/Azure/iotedge/commit/8d9a8e0eff2b47b99a4bfb28af2d3501f901c8af)
-* Don't pass HTTPS proxy information to the cloud connection for protocols that don't use port 443 [ca2fa42](https://github.com/Azure/iotedge/commit/ca2fa428e3c61fc53ce4d9a58d4d6094e51c4e5c)
-* Update config version even when plan is empty [97532d0](https://github.com/Azure/iotedge/commit/97532d05f8ec0777dc41290dc25b2cee0813b66e)
-* Fix vulnerability issues in docker images [4dbaa62](https://github.com/Azure/iotedge/commit/4dbaa6207e8e899fdd50dfd3a3b031713964bdb6), [3c569ac](https://github.com/Azure/iotedge/commit/3c569ac868b584cbe048447c6783a5fc93985082)
-
-## Edge Hub
-### Changes
-* **Edge Hub allows only child devices to connect by default**. To connect a leaf device to the Edge Hub, users must [establish a parent/child relationship](https://docs.microsoft.com/en-us/azure/iot-edge/offline-capabilities?view=iotedge-2018-06#set-up-parent-and-child-devices) between the edge device and the leaf device. In previous versions, this was required only for offline scenarios or when using certificate-based authentication. For online scenarios Edge Hub could fall back to cloud-based authentication for leaf devices that were using SAS key-based authentication. With this change, leaf devices with SAS key-based authentication need to be a children of the edge device. You can configure Edge Hub to go back to the previous behavior by setting the environment variable "AuthenticationMode" to the value "CloudAndScope".
-### Bug Fixes
-* Continue message store cleanup after encountering db error [4a196f0](https://github.com/Azure/iotedge/commit/4a196f0b4a2f04f9bd8988fdea4c3f308fd67546)
-* Don't pass HTTPS proxy information to the cloud connection for protocols that don't use port 443 [ca2fa42](https://github.com/Azure/iotedge/commit/ca2fa428e3c61fc53ce4d9a58d4d6094e51c4e5c)
-* Fix vulnerability issues in docker images [4dbaa62](https://github.com/Azure/iotedge/commit/4dbaa6207e8e899fdd50dfd3a3b031713964bdb6), [3c569ac](https://github.com/Azure/iotedge/commit/3c569ac868b584cbe048447c6783a5fc93985082)
 
 
 # 1.0.8 (2019-07-22)
