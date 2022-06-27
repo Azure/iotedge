@@ -349,11 +349,12 @@ where
             .client
             .container_inspect(id, false)
             .await
-            .map_err(|_| Error::RuntimeOperation(RuntimeOperation::GetModule(id.to_owned())))?;
+            .context(Error::Docker)
+            .with_context(|| Error::RuntimeOperation(RuntimeOperation::GetModule(id.to_owned())))?;
 
         let name = response
             .name()
-            .ok_or_else(|| Error::RuntimeOperation(RuntimeOperation::GetModule(id.to_string())))?;
+            .ok_or_else(|| Error::RuntimeOperation(RuntimeOperation::GetModule(id.to_owned())))?;
         let name = name.trim_start_matches('/').to_owned();
 
         let mut create_options = ContainerCreateBody::new();
@@ -618,7 +619,8 @@ where
                 &filters,
             )
             .await
-            .context(Error::Docker)?;
+            .context(Error::Docker)
+            .context(Error::RuntimeOperation(RuntimeOperation::ListModules))?;
 
         let result = containers
             .iter()
