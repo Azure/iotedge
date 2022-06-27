@@ -54,7 +54,9 @@ fn merge_env(cur_env: Option<&[String]>, new_env: &BTreeMap<String, String>) -> 
         // only string slices pointing into strings inside cur_env)
         merged_env.extend(env.iter().filter_map(|s| {
             let mut tokens = s.splitn(2, '=');
-            tokens.next().map(|key| (key, tokens.next().unwrap_or_default()))
+            tokens
+                .next()
+                .map(|key| (key, tokens.next().unwrap_or_default()))
         }));
     }
 

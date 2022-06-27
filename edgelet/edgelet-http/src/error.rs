@@ -18,16 +18,13 @@ pub const fn bad_request(message: &'static str) -> Error {
 
 /// Produce an HTTP error response provided a runtime-dependent error.
 #[allow(clippy::module_name_repetitions)]
-pub fn runtime_error<M>(
-    _runtime: &M,
-    error: &anyhow::Error
-) -> http_common::server::Error
+pub fn runtime_error<M>(_runtime: &M, error: &anyhow::Error) -> http_common::server::Error
 where
-    M: edgelet_core::ModuleRuntime
+    M: edgelet_core::ModuleRuntime,
 {
     http_common::server::Error {
         status_code: <M as edgelet_core::ModuleRuntime>::error_code(error),
-        message: std::borrow::Cow::Owned(error.to_string())
+        message: std::borrow::Cow::Owned(error.to_string()),
     }
 }
 
@@ -36,6 +33,6 @@ where
 pub fn server_error(error: impl ToString) -> Error {
     Error {
         status_code: http::StatusCode::INTERNAL_SERVER_ERROR,
-        message: error.to_string().into()
+        message: error.to_string().into(),
     }
 }

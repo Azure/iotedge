@@ -62,12 +62,14 @@ where
     async fn get(self) -> http_common::server::RouteResponse {
         let client = self.client.lock().await;
 
-        let certificate = client.get_cert(&self.trust_bundle).await.map_err(|_| {
-            http_common::server::Error {
-                status_code: http::StatusCode::NOT_FOUND,
-                message: format!("certificate {:?} not found", self.trust_bundle).into(),
-            }
-        });
+        let certificate =
+            client
+                .get_cert(&self.trust_bundle)
+                .await
+                .map_err(|_| http_common::server::Error {
+                    status_code: http::StatusCode::NOT_FOUND,
+                    message: format!("certificate {:?} not found", self.trust_bundle).into(),
+                });
 
         let certificate = match (certificate, self.optional) {
             (Ok(certificate), _) => std::str::from_utf8(&certificate)

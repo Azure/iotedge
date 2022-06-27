@@ -21,7 +21,7 @@ where
         .to_runtime_spec::<M>()
         .map_err(|err| http_common::server::Error {
             status_code: http::StatusCode::BAD_REQUEST,
-            message: err.to_string().into()
+            message: err.to_string().into(),
         })?;
 
     pull_image(runtime, &module).await?;
