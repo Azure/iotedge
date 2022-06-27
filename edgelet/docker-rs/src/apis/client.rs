@@ -181,8 +181,12 @@ macro_rules! api_call {
         $blk
     }};
 
-    (@inner make_body) => { ::hyper::Body::empty() };
-    (@inner make_body $body:ident $_:ty) => { ::hyper::Body::from(::serde_json::to_string(&$body)?) };
+    (@inner build_request $builder:ident) => { $builder.body(::hyper::Body::empty()) };
+    (@inner build_request $builder:ident $body:ident $_:ty) => {
+        $builder
+            .header(::hyper::header::CONTENT_TYPE, "application/json")
+            .body(::hyper::Body::from(::serde_json::to_string(&$body)?))
+    };
 
     (@inner query $param:ident &$($_:lifetime)? str) => { $param };
     (@inner query $param:ident Option<$type:ty>) => {
@@ -232,7 +236,7 @@ macro_rules! api_call {
                 if let Some(agent) = &self.configuration.user_agent {
                     builder = builder.header(::hyper::header::USER_AGENT, agent);
                 }
-                let request = builder.body(api_call!(@inner make_body $(body $btype)?))?;
+                let request = api_call!(@inner build_request builder $(body $btype)?)?;
 
                 let response = ::tokio::time::timeout(
                     ::std::time::Duration::from_secs(30),
