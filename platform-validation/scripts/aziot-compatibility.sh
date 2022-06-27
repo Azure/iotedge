@@ -850,7 +850,7 @@ aziotedge_check() {
 
     #Todo : As we add new versions, these checks will need to be changed. Keep a common check for now
     case $APP_VERSION in
-    *) wrap_debug_message "Checking aziot-edge compatibility for Release 1.2" ;;
+    *) wrap_debug_message "Checking aziot-edge compatibility for Release 1.3" ;;
     esac
 
     # Keep the ordering of checks consistent, Add new checks towards the end, Since outputs of
