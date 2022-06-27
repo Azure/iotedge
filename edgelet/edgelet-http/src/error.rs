@@ -29,7 +29,7 @@ where
 }
 
 /// Produce a generic internal server error.
-#[allow(clippy::module_name_repetitions)]
+#[allow(clippy::module_name_repetitions, clippy::needless_pass_by_value)]
 pub fn server_error(error: impl ToString) -> Error {
     Error {
         status_code: http::StatusCode::INTERNAL_SERVER_ERROR,
