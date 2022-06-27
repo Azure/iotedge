@@ -13,11 +13,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
     {
         readonly IModuleManager moduleManager;
         readonly ModuleSpec module;
+        readonly ModuleUpdateMode moduleUpdateMode;
 
-        public PrepareUpdateCommand(IModuleManager moduleManager, IModule module, object settings)
+        public PrepareUpdateCommand(IModuleManager moduleManager, IModule module, object settings, ModuleUpdateMode moduleUpdateMode)
         {
             this.moduleManager = moduleManager;
             this.module = BuildModuleSpec(module, settings);
+            this.moduleUpdateMode = moduleUpdateMode;
         }
 
         public string Id => $"PrepareUpdateCommand({this.module.Name})";
@@ -32,7 +34,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
             }
             catch (Exception e)
             {
-                throw new ExcecutionPrerequisiteException("Failed to executure PrepareForUpdate command", e);
+                if (this.moduleUpdateMode == ModuleUpdateMode.WaitForAll)
+                {
+                    throw new ExcecutionPrerequisiteException("Failed to executure PrepareForUpdate command", e);
+                }
+                else
+                {
+                    throw;
+                }
             }
         }
 

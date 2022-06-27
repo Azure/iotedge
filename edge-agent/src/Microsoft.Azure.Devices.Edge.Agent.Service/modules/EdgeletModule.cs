@@ -47,6 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string backupConfigFilePath;
         readonly bool checkImagePullBeforeModuleCreate;
         readonly bool disableDeviceAnalyticsTelemetry;
+        readonly ModuleUpdateMode moduleUpdateMode;
 
         public EdgeletModule(
             string iotHubHostname,
@@ -64,7 +65,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             bool useServerHeartbeat,
             string backupConfigFilePath,
             bool checkImagePullBeforeModuleCreate,
-            bool disableDeviceAnalyticsTelemetry)
+            bool disableDeviceAnalyticsTelemetry,
+            ModuleUpdateMode moduleUpdateMode)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
@@ -82,6 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.backupConfigFilePath = Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath));
             this.checkImagePullBeforeModuleCreate = checkImagePullBeforeModuleCreate;
             this.disableDeviceAnalyticsTelemetry = disableDeviceAnalyticsTelemetry;
+            this.moduleUpdateMode = moduleUpdateMode;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -139,6 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             moduleManager,
                             configSource,
                             combinedDockerConfigProvider,
+                            this.moduleUpdateMode,
                             this.checkImagePullBeforeModuleCreate);
                         factory = new MetricsCommandFactory(factory, metricsProvider);
                         return new LoggingCommandFactory(factory, loggerFactory) as ICommandFactory;

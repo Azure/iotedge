@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         readonly ICombinedConfigProvider<T> combinedConfigProvider;
         readonly string edgeDeviceHostname;
         readonly Option<string> parentEdgeHostname;
+        readonly ModuleUpdateMode moduleUpdateMode;
 
         // TODO ANDREW: Remove this here and elsewhere
         readonly bool checkImagePullBeforeModuleCreate;
@@ -24,6 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             IModuleManager moduleManager,
             IConfigSource configSource,
             ICombinedConfigProvider<T> combinedConfigProvider,
+            ModuleUpdateMode moduleUpdateMode,
             bool checkImagePullBeforeModuleCreate)
         {
             this.moduleManager = Preconditions.CheckNotNull(moduleManager, nameof(moduleManager));
@@ -36,6 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             }
 
             this.parentEdgeHostname = Option.Maybe(this.configSource.Configuration.GetValue<string>(Constants.GatewayHostnameVariableName));
+            this.moduleUpdateMode = moduleUpdateMode;
             this.checkImagePullBeforeModuleCreate = checkImagePullBeforeModuleCreate;
         }
 
@@ -72,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         public Task<ICommand> PrepareUpdateAsync(IModule module, IRuntimeInfo runtimeInfo)
         {
             T config = this.combinedConfigProvider.GetCombinedConfig(module, runtimeInfo);
-            return Task.FromResult(new PrepareUpdateCommand(this.moduleManager, module, config) as ICommand);
+            return Task.FromResult(new PrepareUpdateCommand(this.moduleManager, module, config, this.moduleUpdateMode) as ICommand);
         }
 
         public Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo) =>
