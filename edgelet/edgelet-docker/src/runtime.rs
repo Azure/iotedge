@@ -105,7 +105,7 @@ where
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{}", e);
+                log::warn!("{:?}", e);
                 e
             })
             .with_context(|| {
@@ -128,7 +128,7 @@ where
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{}", e);
+                log::warn!("{:?}", e);
                 e
             })
             .with_context(|| {
@@ -212,7 +212,7 @@ async fn create_network_if_missing(
         .await
         .context(Error::Docker)
         .map_err(|e| {
-            log::warn!("{}", &e);
+            log::warn!("{:?}", e);
             e
         })
         .context(Error::RuntimeOperation(RuntimeOperation::Init))?;
@@ -230,7 +230,7 @@ async fn create_network_if_missing(
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{}", e);
+                log::warn!("{:?}", e);
                 e
             })
             .context(Error::RuntimeOperation(RuntimeOperation::Init))?;
@@ -308,7 +308,6 @@ where
             log::info!("Creating image via tag {}...", &image);
         }
 
-        log::debug!("Creating container {} with image {}", module.name(), image);
         let create_options = module.config().create_options().clone();
         let merged_env = merge_env(create_options.env(), module.env());
 
@@ -332,6 +331,10 @@ where
             .container_create(module.name(), create_options)
             .await
             .context(Error::Docker)
+            .map_err(|e| {
+                log::warn!("{:?}", e);
+                e
+            })
             .with_context(|| {
                 Error::RuntimeOperation(RuntimeOperation::CreateModule(module.name().to_string()))
             })?;
@@ -427,7 +430,7 @@ where
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{}", e);
+                log::warn!("{:?}", e);
                 e
             })
             .with_context(|| Error::RuntimeOperation(RuntimeOperation::StartModule(id.to_owned())))
@@ -458,7 +461,7 @@ where
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{}", e);
+                log::warn!("{:?}", e);
                 e
             })
             .with_context(|| Error::RuntimeOperation(RuntimeOperation::StopModule(id.to_owned())))
@@ -475,7 +478,7 @@ where
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{}", e);
+                log::warn!("{:?}", e);
                 e
             })
             .with_context(|| {
@@ -498,7 +501,7 @@ where
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{}", e);
+                log::warn!("{:?}", e);
                 e
             })
             .with_context(|| {
@@ -691,7 +694,7 @@ where
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{}", e);
+                log::warn!("{:?}", e);
                 e
             })
     }
@@ -706,7 +709,7 @@ where
 
         for result in futures::future::join_all(remove).await {
             if let Err(err) = result {
-                log::warn!("Failed to remove module: {}", err);
+                log::warn!("Failed to remove module: {:?}", err);
             }
         }
 
@@ -723,7 +726,7 @@ where
 
         for result in futures::future::join_all(stop).await {
             if let Err(err) = result {
-                log::warn!("Failed to stop module: {}", err);
+                log::warn!("Failed to stop module: {:?}", err);
             }
         }
 
@@ -737,7 +740,7 @@ where
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{}", e);
+                log::warn!("{:?}", e);
                 e
             })
             .with_context(|| Error::RuntimeOperation(RuntimeOperation::TopModule(id.to_owned())))?;

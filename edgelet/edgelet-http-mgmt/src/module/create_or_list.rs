@@ -55,10 +55,7 @@ where
             runtime
                 .list_with_details()
                 .await
-                .map_err(|err| http_common::server::Error {
-                    status_code: <M as edgelet_core::ModuleRuntime>::error_code(&err),
-                    message: err.to_string().into(),
-                })?;
+                .map_err(|err| edgelet_http::error::runtime_error(&*runtime, &err))?;
 
         let res: edgelet_http::ListModulesResponse = modules.into();
         let res = http_common::server::response::json(hyper::StatusCode::OK, &res);

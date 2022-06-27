@@ -163,8 +163,11 @@ pub trait DockerApi {
 }
 
 macro_rules! api_call {
-    (@inner maybe_output $response:ident ()) => { Ok(()) };
-    (@inner maybe_output $response:ident $output:ty) => {{
+    (@inner output_type) => { () };
+    (@inner output_type $output:ty) => { $output };
+
+    (@inner maybe_output $response:ident ;) => { Ok(()) };
+    (@inner maybe_output $response:ident ; $output:ty) => {{
         let (parts, body) = $response.into_parts();
         ::anyhow::ensure!(
             parts.headers.get(::hyper::header::CONTENT_TYPE)
@@ -176,7 +179,7 @@ macro_rules! api_call {
         let response_bytes = ::hyper::body::to_bytes(body).await?;
         Ok(::serde_json::from_slice::<$output>(&response_bytes)?)
     }};
-    (@inner maybe_output $response:ident $_output:ty => $transfer:ident $blk:block) => {{
+    (@inner maybe_output $response:ident => $transfer:ident $blk:block ; $($_output:ty)?) => {{
         let $transfer = $response;
         $blk
     }};
@@ -195,7 +198,7 @@ macro_rules! api_call {
     (@inner query $param:ident $type:ty) => { &$param.to_string() };
 
     (
-        $name:ident : $method:ident $path:literal -> $output:ty ;
+        $name:ident : $method:ident $path:literal $(-> $output:ty)? ;
         $(path : [
             $($pparam:ident : $ptype:ty),*
         ] ;)?
@@ -215,7 +218,7 @@ macro_rules! api_call {
             $($($qparam : $($qtype)*,)*)?
             $($($hparam : $htype,)*)?
             $(body : $btype,)?
-        ) -> ::std::pin::Pin<Box<dyn ::std::future::Future<Output = ::anyhow::Result<$output>> + Send + 'a>> {
+        ) -> ::std::pin::Pin<Box<dyn ::std::future::Future<Output = ::anyhow::Result<api_call!(@inner output_type $($output)?)>> + Send + 'a>> {
             const OK: &[::hyper::StatusCode] = &[$(::hyper::StatusCode::$code),*];
 
             Box::pin(async move {
@@ -245,7 +248,7 @@ macro_rules! api_call {
                 .await??;
 
                 if OK.contains(&response.status()) {
-                    api_call!(@inner maybe_output response $output $(=> $transfer $blk)?)
+                    api_call!(@inner maybe_output response $(=> $transfer $blk)? ; $($output)?)
                 } else {
                     Err(anyhow::anyhow!(ApiError::try_from_response(response).await?))
                 }
@@ -278,14 +281,14 @@ where
     }
 
     api_call! {
-        container_delete : delete "/containers/{id}" -> () ;
+        container_delete : delete "/containers/{id}" ;
         path : [ id: &'a str ] ;
         query : [ "v" = (verbose: bool), "force" = (force: bool), "link" = (link: bool) ] ;
         ok : [NO_CONTENT]
     }
 
     api_call! {
-        container_restart : post "/containers/{id}/restart" -> () ;
+        container_restart : post "/containers/{id}/restart" ;
         path : [ id: &'a str ] ;
         query : [ "t" = (timeout: Option<i32>) ] ;
         ok : [NO_CONTENT]
@@ -310,7 +313,7 @@ where
     }
 
     api_call! {
-        container_start : post "/containers/{id}/start" -> () ;
+        container_start : post "/containers/{id}/start" ;
         path : [ id: &'a str ] ;
         query : [ "detachKeys" = (detach_keys: &'a str) ] ;
         ok : [NO_CONTENT, NOT_MODIFIED]
@@ -324,7 +327,7 @@ where
     }
 
     api_call! {
-        container_stop : post "/containers/{id}/stop" -> () ;
+        container_stop : post "/containers/{id}/stop" ;
         path : [ id: &'a str ] ;
         query : [ "t" = (timeout: Option<i32>) ] ;
         ok : [NO_CONTENT, NOT_MODIFIED]
@@ -350,7 +353,7 @@ where
     }
 
     api_call! {
-        image_create : post "/images/create" -> () ;
+        image_create : post "/images/create" ;
         query : [
             "fromImage" = (from_image: &'a str),
             "fromSrc" = (from_src: &'a str),
