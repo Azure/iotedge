@@ -215,7 +215,7 @@ macro_rules! api_call {
             $($($qparam : $($qtype)*,)*)?
             $($($hparam : $htype,)*)?
             $(body : $btype,)?
-        ) -> ::std::pin::Pin<Box<dyn ::std::future::Future<Output = ::anyhow::Result<$output>> + Send + '_>> {
+        ) -> ::std::pin::Pin<Box<dyn ::std::future::Future<Output = ::anyhow::Result<$output>> + Send + 'a>> {
             const OK: &[::hyper::StatusCode] = &[$(::hyper::StatusCode::$code),*];
 
             Box::pin(async move {
@@ -280,7 +280,7 @@ where
     api_call! {
         container_delete : delete "/containers/{id}" -> () ;
         path : [ id: &'a str ] ;
-        query : [ "v" = (verbose: bool), "force" = (force: bool), "link" = (link: bool)] ;
+        query : [ "v" = (verbose: bool), "force" = (force: bool), "link" = (link: bool) ] ;
         ok : [NO_CONTENT]
     }
 
