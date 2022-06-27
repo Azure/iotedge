@@ -619,6 +619,7 @@ dependencies = [
 name = "edgelet-http"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "chrono",
  "edgelet-core",
  "edgelet-docker",

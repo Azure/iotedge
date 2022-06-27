@@ -71,7 +71,10 @@ where
 
         let module = body
             .to_runtime_spec::<M>()
-            .map_err(edgelet_http::error::server_error)?;
+            .map_err(|err| http_common::server::Error {
+                status_code: http::StatusCode::BAD_REQUEST,
+                message: err.to_string().into()
+            })?;
 
         super::pull_image(&*runtime, &module).await?;
 

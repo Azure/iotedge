@@ -454,7 +454,7 @@ pub trait MakeModuleRuntime {
 }
 
 #[async_trait::async_trait]
-pub trait ModuleRuntime: Sized {
+pub trait ModuleRuntime {
     type Config: Clone + Send + serde::Serialize;
     type Module: Module<Config = Self::Config> + Send;
     type ModuleRegistry: ModuleRegistry<Config = Self::Config> + Send + Sync;
@@ -475,6 +475,8 @@ pub trait ModuleRuntime: Sized {
     async fn module_top(&self, id: &str) -> anyhow::Result<Vec<i32>>;
 
     fn registry(&self) -> &Self::ModuleRegistry;
+
+    fn error_code(error: &anyhow::Error) -> hyper::StatusCode;
 }
 
 #[derive(Clone, Copy, Debug)]

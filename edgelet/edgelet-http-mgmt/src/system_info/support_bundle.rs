@@ -77,11 +77,11 @@ where
                 &(*runtime),
             )
             .await
-            .map_err(|err| edgelet_http::error::server_error(err.to_string()))
+            .map_err(edgelet_http::error::server_error)
         }?;
 
-        let bundle_size: usize = std::convert::TryFrom::try_from(bundle_size)
-            .map_err(|_| edgelet_http::error::server_error("invalid size for support bundle"))?;
+        let bundle_size = usize::try_from(bundle_size)
+            .map_err(|_| edgelet_http::error::bad_request("invalid parameter: bundle size"))?;
 
         let support_bundle = ReadStream(support_bundle);
 

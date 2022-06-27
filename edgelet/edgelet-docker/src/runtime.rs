@@ -692,10 +692,6 @@ where
             })
     }
 
-    fn registry(&self) -> &Self::ModuleRegistry {
-        self
-    }
-
     async fn remove_all(&self) -> anyhow::Result<()> {
         let modules = self.list().await?;
         let mut remove = vec![];
@@ -746,6 +742,18 @@ where
             .with_context(|| Error::RuntimeOperation(RuntimeOperation::TopModule(id.to_owned())))?;
 
         Ok(pids)
+    }
+
+    fn registry(&self) -> &Self::ModuleRegistry {
+        self
+    }
+
+    fn error_code(error: &anyhow::Error) -> hyper::StatusCode {
+        if let Some(error) = error.root_cause().downcast_ref::<docker::apis::ApiError>() {
+            error.code
+        } else {
+            hyper::StatusCode::INTERNAL_SERVER_ERROR
+        }
     }
 }
 

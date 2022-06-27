@@ -63,7 +63,10 @@ where
         let client = self.client.lock().await;
 
         let certificate = client.get_cert(&self.trust_bundle).await.map_err(|_| {
-            edgelet_http::error::not_found(format!("certificate {} not found", self.trust_bundle))
+            http_common::server::Error {
+                status_code: http::StatusCode::NOT_FOUND,
+                message: format!("certificate {:?} not found", self.trust_bundle).into(),
+            }
         });
 
         let certificate = match (certificate, self.optional) {

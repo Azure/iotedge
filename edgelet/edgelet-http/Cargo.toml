@@ -6,6 +6,7 @@ publish = false
 edition = "2021"
 
 [dependencies]
+anyhow = "1"
 chrono = "0.4"
 futures-util = "0.3"
 http = "0.2"
