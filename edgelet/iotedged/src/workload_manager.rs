@@ -29,6 +29,7 @@ use crate::error::{Error, ErrorKind, InitializeErrorReason};
 
 const SOCKET_DEFAULT_PERMISSION: u32 = 0o666;
 const MAX_CONCURRENCY: ConcurrencyThrottling = ConcurrencyThrottling::Limited(10);
+const EDGEAGENT: &str = "edgeAgent";
 
 pub struct WorkloadManager<K, C, W, M>
 where
@@ -142,14 +143,34 @@ where
         // "stop"
         // There is still a chance that 2 concurrent servers are launch with concurrence,
         // But it is extremely unlikely and anyway doesn't have any side effect expect memory footprint.
-        if let Some(shutdown_sender) = self.shutdown_senders.remove(module_id) {
-            info!(
-                "Listener  {} already started, removing old listener",
-                module_id
-            );
-            shutdown_sender
-                .send(())
-                .map_err(|()| Error::from(ErrorKind::WorkloadService))?;
+
+        match module_id {
+            // If edgeAgent's listener exists, then we do not create a new one
+            EDGEAGENT => {
+                if self.shutdown_senders.contains_key(EDGEAGENT) {
+                    info!(
+                        "Listener {} already started, keeping old listener and socket",
+                        module_id
+                    );
+                    if let Some(signal_socket_created) = signal_socket_created {
+                        signal_socket_created.send(()).map_err(|()| {
+                            ErrorKind::Initialize(InitializeErrorReason::WorkloadService)
+                        })?;
+                    }
+                    return Ok(());
+                }
+            }
+            _ => {
+                if let Some(shutdown_sender) = self.shutdown_senders.remove(module_id) {
+                    info!(
+                        "Listener  {} already started, removing old listener",
+                        module_id
+                    );
+                    shutdown_sender
+                        .send(())
+                        .map_err(|()| Error::from(ErrorKind::WorkloadService))?;
+                }
+            }
         }
 
         let (shutdown_sender, shutdown_receiver) = oneshot::channel();
@@ -308,6 +329,7 @@ where
         })?;
 
     // Ignore error, we don't want the server to close on error.
+    // We do not stop edgeAgent's socket, as we want it to persist
     let server = create_socket_channel_rcv.for_each(move |module_id| match module_id {
         ModuleAction::Start(module_id, sender) => {
             if let Err(err) = workload_manager.start(&module_id, Some(sender)) {
@@ -317,11 +339,15 @@ where
             Ok(())
         }
         ModuleAction::Stop(module_id) => {
-            if let Err(err) = workload_manager.stop(&module_id) {
-                log_failure(Level::Warn, &err);
-            }
+            if let EDGEAGENT = module_id.as_ref() {
+                Ok(())
+            } else {
+                if let Err(err) = workload_manager.stop(&module_id) {
+                    log_failure(Level::Warn, &err);
+                }
 
-            Ok(())
+                Ok(())
+            }
         }
     });
 
