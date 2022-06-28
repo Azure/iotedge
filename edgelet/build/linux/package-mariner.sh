@@ -142,7 +142,7 @@ pushd $tmp_dir
 mkdir "rust"
 cp -r ~/.cargo "rust"
 cp -r ~/.rustup "rust"
-tar cf "${MARINER_BUILD_ROOT}/SPECS/aziot-edge/SOURCES/rust.tar.gz" "rust"
+tar cf "${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/SOURCES/rust.tar.gz" "rust"
 popd
 
 # Prepare toolkit
