@@ -45,7 +45,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly TimeSpan performanceMetricsUpdateFrequency;
         readonly bool useServerHeartbeat;
         readonly string backupConfigFilePath;
-        readonly bool checkImagePullBeforeModuleCreate;
         readonly bool disableDeviceAnalyticsTelemetry;
         readonly ModuleUpdateMode moduleUpdateMode;
 
@@ -64,7 +63,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             TimeSpan performanceMetricsUpdateFrequency,
             bool useServerHeartbeat,
             string backupConfigFilePath,
-            bool checkImagePullBeforeModuleCreate,
             bool disableDeviceAnalyticsTelemetry,
             ModuleUpdateMode moduleUpdateMode)
         {
@@ -82,7 +80,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.performanceMetricsUpdateFrequency = performanceMetricsUpdateFrequency;
             this.useServerHeartbeat = useServerHeartbeat;
             this.backupConfigFilePath = Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath));
-            this.checkImagePullBeforeModuleCreate = checkImagePullBeforeModuleCreate;
             this.disableDeviceAnalyticsTelemetry = disableDeviceAnalyticsTelemetry;
             this.moduleUpdateMode = moduleUpdateMode;
         }
@@ -142,8 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             moduleManager,
                             configSource,
                             combinedDockerConfigProvider,
-                            this.moduleUpdateMode,
-                            this.checkImagePullBeforeModuleCreate);
+                            this.moduleUpdateMode);
                         factory = new MetricsCommandFactory(factory, metricsProvider);
                         return new LoggingCommandFactory(factory, loggerFactory) as ICommandFactory;
                     })

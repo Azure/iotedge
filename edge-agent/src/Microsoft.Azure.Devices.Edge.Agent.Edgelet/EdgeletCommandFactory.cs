@@ -18,15 +18,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         readonly Option<string> parentEdgeHostname;
         readonly ModuleUpdateMode moduleUpdateMode;
 
-        // TODO ANDREW: Remove this here and elsewhere
-        readonly bool checkImagePullBeforeModuleCreate;
-
         public EdgeletCommandFactory(
             IModuleManager moduleManager,
             IConfigSource configSource,
             ICombinedConfigProvider<T> combinedConfigProvider,
-            ModuleUpdateMode moduleUpdateMode,
-            bool checkImagePullBeforeModuleCreate)
+            ModuleUpdateMode moduleUpdateMode)
         {
             this.moduleManager = Preconditions.CheckNotNull(moduleManager, nameof(moduleManager));
             this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
@@ -39,37 +35,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
             this.parentEdgeHostname = Option.Maybe(this.configSource.Configuration.GetValue<string>(Constants.GatewayHostnameVariableName));
             this.moduleUpdateMode = moduleUpdateMode;
-            this.checkImagePullBeforeModuleCreate = checkImagePullBeforeModuleCreate;
         }
 
         public Task<ICommand> CreateAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
         {
-            if (this.checkImagePullBeforeModuleCreate)
-            {
-                T config = this.combinedConfigProvider.GetCombinedConfig(module.Module, runtimeInfo);
-                return Task.FromResult(
-                        CreateOrUpdateCommand.BuildCreate(
-                            this.moduleManager,
-                            module.Module,
-                            module.ModuleIdentity,
-                            this.configSource,
-                            config,
-                            this.edgeDeviceHostname,
-                            this.parentEdgeHostname) as ICommand);
-            }
-            else
-            {
-                return Task.FromResult(
+            T config = this.combinedConfigProvider.GetCombinedConfig(module.Module, runtimeInfo);
+            return Task.FromResult(
                     CreateOrUpdateCommand.BuildCreate(
                         this.moduleManager,
                         module.Module,
                         module.ModuleIdentity,
                         this.configSource,
-                        this.combinedConfigProvider.GetCombinedConfig(module.Module, runtimeInfo),
+                        config,
                         this.edgeDeviceHostname,
-                        this.parentEdgeHostname)
-                    as ICommand);
-            }
+                        this.parentEdgeHostname) as ICommand);
         }
 
         public Task<ICommand> PrepareUpdateAsync(IModule module, IRuntimeInfo runtimeInfo)

@@ -296,7 +296,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planner
                     Task<ICommand> prepareUpdate = this.commandFactory.PrepareUpdateAsync(module, runtimeInfo);
                     Task<ICommand> createUpdate = createUpdateCommandMaker(moduleWithIdentity);
 
-                    // TODO ANDREW: Convert to match?
                     if (this.moduleUpdateMode == ModuleUpdateMode.NonBlocking)
                     {
                         IList<Task<ICommand>> cmds = new List<Task<ICommand>> { prepareUpdate, createUpdate };
