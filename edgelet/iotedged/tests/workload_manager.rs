@@ -1,12 +1,21 @@
 #![deny(rust_2018_idioms)]
 #![deny(clippy::all)]
-#![allow(clippy::too_many_lines)]
+#![allow(
+    clippy::doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
+    clippy::missing_errors_doc,
+    clippy::module_name_repetitions,
+    clippy::must_use_candidate,
+    clippy::shadow_unrelated,
+    clippy::too_many_lines,
+    clippy::type_complexity,
+    clippy::use_self
+)]
 
 mod crypto;
 mod module;
 
 use config::{Config, File, FileFormat};
-use crypto::{TestCrypt as TestCrypto, TestKeyStore};
+use crypto::{TestCrypto, TestKeyStore};
 use edgelet_core::{
     CertificateIssuer, CertificateProperties, CertificateType, MakeModuleRuntime, ModuleAction,
 };
@@ -56,11 +65,7 @@ fn start_edgeagent_socket_succeeds() {
 
     let legacyworkloadpath = path.join("workload.sock");
 
-    let legacyworkload = &legacyworkloadpath
-        .clone()
-        .into_os_string()
-        .into_string()
-        .unwrap();
+    let legacyworkload = &legacyworkloadpath.into_os_string().into_string().unwrap();
 
     let mut unixprefix = "unix://".to_owned();
     unixprefix.push_str(&legacyworkload);
@@ -136,11 +141,7 @@ fn stop_edgeagent_workload_socket_fails() {
 
     let legacyworkloadpath = path.join("workload.sock");
 
-    let legacyworkload = &legacyworkloadpath
-        .clone()
-        .into_os_string()
-        .into_string()
-        .unwrap();
+    let legacyworkload = &legacyworkloadpath.into_os_string().into_string().unwrap();
 
     let mut unixprefix = "unix://".to_owned();
     unixprefix.push_str(&legacyworkload);
@@ -213,11 +214,7 @@ fn start_workload_socket_succeeds() {
 
     let legacyworkloadpath = path.join("workload.sock");
 
-    let legacyworkload = &legacyworkloadpath
-        .clone()
-        .into_os_string()
-        .into_string()
-        .unwrap();
+    let legacyworkload = &legacyworkloadpath.into_os_string().into_string().unwrap();
 
     let mut unixprefix = "unix://".to_owned();
     unixprefix.push_str(&legacyworkload);
@@ -292,11 +289,7 @@ fn stop_workload_socket_succeeds() {
 
     let legacyworkloadpath = path.join("workload.sock");
 
-    let legacyworkload = &legacyworkloadpath
-        .clone()
-        .into_os_string()
-        .into_string()
-        .unwrap();
+    let legacyworkload = &legacyworkloadpath.into_os_string().into_string().unwrap();
 
     let mut unixprefix = "unix://".to_owned();
     unixprefix.push_str(&legacyworkload);
