@@ -2,7 +2,11 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(clippy::too_many_lines)]
 
+mod crypto;
+mod module;
+
 use config::{Config, File, FileFormat};
+use crypto::{TestCrypto, TestKeyStore};
 use edgelet_core::{
     CertificateIssuer, CertificateProperties, CertificateType, MakeModuleRuntime, ModuleAction,
 };
@@ -12,12 +16,10 @@ use futures::sync::mpsc;
 use futures::sync::oneshot;
 use futures::sync::oneshot::{Receiver, Sender};
 use futures::Future;
-use iotedged::crypto::{TestCrypto, TestKeyStore};
-use iotedged::module::{TestConfig, TestModule, TestProvisioningResult, TestRuntime, TestSettings};
 use iotedged::{workload::WorkloadData, workload_manager::WorkloadManager};
+use module::{TestConfig, TestModule, TestProvisioningResult, TestRuntime, TestSettings};
 use serde_json::{self, json};
-use std::ffi::OsString;
-use std::fs::File as FileCreate;
+
 use std::path::Path;
 use std::sync::Arc;
 use std::thread;
@@ -26,7 +28,7 @@ use tempfile::tempdir;
 
 const IOTEDGED_TLS_COMMONNAME: &str = "iotedged";
 const TIME_FOR_CERT: u64 = 100;
-const TIME_FOR_SERVER_UP: time::Duration = time::Duration::from_millis(400);
+const TIME_FOR_SERVER_UP: time::Duration = time::Duration::from_millis(100);
 
 fn make_settings(workloadurl: &str, path: &Path) -> TestSettings {
     let mut config = Config::default();
@@ -57,9 +59,6 @@ fn start_edgeagent_socket_succeeds() {
         .into_os_string()
         .into_string()
         .unwrap();
-    let osstring = OsString::from(legacyworkloadpath);
-    let filepath = Path::new(&osstring);
-    FileCreate::create(&filepath).ok();
 
     let mut unixprefix = "unix://".to_owned();
     unixprefix.push_str(&legacyworkload);
@@ -119,11 +118,11 @@ fn start_edgeagent_socket_succeeds() {
 
     thread::sleep(TIME_FOR_SERVER_UP);
 
-    let socketpath = if cfg!(windows) {
-        path.join("mnt/edgeAgent/sock")
-    } else {
-        path.join("mnt/edgeAgent.sock")
-    };
+    #[cfg(windows)]
+    let socketpath = path.join("mnt/edgeAgent");
+    assert!(!path.read_dir().unwrap().next().is_none());
+    #[cfg(unix)]
+    let socketpath = path.join("mnt/edgeAgent.sock");
     assert!(socketpath.exists());
 }
 
@@ -139,9 +138,6 @@ fn stop_edgeagent_workload_socket_fails() {
         .into_os_string()
         .into_string()
         .unwrap();
-    let osstring = OsString::from(legacyworkloadpath);
-    let filepath = Path::new(&osstring);
-    FileCreate::create(&filepath).ok();
 
     let mut unixprefix = "unix://".to_owned();
     unixprefix.push_str(&legacyworkload);
@@ -197,11 +193,12 @@ fn stop_edgeagent_workload_socket_fails() {
         .unbounded_send(ModuleAction::Stop("edgeAgent".to_string()))
         .unwrap();
     thread::sleep(TIME_FOR_SERVER_UP);
-    let socketpath = if cfg!(windows) {
-        path.join("mnt/edgeAgent/sock")
-    } else {
-        path.join("mnt/edgeAgent.sock")
-    };
+
+    #[cfg(windows)]
+    let socketpath = path.join("mnt/edgeAgent");
+    assert!(!path.read_dir().unwrap().next().is_none());
+    #[cfg(unix)]
+    let socketpath = path.join("mnt/edgeAgent.sock");
     assert!(socketpath.exists());
 }
 
@@ -217,9 +214,6 @@ fn start_workload_socket_succeeds() {
         .into_os_string()
         .into_string()
         .unwrap();
-    let osstring = OsString::from(legacyworkloadpath);
-    let filepath = Path::new(&osstring);
-    FileCreate::create(&filepath).ok();
 
     let mut unixprefix = "unix://".to_owned();
     unixprefix.push_str(&legacyworkload);
@@ -277,11 +271,12 @@ fn start_workload_socket_succeeds() {
         .unwrap();
 
     thread::sleep(TIME_FOR_SERVER_UP);
-    let socketpath = if cfg!(windows) {
-        path.join("mnt/test-agent/sock")
-    } else {
-        path.join("mnt/test-agent.sock")
-    };
+
+    #[cfg(windows)]
+    let socketpath = path.join("mnt/test-agent");
+    assert!(!path.read_dir().unwrap().next().is_none());
+    #[cfg(unix)]
+    let socketpath = path.join("mnt/test-agent.sock");
     assert!(socketpath.exists());
 }
 
@@ -297,9 +292,6 @@ fn stop_workload_socket_succeeds() {
         .into_os_string()
         .into_string()
         .unwrap();
-    let osstring = OsString::from(legacyworkloadpath);
-    let filepath = Path::new(&osstring);
-    FileCreate::create(&filepath).ok();
 
     let mut unixprefix = "unix://".to_owned();
     unixprefix.push_str(&legacyworkload);
@@ -365,10 +357,10 @@ fn stop_workload_socket_succeeds() {
         .unwrap();
     thread::sleep(TIME_FOR_SERVER_UP);
 
-    let socketpath = if cfg!(windows) {
-        path.join("mnt/test-agent/sock")
-    } else {
-        path.join("mnt/test-agent.sock")
-    };
+    #[cfg(windows)]
+    let socketpath = path.join("mnt/test-agent");
+    assert!(path.read_dir().unwrap().next().is_none());
+    #[cfg(unix)]
+    let socketpath = path.join("mnt/test-agent.sock");
     assert!(!socketpath.exists());
 }
