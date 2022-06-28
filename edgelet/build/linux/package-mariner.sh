@@ -121,7 +121,7 @@ popd # EDGELET_ROOT
 tmp_dir=$(mktemp -d -t mariner-iotedge-build-XXXXXXXXXX)
 pushd $tmp_dir
 echo "Creating source tarball azure-iotedge-${VERSION}.tar.gz"
-tar -czvf azure-iotedge-${VERSION}.tar.gz --transform s/./azure-iotedge-${VERSION} "${EDGELET_ROOT}" -C "${BUILD_REPOSITORY_LOCALPATH}" .
+tar -czvf azure-iotedge-${VERSION}.tar.gz --transform s/./azure-iotedge-${VERSION}/ -C "${BUILD_REPOSITORY_LOCALPATH}" .
 popd
 
 # Copy source tarball to expected locations
