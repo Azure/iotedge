@@ -672,9 +672,13 @@ where
             match self.get(module.name()).await {
                 Ok(module_with_details) => {
                     result.push(module_with_details);
-                },
+                }
                 Err(err) => {
-                    log::warn!("error when getting details for {}: {:?}", module.name(), err);
+                    log::warn!(
+                        "error when getting details for {}: {:?}",
+                        module.name(),
+                        err
+                    );
                 }
             }
         }
