@@ -108,7 +108,7 @@ where
 
                 Ok(res)
             }
-            Err(err) => Err(edgelet_http::error::server_error(err.to_string())),
+            Err(err) => Err(edgelet_http::error::server_error(err)),
         }
     }
 
