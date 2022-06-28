@@ -6,6 +6,8 @@ trigger:
       - release/*
       - iiot
 pr: none
+variables:
+  DisableDockerDetector: true
 jobs:
 
 ################################################################################
