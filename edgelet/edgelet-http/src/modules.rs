@@ -177,7 +177,7 @@ impl std::convert::From<edgelet_core::ModuleRuntimeState> for ModuleStatus {
             exit_status,
             runtime_status: RuntimeStatus {
                 status: state.status().to_string(),
-                description: state.status_description().map(String::from),
+                description: None, // The description was only ever `state.status().to_owned()` anyway.
             },
         }
     }
@@ -209,7 +209,7 @@ mod tests {
         let runtime_spec: edgelet_settings::ModuleSpec<edgelet_settings::DockerConfig> =
             module_spec
                 .clone()
-                .to_runtime_spec::<edgelet_docker::DockerModuleRuntime>()
+                .to_runtime_spec::<edgelet_docker::DockerModuleRuntime<http_common::Connector>>()
                 .unwrap();
         let expected_env: std::collections::BTreeMap<String, String> =
             [("testKey".to_string(), "testValue".to_string())]
