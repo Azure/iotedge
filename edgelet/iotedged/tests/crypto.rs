@@ -8,9 +8,9 @@ use edgelet_core::{
 use edgelet_test_utils::cert::TestCert;
 
 #[derive(Clone, Default, Debug)]
-pub struct TestCrypto;
+pub struct TestCrypt;
 
-impl GetTrustBundle for TestCrypto {
+impl GetTrustBundle for TestCrypt {
     type Certificate = TestCert;
 
     fn get_trust_bundle(&self) -> Result<Self::Certificate, edgelet_core::Error> {
@@ -18,7 +18,7 @@ impl GetTrustBundle for TestCrypto {
     }
 }
 
-impl MasterEncryptionKey for TestCrypto {
+impl MasterEncryptionKey for TestCrypt {
     fn create_key(&self) -> Result<(), edgelet_core::Error> {
         unimplemented!();
     }
@@ -27,7 +27,7 @@ impl MasterEncryptionKey for TestCrypto {
     }
 }
 
-impl CreateCertificate for TestCrypto {
+impl CreateCertificate for TestCrypt {
     type Certificate = TestCert;
 
     fn create_certificate(
@@ -50,7 +50,7 @@ impl CreateCertificate for TestCrypto {
     }
 }
 
-impl Encrypt for TestCrypto {
+impl Encrypt for TestCrypt {
     type Buffer = Vec<u8>;
 
     fn encrypt(
@@ -63,7 +63,7 @@ impl Encrypt for TestCrypto {
     }
 }
 
-impl Decrypt for TestCrypto {
+impl Decrypt for TestCrypt {
     // type Buffer = Buffer;
     type Buffer = Vec<u8>;
 

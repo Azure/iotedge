@@ -1,12 +1,12 @@
 #![deny(rust_2018_idioms)]
-#![deny(clippy::all, clippy::pedantic)]
+#![deny(clippy::all)]
 #![allow(clippy::too_many_lines)]
 
 mod crypto;
 mod module;
 
 use config::{Config, File, FileFormat};
-use crypto::{TestCrypto, TestKeyStore};
+use crypto::{TestCrypt as TestCrypto, TestKeyStore};
 use edgelet_core::{
     CertificateIssuer, CertificateProperties, CertificateType, MakeModuleRuntime, ModuleAction,
 };
@@ -17,7 +17,7 @@ use futures::sync::oneshot;
 use futures::sync::oneshot::{Receiver, Sender};
 use futures::Future;
 use iotedged::{workload::WorkloadData, workload_manager::WorkloadManager};
-use module::{TestConfig, TestModule, TestProvisioningResult, TestRuntime, TestSettings};
+use module::{TestConfig, TestMod as TestModule, TestProvisioningResult, TestRuntime, TestSettings};
 use serde_json::{self, json};
 
 use std::path::Path;
@@ -118,12 +118,14 @@ fn start_edgeagent_socket_succeeds() {
 
     thread::sleep(TIME_FOR_SERVER_UP);
 
-    #[cfg(windows)]
-    let socketpath = path.join("mnt/edgeAgent");
-    assert!(!path.read_dir().unwrap().next().is_none());
-    #[cfg(unix)]
-    let socketpath = path.join("mnt/edgeAgent.sock");
-    assert!(socketpath.exists());
+    if cfg!(windows) {
+        let socketpath = path.join("mnt/edgeAgent");
+        assert!(!socketpath.read_dir().unwrap().next().is_none());
+    }
+    else {
+        let socketpath = path.join("mnt/edgeAgent.sock");
+        assert!(socketpath.exists());
+    }
 }
 
 #[test]
@@ -194,12 +196,15 @@ fn stop_edgeagent_workload_socket_fails() {
         .unwrap();
     thread::sleep(TIME_FOR_SERVER_UP);
 
-    #[cfg(windows)]
-    let socketpath = path.join("mnt/edgeAgent");
-    assert!(!path.read_dir().unwrap().next().is_none());
-    #[cfg(unix)]
-    let socketpath = path.join("mnt/edgeAgent.sock");
-    assert!(socketpath.exists());
+    if cfg!(windows) {
+        let socketpath = path.join("mnt/edgeAgent");
+        assert!(!socketpath.read_dir().unwrap().next().is_none());
+    }
+    else {
+        let socketpath = path.join("mnt/edgeAgent.sock");
+        assert!(socketpath.exists());
+    }
+
 }
 
 #[test]
@@ -272,12 +277,14 @@ fn start_workload_socket_succeeds() {
 
     thread::sleep(TIME_FOR_SERVER_UP);
 
-    #[cfg(windows)]
-    let socketpath = path.join("mnt/test-agent");
-    assert!(!path.read_dir().unwrap().next().is_none());
-    #[cfg(unix)]
-    let socketpath = path.join("mnt/test-agent.sock");
-    assert!(socketpath.exists());
+    if cfg!(windows) {
+        let socketpath = path.join("mnt/test-agent");
+        assert!(!socketpath.read_dir().unwrap().next().is_none());
+    }
+    else {
+        let socketpath = path.join("mnt/test-agent.sock");
+        assert!(socketpath.exists());
+    }
 }
 
 #[test]
@@ -357,10 +364,12 @@ fn stop_workload_socket_succeeds() {
         .unwrap();
     thread::sleep(TIME_FOR_SERVER_UP);
 
-    #[cfg(windows)]
-    let socketpath = path.join("mnt/test-agent");
-    assert!(path.read_dir().unwrap().next().is_none());
-    #[cfg(unix)]
-    let socketpath = path.join("mnt/test-agent.sock");
-    assert!(!socketpath.exists());
+    if cfg!(windows) {
+        let socketpath = path.join("mnt/test-agent");
+        assert!(socketpath.read_dir().unwrap().next().is_none());
+    }
+    else {
+        let socketpath = path.join("mnt/test-agent.sock");
+        assert!(!socketpath.exists());
+    }
 }

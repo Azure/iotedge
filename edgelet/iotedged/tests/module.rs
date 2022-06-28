@@ -127,15 +127,15 @@ impl RuntimeSettings for TestSettings {
 }
 
 #[derive(Clone, Debug)]
-pub struct TestModule {
+pub struct TestMod {
     name: String,
     config: TestConfig,
     logs: TestBody,
 }
 
-impl TestModule {
+impl TestMod {
     pub fn new(name: String, config: TestConfig) -> Self {
-        TestModule {
+        TestMod {
             name,
             config,
             logs: TestBody::default(),
@@ -143,7 +143,7 @@ impl TestModule {
     }
 }
 
-impl Module for TestModule {
+impl Module for TestMod {
     type Config = TestConfig;
     type Error = Error;
     type RuntimeStateFuture = FutureResult<ModuleRuntimeState, Self::Error>;
@@ -166,7 +166,7 @@ impl Module for TestModule {
 }
 
 impl TestRuntime {
-    pub fn with_module(mut self, module: TestModule) -> Self {
+    pub fn with_module(mut self, module: TestMod) -> Self {
         self.module = Some(module);
         self
     }
@@ -252,7 +252,7 @@ impl ProvisioningResult for TestProvisioningResult {
 }
 #[derive(Clone)]
 pub struct TestRuntime {
-    module: Option<TestModule>,
+    module: Option<TestMod>,
     registry: TestRegistry<TestConfig>,
     settings: TestSettings,
     pub create_socket_channel: UnboundedSender<ModuleAction>,
@@ -283,7 +283,7 @@ impl MakeModuleRuntime for TestRuntime {
 impl ModuleRuntime for TestRuntime {
     type Error = Error;
     type Config = TestConfig;
-    type Module = TestModule;
+    type Module = TestMod;
     type ModuleRegistry = TestRegistry<TestConfig>;
     type Chunk = &'static [u8];
     type Logs = TestBody;
