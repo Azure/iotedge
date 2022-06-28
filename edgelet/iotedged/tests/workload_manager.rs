@@ -118,7 +118,12 @@ fn start_edgeagent_socket_succeeds() {
         .unwrap();
 
     thread::sleep(TIME_FOR_SERVER_UP);
-    let socketpath = path.join("mnt/edgeAgent.sock");
+
+    let socketpath = if cfg!(windows) {
+        path.join("mnt/edgeAgent")
+    } else {
+        path.join("mnt/edgeAgent.sock")
+    };
     assert!(socketpath.exists());
 }
 
@@ -192,7 +197,11 @@ fn stop_edgeagent_workload_socket_fails() {
         .unbounded_send(ModuleAction::Stop("edgeAgent".to_string()))
         .unwrap();
     thread::sleep(TIME_FOR_SERVER_UP);
-    let socketpath = path.join("mnt/edgeAgent.sock");
+    let socketpath = if cfg!(windows) {
+        path.join("mnt/edgeAgent")
+    } else {
+        path.join("mnt/edgeAgent.sock")
+    };
     assert!(socketpath.exists());
 }
 
@@ -268,7 +277,11 @@ fn start_workload_socket_succeeds() {
         .unwrap();
 
     thread::sleep(TIME_FOR_SERVER_UP);
-    let socketpath = path.join("mnt/test-agent.sock");
+    let socketpath = if cfg!(windows) {
+        path.join("mnt/test-agent")
+    } else {
+        path.join("mnt/test-agent.sock")
+    };
     assert!(socketpath.exists());
 }
 
@@ -352,6 +365,10 @@ fn stop_workload_socket_succeeds() {
         .unwrap();
     thread::sleep(TIME_FOR_SERVER_UP);
 
-    let socketpath = path.join("mnt/test-agent.sock");
+    let socketpath = if cfg!(windows) {
+        path.join("mnt/test-agent")
+    } else {
+        path.join("mnt/test-agent.sock")
+    };
     assert!(!socketpath.exists());
 }
