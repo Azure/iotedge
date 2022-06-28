@@ -147,10 +147,10 @@ popd
 
 # Prepare toolkit
 pushd ${MARINER_BUILD_ROOT}
-sudo tar xzf toolkit.tar.gz
+tar xzf toolkit.tar.gz
 pushd toolkit
 
 # Build Mariner RPM packages
-sudo make build-packages PACKAGE_BUILD_LIST="azure-iotedge libiothsm-std" SRPM_FILE_SIGNATURE_HANDLING=update USE_PREVIEW_REPO=$UsePreview CONFIG_FILE= -j$(nproc)
+make build-packages PACKAGE_BUILD_LIST="azure-iotedge libiothsm-std" SRPM_FILE_SIGNATURE_HANDLING=update USE_PREVIEW_REPO=$UsePreview CONFIG_FILE= -j$(nproc)
 popd
 popd
