@@ -13,21 +13,17 @@
 )]
 
 mod error;
-mod logging;
-mod ser_de;
 mod yaml_file_source;
 
 use std::{collections::HashMap, net::IpAddr, str::FromStr};
 
 pub use crate::error::Error;
-pub use crate::logging::log_failure;
-pub use crate::ser_de::{serde_clone, string_or_struct};
 pub use crate::yaml_file_source::YamlFileSource;
 
 #[inline]
 pub fn ensure_not_empty(value: &str) -> Result<(), Error> {
     if value.trim().is_empty() {
-        return Err(Error::ArgumentEmpty(String::new()));
+        return Err(Error::ArgumentEmpty);
     }
 
     Ok(())

@@ -13,8 +13,7 @@ pub mod error;
 mod modules;
 mod version;
 
-pub use auth::auth_agent;
-pub use auth::auth_caller;
+pub use auth::{auth_agent, auth_caller};
 
 // Common types shared between management and workload APIs.
 pub use modules::{ListModulesResponse, ModuleConfig, ModuleDetails, ModuleStatus};

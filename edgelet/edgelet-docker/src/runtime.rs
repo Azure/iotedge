@@ -1,15 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::collections::{BTreeMap, HashMap};
-use std::convert::TryInto;
-use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use std::{mem, process, str};
+use std::{process, str};
 
 use anyhow::Context;
-use hyper::Uri;
-use log::{debug, error, info, warn, Level};
 use sysinfo::{DiskExt, PidExt, ProcessExt, ProcessorExt, System, SystemExt};
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::Mutex;
@@ -23,15 +19,13 @@ use edgelet_core::{
     SystemResources, UrlExt,
 };
 use edgelet_settings::{
-    ContentTrust, DockerConfig, Ipam as CoreIpam, MobyNetwork, ModuleSpec, RuntimeSettings,
-    Settings,
+    DockerConfig, Ipam as CoreIpam, MobyNetwork, ModuleSpec, RuntimeSettings, Settings,
 };
-use edgelet_utils::{ensure_not_empty, log_failure};
+use edgelet_utils::ensure_not_empty;
 use http_common::Connector;
 
 use crate::error::Error;
 use crate::module::{runtime_state, DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
-use crate::notary;
 
 type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
@@ -44,135 +38,9 @@ const LABELS: &[&str] = &["net.azure-devices.edge.owner=Microsoft.Azure.Devices.
 pub struct DockerModuleRuntime<C> {
     client: DockerApiClient<C>,
     system_resources: Arc<Mutex<System>>,
-    notary_registries: BTreeMap<String, PathBuf>,
-    notary_lock: Arc<Mutex<BTreeMap<String, String>>>,
     create_socket_channel: UnboundedSender<ModuleAction>,
     allow_elevated_docker_permissions: bool,
     additional_info: BTreeMap<String, String>,
-}
-
-impl<C> DockerModuleRuntime<C> {
-    async fn get_notary_registries(
-        settings: &Settings,
-    ) -> anyhow::Result<BTreeMap<String, PathBuf>> {
-        if let Some(content_trust_map) = settings
-            .moby_runtime()
-            .content_trust()
-            .and_then(ContentTrust::ca_certs)
-        {
-            debug!("Notary Content Trust is enabled");
-            let home_dir: Arc<Path> = settings.homedir().into();
-            let certd_url = settings.endpoints().aziot_certd_url().clone();
-            let cert_client = aziot_cert_client_async::Client::new(
-                aziot_cert_common_http::ApiVersion::V2020_09_01,
-                http_common::Connector::new(&certd_url).map_err(|_| Error::Docker)?, // TODO: Error Fix
-                1,
-            );
-
-            let mut notary_registries = BTreeMap::new();
-            for (registry_server_hostname, cert_id) in content_trust_map {
-                let cert_buf = cert_client.get_cert(cert_id).await.map_err(|_| {
-                    Error::NotaryRootCAReadError("Notary root CA read error".to_owned())
-                })?;
-
-                let config_path =
-                    notary::notary_init(&home_dir, registry_server_hostname, &cert_buf).map_err(
-                        |_| Error::NotaryRootCAReadError("Notary init error".to_owned()),
-                    )?;
-                notary_registries.insert(registry_server_hostname.clone(), config_path);
-            }
-
-            Ok(notary_registries)
-        } else {
-            debug!("Notary Content Trust is disabled");
-            Ok(BTreeMap::new())
-        }
-    }
-
-    #[allow(dead_code)]
-    async fn check_for_notary_image(
-        &self,
-        config: &DockerConfig,
-    ) -> anyhow::Result<(String, bool)> {
-        if let Some((notary_auth, gun, tag, config_path)) = self.get_notary_parameters(config) {
-            let lock = self.notary_lock.clone();
-            let mut notary_map = lock.lock().await;
-
-            // Note `.entry()` cannot be used b/c the notary lookup is async
-            let digest_from_notary = if let Some(digest) = notary_map.get(config.image()) {
-                digest.clone()
-            } else {
-                let digest =
-                    notary::notary_lookup(notary_auth.as_deref(), &gun, &tag, &config_path).await?;
-                notary_map.insert(config.image().to_owned(), digest.clone());
-                digest
-            };
-
-            let image_with_digest = format!("{}@{}", gun, digest_from_notary);
-            if let Some(digest_from_manifest) = config.digest() {
-                if digest_from_manifest == digest_from_notary {
-                    info!("Digest from notary and Digest from manifest does match");
-                    debug!(
-                        "Digest from notary : {} and Digest from manifest : {} does match",
-                        digest_from_notary, digest_from_manifest
-                    );
-                    Ok((image_with_digest, true))
-                } else {
-                    info!("Digest from notary and Digest from manifest does not match");
-                    debug!(
-                        "Digest from notary : {} and Digest from manifest : {} does not match",
-                        digest_from_notary, digest_from_manifest
-                    );
-                    Err(Error::NotaryDigestMismatch(
-                        "notary digest mismatch with the manifest".to_owned(),
-                    )
-                    .into())
-                }
-            } else {
-                info!("No Digest from the manifest");
-                Ok((image_with_digest, true))
-            }
-        } else {
-            Ok((config.image().to_owned(), false))
-        }
-    }
-
-    #[allow(dead_code)]
-    fn get_notary_parameters(
-        &self,
-        config: &DockerConfig,
-    ) -> Option<(Option<String>, Arc<str>, String, PathBuf)> {
-        // check if the serveraddress exists & check if it exists in notary_registries
-        let registry_auth = config.auth();
-        let (registry_hostname, registry_username, registry_password) = match registry_auth {
-            Some(a) => (a.serveraddress(), a.username(), a.password()),
-            None => (None, None, None),
-        };
-        let hostname = registry_hostname?;
-        let config_path = self.notary_registries.get(hostname)?;
-        info!("{} is enabled for notary content trust", hostname);
-        let notary_auth = match (registry_username, registry_password) {
-            (None, None) => None,
-            (username, password) => {
-                let notary_auth = format!(
-                    "{}:{}",
-                    username.unwrap_or_default(),
-                    password.unwrap_or_default()
-                );
-                let notary_auth = base64::encode(&notary_auth);
-                Some(notary_auth)
-            }
-        };
-        let mut image_with_tag_parts = config.image().split(':');
-        let gun = image_with_tag_parts
-            .next()
-            .expect("split always returns atleast one element")
-            .to_owned();
-        let gun: Arc<str> = gun.into();
-        let tag = image_with_tag_parts.next().unwrap_or("latest").to_owned();
-
-        Some((notary_auth, gun, tag, config_path.clone()))
-    }
 }
 
 fn merge_env(cur_env: Option<&[String]>, new_env: &BTreeMap<String, String>) -> Vec<String> {
@@ -186,7 +54,9 @@ fn merge_env(cur_env: Option<&[String]>, new_env: &BTreeMap<String, String>) -> 
         // only string slices pointing into strings inside cur_env)
         merged_env.extend(env.iter().filter_map(|s| {
             let mut tokens = s.splitn(2, '=');
-            tokens.next().map(|key| (key, tokens.next().unwrap_or("")))
+            tokens
+                .next()
+                .map(|key| (key, tokens.next().unwrap_or_default()))
         }));
     }
 
@@ -215,9 +85,9 @@ where
         let is_content_trust_enabled = false;
 
         if is_content_trust_enabled {
-            info!("Pulling image via digest {}...", image);
+            log::info!("Pulling image via digest {}...", image);
         } else {
-            info!("Pulling image via tag {}...", image);
+            log::info!("Pulling image via tag {}...", image);
         }
 
         let creds = match config.auth() {
@@ -233,17 +103,21 @@ where
         self.client
             .image_create(&image, "", "", "", "", &creds, "")
             .await
-            .map_err(|err| Error::DockerRuntime(err.to_string()))
+            .context(Error::Docker)
+            .map_err(|e| {
+                log::warn!("{:?}", e);
+                e
+            })
             .with_context(|| {
                 Error::RegistryOperation(RegistryOperation::PullImage(image.clone()))
             })?;
 
-        info!("Successfully pulled image {}", image);
+        log::info!("Successfully pulled image {}", image);
         Ok(())
     }
 
     async fn remove(&self, name: &str) -> anyhow::Result<()> {
-        info!("Removing image {}...", name);
+        log::info!("Removing image {}...", name);
 
         ensure_not_empty(name).with_context(|| {
             Error::RegistryOperation(RegistryOperation::RemoveImage(name.to_string()))
@@ -252,16 +126,16 @@ where
         self.client
             .image_delete(name, false, false)
             .await
+            .context(Error::Docker)
             .map_err(|e| {
-                let err = Error::DockerRuntime(e.to_string());
-                log_failure(Level::Warn, &err);
-                err
+                log::warn!("{:?}", e);
+                e
             })
             .with_context(|| {
                 Error::RegistryOperation(RegistryOperation::RemoveImage(name.to_string()))
             })?;
 
-        info!("Successfully removed image {}", name);
+        log::info!("Successfully removed image {}", name);
         Ok(())
     }
 }
@@ -276,22 +150,19 @@ impl MakeModuleRuntime for DockerModuleRuntime<Connector> {
         settings: &Settings,
         create_socket_channel: UnboundedSender<ModuleAction>,
     ) -> anyhow::Result<Self::ModuleRuntime> {
-        info!("Initializing module runtime...");
+        log::info!("Initializing module runtime...");
 
         let client = init_client(settings.moby_runtime().uri())?;
-        let notary_registries = Self::get_notary_registries(settings).await?;
         create_network_if_missing(settings, &client).await?;
 
         // to avoid excessive FD usage, we will not allow sysinfo to keep files open.
         sysinfo::set_open_files_limit(0);
         let system_resources = System::new_all();
-        info!("Successfully initialized module runtime");
+        log::info!("Successfully initialized module runtime");
 
         let runtime = Self {
             client,
             system_resources: Arc::new(Mutex::new(system_resources)),
-            notary_registries,
-            notary_lock: Arc::new(Mutex::new(BTreeMap::new())),
             create_socket_channel,
             allow_elevated_docker_permissions: settings.allow_elevated_docker_permissions(),
             additional_info: settings.additional_info().clone(),
@@ -303,27 +174,24 @@ impl MakeModuleRuntime for DockerModuleRuntime<Connector> {
 
 pub fn init_client(docker_url: &Url) -> anyhow::Result<DockerApiClient<Connector>> {
     // build the hyper client
-    let connector = Connector::new(docker_url).map_err(|e| Error::Initialization(e.to_string()))?;
+    let connector = Connector::new(docker_url).context(Error::Initialization)?;
 
     // extract base path - the bit that comes after the scheme
     let base_path = docker_url
         .to_base_path()
-        .with_context(|| Error::Initialization("".to_owned()))?
+        .context(Error::Initialization)?
         .to_str()
-        .ok_or_else(|| Error::Initialization("".to_owned()))?
+        .ok_or(Error::Initialization)?
         .to_string();
-    let uri_composer = Box::new(|base_path: &str, path: &str| {
-        // https://docs.rs/hyperlocal/0.6.0/src/hyperlocal/lib.rs.html#59
-        let host = hex::encode(base_path.as_bytes());
-        let host_str = format!("unix://{}:0{}", host, path);
-        let result: Uri = host_str.parse()?;
-
-        Ok(result)
-    });
 
     let configuration = Configuration {
         base_path,
-        uri_composer,
+        uri_composer: Box::new(|base_path, path| {
+            // https://docs.rs/hyperlocal/0.6.0/src/hyperlocal/lib.rs.html#59
+            let host = hex::encode(base_path.as_bytes());
+            let host_str = format!("unix://{}:0{}", host, path);
+            Ok(host_str.parse()?)
+        }),
         ..Default::default()
     };
 
@@ -336,15 +204,15 @@ async fn create_network_if_missing(
 ) -> anyhow::Result<()> {
     let (enable_i_pv6, ipam) = get_ipv6_settings(settings.moby_runtime().network());
     let network_id = settings.moby_runtime().network().name();
-    info!("Using runtime network id {}", network_id);
+    log::info!("Using runtime network id {}", network_id);
 
     let filter = format!(r#"{{"name":{{"{}":true}}}}"#, network_id);
     let existing_iotedge_networks = client
         .network_list(&filter)
         .await
-        .map_err(|err| {
-            let e = Error::DockerRuntime(err.to_string());
-            log_failure(Level::Warn, &e);
+        .context(Error::Docker)
+        .map_err(|e| {
+            log::warn!("{:?}", e);
             e
         })
         .context(Error::RuntimeOperation(RuntimeOperation::Init))?;
@@ -360,9 +228,9 @@ async fn create_network_if_missing(
         client
             .network_create(network_config)
             .await
-            .map_err(|err| {
-                let e = Error::DockerRuntime(err.to_string());
-                log_failure(Level::Warn, &e);
+            .context(Error::Docker)
+            .map_err(|e| {
+                log::warn!("{:?}", e);
                 e
             })
             .context(Error::RuntimeOperation(RuntimeOperation::Init))?;
@@ -415,7 +283,7 @@ where
     type ModuleRegistry = Self;
 
     async fn create(&self, mut module: ModuleSpec<Self::Config>) -> anyhow::Result<()> {
-        info!("Creating module {}...", module.name());
+        log::info!("Creating module {}...", module.name());
 
         // we only want "docker" modules
         if module.r#type() != DOCKER_MODULE_TYPE {
@@ -435,12 +303,11 @@ where
         let is_content_trust_enabled = false;
 
         if is_content_trust_enabled {
-            info!("Creating image via digest {}...", image);
+            log::info!("Creating image via digest {}...", &image);
         } else {
-            info!("Creating image via tag {}...", image);
+            log::info!("Creating image via tag {}...", &image);
         }
 
-        debug!("Creating container {} with image {}", module.name(), image);
         let create_options = module.config().create_options().clone();
         let merged_env = merge_env(create_options.env(), module.env());
 
@@ -451,7 +318,7 @@ where
             module.config().image().to_string(),
         );
 
-        debug!("Creating container {} with image {}", module.name(), image);
+        log::debug!("Creating container {} with image {}", module.name(), image);
 
         let create_options = create_options
             .with_image(image)
@@ -461,9 +328,13 @@ where
         // Here we don't add the container to the iot edge docker network as the edge-agent is expected to do that.
         // It contains the logic to add a container to the iot edge network only if a network is not already specified.
         self.client
-            .container_create(create_options, module.name())
+            .container_create(module.name(), create_options)
             .await
-            .map_err(|e| Error::DockerRuntime(e.to_string()))
+            .context(Error::Docker)
+            .map_err(|e| {
+                log::warn!("{:?}", e);
+                e
+            })
             .with_context(|| {
                 Error::RuntimeOperation(RuntimeOperation::CreateModule(module.name().to_string()))
             })?;
@@ -472,7 +343,7 @@ where
     }
 
     async fn get(&self, id: &str) -> anyhow::Result<(Self::Module, ModuleRuntimeState)> {
-        debug!("Getting module {}...", id);
+        log::debug!("Getting module {}...", id);
 
         ensure_not_empty(id)
             .with_context(|| Error::RuntimeOperation(RuntimeOperation::GetModule(id.to_owned())))?;
@@ -481,11 +352,12 @@ where
             .client
             .container_inspect(id, false)
             .await
-            .map_err(|_| Error::RuntimeOperation(RuntimeOperation::GetModule(id.to_owned())))?;
+            .context(Error::Docker)
+            .with_context(|| Error::RuntimeOperation(RuntimeOperation::GetModule(id.to_owned())))?;
 
         let name = response
             .name()
-            .ok_or_else(|| Error::RuntimeOperation(RuntimeOperation::GetModule(id.to_string())))?;
+            .ok_or_else(|| Error::RuntimeOperation(RuntimeOperation::GetModule(id.to_owned())))?;
         let name = name.trim_start_matches('/').to_owned();
 
         let mut create_options = ContainerCreateBody::new();
@@ -530,7 +402,7 @@ where
     }
 
     async fn start(&self, id: &str) -> anyhow::Result<()> {
-        info!("Starting module {}...", id);
+        log::info!("Starting module {}...", id);
 
         ensure_not_empty(id).with_context(|| {
             Error::RuntimeOperation(RuntimeOperation::StartModule(id.to_owned()))
@@ -541,12 +413,12 @@ where
         self.create_socket_channel
             .send(ModuleAction::Start(id.to_string(), sender))
             .map_err(|_| {
-                error!("Could not notify workload manager, start of module: {}", id);
+                log::error!("Could not notify workload manager, start of module: {}", id);
                 Error::RuntimeOperation(RuntimeOperation::StartModule(id.to_string()))
             })?;
 
         receiver.await.map_err(|_| {
-            error!(
+            log::error!(
                 "Could not wait on workload manager response, start of module: {}",
                 id
             );
@@ -556,16 +428,16 @@ where
         self.client
             .container_start(id, "")
             .await
+            .context(Error::Docker)
             .map_err(|e| {
-                let err = Error::DockerRuntime(e.to_string());
-                log_failure(Level::Warn, &err);
-                err
+                log::warn!("{:?}", e);
+                e
             })
             .with_context(|| Error::RuntimeOperation(RuntimeOperation::StartModule(id.to_owned())))
     }
 
     async fn stop(&self, id: &str, wait_before_kill: Option<Duration>) -> anyhow::Result<()> {
-        info!("Stopping module {}...", id);
+        log::info!("Stopping module {}...", id);
 
         ensure_not_empty(id).with_context(|| {
             Error::RuntimeOperation(RuntimeOperation::StopModule(id.to_owned()))
@@ -580,23 +452,23 @@ where
         self.create_socket_channel
             .send(ModuleAction::Stop(id.to_string()))
             .map_err(|_| {
-                error!("Could not notify workload manager, stop of module: {}", id);
+                log::error!("Could not notify workload manager, stop of module: {}", id);
                 Error::RuntimeOperation(RuntimeOperation::GetModule(id.to_string()))
             })?;
 
         self.client
             .container_stop(id, wait_timeout)
             .await
+            .context(Error::Docker)
             .map_err(|e| {
-                let err = Error::DockerRuntime(e.to_string());
-                log_failure(Level::Warn, &err);
-                err
+                log::warn!("{:?}", e);
+                e
             })
             .with_context(|| Error::RuntimeOperation(RuntimeOperation::StopModule(id.to_owned())))
     }
 
     async fn restart(&self, id: &str) -> anyhow::Result<()> {
-        info!("Restarting module {}...", id);
+        log::info!("Restarting module {}...", id);
         ensure_not_empty(id).with_context(|| {
             Error::RuntimeOperation(RuntimeOperation::RestartModule(id.to_owned()))
         })?;
@@ -604,10 +476,10 @@ where
         self.client
             .container_restart(id, None)
             .await
+            .context(Error::Docker)
             .map_err(|e| {
-                let err = Error::DockerRuntime(e.to_string());
-                log_failure(Level::Warn, &err);
-                err
+                log::warn!("{:?}", e);
+                e
             })
             .with_context(|| {
                 Error::RuntimeOperation(RuntimeOperation::RestartModule(id.to_owned()))
@@ -615,7 +487,7 @@ where
     }
 
     async fn remove(&self, id: &str) -> anyhow::Result<()> {
-        info!("Removing module {}...", id);
+        log::info!("Removing module {}...", id);
 
         ensure_not_empty(id).with_context(|| {
             Error::RuntimeOperation(RuntimeOperation::RemoveModule(id.to_owned()))
@@ -627,10 +499,10 @@ where
                 /* remove link */ false,
             )
             .await
+            .context(Error::Docker)
             .map_err(|e| {
-                let err = Error::DockerRuntime(e.to_string());
-                log_failure(Level::Warn, &err);
-                err
+                log::warn!("{:?}", e);
+                e
             })
             .with_context(|| {
                 Error::RuntimeOperation(RuntimeOperation::RemoveModule(id.to_owned()))
@@ -640,45 +512,38 @@ where
         self.create_socket_channel
             .send(ModuleAction::Remove(id.to_string()))
             .map_err(|_| {
-                error!(
+                log::error!(
                     "Could not notify workload manager, remove of module: {}",
                     id
                 );
-                Error::RuntimeOperation(RuntimeOperation::GetModule(id.to_string())).into()
+                anyhow::anyhow!(Error::RuntimeOperation(RuntimeOperation::GetModule(
+                    id.to_string()
+                )))
             })
     }
 
     async fn system_info(&self) -> anyhow::Result<CoreSystemInfo> {
-        info!("Querying system info...");
+        log::info!("Querying system info...");
 
-        let mut system_info = CoreSystemInfo::from_system()
-            .map_err(|_| Error::RuntimeOperation(RuntimeOperation::SystemInfo))?;
+        let mut system_info = CoreSystemInfo::default();
 
         let docker_info = self
             .client
             .system_info()
             .await
-            .map_err(|e| Error::DockerRuntime(e.to_string()))
+            .context(Error::Docker)
             .context(Error::RuntimeOperation(RuntimeOperation::SystemInfo))?;
         system_info.server_version = docker_info.server_version().map(ToOwned::to_owned);
         system_info.merge_additional(self.additional_info.clone());
 
-        info!("Successfully queried system info");
+        log::info!("Successfully queried system info");
         Ok(system_info)
     }
 
     async fn system_resources(&self) -> anyhow::Result<SystemResources> {
-        info!("Querying system resources...");
+        log::info!("Querying system resources...");
 
-        let uptime: u64 = {
-            let mut info: libc::sysinfo = unsafe { mem::zeroed() };
-            let ret = unsafe { libc::sysinfo(&mut info) };
-            if ret == 0 {
-                info.uptime.try_into().unwrap_or_default()
-            } else {
-                0
-            }
-        };
+        let uptime = nix::sys::sysinfo::sysinfo()?.uptime().as_secs();
 
         // Get system resources
         let mut system_resources = self.system_resources.as_ref().lock().await;
@@ -716,13 +581,13 @@ where
         // Note a for_each loop is used for simplicity with async operations
         // While a stream could be used for parallel operations, it isn't necessary here
         let modules = self.list().await?;
-        let mut docker_stats = Vec::<serde_json::Value>::with_capacity(modules.len());
+        let mut docker_stats = Vec::with_capacity(modules.len());
         for module in modules {
             let stats = self
                 .client
                 .container_stats(module.name(), false)
                 .await
-                .map_err(|e| Error::DockerRuntime(e.to_string()))?;
+                .context(Error::Docker)?;
 
             docker_stats.push(stats);
         }
@@ -741,7 +606,7 @@ where
     }
 
     async fn list(&self) -> anyhow::Result<Vec<Self::Module>> {
-        debug!("Listing modules...");
+        log::debug!("Listing modules...");
 
         let mut filters = HashMap::new();
         filters.insert("label", LABELS);
@@ -757,7 +622,8 @@ where
                 &filters,
             )
             .await
-            .map_err(|e| Error::DockerRuntime(e.to_string()))?;
+            .context(Error::Docker)
+            .context(Error::RuntimeOperation(RuntimeOperation::ListModules))?;
 
         let result = containers
             .iter()
@@ -803,8 +669,17 @@ where
         let mut result = Vec::new();
         for module in self.list().await? {
             // Note, if error calling just drop module from list
-            if let Ok(module_with_details) = self.get(module.name()).await {
-                result.push(module_with_details);
+            match self.get(module.name()).await {
+                Ok(module_with_details) => {
+                    result.push(module_with_details);
+                }
+                Err(err) => {
+                    log::warn!(
+                        "error when getting details for {}: {:?}",
+                        module.name(),
+                        err
+                    );
+                }
             }
         }
 
@@ -812,7 +687,7 @@ where
     }
 
     async fn logs(&self, id: &str, options: &LogOptions) -> anyhow::Result<hyper::Body> {
-        info!("Getting logs for module {}...", id);
+        log::info!("Getting logs for module {}...", id);
 
         self.client
             .container_logs(
@@ -826,15 +701,11 @@ where
                 &options.tail().to_string(),
             )
             .await
+            .context(Error::Docker)
             .map_err(|e| {
-                let err = Error::DockerRuntime(e.to_string());
-                log_failure(Level::Warn, &err);
-                err.into()
+                log::warn!("{:?}", e);
+                e
             })
-    }
-
-    fn registry(&self) -> &Self::ModuleRegistry {
-        self
     }
 
     async fn remove_all(&self) -> anyhow::Result<()> {
@@ -847,7 +718,7 @@ where
 
         for result in futures::future::join_all(remove).await {
             if let Err(err) = result {
-                log::warn!("Failed to remove module: {}", err);
+                log::warn!("Failed to remove module: {:?}", err);
             }
         }
 
@@ -864,7 +735,7 @@ where
 
         for result in futures::future::join_all(stop).await {
             if let Err(err) = result {
-                log::warn!("Failed to stop module: {}", err);
+                log::warn!("Failed to stop module: {:?}", err);
             }
         }
 
@@ -876,10 +747,10 @@ where
             .client
             .container_top(id, "")
             .await
+            .context(Error::Docker)
             .map_err(|e| {
-                let err = Error::DockerRuntime(e.to_string());
-                log_failure(Level::Warn, &err);
-                err
+                log::warn!("{:?}", e);
+                e
             })
             .with_context(|| Error::RuntimeOperation(RuntimeOperation::TopModule(id.to_owned())))?;
 
@@ -888,9 +759,21 @@ where
 
         Ok(pids)
     }
+
+    fn registry(&self) -> &Self::ModuleRegistry {
+        self
+    }
+
+    fn error_code(error: &anyhow::Error) -> hyper::StatusCode {
+        if let Some(error) = error.root_cause().downcast_ref::<docker::apis::ApiError>() {
+            error.code
+        } else {
+            hyper::StatusCode::INTERNAL_SERVER_ERROR
+        }
+    }
 }
 
-fn parse_top_response<'de, D>(resp: &InlineResponse2001) -> std::result::Result<Vec<i32>, D::Error>
+fn parse_top_response<'de, D>(resp: &InlineResponse2001) -> Result<Vec<i32>, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
@@ -909,7 +792,7 @@ where
     let processes = resp
         .processes()
         .ok_or_else(|| serde::de::Error::missing_field("Processes"))?;
-    let pids: std::result::Result<_, _> = processes
+    let pids = processes
         .iter()
         .map(|p| {
             let val = p.get(pid_index).ok_or_else(|| {
@@ -926,7 +809,7 @@ where
             })?;
             Ok(pid)
         })
-        .collect();
+        .collect::<Result<_, _>>();
 
     pids
 }
@@ -941,7 +824,7 @@ fn unset_privileged(
     }
     if let Some(config) = create_options.host_config() {
         if config.privileged() == Some(&true) || config.cap_add().map_or(0, Vec::len) != 0 {
-            warn!("Privileged capabilities are disallowed on this device. Privileged capabilities can be used to gain root access. If a module needs to run as privileged, and you are aware of the consequences, set `allow_elevated_docker_permissions` to `true` in the config.toml and restart the service.");
+            log::warn!("Privileged capabilities are disallowed on this device. Privileged capabilities can be used to gain root access. If a module needs to run as privileged, and you are aware of the consequences, set `allow_elevated_docker_permissions` to `true` in the config.toml and restart the service.");
             let mut config = config.clone();
 
             config.set_privileged(false);
