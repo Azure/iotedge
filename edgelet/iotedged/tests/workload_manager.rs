@@ -26,7 +26,7 @@ use tempfile::tempdir;
 
 const IOTEDGED_TLS_COMMONNAME: &str = "iotedged";
 const TIME_FOR_CERT: u64 = 100;
-const TIME_FOR_SERVER_UP: time::Duration = time::Duration::from_millis(100);
+const TIME_FOR_SERVER_UP: time::Duration = time::Duration::from_millis(400);
 
 fn make_settings(workloadurl: &str, path: &Path) -> TestSettings {
     let mut config = Config::default();
