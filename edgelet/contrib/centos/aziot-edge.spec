@@ -7,6 +7,7 @@
 %define iotedge_confdir %{aziot_confdir}/edged
 %define iotedge_agent_user edgeagentuser
 %define iotedge_agent_uid 13622
+%global debug_package %{nil}
 
 Name:           aziot-edge
 Version:        @version@

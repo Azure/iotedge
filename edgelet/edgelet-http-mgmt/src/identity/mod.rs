@@ -28,14 +28,18 @@ impl std::convert::TryFrom<aziot_identity_common::Identity> for Identity {
                 let module_id = match identity.module_id {
                     Some(module_id) => module_id.0,
                     None => {
-                        return Err(edgelet_http::error::server_error("missing module id"));
+                        return Err(edgelet_http::error::bad_request(
+                            "missing parameter: module id",
+                        ));
                     }
                 };
 
                 let generation_id = match identity.gen_id {
                     Some(gen_id) => gen_id.0,
                     None => {
-                        return Err(edgelet_http::error::server_error("missing generation id"));
+                        return Err(edgelet_http::error::bad_request(
+                            "missing parameter: generation id",
+                        ));
                     }
                 };
 
@@ -46,7 +50,9 @@ impl std::convert::TryFrom<aziot_identity_common::Identity> for Identity {
                     auth_type: "sas".to_string(),
                 })
             }
-            _ => Err(edgelet_http::error::server_error("invalid identity type")),
+            _ => Err(edgelet_http::error::bad_request(
+                "invalid parameter: identity type",
+            )),
         }
     }
 }

@@ -1,9 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::str::FromStr;
-
 use anyhow::Context;
-use chrono::prelude::*;
 
 use docker::apis::{DockerApi, DockerApiClient};
 use docker::models::InlineResponse200State;
@@ -16,21 +13,21 @@ use crate::error::Error;
 pub const MODULE_TYPE: &str = "docker";
 pub const MIN_DATE: &str = "0001-01-01T00:00:00Z";
 
-pub struct DockerModule {
-    client: DockerApiClient,
+pub struct DockerModule<C> {
+    client: DockerApiClient<C>,
     name: String,
     config: DockerConfig,
 }
 
-impl std::fmt::Debug for DockerModule {
+impl<C> std::fmt::Debug for DockerModule<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("DockerModule").finish()
     }
 }
 
-impl DockerModule {
+impl<C> DockerModule<C> {
     pub fn new(
-        client: DockerApiClient,
+        client: DockerApiClient<C>,
         name: String,
         config: DockerConfig,
     ) -> anyhow::Result<Self> {
@@ -66,24 +63,23 @@ pub fn runtime_state(
                 "removing" | "exited" => status_from_exit_code(state.exit_code()),
                 "dead" => Some(ModuleStatus::Dead),
                 "running" => Some(ModuleStatus::Running),
-                _ => Some(ModuleStatus::Unknown),
+                _ => None,
             })
-            .unwrap_or(ModuleStatus::Unknown);
+            .unwrap_or_default();
         ModuleRuntimeState::default()
             .with_status(status)
             .with_exit_code(state.exit_code())
-            .with_status_description(state.status().map(ToOwned::to_owned))
             .with_started_at(
                 state
                     .started_at()
                     .and_then(|d| if d == MIN_DATE { None } else { Some(d) })
-                    .and_then(|started_at| DateTime::from_str(started_at).ok()),
+                    .and_then(|started_at| started_at.parse().ok()),
             )
             .with_finished_at(
                 state
                     .finished_at()
                     .and_then(|d| if d == MIN_DATE { None } else { Some(d) })
-                    .and_then(|finished_at| DateTime::from_str(finished_at).ok()),
+                    .and_then(|finished_at| finished_at.parse().ok()),
             )
             .with_image_id(id.map(ToOwned::to_owned))
             .with_pid(state.pid())
@@ -91,7 +87,10 @@ pub fn runtime_state(
 }
 
 #[async_trait::async_trait]
-impl Module for DockerModule {
+impl<C> Module for DockerModule<C>
+where
+    C: Clone + hyper::client::connect::Connect + Send + Sync + 'static,
+{
     type Config = DockerConfig;
 
     fn name(&self) -> &str {
@@ -111,7 +110,7 @@ impl Module for DockerModule {
             .client
             .container_inspect(&self.name, false)
             .await
-            .map_err(|e| Error::DockerRuntime(e.to_string()))
+            .context(Error::Docker)
             .context(Error::ModuleOperation(ModuleOperation::RuntimeState))?;
 
         Ok(runtime_state(inspect.id(), inspect.state()))
