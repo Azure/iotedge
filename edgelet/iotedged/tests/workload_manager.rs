@@ -17,7 +17,9 @@ use futures::sync::oneshot;
 use futures::sync::oneshot::{Receiver, Sender};
 use futures::Future;
 use iotedged::{workload::WorkloadData, workload_manager::WorkloadManager};
-use module::{TestConfig, TestMod as TestModule, TestProvisioningResult, TestRuntime, TestSettings};
+use module::{
+    TestConfig, TestMod as TestModule, TestProvisioningResult, TestRuntime, TestSettings,
+};
 use serde_json::{self, json};
 
 use std::path::Path;
@@ -121,8 +123,7 @@ fn start_edgeagent_socket_succeeds() {
     if cfg!(windows) {
         let socketpath = path.join("mnt/edgeAgent");
         assert!(!socketpath.read_dir().unwrap().next().is_none());
-    }
-    else {
+    } else {
         let socketpath = path.join("mnt/edgeAgent.sock");
         assert!(socketpath.exists());
     }
@@ -199,12 +200,10 @@ fn stop_edgeagent_workload_socket_fails() {
     if cfg!(windows) {
         let socketpath = path.join("mnt/edgeAgent");
         assert!(!socketpath.read_dir().unwrap().next().is_none());
-    }
-    else {
+    } else {
         let socketpath = path.join("mnt/edgeAgent.sock");
         assert!(socketpath.exists());
     }
-
 }
 
 #[test]
@@ -280,8 +279,7 @@ fn start_workload_socket_succeeds() {
     if cfg!(windows) {
         let socketpath = path.join("mnt/test-agent");
         assert!(!socketpath.read_dir().unwrap().next().is_none());
-    }
-    else {
+    } else {
         let socketpath = path.join("mnt/test-agent.sock");
         assert!(socketpath.exists());
     }
@@ -367,8 +365,7 @@ fn stop_workload_socket_succeeds() {
     if cfg!(windows) {
         let socketpath = path.join("mnt/test-agent");
         assert!(socketpath.read_dir().unwrap().next().is_none());
-    }
-    else {
+    } else {
         let socketpath = path.join("mnt/test-agent.sock");
         assert!(!socketpath.exists());
     }
