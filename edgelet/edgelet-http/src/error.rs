@@ -24,7 +24,7 @@ where
 {
     http_common::server::Error {
         status_code: <M as edgelet_core::ModuleRuntime>::error_code(error),
-        message: std::borrow::Cow::Owned(error.to_string()),
+        message: Cow::Owned(error.to_string()),
     }
 }
 

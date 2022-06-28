@@ -295,7 +295,7 @@ where
     }
 
     api_call! {
-        container_inspect : get "/containers/{id}" -> models::InlineResponse200 ;
+        container_inspect : get "/containers/{id}/json" -> models::InlineResponse200 ;
         path : [ id: &'a str ] ;
         query : [ "size" = (size: bool) ] ;
         ok : [OK]

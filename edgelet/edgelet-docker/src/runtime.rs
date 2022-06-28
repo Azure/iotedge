@@ -669,8 +669,13 @@ where
         let mut result = Vec::new();
         for module in self.list().await? {
             // Note, if error calling just drop module from list
-            if let Ok(module_with_details) = self.get(module.name()).await {
-                result.push(module_with_details);
+            match self.get(module.name()).await {
+                Ok(module_with_details) => {
+                    result.push(module_with_details);
+                },
+                Err(err) => {
+                    log::warn!("error when getting details for {}: {:?}", module.name(), err);
+                }
             }
         }
 
