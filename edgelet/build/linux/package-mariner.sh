@@ -17,7 +17,7 @@ case "${MARINER_RELEASE}" in
         PackageExtension="cm1"
         ;;
     '2.0-stable')
-        UsePreview=n
+        UsePreview=y
         MarinerIdentity=mariner2
         PackageExtension="cm2"
         ;;
@@ -35,10 +35,10 @@ apt-get update -y
 apt-get install -y \
     cmake curl gcc g++ git jq make pkg-config \
     libclang1 libssl-dev llvm-dev \
-    cpio genisoimage golang-1.13-go qemu-utils pigz python-pip python3-distutils rpm tar wget
+    cpio genisoimage golang-1.17-go qemu-utils pigz python-pip python3-distutils rpm tar wget
 
 rm -f /usr/bin/go
-ln -vs /usr/lib/go-1.13/bin/go /usr/bin/go
+ln -vs /usr/lib/go-1.17/bin/go /usr/bin/go
 if [ -f /.dockerenv ]; then
     mv /.dockerenv /.dockerenv.old
 fi
