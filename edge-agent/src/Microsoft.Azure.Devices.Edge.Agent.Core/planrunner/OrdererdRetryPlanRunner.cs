@@ -84,10 +84,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunner
                             if (token.IsCancellationRequested)
                             {
                                 Events.PlanExecCancelled(deploymentId);
+                                skippedModules = true;
                                 break;
                             }
 
-                            // TODO ANDREW: if shouldn't run, shouldn't proceed from image pulls onto real commands
                             if (shouldRun)
                             {
                                 await command.ExecuteAsync(token);
@@ -119,7 +119,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunner
                             int newRunCount = this.commandRunStatus.ContainsKey(command.Id) ? this.commandRunStatus[command.Id].RunCount : 0;
                             this.commandRunStatus[command.Id] = new CommandRunStats(newRunCount + 1, this.systemTime.UtcNow, ex);
 
-                            // TODO ANDREW: skipped modules set here? thinking no
                             if (ex is ExcecutionPrerequisiteException)
                             {
                                 Events.StopProcessingPriorityGroup(deploymentId, command);
