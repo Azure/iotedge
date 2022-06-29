@@ -177,7 +177,7 @@ stages:
             arch: amd64
             os: mariner
             os_version: 1
-            release: tags/1.0-stable
+            release: 1.0-stable
             target.iotedged: builds/mariner1/out/RPMS/x86_64/
             target.logs: builds/mariner1/build/logs/pkggen/rpmbuilding/
           CBL-Mariner2.0-amd64:
