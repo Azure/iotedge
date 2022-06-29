@@ -111,6 +111,16 @@ stages:
               *.deb
               *.rpm
             TargetFolder: '$(build.artifactstagingdirectory)'
+        - task: EsrpCodeSigning@1
+          displayName: ESRP Binary CodeSigning
+          inputs:
+            ConnectedServiceName: 6ee18517-6d66-4730-bffd-2858a151bf69
+            FolderPath: '$(build.artifactstagingdirectory)'
+            Pattern: "*.rpm"
+            CertificateId: 400
+            OpusName: Azure IoT Edge
+            OpusInfo: https://azure.microsoft.com/en-us/services/iot-edge/
+            SessionTimeout: 20
         - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
           displayName: 'SBOM Generation Task'
           inputs:
@@ -158,7 +168,13 @@ stages:
             artifactName: iotedged-debian11-arm32v7
             identityServiceArtifactName: packages_debian-11-slim_arm32v7
             identityServicePackageFilter: aziot-identity-service_*_armhf.deb
-          
+
+          RedHat8-amd64:
+            os: redhat8
+            artifactName: iotedged-redhat8-amd64
+            identityServiceArtifactName: packages_redhat-ubi8-latest_amd64
+            identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
+
           Ubuntu1804-amd64:
             os: ubuntu18.04
             artifactName: iotedged-ubuntu18.04-amd64
