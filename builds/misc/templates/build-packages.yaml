@@ -185,7 +185,7 @@ stages:
             os: mariner
             os_version: 2
             release: 2.0-stable
-            target.iotedged: builds/mariner$2/out/RPMS/x86_64/
+            target.iotedged: builds/mariner2/out/RPMS/x86_64/
             target.logs: builds/mariner2/build/logs/pkggen/rpmbuilding/
       steps:
         - bash: |
