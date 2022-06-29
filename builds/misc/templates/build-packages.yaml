@@ -167,9 +167,10 @@ stages:
 ################################################################################
       displayName: Mariner_Linux
       condition: eq(${{ parameters['E2EBuild'] }}, false)
-      name: $(pool.windows.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker-large-disk
+      pool:
+        name: $(pool.windows.name)
+        demands:
+          - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker-large-disk
       strategy:
         matrix:
           CBL-Mariner1.0-amd64:
