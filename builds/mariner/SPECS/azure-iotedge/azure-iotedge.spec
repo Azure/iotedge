@@ -51,6 +51,8 @@ This package contains the IoT Edge daemon and CLI tool
 
 %prep
 %setup -q
+
+%build
 pushd ~
 tar xf %{SOURCE1} --no-same-owner --strip-components=1
 popd
@@ -58,7 +60,6 @@ export CARGO_HOME=~/.cargo
 export PATH=$PATH:$CARGO_HOME/bin
 export RUSTUP_HOME=~/.rustup
 
-%build
 cd %{_topdir}/BUILD/azure-iotedge-%{version}/edgelet
 
 # Remove FORTIFY_SOURCE from CFLAGS to fix compilation error
