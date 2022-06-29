@@ -3,6 +3,7 @@
 #    from.registry.namespace: ''
 #    to.registry.address: ''
 #    to.registry.namespace: ''
+#    to.unlisted.registry.namespace: ''
 #    pool.linux.name: ''
 #    pool.windows.name: ''
 
@@ -138,6 +139,8 @@ jobs:
                 scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
                 args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-arm64v8 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-arm64v8'
 
+            # We decided to list `azureiotedge-diagnostics` module in `/unlisted` namespace instead of `/public` namespace
+            # so the DiscoveryPortal is not bloated with self-diagonos modules.
             - task: ShellScript@2
               displayName: 'Publish Diagnostic Module - Linux amd64'
               inputs:
