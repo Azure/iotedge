@@ -79,6 +79,7 @@ export IOTEDGE_HOST
 export CARGO_HOME=~/.cargo
 export PATH=$PATH:$CARGO_HOME/bin
 export RUSTUP_HOME=~/.rustup
+cd edgelet
 make %{?_smp_mflags} install DESTDIR=$RPM_BUILD_ROOT unitdir=%{_unitdir} docdir=%{_docdir}/iotedge-%{version}
 
 %clean
