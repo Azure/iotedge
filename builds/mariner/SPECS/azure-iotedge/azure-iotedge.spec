@@ -50,7 +50,7 @@ This package contains the IoT Edge daemon and CLI tool
 %global debug_package %{nil}
 
 %prep
-%setup -q -n %{_topdir}/BUILD/azure-iotedge-%{version}/edgelet
+%setup -q
 pushd ~
 tar xf %{SOURCE1} --no-same-owner --strip-components=1
 popd
