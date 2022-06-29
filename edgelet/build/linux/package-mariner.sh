@@ -134,6 +134,7 @@ rm -rf ${tmp_dir}
 # Copy spec files to expected locations
 cp "${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/azure-iotedge/azure-iotedge.signatures.json" "${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/"
 cp "${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/azure-iotedge/azure-iotedge.spec" "${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/"
+cp "${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/azure-iotedge/gcc-11.patch" "${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/"
 cp "${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/libiothsm-std/libiothsm-std.signatures.json" "${MARINER_BUILD_ROOT}/SPECS/libiothsm-std/"
 cp "${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/libiothsm-std/libiothsm-std.spec" "${MARINER_BUILD_ROOT}/SPECS/libiothsm-std/"
 cp "${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/libiothsm-std/gcc-11.patch" "${MARINER_BUILD_ROOT}/SPECS/libiothsm-std/"
