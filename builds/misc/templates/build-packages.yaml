@@ -178,12 +178,14 @@ stages:
             os_version: 1
             release: tags/1.0-stable
             target.iotedged: builds/mariner1/out/RPMS/x86_64/
+            target.logs: builds/mariner1/build/logs/pkggen/rpmbuilding/
           CBL-Mariner2.0-amd64:
             arch: amd64
             os: mariner
             os_version: 2
             release: 2.0-stable
             target.iotedged: builds/mariner$2/out/RPMS/x86_64/
+            target.logs: builds/mariner2/build/logs/pkggen/rpmbuilding/
       steps:
         - bash: |
             BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
@@ -208,7 +210,7 @@ stages:
         - task: CopyFiles@2
           displayName: Copy iotedged and libiothsm build logs to artifact staging
           inputs:
-            SourceFolder: builds/mariner$(os_version)/build/logs/pkggen/rpmbuilding/
+            SourceFolder: $(target.logs)
             Contents: |
               **/*.rpm.log
             TargetFolder: '$(build.artifactstagingdirectory)'
@@ -225,7 +227,7 @@ stages:
           displayName: Publish Artifacts
           inputs:
             PathtoPublish: '$(build.artifactstagingdirectory)'
-            ArtifactName: 'iotedged-$(os)-$(arch)'
+            ArtifactName: 'iotedged-$(os)$(os_version)-$(arch)'
           condition: succeededOrFailed()
   
 ################################################################################
