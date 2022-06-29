@@ -14,13 +14,13 @@ Release:        1%{?dist}
 
 #Source0:       https://github.com/Azure/iotedge/archive/%{version}.tar.gz
 Source0:        %{name}-%{version}.tar.gz
+Source1:        rust.tar.gz
 License:        MIT
 Group:          Applications/File
 URL:            https://github.com/azure/iotedge
 Vendor:         Microsoft Corporation
 Distribution:   Mariner
 
-BuildRequires:  rust == 1.47.0
 BuildRequires:  cmake
 BuildRequires:  curl
 BuildRequires:  git
@@ -51,6 +51,12 @@ This package contains the IoT Edge daemon and CLI tool
 
 %prep
 %setup -q -n %{_topdir}/BUILD/azure-iotedge-%{version}/edgelet
+pushd ~
+tar xf %{SOURCE1} --no-same-owner --strip-components=1
+popd
+export CARGO_HOME=~/.cargo
+export PATH=$PATH:$CARGO_HOME/bin
+export RUSTUP_HOME=~/.rustup
 
 %build
 cd %{_topdir}/BUILD/azure-iotedge-%{version}/edgelet
@@ -65,9 +71,11 @@ export IOTEDGE_HOST
 make %{?_smp_mflags} release
 
 %install
-export PATH=$PATH:/root/.cargo/bin/
 IOTEDGE_HOST=unix:///var/lib/iotedge/mgmt.sock
 export IOTEDGE_HOST
+export CARGO_HOME=~/.cargo
+export PATH=$PATH:$CARGO_HOME/bin
+export RUSTUP_HOME=~/.rustup
 make %{?_smp_mflags} install DESTDIR=$RPM_BUILD_ROOT unitdir=%{_unitdir} docdir=%{_docdir}/iotedge-%{version}
 
 %clean

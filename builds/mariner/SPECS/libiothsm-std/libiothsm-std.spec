@@ -15,8 +15,6 @@ Release:        1%{?dist}
 
 #Source0:       https://github.com/Azure/iotedge/archive/%{version}.tar.gz
 Source0:        azure-iotedge-%{version}.tar.gz
-Source1:        rust.tar.gz
-
 License:        MIT
 Group:          Applications/Libraries
 URL:            https://github.com/azure/iotedge
@@ -35,13 +33,6 @@ This library is used to interface with the TPM from Azure IoT Edge.
 
 %prep
 %setup -q -n %{_topdir}/BUILD/azure-iotedge-%{version}/edgelet/hsm-sys/azure-iot-hsm-c
-# include rust toolchain that matches the one from aziotedge's pipeline
-pushd ~
-tar xf %{SOURCE1} --no-same-owner --strip-components=1
-popd
-export CARGO_HOME=~/.cargo
-export PATH=$PATH:$CARGO_HOME/bin
-export RUSTUP_HOME=~/.rustup
 
 %build
 cd %{_topdir}/BUILD/azure-iotedge-%{version}/edgelet/hsm-sys/azure-iot-hsm-c
@@ -60,9 +51,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libiothsm.so*
 
 %changelog
-*   Tue Jun 28 2022 Joseph Knierman <joknierm@microsoft.com> @@VERSION@@-1
--   Using pre compiled made rust version
-*   Sun Jan 10 2021 Chad Zawistowski <chzawist@microsoft.com> 1.0.10.5-1
+*   Sun Jan 10 2021 Chad Zawistowski <chzawist@microsoft.com> @@VERSION@@-1
 -   Update to version @@VERSION@@.
 *   Mon Jan 04 2021 Chad Zawistowski <chzawist@microsoft.com> 1.0.10.4-1
 -   Update to version 1.0.10.4.
