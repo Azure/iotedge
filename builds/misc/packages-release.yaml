@@ -148,7 +148,7 @@ stages:
                     "ToolVersion": "1.0"
                 }
               ]
-          signConfigType: inlineSignParams
+            signConfigType: inlineSignParams
         - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
           displayName: 'SBOM Generation Task'
           inputs:
