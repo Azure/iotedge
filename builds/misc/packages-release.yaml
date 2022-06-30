@@ -119,13 +119,15 @@ stages:
             Pattern: "*.rpm"
             SessionTimeout: 20
             inlineOperation: |
-              {
-                  "KeyCode": "CP-450778-Pgp",
-                  "OperationCode": "LinuxSign",
-                  "Parameters": { },
-                  "ToolName": "sign",
-                  "toolVersion": "1.0"
-              }
+              [
+                {
+                    "KeyCode": "CP-450778-Pgp",
+                    "OperationCode": "LinuxSign",
+                    "Parameters": { },
+                    "ToolName": "sign",
+                    "toolVersion": "1.0"
+                }
+              ]
             signConfigType: inlineSignParams
         - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
           displayName: 'SBOM Generation Task'
