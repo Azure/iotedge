@@ -17,7 +17,7 @@ case "${MARINER_RELEASE}" in
         PackageExtension="cm1"
         ;;
     '2.0-stable')
-        UsePreview=y
+        UsePreview=n
         MarinerIdentity=mariner2
         PackageExtension="cm2"
         ;;
