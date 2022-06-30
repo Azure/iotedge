@@ -32,16 +32,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
             {
                 await this.moduleManager.PrepareUpdateAsync(this.module);
             }
-            catch (Exception e)
+            catch (Exception e) when (this.moduleUpdateMode == ModuleUpdateMode.WaitForAll)
             {
-                if (this.moduleUpdateMode == ModuleUpdateMode.WaitForAll)
-                {
-                    throw new ExcecutionPrerequisiteException("Failed to executure PrepareForUpdate command", e);
-                }
-                else
-                {
-                    throw;
-                }
+                throw new ExcecutionPrerequisiteException("Failed to executure PrepareForUpdate command", e);
             }
         }
 
