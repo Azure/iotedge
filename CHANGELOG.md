@@ -1,44 +1,69 @@
 # 1.3.0 (2022-06-24)
+
 ## What's new in 1.3?
+
 The 1.3 release is the next stable release after the 1.2 and includes the following in preparation for the next LTS:
 * OS support changes
 * System modules based on .NET 6 with Alpine as the base layer
 * Required use of TLS 1.2 by default
+* Ability to configure device identity, EST identity, and Edge CA certificate auto-renewal before expiration using `config.toml`, addresses https://github.com/Azure/iotedge/issues/5787, https://github.com/Azure/iotedge/issues/5788, and https://github.com/Azure/iot-identity-service/issues/300
+* Added a check for `iotedge config apply` to detect hostname changes to prevent mismatch between configuration and _edgeHub_ server certificate, addresses https://github.com/Azure/iotedge/issues/5773 and https://github.com/Azure/iotedge/issues/6276
 * Updates to the rust-based components to use tokio 1.0
 * Various bug fixes
 
 **With this release the 1.2.x is no longer serviced with bug fixes and security patches.**
 
-### Upgrade notes
-When upgrading to 1.3 be aware of the following changes:
-1. You can configure Edge Hub to still accept TLS 1.0 or 1.1 connections via the [SslProtocols environment variable](https://github.com/Azure/iotedge/blob/main/doc/EnvironmentVariables.md#edgehub).  Please note that support for [TLS 1.0 and 1.1 in IoT Hub is considered legacy](https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-tls-support) and may also be removed from Edge Hub in future releases. To avoid future issues, use TLS 1.2 as the only TLS version when connecting to Edge Hub or IoT Hub.
-2. The preview for the experimental MQTT broker in Edge Hub 1.2 has ended and is not included in Edge Hub 1.3. We are continuing to refine our plans for an MQTT broker based on feedback received. In the meantime, if you need a standards-compliant MQTT broker on IoT Edge, consider deploying an open-source broker like [Mosquitto](https://mosquitto.org/) as an IoT Edge module.
+## Upgrade notes
 
+### Require TLS 1.2 by default
 
-## OS Support
+You can configure Edge Hub to still accept TLS 1.0 or 1.1 connections via the [SslProtocols environment variable](https://github.com/Azure/iotedge/blob/main/doc/EnvironmentVariables.md#edgehub).  Please note that support for [TLS 1.0 and 1.1 in IoT Hub is considered legacy](https://docs.microsoft.com/azure/iot-hub/iot-hub-tls-deprecating-1-0-and-1-1) and may also be removed from Edge Hub in future releases. To avoid future issues, use TLS 1.2 as the only TLS version when connecting to Edge Hub or IoT Hub.
+
+### MQTT broker preview removed
+
+The preview for the experimental MQTT broker in Edge Hub 1.2 has ended and is not included in Edge Hub 1.3. We are continuing to refine our plans for an MQTT broker based on feedback received. In the meantime, if you need a standards-compliant MQTT broker on IoT Edge, consider deploying an open-source broker like [Mosquitto](https://mosquitto.org/) as an IoT Edge module.
+
+### Certificate renewal feature detail
+
+This new feature adds a way to set option in `config.toml` to have IoT Edge proactively renew device identity (for authentication to IoT Hub and DPS), Edge CA, and EST identity certificates. Use this feature along with an EST server like [GlobalSign IoT Edge Enroll](https://www.globalsign.com/en/iot-edge-enroll) or [DigiCert IoT Device Manager](https://www.digicert.com/iot/iot-device-manager) to automate certificate renewals customized to your needs.
+
+For example, adding below configuration enables device identity certificate auto-renewal when the certificate is at 80% of its lifetime, retry at increment of 4% of lifetime, and rotate the private key:
+
+```
+[provisioning.attestation.identity_cert.auto_renew]
+rotate_key = true
+threshold = "80%"
+retry = "4%"
+```
+
+To enable the certificate renewal feature, changes were made to consolidate and improve IoT Edge's certificate management system. There are some important differences in 1.3 compared to 1.2:
+- All modules restart when Edge CA certificate is renewed. This is necessary so that each module receives the updated trust bundle with the new CA certificate. By default, and when there's no specific `auto_renew` configuration, Edge CA renews at 80% certificate lifetime and so modules would restart at that time.
+- The device identity certificate no longer renews when reprovisioned within 1 day of certificate expiry. This old behavior in 1.2 is removed because it causes authentication errors with IoT Hub or DPS when using X.509 thumbprint authentication, since the new certificate comes with a new thumbprint that the user must manually update in Azure. In 1.3, device identity automatic renewal must be explicitly enabled similar to example above and should only be used with DPS X.509 CA authentication.
+- The device identity certificate no longer renews when reprovisioned after certificate expiry. The reason for this change is same as above: device identity certificates do not renew by default since it causes issues with X.509 thumbprint authentication. 
+
+## OS support
 * Adding RedHat Enterprise Linux 8 for AMD and Intel 64-bit architectures.
 * Adding Debian 11 (Bullseye) for ARM32v7 ( [Generally available: Azure IoT Edge supports Debian Bullseye on ARM32v7](https://azure.microsoft.com/en-us/updates/azure-iot-edge-supports-debian-bullseye-arm32v7/) )
 
 ### Retirement
 * Debian 9 (Stretch) for ARMHF ( [Update your IoT Edge devices on Raspberry Pi OS Stretch](https://azure.microsoft.com/en-us/updates/update-rpios-stretch-to-latest/) )
 
-### Compatibility Script (Under Development)
+### Compatibility script (Under development)
 The IoT Edge compatibility script performs a variety of checks to determine whether a platform has the necessary capabilities to run IoT Edge. This stand-alone script is still considered under development, but we invite anyone to give it a try and send us your feedback by posting in the Issues. Go [here ](https://github.com/Azure/iotedge/blob/main/platform-validation/docs/aziot-compatibility-get-started.md) to learn more about the checks it performs and how to use it.
 
-### Known Issue: Debian 10 (Buster) on ARMv7
+### Known issue: Debian 10 (Buster) on ARMv7
 We recommend using Bullseye instead of Buster as the host OS.  Seccomp on Buster may not be aware of new system calls used by your container resulting in crashes.
 
 If you need to use Buster, then apply the following workaround to change the default seccomp profile for Moby's `defaultAction` to `SCMP_ACT_TRACE`:
 1. Make sure you are runing latest docker and latest seccomp package from oldstable channel
 2. Download [Moby's default seccomp profile](https://github.com/moby/moby/blob/master/profiles/seccomp/default.json) and put it somewhere. 
-3. On line 2 change the value for _defaultAction_ from `SCMP_ACT_ERRNO` to `SCMP_ACT_TRACE`
-4. Edit file _/etc/systemd/system/multi-user.target.wants/docker.service_ to have it contain: `--seccomp-profile=/path/to/default.json`
-5. Restart your container engine by running:
+4. On line 2 change the value for _defaultAction_ from `SCMP_ACT_ERRNO` to `SCMP_ACT_TRACE`
+5. Edit file _/etc/systemd/system/multi-user.target.wants/docker.service_ to have it contain: `--seccomp-profile=/path/to/default.json`
+6. Restart your container engine by running:
    ```bash
    sudo systemctl daemon-reload
    sudo systemctl restart docker
    ```
-
 
 ## Edge Agent
 * Remove unused plan runner and planner  ( [2159dfad3](https://github.com/Azure/iotedge/commit/2159dfad36f04c61ed1df6df4afd69ea57439650) )
