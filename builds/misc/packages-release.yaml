@@ -111,16 +111,44 @@ stages:
               *.deb
               *.rpm
             TargetFolder: '$(build.artifactstagingdirectory)'
-        - task: EsrpCodeSigning@1
+        - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
           displayName: ESRP Binary CodeSigning
           inputs:
-            ConnectedServiceName: 6ee18517-6d66-4730-bffd-2858a151bf69
+            ConnectedServiceName: "Azure IoT Edge Code Sign 2"
             FolderPath: '$(build.artifactstagingdirectory)'
             Pattern: "*.rpm"
-            CertificateId: 400
-            OpusName: Azure IoT Edge
-            OpusInfo: https://azure.microsoft.com/en-us/services/iot-edge/
             SessionTimeout: 20
+            inlineOperation: |
+              [
+                {
+                    "KeyCode": "CP-450778-Pgp",
+                    "OperationCode": "LinuxSign",
+                    "Parameters": [
+                    {
+                        "parameterName": "OpusName",
+                        "parameterValue": "Microsoft"
+                    },
+                    {
+                        "parameterName": "OpusInfo",
+                        "parameterValue": "https://azure.microsoft.com/en-us/services/iot-edge/"
+                    }],
+                    "ToolName": "sign",
+                    "toolVersion": "1.0"
+                },
+                {
+                    "KeyCode": "CP-450778-Pgp",
+                    "OperationCode": "LinuxSign",
+                    "Parameters": [
+                    {
+                        "parameterName": "VerifyAll",
+                        "parameterValue": "/all"
+                    }
+                    ],
+                    "ToolName": "sign",
+                    "ToolVersion": "1.0"
+                }
+              ]
+          signConfigType: inlineSignParams
         - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
           displayName: 'SBOM Generation Task'
           inputs:
