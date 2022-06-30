@@ -114,7 +114,7 @@ stages:
         - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
           displayName: ESRP Binary CodeSigning
           inputs:
-            ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+            ConnectedServiceName: 6ee18517-6d66-4730-bffd-2858a151bf69
             FolderPath: '$(build.artifactstagingdirectory)'
             Pattern: "*.rpm"
             SessionTimeout: 20
