@@ -121,7 +121,7 @@ stages:
             inlineOperation: |
               [
                 {
-                  "KeyCode": "CP-450778-Pgp",
+                  "KeyCode": "CP-450779-Pgp",
                   "OperationCode": "LinuxSign",
                   "Parameters": [
                     {
@@ -153,7 +153,7 @@ stages:
         - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
           displayName: 'SBOM Generation Task'
           inputs:
-              BuildDropPath: '$(build.artifactstagingdirectory)'             
+              BuildDropPath: '$(build.artifactstagingdirectory)'
         - task: PublishBuildArtifacts@1
           displayName: Publish Artifacts
           inputs:
