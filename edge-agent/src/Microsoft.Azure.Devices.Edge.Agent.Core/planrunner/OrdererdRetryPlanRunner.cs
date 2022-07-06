@@ -68,62 +68,59 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunner
 
                 Option<List<Exception>> failures = Option.None<List<Exception>>();
                 bool skippedModules = false;
-                foreach (ImmutableList<ICommand> priorityGroupCommands in plan.Commands)
+                foreach (ICommand command in plan.Commands)
                 {
-                    foreach (ICommand command in priorityGroupCommands)
+                    (bool shouldRun, int runCount, TimeSpan coolOffPeriod, TimeSpan elapsedTime) = this.ShouldRunCommand(command);
+                    if (this.ShouldSkipRemaining(shouldRun, command))
                     {
-                        (bool shouldRun, int runCount, TimeSpan coolOffPeriod, TimeSpan elapsedTime) = this.ShouldRunCommand(command);
-                        if (this.ShouldSkipRemaining(shouldRun, command))
+                        Events.SkipRemainingCommands(deploymentId, command);
+                        break;
+                    }
+
+                    try
+                    {
+                        if (token.IsCancellationRequested)
                         {
-                            Events.SkipRemainingCommandsInPriorityGroup(deploymentId, command);
+                            Events.PlanExecCancelled(deploymentId);
+                            skippedModules = true;
                             break;
                         }
 
-                        try
+                        if (shouldRun)
                         {
-                            if (token.IsCancellationRequested)
-                            {
-                                Events.PlanExecCancelled(deploymentId);
-                                skippedModules = true;
-                                break;
-                            }
+                            await command.ExecuteAsync(token);
 
-                            if (shouldRun)
+                            // since this command ran successfully reset its
+                            // run status
+                            if (this.commandRunStatus.ContainsKey(command.Id))
                             {
-                                await command.ExecuteAsync(token);
-
-                                // since this command ran successfully reset its
-                                // run status
-                                if (this.commandRunStatus.ContainsKey(command.Id))
-                                {
-                                    this.commandRunStatus[command.Id] = CommandRunStats.Default;
-                                }
-                            }
-                            else
-                            {
-                                skippedModules = true;
-                                Events.SkippingCommand(deploymentId, command, this.commandRunStatus[command.Id], this.maxRunCount, coolOffPeriod, elapsedTime);
+                                this.commandRunStatus[command.Id] = CommandRunStats.Default;
                             }
                         }
-                        catch (Exception ex) when (ex.IsFatal() == false)
+                        else
                         {
-                            Events.PlanExecStepFailed(deploymentId, command, coolOffPeriod, elapsedTime);
-                            if (!failures.HasValue)
-                            {
-                                failures = Option.Some(new List<Exception>());
-                            }
+                            skippedModules = true;
+                            Events.SkippingCommand(deploymentId, command, this.commandRunStatus[command.Id], this.maxRunCount, coolOffPeriod, elapsedTime);
+                        }
+                    }
+                    catch (Exception ex) when (ex.IsFatal() == false)
+                    {
+                        Events.PlanExecStepFailed(deploymentId, command, coolOffPeriod, elapsedTime);
+                        if (!failures.HasValue)
+                        {
+                            failures = Option.Some(new List<Exception>());
+                        }
 
-                            failures.ForEach(f => f.Add(ex));
+                        failures.ForEach(f => f.Add(ex));
 
-                            // since this command failed, record its status
-                            int newRunCount = this.commandRunStatus.ContainsKey(command.Id) ? this.commandRunStatus[command.Id].RunCount : 0;
-                            this.commandRunStatus[command.Id] = new CommandRunStats(newRunCount + 1, this.systemTime.UtcNow, ex);
+                        // since this command failed, record its status
+                        int newRunCount = this.commandRunStatus.ContainsKey(command.Id) ? this.commandRunStatus[command.Id].RunCount : 0;
+                        this.commandRunStatus[command.Id] = new CommandRunStats(newRunCount + 1, this.systemTime.UtcNow, ex);
 
-                            if (ex is ExcecutionPrerequisiteException)
-                            {
-                                Events.StopProcessingPriorityGroup(deploymentId, command);
-                                break;
-                            }
+                        if (ex is ExcecutionPrerequisiteException)
+                        {
+                            Events.StopProcessingCommands(deploymentId, command);
+                            break;
                         }
                     }
                 }
@@ -253,18 +250,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunner
                 Log.LogInformation((int)EventIds.PlanExecEnded, $"Plan execution ended for deployment {deploymentId}");
             }
 
-            public static void StopProcessingPriorityGroup(long deploymentId, ICommand command)
+            public static void StopProcessingCommands(long deploymentId, ICommand command)
             {
                 Log.LogError(
                     (int)EventIds.PlanExecStepFailed,
-                    $"Step failed in deployment {deploymentId}. Failure when running command {command.Show()}. Skipping remaining commands in deployment priority group.");
+                    $"Step failed in deployment {deploymentId}. Failure when running command {command.Show()}. Skipping remaining commands in deployment.");
             }
 
-            public static void SkipRemainingCommandsInPriorityGroup(long deploymentId, ICommand command)
+            public static void SkipRemainingCommands(long deploymentId, ICommand command)
             {
                 Log.LogError(
                     (int)EventIds.PlanExecStepFailed,
-                    $"Step previously failed in deployment {deploymentId} on prior attempt. Not running command {command.Show()}. Skipping remaining commands in deployment priority group.");
+                    $"Step previously failed in deployment {deploymentId} on prior attempt. Not running command {command.Show()}. Skipping remaining commands in deployment.");
             }
         }
     }

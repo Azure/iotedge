@@ -6,15 +6,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public class Plan
     {
-        public Plan(ImmutableList<ImmutableList<ICommand>> commands)
+        public Plan(ImmutableList<ICommand> commands)
         {
             this.Commands = Preconditions.CheckNotNull(commands, nameof(commands));
         }
 
-        public static Plan Empty { get; } = new Plan(ImmutableList<ImmutableList<ICommand>>.Empty);
+        public static Plan Empty { get; } = new Plan(ImmutableList<ICommand>.Empty);
 
         public bool IsEmpty => this.Commands.IsEmpty;
 
-        public ImmutableList<ImmutableList<ICommand>> Commands { get; }
+        public ImmutableList<ICommand> Commands { get; }
     }
 }
