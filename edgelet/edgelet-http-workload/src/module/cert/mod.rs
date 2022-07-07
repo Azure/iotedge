@@ -158,7 +158,7 @@ pub(crate) fn new_csr(
 
     let mut csr = openssl::x509::X509Req::builder()?;
     csr.set_version(0)?;
-    csr.set_subject_name(&subject)?;
+    csr.set_subject_name(subject)?;
 
     csr.set_pubkey(&public_key)?;
 

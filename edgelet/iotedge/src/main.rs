@@ -438,7 +438,9 @@ async fn run() -> anyhow::Result<()> {
                     .expect("arg has a default value");
                 let config_file = std::path::Path::new(config_file);
 
-                let () = iotedge::config::apply::execute(config_file).map_err(Error::Config)?;
+                let () = iotedge::config::apply::execute(config_file)
+                    .await
+                    .map_err(Error::Config)?;
                 Ok(())
             }
             ("import", Some(args)) => {

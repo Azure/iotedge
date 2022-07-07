@@ -350,7 +350,7 @@ fn execute_inner(
                 (
                     Some(super_config::EdgeCa::Quickstart {
                         auto_generated_edge_ca_expiry_days: auto_generated_ca_lifetime_days.into(),
-                        auto_renew: None,
+                        auto_renew: cert_renewal::AutoRenewConfig::default(),
                         subject: None,
                     }),
                     None,
@@ -370,6 +370,7 @@ fn execute_inner(
 
         imported_master_encryption_key: old_master_encryption_key_path,
 
+        #[cfg(contenttrust)]
         manifest_trust_bundle_cert: None,
 
         additional_info: None,

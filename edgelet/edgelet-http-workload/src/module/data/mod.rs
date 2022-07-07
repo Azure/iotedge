@@ -11,8 +11,9 @@ use aziot_key_client_async::Client as KeyClient;
 use test_common::client::KeyClient;
 
 fn base64_decode(data: String) -> Result<Vec<u8>, http_common::server::Error> {
-    base64::decode(data).map_err(|err| {
-        edgelet_http::error::bad_request(format!("invalid base64 encoding: {}", err))
+    base64::decode(data).map_err(|err| http_common::server::Error {
+        status_code: http::StatusCode::BAD_REQUEST,
+        message: format!("invalid parameter: {}", err).into(),
     })
 }
 

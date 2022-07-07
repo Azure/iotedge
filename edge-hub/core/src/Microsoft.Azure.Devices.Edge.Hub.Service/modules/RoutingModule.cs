@@ -17,7 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Edge.Hub.Core.Storage;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Twin;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
-    using Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
@@ -61,10 +60,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly ExperimentalFeatures experimentalFeatures;
         readonly bool closeCloudConnectionOnDeviceDisconnect;
         readonly bool nestedEdgeEnabled;
-        readonly bool isLegacyUpstream;
         readonly bool scopeAuthenticationOnly;
         readonly bool trackDeviceState;
         readonly Option<X509Certificate2> manifestTrustBundle;
+        readonly TimeSpan cloudConnectionHangingTimeout;
 
         public RoutingModule(
             string iotHubName,
@@ -85,6 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             TimeSpan cloudConnectionIdleTimeout,
             bool closeCloudConnectionOnIdleTimeout,
             TimeSpan operationTimeout,
+            TimeSpan cloudConnectionHangingTimeout,
             bool useServerHeartbeat,
             Option<TimeSpan> minTwinSyncPeriod,
             Option<TimeSpan> reportedPropertiesSyncFrequency,
@@ -98,7 +98,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             ExperimentalFeatures experimentalFeatures,
             bool closeCloudConnectionOnDeviceDisconnect,
             bool nestedEdgeEnabled,
-            bool isLegacyUpstream,
             bool scopeAuthenticationOnly,
             bool trackDeviceState,
             Option<X509Certificate2> manifestTrustBundle)
@@ -134,10 +133,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.experimentalFeatures = experimentalFeatures;
             this.closeCloudConnectionOnDeviceDisconnect = closeCloudConnectionOnDeviceDisconnect;
             this.nestedEdgeEnabled = nestedEdgeEnabled;
-            this.isLegacyUpstream = isLegacyUpstream;
             this.scopeAuthenticationOnly = scopeAuthenticationOnly;
             this.trackDeviceState = trackDeviceState;
             this.manifestTrustBundle = manifestTrustBundle;
+            this.cloudConnectionHangingTimeout = cloudConnectionHangingTimeout;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -207,6 +206,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<IMessageConverterProvider>()
                 .SingleInstance();
 
+            // IDeviceConnectivityManager
+            builder.Register(
+                    c =>
+                    {
+                        var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
+                        IDeviceConnectivityManager deviceConnectivityManager = this.experimentalFeatures.DisableConnectivityCheck
+                            ? new NullDeviceConnectivityManager()
+                            : new DeviceConnectivityManager(this.connectivityCheckFrequency, TimeSpan.FromMinutes(2), edgeHubCredentials.Identity) as IDeviceConnectivityManager;
+                        return deviceConnectivityManager;
+                    })
+                .As<IDeviceConnectivityManager>()
+                .SingleInstance();
+
             // IDeviceClientProvider
             builder.Register(
                     c =>
@@ -218,87 +230,43 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<IClientProvider>()
                 .SingleInstance();
 
-            if (this.isLegacyUpstream)
-            {
-                // IDeviceConnectivityManager
-                builder.Register(
-                        c =>
-                        {
-                            var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
-                            IDeviceConnectivityManager deviceConnectivityManager = this.experimentalFeatures.DisableConnectivityCheck
-                                ? new NullDeviceConnectivityManager()
-                                : new DeviceConnectivityManager(this.connectivityCheckFrequency, TimeSpan.FromMinutes(2), edgeHubCredentials.Identity) as IDeviceConnectivityManager;
-                            return deviceConnectivityManager;
-                        })
-                    .As<IDeviceConnectivityManager>()
-                    .SingleInstance();
-
-                // Task<ICloudConnectionProvider>
-                builder.Register(
-                        async c =>
-                        {
-                            var metadataStore = await c.Resolve<Task<IMetadataStore>>();
-                            var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
-                            var clientProvider = c.Resolve<IClientProvider>();
-                            var tokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubClientAuthTokenProvider");
-                            var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
-                            var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
-                            var deviceScopeIdentitiesCacheTask = c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
-                            var proxy = c.Resolve<Option<IWebProxy>>();
-                            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await deviceScopeIdentitiesCacheTask;
-                            ICredentialsCache credentialsCache = await credentialsCacheTask;
-                            ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
-                                messageConverterProvider,
-                                this.connectionPoolSize,
-                                clientProvider,
-                                this.upstreamProtocol,
-                                tokenProvider,
-                                deviceScopeIdentitiesCache,
-                                credentialsCache,
-                                edgeHubCredentials.Identity,
-                                this.cloudConnectionIdleTimeout,
-                                this.closeCloudConnectionOnIdleTimeout,
-                                this.operationTimeout,
-                                this.useServerHeartbeat,
-                                proxy,
-                                metadataStore,
-                                scopeAuthenticationOnly: this.scopeAuthenticationOnly,
-                                trackDeviceState: this.trackDeviceState,
-                                nestedEdgeEnabled: this.nestedEdgeEnabled);
-                            return cloudConnectionProvider;
-                        })
-                    .As<Task<ICloudConnectionProvider>>()
-                    .SingleInstance();
-            }
-            else
-            {
-                // IDeviceConnectivityManager
-                builder.Register(
-                        c =>
-                        {
-                            IDeviceConnectivityManager deviceConnectivityManager = this.experimentalFeatures.DisableConnectivityCheck
-                                ? new NullDeviceConnectivityManager() as IDeviceConnectivityManager
-                                : new BrokeredDeviceConnectivityManager(c.Resolve<BrokeredCloudProxyDispatcher>());
-                            return deviceConnectivityManager;
-                        })
-                    .As<IDeviceConnectivityManager>()
-                    .SingleInstance();
-
-                builder.Register(
+            // Task<ICloudConnectionProvider>
+            builder.Register(
                     async c =>
                     {
-                        var brokeredCloudProxyDispatcher = c.Resolve<BrokeredCloudProxyDispatcher>();
-                        IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = new NullDeviceScopeIdentitiesCache();
-                        if (this.trackDeviceState)
-                        {
-                            deviceScopeIdentitiesCache = await c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
-                        }
-
-                        return new BrokeredCloudConnectionProvider(brokeredCloudProxyDispatcher, deviceScopeIdentitiesCache) as ICloudConnectionProvider;
+                        var metadataStore = await c.Resolve<Task<IMetadataStore>>();
+                        var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
+                        var clientProvider = c.Resolve<IClientProvider>();
+                        var tokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubClientAuthTokenProvider");
+                        var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
+                        var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
+                        var deviceScopeIdentitiesCacheTask = c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
+                        var proxy = c.Resolve<Option<IWebProxy>>();
+                        IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await deviceScopeIdentitiesCacheTask;
+                        ICredentialsCache credentialsCache = await credentialsCacheTask;
+                        ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
+                            messageConverterProvider,
+                            this.connectionPoolSize,
+                            clientProvider,
+                            this.upstreamProtocol,
+                            tokenProvider,
+                            deviceScopeIdentitiesCache,
+                            credentialsCache,
+                            edgeHubCredentials.Identity,
+                            this.cloudConnectionIdleTimeout,
+                            this.closeCloudConnectionOnIdleTimeout,
+                            this.operationTimeout,
+                            this.cloudConnectionHangingTimeout,
+                            this.useServerHeartbeat,
+                            proxy,
+                            metadataStore,
+                            scopeAuthenticationOnly: this.scopeAuthenticationOnly,
+                            trackDeviceState: this.trackDeviceState,
+                            nestedEdgeEnabled: this.nestedEdgeEnabled);
+                        return cloudConnectionProvider;
                     })
                 .As<Task<ICloudConnectionProvider>>()
                 .SingleInstance();
-            }
 
             // IIdentityProvider
             builder.Register(_ => new IdentityProvider(this.iotHubName))

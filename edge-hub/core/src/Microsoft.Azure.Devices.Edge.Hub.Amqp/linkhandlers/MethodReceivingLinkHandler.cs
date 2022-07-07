@@ -22,8 +22,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             IDictionary<string, string> boundVariables,
             IConnectionHandler connectionHandler,
             IMessageConverter<AmqpMessage> messageConverter,
-            IMetadataStore metadataStore)
-            : base(identity, link, requestUri, boundVariables, connectionHandler, messageConverter, metadataStore)
+            IMetadataStore metadataStore,
+            bool delayedBatchingEnabled)
+            : base(identity, link, requestUri, boundVariables, connectionHandler, messageConverter, metadataStore, delayedBatchingEnabled)
         {
         }
 

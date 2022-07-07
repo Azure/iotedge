@@ -6,14 +6,15 @@ publish = false
 version = "0.1.0"
 
 [dependencies]
-async-trait = "0.1"
-base64 = "0.13"
-futures = "0.3"
-hyper = "0.14"
-serde = "1.0"
-serde_derive = "1.0"
-serde_json = "1.0"
+anyhow = "1"
+hyper = { version = "0.14", features = ["client", "http1"] }
+serde = "1"
+serde_derive = "1"
+serde_json = "1"
+tokio = { version = "1", features = ["time"] }
 url = "2"
 
-http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt"] }
 
+edgelet-test-utils = { path = "../edgelet-test-utils" }

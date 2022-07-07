@@ -1,6 +1,9 @@
 name: $(version)
 
-stages: 
+variables:
+  DisableDockerDetector: true
+
+stages:
 ################################################################################
   - stage: BuildExecutables
 ################################################################################
@@ -19,14 +22,14 @@ stages:
         # Build
         - task: ShellScript@2
           displayName: "Build (Release) dotnet artifacts"
-          inputs: 
+          inputs:
             args: "-c Release"
             scriptPath: scripts/linux/buildBranch.sh
         # Code Sign
         - template: ../templates/dotnet2-globaljson.yaml # switch to dotnet 2 as primary install for code sign
         - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
           displayName: "Edge Agent Code Sign"
-          inputs: 
+          inputs:
             ConnectedServiceName: "Azure IoT Edge Code Sign 2"
             FolderPath: $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Agent.Service
             Pattern: Microsoft.Azure.Devices.Edge.*.dll
@@ -81,7 +84,7 @@ stages:
             signConfigType: inlineSignParams
         - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
           displayName: "Edge Hub Code Sign"
-          inputs: 
+          inputs:
             ConnectedServiceName: "Azure IoT Edge Code Sign 2"
             FolderPath: $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service
             Pattern: "Microsoft.Azure.Devices.Edge.*.dll,Microsoft.Azure.Devices.Routing.*.dll"
@@ -136,7 +139,7 @@ stages:
             signConfigType: inlineSignParams
         - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
           displayName: "Temp Sensor Code Sign"
-          inputs: 
+          inputs:
             ConnectedServiceName: "Azure IoT Edge Code Sign 2"
             FolderPath: $(Build.BinariesDirectory)/publish/SimulatedTemperatureSensor
             Pattern: "Microsoft.Azure.Devices.Edge.*.dll,SimulatedTemperatureSensor.dll"
@@ -191,7 +194,7 @@ stages:
             signConfigType: inlineSignParams
         - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
           displayName: "Functions Binding Code Sign"
-          inputs: 
+          inputs:
             ConnectedServiceName: "Azure IoT Edge Code Sign 2"
             FolderPath: $(Build.BinariesDirectory)/publish/Microsoft.Azure.WebJobs.Extensions.EdgeHub
             Pattern: Microsoft.Azure.WebJobs.Extensions*.dll
@@ -295,23 +298,15 @@ stages:
           inputs:
             PathtoPublish: '$(Build.BinariesDirectory)/publish'
             artifactName: 'dotnet_artifacts'
-            StoreAsTar: true   
-
-    - template: templates/build-broker-watchdog.yaml
+            StoreAsTar: true
 
 # This stage builds Rocks DB and adds the files to staging directory
 ################################################################################
   - template: templates/build-rocksdb.yaml
 ################################################################################
 
-# This stage first downloads the dotnet and rust artifacts from the previous stage, then
-# copies the mqtt and watchdog artifacts into the appropriate directories 
-# required by consolidate-build-artifacts.sh. It then runs consolidate-build-artifacts.sh,
-# which moves the EH dockerfile, edge-hub executable, watchdog executable, and mqttd
-# executable into the appropriate directories for later building the edge-hub image in the 
-# 'Build Images' stage of this pipeline.  Finally, this stage consolidates the aforementioned
-# EH artifacts with the other dotnet artifacts and publishes them all in an artifact named
-# 'consolidated_artifacts'.      
+# This stage consolidates .NET binaries, Rocksdb binaries and the SBOM into a
+# single artifact from which all Docker images can be built.
 ################################################################################
   - stage: ConsolidateAndPubishArtifacts
 ################################################################################
@@ -319,7 +314,7 @@ stages:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker  
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
     dependsOn: [BuildExecutables, BuildRocksDB]
     jobs:
     - job: ConsolidateAndPublishArtifacts
@@ -333,56 +328,11 @@ stages:
           extractTars: true
 
       - task: CopyFiles@2
-        displayName: Copy mqttd (amd64)
-        inputs:
-          sourceFolder: '$(Agent.TempDirectory)/extracted_tars/mqttd_amd64'
-          contents: 'mqttd'
-          targetFolder: '$(Build.ArtifactStagingDirectory)/mqtt/target/x86_64-unknown-linux-musl/release'   
-
-      - task: CopyFiles@2
-        displayName: Copy mqttd (arm32)    
-        inputs:  
-          sourceFolder: '$(Agent.TempDirectory)/extracted_tars/mqttd_arm32'        
-          contents: 'mqttd'
-          targetFolder: '$(Build.ArtifactStagingDirectory)/mqtt/target/armv7-unknown-linux-gnueabihf/release'
-
-      - task: CopyFiles@2
-        displayName: Copy mqttd (arm64)    
-        inputs:    
-          sourceFolder: '$(Agent.TempDirectory)/extracted_tars/mqttd_arm64'              
-          contents: 'mqttd'
-          targetFolder: '$(Build.ArtifactStagingDirectory)/mqtt/target/aarch64-unknown-linux-gnu/release'
-
-      - task: CopyFiles@2
-        displayName: Copy watchdog (amd64)    
-        inputs:
-          sourceFolder: '$(Agent.TempDirectory)/extracted_tars/watchdog_amd64'              
-          contents: 'watchdog'
-          targetFolder: '$(Build.ArtifactStagingDirectory)/edge-hub/watchdog/target/x86_64-unknown-linux-musl/release'
-
-      - task: CopyFiles@2
-        displayName: Copy watchdog (arm32)    
-        inputs:
-          sourceFolder: '$(Agent.TempDirectory)/extracted_tars/watchdog_arm32'              
-          contents: 'watchdog'
-          targetFolder: '$(Build.ArtifactStagingDirectory)/edge-hub/watchdog/target/armv7-unknown-linux-gnueabihf/release'
-
-      - task: CopyFiles@2
-        displayName: Copy watchdog (arm64)    
-        inputs:
-          sourceFolder: '$(Agent.TempDirectory)/extracted_tars/watchdog_arm64'              
-          contents: 'watchdog'
-          targetFolder: '$(Build.ArtifactStagingDirectory)/edge-hub/watchdog/target/aarch64-unknown-linux-gnu/release'                             
-      - script: scripts/linux/consolidate-build-artifacts.sh --dotnet-artifacts-source-dir '$(Agent.TempDirectory)/extracted_tars/dotnet_artifacts' --rust-artifacts-source-dir '$(Build.ArtifactStagingDirectory)' --dest-dir '$(Build.BinariesDirectory)/publish' --artifact-name 'edge-hub'
-        displayName: Consolidate Edge Hub Artifacts
-
-      # TODO: Consider moving the following copies into consolidate-build-artifacts.sh
-      - task: CopyFiles@2
         displayName: Copy/Stage dotnet artifacts
         inputs:
           sourceFolder: '$(Agent.TempDirectory)/extracted_tars/dotnet_artifacts'
           contents: '**'
-          targetFolder: '$(Build.BinariesDirectory)/publish'    
+          targetFolder: '$(Build.BinariesDirectory)/publish'
 
       - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
         displayName: 'SBOM Generation Task'
@@ -416,18 +366,18 @@ stages:
     - job: BuildImageEdgeHub
       steps:
       - template: templates/image-linux.yaml
-        parameters: 
+        parameters:
           imageName: azureiotedge-hub
           name: "Edge Hub"
-          project: edge-hub
+          project: Microsoft.Azure.Devices.Edge.Hub.Service
           version: $(version)
           bin_dir: '$(Build.BinariesDirectory)'
           buildx_flag: 'true'
           use_rocksdb: true
     - job: BuildImageEdgeAgent
-      steps:        
+      steps:
       - template: templates/image-linux.yaml
-        parameters: 
+        parameters:
           imageName: azureiotedge-agent
           name: "Edge Agent"
           project: Microsoft.Azure.Devices.Edge.Agent.Service
@@ -436,9 +386,9 @@ stages:
           buildx_flag: 'true'
           use_rocksdb: true
     - job: BuildImageTemperatureSensor
-      steps:        
+      steps:
       - template: templates/image-linux.yaml
-        parameters: 
+        parameters:
           imageName: azureiotedge-simulated-temperature-sensor
           name: "Temperature Sensor"
           project: SimulatedTemperatureSensor
@@ -446,7 +396,7 @@ stages:
           bin_dir: '$(Build.BinariesDirectory)'
           buildx_flag: 'true'
     - job: BuildImageDiagnostics
-      steps:        
+      steps:
       - template: templates/image-linux.yaml
         parameters:
           imageName: azureiotedge-diagnostics

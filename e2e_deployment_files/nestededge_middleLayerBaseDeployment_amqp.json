@@ -30,17 +30,11 @@
               "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\",\"compress\":\"true\"}}, \"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
             },
             "env": {
-              "experimentalFeatures__enabled": {
-                "value": "true"
-              },
               "DeviceScopeCacheRefreshDelaySecs": {
                 "value": 0
               },
               "RuntimeLogLevel": {
                 "value": "debug"
-              },
-              "SslProtocols": {
-                "value": "tls1.2"
               }
             },
             "status": "running",
@@ -61,9 +55,6 @@
             "env": {
               "NGINX_DEFAULT_PORT": {
                 "value": "443"
-              },
-              "NGINX_DEFAULT_TLS": {
-                "value": "TLSv1.2"
               }
             }
           }
@@ -79,22 +70,6 @@
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 7200
-        },
-        "mqttBroker": {
-          "authorizations": [
-            {
-              "identities": [
-                "{{iot:identity}}"
-              ],
-              "allow": [
-                {
-                  "operations": [
-                    "mqtt:connect"
-                  ]
-                }
-              ]
-            }
-          ]
         }
       }
     }
