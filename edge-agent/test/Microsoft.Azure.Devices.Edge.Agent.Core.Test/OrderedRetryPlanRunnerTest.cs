@@ -335,6 +335,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             commands[2].Verify(m => m.ExecuteAsync(cts.Token), Times.Never());
         }
 
+        [Fact]
         [Unit]
         public async void TestExecutionPrereqExceptionSkipsRemainingCommands()
         {
@@ -360,6 +361,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             commands[2].Verify(m => m.ExecuteAsync(cts.Token), Times.Never());
         }
 
+        [Fact]
         [Unit]
         public async void TestExecutionPrereqExceptionSkipsCommandWhenHitsRetryLimit()
         {
@@ -393,6 +395,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             commands[2].Verify(m => m.ExecuteAsync(cts.Token), Times.Never());
         }
 
+        [Fact]
         [Unit]
         public async void TestExecutionPrereqExceptionSkipsCommandWhenWithinCooloffTime()
         {
