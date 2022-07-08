@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public Task<ICommand> PrepareUpdateAsync(IModule module, IRuntimeInfo runtimeInfo)
         {
             Assert.True(module is TestModule);
-            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestPrepareUpdate, module, this.Recorder, true));
+            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestPrepareUpdate, module, this.Recorder));
         }
 
         public Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo)

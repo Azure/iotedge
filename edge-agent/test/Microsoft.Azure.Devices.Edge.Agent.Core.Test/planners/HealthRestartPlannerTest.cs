@@ -71,6 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             ModuleSet addRunning = ModuleSet.Create(addModule);
             var addExecutionList = new List<TestRecordType>
             {
+                new TestRecordType(TestCommandType.TestPrepareUpdate, addModule),
                 new TestRecordType(TestCommandType.TestCreate, addModule),
                 new TestRecordType(TestCommandType.TestStart, addModule),
             };
@@ -93,6 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             ModuleSet addRunning = ModuleSet.Create(addModule);
             var addExecutionList = new List<TestRecordType>
             {
+                new TestRecordType(TestCommandType.TestPrepareUpdate, addModule),
                 new TestRecordType(TestCommandType.TestCreate, addModule)
             };
             Plan addPlan = await planner.PlanAsync(addRunning, ModuleSet.Empty, RuntimeInfo, moduleIdentities);
@@ -130,6 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
 
             var updateExecutionList = new List<TestRecordType>
             {
+                new TestRecordType(TestCommandType.TestPrepareUpdate, desiredModule),
                 new TestRecordType(TestCommandType.TestUpdate, desiredModule),
                 new TestRecordType(TestCommandType.TestStart, desiredModule),
             };
@@ -228,6 +231,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             IEnumerable<TestRecordType> expectedExecutionList = data.SelectMany(
                 d => new[]
                 {
+                    new TestRecordType(TestCommandType.TestPrepareUpdate, d.UpdatedModule),
                     new TestRecordType(TestCommandType.TestUpdate, d.UpdatedModule),
                     new TestRecordType(TestCommandType.TestStart, d.UpdatedModule)
                 });
@@ -242,7 +246,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 r =>
                 {
                     Assert.Empty(expectedExecutionList.Except(r.ExecutionList));
-                    Assert.Equal(data.Length * 2, r.WrappedCommmandList.Count);
+                    Assert.Equal(data.Length * 3, r.WrappedCommmandList.Count);
                 });
         }
 
@@ -287,7 +291,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 r =>
                 {
                     Assert.Empty(expectedExecutionList.Except(r.ExecutionList));
-                    Assert.Equal(data.Length * 2, r.WrappedCommmandList.Count);
+                    Assert.Equal(data.Length * 3, r.WrappedCommmandList.Count);
                 });
         }
 
