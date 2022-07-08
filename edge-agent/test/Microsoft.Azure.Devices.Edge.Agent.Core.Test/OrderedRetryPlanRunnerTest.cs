@@ -352,13 +352,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             CancellationToken token = CancellationToken.None;
 
             // Act
-            await Assert.ThrowsAsync<ExcecutionPrerequisiteException>(() => runner.ExecuteAsync(1, plan, token));
-            // await runner.ExecuteAsync(1, plan, token);
+            await Assert.ThrowsAsync<AggregateException>(() => runner.ExecuteAsync(1, plan, token));
 
             // Assert
-            commands[0].Verify(m => m.ExecuteAsync(cts.Token), Times.Once());
-            commands[1].Verify(m => m.ExecuteAsync(cts.Token), Times.Never());
-            commands[2].Verify(m => m.ExecuteAsync(cts.Token), Times.Never());
+            commands[0].Verify(m => m.ExecuteAsync(It.IsAny<CancellationToken>()), Times.Once());
+            commands[1].Verify(m => m.ExecuteAsync(It.IsAny<CancellationToken>()), Times.Once());
+            commands[2].Verify(m => m.ExecuteAsync(It.IsAny<CancellationToken>()), Times.Never());
         }
 
         [Fact]
@@ -369,7 +368,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var systemTime = new Mock<ISystemTime>();
 
             var cts = new CancellationTokenSource();
-            var runner = new OrderedRetryPlanRunner(5, 10, SystemTime.Instance);
+            var runner = new OrderedRetryPlanRunner(5, 10, systemTime.Object);
             var commands = new List<Mock<ICommand>>
             {
                 this.MakeMockCommandThatWorks("cmd1"),
@@ -385,14 +384,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 .Callback(() => callTime = callTime.AddSeconds(25));
 
             // Act
-            await Assert.ThrowsAsync<ExcecutionPrerequisiteException>(() => runner.ExecuteAsync(1, plan, token));
-            await Assert.ThrowsAsync<ExcecutionPrerequisiteException>(() => runner.ExecuteAsync(1, plan, token));
-            await runner.ExecuteAsync(1, plan, token);
+            await Assert.ThrowsAsync<AggregateException>(() => runner.ExecuteAsync(2, plan, token));
+            await Assert.ThrowsAsync<AggregateException>(() => runner.ExecuteAsync(2, plan, token));
+            await runner.ExecuteAsync(2, plan, token);
 
             // Assert
-            commands[0].Verify(m => m.ExecuteAsync(cts.Token), Times.Exactly(3));
-            commands[1].Verify(m => m.ExecuteAsync(cts.Token), Times.Exactly(2));
-            commands[2].Verify(m => m.ExecuteAsync(cts.Token), Times.Never());
+            commands[0].Verify(m => m.ExecuteAsync(It.IsAny<CancellationToken>()), Times.Exactly(3));
+            commands[1].Verify(m => m.ExecuteAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
+            commands[2].Verify(m => m.ExecuteAsync(It.IsAny<CancellationToken>()), Times.Never());
         }
 
         [Fact]
@@ -412,13 +411,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             CancellationToken token = CancellationToken.None;
 
             // Act
-            await Assert.ThrowsAsync<ExcecutionPrerequisiteException>(() => runner.ExecuteAsync(1, plan, token));
-            await runner.ExecuteAsync(1, plan, token);
+            await Assert.ThrowsAsync<AggregateException>(() => runner.ExecuteAsync(5, plan, token));
+            await runner.ExecuteAsync(5, plan, token);
 
             // Assert
-            commands[0].Verify(m => m.ExecuteAsync(cts.Token), Times.Exactly(2));
-            commands[1].Verify(m => m.ExecuteAsync(cts.Token), Times.Exactly(1));
-            commands[2].Verify(m => m.ExecuteAsync(cts.Token), Times.Never());
+            commands[0].Verify(m => m.ExecuteAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
+            commands[1].Verify(m => m.ExecuteAsync(It.IsAny<CancellationToken>()), Times.Exactly(1));
+            commands[2].Verify(m => m.ExecuteAsync(It.IsAny<CancellationToken>()), Times.Never());
         }
 
         Mock<ICommand> MakeMockCommandThatWorks(string id, Action callback = null)
