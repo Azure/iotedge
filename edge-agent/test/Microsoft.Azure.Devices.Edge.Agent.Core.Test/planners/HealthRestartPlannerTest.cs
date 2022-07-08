@@ -250,7 +250,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 });
         }
 
-
         [Fact]
         [Unit]
         public async Task TestModuleUpdateModeWaitOnImageDownloads()
@@ -277,8 +276,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     upfrontPullCommands.Add(new TestRecordType(TestCommandType.TestPrepareUpdate, d.UpdatedModule));
                     otherCommands.Add(new TestRecordType(TestCommandType.TestUpdate, d.UpdatedModule));
                     otherCommands.Add(new TestRecordType(TestCommandType.TestStart, d.UpdatedModule));
-                }
-            );
+                });
             IEnumerable<TestRecordType> expectedExecutionList = upfrontPullCommands.Concat(otherCommands);
 
             // Act

@@ -62,26 +62,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
             var deploymentConfigInfo = new DeploymentConfigInfo(1, testConfig.DeploymentConfig);
 
             Option<EnvVal> moduleUpdateModeStr = deploymentConfigInfo.DeploymentConfig.SystemModules.EdgeAgent.Expect<Exception>(() => new Exception("Configuration missing EdgeAgent module")).Env.Get("ModuleUpdateMode");
-            ModuleUpdateMode moduleUpdateMode = moduleUpdateModeStr.Match(m =>
-            {
-                if (m.Value == "WaitForAll")
+            ModuleUpdateMode moduleUpdateMode = moduleUpdateModeStr.Match(
+                m =>
+                {
+                    if (m.Value == "WaitForAll")
+                    {
+                        return ModuleUpdateMode.WaitForAll;
+                    }
+                    else if (m.Value == "NonBlocking")
+                    {
+                        return ModuleUpdateMode.NonBlocking;
+                    }
+                    else
+                    {
+                        throw new Exception("Invalid value for Edge Agent env var");
+                    }
+                },
+                () =>
                 {
                     return ModuleUpdateMode.WaitForAll;
-                }
-                else if (m.Value == "NonBlocking")
-                {
-                    return ModuleUpdateMode.NonBlocking;
-                }
-                else
-                {
-                    throw new Exception("Invalid value for Edge Agent env var");
-                }
-            },
-            () =>
-            {
-                return ModuleUpdateMode.WaitForAll;
-            });
-
+                });
 
             var configSource = new Mock<IConfigSource>();
             configSource.Setup(cs => cs.Configuration).Returns(configRoot);
