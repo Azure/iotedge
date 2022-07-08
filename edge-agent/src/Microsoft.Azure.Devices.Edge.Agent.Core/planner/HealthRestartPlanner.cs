@@ -114,6 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planner
 
             plan = upfrontImagePullPlan.Concat(plan).ToList();
 
+            // TODO ANDREW: maybe current plan structure is not ideal. We will block clearing out old modules if there are image update commands that fail.
             Events.PlanCreated(plan);
             return new Plan(plan.ToImmutableList());
         }
