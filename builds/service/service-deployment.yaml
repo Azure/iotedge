@@ -85,11 +85,12 @@ steps:
     Copy-Item "$(binDir)/*-test-*.log" "$logDir/"
     Copy-Item "$(binDir)/testoutput.log" "$logDir/"
   displayName: Collect Logs
-  condition: succeededOrFailed()
+  errorActionPreference: continue
+  condition: always()
 
 - task: PublishBuildArtifacts@1
   displayName: Publish logs
   inputs:
     PathtoPublish: $(Build.ArtifactStagingDirectory)/logs
     ArtifactName: logs-service-deployment-$(Build.BuildNumber)-linux-amd64
-  condition: succeededOrFailed()
+  condition: always()

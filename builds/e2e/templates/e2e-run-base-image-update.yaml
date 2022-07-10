@@ -113,6 +113,7 @@ steps:
     $artifactSuffix = '$(Build.BuildNumber)-$(System.PhaseName)' -replace '_','-'
     Write-Output "##vso[task.setvariable variable=artifactSuffix]$artifactSuffix"
   displayName: Collect Logs
+  errorActionPreference: continue
   condition: succeededOrFailed()
 
 - task: PublishBuildArtifacts@1
