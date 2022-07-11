@@ -1,7 +1,6 @@
 # 1.1.15 (2022-07-14)
 ## Edge Agent
 ### Bug Fixes
-* Create a single persistent workload socket for edgeAgent [35f8781](https://github.com/Azure/iotedge/commit/35f87818de7c1d1fd4925606119b9970267d9abe)
 * Update Base Images for a Security Patch [.NET Core 3.1.26 - June 14, 2022](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1.26/3.1.26.md)
 
 
@@ -18,6 +17,11 @@
 ## Simulated Temperature Sensor
 ### Bug Fixes
 * Update Base Images for a Security Patch [.NET Core 3.1.26 - June 14, 2022](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1.26/3.1.26.md)
+
+
+## iotedged
+### Bug Fixes
+* Create a single persistent workload socket for edgeAgent [35f8781](https://github.com/Azure/iotedge/commit/35f87818de7c1d1fd4925606119b9970267d9abe)
 
 
 # 1.1.14 (2022-05-24)
