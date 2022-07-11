@@ -144,6 +144,7 @@ stages:
       - job: mariner_linux
       ################################################################################
         displayName: Mariner_Linux
+        condition: eq(variables['build.linux.mariner'], 'true')
         pool:
           # We are using Linux image that lives in Windows pool. The Windows pool by default uses Standard_D4s_v3 SKU.
           # EFLOW requires ~85GB to build the edgelet artifacts.
@@ -234,6 +235,7 @@ stages:
       - job: mariner_linux_arm64
       ################################################################################
         displayName: Mariner_Linux on ARM64
+        condition: eq(variables['build.linux.mariner'], 'true')
         pool:
           name: $(pool.linux.arm.name)
           demands:
