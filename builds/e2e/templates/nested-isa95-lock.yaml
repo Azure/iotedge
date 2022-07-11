@@ -12,7 +12,12 @@ steps:
         az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
 
         echo "Get Network Interface"
-        tmp=$(az vm nic list --resource-group $(ressourceGroup) --vm-name ${{ parameters.agentName }} --query '[].id' | jq -r '.[]')
+        nicList=$(az vm nic list --resource-group $(ressourceGroup) --vm-name ${{ parameters.agentName }} --query '[].id')
+        echo "$nicList"
+        echo ""
+        tmp=$(echo "$nicList" | jq -r '.[]')
+        echo "$tmp"
+        echo ""
         network_interface=$(echo "$tmp" | sed -n 's/.*\/\(.*\)/\1/p')
         echo "Network Interface: $network_interface"
         echo "Get Network Security Group"
