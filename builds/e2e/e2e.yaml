@@ -19,6 +19,7 @@ resources:
       - release/*
 
 variables:
+  DisableDockerDetector: true
   # A 'minimal' pipeline only runs one end-to-end test (TempSensor). This is useful for platforms or
   # environments that are very similar to other platforms/environments in our matrix, Ubuntu 18.04
   # with the 'docker-ce' package vs. Ubuntu 18.04 with the 'iotedge-moby' package vs. the same
@@ -46,8 +47,6 @@ jobs:
       artifactName: iotedged-debian11-arm32v7
       identityServiceArtifactName: packages_debian-11-slim_arm32v7
       identityServicePackageFilter: aziot-identity-service_*_armhf.deb
-      # skip notary installation as it is not supported for ARM platforms
-      skip_notary: true
 
     timeoutInMinutes: 120
 
@@ -98,7 +97,6 @@ jobs:
       artifactName: iotedged-ubuntu18.04-amd64
       identityServiceArtifactName: packages_ubuntu-18.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      skip_notary: false
 
     timeoutInMinutes: 90
 
@@ -110,7 +108,7 @@ jobs:
   - job: ubuntu_1804_docker
 ################################################################################
 
-    displayName: Ubuntu 18.04 with Docker minimal
+    displayName: Ubuntu 18.04 with Docker (minimal)
 
     pool:
       name: $(pool.linux.name)
@@ -124,7 +122,6 @@ jobs:
       identityServiceArtifactName: packages_ubuntu-18.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
       minimal: true
-      skip_notary: false
 
     steps:
     - template: templates/e2e-setup.yaml
@@ -147,7 +144,6 @@ jobs:
       artifactName: iotedged-ubuntu20.04-amd64
       identityServiceArtifactName: packages_ubuntu-20.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      skip_notary: false
 
     timeoutInMinutes: 90
 
@@ -158,7 +154,7 @@ jobs:
 ################################################################################
   - job: ubuntu_2004_docker
 ################################################################################
-    displayName: Ubuntu 20.04 with Docker minimal
+    displayName: Ubuntu 20.04 with Docker (minimal)
 
     pool:
       name: $(pool.linux.name)
@@ -172,7 +168,6 @@ jobs:
       identityServiceArtifactName: packages_ubuntu-20.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
       minimal: true
-      skip_notary: false
 
     steps:
     - template: templates/e2e-setup.yaml
@@ -181,11 +176,11 @@ jobs:
 ################################################################################
   - job: ubuntu_2004_arm64v8
 ################################################################################
-    displayName: Ubuntu 20.04 with arm64v8
+    displayName: Ubuntu 20.04 on arm64v8
     pool:
-      name: $(pool.custom.name)
-      demands: 
-        - agent-group -equals rpi3-e2e-aarch64
+      name: $(pool.linux.arm.name)
+      demands:
+      - ImageOverride -equals agent-aziotedge-ubuntu-20.04-arm64
 
     variables:
       os: linux
@@ -193,8 +188,6 @@ jobs:
       artifactName: iotedged-ubuntu20.04-aarch64
       identityServiceArtifactName: packages_ubuntu-20.04_aarch64
       identityServicePackageFilter: aziot-identity-service_*_arm64.deb
-      # skip notary installation as it is not supported for ARM platforms
-      skip_notary: true
 
     timeoutInMinutes: 120
 
@@ -220,7 +213,6 @@ jobs:
       artifactName: iotedged-centos7-amd64
       identityServiceArtifactName: packages_centos-7_amd64
       identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
-      skip_notary: false
 
     steps:
     - template: templates/e2e-clean-directory.yaml
@@ -244,7 +236,6 @@ jobs:
       artifactName: iotedged-redhat8-amd64
       identityServiceArtifactName: packages_redhat-ubi8-latest_amd64
       identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
-      skip_notary: false
 
     steps:
     - template: templates/e2e-setup.yaml
@@ -272,8 +263,6 @@ jobs:
       verbose: true
       # skip component governance detection to avoid proxy issues. It is checked in the other jobs.
       skipComponentGovernanceDetection: true
-      # skip notary installation as it has known issues working with proxy
-      skip_notary: true
 
     timeoutInMinutes: 120
 

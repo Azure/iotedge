@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using System.Collections.Generic;
     using System.Net.Http;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Newtonsoft.Json.Linq;
     using NUnit.Framework;

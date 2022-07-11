@@ -34,11 +34,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Content Update="../../docker/linux/arm32v7/base/Dockerfile">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
     <None Update="appsettings_agent.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

@@ -1,17 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::collections::BTreeMap;
-use std::default::Default;
 use std::fmt;
-use std::result::Result;
-use std::str::FromStr;
-use std::string::ToString;
 use std::time::Duration;
 
 use anyhow::Context;
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
 use tokio::sync::mpsc::UnboundedSender;
 
 use aziotctl_common::host_info::{DmiInfo, OsInfo};
@@ -30,17 +25,9 @@ pub enum ModuleStatus {
     Dead,
 }
 
-pub enum ModuleAction {
-    Start(String, tokio::sync::oneshot::Sender<()>),
-    Stop(String),
-    Remove(String),
-}
-
-impl FromStr for ModuleStatus {
-    type Err = serde_json::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        serde_json::from_str(&format!("\"{}\"", s))
+impl Default for ModuleStatus {
+    fn default() -> Self {
+        Self::Unknown
     }
 }
 
@@ -56,29 +43,28 @@ impl fmt::Display for ModuleStatus {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+impl std::str::FromStr for ModuleStatus {
+    type Err = serde_json::Error;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        serde_json::from_str(&format!("\"{}\"", value))
+    }
+}
+
+pub enum ModuleAction {
+    Start(String, tokio::sync::oneshot::Sender<()>),
+    Stop(String),
+    Remove(String),
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct ModuleRuntimeState {
     status: ModuleStatus,
     exit_code: Option<i64>,
-    status_description: Option<String>,
     started_at: Option<DateTime<Utc>>,
     finished_at: Option<DateTime<Utc>>,
     image_id: Option<String>,
     pid: Option<i32>,
-}
-
-impl Default for ModuleRuntimeState {
-    fn default() -> Self {
-        ModuleRuntimeState {
-            status: ModuleStatus::Unknown,
-            exit_code: None,
-            status_description: None,
-            started_at: None,
-            finished_at: None,
-            image_id: None,
-            pid: None,
-        }
-    }
 }
 
 impl ModuleRuntimeState {
@@ -99,16 +85,6 @@ impl ModuleRuntimeState {
     #[must_use]
     pub fn with_exit_code(mut self, exit_code: Option<i64>) -> Self {
         self.exit_code = exit_code;
-        self
-    }
-
-    pub fn status_description(&self) -> Option<&str> {
-        self.status_description.as_ref().map(AsRef::as_ref)
-    }
-
-    #[must_use]
-    pub fn with_status_description(mut self, status_description: Option<String>) -> Self {
-        self.status_description = status_description;
         self
     }
 
@@ -161,11 +137,20 @@ pub enum LogTail {
 
 impl Default for LogTail {
     fn default() -> Self {
-        LogTail::All
+        Self::All
     }
 }
 
-impl FromStr for LogTail {
+impl fmt::Display for LogTail {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::All => write!(formatter, "all"),
+            Self::Num(n) => write!(formatter, "{}", n),
+        }
+    }
+}
+
+impl std::str::FromStr for LogTail {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> anyhow::Result<Self> {
@@ -178,15 +163,6 @@ impl FromStr for LogTail {
             LogTail::Num(num)
         };
         Ok(tail)
-    }
-}
-
-impl ToString for LogTail {
-    fn to_string(&self) -> String {
-        match self {
-            LogTail::All => "all".to_string(),
-            LogTail::Num(n) => n.to_string(),
-        }
     }
 }
 
@@ -279,36 +255,76 @@ pub trait ModuleRegistry {
     async fn remove(&self, name: &str) -> anyhow::Result<()>;
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Default, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize)]
 pub struct SystemInfo {
     #[serde(rename = "osType")]
     pub kernel: String,
     pub kernel_release: String,
     pub kernel_version: String,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub operating_system: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub operating_system_version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub operating_system_variant: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub operating_system_build: Option<String>,
 
     pub architecture: String,
     pub cpus: usize,
     pub virtualized: String,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub product_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub system_vendor: Option<String>,
 
     pub version: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
 
     pub provisioning: ProvisioningInfo,
 
-    #[serde(default, flatten)]
+    #[serde(default, flatten, skip_serializing_if = "BTreeMap::is_empty")]
     pub additional_properties: BTreeMap<String, String>,
 }
 
 impl SystemInfo {
-    pub fn from_system() -> Result<Self, Error> {
+    pub fn merge_additional(&mut self, mut additional_info: BTreeMap<String, String>) -> &Self {
+        macro_rules! remove_assign {
+            ($key:ident) => {
+                if let Some((_, x)) = additional_info.remove_entry(stringify!($key)) {
+                    self.$key = x.into();
+                }
+            };
+        }
+
+        remove_assign!(kernel);
+        remove_assign!(kernel_release);
+        remove_assign!(kernel_version);
+
+        remove_assign!(operating_system);
+        remove_assign!(operating_system_version);
+        remove_assign!(operating_system_variant);
+        remove_assign!(operating_system_build);
+
+        remove_assign!(architecture);
+
+        remove_assign!(product_name);
+        remove_assign!(system_vendor);
+
+        remove_assign!(server_version);
+
+        self.additional_properties
+            .extend(additional_info.into_iter());
+
+        self
+    }
+}
+
+impl Default for SystemInfo {
+    fn default() -> Self {
         let kernel = nix::sys::utsname::uname();
         let dmi = DmiInfo::default();
         let os = OsInfo::default();
@@ -336,6 +352,8 @@ impl SystemInfo {
             system_vendor: dmi.vendor,
 
             version: crate::version_with_source_version(),
+            server_version: None,
+
             provisioning: ProvisioningInfo {
                 r#type: "ProvisioningType".into(),
                 dynamic_reprovisioning: false,
@@ -345,36 +363,7 @@ impl SystemInfo {
             additional_properties: BTreeMap::new(),
         };
 
-        Ok(res)
-    }
-
-    pub fn merge_additional(&mut self, mut additional_info: BTreeMap<String, String>) -> &Self {
-        macro_rules! remove_assign {
-            ($src:literal, $dest:ident) => {
-                if let Some((_, x)) = additional_info.remove_entry($src) {
-                    self.$dest = x.into();
-                }
-            };
-        }
-
-        remove_assign!("kernel_name", kernel);
-        remove_assign!("kernel_release", kernel_release);
-        remove_assign!("kernel_version", kernel_version);
-
-        remove_assign!("os_name", operating_system);
-        remove_assign!("os_version", operating_system_version);
-        remove_assign!("os_variant", operating_system_variant);
-        remove_assign!("os_build", operating_system_build);
-
-        remove_assign!("cpu_architecture", architecture);
-
-        remove_assign!("product_name", product_name);
-        remove_assign!("product_vendor", system_vendor);
-
-        self.additional_properties
-            .extend(additional_info.into_iter());
-
-        self
+        res
     }
 }
 
@@ -466,7 +455,7 @@ pub trait MakeModuleRuntime {
 }
 
 #[async_trait::async_trait]
-pub trait ModuleRuntime: Sized {
+pub trait ModuleRuntime {
     type Config: Clone + Send + serde::Serialize;
     type Module: Module<Config = Self::Config> + Send;
     type ModuleRegistry: ModuleRegistry<Config = Self::Config> + Send + Sync;
@@ -487,6 +476,8 @@ pub trait ModuleRuntime: Sized {
     async fn module_top(&self, id: &str) -> anyhow::Result<Vec<i32>>;
 
     fn registry(&self) -> &Self::ModuleRegistry;
+
+    fn error_code(error: &anyhow::Error) -> hyper::StatusCode;
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -504,7 +495,7 @@ pub enum ModuleOperation {
 impl fmt::Display for ModuleOperation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ModuleOperation::RuntimeState => write!(f, "Could not query module runtime state"),
+            ModuleOperation::RuntimeState => write!(f, "query module runtime state"),
         }
     }
 }
@@ -519,8 +510,8 @@ pub enum RegistryOperation {
 impl fmt::Display for RegistryOperation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            RegistryOperation::PullImage(name) => write!(f, "Could not pull image {}", name),
-            RegistryOperation::RemoveImage(name) => write!(f, "Could not remove image {}", name),
+            RegistryOperation::PullImage(name) => write!(f, "pull image {:?}", name),
+            RegistryOperation::RemoveImage(name) => write!(f, "remove image {:?}", name),
         }
     }
 }
@@ -546,22 +537,22 @@ pub enum RuntimeOperation {
 impl fmt::Display for RuntimeOperation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            RuntimeOperation::CreateModule(name) => write!(f, "Could not create module {}", name),
-            RuntimeOperation::GetModule(name) => write!(f, "Could not get module {}", name),
+            RuntimeOperation::CreateModule(name) => write!(f, "create module {:?}", name),
+            RuntimeOperation::GetModule(name) => write!(f, "get module {:?}", name),
             RuntimeOperation::GetModuleLogs(name) => {
-                write!(f, "Could not get logs for module {}", name)
+                write!(f, "get logs for module {:?}", name)
             }
-            RuntimeOperation::GetSupportBundle => write!(f, "Could not get support bundle"),
-            RuntimeOperation::Init => write!(f, "Could not initialize module runtime"),
-            RuntimeOperation::ListModules => write!(f, "Could not list modules"),
-            RuntimeOperation::RemoveModule(name) => write!(f, "Could not remove module {}", name),
-            RuntimeOperation::RestartModule(name) => write!(f, "Could not restart module {}", name),
-            RuntimeOperation::StartModule(name) => write!(f, "Could not start module {}", name),
-            RuntimeOperation::StopModule(name) => write!(f, "Could not stop module {}", name),
-            RuntimeOperation::SystemInfo => write!(f, "Could not query system info"),
-            RuntimeOperation::SystemResources => write!(f, "Could not query system resources"),
+            RuntimeOperation::GetSupportBundle => write!(f, "get support bundle"),
+            RuntimeOperation::Init => write!(f, "initialize module runtime"),
+            RuntimeOperation::ListModules => write!(f, "list modules"),
+            RuntimeOperation::RemoveModule(name) => write!(f, "remove module {:?}", name),
+            RuntimeOperation::RestartModule(name) => write!(f, "restart module {:?}", name),
+            RuntimeOperation::StartModule(name) => write!(f, "start module {:?}", name),
+            RuntimeOperation::StopModule(name) => write!(f, "stop module {:?}", name),
+            RuntimeOperation::SystemInfo => write!(f, "query system info"),
+            RuntimeOperation::SystemResources => write!(f, "query system resources"),
             RuntimeOperation::TopModule(name) => {
-                write!(f, "Could not top module {}.", name)
+                write!(f, "top module {:?}", name)
             }
         }
     }
@@ -572,8 +563,6 @@ mod tests {
     use super::*;
 
     use std::collections::BTreeMap;
-    use std::str::FromStr;
-    use std::string::ToString;
 
     use edgelet_settings::module::ImagePullPolicy;
 
@@ -600,8 +589,8 @@ mod tests {
     #[test]
     fn module_status_deser() {
         let inputs = get_inputs();
-        for &(status, ref expected) in &inputs {
-            assert_eq!(*expected, ModuleStatus::from_str(status).unwrap());
+        for (status, expected) in inputs {
+            assert_eq!(expected, status.parse().unwrap());
         }
     }
 
@@ -677,6 +666,8 @@ mod tests {
             system_vendor: None,
 
             version: crate::version_with_source_version(),
+            server_version: None,
+
             provisioning: ProvisioningInfo {
                 r#type: "ProvisioningType".into(),
                 dynamic_reprovisioning: false,
@@ -704,6 +695,8 @@ mod tests {
             system_vendor: None,
 
             version: crate::version_with_source_version(),
+            server_version: None,
+
             provisioning: ProvisioningInfo {
                 r#type: "ProvisioningType".into(),
                 dynamic_reprovisioning: false,
@@ -717,10 +710,10 @@ mod tests {
         };
 
         let additional = BTreeMap::from([
-            ("kernel_name".to_owned(), "linux".to_owned()),
+            ("kernel".to_owned(), "linux".to_owned()),
             ("kernel_release".to_owned(), "5.0".to_owned()),
             ("kernel_version".to_owned(), "1".to_owned()),
-            ("os_name".to_owned(), "OS".to_owned()),
+            ("operating_system".to_owned(), "OS".to_owned()),
             ("foo".to_owned(), "foofoo".to_owned()),
             ("bar".to_owned(), "barbar".to_owned()),
         ]);

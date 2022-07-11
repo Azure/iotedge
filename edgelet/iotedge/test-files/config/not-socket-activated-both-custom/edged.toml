@@ -7,6 +7,11 @@ auto_reprovisioning_mode = "OnErrorOnly"
 homedir = "/var/lib/aziot/edged"
 allow_elevated_docker_permissions = true
 
+[edge_ca.auto_renew]
+rotate_key = true
+threshold = "80%"
+retry = "4%"
+
 [agent]
 name = "edgeAgent"
 type = "docker"
