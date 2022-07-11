@@ -3,7 +3,6 @@
 use std::env;
 use std::io::Write;
 
-use edgelet_utils::log_failure;
 use env_logger;
 use log::{Level, LevelFilter};
 
@@ -59,5 +58,5 @@ fn syslog_level(level: Level) -> i8 {
 }
 
 pub fn log_error(error: &Error) {
-    log_failure(Level::Error, error);
+    log::error!("{}", error);
 }
