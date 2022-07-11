@@ -294,7 +294,7 @@ stages:
           nsgName: $(deviceLvl4NSGName)
       - template: templates/nested-isa95-unlock.yaml
         parameters:
-          agentName: $(deviceLvl35AgentName)
+          agentName: $(otProxyName)
           nsgName: $(deviceLvl35NSGName)
       - template: templates/nested-isa95-unlock.yaml
         parameters:
