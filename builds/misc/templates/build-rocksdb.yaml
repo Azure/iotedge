@@ -11,17 +11,17 @@ stages:
       displayName: Build Rocks DB
       strategy:
         matrix:
-          RocksDbAmd64:
+          Amd64:
             pool_name: $(pool.linux.name)
             agent_image: agent-aziotedge-ubuntu-20.04-docker
             arch: amd64
             postfix: amd64
-          RocksDbArm32:
+          Arm32:
             pool_name: $(pool.linux.arm.name)
             agent_image: agent-aziotedge-ubuntu-20.04-arm64
             arch: arm32v7
             postfix: armhf
-          RocksDbArm64:
+          Arm64:
             pool_name: $(pool.linux.arm.name)
             agent_image: agent-aziotedge-ubuntu-20.04-arm64
             arch: arm64v8
@@ -31,7 +31,6 @@ stages:
           demands:
           - ImageOverride -equals $(agent_image)
       steps:
-      - template: ../../templates/prep-arm-agent.yaml
       - script: |
           /usr/bin/newgrp docker <<EONG
           scripts/linux/buildRocksDb.sh --output-dir $(Build.ArtifactStagingDirectory) --postfix $(postfix) --build-number $(Build.BuildNumber) --arch $(arch)

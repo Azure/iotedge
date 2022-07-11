@@ -192,7 +192,6 @@ jobs:
         KeyVaultName: $(az.keyvault)
         SecretsFilter: >-
           edgebuild-service-principal-secret,
-    - template: ../templates/prep-arm-agent.yaml
     - template: templates/e2e-setup.yaml
     - bash: |
           set -e
