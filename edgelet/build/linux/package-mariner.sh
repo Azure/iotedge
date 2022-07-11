@@ -86,7 +86,7 @@ if [[ ! -z $IIS_VERSION ]]; then
     sed -i "s/@@IIS_VERSION@@/${IIS_VERSION}/g" ${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/aziot-edge/aziot-edge.spec
 else
     # if a version could not be parsed remove the version dependency
-    sed -i "s/aziot-identity-service = @@IIS_VERSION@@/aziot-identity-service/g" ${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/aziot-edge/aziot-edge.spec
+    sed -i "s/aziot-identity-service = @@IIS_VERSION@@%{?dist}/aziot-identity-service/g" ${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/aziot-edge/aziot-edge.spec
 fi
 popd
 
