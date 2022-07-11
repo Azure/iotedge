@@ -12,16 +12,16 @@ steps:
         az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
 
         echo "Get Network Interface"
-        nicList=$(az vm nic list --resource-group $(ressourceGroup) --vm-name ${{ parameters.agentName }} --query '[].id')
-        echo "$nicList"
-        echo ""
-        tmp=$(echo "$nicList" | jq -r '.[]')
+        tmp=$(az vm nic list --resource-group $(ressourceGroup) --vm-name ${{ parameters.agentName }} --query '[].id' | jq -r '.[]')
         echo "$tmp"
         echo ""
         network_interface=$(echo "$tmp" | sed -n 's/.*\/\(.*\)/\1/p')
         echo "Network Interface: $network_interface"
+        echo ""
         echo "Get Network Security Group"
-        tmp=$(az network nic list-effective-nsg -g $(ressourceGroup)  -n $network_interface  --query 'value[0].networkSecurityGroup' | jq -r '.id')
+        nicListNsg=$(az network nic list-effective-nsg -g $(ressourceGroup) -n $network_interface  --query 'value[0].networkSecurityGroup')
+        echo "$nicListNsg"
+        tmp=$(echo $nicListNsg | jq -r '.id')
         nsgName=$(echo "$tmp" | sed -n 's/.*\/\(.*\)/\1/p')
         echo "Network Security Group: $nsgName"
 
