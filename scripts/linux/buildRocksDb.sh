@@ -98,13 +98,8 @@ build_image=rocksdb-build:main-$POSTFIX-$BUILD_NUMBER
 mkdir -p $OUTPUT_DIR/librocksdb
 cd $BUILD_REPOSITORY_LOCALPATH/edge-util/docker/linux/$ARCH
 
-cat Dockerfile
-
 build_context=
 if [[ -n "$SOURCE_MAP" ]]; then
-    echo "----- $SOURCE_MAP"
-    cat $SOURCE_MAP
-    echo '------------------------------'
     build_context=$(dockersource --mod-config $SOURCE_MAP ./Dockerfile)
 fi
 
