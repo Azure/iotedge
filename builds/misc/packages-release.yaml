@@ -112,10 +112,28 @@ stages:
               *.deb
               *.rpm
             TargetFolder: '$(build.artifactstagingdirectory)'
+        - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+          displayName: ESRP Binary CodeSigning
+          inputs:
+            ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+            FolderPath: '$(build.artifactstagingdirectory)'
+            Pattern: "*.rpm"
+            SessionTimeout: 20
+            inlineOperation: |
+              [
+                {
+                  "KeyCode": "CP-450779-Pgp",
+                  "OperationCode": "LinuxSign",
+                  "Parameters": {},
+                  "ToolName": "sign",
+                  "toolVersion": "1.0"
+                }
+              ]
+            signConfigType: inlineSignParams
         - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
           displayName: 'SBOM Generation Task'
           inputs:
-              BuildDropPath: '$(build.artifactstagingdirectory)'             
+              BuildDropPath: '$(build.artifactstagingdirectory)'
         - task: PublishBuildArtifacts@1
           displayName: Publish Artifacts
           inputs:
@@ -159,7 +177,13 @@ stages:
             artifactName: iotedged-debian11-arm32v7
             identityServiceArtifactName: packages_debian-11-slim_arm32v7
             identityServicePackageFilter: aziot-identity-service_*_armhf.deb
-          
+
+          RedHat8-amd64:
+            os: redhat8
+            artifactName: iotedged-redhat8-amd64
+            identityServiceArtifactName: packages_redhat-ubi8-latest_amd64
+            identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
+
           Ubuntu1804-amd64:
             os: ubuntu18.04
             artifactName: iotedged-ubuntu18.04-amd64
