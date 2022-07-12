@@ -73,6 +73,10 @@ where
     }
 }
 
+// NOTE: clippy is incorrectly marking this as a duplicated trait bound.
+// An upstream issue exists documenting this behavior:
+// https://github.com/rust-lang/rust-clippy/issues/9076
+#[allow(clippy::trait_duplication_in_bounds)]
 impl<IoS> Connect<IoS>
 where
     IoS: super::IoSource,

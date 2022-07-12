@@ -100,7 +100,7 @@ impl mqtt3::IoSource for IoSource {
             // If the connection broke while there were still steps remaining in the TestConnection, then the dropped sender will cause the test
             // to receive a futures_channel::oneshot::Canceled error, so the test will panic before this deadline elapses anyway.
             Box::pin(async {
-                let () = tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
                 unreachable!();
             })
         }
