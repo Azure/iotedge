@@ -166,7 +166,12 @@ stages:
     - job: mariner_linux
 ################################################################################
       displayName: Mariner_Linux
-      condition: eq(${{ parameters['E2EBuild'] }}, false)
+      condition: |
+        and
+        (
+          eq(${{ parameters['E2EBuild'] }}, false), 
+          or(eq(variables['build.linux.mariner'], ''), eq(variables['build.linux.mariner'], true))
+        )
       pool:
         name: $(pool.windows.name)
         demands:
