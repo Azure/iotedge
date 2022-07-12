@@ -6,11 +6,14 @@ publish = false
 edition = "2018"
 
 [dependencies]
+tempfile = "3"
+serde_derive = "1.0"
 base64 = "0.9"
 clap = "2.31"
 chrono = "0.4"
 env_logger = "0.9"
 failure = "0.1"
+config = { version = "0.9", default-features = false, features = ["yaml", "json"] }
 futures = "0.1"
 hyper = "0.12.17"
 hyper-tls = { version = "0.3", optional = true }
@@ -32,6 +35,7 @@ edgelet-docker = { path = "../edgelet-docker" }
 edgelet-hsm = { path = "../edgelet-hsm" }
 edgelet-http = { path = "../edgelet-http" }
 edgelet-http-external-provisioning = { path = "../edgelet-http-external-provisioning" }
+edgelet-test-utils = { path = "../edgelet-test-utils" }
 edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
 edgelet-http-workload = { path = "../edgelet-http-workload" }
 edgelet-iothub = { path = "../edgelet-iothub" }
