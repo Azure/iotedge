@@ -2,6 +2,7 @@
 
 ### Bug Fixes
 * Update Base Images for a Security Patch [.NET Core 3.1.27 - July 12, 2022](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1.27/3.1.27.md)
+* Fix configuration key for the 'AddIdentityTags' experimental feature flag [d89dfe5](https://github.com/Azure/iotedge/commit/d89dfe5815905942bea500888ff361d2ed308313)
 
 # 1.0.8 (2022-05-24)
 
