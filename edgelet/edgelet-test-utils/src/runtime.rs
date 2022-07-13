@@ -174,4 +174,8 @@ impl edgelet_core::ModuleRuntime for Runtime {
     fn registry(&self) -> &Self::ModuleRegistry {
         unimplemented!()
     }
+
+    fn error_code(_error: &anyhow::Error) -> hyper::StatusCode {
+        unimplemented!()
+    }
 }

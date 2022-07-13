@@ -7,11 +7,10 @@
 %define iotedge_confdir %{aziot_confdir}/edged
 %define iotedge_agent_user edgeagentuser
 %define iotedge_agent_uid 13622
-%global debug_package %{nil}
 
 Name:           aziot-edge
-Version:        @version@
-Release:        @release@%{?dist}
+Version:        @@VERSION@@
+Release:        @@RELEASE@@%{?dist}
 
 License:        MIT
 Summary:        Azure IoT Edge Module Runtime
@@ -20,8 +19,14 @@ URL:            https://github.com/azure/iotedge
 %{?systemd_requires}
 BuildRequires:  systemd
 Requires(pre):  shadow-utils
-Requires:       aziot-identity-service = 1.3.0~dev-1%{?dist}
-Source0:        aziot-edge-%{version}.tar.gz
+Requires:       openssl
+Requires:       aziot-identity-service = @@IIS_VERSION@@%{?dist}
+Requires:       moby-engine
+Requires:       moby-cli
+
+#Source0:       https://github.com/Azure/iotedge/archive/%{version}.tar.gz
+Source0:        %{name}-%{version}.tar.gz
+Source1:        rust.tar.gz
 
 %description
 Azure IoT Edge Module Runtime
@@ -34,8 +39,15 @@ This package contains the IoT Edge daemon and CLI tool.
 
 %prep
 %setup -q
+# include rust toolchain that matches the one from aziotedge's pipeline
+pushd ~
+tar xf %{SOURCE1} --no-same-owner --strip-components=1
+popd
+export CARGO_HOME=~/.cargo
+export PATH=$PATH:$CARGO_HOME/bin
+export RUSTUP_HOME=~/.rustup
 
-%build
+cd edgelet
 make \
     CONNECT_MANAGEMENT_URI=unix://%{iotedge_socketdir}/mgmt.sock \
     CONNECT_WORKLOAD_URI=unix://%{iotedge_socketdir}/workload.sock \
@@ -44,7 +56,14 @@ make \
     release
 
 %install
+IOTEDGE_HOST=unix:///var/lib/iotedge/mgmt.sock
+export IOTEDGE_HOST
+export CARGO_HOME=~/.cargo
+export PATH=$PATH:$CARGO_HOME/bin
+export RUSTUP_HOME=~/.rustup
+
 rm -rf $RPM_BUILD_ROOT
+cd edgelet
 make \
     CONNECT_MANAGEMENT_URI=unix://%{iotedge_socketdir}/mgmt.sock \
     CONNECT_WORKLOAD_URI=unix://%{iotedge_socketdir}/workload.sock \
@@ -52,10 +71,12 @@ make \
     LISTEN_WORKLOAD_URI=unix://%{iotedge_socketdir}/workload.sock \
     DESTDIR=$RPM_BUILD_ROOT \
     unitdir=%{_unitdir} \
-    presetdir=%{_presetdir} \
     docdir=%{_docdir}/%{name} \
-    install-rpm
+    install
 
+install -D contrib/centos/00-aziot-edged.preset %{buildroot}%{_presetdir}/00-aziot-edged.preset
+install -m 0660 /dev/null %{buildroot}/%{iotedge_socketdir}/mgmt.sock
+install -m 0666 /dev/null %{buildroot}/%{iotedge_socketdir}/workload.sock
 %clean
 rm -rf $RPM_BUILD_ROOT
 
@@ -83,11 +104,6 @@ if ! /usr/bin/getent passwd iotedge >/dev/null; then
     %{_sbindir}/useradd -r -g %{iotedge_group} -c "iotedge user" -s /bin/nologin -d %{iotedge_home} %{iotedge_user}
 fi
 
-# Add iotedge user to moby-engine group
-if /usr/bin/getent group docker >/dev/null; then
-    %{_sbindir}/usermod -aG docker %{iotedge_user}
-fi
-
 # Add iotedge user to systemd-journal group so it can get system logs
 if /usr/bin/getent group systemd-journal >/dev/null; then
     %{_sbindir}/usermod -aG systemd-journal %{iotedge_user}
@@ -96,6 +112,11 @@ fi
 # Create an edgeagentuser and add it to iotedge group
 if ! /usr/bin/getent passwd %{iotedge_agent_user} >/dev/null; then
     %{_sbindir}/useradd -g %{iotedge_group} -c "edgeAgent user" -ms /bin/nologin -u %{iotedge_agent_uid} %{iotedge_agent_user}
+fi
+
+# Add iotedge user to moby-engine group
+if /usr/bin/getent group docker >/dev/null; then
+    %{_sbindir}/usermod -a -G docker %{iotedge_user}
 fi
 
 # Add iotedge user to aziot-identity-service groups
@@ -181,3 +202,13 @@ fi
 %doc %{_docdir}/%{name}/trademark
 
 %changelog
+*   Tue Apr 26 2022 Joseph Knierman <joknierm@microsoft.com> @@VERSION@@-@@RELEASE@@
+-   Update to build for Mariner 2.0 and uses the rust toolkit provided by the iotedge build pipelines
+*   Wed Sep 08 2021 Joseph Knierman <joknierm@microsoft.com> 1.2.0-4
+-   Update to run on iotedge pipeline.
+*   Wed May 05 2021 David Grob <grobdavid@microsoft.com> 1.2.0-3
+-   Update to version 1.2.0 and compress source files.
+*   Thu Apr 08 2021 Saravanan Somasundaram <sarsoma@microsoft.com> 1.2.0-2
+-   Adding Azure IoT Edge Migration Service as a Dependency.
+*   Mon Mar 29 2021 David Grob <grobdavid@microsoft.com> 1.2.0-1
+-   Original aziot-edge version 1.2.0 post rc4 for Mariner.

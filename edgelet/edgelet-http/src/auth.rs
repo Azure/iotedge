@@ -22,7 +22,7 @@ pub async fn auth_caller(
         runtime.module_top(module_name).await.map_err(|err| {
             log::info!("Auth for {} failed: {}", module_name, err);
 
-            crate::error::forbidden()
+            crate::error::FORBIDDEN
         })
     }?;
 
@@ -33,7 +33,7 @@ pub async fn auth_caller(
             pid
         );
 
-        return Err(crate::error::forbidden());
+        return Err(crate::error::FORBIDDEN);
     }
 
     Ok(())
