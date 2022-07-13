@@ -75,35 +75,47 @@
       "$type": "ModulePriorityValidator",
       "moduleCommands": [
         {
-          "command": "create",
+          "command": "TestPrepareUpdate",
           "moduleName": "edgeAgent"
         },
         {
-          "command": "start",
+          "command": "TestCreate",
           "moduleName": "edgeAgent"
         },
         {
-          "command": "stop",
+          "command": "TestStart",
+          "moduleName": "edgeAgent"
+        },
+        {
+          "command": "TestStop",
           "moduleName": "tempSensor1"
         },
         {
-          "command": "remove",
+          "command": "TestRemove",
           "moduleName": "tempSensor1"
         },
         {
-          "command": "update",
+          "command": "TestPrepareUpdate",
           "moduleName": "tempSensor"
         },
         {
-          "command": "start",
+          "command": "TestUpdate",
           "moduleName": "tempSensor"
         },
         {
-          "command": "create",
+          "command": "TestStart",
+          "moduleName": "tempSensor"
+        },
+        {
+          "command": "TestPrepareUpdate",
           "moduleName": "edgeHub"
         },
         {
-          "command": "start",
+          "command": "TestCreate",
+          "moduleName": "edgeHub"
+        },
+        {
+          "command": "TestStart",
           "moduleName": "edgeHub"
         }
       ]
@@ -208,39 +220,51 @@
       "$type": "ModulePriorityValidator",
       "moduleCommands": [
         {
-          "command": "update",
+          "command": "TestUpdateEdgeAgent",
           "moduleName": "edgeAgent"
         },
         {
-          "command": "create",
+          "command": "TestPrepareUpdate",
           "moduleName": "edgeHub"
         },
         {
-          "command": "start",
+          "command": "TestCreate",
           "moduleName": "edgeHub"
         },
         {
-          "command": "update",
+          "command": "TestStart",
+          "moduleName": "edgeHub"
+        },
+        {
+          "command": "TestPrepareUpdate",
           "moduleName": "tempSensor"
         },
         {
-          "command": "start",
+          "command": "TestUpdate",
           "moduleName": "tempSensor"
         },
         {
-          "command": "stop",
+          "command": "TestStart",
+          "moduleName": "tempSensor"
+        },
+        {
+          "command": "TestStop",
           "moduleName": "tempSensor1"
         },
         {
-          "command": "remove",
+          "command": "TestRemove",
           "moduleName": "tempSensor1"
         },
         {
-          "command": "create",
+          "command": "TestPrepareUpdate",
           "moduleName": "tempSensor2"
         },
         {
-          "command": "start",
+          "command": "TestCreate",
+          "moduleName": "tempSensor2"
+        },
+        {
+          "command": "TestStart",
           "moduleName": "tempSensor2"
         }
       ]
@@ -264,7 +288,11 @@
             "image": "mcr.microsoft.com/azureiotedge-agent:1.0",
             "createOptions": "{}"
           },
-          "env": {}
+          "env": {
+            "ModuleUpdateMode": {
+              "value": "WaitForAll"
+            }
+          }
         },
         "edgeHub": {
           "type": "docker",
@@ -322,43 +350,47 @@
       "$type": "ModulePriorityValidator",
       "moduleCommands": [
         {
-          "command": "prepareUpdate",
+          "command": "TestPrepareUpdate",
           "moduleName": "edgeAgent"
         },
         {
-          "command": "prepareUpdate",
-          "moduleName": "edgeHub"
-        },
-        {
-          "command": "create",
-          "moduleName": "edgeAgent"
-        },
-        {
-          "command": "start",
-          "moduleName": "edgeAgent"
-        },
-        {
-          "command": "stop",
-          "moduleName": "tempSensor1"
-        },
-        {
-          "command": "remove",
-          "moduleName": "tempSensor1"
-        },
-        {
-          "command": "update",
+          "command": "TestPrepareUpdate",
           "moduleName": "tempSensor"
         },
         {
-          "command": "start",
-          "moduleName": "tempSensor"
-        },
-        {
-          "command": "create",
+          "command": "TestPrepareUpdate",
           "moduleName": "edgeHub"
         },
         {
-          "command": "start",
+          "command": "TestCreate",
+          "moduleName": "edgeAgent"
+        },
+        {
+          "command": "TestStart",
+          "moduleName": "edgeAgent"
+        },
+        {
+          "command": "TestStop",
+          "moduleName": "tempSensor1"
+        },
+        {
+          "command": "TestRemove",
+          "moduleName": "tempSensor1"
+        },
+        {
+          "command": "TestUpdate",
+          "moduleName": "tempSensor"
+        },
+        {
+          "command": "TestStart",
+          "moduleName": "tempSensor"
+        },
+        {
+          "command": "TestCreate",
+          "moduleName": "edgeHub"
+        },
+        {
+          "command": "TestStart",
           "moduleName": "edgeHub"
         }
       ]

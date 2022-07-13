@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
     using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunner;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Reporters;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Test;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -80,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
                 },
                 () =>
                 {
-                    return ModuleUpdateMode.WaitForAll;
+                    return ModuleUpdateMode.NonBlocking;
                 });
 
             var configSource = new Mock<IConfigSource>();
