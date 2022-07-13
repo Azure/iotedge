@@ -1,22 +1,22 @@
-# 1.1.15 (2022-07-14)
+# 1.1.15 (2022-07-12)
 ## Edge Agent
 ### Bug Fixes
-* Update Base Images for a Security Patch [.NET Core 3.1.26 - June 14, 2022](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1.26/3.1.26.md)
+* Update Base Images for a Security Patch [.NET Core 3.1.27 - July 12, 2022](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1.27/3.1.27.md)
 
 
 ## Edge Hub
 ### Bug Fixes
-* Update Base Images for a Security Patch [.NET Core 3.1.26 - June 14, 2022](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1.26/3.1.26.md)
+* Update Base Images for a Security Patch [.NET Core 3.1.27 - July 12, 2022](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1.27/3.1.27.md)
 
 
 ## Diagnostics Module
 ### Bug Fixes
-* Update Base Images for a Security Patch [.NET Core 3.1.26 - June 14, 2022](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1.26/3.1.26.md)
+* Update Base Images for a Security Patch [.NET Core 3.1.27 - July 12, 2022](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1.27/3.1.27.md)
 
 
 ## Simulated Temperature Sensor
 ### Bug Fixes
-* Update Base Images for a Security Patch [.NET Core 3.1.26 - June 14, 2022](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1.26/3.1.26.md)
+* Update Base Images for a Security Patch [.NET Core 3.1.27 - July 12, 2022](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1.27/3.1.27.md)
 
 
 ## iotedged
