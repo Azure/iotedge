@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
             }
             catch (Exception e) when (this.moduleUpdateMode == ModuleUpdateMode.WaitForAll)
             {
-                throw new ExcecutionPrerequisiteException("Failed to executure PrepareForUpdate command", e);
+                throw new ExcecutionPrerequisiteException("Failed to execute PrepareForUpdate command", e);
             }
         }
 
