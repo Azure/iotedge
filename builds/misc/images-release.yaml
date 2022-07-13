@@ -3,6 +3,9 @@ pr: none
 
 name: $(version)
 
+variables:
+  DisableDockerDetector: true
+
 stages:
 # This stage builds Rocks DB and adds the files to staging directory
 ################################################################################

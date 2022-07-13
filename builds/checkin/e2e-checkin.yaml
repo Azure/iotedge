@@ -21,6 +21,7 @@ resources:
 
 
 variables:
+  DisableDockerDetector: true
   REVISION: '1'
   WINDOWS_CODESIGN_SERVICE_CONNECTION: 'Azure IoT Edge Code Sign 2'
 

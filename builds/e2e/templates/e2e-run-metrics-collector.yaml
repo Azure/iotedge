@@ -2,7 +2,7 @@ steps:
 - pwsh: |
     $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
 
-    $filter = 'TestMetricsCollector'
+    $filter = 'MetricsCollector'
 
     if ($IsWindows)
     {

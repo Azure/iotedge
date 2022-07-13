@@ -1,3 +1,80 @@
+# 1.1.15 (2022-07-12)
+## Edge Agent
+### Bug Fixes
+* Update base image to include .NET reliability and non-security fixes from [.NET Core 3.1.27 - July 12, 2022](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1.27/3.1.27.md)
+* Update base image to include .NET security fixes from [.NET Core 3.1.26 - June 14, 2022](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1.26/3.1.26.md)
+
+
+## Edge Hub
+### Bug Fixes
+* Update base image to include .NET reliability and non-security fixes from [.NET Core 3.1.27 - July 12, 2022](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1.27/3.1.27.md)
+* Update base image to include .NET security fixes from [.NET Core 3.1.26 - June 14, 2022](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1.26/3.1.26.md)
+
+
+## Diagnostics Module
+### Bug Fixes
+* Update base image to include .NET reliability and non-security fixes from [.NET Core 3.1.27 - July 12, 2022](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1.27/3.1.27.md)
+* Update base image to include .NET security fixes from [.NET Core 3.1.26 - June 14, 2022](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1.26/3.1.26.md)
+
+
+## Simulated Temperature Sensor
+### Bug Fixes
+* Update base image to include .NET reliability and non-security fixes from [.NET Core 3.1.27 - July 12, 2022](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1.27/3.1.27.md)
+* Update base image to include .NET security fixes from [.NET Core 3.1.26 - June 14, 2022](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1.26/3.1.26.md)
+
+
+## iotedged
+### Bug Fixes
+* Create a single persistent workload socket for edgeAgent [35f8781](https://github.com/Azure/iotedge/commit/35f87818de7c1d1fd4925606119b9970267d9abe)
+
+
+# 1.1.14 (2022-05-24)
+## Edge Agent
+### Bug Fixes
+* Update Base Images to address Microsoft .NET Security Updates for [CVE-2022-23267](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-23267), [CVE-2022-29117](https://github.com/dotnet/announcements/issues/220), [CVE-2022-29145](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-29145), OpenSSL vulnerability [USN-5402-1](https://ubuntu.com/security/notices/USN-5402-1), curl vulnerability [USN-5412-1](https://ubuntu.com/security/notices/USN-5412-1), and OpenLDAP Vulnerability [USN-5424-1](https://ubuntu.com/security/notices/USN-5424-1)
+
+
+## Edge Hub
+### Bug Fixes
+* Update Base Images to address Microsoft .NET Security Updates for [CVE-2022-23267](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-23267), [CVE-2022-29117](https://github.com/dotnet/announcements/issues/220), [CVE-2022-29145](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-29145), OpenSSL vulnerability [USN-5402-1](https://ubuntu.com/security/notices/USN-5402-1), curl vulnerability [USN-5412-1](https://ubuntu.com/security/notices/USN-5412-1), and OpenLDAP Vulnerability [USN-5424-1](https://ubuntu.com/security/notices/USN-5424-1)
+
+
+## Diagnostics Module
+### Bug Fixes
+* Update Base Images to address Microsoft .NET Security Updates for [CVE-2022-23267](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-23267), [CVE-2022-29117](https://github.com/dotnet/announcements/issues/220), [CVE-2022-29145](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-29145), OpenSSL vulnerability [USN-5402-1](https://ubuntu.com/security/notices/USN-5402-1), curl vulnerability [USN-5412-1](https://ubuntu.com/security/notices/USN-5412-1), and OpenLDAP Vulnerability [USN-5424-1](https://ubuntu.com/security/notices/USN-5424-1)
+
+
+## Simulated Temperature Sensor
+### Bug Fixes
+* Update Base Images to address Microsoft .NET Security Updates for [CVE-2022-23267](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-23267), [CVE-2022-29117](https://github.com/dotnet/announcements/issues/220), [CVE-2022-29145](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-29145), OpenSSL vulnerability [USN-5402-1](https://ubuntu.com/security/notices/USN-5402-1), curl vulnerability [USN-5412-1](https://ubuntu.com/security/notices/USN-5412-1), and OpenLDAP Vulnerability [USN-5424-1](https://ubuntu.com/security/notices/USN-5424-1)
+
+
+# 1.1.13 (2022-04-27)
+## Edge Agent
+### Bug Fixes
+* Update Base Images to address gzip vulnerability [CVE-2022-1271](https://ubuntu.com/security/CVE-2022-1271)
+
+
+## Edge Hub
+### Bug Fixes
+* Update Base Images to address gzip vulnerability [CVE-2022-1271](https://ubuntu.com/security/CVE-2022-1271)
+
+
+## iotedged
+### Bug Fixes
+* Update Rust `regex` version to address vulnerability [5573eff](https://github.com/Azure/iotedge/commit/5573eff191310e5a226d924b40d1cea035b0a3fd)
+
+
+## Diagnostics Module
+### Bug Fixes
+* Update Base Images to address gzip vulnerability [CVE-2022-1271](https://ubuntu.com/security/CVE-2022-1271)
+
+
+## Simulated Temperature Sensor
+### Bug Fixes
+* Update Base Images to address gzip vulnerability [CVE-2022-1271](https://ubuntu.com/security/CVE-2022-1271)
+
+
 # 1.1.12 (2022-03-15)
 ## Edge Agent
 ### Bug Fixes

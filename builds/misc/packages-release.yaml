@@ -5,8 +5,19 @@
 # Variable 'WIN_PACKAGE_VERSION' was defined in the Variables tab
 name: $(VERSION)
 
+resources:
+  repositories:
+  - repository: azure-iotedge
+    type: github
+    endpoint: azure-iot-edge-iotedge1-github
+    name: azure/azure-iotedge
+
 trigger: none
 pr: none
+
+variables:
+  DisableDockerDetector: true
+
 stages:
 
 ################################################################################
@@ -405,7 +416,9 @@ stages:
         displayName: Copy iotedged Files to Artifact Staging
         inputs:
           SourceFolder: edgelet/target/rpmbuild/RPMS/x86_64
-          Contents: '*.rpm'
+          # Warning: Content with '!(*debug*).rpm' doesn't work. 
+          #   the filename prefix is hard coded here to filter out the debuginfo rpm
+          Contents: 'iotedge-1.*.rpm'
           TargetFolder: $(build.artifactstagingdirectory)
       - task: ManifestGeneratorTask@0
         displayName: SBOM Generation Task
@@ -984,15 +997,39 @@ stages:
                 keyVaultName: $(kv.name)
                 secretsFilter: >-
                   GitHubAccessToken
-            - bash: | #Create Release Page Before Publishing Artifacts in Parallel in the Next Job.
-                echo "Approval Complete, Creating Release Page"
-                BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
-                sudo chmod +x $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh 
-                $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh -p ubuntu20.04 -w $(Build.SourcesDirectory) -d $(Build.SourcesDirectory) -v "$BASE_VERSION" -s "github.com" -b  $(Build.SourceBranch) --skip-upload true
+            - checkout: self
+            - checkout: azure-iotedge
+              submodules: recursive
+            - bash: |
+                echo "Approval Complete"
+
+                BASE_VERSION="$(cat $BUILD_SOURCESDIRECTORY/iotedge/edgelet/version.txt)"
+                VERSION="$BASE_VERSION"
+                AZURE_IOTEDGE_REPO_PATH="$(Build.SourcesDirectory)/azure-iotedge"
+                IOTEDGE_REPO_PATH="$(Build.SourcesDirectory)/iotedge"
+                BRANCH_NAME="$(Build.SourceBranch)"
+                echo "Version: $VERSION"
+                echo "Branch name: $BRANCH_NAME"
+                echo "azure-iotedge repo path: $AZURE_IOTEDGE_REPO_PATH"
+                echo "iotedge repo path: $IOTEDGE_REPO_PATH"
+
+                #Create Release Page Before Publishing Artifacts in Parallel in the Next Job.
+                echo "Creating Release Page"
+                sudo chmod +x $(Build.SourcesDirectory)/iotedge/scripts/linux/publishReleasePackages.sh 
+                $(Build.SourcesDirectory)/iotedge/scripts/linux/publishReleasePackages.sh -p ubuntu20.04 -w $(Build.SourcesDirectory)/iotedge -d $(Build.SourcesDirectory)/iotedge -v "$BASE_VERSION" -s "github.com" -b  $(Build.SourceBranch) --skip-upload true
+
+                # Source the scripts & Update version files
+                sudo chmod +x $(Build.SourcesDirectory)/iotedge/scripts/linux/github/updateLatestVersion.sh
+                source $(Build.SourcesDirectory)/iotedge/scripts/linux/github/updateLatestVersion.sh
+                update_latest_version_json
+
+                # Update Github and tag
+                github_update_and_push
               env:
-                GITHUB_PAT: "$(GitHubAccessToken)"        
+                GITHUB_PAT: "$(GitHubAccessToken)"
     - job: linux
       displayName: Linux
+      dependsOn: safe_guard
       strategy:
         matrix:
           Centos75-amd64:
@@ -1051,7 +1088,11 @@ stages:
           Ubuntu2004-aarch64:
             os: ubuntu20.04
             artifactName: iotedged-ubuntu20.04-aarch64
-           
+
+          Windows-amd64:
+            os: windows
+            artifactName: iotedged-windows-amd64
+
       steps:
         - task: AzureKeyVault@1
           displayName: Get secrets
@@ -1068,9 +1109,11 @@ stages:
             patterns: |
                 $(artifactName)/*.deb
                 $(artifactName)/*.rpm
+                $(artifactName)/*.ps1
+                $(artifactName)/*.cab
         - bash: |
             BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
-            sudo chmod +x $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh 
+            sudo chmod +x $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh
             $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh -p $(os) -w $(System.ArtifactsDirectory) -d $(System.ArtifactsDirectory)/$(artifactName) -v "$BASE_VERSION" -s "github.com" -b $(Build.SourceBranch)
           env:
             GITHUB_PAT: "$(GitHubAccessToken)"    
@@ -1094,7 +1137,7 @@ stages:
           deploy:
             steps:
               - bash: |
-                  echo "Approval Complete"   
+                  echo "Approval Complete"
     - job: linux
       displayName: Linux
       strategy:
@@ -1103,11 +1146,6 @@ stages:
             os: debian9
             artifactName: iotedged-debian9-arm32v7
             identityServiceArtifactName: packages_debian-9-slim_arm32v7
-            identityServicePackageFilter: aziot-identity-service_*_armhf.deb
-          Debian10-arm32v7:
-            os: debian10
-            artifactName: iotedged-debian10-arm32v7
-            identityServiceArtifactName: packages_debian-10-slim_arm32v7
             identityServicePackageFilter: aziot-identity-service_*_armhf.deb
           Debian11-arm32v7:
             os: debian11
