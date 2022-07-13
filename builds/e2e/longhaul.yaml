@@ -678,8 +678,8 @@ jobs:
           buildType: specific
           project: $(vsts.project)
           pipeline: $(edgelet.package.build)
-          branchName: $(edgelet.package.branchName)
-          buildVersionToDownload: latestFromBranch
+          buildVersionToDownload: 'specific'
+          buildId: '57605577'
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
       - task: DownloadBuildArtifacts@0
@@ -688,8 +688,8 @@ jobs:
           buildType: specific
           project: $(vsts.project)
           pipeline: $(images.build)
-          branchName: $(images.branchName)
-          buildVersionToDownload: latestFromBranch
+          buildVersionToDownload: 'specific'
+          buildId: '57685916'
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.linux)
           itemPattern: |
