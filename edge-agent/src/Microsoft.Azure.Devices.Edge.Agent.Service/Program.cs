@@ -91,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             try
             {
-                mode = configuration.GetValue(Constants.ModeKey, "docker");
+                mode = configuration.GetValue(Constants.ModeKey, "iotedged");
                 configSourceConfig = configuration.GetValue<string>("ConfigSource");
                 backupConfigFilePath = configuration.GetValue<string>("BackupConfigFilePath");
                 maxRestartCount = configuration.GetValue<int>("MaxRestartCount");
