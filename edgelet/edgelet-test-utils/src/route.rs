@@ -22,6 +22,9 @@ macro_rules! test_route_err {
     };
 }
 
+// NOTE: allowing the use of `crate::` since the macro is intended to
+// use the type `crate::Service` for the crates it is used in.
+#[allow(clippy::crate_in_macro_def)]
 #[macro_export]
 macro_rules! test_route {
     ($path:expr) => {{
