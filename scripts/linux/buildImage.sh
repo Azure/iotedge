@@ -7,7 +7,7 @@
 # directory identified by environment variable BUILD_BINARIESDIRECTORY
 ###############################################################################
 
-set -e
+set -euo pipefail
 
 ###############################################################################
 # Define Environment Variables
@@ -54,6 +54,7 @@ usage() {
     echo " -v, --image-version  Docker Image Version. Either use this option or set env variable BUILD_BUILDNUMBER"
     echo " -t, --target-arch    Target architecture (default: uname -m)"
     echo "--bin-dir             Directory containing the output binaries. Either use this option or set env variable BUILD_BINARIESDIRECTORY"
+    echo "--source-map          Path to the JSON file that maps Dockerfile image sources to their replacements. Assumes the tool 'dockersource' is in the PATH"
     echo "--skip-push           Build images, but don't push them"
     exit 1
 }
@@ -78,6 +79,9 @@ process_args() {
         elif [[ ${save_next_arg} -eq 3 ]]; then
             BUILD_BINARIESDIRECTORY="$arg"
             save_next_arg=0
+        elif [[ ${save_next_arg} -eq 4 ]]; then
+            SOURCE_MAP="$arg"
+            save_next_arg=0
         elif [[ ${save_next_arg} -eq 5 ]]; then
             ARCH="$arg"
             check_arch
@@ -97,6 +101,7 @@ process_args() {
             "-r" | "--registry") save_next_arg=1 ;;
             "-v" | "--image-version") save_next_arg=2 ;;
             "--bin-dir") save_next_arg=3 ;;
+            "--source-map") save_next_arg=4 ;;
             "-t" | "--target-arch") save_next_arg=5 ;;
             "-P" | "--project") save_next_arg=6 ;;
             "-i" | "--image-name") save_next_arg=7 ;;
@@ -145,6 +150,16 @@ process_args() {
         print_help_and_exit
     fi
 
+    if [[ -n "$SOURCE_MAP" ]] && [[ ! -f "$SOURCE_MAP" ]]; then
+        echo "File specified by --source-map does not exist"
+        print_help_and_exit
+    fi
+
+    if [[ -n "$SOURCE_MAP" ]] && ! command -v dockersource > /dev/null; then
+        echo "--source-map specified, but required tool 'dockersource' not found in PATH"
+        print_help_and_exit
+    fi
+
     DOCKERFILE="$EXE_DOCKER_DIR/linux/$ARCH/Dockerfile"
     if [[ ! -f ${DOCKERFILE} ]]; then
         echo "No Dockerfile at $DOCKERFILE"
@@ -183,7 +198,7 @@ docker_build_and_tag_and_push() {
     esac
 
     docker buildx create --use --bootstrap
-    docker buildx ls
+    trap "docker buildx rm" EXIT
 
     if [[ ${SKIP_PUSH} -eq 0 ]]; then
         attrs='type=image,push=true'
@@ -193,12 +208,17 @@ docker_build_and_tag_and_push() {
         echo "Building image '$image', skipping push"
     fi
 
+    if [[ -n "$SOURCE_MAP" ]]; then
+        build_context=$(dockersource --mod-config $SOURCE_MAP $dockerfile)
+    fi
+
     docker buildx build \
         --no-cache \
         --platform $platform \
         --build-arg 'EXE_DIR=.' \
         --file $dockerfile \
         --output=$attrs,name=$image,buildinfo-attrs=true \
+        $([ -z "$build_context" ] || echo $build_context) \
         $context_path
 
     if [[ $? -ne 0 ]]; then

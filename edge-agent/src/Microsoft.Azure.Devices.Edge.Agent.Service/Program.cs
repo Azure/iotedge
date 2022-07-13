@@ -82,8 +82,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             bool enableNonPersistentStorageBackup;
             Option<string> storageBackupPath = Option.None<string>();
             string edgeDeviceHostName;
-            string dockerLoggingDriver;
-            Dictionary<string, string> dockerLoggingOptions;
             IEnumerable<global::Docker.DotNet.Models.AuthConfig> dockerAuthConfig;
             int configRefreshFrequencySecs;
             ExperimentalFeatures experimentalFeatures;
@@ -93,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             try
             {
-                mode = configuration.GetValue(Constants.ModeKey, "docker");
+                mode = configuration.GetValue(Constants.ModeKey, "iotedged");
                 configSourceConfig = configuration.GetValue<string>("ConfigSource");
                 backupConfigFilePath = configuration.GetValue<string>("BackupConfigFilePath");
                 maxRestartCount = configuration.GetValue<int>("MaxRestartCount");
@@ -114,8 +112,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 backupConfigFilePath = GetFullBackupFilePath(storagePath, backupConfigFilePath);
 
                 edgeDeviceHostName = configuration.GetValue<string>(Constants.EdgeDeviceHostNameKey);
-                dockerLoggingDriver = configuration.GetValue<string>("DockerLoggingDriver");
-                dockerLoggingOptions = configuration.GetSection("DockerLoggingOptions").Get<Dictionary<string, string>>() ?? new Dictionary<string, string>();
                 dockerAuthConfig = configuration.GetSection("DockerRegistryAuth").Get<List<global::Docker.DotNet.Models.AuthConfig>>() ?? new List<global::Docker.DotNet.Models.AuthConfig>();
 
                 NestedEdgeParentUriParser parser = new NestedEdgeParentUriParser();
@@ -138,7 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             try
             {
                 var builder = new ContainerBuilder();
-                builder.RegisterModule(new LoggingModule(dockerLoggingDriver, dockerLoggingOptions));
+                builder.RegisterModule(new LoggingModule());
                 string productInfo =
                     versionInfo != VersionInfo.Empty ?
                     $"{Constants.IoTEdgeAgentProductInfoIdentifier}/{versionInfo}" :
@@ -160,16 +156,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
                 switch (mode.ToLowerInvariant())
                 {
-                    case Constants.DockerMode:
-                        var dockerUri = new Uri(configuration.GetValue<string>("DockerUri"));
-                        string deviceConnectionString = configuration.GetValue<string>("DeviceConnectionString");
-                        IotHubConnectionStringBuilder connectionStringParser = IotHubConnectionStringBuilder.Create(deviceConnectionString);
-                        deviceId = connectionStringParser.DeviceId;
-                        iothubHostname = connectionStringParser.HostName;
-                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, enableNonPersistentStorageBackup, storageBackupPath, storageTotalMaxWalSize, storageMaxManifestFileSize, storageMaxOpenFiles, storageLogLevel));
-                        builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, useServerHeartbeat, backupConfigFilePath));
-                        break;
-
                     case Constants.IotedgedMode:
                         string managementUri = configuration.GetValue<string>(Constants.EdgeletManagementUriVariableName);
                         string workloadUri = configuration.GetValue<string>(Constants.EdgeletWorkloadUriVariableName);

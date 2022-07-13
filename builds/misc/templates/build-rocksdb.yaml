@@ -33,7 +33,12 @@ stages:
       steps:
       - script: |
           /usr/bin/newgrp docker <<EONG
-          scripts/linux/buildRocksDb.sh --output-dir $(Build.ArtifactStagingDirectory) --postfix $(postfix) --build-number $(Build.BuildNumber) --arch $(arch)
+          scripts/linux/buildRocksDb.sh \
+            --output-dir $(Build.ArtifactStagingDirectory) \
+            --postfix $(postfix) \
+            --build-number $(Build.BuildNumber) \
+            --arch $(arch) \
+            --source-map /etc/iotedge-source-map.json
           EONG
         displayName: Build and copy out rocksdb lib
       - task: PublishBuildArtifacts@1
