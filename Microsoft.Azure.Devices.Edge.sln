@@ -47,8 +47,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edg
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Docker.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Docker.Test\Microsoft.Azure.Devices.Edge.Agent.Docker.Test.csproj", "{6EDCED3D-F7E4-4830-872B-E4D1C24EC591}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test\Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test.csproj", "{A03ECC50-84E7-49FE-9190-840F8DD64A1B}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.IoTHub", "edge-agent\src\Microsoft.Azure.Devices.Edge.Agent.IoTHub\Microsoft.Azure.Devices.Edge.Agent.IoTHub.csproj", "{09391D32-FC84-4532-A658-F2952AFD26AF}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test\Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.csproj", "{F43E5511-49F1-4EF2-8ACB-B38CFB45F4CB}"
@@ -260,12 +258,6 @@ Global
 		{6EDCED3D-F7E4-4830-872B-E4D1C24EC591}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6EDCED3D-F7E4-4830-872B-E4D1C24EC591}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6EDCED3D-F7E4-4830-872B-E4D1C24EC591}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A03ECC50-84E7-49FE-9190-840F8DD64A1B}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
-		{A03ECC50-84E7-49FE-9190-840F8DD64A1B}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
-		{A03ECC50-84E7-49FE-9190-840F8DD64A1B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A03ECC50-84E7-49FE-9190-840F8DD64A1B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A03ECC50-84E7-49FE-9190-840F8DD64A1B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A03ECC50-84E7-49FE-9190-840F8DD64A1B}.Release|Any CPU.Build.0 = Release|Any CPU
 		{09391D32-FC84-4532-A658-F2952AFD26AF}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
 		{09391D32-FC84-4532-A658-F2952AFD26AF}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
 		{09391D32-FC84-4532-A658-F2952AFD26AF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -631,7 +623,6 @@ Global
 		{840816E2-D691-45B4-9995-0291FB5AADDA} = {373FFF5E-E84C-4789-B768-676FFF51E7A6}
 		{3B5A4C63-7B33-4E37-9602-29FC8FC7C9C5} = {54351E51-19CB-4DE3-8302-99846AB216CF}
 		{6EDCED3D-F7E4-4830-872B-E4D1C24EC591} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
-		{A03ECC50-84E7-49FE-9190-840F8DD64A1B} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
 		{09391D32-FC84-4532-A658-F2952AFD26AF} = {54351E51-19CB-4DE3-8302-99846AB216CF}
 		{F43E5511-49F1-4EF2-8ACB-B38CFB45F4CB} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
 		{592F8A5A-B1C7-4011-9879-B2AEE118DD3F} = {578D5330-2F72-44C6-9DB5-C93B3F42C473}
