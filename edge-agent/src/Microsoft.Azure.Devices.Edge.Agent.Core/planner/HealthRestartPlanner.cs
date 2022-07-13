@@ -112,9 +112,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planner
                 plan.AddRange(commands);
             }
 
+            // If we need to premept the constructured plan with image pull
+            // commands, do so here.
             plan = upfrontImagePullPlan.Concat(plan).ToList();
 
-            // TODO ANDREW: maybe current plan structure is not ideal. We will block clearing out old modules if there are image update commands that fail.
             Events.PlanCreated(plan);
             return new Plan(plan.ToImmutableList());
         }
@@ -283,8 +284,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planner
             Func<IModuleWithIdentity, Task<CreateUpdateCommandMakerOutput>> createUpdateCommandMaker)
         {
             var upfrontPullCommands = new List<Task<ICommand>>();
-
-            var addedTasks = new List<Task<ICommand[]>>();
+            var moduleExecutionCommands = new List<Task<ICommand[]>>();
             foreach (IModule module in modules)
             {
                 if (moduleIdentities.TryGetValue(module.Name, out IModuleIdentity moduleIdentity))
@@ -293,18 +293,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planner
                     var moduleWithIdentity = new ModuleWithIdentity(module, moduleIdentity);
 
                     CreateUpdateCommandMakerOutput createUpdateCommandMakerOutput = await createUpdateCommandMaker(moduleWithIdentity);
-                    Option<Task<ICommand>> prepare = createUpdateCommandMakerOutput.UpfrontImagePullCommand;
-                    Task<ICommand> createOrUpdate = createUpdateCommandMakerOutput.CreateUpdateCommand;
+                    Option<Task<ICommand>> prepareUpdateCommand = createUpdateCommandMakerOutput.UpfrontImagePullCommand;
+                    Task<ICommand> createOrUpdateCommand = createUpdateCommandMakerOutput.CreateUpdateCommand;
 
-                    prepare.ForEach(c => upfrontPullCommands.Add(c));
-                    tasks.Add(createOrUpdate);
+                    prepareUpdateCommand.ForEach(c => upfrontPullCommands.Add(c));
+                    tasks.Add(createOrUpdateCommand);
 
                     if (module.DesiredStatus == ModuleStatus.Running)
                     {
                         tasks.Add(this.commandFactory.StartAsync(module));
                     }
 
-                    addedTasks.Add(Task.WhenAll(tasks));
+                    moduleExecutionCommands.Add(Task.WhenAll(tasks));
                 }
                 else
                 {
@@ -313,10 +313,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planner
             }
 
             // build GroupCommands from each command set
-            IEnumerable<Task<ICommand>> commands = (await Task.WhenAll(addedTasks))
+            IEnumerable<Task<ICommand>> groupedModuleExecutionCommands = (await Task.WhenAll(moduleExecutionCommands))
                 .Select(cmds => this.commandFactory.WrapAsync(new GroupCommand(cmds)));
 
-            return (await Task.WhenAll(upfrontPullCommands), await Task.WhenAll(commands));
+            return (await Task.WhenAll(upfrontPullCommands), await Task.WhenAll(groupedModuleExecutionCommands));
         }
 
         async Task<IEnumerable<ICommand>> ResetStatsForHealthyModulesAsync(IEnumerable<IRuntimeModule> modules)
