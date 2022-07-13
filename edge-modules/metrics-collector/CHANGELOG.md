@@ -1,4 +1,4 @@
-# 1.0.9 (2022-07-12)
+# 1.0.9 (2022-07-13)
 
 ### Bug Fixes
 * Update Base Images for a Security Patch [.NET Core 3.1.27 - July 12, 2022](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1.27/3.1.27.md)
