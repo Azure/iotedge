@@ -45,8 +45,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly TimeSpan performanceMetricsUpdateFrequency;
         readonly bool useServerHeartbeat;
         readonly string backupConfigFilePath;
-        readonly bool checkImagePullBeforeModuleCreate;
         readonly bool disableDeviceAnalyticsTelemetry;
+        readonly ModuleUpdateMode moduleUpdateMode;
 
         public EdgeletModule(
             string iotHubHostname,
@@ -63,8 +63,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             TimeSpan performanceMetricsUpdateFrequency,
             bool useServerHeartbeat,
             string backupConfigFilePath,
-            bool checkImagePullBeforeModuleCreate,
-            bool disableDeviceAnalyticsTelemetry)
+            bool disableDeviceAnalyticsTelemetry,
+            ModuleUpdateMode moduleUpdateMode)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
@@ -80,8 +80,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.performanceMetricsUpdateFrequency = performanceMetricsUpdateFrequency;
             this.useServerHeartbeat = useServerHeartbeat;
             this.backupConfigFilePath = Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath));
-            this.checkImagePullBeforeModuleCreate = checkImagePullBeforeModuleCreate;
             this.disableDeviceAnalyticsTelemetry = disableDeviceAnalyticsTelemetry;
+            this.moduleUpdateMode = moduleUpdateMode;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -139,7 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             moduleManager,
                             configSource,
                             combinedDockerConfigProvider,
-                            this.checkImagePullBeforeModuleCreate);
+                            this.moduleUpdateMode);
                         factory = new MetricsCommandFactory(factory, metricsProvider);
                         return new LoggingCommandFactory(factory, loggerFactory) as ICommandFactory;
                     })
