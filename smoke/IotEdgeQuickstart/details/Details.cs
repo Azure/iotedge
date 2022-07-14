@@ -365,8 +365,9 @@ namespace IotEdgeQuickstart.Details
             return retryPolicy.ExecuteAsync(
                 async () =>
             {
+                Console.WriteLine("Attempting to apply configuration on device...");
                 await this.context.RegistryManager.ApplyConfigurationContentOnDeviceAsync(this.context.DeviceId, config);
-            }, new CancellationTokenSource(TimeSpan.FromMinutes(5)).Token);
+            }, new CancellationTokenSource(TimeSpan.FromMinutes(10)).Token);
         }
 
         protected async Task VerifyDataOnIoTHub(string moduleId)
@@ -544,7 +545,14 @@ namespace IotEdgeQuickstart.Details
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
             Console.WriteLine($"Registering device '{device.Id}' on IoT hub '{builder.HostName}'");
 
-            device = await rm.AddDeviceAsync(device);
+            var retryStrategy = new Incremental(15, RetryStrategy.DefaultRetryInterval, RetryStrategy.DefaultRetryIncrement);
+            var retryPolicy = new RetryPolicy(new TransientNetworkErrorDetectionStrategy(), retryStrategy);
+            await retryPolicy.ExecuteAsync(
+                async () =>
+            {
+                Console.WriteLine("Attempting to create device identity...");
+                device = await rm.AddDeviceAsync(device);
+            }, new CancellationTokenSource(TimeSpan.FromMinutes(10)).Token);
 
             this.context = new DeviceContext(device, builder.ToString(), rm, true);
         }
