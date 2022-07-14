@@ -277,14 +277,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     var commandFactory = c.Resolve<Task<ICommandFactory>>();
                     if (this.moduleUpdateMode == ModuleUpdateMode.WaitForAll)
                     {
-                        return new UpfrontImagePullCommandMaker(await commandFactory) as ICreateUpdateCommandMaker;
+                        return new UpfrontImagePullCommandFactory(await commandFactory) as ICreateUpdateCommandFactory;
                     }
                     else
                     {
-                        return new StandardCommandMaker(await commandFactory) as ICreateUpdateCommandMaker;
+                        return new StandardCommandFactory(await commandFactory) as ICreateUpdateCommandFactory;
                     }
                 })
-            .As<Task<ICreateUpdateCommandMaker>>()
+            .As<Task<ICreateUpdateCommandFactory>>()
             .SingleInstance();
 
             // IPlanner
@@ -294,7 +294,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         var commandFactory = c.Resolve<Task<ICommandFactory>>();
                         var entityStore = c.Resolve<Task<IEntityStore<string, ModuleState>>>();
                         var policyManager = c.Resolve<IRestartPolicyManager>();
-                        var commandMaker = c.Resolve<Task<ICreateUpdateCommandMaker>>();
+                        var commandMaker = c.Resolve<Task<ICreateUpdateCommandFactory>>();
 
                         return new HealthRestartPlanner(await commandFactory, await entityStore, this.intensiveCareTime, policyManager, await commandMaker) as IPlanner;
                     })

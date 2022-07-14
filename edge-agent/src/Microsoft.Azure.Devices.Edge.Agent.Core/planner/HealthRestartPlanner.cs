@@ -41,14 +41,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planner
         readonly IEntityStore<string, ModuleState> store;
         readonly TimeSpan intensiveCareTime;
         readonly IRestartPolicyManager restartManager;
-        readonly ICreateUpdateCommandMaker commandMaker;
+        readonly ICreateUpdateCommandFactory commandMaker;
 
         public HealthRestartPlanner(
             ICommandFactory commandFactory,
             IEntityStore<string, ModuleState> store,
             TimeSpan intensiveCareTime,
             IRestartPolicyManager restartManager,
-            ICreateUpdateCommandMaker commandMaker)
+            ICreateUpdateCommandFactory commandMaker)
         {
             this.commandFactory = Preconditions.CheckNotNull(commandFactory, nameof(commandFactory));
             this.store = Preconditions.CheckNotNull(store, nameof(store));
@@ -281,7 +281,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planner
             IList<IModule> modules,
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities,
             IRuntimeInfo runtimeInfo,
-            Func<IModuleWithIdentity, Task<CreateUpdateCommandMakerOutput>> createUpdateCommandMaker)
+            Func<IModuleWithIdentity, Task<CreateUpdateCommandEntity>> createUpdateCommandMaker)
         {
             var upfrontPullCommands = new List<Task<ICommand>>();
             var moduleExecutionCommands = new List<Task<ICommand[]>>();
@@ -292,7 +292,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planner
                     var tasks = new List<Task<ICommand>>();
                     var moduleWithIdentity = new ModuleWithIdentity(module, moduleIdentity);
 
-                    CreateUpdateCommandMakerOutput createUpdateCommandMakerOutput = await createUpdateCommandMaker(moduleWithIdentity);
+                    CreateUpdateCommandEntity createUpdateCommandMakerOutput = await createUpdateCommandMaker(moduleWithIdentity);
                     Option<Task<ICommand>> prepareUpdateCommand = createUpdateCommandMakerOutput.UpfrontImagePullCommand;
                     Task<ICommand> createOrUpdateCommand = createUpdateCommandMakerOutput.CreateUpdateCommand;
 

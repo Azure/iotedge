@@ -102,14 +102,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
             environmentProvider.Setup(ep => ep.Create(It.IsAny<DeploymentConfig>())).Returns(environment.Object);
 
             var commandFactory = new TestCommandFactory();
-            ICreateUpdateCommandMaker commandMaker;
+            ICreateUpdateCommandFactory commandMaker;
             if (moduleUpdateMode == ModuleUpdateMode.WaitForAll)
             {
-                commandMaker = new UpfrontImagePullCommandMaker(commandFactory);
+                commandMaker = new UpfrontImagePullCommandFactory(commandFactory);
             }
             else
             {
-                commandMaker = new StandardCommandMaker(commandFactory);
+                commandMaker = new StandardCommandFactory(commandFactory);
             }
 
             var credential = new ConnectionStringCredentials("fake");

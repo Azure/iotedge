@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         public void TestCreateValidation()
         {
             ModuleUpdateMode moduleUpdateMode = ModuleUpdateMode.NonBlocking;
-            (TestCommandFactory factory, Mock<IEntityStore<string, ModuleState>> store, IRestartPolicyManager restartManager, ICreateUpdateCommandMaker createUpdateCommandMaker, _) = CreatePlanner(moduleUpdateMode);
+            (TestCommandFactory factory, Mock<IEntityStore<string, ModuleState>> store, IRestartPolicyManager restartManager, ICreateUpdateCommandFactory createUpdateCommandMaker, _) = CreatePlanner(moduleUpdateMode);
 
             Assert.Throws<ArgumentNullException>(() => new HealthRestartPlanner(null, store.Object, IntensiveCareTime, restartManager, createUpdateCommandMaker));
             Assert.Throws<ArgumentNullException>(() => new HealthRestartPlanner(factory, null, IntensiveCareTime, restartManager, createUpdateCommandMaker));
@@ -624,20 +624,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             factory.Recorder.ForEach(r => Assert.Equal(executionList, r.ExecutionList));
         }
 
-        static (TestCommandFactory factory, Mock<IEntityStore<string, ModuleState>> store, IRestartPolicyManager restartManager, ICreateUpdateCommandMaker commandMaker, HealthRestartPlanner planner) CreatePlanner(ModuleUpdateMode moduleUpdateMode)
+        static (TestCommandFactory factory, Mock<IEntityStore<string, ModuleState>> store, IRestartPolicyManager restartManager, ICreateUpdateCommandFactory commandMaker, HealthRestartPlanner planner) CreatePlanner(ModuleUpdateMode moduleUpdateMode)
         {
             var factory = new TestCommandFactory();
             var store = new Mock<IEntityStore<string, ModuleState>>();
             var restartManager = new RestartPolicyManager(MaxRestartCount, CoolOffTimeUnitInSeconds);
 
-            ICreateUpdateCommandMaker createUpdateCommandMaker;
+            ICreateUpdateCommandFactory createUpdateCommandMaker;
             if (moduleUpdateMode == ModuleUpdateMode.WaitForAll)
             {
-                createUpdateCommandMaker = new UpfrontImagePullCommandMaker(factory);
+                createUpdateCommandMaker = new UpfrontImagePullCommandFactory(factory);
             }
             else
             {
-                createUpdateCommandMaker = new StandardCommandMaker(factory);
+                createUpdateCommandMaker = new StandardCommandFactory(factory);
             }
 
             var planner = new HealthRestartPlanner(factory, store.Object, IntensiveCareTime, restartManager, createUpdateCommandMaker);

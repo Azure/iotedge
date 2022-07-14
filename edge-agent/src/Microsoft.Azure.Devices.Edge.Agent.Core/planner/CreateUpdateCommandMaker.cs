@@ -6,72 +6,72 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planner
     using Microsoft.Azure.Devices.Edge.Agent.Core.Commands;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class CreateUpdateCommandMakerOutput
+    public class CreateUpdateCommandEntity
     {
-        public Option<Task<ICommand>> UpfrontImagePullCommand;
-        public Task<ICommand> CreateUpdateCommand;
+        public Option<Task<ICommand>> UpfrontImagePullCommand { get; }
+        public Task<ICommand> CreateUpdateCommand { get; }
 
-        public CreateUpdateCommandMakerOutput(Option<Task<ICommand>> upfrontImagePullCommand, Task<ICommand> createUpdateCommand)
+        public CreateUpdateCommandEntity(Option<Task<ICommand>> upfrontImagePullCommand, Task<ICommand> createUpdateCommand)
         {
             this.UpfrontImagePullCommand = upfrontImagePullCommand;
             this.CreateUpdateCommand = createUpdateCommand;
         }
     }
 
-    public interface ICreateUpdateCommandMaker
+    public interface ICreateUpdateCommandFactory
     {
-        Task<CreateUpdateCommandMakerOutput> GenerateCreateCommands(IModuleWithIdentity module, IRuntimeInfo runtimeInfo);
-        Task<CreateUpdateCommandMakerOutput> GenerateUpdateCommands(IModule currentModule, IModuleWithIdentity module, IRuntimeInfo runtimeInfo);
+        Task<CreateUpdateCommandEntity> GenerateCreateCommands(IModuleWithIdentity module, IRuntimeInfo runtimeInfo);
+        Task<CreateUpdateCommandEntity> GenerateUpdateCommands(IModule currentModule, IModuleWithIdentity module, IRuntimeInfo runtimeInfo);
     }
 
-    public class UpfrontImagePullCommandMaker : ICreateUpdateCommandMaker
+    public class UpfrontImagePullCommandFactory : ICreateUpdateCommandFactory
     {
         ICommandFactory commandFactory;
 
-        public UpfrontImagePullCommandMaker(ICommandFactory commandFactory)
+        public UpfrontImagePullCommandFactory(ICommandFactory commandFactory)
         {
             this.commandFactory = commandFactory;
         }
 
-        public Task<CreateUpdateCommandMakerOutput> GenerateCreateCommands(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
+        public Task<CreateUpdateCommandEntity> GenerateCreateCommands(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
         {
             Task<ICommand> prepareUpdate = this.commandFactory.PrepareUpdateAsync(module.Module, runtimeInfo);
             Task<ICommand> createCommand = this.commandFactory.CreateAsync(module, runtimeInfo);
-            CreateUpdateCommandMakerOutput output = new CreateUpdateCommandMakerOutput(Option.Some(prepareUpdate), createCommand);
+            CreateUpdateCommandEntity output = new CreateUpdateCommandEntity(Option.Some(prepareUpdate), createCommand);
             return Task.FromResult(output);
         }
 
-        public Task<CreateUpdateCommandMakerOutput> GenerateUpdateCommands(IModule currentModule, IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
+        public Task<CreateUpdateCommandEntity> GenerateUpdateCommands(IModule currentModule, IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
         {
             Task<ICommand> prepareUpdate = this.commandFactory.PrepareUpdateAsync(module.Module, runtimeInfo);
             Task<ICommand> updateCommand = this.commandFactory.UpdateAsync(currentModule, module, runtimeInfo);
-            CreateUpdateCommandMakerOutput output = new CreateUpdateCommandMakerOutput(Option.Some(prepareUpdate), updateCommand);
+            CreateUpdateCommandEntity output = new CreateUpdateCommandEntity(Option.Some(prepareUpdate), updateCommand);
             return Task.FromResult(output);
         }
     }
 
-    public class StandardCommandMaker : ICreateUpdateCommandMaker
+    public class StandardCommandFactory : ICreateUpdateCommandFactory
     {
         ICommandFactory commandFactory;
 
-        public StandardCommandMaker(ICommandFactory commandFactory)
+        public StandardCommandFactory(ICommandFactory commandFactory)
         {
             this.commandFactory = commandFactory;
         }
 
-        public Task<CreateUpdateCommandMakerOutput> GenerateCreateCommands(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
+        public Task<CreateUpdateCommandEntity> GenerateCreateCommands(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
         {
             Task<ICommand> createCommand = this.commandFactory.CreateAsync(module, runtimeInfo);
             return this.GenerateCreateUpdateCommandImpl(createCommand, module, runtimeInfo);
         }
 
-        public Task<CreateUpdateCommandMakerOutput> GenerateUpdateCommands(IModule currentModule, IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
+        public Task<CreateUpdateCommandEntity> GenerateUpdateCommands(IModule currentModule, IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
         {
             Task<ICommand> updateCommand = this.commandFactory.UpdateAsync(currentModule, module, runtimeInfo);
             return this.GenerateCreateUpdateCommandImpl(updateCommand, module, runtimeInfo);
         }
 
-        async Task<CreateUpdateCommandMakerOutput> GenerateCreateUpdateCommandImpl(Task<ICommand> createUpdateCommand, IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
+        async Task<CreateUpdateCommandEntity> GenerateCreateUpdateCommandImpl(Task<ICommand> createUpdateCommand, IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
         {
             Task<ICommand> prepareUpdate = this.commandFactory.PrepareUpdateAsync(module.Module, runtimeInfo);
 
@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planner
             IList<Task<ICommand>> cmds = new List<Task<ICommand>> { prepareUpdate, createUpdateCommand };
             Task<ICommand> createOrUpdateWithPull = this.commandFactory.WrapAsync(new GroupCommand(await Task.WhenAll(cmds)));
 
-            CreateUpdateCommandMakerOutput output = new CreateUpdateCommandMakerOutput(Option.None<Task<ICommand>>(), createOrUpdateWithPull);
+            CreateUpdateCommandEntity output = new CreateUpdateCommandEntity(Option.None<Task<ICommand>>(), createOrUpdateWithPull);
             return output;
         }
     }
