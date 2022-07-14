@@ -102,6 +102,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 useServerHeartbeat = configuration.GetValue("UseServerHeartbeat", true);
                 moduleUpdateMode = configuration.GetValue("ModuleUpdateMode", ModuleUpdateMode.NonBlocking);
 
+                logger.LogInformation($"ModuleUpdateMode: {moduleUpdateMode.ToString()}");
+
                 // Note: Keep in sync with iotedge-check's edge-agent-storage-mounted-from-host check (edgelet/iotedge/src/check/checks/storage_mounted_from_host.rs)
                 storagePath = GetOrCreateDirectoryPath(configuration.GetValue<string>("StorageFolder"), EdgeAgentStorageFolder);
                 enableNonPersistentStorageBackup = configuration.GetValue("EnableNonPersistentStorageBackup", false);

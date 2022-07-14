@@ -126,6 +126,11 @@ public class FactoryMetrics
         this.commandCounters = Enum.GetValues(typeof(ModuleCommandMetric)).Cast<ModuleCommandMetric>().ToDictionary(c => c, command =>
         {
             string commandName = Enum.GetName(typeof(ModuleCommandMetric), command).ToLower();
+            if (commandName == ModuleCommandMetric.PrepareUpdate.ToString().ToLower())
+            {
+                commandName = "prepare_update";
+            }
+
             return metricsProvider.CreateCounter(
                 $"module_{commandName}",
                 "Command sent to module",
