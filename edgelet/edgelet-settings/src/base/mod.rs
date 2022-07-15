@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 pub mod aziot;
+pub mod image;
 pub mod module;
 pub mod uri;
 pub mod watchdog;
@@ -96,6 +97,9 @@ pub struct Settings<ModuleConfig> {
     /// Additional system information
     #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
     pub additional_info: std::collections::BTreeMap<String, String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub module_image_garbage_collection: Option<image::Settings>,
 }
 
 pub(crate) fn default_allow_elevated_docker_permissions() -> bool {
