@@ -225,7 +225,7 @@ jobs:
                 filePath: '$(System.DefaultWorkingDirectory)/scripts/windows/build/Move-Image.ps1'
                 arguments: >
                   -FromImage "$(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-windows-amd64"
-                  -ToImage "$(to.registry.address)/$(to.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-windows-amd64"
+                  -ToImage "$(to.registry.address)/$(to.unlisted.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-windows-amd64"
 
 ################################################################################
   - deployment: publish_manifest_images
