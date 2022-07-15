@@ -3,6 +3,7 @@
 #    from.registry.namespace: ''
 #    to.registry.address: ''
 #    to.registry.namespace: ''
+#    to.unlisted.registry.namespace: ''
 #    pool.linux.name: ''
 #    pool.windows.name: ''
 
@@ -139,23 +140,25 @@ jobs:
                 scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
                 args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-arm64v8 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-arm64v8'
 
+            # We decided to list `azureiotedge-diagnostics` module in `/unlisted` namespace instead of `/public` namespace
+            # so the DiscoveryPortal is not bloated with self-diagonos modules.
             - task: ShellScript@2
               displayName: 'Publish Diagnostic Module - Linux amd64'
               inputs:
                 scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
-                args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-amd64 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-amd64'
+                args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-amd64 --to $(to.registry.address)/$(to.unlisted.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-amd64'
 
             - task: ShellScript@2
               displayName: 'Publish Diagnostic Module - Linux arm32v7'
               inputs:
                 scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
-                args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-arm32v7 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-arm32v7'
+                args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-arm32v7 --to $(to.registry.address)/$(to.unlisted.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-arm32v7'
 
             - task: ShellScript@2
               displayName: 'Publish Diagnostic Module - Linux arm64v8'
               inputs:
                 scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
-                args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-arm64v8 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-arm64v8'
+                args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-arm64v8 --to $(to.registry.address)/$(to.unlisted.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-arm64v8'
 
 ################################################################################
   - deployment: publish_windows_images
@@ -222,7 +225,7 @@ jobs:
                 filePath: '$(System.DefaultWorkingDirectory)/scripts/windows/build/Move-Image.ps1'
                 arguments: >
                   -FromImage "$(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-windows-amd64"
-                  -ToImage "$(to.registry.address)/$(to.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-windows-amd64"
+                  -ToImage "$(to.registry.address)/$(to.unlisted.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-windows-amd64"
 
 ################################################################################
   - deployment: publish_manifest_images
@@ -303,6 +306,6 @@ jobs:
               inputs:
                 targetType: filePath
                 filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/buildManifest.sh'
-                arguments: '-r "$(to.registry.address)" -v "$(resources.pipeline.images.runName)" -t $(System.DefaultWorkingDirectory)/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template -n "$(to.registry.namespace)" --tags "$(tags)"'
+                arguments: '-r "$(to.registry.address)" -v "$(resources.pipeline.images.runName)" -t $(System.DefaultWorkingDirectory)/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template -n "$(to.unlisted.registry.namespace)" --tags "$(tags)"'
               env:
                 BUILD_REPOSITORY_LOCALPATH: $(System.DefaultWorkingDirectory)
