@@ -36,6 +36,8 @@ pub trait RuntimeSettings {
     fn endpoints(&self) -> &aziot::Endpoints;
 
     fn additional_info(&self) -> &std::collections::BTreeMap<String, String>;
+
+    fn module_image_garbage_collection(&self) -> &Option<image::Settings>;
 }
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Deserialize, serde::Serialize)]
@@ -176,5 +178,9 @@ impl<T: Clone> RuntimeSettings for Settings<T> {
 
     fn additional_info(&self) -> &std::collections::BTreeMap<String, String> {
         &self.additional_info
+    }
+
+    fn module_image_garbage_collection(&self) -> &Option<image::Settings> {
+        &self.module_image_garbage_collection
     }
 }

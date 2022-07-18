@@ -122,6 +122,10 @@ impl crate::RuntimeSettings for Settings {
     fn additional_info(&self) -> &std::collections::BTreeMap<String, String> {
         self.base.additional_info()
     }
+
+    fn module_image_garbage_collection(&self) -> &Option<crate::base::image::Settings> {
+        self.base.module_image_garbage_collection()
+    }
 }
 
 #[cfg(test)]
