@@ -436,6 +436,15 @@ dependencies = [
 [[package]]
 name = "config-common"
 version = "0.1.0"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#143cdf79be08e7069a6a0b17b38f33469c291b1e"
+dependencies = [
+ "serde",
+ "toml",
+]
+
+[[package]]
+name = "config-common"
+version = "0.1.0"
 source = "git+https://github.com/Azure/iot-identity-service?branch=release/1.3#72c12e64113eb76492b9a8e2a08ed7412869237b"
 dependencies = [
  "serde",
@@ -618,7 +627,7 @@ dependencies = [
  "base64",
  "bytes",
  "chrono",
- "config-common",
+ "config-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=release/1.3)",
  "docker",
  "edgelet-core",
  "edgelet-settings",
@@ -733,7 +742,7 @@ version = "0.1.0"
 dependencies = [
  "aziot-certd-config",
  "cert-renewal",
- "config-common",
+ "config-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
  "docker",
  "lazy_static",
  "serde",
@@ -1200,7 +1209,7 @@ dependencies = [
  "chrono-humanize",
  "clap",
  "config",
- "config-common",
+ "config-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=release/1.3)",
  "docker",
  "edgelet-core",
  "edgelet-http",
