@@ -3,7 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     public enum ModuleUpdateMode
     {
-        WaitForAll,
-        NonBlocking
+        NonBlocking,
+        WaitForAll
     }
 }
