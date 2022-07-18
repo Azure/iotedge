@@ -46,8 +46,8 @@ async fn garbage_collector(
 
     let contents = res.unwrap();
 
-    let mut image_map: HashMap<String, Duration> = HashMap::new();
-    let mut carry_over: HashMap<String, Duration> = HashMap::new();
+    let mut image_map: HashMap<String, Duration> = HashMap::new(); // all images in MIGC store
+    let mut carry_over: HashMap<String, Duration> = HashMap::new(); // all images to NOT be deleted by MIGC in this run
 
     contents
         .lines()
@@ -64,13 +64,11 @@ async fn garbage_collector(
     // first get list of containers on the device, running or otherwise
     let running_modules = ModuleRuntime::list_with_details(runtime).await.unwrap();
 
-    // then, based on ID, separate out images currently being used (from the map created in step 1)
+    // then, based on ID, keep track of images currently being used (in map: carry_over)
     for module in running_modules {
         let key = module.0.config().image_hash();
-        if image_map.contains_key(key.unwrap()) {
-            let value = image_map.get(key.unwrap()).unwrap();
-            carry_over.insert(key.unwrap().to_string(), *value);
-        }
+        let value = image_map.get(key.unwrap()).unwrap();
+        carry_over.insert(key.unwrap().to_string(), *value);
     }
 
     /* ============================== */
