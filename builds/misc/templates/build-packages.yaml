@@ -166,16 +166,32 @@ stages:
     - job: mariner_linux
 ################################################################################
       displayName: Mariner_Linux
-      condition: eq(${{ parameters['E2EBuild'] }}, false)
+      condition: |
+        and
+        (
+          eq(${{ parameters['E2EBuild'] }}, false), 
+          or(eq(variables['build.linux.mariner'], ''), eq(variables['build.linux.mariner'], true))
+        )
       pool:
-        vmImage: 'ubuntu-18.04'
+        name: $(pool.windows.name)
+        demands:
+          - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker-large-disk
       strategy:
         matrix:
           CBL-Mariner1.0-amd64:
             arch: amd64
             os: mariner
-            release: tags/1.0-stable
-            target.iotedged: builds/mariner/out/RPMS/x86_64/
+            os_version: 1
+            release: 1.0-stable
+            target.iotedged: builds/mariner1/out/RPMS/x86_64/
+            target.logs: builds/mariner1/build/logs/pkggen/rpmbuilding/
+          CBL-Mariner2.0-amd64:
+            arch: amd64
+            os: mariner
+            os_version: 2
+            release: 2.0-stable
+            target.iotedged: builds/mariner2/out/RPMS/x86_64/
+            target.logs: builds/mariner2/build/logs/pkggen/rpmbuilding/
       steps:
         - bash: |
             BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
@@ -185,13 +201,22 @@ stages:
             echo "PACKAGE_ARCH=$(arch)"
             echo "PACKAGE_OS=$(os)"
             echo "##vso[task.setvariable variable=MARINER_RELEASE;]$(release)"
+            mariner_arch=$(arch)
           displayName: Set Version
-        - script: edgelet/build/linux/package-mariner.sh
-          displayName: Create libiothsm and iotedged packages
+        - bash: |
+            docker run --rm \
+              -v "$(Build.SourcesDirectory):/src" \
+              -e "ARCH=$arch" \
+              -e "OS=$OS" \
+              -e "MARINER_RELEASE=$MARINER_RELEASE" \
+              -e "VERSION=$VERSION" \
+              --privileged \
+              "ubuntu:18.04" \
+              '/src/edgelet/build/linux/package-mariner.sh'
         - task: CopyFiles@2
           displayName: Copy iotedged and libiothsm build logs to artifact staging
           inputs:
-            SourceFolder: builds/mariner/build/logs/pkggen/rpmbuilding/
+            SourceFolder: $(target.logs)
             Contents: |
               **/*.rpm.log
             TargetFolder: '$(build.artifactstagingdirectory)'
@@ -208,7 +233,7 @@ stages:
           displayName: Publish Artifacts
           inputs:
             PathtoPublish: '$(build.artifactstagingdirectory)'
-            ArtifactName: 'iotedged-$(os)-$(arch)'
+            ArtifactName: 'iotedged-$(os)$(os_version)-$(arch)'
           condition: succeededOrFailed()
   
 ################################################################################

@@ -15,6 +15,7 @@ Release:        1%{?dist}
 
 #Source0:       https://github.com/Azure/iotedge/archive/%{version}.tar.gz
 Source0:        azure-iotedge-%{version}.tar.gz
+Patch0:         gcc-11.patch
 License:        MIT
 Group:          Applications/Libraries
 URL:            https://github.com/azure/iotedge
@@ -33,6 +34,7 @@ This library is used to interface with the TPM from Azure IoT Edge.
 
 %prep
 %setup -q -n %{_topdir}/BUILD/azure-iotedge-%{version}/edgelet/hsm-sys/azure-iot-hsm-c
+%patch0 -p4
 
 %build
 cd %{_topdir}/BUILD/azure-iotedge-%{version}/edgelet/hsm-sys/azure-iot-hsm-c
