@@ -37,7 +37,7 @@ async fn garbage_collector(
     log::info!("MIGC job starting daily run");
 
     // Step 1: read MIGC persistence file into in-mem map
-    // this map now contains all images deployed to the device
+    // this map now contains all images deployed to the device (through an IoT Edge deployment)
     let res = fs::read_to_string(FILE_NAME);
     if res.is_err() {
         log::error!("Could not read MIGC store");
@@ -49,6 +49,8 @@ async fn garbage_collector(
     let mut image_map: HashMap<String, Duration> = HashMap::new(); // all images in MIGC store
     let mut carry_over: HashMap<String, Duration> = HashMap::new(); // all images to NOT be deleted by MIGC in this run
 
+    // TL;DR: this dumps MIGC store contents into the image_map, where
+    // Key: Image hash, Value: Timestamp when image was last used (in epoch)
     contents
         .lines()
         .map(|line| line.split(' ').collect::<Vec<&str>>())
@@ -64,20 +66,22 @@ async fn garbage_collector(
     // first get list of containers on the device, running or otherwise
     let running_modules = ModuleRuntime::list_with_details(runtime).await.unwrap();
 
+    let current_time = std::time::SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap();
+
     // then, based on ID, keep track of images currently being used (in map: carry_over)
     for module in running_modules {
         let key = module.0.config().image_hash();
-        let value = image_map.get(key.unwrap()).unwrap();
-        carry_over.insert(key.unwrap().to_string(), *value);
+
+        // Since the images are currently being used, we update the timestamp to the current time
+        // This avoids the case where a container crash just as MIGC is kicking off removes a needed image
+        carry_over.insert(key.unwrap().to_string(), current_time);
     }
 
     /* ============================== */
 
     // Step 3: track entries younger than min age
-
-    let current_time = std::time::SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap();
 
     // TODO: read min_age from settings, let's assume min_age as 1 day for now
     for (key, value) in &image_map {
