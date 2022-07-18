@@ -6,6 +6,7 @@ publish = false
 edition = "2021"
 
 [dependencies]
+anyhow = "1"
 base64 = "0.13"
 clap = "2.33"
 futures-util = "0.3"
