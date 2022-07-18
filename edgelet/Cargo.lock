@@ -437,7 +437,7 @@ dependencies = [
 [[package]]
 name = "config-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#3730e70416b10e3aa6bb5ebef239aa1501bd1b22"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#143cdf79be08e7069a6a0b17b38f33469c291b1e"
 dependencies = [
  "serde",
  "toml",
