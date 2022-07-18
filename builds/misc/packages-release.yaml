@@ -213,12 +213,15 @@ stages:
             keyVaultName: $(kv.name)
             secretsFilter: >-
               GitHubAccessToken
+        - checkout: self
         - task: DownloadPipelineArtifact@2
           displayName: Download Pipeline Build Packages
           inputs:
             source: 'current'
             path: $(System.ArtifactsDirectory)
-            patterns: $(artifactName)/*.deb
+            patterns: |
+                $(artifactName)/*.deb
+                $(artifactName)/*.rpm
         - task: PowerShell@2
           displayName: 'Download aziot-identity-service'
           inputs:
@@ -230,6 +233,30 @@ stages:
             PACKAGE_FILTER: $(identityServicePackageFilter)
             DOWNLOAD_PATH: $(System.ArtifactsDirectory)/$(artifactName)
             IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
+        - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+          displayName: ESRP Binary CodeSigning (IIS)
+          inputs:
+            ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+            FolderPath: '$(System.ArtifactsDirectory)/$(artifactName)'
+            Pattern: "*.rpm"
+            SessionTimeout: 20
+            inlineOperation: |
+              [
+                {
+                  "KeyCode": "CP-450779-Pgp",
+                  "OperationCode": "LinuxSign",
+                  "Parameters": {},
+                  "ToolName": "sign",
+                  "toolVersion": "1.0"
+                }
+              ]
+            signConfigType: inlineSignParams
+        - task: PublishBuildArtifacts@1
+          displayName: Publish Artifacts
+          inputs:
+            PathtoPublish: '$(System.ArtifactsDirectory)/$(artifactName)'
+            ArtifactName: '$(artifactName)'
+          condition: succeededOrFailed()
         - task: Docker@2
           displayName: Docker login msinternal
           inputs:
