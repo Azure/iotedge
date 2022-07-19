@@ -60,12 +60,12 @@ make \
     docdir=%{_docdir}/%{name} \
     install
 
-install -D contrib/systemd/mariner/aziot-edged.mgmt.socket %{buildroot}/%{_unitdir}/mgmt.sock
-install -D contrib/systemd/mariner/aziot-edged.workload.socket %{buildroot}/%{_unitdir}/workload.sock
+install -D contrib/systemd/mariner/aziot-edged.mgmt.socket %{buildroot}/%{_unitdir}/aziot-edged.mgmt.socket
+install -D contrib/systemd/mariner/aziot-edged.workload.socket %{buildroot}/%{_unitdir}/aziot-edged.workload.socket
 
 # remove initial aziot-edged.service which does not specify mgnt and workload sockets
 rm %{buildroot}/%{_unitdir}/aziot-edged.service
-install -D contrib/systemd/mariner/aziot-edged.service %{buildroot}/%{_unitdir}aziot-edged.service
+install -D contrib/systemd/mariner/aziot-edged.service %{buildroot}/%{_unitdir}/aziot-edged.service
 install -D contrib/centos/00-aziot-edged.preset %{buildroot}%{_presetdir}/00-aziot-edged.preset
 
 %clean
