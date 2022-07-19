@@ -43,18 +43,6 @@ This package contains the IoT Edge daemon and CLI tool.
 pushd ~
 tar xf %{SOURCE1} --no-same-owner --strip-components=1
 popd
-export CARGO_HOME=~/.cargo
-export PATH=$PATH:$CARGO_HOME/bin
-export RUSTUP_HOME=~/.rustup
-
-cd edgelet
-make \
-    CONNECT_MANAGEMENT_URI=unix:///var/run/iotedge/mgmt.sock
-    CONNECT_WORKLOAD_URI=unix:///var/run/iotedge/workload.sock
-    LISTEN_MANAGEMENT_URI=fd://aziot-edged.mgmt.socket
-    LISTEN_WORKLOAD_URI=fd://aziot-edged.workload.socket \
-    release
-
 %install
 export CARGO_HOME=~/.cargo
 export PATH=$PATH:$CARGO_HOME/bin
@@ -63,9 +51,9 @@ export RUSTUP_HOME=~/.rustup
 rm -rf $RPM_BUILD_ROOT
 cd edgelet
 make \
-    CONNECT_MANAGEMENT_URI=unix:///var/run/iotedge/mgmt.sock
-    CONNECT_WORKLOAD_URI=unix:///var/run/iotedge/workload.sock
-    LISTEN_MANAGEMENT_URI=fd://aziot-edged.mgmt.socket
+    CONNECT_MANAGEMENT_URI=unix:///var/run/iotedge/mgmt.sock \
+    CONNECT_WORKLOAD_URI=unix:///var/run/iotedge/workload.sock \
+    LISTEN_MANAGEMENT_URI=fd://aziot-edged.mgmt.socket \
     LISTEN_WORKLOAD_URI=fd://aziot-edged.workload.socket \
     DESTDIR=$RPM_BUILD_ROOT \
     unitdir=%{_unitdir} \
