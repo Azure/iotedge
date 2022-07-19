@@ -49,15 +49,13 @@ export RUSTUP_HOME=~/.rustup
 
 cd edgelet
 make \
-    CONNECT_MANAGEMENT_URI=unix://%{iotedge_socketdir}/mgmt.sock \
-    CONNECT_WORKLOAD_URI=unix://%{iotedge_socketdir}/workload.sock \
-    LISTEN_MANAGEMENT_URI=unix://%{iotedge_socketdir}/mgmt.sock \
-    LISTEN_WORKLOAD_URI=unix://%{iotedge_socketdir}/workload.sock \
+    CONNECT_MANAGEMENT_URI=unix:///var/run/iotedge/mgmt.sock
+    CONNECT_WORKLOAD_URI=unix:///var/run/iotedge/workload.sock
+    LISTEN_MANAGEMENT_URI=fd://aziot-edged.mgmt.socket
+    LISTEN_WORKLOAD_URI=fd://aziot-edged.workload.socket \
     release
 
 %install
-IOTEDGE_HOST=unix:///var/lib/iotedge/mgmt.sock
-export IOTEDGE_HOST
 export CARGO_HOME=~/.cargo
 export PATH=$PATH:$CARGO_HOME/bin
 export RUSTUP_HOME=~/.rustup
@@ -65,18 +63,23 @@ export RUSTUP_HOME=~/.rustup
 rm -rf $RPM_BUILD_ROOT
 cd edgelet
 make \
-    CONNECT_MANAGEMENT_URI=unix://%{iotedge_socketdir}/mgmt.sock \
-    CONNECT_WORKLOAD_URI=unix://%{iotedge_socketdir}/workload.sock \
-    LISTEN_MANAGEMENT_URI=unix://%{iotedge_socketdir}/mgmt.sock \
-    LISTEN_WORKLOAD_URI=unix://%{iotedge_socketdir}/workload.sock \
+    CONNECT_MANAGEMENT_URI=unix:///var/run/iotedge/mgmt.sock
+    CONNECT_WORKLOAD_URI=unix:///var/run/iotedge/workload.sock
+    LISTEN_MANAGEMENT_URI=fd://aziot-edged.mgmt.socket
+    LISTEN_WORKLOAD_URI=fd://aziot-edged.workload.socket \
     DESTDIR=$RPM_BUILD_ROOT \
     unitdir=%{_unitdir} \
     docdir=%{_docdir}/%{name} \
     install
 
+install -D contrib/systemd/mariner/aziot-edged.mgmt.socket %{buildroot}/%{_unitdir}/mgmt.sock
+install -D contrib/systemd/mariner/aziot-edged.workload.socket %{buildroot}/%{_unitdir}/workload.sock
+
+# remove initial aziot-edged.service which does not specify mgnt and workload sockets
+rm %{buildroot}/%{_unitdir}/aziot-edged.service
+install -D contrib/systemd/mariner/aziot-edged.service %{buildroot}/%{_unitdir}aziot-edged.service
 install -D contrib/centos/00-aziot-edged.preset %{buildroot}%{_presetdir}/00-aziot-edged.preset
-install -m 0660 /dev/null %{buildroot}/%{iotedge_socketdir}/mgmt.sock
-install -m 0666 /dev/null %{buildroot}/%{iotedge_socketdir}/workload.sock
+
 %clean
 rm -rf $RPM_BUILD_ROOT
 
@@ -186,23 +189,22 @@ fi
 
 # systemd
 %{_unitdir}/aziot-edged.service
+%{_unitdir}/aziot-edged.mgmt.socket
+%{_unitdir}/aziot-edged.workload.socket
 %{_presetdir}/00-aziot-edged.preset
-
-# sockets
-%attr(660, %{iotedge_user}, %{iotedge_group}) %{iotedge_socketdir}/mgmt.sock
-%attr(666, %{iotedge_user}, %{iotedge_group}) %{iotedge_socketdir}/workload.sock
 
 # dirs
 %attr(-, %{iotedge_user}, %{iotedge_group}) %dir %{iotedge_home}
 %attr(-, %{iotedge_user}, %{iotedge_group}) %dir %{iotedge_logdir}
-%attr(-, %{iotedge_user}, %{iotedge_group}) %dir %{iotedge_socketdir}
 
 %doc %{_docdir}/%{name}/LICENSE.gz
 %doc %{_docdir}/%{name}/ThirdPartyNotices.gz
 %doc %{_docdir}/%{name}/trademark
 
 %changelog
-*   Tue Apr 26 2022 Joseph Knierman <joknierm@microsoft.com> @@VERSION@@-@@RELEASE@@
+*   Tue Jul 19 2022 Joseph Knierman <joknierm@microsoft.com> @@VERSION@@-@@RELEASE@@
+-   changed to use socket activation
+*   Tue Apr 26 2022 Joseph Knierman <joknierm@microsoft.com> 1.2.0-5
 -   Update to build for Mariner 2.0 and uses the rust toolkit provided by the iotedge build pipelines
 *   Wed Sep 08 2021 Joseph Knierman <joknierm@microsoft.com> 1.2.0-4
 -   Update to run on iotedge pipeline.
