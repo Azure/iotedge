@@ -89,6 +89,8 @@ To reconfigure IoT Edge, run:
         edge_ca: None,
 
         moby_runtime: Default::default(),
+
+        module_image_garbage_collection: Default::default(),
     };
     let config = toml::to_vec(&config)
         .map_err(|err| format!("could not serialize system config: {}", err))?;

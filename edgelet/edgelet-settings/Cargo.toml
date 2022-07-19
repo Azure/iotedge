@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
+humantime-serde = "1.0"
 url = { version = "2", features = ["serde"] }
 
 aziot-certd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
