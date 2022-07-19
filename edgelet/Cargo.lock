@@ -108,6 +108,7 @@ name = "aziot-edged"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "aziot-identity-client-async",
  "aziot-identity-common",
  "aziot-identity-common-http",
@@ -121,6 +122,7 @@ dependencies = [
  "edgelet-settings",
  "futures-util",
  "http-common",
+ "hyper",
  "log",
  "logger",
  "serde",

@@ -38,6 +38,40 @@ async fn garbage_collector(
 
     // Step 1: read MIGC persistence file into in-mem map
     // this map now contains all images deployed to the device (through an IoT Edge deployment)
+    let image_map = get_images_with_timestamp().map_err(|e| e)?;
+
+    /* ============================== */
+
+    // Step 2: track images associated with extant containers
+
+    // first get list of containers on the device, running or otherwise
+    let running_modules = ModuleRuntime::list_with_details(runtime).await.unwrap();
+
+    /* ============================== */
+
+    // Step 3: process maps
+    let (image_map, carry_over) = process_state(image_map, running_modules);
+
+    /* ============================== */
+
+    // Step 4: delete images
+
+    for key in image_map.keys() {
+        let result = ModuleRuntime::remove(runtime, key).await;
+        if result.is_err() {
+            log::error!("Could not delete image {}", key);
+        }
+    }
+
+    /* ============================== */
+
+    // Step 5: write previously removed entries back to file
+    write_images_with_timestamp(&carry_over).map_err(|e| e)?;
+
+    Ok(())
+}
+
+fn get_images_with_timestamp() -> Result<HashMap<String, Duration>, EdgedError> {
     let res = fs::read_to_string(FILE_NAME);
     if res.is_err() {
         log::error!("Could not read MIGC store");
@@ -47,7 +81,6 @@ async fn garbage_collector(
     let contents = res.unwrap();
 
     let mut image_map: HashMap<String, Duration> = HashMap::new(); // all images in MIGC store
-    let mut carry_over: HashMap<String, Duration> = HashMap::new(); // all images to NOT be deleted by MIGC in this run
 
     // TL;DR: this dumps MIGC store contents into the image_map, where
     // Key: Image hash, Value: Timestamp when image was last used (in epoch)
@@ -59,16 +92,45 @@ async fn garbage_collector(
             image_map.insert(k, Duration::from_secs(v.parse::<u64>().unwrap()));
         });
 
-    /* ============================== */
+    Ok(image_map)
+}
 
-    // Step 2: track images associated with extant containers
+fn write_images_with_timestamp(
+    state_to_persist: &HashMap<String, Duration>,
+) -> Result<(), EdgedError> {
+    // instead of deleting existing entries from file, we just recreate it
+    // TODO: handle synchronization
+    let mut file = std::fs::File::create(FILE_NAME).unwrap();
 
-    // first get list of containers on the device, running or otherwise
-    let running_modules = ModuleRuntime::list_with_details(runtime).await.unwrap();
+    for (key, value) in state_to_persist {
+        let image_details = format!("{} {:?}\n", key, value);
+        let res = write!(file, "{}", image_details);
+        if res.is_err() {
+            let msg = format!(
+                "Could not write image:{} with timestamp:{} to MIGC store",
+                key,
+                value.as_secs()
+            );
+            log::error!("{}", msg);
+            return Err(EdgedError::new(msg));
+        }
+    }
 
+    Ok(())
+}
+
+fn process_state(
+    mut image_map: HashMap<String, Duration>,
+    running_modules: Vec<(
+        edgelet_docker::DockerModule<http_common::Connector>,
+        edgelet_core::ModuleRuntimeState,
+    )>,
+) -> (HashMap<String, Duration>, HashMap<String, Duration>) {
     let current_time = std::time::SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap();
+
+    let mut carry_over: HashMap<String, Duration> = HashMap::new(); // all images to NOT be deleted by MIGC in this run
 
     // then, based on ID, keep track of images currently being used (in map: carry_over)
     for module in running_modules {
@@ -79,10 +141,7 @@ async fn garbage_collector(
         carry_over.insert(key.unwrap().to_string(), current_time);
     }
 
-    /* ============================== */
-
-    // Step 3: track entries younger than min age
-
+    // track entries younger than min age
     // TODO: read min_age from settings, let's assume min_age as 1 day for now
     for (key, value) in &image_map {
         if current_time.as_secs() - value.as_secs() < 86400 {
@@ -90,37 +149,15 @@ async fn garbage_collector(
         }
     }
 
-    /* ============================== */
-
-    // Step 4: delete images
-    
     // clean up image map to make sure entries that need to be preserved are not removed
     for key in carry_over.keys() {
         image_map.remove(key);
     }
 
-    for key in image_map.keys() {
-        let result = ModuleRuntime::remove(runtime, key).await;
-        if result.is_err() {
-            log::error!("Could not delete image {}", key);
-        }
-    }
+    (image_map, carry_over)
+}
 
-    /* ============================== */
-
-    // Step 5: write previously removed entried back to file
-
-    // instead of deleting existing entries from file, we just recreate it
-    // TODO: handle synchronization
-    let mut file = std::fs::File::create(FILE_NAME).unwrap();
-
-    for (key, value) in &carry_over {
-        let image_details = format!("{} {:?}\n", key, value);
-        let res = write!(file, "{}", image_details);
-        if res.is_err() {
-            log::error!("Could not write image:{} with timestamp:{} to MIGC store", key, value.as_secs());
-        }
-    }
-
-    Ok(())
+#[cfg(test)]
+mod tests {
+    use super::*;
 }
