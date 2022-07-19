@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.CommandFactories
 
     // Command needs to be grouped so that image pull is
     // guaranteed to succeed before we issue a create/update
-    // commands. This prevents multiple create commands from 
+    // commands. This prevents multiple create commands from
     // getting executed within aziot-edged if EdgeAgent timesout
     // create request and reissues.
     //
@@ -24,6 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.CommandFactories
         public StandardCommandFactory(ICommandFactory commandFactory)
         {
             this.commandFactory = commandFactory;
+            this.nullCommandFactory = NullCommandFactory.Instance;
         }
 
         public Task<ICommand> UpdateEdgeAgentAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)

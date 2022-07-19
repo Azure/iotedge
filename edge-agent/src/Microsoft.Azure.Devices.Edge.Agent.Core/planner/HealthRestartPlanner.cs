@@ -311,7 +311,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planner
             // Filter out any commands that won't take some action. Necessary
             // because depending on `ModuleUpdateMode` feature flag, these
             // pulls may not be separated out and will instead be grouped with
-            //create/update commands. In that case they will be null here.
+            // create/update commands. In that case they will be null here.
             IEnumerable<ICommand> upfrontPullCommands = (await Task.WhenAll(upfrontPullTasks)).Where(t =>
             {
                 return !(t is NullCommand);
