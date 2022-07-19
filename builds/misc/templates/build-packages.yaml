@@ -236,6 +236,7 @@ stages:
       ################################################################################
         displayName: Mariner_Linux on ARM64
         condition: or(eq(variables['build.linux.mariner'], ''), eq(variables['build.linux.mariner'], true))
+        timeoutInMinutes: 70
         pool:
           name: $(pool.linux.arm.name)
           demands:
