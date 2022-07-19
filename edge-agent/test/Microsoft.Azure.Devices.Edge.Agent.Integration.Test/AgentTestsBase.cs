@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
                 {
                     if (m.Value == "WaitForAll")
                     {
-                        return ModuleUpdateMode.WaitForAll;
+                        return ModuleUpdateMode.WaitForAllPulls;
                     }
                     else if (m.Value == "NonBlocking")
                     {
@@ -104,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
 
             var commandFactory = new TestCommandFactory();
             ICommandFactory wrappingCommandFactory;
-            if (moduleUpdateMode == ModuleUpdateMode.WaitForAll)
+            if (moduleUpdateMode == ModuleUpdateMode.WaitForAllPulls)
             {
                 wrappingCommandFactory = new ExecutionPrerequisiteCommandFactory(commandFactory);
             }
