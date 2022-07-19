@@ -7,11 +7,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.CommandFactories
     using Microsoft.Azure.Devices.Edge.Agent.Core.Commands;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands;
 
-    // Command needs to be grouped so that image pull is
-    // guaranteed to succeed before we issue a create/update
-    // commands. This prevents multiple create commands from
-    // getting executed within aziot-edged if EdgeAgent timesout
-    // create request and reissues.
+    // Create / update commands needs to be grouped so that
+    // image pull is guaranteed to succeed before the container
+    // is actually created / updated. This prevents multiple
+    // create commands from getting executed within aziot-edged
+    // if EdgeAgent timesout create request and reissues.
     //
     // Multiple create requests being executed within
     // aziot-edged will lead to race condition with workload

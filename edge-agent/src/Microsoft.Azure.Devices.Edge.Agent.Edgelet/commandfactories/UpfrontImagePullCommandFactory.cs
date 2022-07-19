@@ -4,11 +4,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.CommandFactories
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands;
-    public class UpfrontImagePullCommandFactory : ICommandFactory
+
+    // CommandFactory that will issue ExecutionPrerequisiteException on a
+    // failed image pull.
+    public class ExecutionPrerequisiteCommandFactory : ICommandFactory
     {
         ICommandFactory commandFactory;
 
-        public UpfrontImagePullCommandFactory(ICommandFactory commandFactory)
+        public ExecutionPrerequisiteCommandFactory(ICommandFactory commandFactory)
         {
             this.commandFactory = commandFactory;
         }

@@ -17,7 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Test;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
-    using Microsoft.Azure.Devices.Edge.Agent.Edgelet;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.CommandFactories;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -107,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
             ICommandFactory wrappingCommandFactory;
             if (moduleUpdateMode == ModuleUpdateMode.WaitForAll)
             {
-                wrappingCommandFactory = new UpfrontImagePullCommandFactory(commandFactory);
+                wrappingCommandFactory = new ExecutionPrerequisiteCommandFactory(commandFactory);
             }
             else
             {

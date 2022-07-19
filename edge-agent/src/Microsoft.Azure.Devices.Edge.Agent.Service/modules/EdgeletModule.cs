@@ -148,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         }
                         else
                         {
-                            factory = new UpfrontImagePullCommandFactory(factory);
+                            factory = new ExecutionPrerequisiteCommandFactory(factory);
                         }
 
                         factory = new MetricsCommandFactory(factory, metricsProvider);
