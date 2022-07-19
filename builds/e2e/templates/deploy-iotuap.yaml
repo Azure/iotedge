@@ -14,17 +14,9 @@ parameters:
   container.registry.password: ''
   iotHub.connectionString: ''
   eventHub.connectionString: ''
-  snitch.build.number: ''
-  snitch.alert.url: ''
-  snitch.storage.account: ''
-  snitch.storage.masterKey: ''
   amqp.settings.enabled: 'true'
   mqtt.settings.enabled: 'true'
   loadGen.message.frequency: ''
-  transportType1: 'Amqp_Tcp_Only'
-  transportType2: 'Amqp_Tcp_Only'
-  transportType3: 'Mqtt_Tcp_Only'
-  transportType4: 'Mqtt_Tcp_Only'
   analyzer.consumerGroupId: ''
   analyzer.logAnalytics.enabled: ''
   analyzer.logAnalytics.logType: ''
@@ -95,25 +87,7 @@ steps:
       UserPassword: '$(iotuap-x64-password)'
       InlineScript: |
         #Requires -RunAsAdministrator
-        If ("${{ parameters['testName'] }}" -eq "Stress")
-        {
-          # schedule a task to stop iotedge service (terminate the test) in 4:30h
-          $ScheduleDatetime = [DateTime]::Now.AddMinutes(270)
-          $ScheduleDate=$ScheduleDatetime.ToString("MM/dd/yyyy")
-          $ScheduleTime=$ScheduleDatetime.ToString("HH:mm")
-          Write-Host "Schedule to stop iotedge service at $ScheduleDate $ScheduleTime"
-          SchTasks.exe /Create /RU "SYSTEM" /SC ONCE /TN “StopStressTest” /TR "net stop iotedge" /SD $ScheduleDate /ST $ScheduleTime /F
-
-          # Stress tests are not configured to make use of a test start delay variable (only for long haul)
-          # The shell script below will expect a parameter defined because it is also used for long haul
-          # We can hardcode a 0 second delay to get around this.
-          $testStartDelay = "00:00:00"
-        }
-        else
-        {
-          $testStartDelay = "${{ parameters['test.startDelay'] }}"
-        }
-        
+        $testStartDelay = "${{ parameters['test.startDelay'] }}"
         $testInfo="TestBuildNumber=${{ parameters['test.buildNumber'] }}"
         $testInfo=$testInfo+",TestBuildId=${{ parameters['test.buildId'] }}"
         $testInfo=$testInfo+",BuildSourceBranch=${{ parameters['build.source.branch'] }}"
@@ -128,20 +102,12 @@ steps:
           -E2ETestFolder "C:\Data\e2etests" `
           -ReleaseLabel "${{ parameters['release.label'] }}" `
           -ArtifactImageBuildNumber "$($ArtifactInfo.BuildNumber)" `
-          -TestName "${{ parameters['testName'] }}" `
+          -TestName "LongHaul" `
           -ContainerRegistry "${{ parameters['container.registry'] }}" `
           -ContainerRegistryUsername "${{ parameters['container.registry.username'] }}" `
           -ContainerRegistryPassword "${{ parameters['container.registry.password'] }}" `
           -IoTHubConnectionString "${{ parameters['iotHub.connectionString'] }}" `
           -EventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" `
-          -SnitchBuildNumber "${{ parameters['snitch.build.number'] }}" `
-          -SnitchStorageAccount "${{ parameters['snitch.storage.account'] }}" `
-          -SnitchStorageMasterKey "${{ parameters['snitch.storage.masterKey'] }}" `
-          -SnitchAlertUrl "${{ parameters['snitch.alert.url'] }}" `
-          -TransportType1 "${{ parameters['transportType1'] }}" `
-          -TransportType2 "${{ parameters['transportType2'] }}" `
-          -TransportType3 "${{ parameters['transportType3'] }}" `
-          -TransportType4 "${{ parameters['transportType4'] }}" `
           -AmqpSettingsEnabled "${{ parameters['amqp.settings.enabled'] }}" `
           -MqttSettingsEnabled "${{ parameters['mqtt.settings.enabled'] }}" `
           -LoadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" `
