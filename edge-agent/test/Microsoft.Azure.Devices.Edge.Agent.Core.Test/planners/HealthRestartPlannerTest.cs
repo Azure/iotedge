@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Planner;
     using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunner;
+    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.CommandFactories;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -568,13 +569,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
 
         static (TestCommandFactory factory, Mock<IEntityStore<string, ModuleState>> store, IRestartPolicyManager restartManager, HealthRestartPlanner planner) CreatePlanner()
         {
-            var factory = new TestCommandFactory();
+            var testFactory = new TestCommandFactory();
+            var commandFactory = new StandardCommandFactory(testFactory);
             var store = new Mock<IEntityStore<string, ModuleState>>();
             var restartManager = new RestartPolicyManager(MaxRestartCount, CoolOffTimeUnitInSeconds);
 
-            var planner = new HealthRestartPlanner(factory, store.Object, IntensiveCareTime, restartManager);
+            var planner = new HealthRestartPlanner(commandFactory, store.Object, IntensiveCareTime, restartManager);
 
-            return (factory, store, restartManager, planner);
+            return (testFactory, store, restartManager, planner);
         }
 
         static IRuntimeModule[] GetRemoveTestData() => new IRuntimeModule[]
