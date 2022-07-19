@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
+namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.CommandFactories
 {
     using System;
     using System.Threading.Tasks;
@@ -16,13 +16,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         readonly ICombinedConfigProvider<T> combinedConfigProvider;
         readonly string edgeDeviceHostname;
         readonly Option<string> parentEdgeHostname;
-        readonly ModuleUpdateMode moduleUpdateMode;
 
         public EdgeletCommandFactory(
             IModuleManager moduleManager,
             IConfigSource configSource,
-            ICombinedConfigProvider<T> combinedConfigProvider,
-            ModuleUpdateMode moduleUpdateMode)
+            ICombinedConfigProvider<T> combinedConfigProvider)
         {
             this.moduleManager = Preconditions.CheckNotNull(moduleManager, nameof(moduleManager));
             this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
@@ -34,7 +32,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             }
 
             this.parentEdgeHostname = Option.Maybe(this.configSource.Configuration.GetValue<string>(Constants.GatewayHostnameVariableName));
-            this.moduleUpdateMode = moduleUpdateMode;
         }
 
         public Task<ICommand> CreateAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
@@ -54,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         public Task<ICommand> PrepareUpdateAsync(IModule module, IRuntimeInfo runtimeInfo)
         {
             T config = this.combinedConfigProvider.GetCombinedConfig(module, runtimeInfo);
-            return Task.FromResult(new PrepareUpdateCommand(this.moduleManager, module, config, this.moduleUpdateMode) as ICommand);
+            return Task.FromResult(new PrepareUpdateCommand(this.moduleManager, module, config) as ICommand);
         }
 
         public Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo) =>

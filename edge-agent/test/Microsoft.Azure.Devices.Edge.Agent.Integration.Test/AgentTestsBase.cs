@@ -17,6 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Test;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using Microsoft.Azure.Devices.Edge.Agent.Edgelet;
+    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.CommandFactories;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -102,14 +104,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
             environmentProvider.Setup(ep => ep.Create(It.IsAny<DeploymentConfig>())).Returns(environment.Object);
 
             var commandFactory = new TestCommandFactory();
-            ICreateUpdateCommandFactory commandMaker;
+            ICommandFactory wrappingCommandFactory;
             if (moduleUpdateMode == ModuleUpdateMode.WaitForAll)
             {
-                commandMaker = new UpfrontImagePullCommandFactory(commandFactory);
+                wrappingCommandFactory = new UpfrontImagePullCommandFactory(commandFactory);
             }
             else
             {
-                commandMaker = new StandardCommandFactory(commandFactory);
+                wrappingCommandFactory = new StandardCommandFactory(commandFactory);
             }
 
             var credential = new ConnectionStringCredentials("fake");
@@ -155,7 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
             var availabilityMetric = Mock.Of<IDeploymentMetrics>();
 
             var store = Mock.Of<IEntityStore<string, ModuleState>>();
-            HealthRestartPlanner restartPlanner = new HealthRestartPlanner(commandFactory, store, TimeSpan.FromSeconds(10), restartManager, commandMaker);
+            HealthRestartPlanner restartPlanner = new HealthRestartPlanner(wrappingCommandFactory, store, TimeSpan.FromSeconds(10), restartManager);
 
             Agent agent = await Agent.Create(
                 configSource.Object,

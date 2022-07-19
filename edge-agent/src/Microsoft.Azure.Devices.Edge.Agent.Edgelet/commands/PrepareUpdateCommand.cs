@@ -13,29 +13,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
     {
         readonly IModuleManager moduleManager;
         readonly ModuleSpec module;
-        readonly ModuleUpdateMode moduleUpdateMode;
 
-        public PrepareUpdateCommand(IModuleManager moduleManager, IModule module, object settings, ModuleUpdateMode moduleUpdateMode)
+        public PrepareUpdateCommand(IModuleManager moduleManager, IModule module, object settings)
         {
             this.moduleManager = moduleManager;
             this.module = BuildModuleSpec(module, settings);
-            this.moduleUpdateMode = moduleUpdateMode;
         }
 
         public string Id => $"PrepareUpdateCommand({this.module.Name})";
 
         public string Show() => $"Prepare module {this.module.Name}";
 
-        public async Task ExecuteAsync(CancellationToken token)
+        public Task ExecuteAsync(CancellationToken token)
         {
-            try
-            {
-                await this.moduleManager.PrepareUpdateAsync(this.module);
-            }
-            catch (Exception e) when (this.moduleUpdateMode == ModuleUpdateMode.WaitForAll)
-            {
-                throw new ExcecutionPrerequisiteException("Failed to execute PrepareUpdate command", e);
-            }
+            return this.moduleManager.PrepareUpdateAsync(this.module);
         }
 
         public Task UndoAsync(CancellationToken token) => TaskEx.Done;

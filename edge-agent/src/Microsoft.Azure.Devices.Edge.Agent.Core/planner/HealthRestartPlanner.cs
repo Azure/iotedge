@@ -41,20 +41,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planner
         readonly IEntityStore<string, ModuleState> store;
         readonly TimeSpan intensiveCareTime;
         readonly IRestartPolicyManager restartManager;
-        readonly ICreateUpdateCommandFactory commandMaker;
 
         public HealthRestartPlanner(
             ICommandFactory commandFactory,
             IEntityStore<string, ModuleState> store,
             TimeSpan intensiveCareTime,
-            IRestartPolicyManager restartManager,
-            ICreateUpdateCommandFactory commandMaker)
+            IRestartPolicyManager restartManager)
         {
             this.commandFactory = Preconditions.CheckNotNull(commandFactory, nameof(commandFactory));
             this.store = Preconditions.CheckNotNull(store, nameof(store));
             this.intensiveCareTime = intensiveCareTime;
             this.restartManager = Preconditions.CheckNotNull(restartManager, nameof(restartManager));
-            this.commandMaker = commandMaker;
         }
 
         public async Task<Plan> CreateShutdownPlanAsync(ModuleSet current)
@@ -149,16 +146,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planner
                 added,
                 moduleIdentities,
                 runtimeInfo,
-                async m => await this.commandMaker.GenerateCreateCommands(m, runtimeInfo));
+                m => this.commandFactory.CreateAsync(m, runtimeInfo));
 
             (IEnumerable<ICommand> upfrontPullCommandsForUpdated, IEnumerable<ICommand> updatedCommands) = await this.ProcessAddedUpdatedModules(
                 updateDeployed,
                 moduleIdentities,
                 runtimeInfo,
-                async m =>
+                m =>
                 {
                     current.TryGetModule(m.Module.Name, out IModule currentModule);
-                    return await this.commandMaker.GenerateUpdateCommands(currentModule, m, runtimeInfo);
+                    return this.commandFactory.UpdateAsync(currentModule, m, runtimeInfo);
                 });
 
             // Get commands to start / stop modules whose desired status has changed.
@@ -277,34 +274,33 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planner
             return restart;
         }
 
-        async Task<(IEnumerable<ICommand> upfrontPullCommands, IEnumerable<ICommand> commands)> ProcessAddedUpdatedModules(
+        async Task<(IEnumerable<ICommand> upfrontPullCommands, IEnumerable<ICommand> otherCommands)> ProcessAddedUpdatedModules(
             IList<IModule> modules,
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities,
             IRuntimeInfo runtimeInfo,
-            Func<IModuleWithIdentity, Task<CreateUpdateCommandEntity>> createUpdateCommandMaker)
+            Func<IModuleWithIdentity, Task<ICommand>> createUpdateCommandMaker)
         {
-            var upfrontPullCommands = new List<Task<ICommand>>();
-            var moduleExecutionCommands = new List<Task<ICommand[]>>();
+            var upfrontPullTasks = new List<Task<ICommand>>();
+            var nonPullGroupTasks = new List<Task<ICommand[]>>();
             foreach (IModule module in modules)
             {
                 if (moduleIdentities.TryGetValue(module.Name, out IModuleIdentity moduleIdentity))
                 {
-                    var tasks = new List<Task<ICommand>>();
+                    var nonPullTasks = new List<Task<ICommand>>();
                     var moduleWithIdentity = new ModuleWithIdentity(module, moduleIdentity);
 
-                    CreateUpdateCommandEntity createUpdateCommandMakerOutput = await createUpdateCommandMaker(moduleWithIdentity);
-                    Option<Task<ICommand>> prepareUpdateCommand = createUpdateCommandMakerOutput.UpfrontImagePullCommand;
-                    Task<ICommand> createOrUpdateCommand = createUpdateCommandMakerOutput.CreateUpdateCommand;
+                    Task<ICommand> prepareForUpdateCommand = this.commandFactory.PrepareUpdateAsync(module, runtimeInfo);
+                    Task<ICommand> createOrUpdateCommand = createUpdateCommandMaker(moduleWithIdentity);
 
-                    prepareUpdateCommand.ForEach(c => upfrontPullCommands.Add(c));
-                    tasks.Add(createOrUpdateCommand);
+                    upfrontPullTasks.Add(prepareForUpdateCommand);
+                    nonPullTasks.Add(createOrUpdateCommand);
 
                     if (module.DesiredStatus == ModuleStatus.Running)
                     {
-                        tasks.Add(this.commandFactory.StartAsync(module));
+                        nonPullTasks.Add(this.commandFactory.StartAsync(module));
                     }
 
-                    moduleExecutionCommands.Add(Task.WhenAll(tasks));
+                    nonPullGroupTasks.Add(Task.WhenAll(nonPullTasks));
                 }
                 else
                 {
@@ -312,11 +308,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planner
                 }
             }
 
+            // Filter out any commands that won't take some action. Necessary
+            // because depending on `ModuleUpdateMode` feature flag, these
+            // pulls may not be separated out and will instead be grouped with
+            //create/update commands. In that case they will be null here.
+            IEnumerable<ICommand> upfrontPullCommands = (await Task.WhenAll(upfrontPullTasks)).Where(t =>
+            {
+                return !(t is NullCommand);
+            });
+
             // build GroupCommands from each command set
-            IEnumerable<Task<ICommand>> groupedModuleExecutionCommands = (await Task.WhenAll(moduleExecutionCommands))
+            IEnumerable<Task<ICommand>> otherCommands = (await Task.WhenAll(nonPullGroupTasks))
                 .Select(cmds => this.commandFactory.WrapAsync(new GroupCommand(cmds)));
 
-            return (await Task.WhenAll(upfrontPullCommands), await Task.WhenAll(groupedModuleExecutionCommands));
+            return (upfrontPullCommands, await Task.WhenAll(otherCommands));
         }
 
         async Task<IEnumerable<ICommand>> ResetStatsForHealthyModulesAsync(IEnumerable<IRuntimeModule> modules)

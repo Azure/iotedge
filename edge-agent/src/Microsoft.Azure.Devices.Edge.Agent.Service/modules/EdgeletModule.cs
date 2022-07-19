@@ -12,9 +12,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.DeviceManager;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Planner;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet;
+    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.CommandFactories;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient;
@@ -138,8 +140,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         ICommandFactory factory = new EdgeletCommandFactory<CombinedDockerConfig>(
                             moduleManager,
                             configSource,
-                            combinedDockerConfigProvider,
-                            this.moduleUpdateMode);
+                            combinedDockerConfigProvider);
+
+                        if (this.moduleUpdateMode == ModuleUpdateMode.NonBlocking)
+                        {
+                            factory = new StandardCommandFactory(factory);
+                        }
+                        else
+                        {
+                            factory = new UpfrontImagePullCommandFactory(factory);
+                        }
+
                         factory = new MetricsCommandFactory(factory, metricsProvider);
                         return new LoggingCommandFactory(factory, loggerFactory) as ICommandFactory;
                     })
