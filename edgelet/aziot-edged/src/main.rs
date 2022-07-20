@@ -4,6 +4,7 @@
 #![warn(clippy::all, clippy::pedantic)]
 
 mod error;
+mod image_gc;
 mod management;
 mod provision;
 mod watchdog;
