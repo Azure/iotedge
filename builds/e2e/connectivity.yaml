@@ -43,7 +43,7 @@ jobs:
 ################################################################################
     displayName: Linux AMD64 Moby
     condition: and(eq(variables['run.linux.amd64.moby'], 'true'), ne(variables['agent.group'], ''))
-    timeoutInMinutes: 180
+    timeoutInMinutes: 240
     strategy:
       matrix:
         Online:
@@ -236,7 +236,7 @@ jobs:
 ################################################################################
     displayName: Linux ARM32v7 Moby
     condition: and(eq(variables['run.linux.arm32v7.moby'], 'true'), ne(variables['agent.group'], ''))
-    timeoutInMinutes: 180
+    timeoutInMinutes: 240 
     strategy:
       matrix:
         Online:
