@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
             ModuleUpdateMode moduleUpdateMode = moduleUpdateModeStr.Match(
                 m =>
                 {
-                    if (m.Value == "WaitForAll")
+                    if (m.Value == "WaitForAllPulls")
                     {
                         return ModuleUpdateMode.WaitForAllPulls;
                     }
