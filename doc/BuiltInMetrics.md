@@ -53,7 +53,8 @@ instance_number | A Guid representing the current runtime. On restart, all metri
 | `edgeAgent_total_time_expected_running_seconds` | `module_name` | The amount of time the module was specified in the deployment | Gauge |
 | `edgeAgent_module_start_total` | `module_name`, `module_version` | Number of times edgeAgent asked docker to start the module.  | Counter |
 | `edgeAgent_module_stop_total` | `module_name`, `module_version` | Number of times edgeAgent asked docker to stop the module. | Counter |
-| `edgeAgent_command_latency_seconds` | `command` | How long it took docker to execute the given command. Possible commands are: create, update,  remove, start, stop, restart | Gauge |
+| `edgeAgent_module_prepare_update_total` | `module_name`, `module_version` | Number of times edgeAgent asked docker to pull an image for the module. | Counter |
+| `edgeAgent_command_latency_seconds` | `command` | How long it took docker to execute the given command. Possible commands are: create, prepareUpdate, update,  remove, start, stop, restart | Gauge |
 | `edgeAgent_iothub_syncs_total` |  | The amount of times edgeAgent attempted to sync its twin with iotHub, both successful and unsuccessful. This incudes both agent requesting a twin and hub notifying of a twin update | Counter |
 | `edgeAgent_unsuccessful_iothub_syncs_total` |  | The amount of times edgeAgent failed to sync its twin with iotHub. | Counter |
 | `edgeAgent_deployment_time_seconds` |  | The amount of time it took to complete a new deployment after receiving a change. | Counter |

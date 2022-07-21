@@ -43,8 +43,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string EdgeModuleHubServerCertificateFileKey = "EdgeModuleHubServerCertificateFile";
 
-        public const string CheckImagePullBeforeModuleCreate = "CheckImagePullBeforeModuleCreate";
-
         public const string Unknown = "Unknown";
 
         public const string UpstreamProtocolKey = "UpstreamProtocol";
