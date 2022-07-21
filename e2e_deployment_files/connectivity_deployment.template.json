@@ -361,6 +361,9 @@
               "testDuration": {
                 "value": "<TestDuration>"
               },
+              "verificationDelay": {
+                "value": "<TestResultCoordinator.VerificationDelay>"
+              },
               "eventHubConnectionString": {
                 "value": "<TestResultCoordinator.EventHubConnectionString>"
               },
