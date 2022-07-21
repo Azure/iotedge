@@ -217,7 +217,6 @@ jobs:
           logAnalyticsWorkspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalyticsSharedKey: '$(kvLogAnalyticSharedKey)'
           testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'
-          testResultCoordinator.verificationDelay: '$(testResultCoordinator.verificationDelay)'
           testResultCoordinator.storageAccountConnectionString: '$(EdgeConnectivityStorageAccountConnString)'
           metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
