@@ -678,10 +678,12 @@ function run_connectivity_test() {
                                     $(echo $TEST_START_DELAY | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }') + \
                                     $(echo $TEST_DURATION | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }') + \
                                     $(echo $VERIFICATION_DELAY | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }') + \
-                                    $(echo $TIME_FOR_REPORT_GENERATION | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }')))
+                                    $(echo $TIME_FOR_REPORT_GENERATION | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }'))) \
+                                    $(echo $CHECK_TRC_DELAY | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }')))
     echo "test start delay=$TEST_START_DELAY"
     echo "test duration=$TEST_DURATION"
     echo "verification delay=$VERIFICATION_DELAY"
+    echo "check trc delay=$CHECK_TRC_DELAY"
     echo "time for report generation=$TIME_FOR_REPORT_GENERATION"
     echo "time for test to complete in seconds=$time_for_test_to_complete"
 
@@ -870,9 +872,10 @@ function configure_connectivity_settings() {
     NETWORK_CONTROLLER_RUNPROFILE=${NETWORK_CONTROLLER_RUNPROFILE:-Offline}
     TEST_DURATION="${TEST_DURATION:-01:00:00}"
 
+    VERIFICATION_DELAY="${VERIFICATION_DELAY:-00:15:00}"
+
     # Needs to be high due to 1ES conncectivity issues.
-    # If this is ever resolved, can be bumped back to 15 mins.
-    VERIFICATION_DELAY="${VERIFICATION_DELAY:-00:45:00}"
+    CHECK_TRC_DELAY="${TEST_START_DELAY:-00:30:00}"
 
     TEST_INFO="$TEST_INFO,TestDuration=${TEST_DURATION}"
 }
