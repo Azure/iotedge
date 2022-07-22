@@ -1,9 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunner
+namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
 {
     using System;
     using System.Collections.Generic;
-    using System.Collections.Immutable;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -71,18 +70,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunner
                 foreach (ICommand command in plan.Commands)
                 {
                     (bool shouldRun, int runCount, TimeSpan coolOffPeriod, TimeSpan elapsedTime) = this.ShouldRunCommand(command);
-                    if (this.ShouldSkipRemaining(shouldRun, command))
-                    {
-                        Events.SkipRemainingCommands(deploymentId, command);
-                        break;
-                    }
-
                     try
                     {
                         if (token.IsCancellationRequested)
                         {
                             Events.PlanExecCancelled(deploymentId);
-                            skippedModules = true;
                             break;
                         }
 
@@ -116,12 +108,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunner
                         // since this command failed, record its status
                         int newRunCount = this.commandRunStatus.ContainsKey(command.Id) ? this.commandRunStatus[command.Id].RunCount : 0;
                         this.commandRunStatus[command.Id] = new CommandRunStats(newRunCount + 1, this.systemTime.UtcNow, ex);
-
-                        if (ex is ExcecutionPrerequisiteException)
-                        {
-                            Events.StopProcessingCommands(deploymentId, command);
-                            break;
-                        }
                     }
                 }
 
@@ -129,21 +115,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunner
                 failures.ForEach(f => throw new AggregateException(f));
                 return !skippedModules;
             }
-        }
-
-        bool ShouldSkipRemaining(bool shouldRun, ICommand command)
-        {
-            bool didCommandFailWithPrereqException = this.commandRunStatus.ContainsKey(command.Id) && this.commandRunStatus[command.Id].Exception.Match(
-            e =>
-            {
-                return e is ExcecutionPrerequisiteException;
-            },
-            () =>
-            {
-                return false;
-            });
-
-            return !shouldRun && didCommandFailWithPrereqException;
         }
 
         (bool shouldRun, int runCount, TimeSpan coolOffPeriod, TimeSpan elapsedTime) ShouldRunCommand(ICommand command)
@@ -248,20 +219,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunner
             public static void PlanExecEnded(long deploymentId)
             {
                 Log.LogInformation((int)EventIds.PlanExecEnded, $"Plan execution ended for deployment {deploymentId}");
-            }
-
-            public static void StopProcessingCommands(long deploymentId, ICommand command)
-            {
-                Log.LogError(
-                    (int)EventIds.PlanExecStepFailed,
-                    $"Step failed in deployment {deploymentId}. Failure when running command {command.Show()}. Skipping remaining commands in deployment.");
-            }
-
-            public static void SkipRemainingCommands(long deploymentId, ICommand command)
-            {
-                Log.LogError(
-                    (int)EventIds.PlanExecStepFailed,
-                    $"Step previously failed in deployment {deploymentId} on prior attempt. Not running command {command.Show()}. Skipping remaining commands in deployment.");
             }
         }
     }

@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
     public enum TestCommandType
     {
         TestCreate,
-        TestPrepareUpdate,
         TestUpdate,
         TestRemove,
         TestStart,

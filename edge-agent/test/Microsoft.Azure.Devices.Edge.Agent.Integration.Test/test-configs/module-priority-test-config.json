@@ -7,7 +7,8 @@
         "settings": {
           "minDockerVersion": "v1.25",
           "loggingOptions": "",
-          "registryCredentials": {}
+          "registryCredentials": {
+          }
         }
       },
       "systemModules": {
@@ -17,7 +18,8 @@
             "image": "mcr.microsoft.com/azureiotedge-agent:1.0",
             "createOptions": "{}"
           },
-          "env": {}
+          "env": {
+          }
         },
         "edgeHub": {
           "type": "docker",
@@ -25,7 +27,8 @@
             "image": "mcr.microsoft.com/azureiotedge-hub:1.0",
             "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}],\"443/tcp\":[{\"HostPort\":\"443\"}],\"5671/tcp\":[{\"HostPort\":\"5671\"}]},\"StopTimeout\":60}}"
           },
-          "env": {},
+          "env": {
+          },
           "status": "running",
           "restartPolicy": "always"
         }
@@ -75,47 +78,35 @@
       "$type": "ModulePriorityValidator",
       "moduleCommands": [
         {
-          "command": "TestPrepareUpdate",
+          "command": "create",
           "moduleName": "edgeAgent"
         },
         {
-          "command": "TestCreate",
+          "command": "start",
           "moduleName": "edgeAgent"
         },
         {
-          "command": "TestStart",
-          "moduleName": "edgeAgent"
-        },
-        {
-          "command": "TestStop",
+          "command": "stop",
           "moduleName": "tempSensor1"
         },
         {
-          "command": "TestRemove",
+          "command": "remove",
           "moduleName": "tempSensor1"
         },
         {
-          "command": "TestPrepareUpdate",
+          "command": "update",
           "moduleName": "tempSensor"
         },
         {
-          "command": "TestUpdate",
+          "command": "start",
           "moduleName": "tempSensor"
         },
         {
-          "command": "TestStart",
-          "moduleName": "tempSensor"
-        },
-        {
-          "command": "TestPrepareUpdate",
+          "command": "create",
           "moduleName": "edgeHub"
         },
         {
-          "command": "TestCreate",
-          "moduleName": "edgeHub"
-        },
-        {
-          "command": "TestStart",
+          "command": "start",
           "moduleName": "edgeHub"
         }
       ]
@@ -129,7 +120,8 @@
         "settings": {
           "minDockerVersion": "v1.25",
           "loggingOptions": "",
-          "registryCredentials": {}
+          "registryCredentials": {
+          }
         }
       },
       "systemModules": {
@@ -140,7 +132,8 @@
             "createOptions": "{}"
           },
           "startupOrder": 2,
-          "env": {}
+          "env": {
+          }
         },
         "edgeHub": {
           "type": "docker",
@@ -148,7 +141,8 @@
             "image": "mcr.microsoft.com/azureiotedge-hub:1.0",
             "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}],\"443/tcp\":[{\"HostPort\":\"443\"}],\"5671/tcp\":[{\"HostPort\":\"5671\"}]},\"StopTimeout\":60}}"
           },
-          "env": {},
+          "env": {
+          },
           "startupOrder": 0,
           "status": "running",
           "restartPolicy": "always"
@@ -220,178 +214,40 @@
       "$type": "ModulePriorityValidator",
       "moduleCommands": [
         {
-          "command": "TestUpdateEdgeAgent",
+          "command": "update",
           "moduleName": "edgeAgent"
         },
         {
-          "command": "TestPrepareUpdate",
+          "command": "create",
           "moduleName": "edgeHub"
         },
         {
-          "command": "TestCreate",
+          "command": "start",
           "moduleName": "edgeHub"
         },
         {
-          "command": "TestStart",
-          "moduleName": "edgeHub"
-        },
-        {
-          "command": "TestPrepareUpdate",
+          "command": "update",
           "moduleName": "tempSensor"
         },
         {
-          "command": "TestUpdate",
+          "command": "start",
           "moduleName": "tempSensor"
         },
         {
-          "command": "TestStart",
-          "moduleName": "tempSensor"
-        },
-        {
-          "command": "TestStop",
+          "command": "stop",
           "moduleName": "tempSensor1"
         },
         {
-          "command": "TestRemove",
+          "command": "remove",
           "moduleName": "tempSensor1"
         },
         {
-          "command": "TestPrepareUpdate",
+          "command": "create",
           "moduleName": "tempSensor2"
         },
         {
-          "command": "TestCreate",
+          "command": "start",
           "moduleName": "tempSensor2"
-        },
-        {
-          "command": "TestStart",
-          "moduleName": "tempSensor2"
-        }
-      ]
-    }
-  },
-  {
-    "deploymentConfig": {
-      "schemaVersion": "1.0",
-      "runtime": {
-        "type": "docker",
-        "settings": {
-          "minDockerVersion": "v1.25",
-          "loggingOptions": "",
-          "registryCredentials": {}
-        }
-      },
-      "systemModules": {
-        "edgeAgent": {
-          "type": "docker",
-          "settings": {
-            "image": "mcr.microsoft.com/azureiotedge-agent:1.0",
-            "createOptions": "{}"
-          },
-          "env": {
-            "ModuleUpdateMode": {
-              "value": "WaitForAllPulls"
-            }
-          }
-        },
-        "edgeHub": {
-          "type": "docker",
-          "settings": {
-            "image": "mcr.microsoft.com/azureiotedge-hub:1.0",
-            "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}],\"443/tcp\":[{\"HostPort\":\"443\"}],\"5671/tcp\":[{\"HostPort\":\"5671\"}]},\"StopTimeout\":60}}"
-          },
-          "env": {},
-          "status": "running",
-          "restartPolicy": "always"
-        }
-      },
-      "modules": {
-        "tempSensor": {
-          "type": "docker",
-          "settings": {
-            "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-simulated-temperature-sensor:20191106.7-linux-amd64",
-            "createOptions": ""
-          },
-          "startupOrder": 2,
-          "status": "running",
-          "restartPolicy": "always"
-        }
-      }
-    },
-    "runtimeInfo": {
-      "modules": {
-        "tempSensor": {
-          "exitCode": 0,
-          "runtimeStatus": "running",
-          "status": "running",
-          "restartPolicy": "always",
-          "startupOrder": 2,
-          "type": "docker",
-          "settings": {
-            "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-simulated-temperature-sensor:20191106.8-linux-amd64",
-            "createOptions": "{}"
-          }
-        },
-        "tempSensor1": {
-          "exitCode": 0,
-          "runtimeStatus": "running",
-          "status": "running",
-          "restartPolicy": "always",
-          "startupOrder": 1,
-          "type": "docker",
-          "settings": {
-            "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-simulated-temperature-sensor:20191106.8-linux-amd64",
-            "createOptions": "{}"
-          }
-        }
-      }
-    },
-    "validator": {
-      "$type": "ModulePriorityValidator",
-      "moduleCommands": [
-        {
-          "command": "TestPrepareUpdate",
-          "moduleName": "edgeAgent"
-        },
-        {
-          "command": "TestPrepareUpdate",
-          "moduleName": "tempSensor"
-        },
-        {
-          "command": "TestPrepareUpdate",
-          "moduleName": "edgeHub"
-        },
-        {
-          "command": "TestCreate",
-          "moduleName": "edgeAgent"
-        },
-        {
-          "command": "TestStart",
-          "moduleName": "edgeAgent"
-        },
-        {
-          "command": "TestStop",
-          "moduleName": "tempSensor1"
-        },
-        {
-          "command": "TestRemove",
-          "moduleName": "tempSensor1"
-        },
-        {
-          "command": "TestUpdate",
-          "moduleName": "tempSensor"
-        },
-        {
-          "command": "TestStart",
-          "moduleName": "tempSensor"
-        },
-        {
-          "command": "TestCreate",
-          "moduleName": "edgeHub"
-        },
-        {
-          "command": "TestStart",
-          "moduleName": "edgeHub"
         }
       ]
     }

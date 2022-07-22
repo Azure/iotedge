@@ -27,39 +27,23 @@ impl MIGCPersistence {
         }
     }
 
-    pub fn record_image_use_timestamp(&self, _name_or_id: &str) {
+    pub fn write_image_to_file(&self, id: &str) {
         // from ID, derive image hash (might entail calling ModuleRuntime::list_with_details()) if hash is not readily available
 
-        let guard = self.inner.lock().unwrap();
-
-        // read MIGC persistence file into in-mem map
-        // this map now contains all images deployed to the device (through an IoT Edge deployment)
-        let mut image_map = get_images_with_timestamp(guard.filename.clone())
-            .map_err(|e| e)
-            .unwrap();
-
-        let current_time = std::time::SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap();
-
-        // TODO: add hash here
-        image_map.insert("".to_string(), current_time);
-
-        // write entries back to file
-        write_images_with_timestamp(&image_map, guard.filename.clone())
-            .map_err(|e| e)
-            .unwrap();
-
-        drop(guard);
+        // get lock
+        // read file contents into memory
+        // find the image hash (as key) and update the timestamp (as value)
+        // write it to the file
+        // release lock
     }
 
-    pub async fn prune_images_from_system(
+    pub async fn prune_images_from_file(
         &self,
         running_modules: std::vec::Vec<(
             DockerModule<http_common::Connector>,
             edgelet_core::ModuleRuntimeState,
         )>,
-    ) -> Result<HashMap<String, Duration>, Error> {
+    ) -> HashMap<String, Duration> {
         let guard = self.inner.lock().unwrap();
 
         // read MIGC persistence file into in-mem map
@@ -85,7 +69,7 @@ impl MIGCPersistence {
         drop(guard);
 
         // these are the images we need to prune; MIGC file has already been updated
-        Ok(images_to_delete)
+        images_to_delete
     }
 }
 
@@ -118,6 +102,7 @@ fn write_images_with_timestamp(
     filename: String,
 ) -> Result<(), Error> {
     // instead of deleting existing entries from file, we just recreate it
+    // TODO: handle synchronization
     let mut file = std::fs::File::create(filename).unwrap();
 
     for (key, value) in state_to_persist {

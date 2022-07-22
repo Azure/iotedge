@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunner;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;

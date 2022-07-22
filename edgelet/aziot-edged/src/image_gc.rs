@@ -1,9 +1,16 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use edgelet_core::{ModuleRegistry, ModuleRuntime};
+use edgelet_core::{Module, ModuleRegistry, ModuleRuntime};
 use edgelet_docker::MIGCPersistence;
+use std::collections::HashMap;
+use std::fs;
+use std::io::Write;
+use std::time::{Duration, UNIX_EPOCH};
 
 use crate::error::Error as EdgedError;
+
+// TODO: fix file name with correct path
+const FILE_NAME: &str = "abc.txt";
 
 pub(crate) async fn run_until_shutdown(
     settings: edgelet_settings::docker::Settings,
@@ -16,7 +23,7 @@ pub(crate) async fn run_until_shutdown(
     let mut gc_timer = tokio::time::interval(gc_period);
     gc_timer.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
 
-    log::info!("Creating Image garbage Collection task");
+    log::info!("Starting MIGC...");
 
     loop {
         if let Err(err) = garbage_collector(&settings, runtime, migc_persistence.clone()).await {
@@ -30,7 +37,7 @@ async fn garbage_collector(
     runtime: &edgelet_docker::DockerModuleRuntime<http_common::Connector>,
     migc_persistence: MIGCPersistence,
 ) -> Result<(), EdgedError> {
-    log::info!("Image Garbage Collection starting daily run");
+    log::info!("Module Image Garbage Collection starting daily run");
 
     // track images associated with extant containers
 
@@ -38,9 +45,8 @@ async fn garbage_collector(
     let running_modules = ModuleRuntime::list_with_details(runtime).await.unwrap();
 
     let image_map = migc_persistence
-        .prune_images_from_system(running_modules)
-        .await
-        .unwrap();
+        .prune_images_from_file(running_modules)
+        .await;
 
     // delete images
     for key in image_map.keys() {

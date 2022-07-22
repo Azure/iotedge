@@ -134,7 +134,7 @@ async fn run() -> Result<(), EdgedError> {
     let settings = settings.agent_upstream_resolve(&device_info.gateway_host);
 
     // Start management and workload sockets.
-    let migc_persistence = MIGCPersistence::new("".to_string());
+    let migc_persistence = MIGCPersistence::new();
     let management_shutdown = management::start(
         &settings,
         runtime.clone(),

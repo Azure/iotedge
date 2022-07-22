@@ -29,15 +29,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             }
         }
 
-        public async Task<ICommand> PrepareUpdateAsync(IModule module, IRuntimeInfo runtimeInfo)
-        {
-            this.factoryMetrics.AddMessage(module, FactoryMetrics.ModuleCommandMetric.PrepareUpdate);
-            using (this.factoryMetrics.MeasureTime("prepareUpdate"))
-            {
-                return await this.underlying.PrepareUpdateAsync(module, runtimeInfo);
-            }
-        }
-
         public async Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo)
         {
             this.factoryMetrics.AddMessage(current, FactoryMetrics.ModuleCommandMetric.Start);
@@ -114,8 +105,7 @@ public class FactoryMetrics
     public enum ModuleCommandMetric
     {
         Start,
-        Stop,
-        PrepareUpdate
+        Stop
     }
 
     readonly Dictionary<ModuleCommandMetric, IMetricsCounter> commandCounters;
@@ -126,11 +116,6 @@ public class FactoryMetrics
         this.commandCounters = Enum.GetValues(typeof(ModuleCommandMetric)).Cast<ModuleCommandMetric>().ToDictionary(c => c, command =>
         {
             string commandName = Enum.GetName(typeof(ModuleCommandMetric), command).ToLower();
-            if (commandName == ModuleCommandMetric.PrepareUpdate.ToString().ToLower())
-            {
-                commandName = "prepare_update";
-            }
-
             return metricsProvider.CreateCounter(
                 $"module_{commandName}",
                 "Command sent to module",

@@ -7,9 +7,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.Planner;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunner;
-    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.CommandFactories;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Planners;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -69,7 +68,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             ModuleSet addRunning = ModuleSet.Create(addModule);
             var addExecutionList = new List<TestRecordType>
             {
-                new TestRecordType(TestCommandType.TestPrepareUpdate, addModule),
                 new TestRecordType(TestCommandType.TestCreate, addModule),
                 new TestRecordType(TestCommandType.TestStart, addModule),
             };
@@ -91,7 +89,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             ModuleSet addRunning = ModuleSet.Create(addModule);
             var addExecutionList = new List<TestRecordType>
             {
-                new TestRecordType(TestCommandType.TestPrepareUpdate, addModule),
                 new TestRecordType(TestCommandType.TestCreate, addModule)
             };
             Plan addPlan = await planner.PlanAsync(addRunning, ModuleSet.Empty, RuntimeInfo, moduleIdentities);
@@ -128,7 +125,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
 
             var updateExecutionList = new List<TestRecordType>
             {
-                new TestRecordType(TestCommandType.TestPrepareUpdate, desiredModule),
                 new TestRecordType(TestCommandType.TestUpdate, desiredModule),
                 new TestRecordType(TestCommandType.TestStart, desiredModule),
             };
@@ -224,7 +220,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             IEnumerable<TestRecordType> expectedExecutionList = data.SelectMany(
                 d => new[]
                 {
-                    new TestRecordType(TestCommandType.TestPrepareUpdate, d.UpdatedModule),
                     new TestRecordType(TestCommandType.TestUpdate, d.UpdatedModule),
                     new TestRecordType(TestCommandType.TestStart, d.UpdatedModule)
                 });
@@ -239,7 +234,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 r =>
                 {
                     Assert.Empty(expectedExecutionList.Except(r.ExecutionList));
-                    Assert.Equal(data.Length * 3, r.WrappedCommmandList.Count);
+                    Assert.Equal(data.Length * 2, r.WrappedCommmandList.Count);
                 });
         }
 
@@ -542,7 +537,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         public async Task CreateShutdownPlanTest()
         {
             // Arrange
-            (TestCommandFactory factory, Mock<IEntityStore<string, ModuleState>> store, _, HealthRestartPlanner planner) = CreatePlanner();
+            (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
 
             IModule module1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVars);
             IModule edgeAgentModule = new TestModule(Constants.EdgeAgentModuleName, "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVars);
@@ -569,14 +564,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
 
         static (TestCommandFactory factory, Mock<IEntityStore<string, ModuleState>> store, IRestartPolicyManager restartManager, HealthRestartPlanner planner) CreatePlanner()
         {
-            var testFactory = new TestCommandFactory();
-            var commandFactory = new StandardCommandFactory(testFactory);
+            var factory = new TestCommandFactory();
             var store = new Mock<IEntityStore<string, ModuleState>>();
             var restartManager = new RestartPolicyManager(MaxRestartCount, CoolOffTimeUnitInSeconds);
+            var planner = new HealthRestartPlanner(factory, store.Object, IntensiveCareTime, restartManager);
 
-            var planner = new HealthRestartPlanner(commandFactory, store.Object, IntensiveCareTime, restartManager);
-
-            return (testFactory, store, restartManager, planner);
+            return (factory, store, restartManager, planner);
         }
 
         static IRuntimeModule[] GetRemoveTestData() => new IRuntimeModule[]
