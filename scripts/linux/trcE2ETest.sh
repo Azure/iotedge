@@ -672,13 +672,13 @@ function run_connectivity_test() {
 
     print_highlighted_message "Deploy connectivity test succeeded."
 
-    # Delay for (buffer for module download + test start delay + test duration + verification delay + report generation)
+    # Delay for (buffer for module download + test start delay + test duration + verification delay + report generation + buffer time to check TRC report)
     local module_download_buffer=300
     local time_for_test_to_complete=$((module_download_buffer + \
                                     $(echo $TEST_START_DELAY | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }') + \
                                     $(echo $TEST_DURATION | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }') + \
                                     $(echo $VERIFICATION_DELAY | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }') + \
-                                    $(echo $TIME_FOR_REPORT_GENERATION | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }'))) \
+                                    $(echo $TIME_FOR_REPORT_GENERATION | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }') \
                                     $(echo $CHECK_TRC_DELAY | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }')))
     echo "test start delay=$TEST_START_DELAY"
     echo "test duration=$TEST_DURATION"
@@ -875,6 +875,13 @@ function configure_connectivity_settings() {
     VERIFICATION_DELAY="${VERIFICATION_DELAY:-00:15:00}"
 
     # Needs to be high due to 1ES conncectivity issues.
+    # This delay is used by the script to determine how
+    # long after test start to check the TRC report. This
+    # was added to avoid problem scenario where bootstrap
+    # EdgeAgent comes up, test starts, 1ES loses connectivity
+    # then test is started much later than expected. In this
+    # case, we need to wait more than we otherwise would to
+    # check TRC report.
     CHECK_TRC_DELAY="${TEST_START_DELAY:-00:30:00}"
 
     TEST_INFO="$TEST_INFO,TestDuration=${TEST_DURATION}"
