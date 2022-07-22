@@ -24,6 +24,7 @@ edgelet-docker = { path = "../edgelet-docker" }
 edgelet-http = { path = "../edgelet-http" }
 edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
 edgelet-http-workload = { path = "../edgelet-http-workload" }
+edgelet-utils = { path = "../edgelet-utils" }
 edgelet-settings = { path = "../edgelet-settings", features = ["settings-docker"] }
 
 aziot-identity-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }

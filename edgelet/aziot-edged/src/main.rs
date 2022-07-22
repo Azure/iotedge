@@ -13,6 +13,7 @@ mod workload_manager;
 use std::sync::atomic;
 
 use edgelet_core::{module::ModuleAction, MakeModuleRuntime, ModuleRuntime};
+use edgelet_docker::MIGCPersistence;
 use edgelet_settings::RuntimeSettings;
 
 use crate::{error::Error as EdgedError, workload_manager::WorkloadManager};
@@ -133,11 +134,13 @@ async fn run() -> Result<(), EdgedError> {
     let settings = settings.agent_upstream_resolve(&device_info.gateway_host);
 
     // Start management and workload sockets.
+    let migc_persistence = MIGCPersistence::new("".to_string());
     let management_shutdown = management::start(
         &settings,
         runtime.clone(),
         watchdog_tx.clone(),
         tasks.clone(),
+        migc_persistence,
     )
     .await?;
 

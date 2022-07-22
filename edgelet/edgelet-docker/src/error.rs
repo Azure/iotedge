@@ -24,4 +24,7 @@ pub enum Error {
 
     #[error("runtime operation error: {0}")]
     RuntimeOperation(RuntimeOperation),
+
+    #[error("")]
+    Dummy(),
 }

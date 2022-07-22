@@ -1,11 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use edgelet_docker::MIGCPersistence;
+
 pub(crate) struct Route<M>
 where
     M: edgelet_core::ModuleRuntime + Send + Sync,
 {
     runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
     pid: libc::pid_t,
+    migc_persistence: MIGCPersistence,
 }
 
 const PATH: &str = "/modules";
@@ -43,6 +46,7 @@ where
         Some(Route {
             runtime: service.runtime.clone(),
             pid,
+            migc_persistence: service.migc_persistence.clone(),
         })
     }
 

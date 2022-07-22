@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use edgelet_docker::MIGCPersistence;
 use edgelet_settings::uri::Listen;
 
 use crate::error::Error as EdgedError;
@@ -11,6 +12,7 @@ pub(crate) async fn start<M>(
     runtime: M,
     sender: tokio::sync::mpsc::UnboundedSender<edgelet_core::WatchdogAction>,
     tasks: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+    migc_persistence: MIGCPersistence,
 ) -> Result<tokio::sync::oneshot::Sender<()>, EdgedError>
 where
     M: edgelet_core::ModuleRuntime + Clone + Send + Sync + 'static,
@@ -25,6 +27,7 @@ where
         settings.endpoints().aziot_identityd_url(),
         runtime,
         sender,
+        migc_persistence,
     )
     .map_err(|err| EdgedError::from_err("Invalid Identity Service URL", err))?;
 
