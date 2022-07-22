@@ -7,11 +7,9 @@ use std::time::Duration;
 use anyhow::Context;
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
-use tokio::sync::mpsc::UnboundedSender;
 
 use aziotctl_common::host_info::{DmiInfo, OsInfo};
 use edgelet_settings::module::Settings as ModuleSpec;
-use edgelet_settings::RuntimeSettings;
 
 use crate::error::Error;
 
@@ -440,18 +438,6 @@ impl DiskInfo {
 pub trait ProvisioningResult {
     fn device_id(&self) -> &str;
     fn hub_name(&self) -> &str;
-}
-
-#[async_trait::async_trait]
-pub trait MakeModuleRuntime {
-    type Config: Clone + Send;
-    type Settings: RuntimeSettings<ModuleConfig = Self::Config>;
-    type ModuleRuntime: ModuleRuntime<Config = Self::Config>;
-
-    async fn make_runtime(
-        settings: &Self::Settings,
-        create_socket_channel: UnboundedSender<ModuleAction>,
-    ) -> anyhow::Result<Self::ModuleRuntime>;
 }
 
 #[async_trait::async_trait]

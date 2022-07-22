@@ -14,9 +14,8 @@ use url::Url;
 use docker::apis::{Configuration, DockerApi, DockerApiClient};
 use docker::models::{ContainerCreateBody, HostConfig, InlineResponse2001, Ipam, NetworkConfig};
 use edgelet_core::{
-    DiskInfo, LogOptions, MakeModuleRuntime, Module, ModuleAction, ModuleRegistry, ModuleRuntime,
-    ModuleRuntimeState, RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo,
-    SystemResources, UrlExt,
+    DiskInfo, LogOptions, Module, ModuleAction, ModuleRegistry, ModuleRuntime, ModuleRuntimeState,
+    RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
 };
 use edgelet_settings::{
     DockerConfig, Ipam as CoreIpam, MobyNetwork, ModuleSpec, RuntimeSettings, Settings,
@@ -33,6 +32,18 @@ const OWNER_LABEL_KEY: &str = "net.azure-devices.edge.owner";
 const OWNER_LABEL_VALUE: &str = "Microsoft.Azure.Devices.Edge.Agent";
 const ORIGINAL_IMAGE_LABEL_KEY: &str = "net.azure-devices.edge.original-image";
 const LABELS: &[&str] = &["net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent"];
+
+#[async_trait::async_trait]
+pub trait MakeModuleRuntime {
+    type Config: Clone + Send;
+    type Settings: RuntimeSettings<ModuleConfig = Self::Config>;
+    type ModuleRuntime: ModuleRuntime<Config = Self::Config>;
+
+    async fn make_runtime(
+        settings: &Self::Settings,
+        create_socket_channel: UnboundedSender<ModuleAction>,
+    ) -> anyhow::Result<Self::ModuleRuntime>;
+}
 
 #[derive(Clone)]
 pub struct DockerModuleRuntime<C> {
