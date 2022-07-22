@@ -84,6 +84,7 @@ async fn run() -> Result<(), EdgedError> {
     let (create_socket_channel_snd, create_socket_channel_rcv) =
         tokio::sync::mpsc::unbounded_channel::<ModuleAction>();
 
+    let migc_persistence = MIGCPersistence::new("".to_string());
     let runtime = edgelet_docker::DockerModuleRuntime::make_runtime(
         &settings,
         create_socket_channel_snd.clone(),
@@ -134,13 +135,11 @@ async fn run() -> Result<(), EdgedError> {
     let settings = settings.agent_upstream_resolve(&device_info.gateway_host);
 
     // Start management and workload sockets.
-    let migc_persistence = MIGCPersistence::new();
     let management_shutdown = management::start(
         &settings,
         runtime.clone(),
         watchdog_tx.clone(),
         tasks.clone(),
-        migc_persistence,
     )
     .await?;
 

@@ -20,7 +20,6 @@ where
     identity: std::sync::Arc<futures_util::lock::Mutex<IdentityClient>>,
     runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
     reprovision: tokio::sync::mpsc::UnboundedSender<edgelet_core::WatchdogAction>,
-    migc_persistence: MIGCPersistence,
 }
 
 impl<M> Service<M>
@@ -32,7 +31,6 @@ where
         identity_socket: &url::Url,
         runtime: M,
         reprovision: tokio::sync::mpsc::UnboundedSender<edgelet_core::WatchdogAction>,
-        migc_persistence: MIGCPersistence,
     ) -> Result<Self, http_common::ConnectorError> {
         let connector = http_common::Connector::new(identity_socket)?;
 
@@ -49,7 +47,6 @@ where
             identity,
             runtime,
             reprovision,
-            migc_persistence,
         })
     }
 
