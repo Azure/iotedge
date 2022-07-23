@@ -27,7 +27,7 @@ impl MIGCPersistence {
         }
     }
 
-    pub fn record_image_use_timestamp(&self, name_or_id: &str) {
+    pub fn record_image_use_timestamp(&self, name_or_id: &str, is_image_id: bool) {
 
         let guard = self.inner.lock().unwrap();
 
@@ -47,7 +47,7 @@ impl MIGCPersistence {
         // If not, it's the image name, and we now need to determine the corresponding
         // hash by looking it up by a call to the Docker Engine API.
 
-        if image_map.contains_key(name_or_id) {
+        if is_image_id || image_map.contains_key(name_or_id) {
             image_map.insert(name_or_id.to_string(), current_time);
         } else {
             drop(guard);
@@ -65,7 +65,10 @@ impl MIGCPersistence {
             // TODO: let result = ModuleRuntime::list_images(&self);
             let result: HashMap<String, String> = HashMap::new();
             let image_id = result.get(name_or_id).unwrap();
-            return self.record_image_use_timestamp(image_id);
+
+            // we have found the image id, but a recursive call will be an infinite loop
+            // without the is_image_id flag set to true
+            return self.record_image_use_timestamp(image_id, true);
         }
 
         // write entries back to file
