@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::time::UNIX_EPOCH;
 use std::{collections::HashMap, fs, time::Duration};
 
-use edgelet_core::Module;
+use edgelet_core::{Module};
 
 use crate::{DockerModule, Error};
 
@@ -27,14 +27,53 @@ impl MIGCPersistence {
         }
     }
 
-    pub fn write_image_to_file(&self, id: &str) {
-        // from ID, derive image hash (might entail calling ModuleRuntime::list_with_details()) if hash is not readily available
+    pub fn record_image_use_timestamp(&self, name_or_id: &str) {
 
-        // get lock
-        // read file contents into memory
-        // find the image hash (as key) and update the timestamp (as value)
-        // write it to the file
-        // release lock
+        let guard = self.inner.lock().unwrap();
+
+        // read MIGC persistence file into in-mem map
+        // this map now contains all images deployed to the device (through an IoT Edge deployment)
+        let mut image_map = get_images_with_timestamp(guard.filename.clone())
+            .map_err(|e| e)
+            .unwrap();
+
+        let current_time = std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap();
+
+        // We don't know if what has been passed in is the image name or image id
+        // Since there's no easy way to know, we read the MIGC file and see if the
+        // name_or_id is present in it. If so, we know it's an image hash.
+        // If not, it's the image name, and we now need to determine the corresponding
+        // hash by looking it up by a call to the Docker Engine API.
+
+        if image_map.contains_key(name_or_id) {
+            image_map.insert(name_or_id.to_string(), current_time);
+        } else {
+            drop(guard);
+
+            // At this point, one may wonder if it's just easier to always get the
+            // list of images at the beginning of the method, before the mutex is
+            // acquired.
+            // A choice has been made to read the file first and only call the
+            // docker api if necessary for two reasons:
+            // 1) Intuitively, it feels like a file read might be faster than a call
+            // to the docker api (but only benchmarking will truly tell)
+            // 2) It's the "cache-miss" path. If the image hash is present, then
+            // wny call the docker api?
+
+            // TODO: let result = ModuleRuntime::list_images(&self);
+            let result: HashMap<String, String> = HashMap::new();
+            let image_id = result.get(name_or_id).unwrap();
+            return self.record_image_use_timestamp(image_id);
+        }
+
+        // write entries back to file
+        write_images_with_timestamp(&image_map, guard.filename.clone())
+            .map_err(|e| e)
+            .unwrap();
+
+        drop(guard);
     }
 
     pub async fn prune_images_from_file(

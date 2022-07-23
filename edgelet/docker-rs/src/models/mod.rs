@@ -84,6 +84,8 @@ mod id_response;
 pub use self::id_response::IdResponse;
 mod image;
 pub use self::image::Image;
+mod image_list_response_item;
+pub use self::image_list_response_item::ImageListResponseItem;
 mod image_delete_response_item;
 pub use self::image_delete_response_item::ImageDeleteResponseItem;
 mod image_metadata;
