@@ -88,6 +88,7 @@ async fn run() -> Result<(), EdgedError> {
     let runtime = edgelet_docker::DockerModuleRuntime::make_runtime(
         &settings,
         create_socket_channel_snd.clone(),
+        migc_persistence,
     )
     .await
     .map_err(|err| EdgedError::from_err("Failed to initialize module runtime", err))?;
