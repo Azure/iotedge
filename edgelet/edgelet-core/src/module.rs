@@ -456,6 +456,7 @@ pub trait ModuleRuntime {
     async fn system_resources(&self) -> anyhow::Result<SystemResources>;
     async fn list(&self) -> anyhow::Result<Vec<Self::Module>>;
     async fn list_with_details(&self) -> anyhow::Result<Vec<(Self::Module, ModuleRuntimeState)>>;
+    async fn list_images(&self) -> anyhow::Result<std::collections::HashMap<String,String> >;
     async fn logs(&self, id: &str, options: &LogOptions) -> anyhow::Result<hyper::Body>;
     async fn remove_all(&self) -> anyhow::Result<()>;
     async fn stop_all(&self, wait_before_kill: Option<Duration>) -> anyhow::Result<()>;

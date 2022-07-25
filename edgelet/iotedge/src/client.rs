@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{time::Duration, collections::HashMap};
 
 use anyhow::Context;
 use hyper::Uri;
@@ -101,6 +101,11 @@ impl ModuleRuntime for MgmtClient {
             .collect();
 
         Ok(modules)
+    }
+
+    async fn list_images(&self) -> anyhow::Result<HashMap<String,String>> {
+        let result = HashMap::new();
+        Ok(result)
     }
 
     async fn logs(&self, id: &str, options: &LogOptions) -> anyhow::Result<hyper::Body> {
