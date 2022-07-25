@@ -27,7 +27,7 @@ impl MIGCPersistence {
         }
     }
 
-    pub fn write_image_to_file(&self, id: &str) {
+    pub fn write_image_to_file(&self, _id: &str) {
         // from ID, derive image hash (might entail calling ModuleRuntime::list_with_details()) if hash is not readily available
 
         // get lock

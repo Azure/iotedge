@@ -23,6 +23,7 @@ use edgelet_settings::{
 use edgelet_utils::ensure_not_empty;
 use http_common::Connector;
 
+use crate::MakeModuleRuntime;
 use crate::error::Error;
 use crate::module::{runtime_state, DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
 
@@ -32,18 +33,6 @@ const OWNER_LABEL_KEY: &str = "net.azure-devices.edge.owner";
 const OWNER_LABEL_VALUE: &str = "Microsoft.Azure.Devices.Edge.Agent";
 const ORIGINAL_IMAGE_LABEL_KEY: &str = "net.azure-devices.edge.original-image";
 const LABELS: &[&str] = &["net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent"];
-
-#[async_trait::async_trait]
-pub trait MakeModuleRuntime {
-    type Config: Clone + Send;
-    type Settings: RuntimeSettings<ModuleConfig = Self::Config>;
-    type ModuleRuntime: ModuleRuntime<Config = Self::Config>;
-
-    async fn make_runtime(
-        settings: &Self::Settings,
-        create_socket_channel: UnboundedSender<ModuleAction>,
-    ) -> anyhow::Result<Self::ModuleRuntime>;
-}
 
 #[derive(Clone)]
 pub struct DockerModuleRuntime<C> {
