@@ -104,8 +104,7 @@ impl ModuleRuntime for MgmtClient {
     }
 
     async fn list_images(&self) -> anyhow::Result<HashMap<String,String>> {
-        let result = HashMap::new();
-        Ok(result)
+        unimplemented!()
     }
 
     async fn logs(&self, id: &str, options: &LogOptions) -> anyhow::Result<hyper::Body> {

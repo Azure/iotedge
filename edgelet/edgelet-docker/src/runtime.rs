@@ -688,7 +688,20 @@ where
 
     // TODO: Could this API be a bit more generic (and useful)?
     async fn list_images(&self) -> anyhow::Result<HashMap<String, String>> {
-        let result = HashMap::new();
+        let images_list = self.client.images_list(false, "", false).await
+        .context(Error::Docker)
+        .map_err(|e| {
+            log::error!("{:?}", e);
+            e
+        }).unwrap();
+
+        let mut result: HashMap<String, String> = HashMap::new();
+        for image in images_list {
+            for name in image.repo_tags() {
+                // name may not cut it: multiple versions?
+                result.insert(name.to_owned(), image.id().clone());
+            }
+        }
         Ok(result)
     }
 

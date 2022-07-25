@@ -62,7 +62,7 @@ impl MIGCPersistence {
             // wny call the docker api?
 
             // TODO: let result = ModuleRuntime::list_images(&self);
-            let result: HashMap<String, String> = HashMap::new();
+            let result: HashMap<String, String> = HashMap::new(); // HashMap<image_name, image_id>
 
             let _ = match result.get(name_or_id) {
                 Some(id) => {
