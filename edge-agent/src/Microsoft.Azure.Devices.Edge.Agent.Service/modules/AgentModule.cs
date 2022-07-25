@@ -7,8 +7,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.Planners;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Planner;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunner;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Storage;
@@ -36,6 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly Option<ulong> storageMaxManifestFileSize;
         readonly Option<int> storageMaxOpenFiles;
         readonly Option<StorageLogLevel> storageLogLevel;
+        readonly ModuleUpdateMode moduleUpdateMode;
 
         public AgentModule(
             int maxRestartCount,
@@ -48,7 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             Option<ulong> storageTotalMaxWalSize,
             Option<ulong> storageMaxManifestFileSize,
             Option<int> storageMaxOpenFiles,
-            Option<StorageLogLevel> storageLogLevel)
+            Option<StorageLogLevel> storageLogLevel,
+            ModuleUpdateMode moduleUpdateMode)
             : this(
                 maxRestartCount,
                 intensiveCareTime,
@@ -64,7 +66,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 storageTotalMaxWalSize,
                 storageMaxManifestFileSize,
                 storageMaxOpenFiles,
-                storageLogLevel)
+                storageLogLevel,
+                moduleUpdateMode)
         {
         }
 
@@ -83,7 +86,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             Option<ulong> storageTotalMaxWalSize,
             Option<ulong> storageMaxManifestFileSize,
             Option<int> storageMaxOpenFiles,
-            Option<StorageLogLevel> storageLogLevel)
+            Option<StorageLogLevel> storageLogLevel,
+            ModuleUpdateMode moduleUpdateMode)
         {
             this.maxRestartCount = maxRestartCount;
             this.intensiveCareTime = intensiveCareTime;
@@ -100,6 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.storageMaxManifestFileSize = storageMaxManifestFileSize;
             this.storageMaxOpenFiles = storageMaxOpenFiles;
             this.storageLogLevel = storageLogLevel;
+            this.moduleUpdateMode = moduleUpdateMode;
         }
 
         static Dictionary<Type, IDictionary<string, Type>> DeploymentConfigTypeMapping

@@ -81,7 +81,11 @@ where
 
         let data = match body {
             Some(body) => super::base64_decode(body.data)?,
-            None => return Err(edgelet_http::error::bad_request("missing request body")),
+            None => {
+                return Err(edgelet_http::error::bad_request(
+                    "missing parameter: request body",
+                ))
+            }
         };
 
         let module_key = get_module_key(self.identity_client, &self.module_id).await?;
@@ -95,7 +99,7 @@ where
                 &data,
             )
             .await
-            .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
+            .map_err(edgelet_http::error::server_error)?;
         let digest = base64::encode(digest);
 
         let res = SignResponse { digest };

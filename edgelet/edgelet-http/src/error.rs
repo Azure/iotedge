@@ -1,37 +1,38 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-pub fn bad_request(
-    message: impl std::convert::Into<std::borrow::Cow<'static, str>>,
-) -> http_common::server::Error {
-    http_common::server::Error {
+use std::borrow::Cow;
+
+use http_common::server::Error;
+
+pub const FORBIDDEN: Error = Error {
+    status_code: http::StatusCode::FORBIDDEN,
+    message: Cow::Borrowed("forbidden"),
+};
+
+pub const fn bad_request(message: &'static str) -> Error {
+    Error {
         status_code: http::StatusCode::BAD_REQUEST,
-        message: message.into(),
+        message: Cow::Borrowed(message),
     }
 }
 
-// This function is only used by auth, so it doesn't need to be externally callable.
-pub(crate) fn forbidden() -> http_common::server::Error {
-    http_common::server::Error {
-        status_code: http::StatusCode::FORBIDDEN,
-        message: "forbidden".into(),
-    }
-}
-
-pub fn not_found(
-    message: impl std::convert::Into<std::borrow::Cow<'static, str>>,
-) -> http_common::server::Error {
-    http_common::server::Error {
-        status_code: http::StatusCode::NOT_FOUND,
-        message: message.into(),
-    }
-}
-
+/// Produce an HTTP error response provided a runtime-dependent error.
 #[allow(clippy::module_name_repetitions)]
-pub fn server_error(
-    message: impl std::convert::Into<std::borrow::Cow<'static, str>>,
-) -> http_common::server::Error {
+pub fn runtime_error<M>(_runtime: &M, error: &anyhow::Error) -> http_common::server::Error
+where
+    M: edgelet_core::ModuleRuntime,
+{
     http_common::server::Error {
+        status_code: <M as edgelet_core::ModuleRuntime>::error_code(error),
+        message: Cow::Owned(error.to_string()),
+    }
+}
+
+/// Produce a generic internal server error.
+#[allow(clippy::module_name_repetitions, clippy::needless_pass_by_value)]
+pub fn server_error(error: impl ToString) -> Error {
+    Error {
         status_code: http::StatusCode::INTERNAL_SERVER_ERROR,
-        message: message.into(),
+        message: error.to_string().into(),
     }
 }

@@ -1,7 +1,0 @@
-{
-    "broker": {
-        "persistence": {
-            "time_interval": "2h"
-        }
-    }
-}

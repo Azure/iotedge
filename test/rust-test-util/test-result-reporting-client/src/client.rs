@@ -66,7 +66,7 @@ impl TrcClient {
 
                     retries -= 1;
                     time::sleep(sleep_duration).await;
-                    base_wait *= 2
+                    base_wait *= 2;
                 }
                 response => return response,
             }

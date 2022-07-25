@@ -7,6 +7,7 @@
 %define iotedge_confdir %{aziot_confdir}/edged
 %define iotedge_agent_user edgeagentuser
 %define iotedge_agent_uid 13622
+%global debug_package %{nil}
 
 Name:           aziot-edge
 Version:        @version@
@@ -19,7 +20,7 @@ URL:            https://github.com/azure/iotedge
 %{?systemd_requires}
 BuildRequires:  systemd
 Requires(pre):  shadow-utils
-Requires:       aziot-identity-service = 1.3.0~dev-1
+Requires:       aziot-identity-service = 1.3.0~dev-1%{?dist}
 Source0:        aziot-edge-%{version}.tar.gz
 
 %description

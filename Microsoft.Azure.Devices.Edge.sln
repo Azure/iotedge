@@ -47,8 +47,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edg
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Docker.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Docker.Test\Microsoft.Azure.Devices.Edge.Agent.Docker.Test.csproj", "{6EDCED3D-F7E4-4830-872B-E4D1C24EC591}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test\Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test.csproj", "{A03ECC50-84E7-49FE-9190-840F8DD64A1B}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.IoTHub", "edge-agent\src\Microsoft.Azure.Devices.Edge.Agent.IoTHub\Microsoft.Azure.Devices.Edge.Agent.IoTHub.csproj", "{09391D32-FC84-4532-A658-F2952AFD26AF}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test\Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.csproj", "{F43E5511-49F1-4EF2-8ACB-B38CFB45F4CB}"
@@ -167,8 +165,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edg
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.Mqtt", "edge-hub\core\src\Microsoft.Azure.Devices.Edge.Hub.Mqtt\Microsoft.Azure.Devices.Edge.Hub.Mqtt.csproj", "{3ADFEB17-75C6-45F7-A9DF-C54B982D6ED2}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter", "edge-hub\core\src\Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter\Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.csproj", "{33AE5DC6-3747-4091-A970-BD2991A95C97}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.Service", "edge-hub\core\src\Microsoft.Azure.Devices.Edge.Hub.Service\Microsoft.Azure.Devices.Edge.Hub.Service.csproj", "{F1C63D08-7F06-4A1A-BFBC-0D2F6D035714}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Routing.Core", "edge-hub\core\src\Microsoft.Azure.Devices.Routing.Core\Microsoft.Azure.Devices.Routing.Core.csproj", "{A0B00C04-DBAF-43D4-8918-7B3C84746BE3}"
@@ -186,8 +182,6 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.Http.Test", "edge-hub\core\test\Microsoft.Azure.Devices.Edge.Hub.Http.Test\Microsoft.Azure.Devices.Edge.Hub.Http.Test.csproj", "{0BCF93AC-CEAD-4467-A282-F6A2F018CC1A}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test", "edge-hub\core\test\Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test\Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test.csproj", "{357371C5-0C39-43AC-A248-DC4466D3CF6D}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test", "edge-hub\core\test\Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test\Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test.csproj", "{111DFD7C-FC04-4A68-8CC1-D986CCC3DAC3}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.Service.Test", "edge-hub\core\test\Microsoft.Azure.Devices.Edge.Hub.Service.Test\Microsoft.Azure.Devices.Edge.Hub.Service.Test.csproj", "{240DF1F3-6472-472A-9748-494D79AEF085}"
 EndProject
@@ -264,12 +258,6 @@ Global
 		{6EDCED3D-F7E4-4830-872B-E4D1C24EC591}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6EDCED3D-F7E4-4830-872B-E4D1C24EC591}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6EDCED3D-F7E4-4830-872B-E4D1C24EC591}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A03ECC50-84E7-49FE-9190-840F8DD64A1B}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
-		{A03ECC50-84E7-49FE-9190-840F8DD64A1B}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
-		{A03ECC50-84E7-49FE-9190-840F8DD64A1B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A03ECC50-84E7-49FE-9190-840F8DD64A1B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A03ECC50-84E7-49FE-9190-840F8DD64A1B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A03ECC50-84E7-49FE-9190-840F8DD64A1B}.Release|Any CPU.Build.0 = Release|Any CPU
 		{09391D32-FC84-4532-A658-F2952AFD26AF}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
 		{09391D32-FC84-4532-A658-F2952AFD26AF}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
 		{09391D32-FC84-4532-A658-F2952AFD26AF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -528,12 +516,6 @@ Global
 		{3ADFEB17-75C6-45F7-A9DF-C54B982D6ED2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3ADFEB17-75C6-45F7-A9DF-C54B982D6ED2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3ADFEB17-75C6-45F7-A9DF-C54B982D6ED2}.Release|Any CPU.Build.0 = Release|Any CPU
-		{33AE5DC6-3747-4091-A970-BD2991A95C97}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
-		{33AE5DC6-3747-4091-A970-BD2991A95C97}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
-		{33AE5DC6-3747-4091-A970-BD2991A95C97}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{33AE5DC6-3747-4091-A970-BD2991A95C97}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{33AE5DC6-3747-4091-A970-BD2991A95C97}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{33AE5DC6-3747-4091-A970-BD2991A95C97}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F1C63D08-7F06-4A1A-BFBC-0D2F6D035714}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
 		{F1C63D08-7F06-4A1A-BFBC-0D2F6D035714}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
 		{F1C63D08-7F06-4A1A-BFBC-0D2F6D035714}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -582,12 +564,6 @@ Global
 		{357371C5-0C39-43AC-A248-DC4466D3CF6D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{357371C5-0C39-43AC-A248-DC4466D3CF6D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{357371C5-0C39-43AC-A248-DC4466D3CF6D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{111DFD7C-FC04-4A68-8CC1-D986CCC3DAC3}.CheckInBuild|Any CPU.ActiveCfg = Debug|Any CPU
-		{111DFD7C-FC04-4A68-8CC1-D986CCC3DAC3}.CheckInBuild|Any CPU.Build.0 = Debug|Any CPU
-		{111DFD7C-FC04-4A68-8CC1-D986CCC3DAC3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{111DFD7C-FC04-4A68-8CC1-D986CCC3DAC3}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{111DFD7C-FC04-4A68-8CC1-D986CCC3DAC3}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{111DFD7C-FC04-4A68-8CC1-D986CCC3DAC3}.Release|Any CPU.Build.0 = Release|Any CPU
 		{240DF1F3-6472-472A-9748-494D79AEF085}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
 		{240DF1F3-6472-472A-9748-494D79AEF085}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
 		{240DF1F3-6472-472A-9748-494D79AEF085}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -647,7 +623,6 @@ Global
 		{840816E2-D691-45B4-9995-0291FB5AADDA} = {373FFF5E-E84C-4789-B768-676FFF51E7A6}
 		{3B5A4C63-7B33-4E37-9602-29FC8FC7C9C5} = {54351E51-19CB-4DE3-8302-99846AB216CF}
 		{6EDCED3D-F7E4-4830-872B-E4D1C24EC591} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
-		{A03ECC50-84E7-49FE-9190-840F8DD64A1B} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
 		{09391D32-FC84-4532-A658-F2952AFD26AF} = {54351E51-19CB-4DE3-8302-99846AB216CF}
 		{F43E5511-49F1-4EF2-8ACB-B38CFB45F4CB} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
 		{592F8A5A-B1C7-4011-9879-B2AEE118DD3F} = {578D5330-2F72-44C6-9DB5-C93B3F42C473}
@@ -699,7 +674,6 @@ Global
 		{21BCAD89-94E1-4F40-893C-4B038851109B} = {0F9FA084-86EC-4155-88FF-F3DEA69DA971}
 		{23EFB988-CEF0-4E0F-99FB-9C289CB6FD07} = {0F9FA084-86EC-4155-88FF-F3DEA69DA971}
 		{3ADFEB17-75C6-45F7-A9DF-C54B982D6ED2} = {0F9FA084-86EC-4155-88FF-F3DEA69DA971}
-		{33AE5DC6-3747-4091-A970-BD2991A95C97} = {0F9FA084-86EC-4155-88FF-F3DEA69DA971}
 		{F1C63D08-7F06-4A1A-BFBC-0D2F6D035714} = {0F9FA084-86EC-4155-88FF-F3DEA69DA971}
 		{A0B00C04-DBAF-43D4-8918-7B3C84746BE3} = {0F9FA084-86EC-4155-88FF-F3DEA69DA971}
 		{F5A09810-99FB-43EB-A86E-A15E48EED108} = {E64FF67A-D597-4108-BE6B-D01152F84101}
@@ -709,7 +683,6 @@ Global
 		{9FAB0A0B-498F-4EFB-B5B0-DA506F8CAC76} = {F5A09810-99FB-43EB-A86E-A15E48EED108}
 		{0BCF93AC-CEAD-4467-A282-F6A2F018CC1A} = {F5A09810-99FB-43EB-A86E-A15E48EED108}
 		{357371C5-0C39-43AC-A248-DC4466D3CF6D} = {F5A09810-99FB-43EB-A86E-A15E48EED108}
-		{111DFD7C-FC04-4A68-8CC1-D986CCC3DAC3} = {F5A09810-99FB-43EB-A86E-A15E48EED108}
 		{240DF1F3-6472-472A-9748-494D79AEF085} = {F5A09810-99FB-43EB-A86E-A15E48EED108}
 		{5D0F6FB0-8716-4247-A5BE-92DA5B9E2189} = {F5A09810-99FB-43EB-A86E-A15E48EED108}
 		{B0151FFD-85C4-42B9-81CC-9193BADFE9F8} = {F921339B-32F9-4BF3-B364-2DB01FA2F1A1}

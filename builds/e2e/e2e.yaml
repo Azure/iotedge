@@ -108,7 +108,7 @@ jobs:
   - job: ubuntu_1804_docker
 ################################################################################
 
-    displayName: Ubuntu 18.04 with Docker minimal
+    displayName: Ubuntu 18.04 with Docker (minimal)
 
     pool:
       name: $(pool.linux.name)
@@ -154,7 +154,7 @@ jobs:
 ################################################################################
   - job: ubuntu_2004_docker
 ################################################################################
-    displayName: Ubuntu 20.04 with Docker minimal
+    displayName: Ubuntu 20.04 with Docker (minimal)
 
     pool:
       name: $(pool.linux.name)
@@ -192,7 +192,6 @@ jobs:
     timeoutInMinutes: 120
 
     steps:
-    - template: ../templates/prep-arm-agent.yaml
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-clear-docker-cached-images.yaml

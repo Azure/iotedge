@@ -143,18 +143,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward, metricsConfig, nestedEdgeEnabled, authenticationMode);
             this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures, nestedEdgeEnabled, authenticationMode == AuthenticationMode.Scope, trackDeviceState);
-            this.RegisterMqttModule(builder, storeAndForward, experimentalFeatures);
+            this.RegisterMqttModule(builder, storeAndForward);
             this.RegisterAmqpModule(builder);
             builder.RegisterModule(new HttpModule(this.iotHubHostname, this.edgeDeviceId, proxyModuleId));
-
-            if (experimentalFeatures.EnableMqttBroker)
-            {
-                var authConfig = this.configuration.GetSection("authAgentSettings");
-                builder.RegisterModule(new AuthModule(authConfig));
-
-                var mqttBrokerConfig = this.configuration.GetSection("mqttBrokerSettings");
-                builder.RegisterModule(new MqttBrokerModule(mqttBrokerConfig));
-            }
         }
 
         internal static Option<UpstreamProtocol> GetUpstreamProtocol(IConfigurationRoot configuration) =>
@@ -166,13 +157,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         {
             IConfiguration amqpSettings = this.configuration.GetSection("amqpSettings");
             bool clientCertAuthEnabled = this.configuration.GetValue(Constants.ConfigKey.EdgeHubClientCertAuthEnabled, false);
-            builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], amqpSettings.GetValue<ushort>("port"), this.serverCertificate, this.iotHubHostname, clientCertAuthEnabled, this.sslProtocols));
+            builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], amqpSettings.GetValue<ushort>("port"), this.serverCertificate, this.iotHubHostname, clientCertAuthEnabled, this.sslProtocols, amqpSettings.GetValue<bool>("delayedBatchingEnabled")));
         }
 
         void RegisterMqttModule(
             ContainerBuilder builder,
-            StoreAndForward storeAndForward,
-            ExperimentalFeatures experimentalFeatures)
+            StoreAndForward storeAndForward)
         {
             var topics = new MessageAddressConversionConfiguration(
                 this.configuration.GetSection(Constants.TopicNameConversionSectionName + ":InboundTemplates").Get<List<string>>(),
@@ -182,8 +172,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             IConfiguration mqttSettingsConfiguration = this.configuration.GetSection("mqttSettings");
 
-            // MQTT broker overrides the legacy MQTT protocol head
-            if (mqttSettingsConfiguration.GetValue("enabled", true) && !experimentalFeatures.EnableMqttBroker)
+            if (mqttSettingsConfiguration.GetValue("enabled", true))
             {
                 builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, this.serverCertificate, storeAndForward.IsEnabled, clientCertAuthEnabled, this.sslProtocols));
             }
@@ -231,10 +220,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool checkEntireQueueOnCleanup = this.configuration.GetValue("CheckEntireQueueOnCleanup", false);
             int messageCleanupIntervalSecs = this.configuration.GetValue("MessageCleanupIntervalSecs", 1800);
             bool closeCloudConnectionOnDeviceDisconnect = this.configuration.GetValue("CloseCloudConnectionOnDeviceDisconnect", true);
-            bool isLegacyUpstream = ExperimentalFeatures.IsViaBrokerUpstream(
-                    experimentalFeatures,
-                    nestedEdgeEnabled,
-                    this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.GatewayHostname).HasValue);
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -270,7 +255,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     experimentalFeatures,
                     closeCloudConnectionOnDeviceDisconnect,
                     nestedEdgeEnabled,
-                    isLegacyUpstream,
                     scopeAuthenticationOnly: scopeAuthenticationOnly,
                     trackDeviceState: trackDeviceState,
                     this.manifestTrustBundle));

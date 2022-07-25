@@ -19,14 +19,17 @@ where
 {
     let module = module
         .to_runtime_spec::<M>()
-        .map_err(edgelet_http::error::server_error)?;
+        .map_err(|err| http_common::server::Error {
+            status_code: http::StatusCode::BAD_REQUEST,
+            message: err.into(),
+        })?;
 
     pull_image(runtime, &module).await?;
 
     runtime
         .create(module)
         .await
-        .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
+        .map_err(|err| edgelet_http::error::runtime_error(runtime, &err))?;
 
     Ok(())
 }
@@ -44,7 +47,7 @@ where
                 .registry()
                 .pull(module.config())
                 .await
-                .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
+                .map_err(|err| edgelet_http::error::runtime_error(runtime, &err))?;
 
             log::debug!("Successfully pulled new image for module {}", module.name());
         }

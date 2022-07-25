@@ -91,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var mqttSettingsConfiguration = new Mock<IConfiguration>();
             mqttSettingsConfiguration.Setup(c => c.GetSection(It.IsAny<string>())).Returns(Mock.Of<IConfigurationSection>(s => s.Value == null));
 
-            var experimentalFeatures = new ExperimentalFeatures(true, false, false, false);
+            var experimentalFeatures = new ExperimentalFeatures(true, false, false);
 
             builder.RegisterBuildCallback(
                 c =>
@@ -214,14 +214,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     experimentalFeatures,
                     true,
                     false,
-                    true,
                     scopeAuthenticationOnly: true,
                     trackDeviceState: true,
                     Option.None<X509Certificate2>()));
 
             builder.RegisterModule(new HttpModule("Edge1", iotHubConnectionStringBuilder.DeviceId, "iotedgeApiProxy"));
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, this.serverCertificate, false, false, this.sslProtocols));
-            builder.RegisterModule(new AmqpModule("amqps", 5671, this.serverCertificate, iotHubConnectionStringBuilder.HostName, true, this.sslProtocols));
+            builder.RegisterModule(new AmqpModule("amqps", 5671, this.serverCertificate, iotHubConnectionStringBuilder.HostName, true, this.sslProtocols, false));
         }
 
         static string GetOrCreateDirectoryPath(string baseDirectoryPath, string directoryName)
