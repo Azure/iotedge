@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::time::UNIX_EPOCH;
 use std::{collections::HashMap, fs, time::Duration};
 
-use edgelet_core::{Module};
+use edgelet_core::Module;
 
 use crate::{DockerModule, Error};
 
@@ -28,7 +28,6 @@ impl MIGCPersistence {
     }
 
     pub fn record_image_use_timestamp(&self, name_or_id: &str, is_image_id: bool) {
-
         let guard = self.inner.lock().unwrap();
 
         // read MIGC persistence file into in-mem map
@@ -64,11 +63,19 @@ impl MIGCPersistence {
 
             // TODO: let result = ModuleRuntime::list_images(&self);
             let result: HashMap<String, String> = HashMap::new();
-            let image_id = result.get(name_or_id).unwrap();
 
-            // we have found the image id, but a recursive call will be an infinite loop
-            // without the is_image_id flag set to true
-            return self.record_image_use_timestamp(image_id, true);
+            let _ = match result.get(name_or_id) {
+                Some(id) => {
+                    // we have found the image id, but a recursive call will be an infinite loop
+                    // without the is_image_id flag set to true
+                    return self.record_image_use_timestamp(id, true);
+                }
+                None => {
+                    log::error!("Could not find image with id: {}", name_or_id);
+                    // bubble error up?
+                    return;
+                }
+            };
         }
 
         // write entries back to file

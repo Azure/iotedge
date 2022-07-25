@@ -698,7 +698,7 @@ where
     }
 
     // TODO: Could this API be a bit more generic (and useful)?
-    async fn list_images(&self) -> anyhow::Result<HashMap<String,String>> {
+    async fn list_images(&self) -> anyhow::Result<HashMap<String, String>> {
         let result = HashMap::new();
         Ok(result)
     }
