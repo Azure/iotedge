@@ -12,8 +12,8 @@ mod workload_manager;
 
 use std::sync::atomic;
 
-use edgelet_core::{module::ModuleAction, MakeModuleRuntime, ModuleRuntime};
-use edgelet_docker::MIGCPersistence;
+use edgelet_core::{module::ModuleAction, ModuleRuntime};
+use edgelet_docker::{MIGCPersistence, MakeModuleRuntime};
 use edgelet_settings::RuntimeSettings;
 
 use crate::{error::Error as EdgedError, workload_manager::WorkloadManager};
