@@ -1,7 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use edgelet_docker::MIGCPersistence;
-
 pub(crate) struct Route<M>
 where
     M: edgelet_core::ModuleRuntime + Send + Sync,

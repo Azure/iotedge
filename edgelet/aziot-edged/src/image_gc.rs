@@ -1,16 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use edgelet_core::{Module, ModuleRegistry, ModuleRuntime};
+use edgelet_core::{ModuleRegistry, ModuleRuntime};
 use edgelet_docker::MIGCPersistence;
-use std::collections::HashMap;
-use std::fs;
-use std::io::Write;
-use std::time::{Duration, UNIX_EPOCH};
 
 use crate::error::Error as EdgedError;
-
-// TODO: fix file name with correct path
-const FILE_NAME: &str = "abc.txt";
 
 pub(crate) async fn run_until_shutdown(
     settings: edgelet_settings::docker::Settings,
