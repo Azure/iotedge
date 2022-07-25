@@ -678,7 +678,7 @@ function run_connectivity_test() {
                                     $(echo $TEST_START_DELAY | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }') + \
                                     $(echo $TEST_DURATION | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }') + \
                                     $(echo $VERIFICATION_DELAY | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }') + \
-                                    $(echo $TIME_FOR_REPORT_GENERATION | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }') \
+                                    $(echo $TIME_FOR_REPORT_GENERATION | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }') + \
                                     $(echo $CHECK_TRC_DELAY | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }')))
     echo "test start delay=$TEST_START_DELAY"
     echo "test duration=$TEST_DURATION"
