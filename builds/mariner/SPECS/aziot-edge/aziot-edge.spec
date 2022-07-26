@@ -21,7 +21,7 @@ URL:            https://github.com/azure/iotedge
 BuildRequires:  systemd
 Requires(pre):  shadow-utils
 Requires:       openssl
-Requires:       aziot-identity-service = @@IIS_VERSION@@%{?dist}
+Requires:       aziot-identity-service = @@IIS_VERSION@@
 Requires:       moby-engine
 Requires:       moby-cli
 
