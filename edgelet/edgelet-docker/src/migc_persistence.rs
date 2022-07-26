@@ -3,31 +3,31 @@ use std::sync::{Arc, Mutex};
 use std::time::UNIX_EPOCH;
 use std::{collections::HashMap, fs, time::Duration};
 
-use edgelet_core::Module;
+use edgelet_core::{Module, ModuleRuntime};
 
 use crate::{DockerModule, Error};
 
-// TODO: Determine if we need to read from homedir to make it configurable
-// const FILE_NAME: &str = "dummy path fill in later";
-
 #[derive(Debug, Clone)]
 struct MIGCPersistenceInner {
+    // TODO: Determine if we need to read from homedir to make it configurable
     filename: String,
 }
 
 #[derive(Debug, Clone)]
 pub struct MIGCPersistence {
     inner: Arc<Mutex<MIGCPersistenceInner>>,
+    runtime: crate::DockerModuleRuntime<http_common::Connector>,
 }
 
 impl MIGCPersistence {
-    pub fn new(filename: String) -> Self {
+    pub fn new(filename: String, rt: crate::DockerModuleRuntime<http_common::Connector>) -> Self {
         Self {
             inner: Arc::new(Mutex::new(MIGCPersistenceInner { filename })),
+            runtime: rt,
         }
     }
 
-    pub fn record_image_use_timestamp(&self, name_or_id: &str, is_image_id: bool) {
+    pub async fn record_image_use_timestamp(&self, name_or_id: &str, is_image_id: bool) {
         let guard = self.inner.lock().unwrap();
 
         // read MIGC persistence file into in-mem map
@@ -61,14 +61,14 @@ impl MIGCPersistence {
             // 2) It's the "cache-miss" path. If the image hash is present, then
             // wny call the docker api?
 
-            // TODO: let result = ModuleRuntime::list_images(&self);
-            let result: HashMap<String, String> = HashMap::new(); // HashMap<image_name, image_id>
+            // HashMap<image_name, image_id>
+            let result = ModuleRuntime::list_images(&self.runtime).await.unwrap();
 
             let _ = match result.get(name_or_id) {
                 Some(id) => {
                     // we have found the image id, but a recursive call will be an infinite loop
                     // without the is_image_id flag set to true
-                    return self.record_image_use_timestamp(id, true);
+                    return self.record_image_use_timestamp(id, true).await;
                 }
                 None => {
                     log::error!("Could not find image with id: {}", name_or_id);

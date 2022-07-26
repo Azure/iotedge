@@ -155,7 +155,7 @@ impl edgelet_core::ModuleRuntime for Runtime {
         unimplemented!()
     }
 
-    async fn list_images(&self) -> anyhow::Result<std::collections::HashMap<String,String> > {
+    async fn list_images(&self) -> anyhow::Result<std::collections::HashMap<String, String>> {
         unimplemented!()
     }
 
