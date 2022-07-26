@@ -89,13 +89,12 @@ pub trait DockerApi {
         platform: &'a str,
     ) -> BoxFutureResult<'a, ()>;
 
-    // TODO: get this right
     fn images_list<'a>(
         &'a self,
-        name_or_id: &'a str,
-        force: bool,
-        no_prune: bool,
-    ) -> BoxFutureResult<'a, Vec<models::ImageListResponseItem>>;
+        all: bool,
+        filters: &'a str,
+        digests: bool,
+    ) -> BoxFutureResult<'a, Vec<models::ImageSummary>>;
 
     fn image_delete<'a>(
         &'a self,
@@ -282,9 +281,8 @@ where
     }
 
     api_call! {
-        images_list : get "/images/json" -> Vec<models::ImageListResponseItem> ;
-        path : [ _name_or_id: &'a str ] ;
-        query : [ "force" = (force: bool), "noprune" = (no_prune: bool)] ;
+        images_list : get "/images/json" -> Vec<models::ImageSummary> ;
+        query : [ "all" = (all: bool), "filters" = (filters: &'a str),"digests" = (digests: bool)] ;
         ok : [OK]
     }
 

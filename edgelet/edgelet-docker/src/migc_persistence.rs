@@ -8,28 +8,73 @@ use edgelet_settings::base::image::MIGCSettings;
 
 use crate::{DockerModule, Error};
 
-// TODO: Determine if we need to read from homedir to make it configurable
-// const FILE_NAME: &str = "dummy path fill in later";
-
 #[derive(Debug, Clone)]
 struct MIGCPersistenceInner {
+    // TODO: Determine if we need to read from homedir to make it configurable
     filename: String,
-    settings: Option<MIGCSettings>,
 }
 
 #[derive(Debug, Clone)]
 pub struct MIGCPersistence {
     inner: Arc<Mutex<MIGCPersistenceInner>>,
+    settings: Option<MIGCSettings>,
 }
 
 impl MIGCPersistence {
     pub fn new(filename: String, settings: Option<MIGCSettings>) -> Self {
         Self {
-            inner: Arc::new(Mutex::new(MIGCPersistenceInner { filename, settings })),
+            inner: Arc::new(Mutex::new(MIGCPersistenceInner { filename })),
+            settings,
         }
     }
 
-    pub fn record_image_use_timestamp(&self, name_or_id: &str, is_image_id: bool) {
+    pub async fn record_image_use_timestamp(
+        &self,
+        name_or_id: &str,
+        is_image_id: bool,
+        // HashMap<image_name, image_id>
+        image_name_to_id: HashMap<String, String>,
+    ) {
+        if is_image_id {
+            self.write_image_use_to_file(name_or_id).await;
+        } else {
+            let _ = match image_name_to_id.get(name_or_id) {
+                Some(id) => {
+                    return self.write_image_use_to_file(id).await;
+                }
+                None => {
+                    log::error!("Could not find image with id: {}", name_or_id);
+                    // bubble error up?
+                    return;
+                }
+            };
+        }
+    }
+
+    async fn write_image_use_to_file(&self, name_or_id: &str) {
+        let guard = self.inner.lock().unwrap();
+
+        // read MIGC persistence file into in-mem map
+        // this map now contains all images deployed to the device (through an IoT Edge deployment)
+        let mut image_map = get_images_with_timestamp(guard.filename.clone())
+            .map_err(|e| e)
+            .unwrap();
+
+        let current_time = std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap();
+
+        image_map.insert(name_or_id.to_string(), current_time);
+
+        // write entries back to file
+        write_images_with_timestamp(&image_map, guard.filename.clone())
+            .map_err(|e| e)
+            .unwrap();
+
+        drop(guard);
+    }
+
+    /*pub async fn record_image_use_timestamp(&self, name_or_id: &str, is_image_id: bool) {
         let guard = self.inner.lock().unwrap();
 
         // read MIGC persistence file into in-mem map
@@ -50,6 +95,13 @@ impl MIGCPersistence {
 
         if is_image_id || image_map.contains_key(name_or_id) {
             image_map.insert(name_or_id.to_string(), current_time);
+
+            // write entries back to file
+            write_images_with_timestamp(&image_map, guard.filename.clone())
+                .map_err(|e| e)
+                .unwrap();
+
+            drop(guard);
         } else {
             drop(guard);
 
@@ -63,22 +115,23 @@ impl MIGCPersistence {
             // 2) It's the "cache-miss" path. If the image hash is present, then
             // wny call the docker api?
 
-            // TODO: let result = ModuleRuntime::list_images(&self);
-            let result: HashMap<String, String> = HashMap::new();
-            let image_id = result.get(name_or_id).unwrap();
+            // HashMap<image_name, image_id>
+            let result = ModuleRuntime::list_images(&self.runtime).await.unwrap();
 
-            // we have found the image id, but a recursive call will be an infinite loop
-            // without the is_image_id flag set to true
-            return self.record_image_use_timestamp(image_id, true);
+            let _ = match result.get(name_or_id) {
+                Some(id) => {
+                    // we have found the image id, but a recursive call will be an infinite loop
+                    // without the is_image_id flag set to true
+                    return self.record_image_use_timestamp(id, true).await;
+                }
+                None => {
+                    log::error!("Could not find image with id: {}", name_or_id);
+                    // bubble error up?
+                    return;
+                }
+            };
         }
-
-        // write entries back to file
-        write_images_with_timestamp(&image_map, guard.filename.clone())
-            .map_err(|e| e)
-            .unwrap();
-
-        drop(guard);
-    }
+    }*/
 
     pub async fn prune_images_from_file(
         &self,
@@ -87,8 +140,8 @@ impl MIGCPersistence {
             edgelet_core::ModuleRuntimeState,
         )>,
     ) -> HashMap<String, Duration> {
+        let settings = self.settings.clone().unwrap();
         let guard = self.inner.lock().unwrap();
-        let settings = guard.settings.clone().unwrap();
 
         // read MIGC persistence file into in-mem map
         // this map now contains all images deployed to the device (through an IoT Edge deployment)

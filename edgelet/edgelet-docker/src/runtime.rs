@@ -114,6 +114,11 @@ where
             })?;
 
         log::info!("Successfully pulled image {}", image);
+
+        // TODO: handle err
+        let image_name_to_id = self.list_images().await?;
+        self.migc_persistence.record_image_use_timestamp(image.as_str(), false, image_name_to_id).await;
+
         Ok(())
     }
 
@@ -341,6 +346,8 @@ where
             .with_context(|| {
                 Error::RuntimeOperation(RuntimeOperation::CreateModule(module.name().to_string()))
             })?;
+
+        //self.migc_persistence.record_image_use_timestamp(name_or_id, true, image_name_to_id);
 
         Ok(())
     }
@@ -689,9 +696,32 @@ where
         Ok(result)
     }
 
-    // TODO: Could this API be a bit more generic (and useful)?
     async fn list_images(&self) -> anyhow::Result<HashMap<String, String>> {
-        let result = HashMap::new();
+        let images_list = self
+            .client
+            .images_list(false, "", false)
+            .await
+            .context(Error::Docker)
+            .map_err(|e| {
+                log::error!("{:?}", e);
+                e
+            })
+            .unwrap();
+
+        let mut result: HashMap<String, String> = HashMap::new();
+        for image in images_list {
+            // a call to underlying docker API /images/json returns the image list with
+            // the ID of each image in the form: "sha256:e216a057b1cb1efc11f8a268f37ef62083e70b1b38323ba252e25ac88904a7e8"
+            // The following code skips the "sha256:" part, and takes the first 12 characters
+            // (to match with the image id we see when we run 'docker images')
+            let image_id: String = image.id().clone().chars().skip(7).take(12).collect();
+
+            // an individual image id may be associated with multiple image names
+            for name in image.repo_tags() {
+                result.insert(name.to_owned(), image_id.clone());
+            }
+        }
+
         Ok(result)
     }
 
