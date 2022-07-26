@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::time::UNIX_EPOCH;
 use std::{collections::HashMap, fs, time::Duration};
 
-use edgelet_core::{Module, ModuleRuntime};
+use edgelet_core::Module;
 use edgelet_settings::base::image::MIGCSettings;
 
 use crate::{DockerModule, Error};
@@ -17,31 +17,28 @@ struct MIGCPersistenceInner {
 #[derive(Debug, Clone)]
 pub struct MIGCPersistence {
     inner: Arc<Mutex<MIGCPersistenceInner>>,
-    runtime: crate::DockerModuleRuntime<http_common::Connector>,
     settings: Option<MIGCSettings>,
 }
 
 impl MIGCPersistence {
-    pub fn new(
-        filename: String,
-        runtime: crate::DockerModuleRuntime<http_common::Connector>,
-        settings: Option<MIGCSettings>,
-    ) -> Self {
+    pub fn new(filename: String, settings: Option<MIGCSettings>) -> Self {
         Self {
             inner: Arc::new(Mutex::new(MIGCPersistenceInner { filename })),
-            runtime,
             settings,
         }
     }
 
-    pub async fn record_image_use_timestamp(&self, name_or_id: &str, is_image_id: bool) {
+    pub async fn record_image_use_timestamp(
+        &self,
+        name_or_id: &str,
+        is_image_id: bool,
+        // HashMap<image_name, image_id>
+        image_name_to_id: HashMap<String, String>,
+    ) {
         if is_image_id {
             self.write_image_use_to_file(name_or_id).await;
         } else {
-            // HashMap<image_name, image_id>
-            let result = ModuleRuntime::list_images(&self.runtime).await.unwrap();
-
-            let _ = match result.get(name_or_id) {
+            let _ = match image_name_to_id.get(name_or_id) {
                 Some(id) => {
                     return self.write_image_use_to_file(id).await;
                 }

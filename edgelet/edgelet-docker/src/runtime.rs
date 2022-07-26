@@ -114,6 +114,11 @@ where
             })?;
 
         log::info!("Successfully pulled image {}", image);
+
+        // TODO: handle err
+        let _image_name_to_id = self.list_images().await?;
+        // TODO: pass into migc
+
         Ok(())
     }
 
