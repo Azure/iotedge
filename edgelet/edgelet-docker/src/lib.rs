@@ -38,5 +38,6 @@ pub trait MakeModuleRuntime {
     async fn make_runtime(
         settings: &Self::Settings,
         create_socket_channel: UnboundedSender<ModuleAction>,
+        migc_persistence: MIGCPersistence,
     ) -> anyhow::Result<Self::ModuleRuntime>;
 }

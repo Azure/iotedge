@@ -4,6 +4,7 @@ use std::time::UNIX_EPOCH;
 use std::{collections::HashMap, fs, time::Duration};
 
 use edgelet_core::{Module, ModuleRuntime};
+use edgelet_settings::base::image::MIGCSettings;
 
 use crate::{DockerModule, Error};
 
@@ -17,13 +18,19 @@ struct MIGCPersistenceInner {
 pub struct MIGCPersistence {
     inner: Arc<Mutex<MIGCPersistenceInner>>,
     runtime: crate::DockerModuleRuntime<http_common::Connector>,
+    settings: Option<MIGCSettings>,
 }
 
 impl MIGCPersistence {
-    pub fn new(filename: String, rt: crate::DockerModuleRuntime<http_common::Connector>) -> Self {
+    pub fn new(
+        filename: String,
+        runtime: crate::DockerModuleRuntime<http_common::Connector>,
+        settings: Option<MIGCSettings>,
+    ) -> Self {
         Self {
             inner: Arc::new(Mutex::new(MIGCPersistenceInner { filename })),
-            runtime: rt,
+            runtime,
+            settings,
         }
     }
 
@@ -136,6 +143,7 @@ impl MIGCPersistence {
             edgelet_core::ModuleRuntimeState,
         )>,
     ) -> HashMap<String, Duration> {
+        let settings = self.settings.clone().unwrap();
         let guard = self.inner.lock().unwrap();
 
         // read MIGC persistence file into in-mem map
@@ -147,7 +155,8 @@ impl MIGCPersistence {
         /* ============================== */
 
         // process maps
-        let (images_to_delete, carry_over) = process_state(image_map, running_modules);
+        let (images_to_delete, carry_over) =
+            process_state(image_map, running_modules, settings.min_age());
 
         /* ============================== */
 
@@ -220,6 +229,7 @@ fn process_state(
         DockerModule<http_common::Connector>,
         edgelet_core::ModuleRuntimeState,
     )>,
+    min_age: Duration,
 ) -> (HashMap<String, Duration>, HashMap<String, Duration>) {
     let current_time = std::time::SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -237,9 +247,8 @@ fn process_state(
     }
 
     // track entries younger than min age
-    // TODO: read min_age from settings, let's assume min_age as 1 day for now
     for (key, value) in &image_map {
-        if current_time.as_secs() - value.as_secs() < 86400 {
+        if current_time.as_secs() - value.as_secs() < min_age.as_secs() {
             carry_over.insert(key.to_string(), *value);
         }
     }

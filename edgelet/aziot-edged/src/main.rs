@@ -87,10 +87,11 @@ async fn run() -> Result<(), EdgedError> {
     let runtime = edgelet_docker::DockerModuleRuntime::make_runtime(
         &settings,
         create_socket_channel_snd.clone(),
+        migc_persistence,
     )
     .await
     .map_err(|err| EdgedError::from_err("Failed to initialize module runtime", err))?;
-    let migc_persistence = MIGCPersistence::new("".to_string(), runtime);
+    let migc_persistence = MIGCPersistence::new("".to_string(), runtime, settings.module_image_garbage_collection().clone());
 
     let (watchdog_tx, watchdog_rx) =
         tokio::sync::mpsc::unbounded_channel::<edgelet_core::WatchdogAction>();

@@ -1,39 +1,37 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use edgelet_core::{Module, ModuleRegistry, ModuleRuntime};
+use edgelet_core::{ModuleRegistry, ModuleRuntime};
 use edgelet_docker::MIGCPersistence;
-use std::collections::HashMap;
-use std::fs;
-use std::io::Write;
-use std::time::{Duration, UNIX_EPOCH};
+use edgelet_settings::base::image::MIGCSettings;
 
 use crate::error::Error as EdgedError;
 
-// TODO: fix file name with correct path
-const FILE_NAME: &str = "abc.txt";
-
-pub(crate) async fn run_until_shutdown(
-    settings: edgelet_settings::docker::Settings,
+pub(crate) async fn image_garbage_collect(
+    settings: Option<MIGCSettings>,
     runtime: &edgelet_docker::DockerModuleRuntime<http_common::Connector>,
     migc_persistence: MIGCPersistence,
 ) -> Result<edgelet_core::WatchdogAction, EdgedError> {
-    // Run the GC once a day while waiting for any running task
-    let gc_period = std::time::Duration::from_secs(86400);
-
-    let mut gc_timer = tokio::time::interval(gc_period);
-    gc_timer.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
-
     log::info!("Starting MIGC...");
 
+    // Run the GC once a day while waiting for any running task
+    // let gc_period = std::time::Duration::from_secs(86400);
+
+    // let mut gc_timer = tokio::time::interval(gc_period);
+    // gc_timer.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+
+    // TODO: fix unwrap
+    let settings = settings.unwrap();
+
     loop {
-        if let Err(err) = garbage_collector(&settings, runtime, migc_persistence.clone()).await {
+        tokio::time::sleep(settings.time_between_cleanup()).await;
+
+        if let Err(err) = garbage_collector(runtime, migc_persistence.clone()).await {
             return Err(EdgedError::new(format!("Error in MIGC: {}", err)));
         }
     }
 }
 
 async fn garbage_collector(
-    _settings: &edgelet_settings::docker::Settings,
     runtime: &edgelet_docker::DockerModuleRuntime<http_common::Connector>,
     migc_persistence: MIGCPersistence,
 ) -> Result<(), EdgedError> {

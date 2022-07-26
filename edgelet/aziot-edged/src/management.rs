@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use edgelet_docker::MIGCPersistence;
 use edgelet_settings::uri::Listen;
 
 use crate::error::Error as EdgedError;

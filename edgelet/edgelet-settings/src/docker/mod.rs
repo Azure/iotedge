@@ -123,7 +123,7 @@ impl crate::RuntimeSettings for Settings {
         self.base.additional_info()
     }
 
-    fn module_image_garbage_collection(&self) -> &Option<crate::base::image::Settings> {
+    fn module_image_garbage_collection(&self) -> &Option<crate::base::image::MIGCSettings> {
         self.base.module_image_garbage_collection()
     }
 }
