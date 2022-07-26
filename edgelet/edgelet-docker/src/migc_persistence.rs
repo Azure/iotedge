@@ -28,6 +28,49 @@ impl MIGCPersistence {
     }
 
     pub async fn record_image_use_timestamp(&self, name_or_id: &str, is_image_id: bool) {
+        if is_image_id {
+            self.write_image_use_to_file(name_or_id).await;
+        } else {
+            // HashMap<image_name, image_id>
+            let result = ModuleRuntime::list_images(&self.runtime).await.unwrap();
+
+            let _ = match result.get(name_or_id) {
+                Some(id) => {
+                    return self.write_image_use_to_file(id).await;
+                }
+                None => {
+                    log::error!("Could not find image with id: {}", name_or_id);
+                    // bubble error up?
+                    return;
+                }
+            };
+        }
+    }
+
+    async fn write_image_use_to_file(&self, name_or_id: &str) {
+        let guard = self.inner.lock().unwrap();
+
+        // read MIGC persistence file into in-mem map
+        // this map now contains all images deployed to the device (through an IoT Edge deployment)
+        let mut image_map = get_images_with_timestamp(guard.filename.clone())
+            .map_err(|e| e)
+            .unwrap();
+
+        let current_time = std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap();
+
+        image_map.insert(name_or_id.to_string(), current_time);
+
+        // write entries back to file
+        write_images_with_timestamp(&image_map, guard.filename.clone())
+            .map_err(|e| e)
+            .unwrap();
+
+        drop(guard);
+    }
+
+    /*pub async fn record_image_use_timestamp(&self, name_or_id: &str, is_image_id: bool) {
         let guard = self.inner.lock().unwrap();
 
         // read MIGC persistence file into in-mem map
@@ -48,6 +91,13 @@ impl MIGCPersistence {
 
         if is_image_id || image_map.contains_key(name_or_id) {
             image_map.insert(name_or_id.to_string(), current_time);
+
+            // write entries back to file
+            write_images_with_timestamp(&image_map, guard.filename.clone())
+                .map_err(|e| e)
+                .unwrap();
+
+            drop(guard);
         } else {
             drop(guard);
 
@@ -77,14 +127,7 @@ impl MIGCPersistence {
                 }
             };
         }
-
-        // write entries back to file
-        write_images_with_timestamp(&image_map, guard.filename.clone())
-            .map_err(|e| e)
-            .unwrap();
-
-        drop(guard);
-    }
+    }*/
 
     pub async fn prune_images_from_file(
         &self,
