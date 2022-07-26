@@ -116,8 +116,8 @@ where
         log::info!("Successfully pulled image {}", image);
 
         // TODO: handle err
-        let _image_name_to_id = self.list_images().await?;
-        // TODO: pass into migc
+        let image_name_to_id = self.list_images().await?;
+        self.migc_persistence.record_image_use_timestamp(image.as_str(), false, image_name_to_id).await;
 
         Ok(())
     }
@@ -346,6 +346,8 @@ where
             .with_context(|| {
                 Error::RuntimeOperation(RuntimeOperation::CreateModule(module.name().to_string()))
             })?;
+
+        //self.migc_persistence.record_image_use_timestamp(name_or_id, true, image_name_to_id);
 
         Ok(())
     }
