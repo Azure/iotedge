@@ -19,7 +19,7 @@
                         },
                         "env": {
                             "UpstreamProtocol": {
-                                "value": "mqtt"
+                                "value": "amqp"
                             }
                         }
                     },
@@ -40,7 +40,7 @@
                                 "value": "debug"
                             },
                             "UpstreamProtocol": {
-                                "value": "mqtt"
+                                "value": "amqp"
                             }
                         },
                         "status": "running",
