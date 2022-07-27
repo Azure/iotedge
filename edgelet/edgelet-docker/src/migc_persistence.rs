@@ -64,9 +64,14 @@ impl MIGCPersistence {
 
         // read MIGC persistence file into in-mem map
         // this map now contains all images deployed to the device (through an IoT Edge deployment)
-        let image_map = get_images_with_timestamp(guard.filename.clone())
-            .map_err(|e| e)
-            .unwrap();
+        let image_map = match get_images_with_timestamp(guard.filename.clone()) {
+                Ok(map) => map,
+                Err(e) => {
+                    drop(guard);
+                    log::error!("Could not read auto-prune data; image garbage collection did not prune any images: {}", e);
+                    return HashMap::new();
+                },
+            };
 
         /* ============================== */
 
@@ -77,9 +82,14 @@ impl MIGCPersistence {
         /* ============================== */
 
         // write previously removed entries back to file
-        write_images_with_timestamp(&carry_over, guard.filename.clone())
-            .map_err(|e| e)
-            .unwrap();
+        _ = match write_images_with_timestamp(&carry_over, guard.filename.clone())
+            .map_err(|e| e) {
+                Ok(_) => {},
+                Err(_) => {
+                    // nothing to do: images will still be deleted, but file that tracks LRU images was not updated
+                    // next run will try to delete images that have already been deleted
+                },
+            };
 
         /* ============================== */
 
@@ -99,9 +109,15 @@ impl MIGCPersistence {
 
         // read MIGC persistence file into in-mem map
         // this map now contains all images deployed to the device (through an IoT Edge deployment)
-        let mut image_map = get_images_with_timestamp(guard.filename.clone())
-            .map_err(|e| e)
-            .unwrap();
+
+        let mut image_map = match get_images_with_timestamp(guard.filename.clone()) {
+            Ok(map) => map,
+            Err(e) => {
+                drop(guard);
+                log::error!("Could not read auto-prune data; image garbage collection did not prune any images: {}", e);
+                return;
+            },
+        };
 
         let current_time = std::time::SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -223,10 +239,11 @@ fn write_images_with_timestamp(
         }
     }
 
+    // add retries?
     _ = match fs::rename(temp_file, filename) {
         Ok(_) => Ok(()),
         Err(_) => Err(Error::FileOperation(
-            "Could not rename image persistence file; file may have old state".to_string(),
+            "Could not update auto-prune data; next run may try to delete images that are no longer present on device".to_string(),
         )),
     };
 
