@@ -10,7 +10,7 @@ pub(crate) async fn image_garbage_collect(
     settings: Option<MIGCSettings>,
     runtime: &edgelet_docker::DockerModuleRuntime<http_common::Connector>,
     migc_persistence: MIGCPersistence,
-) -> Result<edgelet_core::WatchdogAction, EdgedError> {
+) -> Result<(), EdgedError> {
     log::info!("Starting MIGC...");
 
     // Run the GC once a day while waiting for any running task

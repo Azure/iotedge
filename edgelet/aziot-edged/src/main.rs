@@ -12,7 +12,7 @@ mod workload_manager;
 
 use std::sync::atomic;
 
-use edgelet_core::{module::ModuleAction, ModuleRuntime};
+use edgelet_core::{module::ModuleAction, ModuleRuntime, WatchdogAction};
 use edgelet_docker::{MIGCPersistence, MakeModuleRuntime};
 use edgelet_settings::RuntimeSettings;
 
@@ -91,7 +91,7 @@ async fn run() -> Result<(), EdgedError> {
     let runtime = edgelet_docker::DockerModuleRuntime::make_runtime(
         &settings,
         create_socket_channel_snd.clone(),
-        migc_persistence,
+        migc_persistence.clone(),
     )
     .await
     .map_err(|err| EdgedError::from_err("Failed to initialize module runtime", err))?;
@@ -152,15 +152,31 @@ async fn run() -> Result<(), EdgedError> {
     // Set signal handlers for SIGTERM and SIGINT.
     set_signal_handlers(watchdog_tx);
 
-    // Run aziot-edged until the shutdown signal is received. This also runs the watchdog periodically.
-    let shutdown_reason = watchdog::run_until_shutdown(
-        settings,
+    let watchdog = watchdog::run_until_shutdown(
+        settings.clone(),
         &device_info,
-        runtime,
+        runtime.clone(),
         &identity_client,
         watchdog_rx,
-    )
-    .await?;
+    );
+    let image_gc = image_gc::image_garbage_collect(
+        settings.module_image_garbage_collection().clone(),
+        &runtime,
+        migc_persistence,
+    );
+
+    let shutdown_reason: WatchdogAction;
+    tokio::select! {
+        watchdog_finished = watchdog => {
+            log::info!("watchdog finished");
+            shutdown_reason = watchdog_finished?;
+        },
+        image_gc_finished = image_gc => {
+            log::error!("MIGC finished unexpectedly");
+            image_gc_finished?;
+            return Err(EdgedError::new("MIGC unexpectedly finished"));
+        }
+    };
 
     log::info!("Stopping management API...");
     management_shutdown
