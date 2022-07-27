@@ -280,7 +280,7 @@ jobs:
     displayName: Mariner 1.0 amd64
 
     pool:
-      name: $(pool.linux.name)
+      name: $(pool.custom.name)
       demands:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
