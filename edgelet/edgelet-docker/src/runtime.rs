@@ -115,9 +115,18 @@ where
 
         log::info!("Successfully pulled image {}", image);
 
-        // TODO: handle err
-        let image_name_to_id = self.list_images().await?;
-        self.migc_persistence.record_image_use_timestamp(image.as_str(), false, image_name_to_id).await;
+        let _ = match self.list_images().await {
+            Ok(image_name_to_id) => {
+                if image_name_to_id.is_empty() {
+                    log::info!("No docker images present on device");
+                } else {
+                    self.migc_persistence
+                        .record_image_use_timestamp(image.as_str(), false, image_name_to_id)
+                        .await;
+                }
+            }
+            Err(_) => log::error!("Could not get list of Docker Images"),
+        };
 
         Ok(())
     }

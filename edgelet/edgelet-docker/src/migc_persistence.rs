@@ -32,8 +32,7 @@ impl MIGCPersistence {
         &self,
         name_or_id: &str,
         is_image_id: bool,
-        // HashMap<image_name, image_id>
-        image_name_to_id: HashMap<String, String>,
+        image_name_to_id: HashMap<String, String>, // HashMap<image_name, image_id>
     ) {
         if is_image_id {
             self.write_image_use_to_file(name_or_id).await;
@@ -44,15 +43,59 @@ impl MIGCPersistence {
                 }
                 None => {
                     log::error!("Could not find image with id: {}", name_or_id);
-                    // bubble error up?
                     return;
                 }
             };
         }
     }
 
+    pub async fn prune_images_from_file(
+        &self,
+        running_modules: std::vec::Vec<(
+            DockerModule<http_common::Connector>,
+            edgelet_core::ModuleRuntimeState,
+        )>,
+    ) -> HashMap<String, Duration> {
+        let settings = self.settings.clone().unwrap();
+        let guard = self
+            .inner
+            .lock()
+            .expect("Could not lock images file for image garbage collection");
+
+        // read MIGC persistence file into in-mem map
+        // this map now contains all images deployed to the device (through an IoT Edge deployment)
+        let image_map = get_images_with_timestamp(guard.filename.clone())
+            .map_err(|e| e)
+            .unwrap();
+
+        /* ============================== */
+
+        // process maps
+        let (images_to_delete, carry_over) =
+            process_state(image_map, running_modules, settings.min_age());
+
+        /* ============================== */
+
+        // write previously removed entries back to file
+        write_images_with_timestamp(&carry_over, guard.filename.clone())
+            .map_err(|e| e)
+            .unwrap();
+
+        /* ============================== */
+
+        drop(guard);
+
+        // these are the images we need to prune; MIGC file has already been updated
+        images_to_delete
+    }
+
+    /* ===================================== HELPER METHODS ==================================== */
+
     async fn write_image_use_to_file(&self, name_or_id: &str) {
-        let guard = self.inner.lock().unwrap();
+        let guard = self
+            .inner
+            .lock()
+            .expect("Could not lock images file for image garbage collection");
 
         // read MIGC persistence file into in-mem map
         // this map now contains all images deployed to the device (through an IoT Edge deployment)
@@ -62,20 +105,18 @@ impl MIGCPersistence {
 
         let current_time = std::time::SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap();
+            .expect("Could not get EPOCH time");
 
         image_map.insert(name_or_id.to_string(), current_time);
 
         // write entries back to file
-        write_images_with_timestamp(&image_map, guard.filename.clone())
-            .map_err(|e| e)
-            .unwrap();
+        _ = write_images_with_timestamp(&image_map, guard.filename.clone());
 
         drop(guard);
     }
 
     /*pub async fn record_image_use_timestamp(&self, name_or_id: &str, is_image_id: bool) {
-        let guard = self.inner.lock().unwrap();
+        let guard = self.inner.lock().expect("Could not lock images file for image garbage collection")
 
         // read MIGC persistence file into in-mem map
         // this map now contains all images deployed to the device (through an IoT Edge deployment)
@@ -85,7 +126,7 @@ impl MIGCPersistence {
 
         let current_time = std::time::SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap();
+            .expect("Could not get EPOCH time");
 
         // We don't know if what has been passed in is the image name or image id
         // Since there's no easy way to know, we read the MIGC file and see if the
@@ -132,53 +173,17 @@ impl MIGCPersistence {
             };
         }
     }*/
-
-    pub async fn prune_images_from_file(
-        &self,
-        running_modules: std::vec::Vec<(
-            DockerModule<http_common::Connector>,
-            edgelet_core::ModuleRuntimeState,
-        )>,
-    ) -> HashMap<String, Duration> {
-        let settings = self.settings.clone().unwrap();
-        let guard = self.inner.lock().unwrap();
-
-        // read MIGC persistence file into in-mem map
-        // this map now contains all images deployed to the device (through an IoT Edge deployment)
-        let image_map = get_images_with_timestamp(guard.filename.clone())
-            .map_err(|e| e)
-            .unwrap();
-
-        /* ============================== */
-
-        // process maps
-        let (images_to_delete, carry_over) =
-            process_state(image_map, running_modules, settings.min_age());
-
-        /* ============================== */
-
-        // write previously removed entries back to file
-        write_images_with_timestamp(&carry_over, guard.filename.clone())
-            .map_err(|e| e)
-            .unwrap();
-
-        /* ============================== */
-
-        drop(guard);
-
-        // these are the images we need to prune; MIGC file has already been updated
-        images_to_delete
-    }
 }
 
 fn get_images_with_timestamp(filename: String) -> Result<HashMap<String, Duration>, Error> {
     let res = fs::read_to_string(filename);
     if res.is_err() {
-        log::error!("Could not read MIGC store");
-        return Err(Error::Dummy());
+        let msg = "Could not read image persistence data";
+        log::error!("{}", msg);
+        return Err(Error::FileOperation(msg.to_string()));
     }
 
-    let contents = res.unwrap();
+    let contents = res.expect("Reading image persistence data failed");
 
     let mut image_map: HashMap<String, Duration> = HashMap::new(); // all images in MIGC store
 
@@ -199,23 +204,31 @@ fn write_images_with_timestamp(
     state_to_persist: &HashMap<String, Duration>,
     filename: String,
 ) -> Result<(), Error> {
-    // instead of deleting existing entries from file, we just recreate it
-    // TODO: handle synchronization
-    let mut file = std::fs::File::create(filename).unwrap();
+    // write to a temp file and then rename/overwrite to image persistence file
+    let temp_file = "/tmp/images.txt";
+    let mut file =
+        std::fs::File::create(temp_file).expect("Could not create images.txt under /tmp");
 
     for (key, value) in state_to_persist {
         let image_details = format!("{} {:?}\n", key, value);
         let res = write!(file, "{}", image_details);
         if res.is_err() {
             let msg = format!(
-                "Could not write image:{} with timestamp:{} to MIGC store",
+                "Could not write image:{} with timestamp:{} to store",
                 key,
                 value.as_secs()
             );
             log::error!("{}", msg);
-            return Err(Error::Dummy());
+            return Err(Error::FileOperation(msg.to_string()));
         }
     }
+
+    _ = match fs::rename(temp_file, filename) {
+        Ok(_) => Ok(()),
+        Err(_) => Err(Error::FileOperation(
+            "Could not rename image persistence file; file may have old state".to_string(),
+        )),
+    };
 
     Ok(())
 }
@@ -230,17 +243,21 @@ fn process_state(
 ) -> (HashMap<String, Duration>, HashMap<String, Duration>) {
     let current_time = std::time::SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .unwrap();
+        .expect("Could not get EPOCH time");
 
     let mut carry_over: HashMap<String, Duration> = HashMap::new(); // all images to NOT be deleted by MIGC in this run
 
     // then, based on ID, keep track of images currently being used (in map: carry_over)
     for module in running_modules {
-        let key = module.0.config().image_hash();
+        let key = module
+            .0
+            .config()
+            .image_hash()
+            .expect("Could not get image id from module");
 
         // Since the images are currently being used, we update the timestamp to the current time
         // This avoids the case where a container crash just as MIGC is kicking off removes a needed image
-        carry_over.insert(key.unwrap().to_string(), current_time);
+        carry_over.insert(key.to_string(), current_time);
     }
 
     // track entries younger than min age

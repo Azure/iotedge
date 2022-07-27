@@ -25,6 +25,6 @@ pub enum Error {
     #[error("runtime operation error: {0}")]
     RuntimeOperation(RuntimeOperation),
 
-    #[error("")]
-    Dummy(),
+    #[error("file operation error: {0}")]
+    FileOperation(String),
 }
