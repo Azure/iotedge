@@ -84,8 +84,9 @@ async fn run() -> Result<(), EdgedError> {
     let (create_socket_channel_snd, create_socket_channel_rcv) =
         tokio::sync::mpsc::unbounded_channel::<ModuleAction>();
 
+    let migc_filename = settings.homedir().join("migc");
     let migc_persistence = MIGCPersistence::new(
-        "".to_string(),
+        migc_filename.to_str().unwrap().into(),
         settings.module_image_garbage_collection().clone(),
     );
     let runtime = edgelet_docker::DockerModuleRuntime::make_runtime(
