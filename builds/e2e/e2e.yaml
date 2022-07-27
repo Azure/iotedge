@@ -292,7 +292,7 @@ jobs:
       os: linux
       arch: amd64
       artifactName: iotedged-mariner1-amd64
-      identityServiceArtifactName: packages_mariner-1_x86_64
+      identityServiceArtifactName: packages_mariner-1_amd64
       identityServicePackageFilter: aziot-identity-service-*.cm1.x86_64.rpm
 
     steps:
