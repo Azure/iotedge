@@ -54,7 +54,7 @@ usage() {
     echo " -v, --image-version  Docker Image Version. Either use this option or set env variable BUILD_BUILDNUMBER"
     echo " -t, --target-arch    Target architecture (default: uname -m)"
     echo "--bin-dir             Directory containing the output binaries. Either use this option or set env variable BUILD_BINARIESDIRECTORY"
-    echo "--source-map          Path to the JSON file that maps Dockerfile image sources to their replacements. Assumes the tool 'dockersource' is in the PATH"
+    echo "--source-map          Path to the JSON file that maps Dockerfile image sources to their replacements. Assumes the tool 'gnarly' is in the PATH"
     echo "--skip-push           Build images, but don't push them"
     exit 1
 }
@@ -155,8 +155,8 @@ process_args() {
         print_help_and_exit
     fi
 
-    if [[ -n "$SOURCE_MAP" ]] && ! command -v dockersource > /dev/null; then
-        echo "--source-map specified, but required tool 'dockersource' not found in PATH"
+    if [[ -n "$SOURCE_MAP" ]] && ! command -v gnarly > /dev/null; then
+        echo "--source-map specified, but required tool 'gnarly' not found in PATH"
         print_help_and_exit
     fi
 
@@ -209,7 +209,7 @@ docker_build_and_tag_and_push() {
     fi
 
     if [[ -n "$SOURCE_MAP" ]]; then
-        build_context=$(dockersource --mod-config $SOURCE_MAP $dockerfile)
+        build_context=$(gnarly --mod-config $SOURCE_MAP $dockerfile)
     fi
 
     docker buildx build \
