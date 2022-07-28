@@ -1,5 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::time::Duration;
+
 use edgelet_core::{ModuleRegistry, ModuleRuntime};
 use edgelet_docker::MIGCPersistence;
 use edgelet_settings::base::image::MIGCSettings;
@@ -12,6 +14,8 @@ pub(crate) async fn image_garbage_collect(
     migc_persistence: MIGCPersistence,
 ) -> Result<(), EdgedError> {
     log::info!("Starting image auto-pruning task...");
+
+    tokio::time::sleep(Duration::from_secs(5)).await;
 
     let settings = match settings {
         Some(parsed) => parsed,

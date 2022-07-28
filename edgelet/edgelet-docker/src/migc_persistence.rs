@@ -191,9 +191,9 @@ impl MIGCPersistence {
 
 fn get_images_with_timestamp(filename: String) -> Result<HashMap<String, Duration>, Error> {
     let res = fs::read_to_string(filename);
-    if res.is_err() {
-        let msg = "Could not read image persistence data";
-        log::error!("{}", msg);
+    if let Err(e) = res {
+        let msg = format!("Could not read image persistence data: {}", e);
+        log::error!("{msg}");
         return Err(Error::FileOperation(msg.to_string()));
     }
 
@@ -224,7 +224,7 @@ fn write_images_with_timestamp(
         std::fs::File::create(temp_file).expect("Could not create images.txt under /tmp");
 
     for (key, value) in state_to_persist {
-        let image_details = format!("{} {:?}\n", key, value);
+        let image_details = format!("{} {}\n", key, value.as_secs());
         let res = write!(file, "{}", image_details);
         if res.is_err() {
             let msg = format!(
