@@ -1,7 +1,9 @@
 [package]
 name = "iotedged"
-version = "0.1.0"
+version = "1.1.15"
 authors = ["Azure IoT Edge Devs"]
+homepage = "https://github.com/azure/iotedge"
+license = "MIT"
 publish = false
 edition = "2018"
 
