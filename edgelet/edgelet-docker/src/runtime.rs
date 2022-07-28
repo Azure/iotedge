@@ -126,7 +126,7 @@ where
                         .await;
                 }
             }
-            Err(_) => log::error!("Could not get list of Docker Images"),
+            Err(e) => log::error!("Could not get list of Docker Images: {}", e),
         };
 
         Ok(())
@@ -728,19 +728,15 @@ where
     }
 
     async fn list_images(&self) -> anyhow::Result<HashMap<String, String>> {
-        let images_list = self
+        let images = self
             .client
             .images_list(false, "", false)
             .await
             .context(Error::Docker)
-            .map_err(|e| {
-                log::error!("{:?}", e);
-                e
-            })
-            .unwrap();
+            .context(Error::RuntimeOperation(RuntimeOperation::ListImages))?;
 
         let mut result: HashMap<String, String> = HashMap::new();
-        for image in images_list {
+        for image in images {
             // a call to underlying docker API /images/json returns the image list with
             // the ID of each image in the form: "sha256:e216a057b1cb1efc11f8a268f37ef62083e70b1b38323ba252e25ac88904a7e8"
             // The following code skips the "sha256:" part, and takes the first 12 characters
