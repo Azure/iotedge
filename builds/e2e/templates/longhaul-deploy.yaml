@@ -34,6 +34,7 @@ parameters:
   test.deploymentFileName: ''
   testResultCoordinator.storageAccountConnectionString: ''
   clientModuleTransportType: ''
+  packageType: 'deb'
 
 steps:
   - task: Bash@3
@@ -135,6 +136,7 @@ steps:
             -testInfo "$testInfo" \
             -testStartDelay "${{ parameters['test.startDelay'] }}" \
             -runtimeLogLevel "${{ parameters['test.runtimeLogLevel'] }}" \
+            -packageType "${{ parameters['packageType'] }}" \
             -cleanAll
         fi
       workingDirectory: "$(Agent.HomeDirectory)/.."

@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
                         "sudo systemctl daemon-reload"
                     },
-                    _ => throw new NotImplementedException($"RPM packaging is set up only for Centos and RHEL, current OS '.{this.os}'"),
+                    _ => throw new NotImplementedException($"RPM packaging is set up only for Centos, Mariner, and RHEL, current OS '.{this.os}'"),
                 },
                 _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.packageExtension}'"),
             };
