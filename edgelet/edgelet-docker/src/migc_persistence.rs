@@ -10,21 +10,19 @@ use crate::{DockerModule, Error};
 
 #[derive(Debug, Clone)]
 struct MIGCPersistenceInner {
-    // TODO: Determine if we need to read from homedir to make it configurable
     filename: String,
+    settings: Option<MIGCSettings>,
 }
 
 #[derive(Debug, Clone)]
 pub struct MIGCPersistence {
     inner: Arc<Mutex<MIGCPersistenceInner>>,
-    settings: Option<MIGCSettings>,
 }
 
 impl MIGCPersistence {
     pub fn new(filename: String, settings: Option<MIGCSettings>) -> Self {
         Self {
-            inner: Arc::new(Mutex::new(MIGCPersistenceInner { filename })),
-            settings,
+            inner: Arc::new(Mutex::new(MIGCPersistenceInner { filename, settings })),
         }
     }
 
@@ -57,11 +55,12 @@ impl MIGCPersistence {
             edgelet_core::ModuleRuntimeState,
         )>,
     ) -> HashMap<String, Duration> {
-        let settings = self.settings.clone().unwrap();
         let guard = self
             .inner
             .lock()
             .expect("Could not lock images file for image garbage collection");
+
+        let settings = guard.settings.clone().unwrap();
 
         // read MIGC persistence file into in-mem map
         // this map now contains all images deployed to the device (through an IoT Edge deployment)
