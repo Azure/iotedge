@@ -11,22 +11,23 @@ pub(crate) async fn image_garbage_collect(
     runtime: &edgelet_docker::DockerModuleRuntime<http_common::Connector>,
     migc_persistence: MIGCPersistence,
 ) -> Result<(), EdgedError> {
-    log::info!("Starting MIGC...");
+    log::info!("Starting image auto-pruning task...");
 
-    // Run the GC once a day while waiting for any running task
-    // let gc_period = std::time::Duration::from_secs(86400);
-
-    // let mut gc_timer = tokio::time::interval(gc_period);
-    // gc_timer.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
-
-    // TODO: fix unwrap
-    let settings = settings.unwrap();
+    let settings = match settings {
+        Some(parsed) => parsed,
+        None => {
+            return Err(EdgedError::new(format!("Could not start Image auto-pruning task; contaier images will not be cleaned up automatically")));
+        }
+    };
 
     loop {
         tokio::time::sleep(settings.time_between_cleanup()).await;
 
         if let Err(err) = garbage_collector(runtime, migc_persistence.clone()).await {
-            return Err(EdgedError::new(format!("Error in MIGC: {}", err)));
+            return Err(EdgedError::new(format!(
+                "Error in image auto-pruning task: {}",
+                err
+            )));
         }
     }
 }
@@ -40,7 +41,15 @@ async fn garbage_collector(
     // track images associated with extant containers
 
     // first get list of containers on the device, running or otherwise
-    let running_modules = ModuleRuntime::list_with_details(runtime).await.unwrap();
+    let running_modules = match ModuleRuntime::list_with_details(runtime).await {
+        Ok(modules) => modules,
+        Err(err) => {
+            return Err(EdgedError::new(format!(
+                "Error in image auto-pruning task: {}; skipping run",
+                err
+            )));
+        }
+    };
 
     let image_map = migc_persistence
         .prune_images_from_file(running_modules)

@@ -65,13 +65,13 @@ impl MIGCPersistence {
         // read MIGC persistence file into in-mem map
         // this map now contains all images deployed to the device (through an IoT Edge deployment)
         let image_map = match get_images_with_timestamp(guard.filename.clone()) {
-                Ok(map) => map,
-                Err(e) => {
-                    drop(guard);
-                    log::error!("Could not read auto-prune data; image garbage collection did not prune any images: {}", e);
-                    return HashMap::new();
-                },
-            };
+            Ok(map) => map,
+            Err(e) => {
+                drop(guard);
+                log::error!("Could not read auto-prune data; image garbage collection did not prune any images: {}", e);
+                return HashMap::new();
+            }
+        };
 
         /* ============================== */
 
@@ -82,14 +82,13 @@ impl MIGCPersistence {
         /* ============================== */
 
         // write previously removed entries back to file
-        _ = match write_images_with_timestamp(&carry_over, guard.filename.clone())
-            .map_err(|e| e) {
-                Ok(_) => {},
-                Err(_) => {
-                    // nothing to do: images will still be deleted, but file that tracks LRU images was not updated
-                    // next run will try to delete images that have already been deleted
-                },
-            };
+        _ = match write_images_with_timestamp(&carry_over, guard.filename.clone()).map_err(|e| e) {
+            Ok(_) => {}
+            Err(_) => {
+                // nothing to do: images will still be deleted, but file that tracks LRU images was not updated
+                // next run will try to delete images that have already been deleted
+            }
+        };
 
         /* ============================== */
 
@@ -116,7 +115,7 @@ impl MIGCPersistence {
                 drop(guard);
                 log::error!("Could not read auto-prune data; image garbage collection did not prune any images: {}", e);
                 return;
-            },
+            }
         };
 
         let current_time = std::time::SystemTime::now()
