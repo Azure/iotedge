@@ -35,7 +35,8 @@ impl MIGCPersistence {
         image_name_to_id: HashMap<String, String>, // HashMap<image_name, image_id>
     ) {
         if is_image_id {
-            self.write_image_use_to_file(name_or_id).await;
+            let id: String = name_or_id.chars().skip(7).take(12).collect();
+            self.write_image_use_to_file(&id).await;
         } else {
             let _ = match image_name_to_id.get(name_or_id) {
                 Some(id) => {
@@ -273,6 +274,8 @@ fn process_state(
 
         // Since the images are currently being used, we update the timestamp to the current time
         // This avoids the case where a container crash just as MIGC is kicking off removes a needed image
+
+        // TODO: Do we need to trim the key here?
         carry_over.insert(key.to_string(), current_time);
     }
 
