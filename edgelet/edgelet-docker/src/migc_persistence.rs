@@ -8,7 +8,7 @@ use edgelet_settings::base::image::MIGCSettings;
 
 use crate::{DockerModule, Error};
 
-const TEMP_FILE: &str = "/tmp/images.txt";
+const TEMP_FILE: &str = "/tmp/images";
 
 #[derive(Debug, Clone)]
 struct MIGCPersistenceInner {
@@ -35,8 +35,7 @@ impl MIGCPersistence {
         image_name_to_id: HashMap<String, String>, // HashMap<image_name, image_id>
     ) {
         if is_image_id {
-            let id: String = name_or_id.chars().skip(7).take(12).collect();
-            self.write_image_use_to_file(&id).await;
+            self.write_image_use_to_file(&name_or_id).await;
         } else {
             let _ = match image_name_to_id.get(name_or_id) {
                 Some(id) => {
@@ -84,7 +83,13 @@ impl MIGCPersistence {
         /* ============================== */
 
         // write previously removed entries back to file
-        _ = match write_images_with_timestamp(&carry_over, guard.filename.clone()).map_err(|e| e) {
+        _ = match write_images_with_timestamp(
+            &carry_over,
+            TEMP_FILE.to_string(),
+            guard.filename.clone(),
+        )
+        .map_err(|e| e)
+        {
             Ok(_) => {}
             Err(_) => {
                 // nothing to do: images will still be deleted, but file that tracks LRU images was not updated
@@ -127,7 +132,7 @@ impl MIGCPersistence {
         image_map.insert(name_or_id.to_string(), current_time);
 
         // write entries back to file
-        _ = write_images_with_timestamp(&image_map, guard.filename.clone());
+        _ = write_images_with_timestamp(&image_map, TEMP_FILE.to_string(), guard.filename.clone());
 
         drop(guard);
     }
@@ -165,7 +170,7 @@ fn write_images_with_timestamp(
 ) -> Result<(), Error> {
     // write to a temp file and then rename/overwrite to image persistence file
     let mut file =
-        std::fs::File::create(TEMP_FILE).expect("Could not create images.txt under /tmp");
+        std::fs::File::create(temp_file.clone()).expect("Could not create images under /tmp");
 
     for (key, value) in state_to_persist {
         let image_details = format!("{} {}\n", key, value.as_secs());
@@ -182,7 +187,7 @@ fn write_images_with_timestamp(
     }
 
     // add retries?
-    _ = match fs::rename(TEMP_FILE, filename) {
+    _ = match fs::rename(temp_file, filename) {
         Ok(_) => {},
         Err(_) => return Err(Error::FileOperation(
             "Could not update auto-prune data; next run may try to delete images that are no longer present on device".to_string(),
@@ -238,17 +243,74 @@ fn process_state(
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::{collections::HashMap, time::Duration};
+
+    use crate::migc_persistence::get_images_with_timestamp;
 
     use super::write_images_with_timestamp;
 
-    const TEMP_FILE: &str = "/tmp/images.txt";
+    const TEMP_FILE: &str = "/tmp/images";
 
     #[test]
-    fn test_write_images_with_timestamp() {
-        let result = write_images_with_timestamp(&HashMap::new(), "/etc/other_file.txt".to_string(), "/tmp/migc".to_string());
-        if result.is_err() {
-            print!("ERROR");
-        } else { print!("NO ERROR");}
+    #[should_panic]
+    fn test_panic_write_images_with_timestamp() {
+        let mut result = write_images_with_timestamp(
+            &HashMap::new(),
+            "/etc/other_file".to_string(),
+            TEMP_FILE.to_string(),
+        );
+        assert!(result.is_err());
+
+        result = write_images_with_timestamp(
+            &HashMap::new(),
+            TEMP_FILE.to_string(),
+            "/etc/other_file".to_string(),
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_file_rename_write_images_with_timestamp() {
+        let result = write_images_with_timestamp(
+            &HashMap::new(),
+            TEMP_FILE.to_string(),
+            "/tmp/images2".to_string(),
+        );
+        assert!(result.is_ok());
+        assert!(std::path::Path::new("/tmp/images2").exists());
+
+        // cleanup
+        _ = std::fs::remove_file("/tmp/images2");
+    }
+
+    #[test]
+    // tests both get_images_with_timestamp() and write_images_with_timestamp()
+    fn test_get_write_images_with_timestamp() {
+        let current_time = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("Could not get EPOCH time");
+
+        let mut hash_map: HashMap<String, Duration> = HashMap::new();
+        hash_map.insert("test1".to_string(), current_time);
+        hash_map.insert("test2".to_string(), current_time);
+        hash_map.insert("test3".to_string(), current_time);
+
+        let result = write_images_with_timestamp(
+            &hash_map,
+            TEMP_FILE.to_string(),
+            "/tmp/images2".to_string(),
+        );
+        assert!(result.is_ok());
+
+        // assert file not empty, verify file write
+        let result_map: HashMap<String, Duration> =
+            get_images_with_timestamp("/tmp/images2".to_string()).unwrap();
+        assert!(result_map.len() == 3);
+        assert!(result_map.contains_key(&"test1".to_string()));
+        assert!(result_map.contains_key(&"test2".to_string()));
+        assert!(result_map.contains_key(&"test3".to_string()));
+
+        // cleanup
+        _ = std::fs::remove_file("/tmp/images2");
     }
 }
