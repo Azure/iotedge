@@ -749,6 +749,7 @@ where
             // the ID of each image in the form: "sha256:e216a057b1cb1efc11f8a268f37ef62083e70b1b38323ba252e25ac88904a7e8"
             // The following code skips the "sha256:" part, and takes the first 12 characters
             // (to match with the image id we see when we run 'docker images')
+            // TODO: remove
             let image_id: String = image.id().clone().chars().skip(7).take(12).collect();
 
             // an individual image id may be associated with multiple image names

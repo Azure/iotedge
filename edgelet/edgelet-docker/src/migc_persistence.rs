@@ -40,6 +40,7 @@ impl MIGCPersistence {
         }
     }
 
+    // TODO: simplify to just take id. Consider making write_image_use_to_file public.
     pub async fn record_image_use_timestamp(
         &self,
         name_or_id: &str,
