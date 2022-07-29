@@ -116,7 +116,7 @@ where
         log::info!("Successfully pulled image {}", image);
 
         // Now, get the image_id of the image we just pulled for auto-pruning in future
-        let _ = match self.list_images().await {
+        match self.list_images().await {
             Ok(image_name_to_id) => {
                 if image_name_to_id.is_empty() {
                     log::info!("No docker images present on device");
@@ -126,7 +126,7 @@ where
                         .await;
                 }
             }
-            Err(e) => log::error!("Could not get list of Docker Images: {}", e),
+            Err(e) => log::error!("Could not get list of docker images: {}", e),
         };
 
         Ok(())
