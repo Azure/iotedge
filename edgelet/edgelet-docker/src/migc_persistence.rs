@@ -13,7 +13,7 @@ const TEMP_FILE: &str = "/tmp/images";
 #[derive(Debug, Clone)]
 struct MIGCPersistenceInner {
     filename: String,
-    settings: Option<MIGCSettings>,
+    settings: MIGCSettings,
 }
 
 #[derive(Debug, Clone)]
@@ -23,8 +23,14 @@ pub struct MIGCPersistence {
 
 impl MIGCPersistence {
     pub fn new(filename: String, settings: Option<MIGCSettings>) -> Self {
+        // TODO: if no migc settings are generated, it means MIGC should be disabled.
+        // For now I am unwrapping settings, but when we add enabled / disabled flag,
+        // we need to create a MIGCSettings instance that is disabled.
         Self {
-            inner: Arc::new(Mutex::new(MIGCPersistenceInner { filename, settings })),
+            inner: Arc::new(Mutex::new(MIGCPersistenceInner {
+                filename,
+                settings: settings.unwrap(),
+            })),
         }
     }
 
@@ -48,26 +54,28 @@ impl MIGCPersistence {
         }
     }
 
-    /// # Panics
     pub async fn prune_images_from_file(
         &self,
         running_modules: std::vec::Vec<(
             DockerModule<http_common::Connector>,
             edgelet_core::ModuleRuntimeState,
         )>,
-    ) -> HashMap<String, Duration> {
+    ) -> Result<HashMap<String, Duration>, Error> {
         let guard = self.inner.lock().unwrap();
 
-        let settings = guard.settings.clone().unwrap();
+        // TODO: If MIGC is disabled we need to not execute. Add check for whether MIGC is disabled and skip logic if so.
+        let settings = guard.settings.clone();
 
-        // read MIGC persistence file into in-mem map
-        // this map now contains all images deployed to the device (through an IoT Edge deployment)
+        // Read MIGC persistence file into in-mem map. This map now contains
+        // all images deployed to the device (through an IoT Edge deployment).
+        // If MIGC persistence file cannot be read we will return a new map so
+        // new MIGC persistence file will be created.
         let image_map = match get_images_with_timestamp(guard.filename.clone()) {
             Ok(map) => map,
             Err(e) => {
                 drop(guard);
-                log::error!("Could not read auto-prune data; image garbage collection did not prune any images: {}", e);
-                return HashMap::new();
+                log::error!("Could not read image auto-prune data. Image garbage collection did not prune any images. {}", e);
+                return Ok(HashMap::new());
             }
         };
 
@@ -75,21 +83,15 @@ impl MIGCPersistence {
 
         // process maps
         let (images_to_delete, carry_over) =
-            process_state(image_map, running_modules, settings.min_age());
+            process_state(image_map, running_modules, settings.min_age())?;
 
         /* ============================== */
 
         // write previously removed entries back to file
-        match write_images_with_timestamp(
-            &carry_over,
-            TEMP_FILE.to_string(),
-            guard.filename.clone(),
-        ) {
-            Err(_) | Ok(_) => {
-                // nothing to do: images will still be deleted even on Err(), but file
-                // that tracks LRU images was not updated
-                // next run will try to delete images that have already been deleted
-            }
+        if let Err(e) =
+            write_images_with_timestamp(&carry_over, TEMP_FILE.to_string(), guard.filename.clone())
+        {
+            log::error!("Failed to update image auto pruning persistence file. File will be updated on next scheduled run. {}", e)
         };
 
         /* ============================== */
@@ -97,7 +99,7 @@ impl MIGCPersistence {
         drop(guard);
 
         // these are the images we need to prune; MIGC file has already been updated
-        images_to_delete
+        Ok(images_to_delete)
     }
 
     /* ===================================== HELPER METHODS ==================================== */
@@ -177,7 +179,6 @@ fn write_images_with_timestamp(
                 key,
                 value.as_secs()
             );
-            log::error!("{}", msg);
             return Err(Error::FileOperation(msg));
         }
     }
@@ -200,10 +201,10 @@ fn process_state(
         edgelet_core::ModuleRuntimeState,
     )>,
     min_age: Duration,
-) -> (HashMap<String, Duration>, HashMap<String, Duration>) {
+) -> Result<(HashMap<String, Duration>, HashMap<String, Duration>), Error> {
     let current_time = std::time::SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .expect("Could not get EPOCH time");
+        .map_err(|e| Error::GetCurrentTimeEpoch(e))?;
 
     let mut carry_over: HashMap<String, Duration> = HashMap::new(); // all images to NOT be deleted by MIGC in this run
 
@@ -213,7 +214,7 @@ fn process_state(
             .0
             .config()
             .image_hash()
-            .expect("Could not get image id from module");
+            .ok_or(Error::GetImageHash())?;
 
         // Since the images are currently being used, we update the timestamp to the current time
         // This avoids the case where a container crash just as MIGC is kicking off removes a needed image
@@ -234,7 +235,7 @@ fn process_state(
         image_map.remove(key);
     }
 
-    (image_map, carry_over)
+    Ok((image_map, carry_over))
 }
 
 #[cfg(test)]

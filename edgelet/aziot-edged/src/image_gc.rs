@@ -25,14 +25,14 @@ pub(crate) async fn image_garbage_collect(
     };
 
     loop {
-        tokio::time::sleep(settings.time_between_cleanup()).await;
-
         if let Err(err) = garbage_collector(runtime, migc_persistence.clone()).await {
             return Err(EdgedError::new(format!(
                 "Error in image auto-pruning task: {}",
                 err
             )));
         }
+
+        tokio::time::sleep(settings.time_between_cleanup()).await;
     }
 }
 
@@ -49,7 +49,7 @@ async fn garbage_collector(
         Ok(modules) => modules,
         Err(err) => {
             return Err(EdgedError::new(format!(
-                "Error in image auto-pruning task: {}; skipping run",
+                "Error in image auto-pruning task. Cannot get running modules. Skipping image auto pruning. {}",
                 err
             )));
         }
@@ -57,7 +57,13 @@ async fn garbage_collector(
 
     let image_map = migc_persistence
         .prune_images_from_file(running_modules)
-        .await;
+        .await
+        .map_err(|e| {
+            EdgedError::from_err(
+                "Module image garbage collection failed to prune images from file.",
+                e,
+            )
+        })?;
 
     // delete images
     for key in image_map.keys() {

@@ -18,7 +18,6 @@ where
     M: edgelet_core::ModuleRuntime + Clone + Send + Sync + 'static,
     <M as edgelet_core::ModuleRuntime>::Config: serde::de::DeserializeOwned + Sync,
 {
-    tokio::time::sleep(Duration::from_secs(5)).await;
     let socket = settings.listen().management_uri();
 
     let connector = http_common::Connector::new(socket)

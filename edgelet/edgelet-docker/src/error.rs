@@ -1,5 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::time::SystemTimeError;
+
 use edgelet_core::{ModuleOperation, RegistryOperation, RuntimeOperation};
 
 #[derive(Debug, thiserror::Error)]
@@ -27,4 +29,10 @@ pub enum Error {
 
     #[error("file operation error: {0}")]
     FileOperation(String),
+
+    #[error("failed to calculate current time epoch: {0}")]
+    GetCurrentTimeEpoch(SystemTimeError),
+
+    #[error("attempted to get image hash but was nonexistent.")]
+    GetImageHash(),
 }
