@@ -364,7 +364,11 @@ where
         // update image use timestamp for auto-pruning job later
         self.migc_persistence
             .record_image_use_timestamp(
-                module_with_details.0.config().image_hash().unwrap(),
+                module_with_details
+                    .0
+                    .config()
+                    .image_hash()
+                    .ok_or(Error::GetImageHash())?,
                 true,
                 HashMap::new(),
             )
@@ -520,7 +524,11 @@ where
     async fn remove(&self, id: &str) -> anyhow::Result<()> {
         // get the image id of the image associated with the module we want to delete
         let module_with_details = self.get(id).await?;
-        let image_id = module_with_details.0.config().image_hash().unwrap();
+        let image_id = module_with_details
+            .0
+            .config()
+            .image_hash()
+            .ok_or(Error::GetImageHash())?;
 
         log::info!("Removing module {}...", id);
 
