@@ -11,10 +11,10 @@ pub struct MIGCSettings {
 
 impl MIGCSettings {
     pub fn time_between_cleanup(&self) -> Duration {
-        self.time_between_cleanup.clone()
+        self.time_between_cleanup
     }
 
     pub fn min_age(&self) -> Duration {
-        self.min_age.clone()
+        self.min_age
     }
 }

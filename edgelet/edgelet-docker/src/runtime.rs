@@ -745,7 +745,7 @@ where
 
             // an individual image id may be associated with multiple image names
             for name in image.repo_tags() {
-                result.insert(name.to_owned(), image_id.clone());
+                result.insert(name.clone(), image_id.clone());
             }
         }
 

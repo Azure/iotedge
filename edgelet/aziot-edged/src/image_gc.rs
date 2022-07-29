@@ -20,7 +20,7 @@ pub(crate) async fn image_garbage_collect(
     let settings = match settings {
         Some(parsed) => parsed,
         None => {
-            return Err(EdgedError::new(format!("Could not start Image auto-pruning task; contaier images will not be cleaned up automatically")));
+            return Err(EdgedError::new("Could not start Image auto-pruning task; contaier images will not be cleaned up automatically".to_string()));
         }
     };
 

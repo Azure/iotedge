@@ -35,20 +35,20 @@ impl MIGCPersistence {
         image_name_to_id: HashMap<String, String>, // HashMap<image_name, image_id>
     ) {
         if is_image_id {
-            self.write_image_use_to_file(&name_or_id).await;
+            self.write_image_use_to_file(name_or_id).await;
         } else {
-            let _ = match image_name_to_id.get(name_or_id) {
+            match image_name_to_id.get(name_or_id) {
                 Some(id) => {
                     return self.write_image_use_to_file(id).await;
                 }
                 None => {
                     log::error!("Could not find image with id: {}", name_or_id);
-                    return;
                 }
             };
         }
     }
 
+    /// # Panics
     pub async fn prune_images_from_file(
         &self,
         running_modules: std::vec::Vec<(
@@ -56,10 +56,7 @@ impl MIGCPersistence {
             edgelet_core::ModuleRuntimeState,
         )>,
     ) -> HashMap<String, Duration> {
-        let guard = self
-            .inner
-            .lock()
-            .expect("Could not lock images file for image garbage collection");
+        let guard = self.inner.lock().unwrap();
 
         let settings = guard.settings.clone().unwrap();
 
@@ -83,16 +80,14 @@ impl MIGCPersistence {
         /* ============================== */
 
         // write previously removed entries back to file
-        _ = match write_images_with_timestamp(
+        match write_images_with_timestamp(
             &carry_over,
             TEMP_FILE.to_string(),
             guard.filename.clone(),
-        )
-        .map_err(|e| e)
-        {
-            Ok(_) => {}
-            Err(_) => {
-                // nothing to do: images will still be deleted, but file that tracks LRU images was not updated
+        ) {
+            Err(_) | Ok(_) => {
+                // nothing to do: images will still be deleted even on Err(), but file
+                // that tracks LRU images was not updated
                 // next run will try to delete images that have already been deleted
             }
         };
@@ -132,7 +127,8 @@ impl MIGCPersistence {
         image_map.insert(name_or_id.to_string(), current_time);
 
         // write entries back to file
-        _ = write_images_with_timestamp(&image_map, TEMP_FILE.to_string(), guard.filename.clone());
+        let _res =
+            write_images_with_timestamp(&image_map, TEMP_FILE.to_string(), guard.filename.clone());
 
         drop(guard);
     }
@@ -143,7 +139,7 @@ fn get_images_with_timestamp(filename: String) -> Result<HashMap<String, Duratio
     if let Err(e) = res {
         let msg = format!("Could not read image persistence data: {}", e);
         log::error!("{msg}");
-        return Err(Error::FileOperation(msg.to_string()));
+        return Err(Error::FileOperation(msg));
     }
 
     let contents = res.expect("Reading image persistence data failed");
@@ -182,12 +178,12 @@ fn write_images_with_timestamp(
                 value.as_secs()
             );
             log::error!("{}", msg);
-            return Err(Error::FileOperation(msg.to_string()));
+            return Err(Error::FileOperation(msg));
         }
     }
 
     // add retries?
-    _ = match fs::rename(temp_file, filename) {
+    match fs::rename(temp_file, filename) {
         Ok(_) => {},
         Err(_) => return Err(Error::FileOperation(
             "Could not update auto-prune data; next run may try to delete images that are no longer present on device".to_string(),
@@ -280,7 +276,7 @@ mod tests {
         assert!(std::path::Path::new("/tmp/images2").exists());
 
         // cleanup
-        _ = std::fs::remove_file("/tmp/images2");
+        let _res = std::fs::remove_file("/tmp/images2");
     }
 
     #[test]
@@ -311,6 +307,6 @@ mod tests {
         assert!(result_map.contains_key(&"test3".to_string()));
 
         // cleanup
-        _ = std::fs::remove_file("/tmp/images2");
+        let _res = std::fs::remove_file("/tmp/images2");
     }
 }
