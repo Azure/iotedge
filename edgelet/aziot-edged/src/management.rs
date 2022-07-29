@@ -1,7 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::time::Duration;
-
 use edgelet_settings::uri::Listen;
 
 use crate::error::Error as EdgedError;

@@ -26,10 +26,16 @@ impl MIGCPersistence {
         // TODO: if no migc settings are generated, it means MIGC should be disabled.
         // For now I am unwrapping settings, but when we add enabled / disabled flag,
         // we need to create a MIGCSettings instance that is disabled.
+
+        let settings = match settings {
+            Some(settings) => settings,
+            None => MIGCSettings::new(Duration::MAX, Duration::MAX, false),
+        };
+
         Self {
             inner: Arc::new(Mutex::new(MIGCPersistenceInner {
                 filename,
-                settings: settings.unwrap(),
+                settings: settings,
             })),
         }
     }
@@ -63,8 +69,12 @@ impl MIGCPersistence {
     ) -> Result<HashMap<String, Duration>, Error> {
         let guard = self.inner.lock().unwrap();
 
-        // TODO: If MIGC is disabled we need to not execute. Add check for whether MIGC is disabled and skip logic if so.
         let settings = guard.settings.clone();
+
+        // if migc is disabled then shouldn't remove anything
+        if !settings.is_enabled() {
+            return Ok(HashMap::new());
+        }
 
         // Read MIGC persistence file into in-mem map. This map now contains
         // all images deployed to the device (through an IoT Edge deployment).
