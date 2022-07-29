@@ -8,6 +8,8 @@ use edgelet_settings::base::image::MIGCSettings;
 
 use crate::{DockerModule, Error};
 
+const TEMP_FILE: &str = "/tmp/images.txt";
+
 #[derive(Debug, Clone)]
 struct MIGCPersistenceInner {
     filename: String,
@@ -129,65 +131,6 @@ impl MIGCPersistence {
 
         drop(guard);
     }
-
-    /*pub async fn record_image_use_timestamp(&self, name_or_id: &str, is_image_id: bool) {
-        let guard = self.inner.lock().expect("Could not lock images file for image garbage collection")
-
-        // read MIGC persistence file into in-mem map
-        // this map now contains all images deployed to the device (through an IoT Edge deployment)
-        let mut image_map = get_images_with_timestamp(guard.filename.clone())
-            .map_err(|e| e)
-            .unwrap();
-
-        let current_time = std::time::SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("Could not get EPOCH time");
-
-        // We don't know if what has been passed in is the image name or image id
-        // Since there's no easy way to know, we read the MIGC file and see if the
-        // name_or_id is present in it. If so, we know it's an image hash.
-        // If not, it's the image name, and we now need to determine the corresponding
-        // hash by looking it up by a call to the Docker Engine API.
-
-        if is_image_id || image_map.contains_key(name_or_id) {
-            image_map.insert(name_or_id.to_string(), current_time);
-
-            // write entries back to file
-            write_images_with_timestamp(&image_map, guard.filename.clone())
-                .map_err(|e| e)
-                .unwrap();
-
-            drop(guard);
-        } else {
-            drop(guard);
-
-            // At this point, one may wonder if it's just easier to always get the
-            // list of images at the beginning of the method, before the mutex is
-            // acquired.
-            // A choice has been made to read the file first and only call the
-            // docker api if necessary for two reasons:
-            // 1) Intuitively, it feels like a file read might be faster than a call
-            // to the docker api (but only benchmarking will truly tell)
-            // 2) It's the "cache-miss" path. If the image hash is present, then
-            // wny call the docker api?
-
-            // HashMap<image_name, image_id>
-            let result = ModuleRuntime::list_images(&self.runtime).await.unwrap();
-
-            let _ = match result.get(name_or_id) {
-                Some(id) => {
-                    // we have found the image id, but a recursive call will be an infinite loop
-                    // without the is_image_id flag set to true
-                    return self.record_image_use_timestamp(id, true).await;
-                }
-                None => {
-                    log::error!("Could not find image with id: {}", name_or_id);
-                    // bubble error up?
-                    return;
-                }
-            };
-        }
-    }*/
 }
 
 fn get_images_with_timestamp(filename: String) -> Result<HashMap<String, Duration>, Error> {
@@ -217,12 +160,12 @@ fn get_images_with_timestamp(filename: String) -> Result<HashMap<String, Duratio
 
 fn write_images_with_timestamp(
     state_to_persist: &HashMap<String, Duration>,
+    temp_file: String,
     filename: String,
 ) -> Result<(), Error> {
     // write to a temp file and then rename/overwrite to image persistence file
-    let temp_file = "/tmp/images.txt";
     let mut file =
-        std::fs::File::create(temp_file).expect("Could not create images.txt under /tmp");
+        std::fs::File::create(TEMP_FILE).expect("Could not create images.txt under /tmp");
 
     for (key, value) in state_to_persist {
         let image_details = format!("{} {:?}\n", key, value);
@@ -239,9 +182,9 @@ fn write_images_with_timestamp(
     }
 
     // add retries?
-    _ = match fs::rename(temp_file, filename) {
-        Ok(_) => Ok(()),
-        Err(_) => Err(Error::FileOperation(
+    _ = match fs::rename(TEMP_FILE, filename) {
+        Ok(_) => {},
+        Err(_) => return Err(Error::FileOperation(
             "Could not update auto-prune data; next run may try to delete images that are no longer present on device".to_string(),
         )),
     };
@@ -291,4 +234,21 @@ fn process_state(
     }
 
     (image_map, carry_over)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use super::write_images_with_timestamp;
+
+    const TEMP_FILE: &str = "/tmp/images.txt";
+
+    #[test]
+    fn test_write_images_with_timestamp() {
+        let result = write_images_with_timestamp(&HashMap::new(), "/etc/other_file.txt".to_string(), "/tmp/migc".to_string());
+        if result.is_err() {
+            print!("ERROR");
+        } else { print!("NO ERROR");}
+    }
 }
