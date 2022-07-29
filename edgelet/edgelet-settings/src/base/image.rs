@@ -7,19 +7,15 @@ pub struct MIGCSettings {
     time_between_cleanup: Duration,
     #[serde(with = "humantime_serde")]
     min_age: Duration,
-    is_enabled: bool,
+    enabled: bool,
 }
 
 impl MIGCSettings {
-    pub fn new(
-        time_between_cleanup: Duration,
-        min_age: Duration,
-        is_enabled: bool,
-    ) -> MIGCSettings {
+    pub fn new(time_between_cleanup: Duration, min_age: Duration, enabled: bool) -> MIGCSettings {
         MIGCSettings {
             time_between_cleanup,
             min_age,
-            is_enabled,
+            enabled,
         }
     }
 
@@ -32,6 +28,6 @@ impl MIGCSettings {
     }
 
     pub fn is_enabled(&self) -> bool {
-        self.is_enabled
+        self.enabled
     }
 }

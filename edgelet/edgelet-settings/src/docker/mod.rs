@@ -130,6 +130,8 @@ impl crate::RuntimeSettings for Settings {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use super::Settings;
     use crate::docker::network;
     use crate::RuntimeSettings;
@@ -150,6 +152,7 @@ mod tests {
     static GOOD_SETTINGS_CASE_SENSITIVE: &str = "test-files/case_sensitive.toml";
     static GOOD_SETTINGS_CONTENT_TRUST: &str = "test-files/sample_settings_content_trust.toml";
     static GOOD_SETTINGS_NETWORK: &str = "test-files/sample_settings.network.toml";
+    static GOOD_SETTINGS_MIGC: &str = "test-files/sample_settings_migc.toml";
 
     #[test]
     fn err_no_file() {
@@ -286,6 +289,23 @@ mod tests {
         assert_eq!(
             labels.get("net.azure-devices.edge.env"),
             Some(&"{}".to_string())
+        );
+    }
+
+    #[test]
+    fn module_image_garbage_collection() {
+        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+
+        std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS_MIGC);
+        std::env::set_var("AZIOT_EDGED_CONFIG_DIR", CONFIG_DIR);
+
+        let settings = Settings::new().unwrap();
+        let migc_settings = settings.module_image_garbage_collection().clone().unwrap();
+        assert_eq!(migc_settings.is_enabled(), true);
+        assert_eq!(migc_settings.min_age(), Duration::from_secs(30));
+        assert_eq!(
+            migc_settings.time_between_cleanup(),
+            Duration::from_secs(60)
         );
     }
 
