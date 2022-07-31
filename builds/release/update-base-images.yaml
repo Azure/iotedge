@@ -1,6 +1,8 @@
 trigger: none
 pr: none
 
+# TODO: The list of published images should come from the Azure/azure-iotedge repo (e.g., latest-iotedge-lts.json
+# or latest-aziot-edge.json), not from mutable pipeline parameters.
 parameters:
 - name: published_images
   type: object
