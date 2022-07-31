@@ -77,7 +77,7 @@ steps:
 
       latest_digest="sha256:$(docker buildx imagetools inspect --raw $base_image | shasum --algorithm 256 | awk '{print$1}')"
 
-      echo -e "  base:\t\t${args[0]}\n  current:\t$current_digest\n  latest:\t$latest_digest"
+      echo -e "  base:\t\t$base_image\n  current:\t$current_digest\n  latest:\t$latest_digest"
 
       if [ "$current_digest" != "$latest_digest" ]
       then
