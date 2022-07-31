@@ -2,9 +2,6 @@ trigger: none
 pr: none
 
 parameters:
-- name: registry
-  type: string
-  default: mcr.microsoft.com
 - name: published_images
   type: object
   default:
@@ -50,6 +47,7 @@ parameters:
 variables:
   NugetSecurityAnalysisWarningLevel: warn
   DisableDockerDetector: true
+  registry: mcr.microsoft.com
 
 pool:
   name: $(pool.linux.name)
@@ -60,11 +58,8 @@ steps:
 - script: |
     needs_update=( )
 
-    images=( $(echo $PARAMS | jq -r '
-      .registry as $reg |
-      .published_images[] as $image |
-      $image.arch[] |
-      @text "\($reg)/\($image.name):\($image.version)-\($image.os)-\(.)"
+    images=( $(echo $PUBLISHED_IMAGES | jq -r '
+      .[] as $image | $image.arch[] | @text "$(registry)/\($image.name):\($image.version)-\($image.os)-\(.)"
     ') )
 
     for image in ${images[@]}
@@ -90,4 +85,4 @@ steps:
     printf '  %s\n' "${needs_update[@]}"
   displayName: Detect base image updates
   env:
-    PARAMS: ${{ convertToJson(parameters) }}
+    PUBLISHED_IMAGES: ${{ convertToJson(parameters.published_images) }}
