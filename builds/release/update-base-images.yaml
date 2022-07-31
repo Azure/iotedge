@@ -85,7 +85,7 @@ steps:
 
     echo "Found ${#needs_update[@]} images that need to be updated:"
     printf '  %s\n' "${needs_update[@]}"
-    printf '%s\n' "${needs_update[@]}" > $(Build.ArtifactStagingDirectory)/updates.json
+    printf '%s\n' "${needs_update[@]}" > $(Build.ArtifactStagingDirectory)/updates.txt
   displayName: Detect base image updates
   env:
     PUBLISHED_IMAGES: ${{ convertToJson(parameters.published_images) }}
@@ -93,5 +93,5 @@ steps:
 - task: PublishBuildArtifacts@1
   displayName: Save list of images to update
   inputs:
-    PathtoPublish: $(Build.ArtifactStagingDirectory)/updates.json
+    PathtoPublish: $(Build.ArtifactStagingDirectory)/updates.txt
     ArtifactName: image-updates
