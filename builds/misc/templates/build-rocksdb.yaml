@@ -1,11 +1,13 @@
 parameters:
   dependency: []
+  condition: succeeded()
 stages: 
 ################################################################################
   - stage: BuildRocksDB
 ################################################################################
     displayName: Build RocksDB
     dependsOn: ${{parameters.dependency}}
+    condition: ${{parameters.condition}}
     jobs: 
     - job: BuildRocksDB
       displayName: Build Rocks DB

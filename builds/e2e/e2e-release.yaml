@@ -1,16 +1,20 @@
 parameters:
   dependency: []
 
-variables:
-  DisableDockerDetector: true
-
 stages:
 ################################################################################
   - stage: RunE2ETest
 ################################################################################
-    dependsOn: PublishManifests
+    dependsOn:
+    - UpdatesDetected
+    - PublishManifests
     condition: in(dependencies.PublishManifests.result, 'Succeeded', 'SucceededWithIssues')
     variables:
+      ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
+        version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.version'] ]
+        diagnostics_version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.diagnostics_version'] ]
+      ${{ else }}:
+        diagnostics_version: $[ coalesce(variables.diagnostics_version, variables.version) ]
       # A 'minimal' pipeline only runs one end-to-end test (TempSensor). This is useful for platforms or
       # environments that are very similar to other platforms/environments in our matrix, Ubuntu 18.04
       # with the 'docker-ce' package vs. Ubuntu 18.04 with the 'iotedge-moby' package vs. the same
@@ -28,28 +32,23 @@ stages:
         displayName: Linux arm32v7
 
         pool:
-          name: $(pool.custom.name)
-          demands: rpi3-e2e-tests
+          name: $(pool.linux.arm.name)
+          demands:
+          - ImageOverride -equals agent-aziotedge-ubuntu-20.04-arm64-docker
 
         variables:
           os: linux
           arch: arm32v7
-          artifactName: iotedged-debian11-arm32v7
-          identityServiceArtifactName: packages_debian-11-slim_arm32v7
-          identityServicePackageFilter: aziot-identity-service_*_armhf.deb
+          # Since this pipeline is about testing Docker images for release and not our host
+          # components, we'll run the arm32v7 Docker images on an arm64v8 host OS, with arm64v8
+          # host components, for speed and convenience.
+          artifactName: iotedged-ubuntu20.04-aarch64
+          identityServiceArtifactName: packages_ubuntu-20.04_aarch64
+          identityServicePackageFilter: aziot-identity-service_*_arm64.deb
           builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
 
-        timeoutInMinutes: 120
-
         steps:
-        - task: Docker@2
-          displayName: Docker login edgerelease
-          inputs:
-            command: login
-            containerRegistry: iotedge-release-acr
-        - template: templates/e2e-clean-directory.yaml
         - template: templates/e2e-setup-base-image-update-release.yaml
-        - template: templates/e2e-clear-docker-cached-images.yaml
         - template: templates/e2e-run-base-image-update.yaml
 
 
@@ -162,15 +161,6 @@ stages:
           identityServicePackageFilter: aziot-identity-service_*_arm64.deb
           builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
 
-        timeoutInMinutes: 120
-
         steps:
-        - task: Docker@2
-          displayName: Docker login edgerelease
-          inputs:
-            command: login
-            containerRegistry: iotedge-release-acr
-        - template: templates/e2e-clean-directory.yaml
         - template: templates/e2e-setup-base-image-update-release.yaml
-        - template: templates/e2e-clear-docker-cached-images.yaml
         - template: templates/e2e-run-base-image-update.yaml

@@ -1,0 +1,708 @@
+name: $(version)
+
+pr: none
+trigger: none
+
+resources:
+  pipelines:
+  - pipeline: detect-image-updates
+    source: 'Detect Image Updates'
+    trigger: true
+    # source: 'Azure-IoT-Edge Detect Image Updates'
+    # trigger:
+    #   branches:
+    #     include:
+    #     - release/*
+    #     exclude:
+    #     - release/1.1
+    #     - release/1.2
+    #     - release/1.3
+
+variables:
+  DisableDockerDetector: true
+
+stages:
+################################################################################
+- stage: UpdatesDetected
+################################################################################
+  displayName: Trigger on base image updates
+  pool:
+    name: $(pool.linux.name)
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+  dependsOn: []
+  condition: |
+    and(
+      eq(variables['Build.Reason'],'ResourceTrigger'),
+      eq(variables['Resources.TriggeringCategory'],'pipeline'),
+      eq(variables['Resources.TriggeringAlias'],'detect-image-updates')
+    )
+  jobs:
+  - job: FilterCoreImages
+    displayName: Filter image list for core images
+    steps:
+    - download: detect-image-updates
+      displayName: Download image list from triggering pipeline
+    - script: |
+        echo 'Updates:'
+        cat $(Pipeline.Workspace)/detect-image-updates/image-updates/updates.json
+
+        # TODO: replace hard-coded '1.4' in jq logic with branch from pipeline
+        continue=$(cat $(Pipeline.Workspace)/detect-image-updates/image-updates/updates.json | jq '
+          [
+            .[] | select(
+              .product == "aziot-edge" and (.version | startswith("1.4")) and (.images | length != 0)
+            )
+          ] | length != 0
+        ')
+
+        echo "Continue with release? $continue"
+        echo "##vso[task.setvariable variable=continue;isOutput=true]$continue"
+      name: filter
+      displayName: Filter image list for core images
+  - job: PrepareRelease
+    displayName: Prepare for release
+    dependsOn: FilterCoreImages
+    condition: eq(dependencies.FilterCoreImages.outputs['filter.continue'], 'true')
+    steps:
+    - task: AzureKeyVault@1
+      displayName: Get secrets
+      inputs:
+        azureSubscription: $(az.subscription)
+        keyVaultName: $(kv.name)
+        secretsFilter: >-
+          TestGitHubAccessToken
+    - checkout: self
+      fetchDepth: 0
+    - script: |
+        #!/bin/bash
+        set -euo pipefail
+
+        # TODO: remove hard-coded 'refs/remotes/origin/release/1.4' once this pipeline is
+        # TODO: relocated to the release/1.4 branch
+        # find the previously shipped product version
+        prev=$(git describe --tags --abbrev=0 --match '[0-9]*' refs/remotes/origin/release/1.4)
+        echo "Found previous release version: $prev"
+
+        # checkout code at previous release version
+        git checkout $prev
+
+        # determine new version
+        IFS='.' read -a parts <<< "$prev"
+        if [ ${#parts[@]} -ne 3 ]; then
+          echo "Unexpected version format '$prev'"
+          exit 1
+        fi
+
+        next="${parts[0]}.${parts[1]}.$((${parts[2]} + 1))"
+        tags="['${parts[0]}.${parts[1]}']"
+        echo "Calculated next release version: $next"
+
+        # determine version of diagnostics image, which must match the edgelet version
+        diag_version=$(cat edgelet/version.txt)
+        
+        # update changelog
+        cat << EOF > CHANGELOG.new.md
+        # $next ($(date --iso-8601=date))
+        The following Docker images were updated because their base images changed:
+        * azureiotedge-agent
+        * azureiotedge-hub
+        * azureiotedge-simulated-temperature-sensor
+        * azureiotedge-diagnostics (version $diag_version)
+
+        EOF
+
+        cat CHANGELOG.md >> CHANGELOG.new.md
+        mv CHANGELOG.new.md CHANGELOG.md
+
+        # update versionInfo.json
+        echo "$(cat versionInfo.json | jq --arg next "$next" '.version = $next')" > versionInfo.json
+        git add CHANGELOG.md versionInfo.json
+
+        # configure git
+        git config user.email "iotedge1@microsoft.com"
+        git config user.name "IoT Edge Bot"
+        origin_url=$(git config --get remote.origin.url)
+        # origin_url="${origin_url/%.git}.git" # ensure URL ends with .git
+        origin_url="${origin_url/#https:\/\//https:\/\/$GITHUB_TOKEN@}" # add token to URL
+
+        # commit changes, tag, and push
+        git commit -m "Prepare for release $next"
+        git tag "$next"
+        git push "$origin_url" HEAD:"refs/heads/update-$next" # push commit to temp branch 'update-n.n.n'
+        git push "$origin_url" "$next" # push tag
+
+        echo "##vso[task.setvariable variable=version;isOutput=true]$next"
+        echo "##vso[task.setvariable variable=diagnostics_version;isOutput=true]$diag_version"
+        echo "##vso[task.setvariable variable=tags;isOutput=true]$tags"
+      displayName: Create a release commit
+      name: commit
+      env:
+        GITHUB_TOKEN: "$(TestGitHubAccessToken)"
+
+################################################################################
+- stage: BuildExecutables
+################################################################################
+  displayName: Build Executables
+  pool:
+    name: $(pool.linux.name)
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+  dependsOn: UpdatesDetected
+  condition: |
+    or(
+      ne(variables['Build.Reason'],'ResourceTrigger'),
+      and(succeeded(), eq(dependencies.UpdatesDetected.outputs['FilterCoreImages.filter.continue'], 'true'))
+    )
+  variables:
+    ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
+      version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.version'] ]
+  jobs:
+  - job: BuildDotnetComponents
+    displayName: Build Dotnet Components
+    steps:
+    # Build
+    - checkout: self
+      fetchDepth: 0
+    - script: |
+        git checkout $(version)
+      displayName: Check out the new release commit
+      condition: eq(variables['Build.Reason'],'ResourceTrigger')
+    - task: ShellScript@2
+      displayName: "Build .NET artifacts"
+      inputs:
+        args: "-c Release"
+        scriptPath: scripts/linux/buildBranch.sh
+    - task: DotNetCoreCLI@2
+      displayName: "Functions Binding nuget package"
+      env:
+        version: $(version)
+      inputs:
+        buildProperties: OutDir=$(Build.BinariesDirectory)/publish/Microsoft.Azure.WebJobs.Extensions.EdgeHub
+        command: pack
+        nobuild: true
+        packDirectory: $(Build.BinariesDirectory)/publish/
+        packagesToPack: "**/Microsoft.Azure.WebJobs.Extensions.EdgeHub.csproj"
+        versionEnvVar: version
+        versioningScheme: byEnvVar
+    # The code sign task requires .NET Core 2.1.
+    # TODO: Investigate why we have to toggle primary installs on linux, when we didn't have to do this on windows (now removed).
+    - template: ../templates/force-dotnet21.yaml
+    # Code Sign
+    - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+      displayName: "Edge Agent Code Sign"
+      inputs:
+        ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+        FolderPath: $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Agent.Service
+        Pattern: Microsoft.Azure.Devices.Edge.*.dll
+        SessionTimeout: 20
+        inlineOperation: |
+          [
+            {
+                "keyCode": "CP-230012",
+                "operationSetCode": "SigntoolSign",
+                "parameters": [
+                {
+                    "parameterName": "OpusName",
+                    "parameterValue": "Microsoft"
+                },
+                {
+                    "parameterName": "OpusInfo",
+                    "parameterValue": "http://www.microsoft.com"
+                },
+                {
+                    "parameterName": "Append",
+                    "parameterValue": "/as"
+                },
+                {
+                    "parameterName": "FileDigest",
+                    "parameterValue": "/fd \"SHA256\""
+                },
+                {
+                    "parameterName": "PageHash",
+                    "parameterValue": "/NPH"
+                },
+                {
+                    "parameterName": "TimeStamp",
+                    "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
+                }
+                ],
+                "toolName": "sign",
+                "toolVersion": "1.0"
+            },
+            {
+                "keyCode": "CP-230012",
+                "operationSetCode": "SigntoolVerify",
+                "parameters": [
+                {
+                    "parameterName": "VerifyAll",
+                    "parameterValue": "/all"
+                }
+                ],
+                "toolName": "sign",
+                "toolVersion": "1.0"
+            }
+          ]
+        signConfigType: inlineSignParams
+    - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+      displayName: "Edge Hub Code Sign"
+      inputs:
+        ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+        FolderPath: $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service
+        Pattern: "Microsoft.Azure.Devices.Edge.*.dll,Microsoft.Azure.Devices.Routing.*.dll"
+        SessionTimeout: 20
+        inlineOperation: |
+          [
+            {
+                "keyCode": "CP-230012",
+                "operationSetCode": "SigntoolSign",
+                "parameters": [
+                {
+                    "parameterName": "OpusName",
+                    "parameterValue": "Microsoft"
+                },
+                {
+                    "parameterName": "OpusInfo",
+                    "parameterValue": "http://www.microsoft.com"
+                },
+                {
+                    "parameterName": "Append",
+                    "parameterValue": "/as"
+                },
+                {
+                    "parameterName": "FileDigest",
+                    "parameterValue": "/fd \"SHA256\""
+                },
+                {
+                    "parameterName": "PageHash",
+                    "parameterValue": "/NPH"
+                },
+                {
+                    "parameterName": "TimeStamp",
+                    "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
+                }
+                ],
+                "toolName": "sign",
+                "toolVersion": "1.0"
+            },
+            {
+                "keyCode": "CP-230012",
+                "operationSetCode": "SigntoolVerify",
+                "parameters": [
+                {
+                    "parameterName": "VerifyAll",
+                    "parameterValue": "/all"
+                }
+                ],
+                "toolName": "sign",
+                "toolVersion": "1.0"
+            }
+          ]
+        signConfigType: inlineSignParams
+    - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+      displayName: "Temp Sensor Code Sign"
+      inputs:
+        ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+        FolderPath: $(Build.BinariesDirectory)/publish/SimulatedTemperatureSensor
+        Pattern: "Microsoft.Azure.Devices.Edge.*.dll,SimulatedTemperatureSensor.dll"
+        SessionTimeout: 20
+        inlineOperation: |
+          [
+            {
+                "keyCode": "CP-230012",
+                "operationSetCode": "SigntoolSign",
+                "parameters": [
+                {
+                    "parameterName": "OpusName",
+                    "parameterValue": "Microsoft"
+                },
+                {
+                    "parameterName": "OpusInfo",
+                    "parameterValue": "http://www.microsoft.com"
+                },
+                {
+                    "parameterName": "Append",
+                    "parameterValue": "/as"
+                },
+                {
+                    "parameterName": "FileDigest",
+                    "parameterValue": "/fd \"SHA256\""
+                },
+                {
+                    "parameterName": "PageHash",
+                    "parameterValue": "/NPH"
+                },
+                {
+                    "parameterName": "TimeStamp",
+                    "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
+                }
+                ],
+                "toolName": "sign",
+                "toolVersion": "1.0"
+            },
+            {
+                "keyCode": "CP-230012",
+                "operationSetCode": "SigntoolVerify",
+                "parameters": [
+                {
+                    "parameterName": "VerifyAll",
+                    "parameterValue": "/all"
+                }
+                ],
+                "toolName": "sign",
+                "toolVersion": "1.0"
+            }
+          ]
+        signConfigType: inlineSignParams
+    - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+      displayName: "Functions Binding Code Sign"
+      inputs:
+        ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+        FolderPath: $(Build.BinariesDirectory)/publish/Microsoft.Azure.WebJobs.Extensions.EdgeHub
+        Pattern: Microsoft.Azure.WebJobs.Extensions*.dll
+        SessionTimeout: 20
+        inlineOperation: |
+          [
+            {
+                "keyCode": "CP-230012",
+                "operationSetCode": "SigntoolSign",
+                "parameters": [
+                {
+                    "parameterName": "OpusName",
+                    "parameterValue": "Microsoft"
+                },
+                {
+                    "parameterName": "OpusInfo",
+                    "parameterValue": "http://www.microsoft.com"
+                },
+                {
+                    "parameterName": "Append",
+                    "parameterValue": "/as"
+                },
+                {
+                    "parameterName": "FileDigest",
+                    "parameterValue": "/fd \"SHA256\""
+                },
+                {
+                    "parameterName": "PageHash",
+                    "parameterValue": "/NPH"
+                },
+                {
+                    "parameterName": "TimeStamp",
+                    "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
+                }
+                ],
+                "toolName": "sign",
+                "toolVersion": "1.0"
+            },
+            {
+                "keyCode": "CP-230012",
+                "operationSetCode": "SigntoolVerify",
+                "parameters": [
+                {
+                    "parameterName": "VerifyAll",
+                    "parameterValue": "/all"
+                }
+                ],
+                "toolName": "sign",
+                "toolVersion": "1.0"
+            }
+          ]
+        signConfigType: inlineSignParams
+    - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+      displayName: "Functions Binding nuget package Sign"
+      inputs:
+        ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+        FolderPath: $(Build.BinariesDirectory)/publish
+        Pattern: Microsoft.Azure.WebJobs.Extensions*.nupkg
+        inlineOperation: |
+          [
+            {
+                "keyCode": "CP-401405",
+                "operationSetCode": "NuGetSign",
+                "parameters": [],
+                "toolName": "sign",
+                "toolVersion": "1.0"
+            },
+            {
+                "keyCode": "CP-401405",
+                "operationSetCode": "NuGetVerify",
+                "parameters": [],
+                "toolName": "sign",
+                "toolVersion": "1.0"
+            }
+          ]
+        signConfigType: inlineSignParams
+    # We're done with code signing, so remove dotnet version override
+    - template: ../templates/restore-default-dotnet.yaml
+    - bash: |
+        mkdir $(Build.ArtifactStagingDirectory)/publish-linux && \
+        mv $(Build.BinariesDirectory)/publish/{CACertificates,scripts} \
+        $(Build.ArtifactStagingDirectory)/publish-linux
+      displayName: Move/stage test file artifacts
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Artifacts to VSTS'
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)/publish-linux'
+        artifactName: 'publish-linux'
+    - task: PublishBuildArtifacts@1
+      displayName: Publish Dotnet Artifacts
+      inputs:
+        PathtoPublish: '$(Build.BinariesDirectory)/publish'
+        artifactName: 'dotnet_artifacts'
+        StoreAsTar: true
+
+# This stage builds Rocks DB and adds the files to staging directory
+################################################################################
+- template: ../misc/templates/build-rocksdb.yaml
+  parameters:
+    dependency: UpdatesDetected
+    condition: |
+      or(
+        ne(variables['Build.Reason'],'ResourceTrigger'),
+        and(succeeded(), eq(dependencies.UpdatesDetected.outputs['FilterCoreImages.filter.continue'], 'true'))
+      )
+################################################################################
+
+# This stage consolidates .NET binaries, Rocksdb binaries and the SBOM into a
+# single artifact from which all Docker images can be built.
+################################################################################
+- stage: ConsolidateAndPubishArtifacts
+################################################################################
+  displayName: Consolidate And Publish Artifacts
+  pool:
+    name: $(pool.linux.name)
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+  dependsOn:
+  - BuildExecutables
+  - BuildRocksDB
+  jobs:
+  - job: ConsolidateAndPublishArtifacts
+    steps:
+    - checkout: none
+    - task: DownloadBuildArtifacts@0
+      displayName: Download Artifacts
+      inputs:
+        buildType: 'current'
+        downloadPath: '$(Build.ArtifactStagingDirectory)'
+        downloadType: specific
+        extractTars: true
+
+    - task: CopyFiles@2
+      displayName: Copy/Stage dotnet artifacts
+      inputs:
+        sourceFolder: '$(Agent.TempDirectory)/extracted_tars/dotnet_artifacts'
+        contents: '**'
+        targetFolder: '$(Build.BinariesDirectory)/publish'
+
+    - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
+      displayName: 'SBOM Generation Task'
+      inputs:
+        BuildDropPath: '$(Build.BinariesDirectory)/publish'
+
+    - task: CopyFiles@2
+      displayName: Copy rocksdb libs
+      inputs:
+        sourceFolder: '$(Build.ArtifactStagingDirectory)/librocksdb'
+        contents: '**'
+        targetFolder: '$(Build.BinariesDirectory)/publish/librocksdb'
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Artifacts'
+      inputs:
+        pathToPublish: '$(Build.BinariesDirectory)/publish'
+        artifactName: 'consolidated_artifacts'
+        StoreAsTar: true
+
+################################################################################
+- stage:  BuildImages
+################################################################################
+  displayName: Build Images
+  pool:
+    name: $(pool.linux.name)
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+  dependsOn:
+  - UpdatesDetected
+  - ConsolidateAndPubishArtifacts
+  variables:
+    ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
+      version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.version'] ]
+      diagnostics_version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.diagnostics_version'] ]
+    ${{ else }}:
+      diagnostics_version: $[ coalesce(variables.diagnostics_version, variables.version) ]
+  jobs:
+  - job: BuildImageEdgeHub
+    steps:
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        imageName: azureiotedge-hub
+        name: "Edge Hub"
+        project: Microsoft.Azure.Devices.Edge.Hub.Service
+        version: $(version)
+        bin_dir: '$(Build.BinariesDirectory)'
+        use_rocksdb: true
+  - job: BuildImageEdgeAgent
+    steps:
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        imageName: azureiotedge-agent
+        name: "Edge Agent"
+        project: Microsoft.Azure.Devices.Edge.Agent.Service
+        version: $(version)
+        bin_dir: '$(Build.BinariesDirectory)'
+        use_rocksdb: true
+  - job: BuildImageTemperatureSensor
+    steps:
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        imageName: azureiotedge-simulated-temperature-sensor
+        name: "Temperature Sensor"
+        project: SimulatedTemperatureSensor
+        version: $(version)
+        bin_dir: '$(Build.BinariesDirectory)'
+  - job: BuildImageDiagnostics
+    steps:
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        imageName: azureiotedge-diagnostics
+        name: "Diagnostics Module"
+        project: IotedgeDiagnosticsDotnet
+        version: $(diagnostics_version)
+        bin_dir: '$(Build.BinariesDirectory)'
+  # for E2E tests
+  - job: BuildImageMetricsValidator
+    steps:
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        name: Metrics Validator
+        imageName: azureiotedge-metrics-validator
+        project: MetricsValidator
+        bin_dir: '$(Build.BinariesDirectory)'
+  - job: BuildImageDirectMethodSender
+    steps:
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        name: Direct Method Sender
+        imageName: azureiotedge-direct-method-sender
+        project: DirectMethodSender
+        bin_dir: '$(Build.BinariesDirectory)'
+  - job: BuildImageDirectMethodReceiver
+    steps:
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        name: Direct Method Receiver
+        imageName: azureiotedge-direct-method-receiver
+        project: DirectMethodReceiver
+        bin_dir: '$(Build.BinariesDirectory)'
+  - job: BuildImageNumberLogger
+    steps:
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        name: Number Logger
+        imageName: azureiotedge-number-logger
+        project: NumberLogger
+        bin_dir: '$(Build.BinariesDirectory)'
+  - job: BuildImageTemperatureFilter
+    steps:
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        name: Temperature Filter
+        imageName: azureiotedge-temperature-filter
+        project: TemperatureFilter
+        bin_dir: '$(Build.BinariesDirectory)'
+  - job: BuildImageLoadGen
+    steps:
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        name: Load Gen
+        imageName: azureiotedge-load-gen
+        project: load-gen
+        bin_dir: '$(Build.BinariesDirectory)'
+  - job: BuildImageTestResultCoordinator
+    steps:
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        name: TestResultCoordinator
+        imageName: azureiotedge-test-result-coordinator
+        project: TestResultCoordinator
+        bin_dir: '$(Build.BinariesDirectory)'
+        use_rocksdb: true
+  - job: BuildImageRelayer
+    steps:
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        name: Relayer
+        imageName: azureiotedge-relayer
+        project: Relayer
+        bin_dir: '$(Build.BinariesDirectory)'
+  # Functions Sample - Not supported on linux arm64
+  - job: BuildImageFunctionsSample
+    steps:
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        name: Functions Sample
+        imageName: azureiotedge-functions-filter
+        project: EdgeHubTriggerCSharp
+        bin_dir: '$(Build.BinariesDirectory)'
+
+################################################################################
+- stage: PublishManifests
+################################################################################
+  displayName: Publish Manifests
+  pool:
+    name: $(pool.linux.name)
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+  dependsOn:
+  - UpdatesDetected
+  - BuildImages
+  variables:
+    ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
+      version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.version'] ]
+      diagnostics_version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.diagnostics_version'] ]
+      tags: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.tags'] ]
+    ${{ else }}:
+      diagnostics_version: $[ coalesce(variables.diagnostics_version, variables.version) ]
+  jobs:
+  - job: PublishManifest
+    displayName: Publish Manifest
+    steps:
+    - task: Docker@2
+      displayName: Docker login edgerelease
+      inputs:
+        command: login
+        containerRegistry: iotedge-release-acr
+    - script: |
+        scripts/linux/buildManifest.sh \
+          -r '$(registry.address)' \
+          -n '$(namespace)' \
+          -t 'edge-agent/docker/manifest.yaml.template' \
+          -v '$(version)' \
+          --tags '$(tags)'
+    - script: |
+        scripts/linux/buildManifest.sh \
+          -r '$(registry.address)' \
+          -n '$(namespace)' \
+          -t 'edge-hub/docker/manifest.yaml.template' \
+          -v '$(version)' \
+          --tags '$(tags)'
+    - script: |
+        scripts/linux/buildManifest.sh \
+          -r '$(registry.address)' \
+          -n '$(namespace)' \
+          -t 'edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template' \
+          -v '$(version)' \
+          --tags '$(tags)'
+    - script: |
+        scripts/linux/buildManifest.sh \
+          -r '$(registry.address)' \
+          -n '$(namespace)' \
+          -t 'edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template' \
+          -v '$(diagnostics_version)' \
+          --tags '$(tags)'
+
+################################################################################
+- template: ../e2e/e2e-release.yaml
+################################################################################

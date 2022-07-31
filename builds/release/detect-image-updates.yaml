@@ -1,0 +1,113 @@
+trigger: none
+pr: none
+
+resources:
+  repositories:
+  - repository: azure-iotedge
+    type: github
+    endpoint: Azure/azure-iotedge
+    name: Azure/azure-iotedge
+    ref: refs/pull/101/head # TODO: Remove PR ref once it is merged
+
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
+  DisableDockerDetector: true
+
+pool:
+  name: $(pool.linux.name)
+  demands:
+  - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+
+steps:
+- checkout: azure-iotedge
+
+- script: |
+    # transform product-versions.json into a list of images that correspond to this branch
+
+    # first, gather the list of products for this branch
+    # TODO: convert from hard-coded 'release/1.4' in jq logic below to getting the branch name
+    # TODO: from the build pipeline.
+    products_json=$(cat product-versions.json | jq '
+      .sources[] | select(.repo == "Azure/iotedge" and .branch == "release/1.4") | .products
+    ')
+
+    # next, gather the details for the selected products
+    product_versions=$(cat product-versions.json | jq --argjson products_json "$products_json" '
+      def equals($o): .channel == $o.channel and .id == $o.id and (.version | startswith($o.version));
+      [ .channels[] | .name as $channel | .products[] | select(
+        { $channel, id, version } | equals($products_json[])
+      ) ]
+    ')
+
+    # now create a complete list of published images for each product in this branch
+    images_json=$(echo "$product_versions" | jq --arg registry "$REGISTRY" '
+      def images: select(has("type")) | select(.type == "dockerImage") | { name, version };
+      def platforms: select(.name == "dockerImage") | .platforms[] | .os as $os | .arch[] | { os: $os, arch: . };
+      [
+        .[] | .id as $product | .version as $version |
+        {
+          $product, $version, images: [
+            .componentTypes as $types | .components[] | images + ($types[] | platforms) |
+              @text "\($registry)/\(.name):\(.version)-\(.os)-\(.arch)"
+          ]
+        }
+      ] | unique
+    ')
+
+    # use build metadata present in each published image to determine if it is out of date
+    remove=( )
+    images=( $(echo "$images_json" | jq -r '[ .[].images ] | flatten | join("\n")') )
+    for image in ${images[@]}
+    do
+      echo "image: $image"
+
+      # This command assumes that the $image has a manifest, not a manifest list.
+      # In other words, $image is _not_ a multi-arch image.
+      read base_image current_digest <<< $(\
+        docker buildx imagetools inspect $image --format "{{json .BuildInfo}}" |
+        jq -r '@text "\(.sources[0].ref) \(.sources[0].pin)"'
+      )
+
+      if [ "$base_image" == 'null' ]
+      then
+        echo "'$image' does not contain Docker BuildInfo metadata. Skipping..."
+        remove+=( "$image" )
+        continue
+      fi
+
+      latest_digest="sha256:$(docker buildx imagetools inspect --raw $base_image | shasum --algorithm 256 | awk '{print$1}')"
+
+      echo -e "  base:\t\t$base_image\n  current:\t$current_digest\n  latest:\t$latest_digest"
+
+      if [ "$current_digest" != 'null' ] && [ "$current_digest" != "$latest_digest" ]
+      then
+        echo "  ## NEEDS UPDATE ##"
+      else
+        remove+=( "$image" )
+      fi
+    done
+
+    # filter up-to-date images out of the list
+    remove_json=$(printf '%s\n' "${remove[@]}" | jq -R '.' | jq -s '.')
+    images_json=$(echo "$images_json" | jq --argjson remove "$remove_json" '
+      [ .[] | { product, version, images: (.images - $remove) } | select(.images | length != 0) ]
+    ')
+
+    if [ $(echo "$images_json" | jq '. | length != 0') == 'true' ]
+    then
+      echo 'Found images that need to be updated:'
+      echo "$images_json" | jq '.'
+    else
+      echo 'All images are up to date. Nothing to do...'
+    fi
+
+    echo "$images_json" > $(Build.ArtifactStagingDirectory)/updates.json
+  displayName: Detect base image updates
+  env:
+    REGISTRY: 'mcr.microsoft.com'
+
+- task: PublishBuildArtifacts@1
+  displayName: Save list of images to update
+  inputs:
+    PathtoPublish: $(Build.ArtifactStagingDirectory)/updates.json
+    ArtifactName: image-updates

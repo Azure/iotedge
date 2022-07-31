@@ -20,7 +20,7 @@ steps:
 
     # Filter out flaky tests.
     $filter = 'Category!=Flaky'
-    $filter += '&Category!=FlakyOnRelease'
+
     if ('$(minimal)' -eq 'true')
     {
       $filter += '&Name~TempSensor'
@@ -32,6 +32,7 @@ steps:
     elseif ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
     {
       $filter += '&Category!=FlakyOnArm'
+      $filter += '&Category!=Amd64Only'
     }
     if ($test_type -eq 'nestededge_mqtt')
     {
@@ -66,7 +67,7 @@ steps:
     {
       $filter += '&Category!=NestedEdgeOnly'
     }
-    
+
     #Dotnet SDK 3.1.415 package on Centos doesn't allow dotnet to be accessed via sudo command due to Path issues. Use the below workaround for centos only.
     if ('$(artifactName)'.Contains('centos'))
     {
