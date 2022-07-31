@@ -1,0 +1,93 @@
+trigger: none
+pr: none
+
+parameters:
+- name: registry
+  type: string
+  default: mcr.microsoft.com
+- name: published_images
+  type: object
+  default:
+  - name: azureiotedge-agent
+    version: 1.3.0
+    os: linux
+    arch:
+    - amd64
+    - arm32v7
+    - arm64v8
+  - name: azureiotedge-hub
+    version: 1.3.0
+    os: linux
+    arch:
+    - amd64
+    - arm32v7
+    - arm64v8
+  - name: azureiotedge-simulated-temperature-sensor
+    version: 1.3.0
+    os: linux
+    arch:
+    - amd64
+    - arm32v7
+    - arm64v8
+  - name: azureiotedge-diagnostics
+    version: 1.3.0
+    os: linux
+    arch:
+    - amd64
+    - arm32v7
+    - arm64v8
+  ## azureiotedge-api-proxy hasn't been published since we started including buildinfo attributes
+  ## in our Docker images. Once we have an image on mcr.microsoft.com that includes the buildinfo
+  ## attributes, we can uncomment the following entry.
+  # - name: azureiotedge-api-proxy
+  #   version: 1.1.3
+  #   os: linux
+  #   arch:
+  #   - amd64
+  #   - arm32v7
+  #   - arm64v8
+
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
+  DisableDockerDetector: true
+
+pool:
+  name: $(pool.linux.name)
+  demands:
+  - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+
+steps:
+- script: |
+    needs_update=( )
+
+    images=( $(echo $PARAMS | jq -r '
+      .registry as $reg |
+      .published_images[] as $image |
+      $image.arch[] |
+      @text "\($reg)/\($image.name):\($image.version)-\($image.os)-\(.)"
+    ') )
+
+    for image in ${images[@]}
+    do
+      echo "image: $image"
+
+      read base_image current_digest <<< \
+        $(docker buildx imagetools inspect $image --format "{{json .BuildInfo}}" |
+          jq -r '@text "\(.sources[0].ref) \(.sources[0].pin)"')
+
+      latest_digest="sha256:$(docker buildx imagetools inspect --raw $base_image | shasum --algorithm 256 | awk '{print$1}')"
+
+      echo -e "  base:\t\t${args[0]}\n  current:\t$current_digest\n  latest:\t$latest_digest"
+
+      if [ "$current_digest" != "$latest_digest" ]
+      then
+        echo "  ## NEEDS UPDATE ##"
+        needs_update+=( "$image" )
+      fi
+    done
+
+    echo "Found ${#needs_update[@]} images that need to be updated:"
+    printf '  %s\n' "${needs_update[@]}"
+  displayName: Detect base image updates
+  env:
+    PARAMS: ${{ convertToJson(parameters) }}
