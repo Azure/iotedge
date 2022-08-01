@@ -1268,7 +1268,7 @@ if [ "$image_architecture_label" = 'arm32v7' ] ||
     optimize_for_performance=false
 fi
 
-if [ -z $PACKAGE_TYPE ] then
+if [ -z $PACKAGE_TYPE ]; then
     echo 'Package type not specifed default to .deb'
     PACKAGE_TYPE=deb
 fi
