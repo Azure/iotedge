@@ -27,7 +27,7 @@
     .PARAMETER TestName
         Name of E2E test to be run
         Note: Valid values are:
-            "All", "DirectMethodAmqp", "DirectMethodAmqpMqtt", "DirectMethodMqtt", "DirectMethodMqttAmqp", "LongHaul", "QuickstartCerts", "Stress", "TempFilter", "TempFilterFunctions", "TempSensor", "TransparentGateway"
+            "All", "DirectMethodAmqp", "DirectMethodAmqpMqtt", "DirectMethodMqtt", "DirectMethodMqttAmqp", "LongHaul", "QuickstartCerts", "TempFilter", "TempFilterFunctions", "TempSensor", "TransparentGateway"
 
     .PARAMETER ContainerRegistry
         Host address of container registry. It could be azure container registry, docker hub, or your own hosted container registry.
@@ -54,40 +54,10 @@
         (Optional) The URI of an HTTPS proxy server; if specified, all communications to IoT Hub will go through this proxy.
 
     .PARAMETER LoadGenMessageFrequency
-        Frequency to send messages in LoadGen module for long haul and stress test. Default is 00.00.01 for long haul and 00:00:00.03 for stress test.
+        Frequency to send messages in LoadGen module for long haul test. Default is 00.00.01.
 
     .PARAMETER RestartIntervalInMins
         Optional value for long haul specifying how often a random module will restart. If specified, then "desiredModulesToRestartJsonPath" must be specified as well.
-
-    .PARAMETER SnitchAlertUrl
-        Alert Url pointing to Azure Logic App for email preparation and sending for long haul and stress test.
-
-    .PARAMETER SnitchBuildNumber
-        Build number for snitcher docker image for long haul and stress test. Default is 1.1.
-
-    .PARAMETER SnitchReportingIntervalInSecs
-        Reporting frequency in seconds to send status email for long hual and stress test. Default is 86400 (1 day) for long haul and 1700000 for stress test.
-
-    .PARAMETER SnitchStorageAccount
-        Azure blob Sstorage account for store logs used in status email for long haul and stress test.
-
-    .PARAMETER SnitchStorageMasterKey
-        Master key of snitch storage account for long haul and stress test.
-
-    .PARAMETER SnitchTestDurationInSecs
-        Test duration in seconds for long haul and stress test.
-
-    .PARAMETER TransportType1
-        Transport type for LoadGen1 and TwinTester1 for stress test. Default is amqp.
-
-    .PARAMETER TransportType2
-        Transport type for LoadGen2 and TwinTester2 for stress test. Default is amqp.
-
-    .PARAMETER TransportType3
-        Transport type for LoadGen3 and TwinTester3 for stress test. Default is mqtt.
-
-    .PARAMETER TransportType4
-        Transport type for LoadGen4 and TwinTester4 for stress test. Default is mqtt.
 
     .PARAMETER AmqpSettingsEnabled
         Enable amqp protocol head in Edge Hub.
@@ -108,10 +78,10 @@
         Optional Log Analytics shared key for metrics collection and reporting.
 
     .PARAMETER TwinUpdateSize
-        Specifies the char count (i.e. size) of each twin update. Default is 1 for long haul and 100 for stress test.
+        Specifies the char count (i.e. size) of each twin update in long haul test. Default is 1.
 
     .PARAMETER TwinUpdateFrequency
-        Frequency to make twin updates. This should be specified in DateTime format. Default is 00:00:15 for long haul and 00:00:05 for stress test.
+        Frequency to make twin updates in long haul test. This should be specified in DateTime format. Default is 00:00:15.
 
     .PARAMETER TwinUpdateFailureThreshold
         Specifies the longest period of time a twin update can take before being marked as a failure. This should be specified in DateTime format. Default is 00:01:00
@@ -135,7 +105,7 @@
         Tests start after delay for applicable modules
 
     .PARAMETER RuntimeLogLevel
-        Optional Value of RuntimeLogLevel envivronment variable for EdgeAgent in Long Haul and Stress tests  [Default: debug] (EdgeHub RuntimeLogLevel is set implicitly set to be the same with edgeAgent)
+        Optional Value of RuntimeLogLevel envivronment variable for EdgeAgent in Long Haul tests  [Default: debug] (EdgeHub RuntimeLogLevel is set implicitly set to be the same with edgeAgent)
 
     .EXAMPLE
         .\Run-E2ETest.ps1
@@ -226,7 +196,6 @@ Param (
                  "DpsX509Provisioning",
                  "LongHaul",
                  "QuickstartCerts",
-                 "Stress",
                  "TempFilter",
                  "TempFilterFunctions",
                  "TempSensor",
@@ -277,29 +246,6 @@ Param (
     [string] $ProxyUri = $null,
 
     [string] $RestartIntervalInMins = $null,
-
-    [ValidateNotNullOrEmpty()]
-    [string] $SnitchAlertUrl = $null,
-
-    [string] $SnitchBuildNumber = "1.2",
-
-    [string] $SnitchReportingIntervalInSecs = $null,
-
-    [ValidateNotNullOrEmpty()]
-    [string] $SnitchStorageAccount = $null,
-
-    [ValidateNotNullOrEmpty()]
-    [string] $SnitchStorageMasterKey = $null,
-
-    [string] $SnitchTestDurationInSecs = $null,
-
-    [string] $TransportType1 = "amqp",
-
-    [string] $TransportType2 = "amqp",
-
-    [string] $TransportType3 = "mqtt",
-
-    [string] $TransportType4 = "mqtt",
 
     [ValidateSet("true", "false")]
     [string] $AmqpSettingsEnabled = "true",
@@ -391,20 +337,10 @@ Function GetLongHaulDeploymentFilename
 {
     If (GetImageArchitectureLabel -eq "amd64")
     {
-        # Using versions without snitcher and influxdb, as they are currently not working in windows
+        # Using versions without influxdb, as they are currently not working in windows
         return "long_haul_deployment.template.windows.json"
     }
     Throw "Unsupported long haul test architecture: $Architecture"
-}
-
-Function GetStressDeploymentFilename
-{
-    If (GetImageArchitectureLabel -eq "amd64")
-    {
-        # Using versions without snitcher and influxdb, as they are currently not working in windows
-        return "stress_deployment.template.windows.json"
-    }
-    Throw "Unsupported stress test architecture: $Architecture"
 }
 
 Function InitializeWorkingFolder
@@ -450,7 +386,6 @@ Function PrepareTestFromArtifacts
     If (($TestName -like "DirectMethod*") -Or
         ($TestName -like "Dps*") -Or
         ($TestName -eq "LongHaul") -Or
-        ($TestName -eq "Stress") -Or
         ($TestName -eq "TempFilter") -Or
         ($TestName -eq "TempFilterFunctions") -Or
         (($ProxyUri) -and ($TestName -in "TempSensor", "QuickstartCerts", "TransparentGateway")))
@@ -491,27 +426,12 @@ Function PrepareTestFromArtifacts
                 Write-Host "Copy deployment file from $QuickstartDeploymentArtifactFilePath"
                 Copy-Item $QuickstartDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
             }
-            {$_ -in "LongHaul","Stress"}
+            "LongHaul"
             {
-                If ($TestName -eq "LongHaul")
-                {
-                    Write-Host "Copy deployment file from $LongHaulDeploymentArtifactFilePath"
-                    Copy-Item $LongHaulDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
-                    (Get-Content $DeploymentWorkingFilePath).replace('<DesiredModulesToRestartCSV>',$DesiredModulesToRestartCSV) | Set-Content $DeploymentWorkingFilePath
-                    (Get-Content $DeploymentWorkingFilePath).replace('<RestartIntervalInMins>',$RestartIntervalInMins) | Set-Content $DeploymentWorkingFilePath
-                }
-                Else
-                {
-                    Write-Host "Copy deployment file from $StressDeploymentArtifactFilePath"
-                    Copy-Item $StressDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
-                    (Get-Content $DeploymentWorkingFilePath).replace('<TransportType1>',$TransportType1) | Set-Content $DeploymentWorkingFilePath
-                    (Get-Content $DeploymentWorkingFilePath).replace('<TransportType2>',$TransportType2) | Set-Content $DeploymentWorkingFilePath
-                    (Get-Content $DeploymentWorkingFilePath).replace('<TransportType3>',$TransportType3) | Set-Content $DeploymentWorkingFilePath
-                    (Get-Content $DeploymentWorkingFilePath).replace('<TransportType4>',$TransportType4) | Set-Content $DeploymentWorkingFilePath
-                    (Get-Content $DeploymentWorkingFilePath).replace('<amqpSettings__enabled>',$AmqpSettingsEnabled) | Set-Content $DeploymentWorkingFilePath
-                    (Get-Content $DeploymentWorkingFilePath).replace('<mqttSettings__enabled>',$MqttSettingsEnabled) | Set-Content $DeploymentWorkingFilePath
-                }
-
+                Write-Host "Copy deployment file from $LongHaulDeploymentArtifactFilePath"
+                Copy-Item $LongHaulDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
+                (Get-Content $DeploymentWorkingFilePath).replace('<DesiredModulesToRestartCSV>',$DesiredModulesToRestartCSV) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<RestartIntervalInMins>',$RestartIntervalInMins) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.ConsumerGroupId>',$EventHubConsumerGroupId) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.EventHubConnectionString>',$EventHubConnectionString) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<TestInfo>',$TestInfo) | Set-Content $DeploymentWorkingFilePath
@@ -523,15 +443,6 @@ Function PrepareTestFromArtifacts
                 (Get-Content $DeploymentWorkingFilePath).replace('<MetricsCollector.MetricsEndpointsCSV>',$MetricsEndpointsCSV) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<MetricsCollector.ScrapeFrequencyInSecs>',$MetricsScrapeFrequencyInSecs) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<MetricsCollector.UploadTarget>',$MetricsUploadTarget) | Set-Content $DeploymentWorkingFilePath
-                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.AlertUrl>',$SnitchAlertUrl) | Set-Content $DeploymentWorkingFilePath
-                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildNumber>',$SnitchBuildNumber) | Set-Content $DeploymentWorkingFilePath
-                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildId>',"$ReleaseLabel-$(GetImageArchitectureLabel)-windows-$escapedBuildId") | Set-Content $DeploymentWorkingFilePath
-                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.ReportingIntervalInSecs>',$SnitchReportingIntervalInSecs) | Set-Content $DeploymentWorkingFilePath
-                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.StorageAccount>',$SnitchStorageAccount) | Set-Content $DeploymentWorkingFilePath
-                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.StorageMasterKey>',$SnitchStorageMasterKey) | Set-Content $DeploymentWorkingFilePath
-                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.TestDurationInSecs>',$SnitchTestDurationInSecs) | Set-Content $DeploymentWorkingFilePath
-                $SnitcherBinds = "\""$($env:ProgramData.Replace("\", "\\\\"))\\\\iotedge\\\\mgmt:$($env:ProgramData.Replace("\", "\\\\"))\\\\iotedge\\\\mgmt\"""
-                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.Binds>',$SnitcherBinds) | Set-Content $DeploymentWorkingFilePath
                 $ManagementUri = "unix:///$($env:ProgramData.Replace("\", "/"))/iotedge/mgmt/sock"
                 (Get-Content $DeploymentWorkingFilePath).replace('<Management.Uri>',$ManagementUri) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<TwinUpdateSize>',$TwinUpdateSize) | Set-Content $DeploymentWorkingFilePath
@@ -1053,38 +964,6 @@ Function RunLongHaulTest
     Return $testExitCode
 }
 
-Function RunStressTest
-{
-    PrintHighlightedMessage "Run Stress test for $Architecture"
-    TestSetup
-
-    $testStartAt = Get-Date
-    $deviceId = "${ReleaseLabel}-Windows-${Architecture}-stress-$(GetHash 8)"
-    PrintHighlightedMessage "Run Stress test with -d ""$deviceId"" started at $testStartAt"
-
-    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
-            -d `"$deviceId`" ``
-            -c `"$IoTHubConnectionString`" ``
-            -e `"doesNotNeed`" ``
-            -n `"$env:computername`" ``
-            -r `"$ContainerRegistry`" ``
-            -u `"$ContainerRegistryUsername`" ``
-            -p `"$ContainerRegistryPassword`" ``
-            -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
-            --leave-running=All ``
-            -l `"$DeploymentWorkingFilePath`" ``
-            --runtime-log-level `"$RuntimeLogLevel`" ``
-            --no-verify ``
-            --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
-            $BypassInstallationFlag"
-    $testCommand = AppendInstallationOption($testCommand)
-    Invoke-Expression $testCommand | Out-Host
-    $testExitCode = $LastExitCode
-
-    PrintLogs $testStartAt $testExitCode
-    Return $testExitCode
-}
-
 Function RunTempFilterTest
 {
     PrintHighlightedMessage "Run TempFilter test for $Architecture"
@@ -1411,7 +1290,6 @@ Function RunTest
         "DpsX509Provisioning" { $testExitCode = RunDpsProvisioningTest ([DpsProvisioningType]::X509); break }
         "QuickstartCerts" { $testExitCode = RunQuickstartCertsTest; break }
         "LongHaul" { $testExitCode = RunLongHaulTest; break }
-        "Stress" { $testExitCode = RunStressTest; break }
         "TempFilter" { $testExitCode = RunTempFilterTest; break }
         "TempFilterFunctions" { $testExitCode = RunTempFilterFunctionsTest; break }
         "TempSensor" { $testExitCode = RunTempSensorTest; break }
@@ -1506,11 +1384,6 @@ Function ValidateTestParameters
         $validatingItems += $LongHaulDeploymentArtifactFilePath
     }
 
-    If ($TestName -eq "Stress")
-    {
-        $validatingItems += $StressDeploymentArtifactFilePath
-    }
-
     $validatingItems | ForEach-Object {
         If (-Not (Test-Path -Path $_))
         {
@@ -1518,11 +1391,8 @@ Function ValidateTestParameters
         }
     }
 
-    If ($TestName -eq "LongHaul" -Or $TestName -eq "Stress")
+    If ($TestName -eq "LongHaul")
     {
-        If ([string]::IsNullOrEmpty($SnitchAlertUrl)) {Throw "Required snith alert URL."}
-        If ([string]::IsNullOrEmpty($SnitchStorageAccount)) {Throw "Required snitch storage account."}
-        If ([string]::IsNullOrEmpty($SnitchStorageMasterKey)) {Throw "Required snitch storage master key."}
         If ($ProxyUri) {Throw "Proxy not supported for $TestName test"}
         If ([string]::IsNullOrEmpty($TestInfo)) {Throw "Required test info."}
         If ([string]::IsNullOrEmpty($LogAnalyticsWorkspaceId)) {Throw "Required log analytics workspace id."}
@@ -1559,7 +1429,6 @@ $RuntimeOnlyDeploymentFilename = 'runtime_only_deployment.template.json'
 $QuickstartDeploymentFilename = 'quickstart_deployment.template.json'
 $TwinTestFilename = "twin_test_tempSensor.json"
 $LongHaulDeploymentFilename = GetLongHaulDeploymentFilename
-$StressDeplymentFilename = GetStressDeploymentFilename
 
 $IotEdgeQuickstartArtifactFolder = Join-Path $E2ETestFolder "artifacts\core-windows\IotEdgeQuickstart\$Architecture"
 $LeafDeviceArtifactFolder = Join-Path $E2ETestFolder "artifacts\core-windows\LeafDevice\$Architecture"
@@ -1574,7 +1443,6 @@ $QuickstartDeploymentArtifactFilePath = Join-Path $DeploymentFilesFolder $Quicks
 $TwinTestFileArtifactFilePath = Join-Path $TestFileFolder $TwinTestFilename
 $DirectMethodModuleToModuleDeploymentArtifactFilePath = Join-Path $DeploymentFilesFolder $DirectMethodModuleToModuleDeploymentFilename
 $LongHaulDeploymentArtifactFilePath = Join-Path $DeploymentFilesFolder $LongHaulDeploymentFilename
-$StressDeploymentArtifactFilePath = Join-Path $DeploymentFilesFolder $StressDeplymentFilename
 
 $TestWorkingFolder = Join-Path $E2ETestFolder "working"
 $QuickstartWorkingFolder = (Join-Path $TestWorkingFolder "quickstart")
@@ -1588,7 +1456,7 @@ $DeploymentWorkingFilePath = Join-Path $TestWorkingFolder "deployment.json"
 If ([string]::IsNullOrWhiteSpace($EdgeE2ERootCACertRSAFile)) {$EdgeE2ERootCACertRSAFile=$DefaultInstalledRSARootCACert;}
 If ([string]::IsNullOrWhiteSpace($EdgeE2ERootCAKeyRSAFile)) {$EdgeE2ERootCAKeyRSAFile=$DefaultInstalledRSARootCAKey;}
 
-If ($TestName -eq "LongHaul" -Or $TestName -eq "Stress")
+If ($TestName -eq "LongHaul")
 {
     $TrackingId = New-Guid
     $TestInfo=$TestInfo+",TestId=$TrackingId"
@@ -1596,27 +1464,12 @@ If ($TestName -eq "LongHaul" -Or $TestName -eq "Stress")
     If ([string]::IsNullOrWhiteSpace($EdgeHubRestartFailureTolerance)) {$EdgeHubRestartFailureTolerance="00:01:00"}
     If ([string]::IsNullOrWhiteSpace($MetricsScrapeFrequencyInSecs)) {$MetricsScrapeFrequencyInSecs=300;}
     If ([string]::IsNullOrWhiteSpace($MetricsUploadTarget)) {$MetricsUploadTarget="AzureLogAnalytics";}
-}
-
-If ($TestName -eq "LongHaul")
-{
     If ([string]::IsNullOrEmpty($DesiredModulesToRestartCSV)) {$DesiredModulesToRestartCSV = ","}
     If ([string]::IsNullOrEmpty($LoadGenMessageFrequency)) {$LoadGenMessageFrequency = "00:00:01"}
     If ([string]::IsNullOrEmpty($RestartIntervalInMins)) {$RestartIntervalInMins = "10"}
-    If ([string]::IsNullOrEmpty($SnitchReportingIntervalInSecs)) {$SnitchReportingIntervalInSecs = "86400"}
-    If ([string]::IsNullOrEmpty($SnitchTestDurationInSecs)) {$SnitchTestDurationInSecs = "604800"}
     If ([string]::IsNullOrEmpty($TwinUpdateFrequency)) {$TwinUpdateSize = "00:00:15"}
     If ([string]::IsNullOrEmpty($TwinUpdateSize)) {$TwinUpdateSize = "1"}
     If ([string]::IsNullOrWhiteSpace($TestStartDelay)) {$TestStartDelay="00:00:00";}
-}
-
-If ($TestName -eq "Stress")
-{
-    If ([string]::IsNullOrEmpty($LoadGenMessageFrequency)) {$LoadGenMessageFrequency = "00:00:00.03"}
-    If ([string]::IsNullOrEmpty($SnitchReportingIntervalInSecs)) {$SnitchReportingIntervalInSecs = "1700000"}
-    If ([string]::IsNullOrEmpty($SnitchTestDurationInSecs)) {$SnitchTestDurationInSecs = "14400"}
-    If ([string]::IsNullOrEmpty($TwinUpdateFrequency)) {$TwinUpdateSize = "00:00:01"}
-    If ([string]::IsNullOrEmpty($TwinUpdateSize)) {$TwinUpdateSize = "100"}
 }
 
 If ($BypassEdgeInstallation)

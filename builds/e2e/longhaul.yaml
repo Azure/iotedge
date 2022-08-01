@@ -14,7 +14,6 @@ variables:
   #images.build: <images build id>
   #pool.name: ''
   #container.registry: ''
-  #snitch.storage.account: ''
   # Variables settable at queue time
   #test.startDelay.arm
   #test.startDelay.amd
@@ -62,8 +61,6 @@ jobs:
           SecretsFilter: >-
             edgebuilds-azurecr-io-username,
             edgebuilds-azurecr-io-pwd,
-            StorageAccountMasterKeyStress,
-            SnitchLongHaulAlertUrl,
             kvLogAnalyticWorkspaceId,
             kvLogAnalyticSharedKey
       - task: AzureKeyVault@1
@@ -116,10 +113,6 @@ jobs:
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
           iotHub.connectionString: '$(IotHub-ConnStr)'
           eventHub.connectionString: '$(IotHub-EventHubConnStr)'
-          snitch.build.number: '$(snitch.build.number)'
-          snitch.alert.url: '$(SnitchLongHaulAlertUrl)'
-          snitch.storage.account: '$(snitch.storage.account)'
-          snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
@@ -161,8 +154,6 @@ jobs:
           SecretsFilter: >-
             edgebuilds-azurecr-io-username,
             edgebuilds-azurecr-io-pwd,
-            StorageAccountMasterKeyStress,
-            SnitchLongHaulAlertUrl,
             kvLogAnalyticWorkspaceId,
             kvLogAnalyticSharedKey
       - task: AzureKeyVault@1
@@ -215,10 +206,6 @@ jobs:
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
           iotHub.connectionString: '$(IotHub-ConnStr)'
           eventHub.connectionString: '$(IotHub-EventHubConnStr)'
-          snitch.build.number: '$(snitch.build.number)'
-          snitch.alert.url: '$(SnitchLongHaulAlertUrl)'
-          snitch.storage.account: '$(snitch.storage.account)'
-          snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.arm32v7)'
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
@@ -260,8 +247,6 @@ jobs:
           SecretsFilter: >-
             edgebuilds-azurecr-io-username,
             edgebuilds-azurecr-io-pwd,
-            StorageAccountMasterKeyStress,
-            SnitchLongHaulAlertUrl,
             kvLogAnalyticWorkspaceId,
             kvLogAnalyticSharedKey
       - task: AzureKeyVault@1
@@ -314,10 +299,6 @@ jobs:
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
           iotHub.connectionString: '$(IotHub-ConnStr)'
           eventHub.connectionString: '$(IotHub-EventHubConnStr)'
-          snitch.build.number: '$(snitch.build.number)'
-          snitch.alert.url: '$(SnitchLongHaulAlertUrl)'
-          snitch.storage.account: '$(snitch.storage.account)'
-          snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.arm64v8)'
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
@@ -359,8 +340,6 @@ jobs:
           SecretsFilter: >-
             edgebuilds-azurecr-io-username,
             edgebuilds-azurecr-io-pwd,
-            StorageAccountMasterKeyStress,
-            SnitchLongHaulAlertUrl,
             kvLogAnalyticWorkspaceId,
             kvLogAnalyticSharedKey
       - task: AzureKeyVault@1
@@ -415,10 +394,6 @@ jobs:
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
           iotHub.connectionString: '$(IotHub-ConnStr)'
           eventHub.connectionString: '$(IotHub-EventHubConnStr)'
-          snitch.build.number: '$(snitch.build.number)'
-          snitch.alert.url: '$(SnitchLongHaulAlertUrl)'
-          snitch.storage.account: '$(snitch.storage.account)'
-          snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
@@ -460,8 +435,6 @@ jobs:
           SecretsFilter: >-
             edgebuilds-azurecr-io-username,
             edgebuilds-azurecr-io-pwd,
-            StorageAccountMasterKeyStress,
-            SnitchLongHaulAlertUrl,
             kvLogAnalyticWorkspaceId,
             kvLogAnalyticSharedKey
       - task: AzureKeyVault@1
@@ -516,10 +489,6 @@ jobs:
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
           iotHub.connectionString: '$(IotHub-ConnStr)'
           eventHub.connectionString: '$(IotHub-EventHubConnStr)'
-          snitch.build.number: '$(snitch.build.number)'
-          snitch.alert.url: '$(SnitchLongHaulAlertUrl)'
-          snitch.storage.account: '$(snitch.storage.account)'
-          snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
@@ -559,8 +528,6 @@ jobs:
           SecretsFilter: >-
             edgebuilds-azurecr-io-username,
             edgebuilds-azurecr-io-pwd,
-            StorageAccountMasterKeyStress,
-            SnitchLongHaulAlertUrl,
             kvLogAnalyticWorkspaceId,
             kvLogAnalyticSharedKey
       - task: AzureKeyVault@1
@@ -616,10 +583,6 @@ jobs:
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
           iotHub.connectionString: '$(IotHub-ConnStr)'
           eventHub.connectionString: '$(IotHub-EventHubConnStr)'
-          snitch.build.number: '$(snitch.build.number)'
-          snitch.alert.url: '$(SnitchLongHaulAlertUrl)'
-          snitch.storage.account: '$(snitch.storage.account)'
-          snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
@@ -660,8 +623,6 @@ jobs:
           SecretsFilter: >-
             edgebuilds-azurecr-io-username,
             edgebuilds-azurecr-io-pwd,
-            StorageAccountMasterKeyStress,
-            SnitchLongHaulAlertUrl,
             kvLogAnalyticWorkspaceId,
             kvLogAnalyticSharedKey
       - task: AzureKeyVault@1
@@ -714,10 +675,6 @@ jobs:
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
           iotHub.connectionString: '$(IotHub-ConnStr)'
           eventHub.connectionString: '$(IotHub-EventHubConnStr)'
-          snitch.build.number: '$(snitch.build.number)'
-          snitch.alert.url: '$(SnitchLongHaulAlertUrl)'
-          snitch.storage.account: '$(snitch.storage.account)'
-          snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
