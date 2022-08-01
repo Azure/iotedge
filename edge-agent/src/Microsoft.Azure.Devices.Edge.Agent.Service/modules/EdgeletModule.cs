@@ -12,9 +12,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.DeviceManager;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Planner;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet;
+    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.CommandFactories;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient;
@@ -45,8 +47,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly TimeSpan performanceMetricsUpdateFrequency;
         readonly bool useServerHeartbeat;
         readonly string backupConfigFilePath;
-        readonly bool checkImagePullBeforeModuleCreate;
         readonly bool disableDeviceAnalyticsTelemetry;
+        readonly ModuleUpdateMode moduleUpdateMode;
 
         public EdgeletModule(
             string iotHubHostname,
@@ -63,8 +65,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             TimeSpan performanceMetricsUpdateFrequency,
             bool useServerHeartbeat,
             string backupConfigFilePath,
-            bool checkImagePullBeforeModuleCreate,
-            bool disableDeviceAnalyticsTelemetry)
+            bool disableDeviceAnalyticsTelemetry,
+            ModuleUpdateMode moduleUpdateMode)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
@@ -80,8 +82,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.performanceMetricsUpdateFrequency = performanceMetricsUpdateFrequency;
             this.useServerHeartbeat = useServerHeartbeat;
             this.backupConfigFilePath = Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath));
-            this.checkImagePullBeforeModuleCreate = checkImagePullBeforeModuleCreate;
             this.disableDeviceAnalyticsTelemetry = disableDeviceAnalyticsTelemetry;
+            this.moduleUpdateMode = moduleUpdateMode;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -138,8 +140,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         ICommandFactory factory = new EdgeletCommandFactory<CombinedDockerConfig>(
                             moduleManager,
                             configSource,
-                            combinedDockerConfigProvider,
-                            this.checkImagePullBeforeModuleCreate);
+                            combinedDockerConfigProvider);
+
+                        if (this.moduleUpdateMode == ModuleUpdateMode.NonBlocking)
+                        {
+                            factory = new StandardCommandFactory(factory);
+                        }
+                        else
+                        {
+                            factory = new ExecutionPrerequisiteCommandFactory(factory);
+                        }
+
                         factory = new MetricsCommandFactory(factory, metricsProvider);
                         return new LoggingCommandFactory(factory, loggerFactory) as ICommandFactory;
                     })
