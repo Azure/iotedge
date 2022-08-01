@@ -3,11 +3,11 @@ use std::sync::{Arc, Mutex};
 use std::time::UNIX_EPOCH;
 use std::{collections::HashMap, fs, time::Duration};
 
-use edgelet_core::Module;
 use edgelet_settings::base::image::MIGCSettings;
 
-use crate::{DockerModule, Error};
+use crate::Error;
 
+// TODO: make same location as migc file
 const TEMP_FILE: &str = "/tmp/images";
 
 #[derive(Debug, Clone)]
@@ -33,40 +33,45 @@ impl MIGCPersistence {
         };
 
         Self {
-            inner: Arc::new(Mutex::new(MIGCPersistenceInner {
-                filename,
-                settings: settings,
-            })),
+            inner: Arc::new(Mutex::new(MIGCPersistenceInner { filename, settings })),
         }
     }
 
-    // TODO: simplify to just take id. Consider making write_image_use_to_file public.
-    pub async fn record_image_use_timestamp(
-        &self,
-        name_or_id: &str,
-        is_image_id: bool,
-        image_name_to_id: HashMap<String, String>, // HashMap<image_name, image_id>
-    ) {
-        if is_image_id {
-            self.write_image_use_to_file(name_or_id).await;
-        } else {
-            match image_name_to_id.get(name_or_id) {
-                Some(id) => {
-                    return self.write_image_use_to_file(id).await;
-                }
-                None => {
-                    log::error!("Could not find image with id: {}", name_or_id);
-                }
-            };
-        }
+    pub async fn record_image_use_timestamp(&self, name_or_id: &str) {
+        let guard = self
+            .inner
+            .lock()
+            .expect("Could not lock images file for image garbage collection");
+
+        // read MIGC persistence file into in-mem map
+        // this map now contains all images deployed to the device (through an IoT Edge deployment)
+
+        let mut image_map = match get_images_with_timestamp(guard.filename.clone()) {
+            Ok(map) => map,
+            Err(e) => {
+                drop(guard);
+                log::error!("Could not read auto-prune data; image garbage collection did not prune any images: {}", e);
+                return;
+            }
+        };
+
+        let current_time = std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Could not get EPOCH time");
+
+        image_map.insert(name_or_id.to_string(), current_time);
+
+        // write entries back to file
+        let _res =
+            write_images_with_timestamp(&image_map, TEMP_FILE.to_string(), guard.filename.clone());
+
+        drop(guard);
     }
 
+    /// # Panics
     pub async fn prune_images_from_file(
         &self,
-        running_modules: std::vec::Vec<(
-            DockerModule<http_common::Connector>,
-            edgelet_core::ModuleRuntimeState,
-        )>,
+        running_modules: std::vec::Vec<String>,
     ) -> Result<HashMap<String, Duration>, Error> {
         let guard = self.inner.lock().unwrap();
 
@@ -102,7 +107,7 @@ impl MIGCPersistence {
         if let Err(e) =
             write_images_with_timestamp(&carry_over, TEMP_FILE.to_string(), guard.filename.clone())
         {
-            log::error!("Failed to update image auto pruning persistence file. File will be updated on next scheduled run. {}", e)
+            log::error!("Failed to update image auto pruning persistence file. File will be updated on next scheduled run. {}", e);
         };
 
         /* ============================== */
@@ -112,40 +117,9 @@ impl MIGCPersistence {
         // these are the images we need to prune; MIGC file has already been updated
         Ok(images_to_delete)
     }
-
-    /* ===================================== HELPER METHODS ==================================== */
-
-    async fn write_image_use_to_file(&self, name_or_id: &str) {
-        let guard = self
-            .inner
-            .lock()
-            .expect("Could not lock images file for image garbage collection");
-
-        // read MIGC persistence file into in-mem map
-        // this map now contains all images deployed to the device (through an IoT Edge deployment)
-
-        let mut image_map = match get_images_with_timestamp(guard.filename.clone()) {
-            Ok(map) => map,
-            Err(e) => {
-                drop(guard);
-                log::error!("Could not read auto-prune data; image garbage collection did not prune any images: {}", e);
-                return;
-            }
-        };
-
-        let current_time = std::time::SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("Could not get EPOCH time");
-
-        image_map.insert(name_or_id.to_string(), current_time);
-
-        // write entries back to file
-        let _res =
-            write_images_with_timestamp(&image_map, TEMP_FILE.to_string(), guard.filename.clone());
-
-        drop(guard);
-    }
 }
+
+/* ===================================== HELPER METHODS ==================================== */
 
 fn get_images_with_timestamp(filename: String) -> Result<HashMap<String, Duration>, Error> {
     let res = fs::read_to_string(filename);
@@ -207,10 +181,7 @@ fn write_images_with_timestamp(
 
 fn process_state(
     mut image_map: HashMap<String, Duration>,
-    running_modules: Vec<(
-        DockerModule<http_common::Connector>,
-        edgelet_core::ModuleRuntimeState,
-    )>,
+    running_modules: Vec<String>,
     min_age: Duration,
 ) -> Result<(HashMap<String, Duration>, HashMap<String, Duration>), Error> {
     let current_time = std::time::SystemTime::now()
@@ -220,18 +191,12 @@ fn process_state(
     let mut carry_over: HashMap<String, Duration> = HashMap::new(); // all images to NOT be deleted by MIGC in this run
 
     // then, based on ID, keep track of images currently being used (in map: carry_over)
-    for module in running_modules {
-        let key = module
-            .0
-            .config()
-            .image_hash()
-            .ok_or(Error::GetImageHash())?;
-
+    for module_id in running_modules {
         // Since the images are currently being used, we update the timestamp to the current time
         // This avoids the case where a container crash just as MIGC is kicking off removes a needed image
 
         // TODO: Do we need to trim the key here?
-        carry_over.insert(key.to_string(), current_time);
+        carry_over.insert(module_id, current_time);
     }
 
     // track entries younger than min age
@@ -251,11 +216,11 @@ fn process_state(
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, time::Duration};
+    use std::{collections::HashMap, time::{Duration, UNIX_EPOCH}};
 
     use crate::migc_persistence::get_images_with_timestamp;
 
-    use super::write_images_with_timestamp;
+    use super::{write_images_with_timestamp, process_state};
 
     const TEMP_FILE: &str = "/tmp/images";
 
@@ -320,5 +285,38 @@ mod tests {
 
         // cleanup
         let _res = std::fs::remove_file("/tmp/images2");
+    }
+
+    #[test]
+    fn test_process_state() {
+        let (map1, map2) = process_state(HashMap::new(), Vec::new(), Duration::from_secs(60*60*24)).unwrap();
+        assert!(map1.is_empty());
+        assert!(map2.is_empty());
+
+        let mut images_being_used: Vec<String> = Vec::new();
+        images_being_used.push("sha256:670dcc86b69df89a9d5a9e1a7ae5b8f67619c1c74e19de8a35f57d6c06505fd4".to_string());
+        images_being_used.push("sha256:62aedd01bd8520c43d06b09f7a0f67ba9720bdc04631a8242c65ea995f3ecac8".to_string());
+        images_being_used.push("sha256:a4d112e0884bd2ba078ab8222e075bc656cc65cd433dfbb74d6de7cee188f2f2".to_string());
+
+        let time = std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Could not get EPOCH time");
+
+        let mut all_images_on_disk: HashMap<String, Duration> = HashMap::new();
+        
+        // currently used
+        all_images_on_disk.insert("sha256:670dcc86b69df89a9d5a9e1a7ae5b8f67619c1c74e19de8a35f57d6c06505fd4".to_string(), time-Duration::from_secs(60*60*24));
+        all_images_on_disk.insert("sha256:62aedd01bd8520c43d06b09f7a0f67ba9720bdc04631a8242c65ea995f3ecac8".to_string(), time-Duration::from_secs(60*60*24*5));
+        all_images_on_disk.insert("sha256:a4d112e0884bd2ba078ab8222e075bc656cc65cd433dfbb74d6de7cee188f2f2".to_string(), time-Duration::from_secs(60*60*24*9));
+
+        // others
+        all_images_on_disk.insert("sha256:a40d3130a63918663f6e412178d2e83010994bb5a6bdb9ba314ca43013c05331".to_string(), time-Duration::from_secs(60*60*12));
+        all_images_on_disk.insert("sha256:269d9943b0d310e1ab49a55e14752596567a74daa37270c6217abfc33f48f7f5".to_string(), time-Duration::from_secs(60*60*24*12));
+        all_images_on_disk.insert("sha256:a1e6072c125f6102f410418ca0647841376982b460ab570916b01f264daf89af".to_string(), time-Duration::from_secs(60*60*24*13));
+        all_images_on_disk.insert("sha256:a4d112e0884bd2ba078ab8222e075bc989cc65cd433dfbb74d6de7cee188g4g7".to_string(), time-Duration::from_secs(60*60*24*8));
+
+        let (to_delete, carry_over) = process_state(all_images_on_disk, images_being_used, Duration::from_secs(60*60*24)).unwrap();
+        assert!(to_delete.len() == 3);
+        assert!(carry_over.len() == 4);
     }
 }

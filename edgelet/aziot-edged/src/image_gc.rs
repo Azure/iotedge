@@ -46,7 +46,17 @@ async fn garbage_collector(
 
     // first get list of containers on the device, running or otherwise
     let running_modules = match ModuleRuntime::list_with_details(runtime).await {
-        Ok(modules) => modules,
+        Ok(modules) => {
+            let mut module_ids: Vec<String> = Vec::new();
+            for module in modules {
+                let id = edgelet_core::Module::config(&module.0)
+                    .image_hash()
+                    .ok_or(edgelet_docker::Error::GetImageHash())
+                    .unwrap();
+                module_ids.push(id.to_string());
+            }
+            module_ids
+        }
         Err(err) => {
             return Err(EdgedError::new(format!(
                 "Error in image auto-pruning task. Cannot get running modules. Skipping image auto pruning. {}",

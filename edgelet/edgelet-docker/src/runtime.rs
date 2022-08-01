@@ -121,8 +121,9 @@ where
                 if image_name_to_id.is_empty() {
                     log::info!("No docker images present on device");
                 } else {
+                    let image_id = image_name_to_id.get(config.image());
                     self.migc_persistence
-                        .record_image_use_timestamp(image.as_str(), false, image_name_to_id)
+                        .record_image_use_timestamp(image_id.unwrap_or(&String::default()))
                         .await;
                 }
             }
@@ -369,8 +370,6 @@ where
                     .config()
                     .image_hash()
                     .ok_or(Error::GetImageHash())?,
-                true,
-                HashMap::new(),
             )
             .await;
 
@@ -554,7 +553,7 @@ where
         // TODO:: what happens here if container_delete() fails?
         // update image use timestamp for auto-pruning job later
         self.migc_persistence
-            .record_image_use_timestamp(image_id, true, HashMap::new())
+            .record_image_use_timestamp(image_id)
             .await;
 
         // Remove the socket to avoid having socket files polluting the home folder.
@@ -745,16 +744,9 @@ where
 
         let mut result: HashMap<String, String> = HashMap::new();
         for image in images {
-            // a call to underlying docker API /images/json returns the image list with
-            // the ID of each image in the form: "sha256:e216a057b1cb1efc11f8a268f37ef62083e70b1b38323ba252e25ac88904a7e8"
-            // The following code skips the "sha256:" part, and takes the first 12 characters
-            // (to match with the image id we see when we run 'docker images')
-            // TODO: remove
-            let image_id: String = image.id().clone().chars().skip(7).take(12).collect();
-
             // an individual image id may be associated with multiple image names
             for name in image.repo_tags() {
-                result.insert(name.clone(), image_id.clone());
+                result.insert(name.clone(), image.id().clone());
             }
         }
 
