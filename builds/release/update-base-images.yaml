@@ -76,7 +76,7 @@ steps:
 
       echo -e "  base:\t\t$base_image\n  current:\t$current_digest\n  latest:\t$latest_digest"
 
-      if [ "$current_digest" != "$latest_digest" ]
+      if [ "$current_digest" != 'null' ] && [ "$current_digest" != "$latest_digest" ]
       then
         echo "  ## NEEDS UPDATE ##"
         needs_update+=( "$image" )
