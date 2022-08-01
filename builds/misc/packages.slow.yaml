@@ -9,6 +9,7 @@ trigger:
       - release/*
 pr: none
 variables:
+  DisableDockerDetector: true
   REVISION: '1'
 jobs:
 

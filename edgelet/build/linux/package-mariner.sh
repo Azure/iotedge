@@ -37,7 +37,7 @@ case "${MARINER_RELEASE}" in
         PackageExtension="cm1"
         ;;
     '2.0-stable')
-        UsePreview=y
+        UsePreview=n
         MarinerIdentity=mariner2
         PackageExtension="cm2"
         ;;
@@ -72,6 +72,7 @@ pushd "${EDGELET_ROOT}"
 echo "set cargo home location"
 mkdir ${BUILD_REPOSITORY_LOCALPATH}/cargo-home
 export CARGO_HOME=${BUILD_REPOSITORY_LOCALPATH}/cargo-home
+
 echo "Vendoring Rust dependencies"
 cargo vendor vendor
 
@@ -108,14 +109,15 @@ cp ../LICENSE ./LICENSE
 popd # EDGELET_ROOT
 
 # Create source tarball, including cargo dependencies and license
-pushd "${BUILD_REPOSITORY_LOCALPATH}"
+tmp_dir=$(mktemp -d -t mariner-iotedge-build-XXXXXXXXXX)
+pushd $tmp_dir
 echo "Creating source tarball azure-iotedge-${VERSION}.tar.gz"
-tar -czf azure-iotedge-${VERSION}.tar.gz --transform="s,^.*edgelet/,azure-iotedge-${VERSION}/edgelet/," "${EDGELET_ROOT}"
+tar -czvf azure-iotedge-${VERSION}.tar.gz --transform s/./azure-iotedge-${VERSION}/ -C "${BUILD_REPOSITORY_LOCALPATH}" .
 popd
 
 # Copy source tarball to expected locations
 mkdir -p "${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/SOURCES/"
-cp "${BUILD_REPOSITORY_LOCALPATH}/azure-iotedge-${VERSION}.tar.gz" "${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/SOURCES/"
+cp "${tmp_dir}/azure-iotedge-${VERSION}.tar.gz" "${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/SOURCES/"
 mkdir -p "${MARINER_BUILD_ROOT}/SPECS/libiothsm-std/SOURCES/"
 cp "${BUILD_REPOSITORY_LOCALPATH}/azure-iotedge-${VERSION}.tar.gz" "${MARINER_BUILD_ROOT}/SPECS/libiothsm-std/SOURCES/"
 

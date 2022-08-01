@@ -166,11 +166,16 @@ stages:
     - job: mariner_linux
 ################################################################################
       displayName: Mariner_Linux
-      condition: eq(${{ parameters['E2EBuild'] }}, false)
+      condition: |
+        and
+        (
+          eq(${{ parameters['E2EBuild'] }}, false), 
+          or(eq(variables['build.linux.mariner'], ''), eq(variables['build.linux.mariner'], true))
+        )
       pool:
-        name: $(pool.linux.name)
+        name: $(pool.windows.name)
         demands:
-          - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+          - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker-large-disk
       strategy:
         matrix:
           CBL-Mariner1.0-amd64:
@@ -178,14 +183,14 @@ stages:
             os: mariner
             os_version: 1
             mariner_release: 1.0-stable
-            target.iotedged: builds/mariner1/out/RPMS
+            target.iotedged: builds/mariner1/out/RPMS/x86_64/
             target.logs: builds/mariner1/build/logs/pkggen/rpmbuilding/
           CBL-Mariner2.0-amd64:
             arch: amd64
             os: mariner
             os_version: 2
             mariner_release: 2.0-stable
-            target.iotedged: builds/mariner2/out/RPMS
+            target.iotedged: builds/mariner2/out/RPMS/x86_64/
             target.logs: builds/mariner2/build/logs/pkggen/rpmbuilding/
       steps:
         - bash: |

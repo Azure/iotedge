@@ -51,7 +51,8 @@ This package contains the IoT Edge daemon and CLI tool
 %global debug_package %{nil}
 
 %prep
-%setup -q -n %{_topdir}/BUILD/azure-iotedge-%{version}/edgelet
+%setup -q
+%patch0 -p1
 
 pushd %{_topdir}/BUILD/azure-iotedge-%{version}
 %patch0 -p1
@@ -84,6 +85,10 @@ export RUSTUP_HOME=~/.rustup
 
 IOTEDGE_HOST=unix:///var/lib/iotedge/mgmt.sock
 export IOTEDGE_HOST
+export CARGO_HOME=~/.cargo
+export PATH=$PATH:$CARGO_HOME/bin
+export RUSTUP_HOME=~/.rustup
+cd edgelet
 make %{?_smp_mflags} install DESTDIR=$RPM_BUILD_ROOT unitdir=%{_unitdir} docdir=%{_docdir}/iotedge-%{version}
 
 %clean
