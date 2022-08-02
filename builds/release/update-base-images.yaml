@@ -68,9 +68,12 @@ steps:
     do
       echo "image: $image"
 
-      read base_image current_digest <<< \
-        $(docker buildx imagetools inspect $image --format "{{json .BuildInfo}}" |
-          jq -r '@text "\(.sources[0].ref) \(.sources[0].pin)"')
+      # This command assumes that the $image has a manifest, not a manifest list.
+      # In other words, $image is _not_ a multi-arch image.
+      read base_image current_digest <<< $(\
+        docker buildx imagetools inspect $image --format "{{json .BuildInfo}}" |
+        jq -r '@text "\(.sources[0].ref) \(.sources[0].pin)"'
+      )
 
       latest_digest="sha256:$(docker buildx imagetools inspect --raw $base_image | shasum --algorithm 256 | awk '{print$1}')"
 
