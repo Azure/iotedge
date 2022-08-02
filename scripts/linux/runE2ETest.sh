@@ -85,7 +85,7 @@ function get_iotedged_artifact_folder() {
     local path
     if [ "$image_architecture_label" = 'amd64' ]; then
         if [ "$is_mariner" = "true" ]; then
-            path="$E2E_TEST_DIR/artifacts/iotedged-mariner$(mariner_version)-amd64"
+            path="$E2E_TEST_DIR/artifacts/iotedged-mariner${mariner_version}-amd64"
         else
             path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu18.04-amd64"
         fi
