@@ -896,13 +896,6 @@ function configure_connectivity_settings() {
 LONGHAUL_TEST_NAME="LongHaul"
 CONNECTIVITY_TEST_NAME="Connectivity"
 
-if [ -z $PACKAGE_TYPE ]; then
-    echo 'Package type not specifed default to .deb'
-    PACKAGE_TYPE=deb
-fi
-
-PACKAGE_TYPE_ARG=--package-type="$PACKAGE_TYPE"
-
 is_build_canceled=$(is_cancel_build_requested $DEVOPS_ACCESS_TOKEN $DEVOPS_BUILDID)
 if [ "$is_build_canceled" -eq '1' ]; then
     print_highlighted_message "build is canceled."
@@ -927,6 +920,13 @@ NETWORK_CONTROLLER_FREQUENCIES=${NETWORK_CONTROLLER_FREQUENCIES:(null)}
 
 working_folder="$E2E_TEST_DIR/working"
 quickstart_working_folder="$working_folder/quickstart"
+
+if [ -z $PACKAGE_TYPE ]; then
+    echo 'Package type not specifed default to .deb'
+    PACKAGE_TYPE=deb
+fi
+
+PACKAGE_TYPE_ARG=--package-type="$PACKAGE_TYPE"
 
 if [ "$image_architecture_label" = 'amd64' ]; then
     optimize_for_performance=true
