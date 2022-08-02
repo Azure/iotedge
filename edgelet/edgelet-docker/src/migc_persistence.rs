@@ -79,7 +79,7 @@ impl MIGCPersistence {
     /// # Panics
     pub async fn prune_images_from_file(
         &self,
-        running_module_ids: std::vec::Vec<String>,
+        in_use_image_ids: std::vec::Vec<String>,
     ) -> Result<HashMap<String, Duration>, Error> {
         let guard = self.inner.lock().unwrap();
 
@@ -107,7 +107,7 @@ impl MIGCPersistence {
 
         // process maps
         let (images_to_delete, carry_over) =
-            process_state(image_map, running_module_ids, settings.min_age())?;
+            process_state(image_map, in_use_image_ids, settings.min_age())?;
 
         /* ============================== */
 
@@ -192,7 +192,7 @@ fn write_images_with_timestamp(
 type HashMapTuple = (HashMap<String, Duration>, HashMap<String, Duration>);
 fn process_state(
     mut image_map: HashMap<String, Duration>,
-    running_module_ids: Vec<String>,
+    image_ids: Vec<String>,
     min_age: Duration,
 ) -> Result<HashMapTuple, Error> {
     let current_time = std::time::SystemTime::now()
@@ -202,7 +202,7 @@ fn process_state(
     let mut carry_over: HashMap<String, Duration> = HashMap::new(); // all images to NOT be deleted by MIGC in this run
 
     // then, based on ID, keep track of images currently being used (in map: carry_over)
-    for module_id in running_module_ids {
+    for module_id in image_ids {
         // Since the images are currently being used, we update the timestamp to the current time
         // This avoids the case where a container crash just as MIGC is kicking off removes a needed image
 
@@ -232,6 +232,7 @@ mod tests {
     };
 
     use edgelet_settings::base::image::MIGCSettings;
+    use serial_test::serial;
     use nix::libc::sleep;
 
     use crate::{migc_persistence::get_images_with_timestamp, MIGCPersistence};
@@ -243,10 +244,14 @@ mod tests {
     /* =============================================================== PUBLIC API TESTS ============================================================ */
 
     #[tokio::test]
+    #[serial]
     async fn test_record_image_use_timestamp() {
-        let settings = MIGCSettings::new(Duration::from_secs(30), Duration::from_secs(10), false);
 
+        let mut _res = std::fs::remove_file(TEMP_FILE);
+        let settings = MIGCSettings::new(Duration::from_secs(30), Duration::from_secs(10), false);
         let migc_persistence = MIGCPersistence::new(TEMP_FILE.to_string(), Some(settings));
+
+        //unsafe {sleep(3)};
 
         // write new image
         migc_persistence
@@ -284,7 +289,86 @@ mod tests {
         assert!(old_time < new_time);
 
         // cleanup
-        let _res = std::fs::remove_file("/tmp/images2");
+        _res = std::fs::remove_file("/tmp/images2");
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_prune_images_from_file() {
+        // setup
+        let time = std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Could not get EPOCH time");
+
+        let mut _res = std::fs::remove_file(TEMP_FILE);
+
+        let mut image_map: HashMap<String, Duration> = HashMap::new();
+        image_map.insert(
+            "sha256:670dcc86b69df89a9d5a9e1a7ae5b8f67619c1c74e19de8a35f57d6c06505fd4".to_string(),
+            time,
+        );
+        image_map.insert(
+            "sha256:7a45202c8491b92b7e7a9a0cbf887079fcdb86ea3cb0b7a4cb8f5491281e985d".to_string(),
+            time,
+        );
+        image_map.insert(
+            "sha256:a40d3130a63918663f6e412178d2e83010994bb5a6bdb9ba314ca43013c05331".to_string(),
+            time,
+        );
+        image_map.insert(
+            "sha256:85fdb1e9675c837c18b75f103be6f156587d1058eced1fc508cdb84a722e4f82".to_string(),
+            time,
+        );
+        image_map.insert(
+            "sha256:553fd62d98efd413c6c97ded7e6c6c46fc38c7b1e30a2bffd7e08c04f0d65863".to_string(),
+            time,
+        );
+        image_map.insert(
+            "sha256:79386db4871013d571ced41443e6384ccc82ccd7f4988ecec4d5f91cbd488a99".to_string(),
+            time,
+        );
+
+        let _write =
+            write_images_with_timestamp(&image_map, "/tmp/temp".to_string(), TEMP_FILE.to_string());
+
+        let mut settings =
+            MIGCSettings::new(Duration::from_secs(30), Duration::from_secs(5), false);
+        let mut migc_persistence = MIGCPersistence::new(TEMP_FILE.to_string(), Some(settings));
+
+        let mut in_use_image_ids: Vec<String> = vec![
+            "sha256:670dcc86b69df89a9d5a9e1a7ae5b8f67619c1c74e19de8a35f57d6c06505fd4".to_string(),
+        ];
+        in_use_image_ids.push(
+            "sha256:7a45202c8491b92b7e7a9a0cbf887079fcdb86ea3cb0b7a4cb8f5491281e985d".to_string(),
+        );
+        in_use_image_ids.push(
+            "sha256:a40d3130a63918663f6e412178d2e83010994bb5a6bdb9ba314ca43013c05331".to_string(),
+        );
+        in_use_image_ids.push(
+            "sha256:85fdb1e9675c837c18b75f103be6f156587d1058eced1fc508cdb84a722e4f82".to_string(),
+        );
+
+        unsafe { sleep(6) };
+
+        // migc enabled, remove stuff
+        let mut images_to_delete = migc_persistence
+            .prune_images_from_file(in_use_image_ids.clone())
+            .await
+            .unwrap();
+        assert!(images_to_delete.is_empty());
+
+        // migc disable... don't remove stuff
+        settings = MIGCSettings::new(Duration::from_secs(30), Duration::from_secs(5), true);
+        migc_persistence = MIGCPersistence::new(TEMP_FILE.to_string(), Some(settings));
+
+        images_to_delete = migc_persistence
+            .prune_images_from_file(in_use_image_ids)
+            .await
+            .unwrap();
+        assert!(images_to_delete.len() == 2);
+
+        // cleanup
+        _res = std::fs::remove_file(TEMP_FILE);
     }
 
     /* =============================================================== MORE TESTS ============================================================ */
@@ -322,6 +406,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_get_write_images_with_timestamp() {
         let current_time = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -338,7 +423,6 @@ mod tests {
             "/tmp/images2".to_string(),
         );
         assert!(result.is_ok());
-
         // assert file not empty, verify file write
         let result_map: HashMap<String, Duration> =
             get_images_with_timestamp("/tmp/images2".to_string()).unwrap();

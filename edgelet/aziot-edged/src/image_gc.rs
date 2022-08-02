@@ -47,15 +47,15 @@ async fn garbage_collector(
     // first get list of containers on the device, running or otherwise
     let running_modules = match ModuleRuntime::list_with_details(runtime).await {
         Ok(modules) => {
-            let mut module_ids: Vec<String> = Vec::new();
+            let mut image_ids: Vec<String> = Vec::new();
             for module in modules {
                 let id = edgelet_core::Module::config(&module.0)
                     .image_hash()
                     .ok_or(edgelet_docker::Error::GetImageHash())
                     .unwrap();
-                module_ids.push(id.to_string());
+                image_ids.push(id.to_string());
             }
-            module_ids
+            image_ids
         }
         Err(err) => {
             return Err(EdgedError::new(format!(
