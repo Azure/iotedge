@@ -25,6 +25,8 @@ pk = "file:///var/secrets/local-ca.key.pem"
 
 [preloaded_certs]
 
+[tpm]
+
 [agent]
 name = "edgeAgent"
 type = "docker"
