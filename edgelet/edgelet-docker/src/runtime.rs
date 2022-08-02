@@ -358,7 +358,6 @@ where
                 Error::RuntimeOperation(RuntimeOperation::CreateModule(module.name().to_string()))
             })?;
 
-        // TODO:: what happens here if container_create() fails?
         // Now, get the image id of the image associated with the module we started
         let module_with_details = self.get(module.name()).await?;
 
@@ -550,7 +549,6 @@ where
                 Error::RuntimeOperation(RuntimeOperation::RemoveModule(id.to_owned()))
             })?;
 
-        // TODO:: what happens here if container_delete() fails?
         // update image use timestamp for auto-pruning job later
         self.migc_persistence
             .record_image_use_timestamp(image_id)

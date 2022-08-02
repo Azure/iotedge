@@ -10,7 +10,7 @@ mod provision;
 mod watchdog;
 mod workload_manager;
 
-use std::{fs::File, sync::atomic};
+use std::sync::atomic;
 
 use edgelet_core::{module::ModuleAction, ModuleRuntime, WatchdogAction};
 use edgelet_docker::{MIGCPersistence, MakeModuleRuntime};
@@ -73,8 +73,8 @@ async fn run() -> Result<(), EdgedError> {
     })?;
 
     let migc_filename = settings.homedir().join("migc");
-    log::info!("creating file at: {}", migc_filename.to_str().unwrap());
-    let _file = File::create(migc_filename.clone()).unwrap();
+    /*log::info!("creating file at: {}", migc_filename.to_str().unwrap());
+    let _file = File::create(migc_filename.clone()).unwrap();*/
 
     let identity_client = provision::identity_client(&settings)?;
 

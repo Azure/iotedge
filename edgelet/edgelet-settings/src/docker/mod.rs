@@ -301,7 +301,7 @@ mod tests {
 
         let settings = Settings::new().unwrap();
         let migc_settings = settings.module_image_garbage_collection().clone().unwrap();
-        assert_eq!(migc_settings.is_enabled(), true);
+        assert!(migc_settings.is_enabled());
         assert_eq!(migc_settings.min_age(), Duration::from_secs(30));
         assert_eq!(
             migc_settings.time_between_cleanup(),
