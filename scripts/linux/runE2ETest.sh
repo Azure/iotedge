@@ -116,7 +116,6 @@ function prepare_test_from_artifacts() {
     mkdir -p "$working_folder"
 
     declare -a pkg_list=( $iotedged_artifact_folder/*.deb )
-
     iotedge_package="${pkg_list[*]}"
     echo "iotedge_package=$iotedge_package"
 
