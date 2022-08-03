@@ -349,7 +349,7 @@ jobs:
   - job: Mariner1_amd64
 ################################################################################
     displayName: Mariner 1.0 AMD64
-    condition: eq(variables['run.EFLOW.amd64'], 'true')
+    condition: and(eq(variables['run.EFLOW.amd64'], 'true'), eq(variables['useTRC'], 'true'))
     pool:
       name: $(pool.name)
       demands:
