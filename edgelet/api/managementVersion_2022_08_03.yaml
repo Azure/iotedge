@@ -3,7 +3,7 @@ schemes:
   - http
 info:
   title: IoT Edge Management API
-  version: '2021-12-07'
+  version: '2022-08-03'
 tags:
   - name: Module
     x-displayName: Modules
