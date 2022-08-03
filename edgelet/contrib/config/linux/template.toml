@@ -288,7 +288,7 @@
 # imagePullPolicy = "..."   # "on-create" or "never". Defaults to "on-create"
 
 # [agent.config]
-# image = "mcr.microsoft.com/azureiotedge-agent:1.2"
+# image = "mcr.microsoft.com/azureiotedge-agent:1.4"
 # createOptions = { HostConfig = { Binds = ["/iotedge/storage:/iotedge/storage"] } }
 
 # [agent.config.auth]
