@@ -21,6 +21,8 @@ value = "YXppb3QtaWRlbnRpdHktc2VydmljZXxhemlvdC1pZGVudGl0eS1zZXJ2aWNlfGF6aW90LWl
 
 [preloaded_certs]
 
+[tpm]
+
 [agent]
 name = "edgeAgent"
 type = "docker"

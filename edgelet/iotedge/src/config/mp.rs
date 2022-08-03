@@ -76,6 +76,8 @@ To reconfigure IoT Edge, run:
 
             preloaded_certs: Default::default(),
 
+            tpm: Default::default(),
+
             endpoints: Default::default(),
         },
 

@@ -19,6 +19,8 @@ identity_pk = "file:///var/secrets/device-id.key.pem"
 
 [preloaded_certs]
 
+[tpm]
+
 [agent]
 name = "edgeAgent"
 type = "docker"

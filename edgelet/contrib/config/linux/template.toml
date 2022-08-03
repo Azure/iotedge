@@ -142,6 +142,9 @@
 # global_endpoint = "https://global.azure-devices-provisioning.net"
 # id_scope = "0ab1234C5D6"
 #
+## Uncomment to send a custom payload during DPS registration
+# payload = { uri = "file:///var/secrets/aziot/identityd/dps-additional-data.json" }
+#
 # [provisioning.attestation]
 # method = "symmetric_key"
 # registration_id = "my-device"
@@ -156,6 +159,9 @@
 # source = "dps"
 # global_endpoint = "https://global.azure-devices-provisioning.net/"
 # id_scope = "0ab1234C5D6"
+#
+## Uncomment to send a custom payload during DPS registration
+# payload = { uri = "file:///var/secrets/aziot/identityd/dps-additional-data.json" }
 #
 # [provisioning.attestation]
 # method = "x509"
@@ -191,6 +197,9 @@
 # source = "dps"
 # global_endpoint = "https://global.azure-devices-provisioning.net"
 # id_scope = "0ab1234C5D6"
+#
+## Uncomment to send a custom payload during DPS registration
+# payload = { uri = "file:///var/secrets/aziot/identityd/dps-additional-data.json" }
 #
 # [provisioning.attestation]
 # method = "tpm"

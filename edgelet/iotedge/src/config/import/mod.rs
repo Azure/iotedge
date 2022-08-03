@@ -248,6 +248,7 @@ fn execute_inner(
                                     value: symmetric_key,
                                 },
                             },
+                        payload: None,
                     },
                 },
                 always_reprovision_on_startup,
@@ -281,6 +282,7 @@ fn execute_inner(
                                 },
                             },
                         },
+                        payload: None,
                     },
                 },
                 always_reprovision_on_startup,
@@ -302,6 +304,7 @@ fn execute_inner(
                         attestation: common_config::super_config::DpsAttestationMethod::Tpm {
                             registration_id,
                         },
+                        payload: None,
                     },
                 },
                 always_reprovision_on_startup,
@@ -394,6 +397,8 @@ fn execute_inner(
             cert_issuance: Default::default(),
 
             preloaded_certs: Default::default(),
+
+            tpm: Default::default(),
 
             endpoints: Default::default(),
         },
