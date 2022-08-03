@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public class SystemInfo
     {
-        public SystemInfo(string operatingSystemType, string architecture, string version, ProvisioningInfo provisioning, string serverVersion, string kernelVersion, string operatingSystem, int numCpus, int totalMemory, string virtualized, IReadOnlyDictionary<string, object> additionalProperties)
+        public SystemInfo(string operatingSystemType, string architecture, string version, ProvisioningInfo provisioning, string serverVersion, string kernelVersion, string operatingSystem, int numCpus, long totalMemory, string virtualized, IReadOnlyDictionary<string, object> additionalProperties)
         {
             this.OperatingSystemType = operatingSystemType;
             this.Architecture = architecture;
@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public int NumCpus { get; }
 
-        public int TotalMemory { get; }
+        public long TotalMemory { get; }
 
         public string Virtualized { get; }
 

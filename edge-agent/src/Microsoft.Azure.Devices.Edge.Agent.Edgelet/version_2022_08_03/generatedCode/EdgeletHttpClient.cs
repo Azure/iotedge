@@ -2130,7 +2130,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2022_08_03.Generate
         public int? Cpus { get; set; }
 
         [Newtonsoft.Json.JsonProperty("total_memory", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
-        public int? Total_memory { get; set; }
+        public long? Total_memory { get; set; }
 
         [Newtonsoft.Json.JsonProperty("virtualized", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public string Virtualized { get; set; }
