@@ -113,6 +113,7 @@ dependencies = [
  "aziot-identity-common",
  "aziot-identity-common-http",
  "base64",
+ "chrono",
  "clap",
  "edgelet-core",
  "edgelet-docker",
@@ -601,6 +602,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "base64",
+ "chrono",
  "docker",
  "edgelet-core",
  "edgelet-settings",
@@ -718,6 +720,7 @@ version = "0.1.0"
 dependencies = [
  "aziot-certd-config",
  "cert-renewal",
+ "chrono",
  "config-common",
  "docker",
  "humantime-serde",
@@ -1425,9 +1428,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.8.0"
+version = "1.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "692fcb63b64b1758029e0a96ee63e049ce8c5948587f2f7208df04625e5f6b56"
+checksum = "18a6dbe30758c9f83eb00cbea4ac95966305f5a7772f3f42ebfc7fc7eddbd8e1"
 
 [[package]]
 name = "opaque-debug"

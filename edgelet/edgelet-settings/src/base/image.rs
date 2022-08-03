@@ -4,27 +4,38 @@ use std::time::Duration;
 #[derive(Debug, serde::Deserialize, serde::Serialize, Clone)]
 pub struct MIGCSettings {
     #[serde(with = "humantime_serde")]
-    time_between_cleanup: Duration,
+    cleanup_recurrence: Duration,
     #[serde(with = "humantime_serde")]
-    min_age: Duration,
+    image_age_cleanup_threshold: Duration,
+    cleanup_time: String,
     enabled: bool,
 }
 
 impl MIGCSettings {
-    pub fn new(time_between_cleanup: Duration, min_age: Duration, enabled: bool) -> MIGCSettings {
+    pub fn new(
+        cleanup_recurrence: Duration,
+        image_age_cleanup_threshold: Duration,
+        cleanup_time: String,
+        enabled: bool,
+    ) -> MIGCSettings {
         MIGCSettings {
-            time_between_cleanup,
-            min_age,
+            cleanup_recurrence,
+            image_age_cleanup_threshold,
+            cleanup_time,
             enabled,
         }
     }
 
-    pub fn time_between_cleanup(&self) -> Duration {
-        self.time_between_cleanup
+    pub fn cleanup_recurrence(&self) -> Duration {
+        self.cleanup_recurrence
     }
 
-    pub fn min_age(&self) -> Duration {
-        self.min_age
+    pub fn image_age_cleanup_threshold(&self) -> Duration {
+        self.image_age_cleanup_threshold
+    }
+
+    pub fn cleanup_time(&self) -> String {
+        self.cleanup_time.clone()
     }
 
     pub fn is_enabled(&self) -> bool {

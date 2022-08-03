@@ -28,6 +28,6 @@ uri = "http://localhost:2375"
 network = "azure-iot-edge"
 
 [module_image_garbage_collection]
-time_between_cleanup = "1m"
-min_age = "30s"
+cleanup_recurrence = "1m"
+image_age_cleanup_threshold = "30s"
 enabled = true

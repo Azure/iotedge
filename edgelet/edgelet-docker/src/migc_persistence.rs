@@ -22,7 +22,7 @@ impl MIGCPersistence {
     pub fn new(filename: String, settings: Option<MIGCSettings>) -> Self {
         let settings = match settings {
             Some(settings) => settings,
-            None => MIGCSettings::new(Duration::MAX, Duration::MAX, false),
+            None => MIGCSettings::new(Duration::MAX, Duration::MAX, "00:00".to_string(), false),
         };
 
         Self {
@@ -106,8 +106,11 @@ impl MIGCPersistence {
         /* ============================== */
 
         // process maps
-        let (images_to_delete, carry_over) =
-            process_state(image_map, in_use_image_ids, settings.min_age())?;
+        let (images_to_delete, carry_over) = process_state(
+            image_map,
+            in_use_image_ids,
+            settings.image_age_cleanup_threshold(),
+        )?;
 
         /* ============================== */
 
@@ -193,7 +196,7 @@ type HashMapTuple = (HashMap<String, Duration>, HashMap<String, Duration>);
 fn process_state(
     mut image_map: HashMap<String, Duration>,
     image_ids: Vec<String>,
-    min_age: Duration,
+    image_age_cleanup_threshold: Duration,
 ) -> Result<HashMapTuple, Error> {
     let current_time = std::time::SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -211,7 +214,7 @@ fn process_state(
 
     // track entries younger than min age
     for (key, value) in &image_map {
-        if current_time.as_secs() - value.as_secs() < min_age.as_secs() {
+        if current_time.as_secs() - value.as_secs() < image_age_cleanup_threshold.as_secs() {
             carry_over.insert(key.to_string(), *value);
         }
     }
@@ -231,9 +234,10 @@ mod tests {
         time::{Duration, UNIX_EPOCH},
     };
 
+    use chrono::{Timelike, Utc};
     use edgelet_settings::base::image::MIGCSettings;
-    use serial_test::serial;
     use nix::libc::sleep;
+    use serial_test::serial;
 
     use crate::{migc_persistence::get_images_with_timestamp, MIGCPersistence};
 
@@ -246,12 +250,16 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn test_record_image_use_timestamp() {
+        let curr_time: String = format!("{}{}", Utc::now().hour(), Utc::now().minute());
 
         let mut _res = std::fs::remove_file(TEMP_FILE);
-        let settings = MIGCSettings::new(Duration::from_secs(30), Duration::from_secs(10), false);
+        let settings = MIGCSettings::new(
+            Duration::from_secs(30),
+            Duration::from_secs(10),
+            curr_time,
+            false,
+        );
         let migc_persistence = MIGCPersistence::new(TEMP_FILE.to_string(), Some(settings));
-
-        //unsafe {sleep(3)};
 
         // write new image
         migc_persistence
@@ -331,8 +339,13 @@ mod tests {
         let _write =
             write_images_with_timestamp(&image_map, "/tmp/temp".to_string(), TEMP_FILE.to_string());
 
-        let mut settings =
-            MIGCSettings::new(Duration::from_secs(30), Duration::from_secs(5), false);
+        let curr_time: String = format!("{}{}", Utc::now().hour(), Utc::now().minute());
+        let mut settings = MIGCSettings::new(
+            Duration::from_secs(30),
+            Duration::from_secs(5),
+            curr_time,
+            false,
+        );
         let mut migc_persistence = MIGCPersistence::new(TEMP_FILE.to_string(), Some(settings));
 
         let mut in_use_image_ids: Vec<String> = vec![
@@ -358,7 +371,13 @@ mod tests {
         assert!(images_to_delete.is_empty());
 
         // migc disable... don't remove stuff
-        settings = MIGCSettings::new(Duration::from_secs(30), Duration::from_secs(5), true);
+        let curr_time: String = format!("{}{}", Utc::now().hour(), Utc::now().minute());
+        settings = MIGCSettings::new(
+            Duration::from_secs(30),
+            Duration::from_secs(5),
+            curr_time,
+            true,
+        );
         migc_persistence = MIGCPersistence::new(TEMP_FILE.to_string(), Some(settings));
 
         images_to_delete = migc_persistence

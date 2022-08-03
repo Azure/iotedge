@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::time::Duration;
+use std::time::SystemTime;
 
 use edgelet_core::{ModuleRegistry, ModuleRuntime};
 use edgelet_docker::MIGCPersistence;
@@ -15,14 +15,14 @@ pub(crate) async fn image_garbage_collect(
 ) -> Result<(), EdgedError> {
     log::info!("Starting image auto-pruning task...");
 
-    tokio::time::sleep(Duration::from_secs(5)).await;
-
     let settings = match settings {
         Some(parsed) => parsed,
         None => {
             return Err(EdgedError::new("Could not start Image auto-pruning task; contaier images will not be cleaned up automatically".to_string()));
         }
     };
+
+    // TODO: get abs |Utc::now() - settings.cleanup_time()| and then sleep for that time
 
     loop {
         if let Err(err) = garbage_collector(runtime, migc_persistence.clone()).await {
@@ -32,7 +32,8 @@ pub(crate) async fn image_garbage_collect(
             )));
         }
 
-        tokio::time::sleep(settings.time_between_cleanup()).await;
+        // TODO: get cleanup_recurrence() - Utc::now()) and then sleep for that time
+        tokio::time::sleep(settings.cleanup_recurrence()).await;
     }
 }
 

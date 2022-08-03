@@ -6,6 +6,7 @@ publish = false
 edition = "2021"
 
 [dependencies]
+chrono = "0.4"
 serde = { version = "1", features = ["derive"] }
 humantime-serde = "1.0"
 url = { version = "2", features = ["serde"] }

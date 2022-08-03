@@ -302,11 +302,11 @@ mod tests {
         let settings = Settings::new().unwrap();
         let migc_settings = settings.module_image_garbage_collection().clone().unwrap();
         assert!(migc_settings.is_enabled());
-        assert_eq!(migc_settings.min_age(), Duration::from_secs(30));
         assert_eq!(
-            migc_settings.time_between_cleanup(),
-            Duration::from_secs(60)
+            migc_settings.image_age_cleanup_threshold(),
+            Duration::from_secs(30)
         );
+        assert_eq!(migc_settings.cleanup_recurrence(), Duration::from_secs(60));
     }
 
     #[test]
