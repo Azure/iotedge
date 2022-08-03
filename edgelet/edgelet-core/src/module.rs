@@ -664,6 +664,7 @@ mod tests {
 
             architecture: "ARCH".into(),
             cpus: 0,
+            total_memory: None,
             virtualized: "UNKNOWN".into(),
 
             product_name: None,
@@ -693,6 +694,7 @@ mod tests {
 
             architecture: "ARCH".into(),
             cpus: 0,
+            total_memory: None,
             virtualized: "UNKNOWN".into(),
 
             product_name: None,
