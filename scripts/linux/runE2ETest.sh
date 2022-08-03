@@ -56,18 +56,6 @@ function get_image_architecture_label() {
     esac
 }
 
-function is_system_using_mariner() {
-
-    is_mariner="false"
-    if [ -e "/etc/os-release" ]; then
-        . /etc/os-release
-        if [ "$ID" = 'mariner' ]; then
-            is_mariner="true"
-            mariner_version=$(echo $VERSION_ID | cut -d '.' -f 1)
-        fi
-    fi
-}
-
 function get_iotedge_quickstart_artifact_file() {
     local path
     if [ "$image_architecture_label" = 'amd64' ]; then
@@ -84,11 +72,7 @@ function get_iotedge_quickstart_artifact_file() {
 function get_iotedged_artifact_folder() {
     local path
     if [ "$image_architecture_label" = 'amd64' ]; then
-        if [ "$is_mariner" = "true" ]; then
-            path="$E2E_TEST_DIR/artifacts/iotedged-mariner${mariner_version}-amd64"
-        else
-            path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu18.04-amd64"
-        fi
+        path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu18.04-amd64"
     elif [ "$image_architecture_label" = 'arm64v8' ]; then
         path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu18.04-aarch64"
     else
@@ -131,7 +115,7 @@ function prepare_test_from_artifacts() {
     rm -rf "$working_folder"
     mkdir -p "$working_folder"
 
-    declare -a pkg_list=( $iotedged_artifact_folder/*.$PACKAGE_TYPE )
+    declare -a pkg_list=( $iotedged_artifact_folder/*.deb )
 
     iotedge_package="${pkg_list[*]}"
     echo "iotedge_package=$iotedge_package"
@@ -454,9 +438,6 @@ function process_args() {
         elif [ $saveNextArg -eq 48 ]; then
             LISTEN_WORKLOAD_URI="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 49 ]; then
-            PACKAGE_TYPE="$arg"
-            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -508,7 +489,6 @@ function process_args() {
                 '-connectWorkloadUri' ) saveNextArg=46;;
                 '-listenManagementUri' ) saveNextArg=47;;
                 '-listenWorkloadUri' ) saveNextArg=48;;
-                '-packageType' ) saveNextArg=49;;
                 '-bypassEdgeInstallation' ) BYPASS_EDGE_INSTALLATION="--bypass-edge-installation";;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
@@ -831,7 +811,6 @@ function run_longhaul_test() {
             --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
             --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
             --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
-            $PACKAGE_TYPE_ARG \
             $BYPASS_EDGE_INSTALLATION \
             --no-verify && ret=$? || ret=$?
     fi
@@ -1225,7 +1204,6 @@ function usage() {
     echo ' -listenManagementUri                           Customize listen management socket'
     echo ' -listenWorkloadUri                             Customize listen workload socket'
     echo ' -bypassEdgeInstallation                        Skip installing iotedge (if already preinstalled)'
-    echo ' -packageType                                   Package type to be used [deb, rpm]'
     exit 1;
 }
 
@@ -1283,14 +1261,6 @@ if [ "$image_architecture_label" = 'arm32v7' ] ||
    [ "$image_architecture_label" = 'arm64v8' ]; then
     optimize_for_performance=false
 fi
-
-if [ -z $PACKAGE_TYPE ]; then
-    echo 'Package type not specifed default to .deb'
-    PACKAGE_TYPE=deb
-fi
-
-is_system_using_mariner
-PACKAGE_TYPE_ARG=--package-type="$PACKAGE_TYPE"
 
 iotedged_artifact_folder="$(get_iotedged_artifact_folder)"
 iotedge_quickstart_artifact_file="$(get_iotedge_quickstart_artifact_file)"
