@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::{num::ParseIntError, time::SystemTimeError};
+use std::{io, num::ParseIntError, time::SystemTimeError};
 
 use edgelet_core::{ModuleOperation, RegistryOperation, RuntimeOperation};
 
@@ -41,4 +41,7 @@ pub enum Error {
 
     #[error("failed to parse int: {0}")]
     ParseIntError(ParseIntError),
+
+    #[error("failed to create file: {0}")]
+    CreateFile(io::Error),
 }

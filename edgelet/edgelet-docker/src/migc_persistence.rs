@@ -42,11 +42,7 @@ impl MIGCPersistence {
                 "Auto-pruning data file not found; creating file at: {}",
                 migc_filename.as_str()
             );
-            let msg = format!(
-                "Could not create auto-pruning file at {}",
-                migc_filename.as_str()
-            );
-            let _file = fs::File::create(migc_filename).expect(&msg);
+            let _file = fs::File::create(migc_filename).map_err(Error::CreateFile)?;
         }
 
         // read MIGC persistence file into in-mem map
