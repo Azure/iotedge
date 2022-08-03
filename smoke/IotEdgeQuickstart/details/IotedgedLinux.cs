@@ -70,6 +70,8 @@ namespace IotEdgeQuickstart.Details
     interface ILinuxPackageInstall
     {
         public Task Install();
+        public Task FindPackage(string packageName);
+        public Task RemovePackage(string packageName);
     }
 
     class LinuxPackageInstallDep : ILinuxPackageInstall
@@ -96,6 +98,16 @@ namespace IotEdgeQuickstart.Details
                 $"install -y {packageArguments}",
                 300); // 5 min timeout because install can be slow on raspberry pi
         }
+
+        public Task FindPackage(string packageName)
+        {
+            return Process.RunAsync("bash", $"-c \"dpkg -l | grep {packageName}\"");
+        }
+
+        public Task RemovePackage(string packageName)
+        {
+            return Process.RunAsync("apt", $"purge -y {packageName}", 180);
+        }
     }
 
     class LinuxPackageInstallRPM : ILinuxPackageInstall
@@ -114,6 +126,16 @@ namespace IotEdgeQuickstart.Details
                     $"--nodeps -i {string.Join(' ', packages)}",
                     300);
         }
+
+        public Task FindPackage(string packageName)
+        {
+            return Process.RunAsync("bash", $"-c \"rpm -qa | grep {packageName}\"");
+        }
+
+        public Task RemovePackage(string packageName)
+        {
+            return Process.RunAsync("rpm", $"-e {packageName}", 180);
+        }
     }
 
     class LinuxPackageNonInstall : ILinuxPackageInstall
@@ -122,6 +144,16 @@ namespace IotEdgeQuickstart.Details
         {
             Console.WriteLine("Skipping installation of aziot-edge and aziot-identity-service.");
             return Task.CompletedTask;
+        }
+
+        public Task FindPackage(string packageName)
+        {
+            throw new Exception("Find package not permitted for non-installed packages");
+        }
+
+        public Task RemovePackage(string packageName)
+        {
+            throw new Exception("remove package not permitted for non-installed packages");
         }
     }
 
@@ -168,12 +200,12 @@ namespace IotEdgeQuickstart.Details
             {
                 try
                 {
-                    await Process.RunAsync("bash", $"-c \"dpkg -l | grep {package}\"");
+                    await this.installCommands.FindPackage(package);
 
                     if (this.overwritePackages)
                     {
                         Console.WriteLine($"{package}: found. Removing package.");
-                        await Process.RunAsync("apt", $"purge -y {package}", 180);
+                        await this.installCommands.RemovePackage(package);
                     }
                     else
                     {
