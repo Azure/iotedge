@@ -18,6 +18,8 @@ registration_id = "abcdefghijklmnopqrstuvwxyz234567abcdefghijklmnopqrst"
 
 [preloaded_certs]
 
+[tpm]
+
 [agent]
 name = "edgeAgent"
 type = "docker"
