@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public class SystemInfo
     {
-        public SystemInfo(string operatingSystemType, string architecture, string version, ProvisioningInfo provisioning, string serverVersion, string kernelVersion, string operatingSystem, int numCpus, string virtualized, IReadOnlyDictionary<string, object> additionalProperties)
+        public SystemInfo(string operatingSystemType, string architecture, string version, ProvisioningInfo provisioning, string serverVersion, string kernelVersion, string operatingSystem, int numCpus, int totalMemory, string virtualized, IReadOnlyDictionary<string, object> additionalProperties)
         {
             this.OperatingSystemType = operatingSystemType;
             this.Architecture = architecture;
@@ -21,12 +21,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             this.KernelVersion = kernelVersion;
             this.OperatingSystem = operatingSystem;
             this.NumCpus = numCpus;
+            this.TotalMemory = totalMemory;
             this.Virtualized = virtualized;
             this.AdditionalProperties = additionalProperties;
         }
 
         public SystemInfo(string operatingSystemType, string architecture, string version, IReadOnlyDictionary<string, object> additionalProperties)
-            : this(operatingSystemType, architecture, version, ProvisioningInfo.Empty, string.Empty, string.Empty, string.Empty, 0, string.Empty, additionalProperties)
+            : this(operatingSystemType, architecture, version, ProvisioningInfo.Empty, string.Empty, string.Empty, string.Empty, 0, 0, string.Empty, additionalProperties)
         {
         }
 
@@ -51,6 +52,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public int NumCpus { get; }
 
+        public int TotalMemory { get; }
+
         public string Virtualized { get; }
 
         [Newtonsoft.Json.JsonIgnore]
@@ -66,6 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 .Append($"kernel_version={UrlEncode(this.KernelVersion ?? string.Empty)};")
                 .Append($"operating_system={UrlEncode(this.OperatingSystem ?? string.Empty)};")
                 .Append($"cpus={this.NumCpus};")
+                .Append($"total_memory={this.TotalMemory};")
                 .Append($"virtualized={UrlEncode(this.Virtualized ?? string.Empty)};");
 
             if (this.AdditionalProperties != null)

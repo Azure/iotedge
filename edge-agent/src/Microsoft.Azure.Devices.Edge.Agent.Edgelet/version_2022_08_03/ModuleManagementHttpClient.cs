@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2021_12_07
+namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2022_08_03
 {
     using System;
     using System.Collections.Generic;
@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2021_12_07
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2021_12_07.GeneratedCode;
+    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2022_08_03.GeneratedCode;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2021_12_07
         }
 
         internal ModuleManagementHttpClient(Uri managementUri, Option<TimeSpan> operationTimeout)
-            : base(managementUri, ApiVersion.Version20211207, new ErrorDetectionStrategy(), operationTimeout)
+            : base(managementUri, ApiVersion.Version20220803, new ErrorDetectionStrategy(), operationTimeout)
         {
         }
 
@@ -130,7 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2021_12_07
                     () => edgeletHttpClient.GetSystemInfoAsync(this.Version.Name, cancellationToken),
                     "Getting System Info");
                 var provisioning = systemInfo.Provisioning == null ? ProvisioningInfo.Empty : new ProvisioningInfo(systemInfo.Provisioning.Type, systemInfo.Provisioning.DynamicReprovisioning, systemInfo.Provisioning.AlwaysReprovisionOnStartup ?? true);
-                return new SystemInfo(systemInfo.OsType, systemInfo.Architecture, systemInfo.Version, provisioning, systemInfo.Server_version, systemInfo.Kernel_version, systemInfo.Operating_system, systemInfo.Cpus ?? 0, /* totalMemory */ 0, systemInfo.Virtualized, new Dictionary<string, object>(systemInfo.AdditionalProperties));
+                return new SystemInfo(systemInfo.OsType, systemInfo.Architecture, systemInfo.Version, provisioning, systemInfo.Server_version, systemInfo.Kernel_version, systemInfo.Operating_system, systemInfo.Cpus ?? 0, systemInfo.Total_memory ?? 0, systemInfo.Virtualized, new Dictionary<string, object>(systemInfo.AdditionalProperties));
             }
         }
 

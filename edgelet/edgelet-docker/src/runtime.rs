@@ -525,6 +525,12 @@ where
     async fn system_info(&self) -> anyhow::Result<CoreSystemInfo> {
         log::info!("Querying system info...");
 
+        let total_memory = {
+            let mut system_resources = self.system_resources.as_ref().lock().await;
+            system_resources.refresh_memory();
+            system_resources.total_memory() * 1000
+        };
+
         let mut system_info = CoreSystemInfo::default();
 
         let docker_info = self
@@ -534,6 +540,7 @@ where
             .context(Error::Docker)
             .context(Error::RuntimeOperation(RuntimeOperation::SystemInfo))?;
         system_info.server_version = docker_info.server_version().map(ToOwned::to_owned);
+        system_info.total_memory = Some(total_memory);
         system_info.merge_additional(self.additional_info.clone());
 
         log::info!("Successfully queried system info");
