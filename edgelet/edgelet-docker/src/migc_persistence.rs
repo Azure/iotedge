@@ -30,12 +30,11 @@ impl MIGCPersistence {
         }
     }
 
-    /// # Panics
-    pub async fn record_image_use_timestamp(&self, name_or_id: &str) {
+    pub fn record_image_use_timestamp(&self, iamge_id: &str) -> Result<(), Error> {
         let guard = self
             .inner
             .lock()
-            .expect("Could not lock images file for image garbage collection");
+            .map_err(|e| Error::LockError(e.to_string()))?;
 
         let migc_filename = guard.filename.clone();
         if !std::path::Path::new(&migc_filename).exists() {
@@ -57,8 +56,8 @@ impl MIGCPersistence {
             Ok(map) => map,
             Err(e) => {
                 drop(guard);
-                log::error!("Could not read auto-prune data; image garbage collection did not prune any images: {}", e);
-                return;
+                log::warn!("Could not read auto-prune data. Image garbage collection did not prune any images. Error: {}", e);
+                return Ok(());
             }
         };
 
@@ -66,7 +65,7 @@ impl MIGCPersistence {
             .duration_since(UNIX_EPOCH)
             .expect("Could not get EPOCH time");
 
-        image_map.insert(name_or_id.to_string(), current_time);
+        image_map.insert(iamge_id.to_string(), current_time);
 
         let temp_file_name = guard.filename.clone().replace("migc", "images");
 
@@ -74,14 +73,18 @@ impl MIGCPersistence {
         let _res = write_images_with_timestamp(&image_map, temp_file_name, guard.filename.clone());
 
         drop(guard);
+
+        Ok(())
     }
 
-    /// # Panics
-    pub async fn prune_images_from_file(
+    pub fn prune_images_from_file(
         &self,
         in_use_image_ids: std::vec::Vec<String>,
     ) -> Result<HashMap<String, Duration>, Error> {
-        let guard = self.inner.lock().unwrap();
+        let guard = self
+            .inner
+            .lock()
+            .map_err(|e| Error::LockError(e.to_string()))?;
 
         let settings = guard.settings.clone();
 
@@ -98,7 +101,7 @@ impl MIGCPersistence {
             Ok(map) => map,
             Err(e) => {
                 drop(guard);
-                log::error!("Could not read image auto-prune data. Image garbage collection did not prune any images. {}", e);
+                log::warn!("Could not read image auto-prune data. Image garbage collection did not prune any images. {}", e);
                 return Ok(HashMap::new());
             }
         };
@@ -117,7 +120,7 @@ impl MIGCPersistence {
         if let Err(e) =
             write_images_with_timestamp(&carry_over, temp_file_name, guard.filename.clone())
         {
-            log::error!("Failed to update image auto pruning persistence file. File will be updated on next scheduled run. {}", e);
+            log::warn!("Failed to update image auto pruning persistence file. File will be updated on next scheduled run. {}", e);
         };
 
         /* ============================== */
@@ -145,13 +148,16 @@ fn get_images_with_timestamp(filename: String) -> Result<HashMap<String, Duratio
 
     // TL;DR: this dumps MIGC store contents into the image_map, where
     // Key: Image hash, Value: Timestamp when image was last used (in epoch)
-    contents
+    let contents = contents
         .lines()
         .map(|line| line.split(' ').collect::<Vec<&str>>())
-        .map(|vec| (vec[0].to_string(), vec[1]))
-        .fold((), |_, (k, v)| {
-            image_map.insert(k, Duration::from_secs(v.parse::<u64>().unwrap()));
-        });
+        .map(|vec| (vec[0].to_string(), vec[1]));
+    for (k, v) in contents {
+        image_map.insert(
+            k,
+            Duration::from_secs(v.parse::<u64>().map_err(Error::ParseIntError)?),
+        );
+    }
 
     Ok(image_map)
 }
@@ -232,8 +238,8 @@ mod tests {
     };
 
     use edgelet_settings::base::image::MIGCSettings;
-    use serial_test::serial;
     use nix::libc::sleep;
+    use serial_test::serial;
 
     use crate::{migc_persistence::get_images_with_timestamp, MIGCPersistence};
 
@@ -246,7 +252,6 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn test_record_image_use_timestamp() {
-
         let mut _res = std::fs::remove_file(TEMP_FILE);
         let settings = MIGCSettings::new(Duration::from_secs(30), Duration::from_secs(10), false);
         let migc_persistence = MIGCPersistence::new(TEMP_FILE.to_string(), Some(settings));
@@ -258,7 +263,7 @@ mod tests {
             .record_image_use_timestamp(
                 "sha256:a4d112e0884bd2ba078ab8222e099bc989cc65cd433dfbb74d6de7cee188g4g7",
             )
-            .await;
+            .unwrap();
         let result = get_images_with_timestamp(TEMP_FILE.to_string()).unwrap();
 
         assert!(result.contains_key(
@@ -277,7 +282,7 @@ mod tests {
             .record_image_use_timestamp(
                 "sha256:a4d112e0884bd2ba078ab8222e099bc989cc65cd433dfbb74d6de7cee188g4g7",
             )
-            .await;
+            .unwrap();
         let new_result = get_images_with_timestamp(TEMP_FILE.to_string()).unwrap();
         assert!(new_result.contains_key(
             "sha256:a4d112e0884bd2ba078ab8222e099bc989cc65cd433dfbb74d6de7cee188g4g7"
@@ -353,7 +358,6 @@ mod tests {
         // migc enabled, remove stuff
         let mut images_to_delete = migc_persistence
             .prune_images_from_file(in_use_image_ids.clone())
-            .await
             .unwrap();
         assert!(images_to_delete.is_empty());
 
@@ -363,7 +367,6 @@ mod tests {
 
         images_to_delete = migc_persistence
             .prune_images_from_file(in_use_image_ids)
-            .await
             .unwrap();
         assert!(images_to_delete.len() == 2);
 

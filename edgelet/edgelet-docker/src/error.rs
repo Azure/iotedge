@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::time::SystemTimeError;
+use std::{num::ParseIntError, time::SystemTimeError};
 
 use edgelet_core::{ModuleOperation, RegistryOperation, RuntimeOperation};
 
@@ -35,4 +35,10 @@ pub enum Error {
 
     #[error("attempted to get image hash but was nonexistent.")]
     GetImageHash(),
+
+    #[error("failed to lock for module image garbage collection: {0}")]
+    LockError(String),
+
+    #[error("failed to parse int: {0}")]
+    ParseIntError(ParseIntError),
 }
