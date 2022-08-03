@@ -1,7 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::time::SystemTime;
-
 use edgelet_core::{ModuleRegistry, ModuleRuntime};
 use edgelet_docker::MIGCPersistence;
 use edgelet_settings::base::image::MIGCSettings;
@@ -50,10 +48,12 @@ async fn garbage_collector(
         Ok(modules) => {
             let mut image_ids: Vec<String> = Vec::new();
             for module in modules {
-                let id = edgelet_core::Module::config(&module.0)
-                    .image_hash()
-                    .ok_or(edgelet_docker::Error::GetImageHash())
-                    .unwrap();
+                let id = edgelet_core::Module::config(&module.0).image_hash().ok_or(
+                    EdgedError::from_err(
+                        "error getting image id for running container",
+                        edgelet_docker::Error::GetImageHash(),
+                    ),
+                )?;
                 image_ids.push(id.to_string());
             }
             image_ids
@@ -68,7 +68,6 @@ async fn garbage_collector(
 
     let image_map = migc_persistence
         .prune_images_from_file(running_modules)
-        .await
         .map_err(|e| {
             EdgedError::from_err(
                 "Module image garbage collection failed to prune images from file.",

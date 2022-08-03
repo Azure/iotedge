@@ -123,8 +123,7 @@ where
                 } else {
                     let image_id = image_name_to_id.get(config.image());
                     self.migc_persistence
-                        .record_image_use_timestamp(image_id.unwrap_or(&String::default()))
-                        .await;
+                        .record_image_use_timestamp(image_id.unwrap_or(&String::default()))?;
                 }
             }
             Err(e) => log::error!("Could not get list of docker images: {}", e),
@@ -362,15 +361,13 @@ where
         let module_with_details = self.get(module.name()).await?;
 
         // update image use timestamp for auto-pruning job later
-        self.migc_persistence
-            .record_image_use_timestamp(
-                module_with_details
-                    .0
-                    .config()
-                    .image_hash()
-                    .ok_or(Error::GetImageHash())?,
-            )
-            .await;
+        self.migc_persistence.record_image_use_timestamp(
+            module_with_details
+                .0
+                .config()
+                .image_hash()
+                .ok_or(Error::GetImageHash())?,
+        )?;
 
         Ok(())
     }
@@ -550,9 +547,7 @@ where
             })?;
 
         // update image use timestamp for auto-pruning job later
-        self.migc_persistence
-            .record_image_use_timestamp(image_id)
-            .await;
+        self.migc_persistence.record_image_use_timestamp(image_id)?;
 
         // Remove the socket to avoid having socket files polluting the home folder.
         self.create_socket_channel
