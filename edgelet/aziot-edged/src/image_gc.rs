@@ -5,26 +5,18 @@ use std::{collections::HashSet, time::Duration};
 use chrono::Timelike;
 use edgelet_core::{ModuleRegistry, ModuleRuntime};
 use edgelet_docker::MIGCPersistence;
-use edgelet_settings::base::image::MIGCSettings;
+use edgelet_settings::RuntimeSettings;
 
 use crate::error::Error as EdgedError;
 
 pub(crate) async fn image_garbage_collect(
-    settings: Option<MIGCSettings>,
+    settings: edgelet_settings::Settings,
     runtime: &edgelet_docker::DockerModuleRuntime<http_common::Connector>,
     migc_persistence: MIGCPersistence,
 ) -> Result<(), EdgedError> {
     log::info!("Starting image auto-pruning task...");
 
-    let settings = match settings {
-        Some(parsed) => parsed,
-        None => {
-            return Err(EdgedError::new("Could not start Image auto-pruning task; contaier images will not be cleaned up automatically".to_string()));
-        }
-    };
-
-    let version = edgelet_core::version_with_source_version();
-    let edge_agent_bootstrap: String = format!("mcr.microsoft.com/azureiotedge-agent:{}", version);
+    let edge_agent_bootstrap: String = settings.agent().config().image().to_string();
 
     // bootstrap edge agent image should never be deleted
     let bootstrap_image_id: String = match ModuleRuntime::list_images(runtime).await {
@@ -42,6 +34,13 @@ pub(crate) async fn image_garbage_collect(
         Err(e) => {
             log::error!("Could not get list of docker images: {}", e);
             String::default()
+        }
+    };
+
+    let settings = match settings.module_image_garbage_collection() {
+        Some(parsed) => parsed,
+        None => {
+            return Err(EdgedError::new("Could not start Image auto-pruning task; contaier images will not be cleaned up automatically".to_string()));
         }
     };
 
@@ -125,9 +124,11 @@ async fn garbage_collector(
 fn get_initial_sleep_time_mins(times: &str) -> u32 {
     let mut cleanup_mins = 0;
 
+    const TOTAL_MINS_IN_DAY: u32 = 1440;
+
     // if string is empty, or if there's an input error, we fall back to default (midnight)
     if times.is_empty() || !times.contains(':') || times.len() > 5 {
-        cleanup_mins = 60 * 24;
+        cleanup_mins = TOTAL_MINS_IN_DAY;
     } else {
         let cleanup_time: Vec<&str> = times.split(':').collect();
         let hour = cleanup_time.get(0).unwrap().parse::<u32>().unwrap();
@@ -135,21 +136,21 @@ fn get_initial_sleep_time_mins(times: &str) -> u32 {
 
         // u32, so no negative comparisons
         if hour > 23 || minute > 59 {
-            cleanup_mins = 60 * 24;
+            cleanup_mins = TOTAL_MINS_IN_DAY;
         } else {
             cleanup_mins = 60 * hour + minute;
         }
     }
 
-    let current_hour = chrono::Utc::now().hour();
-    let current_minute = chrono::Utc::now().minute();
+    let current_hour = chrono::Local::now().hour();
+    let current_minute = chrono::Local::now().minute();
     let current_time_in_mins = 60 * current_hour + current_minute;
 
     let mut diff = 0;
     if current_time_in_mins < cleanup_mins {
         diff = cleanup_mins - current_time_in_mins;
     } else {
-        diff = current_time_in_mins - cleanup_mins;
+        diff = TOTAL_MINS_IN_DAY - (current_time_in_mins - cleanup_mins);
     }
 
     diff
@@ -161,40 +162,73 @@ mod tests {
 
     use super::get_initial_sleep_time_mins;
 
+    const TOTAL_MINS_IN_DAY: u32 = 1440;
+
     #[test]
     fn test_validations() {
         let mut result = get_initial_sleep_time_mins(String::default().as_str());
-        assert!(result == (60 * 24 - 60 * chrono::Utc::now().hour() - chrono::Utc::now().minute()));
+        assert!(
+            result
+                == (TOTAL_MINS_IN_DAY
+                    - 60 * chrono::Local::now().hour()
+                    - chrono::Local::now().minute())
+        );
 
         result = get_initial_sleep_time_mins("12345");
-        assert!(result == (60 * 24 - 60 * chrono::Utc::now().hour() - chrono::Utc::now().minute()));
+        assert!(
+            result
+                == (TOTAL_MINS_IN_DAY
+                    - 60 * chrono::Local::now().hour()
+                    - chrono::Local::now().minute())
+        );
 
         result = get_initial_sleep_time_mins("abcde");
-        assert!(result == (60 * 24 - 60 * chrono::Utc::now().hour() - chrono::Utc::now().minute()));
+        assert!(
+            result
+                == (TOTAL_MINS_IN_DAY
+                    - 60 * chrono::Local::now().hour()
+                    - chrono::Local::now().minute())
+        );
 
         result = get_initial_sleep_time_mins("26:30");
-        assert!(result == (60 * 24 - 60 * chrono::Utc::now().hour() - chrono::Utc::now().minute()));
+        assert!(
+            result
+                == (TOTAL_MINS_IN_DAY
+                    - 60 * chrono::Local::now().hour()
+                    - chrono::Local::now().minute())
+        );
 
         result = get_initial_sleep_time_mins("16:61");
-        assert!(result == (60 * 24 - 60 * chrono::Utc::now().hour() - chrono::Utc::now().minute()));
+        assert!(
+            result
+                == (TOTAL_MINS_IN_DAY
+                    - 60 * chrono::Local::now().hour()
+                    - chrono::Local::now().minute())
+        );
 
         result = get_initial_sleep_time_mins("23:333");
-        assert!(result == (60 * 24 - 60 * chrono::Utc::now().hour() - chrono::Utc::now().minute()));
+        assert!(
+            result
+                == (TOTAL_MINS_IN_DAY
+                    - 60 * chrono::Local::now().hour()
+                    - chrono::Local::now().minute())
+        );
 
         let cleanup_minutes = 12 * 60 + 39;
         result = get_initial_sleep_time_mins("12:39");
 
-        let hour = chrono::Utc::now().hour();
-        let min = chrono::Utc::now().minute();
+        let hour = chrono::Local::now().hour();
+        let min = chrono::Local::now().minute();
 
-        let mut curr_minutes: u32 = 0;
+        let curr_minutes: u32 = hour * 60 + min;
+        let mut answer = 0;
 
-        if hour < 12 {
-            curr_minutes = hour * 60 + min;
-            assert!(result == cleanup_minutes - curr_minutes);
+        if curr_minutes < cleanup_minutes {
+            answer = cleanup_minutes - curr_minutes;
         } else {
-            curr_minutes = 60 * 24;
-            assert!(result == curr_minutes - cleanup_minutes);
+            answer = TOTAL_MINS_IN_DAY - (curr_minutes - cleanup_minutes);
         }
+
+        assert!(answer == result);
     }
 }

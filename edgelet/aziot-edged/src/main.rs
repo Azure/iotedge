@@ -161,11 +161,7 @@ async fn run() -> Result<(), EdgedError> {
         &identity_client,
         watchdog_rx,
     );
-    let image_gc = image_gc::image_garbage_collect(
-        settings.module_image_garbage_collection().clone(),
-        &runtime,
-        migc_persistence,
-    );
+    let image_gc = image_gc::image_garbage_collect(settings.clone(), &runtime, migc_persistence);
 
     let shutdown_reason: WatchdogAction;
     tokio::select! {
