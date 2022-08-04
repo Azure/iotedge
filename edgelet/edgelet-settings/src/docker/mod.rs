@@ -304,9 +304,13 @@ mod tests {
         assert!(migc_settings.is_enabled());
         assert_eq!(
             migc_settings.image_age_cleanup_threshold(),
-            Duration::from_secs(30)
+            Duration::from_secs(1440 * 60 * 3 * 7)
         );
-        assert_eq!(migc_settings.cleanup_recurrence(), Duration::from_secs(60));
+        assert_eq!(
+            migc_settings.cleanup_recurrence(),
+            Duration::from_secs(1440 * 60 * 3)
+        );
+        assert_eq!(migc_settings.cleanup_time(), "10:00");
     }
 
     #[test]

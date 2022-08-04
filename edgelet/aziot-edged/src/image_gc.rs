@@ -20,20 +20,19 @@ pub(crate) async fn image_garbage_collect(
 
     // bootstrap edge agent image should never be deleted
     let bootstrap_image_id: String = match ModuleRuntime::list_images(runtime).await {
-        Ok(image_name_to_id) => {
-            if image_name_to_id.is_empty() {
-                log::info!("No docker images present on device");
-                String::default()
-            } else {
-                image_name_to_id
-                    .get(&edge_agent_bootstrap)
-                    .unwrap_or(&String::default())
-                    .to_string()
-            }
-        }
+        Ok(image_name_to_id) => image_name_to_id
+            .get(&edge_agent_bootstrap)
+            .ok_or(EdgedError::from_err(
+                "error getting image id for edge agent bootstrap image",
+                edgelet_docker::Error::GetImageHash(),
+            ))?
+            .to_string(),
         Err(e) => {
             log::error!("Could not get list of docker images: {}", e);
-            String::default()
+            return Err(EdgedError::new(format!(
+                "Error in image auto-pruning task: {}",
+                e
+            )));
         }
     };
 
