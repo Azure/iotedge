@@ -36,6 +36,9 @@ pub enum Error {
     #[error("attempted to get image hash but was nonexistent.")]
     GetImageHash(),
 
+    #[error("invalid settings: {0}")]
+    InvalidSettings(String),
+
     #[error("failed to lock for module image garbage collection: {0}")]
     LockError(String),
 

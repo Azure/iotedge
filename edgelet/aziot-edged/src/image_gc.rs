@@ -5,7 +5,7 @@ use std::{collections::HashSet, time::Duration};
 use chrono::Timelike;
 use edgelet_core::{ModuleRegistry, ModuleRuntime};
 use edgelet_docker::MIGCPersistence;
-use edgelet_settings::RuntimeSettings;
+use edgelet_settings::{base::image::MIGCSettings, RuntimeSettings};
 
 use crate::error::Error as EdgedError;
 
@@ -39,9 +39,16 @@ pub(crate) async fn image_garbage_collect(
     let settings = match settings.module_image_garbage_collection() {
         Some(parsed) => parsed,
         None => {
-            return Err(EdgedError::new("Could not start Image auto-pruning task; contaier images will not be cleaned up automatically".to_string()));
+            return Err(EdgedError::new("Could not start Image auto-pruning task; container images will not be cleaned up automatically".to_string()));
         }
     };
+
+    match validate_settings(settings) {
+        Ok(_) => {}
+        Err(err) => {
+            return Err(err);
+        }
+    }
 
     // sleep till it's time for the first execution
     let diff: u32 = get_initial_sleep_time_mins(&settings.cleanup_time()) * 60;
@@ -81,7 +88,10 @@ async fn garbage_collector(
         Ok(modules) => {
             let mut image_ids: HashSet<String> = HashSet::new();
             image_ids.insert(bootstrap_image_id); // bootstrap edge agent image should never be deleted
+
             for module in modules {
+                // this is effectively the result of calling GET on /containers/json
+                // image_hash() is created from ImageId (ImageId is filled in by GET /containers/json)
                 let id = edgelet_core::Module::config(&module.0).image_hash().ok_or(
                     EdgedError::from_err(
                         "error getting image id for running container",
@@ -120,25 +130,58 @@ async fn garbage_collector(
     Ok(())
 }
 
+/* ================================================ HELPER METHODS ================================================ */
+
+fn validate_settings(settings: &MIGCSettings) -> Result<(), EdgedError> {
+    if settings.cleanup_recurrence() < Duration::from_secs(60 * 60 * 24) {
+        return Err(EdgedError::from_err(
+            "invalid settings provided in config",
+            edgelet_docker::Error::InvalidSettings(
+                "cleanup recurrence cannot be less than 1 day".to_string(),
+            ),
+        ));
+    }
+
+    let times = settings.cleanup_time().clone();
+    if times.len() != 5 || !times.contains(':') {
+        Err(EdgedError::from_err(
+            "invalid settings provided in config",
+            edgelet_docker::Error::InvalidSettings(
+                "invalid cleanup time, expected format is \"HH:MM\" in 24-hour format".to_string(),
+            ),
+        ))
+    } else {
+        let time_clone = times.clone();
+        let cleanup_time: Vec<&str> = time_clone.split(':').collect();
+        let hour = cleanup_time.get(0).unwrap().parse::<u32>().unwrap();
+        let minute = cleanup_time.get(1).unwrap().parse::<u32>().unwrap();
+
+        // u32, so no negative comparisons
+        if hour > 23 || minute > 59 {
+            return Err(EdgedError::from_err(
+                "invalid settings provided in config",
+                edgelet_docker::Error::InvalidSettings(format!("invalid cleanup time {}", times)),
+            ));
+        }
+
+        Ok(())
+    }
+}
+
 fn get_initial_sleep_time_mins(times: &str) -> u32 {
     let mut cleanup_mins = 0;
 
     const TOTAL_MINS_IN_DAY: u32 = 1440;
 
     // if string is empty, or if there's an input error, we fall back to default (midnight)
-    if times.is_empty() || !times.contains(':') || times.len() > 5 {
+    if times.is_empty() {
         cleanup_mins = TOTAL_MINS_IN_DAY;
     } else {
         let cleanup_time: Vec<&str> = times.split(':').collect();
         let hour = cleanup_time.get(0).unwrap().parse::<u32>().unwrap();
         let minute = cleanup_time.get(1).unwrap().parse::<u32>().unwrap();
 
-        // u32, so no negative comparisons
-        if hour > 23 || minute > 59 {
-            cleanup_mins = TOTAL_MINS_IN_DAY;
-        } else {
-            cleanup_mins = 60 * hour + minute;
-        }
+        cleanup_mins = 60 * hour + minute;
     }
 
     let current_hour = chrono::Local::now().hour();
@@ -157,64 +200,46 @@ fn get_initial_sleep_time_mins(times: &str) -> u32 {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use chrono::Timelike;
+    use edgelet_settings::base::image::MIGCSettings;
+
+    use crate::image_gc::validate_settings;
 
     use super::get_initial_sleep_time_mins;
 
     const TOTAL_MINS_IN_DAY: u32 = 1440;
 
     #[test]
-    fn test_validations() {
-        let mut result = get_initial_sleep_time_mins(String::default().as_str());
-        assert!(
-            result
-                == (TOTAL_MINS_IN_DAY
-                    - 60 * chrono::Local::now().hour()
-                    - chrono::Local::now().minute())
-        );
+    fn test_validate_settings() {
+        let mut settings =
+            MIGCSettings::new(Duration::MAX, Duration::MAX, "12345".to_string(), false);
 
-        result = get_initial_sleep_time_mins("12345");
-        assert!(
-            result
-                == (TOTAL_MINS_IN_DAY
-                    - 60 * chrono::Local::now().hour()
-                    - chrono::Local::now().minute())
-        );
+        let mut result = validate_settings(&settings);
+        assert!(result.is_err());
 
-        result = get_initial_sleep_time_mins("abcde");
-        assert!(
-            result
-                == (TOTAL_MINS_IN_DAY
-                    - 60 * chrono::Local::now().hour()
-                    - chrono::Local::now().minute())
-        );
+        settings = MIGCSettings::new(Duration::MAX, Duration::MAX, "abcde".to_string(), false);
+        result = validate_settings(&settings);
+        assert!(result.is_err());
 
-        result = get_initial_sleep_time_mins("26:30");
-        assert!(
-            result
-                == (TOTAL_MINS_IN_DAY
-                    - 60 * chrono::Local::now().hour()
-                    - chrono::Local::now().minute())
-        );
+        settings = MIGCSettings::new(Duration::MAX, Duration::MAX, "26:30".to_string(), false);
+        result = validate_settings(&settings);
+        assert!(result.is_err());
 
-        result = get_initial_sleep_time_mins("16:61");
-        assert!(
-            result
-                == (TOTAL_MINS_IN_DAY
-                    - 60 * chrono::Local::now().hour()
-                    - chrono::Local::now().minute())
-        );
+        settings = MIGCSettings::new(Duration::MAX, Duration::MAX, "16:61".to_string(), false);
+        result = validate_settings(&settings);
+        assert!(result.is_err());
 
-        result = get_initial_sleep_time_mins("23:333");
-        assert!(
-            result
-                == (TOTAL_MINS_IN_DAY
-                    - 60 * chrono::Local::now().hour()
-                    - chrono::Local::now().minute())
-        );
+        settings = MIGCSettings::new(Duration::MAX, Duration::MAX, "23:333".to_string(), false);
+        result = validate_settings(&settings);
+        assert!(result.is_err());
+    }
 
+    #[test]
+    fn test_get_initial_sleep_time_mins() {
         let cleanup_minutes = 12 * 60 + 39;
-        result = get_initial_sleep_time_mins("12:39");
+        let result = get_initial_sleep_time_mins("12:39");
 
         let hour = chrono::Local::now().hour();
         let min = chrono::Local::now().minute();

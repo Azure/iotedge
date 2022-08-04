@@ -170,9 +170,9 @@ async fn run() -> Result<(), EdgedError> {
             shutdown_reason = watchdog_finished?;
         },
         image_gc_finished = image_gc => {
-            log::error!("MIGC finished unexpectedly");
+            log::error!("image auto-prune stopped unexpectedly");
             image_gc_finished?;
-            return Err(EdgedError::new("MIGC unexpectedly finished"));
+            return Err(EdgedError::new("image auto-prune unexpectedly stopped"));
         }
     };
 
