@@ -1,7 +1,7 @@
 use std::io::Write;
 use std::sync::{Arc, Mutex};
 use std::time::UNIX_EPOCH;
-use std::{collections::HashMap, fs, time::Duration};
+use std::{collections::HashMap, collections::HashSet, fs, time::Duration};
 
 use edgelet_settings::base::image::MIGCSettings;
 
@@ -30,7 +30,7 @@ impl MIGCPersistence {
         }
     }
 
-    pub fn record_image_use_timestamp(&self, iamge_id: &str) -> Result<(), Error> {
+    pub fn record_image_use_timestamp(&self, image_id: &str) -> Result<(), Error> {
         let guard = self
             .inner
             .lock()
@@ -61,7 +61,7 @@ impl MIGCPersistence {
             .duration_since(UNIX_EPOCH)
             .expect("Could not get EPOCH time");
 
-        image_map.insert(iamge_id.to_string(), current_time);
+        image_map.insert(image_id.to_string(), current_time);
 
         let temp_file_name = guard.filename.clone().replace("migc", "images");
 
@@ -75,7 +75,7 @@ impl MIGCPersistence {
 
     pub fn prune_images_from_file(
         &self,
-        in_use_image_ids: std::vec::Vec<String>,
+        in_use_image_ids: HashSet<String>,
     ) -> Result<HashMap<String, Duration>, Error> {
         let guard = self
             .inner
@@ -197,7 +197,7 @@ fn write_images_with_timestamp(
 type HashMapTuple = (HashMap<String, Duration>, HashMap<String, Duration>);
 fn process_state(
     mut image_map: HashMap<String, Duration>,
-    image_ids: Vec<String>,
+    image_ids: HashSet<String>,
     image_age_cleanup_threshold: Duration,
 ) -> Result<HashMapTuple, Error> {
     let current_time = std::time::SystemTime::now()
@@ -232,7 +232,7 @@ fn process_state(
 #[cfg(test)]
 mod tests {
     use std::{
-        collections::HashMap,
+        collections::{HashMap, HashSet},
         time::{Duration, UNIX_EPOCH},
     };
 
@@ -350,16 +350,17 @@ mod tests {
         );
         let mut migc_persistence = MIGCPersistence::new(TEMP_FILE.to_string(), Some(settings));
 
-        let mut in_use_image_ids: Vec<String> = vec![
+        let mut in_use_image_ids: HashSet<String> = HashSet::new();
+        in_use_image_ids.insert(
             "sha256:670dcc86b69df89a9d5a9e1a7ae5b8f67619c1c74e19de8a35f57d6c06505fd4".to_string(),
-        ];
-        in_use_image_ids.push(
+        );
+        in_use_image_ids.insert(
             "sha256:7a45202c8491b92b7e7a9a0cbf887079fcdb86ea3cb0b7a4cb8f5491281e985d".to_string(),
         );
-        in_use_image_ids.push(
+        in_use_image_ids.insert(
             "sha256:a40d3130a63918663f6e412178d2e83010994bb5a6bdb9ba314ca43013c05331".to_string(),
         );
-        in_use_image_ids.push(
+        in_use_image_ids.insert(
             "sha256:85fdb1e9675c837c18b75f103be6f156587d1058eced1fc508cdb84a722e4f82".to_string(),
         );
 
@@ -458,20 +459,21 @@ mod tests {
     fn test_process_state() {
         let (map1, map2) = process_state(
             HashMap::new(),
-            Vec::new(),
+            HashSet::new(),
             Duration::from_secs(60 * 60 * 24),
         )
         .unwrap();
         assert!(map1.is_empty());
         assert!(map2.is_empty());
 
-        let mut images_being_used: Vec<String> = vec![
+        let mut images_being_used: HashSet<String> = HashSet::new();
+        images_being_used.insert(
             "sha256:670dcc86b69df89a9d5a9e1a7ae5b8f67619c1c74e19de8a35f57d6c06505fd4".to_string(),
-        ];
-        images_being_used.push(
+        );
+        images_being_used.insert(
             "sha256:62aedd01bd8520c43d06b09f7a0f67ba9720bdc04631a8242c65ea995f3ecac8".to_string(),
         );
-        images_being_used.push(
+        images_being_used.insert(
             "sha256:a4d112e0884bd2ba078ab8222e075bc656cc65cd433dfbb74d6de7cee188f2f2".to_string(),
         );
 

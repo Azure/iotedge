@@ -72,10 +72,6 @@ async fn run() -> Result<(), EdgedError> {
         )
     })?;
 
-    let migc_filename = settings.homedir().join("migc");
-    /*log::info!("creating file at: {}", migc_filename.to_str().unwrap());
-    let _file = File::create(migc_filename.clone()).unwrap();*/
-
     let identity_client = provision::identity_client(&settings)?;
 
     let device_info = provision::get_device_info(
@@ -87,6 +83,8 @@ async fn run() -> Result<(), EdgedError> {
 
     let (create_socket_channel_snd, create_socket_channel_rcv) =
         tokio::sync::mpsc::unbounded_channel::<ModuleAction>();
+
+    let migc_filename = settings.homedir().join("migc");
 
     let migc_persistence = MIGCPersistence::new(
         migc_filename.to_str().unwrap().into(),

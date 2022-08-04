@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::time::Duration;
+use std::{collections::HashSet, time::Duration};
 
 use chrono::Timelike;
 use edgelet_core::{ModuleRegistry, ModuleRuntime};
@@ -23,13 +23,41 @@ pub(crate) async fn image_garbage_collect(
         }
     };
 
+    let version = edgelet_core::version_with_source_version();
+    let edge_agent_bootstrap: String = format!("mcr.microsoft.com/azureiotedge-agent:{}", version);
+
+    // bootstrap edge agent image should never be deleted
+    let bootstrap_image_id: String = match ModuleRuntime::list_images(runtime).await {
+        Ok(image_name_to_id) => {
+            if image_name_to_id.is_empty() {
+                log::info!("No docker images present on device");
+                String::default()
+            } else {
+                image_name_to_id
+                    .get(&edge_agent_bootstrap)
+                    .unwrap_or(&String::default())
+                    .to_string()
+            }
+        }
+        Err(e) => {
+            log::error!("Could not get list of docker images: {}", e);
+            String::default()
+        }
+    };
+
     // sleep till it's time for the first execution
     let diff: u32 = get_initial_sleep_time_mins(&settings.cleanup_time()) * 60;
 
     tokio::time::sleep(Duration::from_secs(diff.into())).await;
 
     loop {
-        if let Err(err) = garbage_collector(runtime, migc_persistence.clone()).await {
+        if let Err(err) = garbage_collector(
+            runtime,
+            migc_persistence.clone(),
+            bootstrap_image_id.clone(),
+        )
+        .await
+        {
             return Err(EdgedError::new(format!(
                 "Error in image auto-pruning task: {}",
                 err
@@ -44,6 +72,7 @@ pub(crate) async fn image_garbage_collect(
 async fn garbage_collector(
     runtime: &edgelet_docker::DockerModuleRuntime<http_common::Connector>,
     migc_persistence: MIGCPersistence,
+    bootstrap_image_id: String,
 ) -> Result<(), EdgedError> {
     log::info!("Module Image Garbage Collection starting daily run");
 
@@ -52,7 +81,8 @@ async fn garbage_collector(
     // first get list of containers on the device, running or otherwise
     let running_modules = match ModuleRuntime::list_with_details(runtime).await {
         Ok(modules) => {
-            let mut image_ids: Vec<String> = Vec::new();
+            let mut image_ids: HashSet<String> = HashSet::new();
+            image_ids.insert(bootstrap_image_id); // bootstrap edge agent image should never be deleted
             for module in modules {
                 let id = edgelet_core::Module::config(&module.0).image_hash().ok_or(
                     EdgedError::from_err(
@@ -60,7 +90,7 @@ async fn garbage_collector(
                         edgelet_docker::Error::GetImageHash(),
                     ),
                 )?;
-                image_ids.push(id.to_string());
+                image_ids.insert(id.to_string());
             }
             image_ids
         }
@@ -95,7 +125,6 @@ async fn garbage_collector(
 fn get_initial_sleep_time_mins(times: &str) -> u32 {
     let mut cleanup_mins = 0;
 
-    // TODO: use regex?
     // if string is empty, or if there's an input error, we fall back to default (midnight)
     if times.is_empty() || !times.contains(':') || times.len() > 5 {
         cleanup_mins = 60 * 24;
