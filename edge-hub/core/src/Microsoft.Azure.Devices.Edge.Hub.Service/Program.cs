@@ -30,6 +30,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         const int DefaultShutdownWaitPeriod = 60;
         const SslProtocols DefaultSslProtocols = SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12;
 
+        static ConsoleEventListener consoleEventListener;
+
         public static int Main()
         {
             Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Edge Hub Main()");
@@ -53,6 +55,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
 
             ILogger logger = Logger.Factory.CreateLogger("EdgeHub");
+
+            Program.consoleEventListener = new ConsoleEventListener("Microsoft-Azure-", logger);
 
             try
             {
