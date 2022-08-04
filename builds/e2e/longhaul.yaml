@@ -344,3 +344,139 @@ jobs:
           test.deploymentFileName: 'long_haul_deployment_constrained.template.json'
           testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
           clientModuleTransportType: 'mqtt'
+
+################################################################################
+  - job: Mariner1_amd64
+################################################################################
+    displayName: Mariner 1.0 AMD64
+    condition: and(eq(variables['run.EFLOW.amd64'], 'true'), eq(variables['useTRC'], 'true'))
+    pool:
+      name: $(pool.name)
+      demands:
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+        - mariner -equals true
+        - mariner-version -equals 1.0
+        - run-long-haul-eflow -equals true
+    steps:
+      - template: templates/longhaul-setup.yaml
+        parameters:
+          edgelet.artifact.name: 'iotedged-mariner1-amd64'
+          images.artifact.name: '$(images.artifact.name.linux)'
+          aziotis.artifact.name: 'packages_mariner-1_amd64'
+          aziotis.package.filter: 'aziot-identity-service-*.x86_64.rpm'
+          identityServiceArtifactName: packages_mariner-1_amd64
+          quickstart.artifactName: 'IotEdgeQuickstart.linux-x64.tar.gz'
+      - task: DeleteFiles@1
+        inputs:
+          SourceFolder: '$(Agent.HomeDirectory)/../artifacts/'
+          contents: |
+            aziot-identity-service-devel-*.x86_64.rpm
+      - template: templates/longhaul-deploy.yaml
+        parameters:
+          release.label: 'lh$(agent.group)'
+          test.buildNumber: '$(Build.BuildNumber)'
+          test.buildId: '$(Build.BuildId)'
+          test.startDelay: '$(test.startDelay.amd)'
+          build.source.branch: '$(Build.SourceBranchName)'
+          build.repo.path: '$(Build.SourcesDirectory)'
+          edgelet.source.branch: '$(edgelet.package.branchName)'
+          images.source.branch: '$(images.branchName)'
+          edgelet.artifact.name: '$(edgelet.artifact.name)'
+          images.artifact.name: '$(images.artifact.name.linux)'
+          container.registry: '$(container.registry)'
+          container.registry.username: '$(edgebuilds-azurecr-io-username)'
+          container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
+          iotHub.connectionString: '$(IotHub-ConnStr)'
+          eventHub.connectionString: '$(IotHub-EventHubConnStr)'
+          snitch.build.number: '$(snitch.build.number)'
+          snitch.alert.url: '$(SnitchLongHaulAlertUrl)'
+          snitch.storage.account: '$(snitch.storage.account)'
+          snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
+          longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
+          longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
+          longHaul.sendReportFrequency: '$(longHaul.sendReportFrequency)'
+          test.runtimeLogLevel: '$(test.runtimeLogLevel)'
+          analyzer.consumerGroupId: 'longhaul_mariner1_amd64'
+          logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
+          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          logAnalytics.logType: '$(logAnalyticsLogType)'
+          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
+          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
+          metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
+          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
+          metricsCollector.hostPlatform: 'mariner1_amd64'
+          test.testMode: 'LongHaul'
+          test.useTRC: '$(useTRC)'
+          test.deploymentFileName: 'long_haul_deployment.template.json'
+          testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
+          clientModuleTransportType: 'All'
+          packageType: 'rpm'
+
+################################################################################
+  - job: Mariner2_amd64
+################################################################################
+    displayName: Mariner 2.0 AMD64
+    condition: and(eq(variables['run.EFLOW.amd64'], 'true'), eq(variables['useTRC'], 'true'))
+    pool:
+      name: $(pool.name)
+      demands:
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+        - mariner -equals true
+        - mariner-version -equals 2.0
+        - run-long-haul-eflow -equals true
+    steps:
+      - template: templates/longhaul-setup.yaml
+        parameters:
+          edgelet.artifact.name: 'iotedged-mariner2-amd64'
+          images.artifact.name: '$(images.artifact.name.linux)'
+          aziotis.artifact.name: 'packages_mariner-2_amd64'
+          aziotis.package.filter: 'aziot-identity-service-*.x86_64.rpm'
+          identityServiceArtifactName: packages_mariner-2_amd64
+          quickstart.artifactName: 'IotEdgeQuickstart.linux-x64.tar.gz'
+      - task: DeleteFiles@1
+        inputs:
+          SourceFolder: '$(Agent.HomeDirectory)/../artifacts/'
+          contents: |
+            aziot-identity-service-devel-*.x86_64.rpm
+      - template: templates/longhaul-deploy.yaml
+        parameters:
+          release.label: 'lh$(agent.group)'
+          test.buildNumber: '$(Build.BuildNumber)'
+          test.buildId: '$(Build.BuildId)'
+          test.startDelay: '$(test.startDelay.amd)'
+          build.source.branch: '$(Build.SourceBranchName)'
+          build.repo.path: '$(Build.SourcesDirectory)'
+          edgelet.source.branch: '$(edgelet.package.branchName)'
+          images.source.branch: '$(images.branchName)'
+          edgelet.artifact.name: '$(edgelet.artifact.name)'
+          images.artifact.name: '$(images.artifact.name.linux)'
+          container.registry: '$(container.registry)'
+          container.registry.username: '$(edgebuilds-azurecr-io-username)'
+          container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
+          iotHub.connectionString: '$(IotHub-ConnStr)'
+          eventHub.connectionString: '$(IotHub-EventHubConnStr)'
+          snitch.build.number: '$(snitch.build.number)'
+          snitch.alert.url: '$(SnitchLongHaulAlertUrl)'
+          snitch.storage.account: '$(snitch.storage.account)'
+          snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
+          longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
+          longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
+          longHaul.sendReportFrequency: '$(longHaul.sendReportFrequency)'
+          test.runtimeLogLevel: '$(test.runtimeLogLevel)'
+          analyzer.consumerGroupId: 'longhaul_mariner1_amd64'
+          logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
+          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          logAnalytics.logType: '$(logAnalyticsLogType)'
+          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
+          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
+          metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
+          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
+          metricsCollector.hostPlatform: 'mariner2_amd64'
+          test.testMode: 'LongHaul'
+          test.useTRC: '$(useTRC)'
+          test.deploymentFileName: 'long_haul_deployment.template.json'
+          testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
+          clientModuleTransportType: 'All'
+          packageType: 'rpm'

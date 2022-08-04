@@ -273,3 +273,57 @@ jobs:
     - template: templates/e2e-run.yaml
       parameters:
         test_type: http_proxy
+
+################################################################################
+  - job: mariner1_amd64
+################################################################################
+    displayName: Mariner 1.0 amd64
+    condition: eq(variables['run.EFLOW.amd64'], 'true')
+    pool:
+      name: $(pool.custom.name)
+      demands:
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+        - run-new-e2e-tests -equals true
+        - mariner -equals true
+        - mariner-version -equals 1.0
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-mariner1-amd64
+      identityServiceArtifactName: packages_mariner-1_amd64
+      identityServicePackageFilter: aziot-identity-service-*.cm1.x86_64.rpm
+
+    steps:
+    - template: templates/e2e-clean-directory.yaml
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-clear-docker-cached-images.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################
+  - job: mariner2_amd64
+################################################################################
+    displayName: Mariner 2.0 amd64
+    condition: eq(variables['run.EFLOW.amd64'], 'true')
+    pool:
+      name: $(pool.custom.name)
+      demands:
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+        - run-new-e2e-tests -equals true
+        - mariner -equals true
+        - mariner-version -equals 2.0
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-mariner2-amd64
+      identityServiceArtifactName: packages_mariner-2_amd64
+      identityServicePackageFilter: aziot-identity-service-*.cm2.x86_64.rpm
+
+    steps:
+    - template: templates/e2e-clean-directory.yaml
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-clear-docker-cached-images.yaml
+    - template: templates/e2e-run.yaml
