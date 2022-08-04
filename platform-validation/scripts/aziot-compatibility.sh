@@ -26,7 +26,7 @@ SHARED_LIB_LIBSSSL_1_0="libssl.so.1.0"
 #TODO : Update these numbers after Automated Run. The goal is that for every release, we would update these numbers
 armv7l_iotedge_binaries_size=36.68
 armv7l_iotedge_binaries_avg_memory=35.51
-armv7l_iotedge_container_size=48.6
+armv7l_iotedge_container_size=186.5
 armv7l_iotedge_container_memory=164.53
 x86_64_iotedge_binaries_size=42.39
 x86_64_iotedge_binaries_avg_memory=54.24
