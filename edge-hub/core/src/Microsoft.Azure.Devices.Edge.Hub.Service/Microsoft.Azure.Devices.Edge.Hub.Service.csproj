@@ -35,7 +35,7 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="5.0.0" />
     <PackageReference Include="prometheus-net" Version="3.4.0" />
 	  <PackageReference Include="prometheus-net.AspNetCore" Version="3.4.0" />
-    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.36.4" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.36.6" />
   </ItemGroup>
 
   <ItemGroup>
