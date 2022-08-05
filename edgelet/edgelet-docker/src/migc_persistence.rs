@@ -7,6 +7,8 @@ use edgelet_settings::base::image::MIGCSettings;
 
 use crate::Error;
 
+const DEFAULT_CLEANUP_TIME: &str = "00:00";
+
 #[derive(Debug, Clone)]
 struct MIGCPersistenceInner {
     filename: String,
@@ -22,7 +24,12 @@ impl MIGCPersistence {
     pub fn new(filename: String, settings: Option<MIGCSettings>) -> Self {
         let settings = match settings {
             Some(settings) => settings,
-            None => MIGCSettings::new(Duration::MAX, Duration::MAX, "00:00".to_string(), false),
+            None => MIGCSettings::new(
+                Duration::MAX,
+                Duration::MAX,
+                DEFAULT_CLEANUP_TIME.to_string(),
+                false,
+            ),
         };
 
         Self {
@@ -30,6 +37,9 @@ impl MIGCPersistence {
         }
     }
 
+    /// This method takes the `image_id` (of a module image) and adds (if the image is new) OR updates the last-used timestamp associated
+    /// with this `image_id`. This state is maintained for use during image garbage collection.
+    /// This method is (currently) called whenever a new image is pulled, a container is created, or when a conatiner is removed.
     pub fn record_image_use_timestamp(&self, image_id: &str) -> Result<(), Error> {
         let guard = self
             .inner
@@ -73,6 +83,8 @@ impl MIGCPersistence {
         Ok(())
     }
 
+    /// This method is called during image garbage collection. It returns a map of module images that
+    /// will be deleted by the image garbage collector.
     pub fn prune_images_from_file(
         &self,
         in_use_image_ids: HashSet<String>,
@@ -394,6 +406,7 @@ mod tests {
     /* =============================================================== MORE TESTS ============================================================ */
 
     #[test]
+    #[serial]
     #[should_panic]
     fn test_panic_write_images_with_timestamp() {
         let mut result = write_images_with_timestamp(
@@ -412,6 +425,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_file_rename_write_images_with_timestamp() {
         let result = write_images_with_timestamp(
             &HashMap::new(),
@@ -456,6 +470,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_process_state() {
         let (map1, map2) = process_state(
             HashMap::new(),
