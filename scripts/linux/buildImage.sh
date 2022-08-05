@@ -224,7 +224,7 @@ docker_build_and_tag_and_push()
         fi
         docker_build_cmd+=" $build_args $context_path --load"
     else
-        docker_build_cmd="docker build --no-cache"
+        docker_build_cmd="docker build --load --no-cache"
         docker_build_cmd+=" -t $DOCKER_REGISTRY/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch"
 
         if [[ -n "${dockerfile}" ]]; then
