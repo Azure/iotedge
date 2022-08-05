@@ -121,9 +121,16 @@ where
                 if image_name_to_id.is_empty() {
                     log::info!("No docker images present on device");
                 } else {
-                    let image_id = image_name_to_id.get(config.image());
-                    self.migc_persistence
-                        .record_image_use_timestamp(image_id.unwrap_or(&String::default()))?;
+                    let image_id = match image_name_to_id.get(config.image()) {
+                        Some(imageid) => imageid,
+                        None => {
+                            log::warn!("{} was not added to image auto-prune list and may will not be garbage collected", image);
+                            ""
+                        }
+                    };
+                    if !image_id.is_empty() {
+                        self.migc_persistence.record_image_use_timestamp(image_id)?;
+                    }
                 }
             }
             Err(e) => log::error!("Could not get list of docker images: {}", e),

@@ -2,12 +2,11 @@
 
 use std::{collections::HashSet, time::Duration};
 
+use crate::error::Error as EdgedError;
 use chrono::Timelike;
 use edgelet_core::{ModuleRegistry, ModuleRuntime};
 use edgelet_docker::MIGCPersistence;
 use edgelet_settings::{base::image::MIGCSettings, RuntimeSettings};
-
-use crate::error::Error as EdgedError;
 
 pub(crate) async fn image_garbage_collect(
     settings: edgelet_settings::Settings,
@@ -43,17 +42,12 @@ pub(crate) async fn image_garbage_collect(
         }
     };
 
-    match validate_settings(settings) {
-        Ok(_) => {}
-        Err(err) => {
-            return Err(err);
-        }
+    if let Err(err) = validate_settings(settings) {
+        return Err(err);
     }
 
-    // sleep till it's time for the first execution
-    let diff: u32 = get_initial_sleep_time_mins(&settings.cleanup_time()) * 60;
-
-    tokio::time::sleep(Duration::from_secs(diff.into())).await;
+    let diff_in_secs: u32 = get_sleep_time_mins(&settings.cleanup_time()) * 60;
+    tokio::time::sleep(Duration::from_secs(diff_in_secs.into())).await;
 
     loop {
         if let Err(err) = garbage_collector(
@@ -69,8 +63,13 @@ pub(crate) async fn image_garbage_collect(
             )));
         }
 
-        // TODO: get cleanup_recurrence() - Utc::now()) and then sleep for that time
-        tokio::time::sleep(settings.cleanup_recurrence()).await;
+        // sleep till it's time to wake up based on recrurrence (and on current time post-last-execution to avoid time drift)
+        // total number of minutes in a day = 1440
+        let delay = settings.cleanup_recurrence()
+            - Duration::from_secs(
+                ((1440 - get_sleep_time_mins(&settings.cleanup_time())) * 60).into(),
+            );
+        tokio::time::sleep(delay).await;
     }
 }
 
@@ -168,7 +167,7 @@ fn validate_settings(settings: &MIGCSettings) -> Result<(), EdgedError> {
     }
 }
 
-fn get_initial_sleep_time_mins(times: &str) -> u32 {
+fn get_sleep_time_mins(times: &str) -> u32 {
     let mut cleanup_mins = 0;
 
     const TOTAL_MINS_IN_DAY: u32 = 1440;
@@ -207,7 +206,7 @@ mod tests {
 
     use crate::image_gc::validate_settings;
 
-    use super::get_initial_sleep_time_mins;
+    use super::get_sleep_time_mins;
 
     const TOTAL_MINS_IN_DAY: u32 = 1440;
 
@@ -237,9 +236,9 @@ mod tests {
     }
 
     #[test]
-    fn test_get_initial_sleep_time_mins() {
+    fn test_get_sleep_time_mins() {
         let cleanup_minutes = 12 * 60 + 39;
-        let result = get_initial_sleep_time_mins("12:39");
+        let result = get_sleep_time_mins("12:39");
 
         let hour = chrono::Local::now().hour();
         let min = chrono::Local::now().minute();
