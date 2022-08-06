@@ -5,4 +5,4 @@ lcov.info
 vendor/
 .cargo/
 *test-data*
-*image_use*
+image_use
