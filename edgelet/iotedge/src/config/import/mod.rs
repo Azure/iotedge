@@ -602,7 +602,7 @@ fn execute_inner(
                     .transpose()?,
             }
         },
-        module_image_garbage_collection: None,
+        image_garbage_collection: None,
     };
 
     let config =

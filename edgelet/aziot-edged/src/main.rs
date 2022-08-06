@@ -13,7 +13,7 @@ mod workload_manager;
 use std::sync::atomic;
 
 use edgelet_core::{module::ModuleAction, ModuleRuntime, WatchdogAction};
-use edgelet_docker::{MIGCPersistence, MakeModuleRuntime};
+use edgelet_docker::{ImagePruneData, MakeModuleRuntime};
 use edgelet_settings::RuntimeSettings;
 
 use crate::{error::Error as EdgedError, workload_manager::WorkloadManager};
@@ -84,16 +84,16 @@ async fn run() -> Result<(), EdgedError> {
     let (create_socket_channel_snd, create_socket_channel_rcv) =
         tokio::sync::mpsc::unbounded_channel::<ModuleAction>();
 
-    let migc_persistence = MIGCPersistence::new(
+    let image_use_data = ImagePruneData::new(
         settings.homedir().to_path_buf(),
-        settings.module_image_garbage_collection().clone(),
+        settings.image_garbage_collection().clone(),
     )
-    .map_err(|err| EdgedError::from_err("Failed to set up module image garbage collection", err))?;
+    .map_err(|err| EdgedError::from_err("Failed to set up image garbage collection", err))?;
 
     let runtime = edgelet_docker::DockerModuleRuntime::make_runtime(
         &settings,
         create_socket_channel_snd.clone(),
-        migc_persistence.clone(),
+        image_use_data.clone(),
     )
     .await
     .map_err(|err| EdgedError::from_err("Failed to initialize module runtime", err))?;
@@ -161,7 +161,7 @@ async fn run() -> Result<(), EdgedError> {
         &identity_client,
         watchdog_rx,
     );
-    let image_gc = image_gc::image_garbage_collect(settings.clone(), &runtime, migc_persistence);
+    let image_gc = image_gc::image_garbage_collect(settings.clone(), &runtime, image_use_data);
 
     let shutdown_reason: WatchdogAction;
     tokio::select! {

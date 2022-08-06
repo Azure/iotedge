@@ -2,7 +2,7 @@
 use std::time::Duration;
 
 #[derive(Debug, serde::Deserialize, serde::Serialize, Clone)]
-pub struct MIGCSettings {
+pub struct ImagePruneSettings {
     #[serde(with = "humantime_serde")]
     cleanup_recurrence: Duration,
     #[serde(with = "humantime_serde")]
@@ -11,14 +11,14 @@ pub struct MIGCSettings {
     enabled: bool,
 }
 
-impl MIGCSettings {
+impl ImagePruneSettings {
     pub fn new(
         cleanup_recurrence: Duration,
         image_age_cleanup_threshold: Duration,
         cleanup_time: String,
         enabled: bool,
-    ) -> MIGCSettings {
-        MIGCSettings {
+    ) -> ImagePruneSettings {
+        ImagePruneSettings {
             cleanup_recurrence,
             image_age_cleanup_threshold,
             cleanup_time,

@@ -13,12 +13,12 @@
 
 // mod client;
 mod error;
-mod migc_persistence;
+mod image_prune_settings;
 mod module;
 mod runtime;
 
 pub use error::Error;
-pub use migc_persistence::MIGCPersistence;
+pub use image_prune_settings::ImagePruneData;
 pub use module::{DockerModule, MODULE_TYPE};
 pub use runtime::{init_client, DockerModuleRuntime};
 
@@ -36,6 +36,6 @@ pub trait MakeModuleRuntime {
     async fn make_runtime(
         settings: &Self::Settings,
         create_socket_channel: UnboundedSender<ModuleAction>,
-        migc_persistence: MIGCPersistence,
+        image_use_data: ImagePruneData,
     ) -> anyhow::Result<Self::ModuleRuntime>;
 }

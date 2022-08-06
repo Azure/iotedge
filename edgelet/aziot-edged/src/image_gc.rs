@@ -5,13 +5,13 @@ use std::{collections::HashSet, time::Duration};
 use crate::error::Error as EdgedError;
 use chrono::Timelike;
 use edgelet_core::{ModuleRegistry, ModuleRuntime};
-use edgelet_docker::MIGCPersistence;
-use edgelet_settings::{base::image::MIGCSettings, RuntimeSettings};
+use edgelet_docker::ImagePruneData;
+use edgelet_settings::{base::image::ImagePruneSettings, RuntimeSettings};
 
 pub(crate) async fn image_garbage_collect(
     settings: edgelet_settings::Settings,
     runtime: &edgelet_docker::DockerModuleRuntime<http_common::Connector>,
-    migc_persistence: MIGCPersistence,
+    image_use_data: ImagePruneData,
 ) -> Result<(), EdgedError> {
     log::info!("Starting image auto-pruning task...");
 
@@ -35,7 +35,7 @@ pub(crate) async fn image_garbage_collect(
         }
     };
 
-    let settings = match settings.module_image_garbage_collection() {
+    let settings = match settings.image_garbage_collection() {
         Some(parsed) => parsed,
         None => {
             return Err(EdgedError::new("Could not start Image auto-pruning task; container images will not be cleaned up automatically".to_string()));
@@ -52,7 +52,7 @@ pub(crate) async fn image_garbage_collect(
     loop {
         if let Err(err) = garbage_collector(
             runtime,
-            migc_persistence.clone(),
+            image_use_data.clone(),
             bootstrap_image_id.clone(),
         )
         .await
@@ -75,15 +75,15 @@ pub(crate) async fn image_garbage_collect(
 
 async fn garbage_collector(
     runtime: &edgelet_docker::DockerModuleRuntime<http_common::Connector>,
-    migc_persistence: MIGCPersistence,
+    image_use_data: ImagePruneData,
     bootstrap_image_id: String,
 ) -> Result<(), EdgedError> {
-    log::info!("Module Image Garbage Collection starting daily run");
+    log::info!("Image Garbage Collection starting daily run");
 
     // track images associated with extant containers
 
     // first get list of containers on the device, running or otherwise
-    let running_modules = match ModuleRuntime::list_with_details(runtime).await {
+    let extant_containers = match ModuleRuntime::list_with_details(runtime).await {
         Ok(modules) => {
             let mut image_ids: HashSet<String> = HashSet::new();
             image_ids.insert(bootstrap_image_id); // bootstrap edge agent image should never be deleted
@@ -109,8 +109,8 @@ async fn garbage_collector(
         }
     };
 
-    let image_map = migc_persistence
-        .prune_images_from_file(running_modules)
+    let image_map = image_use_data
+        .prune_images_from_file(extant_containers)
         .map_err(|e| {
             EdgedError::from_err(
                 "Module image garbage collection failed to prune images from file.",
@@ -131,7 +131,7 @@ async fn garbage_collector(
 
 /* ================================================ HELPER METHODS ================================================ */
 
-fn validate_settings(settings: &MIGCSettings) -> Result<(), EdgedError> {
+fn validate_settings(settings: &ImagePruneSettings) -> Result<(), EdgedError> {
     if settings.cleanup_recurrence() < Duration::from_secs(60 * 60 * 24) {
         return Err(EdgedError::from_err(
             "invalid settings provided in config",
@@ -202,7 +202,7 @@ mod tests {
     use std::time::Duration;
 
     use chrono::Timelike;
-    use edgelet_settings::base::image::MIGCSettings;
+    use edgelet_settings::base::image::ImagePruneSettings;
 
     use crate::image_gc::validate_settings;
 
@@ -213,24 +213,24 @@ mod tests {
     #[test]
     fn test_validate_settings() {
         let mut settings =
-            MIGCSettings::new(Duration::MAX, Duration::MAX, "12345".to_string(), false);
+            ImagePruneSettings::new(Duration::MAX, Duration::MAX, "12345".to_string(), false);
 
         let mut result = validate_settings(&settings);
         assert!(result.is_err());
 
-        settings = MIGCSettings::new(Duration::MAX, Duration::MAX, "abcde".to_string(), false);
+        settings = ImagePruneSettings::new(Duration::MAX, Duration::MAX, "abcde".to_string(), false);
         result = validate_settings(&settings);
         assert!(result.is_err());
 
-        settings = MIGCSettings::new(Duration::MAX, Duration::MAX, "26:30".to_string(), false);
+        settings = ImagePruneSettings::new(Duration::MAX, Duration::MAX, "26:30".to_string(), false);
         result = validate_settings(&settings);
         assert!(result.is_err());
 
-        settings = MIGCSettings::new(Duration::MAX, Duration::MAX, "16:61".to_string(), false);
+        settings = ImagePruneSettings::new(Duration::MAX, Duration::MAX, "16:61".to_string(), false);
         result = validate_settings(&settings);
         assert!(result.is_err());
 
-        settings = MIGCSettings::new(Duration::MAX, Duration::MAX, "23:333".to_string(), false);
+        settings = ImagePruneSettings::new(Duration::MAX, Duration::MAX, "23:333".to_string(), false);
         result = validate_settings(&settings);
         assert!(result.is_err());
     }

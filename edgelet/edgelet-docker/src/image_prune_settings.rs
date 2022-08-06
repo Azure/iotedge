@@ -4,31 +4,31 @@ use std::sync::{Arc, Mutex};
 use std::time::UNIX_EPOCH;
 use std::{collections::HashMap, collections::HashSet, fs, time::Duration};
 
-use edgelet_settings::base::image::MIGCSettings;
+use edgelet_settings::base::image::ImagePruneSettings;
 
 use crate::Error;
 
 const DEFAULT_CLEANUP_TIME: &str = "00:00";
-const MIGC_FILENAME: &str = "migc";
-const MIGC_TMP_FILENAME: &str = "migc_tmp";
+const IMAGE_USE_FILENAME: &str = "image_use";
+const TMP_FILENAME: &str = "image_use_tmp";
 
 #[derive(Debug, Clone)]
-struct MIGCPersistenceInner {
-    migc_filepath: String,
-    migc_tmp_filepath: String,
-    settings: MIGCSettings,
+struct ImagePruneInner {
+    image_use_filepath: String,
+    tmp_filepath: String,
+    settings: ImagePruneSettings,
 }
 
 #[derive(Debug, Clone)]
-pub struct MIGCPersistence {
-    inner: Arc<Mutex<MIGCPersistenceInner>>,
+pub struct ImagePruneData {
+    inner: Arc<Mutex<ImagePruneInner>>,
 }
 
-impl MIGCPersistence {
-    pub fn new(homedir: PathBuf, settings: Option<MIGCSettings>) -> Result<Self, Error> {
+impl ImagePruneData {
+    pub fn new(homedir: PathBuf, settings: Option<ImagePruneSettings>) -> Result<Self, Error> {
         let settings = match settings {
             Some(settings) => settings,
-            None => MIGCSettings::new(
+            None => ImagePruneSettings::new(
                 Duration::MAX,
                 Duration::MAX,
                 DEFAULT_CLEANUP_TIME.to_string(),
@@ -36,20 +36,20 @@ impl MIGCPersistence {
             ),
         };
 
-        let fp: PathBuf = homedir.join(MIGC_FILENAME);
-        let tmp_fp: PathBuf = homedir.join(MIGC_TMP_FILENAME);
+        let fp: PathBuf = homedir.join(IMAGE_USE_FILENAME);
+        let tmp_fp: PathBuf = homedir.join(TMP_FILENAME);
 
-        let migc_filepath = fp
+        let image_use_filepath = fp
             .to_str()
-            .ok_or(Error::FilepathCreationError(MIGC_FILENAME.into()))?;
-        let migc_tmp_filepath = tmp_fp
+            .ok_or(Error::FilepathCreationError(IMAGE_USE_FILENAME.into()))?;
+        let tmp_filepath = tmp_fp
             .to_str()
-            .ok_or(Error::FilepathCreationError(MIGC_FILENAME.into()))?;
+            .ok_or(Error::FilepathCreationError(IMAGE_USE_FILENAME.into()))?;
 
         Ok(Self {
-            inner: Arc::new(Mutex::new(MIGCPersistenceInner {
-                migc_filepath: migc_filepath.to_string(),
-                migc_tmp_filepath: migc_tmp_filepath.to_string(),
+            inner: Arc::new(Mutex::new(ImagePruneInner {
+                image_use_filepath: image_use_filepath.to_string(),
+                tmp_filepath: tmp_filepath.to_string(),
                 settings,
             })),
         })
@@ -64,19 +64,10 @@ impl MIGCPersistence {
             .lock()
             .map_err(|e| Error::LockError(e.to_string()))?;
 
-        let migc_filepath = guard.migc_filepath.clone();
-        if !std::path::Path::new(&migc_filepath).exists() {
-            log::info!(
-                "Auto-pruning data file not found; creating file at: {}",
-                migc_filepath.as_str()
-            );
-            let _file = fs::File::create(migc_filepath).map_err(Error::CreateFile)?;
-        }
-
-        // read MIGC persistence file into in-mem map
+        // read persistence file into in-mem map
         // this map now contains all images deployed to the device (through an IoT Edge deployment)
 
-        let mut image_map = match get_images_with_timestamp(guard.migc_filepath.clone()) {
+        let mut image_map = match get_images_with_timestamp(guard.image_use_filepath.clone()) {
             Ok(map) => map,
             Err(e) => {
                 drop(guard);
@@ -94,8 +85,8 @@ impl MIGCPersistence {
         // write entries back to file
         let _res = write_images_with_timestamp(
             &image_map,
-            guard.migc_tmp_filepath.clone(),
-            guard.migc_filepath.clone(),
+            guard.tmp_filepath.clone(),
+            guard.image_use_filepath.clone(),
         );
 
         drop(guard);
@@ -116,16 +107,16 @@ impl MIGCPersistence {
 
         let settings = guard.settings.clone();
 
-        // if migc is disabled then shouldn't remove anything
+        // if pruning is disabled then shouldn't remove anything
         if !settings.is_enabled() {
             return Ok(HashMap::new());
         }
 
-        // Read MIGC persistence file into in-mem map. This map now contains
+        // Read persistence file into in-mem map. This map now contains
         // all images deployed to the device (through an IoT Edge deployment).
-        // If MIGC persistence file cannot be read we will return a new map so
-        // new MIGC persistence file will be created.
-        let image_map = match get_images_with_timestamp(guard.migc_filepath.clone()) {
+        // If persistence file cannot be read we will return a new map so
+        // new persistence file will be created.
+        let image_map = match get_images_with_timestamp(guard.image_use_filepath.clone()) {
             Ok(map) => map,
             Err(e) => {
                 drop(guard);
@@ -148,8 +139,8 @@ impl MIGCPersistence {
         // write previously removed entries back to file
         if let Err(e) = write_images_with_timestamp(
             &carry_over,
-            guard.migc_tmp_filepath.clone(),
-            guard.migc_filepath.clone(),
+            guard.tmp_filepath.clone(),
+            guard.image_use_filepath.clone(),
         ) {
             log::warn!("Failed to update image auto pruning persistence file. File will be updated on next scheduled run. {}", e);
         };
@@ -158,15 +149,24 @@ impl MIGCPersistence {
 
         drop(guard);
 
-        // these are the images we need to prune; MIGC file has already been updated
+        // these are the images we need to prune; file has already been updated
         Ok(images_to_delete)
     }
 }
 
 /* ===================================== HELPER METHODS ==================================== */
 
-fn get_images_with_timestamp(migc_filepath: String) -> Result<HashMap<String, Duration>, Error> {
-    let res = fs::read_to_string(migc_filepath);
+fn get_images_with_timestamp(image_use_filepath: String) -> Result<HashMap<String, Duration>, Error> {
+
+    if !std::path::Path::new(&image_use_filepath).exists() {
+        log::info!(
+            "Auto-pruning data file not found; creating file at: {}",
+            image_use_filepath.as_str()
+        );
+        let _file = fs::File::create(image_use_filepath.clone()).map_err(Error::CreateFile)?;
+    }    
+
+    let res = fs::read_to_string(image_use_filepath);
     if let Err(e) = res {
         let msg = format!("Could not read image persistence data: {}", e);
         log::error!("{msg}");
@@ -175,9 +175,9 @@ fn get_images_with_timestamp(migc_filepath: String) -> Result<HashMap<String, Du
 
     let contents = res.expect("Reading image persistence data failed");
 
-    let mut image_map: HashMap<String, Duration> = HashMap::new(); // all images in MIGC store
+    let mut image_map: HashMap<String, Duration> = HashMap::new(); // all image pruning data
 
-    // TL;DR: this dumps MIGC store contents into the image_map, where
+    // TL;DR: this dumps pruning data into the image_map, where
     // Key: Image hash, Value: Timestamp when image was last used (in epoch)
     let contents = contents
         .lines()
@@ -196,7 +196,7 @@ fn get_images_with_timestamp(migc_filepath: String) -> Result<HashMap<String, Du
 fn write_images_with_timestamp(
     state_to_persist: &HashMap<String, Duration>,
     temp_file: String,
-    migc_filepath: String,
+    image_use_filepath: String,
 ) -> Result<(), Error> {
     // write to a temp file and then rename/overwrite to image persistence file (to prevent file write failures or corruption)
     let mut file = std::fs::File::create(temp_file.clone())
@@ -215,11 +215,10 @@ fn write_images_with_timestamp(
         }
     }
 
-    // add retries?
-    match fs::rename(temp_file, migc_filepath) {
+    match fs::rename(temp_file, image_use_filepath) {
         Ok(_) => {},
-        Err(_) => return Err(Error::FileOperation(
-            "Could not update auto-prune data; next run may try to delete images that are no longer present on device".to_string(),
+        Err(err) => return Err(Error::FileOperation(
+            format!("Could not update auto-prune data {}", err),
         )),
     };
 
@@ -236,14 +235,14 @@ fn process_state(
         .duration_since(UNIX_EPOCH)
         .map_err(Error::GetCurrentTimeEpoch)?;
 
-    let mut carry_over: HashMap<String, Duration> = HashMap::new(); // all images to NOT be deleted by MIGC in this run
+    let mut carry_over: HashMap<String, Duration> = HashMap::new(); // all images to NOT be deleted by pruning in this run
 
     // then, based on ID, keep track of images currently being used (in map: carry_over)
-    for module_id in image_ids {
+    for image_id in image_ids {
         // Since the images are currently being used, we update the timestamp to the current time
-        // This avoids the case where a container crash just as MIGC is kicking off removes a needed image
+        // This avoids the case where a container crash just as pruning is kicking off removes a needed image
 
-        carry_over.insert(module_id, current_time);
+        carry_over.insert(image_id, current_time);
     }
 
     // track entries younger than min age
@@ -270,15 +269,15 @@ mod tests {
     };
 
     use chrono::{Timelike, Utc};
-    use edgelet_settings::base::image::MIGCSettings;
+    use edgelet_settings::base::image::ImagePruneSettings;
     use nix::libc::sleep;
     use serial_test::serial;
 
     use crate::{
-        migc_persistence::{
-            get_images_with_timestamp, process_state, MIGC_FILENAME, MIGC_TMP_FILENAME,
+        image_prune_settings::{
+            get_images_with_timestamp, process_state, IMAGE_USE_FILENAME, TMP_FILENAME,
         },
-        MIGCPersistence,
+        ImagePruneData,
     };
 
     use super::write_images_with_timestamp;
@@ -298,23 +297,23 @@ mod tests {
         }
         std::fs::create_dir(Path::new(&test_file_dir)).unwrap();
 
-        let settings = MIGCSettings::new(
+        let settings = ImagePruneSettings::new(
             Duration::from_secs(30),
             Duration::from_secs(10),
             curr_time,
             false,
         );
-        let migc_persistence = MIGCPersistence::new(test_file_dir.clone(), Some(settings)).unwrap();
+        let image_use_data = ImagePruneData::new(test_file_dir.clone(), Some(settings)).unwrap();
 
         // write new image
-        migc_persistence
+        image_use_data
             .record_image_use_timestamp(
                 "sha256:a4d112e0884bd2ba078ab8222e099bc989cc65cd433dfbb74d6de7cee188g4g7",
             )
             .unwrap();
         let images = get_images_with_timestamp(
             test_file_dir
-                .join(MIGC_FILENAME)
+                .join(IMAGE_USE_FILENAME)
                 .into_os_string()
                 .into_string()
                 .unwrap(),
@@ -333,14 +332,14 @@ mod tests {
         }
 
         // update existing image
-        migc_persistence
+        image_use_data
             .record_image_use_timestamp(
                 "sha256:a4d112e0884bd2ba078ab8222e099bc989cc65cd433dfbb74d6de7cee188g4g7",
             )
             .unwrap();
         let new_images = get_images_with_timestamp(
             test_file_dir
-                .join(MIGC_FILENAME)
+                .join(IMAGE_USE_FILENAME)
                 .into_os_string()
                 .into_string()
                 .unwrap(),
@@ -402,26 +401,26 @@ mod tests {
         let _write = write_images_with_timestamp(
             &image_map,
             test_file_dir
-                .join(MIGC_TMP_FILENAME)
+                .join(TMP_FILENAME)
                 .into_os_string()
                 .into_string()
                 .unwrap(),
             test_file_dir
-                .join(MIGC_FILENAME)
+                .join(IMAGE_USE_FILENAME)
                 .into_os_string()
                 .into_string()
                 .unwrap(),
         );
 
         let curr_time: String = format!("{}{}", Utc::now().hour(), Utc::now().minute());
-        let mut settings = MIGCSettings::new(
+        let mut settings = ImagePruneSettings::new(
             Duration::from_secs(30),
             Duration::from_secs(5),
             curr_time,
             false,
         );
-        let mut migc_persistence =
-            MIGCPersistence::new(test_file_dir.clone(), Some(settings)).unwrap();
+        let mut image_use_data =
+            ImagePruneData::new(test_file_dir.clone(), Some(settings)).unwrap();
 
         let mut in_use_image_ids: HashSet<String> = HashSet::new();
         in_use_image_ids.insert(
@@ -439,23 +438,23 @@ mod tests {
 
         unsafe { sleep(6) };
 
-        // migc disable... don't remove stuff
-        let mut images_to_delete = migc_persistence
+        // image prune disable... don't remove stuff
+        let mut images_to_delete = image_use_data
             .prune_images_from_file(in_use_image_ids.clone())
             .unwrap();
         assert!(images_to_delete.is_empty());
 
-        // migc enabled, remove stuff
+        // image prune enabled, remove stuff
         let curr_time: String = format!("{}{}", Utc::now().hour(), Utc::now().minute());
-        settings = MIGCSettings::new(
+        settings = ImagePruneSettings::new(
             Duration::from_secs(30),
             Duration::from_secs(5),
             curr_time,
             true,
         );
-        migc_persistence = MIGCPersistence::new(test_file_dir.clone(), Some(settings)).unwrap();
+        image_use_data = ImagePruneData::new(test_file_dir.clone(), Some(settings)).unwrap();
 
-        images_to_delete = migc_persistence
+        images_to_delete = image_use_data
             .prune_images_from_file(in_use_image_ids)
             .unwrap();
         assert!(images_to_delete.len() == 2);
@@ -473,13 +472,13 @@ mod tests {
         let mut result = write_images_with_timestamp(
             &HashMap::new(),
             "/etc/other_file".to_string(),
-            MIGC_FILENAME.to_string(),
+            IMAGE_USE_FILENAME.to_string(),
         );
         assert!(result.is_err());
 
         result = write_images_with_timestamp(
             &HashMap::new(),
-            MIGC_TMP_FILENAME.to_string(),
+            TMP_FILENAME.to_string(),
             "/etc/other_file".to_string(),
         );
         assert!(result.is_err());
@@ -497,11 +496,11 @@ mod tests {
 
         let result = write_images_with_timestamp(
             &HashMap::new(),
-            MIGC_FILENAME.to_string(),
-            MIGC_TMP_FILENAME.to_string(),
+            IMAGE_USE_FILENAME.to_string(),
+            TMP_FILENAME.to_string(),
         );
         assert!(result.is_ok());
-        assert!(std::path::Path::new(MIGC_TMP_FILENAME).exists());
+        assert!(std::path::Path::new(TMP_FILENAME).exists());
 
         // cleanup
         std::fs::remove_dir_all(test_file_dir).unwrap();
@@ -529,12 +528,12 @@ mod tests {
         let result = write_images_with_timestamp(
             &hash_map,
             test_file_dir
-                .join(MIGC_TMP_FILENAME)
+                .join(TMP_FILENAME)
                 .into_os_string()
                 .into_string()
                 .unwrap(),
             test_file_dir
-                .join(MIGC_FILENAME)
+                .join(IMAGE_USE_FILENAME)
                 .into_os_string()
                 .into_string()
                 .unwrap(),
@@ -543,7 +542,7 @@ mod tests {
         // assert file not empty, verify file write
         let result_map: HashMap<String, Duration> = get_images_with_timestamp(
             test_file_dir
-                .join(MIGC_FILENAME)
+                .join(IMAGE_USE_FILENAME)
                 .into_os_string()
                 .into_string()
                 .unwrap(),

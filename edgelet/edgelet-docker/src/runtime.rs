@@ -25,7 +25,7 @@ use http_common::Connector;
 
 use crate::error::Error;
 use crate::module::{runtime_state, DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
-use crate::{MIGCPersistence, MakeModuleRuntime};
+use crate::{ImagePruneData, MakeModuleRuntime};
 
 type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
@@ -41,7 +41,7 @@ pub struct DockerModuleRuntime<C> {
     create_socket_channel: UnboundedSender<ModuleAction>,
     allow_elevated_docker_permissions: bool,
     additional_info: BTreeMap<String, String>,
-    migc_persistence: MIGCPersistence,
+    image_use_data: ImagePruneData,
 }
 
 fn merge_env(cur_env: Option<&[String]>, new_env: &BTreeMap<String, String>) -> Vec<String> {
@@ -129,7 +129,7 @@ where
                         }
                     };
                     if !image_id.is_empty() {
-                        self.migc_persistence.record_image_use_timestamp(image_id)?;
+                        self.image_use_data.record_image_use_timestamp(image_id)?;
                     }
                 }
             }
@@ -172,7 +172,7 @@ impl MakeModuleRuntime for DockerModuleRuntime<Connector> {
     async fn make_runtime(
         settings: &Settings,
         create_socket_channel: UnboundedSender<ModuleAction>,
-        migc_persistence: MIGCPersistence,
+        image_use_data: ImagePruneData,
     ) -> anyhow::Result<Self::ModuleRuntime> {
         log::info!("Initializing module runtime...");
 
@@ -190,7 +190,7 @@ impl MakeModuleRuntime for DockerModuleRuntime<Connector> {
             create_socket_channel,
             allow_elevated_docker_permissions: settings.allow_elevated_docker_permissions(),
             additional_info: settings.additional_info().clone(),
-            migc_persistence,
+            image_use_data,
         };
 
         Ok(runtime)
@@ -368,7 +368,7 @@ where
         let module_with_details = self.get(module.name()).await?;
 
         // update image use timestamp for auto-pruning job later
-        self.migc_persistence.record_image_use_timestamp(
+        self.image_use_data.record_image_use_timestamp(
             module_with_details
                 .0
                 .config()
@@ -554,7 +554,7 @@ where
             })?;
 
         // update image use timestamp for auto-pruning job later
-        self.migc_persistence.record_image_use_timestamp(image_id)?;
+        self.image_use_data.record_image_use_timestamp(image_id)?;
 
         // Remove the socket to avoid having socket files polluting the home folder.
         self.create_socket_channel
