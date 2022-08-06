@@ -4,3 +4,5 @@ report/
 lcov.info
 vendor/
 .cargo/
+*test-data*
+*migc*

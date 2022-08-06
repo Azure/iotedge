@@ -84,12 +84,12 @@ async fn run() -> Result<(), EdgedError> {
     let (create_socket_channel_snd, create_socket_channel_rcv) =
         tokio::sync::mpsc::unbounded_channel::<ModuleAction>();
 
-    let migc_filename = settings.homedir().join("migc");
-
     let migc_persistence = MIGCPersistence::new(
-        migc_filename.to_str().unwrap().into(),
+        settings.homedir().to_path_buf(),
         settings.module_image_garbage_collection().clone(),
-    );
+    )
+    .map_err(|err| EdgedError::from_err("Failed to set up module image garbage collection", err))?;
+
     let runtime = edgelet_docker::DockerModuleRuntime::make_runtime(
         &settings,
         create_socket_channel_snd.clone(),

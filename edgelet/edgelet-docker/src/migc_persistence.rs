@@ -1,4 +1,5 @@
 use std::io::Write;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::UNIX_EPOCH;
 use std::{collections::HashMap, collections::HashSet, fs, time::Duration};
@@ -8,10 +9,13 @@ use edgelet_settings::base::image::MIGCSettings;
 use crate::Error;
 
 const DEFAULT_CLEANUP_TIME: &str = "00:00";
+const MIGC_FILENAME: &str = "migc";
+const MIGC_TMP_FILENAME: &str = "migc_tmp";
 
 #[derive(Debug, Clone)]
 struct MIGCPersistenceInner {
-    filename: String,
+    migc_filepath: String,
+    migc_tmp_filepath: String,
     settings: MIGCSettings,
 }
 
@@ -21,7 +25,7 @@ pub struct MIGCPersistence {
 }
 
 impl MIGCPersistence {
-    pub fn new(filename: String, settings: Option<MIGCSettings>) -> Self {
+    pub fn new(homedir: PathBuf, settings: Option<MIGCSettings>) -> Result<Self, Error> {
         let settings = match settings {
             Some(settings) => settings,
             None => MIGCSettings::new(
@@ -32,9 +36,23 @@ impl MIGCPersistence {
             ),
         };
 
-        Self {
-            inner: Arc::new(Mutex::new(MIGCPersistenceInner { filename, settings })),
-        }
+        let fp: PathBuf = homedir.join(MIGC_FILENAME);
+        let tmp_fp: PathBuf = homedir.join(MIGC_TMP_FILENAME);
+
+        let migc_filepath = fp
+            .to_str()
+            .ok_or(Error::FilepathCreationError(MIGC_FILENAME.into()))?;
+        let migc_tmp_filepath = tmp_fp
+            .to_str()
+            .ok_or(Error::FilepathCreationError(MIGC_FILENAME.into()))?;
+
+        Ok(Self {
+            inner: Arc::new(Mutex::new(MIGCPersistenceInner {
+                migc_filepath: migc_filepath.to_string(),
+                migc_tmp_filepath: migc_tmp_filepath.to_string(),
+                settings,
+            })),
+        })
     }
 
     /// This method takes the `image_id` (of a module image) and adds (if the image is new) OR updates the last-used timestamp associated
@@ -46,19 +64,19 @@ impl MIGCPersistence {
             .lock()
             .map_err(|e| Error::LockError(e.to_string()))?;
 
-        let migc_filename = guard.filename.clone();
-        if !std::path::Path::new(&migc_filename).exists() {
+        let migc_filepath = guard.migc_filepath.clone();
+        if !std::path::Path::new(&migc_filepath).exists() {
             log::info!(
                 "Auto-pruning data file not found; creating file at: {}",
-                migc_filename.as_str()
+                migc_filepath.as_str()
             );
-            let _file = fs::File::create(migc_filename).map_err(Error::CreateFile)?;
+            let _file = fs::File::create(migc_filepath).map_err(Error::CreateFile)?;
         }
 
         // read MIGC persistence file into in-mem map
         // this map now contains all images deployed to the device (through an IoT Edge deployment)
 
-        let mut image_map = match get_images_with_timestamp(guard.filename.clone()) {
+        let mut image_map = match get_images_with_timestamp(guard.migc_filepath.clone()) {
             Ok(map) => map,
             Err(e) => {
                 drop(guard);
@@ -73,10 +91,12 @@ impl MIGCPersistence {
 
         image_map.insert(image_id.to_string(), current_time);
 
-        let temp_file_name = guard.filename.clone().replace("migc", "images");
-
         // write entries back to file
-        let _res = write_images_with_timestamp(&image_map, temp_file_name, guard.filename.clone());
+        let _res = write_images_with_timestamp(
+            &image_map,
+            guard.migc_tmp_filepath.clone(),
+            guard.migc_filepath.clone(),
+        );
 
         drop(guard);
 
@@ -105,7 +125,7 @@ impl MIGCPersistence {
         // all images deployed to the device (through an IoT Edge deployment).
         // If MIGC persistence file cannot be read we will return a new map so
         // new MIGC persistence file will be created.
-        let image_map = match get_images_with_timestamp(guard.filename.clone()) {
+        let image_map = match get_images_with_timestamp(guard.migc_filepath.clone()) {
             Ok(map) => map,
             Err(e) => {
                 drop(guard);
@@ -125,12 +145,12 @@ impl MIGCPersistence {
 
         /* ============================== */
 
-        let temp_file_name = guard.filename.clone().replace("migc", "images");
-
         // write previously removed entries back to file
-        if let Err(e) =
-            write_images_with_timestamp(&carry_over, temp_file_name, guard.filename.clone())
-        {
+        if let Err(e) = write_images_with_timestamp(
+            &carry_over,
+            guard.migc_tmp_filepath.clone(),
+            guard.migc_filepath.clone(),
+        ) {
             log::warn!("Failed to update image auto pruning persistence file. File will be updated on next scheduled run. {}", e);
         };
 
@@ -145,8 +165,8 @@ impl MIGCPersistence {
 
 /* ===================================== HELPER METHODS ==================================== */
 
-fn get_images_with_timestamp(filename: String) -> Result<HashMap<String, Duration>, Error> {
-    let res = fs::read_to_string(filename);
+fn get_images_with_timestamp(migc_filepath: String) -> Result<HashMap<String, Duration>, Error> {
+    let res = fs::read_to_string(migc_filepath);
     if let Err(e) = res {
         let msg = format!("Could not read image persistence data: {}", e);
         log::error!("{msg}");
@@ -176,7 +196,7 @@ fn get_images_with_timestamp(filename: String) -> Result<HashMap<String, Duratio
 fn write_images_with_timestamp(
     state_to_persist: &HashMap<String, Duration>,
     temp_file: String,
-    filename: String,
+    migc_filepath: String,
 ) -> Result<(), Error> {
     // write to a temp file and then rename/overwrite to image persistence file (to prevent file write failures or corruption)
     let mut file = std::fs::File::create(temp_file.clone())
@@ -196,7 +216,7 @@ fn write_images_with_timestamp(
     }
 
     // add retries?
-    match fs::rename(temp_file, filename) {
+    match fs::rename(temp_file, migc_filepath) {
         Ok(_) => {},
         Err(_) => return Err(Error::FileOperation(
             "Could not update auto-prune data; next run may try to delete images that are no longer present on device".to_string(),
@@ -245,6 +265,7 @@ fn process_state(
 mod tests {
     use std::{
         collections::{HashMap, HashSet},
+        path::Path,
         time::{Duration, UNIX_EPOCH},
     };
 
@@ -253,11 +274,16 @@ mod tests {
     use nix::libc::sleep;
     use serial_test::serial;
 
-    use crate::{migc_persistence::get_images_with_timestamp, MIGCPersistence};
+    use crate::{
+        migc_persistence::{
+            get_images_with_timestamp, process_state, MIGC_FILENAME, MIGC_TMP_FILENAME,
+        },
+        MIGCPersistence,
+    };
 
-    use super::{process_state, write_images_with_timestamp};
+    use super::write_images_with_timestamp;
 
-    const TEMP_FILE: &str = "/tmp/images";
+    const TEST_FILE_DIR: &str = "test-data";
 
     /* =============================================================== PUBLIC API TESTS ============================================================ */
 
@@ -266,14 +292,19 @@ mod tests {
     async fn test_record_image_use_timestamp() {
         let curr_time: String = format!("{}{}", Utc::now().hour(), Utc::now().minute());
 
-        let mut _res = std::fs::remove_file(TEMP_FILE);
+        let test_file_dir = std::env::current_dir().unwrap().join(TEST_FILE_DIR);
+        if test_file_dir.is_dir() {
+            std::fs::remove_dir_all(test_file_dir.clone()).unwrap();
+        }
+        std::fs::create_dir(Path::new(&test_file_dir)).unwrap();
+
         let settings = MIGCSettings::new(
             Duration::from_secs(30),
             Duration::from_secs(10),
             curr_time,
             false,
         );
-        let migc_persistence = MIGCPersistence::new(TEMP_FILE.to_string(), Some(settings));
+        let migc_persistence = MIGCPersistence::new(test_file_dir.clone(), Some(settings)).unwrap();
 
         // write new image
         migc_persistence
@@ -281,14 +312,21 @@ mod tests {
                 "sha256:a4d112e0884bd2ba078ab8222e099bc989cc65cd433dfbb74d6de7cee188g4g7",
             )
             .unwrap();
-        let result = get_images_with_timestamp(TEMP_FILE.to_string()).unwrap();
+        let images = get_images_with_timestamp(
+            test_file_dir
+                .join(MIGC_FILENAME)
+                .into_os_string()
+                .into_string()
+                .unwrap(),
+        )
+        .unwrap();
 
-        assert!(result.contains_key(
+        assert!(images.contains_key(
             "sha256:a4d112e0884bd2ba078ab8222e099bc989cc65cd433dfbb74d6de7cee188g4g7"
         ));
-        assert!(result.len() == 1);
+        assert!(images.len() == 1);
         let old_time =
-            result.get("sha256:a4d112e0884bd2ba078ab8222e099bc989cc65cd433dfbb74d6de7cee188g4g7");
+            images.get("sha256:a4d112e0884bd2ba078ab8222e099bc989cc65cd433dfbb74d6de7cee188g4g7");
 
         unsafe {
             sleep(1);
@@ -300,18 +338,25 @@ mod tests {
                 "sha256:a4d112e0884bd2ba078ab8222e099bc989cc65cd433dfbb74d6de7cee188g4g7",
             )
             .unwrap();
-        let new_result = get_images_with_timestamp(TEMP_FILE.to_string()).unwrap();
-        assert!(new_result.contains_key(
+        let new_images = get_images_with_timestamp(
+            test_file_dir
+                .join(MIGC_FILENAME)
+                .into_os_string()
+                .into_string()
+                .unwrap(),
+        )
+        .unwrap();
+        assert!(new_images.contains_key(
             "sha256:a4d112e0884bd2ba078ab8222e099bc989cc65cd433dfbb74d6de7cee188g4g7"
         ));
-        assert!(new_result.len() == 1);
-        let new_time = new_result
+        assert!(new_images.len() == 1);
+        let new_time = new_images
             .get("sha256:a4d112e0884bd2ba078ab8222e099bc989cc65cd433dfbb74d6de7cee188g4g7");
 
         assert!(old_time < new_time);
 
         // cleanup
-        _res = std::fs::remove_file("/tmp/images2");
+        std::fs::remove_dir_all(test_file_dir).unwrap();
     }
 
     #[tokio::test]
@@ -322,7 +367,11 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .expect("Could not get EPOCH time");
 
-        let mut _res = std::fs::remove_file(TEMP_FILE);
+        let test_file_dir = std::env::current_dir().unwrap().join(TEST_FILE_DIR);
+        if test_file_dir.is_dir() {
+            std::fs::remove_dir_all(test_file_dir.clone()).unwrap();
+        }
+        std::fs::create_dir(Path::new(&test_file_dir)).unwrap();
 
         let mut image_map: HashMap<String, Duration> = HashMap::new();
         image_map.insert(
@@ -350,8 +399,19 @@ mod tests {
             time,
         );
 
-        let _write =
-            write_images_with_timestamp(&image_map, "/tmp/temp".to_string(), TEMP_FILE.to_string());
+        let _write = write_images_with_timestamp(
+            &image_map,
+            test_file_dir
+                .join(MIGC_TMP_FILENAME)
+                .into_os_string()
+                .into_string()
+                .unwrap(),
+            test_file_dir
+                .join(MIGC_FILENAME)
+                .into_os_string()
+                .into_string()
+                .unwrap(),
+        );
 
         let curr_time: String = format!("{}{}", Utc::now().hour(), Utc::now().minute());
         let mut settings = MIGCSettings::new(
@@ -360,7 +420,8 @@ mod tests {
             curr_time,
             false,
         );
-        let mut migc_persistence = MIGCPersistence::new(TEMP_FILE.to_string(), Some(settings));
+        let mut migc_persistence =
+            MIGCPersistence::new(test_file_dir.clone(), Some(settings)).unwrap();
 
         let mut in_use_image_ids: HashSet<String> = HashSet::new();
         in_use_image_ids.insert(
@@ -378,13 +439,13 @@ mod tests {
 
         unsafe { sleep(6) };
 
-        // migc enabled, remove stuff
+        // migc disable... don't remove stuff
         let mut images_to_delete = migc_persistence
             .prune_images_from_file(in_use_image_ids.clone())
             .unwrap();
         assert!(images_to_delete.is_empty());
 
-        // migc disable... don't remove stuff
+        // migc enabled, remove stuff
         let curr_time: String = format!("{}{}", Utc::now().hour(), Utc::now().minute());
         settings = MIGCSettings::new(
             Duration::from_secs(30),
@@ -392,7 +453,7 @@ mod tests {
             curr_time,
             true,
         );
-        migc_persistence = MIGCPersistence::new(TEMP_FILE.to_string(), Some(settings));
+        migc_persistence = MIGCPersistence::new(test_file_dir.clone(), Some(settings)).unwrap();
 
         images_to_delete = migc_persistence
             .prune_images_from_file(in_use_image_ids)
@@ -400,7 +461,7 @@ mod tests {
         assert!(images_to_delete.len() == 2);
 
         // cleanup
-        _res = std::fs::remove_file(TEMP_FILE);
+        std::fs::remove_dir_all(test_file_dir).unwrap();
     }
 
     /* =============================================================== MORE TESTS ============================================================ */
@@ -412,13 +473,13 @@ mod tests {
         let mut result = write_images_with_timestamp(
             &HashMap::new(),
             "/etc/other_file".to_string(),
-            TEMP_FILE.to_string(),
+            MIGC_FILENAME.to_string(),
         );
         assert!(result.is_err());
 
         result = write_images_with_timestamp(
             &HashMap::new(),
-            TEMP_FILE.to_string(),
+            MIGC_TMP_FILENAME.to_string(),
             "/etc/other_file".to_string(),
         );
         assert!(result.is_err());
@@ -427,21 +488,35 @@ mod tests {
     #[test]
     #[serial]
     fn test_file_rename_write_images_with_timestamp() {
+        //setup
+        let test_file_dir = std::env::current_dir().unwrap().join(TEST_FILE_DIR);
+        if test_file_dir.is_dir() {
+            std::fs::remove_dir(test_file_dir.clone()).unwrap();
+        }
+        std::fs::create_dir(Path::new(&test_file_dir)).unwrap();
+
         let result = write_images_with_timestamp(
             &HashMap::new(),
-            TEMP_FILE.to_string(),
-            "/tmp/images2".to_string(),
+            MIGC_FILENAME.to_string(),
+            MIGC_TMP_FILENAME.to_string(),
         );
         assert!(result.is_ok());
-        assert!(std::path::Path::new("/tmp/images2").exists());
+        assert!(std::path::Path::new(MIGC_TMP_FILENAME).exists());
 
         // cleanup
-        let _res = std::fs::remove_file("/tmp/images2");
+        std::fs::remove_dir_all(test_file_dir).unwrap();
     }
 
     #[test]
     #[serial]
     fn test_get_write_images_with_timestamp() {
+        // setup
+        let test_file_dir = std::env::current_dir().unwrap().join(TEST_FILE_DIR);
+        if test_file_dir.is_dir() {
+            std::fs::remove_dir_all(test_file_dir.clone()).unwrap();
+        }
+        std::fs::create_dir(Path::new(&test_file_dir)).unwrap();
+
         let current_time = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .expect("Could not get EPOCH time");
@@ -453,20 +528,34 @@ mod tests {
 
         let result = write_images_with_timestamp(
             &hash_map,
-            TEMP_FILE.to_string(),
-            "/tmp/images2".to_string(),
+            test_file_dir
+                .join(MIGC_TMP_FILENAME)
+                .into_os_string()
+                .into_string()
+                .unwrap(),
+            test_file_dir
+                .join(MIGC_FILENAME)
+                .into_os_string()
+                .into_string()
+                .unwrap(),
         );
         assert!(result.is_ok());
         // assert file not empty, verify file write
-        let result_map: HashMap<String, Duration> =
-            get_images_with_timestamp("/tmp/images2".to_string()).unwrap();
+        let result_map: HashMap<String, Duration> = get_images_with_timestamp(
+            test_file_dir
+                .join(MIGC_FILENAME)
+                .into_os_string()
+                .into_string()
+                .unwrap(),
+        )
+        .unwrap();
         assert!(result_map.len() == 3);
         assert!(result_map.contains_key(&"test1".to_string()));
         assert!(result_map.contains_key(&"test2".to_string()));
         assert!(result_map.contains_key(&"test3".to_string()));
 
         // cleanup
-        let mut _res = std::fs::remove_file("/tmp/images2");
+        std::fs::remove_dir_all(test_file_dir).unwrap();
     }
 
     #[test]

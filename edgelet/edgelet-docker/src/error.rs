@@ -49,5 +49,5 @@ pub enum Error {
     CreateFile(io::Error),
 
     #[error("failed to create filepath: {0}")]
-    FilePathCreationError(String),
+    FilepathCreationError(String),
 }
