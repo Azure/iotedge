@@ -37,7 +37,7 @@ stages:
 ################################################################################
   - stage: BuildExecutables
 ################################################################################
-    displayName: Build Excecutables
+    displayName: Build Executables
     condition: |
       or
         (

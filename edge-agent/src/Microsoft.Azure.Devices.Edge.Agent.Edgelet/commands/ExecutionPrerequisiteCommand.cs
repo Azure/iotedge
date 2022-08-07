@@ -8,11 +8,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
     using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunner;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class ExcecutionPrerequisiteCommand : ICommand
+    public class ExecutionPrerequisiteCommand : ICommand
     {
         readonly ICommand innerCommand;
 
-        public ExcecutionPrerequisiteCommand(ICommand command)
+        public ExecutionPrerequisiteCommand(ICommand command)
         {
             this.innerCommand = command;
         }
@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
             }
             catch (Exception e)
             {
-                throw new ExcecutionPrerequisiteException("Failed to execute ExecutionPrerequisite command", e);
+                throw new ExecutionPrerequisiteException("Failed to execute ExecutionPrerequisite command", e);
             }
         }
 

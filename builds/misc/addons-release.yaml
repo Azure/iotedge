@@ -8,7 +8,7 @@ stages:
 ################################################################################
 - stage: BuildExecutables
 ################################################################################
-  displayName: Build Excecutables
+  displayName: Build Executables
   pool:
     name: $(pool.linux.name)
     demands:
