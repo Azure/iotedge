@@ -71,7 +71,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     "mariner" => new[]
                     {
                         "set -e",
-                        $"sudo dnf install -y {string.Join(' ', packages)}"
+                        $"sudo dnf install -y {string.Join(' ', packages)}",
+                        "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
+                        "pathToOverride=$(dirname ${pathToSystemdConfig#?})/aziot-edged.service.d",
+                        "sudo mkdir $pathToOverride",
+                        "echo -e \"[Service]\nRestart=no\" >  ~/override.conf",
+                        "sudo mv -f ~/override.conf ${pathToOverride}/overrides.conf",
+                        "sudo systemctl daemon-reload"
                     },
                     _ => throw new NotImplementedException($"Don't know how to install daemon for '.{this.packageExtension}' on '.{this.os}'"),
                 },
@@ -124,7 +130,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     "mariner" => new[]
                     {
                         "set -e",
-                        $"sudo dnf install -y aziot-edge"
+                        $"sudo dnf install -y aziot-edge",
+                        "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
+                        "pathToOverride=$(dirname ${pathToSystemdConfig#?})/aziot-edged.service.d",
+                        "sudo mkdir $pathToOverride",
+                        "echo -e \"[Service]\nRestart=no\" >  ~/override.conf",
+                        "sudo mv -f ~/override.conf ${pathToOverride}/overrides.conf",
+                        "sudo systemctl daemon-reload"
                     },
                     _ => throw new NotImplementedException($"Don't know how to install daemon for '.{this.packageExtension}' on '.{this.os}'")
                 },
