@@ -152,7 +152,7 @@ mod tests {
     static GOOD_SETTINGS_CASE_SENSITIVE: &str = "test-files/case_sensitive.toml";
     static GOOD_SETTINGS_CONTENT_TRUST: &str = "test-files/sample_settings_content_trust.toml";
     static GOOD_SETTINGS_NETWORK: &str = "test-files/sample_settings.network.toml";
-    static GOOD_SETTINGS_IMAGE_USE: &str = "test-files/sample_settings_image_use.toml";
+    static GOOD_SETTINGS_IMAGE_USE: &str = "test-files/sample_settings_image_gc.toml";
 
     #[test]
     fn err_no_file() {
