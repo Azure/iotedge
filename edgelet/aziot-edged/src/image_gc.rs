@@ -8,6 +8,8 @@ use edgelet_core::{ModuleRegistry, ModuleRuntime};
 use edgelet_docker::ImagePruneData;
 use edgelet_settings::{base::image::ImagePruneSettings, RuntimeSettings};
 
+const TOTAL_MINS_IN_DAY: u32 = 1440;
+
 pub(crate) async fn image_garbage_collect(
     settings: edgelet_settings::Settings,
     runtime: &edgelet_docker::DockerModuleRuntime<http_common::Connector>,
@@ -21,10 +23,12 @@ pub(crate) async fn image_garbage_collect(
     let bootstrap_image_id: String = match ModuleRuntime::list_images(runtime).await {
         Ok(image_name_to_id) => image_name_to_id
             .get(&edge_agent_bootstrap)
-            .ok_or(EdgedError::from_err(
-                "error getting image id for edge agent bootstrap image",
-                edgelet_docker::Error::GetImageHash(),
-            ))?
+            .ok_or_else(|| {
+                EdgedError::from_err(
+                    "error getting image id for edge agent bootstrap image",
+                    edgelet_docker::Error::GetImageHash(),
+                )
+            })?
             .to_string(),
         Err(e) => {
             log::error!("Could not get list of docker images: {}", e);
@@ -41,7 +45,7 @@ pub(crate) async fn image_garbage_collect(
     };
 
     // If settings are present in the config, they will always be validated (even if auto-pruning is disabled).
-    if let Err(_) = validate_settings(settings) {
+    if validate_settings(settings).is_err() {
         std::process::exit(exitcode::CONFIG);
     }
 
@@ -86,12 +90,14 @@ async fn garbage_collector(
             for module in modules {
                 // this is effectively the result of calling GET on /containers/json
                 // image_hash() is created from ImageId (ImageId is filled in by GET /containers/json)
-                let id = edgelet_core::Module::config(&module.0).image_hash().ok_or(
-                    EdgedError::from_err(
-                        "error getting image id for running container",
-                        edgelet_docker::Error::GetImageHash(),
-                    ),
-                )?;
+                let id = edgelet_core::Module::config(&module.0)
+                    .image_hash()
+                    .ok_or_else(|| {
+                        EdgedError::from_err(
+                            "error getting image id for running container",
+                            edgelet_docker::Error::GetImageHash(),
+                        )
+                    })?;
                 image_ids.insert(id.to_string());
             }
             image_ids
@@ -138,7 +144,7 @@ fn validate_settings(settings: &ImagePruneSettings) -> Result<(), EdgedError> {
         ));
     }
 
-    let times = settings.cleanup_time().clone();
+    let times = settings.cleanup_time();
     if times.len() != 5 || !times.contains(':') {
         log::error!("invalid settings provided in config: invalid cleanup time, expected format is \"HH:MM\" in 24-hour format.");
         Err(EdgedError::from_err(
@@ -170,33 +176,26 @@ fn validate_settings(settings: &ImagePruneSettings) -> Result<(), EdgedError> {
 }
 
 fn get_sleep_time_mins(times: &str) -> u32 {
-    let mut cleanup_mins = 0;
-
-    const TOTAL_MINS_IN_DAY: u32 = 1440;
-
     // if string is empty, or if there's an input error, we fall back to default (midnight)
-    if times.is_empty() {
-        cleanup_mins = TOTAL_MINS_IN_DAY;
+    let cleanup_mins = if times.is_empty() {
+        TOTAL_MINS_IN_DAY
     } else {
         let cleanup_time: Vec<&str> = times.split(':').collect();
         let hour = cleanup_time.get(0).unwrap().parse::<u32>().unwrap();
         let minute = cleanup_time.get(1).unwrap().parse::<u32>().unwrap();
 
-        cleanup_mins = 60 * hour + minute;
-    }
+        60 * hour + minute
+    };
 
     let current_hour = chrono::Local::now().hour();
     let current_minute = chrono::Local::now().minute();
     let current_time_in_mins = 60 * current_hour + current_minute;
 
-    let mut diff = 0;
     if current_time_in_mins < cleanup_mins {
-        diff = cleanup_mins - current_time_in_mins;
+        cleanup_mins - current_time_in_mins
     } else {
-        diff = TOTAL_MINS_IN_DAY - (current_time_in_mins - cleanup_mins);
+        TOTAL_MINS_IN_DAY - (current_time_in_mins - cleanup_mins)
     }
-
-    diff
 }
 
 #[cfg(test)]
@@ -250,13 +249,12 @@ mod tests {
         let min = chrono::Local::now().minute();
 
         let curr_minutes: u32 = hour * 60 + min;
-        let mut answer = 0;
 
-        if curr_minutes < cleanup_minutes {
-            answer = cleanup_minutes - curr_minutes;
+        let answer = if curr_minutes < cleanup_minutes {
+            cleanup_minutes - curr_minutes
         } else {
-            answer = TOTAL_MINS_IN_DAY - (curr_minutes - cleanup_minutes);
-        }
+            TOTAL_MINS_IN_DAY - (curr_minutes - cleanup_minutes)
+        };
 
         assert!(answer == result);
     }

@@ -95,10 +95,8 @@ async fn run() -> Result<(), EdgedError> {
     let (create_socket_channel_snd, create_socket_channel_rcv) =
         tokio::sync::mpsc::unbounded_channel::<ModuleAction>();
 
-    let image_use_data = ImagePruneData::new(gc_dir, settings.image_garbage_collection().clone())
-        .map_err(|err| {
-        EdgedError::from_err("Failed to set up image garbage collection", err)
-    })?;
+    let image_use_data = ImagePruneData::new(&gc_dir, settings.image_garbage_collection().clone())
+        .map_err(|err| EdgedError::from_err("Failed to set up image garbage collection", err))?;
 
     let runtime = edgelet_docker::DockerModuleRuntime::make_runtime(
         &settings,

@@ -1,5 +1,5 @@
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::UNIX_EPOCH;
 use std::{collections::HashMap, collections::HashSet, fs, time::Duration};
@@ -25,7 +25,7 @@ pub struct ImagePruneData {
 }
 
 impl ImagePruneData {
-    pub fn new(homedir: PathBuf, settings: Option<ImagePruneSettings>) -> Result<Self, Error> {
+    pub fn new(homedir: &Path, settings: Option<ImagePruneSettings>) -> Result<Self, Error> {
         let settings = match settings {
             Some(settings) => settings,
             None => ImagePruneSettings::new(
@@ -41,10 +41,10 @@ impl ImagePruneData {
 
         let image_use_filepath = fp
             .to_str()
-            .ok_or(Error::FilepathCreationError(IMAGE_USE_FILENAME.into()))?;
+            .ok_or_else(|| Error::FilepathCreationError(IMAGE_USE_FILENAME.into()))?;
         let tmp_filepath = tmp_fp
             .to_str()
-            .ok_or(Error::FilepathCreationError(IMAGE_USE_FILENAME.into()))?;
+            .ok_or_else(|| Error::FilepathCreationError(IMAGE_USE_FILENAME.into()))?;
 
         Ok(Self {
             inner: Arc::new(Mutex::new(ImagePruneInner {
@@ -307,7 +307,7 @@ mod tests {
             curr_time,
             false,
         );
-        let image_use_data = ImagePruneData::new(test_file_dir.clone(), Some(settings)).unwrap();
+        let image_use_data = ImagePruneData::new(&test_file_dir, Some(settings)).unwrap();
 
         // write new image
         image_use_data
@@ -423,8 +423,7 @@ mod tests {
             curr_time,
             false,
         );
-        let mut image_use_data =
-            ImagePruneData::new(test_file_dir.clone(), Some(settings)).unwrap();
+        let mut image_use_data = ImagePruneData::new(&test_file_dir, Some(settings)).unwrap();
 
         let mut in_use_image_ids: HashSet<String> = HashSet::new();
         in_use_image_ids.insert(
@@ -456,7 +455,7 @@ mod tests {
             curr_time,
             true,
         );
-        image_use_data = ImagePruneData::new(test_file_dir.clone(), Some(settings)).unwrap();
+        image_use_data = ImagePruneData::new(&test_file_dir, Some(settings)).unwrap();
 
         images_to_delete = image_use_data
             .prune_images_from_file(in_use_image_ids)
