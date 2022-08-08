@@ -72,6 +72,17 @@ async fn run() -> Result<(), EdgedError> {
         )
     })?;
 
+    let gc_dir = std::path::Path::new(&settings.homedir()).join("gc");
+    std::fs::create_dir_all(&gc_dir).map_err(|err| {
+        EdgedError::from_err(
+            format!(
+                "Failed to create gc directory {}",
+                gc_dir.as_path().display()
+            ),
+            err,
+        )
+    })?;
+
     let identity_client = provision::identity_client(&settings)?;
 
     let device_info = provision::get_device_info(
@@ -85,7 +96,7 @@ async fn run() -> Result<(), EdgedError> {
         tokio::sync::mpsc::unbounded_channel::<ModuleAction>();
 
     let image_use_data = ImagePruneData::new(
-        settings.homedir().to_path_buf(),
+        gc_dir,
         settings.image_garbage_collection().clone(),
     )
     .map_err(|err| EdgedError::from_err("Failed to set up image garbage collection", err))?;
