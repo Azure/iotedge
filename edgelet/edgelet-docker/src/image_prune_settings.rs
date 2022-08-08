@@ -8,9 +8,12 @@ use edgelet_settings::base::image::ImagePruneSettings;
 
 use crate::Error;
 
-const DEFAULT_CLEANUP_TIME: &str = "00:00";
 const IMAGE_USE_FILENAME: &str = "image_use";
 const TMP_FILENAME: &str = "image_use_tmp";
+
+const DEFAULT_CLEANUP_TIME: &str = "00:00"; // midnight
+const DEFAULT_RECURRENCE_IN_SECS: u64 = 60 * 60 * 24; // 1 day
+const DEFAULT_MIN_AGE_IN_SECS: u64 = 60 * 60 * 24 * 7; // 7 days
 
 #[derive(Debug, Clone)]
 struct ImagePruneInner {
@@ -29,8 +32,8 @@ impl ImagePruneData {
         let settings = match settings {
             Some(settings) => settings,
             None => ImagePruneSettings::new(
-                Duration::MAX,
-                Duration::MAX,
+                Duration::from_secs(DEFAULT_RECURRENCE_IN_SECS),
+                Duration::from_secs(DEFAULT_MIN_AGE_IN_SECS),
                 DEFAULT_CLEANUP_TIME.to_string(),
                 false,
             ),
