@@ -6,3 +6,4 @@ vendor/
 .cargo/
 *test-data*
 image_use*
+edgelet-docker/image_use*
