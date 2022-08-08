@@ -28,34 +28,29 @@ pub(crate) async fn image_garbage_collect(
             .to_string(),
         Err(e) => {
             log::error!("Could not get list of docker images: {}", e);
-            return Err(EdgedError::new(format!(
-                "Error in image auto-pruning task: {}",
-                e
-            )));
+            std::process::exit(exitcode::UNAVAILABLE);
         }
     };
 
     let settings = match settings.image_garbage_collection() {
         Some(parsed) => parsed,
         None => {
-            return Err(EdgedError::new("Could not start Image auto-pruning task; container images will not be cleaned up automatically".to_string()));
+            log::error!("Could not get settings for image auto-pruning task");
+            std::process::exit(exitcode::CONFIG);
         }
     };
 
-    if let Err(err) = validate_settings(settings) {
-        return Err(err);
+    // If settings are present in the config, they will always be validated (even if auto-pruning is disabled).
+    if let Err(_) = validate_settings(settings) {
+        std::process::exit(exitcode::CONFIG);
     }
 
     let diff_in_secs: u32 = get_sleep_time_mins(&settings.cleanup_time()) * 60;
     tokio::time::sleep(Duration::from_secs(diff_in_secs.into())).await;
 
     loop {
-        if let Err(err) = garbage_collector(
-            runtime,
-            image_use_data.clone(),
-            bootstrap_image_id.clone(),
-        )
-        .await
+        if let Err(err) =
+            garbage_collector(runtime, image_use_data.clone(), bootstrap_image_id.clone()).await
         {
             return Err(EdgedError::new(format!(
                 "Error in image auto-pruning task: {}",
@@ -120,9 +115,8 @@ async fn garbage_collector(
 
     // delete images
     for key in image_map.keys() {
-        let result = ModuleRegistry::remove(runtime, key).await;
-        if result.is_err() {
-            log::error!("Could not delete image {}", key);
+        if let Err(e) = ModuleRegistry::remove(runtime, key).await {
+            log::error!("Could not delete image {} : {}", key, e);
         }
     }
 
@@ -133,6 +127,9 @@ async fn garbage_collector(
 
 fn validate_settings(settings: &ImagePruneSettings) -> Result<(), EdgedError> {
     if settings.cleanup_recurrence() < Duration::from_secs(60 * 60 * 24) {
+        log::error!(
+            "invalid settings provided in config: cleanup recurrence cannot be less than 1 day."
+        );
         return Err(EdgedError::from_err(
             "invalid settings provided in config",
             edgelet_docker::Error::InvalidSettings(
@@ -143,8 +140,9 @@ fn validate_settings(settings: &ImagePruneSettings) -> Result<(), EdgedError> {
 
     let times = settings.cleanup_time().clone();
     if times.len() != 5 || !times.contains(':') {
+        log::error!("invalid settings provided in config: invalid cleanup time, expected format is \"HH:MM\" in 24-hour format.");
         Err(EdgedError::from_err(
-            "invalid settings provided in config",
+            "invalid settings provided in config:",
             edgelet_docker::Error::InvalidSettings(
                 "invalid cleanup time, expected format is \"HH:MM\" in 24-hour format".to_string(),
             ),
@@ -157,6 +155,10 @@ fn validate_settings(settings: &ImagePruneSettings) -> Result<(), EdgedError> {
 
         // u32, so no negative comparisons
         if hour > 23 || minute > 59 {
+            log::error!(
+                "invalid settings provided in config: invalid cleanup time {}",
+                times
+            );
             return Err(EdgedError::from_err(
                 "invalid settings provided in config",
                 edgelet_docker::Error::InvalidSettings(format!("invalid cleanup time {}", times)),
@@ -218,19 +220,23 @@ mod tests {
         let mut result = validate_settings(&settings);
         assert!(result.is_err());
 
-        settings = ImagePruneSettings::new(Duration::MAX, Duration::MAX, "abcde".to_string(), false);
+        settings =
+            ImagePruneSettings::new(Duration::MAX, Duration::MAX, "abcde".to_string(), false);
         result = validate_settings(&settings);
         assert!(result.is_err());
 
-        settings = ImagePruneSettings::new(Duration::MAX, Duration::MAX, "26:30".to_string(), false);
+        settings =
+            ImagePruneSettings::new(Duration::MAX, Duration::MAX, "26:30".to_string(), false);
         result = validate_settings(&settings);
         assert!(result.is_err());
 
-        settings = ImagePruneSettings::new(Duration::MAX, Duration::MAX, "16:61".to_string(), false);
+        settings =
+            ImagePruneSettings::new(Duration::MAX, Duration::MAX, "16:61".to_string(), false);
         result = validate_settings(&settings);
         assert!(result.is_err());
 
-        settings = ImagePruneSettings::new(Duration::MAX, Duration::MAX, "23:333".to_string(), false);
+        settings =
+            ImagePruneSettings::new(Duration::MAX, Duration::MAX, "23:333".to_string(), false);
         result = validate_settings(&settings);
         assert!(result.is_err());
     }

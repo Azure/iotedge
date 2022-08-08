@@ -119,7 +119,7 @@ where
         match self.list_images().await {
             Ok(image_name_to_id) => {
                 if image_name_to_id.is_empty() {
-                    log::info!("No docker images present on device");
+                    log::error!("No docker images present on device: {} was just pulled, but not found on device", image);
                 } else {
                     let image_id = match image_name_to_id.get(config.image()) {
                         Some(imageid) => imageid,

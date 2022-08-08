@@ -156,15 +156,16 @@ impl ImagePruneData {
 
 /* ===================================== HELPER METHODS ==================================== */
 
-fn get_images_with_timestamp(image_use_filepath: String) -> Result<HashMap<String, Duration>, Error> {
-
+fn get_images_with_timestamp(
+    image_use_filepath: String,
+) -> Result<HashMap<String, Duration>, Error> {
     if !std::path::Path::new(&image_use_filepath).exists() {
         log::info!(
             "Auto-pruning data file not found; creating file at: {}",
             image_use_filepath.as_str()
         );
         let _file = fs::File::create(image_use_filepath.clone()).map_err(Error::CreateFile)?;
-    }    
+    }
 
     let res = fs::read_to_string(image_use_filepath);
     if let Err(e) = res {
@@ -216,10 +217,13 @@ fn write_images_with_timestamp(
     }
 
     match fs::rename(temp_file, image_use_filepath) {
-        Ok(_) => {},
-        Err(err) => return Err(Error::FileOperation(
-            format!("Could not update auto-prune data {}", err),
-        )),
+        Ok(_) => {}
+        Err(err) => {
+            return Err(Error::FileOperation(format!(
+                "Could not update auto-prune data {}",
+                err
+            )))
+        }
     };
 
     Ok(())
