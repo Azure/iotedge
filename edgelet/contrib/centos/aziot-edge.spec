@@ -7,6 +7,8 @@
 %define iotedge_confdir %{aziot_confdir}/edged
 %define iotedge_agent_user edgeagentuser
 %define iotedge_agent_uid 13622
+%define iotedge_hub_user edgehubuser
+%define iotedge_hub_uid 13623
 %global debug_package %{nil}
 
 Name:           aziot-edge
@@ -95,7 +97,12 @@ fi
 
 # Create an edgeagentuser and add it to iotedge group
 if ! /usr/bin/getent passwd %{iotedge_agent_user} >/dev/null; then
-    %{_sbindir}/useradd -g %{iotedge_group} -c "edgeAgent user" -ms /bin/nologin -u %{iotedge_agent_uid} %{iotedge_agent_user}
+    %{_sbindir}/useradd -r -g %{iotedge_group} -c "edgeAgent user" -ms /bin/nologin -u %{iotedge_agent_uid} %{iotedge_agent_user}
+fi
+
+# Create an edgehubuser
+if ! getent passwd edgehubuser >/dev/null; then
+    %{_sbindir}/useradd -r -c "edgeHub user" -ms /sbin/nologin -u %{iotedge_hub_uid} %{iotedge_hub_user}
 fi
 
 # Add iotedge user to aziot-identity-service groups
