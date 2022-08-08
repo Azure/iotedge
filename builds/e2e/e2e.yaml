@@ -220,9 +220,9 @@ jobs:
     - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
 
-  ################################################################################
+################################################################################
   - job: redhat8_amd64
-  ################################################################################
+################################################################################
     displayName: RedHat8 amd64
 
     pool:
@@ -241,6 +241,25 @@ jobs:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
       
+################################################################################
+  - job: mariner2.0_arm64
+################################################################################
+    displayName: Mariner 2.0 arm64
+
+    pool:
+      name: $(pool.linux.arm.name)
+      demands:
+      - ImageOverride -equals agent-aziotedge-mariner-2.0-arm64
+
+    variables:
+      os: linux
+      arch: arm64
+      artifactName: iotedged-mariner2-aarch64
+
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+
 ################################################################################
   - job: linux_amd64_proxy
 ################################################################################
