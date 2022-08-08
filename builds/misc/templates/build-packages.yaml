@@ -189,7 +189,9 @@ stages:
             arch: amd64
             os: mariner
             os_version: 2
-            release: 2.0-stable
+            # release: 2.0-stable
+            # WARN: 2.0-stable is broken - https://github.com/microsoft/CBL-Mariner/issues/3483
+            release: 2.0.20220713-2.0
             target.iotedged: builds/mariner2/out/RPMS/x86_64/
             target.logs: builds/mariner2/build/logs/pkggen/rpmbuilding/
       steps:
