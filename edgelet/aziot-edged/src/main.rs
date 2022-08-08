@@ -85,7 +85,7 @@ async fn run() -> Result<(), EdgedError> {
         tokio::sync::mpsc::unbounded_channel::<ModuleAction>();
 
     let image_use_data = ImagePruneData::new(
-        settings.homedir().to_path_buf(),
+        settings.homedir(),
         settings.image_garbage_collection().clone(),
     )
     .map_err(|err| EdgedError::from_err("Failed to set up image garbage collection", err))?;
