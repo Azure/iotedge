@@ -117,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunner
                         int newRunCount = this.commandRunStatus.ContainsKey(command.Id) ? this.commandRunStatus[command.Id].RunCount : 0;
                         this.commandRunStatus[command.Id] = new CommandRunStats(newRunCount + 1, this.systemTime.UtcNow, ex);
 
-                        if (ex is ExcecutionPrerequisiteException)
+                        if (ex is ExecutionPrerequisiteException)
                         {
                             Events.StopProcessingCommands(deploymentId, command);
                             break;
@@ -136,7 +136,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunner
             bool didCommandFailWithPrereqException = this.commandRunStatus.ContainsKey(command.Id) && this.commandRunStatus[command.Id].Exception.Match(
             e =>
             {
-                return e is ExcecutionPrerequisiteException;
+                return e is ExecutionPrerequisiteException;
             },
             () =>
             {
