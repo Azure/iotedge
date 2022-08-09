@@ -496,17 +496,25 @@ mod tests {
         //setup
         let test_file_dir = std::env::current_dir().unwrap().join(TEST_FILE_DIR);
         if test_file_dir.is_dir() {
-            std::fs::remove_dir(test_file_dir.clone()).unwrap();
+            std::fs::remove_dir_all(test_file_dir.clone()).unwrap();
         }
         std::fs::create_dir(Path::new(&test_file_dir)).unwrap();
 
         let result = write_images_with_timestamp(
             &HashMap::new(),
-            IMAGE_USE_FILENAME.to_string(),
-            TMP_FILENAME.to_string(),
+            test_file_dir
+                .join(TMP_FILENAME)
+                .into_os_string()
+                .into_string()
+                .unwrap(),
+            test_file_dir
+                .join(IMAGE_USE_FILENAME)
+                .into_os_string()
+                .into_string()
+                .unwrap(),
         );
         assert!(result.is_ok());
-        assert!(std::path::Path::new(TMP_FILENAME).exists());
+        assert!(std::path::Path::new(&test_file_dir.join(IMAGE_USE_FILENAME)).exists());
 
         // cleanup
         std::fs::remove_dir_all(test_file_dir).unwrap();

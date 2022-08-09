@@ -63,10 +63,9 @@ pub(crate) async fn image_garbage_collect(
         }
 
         // sleep till it's time to wake up based on recrurrence (and on current time post-last-execution to avoid time drift)
-        // total number of minutes in a day = 1440
         let delay = settings.cleanup_recurrence()
             - Duration::from_secs(
-                ((1440 - get_sleep_time_mins(&settings.cleanup_time())) * 60).into(),
+                ((TOTAL_MINS_IN_DAY - get_sleep_time_mins(&settings.cleanup_time())) * 60).into(),
             );
         tokio::time::sleep(delay).await;
     }
