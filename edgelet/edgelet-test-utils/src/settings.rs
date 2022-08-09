@@ -83,4 +83,10 @@ impl edgelet_settings::RuntimeSettings for Settings {
     fn additional_info(&self) -> &std::collections::BTreeMap<String, String> {
         unimplemented!()
     }
+
+    fn image_garbage_collection(
+        &self,
+    ) -> &Option<edgelet_settings::base::image::ImagePruneSettings> {
+        unimplemented!()
+    }
 }

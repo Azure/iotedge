@@ -107,10 +107,13 @@ dependencies = [
 name = "aziot-edged"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "async-trait",
  "aziot-identity-client-async",
  "aziot-identity-common",
  "aziot-identity-common-http",
  "base64",
+ "chrono",
  "clap",
  "edgelet-core",
  "edgelet-docker",
@@ -118,8 +121,11 @@ dependencies = [
  "edgelet-http-mgmt",
  "edgelet-http-workload",
  "edgelet-settings",
+ "edgelet-utils",
+ "exitcode",
  "futures-util",
  "http-common",
+ "hyper",
  "log",
  "logger",
  "serde",
@@ -598,6 +604,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "base64",
+ "chrono",
  "docker",
  "edgelet-core",
  "edgelet-settings",
@@ -610,6 +617,7 @@ dependencies = [
  "nix",
  "serde",
  "serde_json",
+ "serial_test",
  "sysinfo",
  "thiserror",
  "tokio",
@@ -646,9 +654,11 @@ dependencies = [
  "aziot-identity-common",
  "aziot-identity-common-http",
  "edgelet-core",
+ "edgelet-docker",
  "edgelet-http",
  "edgelet-settings",
  "edgelet-test-utils",
+ "edgelet-utils",
  "futures-util",
  "http",
  "http-common",
@@ -712,8 +722,10 @@ version = "0.1.0"
 dependencies = [
  "aziot-certd-config",
  "cert-renewal",
+ "chrono",
  "config-common",
  "docker",
+ "humantime-serde",
  "lazy_static",
  "serde",
  "serde_json",
@@ -779,6 +791,12 @@ checksum = "3de9ad4541d99dc22b59134e7ff8dc3d6c988c89ecd7324bf10a8362b07a2afa"
 dependencies = [
  "serde",
 ]
+
+[[package]]
+name = "exitcode"
+version = "1.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "de853764b47027c2e862a995c34978ffa63c1501f2e15f987ba11bd4f9bba193"
 
 [[package]]
 name = "flate2"
@@ -1068,6 +1086,16 @@ name = "humantime"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
+
+[[package]]
+name = "humantime-serde"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57a3db5ea5923d99402c94e9feb261dc5ee9b4efa158b0315f788cf549cc200c"
+dependencies = [
+ "humantime",
+ "serde",
+]
 
 [[package]]
 name = "hyper"
@@ -1408,9 +1436,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.8.0"
+version = "1.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "692fcb63b64b1758029e0a96ee63e049ce8c5948587f2f7208df04625e5f6b56"
+checksum = "18a6dbe30758c9f83eb00cbea4ac95966305f5a7772f3f42ebfc7fc7eddbd8e1"
 
 [[package]]
 name = "opaque-debug"
@@ -1559,6 +1587,30 @@ name = "ppv-lite86"
 version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed0cfbc8191465bed66e1718596ee0b0b35d5ee1f41c5df2189d0fe8bde535ba"
+
+[[package]]
+name = "proc-macro-error"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da25490ff9892aab3fcf7c36f08cfb902dd3e71ca0f9f9517bea02a73a5ce38c"
+dependencies = [
+ "proc-macro-error-attr",
+ "proc-macro2",
+ "quote",
+ "syn",
+ "version_check",
+]
+
+[[package]]
+name = "proc-macro-error-attr"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1be40180e52ecc98ad80b184934baf3d0d29f979574e439af5a55274b35f869"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "version_check",
+]
 
 [[package]]
 name = "proc-macro-hack"
@@ -1759,6 +1811,32 @@ dependencies = [
  "darling",
  "proc-macro2",
  "quote",
+ "syn",
+]
+
+[[package]]
+name = "serial_test"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7eec42e7232e5ca56aa59d63af3c7f991fe71ee6a3ddd2d3480834cf3902b007"
+dependencies = [
+ "futures",
+ "lazy_static",
+ "log",
+ "parking_lot",
+ "serial_test_derive",
+]
+
+[[package]]
+name = "serial_test_derive"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f1b95bb2f4f624565e8fe8140c789af7e2082c0e0561b5a82a1b678baa9703dc"
+dependencies = [
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "rustversion",
  "syn",
 ]
 
