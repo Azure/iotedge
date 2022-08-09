@@ -7,12 +7,12 @@ description = "Http client for the TestResultCoordinator test orchestration modu
 
 [dependencies]
 chrono = "0.4"
-enumset = "1.0"
+enumset = "1"
 hyper = { version = "0.14", features = ["client", "http1", "tcp"] }
 rand = "0.8"
-thiserror = "1.0"
+thiserror = "1"
 tokio = { version = "1", features = ["time"] }
 tracing = "0.1"
-serde = { version = "1.0", features = ["derive", "rc"] }
-serde_derive = "1.0"
-serde_json = "1.0"
+serde = { version = "1", features = ["derive", "rc"] }
+serde_derive = "1"
+serde_json = "1"

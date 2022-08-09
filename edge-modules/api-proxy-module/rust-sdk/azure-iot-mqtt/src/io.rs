@@ -104,9 +104,9 @@ impl mqtt3::IoSource for IoSource {
                 *max_token_valid_duration,
             ) {
                 Ok((signature_data, make_sas_token)) => {
-                    use hmac::{Mac, NewMac};
+                    use hmac::Mac;
 
-                    let mut mac = hmac::Hmac::<sha2::Sha256>::new_varkey(key)
+                    let mut mac = hmac::Hmac::<sha2::Sha256>::new_from_slice(key)
                         .expect("HMAC can have invalid key length");
                     mac.update(signature_data.as_bytes());
                     let signature = mac.finalize();

@@ -19,7 +19,7 @@ where
     }
 }
 
-impl<T> futures_sink::Sink<Packet> for LoggingFramed<T>
+impl<T> futures_util::Sink<Packet> for LoggingFramed<T>
 where
     T: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin,
 {
@@ -52,7 +52,7 @@ where
     }
 }
 
-impl<T> futures_core::Stream for LoggingFramed<T>
+impl<T> futures_util::Stream for LoggingFramed<T>
 where
     T: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin,
 {
