@@ -2,12 +2,19 @@
 use std::time::Duration;
 
 #[derive(Debug, serde::Deserialize, serde::Serialize, Clone)]
+
+/// This struct is a wrapper for options that allow a user to override the defaults of
+/// the image gabage collection job and customize their settings.
 pub struct ImagePruneSettings {
     #[serde(with = "humantime_serde")]
+    /// how frequently images should be garbage collected
     cleanup_recurrence: Duration,
     #[serde(with = "humantime_serde")]
+    /// minimum (unused) image "age" to be eligible for garbage collection
     image_age_cleanup_threshold: Duration,
+    /// time in "HH::MM" format when cleanup job runs
     cleanup_time: String,
+    // is image garbage collection enabled
     enabled: bool,
 }
 

@@ -19,7 +19,7 @@ const DEFAULT_MIN_AGE_IN_SECS: u64 = 60 * 60 * 24 * 7; // 7 days
 
 #[derive(Debug, Clone)]
 struct ImagePruneInner {
-    image_use_filepath: String, // Copyright (c) Microsoft. All rights reserved.
+    image_use_filepath: String,
     tmp_filepath: String,
     settings: ImagePruneSettings,
 }
