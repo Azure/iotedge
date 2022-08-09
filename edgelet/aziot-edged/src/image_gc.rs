@@ -62,7 +62,7 @@ pub(crate) async fn image_garbage_collect(
             )));
         }
 
-        // sleep till it's time to wake up based on recrurrence (and on current time post-last-execution to avoid time drift)
+        // sleep till it's time to wake up based on recurrence (and on current time post-last-execution to avoid time drift)
         let delay = settings.cleanup_recurrence()
             - Duration::from_secs(
                 ((TOTAL_MINS_IN_DAY - get_sleep_time_mins(&settings.cleanup_time())) * 60).into(),
@@ -144,7 +144,7 @@ fn validate_settings(settings: &ImagePruneSettings) -> Result<(), EdgedError> {
     }
 
     let times = settings.cleanup_time();
-    if times.len() != 5 || !times.contains(':') {
+    if times.len() != 5 || !times.contains(':') || times.chars().nth(2) != Some(':') {
         log::error!("invalid settings provided in config: invalid cleanup time, expected format is \"HH:MM\" in 24-hour format.");
         Err(EdgedError::from_err(
             "invalid settings provided in config:",
@@ -235,6 +235,11 @@ mod tests {
 
         settings =
             ImagePruneSettings::new(Duration::MAX, Duration::MAX, "23:333".to_string(), false);
+        result = validate_settings(&settings);
+        assert!(result.is_err());
+
+        settings =
+            ImagePruneSettings::new(Duration::MAX, Duration::MAX, "2:033".to_string(), false);
         result = validate_settings(&settings);
         assert!(result.is_err());
     }

@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -17,7 +19,7 @@ const DEFAULT_MIN_AGE_IN_SECS: u64 = 60 * 60 * 24 * 7; // 7 days
 
 #[derive(Debug, Clone)]
 struct ImagePruneInner {
-    image_use_filepath: String,
+    image_use_filepath: String, // Copyright (c) Microsoft. All rights reserved.
     tmp_filepath: String,
     settings: ImagePruneSettings,
 }
@@ -281,7 +283,7 @@ mod tests {
     use serial_test::serial;
 
     use crate::{
-        image_prune_settings::{
+        image_prune_data::{
             get_images_with_timestamp, process_state, IMAGE_USE_FILENAME, TMP_FILENAME,
         },
         ImagePruneData,

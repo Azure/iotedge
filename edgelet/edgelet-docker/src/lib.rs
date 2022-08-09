@@ -13,12 +13,12 @@
 
 // mod client;
 mod error;
-mod image_prune_settings;
+mod image_prune_data;
 mod module;
 mod runtime;
 
 pub use error::Error;
-pub use image_prune_settings::ImagePruneData;
+pub use image_prune_data::ImagePruneData;
 pub use module::{DockerModule, MODULE_TYPE};
 pub use runtime::{init_client, DockerModuleRuntime};
 
