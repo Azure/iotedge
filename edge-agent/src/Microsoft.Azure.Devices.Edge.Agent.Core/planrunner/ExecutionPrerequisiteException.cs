@@ -3,18 +3,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunner
 {
     using System;
 
-    public class ExcecutionPrerequisiteException : Exception
+    public class ExecutionPrerequisiteException : Exception
     {
-        public ExcecutionPrerequisiteException()
+        public ExecutionPrerequisiteException()
         {
         }
 
-        public ExcecutionPrerequisiteException(string message)
+        public ExecutionPrerequisiteException(string message)
             : base(message)
         {
         }
 
-        public ExcecutionPrerequisiteException(string message, Exception inner)
+        public ExecutionPrerequisiteException(string message, Exception inner)
             : base(message, inner)
         {
         }
