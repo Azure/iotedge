@@ -124,7 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         "pathToOverride=$(dirname ${pathToSystemdConfig#?})/aziot-edged.service.d",
                         "sudo mkdir $pathToOverride",
                         "echo -e \"[Service]\nRestart=no\" >  ~/override.conf",
-                        "sudo mv -f ~/override.conf ${pathToOverride}/overrides.conf",
+                        "sudo mv -f ~/override.conf ${pathToOverride}/override.conf",
                         "sudo systemctl daemon-reload"
                     },
                     "mariner" => new[]
@@ -135,7 +135,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         "pathToOverride=$(dirname ${pathToSystemdConfig#?})/aziot-edged.service.d",
                         "sudo mkdir $pathToOverride",
                         "echo -e \"[Service]\nRestart=no\" >  ~/override.conf",
-                        "sudo mv -f ~/override.conf ${pathToOverride}/overrides.conf",
+                        "sudo mv -f ~/override.conf ${pathToOverride}/override.conf",
                         "sudo systemctl daemon-reload"
                     },
                     _ => throw new NotImplementedException($"Don't know how to install daemon for '.{this.packageExtension}' on '.{this.os}'")
@@ -158,7 +158,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             {
                 "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
                 "pathToOverride=$(dirname ${pathToSystemdConfig#?})/aziot-edged.service.d",
-                "sudo rm -f ${pathToOverride}/overrides.conf",
+                "sudo rm -f ${pathToOverride}/override.conf",
                 "yum remove -y aziot-edge",
                 "yum remove -y aziot-identity-service",
                 "yum remove -y iotedge",
