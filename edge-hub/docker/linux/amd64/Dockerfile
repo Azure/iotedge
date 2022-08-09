@@ -19,7 +19,7 @@ RUN adduser -Ds /bin/sh -u ${EDGEHUBUSER_ID} edgehubuser
 RUN setcap 'cap_net_bind_service=+ep' /usr/share/dotnet/dotnet
 
 # Install RocksDB
-COPY $EXE_DIR/librocksdb.so.amd64 /usr/local/lib/librocksdb.so
+COPY $EXE_DIR/librocksdb/librocksdb.so.amd64 /usr/local/lib/librocksdb.so
 
 WORKDIR /app
 

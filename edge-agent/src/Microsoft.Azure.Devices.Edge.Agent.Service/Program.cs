@@ -35,6 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
         const string VersionInfoFileName = "versionInfo.json";
         static readonly TimeSpan ShutdownWaitPeriod = TimeSpan.FromMinutes(1);
         static readonly TimeSpan ReconcileTimeout = TimeSpan.FromMinutes(10);
+        static ConsoleEventListener consoleEventListener;
 
         public static int Main()
         {
@@ -59,6 +60,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
         {
             // Bring up the logger before anything else so we can log errors ASAP
             ILogger logger = SetupLogger(configuration);
+
+            Program.consoleEventListener = new ConsoleEventListener("Microsoft-Azure-", logger);
 
             logger.LogInformation("Initializing Edge Agent.");
 
