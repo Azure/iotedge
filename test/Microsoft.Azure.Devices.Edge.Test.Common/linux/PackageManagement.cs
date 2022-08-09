@@ -73,7 +73,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         "set -e",
                         $"sudo dnf install -y {string.Join(' ', packages)}",
                         "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
-                        "echo \"Path to systemd config = '$pathToSystemdConfig'\"",
                         "pathToOverride=$(dirname ${pathToSystemdConfig#?})/aziot-edged.service.d",
                         "sudo mkdir $pathToOverride",
                         "echo -e \"[Service]\nRestart=no\" > ~/override.conf",
@@ -157,10 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             },
             SupportedPackageExtension.Rpm => new[]
             {
-                "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
-                "echo \"Path to systemd config = '$pathToSystemdConfig'\"",
-                "pathToOverride=$(dirname ${pathToSystemdConfig#?})/aziot-edged.service.d",
-                "sudo rm -f ${pathToOverride}/override.conf",
+                "sudo rm -f $(systemctl cat aziot-edged | head -n 1 | awk '{print $2}').d/override.conf",
                 "yum remove -y aziot-edge",
                 "yum remove -y aziot-identity-service",
                 "yum remove -y iotedge",
