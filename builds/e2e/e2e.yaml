@@ -255,7 +255,6 @@ jobs:
       os: linux
       arch: arm64v8
       artifactName: iotedged-mariner2-aarch64
-      minimal: true
 
     steps:
     - template: templates/e2e-setup.yaml
