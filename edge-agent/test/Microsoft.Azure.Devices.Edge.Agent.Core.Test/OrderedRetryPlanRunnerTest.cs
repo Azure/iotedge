@@ -450,7 +450,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var command = new Mock<ICommand>();
             command.SetupGet(c => c.Id).Returns(id);
             command.Setup(c => c.ExecuteAsync(It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new ExcecutionPrerequisiteException("No donuts for you"));
+                .ThrowsAsync(new ExecutionPrerequisiteException("No donuts for you"));
             command.Setup(c => c.Show())
                 .Returns(id);
             return command;
