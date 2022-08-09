@@ -22,6 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     public class SetupFixture
     {
         IEdgeDaemon daemon;
+        DateTime runStartTime = DateTime.Now;
 
         private (string, string)[] configFiles =
         {
@@ -152,6 +153,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 {
                     using var cts = new CancellationTokenSource(Context.Current.TeardownTimeout);
                     CancellationToken token = cts.Token;
+                    await NUnitLogs.CollectAsync(this.runStartTime, token);
                     await this.daemon.StopAsync(token);
                     foreach (EdgeDevice device in Context.Current.DeleteList.Values)
                     {
