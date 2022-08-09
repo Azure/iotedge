@@ -259,8 +259,10 @@ pub trait ModuleRegistry {
 pub struct SystemInfo {
     #[serde(rename = "osType")]
     pub kernel: String,
-    pub kernel_release: String,
-    pub kernel_version: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kernel_release: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kernel_version: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub operating_system: Option<String>,
@@ -323,16 +325,16 @@ impl SystemInfo {
     }
 }
 
-impl Default for SystemInfo {
-    fn default() -> Self {
-        let kernel = nix::sys::utsname::uname();
+impl SystemInfo {
+    pub fn new() -> nix::Result<Self> {
+        let kernel = nix::sys::utsname::uname()?;
         let dmi = DmiInfo::default();
         let os = OsInfo::default();
 
         let res = Self {
-            kernel: kernel.sysname().to_owned(),
-            kernel_release: kernel.release().to_owned(),
-            kernel_version: kernel.version().to_owned(),
+            kernel: kernel.sysname().to_str().unwrap_or("UNKNOWN").to_owned(),
+            kernel_release: kernel.release().to_str().map(ToOwned::to_owned),
+            kernel_version: kernel.version().to_str().map(ToOwned::to_owned),
 
             operating_system: os.id,
             operating_system_version: os.version_id,
@@ -363,7 +365,7 @@ impl Default for SystemInfo {
             additional_properties: BTreeMap::new(),
         };
 
-        res
+        Ok(res)
     }
 }
 
@@ -650,8 +652,8 @@ mod tests {
     fn system_info_merge() {
         let mut base = SystemInfo {
             kernel: "FOO".into(),
-            kernel_release: "BAR".into(),
-            kernel_version: "BAZ".into(),
+            kernel_release: Some("BAR".into()),
+            kernel_version: Some("BAZ".into()),
 
             operating_system: "A".to_owned().into(),
             operating_system_version: "B".to_owned().into(),
@@ -679,8 +681,8 @@ mod tests {
 
         let result = SystemInfo {
             kernel: "linux".into(),
-            kernel_release: "5.0".into(),
-            kernel_version: "1".into(),
+            kernel_release: Some("5.0".into()),
+            kernel_version: Some("1".into()),
 
             operating_system: "OS".to_owned().into(),
             operating_system_version: "B".to_owned().into(),

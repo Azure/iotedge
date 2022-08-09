@@ -14,8 +14,6 @@ mod old_config;
 
 use std::path::{Path, PathBuf};
 
-use config::Config;
-
 use edgelet_utils::YamlFileSource;
 
 use aziotctl_common::config as common_config;
@@ -124,19 +122,12 @@ fn execute_inner(
     };
 
     let old_config: old_config::Config = {
-        let mut old_config = Config::default();
+        let old_config = config::ConfigBuilder::<config::builder::DefaultState>::default()
+            .add_source(YamlFileSource::String(old_config::DEFAULTS.into()))
+            .add_source(YamlFileSource::String(old_config_contents.into()))
+            .build();
 
-        old_config
-            .merge(YamlFileSource::String(old_config::DEFAULTS.into()))
-            .expect("config is not frozen");
-
-        // We use YamlFileSource::String to load the file rather than YamlFileSource::File
-        // because config::ConfigError makes it harder to recognize an error from a missing file.
-        old_config
-            .merge(YamlFileSource::String(old_config_contents.into()))
-            .expect("config is not frozen");
-
-        match old_config.try_into() {
+        match old_config.and_then(config::Config::try_deserialize) {
             Ok(old_config) => old_config,
             Err(err) => {
                 return Err(format!("could not parse {}: {}", old_config_file_display, err).into())

@@ -6,7 +6,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{process, str};
 
 use anyhow::Context;
-use sysinfo::{DiskExt, PidExt, ProcessExt, ProcessorExt, System, SystemExt};
+use sysinfo::{CpuExt, DiskExt, PidExt, ProcessExt, System, SystemExt};
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::Mutex;
 use url::Url;
@@ -525,7 +525,8 @@ where
     async fn system_info(&self) -> anyhow::Result<CoreSystemInfo> {
         log::info!("Querying system info...");
 
-        let mut system_info = CoreSystemInfo::default();
+        let mut system_info = CoreSystemInfo::new()
+            .context(Error::RuntimeOperation(RuntimeOperation::SystemInfo))?;
 
         let docker_info = self
             .client
@@ -559,7 +560,7 @@ where
             .unwrap_or_default()
             .as_secs();
 
-        let used_cpu = system_resources.global_processor_info().cpu_usage();
+        let used_cpu = system_resources.global_cpu_info().cpu_usage();
         let total_memory = system_resources.total_memory() * 1000;
         let used_memory = system_resources.used_memory() * 1000;
 
