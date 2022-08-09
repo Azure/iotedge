@@ -157,6 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             SupportedPackageExtension.Rpm => new[]
             {
                 "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
+                "echo \"Path to systemd config = '$pathToSystemdConfig'\"",
                 "pathToOverride=$(dirname ${pathToSystemdConfig#?})/aziot-edged.service.d",
                 "sudo rm -f ${pathToOverride}/override.conf",
                 "yum remove -y aziot-edge",

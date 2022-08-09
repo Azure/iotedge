@@ -253,7 +253,7 @@ jobs:
 
     variables:
       os: linux
-      arch: arm64v8
+      arch: arm64
       artifactName: iotedged-mariner2-aarch64
 
     steps:
