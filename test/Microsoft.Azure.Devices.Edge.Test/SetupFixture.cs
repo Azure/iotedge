@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test
 {
-    using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
@@ -70,8 +69,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         }
                     }
 
-                    var testStartTime = DateTime.Now;
-
                     await this.daemon.InstallAsync(Context.Current.PackagePath, Context.Current.EdgeProxy, token);
 
                     // Clean the directory for test certs, keys, etc.
@@ -94,53 +91,46 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         ResetConfigFile(file, file + ".default", owner);
                     }
 
-                    try
-                    {
-                        await this.daemon.ConfigureAsync(
-                            config =>
+                    await this.daemon.ConfigureAsync(
+                        config =>
+                        {
+                            var msgBuilder = new StringBuilder();
+                            var props = new List<object>();
+
+                            string hostname = Context.Current.Hostname.GetOrElse(Dns.GetHostName());
+                            config.SetDeviceHostname(hostname);
+                            msgBuilder.Append("with hostname '{hostname}'");
+                            props.Add(hostname);
+
+                            string edgeAgent = Context.Current.EdgeAgentImage.GetOrElse("mcr.microsoft.com/azureiotedge-agent:1.2");
+
+                            Log.Verbose("Search parents");
+                            Context.Current.ParentHostname.ForEach(parentHostname =>
                             {
-                                var msgBuilder = new StringBuilder();
-                                var props = new List<object>();
+                                Log.Verbose($"Found parent hostname {parentHostname}");
+                                config.SetParentHostname(parentHostname);
+                                msgBuilder.AppendLine($", parent hostname '{parentHostname}'");
+                                props.Add(parentHostname);
 
-                                string hostname = Context.Current.Hostname.GetOrElse(Dns.GetHostName());
-                                config.SetDeviceHostname(hostname);
-                                msgBuilder.Append("with hostname '{hostname}'");
-                                props.Add(hostname);
+                                edgeAgent = Regex.Replace(edgeAgent, @"\$upstream", parentHostname);
+                            });
 
-                                string edgeAgent = Context.Current.EdgeAgentImage.GetOrElse("mcr.microsoft.com/azureiotedge-agent:1.2");
+                            // The first element corresponds to the registry credentials for edge agent image
+                            config.SetEdgeAgentImage(edgeAgent, Context.Current.Registries.Take(1));
 
-                                Log.Verbose("Search parents");
-                                Context.Current.ParentHostname.ForEach(parentHostname =>
-                                {
-                                    Log.Verbose($"Found parent hostname {parentHostname}");
-                                    config.SetParentHostname(parentHostname);
-                                    msgBuilder.AppendLine($", parent hostname '{parentHostname}'");
-                                    props.Add(parentHostname);
+                            Context.Current.EdgeProxy.ForEach(proxy =>
+                            {
+                                config.AddHttpsProxy(proxy);
+                                msgBuilder.AppendLine(", proxy '{ProxyUri}'");
+                                props.Add(proxy.ToString());
+                            });
 
-                                    edgeAgent = Regex.Replace(edgeAgent, @"\$upstream", parentHostname);
-                                });
+                            config.Update();
 
-                                // The first element corresponds to the registry credentials for edge agent image
-                                config.SetEdgeAgentImage(edgeAgent, Context.Current.Registries.Take(1));
-
-                                Context.Current.EdgeProxy.ForEach(proxy =>
-                                {
-                                    config.AddHttpsProxy(proxy);
-                                    msgBuilder.AppendLine(", proxy '{ProxyUri}'");
-                                    props.Add(proxy.ToString());
-                                });
-
-                                config.Update();
-
-                                return Task.FromResult((msgBuilder.ToString(), props.ToArray()));
-                            },
-                            token,
-                            restart: false);
-                    }
-                    catch
-                    {
-                        await NUnitLogs.CollectAsync(testStartTime, cts.Token);
-                    }
+                            return Task.FromResult((msgBuilder.ToString(), props.ToArray()));
+                        },
+                        token,
+                        restart: false);
                 },
                 "Completed end-to-end test setup");
         }
