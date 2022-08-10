@@ -93,8 +93,7 @@ where
         client_id: &mut crate::proto::ClientId,
         keep_alive: std::time::Duration,
     ) -> std::task::Poll<Connected<'a, IoS>> {
-        use futures_core::Stream;
-        use futures_sink::Sink;
+        use futures_util::{Sink, Stream};
 
         let state = &mut self.state;
 
