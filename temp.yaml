@@ -1,0 +1,16 @@
+trigger: none
+pr: none
+
+pool:
+  name: iotedge-1es-hosted-linux
+  demands:
+  - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
+
+steps:
+- script: |
+    echo "Current directory: $(pwd)"
+    ls -al
+    echo 'df -h . >>>>>>>>>>>>>>>>>>>>>'
+    df -h .
+    echo '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
+  displayName: Examine this agent
