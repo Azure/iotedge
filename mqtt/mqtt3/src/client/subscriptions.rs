@@ -24,7 +24,7 @@ impl State {
         ),
         super::Error,
     > {
-        use futures_core::Stream;
+        use futures_util::Stream;
 
         let mut subscription_updates = vec![];
 
