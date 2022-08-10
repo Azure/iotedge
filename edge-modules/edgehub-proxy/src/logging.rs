@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::env;
 use std::io::Write;
 
 use env_logger;
@@ -44,7 +43,7 @@ pub fn init() {
             }
         })
         .filter_level(LevelFilter::Info)
-        .parse(&env::var(ENV_LOG).unwrap_or_default())
+        .parse_env(ENV_LOG)
         .init();
 }
 

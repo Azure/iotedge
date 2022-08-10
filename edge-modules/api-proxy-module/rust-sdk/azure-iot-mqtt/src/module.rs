@@ -187,7 +187,7 @@ impl Client {
 	}
 }
 
-impl futures_core::Stream for Client {
+impl futures_util::Stream for Client {
 	type Item = Result<Message, mqtt3::Error>;
 
 	fn poll_next(mut self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Option<Self::Item>> {
