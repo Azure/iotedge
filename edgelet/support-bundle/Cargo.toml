@@ -11,7 +11,7 @@ futures = "0.3"
 hyper = { version = "0.14", features = ["stream"] }
 thiserror = "1"
 tokio = { version = "1", features = ["process", "time"] }
-zip = "0.5"
+zip = { version = "0.6", features = ["deflate"], default-features = false }
 
 edgelet-core = { path = "../edgelet-core" }
 edgelet-settings = {path = "../edgelet-settings" }
