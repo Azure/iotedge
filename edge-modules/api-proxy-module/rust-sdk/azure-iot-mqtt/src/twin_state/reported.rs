@@ -59,7 +59,7 @@ impl State {
         message: &mut Option<super::InternalTwinStateMessage>,
         previous_request_id: &mut u8,
     ) -> Result<super::Response<Message>, super::MessageParseError> {
-        use futures_core::Stream;
+        use futures_util::Stream;
 
         loop {
             log::trace!("    {:?}", self.inner);
