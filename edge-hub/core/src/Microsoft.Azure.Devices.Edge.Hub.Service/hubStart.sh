@@ -43,17 +43,27 @@ then
   hubbackup=$(env | grep -m 1 -i BackupFolder | awk -F '=' '{ print $2; }')
   storagepath=${hubstorage:-/tmp}/edgeHub
   backuppath=${hubbackup:-/tmp}/edgeHub_backup
-  # If basepath/edgehub exists, make sure all files are owned by TARGET_UID
+
+  # If basepath/edgeHub exists, make sure all files are owned by TARGET_UID
+  # Otherwise, create the path and set the correct permissions
   if [ -d $storagepath ]
   then
     echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Changing ownership of storage folder: ${storagepath} to ${TARGET_UID}"
     chown -fR "${TARGET_UID}" "${storagepath}"
-   fi
+  else
+    echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Creating storage folder: ${storagepath}"
+    mkdir -p -m 700 "${storagepath}"
+    chown -R "${TARGET_UID}" "${storagepath}"
+  fi
   # same for BackupFolder
   if [ -d $backuppath ]
   then
     echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Changing ownership of backup folder: ${backuppath} to ${TARGET_UID}"
     chown -fR "${TARGET_UID}" "${backuppath}"
+  else
+    echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Creating backup folder: ${backuppath}"
+    mkdir -p -m 700 "${backuppath}"
+    chown -R "${TARGET_UID}" "${backuppath}"
   fi
 
   exec su "$username" -c "/usr/bin/dotnet Microsoft.Azure.Devices.Edge.Hub.Service.dll"
