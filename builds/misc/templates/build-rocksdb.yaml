@@ -18,12 +18,12 @@ stages:
             postfix: amd64
           Arm32:
             pool_name: $(pool.linux.arm.name)
-            agent_image: agent-aziotedge-ubuntu-20.04-arm64
+            agent_image: agent-aziotedge-ubuntu-20.04-arm64-docker
             arch: arm32v7
             postfix: armhf
           Arm64:
             pool_name: $(pool.linux.arm.name)
-            agent_image: agent-aziotedge-ubuntu-20.04-arm64
+            agent_image: agent-aziotedge-ubuntu-20.04-arm64-docker
             arch: arm64v8
             postfix: arm64
       pool:
