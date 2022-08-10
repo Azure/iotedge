@@ -735,9 +735,13 @@ where
     }
 
     async fn list_images(&self) -> anyhow::Result<HashMap<String, String>> {
+        let mut filters = HashMap::new();
+        filters.insert("label", LABELS);
+        let filters = serde_json::to_string(&filters)
+            .context(Error::RuntimeOperation(RuntimeOperation::ListModules))?;
         let images = self
             .client
-            .images_list(false, "", false)
+            .images_list(false, &filters, false)
             .await
             .context(Error::Docker)
             .context(Error::RuntimeOperation(RuntimeOperation::ListImages))?;

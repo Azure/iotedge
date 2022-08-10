@@ -9,6 +9,9 @@ use edgelet_docker::ImagePruneData;
 use edgelet_settings::{base::image::ImagePruneSettings, RuntimeSettings};
 
 const TOTAL_MINS_IN_DAY: u32 = 1440;
+const DEFAULT_CLEANUP_TIME: &str = "00:00"; // midnight
+const DEFAULT_RECURRENCE_IN_SECS: u64 = 60 * 60 * 24; // 1 day
+const DEFAULT_MIN_AGE_IN_SECS: u64 = 60 * 60 * 24 * 7; // 7 days
 
 pub(crate) async fn image_garbage_collect(
     settings: edgelet_settings::Settings,
@@ -19,12 +22,16 @@ pub(crate) async fn image_garbage_collect(
 
     let edge_agent_bootstrap: String = settings.agent().config().image().to_string();
 
+    let defaults = ImagePruneSettings::new(
+        Duration::from_secs(DEFAULT_RECURRENCE_IN_SECS),
+        Duration::from_secs(DEFAULT_MIN_AGE_IN_SECS),
+        DEFAULT_CLEANUP_TIME.to_string(),
+        true,
+    );
+
     let settings = match settings.image_garbage_collection() {
         Some(parsed) => parsed,
-        None => {
-            log::error!("Could not get settings for image auto-pruning task");
-            std::process::exit(exitcode::CONFIG);
-        }
+        None => &defaults,
     };
 
     // If settings are present in the config, they will always be validated (even if auto-pruning is disabled).
@@ -36,31 +43,29 @@ pub(crate) async fn image_garbage_collect(
     tokio::time::sleep(Duration::from_secs(diff_in_secs.into())).await;
 
     // bootstrap edge agent image should never be deleted
-    let bootstrap_img_id: String =
+    let mut bootstrap_image_id: String =
         match get_bootstrap_image_id(runtime, edge_agent_bootstrap.clone()).await {
             Ok(id) => id,
             Err(_) => String::default(),
         };
 
-    let mut bootstrap_image_id = Some(bootstrap_img_id.clone());
-    if bootstrap_img_id.is_empty() {
-        bootstrap_image_id = None;
-    }
-
     loop {
-        if let Err(err) = garbage_collector(
+        let mut bootstrap_image_id_option = Some(bootstrap_image_id.clone());
+        if bootstrap_image_id.is_empty() {
+            bootstrap_image_id_option = None;
+        }
+
+        bootstrap_image_id = match garbage_collector(
             runtime,
             image_use_data.clone(),
-            bootstrap_image_id.clone(),
+            bootstrap_image_id_option.clone(),
             edge_agent_bootstrap.clone(),
         )
         .await
         {
-            return Err(EdgedError::new(format!(
-                "Error in image auto-pruning task: {}",
-                err
-            )));
-        }
+            Ok(id) => id,
+            Err(_) => String::default(),
+        };
 
         // sleep till it's time to wake up based on recurrence (and on current time post-last-execution to avoid time drift)
         let delay = settings.cleanup_recurrence()
@@ -99,7 +104,7 @@ async fn garbage_collector(
     image_use_data: ImagePruneData,
     bootstrap_image_id: Option<String>,
     edge_agent_bootstrap: String,
-) -> Result<(), EdgedError> {
+) -> Result<String, EdgedError> {
     log::info!("Image Garbage Collection starting daily run");
 
     let bootstrap_img_id = match bootstrap_image_id {
@@ -109,7 +114,7 @@ async fn garbage_collector(
                 Ok(img_id) => img_id,
                 Err(e) => {
                     log::error!("Could not get list of docker images: {}", e);
-                    EdgedError::from_err("Could not get list of docker images: {}", e).to_string()
+                    String::default()
                 }
             };
 
@@ -121,7 +126,10 @@ async fn garbage_collector(
     let in_use_image_ids = match ModuleRuntime::list_with_details(runtime).await {
         Ok(modules) => {
             let mut image_ids: HashSet<String> = HashSet::new();
-            image_ids.insert(bootstrap_img_id); // bootstrap edge agent image should never be deleted
+            if !bootstrap_img_id.is_empty() {
+                // bootstrap edge agent image should never be deleted
+                image_ids.insert(bootstrap_img_id.clone());
+            }
 
             for module in modules {
                 // this is effectively the result of calling GET on /containers/json
@@ -162,7 +170,7 @@ async fn garbage_collector(
         }
     }
 
-    Ok(())
+    Ok(bootstrap_img_id)
 }
 
 /* ================================================ HELPER METHODS ================================================ */
