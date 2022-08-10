@@ -282,7 +282,7 @@ where
 
     api_call! {
         images_list : get "/images/json" -> Vec<models::ImageSummary> ;
-        query : [ "all" = (all: bool), "filters" = (filters: &'a str),"digests" = (digests: bool)] ;
+        query : [ "all" = (all: bool), "filters" = (filters: &'a str), "digests" = (digests: bool)] ;
         ok : [OK]
     }
 

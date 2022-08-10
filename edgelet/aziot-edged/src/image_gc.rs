@@ -31,7 +31,10 @@ pub(crate) async fn image_garbage_collect(
 
     let settings = match settings.image_garbage_collection() {
         Some(parsed) => parsed,
-        None => &defaults,
+        None => {
+            log::info!("No [image_garbage_collection] settings found in config.toml, using default settings");
+            &defaults
+        }
     };
 
     // If settings are present in the config, they will always be validated (even if auto-pruning is disabled).
@@ -45,7 +48,10 @@ pub(crate) async fn image_garbage_collect(
     // bootstrap edge agent image should never be deleted
     let mut bootstrap_image_id: String =
         match get_bootstrap_image_id(runtime, edge_agent_bootstrap.clone()).await {
-            Ok(id) => id,
+            Ok(id) => {
+                log::info!("Bootstrap EdgeAgent {} has ID {}", edge_agent_bootstrap, id);
+                id
+            }
             Err(_) => String::default(),
         };
 
@@ -55,7 +61,7 @@ pub(crate) async fn image_garbage_collect(
             bootstrap_image_id_option = None;
         }
 
-        bootstrap_image_id = match garbage_collector(
+        bootstrap_image_id = match remove_unused_images(
             runtime,
             image_use_data.clone(),
             bootstrap_image_id_option.clone(),
@@ -99,7 +105,7 @@ async fn get_bootstrap_image_id(
     Ok(bootstrap_image_id)
 }
 
-async fn garbage_collector(
+async fn remove_unused_images(
     runtime: &edgelet_docker::DockerModuleRuntime<http_common::Connector>,
     image_use_data: ImagePruneData,
     bootstrap_image_id: Option<String>,
