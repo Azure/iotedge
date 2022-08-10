@@ -122,6 +122,8 @@ fn execute_inner(
     };
 
     let old_config: old_config::Config = {
+        // We use YamlFileSource::String to load the file rather than YamlFileSource::File
+        // because config::ConfigError makes it harder to recognize an error from a missing file.
         let old_config = config::ConfigBuilder::<config::builder::DefaultState>::default()
             .add_source(YamlFileSource::String(old_config::DEFAULTS.into()))
             .add_source(YamlFileSource::String(old_config_contents.into()))

@@ -1,11 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::collections::BTreeMap;
+use std::ffi::OsStr;
 use std::fmt;
 use std::time::Duration;
 
 use anyhow::Context;
 use chrono::prelude::*;
+use nix::sys::utsname::UtsName;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -325,16 +327,34 @@ impl SystemInfo {
     }
 }
 
-impl SystemInfo {
-    pub fn new() -> nix::Result<Self> {
-        let kernel = nix::sys::utsname::uname()?;
+impl Default for SystemInfo {
+    fn default() -> Self {
+        let kernel = nix::sys::utsname::uname()
+            .map_err(|e| log::error!("Failed calling uname(): {}", e))
+            .ok();
+
+        let kernel = kernel.as_ref();
+
         let dmi = DmiInfo::default();
         let os = OsInfo::default();
 
-        let res = Self {
-            kernel: kernel.sysname().to_str().unwrap_or("UNKNOWN").to_owned(),
-            kernel_release: kernel.release().to_str().map(ToOwned::to_owned),
-            kernel_version: kernel.version().to_str().map(ToOwned::to_owned),
+        Self {
+            // NOTE: `kernel` maps to `osType`, which is required by the
+            // management API.  So, we have to provide some value even
+            // in the case of failure.
+            kernel: kernel
+                .map(UtsName::sysname)
+                .and_then(OsStr::to_str)
+                .unwrap_or("UNKNOWN")
+                .to_owned(),
+            kernel_release: kernel
+                .map(UtsName::release)
+                .and_then(OsStr::to_str)
+                .map(ToOwned::to_owned),
+            kernel_version: kernel
+                .map(UtsName::version)
+                .and_then(OsStr::to_str)
+                .map(ToOwned::to_owned),
 
             operating_system: os.id,
             operating_system_version: os.version_id,
@@ -363,9 +383,7 @@ impl SystemInfo {
             },
 
             additional_properties: BTreeMap::new(),
-        };
-
-        Ok(res)
+        }
     }
 }
 

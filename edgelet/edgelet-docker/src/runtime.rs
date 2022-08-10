@@ -525,8 +525,7 @@ where
     async fn system_info(&self) -> anyhow::Result<CoreSystemInfo> {
         log::info!("Querying system info...");
 
-        let mut system_info = CoreSystemInfo::new()
-            .context(Error::RuntimeOperation(RuntimeOperation::SystemInfo))?;
+        let mut system_info = CoreSystemInfo::default();
 
         let docker_info = self
             .client
