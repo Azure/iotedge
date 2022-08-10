@@ -528,7 +528,7 @@ where
         let total_memory = {
             let mut system_resources = self.system_resources.as_ref().lock().await;
             system_resources.refresh_memory();
-            system_resources.total_memory() * 1000
+            system_resources.total_memory() * 1024
         };
 
         let mut system_info = CoreSystemInfo::default();
