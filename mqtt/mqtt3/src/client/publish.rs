@@ -39,7 +39,7 @@ impl State {
         ),
         super::Error,
     > {
-        use futures_core::Stream;
+        use futures_util::Stream;
 
         let mut packets_waiting_to_be_sent = vec![];
         let mut publication_received = None;
