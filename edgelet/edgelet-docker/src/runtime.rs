@@ -567,8 +567,8 @@ where
             .as_secs();
 
         let used_cpu = system_resources.global_processor_info().cpu_usage();
-        let total_memory = system_resources.total_memory() * 1000;
-        let used_memory = system_resources.used_memory() * 1000;
+        let total_memory = system_resources.total_memory() * 1024;
+        let used_memory = system_resources.used_memory() * 1024;
 
         let disks = system_resources
             .disks()
