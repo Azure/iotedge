@@ -29,6 +29,7 @@ pub(crate) async fn image_garbage_collect(
         true,
     );
 
+    // TODO: Can be left as option
     let settings = match settings.image_garbage_collection() {
         Some(parsed) => parsed,
         None => {
@@ -38,6 +39,7 @@ pub(crate) async fn image_garbage_collect(
     };
 
     // If settings are present in the config, they will always be validated (even if auto-pruning is disabled).
+    // TODO: should be moved either to settings struct or image_prune_data_struct <--- probably here
     if validate_settings(settings).is_err() {
         std::process::exit(exitcode::CONFIG);
     }
