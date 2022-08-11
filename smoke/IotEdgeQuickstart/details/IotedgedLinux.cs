@@ -76,9 +76,18 @@ namespace IotEdgeQuickstart.Details
 
     class LinuxPackageInstallDep : ILinuxPackageInstall
     {
+        const string PackageManager = "apt";
+        const int TimeoutInterval = 300;
+
         readonly string archivePath;
+
         public LinuxPackageInstallDep(string archivePath)
         {
+            if (!Directory.Exists(archivePath))
+            {
+                throw new ArgumentException("archive path must exist");
+            }
+
             this.archivePath = archivePath;
         }
 
@@ -94,9 +103,9 @@ namespace IotEdgeQuickstart.Details
             string packageArguments = string.Join(" ", packages);
 
             return Process.RunAsync(
-                "apt-get",
+                PackageManager,
                 $"install -y {packageArguments}",
-                300); // 5 min timeout because install can be slow on raspberry pi
+                TimeoutInterval); // 5 min timeout because install can be slow on raspberry pi
         }
 
         public Task FindPackage(string packageName)
@@ -106,15 +115,24 @@ namespace IotEdgeQuickstart.Details
 
         public Task RemovePackage(string packageName)
         {
-            return Process.RunAsync("apt", $"purge -y {packageName}", 180);
+            return Process.RunAsync(PackageManager, $"purge -y {packageName}", TimeoutInterval);
         }
     }
 
     class LinuxPackageInstallRPM : ILinuxPackageInstall
     {
+        const string PackageManager = "rpm";
+        const int TimeoutInterval = 300;
+
         readonly string archivePath;
+
         public LinuxPackageInstallRPM(string archivePath)
         {
+            if (!Directory.Exists(archivePath))
+            {
+                throw new ArgumentException("archive path must exist");
+            }
+
             this.archivePath = archivePath;
         }
 
@@ -122,19 +140,19 @@ namespace IotEdgeQuickstart.Details
         {
             string[] packages = Directory.GetFiles(this.archivePath, "*.rpm");
             return Process.RunAsync(
-                    "rpm",
+                    PackageManager,
                     $"--nodeps -i {string.Join(' ', packages)}",
-                    300);
+                    TimeoutInterval);
         }
 
         public Task FindPackage(string packageName)
         {
-            return Process.RunAsync("bash", $"-c \"rpm -qa | grep {packageName}\"");
+            return Process.RunAsync("bash", $"-c \"{PackageManager} -qa | grep {packageName}\"");
         }
 
         public Task RemovePackage(string packageName)
         {
-            return Process.RunAsync("rpm", $"-e {packageName}", 180);
+            return Process.RunAsync(PackageManager, $"-e {packageName}", TimeoutInterval);
         }
     }
 
