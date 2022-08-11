@@ -60,7 +60,7 @@ impl ImagePruneData {
         })
     }
 
-    /// This method takes the `image_id` (of a module image) and adds (if the image is new) OR updates the last-used timestamp associated
+    /// This method takes the `image_id` and adds (if the image is new) OR updates the last-used timestamp associated
     /// with this `image_id`. This state is maintained for use during image garbage collection.
     /// This method is (currently) called whenever a new image is pulled, a container is created, or when a conatiner is removed.
     pub fn record_image_use_timestamp(&self, image_id: &str) -> Result<(), Error> {
@@ -99,7 +99,7 @@ impl ImagePruneData {
         Ok(())
     }
 
-    /// This method is called during image garbage collection. It returns a map of module images that
+    /// This method is called during image garbage collection. It returns a map of images that
     /// will be deleted by the image garbage collector.
     pub fn prune_images_from_file(
         &self,

@@ -19,8 +19,6 @@ pub struct ImageSummary {
     parent_id: String,
     #[serde(rename = "RepoTags")]
     repo_tags: Vec<String>,
-    #[serde(rename = "RepoDigests")]
-    repo_digests: Vec<String>,
     #[serde(rename = "Created")]
     created: i32,
     #[serde(rename = "Size")]
@@ -29,8 +27,6 @@ pub struct ImageSummary {
     shared_size: i32,
     #[serde(rename = "VirtualSize")]
     virtual_size: i32,
-    #[serde(rename = "Labels")]
-    labels: ::std::collections::HashMap<String, String>,
     #[serde(rename = "Containers")]
     containers: i32,
 }
@@ -40,24 +36,20 @@ impl ImageSummary {
         id: String,
         parent_id: String,
         repo_tags: Vec<String>,
-        repo_digests: Vec<String>,
         created: i32,
         size: i32,
         shared_size: i32,
         virtual_size: i32,
-        labels: ::std::collections::HashMap<String, String>,
         containers: i32,
     ) -> Self {
         ImageSummary {
             id,
             parent_id,
             repo_tags,
-            repo_digests,
             created,
             size,
             shared_size,
             virtual_size,
-            labels,
             containers,
         }
     }
@@ -99,19 +91,6 @@ impl ImageSummary {
 
     pub fn repo_tags(&self) -> &[String] {
         &self.repo_tags
-    }
-
-    pub fn set_repo_digests(&mut self, repo_digests: Vec<String>) {
-        self.repo_digests = repo_digests;
-    }
-
-    pub fn with_repo_digests(mut self, repo_digests: Vec<String>) -> Self {
-        self.repo_digests = repo_digests;
-        self
-    }
-
-    pub fn repo_digests(&self) -> &[String] {
-        &self.repo_digests
     }
 
     pub fn set_created(&mut self, created: i32) {
@@ -164,19 +143,6 @@ impl ImageSummary {
 
     pub fn virtual_size(&self) -> &i32 {
         &self.virtual_size
-    }
-
-    pub fn set_labels(&mut self, labels: ::std::collections::HashMap<String, String>) {
-        self.labels = labels;
-    }
-
-    pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
-        self.labels = labels;
-        self
-    }
-
-    pub fn labels(&self) -> &::std::collections::HashMap<String, String> {
-        &self.labels
     }
 
     pub fn set_containers(&mut self, containers: i32) {
