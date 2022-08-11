@@ -319,7 +319,26 @@ jobs:
       identityServicePackageFilter: aziot-identity-service-*.cm2.x86_64.rpm
 
     steps:
-    - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
-    - template: templates/e2e-clear-docker-cached-images.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################
+  - job: mariner2_arm64
+################################################################################
+    displayName: Mariner 2.0 arm64
+    condition: eq(variables['run.EFLOW.amd64'], 'true')
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-mariner-2.0-arm64
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-mariner2-amd64
+      identityServiceArtifactName: packages_mariner-2_amd64
+      identityServicePackageFilter: aziot-identity-service-*.cm2.x86_64.rpm
+
+    steps:
+    - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
