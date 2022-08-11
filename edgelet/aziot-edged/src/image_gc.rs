@@ -48,13 +48,19 @@ pub(crate) async fn image_garbage_collect(
     tokio::time::sleep(Duration::from_secs(diff_in_secs.into())).await;
 
     let mut bootstrap_image_id_option = None;
+    let mut is_bootstrap_image_deleted: bool = false;
 
     loop {
         if bootstrap_image_id_option.is_none() {
             // bootstrap edge agent image should never be deleted
-            if let Ok(id) = get_bootstrap_image_id(runtime, edge_agent_bootstrap.clone()).await {
-                log::info!("Bootstrap EdgeAgent {} has ID {}", edge_agent_bootstrap, id);
-                bootstrap_image_id_option = Some(id.clone());
+            if let Ok((id, is_image_deleted)) =
+                get_bootstrap_image_id(runtime, edge_agent_bootstrap.clone()).await
+            {
+                is_bootstrap_image_deleted = is_image_deleted;
+                if !is_image_deleted {
+                    log::info!("Bootstrap EdgeAgent {} has ID {}", edge_agent_bootstrap, id);
+                    bootstrap_image_id_option = Some(id.clone());
+                }
             } else {
                 log::error!("Could not get bootstrap image id");
             }
@@ -64,11 +70,12 @@ pub(crate) async fn image_garbage_collect(
             runtime,
             image_use_data.clone(),
             bootstrap_image_id_option.clone(),
+            is_bootstrap_image_deleted,
         )
         .await
         {
             return Err(EdgedError::new(format!(
-                "Error in image auro-pruning task: {}",
+                "Error in image auto-pruning task: {}",
                 err
             )));
         };
@@ -86,6 +93,7 @@ async fn remove_unused_images(
     runtime: &edgelet_docker::DockerModuleRuntime<http_common::Connector>,
     image_use_data: ImagePruneData,
     bootstrap_image_id_option: Option<String>,
+    is_bootstrap_image_deleted: bool,
 ) -> Result<(), EdgedError> {
     log::info!("Image Garbage Collection starting scheduled run");
 
@@ -135,7 +143,9 @@ async fn remove_unused_images(
             )
         })?;
 
-    if bootstrap_image_id_option.is_some() {
+    if bootstrap_image_id_option.is_some()
+        || (bootstrap_image_id_option.is_none() && is_bootstrap_image_deleted)
+    {
         // delete images
         for key in image_map.keys() {
             if let Err(e) = ModuleRegistry::remove(runtime, key).await {
@@ -149,30 +159,52 @@ async fn remove_unused_images(
 
 /* ================================================ HELPER METHODS ================================================ */
 
+// This is a helper method that gets the imageID of the bootstrap edge agent, if it is present on the box.
+// This image is used as a fallback in certain scenarios and we have to make sure that we never delete it
+// (though the customer can still do so).
+//
+// To wit, there are 4 possibilities (pertaining to this method's return values):
+//    Image Id found       Has image been deleted?     Interpretation
+//        yes                        yes               N/A [can't happen]
+//        yes                        no                prune images, as per usual
+//        no                         yes               customer deleted bootstrap; prune images, as per usual
+//        no                         no                (Implicit) Docker Engine API error; update persistence file but
+//                                                     do not prune images to ensure EA bootstrap isn't deleted
+
 async fn get_bootstrap_image_id(
     runtime: &edgelet_docker::DockerModuleRuntime<http_common::Connector>,
     edge_agent_bootstrap: String,
-) -> Result<String, EdgedError> {
+) -> Result<(String, bool), EdgedError> {
+    let mut is_bootstrap_deleted: bool = false;
+
     let bootstrap_image_id: String = match ModuleRuntime::list_images(runtime).await {
-        Ok(image_name_to_id) => image_name_to_id
-            .get(&edge_agent_bootstrap)
-            .ok_or_else(|| {
-                EdgedError::from_err(
-                    format!(
-                        "error getting image id for edge agent bootstrap image {}",
-                        edge_agent_bootstrap
-                    ),
-                    edgelet_docker::Error::GetImageHash(),
-                )
-            })?
-            .to_string(),
+        Ok(image_name_to_id) => {
+            let image_id_option = image_name_to_id.get(&edge_agent_bootstrap);
+
+            if image_id_option.is_none() {
+                is_bootstrap_deleted = true;
+                String::default()
+            } else {
+                image_id_option
+                    .ok_or_else(|| {
+                        EdgedError::from_err(
+                            format!(
+                                "error getting image id for edge agent bootstrap image {}",
+                                edge_agent_bootstrap
+                            ),
+                            edgelet_docker::Error::GetImageHash(),
+                        )
+                    })?
+                    .to_string()
+            }
+        }
         Err(e) => {
             log::error!("Could not get list of docker images: {}", e);
             EdgedError::from_err("Could not get list of docker images: {}", e).to_string()
         }
     };
 
-    Ok(bootstrap_image_id)
+    Ok((bootstrap_image_id, is_bootstrap_deleted))
 }
 
 fn validate_settings(settings: &ImagePruneSettings) -> Result<(), EdgedError> {
