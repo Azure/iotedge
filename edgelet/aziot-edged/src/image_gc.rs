@@ -3,7 +3,7 @@
 use std::{collections::HashSet, time::Duration};
 
 use crate::error::Error as EdgedError;
-use chrono::Timelike;
+use chrono::{NaiveTime, Timelike};
 use edgelet_core::{ModuleRegistry, ModuleRuntime};
 use edgelet_docker::ImagePruneData;
 use edgelet_settings::{base::image::ImagePruneSettings, RuntimeSettings};
@@ -220,35 +220,15 @@ fn validate_settings(settings: &ImagePruneSettings) -> Result<(), EdgedError> {
         ));
     }
 
-    let times = settings.cleanup_time();
-    if times.len() != 5 || !times.contains(':') || times.chars().nth(2) != Some(':') {
+    let times = NaiveTime::parse_from_str(&settings.cleanup_time(), "%H:%M");
+    if times.is_err() {
         log::error!("invalid settings provided in config: invalid cleanup time, expected format is \"HH:MM\" in 24-hour format.");
-        Err(EdgedError::from_err(
-            "invalid settings provided in config:",
-            edgelet_docker::Error::InvalidSettings(
-                "invalid cleanup time, expected format is \"HH:MM\" in 24-hour format".to_string(),
-            ),
-        ))
-    } else {
-        let time_clone = times.clone();
-        let cleanup_time: Vec<&str> = time_clone.split(':').collect();
-        let hour = cleanup_time.get(0).unwrap().parse::<u32>().unwrap();
-        let minute = cleanup_time.get(1).unwrap().parse::<u32>().unwrap();
-
-        // u32, so no negative comparisons
-        if hour > 23 || minute > 59 {
-            log::error!(
-                "invalid settings provided in config: invalid cleanup time {}",
-                times
-            );
-            return Err(EdgedError::from_err(
-                "invalid settings provided in config",
-                edgelet_docker::Error::InvalidSettings(format!("invalid cleanup time {}", times)),
-            ));
-        }
-
-        Ok(())
+        return Err(EdgedError::new(edgelet_docker::Error::InvalidSettings(
+            "invalid cleanup time, expected format is \"HH:MM\" in 24-hour format".to_string(),
+        )));
     }
+
+    Ok(())
 }
 
 fn get_sleep_time_mins(times: &str) -> u32 {
@@ -317,6 +297,11 @@ mod tests {
 
         settings =
             ImagePruneSettings::new(Duration::MAX, Duration::MAX, "2:033".to_string(), false);
+        result = validate_settings(&settings);
+        assert!(result.is_err());
+
+        settings =
+            ImagePruneSettings::new(Duration::MAX, Duration::MAX, ":::00".to_string(), false);
         result = validate_settings(&settings);
         assert!(result.is_err());
     }
