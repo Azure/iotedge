@@ -1,7 +1,7 @@
 use std::{convert::TryInto, time::Duration};
 
 use bytes::{Buf, BufMut};
-#[cfg(feature = "serde1")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use tokio_util::codec::Decoder;
 
@@ -485,13 +485,13 @@ impl PacketMeta for PubComp {
 
 /// 3.3 PUBLISH – Publish message
 #[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde1", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Publish {
     pub packet_identifier_dup_qos: PacketIdentifierDupQoS,
     pub retain: bool,
     pub topic_name: String,
-    #[cfg_attr(feature = "serde1", serde(serialize_with = "serialize_bytes"))]
-    #[cfg_attr(feature = "serde1", serde(deserialize_with = "deserialize_bytes"))]
+    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_bytes"))]
+    #[cfg_attr(feature = "serde", serde(deserialize_with = "deserialize_bytes"))]
     pub payload: bytes::Bytes,
 }
 
@@ -855,7 +855,7 @@ impl PacketMeta for Unsubscribe {
 /// A combination of the packet identifier, dup flag and QoS that only allows valid combinations of these three properties.
 /// Used in [`Packet::Publish`]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde1", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub enum PacketIdentifierDupQoS {
     AtMostOnce,
     AtLeastOnce(super::PacketIdentifier, bool),
@@ -873,7 +873,7 @@ pub struct SubscribeTo {
 ///
 /// Ref: 4.3 Quality of Service levels and protocol flows
 #[derive(Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
-#[cfg_attr(feature = "serde1", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub enum QoS {
     AtMostOnce,
     AtLeastOnce,
@@ -916,13 +916,13 @@ impl From<SubAckQos> for u8 {
 /// A message that can be published to the server
 //  but not yet assigned a packet identifier.
 #[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde1", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Publication {
     pub topic_name: String,
     pub qos: crate::proto::QoS,
     pub retain: bool,
-    #[cfg_attr(feature = "serde1", serde(serialize_with = "serialize_bytes"))]
-    #[cfg_attr(feature = "serde1", serde(deserialize_with = "deserialize_bytes"))]
+    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_bytes"))]
+    #[cfg_attr(feature = "serde", serde(deserialize_with = "deserialize_bytes"))]
     pub payload: bytes::Bytes,
 }
 
@@ -1092,7 +1092,7 @@ where
     Ok(())
 }
 
-#[cfg(feature = "serde1")]
+#[cfg(feature = "serde")]
 fn serialize_bytes<S>(bytes: &bytes::Bytes, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
@@ -1100,7 +1100,7 @@ where
     serializer.serialize_bytes(bytes)
 }
 
-#[cfg(feature = "serde1")]
+#[cfg(feature = "serde")]
 fn deserialize_bytes<'de, D>(deserializer: D) -> Result<bytes::Bytes, D::Error>
 where
     D: Deserializer<'de>,

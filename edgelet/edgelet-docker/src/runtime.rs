@@ -6,7 +6,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{process, str};
 
 use anyhow::Context;
-use sysinfo::{DiskExt, PidExt, ProcessExt, ProcessorExt, System, SystemExt};
+use sysinfo::{CpuExt, DiskExt, PidExt, ProcessExt, System, SystemExt};
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::Mutex;
 use url::Url;
@@ -525,6 +525,12 @@ where
     async fn system_info(&self) -> anyhow::Result<CoreSystemInfo> {
         log::info!("Querying system info...");
 
+        let total_memory = {
+            let mut system_resources = self.system_resources.as_ref().lock().await;
+            system_resources.refresh_memory();
+            system_resources.total_memory() * 1024
+        };
+
         let mut system_info = CoreSystemInfo::default();
 
         let docker_info = self
@@ -534,6 +540,7 @@ where
             .context(Error::Docker)
             .context(Error::RuntimeOperation(RuntimeOperation::SystemInfo))?;
         system_info.server_version = docker_info.server_version().map(ToOwned::to_owned);
+        system_info.total_memory = Some(total_memory);
         system_info.merge_additional(self.additional_info.clone());
 
         log::info!("Successfully queried system info");
@@ -559,9 +566,9 @@ where
             .unwrap_or_default()
             .as_secs();
 
-        let used_cpu = system_resources.global_processor_info().cpu_usage();
-        let total_memory = system_resources.total_memory() * 1000;
-        let used_memory = system_resources.used_memory() * 1000;
+        let used_cpu = system_resources.global_cpu_info().cpu_usage();
+        let total_memory = system_resources.total_memory() * 1024;
+        let used_memory = system_resources.used_memory() * 1024;
 
         let disks = system_resources
             .disks()
