@@ -32,7 +32,7 @@ then
   if ! getent passwd "${TARGET_UID}" >/dev/null
   then
     echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Creating UID ${TARGET_UID} as edgehubuser"
-    adduser -D -S -H -s /sbin/nologin -u "${TARGET_UID}" edgehubuser
+    adduser -D -S -H -s /bin/sh -u "${TARGET_UID}" edgehubuser
   fi
 
   username=$(getent passwd "${TARGET_UID}" | awk -F ':' '{ print $1; }')

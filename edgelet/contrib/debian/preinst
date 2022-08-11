@@ -14,12 +14,12 @@ add_groups()
 
     # Create an edgeagentuser and add it to iotedge group
     if ! getent passwd edgeagentuser >/dev/null; then
-        useradd -r -g iotedge -c "edgeAgent user" -ms /sbin/nologin -u 13622 edgeagentuser
+        useradd -r -g iotedge -c "edgeAgent user" -s /bin/sh -u 13622 edgeagentuser
     fi
 
     # Create an edgehubuser
     if ! getent passwd edgehubuser >/dev/null; then
-        useradd -r -c "edgeHub user" -ms /sbin/nologin -u 13623 edgehubuser
+        useradd -r -c "edgeHub user" -s /bin/sh -u 13623 edgehubuser
     fi
 
     # add iotedge user to docker group so that it can talk to the docker socket
