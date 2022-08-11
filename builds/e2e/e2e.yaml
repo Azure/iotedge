@@ -307,13 +307,9 @@ jobs:
     displayName: Mariner 2.0 amd64
     condition: eq(variables['run.EFLOW.amd64'], 'true')
     pool:
-      name: $(pool.custom.name)
+      name: $(pool.linux.name)
       demands:
-        - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals X64
-        - run-new-e2e-tests -equals true
-        - mariner -equals true
-        - mariner-version -equals 2.0
+        - ImageOverride -equals agent-aziotedge-mariner-2.0-msmoby
 
     variables:
       os: linux
