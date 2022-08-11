@@ -180,7 +180,7 @@ jobs:
     pool:
       name: $(pool.linux.arm.name)
       demands:
-      - ImageOverride -equals agent-aziotedge-ubuntu-20.04-arm64
+      - ImageOverride -equals agent-aziotedge-ubuntu-20.04-arm64-docker
 
     variables:
       os: linux

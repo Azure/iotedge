@@ -276,7 +276,9 @@ pub struct SystemInfo {
     pub operating_system_build: Option<String>,
 
     pub architecture: String,
-    pub cpus: usize,
+    pub cpus: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_memory: Option<u64>,
     pub virtualized: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -314,6 +316,7 @@ impl SystemInfo {
         remove_assign!(operating_system_build);
 
         remove_assign!(architecture);
+        remove_assign!(virtualized);
 
         remove_assign!(product_name);
         remove_assign!(system_vendor);
@@ -362,7 +365,8 @@ impl Default for SystemInfo {
             operating_system_build: os.build_id,
 
             architecture: os.arch.to_owned(),
-            cpus: num_cpus::get(),
+            cpus: u64::try_from(num_cpus::get()).expect("128-bit architectures unsupported"),
+            total_memory: None,
             virtualized: match crate::virtualization::is_virtualized_env() {
                 Ok(Some(true)) => "yes",
                 Ok(Some(false)) => "no",
@@ -680,6 +684,7 @@ mod tests {
 
             architecture: "ARCH".into(),
             cpus: 0,
+            total_memory: None,
             virtualized: "UNKNOWN".into(),
 
             product_name: None,
@@ -709,6 +714,7 @@ mod tests {
 
             architecture: "ARCH".into(),
             cpus: 0,
+            total_memory: None,
             virtualized: "UNKNOWN".into(),
 
             product_name: None,
