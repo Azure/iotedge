@@ -27,19 +27,6 @@
 #
 # trust_bundle_cert = "file:///var/secrets/trust-bundle.pem"
 
-
-# ==============================================================================
-# Manifest Trust bundle cert
-# ==============================================================================
-#
-# If you have want to enable Manifest Signing, Manifest Trust Bundle Root CA
-# certificate is required.
-# uncomment the next line and set the value to a file URI for
-# the path of the file.
-#
-# manifest_trust_bundle_cert = "file:///var/secrets/manifest-trust-bundle.pem"
-
-
 # ==============================================================================
 # Elevated Docker Permissions Flag
 # ==============================================================================
@@ -171,6 +158,9 @@
 # global_endpoint = "https://global.azure-devices-provisioning.net"
 # id_scope = "0ab1234C5D6"
 #
+## Uncomment to send a custom payload during DPS registration
+# payload = { uri = "file:///var/secrets/aziot/identityd/dps-additional-data.json" }
+#
 # [provisioning.attestation]
 # method = "symmetric_key"
 # registration_id = "my-device"
@@ -185,6 +175,9 @@
 # source = "dps"
 # global_endpoint = "https://global.azure-devices-provisioning.net/"
 # id_scope = "0ab1234C5D6"
+#
+## Uncomment to send a custom payload during DPS registration
+# payload = { uri = "file:///var/secrets/aziot/identityd/dps-additional-data.json" }
 #
 # [provisioning.attestation]
 # method = "x509"
@@ -220,6 +213,9 @@
 # source = "dps"
 # global_endpoint = "https://global.azure-devices-provisioning.net"
 # id_scope = "0ab1234C5D6"
+#
+## Uncomment to send a custom payload during DPS registration
+# payload = { uri = "file:///var/secrets/aziot/identityd/dps-additional-data.json" }
 #
 # [provisioning.attestation]
 # method = "tpm"
@@ -280,6 +276,35 @@
 
 
 # ==============================================================================
+# TPM
+# ==============================================================================
+#
+# If special configuration is required for the TPM when using DPS TPM
+# provisioning, uncomment any pertinent sections below.
+
+# [tpm]
+# # TCTI loader string; see "TCG TSS 2.0 TPM Command Transmission
+# # Interface (TCTI) API Specification" section 3.5 for an overview of
+# # acceptable TCTI loader strings. By default, this is "device". Setting
+# # this to the empty string will cause the TCTI loader library to try
+# # loading a predefined set of TCTI modules in order.
+# # Ref: https://github.com/tpm2-software/tpm2-tss/blob/3.1.1/src/tss2-tcti/tctildr-dl.c#L28-L59
+# tcti = "swtpm:port=2321"
+#
+# # The TPM index at which to persist the DPS authentication key. The index is
+# # taken as an offset from the base address for persistent objects
+# # (0x81000000), and must lie in the range 0x00_00_00--0x7F_FF_FF. The default
+# # value is 0x00_01_00.
+# auth_key_index = "0x00_01_00"
+
+# # Authorization values for use of the endorsement and owner hierarchies, if
+# # necessary. By default, these are empty strings.
+# [tpm.hierarchy_authorization]
+# endorsement = "hello"
+# owner = "world"
+
+
+# ==============================================================================
 # PKCS#11
 # ==============================================================================
 #
@@ -308,7 +333,7 @@
 # imagePullPolicy = "..."   # "on-create" or "never". Defaults to "on-create"
 
 # [agent.config]
-# image = "mcr.microsoft.com/azureiotedge-agent:1.2"
+# image = "mcr.microsoft.com/azureiotedge-agent:1.4"
 # createOptions = { HostConfig = { Binds = ["/iotedge/storage:/iotedge/storage"] } }
 
 # [agent.config.auth]

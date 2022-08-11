@@ -6,10 +6,11 @@ publish = false
 edition = "2021"
 
 [dependencies]
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
 url = { version = "2", features = ["serde"] }
 
 aziot-identityd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/dps_certs" }
+aziot-certd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/dps_certs" }
 config-common = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/dps_certs", optional = true }
 cert-renewal = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/dps_certs" }
 docker = { path = "../docker-rs", optional = true }
@@ -17,7 +18,7 @@ docker = { path = "../docker-rs", optional = true }
 [dev-dependencies]
 lazy_static = "1"
 serde_json = "1"
-test-case = "1"
+test-case = "2"
 
 [features]
 settings-docker = ["config-common", "docker"]

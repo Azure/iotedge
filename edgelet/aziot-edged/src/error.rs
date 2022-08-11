@@ -15,6 +15,10 @@ impl Error {
         }
     }
 
+    pub fn exit_code(&self) -> i32 {
+        self.exit_code
+    }
+
     pub fn from_err(message: impl std::fmt::Display, err: impl std::fmt::Display) -> Self {
         Error {
             message: format!("{}: {}", message, err),
@@ -33,10 +37,19 @@ impl Error {
             exit_code: 153,
         }
     }
+
+    pub fn reprovisioned() -> Self {
+        Error {
+            message: "Device provisioning has changed. Restarting Edge daemon to get new provisioning info.".to_string(),
+
+            // A nonzero exit code is required so systemd restarts this process.
+            exit_code: 154,
+        }
+    }
 }
 
 // Clippy wants an implementation of From<i32> over Into<i32>. However, we don't want to convert
-// from any arbitrary i32 because only '1' and '153' have meaning for aziot-edged.
+// from any arbitrary i32 because only '1', '153', and '154' have meaning for aziot-edged.
 #[allow(clippy::from_over_into)]
 impl std::convert::Into<i32> for Error {
     fn into(self) -> i32 {

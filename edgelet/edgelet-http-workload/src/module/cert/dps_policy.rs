@@ -72,6 +72,7 @@ mod tests {
             scope_id,
             registration_id,
             cert_policy: _,
+            payload: _,
         } = client.provisioning_info
         {
             client.provisioning_info = ProvisioningInfo::Dps {
@@ -80,6 +81,7 @@ mod tests {
                 scope_id,
                 registration_id,
                 cert_policy: None,
+                payload: None,
             }
         } else {
             panic!("Default identity client has wrong provisioning policy");

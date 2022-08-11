@@ -3,9 +3,12 @@
 
 homedir_path = "/var/lib/aziot/certd"
 [cert_issuance.aziot-edged-ca]
-common_name = "aziot-edge CA my-device"
-expiry_days = 90
 method = "self_signed"
+expiry_days = 90
+
+[cert_issuance.aziot-edged-ca-temp]
+method = "self_signed"
+expiry_days = 90
 
 [preloaded_certs]
 aziot-edged-trust-bundle = ["aziot-edged-ca"]
@@ -16,4 +19,4 @@ certs = ["my-dps-trust-bundle", "aziot-dps-identity-cert"]
 
 [[principal]]
 uid = 5558
-certs = ["aziot-edged-ca", "aziot-edged/module/*"]
+certs = ["aziot-edged-ca", "aziot-edged/module/*", "aziot-edged-ca-temp"]

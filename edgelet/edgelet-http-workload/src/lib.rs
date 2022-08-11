@@ -128,8 +128,9 @@ where
                 let extensions = edge_ca::extensions()
                     .map_err(|_| "failed to set edge ca csr extensions".to_string())?;
 
-                let common_name = format!("aziot-edge CA {}", self.config.device_id);
-                let csr = module::cert::new_csr(common_name, keys, Vec::new(), extensions)
+                let subject = openssl::x509::X509Name::try_from(&self.config.edge_ca_subject)
+                    .map_err(|_| "failed to build edge ca subject".to_string())?;
+                let csr = module::cert::new_csr(&subject, keys, Vec::new(), extensions)
                     .map_err(|_| "failed to generate edge ca csr".to_string())?;
                 let csr = csr
                     .to_pem()
@@ -210,6 +211,7 @@ where
                 scope_id: "scope".to_string(),
                 registration_id: "registrationId".to_string(),
                 cert_policy: None,
+                payload: None,
             },
             ..Default::default()
         };
@@ -226,6 +228,9 @@ where
             edge_ca_cert: "test-ca-cert".to_string(),
             edge_ca_key: "test-ca-key".to_string(),
             edge_ca_auto_renew: None,
+            edge_ca_subject: aziot_certd_config::CertSubject::CommonName(
+                "aziot-edge CA test-device".to_string(),
+            ),
         };
 
         // We won't use the renewal sender, but it must be created to construct the
@@ -282,6 +287,7 @@ struct WorkloadConfig {
     edge_ca_cert: String,
     edge_ca_key: String,
     edge_ca_auto_renew: Option<cert_renewal::AutoRenewConfig>,
+    edge_ca_subject: aziot_certd_config::CertSubject,
 }
 
 impl WorkloadConfig {
@@ -309,9 +315,14 @@ impl WorkloadConfig {
             .to_string();
         let edge_ca_auto_renew = settings.edge_ca_auto_renew().to_owned();
 
+        let device_id = device_info.device_id.0.clone();
+        let edge_ca_subject = settings.edge_ca_subject().clone().unwrap_or_else(|| {
+            aziot_certd_config::CertSubject::CommonName(format!("aziot-edge CA {}", device_id))
+        });
+
         WorkloadConfig {
             hub_name: device_info.hub_name.clone(),
-            device_id: device_info.device_id.0.clone(),
+            device_id,
 
             trust_bundle,
             manifest_trust_bundle,
@@ -320,6 +331,7 @@ impl WorkloadConfig {
             edge_ca_cert,
             edge_ca_key,
             edge_ca_auto_renew,
+            edge_ca_subject,
         }
     }
 }
@@ -353,6 +365,9 @@ mod tests {
                 edge_ca_cert: edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_string(),
                 edge_ca_key: edgelet_settings::AZIOT_EDGED_CA_ALIAS.to_string(),
                 edge_ca_auto_renew: None,
+                edge_ca_subject: aziot_certd_config::CertSubject::CommonName(
+                    "aziot-edge CA test-device".to_string(),
+                )
             },
             config
         );
@@ -373,6 +388,9 @@ mod tests {
             edge_ca_cert: Some("test-ca-cert".to_string()),
             edge_ca_key: Some("test-ca-key".to_string()),
             edge_ca_auto_renew: None,
+            edge_ca_subject: Some(aziot_certd_config::CertSubject::CommonName(
+                "aziot-edge CA test-device".to_string(),
+            )),
             trust_bundle: Some("test-trust-bundle".to_string()),
             manifest_trust_bundle: Some("test-manifest-trust-bundle".to_string()),
             dps_trust_bundle: "test-dps-trust-bundle".to_string(),
@@ -392,6 +410,9 @@ mod tests {
                 edge_ca_cert: "test-ca-cert".to_string(),
                 edge_ca_key: "test-ca-key".to_string(),
                 edge_ca_auto_renew: None,
+                edge_ca_subject: aziot_certd_config::CertSubject::CommonName(
+                    "aziot-edge CA test-device".to_string(),
+                )
             },
             config
         );

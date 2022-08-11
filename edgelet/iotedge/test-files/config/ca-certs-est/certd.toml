@@ -11,7 +11,6 @@ identity_cert = "est-id-aziot-edged-ca"
 identity_pk = "est-id-aziot-edged-ca"
 bootstrap_identity_cert = "est-bootstrap-id-aziot-edged-ca"
 bootstrap_identity_pk = "est-bootstrap-id-aziot-edged-ca"
-common_name = "aziot-edge CA my-device"
 
 [cert_issuance.aziot-edged-ca-temp]
 method = "est"
@@ -22,7 +21,6 @@ identity_cert = "est-id-aziot-edged-ca"
 identity_pk = "est-id-aziot-edged-ca"
 bootstrap_identity_cert = "est-bootstrap-id-aziot-edged-ca"
 bootstrap_identity_pk = "est-bootstrap-id-aziot-edged-ca"
-common_name = "aziot-edge CA my-device"
 
 [preloaded_certs]
 aziot-edged-trust-bundle = ["aziot-edged-ca", "trust-bundle-user"]

@@ -42,6 +42,7 @@ To reconfigure IoT Edge, run:
 
         imported_master_encryption_key: None,
 
+        #[cfg(contenttrust)]
         manifest_trust_bundle_cert: None,
 
         additional_info: None,
@@ -76,6 +77,8 @@ To reconfigure IoT Edge, run:
             cert_issuance: Default::default(),
 
             preloaded_certs: Default::default(),
+
+            tpm: Default::default(),
 
             endpoints: Default::default(),
         },

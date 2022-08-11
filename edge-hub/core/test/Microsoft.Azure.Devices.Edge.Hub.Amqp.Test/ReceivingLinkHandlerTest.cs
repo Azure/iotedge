@@ -66,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             IConnectionHandler connectionHandler,
             IMessageConverter<AmqpMessage> messageConverter,
             IMetadataStore metadataStore)
-            : base(identity, link, requestUri, boundVariables, connectionHandler, messageConverter, metadataStore)
+            : base(identity, link, requestUri, boundVariables, connectionHandler, messageConverter, metadataStore, false)
         {
         }
 

@@ -82,7 +82,14 @@ impl CertApi {
             .map_err(|_| edgelet_http::error::server_error("failed to generate csr keys"))?;
         let private_key = key_to_pem(&keys.0);
 
-        let csr = new_csr(common_name, keys, subject_alt_names, extensions)
+        let mut subject = openssl::x509::X509Name::builder()
+            .map_err(|_| edgelet_http::error::server_error("failed to generate csr subject"))?;
+        subject
+            .append_entry_by_nid(openssl::nid::Nid::COMMONNAME, &common_name)
+            .map_err(|_| edgelet_http::error::server_error("failed to generate csr subject"))?;
+        let subject = subject.build();
+
+        let csr = new_csr(&subject, keys, subject_alt_names, extensions)
             .map_err(|_| edgelet_http::error::server_error("failed to generate csr"))?;
         let csr = csr
             .to_pem()
@@ -121,12 +128,21 @@ impl CertApi {
     ) -> Result<hyper::Response<hyper::Body>, http_common::server::Error> {
         let (identity_cert, identity_private_key) = self.get_dps_credentials().await?;
 
-        let registration_id = {
+        let subject = {
             if let ProvisioningInfo::Dps {
                 registration_id, ..
             } = &policy
             {
-                registration_id.to_string()
+                let mut subject = openssl::x509::X509Name::builder().map_err(|_| {
+                    edgelet_http::error::server_error("failed to generate csr subject")
+                })?;
+                subject
+                    .append_entry_by_nid(openssl::nid::Nid::COMMONNAME, registration_id)
+                    .map_err(|_| {
+                        edgelet_http::error::server_error("failed to generate csr subject")
+                    })?;
+
+                subject.build()
             } else {
                 // This function is only called after DPS policy is checked.
                 unreachable!()
@@ -142,7 +158,7 @@ impl CertApi {
 
         // DPS sets the certificate extensions and SANs. Therefore, these fields do not need
         // to be in the CSR.
-        let csr = new_csr(registration_id, keys, subject_alt_names, extensions)
+        let csr = new_csr(&subject, keys, subject_alt_names, extensions)
             .map_err(|_| edgelet_http::error::server_error("failed to generate csr"))?;
 
         let dps_request = aziot_cloud_client_async::dps::IssueCert::new(
@@ -216,7 +232,7 @@ impl CertApi {
                 })?;
 
             let (private_key, _) = crate::edge_ca::keys(self.key_connector.clone(), &key_handle)
-                .map_err(|err| edgelet_http::error::server_error(err))?;
+                .map_err(edgelet_http::error::server_error)?;
 
             private_key
         };
@@ -242,7 +258,7 @@ impl CertApi {
 }
 
 pub(crate) fn new_csr(
-    common_name: String,
+    subject: &openssl::x509::X509NameRef,
     keys: (
         openssl::pkey::PKey<openssl::pkey::Private>,
         openssl::pkey::PKey<openssl::pkey::Public>,
@@ -255,11 +271,7 @@ pub(crate) fn new_csr(
 
     let mut csr = openssl::x509::X509Req::builder()?;
     csr.set_version(0)?;
-
-    let mut subject_name = openssl::x509::X509Name::builder()?;
-    subject_name.append_entry_by_text("CN", &common_name)?;
-    let subject_name = subject_name.build();
-    csr.set_subject_name(&subject_name)?;
+    csr.set_subject_name(subject)?;
 
     csr.set_pubkey(&public_key)?;
 

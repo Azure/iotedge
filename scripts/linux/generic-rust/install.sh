@@ -88,38 +88,3 @@ sudo apt-get install -y \
     debhelper \
     dh-systemd \
     valgrind
-
-# TODO: Update ARM_PACKAGE block for Ubuntu 18.04
-if [[ -n "$ARM_PACKAGE" ]]; then
-    # armhf cross tools for packaging
-    # These packages need to be pinned to a specific version to make
-    # the package dependent on the lowest version of glibc possible
-
-    # Add trusty repo to get older version of libc6-armhf-cross
-    sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty main universe"
-
-    sudo apt-get update || :
-    sudo apt-get install -y \
-        binutils-arm-linux-gnueabihf=2.24-2ubuntu3cross1.98 \
-        libsfasan0-armhf-cross=4.8.2-16ubuntu4cross0.11 \
-        libsfgcc-4.8-dev-armhf-cross=4.8.2-16ubuntu4cross0.11 \
-        libasan0-armhf-cross=4.8.2-16ubuntu4cross0.11 \
-        libatomic1-armhf-cross=4.8.2-16ubuntu4cross0.11 \
-        libgomp1-armhf-cross=4.8.2-16ubuntu4cross0.11 \
-        libgcc1-armhf-cross=1:4.8.2-16ubuntu4cross0.11 \
-        gcc-4.8-arm-linux-gnueabihf-base=4.8.2-16ubuntu4cross0.11 \
-        libgcc-4.8-dev-armhf-cross=4.8.2-16ubuntu4cross0.11 \
-        cpp-4.8-arm-linux-gnueabihf=4.8.2-16ubuntu4cross0.11 \
-        gcc-4.8-arm-linux-gnueabihf=4.8.2-16ubuntu4cross0.11 \
-        gcc-4.8-multilib-arm-linux-gnueabihf=4.8.2-16ubuntu4cross0.11 \
-        libc6-armhf-cross=2.19-0ubuntu2cross1.104 \
-        gcc-arm-linux-gnueabihf=4:4.8.2-1 \
-        binutils-aarch64-linux-gnu
-
-    # For future reference:
-    # ubuntu systems (host) sets openssl library version to 1.0.0,
-    # Debian (Jessie) systems (target) expects library version to be 1.0.0.
-    # Debian (Stretch and later) systems (target) expects 1.0 library version to be 1.0.2.
-
-    ${PROJECT_ROOT}/build/linux/copy-arm-libs.sh
-fi

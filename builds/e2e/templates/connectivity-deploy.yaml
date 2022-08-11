@@ -20,7 +20,6 @@ parameters:
   logAnalyticsWorkspaceId: ''
   logAnalyticsSharedKey: ''
   testResultCoordinator.logAnalyticsLogType: ''
-  testResultCoordinator.verificationDelay: ''
   testResultCoordinator.storageAccountConnectionString: ''
   metricsCollector.metricsEndpointsCSV: ''
   metricsCollector.scrapeFrequencyInSecs: ''
@@ -122,13 +121,11 @@ steps:
           -eventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" \
           -upstreamProtocol "${{ parameters['upstream.protocol'] }}" \
           -testDuration "${{ parameters['testDuration'] }}" \
-          -testStartDelay "${{ parameters['testStartDelay'] }}" \
           -networkControllerFrequency "${{ parameters['networkController.frequencies'] }}" \
           -networkControllerRunProfile "${{ parameters['networkController.runProfile'] }}" \
           -logAnalyticsWorkspaceId "${{ parameters['logAnalyticsWorkspaceId'] }}" \
           -logAnalyticsSharedKey "${{ parameters['logAnalyticsSharedKey'] }}" \
           -logAnalyticsLogType "${{ parameters['testResultCoordinator.logAnalyticsLogType'] }}" \
-          -verificationDelay "${{ parameters['testResultCoordinator.verificationDelay'] }}" \
           -metricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" \
           -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
           -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \

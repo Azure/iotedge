@@ -657,7 +657,17 @@ definitions:
         type: string
       version:
         type: string
-      serverVersion: # for compatibility
+      provisioning:
+        type: '#/definitions/Provisioning'
+      server_version:
+        type: string
+      kernel_version:
+        type: string
+      operating_system:
+        type: string
+      cpus:
+        type: integer
+      virtualized:
         type: string
     additionalProperties:
       type: string

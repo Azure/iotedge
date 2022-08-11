@@ -6,7 +6,7 @@
 usage()
 {
     echo "$SCRIPT_NAME [options]"
-    echo "This script is used for building a few rust components (i.e. broker, edge hub watchdog)."
+    echo "This script is used for building a few rust components (e.g., api proxy module)."
     echo "The logic here is similar to the edgelet packaging."
     echo ""
     echo "options"
@@ -218,6 +218,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         TARGET=armv7-unknown-linux-musleabihf && \
         OPENSSL_ARCH=linux-generic32 && \
         RUST_MUSL_CROSS_TARGET=$TARGET && \
+        export DEBIAN_FRONTEND=noninteractive && \
 
         apt-get update && \
         apt-get install -y \
@@ -263,8 +264,8 @@ cd /tmp && \
     export CC=$TARGET_CC && \
     export C_INCLUDE_PATH=$TARGET_C_INCLUDE_PATH && \
     echo "Building zlib" && \
-    VERS=1.2.11 && \
-    CHECKSUM=c3e5e9fdd5004dcb542feda5ee4f0ff0744628baf8ed2dd5d66f8ca1197cb1a1 && \
+    VERS=1.2.12 && \
+    CHECKSUM=91844808532e5ce316b3c010929493c0244f3d37593afd6de04f71821d5136d9 && \
     cd /home/rust/libs && \
     curl -sqLO https://zlib.net/zlib-$VERS.tar.gz && \
     echo "$CHECKSUM zlib-$VERS.tar.gz" > checksums.txt && \

@@ -125,27 +125,20 @@ impl cert_renewal::CertInterface for EdgeCaRenewal {
         let keys = keys(self.key_connector.clone(), &key_handle)
             .map_err(cert_renewal::Error::retryable_error)?;
 
-        // Determine the subject of the old cert. This will be the subject of the new cert.
-        let subject = if let Some(subject) = old_cert_chain[0]
-            .subject_name()
-            .entries_by_nid(openssl::nid::Nid::COMMONNAME)
-            .next()
-        {
-            String::from_utf8(subject.data().as_slice().into())
-                .map_err(|_| cert_renewal::Error::fatal_error("bad cert subject"))?
-        } else {
-            return Err(cert_renewal::Error::fatal_error(
-                "cannot determine subject for csr",
-            ));
-        };
-
         // Generate a CSR and issue the new cert under a temporary cert ID.
         let extensions = extensions().map_err(|_| {
             cert_renewal::Error::fatal_error("failed to generate edge CA extensions")
         })?;
 
-        let csr = crate::module::cert::new_csr(subject, keys, Vec::new(), extensions)
-            .map_err(|_| cert_renewal::Error::retryable_error("failed to create csr"))?;
+        // The new cert will have the same subject as the old cert.
+        let csr = crate::module::cert::new_csr(
+            old_cert_chain[0].subject_name(),
+            keys,
+            Vec::new(),
+            extensions,
+        )
+        .map_err(|_| cert_renewal::Error::retryable_error("failed to create csr"))?;
+
         let csr = csr
             .to_pem()
             .map_err(|_| cert_renewal::Error::retryable_error("failed to create csr"))?;

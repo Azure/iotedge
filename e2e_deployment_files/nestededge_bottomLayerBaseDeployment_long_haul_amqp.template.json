@@ -43,9 +43,6 @@
             "env": {
               "RuntimeLogLevel": {
                 "value": "Debug"
-              },
-              "SslProtocols": {
-                "value": "tls1.2"
               }
             },
             "settings": {

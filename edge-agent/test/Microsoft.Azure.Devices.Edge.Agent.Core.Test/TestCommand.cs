@@ -73,44 +73,41 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
         public Task<ICommand> CreateAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
         {
-            Assert.True(module.Module is TestModule);
             return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestCreate, module.Module, this.Recorder));
+        }
+
+        public Task<ICommand> PrepareUpdateAsync(IModule module, IRuntimeInfo runtimeInfo)
+        {
+            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestPrepareUpdate, module, this.Recorder));
         }
 
         public Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo)
         {
-            Assert.True(current is TestModule);
-            Assert.True(next.Module is TestModule);
             return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestUpdate, next.Module, this.Recorder));
         }
 
         public Task<ICommand> UpdateEdgeAgentAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
         {
-            Assert.True(module.Module is TestModule);
             return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestUpdateEdgeAgent, module.Module, this.Recorder));
         }
 
         public Task<ICommand> RemoveAsync(IModule module)
         {
-            Assert.True(module is TestModule);
             return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestRemove, module, this.Recorder));
         }
 
         public Task<ICommand> StartAsync(IModule module)
         {
-            Assert.True(module is TestModule);
             return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestStart, module, this.Recorder));
         }
 
         public Task<ICommand> StopAsync(IModule module)
         {
-            Assert.True(module is TestModule);
             return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestStop, module, this.Recorder));
         }
 
         public Task<ICommand> RestartAsync(IModule module)
         {
-            Assert.True(module is TestModule);
             return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestRestart, module, this.Recorder));
         }
 
@@ -132,44 +129,41 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
         public Task<ICommand> CreateAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
         {
-            Assert.True(module.Module is TestModule);
             return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestCreate, module.Module, this.Recorder, true));
+        }
+
+        public Task<ICommand> PrepareUpdateAsync(IModule module, IRuntimeInfo runtimeInfo)
+        {
+            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestPrepareUpdate, module, this.Recorder, true));
         }
 
         public Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo)
         {
-            Assert.True(current is TestModule);
-            Assert.True(next.Module is TestModule);
             return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestUpdate, next.Module, this.Recorder, true));
         }
 
         public Task<ICommand> UpdateEdgeAgentAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
         {
-            Assert.True(module.Module is TestModule);
             return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestUpdateEdgeAgent, module.Module, this.Recorder, true));
         }
 
         public Task<ICommand> RemoveAsync(IModule module)
         {
-            Assert.True(module is TestModule);
             return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestRemove, module, this.Recorder, true));
         }
 
         public Task<ICommand> StartAsync(IModule module)
         {
-            Assert.True(module is TestModule);
             return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestStart, module, this.Recorder, true));
         }
 
         public Task<ICommand> StopAsync(IModule module)
         {
-            Assert.True(module is TestModule);
             return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestStop, module, this.Recorder, true));
         }
 
         public Task<ICommand> RestartAsync(IModule module)
         {
-            Assert.True(module is TestModule);
             return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestRestart, module, this.Recorder, true));
         }
 

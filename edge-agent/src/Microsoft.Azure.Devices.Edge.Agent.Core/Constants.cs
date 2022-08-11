@@ -43,8 +43,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string EdgeModuleHubServerCertificateFileKey = "EdgeModuleHubServerCertificateFile";
 
-        public const string CheckImagePullBeforeModuleCreate = "CheckImagePullBeforeModuleCreate";
-
         public const string Unknown = "Unknown";
 
         public const string UpstreamProtocolKey = "UpstreamProtocol";
@@ -83,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string NetworkIdKey = "NetworkId";
 
-        public const string EdgeletClientApiVersion = "2021-12-07";
+        public const string EdgeletClientApiVersion = "2022-08-03";
 
         public const string EdgeletInitializationVectorFileName = "IOTEDGE_BACKUP_IV";
 
