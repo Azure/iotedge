@@ -52,18 +52,12 @@ pub(crate) async fn image_garbage_collect(
     loop {
         if bootstrap_image_id_option.is_none() {
             // bootstrap edge agent image should never be deleted
-            let _bootstrap_image_id =
-                match get_bootstrap_image_id(runtime, edge_agent_bootstrap.clone()).await {
-                    Ok(id) => {
-                        log::info!("Bootstrap EdgeAgent {} has ID {}", edge_agent_bootstrap, id);
-                        bootstrap_image_id_option = Some(id.clone());
-                        id
-                    }
-                    Err(_) => {
-                        log::error!("Could not get bootstrap image id");
-                        String::default()
-                    }
-                };
+            if let Ok(id) = get_bootstrap_image_id(runtime, edge_agent_bootstrap.clone()).await {
+                log::info!("Bootstrap EdgeAgent {} has ID {}", edge_agent_bootstrap, id);
+                bootstrap_image_id_option = Some(id.clone());
+            } else {
+                log::error!("Could not get bootstrap image id");
+            }
         }
 
         if let Err(err) = remove_unused_images(
@@ -93,7 +87,7 @@ async fn remove_unused_images(
     image_use_data: ImagePruneData,
     bootstrap_image_id_option: Option<String>,
 ) -> Result<(), EdgedError> {
-    log::info!("Image Garbage Collection starting daily run");
+    log::info!("Image Garbage Collection starting scheduled run");
 
     let bootstrap_img_id = match bootstrap_image_id_option.clone() {
         Some(id) => id,
