@@ -31,7 +31,7 @@ steps:
       .channels[] | .products[] as { $components, $types } |
         parse_components($components) as { $name, $version } |
         parse_types($types) as { $os, $arch } |
-        @text "$(registry)\($name):\($version)-\($os)-\($arch)"
+        @text "$(registry)/\($name):\($version)-\($os)-\($arch)"
     ') )
 
     for image in ${images[@]}
