@@ -1,50 +1,13 @@
 trigger: none
 pr: none
 
-# TODO: The list of published images should come from the Azure/azure-iotedge repo (e.g., latest-iotedge-lts.json
-# or latest-aziot-edge.json), not from mutable pipeline parameters.
-parameters:
-- name: published_images
-  type: object
-  default:
-  - name: azureiotedge-agent
-    version: 1.3.0
-    os: linux
-    arch:
-    - amd64
-    - arm32v7
-    - arm64v8
-  - name: azureiotedge-hub
-    version: 1.3.0
-    os: linux
-    arch:
-    - amd64
-    - arm32v7
-    - arm64v8
-  - name: azureiotedge-simulated-temperature-sensor
-    version: 1.3.0
-    os: linux
-    arch:
-    - amd64
-    - arm32v7
-    - arm64v8
-  - name: azureiotedge-diagnostics
-    version: 1.3.0
-    os: linux
-    arch:
-    - amd64
-    - arm32v7
-    - arm64v8
-  ## azureiotedge-api-proxy hasn't been published since we started including buildinfo attributes
-  ## in our Docker images. Once we have an image on mcr.microsoft.com that includes the buildinfo
-  ## attributes, we can uncomment the following entry.
-  # - name: azureiotedge-api-proxy
-  #   version: 1.1.3
-  #   os: linux
-  #   arch:
-  #   - amd64
-  #   - arm32v7
-  #   - arm64v8
+resources:
+  repositories:
+  - repository: azure-iotedge
+    type: github
+    endpoint: Azure/azure-iotedge
+    name: Azure/azure-iotedge
+    ref: refs/pull/101/head # TODO: Remove PR ref once it is merged
 
 variables:
   NugetSecurityAnalysisWarningLevel: warn
@@ -60,8 +23,13 @@ steps:
 - script: |
     needs_update=( )
 
-    images=( $(echo $PUBLISHED_IMAGES | jq -r '
-      .[] as $image | $image.arch[] | @text "$(registry)/\($image.name):\($image.version)-\($image.os)-\(.)"
+    images=( $(cat product-versions.json | jq -r '
+      def parse_components(c): c[] | select(has("type")) | select(.type == "dockerImage") | { name, version };
+      def parse_types(t): t[] | select(.name == "dockerImage") | .platforms[] | .os as $os | .arch[] | { os: $os, arch: . };
+      .channels[] | .products[] as { $components, $types } |
+        parse_components($components) as { $name, $version } |
+        parse_types($types) as { $os, $arch } |
+        @text "\($name):\($version)-\($os)-\($arch)"
     ') )
 
     for image in ${images[@]}
