@@ -20,6 +20,8 @@ pool:
   - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
 
 steps:
+- checkout: azure-iotedge
+
 - script: |
     needs_update=( )
 
