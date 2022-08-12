@@ -58,8 +58,6 @@ steps:
     printf '  %s\n' "${needs_update[@]}"
     printf '%s\n' "${needs_update[@]}" > $(Build.ArtifactStagingDirectory)/updates.txt
   displayName: Detect base image updates
-  env:
-    PUBLISHED_IMAGES: ${{ convertToJson(parameters.published_images) }}
 
 - task: PublishBuildArtifacts@1
   displayName: Save list of images to update
