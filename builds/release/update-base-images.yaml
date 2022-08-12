@@ -45,6 +45,12 @@ steps:
         jq -r '@text "\(.sources[0].ref) \(.sources[0].pin)"'
       )
 
+      if [ "$base_image" == 'null' ]
+      then
+        echo "'$image' does not contain Docker BuildInfo metadata. Skipping..."
+        continue
+      fi
+
       latest_digest="sha256:$(docker buildx imagetools inspect --raw $base_image | shasum --algorithm 256 | awk '{print$1}')"
 
       echo -e "  base:\t\t$base_image\n  current:\t$current_digest\n  latest:\t$latest_digest"
