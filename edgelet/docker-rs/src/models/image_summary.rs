@@ -15,43 +15,13 @@ use serde_json::Value;
 pub struct ImageSummary {
     #[serde(rename = "Id")]
     id: String,
-    #[serde(rename = "ParentId")]
-    parent_id: String,
     #[serde(rename = "RepoTags")]
     repo_tags: Vec<String>,
-    #[serde(rename = "Created")]
-    created: i32,
-    #[serde(rename = "Size")]
-    size: i32,
-    #[serde(rename = "SharedSize")]
-    shared_size: i32,
-    #[serde(rename = "VirtualSize")]
-    virtual_size: i32,
-    #[serde(rename = "Containers")]
-    containers: i32,
 }
 
 impl ImageSummary {
-    pub fn new(
-        id: String,
-        parent_id: String,
-        repo_tags: Vec<String>,
-        created: i32,
-        size: i32,
-        shared_size: i32,
-        virtual_size: i32,
-        containers: i32,
-    ) -> Self {
-        ImageSummary {
-            id,
-            parent_id,
-            repo_tags,
-            created,
-            size,
-            shared_size,
-            virtual_size,
-            containers,
-        }
+    pub fn new(id: String, repo_tags: Vec<String>) -> Self {
+        ImageSummary { id, repo_tags }
     }
 
     pub fn set_id(&mut self, id: String) {
@@ -67,19 +37,6 @@ impl ImageSummary {
         &self.id
     }
 
-    pub fn set_parent_id(&mut self, parent_id: String) {
-        self.parent_id = parent_id;
-    }
-
-    pub fn with_parent_id(mut self, parent_id: String) -> Self {
-        self.parent_id = parent_id;
-        self
-    }
-
-    pub fn parent_id(&self) -> &String {
-        &self.parent_id
-    }
-
     pub fn set_repo_tags(&mut self, repo_tags: Vec<String>) {
         self.repo_tags = repo_tags;
     }
@@ -91,70 +48,5 @@ impl ImageSummary {
 
     pub fn repo_tags(&self) -> &[String] {
         &self.repo_tags
-    }
-
-    pub fn set_created(&mut self, created: i32) {
-        self.created = created;
-    }
-
-    pub fn with_created(mut self, created: i32) -> Self {
-        self.created = created;
-        self
-    }
-
-    pub fn created(&self) -> &i32 {
-        &self.created
-    }
-
-    pub fn set_size(&mut self, size: i32) {
-        self.size = size;
-    }
-
-    pub fn with_size(mut self, size: i32) -> Self {
-        self.size = size;
-        self
-    }
-
-    pub fn size(&self) -> &i32 {
-        &self.size
-    }
-
-    pub fn set_shared_size(&mut self, shared_size: i32) {
-        self.shared_size = shared_size;
-    }
-
-    pub fn with_shared_size(mut self, shared_size: i32) -> Self {
-        self.shared_size = shared_size;
-        self
-    }
-
-    pub fn shared_size(&self) -> &i32 {
-        &self.shared_size
-    }
-
-    pub fn set_virtual_size(&mut self, virtual_size: i32) {
-        self.virtual_size = virtual_size;
-    }
-
-    pub fn with_virtual_size(mut self, virtual_size: i32) -> Self {
-        self.virtual_size = virtual_size;
-        self
-    }
-
-    pub fn virtual_size(&self) -> &i32 {
-        &self.virtual_size
-    }
-
-    pub fn set_containers(&mut self, containers: i32) {
-        self.containers = containers;
-    }
-
-    pub fn with_containers(mut self, containers: i32) -> Self {
-        self.containers = containers;
-        self
-    }
-
-    pub fn containers(&self) -> &i32 {
-        &self.containers
     }
 }
