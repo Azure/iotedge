@@ -178,9 +178,9 @@ async fn run() -> Result<(), EdgedError> {
             shutdown_reason = watchdog_finished?;
         },
         image_gc_finished = image_gc => {
-            log::error!("image auto-prune stopped unexpectedly");
+            log::error!("image garbage collection stopped unexpectedly");
             image_gc_finished?;
-            return Err(EdgedError::new("image auto-prune unexpectedly stopped"));
+            return Err(EdgedError::new("image garbage collection unexpectedly stopped"));
         }
     };
 

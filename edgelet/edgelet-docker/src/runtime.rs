@@ -124,7 +124,7 @@ where
                     let image_id = match image_name_to_id.get(config.image()) {
                         Some(imageid) => imageid,
                         None => {
-                            log::warn!("{} was not added to image auto-prune list and may will not be garbage collected", image);
+                            log::warn!("{} was not added to image garbage collection list and may will not be garbage collected", image);
                             ""
                         }
                     };
@@ -147,7 +147,7 @@ where
         })?;
 
         self.client
-            .image_delete(name, false, false)
+            .image_delete(name, true, false)
             .await
             .context(Error::Docker)
             .map_err(|e| {

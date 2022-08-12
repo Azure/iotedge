@@ -49,7 +49,7 @@ impl ImagePruneData {
             .ok_or_else(|| Error::FilepathCreationError(IMAGE_USE_FILENAME.into()))?;
         let tmp_filepath = tmp_fp
             .to_str()
-            .ok_or_else(|| Error::FilepathCreationError(IMAGE_USE_FILENAME.into()))?;
+            .ok_or_else(|| Error::FilepathCreationError(TMP_FILENAME.into()))?;
 
         Ok(Self {
             inner: Arc::new(Mutex::new(ImagePruneInner {
@@ -76,8 +76,8 @@ impl ImagePruneData {
             Ok(map) => map,
             Err(e) => {
                 drop(guard);
-                log::warn!("Could not read auto-prune data. Image garbage collection did not prune any images. Error: {}", e);
-                return Ok(());
+                log::warn!("Could not read image garbage collection data.Latest time of use will not be updated for image: {}. Error: {}", image_id, e);
+                return Err(e);
             }
         };
 
@@ -113,11 +113,6 @@ impl ImagePruneData {
 
         let settings = guard.settings.clone();
 
-        // if pruning is disabled then shouldn't remove anything
-        if !settings.is_enabled() {
-            return Ok(HashMap::new());
-        }
-
         // Read persistence file into in-mem map. This map now contains
         // all images deployed to the device (through an IoT Edge deployment).
         // If persistence file cannot be read we will return a new map so
@@ -126,7 +121,7 @@ impl ImagePruneData {
             Ok(map) => map,
             Err(e) => {
                 drop(guard);
-                log::warn!("Could not read image auto-prune data. Image garbage collection will not prune any images. {}", e);
+                log::warn!("Could not read image garbage collection data. Image garbage collection will not prune any images. {}", e);
                 return Ok(HashMap::new());
             }
         };
@@ -226,7 +221,7 @@ fn write_images_with_timestamp(
         Ok(_) => {}
         Err(err) => {
             return Err(Error::FileOperation(format!(
-                "Could not update auto-prune data {}",
+                "Could not update garbage collection data {}",
                 err
             )))
         }
@@ -428,13 +423,13 @@ mod tests {
         );
 
         let curr_time: String = format!("{}{}", Utc::now().hour(), Utc::now().minute());
-        let mut settings = ImagePruneSettings::new(
+        let settings = ImagePruneSettings::new(
             Duration::from_secs(30),
             Duration::from_secs(5),
             curr_time,
-            false,
+            true,
         );
-        let mut image_use_data = ImagePruneData::new(&test_file_dir, Some(settings)).unwrap();
+        let image_use_data = ImagePruneData::new(&test_file_dir, Some(settings)).unwrap();
 
         let mut in_use_image_ids: HashSet<String> = HashSet::new();
         in_use_image_ids.insert(
@@ -452,23 +447,8 @@ mod tests {
 
         unsafe { sleep(6) };
 
-        // image prune disable... don't remove stuff
-        let mut images_to_delete = image_use_data
-            .prune_images_from_file(in_use_image_ids.clone())
-            .unwrap();
-        assert!(images_to_delete.is_empty());
-
         // image prune enabled, remove stuff
-        let curr_time: String = format!("{}{}", Utc::now().hour(), Utc::now().minute());
-        settings = ImagePruneSettings::new(
-            Duration::from_secs(30),
-            Duration::from_secs(5),
-            curr_time,
-            true,
-        );
-        image_use_data = ImagePruneData::new(&test_file_dir, Some(settings)).unwrap();
-
-        images_to_delete = image_use_data
+        let images_to_delete = image_use_data
             .prune_images_from_file(in_use_image_ids)
             .unwrap();
         assert!(images_to_delete.len() == 2);

@@ -66,19 +66,21 @@ pub(crate) async fn image_garbage_collect(
             }
         }
 
-        if let Err(err) = remove_unused_images(
-            runtime,
-            image_use_data.clone(),
-            bootstrap_image_id_option.clone(),
-            is_bootstrap_image_deleted,
-        )
-        .await
-        {
-            return Err(EdgedError::new(format!(
-                "Error in image auto-pruning task: {}",
-                err
-            )));
-        };
+        if settings.is_enabled() {
+            if let Err(err) = remove_unused_images(
+                runtime,
+                image_use_data.clone(),
+                bootstrap_image_id_option.clone(),
+                is_bootstrap_image_deleted,
+            )
+            .await
+            {
+                return Err(EdgedError::new(format!(
+                    "Error in image auto-pruning task: {}",
+                    err
+                )));
+            };
+        }
 
         // sleep till it's time to wake up based on recurrence (and on current time post-last-execution to avoid time drift)
         let delay = settings.cleanup_recurrence()
