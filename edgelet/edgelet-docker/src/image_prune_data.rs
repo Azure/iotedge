@@ -101,6 +101,7 @@ impl ImagePruneData {
 
     /// This method is called during image garbage collection. It returns a map of images that
     /// will be deleted by the image garbage collector.
+    /// The `in_use_image_ids` is a set of image IDs currently being used on the device.
     pub fn prune_images_from_file(
         &self,
         in_use_image_ids: HashSet<String>,
@@ -125,7 +126,7 @@ impl ImagePruneData {
             Ok(map) => map,
             Err(e) => {
                 drop(guard);
-                log::warn!("Could not read image auto-prune data. Image garbage collection did not prune any images. {}", e);
+                log::warn!("Could not read image auto-prune data. Image garbage collection will not prune any images. {}", e);
                 return Ok(HashMap::new());
             }
         };
@@ -234,6 +235,11 @@ fn write_images_with_timestamp(
     Ok(())
 }
 
+// This method separates out the images to be deleted from the images not to be deleted,
+// and return those as a tuple.
+// It takes as input all the images present on the device and the images currently in-use,
+// along with the minimum "age" for which the images can stay unused. Any images older
+// than this minim age are marked for deletion.
 type HashMapTuple = (HashMap<String, Duration>, HashMap<String, Duration>);
 fn process_state(
     mut image_map: HashMap<String, Duration>,
@@ -494,7 +500,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_file_rename_write_images_with_timestamp() {
+    fn test_file_rename_succeeds() {
         //setup
         let test_file_dir = std::env::current_dir().unwrap().join(TEST_FILE_DIR);
         if test_file_dir.is_dir() {

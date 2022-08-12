@@ -134,18 +134,18 @@ async fn remove_unused_images(
         }
     };
 
-    let image_map = image_use_data
-        .prune_images_from_file(in_use_image_ids)
-        .map_err(|e| {
-            EdgedError::from_err(
-                "Image garbage collection failed to prune images from file.",
-                e,
-            )
-        })?;
-
     if bootstrap_image_id_option.is_some()
         || (bootstrap_image_id_option.is_none() && is_bootstrap_image_deleted)
     {
+        let image_map = image_use_data
+            .prune_images_from_file(in_use_image_ids)
+            .map_err(|e| {
+                EdgedError::from_err(
+                    "Image garbage collection failed to prune images from file.",
+                    e,
+                )
+            })?;
+
         // delete images
         for key in image_map.keys() {
             if let Err(e) = ModuleRegistry::remove(runtime, key).await {
