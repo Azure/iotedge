@@ -4,6 +4,7 @@
 #![warn(clippy::all, clippy::pedantic)]
 
 mod error;
+mod image_gc;
 mod management;
 mod provision;
 mod watchdog;
@@ -145,11 +146,17 @@ async fn run() -> Result<(), EdgedError> {
     // Set signal handlers for SIGTERM and SIGINT.
     set_signal_handlers(watchdog_tx);
 
-    // Run aziot-edged until the shutdown signal is received. This also runs the watchdog periodically.
+    if settings.image_garbage_collection().is_enabled() {
+        tokio::spawn(image_gc::image_garbage_collect(
+            settings.clone(),
+            runtime.clone(),
+        ));
+    }
+
     let shutdown_reason = watchdog::run_until_shutdown(
-        settings,
+        settings.clone(),
         &device_info,
-        runtime,
+        runtime.clone(),
         &identity_client,
         watchdog_rx,
     )

@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use edgelet_core::{Module, ModuleRuntime};
+use edgelet_core::{Module, ModuleRegistry, ModuleRuntime};
 use edgelet_settings::RuntimeSettings;
 
 use crate::error::Error as EdgedError;
@@ -202,9 +202,25 @@ async fn create_and_start_agent(
     );
 
     if let edgelet_settings::module::ImagePullPolicy::OnCreate = agent_spec.image_pull_policy() {
-        edgelet_core::ModuleRegistry::pull(runtime.registry(), agent_spec.config())
+        let utc_now = std::time::SystemTime::now()
+            .duration_since(std::time::SystemTime::UNIX_EPOCH)
+            .expect("1970-01-01 is in the past");
+        let filter_string = crate::image_gc::make_filter(true, utc_now.as_secs());
+
+        runtime
+            .registry()
+            .pull(agent_spec.config())
             .await
-            .map_err(|err| EdgedError::from_err("Failed to pull Edge runtime module", err))?;
+            .map_err(|err| EdgedError::from_err("Failed to pull Edge runtime image", err))?;
+
+        runtime.registry()
+            .pin(agent_spec.config().image(), crate::image_gc::BOOTSTRAP_LABEL)
+            .await
+            .map_err(|err| EdgedError::from_err("Failed to pin Edge runtime image", err))?;
+
+        if let Err(e) = runtime.registry().prune(&filter_string).await {
+            log::warn!("Failed to prune old bootstrap image pins: {}", e);
+        }
     }
 
     runtime

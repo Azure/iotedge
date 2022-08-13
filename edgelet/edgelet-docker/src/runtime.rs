@@ -519,6 +519,17 @@ where
             Error::RuntimeOperation(RuntimeOperation::RemoveModule(id.to_owned()))
         })?;
 
+        match self.client.container_inspect(id, false).await {
+            Ok(container) => if let Some(image) = container.image().as_ref() {
+                if let Err(e) = self.registry().pin(image, "$pin").await {
+                    log::warn!("Failed to record last use time of image for module {}: {}", id, e);
+                }
+            },
+            Err(e) => {
+                log::warn!("Failed to retrieve container {} for image pinning: {}", id, e);
+            }
+        }
+
         self.client
             .container_delete(
                 id, /* remove volumes */ false, /* force */ true,
@@ -527,7 +538,7 @@ where
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{:?}", e);
+                log::warn!("{}", e);
                 e
             })
             .with_context(|| {
@@ -539,7 +550,7 @@ where
             .send(ModuleAction::Remove(id.to_string()))
             .map_err(|_| {
                 log::error!(
-                    "Could not notify workload manager, remove of module: {}",
+                    "Could not notify workload manager of module removal: {}",
                     id
                 );
                 anyhow::anyhow!(Error::RuntimeOperation(RuntimeOperation::GetModule(
