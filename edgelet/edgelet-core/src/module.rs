@@ -253,8 +253,9 @@ pub trait Module {
 pub trait ModuleRegistry {
     type Config;
 
+    async fn pin(&self, target: &str, label: &str) -> anyhow::Result<()>;
+    async fn prune(&self, filters: &serde_json::Value) -> anyhow::Result<Vec<String>>;
     async fn pull(&self, config: &Self::Config) -> anyhow::Result<()>;
-    async fn remove(&self, name: &str) -> anyhow::Result<()>;
 }
 
 #[derive(Debug, PartialEq, Serialize)]
@@ -548,6 +549,8 @@ pub enum RuntimeOperation {
     GetModuleLogs(String),
     GetSupportBundle,
     Init,
+    PinImage,
+    PruneImages,
     ListModules,
     RemoveModule(String),
     RestartModule(String),
@@ -569,6 +572,8 @@ impl fmt::Display for RuntimeOperation {
             RuntimeOperation::GetSupportBundle => write!(f, "get support bundle"),
             RuntimeOperation::Init => write!(f, "initialize module runtime"),
             RuntimeOperation::ListModules => write!(f, "list modules"),
+            RuntimeOperation::PinImage => write!(f, "pin image"),
+            RuntimeOperation::PruneImages => write!(f, "prune images"),
             RuntimeOperation::RemoveModule(name) => write!(f, "remove module {:?}", name),
             RuntimeOperation::RestartModule(name) => write!(f, "restart module {:?}", name),
             RuntimeOperation::StartModule(name) => write!(f, "start module {:?}", name),

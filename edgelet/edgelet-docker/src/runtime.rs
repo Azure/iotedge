@@ -80,6 +80,62 @@ where
 {
     type Config = DockerConfig;
 
+    async fn pin(&self, target: &str, label: &str) -> anyhow::Result<()> {
+        const DOCKERFILE_PATH: &str = "Dockerfile";
+
+        log::info!("Pinning image {}...", target);
+
+        let label = serde_json::to_string(&serde_json::json!({
+            label: "1"
+        }))?;
+        log::debug!("Constructed image label: {}", label);
+
+        let build_context = {
+            let dockerfile_contents = format!("FROM {}", target).into_bytes();
+
+            let mut header = tar::Header::new_ustar();
+            header.set_path(DOCKERFILE_PATH)?;
+            header.set_size(u64::try_from(dockerfile_contents.len())?);
+            header.set_cksum();
+
+            let mut builder = tar::Builder::new(Vec::new());
+            builder.append(&header, &*dockerfile_contents)?;
+            builder.into_inner()?
+        };
+
+        self.client
+            .image_build(DOCKERFILE_PATH, true, false, true, &label, build_context)
+            .await
+            .context(Error::Docker)
+            .context(Error::RuntimeOperation(RuntimeOperation::PinImage))?;
+        log::info!("Successfully pinned image {}", target);
+
+        Ok(())
+    }
+
+    async fn prune(&self, filters: &serde_json::Value) -> anyhow::Result<Vec<String>> {
+        log::info!("Removing unused images...");
+
+        let filters_str = serde_json::to_string(filters)?;
+        log::debug!("Constructed filters: {}", filters_str);
+
+        let images = self
+            .client
+            .image_prune(&filters_str)
+            .await
+            .context(Error::Docker)
+            .context(Error::RuntimeOperation(RuntimeOperation::PruneImages))?;
+
+        log::info!("Successfully pruned images");
+        Ok(images
+            .images_deleted()
+            .into_iter()
+            .flatten()
+            .filter_map(docker::models::ImageDeleteResponseItem::deleted)
+            .map(ToOwned::to_owned)
+            .collect())
+    }
+
     async fn pull(&self, config: &Self::Config) -> anyhow::Result<()> {
         let image = config.image().to_owned();
         let is_content_trust_enabled = false;
@@ -113,29 +169,7 @@ where
             })?;
 
         log::info!("Successfully pulled image {}", image);
-        Ok(())
-    }
 
-    async fn remove(&self, name: &str) -> anyhow::Result<()> {
-        log::info!("Removing image {}...", name);
-
-        ensure_not_empty(name).with_context(|| {
-            Error::RegistryOperation(RegistryOperation::RemoveImage(name.to_string()))
-        })?;
-
-        self.client
-            .image_delete(name, false, false)
-            .await
-            .context(Error::Docker)
-            .map_err(|e| {
-                log::warn!("{:?}", e);
-                e
-            })
-            .with_context(|| {
-                Error::RegistryOperation(RegistryOperation::RemoveImage(name.to_string()))
-            })?;
-
-        log::info!("Successfully removed image {}", name);
         Ok(())
     }
 }
@@ -300,23 +334,15 @@ where
         );
 
         let image = module.config().image().to_owned();
-        let is_content_trust_enabled = false;
 
-        if is_content_trust_enabled {
-            log::info!("Creating image via digest {}...", &image);
-        } else {
-            log::info!("Creating image via tag {}...", &image);
-        }
+        log::info!("Creating image via tag {}...", &image);
 
         let create_options = module.config().create_options().clone();
         let merged_env = merge_env(create_options.env(), module.env());
 
         let mut labels = create_options.labels().cloned().unwrap_or_default();
         labels.insert(OWNER_LABEL_KEY.to_string(), OWNER_LABEL_VALUE.to_string());
-        labels.insert(
-            ORIGINAL_IMAGE_LABEL_KEY.to_string(),
-            module.config().image().to_string(),
-        );
+        labels.insert(ORIGINAL_IMAGE_LABEL_KEY.to_string(), image.clone());
 
         log::debug!("Creating container {} with image {}", module.name(), image);
 
@@ -720,7 +746,7 @@ where
         let mut remove = vec![];
 
         for module in &modules {
-            remove.push(ModuleRuntime::remove(self, module.name()));
+            remove.push(self.remove(module.name()));
         }
 
         for result in futures::future::join_all(remove).await {
