@@ -4,8 +4,6 @@ use edgelet_settings::uri::Listen;
 
 use crate::error::Error as EdgedError;
 
-const SOCKET_DEFAULT_PERMISSION: u32 = 0o660;
-
 pub(crate) async fn start<M>(
     settings: &impl edgelet_settings::RuntimeSettings,
     runtime: M,
@@ -30,7 +28,11 @@ where
 
     let socket_name = Listen::get_management_systemd_socket_name();
     let mut incoming = connector
-        .incoming(SOCKET_DEFAULT_PERMISSION, Some(socket_name))
+        .incoming(
+            http_common::SOCKET_DEFAULT_PERMISSION,
+            10,
+            Some(socket_name),
+        )
         .await
         .map_err(|err| EdgedError::from_err("Failed to listen on management socket", err))?;
 

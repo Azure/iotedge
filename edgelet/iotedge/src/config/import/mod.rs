@@ -383,6 +383,8 @@ fn execute_inner(
 
             cloud_retries: aziot_identityd_config::Settings::default_cloud_retries(),
 
+            aziot_max_requests: Default::default(),
+
             aziot_keys: Default::default(),
 
             preloaded_keys: Default::default(),
