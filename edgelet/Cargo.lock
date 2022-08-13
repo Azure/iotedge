@@ -754,6 +754,7 @@ dependencies = [
  "hyper",
  "nix",
  "serde",
+ "serde_json",
  "tokio",
 ]
 

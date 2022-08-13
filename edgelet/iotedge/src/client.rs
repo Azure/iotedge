@@ -199,11 +199,15 @@ impl Module for MgmtModule {
 impl ModuleRegistry for MgmtClient {
     type Config = MgmtConfig;
 
-    async fn pull(&self, _config: &Self::Config) -> anyhow::Result<()> {
+    async fn pin(&self, _target: &str, _label: &str) -> anyhow::Result<()> {
         Ok(())
     }
 
-    async fn remove(&self, _name: &str) -> anyhow::Result<()> {
+    async fn prune(&self, _filters: &serde_json::Value) -> anyhow::Result<Vec<String>> {
+        Ok(Vec::new())
+    }
+
+    async fn pull(&self, _config: &Self::Config) -> anyhow::Result<()> {
         Ok(())
     }
 }

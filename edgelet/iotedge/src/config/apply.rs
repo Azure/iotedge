@@ -191,6 +191,7 @@ async fn execute_inner(
         watchdog,
         edge_ca,
         moby_runtime,
+        image_garbage_collection,
     } = toml::from_slice(&config).map_err(|err| format!("could not parse config file: {}", err))?;
 
     let aziotctl_common::config::apply::RunOutput {
@@ -515,6 +516,8 @@ async fn execute_inner(
             listen,
 
             watchdog,
+
+            image_garbage_collection: image_garbage_collection.unwrap_or_default(),
 
             endpoints: Default::default(),
         },

@@ -55,6 +55,9 @@ pub struct Config {
 
     #[serde(default)]
     pub moby_runtime: MobyRuntime,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub image_garbage_collection: Option<edgelet_settings::base::image::ImagePruneSettings>,
 }
 
 pub fn default_agent() -> edgelet_settings::ModuleSpec<edgelet_settings::DockerConfig> {

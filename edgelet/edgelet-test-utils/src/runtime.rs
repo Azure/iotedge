@@ -43,7 +43,7 @@ impl edgelet_core::Module for Module {
     }
 }
 
-pub struct ModuleRegistry {}
+pub struct ModuleRegistry;
 
 #[async_trait::async_trait]
 impl edgelet_core::ModuleRegistry for ModuleRegistry {
@@ -51,11 +51,15 @@ impl edgelet_core::ModuleRegistry for ModuleRegistry {
 
     // The fuctions below aren't used in tests.
 
-    async fn pull(&self, _config: &Self::Config) -> anyhow::Result<()> {
+    async fn pin(&self, _target: &str, _label: &str) -> anyhow::Result<()> {
         unimplemented!()
     }
 
-    async fn remove(&self, _name: &str) -> anyhow::Result<()> {
+    async fn prune(&self, _filters: &serde_json::Value) -> anyhow::Result<Vec<String>> {
+        unimplemented!()
+    }
+
+    async fn pull(&self, _config: &Self::Config) -> anyhow::Result<()> {
         unimplemented!()
     }
 }

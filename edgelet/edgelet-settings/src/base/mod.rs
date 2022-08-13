@@ -89,19 +89,19 @@ pub struct Settings<ModuleConfig> {
     #[serde(default)]
     pub watchdog: watchdog::Settings,
 
-    /// Map of service names to endpoint URIs.
-    ///
-    /// Only configurable in debug builds for the sake of tests.
-    #[serde(default, skip_serializing)]
-    #[cfg_attr(not(debug_assertions), serde(skip_deserializing))]
-    pub endpoints: aziot::Endpoints,
-
     /// Additional system information
     #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
     pub additional_info: std::collections::BTreeMap<String, String>,
 
     #[serde(default, skip_serializing_if = "image::ImagePruneSettings::is_default")]
     pub image_garbage_collection: image::ImagePruneSettings,
+
+    /// Map of service names to endpoint URIs.
+    ///
+    /// Only configurable in debug builds for the sake of tests.
+    #[serde(default, skip_serializing)]
+    #[cfg_attr(not(debug_assertions), serde(skip_deserializing))]
+    pub endpoints: aziot::Endpoints,
 }
 
 pub(crate) fn default_allow_elevated_docker_permissions() -> bool {

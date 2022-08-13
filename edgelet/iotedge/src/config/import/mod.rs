@@ -595,6 +595,7 @@ fn execute_inner(
                     .transpose()?,
             }
         },
+        image_garbage_collection: None,
     };
 
     let config =
