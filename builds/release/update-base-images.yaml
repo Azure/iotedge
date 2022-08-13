@@ -28,9 +28,9 @@ steps:
     images=( $(cat product-versions.json | jq -r '
       def parse_components(c): c[] | select(has("type")) | select(.type == "dockerImage") | { name, version };
       def parse_types(t): t[] | select(.name == "dockerImage") | .platforms[] | .os as $os | .arch[] | { os: $os, arch: . };
-      .channels[] | .products[] as { $components, $types } |
+      .channels[] | .products[] as { $components, $componentTypes } |
         parse_components($components) as { $name, $version } |
-        parse_types($types) as { $os, $arch } |
+        parse_types($componentTypes) as { $os, $arch } |
         @text "$(registry)/\($name):\($version)-\($os)-\($arch)"
     ') )
 
