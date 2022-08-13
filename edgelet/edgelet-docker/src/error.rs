@@ -34,10 +34,7 @@ pub enum Error {
     GetCurrentTimeEpoch(SystemTimeError),
 
     #[error("attempted to get image hash but was nonexistent.")]
-    GetImageHash(),
-
-    #[error("invalid settings: {0}")]
-    InvalidSettings(String),
+    GetImageId(),
 
     #[error("failed to lock for module image garbage collection: {0}")]
     LockError(String),

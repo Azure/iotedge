@@ -2,22 +2,25 @@
 
 use std::{collections::HashSet, time::Duration};
 
-use crate::error::Error as EdgedError;
 use chrono::{NaiveTime, Timelike};
+
 use edgelet_core::{ModuleRegistry, ModuleRuntime};
 use edgelet_docker::ImagePruneData;
 use edgelet_settings::{base::image::ImagePruneSettings, RuntimeSettings};
+
+use crate::error::ImageCleanupError;
 
 const TOTAL_MINS_IN_DAY: u32 = 1440;
 const DEFAULT_CLEANUP_TIME: &str = "00:00"; // midnight
 const DEFAULT_RECURRENCE_IN_SECS: u64 = 60 * 60 * 24; // 1 day
 const DEFAULT_MIN_AGE_IN_SECS: u64 = 60 * 60 * 24 * 7; // 7 days
+const MIN_CLEANUP_RECURRENCE: Duration = Duration::from_secs(60 * 60 * 24); // 1 day
 
-pub(crate) async fn image_garbage_collect(
+pub async fn image_garbage_collect(
     settings: edgelet_settings::Settings,
     runtime: &edgelet_docker::DockerModuleRuntime<http_common::Connector>,
     image_use_data: ImagePruneData,
-) -> Result<(), EdgedError> {
+) -> Result<(), ImageCleanupError> {
     log::info!("Starting image auto-pruning task...");
 
     let edge_agent_bootstrap: String = settings.agent().config().image().to_string();
@@ -40,9 +43,7 @@ pub(crate) async fn image_garbage_collect(
 
     // If settings are present in the config, they will always be validated (even if auto-pruning is disabled).
     // TODO: should be moved either to settings struct or image_prune_data_struct <--- probably here
-    if validate_settings(settings).is_err() {
-        std::process::exit(exitcode::CONFIG);
-    }
+    validate_settings(settings)?;
 
     let diff_in_secs: u32 = get_sleep_time_mins(&settings.cleanup_time()) * 60;
     tokio::time::sleep(Duration::from_secs(diff_in_secs.into())).await;
@@ -67,19 +68,13 @@ pub(crate) async fn image_garbage_collect(
         }
 
         if settings.is_enabled() {
-            if let Err(err) = remove_unused_images(
+            remove_unused_images(
                 runtime,
                 image_use_data.clone(),
                 bootstrap_image_id_option.clone(),
                 is_bootstrap_image_deleted,
             )
-            .await
-            {
-                return Err(EdgedError::new(format!(
-                    "Error in image auto-pruning task: {}",
-                    err
-                )));
-            };
+            .await?;
         }
 
         // sleep till it's time to wake up based on recurrence (and on current time post-last-execution to avoid time drift)
@@ -96,7 +91,7 @@ async fn remove_unused_images(
     image_use_data: ImagePruneData,
     bootstrap_image_id_option: Option<String>,
     is_bootstrap_image_deleted: bool,
-) -> Result<(), EdgedError> {
+) -> Result<(), ImageCleanupError> {
     log::info!("Image Garbage Collection starting scheduled run");
 
     let bootstrap_img_id = match bootstrap_image_id_option.clone() {
@@ -105,48 +100,30 @@ async fn remove_unused_images(
     };
 
     // track images associated with extant containers
-    let in_use_image_ids = match ModuleRuntime::list_with_details(runtime).await {
-        Ok(modules) => {
-            let mut image_ids: HashSet<String> = HashSet::new();
-            if !bootstrap_img_id.is_empty() {
-                // the bootstrap edge agent image should never be deleted.
-                image_ids.insert(bootstrap_img_id.clone());
-            }
+    let modules = ModuleRuntime::list_with_details(runtime)
+        .await
+        .map_err(ImageCleanupError::ListRunningModules)?;
+    let mut in_use_image_ids: HashSet<String> = HashSet::new();
+    if !bootstrap_img_id.is_empty() {
+        // the bootstrap edge agent image should never be deleted.
+        in_use_image_ids.insert(bootstrap_img_id.clone());
+    }
 
-            for module in modules {
-                // this is effectively the result of calling GET on /containers/json
-                // image_hash() is created from ImageId (ImageId is filled in by GET /containers/json)
-                let id = edgelet_core::Module::config(&module.0)
-                    .image_hash()
-                    .ok_or_else(|| {
-                        EdgedError::from_err(
-                            "error getting image id for running container",
-                            edgelet_docker::Error::GetImageHash(),
-                        )
-                    })?;
-                image_ids.insert(id.to_string());
-            }
-            image_ids
-        }
-        Err(err) => {
-            return Err(EdgedError::new(format!(
-                "Error in image auto-pruning task. Cannot get running modules. Skipping image auto pruning. {}",
-                err
-            )));
-        }
-    };
+    for module in modules {
+        // this is effectively the result of calling GET on /containers/json
+        // image_hash() is created from ImageId (ImageId is filled in by GET /containers/json)
+        let id = edgelet_core::Module::config(&module.0)
+            .image_hash()
+            .ok_or(ImageCleanupError::GetImageId())?;
+        in_use_image_ids.insert(id.to_string());
+    }
 
     if bootstrap_image_id_option.is_some()
         || (bootstrap_image_id_option.is_none() && is_bootstrap_image_deleted)
     {
         let image_map = image_use_data
             .prune_images_from_file(in_use_image_ids)
-            .map_err(|e| {
-                EdgedError::from_err(
-                    "Image garbage collection failed to prune images from file.",
-                    e,
-                )
-            })?;
+            .map_err(ImageCleanupError::PruneImages)?;
 
         // delete images
         for key in image_map.keys() {
@@ -176,58 +153,32 @@ async fn remove_unused_images(
 async fn get_bootstrap_image_id(
     runtime: &edgelet_docker::DockerModuleRuntime<http_common::Connector>,
     edge_agent_bootstrap: String,
-) -> Result<(String, bool), EdgedError> {
-    let mut is_bootstrap_deleted: bool = false;
+) -> Result<(String, bool), ImageCleanupError> {
+    let is_bootstrap_deleted: bool = false;
 
-    let bootstrap_image_id: String = match ModuleRuntime::list_images(runtime).await {
-        Ok(image_name_to_id) => {
-            let image_id_option = image_name_to_id.get(&edge_agent_bootstrap);
+    let image_name_to_id = ModuleRuntime::list_images(runtime)
+        .await
+        .map_err(ImageCleanupError::ListImages)?;
+    let image_id_option = image_name_to_id.get(&edge_agent_bootstrap);
 
-            if image_id_option.is_none() {
-                is_bootstrap_deleted = true;
-                String::default()
-            } else {
-                image_id_option
-                    .ok_or_else(|| {
-                        EdgedError::from_err(
-                            format!(
-                                "error getting image id for edge agent bootstrap image {}",
-                                edge_agent_bootstrap
-                            ),
-                            edgelet_docker::Error::GetImageHash(),
-                        )
-                    })?
-                    .to_string()
-            }
-        }
-        Err(e) => {
-            log::error!("Could not get list of docker images: {}", e);
-            EdgedError::from_err("Could not get list of docker images: {}", e).to_string()
-        }
-    };
+    let bootstrap_image_id =
+        image_id_option.map_or_else(String::default, |image_id| image_id.to_string());
 
     Ok((bootstrap_image_id, is_bootstrap_deleted))
 }
 
-fn validate_settings(settings: &ImagePruneSettings) -> Result<(), EdgedError> {
-    if settings.cleanup_recurrence() < Duration::from_secs(60 * 60 * 24) {
-        log::error!(
-            "invalid settings provided in config: cleanup recurrence cannot be less than 1 day."
-        );
-        return Err(EdgedError::from_err(
-            "invalid settings provided in config",
-            edgelet_docker::Error::InvalidSettings(
-                "cleanup recurrence cannot be less than 1 day".to_string(),
-            ),
+fn validate_settings(settings: &ImagePruneSettings) -> Result<(), ImageCleanupError> {
+    if settings.cleanup_recurrence() < MIN_CLEANUP_RECURRENCE {
+        return Err(ImageCleanupError::InvalidConfiguration(
+            "cleanup recurrence cannot be less than 1 day".to_string(),
         ));
     }
 
     let times = NaiveTime::parse_from_str(&settings.cleanup_time(), "%H:%M");
     if times.is_err() {
-        log::error!("invalid settings provided in config: invalid cleanup time, expected format is \"HH:MM\" in 24-hour format.");
-        return Err(EdgedError::new(edgelet_docker::Error::InvalidSettings(
-            "invalid cleanup time, expected format is \"HH:MM\" in 24-hour format".to_string(),
-        )));
+        return Err(ImageCleanupError::InvalidConfiguration(
+            "Invalid cleanup time. Expected format is \"HH:MM\" in 24-hour format.".to_string(),
+        ));
     }
 
     Ok(())

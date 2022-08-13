@@ -4,7 +4,6 @@
 #![warn(clippy::all, clippy::pedantic)]
 
 mod error;
-mod image_gc;
 mod management;
 mod provision;
 mod watchdog;
@@ -14,6 +13,7 @@ use std::sync::atomic;
 
 use edgelet_core::{module::ModuleAction, ModuleRuntime, WatchdogAction};
 use edgelet_docker::{ImagePruneData, MakeModuleRuntime};
+use edgelet_image_cleanup::image_gc;
 use edgelet_settings::RuntimeSettings;
 
 use crate::{error::Error as EdgedError, workload_manager::WorkloadManager};
@@ -178,9 +178,9 @@ async fn run() -> Result<(), EdgedError> {
             shutdown_reason = watchdog_finished?;
         },
         image_gc_finished = image_gc => {
-            log::error!("image garbage collection stopped unexpectedly");
-            image_gc_finished?;
-            return Err(EdgedError::new("image garbage collection unexpectedly stopped"));
+            let err_msg = "image garbage collection stopped unexpectedly";
+            image_gc_finished.map_err(|e| EdgedError::from_err(err_msg, e))?;
+            return Err(EdgedError::new(err_msg));
         }
     };
 

@@ -373,7 +373,7 @@ where
                 .0
                 .config()
                 .image_hash()
-                .ok_or(Error::GetImageHash())?,
+                .ok_or(Error::GetImageId())?,
         )?;
 
         Ok(())
@@ -530,7 +530,7 @@ where
             .0
             .config()
             .image_hash()
-            .ok_or(Error::GetImageHash())?;
+            .ok_or(Error::GetImageId())?;
 
         log::info!("Removing module {}...", id);
 
