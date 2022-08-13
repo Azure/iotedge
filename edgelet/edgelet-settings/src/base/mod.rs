@@ -24,6 +24,8 @@ pub trait RuntimeSettings {
 
     fn allow_elevated_docker_permissions(&self) -> bool;
 
+    fn iotedge_max_requests(&self) -> &IotedgeMaxRequests;
+
     fn agent(&self) -> &module::Settings<Self::ModuleConfig>;
     fn agent_mut(&mut self) -> &mut module::Settings<Self::ModuleConfig>;
 
@@ -160,6 +162,9 @@ impl<T: Clone> RuntimeSettings for Settings<T> {
 
     fn auto_reprovisioning_mode(&self) -> aziot::AutoReprovisioningMode {
         self.auto_reprovisioning_mode
+    }
+    fn iotedge_max_requests(&self) -> &IotedgeMaxRequests {
+        &self.iotedge_max_requests
     }
 
     fn homedir(&self) -> &std::path::Path {

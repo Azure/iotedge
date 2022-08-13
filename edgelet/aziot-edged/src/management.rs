@@ -9,6 +9,7 @@ pub(crate) async fn start<M>(
     runtime: M,
     sender: tokio::sync::mpsc::UnboundedSender<edgelet_core::WatchdogAction>,
     tasks: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+    max_requests: usize,
 ) -> Result<tokio::sync::oneshot::Sender<()>, EdgedError>
 where
     M: edgelet_core::ModuleRuntime + Clone + Send + Sync + 'static,
@@ -30,7 +31,7 @@ where
     let mut incoming = connector
         .incoming(
             http_common::SOCKET_DEFAULT_PERMISSION,
-            10,
+            max_requests,
             Some(socket_name),
         )
         .await
