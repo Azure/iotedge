@@ -59,6 +59,27 @@ impl EdgeCa {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
+pub struct IotedgeMaxRequests {
+    pub management: usize,
+    pub workload: usize,
+}
+
+impl Default for IotedgeMaxRequests {
+    fn default() -> IotedgeMaxRequests {
+        IotedgeMaxRequests {
+            management: http_common::Incoming::default_max_requests(),
+            workload: http_common::Incoming::default_max_requests(),
+        }
+    }
+}
+
+impl IotedgeMaxRequests {
+    pub fn is_default(&self) -> bool {
+        self == &IotedgeMaxRequests::default()
+    }
+}
+
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct Settings<ModuleConfig> {
     pub hostname: String,
@@ -75,6 +96,9 @@ pub struct Settings<ModuleConfig> {
 
     #[serde(default = "default_allow_elevated_docker_permissions")]
     pub allow_elevated_docker_permissions: bool,
+
+    #[serde(default, skip_serializing_if = "IotedgeMaxRequests::is_default")]
+    pub iotedge_max_requests: IotedgeMaxRequests,
 
     #[serde(default, skip_serializing_if = "EdgeCa::is_default")]
     pub edge_ca: EdgeCa,

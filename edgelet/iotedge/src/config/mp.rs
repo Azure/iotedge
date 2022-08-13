@@ -47,6 +47,8 @@ To reconfigure IoT Edge, run:
 
         additional_info: None,
 
+        iotedge_max_requests: Default::default(),
+
         aziot: common_config::super_config::Config {
             hostname: None,
             parent_hostname: None,

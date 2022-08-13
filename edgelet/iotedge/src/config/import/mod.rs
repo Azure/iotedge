@@ -371,6 +371,8 @@ fn execute_inner(
 
         additional_info: None,
 
+        iotedge_max_requests: Default::default(),
+
         aziot: common_config::super_config::Config {
             hostname: Some(hostname),
             parent_hostname,

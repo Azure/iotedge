@@ -13,6 +13,7 @@ aziot-certd-config = { git = "https://github.com/Azure/iot-identity-service", br
 cert-renewal = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 config-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main", optional = true }
 docker = { path = "../docker-rs", optional = true }
+http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 
 [dev-dependencies]
 lazy_static = "1"
