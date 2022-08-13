@@ -78,6 +78,16 @@ where
 pub trait DockerApi {
     fn system_info(&self) -> BoxFutureResult<'_, models::SystemInfo>;
 
+    fn image_build<'a>(
+        &'a self,
+        dockerfile: &'a str,
+        no_cache: bool,
+        pull: bool,
+        force_rm: bool,
+        labels: &'a str,
+        body: Vec<u8>,
+    ) -> BoxFutureResult<'a, ()>;
+
     fn image_create<'a>(
         &'a self,
         from_image: &'a str,
@@ -95,6 +105,11 @@ pub trait DockerApi {
         force: bool,
         no_prune: bool,
     ) -> BoxFutureResult<'a, Vec<models::ImageDeleteResponseItem>>;
+
+    fn image_prune<'a>(
+        &'a self,
+        filters: &'a str,
+    ) -> BoxFutureResult<'a, models::InlineResponse2009>;
 
     fn container_create<'a>(
         &'a self,
@@ -129,13 +144,17 @@ pub trait DockerApi {
         id: &'a str,
         timeout: Option<i32>,
     ) -> BoxFutureResult<'a, ()>;
+
     fn container_start<'a>(&'a self, id: &'a str, detach_keys: &'a str) -> BoxFutureResult<'a, ()>;
+
     fn container_stats<'a>(
         &'a self,
         id: &'a str,
         stream: bool,
     ) -> BoxFutureResult<'a, serde_json::Value>;
+
     fn container_stop<'a>(&'a self, id: &'a str, timeout: Option<i32>) -> BoxFutureResult<'a, ()>;
+
     fn container_top<'a>(
         &'a self,
         id: &'a str,
@@ -185,10 +204,16 @@ macro_rules! api_call {
     }};
 
     (@inner build_request $builder:ident) => { $builder.body(::hyper::Body::empty()) };
-    (@inner build_request $builder:ident $body:ident $_:ty) => {
+    (@inner build_request $builder:ident $body:ident $("application/json")?) => {
         $builder
             .header(::hyper::header::CONTENT_TYPE, "application/json")
             .body(::hyper::Body::from(::serde_json::to_string(&$body)?))
+    };
+
+    (@inner build_request $builder:ident $body:ident $content_type:literal) => {
+        $builder
+            .header(::hyper::header::CONTENT_TYPE, $content_type)
+            .body(::hyper::Body::from($body))
     };
 
     (@inner query $param:ident &$($_:lifetime)? str) => { $param };
@@ -208,7 +233,7 @@ macro_rules! api_call {
         $(header : [
             $($hname:literal = ( $hparam:ident : $htype:ty ) ),*
         ] ;)?
-        $(body : $btype:ty ;)?
+        $(body $( ( $content_type: literal ) )? : $btype:ty ;)?
         ok : [ $($code:ident),* ]
         $(; and_then($transfer:ident) : $blk:block)?
     ) => {
@@ -239,7 +264,7 @@ macro_rules! api_call {
                 if let Some(agent) = &self.configuration.user_agent {
                     builder = builder.header(::hyper::header::USER_AGENT, agent);
                 }
-                let request = api_call!(@inner build_request builder $(body $btype)?)?;
+                let request = api_call!(@inner build_request builder $(body $($content_type)?)?)?;
 
                 let response = ::tokio::time::timeout(
                     ::std::time::Duration::from_secs(30),
@@ -270,6 +295,12 @@ where
         image_delete : delete "/images/{name}" -> Vec<models::ImageDeleteResponseItem> ;
         path : [ name: &'a str ] ;
         query : [ "force" = (force: bool), "noprune" = (no_prune: bool)] ;
+        ok : [OK]
+    }
+
+    api_call! {
+        image_prune : post "/images/prune" -> models::InlineResponse2009 ;
+        query : [ "filters" = (filters: &'a str) ] ;
         ok : [OK]
     }
 
@@ -353,6 +384,20 @@ where
     }
 
     api_call! {
+        image_build : post "/build" ;
+        query : [
+            "dockerfile" = (dockerfile: &'a str),
+            "nocache" = (no_cache: bool),
+            "pull" = (pull: bool),
+            "forcerm" = (force_rm: bool),
+            "labels" = (labels: &'a str)
+        ] ;
+        body("application/x-tar") : Vec<u8> ;
+        ok : [OK] ;
+        and_then(response) : { build_info_stream(response).await }
+    }
+
+    api_call! {
         image_create : post "/images/create" ;
         query : [
             "fromImage" = (from_image: &'a str),
@@ -366,38 +411,7 @@ where
         ] ;
         body : &'a str ;
         ok : [OK] ;
-        and_then(response) : {
-            let (parts, body) = response.into_parts();
-
-            anyhow::ensure!(
-                parts.headers.get(hyper::header::CONTENT_TYPE)
-                    .ok_or_else(|| anyhow::anyhow!("expected Content-Type"))?
-                    .to_str()?
-                    .contains("application/json"),
-                "expected JSON Content-Type"
-            );
-
-            let response_bytes = hyper::body::to_bytes(body).await?;
-            let mut last = serde_json::Deserializer::from_slice(&response_bytes)
-                .into_iter::<serde_json::Map<String, serde_json::Value>>()
-                .last()
-                .ok_or_else(|| {
-                    anyhow::anyhow!("received empty response from container runtime")
-                })??;
-
-            if let Some(detail) = last.remove("errorDetail") {
-                let fallback_msg = serde_json::to_string(&detail)?;
-                Err(anyhow::anyhow!(
-                    serde_json::from_value(detail)
-                        .unwrap_or(ApiError {
-                            code: hyper::StatusCode::INTERNAL_SERVER_ERROR,
-                            message: fallback_msg
-                        })
-                ))
-            } else {
-                Ok(())
-            }
-        }
+        and_then(response) : { build_info_stream(response).await }
     }
 
     api_call! {
@@ -414,6 +428,43 @@ where
         ] ;
         ok : [OK] ;
         and_then(response) : { Ok(response.into_body()) }
+    }
+}
+
+async fn build_info_stream(response: hyper::Response<hyper::Body>) -> anyhow::Result<()> {
+    let (parts, body) = response.into_parts();
+
+    anyhow::ensure!(
+        parts
+            .headers
+            .get(hyper::header::CONTENT_TYPE)
+            .ok_or_else(|| anyhow::anyhow!("expected Content-Type"))?
+            .to_str()?
+            .contains("application/json"),
+        "expected JSON Content-Type"
+    );
+
+    let response_bytes = hyper::body::to_bytes(body).await?;
+    let last = serde_json::Deserializer::from_slice(&response_bytes)
+        .into_iter::<models::BuildInfo>()
+        .last()
+        .ok_or_else(|| anyhow::anyhow!("received empty response from container runtime"))??;
+
+    if let Some(error) = last.error() {
+        let detail = last.error_detail();
+        Err(anyhow::anyhow!(ApiError {
+            code: detail
+                .and_then(
+                    |detail| hyper::StatusCode::from_u16(detail.code()?.try_into().ok()?).ok()
+                )
+                .unwrap_or(hyper::StatusCode::INTERNAL_SERVER_ERROR),
+            message: detail
+                .and_then(models::ErrorDetail::message)
+                .unwrap_or(error)
+                .to_owned()
+        }))
+    } else {
+        Ok(())
     }
 }
 
