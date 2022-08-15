@@ -11,6 +11,9 @@ use edgelet_settings::{base::image::ImagePruneSettings, RuntimeSettings};
 use crate::error::ImageCleanupError;
 
 const TOTAL_MINS_IN_DAY: u32 = 1440;
+const DEFAULT_CLEANUP_TIME: &str = "00:00"; // midnight
+const DEFAULT_RECURRENCE_IN_SECS: u64 = 60 * 60 * 24; // 1 day
+const DEFAULT_MIN_AGE_IN_SECS: u64 = 60 * 60 * 24 * 7; // 7 days
 const MIN_CLEANUP_RECURRENCE: Duration = Duration::from_secs(60 * 60 * 24); // 1 day
 
 pub async fn image_garbage_collect(
@@ -21,13 +24,28 @@ pub async fn image_garbage_collect(
     log::info!("Starting image auto-pruning task...");
 
     let edge_agent_bootstrap: String = settings.agent().config().image().to_string();
-    let image_gc_settings = settings.image_garbage_collection();
+
+    let defaults = ImagePruneSettings::new(
+        Duration::from_secs(DEFAULT_RECURRENCE_IN_SECS),
+        Duration::from_secs(DEFAULT_MIN_AGE_IN_SECS),
+        DEFAULT_CLEANUP_TIME.to_string(),
+        true,
+    );
+
+    // TODO: Can be left as option
+    let settings = match settings.image_garbage_collection() {
+        Some(parsed) => parsed,
+        None => {
+            log::info!("No [image_garbage_collection] settings found in config.toml, using default settings");
+            &defaults
+        }
+    };
 
     // If settings are present in the config, they will always be validated (even if auto-pruning is disabled).
     // TODO: should be moved either to settings struct or image_prune_data_struct <--- probably here
-    validate_settings(image_gc_settings)?;
+    validate_settings(settings)?;
 
-    let diff_in_secs: u32 = get_sleep_time_mins(&image_gc_settings.cleanup_time()) * 60;
+    let diff_in_secs: u32 = get_sleep_time_mins(&settings.cleanup_time()) * 60;
     tokio::time::sleep(Duration::from_secs(diff_in_secs.into())).await;
 
     let mut bootstrap_image_id_option = None;
@@ -49,7 +67,7 @@ pub async fn image_garbage_collect(
             }
         }
 
-        if image_gc_settings.is_enabled() {
+        if settings.is_enabled() {
             remove_unused_images(
                 runtime,
                 image_use_data.clone(),
@@ -60,10 +78,9 @@ pub async fn image_garbage_collect(
         }
 
         // sleep till it's time to wake up based on recurrence (and on current time post-last-execution to avoid time drift)
-        let delay = image_gc_settings.cleanup_recurrence()
+        let delay = settings.cleanup_recurrence()
             - Duration::from_secs(
-                ((TOTAL_MINS_IN_DAY - get_sleep_time_mins(&image_gc_settings.cleanup_time())) * 60)
-                    .into(),
+                ((TOTAL_MINS_IN_DAY - get_sleep_time_mins(&settings.cleanup_time())) * 60).into(),
             );
         tokio::time::sleep(delay).await;
     }

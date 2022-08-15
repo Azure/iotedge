@@ -13,6 +13,10 @@ use crate::Error;
 const IMAGE_USE_FILENAME: &str = "image_use";
 const TMP_FILENAME: &str = "image_use_tmp";
 
+const DEFAULT_CLEANUP_TIME: &str = "00:00"; // midnight
+const DEFAULT_RECURRENCE_IN_SECS: u64 = 60 * 60 * 24; // 1 day
+const DEFAULT_MIN_AGE_IN_SECS: u64 = 60 * 60 * 24 * 7; // 7 days
+
 #[derive(Debug, Clone)]
 struct ImagePruneInner {
     image_use_filepath: String,
@@ -26,7 +30,17 @@ pub struct ImagePruneData {
 }
 
 impl ImagePruneData {
-    pub fn new(homedir: &Path, settings: ImagePruneSettings) -> Result<Self, Error> {
+    pub fn new(homedir: &Path, settings: Option<ImagePruneSettings>) -> Result<Self, Error> {
+        let settings = match settings {
+            Some(settings) => settings,
+            None => ImagePruneSettings::new(
+                Duration::from_secs(DEFAULT_RECURRENCE_IN_SECS),
+                Duration::from_secs(DEFAULT_MIN_AGE_IN_SECS),
+                DEFAULT_CLEANUP_TIME.to_string(),
+                false,
+            ),
+        };
+
         let fp: PathBuf = homedir.join(IMAGE_USE_FILENAME);
         let tmp_fp: PathBuf = homedir.join(TMP_FILENAME);
 
@@ -299,7 +313,7 @@ mod tests {
             curr_time,
             false,
         );
-        let image_use_data = ImagePruneData::new(&test_file_dir, settings).unwrap();
+        let image_use_data = ImagePruneData::new(&test_file_dir, Some(settings)).unwrap();
 
         // write new image
         image_use_data
@@ -415,7 +429,7 @@ mod tests {
             curr_time,
             true,
         );
-        let image_use_data = ImagePruneData::new(&test_file_dir, settings).unwrap();
+        let image_use_data = ImagePruneData::new(&test_file_dir, Some(settings)).unwrap();
 
         let mut in_use_image_ids: HashSet<String> = HashSet::new();
         in_use_image_ids.insert(
