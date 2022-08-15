@@ -213,8 +213,12 @@ async fn create_and_start_agent(
             .await
             .map_err(|err| EdgedError::from_err("Failed to pull Edge runtime image", err))?;
 
-        runtime.registry()
-            .pin(agent_spec.config().image(), crate::image_gc::BOOTSTRAP_LABEL)
+        runtime
+            .registry()
+            .pin(
+                agent_spec.config().image(),
+                crate::image_gc::BOOTSTRAP_LABEL,
+            )
             .await
             .map_err(|err| EdgedError::from_err("Failed to pin Edge runtime image", err))?;
 

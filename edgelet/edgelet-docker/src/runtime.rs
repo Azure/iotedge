@@ -520,13 +520,23 @@ where
         })?;
 
         match self.client.container_inspect(id, false).await {
-            Ok(container) => if let Some(image) = container.image().as_ref() {
-                if let Err(e) = self.registry().pin(image, "$pin").await {
-                    log::warn!("Failed to record last use time of image for module {}: {}", id, e);
+            Ok(container) => {
+                if let Some(image) = container.image().as_ref() {
+                    if let Err(e) = self.registry().pin(image, "$pin").await {
+                        log::warn!(
+                            "Failed to record last use time of image for module {}: {}",
+                            id,
+                            e
+                        );
+                    }
                 }
-            },
+            }
             Err(e) => {
-                log::warn!("Failed to retrieve container {} for image pinning: {}", id, e);
+                log::warn!(
+                    "Failed to retrieve container {} for image pinning: {}",
+                    id,
+                    e
+                );
             }
         }
 
