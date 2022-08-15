@@ -451,6 +451,22 @@
 # retry = "4%"
 
 # ==============================================================================
+# Image garbage collection
+# ==============================================================================
+#
+# If you need to override the default image garbage collection configuration,
+# uncomment this section and replace the values in this section with your own.
+#
+# 'enabled' controls whether image garbage collection runs or not.
+# 'cleanup_recurrence' is how frequently you want the image gc to run.
+# 'image_age_cleanup_threshold' is the "age" of unused images, after which they will be cleaned up.
+
+# [image_garbage_collection]
+# enabled = true
+# cleanup_recurrence = "1d"
+# image_age_cleanup_threshold = "7d"
+
+# ==============================================================================
 # Moby runtime
 # ==============================================================================
 #
