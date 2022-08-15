@@ -121,7 +121,7 @@ namespace IotEdgeQuickstart.Details
 
     class LinuxPackageInstallRPM : ILinuxPackageInstall
     {
-        const string PackageManager = "rpm";
+        const string PackageManager = "dnf";
         const int TimeoutInterval = 300;
 
         readonly string archivePath;
@@ -141,18 +141,18 @@ namespace IotEdgeQuickstart.Details
             string[] packages = Directory.GetFiles(this.archivePath, "*.rpm");
             return Process.RunAsync(
                     PackageManager,
-                    $"--nodeps -i {string.Join(' ', packages)}",
+                    $"-y install {string.Join(' ', packages)}",
                     TimeoutInterval);
         }
 
         public Task FindPackage(string packageName)
         {
-            return Process.RunAsync("bash", $"-c \"{PackageManager} -qa | grep {packageName}\"");
+            return Process.RunAsync("bash", $"-c \"rpm -qa | grep {packageName}\"");
         }
 
         public Task RemovePackage(string packageName)
         {
-            return Process.RunAsync(PackageManager, $"-e {packageName}", TimeoutInterval);
+            return Process.RunAsync(PackageManager, $"remove  {packageName}", TimeoutInterval);
         }
     }
 

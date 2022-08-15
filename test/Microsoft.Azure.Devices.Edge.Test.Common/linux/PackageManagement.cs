@@ -71,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     "mariner" => new[]
                     {
                         "set -e",
-                        $"rpm --nodeps -i {string.Join(' ', packages)}",
+                        $"sudo dnf -y install {string.Join(' ', packages)}",
                         "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
                         "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
                         "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
