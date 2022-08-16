@@ -76,7 +76,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                             .Map(
                                 async c =>
                                 {
-                                    bool authRes = await this.authenticator.ReauthenticateAsync(c);
+                                    Console.WriteLine("Returning false for all clients.");
+                                    bool authRes = false; // await this.authenticator.ReauthenticateAsync(c);
                                     Events.ClientCredentialsResult(identity, authRes);
                                     return authRes;
                                 })
