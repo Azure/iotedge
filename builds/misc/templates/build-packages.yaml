@@ -320,18 +320,22 @@ stages:
                 '/src/ci/package.sh'
               popd
               sudo cp iot-identity-service/packages/mariner$(os_version)/$(arch)/aziot-identity-service-$packageVersion-1.cm$(os_version).$(arch).rpm .
-              sudo rm -rf iot-identity-service
 
           - task: CopyFiles@2
             displayName: Copy iot-identity-service build logs to artifact staging
             inputs:
-              SourceFolder: 'iot-identity-service/Mariner-Build/build/logs/pkggen/rpmbuilding'
+              SourceFolder: 'iot-identity-service/Mariner-Build/build/logs/pkggen/rpmbuilding/'
               Contents: |
                 **/*.rpm.log
               TargetFolder: '$(build.artifactstagingdirectory)'
             condition: succeededOrFailed()
-          
-          - bash: |
+
+          - task: DeleteFiles@1
+            inputs:
+            Contents: iot-identity-service
+            displayName: Remove iot-identity-service directory
+
+          - bash:
               sudo docker run --rm \
                 -v "$(Build.SourcesDirectory):/src" \
                 -e "ARCH=$arch" \
