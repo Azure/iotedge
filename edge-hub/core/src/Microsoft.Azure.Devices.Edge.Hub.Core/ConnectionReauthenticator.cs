@@ -74,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                         Option<IClientCredentials> clientCredentials = await this.credentialsCache.Get(identity);
                         bool result = await clientCredentials
                             .Map(
-                                async c =>
+                                c =>
                                 {
                                     Console.WriteLine("Returning false for all clients.");
                                     // bool authRes = await this.authenticator.ReauthenticateAsync(c);
