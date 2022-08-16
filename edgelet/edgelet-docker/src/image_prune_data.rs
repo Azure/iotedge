@@ -13,10 +13,6 @@ use crate::Error;
 const IMAGE_USE_FILENAME: &str = "image_use";
 const TMP_FILENAME: &str = "image_use_tmp";
 
-const DEFAULT_CLEANUP_TIME: &str = "00:00"; // midnight
-const DEFAULT_RECURRENCE_IN_SECS: u64 = 60 * 60 * 24; // 1 day
-const DEFAULT_MIN_AGE_IN_SECS: u64 = 60 * 60 * 24 * 7; // 7 days
-
 #[derive(Debug, Clone)]
 struct ImagePruneInner {
     image_use_filepath: String,
@@ -30,17 +26,7 @@ pub struct ImagePruneData {
 }
 
 impl ImagePruneData {
-    pub fn new(homedir: &Path, settings: Option<ImagePruneSettings>) -> Result<Self, Error> {
-        let settings = match settings {
-            Some(settings) => settings,
-            None => ImagePruneSettings::new(
-                Duration::from_secs(DEFAULT_RECURRENCE_IN_SECS),
-                Duration::from_secs(DEFAULT_MIN_AGE_IN_SECS),
-                DEFAULT_CLEANUP_TIME.to_string(),
-                false,
-            ),
-        };
-
+    pub fn new(homedir: &Path, settings: ImagePruneSettings) -> Result<Self, Error> {
         let fp: PathBuf = homedir.join(IMAGE_USE_FILENAME);
         let tmp_fp: PathBuf = homedir.join(TMP_FILENAME);
 
@@ -106,6 +92,8 @@ impl ImagePruneData {
         &self,
         in_use_image_ids: HashSet<String>,
     ) -> Result<HashMap<String, Duration>, Error> {
+        const DEFAULT_MIN_AGE_IN_SECS: std::time::Duration = Duration::from_secs(60 * 60 * 24 * 7); // 7 days
+
         let guard = self
             .inner
             .lock()
@@ -132,7 +120,9 @@ impl ImagePruneData {
         let (images_to_delete, carry_over) = process_state(
             image_map,
             in_use_image_ids,
-            settings.image_age_cleanup_threshold(),
+            *settings
+                .image_age_cleanup_threshold()
+                .get_or_insert(DEFAULT_MIN_AGE_IN_SECS), // settings can't be None
         )?;
 
         /* ============================== */
@@ -308,12 +298,12 @@ mod tests {
         std::fs::create_dir(Path::new(&test_file_dir)).unwrap();
 
         let settings = ImagePruneSettings::new(
-            Duration::from_secs(30),
-            Duration::from_secs(10),
-            curr_time,
-            false,
+            Some(Duration::from_secs(30)),
+            Some(Duration::from_secs(10)),
+            Some(curr_time),
+            Some(false),
         );
-        let image_use_data = ImagePruneData::new(&test_file_dir, Some(settings)).unwrap();
+        let image_use_data = ImagePruneData::new(&test_file_dir, settings).unwrap();
 
         // write new image
         image_use_data
@@ -424,12 +414,12 @@ mod tests {
 
         let curr_time: String = format!("{}{}", Utc::now().hour(), Utc::now().minute());
         let settings = ImagePruneSettings::new(
-            Duration::from_secs(30),
-            Duration::from_secs(5),
-            curr_time,
-            true,
+            Some(Duration::from_secs(30)),
+            Some(Duration::from_secs(5)),
+            Some(curr_time),
+            Some(true),
         );
-        let image_use_data = ImagePruneData::new(&test_file_dir, Some(settings)).unwrap();
+        let image_use_data = ImagePruneData::new(&test_file_dir, settings).unwrap();
 
         let mut in_use_image_ids: HashSet<String> = HashSet::new();
         in_use_image_ids.insert(
