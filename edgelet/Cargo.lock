@@ -121,7 +121,6 @@ dependencies = [
  "edgelet-image-cleanup",
  "edgelet-settings",
  "edgelet-utils",
- "exitcode",
  "futures-util",
  "http-common",
  "log",
@@ -804,12 +803,6 @@ checksum = "3de9ad4541d99dc22b59134e7ff8dc3d6c988c89ecd7324bf10a8362b07a2afa"
 dependencies = [
  "serde",
 ]
-
-[[package]]
-name = "exitcode"
-version = "1.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "de853764b47027c2e862a995c34978ffa63c1501f2e15f987ba11bd4f9bba193"
 
 [[package]]
 name = "flate2"

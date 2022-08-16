@@ -24,6 +24,7 @@ const DEFAULT_CLEANUP_TIME: &str = "00:00"; // midnight
 const DEFAULT_RECURRENCE_IN_SECS: u64 = 60 * 60 * 24; // 1 day
 const DEFAULT_MIN_AGE_IN_SECS: u64 = 60 * 60 * 24 * 7; // 7 days
 const MIN_CLEANUP_RECURRENCE: Duration = Duration::from_secs(60 * 60 * 24); // 1 day
+const CONFIG_EXITCODE: i32 = 78;
 
 #[tokio::main]
 async fn main() {
@@ -119,7 +120,7 @@ async fn run() -> Result<(), EdgedError> {
 
     let result = check_settings_and_populate(gc_settings);
     if result.is_err() {
-        std::process::exit(exitcode::CONFIG);
+        std::process::exit(CONFIG_EXITCODE);
     }
 
     let image_use_data = ImagePruneData::new(&gc_dir, gc_settings.clone())
@@ -336,6 +337,8 @@ fn check_settings_and_populate(
             .image_age_cleanup_threshold()
             .get_or_insert(min_age);
     }
+
+    log::info!("Starting image garbage collection with these settings: enabled = {}, cleanup_time = {}, cleanup_recurrence = {:?}, image_age_cleanup_threshold = {:?}", enabled, cleanup_time, recurrence, min_age);
 
     Ok(ImagePruneSettings::new(
         Some(recurrence),

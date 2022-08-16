@@ -19,7 +19,7 @@ pub async fn image_garbage_collect(
     runtime: &edgelet_docker::DockerModuleRuntime<http_common::Connector>,
     image_use_data: ImagePruneData,
 ) -> Result<(), ImageCleanupError> {
-    log::info!("Starting image auto-pruning task...");
+    log::info!("Starting image garbage collection task...");
 
     let is_enabled: bool = *settings.is_enabled().get_or_insert(true);
 
@@ -46,19 +46,24 @@ pub async fn image_garbage_collect(
                 if !is_image_deleted {
                     log::info!("Bootstrap EdgeAgent {} has ID {}", edge_agent_bootstrap, id);
                     bootstrap_image_id_option = Some(id.clone());
+                } else {
+                    log::debug!("The Bootstrap EdgeAgent image was not found on this device");
                 }
             } else {
                 log::error!("Could not get bootstrap image id");
             }
         }
 
-        remove_unused_images(
-            runtime,
-            image_use_data.clone(),
-            bootstrap_image_id_option.clone(),
-            is_bootstrap_image_deleted,
-        )
-        .await?;
+        if bootstrap_image_id_option.is_some()
+            || (bootstrap_image_id_option.is_none() && is_bootstrap_image_deleted)
+        {
+            remove_unused_images(
+                runtime,
+                image_use_data.clone(),
+                bootstrap_image_id_option.clone(),
+            )
+            .await?;
+        }
 
         // sleep till it's time to wake up based on recurrence (and on current time post-last-execution to avoid time drift)
         let mut recurrence = settings.cleanup_recurrence();
@@ -75,7 +80,6 @@ async fn remove_unused_images(
     runtime: &edgelet_docker::DockerModuleRuntime<http_common::Connector>,
     image_use_data: ImagePruneData,
     bootstrap_image_id_option: Option<String>,
-    is_bootstrap_image_deleted: bool,
 ) -> Result<(), ImageCleanupError> {
     log::info!("Image Garbage Collection starting scheduled run");
 
@@ -103,18 +107,14 @@ async fn remove_unused_images(
         in_use_image_ids.insert(id.to_string());
     }
 
-    if bootstrap_image_id_option.is_some()
-        || (bootstrap_image_id_option.is_none() && is_bootstrap_image_deleted)
-    {
-        let image_map = image_use_data
-            .prune_images_from_file(in_use_image_ids)
-            .map_err(ImageCleanupError::PruneImages)?;
+    let image_map = image_use_data
+        .prune_images_from_file(in_use_image_ids)
+        .map_err(ImageCleanupError::PruneImages)?;
 
-        // delete images
-        for key in image_map.keys() {
-            if let Err(e) = ModuleRegistry::remove(runtime, key).await {
-                log::error!("Could not delete image {} : {}", key, e);
-            }
+    // delete images
+    for key in image_map.keys() {
+        if let Err(e) = ModuleRegistry::remove(runtime, key).await {
+            log::error!("Could not delete image {} : {}", key, e);
         }
     }
 

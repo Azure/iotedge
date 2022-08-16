@@ -62,7 +62,7 @@ impl ImagePruneData {
             Ok(map) => map,
             Err(e) => {
                 drop(guard);
-                log::warn!("Could not read image garbage collection data.Latest time of use will not be updated for image: {}. Error: {}", image_id, e);
+                log::warn!("Could not read image garbage collection data. Latest time of use will not be updated for image: {}. Error: {}", image_id, e);
                 return Err(e);
             }
         };
@@ -74,11 +74,18 @@ impl ImagePruneData {
         image_map.insert(image_id.to_string(), current_time);
 
         // write entries back to file
-        let _res = write_images_with_timestamp(
+        let res = write_images_with_timestamp(
             &image_map,
             guard.tmp_filepath.clone(),
             guard.image_use_filepath.clone(),
         );
+
+        if res.is_ok() {
+            log::debug!(
+                "Image with ID {} tracked in image garbage collection state.",
+                image_id
+            );
+        }
 
         drop(guard);
 
@@ -152,7 +159,7 @@ fn get_images_with_timestamp(
 ) -> Result<HashMap<String, Duration>, Error> {
     if !std::path::Path::new(&image_use_filepath).exists() {
         log::info!(
-            "Auto-pruning data file not found; creating file at: {}",
+            "Image garbage collection data file not found; creating file at: {}",
             image_use_filepath.as_str()
         );
         let _file = fs::File::create(image_use_filepath.clone()).map_err(Error::CreateFile)?;

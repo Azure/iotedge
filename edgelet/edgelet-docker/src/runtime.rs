@@ -115,7 +115,7 @@ where
 
         log::info!("Successfully pulled image {}", image);
 
-        // Now, get the image_id of the image we just pulled for auto-pruning in future
+        // Now, get the image_id of the image we just pulled for image garbage collection in future
         match self.list_images().await {
             Ok(image_name_to_id) => {
                 if image_name_to_id.is_empty() {
@@ -367,7 +367,7 @@ where
         // Now, get the image id of the image associated with the module we started
         let module_with_details = self.get(module.name()).await?;
 
-        // update image use timestamp for auto-pruning job later
+        // update image use timestamp for image garbage collection job later
         self.image_use_data.record_image_use_timestamp(
             module_with_details
                 .0
@@ -553,7 +553,7 @@ where
                 Error::RuntimeOperation(RuntimeOperation::RemoveModule(id.to_owned()))
             })?;
 
-        // update image use timestamp for auto-pruning job later
+        // update image use timestamp for image garbage collection job later
         self.image_use_data.record_image_use_timestamp(image_id)?;
 
         // Remove the socket to avoid having socket files polluting the home folder.
