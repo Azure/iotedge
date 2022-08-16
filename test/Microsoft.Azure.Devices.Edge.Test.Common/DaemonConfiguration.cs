@@ -127,6 +127,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.SetAuth(keyName);
         }
 
+        public void SetImageGarbageCollection(int minutesUntilCleanup)
+        {
+            this.config[Service.Edged].Document.ReplaceOrAdd("image_garbage_collection.enabled", true);
+            this.config[Service.Edged].Document.ReplaceOrAdd("image_garbage_collection.cleanup_recurrence", "1d");
+            this.config[Service.Edged].Document.ReplaceOrAdd("image_garbage_collection.image_age_cleanup_threshold", "10s");
+            TimeSpan two_minutes = new TimeSpan(0, 0, minutesUntilCleanup, 0);
+            string cleanupTime = DateTime.Now.Add(two_minutes).ToString("HH:mm");
+            this.config[Service.Edged].Document.ReplaceOrAdd("image_garbage_collection.cleanup_time", cleanupTime);
+        }
+
         public void SetDeviceManualX509(string hubhostname, Option<string> parentHostname, string deviceId, string identityCertPath, string identityPkPath)
         {
             if (!File.Exists(identityCertPath))
