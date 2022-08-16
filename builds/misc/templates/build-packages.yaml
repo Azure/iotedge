@@ -332,8 +332,9 @@ stages:
 
           - task: DeleteFiles@1
             inputs:
-            Contents: iot-identity-service
-            displayName: Remove iot-identity-service directory
+              Contents: iot-identity-service
+              displayName: Remove iot-identity-service directory
+            condition: succeededOrFailed()
 
           - bash:
               sudo docker run --rm \
