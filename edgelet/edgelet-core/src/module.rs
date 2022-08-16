@@ -1,11 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::collections::BTreeMap;
+use std::ffi::OsStr;
 use std::fmt;
 use std::time::Duration;
 
 use anyhow::Context;
 use chrono::prelude::*;
+use nix::sys::utsname::UtsName;
 use serde::{Deserialize, Serialize};
 
 use aziotctl_common::host_info::{DmiInfo, OsInfo};
@@ -257,8 +259,10 @@ pub trait ModuleRegistry {
 pub struct SystemInfo {
     #[serde(rename = "osType")]
     pub kernel: String,
-    pub kernel_release: String,
-    pub kernel_version: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kernel_release: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kernel_version: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub operating_system: Option<String>,
@@ -270,7 +274,9 @@ pub struct SystemInfo {
     pub operating_system_build: Option<String>,
 
     pub architecture: String,
-    pub cpus: usize,
+    pub cpus: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_memory: Option<u64>,
     pub virtualized: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -308,6 +314,7 @@ impl SystemInfo {
         remove_assign!(operating_system_build);
 
         remove_assign!(architecture);
+        remove_assign!(virtualized);
 
         remove_assign!(product_name);
         remove_assign!(system_vendor);
@@ -323,14 +330,32 @@ impl SystemInfo {
 
 impl Default for SystemInfo {
     fn default() -> Self {
-        let kernel = nix::sys::utsname::uname();
+        let kernel = nix::sys::utsname::uname()
+            .map_err(|e| log::error!("Failed calling uname(): {}", e))
+            .ok();
+
+        let kernel = kernel.as_ref();
+
         let dmi = DmiInfo::default();
         let os = OsInfo::default();
 
-        let res = Self {
-            kernel: kernel.sysname().to_owned(),
-            kernel_release: kernel.release().to_owned(),
-            kernel_version: kernel.version().to_owned(),
+        Self {
+            // NOTE: `kernel` maps to `osType`, which is required by the
+            // management API.  So, we have to provide some value even
+            // in the case of failure.
+            kernel: kernel
+                .map(UtsName::sysname)
+                .and_then(OsStr::to_str)
+                .unwrap_or("UNKNOWN")
+                .to_owned(),
+            kernel_release: kernel
+                .map(UtsName::release)
+                .and_then(OsStr::to_str)
+                .map(ToOwned::to_owned),
+            kernel_version: kernel
+                .map(UtsName::version)
+                .and_then(OsStr::to_str)
+                .map(ToOwned::to_owned),
 
             operating_system: os.id,
             operating_system_version: os.version_id,
@@ -338,7 +363,8 @@ impl Default for SystemInfo {
             operating_system_build: os.build_id,
 
             architecture: os.arch.to_owned(),
-            cpus: num_cpus::get(),
+            cpus: u64::try_from(num_cpus::get()).expect("128-bit architectures unsupported"),
+            total_memory: None,
             virtualized: match crate::virtualization::is_virtualized_env() {
                 Ok(Some(true)) => "yes",
                 Ok(Some(false)) => "no",
@@ -359,9 +385,7 @@ impl Default for SystemInfo {
             },
 
             additional_properties: BTreeMap::new(),
-        };
-
-        res
+        }
     }
 }
 
@@ -639,8 +663,8 @@ mod tests {
     fn system_info_merge() {
         let mut base = SystemInfo {
             kernel: "FOO".into(),
-            kernel_release: "BAR".into(),
-            kernel_version: "BAZ".into(),
+            kernel_release: Some("BAR".into()),
+            kernel_version: Some("BAZ".into()),
 
             operating_system: "A".to_owned().into(),
             operating_system_version: "B".to_owned().into(),
@@ -649,6 +673,7 @@ mod tests {
 
             architecture: "ARCH".into(),
             cpus: 0,
+            total_memory: None,
             virtualized: "UNKNOWN".into(),
 
             product_name: None,
@@ -668,8 +693,8 @@ mod tests {
 
         let result = SystemInfo {
             kernel: "linux".into(),
-            kernel_release: "5.0".into(),
-            kernel_version: "1".into(),
+            kernel_release: Some("5.0".into()),
+            kernel_version: Some("1".into()),
 
             operating_system: "OS".to_owned().into(),
             operating_system_version: "B".to_owned().into(),
@@ -678,6 +703,7 @@ mod tests {
 
             architecture: "ARCH".into(),
             cpus: 0,
+            total_memory: None,
             virtualized: "UNKNOWN".into(),
 
             product_name: None,

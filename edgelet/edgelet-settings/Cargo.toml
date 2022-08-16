@@ -19,7 +19,7 @@ docker = { path = "../docker-rs", optional = true }
 [dev-dependencies]
 lazy_static = "1"
 serde_json = "1"
-test-case = "1"
+test-case = "2"
 
 [features]
 settings-docker = ["config-common", "docker"]
