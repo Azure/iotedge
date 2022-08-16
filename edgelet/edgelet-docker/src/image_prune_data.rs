@@ -112,7 +112,7 @@ impl ImagePruneData {
         // all images deployed to the device (through an IoT Edge deployment).
         // If persistence file cannot be read we will return a new map so
         // new persistence file will be created.
-        let image_map = match get_images_with_timestamp(guard.image_use_filepath.clone()) {
+        let iotedge_images_map = match get_images_with_timestamp(guard.image_use_filepath.clone()) {
             Ok(map) => map,
             Err(e) => {
                 drop(guard);
@@ -125,7 +125,7 @@ impl ImagePruneData {
 
         // process maps
         let (images_to_delete, carry_over) = process_state(
-            image_map,
+            iotedge_images_map,
             in_use_image_ids,
             *settings
                 .image_age_cleanup_threshold()
@@ -229,13 +229,14 @@ fn write_images_with_timestamp(
 
 // This method separates out the images to be deleted from the images not to be deleted,
 // and return those as a tuple.
-// It takes as input all the images present on the device and the images currently in-use,
-// along with the minimum "age" for which the images can stay unused. Any images older
-// than this minim age are marked for deletion.
+// It takes as input all the images present on the device (that we know about through an
+// iotedge deployment) and the images currently in-use, along with the minimum "age" for
+//  which the images can stay unused. Any images older than this minim age are marked
+//  for deletion.
 type HashMapTuple = (HashMap<String, Duration>, HashMap<String, Duration>);
 fn process_state(
-    mut image_map: HashMap<String, Duration>,
-    image_ids: HashSet<String>,
+    mut iotedge_images_map: HashMap<String, Duration>,
+    in_use_image_ids: HashSet<String>,
     image_age_cleanup_threshold: Duration,
 ) -> Result<HashMapTuple, Error> {
     let current_time = std::time::SystemTime::now()
@@ -245,15 +246,18 @@ fn process_state(
     let mut carry_over: HashMap<String, Duration> = HashMap::new(); // all images to NOT be deleted by pruning in this run
 
     // then, based on ID, keep track of images currently being used (in map: carry_over)
-    for image_id in image_ids {
-        // Since the images are currently being used, we update the timestamp to the current time
-        // This avoids the case where a container crash just as pruning is kicking off removes a needed image
-
-        carry_over.insert(image_id, current_time);
+    for image_id in in_use_image_ids {
+        // Since in_use_image_ids contains *all* the images currently being used, we need to filter on whether said image
+        // was deployed/managed by iotedge or no.
+        if iotedge_images_map.contains_key(&image_id) {
+            // Since the images are currently being used, we update the timestamp to the current time
+            // This avoids the case where a container crash just as pruning is kicking off removes a needed image
+            carry_over.insert(image_id, current_time);
+        }
     }
 
     // track entries younger than min age
-    for (key, value) in &image_map {
+    for (key, value) in &iotedge_images_map {
         if current_time.as_secs() - value.as_secs() < image_age_cleanup_threshold.as_secs() {
             carry_over.insert(key.to_string(), *value);
         }
@@ -261,10 +265,10 @@ fn process_state(
 
     // clean up image map to make sure entries that need to be preserved are not removed
     for key in carry_over.keys() {
-        image_map.remove(key);
+        iotedge_images_map.remove(key);
     }
 
-    Ok((image_map, carry_over))
+    Ok((iotedge_images_map, carry_over))
 }
 
 #[cfg(test)]
@@ -578,47 +582,53 @@ mod tests {
         images_being_used.insert(
             "sha256:a4d112e0884bd2ba078ab8222e075bc656cc65cd433dfbb74d6de7cee188f2f2".to_string(),
         );
+        images_being_used.insert(
+            "sha256:0884bd2ba078ab8222e075bc656cc65cd433dfbb74d6de7cee188f2f2a4d112e".to_string(),
+        );
+        images_being_used.insert(
+            "sha256:8222e075bc656cc65cd433dfbb74d6de7cee188f2f2a4d112e0884bd2ba078ab".to_string(),
+        );
 
         let time = std::time::SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("Could not get EPOCH time");
 
-        let mut all_images_on_disk: HashMap<String, Duration> = HashMap::new();
+        let mut all_iotedge_images: HashMap<String, Duration> = HashMap::new();
 
         // currently used
-        all_images_on_disk.insert(
+        all_iotedge_images.insert(
             "sha256:670dcc86b69df89a9d5a9e1a7ae5b8f67619c1c74e19de8a35f57d6c06505fd4".to_string(),
             time - Duration::from_secs(60 * 60 * 24),
         );
-        all_images_on_disk.insert(
+        all_iotedge_images.insert(
             "sha256:62aedd01bd8520c43d06b09f7a0f67ba9720bdc04631a8242c65ea995f3ecac8".to_string(),
             time - Duration::from_secs(60 * 60 * 24 * 5),
         );
-        all_images_on_disk.insert(
+        all_iotedge_images.insert(
             "sha256:a4d112e0884bd2ba078ab8222e075bc656cc65cd433dfbb74d6de7cee188f2f2".to_string(),
             time - Duration::from_secs(60 * 60 * 24 * 9),
         );
 
         // others
-        all_images_on_disk.insert(
+        all_iotedge_images.insert(
             "sha256:a40d3130a63918663f6e412178d2e83010994bb5a6bdb9ba314ca43013c05331".to_string(),
             time - Duration::from_secs(60 * 60 * 12),
         );
-        all_images_on_disk.insert(
+        all_iotedge_images.insert(
             "sha256:269d9943b0d310e1ab49a55e14752596567a74daa37270c6217abfc33f48f7f5".to_string(),
             time - Duration::from_secs(60 * 60 * 24 * 12),
         );
-        all_images_on_disk.insert(
+        all_iotedge_images.insert(
             "sha256:a1e6072c125f6102f410418ca0647841376982b460ab570916b01f264daf89af".to_string(),
             time - Duration::from_secs(60 * 60 * 24 * 13),
         );
-        all_images_on_disk.insert(
+        all_iotedge_images.insert(
             "sha256:a4d112e0884bd2ba078ab8222e075bc989cc65cd433dfbb74d6de7cee188g4g7".to_string(),
             time - Duration::from_secs(60 * 60 * 24 * 8),
         );
 
         let (to_delete, carry_over) = process_state(
-            all_images_on_disk,
+            all_iotedge_images,
             images_being_used,
             Duration::from_secs(60 * 60 * 24),
         )

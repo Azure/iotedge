@@ -44,10 +44,14 @@ pub async fn image_garbage_collect(
             {
                 is_bootstrap_image_deleted = is_image_deleted;
                 if !is_image_deleted {
-                    log::info!("Bootstrap EdgeAgent {} has ID {}", edge_agent_bootstrap, id);
+                    log::info!(
+                        "Bootstrap Edge Agent image {} has ID {}",
+                        edge_agent_bootstrap,
+                        id
+                    );
                     bootstrap_image_id_option = Some(id.clone());
                 } else {
-                    log::debug!("The Bootstrap EdgeAgent image was not found on this device");
+                    log::debug!("The bootstrap Edge Agent image was not found on this device");
                 }
             } else {
                 log::error!("Could not get bootstrap image id");
