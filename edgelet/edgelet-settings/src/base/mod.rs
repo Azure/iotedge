@@ -70,7 +70,9 @@ pub struct IotedgeMaxRequests {
 impl Default for IotedgeMaxRequests {
     fn default() -> IotedgeMaxRequests {
         IotedgeMaxRequests {
-            management: http_common::Incoming::default_max_requests(),
+            // Allow 50 concurrent requests on the management socket, as that is the
+            // maximum number of modules allowed by IoT Hub.
+            management: 50,
             workload: http_common::Incoming::default_max_requests(),
         }
     }
