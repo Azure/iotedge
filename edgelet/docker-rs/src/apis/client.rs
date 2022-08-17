@@ -501,6 +501,31 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn images_list_null_repo_tags() {
+        let payload = format!(
+            "[{}]",
+            serde_json::to_string(&serde_json::json!(
+            {
+                "Containers": -1,
+                "Created": 1654129518,
+                "Id": "sha256:f9a33e4c293fec36a69475f48c2f3fb9dc4db9970befb7296ce52551254c42df",
+                "Labels": null,
+                "ParentId": "",
+                "RepoDigests": [
+                  "mcr.microsoft.com/azureiotedge-agent@sha256:7bdfb97647005b697259434bffcd1584ea2610210109012608029f7c7ab0fdcd"
+                ],
+                "RepoTags": null,
+                "SharedSize": -1,
+                "Size": 180383211,
+                "VirtualSize": 180383211
+              }))
+            .unwrap()
+        );
+        let client = DockerApiClient::new(JsonConnector::ok(&payload));
+        assert!(client.images_list(false, "", false).await.is_ok());
+    }
+
+    #[tokio::test]
     async fn container_inspect_not_found() {
         let payload = serde_json::to_string(&serde_json::json!({
             "message": "MESSAGE",

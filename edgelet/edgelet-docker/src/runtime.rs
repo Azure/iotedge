@@ -747,6 +747,10 @@ where
             .images_list(false, "", false)
             .await
             .context(Error::Docker)
+            .map_err(|e| {
+                log::warn!("{:?}", e);
+                e
+            })
             .context(Error::RuntimeOperation(RuntimeOperation::ListImages))?;
 
         let mut result: HashMap<String, String> = HashMap::new();
