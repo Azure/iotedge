@@ -325,9 +325,8 @@ stages:
           - task: CopyFiles@2
             displayName: Copy iot-identity-service build logs to artifact staging
             inputs:
-              SourceFolder: 'iot-identity-service/Mariner-Build/build/'
+              SourceFolder: 'iot-identity-service/Mariner-Build/build/logs/pkggen/rpmbuilding/'
               Contents: |
-              logs/pkggen/rpmbuilding/
                 **/*.rpm.log
               TargetFolder: '$(build.artifactstagingdirectory)'
             condition: succeededOrFailed()
