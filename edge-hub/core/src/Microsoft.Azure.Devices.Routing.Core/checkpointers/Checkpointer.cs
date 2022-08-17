@@ -123,6 +123,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
                 Metrics.DecrementQueueLength(this.EndpointId, this.Priority);
                 ++metricCount;
             }
+
             Events.CommitMetricDec(this, metricCount);
 
             Events.CommitFinished(this);
