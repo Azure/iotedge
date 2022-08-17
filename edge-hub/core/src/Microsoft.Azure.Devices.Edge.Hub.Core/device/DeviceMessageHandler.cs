@@ -522,12 +522,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             return await taskCompletion.Task;
         }
 
-        public Task OnDesiredPropertyUpdates(IMessage twinUpdates) {
+        public Task OnDesiredPropertyUpdates(IMessage twinUpdates)
+        {
             Console.WriteLine("OnDesiredPropertyUpdates StackTrace: '{0}'", Environment.StackTrace);
             return this.underlyingProxy.OnDesiredPropertyUpdates(twinUpdates);
         }
 
-        public Task SendTwinUpdate(IMessage twin) {
+        public Task SendTwinUpdate(IMessage twin)
+        {
             // print stack trace here
             Console.WriteLine("SendTwinUpdate StackTrace: '{0}'", Environment.StackTrace);
             return this.underlyingProxy.SendTwinUpdate(twin);
