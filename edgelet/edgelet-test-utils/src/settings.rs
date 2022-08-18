@@ -84,9 +84,7 @@ impl edgelet_settings::RuntimeSettings for Settings {
         unimplemented!()
     }
 
-    fn image_garbage_collection(
-        &self,
-    ) -> &Option<edgelet_settings::base::image::ImagePruneSettings> {
+    fn image_garbage_collection(&self) -> &edgelet_settings::base::image::ImagePruneSettings {
         unimplemented!()
     }
 }

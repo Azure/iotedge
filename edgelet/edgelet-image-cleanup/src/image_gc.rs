@@ -10,8 +10,6 @@ use edgelet_settings::base::image::ImagePruneSettings;
 use crate::error::ImageCleanupError;
 
 const TOTAL_MINS_IN_DAY: u32 = 1440;
-const DEFAULT_CLEANUP_TIME: &str = "00:00"; // midnight
-const DEFAULT_RECURRENCE_IN_SECS: std::time::Duration = Duration::from_secs(60 * 60 * 24); // 1 day
 
 pub async fn image_garbage_collect(
     edge_agent_bootstrap: String,
@@ -21,14 +19,11 @@ pub async fn image_garbage_collect(
 ) -> Result<(), ImageCleanupError> {
     log::info!("Starting image garbage collection task...");
 
-    let is_enabled: bool = *settings.is_enabled().get_or_insert(true);
-
-    if !is_enabled {
+    if !settings.is_enabled() {
         return std::future::pending().await;
     }
 
     let cleanup_time = &mut settings.cleanup_time();
-    let cleanup_time = cleanup_time.get_or_insert(DEFAULT_CLEANUP_TIME.to_string());
 
     let diff_in_secs: u32 = get_sleep_time_mins(cleanup_time) * 60;
     tokio::time::sleep(Duration::from_secs(diff_in_secs.into())).await;
@@ -37,21 +32,15 @@ pub async fn image_garbage_collect(
     let mut is_bootstrap_image_deleted: bool = false;
 
     loop {
+        // Try to get the bootstrap image id if we failed on the last(/all previous) run(s)
         if bootstrap_image_id_option.is_none() {
             // bootstrap edge agent image should never be deleted
-            if let Ok((id, is_image_deleted)) =
+            if let Ok((id_option, is_image_deleted)) =
                 get_bootstrap_image_id(runtime, edge_agent_bootstrap.clone()).await
             {
                 is_bootstrap_image_deleted = is_image_deleted;
                 if !is_image_deleted {
-                    log::info!(
-                        "Bootstrap Edge Agent image {} has ID {}",
-                        edge_agent_bootstrap,
-                        id
-                    );
-                    bootstrap_image_id_option = Some(id.clone());
-                } else {
-                    log::debug!("The bootstrap Edge Agent image was not found on this device");
+                    bootstrap_image_id_option = id_option.clone();
                 }
             } else {
                 log::error!("Could not get bootstrap image id");
@@ -70,8 +59,7 @@ pub async fn image_garbage_collect(
         }
 
         // sleep till it's time to wake up based on recurrence (and on current time post-last-execution to avoid time drift)
-        let mut recurrence = settings.cleanup_recurrence();
-        let recurrence = *recurrence.get_or_insert(DEFAULT_RECURRENCE_IN_SECS);
+        let recurrence = settings.cleanup_recurrence();
         let delay = recurrence
             - Duration::from_secs(
                 ((TOTAL_MINS_IN_DAY - get_sleep_time_mins(cleanup_time)) * 60).into(),
@@ -131,7 +119,7 @@ async fn remove_unused_images(
 // This image is used as a fallback in certain scenarios and we have to make sure that we never delete it
 // (though the customer can still do so).
 //
-// To wit, there are 4 possibilities (pertaining to this method's return values):
+// There are 4 possibilities (pertaining to this method's return values):
 //    Image Id found       Has image been deleted?     Interpretation
 //        yes                        yes               N/A [can't happen]
 //        yes                        no                prune images, as per usual
@@ -142,7 +130,7 @@ async fn remove_unused_images(
 async fn get_bootstrap_image_id(
     runtime: &edgelet_docker::DockerModuleRuntime<http_common::Connector>,
     edge_agent_bootstrap: String,
-) -> Result<(String, bool), ImageCleanupError> {
+) -> Result<(Option<String>, bool), ImageCleanupError> {
     let image_name_to_id = ModuleRuntime::list_images(runtime)
         .await
         .map_err(ImageCleanupError::ListImages)?;
@@ -151,7 +139,20 @@ async fn get_bootstrap_image_id(
     let bootstrap_image_id =
         image_id_option.map_or_else(String::default, |image_id| image_id.to_string());
 
-    Ok((bootstrap_image_id.clone(), bootstrap_image_id.is_empty()))
+    if bootstrap_image_id.is_empty() {
+        log::debug!("The bootstrap Edge Agent image was not found on this device");
+    } else {
+        log::info!(
+            "Bootstrap Edge Agent image {} has ID {}",
+            edge_agent_bootstrap,
+            bootstrap_image_id
+        );
+    }
+
+    Ok((
+        Some(bootstrap_image_id.clone()),
+        bootstrap_image_id.is_empty(),
+    ))
 }
 
 fn get_sleep_time_mins(times: &str) -> u32 {

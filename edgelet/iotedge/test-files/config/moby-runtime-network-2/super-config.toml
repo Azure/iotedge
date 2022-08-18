@@ -68,3 +68,9 @@ ip_range = "172.18.0.0/16"
 gateway = "2021:ffff:e0:3b1:1::1"
 subnet = "2021:ffff:e0:3b1:1::/80"
 ip_range = "2021:ffff:e0:3b1:1::/80"
+
+[image_garbage_collection]
+cleanup_recurrence = "1day"
+image_age_cleanup_threshold = "7days"
+cleanup_time = "00:00"
+enabled = true
