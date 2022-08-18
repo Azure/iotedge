@@ -88,7 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             try
             {
-                //await this.UpdateDeviceConnectionStatus(device, ConnectionStatus.Disconnected);
+                // await this.UpdateDeviceConnectionStatus(device, ConnectionStatus.Disconnected);
                 await Task.CompletedTask;
             }
             catch (Exception ex)
@@ -101,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             try
             {
-                //await this.UpdateDeviceConnectionStatus(device, ConnectionStatus.Connected);
+                // await this.UpdateDeviceConnectionStatus(device, ConnectionStatus.Connected);
                 await Task.CompletedTask;
             }
             catch (Exception ex)
