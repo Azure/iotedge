@@ -9,7 +9,7 @@ use edgelet_settings::base::image::ImagePruneSettings;
 
 use crate::error::ImageCleanupError;
 
-const TOTAL_MINS_IN_DAY: u32 = 1440;
+const TOTAL_MINS_IN_DAY: u64 = 1440;
 
 pub async fn image_garbage_collect(
     edge_agent_bootstrap: String,
@@ -23,10 +23,10 @@ pub async fn image_garbage_collect(
         return std::future::pending().await;
     }
 
-    let cleanup_time = &mut settings.cleanup_time();
+    let cleanup_time_in_mins = &mut settings.cleanup_time();
 
-    let diff_in_secs: u32 = get_sleep_time_mins(cleanup_time) * 60;
-    tokio::time::sleep(Duration::from_secs(diff_in_secs.into())).await;
+    let diff_in_secs: u64 = get_sleep_time_mins(*cleanup_time_in_mins) * 60;
+    tokio::time::sleep(Duration::from_secs(diff_in_secs)).await;
 
     let mut bootstrap_image_id_option = None;
     let mut is_bootstrap_image_deleted: bool = false;
@@ -62,7 +62,7 @@ pub async fn image_garbage_collect(
         let recurrence = settings.cleanup_recurrence();
         let delay = recurrence
             - Duration::from_secs(
-                ((TOTAL_MINS_IN_DAY - get_sleep_time_mins(cleanup_time)) * 60).into(),
+                (TOTAL_MINS_IN_DAY - get_sleep_time_mins(*cleanup_time_in_mins)) * 60,
             );
         tokio::time::sleep(delay).await;
     }
@@ -155,21 +155,10 @@ async fn get_bootstrap_image_id(
     ))
 }
 
-fn get_sleep_time_mins(times: &str) -> u32 {
-    // if string is empty, or if there's an input error, we fall back to default (midnight)
-    let cleanup_mins = if times.is_empty() {
-        TOTAL_MINS_IN_DAY
-    } else {
-        let cleanup_time: Vec<&str> = times.split(':').collect();
-        let hour = cleanup_time.get(0).unwrap().parse::<u32>().unwrap();
-        let minute = cleanup_time.get(1).unwrap().parse::<u32>().unwrap();
-
-        60 * hour + minute
-    };
-
+fn get_sleep_time_mins(cleanup_mins: u64) -> u64 {
     let current_hour = chrono::Local::now().hour();
     let current_minute = chrono::Local::now().minute();
-    let current_time_in_mins = 60 * current_hour + current_minute;
+    let current_time_in_mins: u64 = (60 * current_hour + current_minute).into();
 
     if current_time_in_mins < cleanup_mins {
         cleanup_mins - current_time_in_mins
@@ -183,17 +172,17 @@ mod tests {
     use super::get_sleep_time_mins;
     use chrono::Timelike;
 
-    const TOTAL_MINS_IN_DAY: u32 = 1440;
+    const TOTAL_MINS_IN_DAY: u64 = 1440;
 
     #[test]
     fn test_get_sleep_time_mins() {
-        let cleanup_minutes = 12 * 60 + 39;
-        let result = get_sleep_time_mins("12:39");
+        let cleanup_minutes: u64 = 12 * 60 + 39;
+        let result = get_sleep_time_mins(cleanup_minutes);
 
         let hour = chrono::Local::now().hour();
         let min = chrono::Local::now().minute();
 
-        let curr_minutes: u32 = hour * 60 + min;
+        let curr_minutes: u64 = (hour * 60 + min).into();
 
         let answer = if curr_minutes < cleanup_minutes {
             cleanup_minutes - curr_minutes

@@ -53,7 +53,7 @@ impl ImagePruneData {
         let guard = self
             .inner
             .lock()
-            .map_err(|e| Error::LockError(e.to_string()))?;
+            .expect("Image garbage collection file operation failed");
 
         // read persistence file into in-mem map
         // this map now contains all images deployed to the device (through an IoT Edge deployment)
@@ -161,14 +161,14 @@ fn get_images_with_timestamp(
         let _file = fs::File::create(image_use_filepath.clone()).map_err(Error::CreateFile)?;
     }
 
-    let res = fs::read_to_string(image_use_filepath);
-    if let Err(e) = res {
-        let msg = format!("Could not read image persistence data: {}", e);
-        log::error!("{msg}");
-        return Err(Error::FileOperation(msg));
-    }
-
-    let contents = res.expect("Reading image persistence data failed");
+    let contents = match fs::read_to_string(image_use_filepath) {
+        Ok(ct) => ct,
+        Err(e) => {
+            let msg = format!("Could not read image persistence data: {}", e);
+            log::error!("{msg}");
+            return Err(Error::FileOperation(msg));
+        }
+    };
 
     let mut image_map: HashMap<String, Duration> = HashMap::new(); // all image pruning data
 
@@ -195,7 +195,7 @@ fn write_images_with_timestamp(
 ) -> Result<(), Error> {
     // write to a temp file and then rename/overwrite to image persistence file (to prevent file write failures or corruption)
     let mut file = std::fs::File::create(temp_file.clone())
-        .expect("Could not create temporary persistence file");
+        .expect("Could not create new image garbage collection state file");
 
     for (key, value) in state_to_persist {
         let image_details = format!("{} {}\n", key, value.as_secs());
@@ -227,14 +227,14 @@ fn write_images_with_timestamp(
 // and return those as a tuple.
 // It takes as input all the images present on the device (that we know about through an
 // iotedge deployment) and the images currently in-use, along with the minimum "age" for
-//  which the images can stay unused. Any images older than this minim age are marked
+//  which the images can stay unused. Any images older than this minimum age are marked
 //  for deletion.
-type HashMapTuple = (HashMap<String, Duration>, HashMap<String, Duration>);
+#[allow(clippy::type_complexity)]
 fn process_state(
     mut iotedge_images_map: HashMap<String, Duration>,
     in_use_image_ids: HashSet<String>,
     image_age_cleanup_threshold: Duration,
-) -> Result<HashMapTuple, Error> {
+) -> Result<(HashMap<String, Duration>, HashMap<String, Duration>), Error> {
     let current_time = std::time::SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_err(Error::GetCurrentTimeEpoch)?;
@@ -296,7 +296,7 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn test_record_image_use_timestamp() {
-        let curr_time: String = format!("{}{}", Utc::now().hour(), Utc::now().minute());
+        let curr_time = (Utc::now().hour() * 60 + Utc::now().minute()).into();
 
         let test_file_dir = std::env::current_dir().unwrap().join(TEST_FILE_DIR);
         if test_file_dir.is_dir() {
@@ -419,7 +419,7 @@ mod tests {
                 .unwrap(),
         );
 
-        let curr_time: String = format!("{}{}", Utc::now().hour(), Utc::now().minute());
+        let curr_time = (Utc::now().hour() * 60 + Utc::now().minute()).into();
         let settings = ImagePruneSettings::new(
             Duration::from_secs(30),
             Duration::from_secs(5),

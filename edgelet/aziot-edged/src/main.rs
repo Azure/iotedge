@@ -9,19 +9,14 @@ mod provision;
 mod watchdog;
 mod workload_manager;
 
-use std::{sync::atomic, time::Duration};
+use std::sync::atomic;
 
-use chrono::NaiveTime;
 use edgelet_core::{module::ModuleAction, ModuleRuntime, WatchdogAction};
 use edgelet_docker::{ImagePruneData, MakeModuleRuntime};
-use edgelet_image_cleanup::{error::ImageCleanupError, image_gc};
-use edgelet_settings::{base::image::ImagePruneSettings, RuntimeSettings};
+use edgelet_image_cleanup::image_gc;
+use edgelet_settings::RuntimeSettings;
 
 use crate::{error::Error as EdgedError, workload_manager::WorkloadManager};
-
-const CONFIG_EXITCODE: i32 = 78;
-const MIN_CLEANUP_RECURRENCE: u64 = 60 * 60 * 24; // 1 day
-const DEFAULT_CLEANUP_TIME: &str = "00:00"; // midnight
 
 #[tokio::main]
 async fn main() {
@@ -92,7 +87,7 @@ async fn run() -> Result<(), EdgedError> {
 
     let device_info = provision::get_device_info(
         &identity_client,
-        settings.clone().auto_reprovisioning_mode(),
+        settings.auto_reprovisioning_mode(),
         &cache_dir,
     )
     .await?;
@@ -100,12 +95,7 @@ async fn run() -> Result<(), EdgedError> {
     let (create_socket_channel_snd, create_socket_channel_rcv) =
         tokio::sync::mpsc::unbounded_channel::<ModuleAction>();
 
-    let gc_settings = settings.image_garbage_collection();
-
-    let result = validate_settings(gc_settings);
-    if result.is_err() {
-        std::process::exit(CONFIG_EXITCODE);
-    }
+    let gc_settings = settings.image_garbage_collection().clone();
 
     let image_use_data = ImagePruneData::new(&gc_dir, gc_settings.clone())
         .map_err(|err| EdgedError::from_err("Failed to set up image garbage collection", err))?;
@@ -158,9 +148,7 @@ async fn run() -> Result<(), EdgedError> {
 
     // Resolve the parent hostname used to pull Edge Agent. This translates '$upstream' into the
     // appropriate hostname.
-    let settings = settings
-        .clone()
-        .agent_upstream_resolve(&device_info.gateway_host);
+    let settings = settings.agent_upstream_resolve(&device_info.gateway_host);
 
     // Start management and workload sockets.
     let management_shutdown = management::start(
@@ -279,71 +267,4 @@ fn set_signal_handlers(
         // Ignore this Result, as the process will be shutting down anyways.
         let _ = sigterm_sender.send(edgelet_core::WatchdogAction::Signal);
     });
-}
-
-fn validate_settings(settings: &ImagePruneSettings) -> Result<(), ImageCleanupError> {
-    let recurrence = Duration::as_secs(&settings.cleanup_recurrence());
-    let cleanup_time = DEFAULT_CLEANUP_TIME.to_string();
-
-    if (recurrence % MIN_CLEANUP_RECURRENCE) != 0 {
-        return Err(ImageCleanupError::InvalidConfiguration(
-            "cleanup recurrence can only be multiples of a day".to_string(),
-        ));
-    }
-
-    let times = NaiveTime::parse_from_str(&cleanup_time, "%H:%M");
-    if times.is_err() {
-        return Err(ImageCleanupError::InvalidConfiguration(
-            "invalid cleanup time, expected format is \"HH:MM\" in 24-hour format".to_string(),
-        ));
-    }
-
-    Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use edgelet_settings::base::image::ImagePruneSettings;
-    use std::time::Duration;
-
-    use crate::validate_settings;
-
-    #[test]
-    fn test_validate_settings() {
-        let mut settings =
-            ImagePruneSettings::new(Duration::MAX, Duration::MAX, "12345".to_string(), false);
-
-        let mut result = validate_settings(&settings);
-        assert!(result.is_err());
-
-        settings =
-            ImagePruneSettings::new(Duration::MAX, Duration::MAX, "abcde".to_string(), false);
-        result = validate_settings(&settings);
-        assert!(result.is_err());
-
-        settings =
-            ImagePruneSettings::new(Duration::MAX, Duration::MAX, "26:30".to_string(), false);
-        result = validate_settings(&settings);
-        assert!(result.is_err());
-
-        settings =
-            ImagePruneSettings::new(Duration::MAX, Duration::MAX, "16:61".to_string(), false);
-        result = validate_settings(&settings);
-        assert!(result.is_err());
-
-        settings =
-            ImagePruneSettings::new(Duration::MAX, Duration::MAX, "23:333".to_string(), false);
-        result = validate_settings(&settings);
-        assert!(result.is_err());
-
-        settings =
-            ImagePruneSettings::new(Duration::MAX, Duration::MAX, "2:033".to_string(), false);
-        result = validate_settings(&settings);
-        assert!(result.is_err());
-
-        settings =
-            ImagePruneSettings::new(Duration::MAX, Duration::MAX, ":::00".to_string(), false);
-        result = validate_settings(&settings);
-        assert!(result.is_err());
-    }
 }

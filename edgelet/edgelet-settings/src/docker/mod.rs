@@ -310,7 +310,7 @@ mod tests {
             image_prune_settings.cleanup_recurrence(),
             Duration::from_secs(1440 * 60 * 3)
         );
-        assert_eq!(image_prune_settings.cleanup_time(), "10:00");
+        assert_eq!(image_prune_settings.cleanup_time(), 600);
     }
 
     #[test]
@@ -330,7 +330,7 @@ mod tests {
             image_gc_settings.cleanup_recurrence(),
             Duration::from_secs(60 * 60 * 24)
         );
-        assert_eq!(image_gc_settings.cleanup_time(), "00:00");
+        assert_eq!(image_gc_settings.cleanup_time(), 0);
     }
 
     #[test]
