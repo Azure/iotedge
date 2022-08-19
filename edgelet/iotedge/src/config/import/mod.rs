@@ -371,6 +371,8 @@ fn execute_inner(
 
         additional_info: None,
 
+        iotedge_max_requests: Default::default(),
+
         aziot: common_config::super_config::Config {
             hostname: Some(hostname),
             parent_hostname,
@@ -382,6 +384,8 @@ fn execute_inner(
             cloud_timeout_sec: aziot_identityd_config::Settings::default_cloud_timeout(),
 
             cloud_retries: aziot_identityd_config::Settings::default_cloud_retries(),
+
+            aziot_max_requests: Default::default(),
 
             aziot_keys: Default::default(),
 
