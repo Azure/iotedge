@@ -194,8 +194,7 @@ fn write_images_with_timestamp(
     image_use_filepath: String,
 ) -> Result<(), Error> {
     // write to a temp file and then rename/overwrite to image persistence file (to prevent file write failures or corruption)
-    let mut file = std::fs::File::create(temp_file.clone())
-        .expect("Could not create new image garbage collection state file");
+    let mut file = std::fs::File::create(temp_file.clone()).map_err(Error::CreateFile)?;
 
     for (key, value) in state_to_persist {
         let image_details = format!("{} {}\n", key, value.as_secs());
@@ -455,25 +454,6 @@ mod tests {
     }
 
     /* =============================================================== MORE TESTS ============================================================ */
-
-    #[test]
-    #[serial]
-    #[should_panic]
-    fn test_panic_write_images_with_timestamp() {
-        let mut result = write_images_with_timestamp(
-            &HashMap::new(),
-            "/etc/other_file".to_string(),
-            IMAGE_USE_FILENAME.to_string(),
-        );
-        assert!(result.is_err());
-
-        result = write_images_with_timestamp(
-            &HashMap::new(),
-            TMP_FILENAME.to_string(),
-            "/etc/other_file".to_string(),
-        );
-        assert!(result.is_err());
-    }
 
     #[test]
     #[serial]
