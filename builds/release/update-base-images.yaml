@@ -88,11 +88,11 @@ steps:
 
     echo "Found ${#needs_update[@]} images that need to be updated:"
     echo "$needs_update_json"
-    echo "$needs_update_json" > $(Build.ArtifactStagingDirectory)/updates.txt
+    echo "$needs_update_json" > $(Build.ArtifactStagingDirectory)/updates.json
   displayName: Detect base image updates
 
 - task: PublishBuildArtifacts@1
   displayName: Save list of images to update
   inputs:
-    PathtoPublish: $(Build.ArtifactStagingDirectory)/updates.txt
+    PathtoPublish: $(Build.ArtifactStagingDirectory)/updates.json
     ArtifactName: image-updates
