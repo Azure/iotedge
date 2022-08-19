@@ -34,9 +34,7 @@ steps:
       [
         .channels[] | .name as $channel | .products[] | .id as $product |
         {
-          $channel,
-          $product,
-          images: [
+          $channel, $product, images: [
             .componentTypes as $types | .components[] | images + ($types[] | platforms) |
               @text "mcr.microsoft.com/\(.name):\(.version)-\(.os)-\(.arch)"
           ]
@@ -78,14 +76,14 @@ steps:
     needs_update_json=$(printf '%s\n' "${needs_update[@]}" | jq -R '.' | jq -s '.')
     needs_update_json=$(echo "$images_json" | jq --argjson needs_update "$needs_update_json" '
       def find(s): index(s) as $i | if $i != null then .[$i] else null end;
-      .[] |
-      {
-        channel,
-        product,
-        images: [
-          .images | find($needs_update[] | .) | select(. != null)
-        ]
-      } | select(.images | length != 0)
+      [
+        .[] |
+        {
+          channel, product, images: [
+            .images | find($needs_update[] | .) | select(. != null)
+          ]
+        } | select(.images | length != 0)
+      ]
     ')
 
     echo "Found ${#needs_update[@]} images that need to be updated:"
