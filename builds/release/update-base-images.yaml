@@ -28,7 +28,7 @@ steps:
     # transform product-versions.json into a list of images, but group by channel/product so we
     # can figure out which release pipeline to launch for the various images
 
-    images_json=$cat ../azure-iotedge/product-versions.json | jq '
+    images_json=$($cat ../azure-iotedge/product-versions.json | jq '
       def images: select(has("type")) | select(.type == "dockerImage") | { name, version };
       def platforms: select(.name == "dockerImage") | .platforms[] | .os as $os | .arch[] | { os: $os, arch: . };
       [
