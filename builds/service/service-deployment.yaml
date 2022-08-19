@@ -4,11 +4,14 @@ pr: none
 trigger: none
 schedules:
 - cron: '0 3 * * *'
-  displayName: Nightly build
+  displayName: Nightly run 1.1 LTS
   branches:
     include:
-    - main
+    - release/1.1
   always: true
+
+variables:
+  DisableDockerDetector: true
 
 pool:
   vmImage: ubuntu-18.04
@@ -30,7 +33,7 @@ steps:
     $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
     dotnet build $testDir
 
-    $binDir = Convert-Path "$testDir/bin/Debug/netcoreapp3.1"
+    $binDir = Convert-Path "$testDir/bin/Debug/net6.0"
     Write-Output "##vso[task.setvariable variable=binDir]$binDir"
   displayName: Build tests
 

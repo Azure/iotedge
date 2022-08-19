@@ -26,6 +26,7 @@ The end-to-end tests take several parameters, which they expect to find in a fil
 | `dpsIdScope` | * | The [ID Scope](https://docs.microsoft.com/azure/iot-dps/concepts-device#id-scope) assigned to a Device Provisioning Service. Required when running any DPS tests, ignored otherwise. |
 | `edgeAgentImage` || Docker image to pull/use for Edge Agent. If not given, the default value `mcr.microsoft.com/azureiotedge-agent:1.0` is used. This setting only applies to any configurations deployed by the tests. Note also that the default value is ALWAYS used in config.yaml to start IoT Edge; this setting only applies to any configurations deployed by the tests. |
 | `edgeHubImage` || Docker image to pull/use for Edge Hub. If not given, `mcr.microsoft.com/azureiotedge-hub:1.0` is used. |
+| `edgeHubSchemaVersion` || The schema version used for EdgeHub. |
 | `installerPath` || Path to the Windows installer script `IotEdgeSecurityDaemon.ps1`. This parameter is ignored on Linux, and optional on Windows. If not given on Windows, the default script will be downloaded from https://aka.ms/iotedge-win to a temporary location. |
 | `loadGenImage` | * | LoadGen image to be used. Required when running PriorityQueue tests, ignored otherwise.|
 | `logFile` || Path to which all test output will be written, including verbose output. This setting allows the user to capture all the details of a test pass while keeping the shell window output free of visual clutter. Note that daemon logs and module logs are always written to the same directory as the test binaries (e.g., `test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp2.1/*.log`), independent of this parameter. |
@@ -47,7 +48,6 @@ The end-to-end tests take several parameters, which they expect to find in a fil
 | `tempSensorImage` || Docker image to pull/use for the temperature sensor module (see the test 'TempSensor'). If not given, `mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0` is used.|
 | `numberLoggerImage` || Docker image to pull/use for the Edge agent direct method tests. Used to generate predictable logs. |
 | `testResultCoordinatorImage` | * | TestResultCoordinator image to be used. Required when running PriorityQueue or GenericMqtt tests, ignored otherwise.|
-| `genericMqttTesterImage` | * | GenericMqttTester image to be used. Required when running GenericMqtt tests, ignored otherwise.
 | `testTimeoutMinutes` || The maximum amount of time, in minutes, a single test should take. If this time is exceeded, the associated test will fail with a timeout error. If not given, the default value is `5`. |
 | `verbose` || Boolean value indicating whether to output more verbose logging information to standard output during a test run. If not given, the default is `false`. |
 

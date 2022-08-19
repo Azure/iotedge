@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 
 use docker::models::{AuthConfig, ContainerCreateBody};
 
-#[derive(Debug, serde_derive::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 pub(crate) struct ModuleSpec {
     pub(crate) name: String,
 
@@ -21,7 +21,7 @@ pub(crate) struct ModuleSpec {
     pub(crate) image_pull_policy: ImagePullPolicy,
 }
 
-#[derive(Debug, serde_derive::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct DockerConfig {
     pub(crate) image: String,
@@ -40,7 +40,7 @@ pub(crate) struct DockerConfig {
     pub(crate) auth: Option<AuthConfig>,
 }
 
-#[derive(Debug, serde_derive::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum ImagePullPolicy {
     #[serde(rename = "on-create")]

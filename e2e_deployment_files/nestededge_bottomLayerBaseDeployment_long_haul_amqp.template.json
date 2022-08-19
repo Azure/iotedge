@@ -43,9 +43,6 @@
             "env": {
               "RuntimeLogLevel": {
                 "value": "Debug"
-              },
-              "SslProtocols": {
-                "value": "tls1.2"
               }
             },
             "settings": {
@@ -468,7 +465,7 @@
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-test-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
             }
           },

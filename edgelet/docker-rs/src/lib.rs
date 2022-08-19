@@ -12,6 +12,5 @@
 #![cfg(not(tarpaulin_include))]
 pub mod apis;
 pub mod models;
-pub mod utils;
 
 pub use apis::{DockerApi, DockerApiClient};

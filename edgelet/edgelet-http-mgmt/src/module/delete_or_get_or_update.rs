@@ -40,7 +40,7 @@ where
 
         let start = edgelet_http::find_query("start", query);
 
-        let pid = match extensions.get::<Option<libc::pid_t>>().cloned().flatten() {
+        let pid = match extensions.get::<Option<libc::pid_t>>().copied().flatten() {
             Some(pid) => pid,
             None => return None,
         };
@@ -71,7 +71,7 @@ where
         let module_info = runtime
             .get(&self.module)
             .await
-            .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
+            .map_err(|err| edgelet_http::error::runtime_error(&*runtime, &err))?;
 
         let res: edgelet_http::ModuleDetails = module_info.into();
         let res = http_common::server::response::json(hyper::StatusCode::OK, &res);
@@ -133,13 +133,13 @@ where
         runtime
             .stop(&self.module, None)
             .await
-            .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
+            .map_err(|err| edgelet_http::error::runtime_error(&*runtime, &err))?;
 
         // Then remove the module.
         runtime
             .remove(&self.module)
             .await
-            .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
+            .map_err(|err| edgelet_http::error::runtime_error(&*runtime, &err))?;
 
         super::create_module(&*runtime, body.clone()).await?;
 

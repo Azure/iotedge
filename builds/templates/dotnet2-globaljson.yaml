@@ -1,7 +1,0 @@
-# When multiple dotnet versions are installed, determines which installation is first attempted to be used.
-steps:
-  - task: Bash@3
-    displayName: 'Use dotnet 2'
-    inputs:
-      targetType: 'inline'
-      script: 'dotnet new globaljson --force --sdk-version 2.1'

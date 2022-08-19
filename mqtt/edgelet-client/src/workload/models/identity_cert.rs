@@ -8,7 +8,7 @@ pub struct IdentityCertificateRequest {
 }
 
 impl IdentityCertificateRequest {
-    pub fn new(expiration: Option<String>) -> IdentityCertificateRequest {
+    pub fn new(expiration: Option<String>) -> Self {
         IdentityCertificateRequest { expiration }
     }
 
@@ -16,7 +16,8 @@ impl IdentityCertificateRequest {
         self.expiration = Some(expiration);
     }
 
-    pub fn with_expiration(mut self, expiration: String) -> IdentityCertificateRequest {
+    #[must_use]
+    pub fn with_expiration(mut self, expiration: String) -> Self {
         self.expiration = Some(expiration);
         self
     }

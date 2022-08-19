@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use edgelet_core::{module::ModuleAction, ErrorKind, UrlExt};
+use edgelet_core::{module::ModuleAction, Error, UrlExt};
 use edgelet_settings::uri::Listen;
 
 use crate::error::Error as EdgedError;
@@ -30,6 +30,7 @@ where
         device_info: &aziot_identity_common::AzureIoTSpec,
         tasks: std::sync::Arc<std::sync::atomic::AtomicUsize>,
         create_socket_channel_snd: tokio::sync::mpsc::UnboundedSender<ModuleAction>,
+        renewal_tx: tokio::sync::mpsc::UnboundedSender<edgelet_core::WatchdogAction>,
     ) -> Result<(WorkloadManager<M>, tokio::sync::oneshot::Sender<()>), EdgedError> {
         let shutdown_senders: HashMap<String, tokio::sync::oneshot::Sender<()>> = HashMap::new();
         let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
@@ -38,8 +39,9 @@ where
         let legacy_workload_uri = settings.listen().legacy_workload_uri().clone();
         let legacy_workload_systemd_socket_name = Listen::get_workload_systemd_socket_name();
 
-        let service = edgelet_http_workload::Service::new(settings, runtime, device_info)
-            .map_err(|err| EdgedError::from_err("Invalid service endpoint", err))?;
+        let service =
+            edgelet_http_workload::Service::new(settings, runtime, renewal_tx, device_info)
+                .map_err(|err| EdgedError::from_err("Invalid service endpoint", err))?;
 
         service.check_edge_ca().await.map_err(EdgedError::new)?;
 
@@ -88,7 +90,7 @@ where
             signal_socket_created.send(()).map_err(|()| {
                 EdgedError::from_err(
                     "Could not send socket created signal to module runtime",
-                    ErrorKind::WorkloadManager,
+                    Error::WorkloadManager,
                 )
             })?;
         }
@@ -156,7 +158,7 @@ where
             || {
                 Err(EdgedError::from_err(
                     "No home dir found",
-                    ErrorKind::WorkloadManager,
+                    Error::WorkloadManager,
                 ))
             },
             |home_dir| {
@@ -265,7 +267,7 @@ where
                 );
                 EdgedError::from_err(
                     "Could not notify back runtime, stop listener",
-                    ErrorKind::WorkloadManager,
+                    Error::WorkloadManager,
                 )
             })?;
     }

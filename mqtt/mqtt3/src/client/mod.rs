@@ -5,7 +5,7 @@ mod connect;
 mod ping;
 
 mod publish;
-pub use publish::{PublishError, PublishHandle};
+pub use publish::{PublishError, PublishHandle, PublishRequest};
 
 mod subscriptions;
 pub use subscriptions::{UpdateSubscriptionError, UpdateSubscriptionHandle};
@@ -223,7 +223,7 @@ where
     }
 }
 
-impl<IoS> futures_core::Stream for Client<IoS>
+impl<IoS> futures_util::Stream for Client<IoS>
 where
     Self: Unpin,
     IoS: IoSource,
@@ -237,7 +237,7 @@ where
         mut self: std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<Option<Self::Item>> {
-        use futures_sink::Sink;
+        use futures_util::Sink;
 
         let reason = loop {
             match &mut self.0 {
@@ -617,8 +617,7 @@ fn client_poll<S>(
 where
     S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin,
 {
-    use futures_core::Stream;
-    use futures_sink::Sink;
+    use futures_util::{Sink, Stream};
 
     loop {
         // Begin sending any packets waiting to be sent

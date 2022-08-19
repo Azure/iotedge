@@ -59,7 +59,7 @@ impl State {
         message: &mut Option<super::InternalTwinStateMessage>,
         previous_request_id: &mut u8,
     ) -> Result<super::Response<Message>, super::MessageParseError> {
-        use futures_core::Stream;
+        use futures_util::Stream;
 
         loop {
             log::trace!("    {:?}", self.inner);
@@ -94,10 +94,10 @@ impl State {
                     {
                         match report_twin_state_request {
                             ReportTwinStateRequest::Replace(properties) => {
-                                self.current_twin_state = properties
+                                self.current_twin_state = properties;
                             }
                             ReportTwinStateRequest::Patch(patch) => {
-                                merge(&mut self.current_twin_state, patch)
+                                merge(&mut self.current_twin_state, patch);
                             }
                         }
 
@@ -124,7 +124,7 @@ impl State {
                                     crate::Status::Ok | crate::Status::NoContent => {
                                         let version = *version;
 
-                                        let _ = message.take();
+                                        let _message = message.take();
 
                                         self.previous_twin_state =
                                             Some(self.current_twin_state.clone());
@@ -135,14 +135,14 @@ impl State {
                                         )));
                                     }
 
-                                    status @ crate::Status::TooManyRequests
-                                    | status @ crate::Status::Error(_) => {
+                                    status @ (crate::Status::TooManyRequests
+                                    | crate::Status::Error(_)) => {
                                         log::warn!(
                                             "reporting twin state failed with status {}",
                                             status
                                         );
 
-                                        let _ = message.take();
+                                        let _message = message.take();
 
                                         self.inner = Inner::BeginBackOff;
                                         continue;
@@ -150,7 +150,7 @@ impl State {
 
                                     status => {
                                         let status = *status;
-                                        let _ = message.take();
+                                        let _message = message.take();
                                         return Err(super::MessageParseError::IotHubStatus(status));
                                     }
                                 }
@@ -172,7 +172,7 @@ impl State {
 
                 Inner::SendRequest => {
                     let patch = if let Some(previous_twin_state) = &self.previous_twin_state {
-                        diff(&previous_twin_state, &self.current_twin_state)
+                        diff(previous_twin_state, &self.current_twin_state)
                     } else {
                         // Wait for desired_properties to provide the initial reported twin state
                         return Ok(super::Response::NotReady);
@@ -187,7 +187,7 @@ impl State {
                     // We don't even need to `poll()` the future because `mqtt3::Client::publish` puts it in the send queue *synchronously*.
                     // But we do need to tell the caller client to poll the `mqtt3::Client` at least once more so that it attempts to send the message,
                     // so return `Response::Continue`.
-                    let _ = client.publish(mqtt3::proto::Publication {
+                    let _publish = client.publish(mqtt3::proto::Publication {
                         topic_name: format!(
                             "$iothub/twin/PATCH/properties/reported/?$rid={}",
                             request_id

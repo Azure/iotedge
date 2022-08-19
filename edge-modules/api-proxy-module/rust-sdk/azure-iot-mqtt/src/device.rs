@@ -125,7 +125,7 @@ impl Client {
 	}
 }
 
-impl futures_core::Stream for Client {
+impl futures_util::Stream for Client {
 	type Item = Result<Message, mqtt3::Error>;
 
 	fn poll_next(mut self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Option<Self::Item>> {
@@ -153,7 +153,7 @@ impl futures_core::Stream for Client {
 				State::WaitingForSubscriptions { reset_session, acked } =>
 					if *reset_session {
 						match std::pin::Pin::new(&mut this.inner).poll_next(cx) {
-							std::task::Poll::Ready(Some(Ok(mqtt3::Event::NewConnection { .. }))) | std::task::Poll::Ready(Some(Ok(mqtt3::Event::Disconnected(_)))) => (),
+							std::task::Poll::Ready(Some(Ok(mqtt3::Event::NewConnection { .. } | mqtt3::Event::Disconnected(_)))) => (),
 
 							std::task::Poll::Ready(Some(Ok(mqtt3::Event::Publication(publication)))) => match InternalMessage::parse(publication, &this.c2d_prefix) {
  								Ok(InternalMessage::CloudToDevice(message)) =>

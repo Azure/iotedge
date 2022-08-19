@@ -97,7 +97,7 @@ fn agent_networking(settings: &mut crate::docker::Settings) {
     let mut endpoints_config = network_config
         .endpoints_config()
         .cloned()
-        .unwrap_or_else(std::collections::BTreeMap::new);
+        .unwrap_or_default();
 
     if !endpoints_config.contains_key(network_id.as_str()) {
         endpoints_config.insert(network_id, docker::models::EndpointSettings::new());
@@ -114,10 +114,7 @@ fn agent_networking(settings: &mut crate::docker::Settings) {
 fn agent_labels(settings: &mut crate::docker::Settings) {
     let create_options = settings.agent().config().create_options().clone();
 
-    let mut labels = create_options
-        .labels()
-        .cloned()
-        .unwrap_or_else(std::collections::BTreeMap::new);
+    let mut labels = create_options.labels().cloned().unwrap_or_default();
 
     // IoT Edge reserves the label prefix "net.azure-devices.edge" for its own purposes
     // so we'll simply overwrite any matching labels created by the user.

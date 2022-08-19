@@ -7,7 +7,7 @@ proxy="http://${1}:3128"
 export http_proxy=$proxy
 export https_proxy=$proxy
 
-echo 'Installing PowerShell Core and .NET Core 3.1'
+echo 'Installing PowerShell Core and .NET 6.0'
 
 apt-get update
 apt-get install -y curl git wget apt-transport-https
@@ -15,7 +15,7 @@ wget -q 'https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-p
 dpkg -i packages-microsoft-prod.deb
 apt-get update
 add-apt-repository universe
-apt-get install -y powershell dotnet-sdk-3.1
+apt-get install -y powershell dotnet-sdk-6.0
 
 echo 'Installing Moby engine'
 

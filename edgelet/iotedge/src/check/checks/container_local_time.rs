@@ -1,9 +1,10 @@
-use failure::{self, Context, ResultExt};
 use std::time::Duration;
+
+use anyhow::Context;
 
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
-#[derive(Default, serde_derive::Serialize)]
+#[derive(Default, serde::Serialize)]
 pub(crate) struct ContainerLocalTime {
     expected_duration: Option<Duration>,
     actual_duration: Option<Duration>,
@@ -27,7 +28,7 @@ impl Checker for ContainerLocalTime {
 }
 
 impl ContainerLocalTime {
-    async fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    async fn inner_execute(&mut self, check: &mut Check) -> anyhow::Result<CheckResult> {
         let docker_host_arg = if let Some(docker_host_arg) = &check.docker_host_arg {
             docker_host_arg
         } else {
@@ -62,7 +63,7 @@ impl ContainerLocalTime {
         .context("Could not query local time inside container")?;
 
         let output = std::str::from_utf8(&output)
-            .map_err(failure::Error::from)
+            .map_err(anyhow::Error::from)
             .and_then(|output| output.trim_end().parse::<u64>().map_err(Into::into))
             .context("Could not parse container output")?;
 
@@ -79,7 +80,9 @@ impl ContainerLocalTime {
         self.diff = Some(diff.as_secs());
 
         if diff.as_secs() >= 10 {
-            return Err(Context::new("Detected time drift between host and container").into());
+            return Err(anyhow::anyhow!(
+                "Detected time drift between host and container",
+            ));
         }
 
         Ok(CheckResult::Ok)

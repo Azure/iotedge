@@ -2,8 +2,6 @@
 # Do not edit it manually; any edits will be lost when the command is run again.
 
 hostname = "my-device"
-edge_ca_cert = "aziot-edged-ca"
-edge_ca_key = "aziot-edged-ca"
 trust_bundle_cert = "aziot-edged-trust-bundle"
 auto_reprovisioning_mode = "OnErrorOnly"
 homedir = "/var/lib/aziot/edged"
@@ -26,6 +24,15 @@ image = "mcr.microsoft.com/azureiotedge-agent:1.0"
 [connect]
 workload_uri = "unix:///var/run/iotedge/workload.sock"
 management_uri = "unix:///var/run/iotedge/mgmt.sock"
+
+[edge_ca]
+cert = "aziot-edged-ca"
+key = "aziot-edged-ca"
+
+[edge_ca.auto_renew]
+rotate_key = false
+threshold = "50%"
+retry = "10%"
 
 [listen]
 workload_uri = "fd://aziot-edged.workload.socket"

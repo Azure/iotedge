@@ -1,21 +1,21 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::default::Default;
+use std::collections::BTreeMap;
+use std::ffi::OsStr;
 use std::fmt;
-use std::result::Result;
-use std::str::FromStr;
-use std::string::ToString;
 use std::time::Duration;
 
+use anyhow::Context;
 use chrono::prelude::*;
-use failure::{Fail, ResultExt};
+use nix::sys::utsname::UtsName;
 use serde::{Deserialize, Serialize};
-
-use edgelet_settings::module::Settings as ModuleSpec;
-use edgelet_settings::RuntimeSettings;
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::error::{Error, ErrorKind, Result as EdgeletResult};
+use aziotctl_common::host_info::{DmiInfo, OsInfo};
+use edgelet_settings::module::Settings as ModuleSpec;
+use edgelet_settings::RuntimeSettings;
+
+use crate::error::Error;
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -27,17 +27,9 @@ pub enum ModuleStatus {
     Dead,
 }
 
-pub enum ModuleAction {
-    Start(String, tokio::sync::oneshot::Sender<()>),
-    Stop(String),
-    Remove(String),
-}
-
-impl FromStr for ModuleStatus {
-    type Err = serde_json::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        serde_json::from_str(&format!("\"{}\"", s))
+impl Default for ModuleStatus {
+    fn default() -> Self {
+        Self::Unknown
     }
 }
 
@@ -53,29 +45,28 @@ impl fmt::Display for ModuleStatus {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+impl std::str::FromStr for ModuleStatus {
+    type Err = serde_json::Error;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        serde_json::from_str(&format!("\"{}\"", value))
+    }
+}
+
+pub enum ModuleAction {
+    Start(String, tokio::sync::oneshot::Sender<()>),
+    Stop(String),
+    Remove(String),
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct ModuleRuntimeState {
     status: ModuleStatus,
     exit_code: Option<i64>,
-    status_description: Option<String>,
     started_at: Option<DateTime<Utc>>,
     finished_at: Option<DateTime<Utc>>,
     image_id: Option<String>,
     pid: Option<i32>,
-}
-
-impl Default for ModuleRuntimeState {
-    fn default() -> Self {
-        ModuleRuntimeState {
-            status: ModuleStatus::Unknown,
-            exit_code: None,
-            status_description: None,
-            started_at: None,
-            finished_at: None,
-            image_id: None,
-            pid: None,
-        }
-    }
 }
 
 impl ModuleRuntimeState {
@@ -83,6 +74,7 @@ impl ModuleRuntimeState {
         &self.status
     }
 
+    #[must_use]
     pub fn with_status(mut self, status: ModuleStatus) -> Self {
         self.status = status;
         self
@@ -92,17 +84,9 @@ impl ModuleRuntimeState {
         self.exit_code
     }
 
+    #[must_use]
     pub fn with_exit_code(mut self, exit_code: Option<i64>) -> Self {
         self.exit_code = exit_code;
-        self
-    }
-
-    pub fn status_description(&self) -> Option<&str> {
-        self.status_description.as_ref().map(AsRef::as_ref)
-    }
-
-    pub fn with_status_description(mut self, status_description: Option<String>) -> Self {
-        self.status_description = status_description;
         self
     }
 
@@ -110,6 +94,7 @@ impl ModuleRuntimeState {
         self.started_at.as_ref()
     }
 
+    #[must_use]
     pub fn with_started_at(mut self, started_at: Option<DateTime<Utc>>) -> Self {
         self.started_at = started_at;
         self
@@ -119,6 +104,7 @@ impl ModuleRuntimeState {
         self.finished_at.as_ref()
     }
 
+    #[must_use]
     pub fn with_finished_at(mut self, finished_at: Option<DateTime<Utc>>) -> Self {
         self.finished_at = finished_at;
         self
@@ -128,6 +114,7 @@ impl ModuleRuntimeState {
         self.image_id.as_ref().map(AsRef::as_ref)
     }
 
+    #[must_use]
     pub fn with_image_id(mut self, image_id: Option<String>) -> Self {
         self.image_id = image_id;
         self
@@ -137,6 +124,7 @@ impl ModuleRuntimeState {
         self.pid
     }
 
+    #[must_use]
     pub fn with_pid(mut self, pid: Option<i32>) -> Self {
         self.pid = pid;
         self
@@ -151,32 +139,32 @@ pub enum LogTail {
 
 impl Default for LogTail {
     fn default() -> Self {
-        LogTail::All
+        Self::All
     }
 }
 
-impl FromStr for LogTail {
-    type Err = Error;
+impl fmt::Display for LogTail {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::All => write!(formatter, "all"),
+            Self::Num(n) => write!(formatter, "{}", n),
+        }
+    }
+}
 
-    fn from_str(s: &str) -> EdgeletResult<Self> {
+impl std::str::FromStr for LogTail {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> anyhow::Result<Self> {
         let tail = if s == "all" {
             LogTail::All
         } else {
             let num = s
                 .parse::<u64>()
-                .with_context(|_| ErrorKind::InvalidLogTail(s.to_string()))?;
+                .with_context(|| Error::InvalidLogTail(s.to_string()))?;
             LogTail::Num(num)
         };
         Ok(tail)
-    }
-}
-
-impl ToString for LogTail {
-    fn to_string(&self) -> String {
-        match self {
-            LogTail::All => "all".to_string(),
-            LogTail::Num(n) => n.to_string(),
-        }
     }
 }
 
@@ -200,26 +188,31 @@ impl LogOptions {
         }
     }
 
+    #[must_use]
     pub fn with_follow(mut self, follow: bool) -> Self {
         self.follow = follow;
         self
     }
 
+    #[must_use]
     pub fn with_tail(mut self, tail: LogTail) -> Self {
         self.tail = tail;
         self
     }
 
+    #[must_use]
     pub fn with_since(mut self, since: i32) -> Self {
         self.since = since;
         self
     }
 
+    #[must_use]
     pub fn with_until(mut self, until: i32) -> Self {
         self.until = Some(until);
         self
     }
 
+    #[must_use]
     pub fn with_timestamps(mut self, timestamps: bool) -> Self {
         self.timestamps = timestamps;
         self
@@ -249,38 +242,153 @@ impl LogOptions {
 #[async_trait::async_trait]
 pub trait Module {
     type Config;
-    type Error: Fail;
 
     fn name(&self) -> &str;
     fn type_(&self) -> &str;
     fn config(&self) -> &Self::Config;
-    async fn runtime_state(&self) -> Result<ModuleRuntimeState, Self::Error>;
+    async fn runtime_state(&self) -> anyhow::Result<ModuleRuntimeState>;
 }
 
 #[async_trait::async_trait]
 pub trait ModuleRegistry {
     type Config;
-    type Error: Fail;
 
-    async fn pull(&self, config: &Self::Config) -> Result<(), Self::Error>;
-    async fn remove(&self, name: &str) -> Result<(), Self::Error>;
+    async fn pull(&self, config: &Self::Config) -> anyhow::Result<()>;
+    async fn remove(&self, name: &str) -> anyhow::Result<()>;
 }
 
-#[derive(Debug, Default, Deserialize, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize)]
 pub struct SystemInfo {
-    /// OS Type of the Host. Example of value expected: \"linux\" and \"windows\".
     #[serde(rename = "osType")]
-    pub os_type: String,
-    /// Hardware architecture of the host. Example of value expected: arm32, x86, amd64
+    pub kernel: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kernel_release: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kernel_version: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub operating_system: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub operating_system_version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub operating_system_variant: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub operating_system_build: Option<String>,
+
     pub architecture: String,
-    /// iotedge version string
-    pub version: String,
-    pub provisioning: ProvisioningInfo,
-    pub server_version: String,
-    pub kernel_version: String,
-    pub operating_system: String,
-    pub cpus: i32,
+    pub cpus: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_memory: Option<u64>,
     pub virtualized: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub product_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub system_vendor: Option<String>,
+
+    pub version: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+
+    pub provisioning: ProvisioningInfo,
+
+    #[serde(default, flatten, skip_serializing_if = "BTreeMap::is_empty")]
+    pub additional_properties: BTreeMap<String, String>,
+}
+
+impl SystemInfo {
+    pub fn merge_additional(&mut self, mut additional_info: BTreeMap<String, String>) -> &Self {
+        macro_rules! remove_assign {
+            ($key:ident) => {
+                if let Some((_, x)) = additional_info.remove_entry(stringify!($key)) {
+                    self.$key = x.into();
+                }
+            };
+        }
+
+        remove_assign!(kernel);
+        remove_assign!(kernel_release);
+        remove_assign!(kernel_version);
+
+        remove_assign!(operating_system);
+        remove_assign!(operating_system_version);
+        remove_assign!(operating_system_variant);
+        remove_assign!(operating_system_build);
+
+        remove_assign!(architecture);
+        remove_assign!(virtualized);
+
+        remove_assign!(product_name);
+        remove_assign!(system_vendor);
+
+        remove_assign!(server_version);
+
+        self.additional_properties
+            .extend(additional_info.into_iter());
+
+        self
+    }
+}
+
+impl Default for SystemInfo {
+    fn default() -> Self {
+        let kernel = nix::sys::utsname::uname()
+            .map_err(|e| log::error!("Failed calling uname(): {}", e))
+            .ok();
+
+        let kernel = kernel.as_ref();
+
+        let dmi = DmiInfo::default();
+        let os = OsInfo::default();
+
+        Self {
+            // NOTE: `kernel` maps to `osType`, which is required by the
+            // management API.  So, we have to provide some value even
+            // in the case of failure.
+            kernel: kernel
+                .map(UtsName::sysname)
+                .and_then(OsStr::to_str)
+                .unwrap_or("UNKNOWN")
+                .to_owned(),
+            kernel_release: kernel
+                .map(UtsName::release)
+                .and_then(OsStr::to_str)
+                .map(ToOwned::to_owned),
+            kernel_version: kernel
+                .map(UtsName::version)
+                .and_then(OsStr::to_str)
+                .map(ToOwned::to_owned),
+
+            operating_system: os.id,
+            operating_system_version: os.version_id,
+            operating_system_variant: os.variant_id,
+            operating_system_build: os.build_id,
+
+            architecture: os.arch.to_owned(),
+            cpus: u64::try_from(num_cpus::get()).expect("128-bit architectures unsupported"),
+            total_memory: None,
+            virtualized: match crate::virtualization::is_virtualized_env() {
+                Ok(Some(true)) => "yes",
+                Ok(Some(false)) => "no",
+                _ => "unknown",
+            }
+            .to_owned(),
+
+            product_name: dmi.product,
+            system_vendor: dmi.vendor,
+
+            version: crate::version_with_source_version(),
+            server_version: None,
+
+            provisioning: ProvisioningInfo {
+                r#type: "ProvisioningType".into(),
+                dynamic_reprovisioning: false,
+                always_reprovision_on_startup: false,
+            },
+
+            additional_properties: BTreeMap::new(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
@@ -363,40 +471,37 @@ pub trait MakeModuleRuntime {
     type Config: Clone + Send;
     type Settings: RuntimeSettings<ModuleConfig = Self::Config>;
     type ModuleRuntime: ModuleRuntime<Config = Self::Config>;
-    type Error: Fail;
 
     async fn make_runtime(
         settings: &Self::Settings,
         create_socket_channel: UnboundedSender<ModuleAction>,
-    ) -> Result<Self::ModuleRuntime, Self::Error>;
+    ) -> anyhow::Result<Self::ModuleRuntime>;
 }
 
 #[async_trait::async_trait]
-pub trait ModuleRuntime: Sized {
-    type Error: Fail;
-
+pub trait ModuleRuntime {
     type Config: Clone + Send + serde::Serialize;
     type Module: Module<Config = Self::Config> + Send;
-    type ModuleRegistry: ModuleRegistry<Config = Self::Config, Error = Self::Error> + Send + Sync;
+    type ModuleRegistry: ModuleRegistry<Config = Self::Config> + Send + Sync;
 
-    async fn create(&self, module: ModuleSpec<Self::Config>) -> Result<(), Self::Error>;
-    async fn get(&self, id: &str) -> Result<(Self::Module, ModuleRuntimeState), Self::Error>;
-    async fn start(&self, id: &str) -> Result<(), Self::Error>;
-    async fn stop(&self, id: &str, wait_before_kill: Option<Duration>) -> Result<(), Self::Error>;
-    async fn restart(&self, id: &str) -> Result<(), Self::Error>;
-    async fn remove(&self, id: &str) -> Result<(), Self::Error>;
-    async fn system_info(&self) -> Result<SystemInfo, Self::Error>;
-    async fn system_resources(&self) -> Result<SystemResources, Self::Error>;
-    async fn list(&self) -> Result<Vec<Self::Module>, Self::Error>;
-    async fn list_with_details(
-        &self,
-    ) -> Result<Vec<(Self::Module, ModuleRuntimeState)>, Self::Error>;
-    async fn logs(&self, id: &str, options: &LogOptions) -> Result<hyper::Body, Self::Error>;
-    async fn remove_all(&self) -> Result<(), Self::Error>;
-    async fn stop_all(&self, wait_before_kill: Option<Duration>) -> Result<(), Self::Error>;
-    async fn module_top(&self, id: &str) -> Result<Vec<i32>, Self::Error>;
+    async fn create(&self, module: ModuleSpec<Self::Config>) -> anyhow::Result<()>;
+    async fn get(&self, id: &str) -> anyhow::Result<(Self::Module, ModuleRuntimeState)>;
+    async fn start(&self, id: &str) -> anyhow::Result<()>;
+    async fn stop(&self, id: &str, wait_before_kill: Option<Duration>) -> anyhow::Result<()>;
+    async fn restart(&self, id: &str) -> anyhow::Result<()>;
+    async fn remove(&self, id: &str) -> anyhow::Result<()>;
+    async fn system_info(&self) -> anyhow::Result<SystemInfo>;
+    async fn system_resources(&self) -> anyhow::Result<SystemResources>;
+    async fn list(&self) -> anyhow::Result<Vec<Self::Module>>;
+    async fn list_with_details(&self) -> anyhow::Result<Vec<(Self::Module, ModuleRuntimeState)>>;
+    async fn logs(&self, id: &str, options: &LogOptions) -> anyhow::Result<hyper::Body>;
+    async fn remove_all(&self) -> anyhow::Result<()>;
+    async fn stop_all(&self, wait_before_kill: Option<Duration>) -> anyhow::Result<()>;
+    async fn module_top(&self, id: &str) -> anyhow::Result<Vec<i32>>;
 
     fn registry(&self) -> &Self::ModuleRegistry;
+
+    fn error_code(error: &anyhow::Error) -> hyper::StatusCode;
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -414,7 +519,7 @@ pub enum ModuleOperation {
 impl fmt::Display for ModuleOperation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ModuleOperation::RuntimeState => write!(f, "Could not query module runtime state"),
+            ModuleOperation::RuntimeState => write!(f, "query module runtime state"),
         }
     }
 }
@@ -429,8 +534,8 @@ pub enum RegistryOperation {
 impl fmt::Display for RegistryOperation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            RegistryOperation::PullImage(name) => write!(f, "Could not pull image {}", name),
-            RegistryOperation::RemoveImage(name) => write!(f, "Could not remove image {}", name),
+            RegistryOperation::PullImage(name) => write!(f, "pull image {:?}", name),
+            RegistryOperation::RemoveImage(name) => write!(f, "remove image {:?}", name),
         }
     }
 }
@@ -456,22 +561,22 @@ pub enum RuntimeOperation {
 impl fmt::Display for RuntimeOperation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            RuntimeOperation::CreateModule(name) => write!(f, "Could not create module {}", name),
-            RuntimeOperation::GetModule(name) => write!(f, "Could not get module {}", name),
+            RuntimeOperation::CreateModule(name) => write!(f, "create module {:?}", name),
+            RuntimeOperation::GetModule(name) => write!(f, "get module {:?}", name),
             RuntimeOperation::GetModuleLogs(name) => {
-                write!(f, "Could not get logs for module {}", name)
+                write!(f, "get logs for module {:?}", name)
             }
-            RuntimeOperation::GetSupportBundle => write!(f, "Could not get support bundle"),
-            RuntimeOperation::Init => write!(f, "Could not initialize module runtime"),
-            RuntimeOperation::ListModules => write!(f, "Could not list modules"),
-            RuntimeOperation::RemoveModule(name) => write!(f, "Could not remove module {}", name),
-            RuntimeOperation::RestartModule(name) => write!(f, "Could not restart module {}", name),
-            RuntimeOperation::StartModule(name) => write!(f, "Could not start module {}", name),
-            RuntimeOperation::StopModule(name) => write!(f, "Could not stop module {}", name),
-            RuntimeOperation::SystemInfo => write!(f, "Could not query system info"),
-            RuntimeOperation::SystemResources => write!(f, "Could not query system resources"),
+            RuntimeOperation::GetSupportBundle => write!(f, "get support bundle"),
+            RuntimeOperation::Init => write!(f, "initialize module runtime"),
+            RuntimeOperation::ListModules => write!(f, "list modules"),
+            RuntimeOperation::RemoveModule(name) => write!(f, "remove module {:?}", name),
+            RuntimeOperation::RestartModule(name) => write!(f, "restart module {:?}", name),
+            RuntimeOperation::StartModule(name) => write!(f, "start module {:?}", name),
+            RuntimeOperation::StopModule(name) => write!(f, "stop module {:?}", name),
+            RuntimeOperation::SystemInfo => write!(f, "query system info"),
+            RuntimeOperation::SystemResources => write!(f, "query system resources"),
             RuntimeOperation::TopModule(name) => {
-                write!(f, "Could not top module {}.", name)
+                write!(f, "top module {:?}", name)
             }
         }
     }
@@ -479,13 +584,12 @@ impl fmt::Display for RuntimeOperation {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     use std::collections::BTreeMap;
-    use std::str::FromStr;
-    use std::string::ToString;
 
     use edgelet_settings::module::ImagePullPolicy;
 
-    use super::ModuleSpec;
     use crate::module::ModuleStatus;
 
     fn get_inputs() -> Vec<(&'static str, ModuleStatus)> {
@@ -509,8 +613,8 @@ mod tests {
     #[test]
     fn module_status_deser() {
         let inputs = get_inputs();
-        for &(status, ref expected) in &inputs {
-            assert_eq!(*expected, ModuleStatus::from_str(status).unwrap());
+        for (status, expected) in inputs {
+            assert_eq!(expected, status.parse().unwrap());
         }
     }
 
@@ -564,5 +668,84 @@ mod tests {
             ImagePullPolicy::default(),
         )
         .unwrap_err();
+    }
+
+    #[test]
+    fn system_info_merge() {
+        let mut base = SystemInfo {
+            kernel: "FOO".into(),
+            kernel_release: Some("BAR".into()),
+            kernel_version: Some("BAZ".into()),
+
+            operating_system: "A".to_owned().into(),
+            operating_system_version: "B".to_owned().into(),
+            operating_system_variant: "C".to_owned().into(),
+            operating_system_build: "D".to_owned().into(),
+
+            architecture: "ARCH".into(),
+            cpus: 0,
+            total_memory: None,
+            virtualized: "UNKNOWN".into(),
+
+            product_name: None,
+            system_vendor: None,
+
+            version: crate::version_with_source_version(),
+            server_version: None,
+
+            provisioning: ProvisioningInfo {
+                r#type: "ProvisioningType".into(),
+                dynamic_reprovisioning: false,
+                always_reprovision_on_startup: false,
+            },
+
+            additional_properties: BTreeMap::new(),
+        };
+
+        let result = SystemInfo {
+            kernel: "linux".into(),
+            kernel_release: Some("5.0".into()),
+            kernel_version: Some("1".into()),
+
+            operating_system: "OS".to_owned().into(),
+            operating_system_version: "B".to_owned().into(),
+            operating_system_variant: "C".to_owned().into(),
+            operating_system_build: "D".to_owned().into(),
+
+            architecture: "ARCH".into(),
+            cpus: 0,
+            total_memory: None,
+            virtualized: "UNKNOWN".into(),
+
+            product_name: None,
+            system_vendor: None,
+
+            version: crate::version_with_source_version(),
+            server_version: None,
+
+            provisioning: ProvisioningInfo {
+                r#type: "ProvisioningType".into(),
+                dynamic_reprovisioning: false,
+                always_reprovision_on_startup: false,
+            },
+
+            additional_properties: BTreeMap::from([
+                ("foo".to_owned(), "foofoo".to_owned()),
+                ("bar".to_owned(), "barbar".to_owned()),
+            ]),
+        };
+
+        let additional = BTreeMap::from([
+            ("kernel".to_owned(), "linux".to_owned()),
+            ("kernel_release".to_owned(), "5.0".to_owned()),
+            ("kernel_version".to_owned(), "1".to_owned()),
+            ("operating_system".to_owned(), "OS".to_owned()),
+            ("foo".to_owned(), "foofoo".to_owned()),
+            ("bar".to_owned(), "barbar".to_owned()),
+        ]);
+
+        base.merge_additional(additional);
+
+        assert_eq!(base, result);
     }
 }

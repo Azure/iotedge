@@ -25,6 +25,8 @@ pk = "file:///var/secrets/local-ca.key.pem"
 
 [preloaded_certs]
 
+[tpm]
+
 [agent]
 name = "edgeAgent"
 type = "docker"
@@ -55,6 +57,11 @@ max_retries = "infinite"
 method = "local_ca"
 common_name = "my-device local-ca"
 expiry_days = 365
+
+[edge_ca.auto_renew]
+rotate_key = false
+threshold = "50%"
+retry = "10%"
 
 [moby_runtime]
 uri = "unix:///var/run/docker.sock"

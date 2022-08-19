@@ -39,7 +39,6 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
             this.MismatchFailure = mismatchFailure;
         }
 
-
         [JsonConverter(typeof(StringEnumConverter))]
         public Topology Topology { get; }
 

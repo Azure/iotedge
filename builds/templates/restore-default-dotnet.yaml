@@ -1,0 +1,7 @@
+# Remove the global.json file from the root of the source code directory, if it exists. This will
+# remove any overrides, allowing .NET to use its default behavior (use latest) when determining
+# which version of the runtime to use.
+steps:
+  - bash: |
+      rm -f -v global.json
+    displayName: Restore default .NET version

@@ -17,7 +17,7 @@
     clippy::use_self
 )]
 
-use serde_derive::Deserialize;
+use serde::Deserialize;
 
 mod check;
 mod client;
@@ -32,7 +32,7 @@ mod version;
 
 pub use crate::check::{Check, OutputFormat};
 pub use crate::client::{MgmtClient, MgmtModule};
-pub use crate::error::{Error, ErrorKind, FetchLatestVersionsReason};
+pub use crate::error::{Error, FetchLatestVersionsReason};
 pub use crate::list::List;
 pub use crate::logs::Logs;
 pub use crate::restart::Restart;

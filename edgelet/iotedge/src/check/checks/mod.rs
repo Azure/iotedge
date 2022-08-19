@@ -32,14 +32,12 @@ pub(crate) use self::well_formed_config::WellFormedConfig;
 
 use std::ffi::OsStr;
 
-use failure::{self, Context, Fail};
-
 use super::Checker;
 
 pub(crate) async fn docker<I>(
     docker_host_arg: &str,
     args: I,
-) -> Result<Vec<u8>, (Option<String>, failure::Error)>
+) -> Result<Vec<u8>, (Option<String>, anyhow::Error)>
 where
     I: IntoIterator,
     <I as IntoIterator>::Item: AsRef<OsStr>,
@@ -53,17 +51,13 @@ where
     let output = process.output().await.map_err(|err| {
         (
             None,
-            err.context(format!("could not run {:?}", process)).into(),
+            anyhow::Error::from(err).context(format!("could not run {:?}", process)),
         )
     })?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&*output.stderr).into_owned();
-        let err = Context::new(format!(
-            "docker returned {}, stderr = {}",
-            output.status, stderr,
-        ))
-        .into();
+        let err = anyhow::anyhow!("docker returned {}, stderr = {}", output.status, stderr,);
         return Err((Some(stderr), err));
     }
 

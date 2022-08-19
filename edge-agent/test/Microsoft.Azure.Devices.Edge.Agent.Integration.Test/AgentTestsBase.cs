@@ -11,11 +11,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.Planners;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Planner;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunner;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Reporters;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Test;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.CommandFactories;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -61,6 +63,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
 
             var deploymentConfigInfo = new DeploymentConfigInfo(1, testConfig.DeploymentConfig);
 
+            Option<EnvVal> moduleUpdateModeStr = deploymentConfigInfo.DeploymentConfig.SystemModules.EdgeAgent.Expect<Exception>(() => new Exception("Configuration missing EdgeAgent module")).Env.Get("ModuleUpdateMode");
+            ModuleUpdateMode moduleUpdateMode = moduleUpdateModeStr.Match(
+                m =>
+                {
+                    if (m.Value == "WaitForAllPulls")
+                    {
+                        return ModuleUpdateMode.WaitForAllPulls;
+                    }
+                    else if (m.Value == "NonBlocking")
+                    {
+                        return ModuleUpdateMode.NonBlocking;
+                    }
+                    else
+                    {
+                        throw new Exception("Invalid value for Edge Agent env var");
+                    }
+                },
+                () =>
+                {
+                    return ModuleUpdateMode.NonBlocking;
+                });
+
             var configSource = new Mock<IConfigSource>();
             configSource.Setup(cs => cs.Configuration).Returns(configRoot);
             configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
@@ -79,6 +103,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
             environmentProvider.Setup(ep => ep.Create(It.IsAny<DeploymentConfig>())).Returns(environment.Object);
 
             var commandFactory = new TestCommandFactory();
+            ICommandFactory wrappingCommandFactory;
+            if (moduleUpdateMode == ModuleUpdateMode.WaitForAllPulls)
+            {
+                wrappingCommandFactory = new ExecutionPrerequisiteCommandFactory(commandFactory);
+            }
+            else
+            {
+                wrappingCommandFactory = new StandardCommandFactory(commandFactory);
+            }
 
             var credential = new ConnectionStringCredentials("fake");
             IDictionary<string, IModuleIdentity> identities = new Dictionary<string, IModuleIdentity>();
@@ -123,12 +156,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
             var availabilityMetric = Mock.Of<IDeploymentMetrics>();
 
             var store = Mock.Of<IEntityStore<string, ModuleState>>();
-            HealthRestartPlanner restartPlanner = new HealthRestartPlanner(commandFactory, store, TimeSpan.FromSeconds(10), restartManager);
+            HealthRestartPlanner restartPlanner = new HealthRestartPlanner(wrappingCommandFactory, store, TimeSpan.FromSeconds(10), restartManager);
 
             Agent agent = await Agent.Create(
                 configSource.Object,
                 restartPlanner,
-                new OrderedPlanRunner(),
+                new OrderedRetryPlanRunner(20, 10, new SystemTime()),
                 reporter,
                 moduleIdentityLifecycleManager.Object,
                 environmentProvider.Object,

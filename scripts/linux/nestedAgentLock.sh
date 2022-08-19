@@ -146,21 +146,23 @@ function update_capabilities() {
 --request PUT "https://msazure.visualstudio.com/_apis/distributedtask/pools/$POOL_ID/agents/$agentId/usercapabilities" \
 -H "Content-Type:application/json" \
 -H "Accept: application/json;api-version=5.0;" \
---max-time 10 \
---retry 5 \
+--max-time 15 \
+--retry 10 \
 --retry-delay 0 \
---retry-max-time 40 \
+--retry-max-time 80 \
 --retry-connrefused \
 --data @<(cat <<EOF
 $newAgentUserCapabilities
 EOF
 ))
+
     # Validate the capability update was successful
     responseUserCapabilities=$(echo $responseCapabilities | jq '.userCapabilities')
 
     if [ "$responseUserCapabilities" != "$newAgentUserCapabilities" ]
     then
-        echo "Capabilities were not updated properly. This will be retried."
+        echo "Capabilities were not updated properly. Dumping response below." >&2
+        echo "$responseCapabilities" >&2
     fi
 }
 

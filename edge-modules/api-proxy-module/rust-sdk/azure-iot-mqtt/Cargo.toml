@@ -7,32 +7,31 @@ edition = "2018"
 
 [dependencies]
 base64 = "0.13"
-bytes = "1.0"
-futures-core = "0.3"
+bytes = "1"
 futures-channel = "0.3"
 futures-util = "0.3"
-hmac = "0.10"
+hmac = "0.12"
 http = "0.2"
 hyper = { version = "0.14", features = ["client", "http1", "tcp", "stream"] }
 hyperlocal = "0.8"
-lazy_static = "1.4"
+lazy_static = "1"
 log = "0.4"
 native-tls = "0.2"
-percent-encoding = "2.1"
-regex = "1.4"
-serde = { version = "1.0", features = ["derive", "rc"] }
-serde_derive = "1.0"
-serde_json = "1.0"
-sha2 = "0.9"
+percent-encoding = "2"
+regex = "1"
+serde = { version = "1", features = ["derive", "rc"] }
+serde_derive = "1"
+serde_json = "1"
+sha2 = "0.10"
 tokio = { version = "1", features = ["time", "process"] }
-tokio-io-timeout = "1.1"
+tokio-io-timeout = "1"
 tokio-native-tls = "0.3"
-tungstenite = "0.13"
-url = "2.2"
+tungstenite = "0.17"
+url = "2"
 
 mqtt3 = { path = "../../../../mqtt/mqtt3" }
 
 [dev-dependencies]
-env_logger = "0.8"
+env_logger = "0.9"
 structopt = "0.3"
-tokio = { version = "1.5", features = ["signal"] }
+tokio = { version = "1", features = ["signal"] }

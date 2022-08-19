@@ -6,7 +6,10 @@ use regex::{Captures, Regex};
 
 use crate::token_service::token_server;
 
-const PROXY_CONFIG_DEFAULT_VALUES: &[(&str, &str)] = &[("NGINX_DEFAULT_PORT", "8000")];
+const PROXY_CONFIG_DEFAULT_VALUES: &[(&str, &str)] = &[
+    ("NGINX_DEFAULT_PORT", "8000"),
+    ("NGINX_DEFAULT_TLS", "TLSv1.2"),
+];
 
 pub struct ConfigParser {
     default_values: HashMap<String, String>,
@@ -344,25 +347,43 @@ mod tests {
         //Check the value is still equal to dummy value
         assert_eq!("0", config);
 
-        // *** Default value
+        // *** Default value for NGINX_DEFAULT_PORT
         let config = config_parser
             .get_parsed_config("${NGINX_DEFAULT_PORT}")
             .unwrap();
 
-        //Check the value is still equal to dummy value
+        //Check the value is still equal to default value
         assert_eq!("8000", config);
 
-        // *** Environment variable
-        std::env::set_var("NGINX_DEFAULT_PORT", "Dummy value");
+        // *** Default value for NGINX_DEFAULT_TLS
+        let config = config_parser
+            .get_parsed_config("${NGINX_DEFAULT_TLS}")
+            .unwrap();
+
+        //Check the value is still equal to default value
+        assert_eq!("TLSv1.2", config);
+
+        // *** Environment variable NGINX_DEFAULT_PORT
+        std::env::set_var("NGINX_DEFAULT_PORT", "Dummy port value");
         let config_parser = ConfigParser::new().unwrap();
         let config = config_parser
             .get_parsed_config("${NGINX_DEFAULT_PORT}")
             .unwrap();
 
         //Check the value is still equal to dummy value
-        assert_eq!("Dummy value", config);
-
+        assert_eq!("Dummy port value", config);
         std::env::remove_var("NGINX_DEFAULT_PORT");
+
+        // *** Environment variable NGINX_DEFAULT_TLS
+        std::env::set_var("NGINX_DEFAULT_TLS", "Dummy tls value");
+        let config_parser = ConfigParser::new().unwrap();
+        let config = config_parser
+            .get_parsed_config("${NGINX_DEFAULT_TLS}")
+            .unwrap();
+
+        //Check the value is still equal to dummy value
+        assert_eq!("Dummy tls value", config);
+        std::env::remove_var("NGINX_DEFAULT_TLS");
 
         // *** Hard coded value
         // Try to overrided hardcode value

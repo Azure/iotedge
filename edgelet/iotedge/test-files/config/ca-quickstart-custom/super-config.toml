@@ -21,6 +21,8 @@ value = "YXppb3QtaWRlbnRpdHktc2VydmljZXxhemlvdC1pZGU="
 
 [preloaded_certs]
 
+[tpm]
+
 [agent]
 name = "edgeAgent"
 type = "docker"
@@ -51,6 +53,11 @@ max_retries = "infinite"
 method = "self_signed"
 common_name = "my-device custom-quickstart"
 expiry_days = 365
+
+[edge_ca.auto_renew]
+rotate_key = true
+threshold = "80%"
+retry = "2%"
 
 [moby_runtime]
 uri = "unix:///var/run/docker.sock"

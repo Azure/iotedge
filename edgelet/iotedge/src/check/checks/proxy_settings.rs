@@ -1,8 +1,6 @@
-use failure::{self, Context};
-
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
-#[derive(Default, serde_derive::Serialize)]
+#[derive(Default, serde::Serialize)]
 pub(crate) struct ProxySettings {}
 
 #[async_trait::async_trait]
@@ -23,7 +21,7 @@ impl Checker for ProxySettings {
 }
 
 impl ProxySettings {
-    async fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    async fn inner_execute(&mut self, check: &mut Check) -> anyhow::Result<CheckResult> {
         let settings = if let Some(settings) = &mut check.settings {
             settings
         } else {
@@ -59,15 +57,14 @@ impl ProxySettings {
         {
             Ok(CheckResult::Ok)
         } else {
-            return Ok(CheckResult::Warning(Context::new(
-                format!(
+            return Ok(CheckResult::Warning(anyhow::anyhow!(
                     "The proxy setting for IoT Edge Agent {:?}, IoT Edge Daemon {:?}, IoT Identity Daemon {:?}, and Moby {:?} may need to be identical.",
                     edge_agent_proxy_uri,
                     edge_daemon_proxy_uri,
                     identity_daemon_proxy_uri,
                     moby_proxy_uri
                 )
-            ).into()));
+            ));
         }
     }
 }

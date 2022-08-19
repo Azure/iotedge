@@ -6,7 +6,7 @@
 usage()
 {
     echo "$SCRIPT_NAME [options]"
-    echo "This script is used for building a few rust components (i.e. broker, edge hub watchdog)."
+    echo "This script is used for building a few rust components (e.g., api proxy module)."
     echo "The logic here is similar to the edgelet packaging."
     echo ""
     echo "options"
@@ -67,12 +67,12 @@ BUILD_REPOSITORY_LOCALPATH="$(realpath "${BUILD_REPOSITORY_LOCALPATH:-$DIR/../..
 DOCKER_VOLUME_MOUNTS=''
 
 case "$PACKAGE_OS" in
-    'ubuntu18.04')
-        DOCKER_IMAGE='ubuntu:18.04'
+    'ubuntu20.04')
+        DOCKER_IMAGE='ubuntu:20.04'
         ;;
 
     'alpine')
-        DOCKER_IMAGE='ubuntu:18.04'
+        DOCKER_IMAGE='ubuntu:20.04'
         ;;       
 esac
 
@@ -82,10 +82,11 @@ if [ -z "$DOCKER_IMAGE" ]; then
 fi
 
 case "$PACKAGE_OS.$PACKAGE_ARCH" in
-    ubuntu18.04.amd64)
+    ubuntu20.04.amd64)
         RUST_TARGET='x86_64-unknown-linux-gnu'
 
         SETUP_COMMAND=$'
+            export DEBIAN_FRONTEND=noninteractive
             sources="$(cat /etc/apt/sources.list | grep -E \'^[^#]\')" &&
             # Update existing repos to be specifically for amd64
             echo "$sources" | sed -e \'s/^deb /deb [arch=amd64] /g\' > /etc/apt/sources.list
@@ -110,6 +111,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         RUST_TARGET='x86_64-unknown-linux-musl'
         # The below SETUP was copied from https://github.com/emk/rust-musl-builder/blob/main/Dockerfile.
         SETUP_COMMAND=$'
+            export DEBIAN_FRONTEND=noninteractive
             OPENSSL_VERSION=1.1.1i
             apt-get update && \
             apt-get install -y \
@@ -169,10 +171,11 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         MAKE_FLAGS="$MAKE_FLAGS 'STRIP_COMMAND=strip'"        
         ;;
 
-    ubuntu18.04.arm32v7)
+    ubuntu20.04.arm32v7)
         RUST_TARGET='armv7-unknown-linux-gnueabihf'
         
         SETUP_COMMAND=$'
+            export DEBIAN_FRONTEND=noninteractive
             sources="$(cat /etc/apt/sources.list | grep -E \'^[^#]\')" &&
             # Update existing repos to be specifically for amd64
             echo "$sources" | sed -e \'s/^deb /deb [arch=amd64] /g\' > /etc/apt/sources.list &&
@@ -215,6 +218,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         TARGET=armv7-unknown-linux-musleabihf && \
         OPENSSL_ARCH=linux-generic32 && \
         RUST_MUSL_CROSS_TARGET=$TARGET && \
+        export DEBIAN_FRONTEND=noninteractive && \
 
         apt-get update && \
         apt-get install -y \
@@ -260,8 +264,8 @@ cd /tmp && \
     export CC=$TARGET_CC && \
     export C_INCLUDE_PATH=$TARGET_C_INCLUDE_PATH && \
     echo "Building zlib" && \
-    VERS=1.2.11 && \
-    CHECKSUM=c3e5e9fdd5004dcb542feda5ee4f0ff0744628baf8ed2dd5d66f8ca1197cb1a1 && \
+    VERS=1.2.12 && \
+    CHECKSUM=91844808532e5ce316b3c010929493c0244f3d37593afd6de04f71821d5136d9 && \
     cd /home/rust/libs && \
     curl -sqLO https://zlib.net/zlib-$VERS.tar.gz && \
     echo "$CHECKSUM zlib-$VERS.tar.gz" > checksums.txt && \
@@ -293,10 +297,11 @@ cd /tmp && \
     MAKE_FLAGS="$MAKE_FLAGS 'STRIP_COMMAND=musl-strip'"
         ;;
 
-    ubuntu18.04.aarch64| alpine.aarch64)
+    ubuntu20.04.aarch64| alpine.aarch64)
         RUST_TARGET='aarch64-unknown-linux-gnu'
         
         SETUP_COMMAND=$'
+            export DEBIAN_FRONTEND=noninteractive
             sources="$(cat /etc/apt/sources.list | grep -E \'^[^#]\')" &&
             # Update existing repos to be specifically for amd64
             echo "$sources" | sed -e \'s/^deb /deb [arch=amd64] /g\' > /etc/apt/sources.list &&

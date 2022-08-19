@@ -46,7 +46,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Storage.RocksDb\Microsoft.Azure.Devices.Edge.Storage.RocksDb.csproj" />
     <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Hub.Amqp\Microsoft.Azure.Devices.Edge.Hub.Amqp.csproj" />
-    <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter\Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.csproj" />
     <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Hub.CloudProxy\Microsoft.Azure.Devices.Edge.Hub.CloudProxy.csproj" />
     <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Hub.Http\Microsoft.Azure.Devices.Edge.Hub.Http.csproj" />
     <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Hub.Mqtt\Microsoft.Azure.Devices.Edge.Hub.Mqtt.csproj" />
@@ -73,13 +72,6 @@
     <None Include="..\..\..\..\versionInfo.json" Link="versionInfo.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Update="..\..\..\docker\linux\arm32v7\base\Dockerfile">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Link>docker\linux\arm32v7\base\Dockerfile</Link>
-    </Content>
   </ItemGroup>
 
   <ItemGroup>

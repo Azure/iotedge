@@ -33,7 +33,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var processor = Mock.Of<IProcessor>();
             var endpoint = new Mock<Endpoint>("myId");
             endpoint.Setup(ep => ep.CreateProcessor()).Returns(processor);
-            endpoint.SetupGet(ep => ep.Id).Returns("myId");
 
             // Create a mock endpoint executor factory to create the endpoint executor to verify invocation
             var endpointExecutor = Mock.Of<IEndpointExecutor>();
@@ -87,7 +86,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var processor = Mock.Of<IProcessor>();
             var endpoint = new Mock<Endpoint>("myId");
             endpoint.Setup(ep => ep.CreateProcessor()).Returns(processor);
-            endpoint.SetupGet(ep => ep.Id).Returns("myId");
 
             // Create a mock endpoint executor factory to create the endpoint executor to verify invocation
             var endpointExecutor = Mock.Of<IEndpointExecutor>();
@@ -148,7 +146,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var processor = Mock.Of<IProcessor>();
             var endpoint = new Mock<Endpoint>("myId");
             endpoint.Setup(ep => ep.CreateProcessor()).Returns(processor);
-            endpoint.SetupGet(ep => ep.Id).Returns("myId");
 
             // Create a mock endpoint executor factory to create the endpoint executor to verify invocation
             var endpointExecutor = Mock.Of<IEndpointExecutor>();
@@ -192,7 +189,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var processor = Mock.Of<IProcessor>();
             var endpoint = new Mock<Endpoint>("myId");
             endpoint.Setup(ep => ep.CreateProcessor()).Returns(processor);
-            endpoint.SetupGet(ep => ep.Id).Returns("myId");
 
             // Create a mock endpoint executor factory to create the endpoint executor to verify invocation
             var endpointExecutor = Mock.Of<IEndpointExecutor>();
@@ -237,7 +233,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var processor = Mock.Of<IProcessor>();
             var endpoint = new Mock<Endpoint>("myId");
             endpoint.Setup(ep => ep.CreateProcessor()).Returns(processor);
-            endpoint.SetupGet(ep => ep.Id).Returns("myId");
 
             // Create a mock endpoint executor factory to create the endpoint executor to verify invocation
             var endpointExecutor = Mock.Of<IEndpointExecutor>();
@@ -320,7 +315,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var processor = Mock.Of<IProcessor>();
             var endpoint = new Mock<Endpoint>("myId");
             endpoint.Setup(ep => ep.CreateProcessor()).Returns(processor);
-            endpoint.SetupGet(ep => ep.Id).Returns("myId");
 
             // Create a mock endpoint executor factory to create the endpoint executor to verify invocation
             var endpointExecutor = Mock.Of<IEndpointExecutor>();
@@ -399,7 +393,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var processor = Mock.Of<IProcessor>();
             var endpoint = new Mock<Endpoint>("myId");
             endpoint.Setup(ep => ep.CreateProcessor()).Returns(processor);
-            endpoint.SetupGet(ep => ep.Id).Returns("myId");
 
             // Create a mock endpoint executor factory to create the endpoint executor to verify invocation
             var endpointExecutor = Mock.Of<IEndpointExecutor>();

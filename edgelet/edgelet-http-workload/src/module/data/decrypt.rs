@@ -63,7 +63,7 @@ where
             .decode_utf8()
             .ok()?;
 
-        let pid = match extensions.get::<Option<libc::pid_t>>().cloned().flatten() {
+        let pid = match extensions.get::<Option<libc::pid_t>>().copied().flatten() {
             Some(pid) => pid,
             None => return None,
         };
@@ -108,7 +108,7 @@ where
 
                 Ok(res)
             }
-            Err(err) => Err(edgelet_http::error::server_error(err.to_string())),
+            Err(err) => Err(edgelet_http::error::server_error(err)),
         }
     }
 

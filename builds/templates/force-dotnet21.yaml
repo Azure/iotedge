@@ -1,0 +1,7 @@
+# Add a global.json file to the root of the source code directory. This will override .NET's
+# default behavior when determining which version of the runtime to use. Instead, .NET will
+# use the version we specify here.
+steps:
+  - bash: |
+      dotnet new globaljson --force --sdk-version 2.1
+    displayName: Use .NET Core 2.1

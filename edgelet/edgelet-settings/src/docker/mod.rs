@@ -42,6 +42,7 @@ impl Settings {
         &self.moby_runtime
     }
 
+    #[must_use]
     pub fn agent_upstream_resolve(mut self, parent_hostname: &str) -> Self {
         crate::RuntimeSettings::agent_mut(&mut self)
             .config_mut()
@@ -66,6 +67,14 @@ impl crate::RuntimeSettings for Settings {
         self.base.edge_ca_key()
     }
 
+    fn edge_ca_auto_renew(&self) -> &Option<cert_renewal::AutoRenewConfig> {
+        self.base.edge_ca_auto_renew()
+    }
+
+    fn edge_ca_subject(&self) -> &Option<aziot_certd_config::CertSubject> {
+        self.base.edge_ca_subject()
+    }
+
     fn trust_bundle_cert(&self) -> Option<&str> {
         self.base.trust_bundle_cert()
     }
@@ -80,6 +89,10 @@ impl crate::RuntimeSettings for Settings {
 
     fn homedir(&self) -> &std::path::Path {
         self.base.homedir()
+    }
+
+    fn allow_elevated_docker_permissions(&self) -> bool {
+        self.base.allow_elevated_docker_permissions()
     }
 
     fn agent(&self) -> &crate::module::Settings<Self::ModuleConfig> {
@@ -106,8 +119,8 @@ impl crate::RuntimeSettings for Settings {
         self.base.endpoints()
     }
 
-    fn allow_elevated_docker_permissions(&self) -> bool {
-        self.base.allow_elevated_docker_permissions()
+    fn additional_info(&self) -> &std::collections::BTreeMap<String, String> {
+        self.base.additional_info()
     }
 }
 

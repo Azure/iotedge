@@ -30,7 +30,11 @@ pub struct Config {
     pub imported_master_encryption_key: Option<std::path::PathBuf>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg(contenttrust)]
     pub manifest_trust_bundle_cert: Option<Url>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub additional_info: Option<Url>,
 
     #[serde(flatten)]
     pub aziot: aziotctl_common::config::super_config::Config,
@@ -72,12 +76,12 @@ pub fn default_agent() -> edgelet_settings::ModuleSpec<edgelet_settings::DockerC
     .expect("name and type are never empty")
 }
 
-#[derive(Debug, serde_derive::Deserialize, serde_derive::Serialize)]
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
 #[serde(untagged)]
 pub enum EdgeCa {
     Issued {
         #[serde(flatten)]
-        cert: common_config::super_config::CertIssuanceOptions,
+        cert: Box<common_config::super_config::CertIssuanceOptions>,
     },
     Preloaded {
         cert: Url,
@@ -85,10 +89,19 @@ pub enum EdgeCa {
     },
     Quickstart {
         auto_generated_edge_ca_expiry_days: u32,
+
+        #[serde(
+            default,
+            skip_serializing_if = "cert_renewal::AutoRenewConfig::is_default"
+        )]
+        auto_renew: cert_renewal::AutoRenewConfig,
+
+        #[serde(flatten, skip_serializing_if = "Option::is_none")]
+        subject: Option<aziot_certd_config::CertSubject>,
     },
 }
 
-#[derive(Debug, serde_derive::Deserialize, serde_derive::Serialize)]
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct MobyRuntime {
     pub uri: Url,
     pub network: edgelet_settings::MobyNetwork,
@@ -112,7 +125,7 @@ impl Default for MobyRuntime {
     }
 }
 
-#[derive(Debug, serde_derive::Deserialize, serde_derive::Serialize)]
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct ContentTrust {
     pub ca_certs: Option<BTreeMap<String, Url>>,
 }

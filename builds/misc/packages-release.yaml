@@ -1,7 +1,24 @@
+name: $(VERSION)
 trigger: none
 pr: none
+
+variables:
+  DisableDockerDetector: true
+
+resources:
+  repositories:
+  - repository: azure-iotedge
+    type: github
+    endpoint: azure-iot-edge-iotedge1-github
+    name: azure/azure-iotedge
+  - repository: iot-identity-service
+    type: github
+    endpoint: azure-iot-edge-iotedge1-github
+    name: azure/iot-identity-service
+    ref: release/1.2
+    # TODO: Once release/1.3 is fork for IIS repo, we will need to update his parameter.
+
 stages:
-  
 ################################################################################
   - stage: BuildPackages
 ################################################################################
@@ -21,18 +38,10 @@ stages:
             arch: amd64
             os: centos7
             target.iotedged: edgelet/target/rpmbuild/RPMS/x86_64
-          Debian9-amd64:
-            os: debian9
+          RedHat8-amd64:
             arch: amd64
-            target.iotedged: edgelet/target/release
-          Debian9-arm32v7:
-            os: debian9
-            arch: arm32v7
-            target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
-          Debian9-aarch64:
-            os: debian9
-            arch: aarch64
-            target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+            os: redhat8
+            target.iotedged: edgelet/target/rpmbuild/RPMS/x86_64
 
           Debian10-amd64:
             os: debian10
@@ -94,19 +103,37 @@ stages:
             echo "##vso[task.setvariable variable=PACKAGE_OS;]$(os)"
           displayName: Set Version
         - script: edgelet/build/linux/package.sh
-          displayName: Create iotedged packages
+          displayName: Create aziot-edge packages
         - task: CopyFiles@2
-          displayName: Copy iotedged Files to Artifact Staging
+          displayName: Copy aziot-edge Files to Artifact Staging
           inputs:
             SourceFolder: $(target.iotedged)
             Contents: |
               *.deb
               *.rpm
             TargetFolder: '$(build.artifactstagingdirectory)'
+        - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+          displayName: ESRP Binary CodeSigning
+          inputs:
+            ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+            FolderPath: '$(build.artifactstagingdirectory)'
+            Pattern: "*.rpm"
+            SessionTimeout: 20
+            inlineOperation: |
+              [
+                {
+                  "KeyCode": "CP-450779-Pgp",
+                  "OperationCode": "LinuxSign",
+                  "Parameters": {},
+                  "ToolName": "sign",
+                  "toolVersion": "1.0"
+                }
+              ]
+            signConfigType: inlineSignParams
         - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
           displayName: 'SBOM Generation Task'
           inputs:
-              BuildDropPath: '$(build.artifactstagingdirectory)'             
+              BuildDropPath: '$(build.artifactstagingdirectory)'
         - task: PublishBuildArtifacts@1
           displayName: Publish Artifacts
           inputs:
@@ -132,17 +159,31 @@ stages:
           deploy:
             steps:
               - bash: |
-                  echo "Approval Complete"   
+                  echo "Approval Complete"
     - job: linux
       displayName: Linux
       strategy:
         matrix:
-          Debian9-arm32v7:
-            os: debian9
-            artifactName: iotedged-debian9-arm32v7
-            identityServiceArtifactName: packages_debian-9-slim_arm32v7
+          # For ARM32 Debian10, we solely publishing iot-identity-service artifacts
+          # for the partner teams. We don't fully support edgelet upload because 
+          # there is a known docker issue with debian 10.
+          Debian10-arm32v7:
+            os: debian10
+            artifactName: empty_package
+            identityServiceArtifactName: packages_debian-10-slim_arm32v7
             identityServicePackageFilter: aziot-identity-service_*_armhf.deb
-          
+          Debian11-arm32v7:
+            os: debian11
+            artifactName: iotedged-debian11-arm32v7
+            identityServiceArtifactName: packages_debian-11-slim_arm32v7
+            identityServicePackageFilter: aziot-identity-service_*_armhf.deb
+
+          RedHat8-amd64:
+            os: redhat8
+            artifactName: iotedged-redhat8-amd64
+            identityServiceArtifactName: packages_redhat-ubi8-latest_amd64
+            identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
+
           Ubuntu1804-amd64:
             os: ubuntu18.04
             artifactName: iotedged-ubuntu18.04-amd64
@@ -172,12 +213,15 @@ stages:
             keyVaultName: $(kv.name)
             secretsFilter: >-
               GitHubAccessToken
+        - checkout: self
         - task: DownloadPipelineArtifact@2
           displayName: Download Pipeline Build Packages
           inputs:
             source: 'current'
             path: $(System.ArtifactsDirectory)
-            patterns: $(artifactName)/*.deb
+            patterns: |
+                $(artifactName)/*.deb
+                $(artifactName)/*.rpm
         - task: PowerShell@2
           displayName: 'Download aziot-identity-service'
           inputs:
@@ -189,6 +233,30 @@ stages:
             PACKAGE_FILTER: $(identityServicePackageFilter)
             DOWNLOAD_PATH: $(System.ArtifactsDirectory)/$(artifactName)
             IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
+        - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+          displayName: ESRP Binary CodeSigning (IIS)
+          inputs:
+            ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+            FolderPath: '$(System.ArtifactsDirectory)/$(artifactName)'
+            Pattern: "*.rpm"
+            SessionTimeout: 20
+            inlineOperation: |
+              [
+                {
+                  "KeyCode": "CP-450779-Pgp",
+                  "OperationCode": "LinuxSign",
+                  "Parameters": {},
+                  "ToolName": "sign",
+                  "toolVersion": "1.0"
+                }
+              ]
+            signConfigType: inlineSignParams
+        - task: PublishBuildArtifacts@1
+          displayName: Publish Artifacts
+          inputs:
+            PathtoPublish: '$(System.ArtifactsDirectory)/$(artifactName)'
+            ArtifactName: '$(artifactName)'
+          condition: succeededOrFailed()
         - task: Docker@2
           displayName: Docker login msinternal
           inputs:
@@ -226,14 +294,40 @@ stages:
                   keyVaultName: $(kv.name)
                   secretsFilter: >-
                     GitHubAccessToken
+              - checkout: self
+              - checkout: azure-iotedge
+                submodules: recursive
+              - checkout: iot-identity-service
+                submodules: recursive
               - bash: | #Create Release Page Before Publishing Artifacts in Parallel in the Next Job.
-                  echo "Approval Complete, Creating Release Page"
-                  BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
-                  $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh -p ubuntu20.04 -w $(Build.SourcesDirectory) -d $(Build.SourcesDirectory) -v "$BASE_VERSION" -s "github.com" -b  $(Build.SourceBranch) --skip-upload true
+                  echo "Approval Complete"
+                  BASE_VERSION="$(cat $BUILD_SOURCESDIRECTORY/iotedge/edgelet/version.txt)"
+                  VERSION="$BASE_VERSION"
+                  AZURE_IOTEDGE_REPO_PATH="$(Build.SourcesDirectory)/azure-iotedge"
+                  IOTEDGE_REPO_PATH="$(Build.SourcesDirectory)/iotedge"
+                  IIS_REPO_PATH="$(Build.SourcesDirectory)/iot-identity-service"
+                  BRANCH_NAME="$(Build.SourceBranch)"
+                  echo "Version: $VERSION"
+                  echo "Branch name: $BRANCH_NAME"
+                  echo "azure-iotedge repo path: $AZURE_IOTEDGE_REPO_PATH"
+                  echo "iotedge repo path: $IOTEDGE_REPO_PATH"
+                  echo "iot-identity-service repo path: $IIS_REPO_PATH"
+
+                  sudo chmod +x $(Build.SourcesDirectory)/iotedge/scripts/linux/publishReleasePackages.sh 
+                  $(Build.SourcesDirectory)/iotedge/scripts/linux/publishReleasePackages.sh -p ubuntu20.04 -w $(Build.SourcesDirectory)/iotedge -d $(Build.SourcesDirectory)/iotedge -v "$BASE_VERSION" -s "github.com" -b  $(Build.SourceBranch) --skip-upload true
+
+                  # Source the scripts & Update version files
+                  sudo chmod +x $(Build.SourcesDirectory)/iotedge/scripts/linux/github/updateLatestVersion.sh
+                  source $(Build.SourcesDirectory)/iotedge/scripts/linux/github/updateLatestVersion.sh
+                  update_latest_version_json
+
+                  # Update Github and tag
+                  github_update_and_push
                 env:
-                  GITHUB_PAT: "$(GitHubAccessToken)"        
+                  GITHUB_PAT: "$(GitHubAccessToken)"
     - job: linux
       displayName: Linux
+      dependsOn: safe_guard
       strategy:
         matrix:
           Centos75-amd64:
@@ -241,22 +335,11 @@ stages:
             artifactName: iotedged-centos7-amd64
             identityServiceArtifactName: packages_centos-7_amd64
             identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
-          
-          Debian9-amd64:
-            os: debian9
-            artifactName: iotedged-debian9-amd64
-            identityServiceArtifactName: packages_debian-9-slim_amd64
-            identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-          Debian9-arm32v7:
-            os: debian9
-            artifactName: iotedged-debian9-arm32v7
-            identityServiceArtifactName: packages_debian-9-slim_arm32v7
-            identityServicePackageFilter: aziot-identity-service_*_armhf.deb
-          Debian9-aarch64:
-            os: debian9
-            artifactName: iotedged-debian9-aarch64
-            identityServiceArtifactName: packages_debian-9-slim_aarch64
-            identityServicePackageFilter: aziot-identity-service_*_arm64.deb
+          RedHat8-amd64:
+              os: redhat8
+              artifactName: iotedged-redhat8-amd64
+              identityServiceArtifactName: packages_redhat-ubi8-latest_amd64
+              identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
           
           Debian10-amd64:
             os: debian10
@@ -329,6 +412,7 @@ stages:
             keyVaultName: $(kv.name)
             secretsFilter: >-
               GitHubAccessToken
+        - checkout: self
         - task: DownloadPipelineArtifact@2
           displayName: Download Pipeline Build Packages
           inputs:

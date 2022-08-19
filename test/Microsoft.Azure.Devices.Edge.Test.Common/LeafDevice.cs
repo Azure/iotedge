@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.IO;
     using System.Linq;
     using System.Net;
+    using System.Security.Authentication;
     using System.Security.Cryptography.X509Certificates;
     using System.Text;
     using System.Threading;
@@ -16,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Serilog;
 
     public class LeafDevice
@@ -310,7 +312,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         static async Task<LeafDevice> CreateLeafDeviceAsync(Device device, Func<DeviceClient> clientFactory, IotHub iotHub, CancellationToken token)
         {
             DeviceClient client = clientFactory();
+
+            client.SetConnectionStatusChangesHandler((status, reason) =>
+            {
+                Log.Verbose($"Detected change in connection status:{Environment.NewLine}Changed Status: {status} Reason: {reason}");
+            });
+
             await client.SetMethodHandlerAsync(nameof(DirectMethod), DirectMethod, null, token);
+
             return new LeafDevice(device, client, iotHub);
         }
 

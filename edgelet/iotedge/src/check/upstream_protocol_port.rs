@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, serde_derive::Serialize)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize)]
 pub(super) enum UpstreamProtocolPort {
     Amqp,
     Https,

@@ -39,14 +39,14 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
                 return new Version_2018_06_28.WorkloadClient(workloadUri, supportedVersion, moduleId, moduleGenerationId);
             }
 
-            if (supportedVersion == ApiVersion.Version20190130)
+            if (supportedVersion.CompareTo(ApiVersion.Version20190130) >= 0)
             {
                 return new Version_2019_01_30.WorkloadClient(workloadUri, supportedVersion, moduleId, moduleGenerationId);
             }
 
-            if (supportedVersion == ApiVersion.Version20201010)
+            if (supportedVersion == ApiVersion.Version20200707)
             {
-                return new Version_2020_10_10.WorkloadClient(workloadUri, supportedVersion, moduleId, moduleGenerationId);
+                return new Version_2020_07_07.WorkloadClient(workloadUri, supportedVersion, moduleId, moduleGenerationId);
             }
 
             return new Version_2018_06_28.WorkloadClient(workloadUri, supportedVersion, moduleId, moduleGenerationId);

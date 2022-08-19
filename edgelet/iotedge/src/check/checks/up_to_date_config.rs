@@ -1,10 +1,8 @@
-use failure::{self, Context};
-
 use aziotctl_common::check_last_modified::{check_last_modified, LastModifiedError};
 
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
-#[derive(Default, serde_derive::Serialize)]
+#[derive(Default, serde::Serialize)]
 pub(crate) struct UpToDateConfig {}
 
 #[async_trait::async_trait]
@@ -23,12 +21,12 @@ impl Checker for UpToDateConfig {
 
 impl UpToDateConfig {
     #[allow(clippy::unnecessary_wraps)]
-    fn inner_execute(_check: &mut Check) -> Result<CheckResult, failure::Error> {
+    fn inner_execute(_check: &mut Check) -> anyhow::Result<CheckResult> {
         let check_result = match check_last_modified(&["edged"]) {
             Ok(()) => CheckResult::Ok,
             Err(LastModifiedError::Ignored) => CheckResult::Ignored,
             Err(LastModifiedError::Warning(message)) => {
-                CheckResult::Warning(Context::new(message).into())
+                CheckResult::Warning(anyhow::anyhow!(message))
             }
             Err(LastModifiedError::Failed(error)) => CheckResult::Failed(error.into()),
         };

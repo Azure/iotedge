@@ -1,0 +1,20 @@
+[provisioning]
+source = "manual"
+connection_string = "<Connection-String>"
+
+[agent]
+name = "edgeAgent"
+type = "docker"
+imagePullPolicy = "on-create"   # "on-create" or "never". Defaults to "on-create"
+
+[agent.config]
+image = "<edgeAgentImage>"
+
+[agent.config.auth]
+serveraddress = "<CR.Address>"
+username = "<CR.UserName>"
+password = "<CR.Password>"
+
+[agent.env]
+"RuntimeLogLevel" = "debug"
+"UpstreamProtocol" = "amqp"

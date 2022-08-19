@@ -13,7 +13,7 @@ use std::path::PathBuf;
 
 use url::Url;
 
-#[derive(Debug, serde_derive::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 #[allow(dead_code)]
 pub(crate) struct Config {
     pub(crate) provisioning: Provisioning,
@@ -36,13 +36,13 @@ pub(crate) struct Config {
     pub(crate) moby_runtime: MobyRuntime,
 }
 
-#[derive(Debug, serde_derive::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 pub(crate) struct Connect {
     pub(crate) management_uri: Url,
     pub(crate) workload_uri: Url,
 }
 
-#[derive(Debug, serde_derive::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 pub(crate) struct Listen {
     pub(crate) management_uri: Url,
     pub(crate) workload_uri: Url,
@@ -99,7 +99,7 @@ impl<'de> serde::Deserialize<'de> for Protocol {
     }
 }
 
-#[derive(Debug, serde_derive::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 pub(crate) struct Certificates {
     #[serde(flatten)]
     pub(crate) device_cert: Option<DeviceCertificate>,
@@ -108,7 +108,7 @@ pub(crate) struct Certificates {
     pub(crate) auto_generated_ca_lifetime_days: u16,
 }
 
-#[derive(Debug, serde_derive::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 pub(crate) struct DeviceCertificate {
     #[serde(deserialize_with = "deserialize_file_uri_or_path")]
     pub(crate) device_ca_cert: Url,
@@ -161,13 +161,13 @@ where
     deserializer.deserialize_str(Visitor)
 }
 
-#[derive(Debug, Default, serde_derive::Deserialize)]
+#[derive(Debug, Default, serde::Deserialize)]
 pub(crate) struct WatchdogSettings {
     #[serde(default)]
     pub(crate) max_retries: RetryLimit,
 }
 
-#[derive(Debug, serde_derive::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 #[serde(untagged)]
 pub(crate) enum RetryLimit {
     Infinite,

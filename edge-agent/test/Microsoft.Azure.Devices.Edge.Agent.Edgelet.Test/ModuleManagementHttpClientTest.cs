@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
     [Unit]
     public class ModuleManagementHttpClientTest : IClassFixture<EdgeletFixture>
     {
-        static readonly string[] Versions = new string[] { "2018-06-28", "2019-01-30", "2019-10-22" };
+        static readonly string[] Versions = new string[] { "2018-06-28", "2019-01-30", "2019-10-22", "2021-12-07" };
         readonly Uri serverUrl;
         readonly EdgeletFixture edgeletFixture;
 
@@ -86,6 +86,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             serverApiVersion = "2019-01-30";
             clientApiVersion = "2019-02-30";
             Assert.Throws<InvalidOperationException>(() => new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion));
+        }
+
+        [Theory]
+        [MemberData(nameof(VersionMap))]
+        public async Task ProductInfoTest(string serverApiVersion, string clientApiVersion)
+        {
+            ModuleManagementHttpClient mm = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
+
+            Assert.Equal("EdgeAgent (kernel=foo;architecture=bar;version=baz;server_version=;kernel_version=;operating_system=;cpus=0;total_memory=0;virtualized=;)", await mm.GetProductInfoAsync(CancellationToken.None, "EdgeAgent"));
         }
 
         [Theory]

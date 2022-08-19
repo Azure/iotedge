@@ -28,6 +28,7 @@ impl SignRequest {
         self.key_id = key_id;
     }
 
+    #[must_use]
     pub fn with_key_id(mut self, key_id: String) -> Self {
         self.key_id = key_id;
         self
@@ -41,6 +42,7 @@ impl SignRequest {
         self.algorithm = algorithm;
     }
 
+    #[must_use]
     pub fn with_algorithm(mut self, algorithm: Algorithm) -> Self {
         self.algorithm = algorithm;
         self
@@ -54,6 +56,7 @@ impl SignRequest {
         self.data = data;
     }
 
+    #[must_use]
     pub fn with_data(mut self, data: String) -> Self {
         self.data = data;
         self
@@ -86,6 +89,7 @@ impl SignResponse {
         self.digest = digest;
     }
 
+    #[must_use]
     pub fn with_digest(mut self, digest: String) -> Self {
         self.digest = digest;
         self

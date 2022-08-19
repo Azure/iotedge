@@ -6,7 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunner;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
@@ -335,6 +335,91 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             commands[2].Verify(m => m.ExecuteAsync(cts.Token), Times.Never());
         }
 
+        [Fact]
+        [Unit]
+        public async void TestExecutionPrereqExceptionSkipsRemainingCommands()
+        {
+            // Arrange
+            var cts = new CancellationTokenSource();
+            var runner = new OrderedRetryPlanRunner(5, 10, SystemTime.Instance);
+            var commands = new List<Mock<ICommand>>
+            {
+                this.MakeMockCommandThatWorks("cmd1"),
+                this.MakeMockCommandThatThrowsExecutionPrerequisiteException("badCmdThatSkipsRemaining"),
+                this.MakeMockCommandThatWorks("cmd3")
+            };
+            var plan = new Plan(commands.Select(c => c.Object).ToList());
+            CancellationToken token = CancellationToken.None;
+
+            // Act
+            await Assert.ThrowsAsync<AggregateException>(() => runner.ExecuteAsync(1, plan, token));
+
+            // Assert
+            commands[0].Verify(m => m.ExecuteAsync(It.IsAny<CancellationToken>()), Times.Once());
+            commands[1].Verify(m => m.ExecuteAsync(It.IsAny<CancellationToken>()), Times.Once());
+            commands[2].Verify(m => m.ExecuteAsync(It.IsAny<CancellationToken>()), Times.Never());
+        }
+
+        [Fact]
+        [Unit]
+        public async void TestExecutionPrereqExceptionSkipsCommandWhenHitsRetryLimit()
+        {
+            // Arrange
+            var systemTime = new Mock<ISystemTime>();
+
+            var cts = new CancellationTokenSource();
+            var runner = new OrderedRetryPlanRunner(5, 10, systemTime.Object);
+            var commands = new List<Mock<ICommand>>
+            {
+                this.MakeMockCommandThatWorks("cmd1"),
+                this.MakeMockCommandThatThrowsExecutionPrerequisiteException("badCmdThatSkipsRemaining"),
+                this.MakeMockCommandThatWorks("cmd3")
+            };
+            var plan = new Plan(commands.Select(c => c.Object).ToList());
+            CancellationToken token = CancellationToken.None;
+
+            DateTime callTime = DateTime.UtcNow;
+            systemTime.SetupGet(s => s.UtcNow)
+                .Returns(() => callTime)
+                .Callback(() => callTime = callTime.AddSeconds(25));
+
+            // Act
+            await Assert.ThrowsAsync<AggregateException>(() => runner.ExecuteAsync(2, plan, token));
+            await Assert.ThrowsAsync<AggregateException>(() => runner.ExecuteAsync(2, plan, token));
+            await runner.ExecuteAsync(2, plan, token);
+
+            // Assert
+            commands[0].Verify(m => m.ExecuteAsync(It.IsAny<CancellationToken>()), Times.Exactly(3));
+            commands[1].Verify(m => m.ExecuteAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
+            commands[2].Verify(m => m.ExecuteAsync(It.IsAny<CancellationToken>()), Times.Never());
+        }
+
+        [Fact]
+        [Unit]
+        public async void TestExecutionPrereqExceptionSkipsCommandWhenWithinCooloffTime()
+        {
+            // Arrange
+            var cts = new CancellationTokenSource();
+            var runner = new OrderedRetryPlanRunner(5, 10, SystemTime.Instance);
+            var commands = new List<Mock<ICommand>>
+            {
+                this.MakeMockCommandThatWorks("cmd1"),
+                this.MakeMockCommandThatThrowsExecutionPrerequisiteException("badCmdThatSkipsRemaining"),
+                this.MakeMockCommandThatWorks("cmd3")
+            };
+            var plan = new Plan(commands.Select(c => c.Object).ToList());
+            CancellationToken token = CancellationToken.None;
+
+            // Act
+            await Assert.ThrowsAsync<AggregateException>(() => runner.ExecuteAsync(5, plan, token));
+            await runner.ExecuteAsync(5, plan, token);
+
+            // Assert
+            commands[0].Verify(m => m.ExecuteAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
+            commands[1].Verify(m => m.ExecuteAsync(It.IsAny<CancellationToken>()), Times.Exactly(1));
+            commands[2].Verify(m => m.ExecuteAsync(It.IsAny<CancellationToken>()), Times.Never());
+        }
+
         Mock<ICommand> MakeMockCommandThatWorks(string id, Action callback = null)
         {
             callback = callback ?? (() => { });
@@ -355,6 +440,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             command.SetupGet(c => c.Id).Returns(id);
             command.Setup(c => c.ExecuteAsync(It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new InvalidOperationException("No donuts for you"));
+            command.Setup(c => c.Show())
+                .Returns(id);
+            return command;
+        }
+
+        Mock<ICommand> MakeMockCommandThatThrowsExecutionPrerequisiteException(string id)
+        {
+            var command = new Mock<ICommand>();
+            command.SetupGet(c => c.Id).Returns(id);
+            command.Setup(c => c.ExecuteAsync(It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new ExecutionPrerequisiteException("No donuts for you"));
             command.Setup(c => c.Show())
                 .Returns(id);
             return command;

@@ -7,10 +7,15 @@ method = "self_signed"
 expiry_days = 365
 common_name = "my-device custom-quickstart"
 
+[cert_issuance.aziot-edged-ca-temp]
+method = "self_signed"
+expiry_days = 365
+common_name = "my-device custom-quickstart"
+
 [preloaded_certs]
 aziot-edged-trust-bundle = ["aziot-edged-ca", "trust-bundle-user"]
 trust-bundle-user = "file:///var/secrets/trusted-ca.pem"
 
 [[principal]]
 uid = 5558
-certs = ["aziot-edged-ca", "aziot-edged/module/*"]
+certs = ["aziot-edged-ca", "aziot-edged/module/*", "aziot-edged-ca-temp"]

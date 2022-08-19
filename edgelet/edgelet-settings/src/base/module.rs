@@ -59,6 +59,7 @@ impl<ModuleConfig> Settings<ModuleConfig> {
         &self.name
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = name;
         self
@@ -68,6 +69,7 @@ impl<ModuleConfig> Settings<ModuleConfig> {
         &self.r#type
     }
 
+    #[must_use]
     pub fn with_type(mut self, r#type: String) -> Self {
         self.r#type = r#type;
         self
@@ -77,6 +79,7 @@ impl<ModuleConfig> Settings<ModuleConfig> {
         self.image_pull_policy
     }
 
+    #[must_use]
     pub fn with_image_pull_policy(mut self, image_pull_policy: ImagePullPolicy) -> Self {
         self.image_pull_policy = image_pull_policy;
         self
@@ -90,6 +93,7 @@ impl<ModuleConfig> Settings<ModuleConfig> {
         &mut self.config
     }
 
+    #[must_use]
     pub fn with_config(mut self, config: ModuleConfig) -> Self {
         self.config = config;
         self
@@ -107,6 +111,7 @@ impl<ModuleConfig> Settings<ModuleConfig> {
         &mut self.env
     }
 
+    #[must_use]
     pub fn with_env(mut self, env: std::collections::BTreeMap<String, String>) -> Self {
         self.env = env;
         self

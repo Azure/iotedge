@@ -52,13 +52,12 @@ where
             .decode_utf8()
             .ok()?;
 
-        let pid = match extensions.get::<Option<libc::pid_t>>().cloned().flatten() {
+        let pid = match extensions.get::<Option<libc::pid_t>>().copied().flatten() {
             Some(pid) => pid,
             None => return None,
         };
 
         let api = super::CertApi::new(
-            service.key_connector.clone(),
             service.key_client.clone(),
             service.cert_client.clone(),
             &service.config,
@@ -84,10 +83,11 @@ where
             None => return Err(edgelet_http::error::bad_request("missing request body")),
         };
 
-        let cert_id = format!(
-            "aziot-edged/module/{}:{}:server",
-            &self.module_id, &self.gen_id
-        );
+        // Remove any leading '$' from modules like '$edgeAgent' and '$edgeHub' for consistency
+        // with previous versions.
+        let module_id = self.module_id.trim_start_matches('$');
+
+        let cert_id = format!("aziot-edged/module/{}:{}:server", &module_id, &self.gen_id);
 
         // SANs take precedence over CN. The CN must be in the SAN list to be considered.
         let common_name_san = common_name.clone();
@@ -99,7 +99,7 @@ where
         };
 
         // Server certificates have the module ID and certificate CN as the SANs.
-        let module_id_san = super::SubjectAltName::Dns(self.module_id);
+        let module_id_san = super::SubjectAltName::Dns(module_id.to_string());
 
         let subject_alt_names = vec![common_name_san, module_id_san];
 

@@ -1,9 +1,6 @@
-ARG base_tag=3.1-bionic-arm64v8
-FROM mcr.microsoft.com/dotnet/runtime:${base_tag}
+# syntax=docker/dockerfile:1.4
 
-# Add an unprivileged user account for running the module
-RUN useradd -ms /bin/bash moduleuser
-USER moduleuser
+FROM mcr.microsoft.com/dotnet/runtime:6.0-alpine
 
 ARG EXE_DIR=.
 
@@ -13,6 +10,8 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
+# Add an unprivileged user account for running the module
+RUN adduser -Ds /bin/sh moduleuser 
 USER moduleuser
 
 ENTRYPOINT /usr/bin/dotnet NumberLogger.dll

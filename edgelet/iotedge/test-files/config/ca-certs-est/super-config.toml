@@ -21,6 +21,8 @@ value = "YXppb3QtaWRlbnRpdHktc2VydmljZXxhemlvdC1pZGU="
 
 [preloaded_certs]
 
+[tpm]
+
 [agent]
 name = "edgeAgent"
 type = "docker"
@@ -54,6 +56,16 @@ username = "user"
 password = "password"
 bootstrap_identity_cert = "file:///var/secrets/est-bootstrap-id.pem"
 bootstrap_identity_pk = "file:///var/secrets/est-bootstrap-id.key.pem"
+
+[edge_ca.subject]
+L = "AQ"
+ST = "Antarctica"
+CN = "test CA"
+
+[edge_ca.auto_renew]
+rotate_key = true
+threshold = "90%"
+retry = "1%"
 
 [moby_runtime]
 uri = "unix:///var/run/docker.sock"

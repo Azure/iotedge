@@ -14,8 +14,6 @@ mod old_config;
 
 use std::path::{Path, PathBuf};
 
-use config::Config;
-
 use edgelet_utils::YamlFileSource;
 
 use aziotctl_common::config as common_config;
@@ -124,19 +122,14 @@ fn execute_inner(
     };
 
     let old_config: old_config::Config = {
-        let mut old_config = Config::default();
-
-        old_config
-            .merge(YamlFileSource::String(old_config::DEFAULTS.into()))
-            .expect("config is not frozen");
-
         // We use YamlFileSource::String to load the file rather than YamlFileSource::File
         // because config::ConfigError makes it harder to recognize an error from a missing file.
-        old_config
-            .merge(YamlFileSource::String(old_config_contents.into()))
-            .expect("config is not frozen");
+        let old_config = config::ConfigBuilder::<config::builder::DefaultState>::default()
+            .add_source(YamlFileSource::String(old_config::DEFAULTS.into()))
+            .add_source(YamlFileSource::String(old_config_contents.into()))
+            .build();
 
-        match old_config.try_into() {
+        match old_config.and_then(config::Config::try_deserialize) {
             Ok(old_config) => old_config,
             Err(err) => {
                 return Err(format!("could not parse {}: {}", old_config_file_display, err).into())
@@ -248,6 +241,7 @@ fn execute_inner(
                                     value: symmetric_key,
                                 },
                             },
+                        payload: None,
                     },
                 },
                 always_reprovision_on_startup,
@@ -281,6 +275,7 @@ fn execute_inner(
                                 },
                             },
                         },
+                        payload: None,
                     },
                 },
                 always_reprovision_on_startup,
@@ -302,6 +297,7 @@ fn execute_inner(
                         attestation: common_config::super_config::DpsAttestationMethod::Tpm {
                             registration_id,
                         },
+                        payload: None,
                     },
                 },
                 always_reprovision_on_startup,
@@ -350,6 +346,8 @@ fn execute_inner(
                 (
                     Some(super_config::EdgeCa::Quickstart {
                         auto_generated_edge_ca_expiry_days: auto_generated_ca_lifetime_days.into(),
+                        auto_renew: cert_renewal::AutoRenewConfig::default(),
+                        subject: None,
                     }),
                     None,
                 )
@@ -368,7 +366,10 @@ fn execute_inner(
 
         imported_master_encryption_key: old_master_encryption_key_path,
 
+        #[cfg(contenttrust)]
         manifest_trust_bundle_cert: None,
+
+        additional_info: None,
 
         aziot: common_config::super_config::Config {
             hostname: Some(hostname),
@@ -389,6 +390,8 @@ fn execute_inner(
             cert_issuance: Default::default(),
 
             preloaded_certs: Default::default(),
+
+            tpm: Default::default(),
 
             endpoints: Default::default(),
         },

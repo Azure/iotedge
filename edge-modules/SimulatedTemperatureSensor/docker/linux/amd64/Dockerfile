@@ -1,5 +1,6 @@
-﻿ARG base_tag=3.1-alpine
-FROM mcr.microsoft.com/dotnet/runtime:${base_tag}
+# syntax=docker/dockerfile:1.4
+
+FROM mcr.microsoft.com/dotnet/runtime:6.0-alpine
 
 ARG EXE_DIR=.
 

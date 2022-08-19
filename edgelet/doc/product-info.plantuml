@@ -1,0 +1,40 @@
+@startuml
+
+participant "IoT Hub/P360" as iothub
+actor "Operator" as operator
+control "aziot-edged" as edged
+participant "EdgeAgent" as agent
+entity "/etc/aziot/edged/config.toml" as config
+entity "config.additional_info" as pinfo
+entity "OS" as os
+
+operator -> edged : start edged
+
+edged -> config : read configuration
+activate config
+config -> edged : configuration parameters
+edged -> edged : extract additional_info location
+
+edged -> pinfo : read additional_info
+activate pinfo
+pinfo -> edged : additional_info parameters
+deactivate pinfo
+deactivate config
+
+edged -> agent : start EdgeAgent
+activate agent
+agent --> edged : /systeminfo request
+edged -> os : /etc/os-release, uname
+os -> edged : kernel name, release, version\nOS name, version, architecture
+edged -> edged : merge additional_info, preferring additional_info
+edged --> agent : /systeminfo response
+agent -> agent : encode response as query string
+agent -> agent : embed query string in User-Agent comment
+agent --> iothub : upstream communication
+
+iothub -> iothub : decode query string
+iothub -> iothub : process system info fields
+...
+iothub --> operator : fleet metrics
+
+@enduml

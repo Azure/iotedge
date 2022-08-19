@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         public const string InitializationVectorFileName = "EdgeHubIV";
         public const string TopicNameConversionSectionName = "mqttTopicNameConversion";
         public const string VersionInfoFileName = "versionInfo.json";
-        public const string WorkloadApiVersion = "2020-10-10";
+        public const string WorkloadApiVersion = "2020-07-07";
 
         public static class ConfigKey
         {
@@ -36,7 +36,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             public const string StorageLogLevel = "Storage_LogLevel";
             public const string ExperimentalFeatures = "experimentalFeatures";
             public const string NestedEdgeEnabled = "NestedEdgeEnabled";
-            public const string MqttBrokerEnabled = "mqttBrokerEnabled";
         }
     }
 }

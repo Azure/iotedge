@@ -26,7 +26,7 @@ pub enum CheckResult {
     Ok,
 
     /// Check failed with a warning.
-    Warning(failure::Error),
+    Warning(anyhow::Error),
 
     /// Check is not applicable and was ignored. Should be treated as success.
     Ignored,
@@ -38,8 +38,8 @@ pub enum CheckResult {
     SkippedDueTo(String),
 
     /// Check failed, and further checks should be performed.
-    Failed(failure::Error),
+    Failed(anyhow::Error),
 
     /// Check failed, and further checks should not be performed.
-    Fatal(failure::Error),
+    Fatal(anyhow::Error),
 }

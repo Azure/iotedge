@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Arrange
             string callerProductInfo = "productInfo";
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
-            var clientCertificate = new X509Certificate2();
+            var clientCertificate = Util.Test.Common.CertificateHelper.GenerateSelfSignedCert("client cert");
             var clientCertChain = new List<X509Certificate2>();
             var credentials = new X509CertCredentials(identity, callerProductInfo, Option.None<string>(), Option.None<string>(), clientCertificate, clientCertChain);
 

@@ -247,7 +247,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Type expectedIdentityType,
             AuthenticationType expected)
         {
-            X509Certificate2 certificate = new X509Certificate2();
+            X509Certificate2 certificate = Util.Test.Common.CertificateHelper.GenerateSelfSignedCert("some cert");
             IList<X509Certificate2> chain = new List<X509Certificate2>();
             IClientCredentials clientCredentials = await GetClientCredentials(iotHubHostName, clientId, value, token, token == null, string.Empty, certificate, chain);
             Assert.NotNull(clientCredentials);
@@ -306,7 +306,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             string moduleId,
             AuthenticationType authenticationType)
         {
-            var certificate = new X509Certificate2();
+            var certificate = Util.Test.Common.CertificateHelper.GenerateSelfSignedCert("some cert");
             var chain = new List<X509Certificate2>();
             IClientCredentials clientCredentials = await GetClientCredentials(iotHubHostName, $"{deviceId}/{moduleId}", value, token, token == null, string.Empty, certificate, chain);
             Assert.NotNull(clientCredentials);

@@ -2,6 +2,9 @@ name: $(version)
 trigger: none
 pr: none
 
+variables:
+  DisableDockerDetector: true
+
 jobs:
   - deployment: publishImages
     displayName: Publish Linux Images

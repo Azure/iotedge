@@ -65,7 +65,6 @@ Included items must then not match any entries in the exclude list to remain inc
                 <ModulePath>.*iotedgequickstart\..*</ModulePath>
                 <ModulePath>.*leafdevice\..*</ModulePath>
                 <ModulePath>.*load-gen\..*</ModulePath>
-                <ModulePath>.*manifestsignerclient.*\..*</ModulePath>
                 <ModulePath>.*metricscollector\..*</ModulePath>
                 <ModulePath>.*metricsvalidator\..*</ModulePath>
                 <ModulePath>.*numberlogger\..*</ModulePath>

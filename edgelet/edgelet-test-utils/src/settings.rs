@@ -4,6 +4,8 @@
 pub struct Settings {
     pub edge_ca_cert: Option<String>,
     pub edge_ca_key: Option<String>,
+    pub edge_ca_auto_renew: Option<cert_renewal::AutoRenewConfig>,
+    pub edge_ca_subject: Option<aziot_certd_config::CertSubject>,
 
     pub trust_bundle: Option<String>,
     pub manifest_trust_bundle: Option<String>,
@@ -18,6 +20,14 @@ impl edgelet_settings::RuntimeSettings for Settings {
 
     fn edge_ca_key(&self) -> Option<&str> {
         self.edge_ca_key.as_deref()
+    }
+
+    fn edge_ca_auto_renew(&self) -> &Option<cert_renewal::AutoRenewConfig> {
+        &self.edge_ca_auto_renew
+    }
+
+    fn edge_ca_subject(&self) -> &Option<aziot_certd_config::CertSubject> {
+        &self.edge_ca_subject
     }
 
     fn trust_bundle_cert(&self) -> Option<&str> {
@@ -39,6 +49,10 @@ impl edgelet_settings::RuntimeSettings for Settings {
     }
 
     fn homedir(&self) -> &std::path::Path {
+        unimplemented!()
+    }
+
+    fn allow_elevated_docker_permissions(&self) -> bool {
         unimplemented!()
     }
 
@@ -66,7 +80,7 @@ impl edgelet_settings::RuntimeSettings for Settings {
         unimplemented!()
     }
 
-    fn allow_elevated_docker_permissions(&self) -> bool {
+    fn additional_info(&self) -> &std::collections::BTreeMap<String, String> {
         unimplemented!()
     }
 }

@@ -16,6 +16,7 @@ impl TrustBundleResponse {
         self.certificate = certificate;
     }
 
+    #[must_use]
     pub fn with_certificate(mut self, certificate: String) -> Self {
         self.certificate = certificate;
         self

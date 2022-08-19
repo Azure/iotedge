@@ -73,6 +73,10 @@ where
     }
 }
 
+// NOTE: clippy is incorrectly marking this as a duplicated trait bound.
+// An upstream issue exists documenting this behavior:
+// https://github.com/rust-lang/rust-clippy/issues/9076
+#[allow(clippy::trait_duplication_in_bounds)]
 impl<IoS> Connect<IoS>
 where
     IoS: super::IoSource,
@@ -89,8 +93,7 @@ where
         client_id: &mut crate::proto::ClientId,
         keep_alive: std::time::Duration,
     ) -> std::task::Poll<Connected<'a, IoS>> {
-        use futures_core::Stream;
-        use futures_sink::Sink;
+        use futures_util::{Sink, Stream};
 
         let state = &mut self.state;
 
