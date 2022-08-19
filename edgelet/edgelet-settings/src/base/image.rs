@@ -1,12 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
-use chrono::Timelike;
-use serde::Deserialize;
 use std::time::Duration;
 
-#[derive(Debug, serde::Deserialize, serde::Serialize, Clone)]
+use serde::{Deserialize, Serialize};
 
 /// This struct is a wrapper for options that allow a user to override the defaults of
 /// the image gabage collection job and customize their settings.
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ImagePruneSettings {
     #[serde(
         default = "default_cleanup_recurrence",
@@ -15,12 +14,14 @@ pub struct ImagePruneSettings {
     )]
     /// how frequently images should be garbage collected
     cleanup_recurrence: Duration,
-    #[serde(with = "humantime_serde")]
-    #[serde(default = "default_image_age_cleanup_threshold")]
+    #[serde(
+        default = "default_image_age_cleanup_threshold",
+        with = "humantime_serde"
+    )]
     /// minimum (unused) image "age" to be eligible for garbage collection
     image_age_cleanup_threshold: Duration,
     /// time in "HH::MM" format when cleanup job runs
-    #[serde(default, deserialize_with = "hhmm_to_minutes")]
+    #[serde(default, with = "hhmm_as_minutes")]
     cleanup_time: u64,
     // is image garbage collection enabled
     #[serde(default = "default_enabled")]
@@ -90,14 +91,34 @@ where
     Ok(recurrence)
 }
 
-fn hhmm_to_minutes<'de, D>(de: D) -> Result<u64, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let value = String::deserialize(de)?;
-    let time = chrono::NaiveTime::parse_from_str(&value, "%H:%M")
-        .map_err(<D::Error as serde::de::Error>::custom)?;
-    Ok((time.hour() * 60 + time.minute()).into())
+mod hhmm_as_minutes {
+    use chrono::Timelike;
+    use serde::{Deserialize, Serialize};
+
+    const TIME_FORMAT: &str = "%H:%M";
+
+    pub fn deserialize<'de, D>(de: D) -> Result<u64, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = String::deserialize(de)?;
+        let time = chrono::NaiveTime::parse_from_str(&value, TIME_FORMAT)
+            .map_err(<D::Error as serde::de::Error>::custom)?;
+        Ok((time.hour() * 60 + time.minute()).into())
+    }
+
+    pub fn serialize<S>(cleanup_time: &u64, ser: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        chrono::NaiveTime::from_num_seconds_from_midnight(
+            u32::try_from(*cleanup_time * 60).expect("cleanup_time * 60 < 86400 < u32::MAX"),
+            0,
+        )
+        .format(TIME_FORMAT)
+        .to_string()
+        .serialize(ser)
+    }
 }
 
 impl Default for ImagePruneSettings {
