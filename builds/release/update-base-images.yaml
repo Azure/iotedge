@@ -25,15 +25,26 @@ steps:
 - script: |
     needs_update=( )
 
-    images=( $(cat product-versions.json | jq -r '
-      def parse_components(c): c[] | select(has("type")) | select(.type == "dockerImage") | { name, version };
-      def parse_types(t): t[] | select(.name == "dockerImage") | .platforms[] | .os as $os | .arch[] | { os: $os, arch: . };
-      .channels[] | .products[] as { $components, $componentTypes } |
-        parse_components($components) as { $name, $version } |
-        parse_types($componentTypes) as { $os, $arch } |
-        @text "$(registry)/\($name):\($version)-\($os)-\($arch)"
-    ') )
+    # transform product-versions.json into a list of images, but group by channel/product so we
+    # can figure out which release pipeline to launch for the various images
 
+    images_json=$cat ../azure-iotedge/product-versions.json | jq '
+      def images: select(has("type")) | select(.type == "dockerImage") | { name, version };
+      def platforms: select(.name == "dockerImage") | .platforms[] | .os as $os | .arch[] | { os: $os, arch: . };
+      [
+        .channels[] | .name as $channel | .products[] | .id as $product |
+        {
+          $channel,
+          $product,
+          images: [
+            .componentTypes as $types | .components[] | images + ($types[] | platforms) |
+              @text "mcr.microsoft.com/\(.name):\(.version)-\(.os)-\(.arch)"
+          ]
+        }
+      ]
+    ')
+
+    images=( $(echo $images_json | jq -r '[ .[].images ] | flatten | join("\n")') )
     for image in ${images[@]}
     do
       echo "image: $image"
@@ -62,9 +73,24 @@ steps:
       fi
     done
 
+    # now group the images in $needs_update by channel/product
+
+    needs_update_json=$(printf '%s\n' "${needs_update[@]}" | jq -R '.' | jq -s '.')
+    needs_update_json=$(echo "$images_json" | jq --argjson needs_update "$needs_update_json" '
+      def find(s): index(s) as $i | if $i != null then .[$i] else null end;
+      .[] |
+      {
+        channel,
+        product,
+        images: [
+          .images | find($needs_update[] | .) | select(. != null)
+        ]
+      } | select(.images | length != 0)
+    ')
+
     echo "Found ${#needs_update[@]} images that need to be updated:"
-    printf '  %s\n' "${needs_update[@]}"
-    printf '%s\n' "${needs_update[@]}" > $(Build.ArtifactStagingDirectory)/updates.txt
+    echo "$needs_update_json"
+    echo "$needs_update_json" > $(Build.ArtifactStagingDirectory)/updates.txt
   displayName: Detect base image updates
 
 - task: PublishBuildArtifacts@1
