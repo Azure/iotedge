@@ -56,6 +56,10 @@ impl edgelet_settings::RuntimeSettings for Settings {
         unimplemented!()
     }
 
+    fn iotedge_max_requests(&self) -> &edgelet_settings::IotedgeMaxRequests {
+        unimplemented!()
+    }
+
     fn agent(&self) -> &edgelet_settings::module::Settings<Self::ModuleConfig> {
         unimplemented!()
     }

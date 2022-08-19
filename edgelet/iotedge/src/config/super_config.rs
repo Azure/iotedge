@@ -37,6 +37,12 @@ pub struct Config {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub additional_info: Option<Url>,
 
+    #[serde(
+        default,
+        skip_serializing_if = "edgelet_settings::IotedgeMaxRequests::is_default"
+    )]
+    pub iotedge_max_requests: edgelet_settings::IotedgeMaxRequests,
+
     #[serde(flatten)]
     pub aziot: aziotctl_common::config::super_config::Config,
 

@@ -2,6 +2,8 @@
 # Do not edit it manually; any edits will be lost when the command is run again.
 
 homedir_path = "/var/lib/aziot/certd"
+max_requests = 30
+
 [cert_issuance.aziot-edged-ca]
 method = "self_signed"
 expiry_days = 90

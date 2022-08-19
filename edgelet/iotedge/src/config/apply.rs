@@ -184,6 +184,7 @@ async fn execute_inner(
         #[cfg(contenttrust)]
             manifest_trust_bundle_cert: _,
         additional_info,
+        iotedge_max_requests,
         aziot,
         agent,
         connect,
@@ -509,6 +510,8 @@ async fn execute_inner(
             homedir: AZIOT_EDGED_HOMEDIR_PATH.into(),
 
             allow_elevated_docker_permissions: allow_elevated_docker_permissions.unwrap_or(true),
+
+            iotedge_max_requests,
 
             agent,
 
