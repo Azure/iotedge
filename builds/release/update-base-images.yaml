@@ -36,7 +36,7 @@ steps:
         {
           $channel, $product, images: [
             .componentTypes as $types | .components[] | images + ($types[] | platforms) |
-              @text "mcr.microsoft.com/\(.name):\(.version)-\(.os)-\(.arch)"
+              @text "$(registry)/\(.name):\(.version)-\(.os)-\(.arch)"
           ]
         }
       ]
