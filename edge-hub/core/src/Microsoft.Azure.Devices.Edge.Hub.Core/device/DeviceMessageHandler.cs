@@ -12,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
-    using Microsoft.Azure.Devices.Logging;
     using Microsoft.Extensions.Logging;
     using static System.FormattableString;
 
@@ -38,7 +37,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             this.messageAckTimeout = messageAckTimeout;
             this.modelId = modelId;
-            ConsoleEventListener _listener = new ConsoleEventListener("Microsoft-Azure-Devices-Device-Client");
         }
 
         public IIdentity Identity { get; }
