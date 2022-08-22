@@ -372,7 +372,6 @@ stages:
           project: Microsoft.Azure.Devices.Edge.Hub.Service
           version: $(version)
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
           use_rocksdb: true
     - job: BuildImageEdgeAgent
       steps:
@@ -383,7 +382,6 @@ stages:
           project: Microsoft.Azure.Devices.Edge.Agent.Service
           version: $(version)
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
           use_rocksdb: true
     - job: BuildImageTemperatureSensor
       steps:
@@ -394,7 +392,6 @@ stages:
           project: SimulatedTemperatureSensor
           version: $(version)
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
     - job: BuildImageDiagnostics
       steps:
       - template: templates/image-linux.yaml
@@ -404,7 +401,6 @@ stages:
           project: IotedgeDiagnosticsDotnet
           version: $(version)
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
     # for E2E tests
     - job: BuildImageMetricsValidator
       steps:
@@ -414,7 +410,6 @@ stages:
           imageName: azureiotedge-metrics-validator
           project: MetricsValidator
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
     - job: BuildImageDirectMethodSender
       steps:
       - template: templates/image-linux.yaml
@@ -423,7 +418,6 @@ stages:
           imageName: azureiotedge-direct-method-sender
           project: DirectMethodSender
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
     - job: BuildImageDirectMethodReceiver
       steps:
       - template: templates/image-linux.yaml
@@ -432,7 +426,6 @@ stages:
           imageName: azureiotedge-direct-method-receiver
           project: DirectMethodReceiver
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
     - job: BuildImageNumberLogger
       steps:
       - template: templates/image-linux.yaml
@@ -441,7 +434,6 @@ stages:
           imageName: azureiotedge-number-logger
           project: NumberLogger
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
     - job: BuildImageTemperatureFilter
       steps:
       - template: templates/image-linux.yaml
@@ -450,7 +442,6 @@ stages:
           imageName: azureiotedge-temperature-filter
           project: TemperatureFilter
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
     - job: BuildImageLoadGen
       steps:
       - template: templates/image-linux.yaml
@@ -459,7 +450,6 @@ stages:
           imageName: azureiotedge-load-gen
           project: load-gen
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
     - job: BuildImageTestResultCoordinator
       steps:
       - template: templates/image-linux.yaml
@@ -468,7 +458,6 @@ stages:
           imageName: azureiotedge-test-result-coordinator
           project: TestResultCoordinator
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
           use_rocksdb: true
     - job: BuildImageRelayer
       steps:
@@ -478,7 +467,6 @@ stages:
           imageName: azureiotedge-relayer
           project: Relayer
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
     # Functions Sample - Not supported on linux arm64
     - job: BuildImageFunctionsSample
       steps:
@@ -488,7 +476,6 @@ stages:
           imageName: azureiotedge-functions-filter
           project: EdgeHubTriggerCSharp
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
 
 ################################################################################
   - stage: PublishManifests
