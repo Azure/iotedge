@@ -1,6 +1,6 @@
-# Makes sure that the BuildNumber for this pipeline doesn't coincide with
-# the build number from 'Azure-IoT-Edge-Core Build Images' pipeline since
-# they both push packages to an acr and may lead to overwriting the packages.
+# Prefix build number with "e2e" to ensure images pushed to ACR by this
+# pipeline don't conflict with images pushed by the 'Azure-IoT-Edge-Core Build
+# Images' pipeline.
 name: e2e.$(Date:yyyyMMdd).$(Rev:r)
 
 trigger: none
@@ -19,11 +19,8 @@ variables:
 
 resources:
   pipelines:
-  - pipeline: images
-    source: 'Azure-IoT-Edge-Core Build Images'
-    branch: 'main'
-  - pipeline: packages
-    source: 'Azure-IoT-Edge-Core Edgelet Packages'
+  - pipeline: pipeline: ci-build
+    source: 'Azure.iotedge (1)'
     branch: 'main'
 
 stages:
@@ -48,8 +45,8 @@ stages:
     condition: |
       and
       ( 
-        in(dependencies.PublishManifests.result, 'Succeeded','Skipped', 'SucceededWithIssues'),
-        in(dependencies.BuildPackages.result, 'Succeeded','Skipped', 'SucceededWithIssues')
+        in(dependencies.PublishManifests.result, 'Succeeded', 'Skipped', 'SucceededWithIssues'),
+        in(dependencies.BuildPackages.result, 'Succeeded', 'Skipped', 'SucceededWithIssues')
       )     
     jobs:
       - job: ubuntu_2004_msmoby
