@@ -14,12 +14,14 @@ namespace MetricsValidator
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Logging;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
 
     class Program
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("MetricsValidator");
+        static ConsoleEventListener consoleEventListener = new ConsoleEventListener("Microsoft-Azure-Devices-Device-Client", Logger);
 
         public static int Main() => MainAsync().Result;
 
