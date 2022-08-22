@@ -4,7 +4,6 @@ parameters:
   namespace: 'microsoft'
   project: ''
   version: ''
-  buildx_flag: ''
   bin_dir: ''
   use_rocksdb: false
 
