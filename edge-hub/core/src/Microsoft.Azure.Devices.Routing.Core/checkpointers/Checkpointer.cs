@@ -20,8 +20,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
         public static readonly DateTime DateTimeMinValue = new DateTime(1601, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         public static readonly long InvalidOffset = -1L;
 
-        public static int CommitMetricIncCounter = 0;
-
         readonly AtomicBoolean closed;
         readonly ICheckpointStore store;
 
@@ -74,8 +72,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
         {
             this.Proposed = Math.Max(message.Offset, this.Proposed);
             Metrics.IncrementQueueLength(this.EndpointId, this.Priority);
-            ++CommitMetricIncCounter;
-            Events.CommitMetricInc(this, CommitMetricIncCounter);
         }
 
         public bool Admit(IMessage message)
@@ -117,14 +113,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
                 await this.store.SetCheckpointDataAsync(this.Id, new CheckpointData(offset, this.LastFailedRevivalTime, this.UnhealthySince), token);
             }
 
-            int metricCount = 0;
             foreach (var message in successful)
             {
                 Metrics.DecrementQueueLength(this.EndpointId, this.Priority);
-                ++metricCount;
             }
-
-            Events.CommitMetricDec(this, metricCount);
 
             Events.CommitFinished(this);
         }
@@ -175,8 +167,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
                 CommitStarted,
                 CommitFinished,
                 Close,
-                CommitMetricInc,
-                CommitMetricDec,
             }
 
             public static void CreateStart(string id)
@@ -202,16 +192,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
             public static void Close(Checkpointer checkpointer)
             {
                 Log.LogInformation((int)EventIds.Close, "[CheckpointerClose] {context}", GetContextString(checkpointer));
-            }
-
-            public static void CommitMetricInc(Checkpointer checkpointer, int commitMetricIncCounter)
-            {
-                Log.LogInformation((int)EventIds.CommitMetricInc, "[CommitMetricInc] CommitMetricIncCounter: {0}, {1}", commitMetricIncCounter, GetContextString(checkpointer));
-            }
-
-            public static void CommitMetricDec(Checkpointer checkpointer, int successfulCount)
-            {
-                Log.LogInformation((int)EventIds.CommitMetricDec, "[CommitMetricDec] SuccessfulCount: {0}, {1}", successfulCount, GetContextString(checkpointer));
             }
 
             static string GetContextString(Checkpointer checkpointer)
