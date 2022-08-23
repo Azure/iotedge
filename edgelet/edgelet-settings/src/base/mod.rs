@@ -128,7 +128,7 @@ pub struct Settings<ModuleConfig> {
     #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
     pub additional_info: std::collections::BTreeMap<String, String>,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "image::ImagePruneSettings::is_default")]
     pub image_garbage_collection: image::ImagePruneSettings,
 }
 

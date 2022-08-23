@@ -63,7 +63,7 @@ pub struct Config {
     #[serde(default)]
     pub moby_runtime: MobyRuntime,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "image::ImagePruneSettings::is_default")]
     pub image_garbage_collection: image::ImagePruneSettings,
 }
 

@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 /// This struct is a wrapper for options that allow a user to override the defaults of
 /// the image gabage collection job and customize their settings.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq)]
 pub struct ImagePruneSettings {
     #[serde(
         default = "default_cleanup_recurrence",
@@ -57,6 +57,10 @@ impl ImagePruneSettings {
 
     pub fn is_enabled(&self) -> bool {
         self.enabled
+    }
+
+    pub fn is_default(value: &Self) -> bool {
+        value == &Self::default()
     }
 }
 

@@ -70,9 +70,3 @@ retry = "1%"
 [moby_runtime]
 uri = "unix:///var/run/docker.sock"
 network = "azure-iot-edge"
-
-[image_garbage_collection]
-cleanup_recurrence = "1day"
-image_age_cleanup_threshold = "7days"
-cleanup_time = "00:00"
-enabled = true
