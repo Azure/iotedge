@@ -19,7 +19,7 @@ variables:
 
 resources:
   pipelines:
-  - pipeline: pipeline: ci-build
+  - pipeline: ci-build
     source: 'Azure.iotedge (1)'
     branch: 'main'
 
