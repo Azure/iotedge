@@ -176,7 +176,7 @@ update_latest_version_json()
         echo "Update $TARGET_IE_FILE:"
         cat $TARGET_IE_FILE | jq '.'
 
-    elif [ "$BRANCH_NAME" == "refs/heads/release/1.2" ]; then
+    elif [ "$BRANCH_NAME" == "refs/heads/release/1.4" ]; then
 
         [[ -z "$IIS_REPO_PATH" ]] && { echo "\$IIS_REPO_PATH is undefined"; exit 1; }
         # Set target version file to be updated
