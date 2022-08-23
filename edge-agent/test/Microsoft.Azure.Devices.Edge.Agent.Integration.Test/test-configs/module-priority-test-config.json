@@ -220,6 +220,10 @@
       "$type": "ModulePriorityValidator",
       "moduleCommands": [
         {
+          "command": "TestPrepareUpdate",
+          "moduleName": "edgeAgent"
+        },
+        {
           "command": "TestUpdateEdgeAgent",
           "moduleName": "edgeAgent"
         },
@@ -392,6 +396,163 @@
         {
           "command": "TestStart",
           "moduleName": "edgeHub"
+        }
+      ]
+    }
+  },
+  {
+    "deploymentConfig": {
+      "schemaVersion": "1.0",
+      "runtime": {
+        "type": "docker",
+        "settings": {
+          "minDockerVersion": "v1.25",
+          "loggingOptions": "",
+          "registryCredentials": {}
+        }
+      },
+      "systemModules": {
+        "edgeAgent": {
+          "type": "docker",
+          "settings": {
+            "image": "mcr.microsoft.com/azureiotedge-agent:1.0",
+            "createOptions": "{}"
+          },
+          "startupOrder": 2,
+          "env": {
+            "ModuleUpdateMode": {
+              "value": "WaitForAllPulls"
+            }
+          }
+        },
+        "edgeHub": {
+          "type": "docker",
+          "settings": {
+            "image": "mcr.microsoft.com/azureiotedge-hub:1.0",
+            "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}],\"443/tcp\":[{\"HostPort\":\"443\"}],\"5671/tcp\":[{\"HostPort\":\"5671\"}]},\"StopTimeout\":60}}"
+          },
+          "env": {},
+          "startupOrder": 0,
+          "status": "running",
+          "restartPolicy": "always"
+        }
+      },
+      "modules": {
+        "tempSensor": {
+          "type": "docker",
+          "settings": {
+            "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-simulated-temperature-sensor:20191106.7-linux-amd64",
+            "createOptions": ""
+          },
+          "startupOrder": 1,
+          "status": "running",
+          "restartPolicy": "always"
+        },
+        "tempSensor2": {
+          "type": "docker",
+          "settings": {
+            "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-simulated-temperature-sensor:20191106.7-linux-amd64",
+            "createOptions": ""
+          },
+          "status": "running",
+          "restartPolicy": "always"
+        }
+      }
+    },
+    "runtimeInfo": {
+      "modules": {
+        "edgeAgent": {
+          "exitCode": 0,
+          "runtimeStatus": "running",
+          "status": "running",
+          "restartPolicy": "always",
+          "startupOrder": 2,
+          "type": "docker",
+          "settings": {
+            "image": "mcr.microsoft.com/azureiotedge-agent:2.0",
+            "createOptions": "{}"
+          }
+        },
+        "tempSensor": {
+          "exitCode": 0,
+          "runtimeStatus": "running",
+          "status": "running",
+          "restartPolicy": "always",
+          "startupOrder": 4,
+          "type": "docker",
+          "settings": {
+            "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-simulated-temperature-sensor:20191106.7-linux-amd64",
+            "createOptions": "{}"
+          }
+        },
+        "tempSensor1": {
+          "exitCode": 0,
+          "runtimeStatus": "running",
+          "status": "running",
+          "restartPolicy": "always",
+          "startupOrder": 3,
+          "type": "docker",
+          "settings": {
+            "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-simulated-temperature-sensor:20191106.8-linux-amd64",
+            "createOptions": "{}"
+          }
+        }
+      }
+    },
+    "validator": {
+      "$type": "ModulePriorityValidator",
+      "moduleCommands": [
+        {
+          "command": "TestPrepareUpdate",
+          "moduleName": "edgeHub"
+        },
+        {
+          "command": "TestPrepareUpdate",
+          "moduleName": "tempSensor"
+        },
+        {
+          "command": "TestPrepareUpdate",
+          "moduleName": "tempSensor2"
+        },
+        {
+          "command": "TestPrepareUpdate",
+          "moduleName": "edgeAgent"
+        },
+        {
+          "command": "TestUpdateEdgeAgent",
+          "moduleName": "edgeAgent"
+        },
+        {
+          "command": "TestCreate",
+          "moduleName": "edgeHub"
+        },
+        {
+          "command": "TestStart",
+          "moduleName": "edgeHub"
+        },
+        {
+          "command": "TestUpdate",
+          "moduleName": "tempSensor"
+        },
+        {
+          "command": "TestStart",
+          "moduleName": "tempSensor"
+        },
+        {
+          "command": "TestStop",
+          "moduleName": "tempSensor1"
+        },
+        {
+          "command": "TestRemove",
+          "moduleName": "tempSensor1"
+        },
+        {
+          "command": "TestCreate",
+          "moduleName": "tempSensor2"
+        },
+        {
+          "command": "TestStart",
+          "moduleName": "tempSensor2"
         }
       ]
     }
