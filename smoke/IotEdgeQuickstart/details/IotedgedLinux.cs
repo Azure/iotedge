@@ -67,6 +67,96 @@ namespace IotEdgeQuickstart.Details
         }
     }
 
+    interface ILinuxPackageInstall
+    {
+        public Task Install();
+        public Task FindPackage(string packageName);
+        public Task RemovePackage(string packageName);
+    }
+
+    class LinuxPackageInstallDep : ILinuxPackageInstall
+    {
+        readonly string archivePath;
+        public LinuxPackageInstallDep(string archivePath)
+        {
+            this.archivePath = archivePath;
+        }
+
+        public Task Install()
+        {
+            string[] packages = Directory.GetFiles(this.archivePath, "*.deb");
+
+            foreach (string package in packages)
+            {
+                Console.WriteLine($"Will install {package}");
+            }
+
+            string packageArguments = string.Join(" ", packages);
+
+            return Process.RunAsync(
+                "apt-get",
+                $"install -y {packageArguments}",
+                300); // 5 min timeout because install can be slow on raspberry pi
+        }
+
+        public Task FindPackage(string packageName)
+        {
+            return Process.RunAsync("bash", $"-c \"dpkg -l | grep {packageName}\"");
+        }
+
+        public Task RemovePackage(string packageName)
+        {
+            return Process.RunAsync("apt", $"purge -y {packageName}", 180);
+        }
+    }
+
+    class LinuxPackageInstallRPM : ILinuxPackageInstall
+    {
+        readonly string archivePath;
+        public LinuxPackageInstallRPM(string archivePath)
+        {
+            this.archivePath = archivePath;
+        }
+
+        public Task Install()
+        {
+            string[] packages = Directory.GetFiles(this.archivePath, "*.rpm");
+            return Process.RunAsync(
+                    "rpm",
+                    $"--nodeps -i {string.Join(' ', packages)}",
+                    300);
+        }
+
+        public Task FindPackage(string packageName)
+        {
+            return Process.RunAsync("bash", $"-c \"rpm -qa | grep {packageName}\"");
+        }
+
+        public Task RemovePackage(string packageName)
+        {
+            return Process.RunAsync("rpm", $"-e {packageName}", 180);
+        }
+    }
+
+    class LinuxPackageNonInstall : ILinuxPackageInstall
+    {
+        public Task Install()
+        {
+            Console.WriteLine("Skipping installation of aziot-edge and aziot-identity-service.");
+            return Task.CompletedTask;
+        }
+
+        public Task FindPackage(string packageName)
+        {
+            throw new Exception("Find package not permitted for non-installed packages");
+        }
+
+        public Task RemovePackage(string packageName)
+        {
+            throw new Exception("remove package not permitted for non-installed packages");
+        }
+    }
+
     class IotedgedLinux : IBootstrapper
     {
         const string KEYD = "/etc/aziot/keyd/config.toml";
@@ -74,14 +164,14 @@ namespace IotEdgeQuickstart.Details
         const string IDENTITYD = "/etc/aziot/identityd/config.toml";
         const string EDGED = "/etc/aziot/edged/config.toml";
 
-        readonly string archivePath;
         readonly Option<RegistryCredentials> credentials;
         readonly Option<HttpUris> httpUris;
         readonly UriSocks uriSocks;
         readonly Option<string> proxy;
         readonly Option<UpstreamProtocolType> upstreamProtocol;
-        readonly bool requireEdgeInstallation;
         readonly bool overwritePackages;
+
+        ILinuxPackageInstall installCommands;
 
         private struct Config
         {
@@ -91,16 +181,15 @@ namespace IotEdgeQuickstart.Details
             public TomlDocument Document;
         }
 
-        public IotedgedLinux(string archivePath, Option<RegistryCredentials> credentials, Option<HttpUris> httpUris, UriSocks uriSocks, Option<string> proxy, Option<UpstreamProtocolType> upstreamProtocol, bool requireEdgeInstallation, bool overwritePackages)
+        public IotedgedLinux(Option<RegistryCredentials> credentials, Option<HttpUris> httpUris, UriSocks uriSocks, Option<string> proxy, Option<UpstreamProtocolType> upstreamProtocol, bool overwritePackages, ILinuxPackageInstall installCommands)
         {
-            this.archivePath = archivePath;
             this.credentials = credentials;
             this.httpUris = httpUris;
             this.uriSocks = uriSocks;
             this.proxy = proxy;
             this.upstreamProtocol = upstreamProtocol;
-            this.requireEdgeInstallation = requireEdgeInstallation;
             this.overwritePackages = overwritePackages;
+            this.installCommands = installCommands;
         }
 
         public async Task UpdatePackageState()
@@ -111,12 +200,12 @@ namespace IotEdgeQuickstart.Details
             {
                 try
                 {
-                    await Process.RunAsync("bash", $"-c \"dpkg -l | grep {package}\"");
+                    await this.installCommands.FindPackage(package);
 
                     if (this.overwritePackages)
                     {
                         Console.WriteLine($"{package}: found. Removing package.");
-                        await Process.RunAsync("apt", $"purge -y {package}", 180);
+                        await this.installCommands.RemovePackage(package);
                     }
                     else
                     {
@@ -186,28 +275,7 @@ namespace IotEdgeQuickstart.Details
 
         public Task Install()
         {
-            if (this.requireEdgeInstallation)
-            {
-                string[] packages = Directory.GetFiles(this.archivePath, "*.deb");
-
-                foreach (string package in packages)
-                {
-                    Console.WriteLine($"Will install {package}");
-                }
-
-                string packageArguments = string.Join(" ", packages);
-
-                return Process.RunAsync(
-                    "apt-get",
-                    $"install -y {packageArguments}",
-                    300); // 5 min timeout because install can be slow on raspberry pi
-            }
-            else
-            {
-                Console.WriteLine("Skipping installation of aziot-edge and aziot-identity-service.");
-
-                return Task.CompletedTask;
-            }
+            return this.installCommands.Install();
         }
 
         private static async Task<Config> InitConfig(string template, string owner)

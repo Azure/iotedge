@@ -71,6 +71,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     }
 
                     break;
+                case "mariner":
+                    packageExtension = SupportedPackageExtension.Rpm;
+                    break;
                 default:
                     throw new NotImplementedException($"Don't know how to install daemon on operating system '{os}'");
             }

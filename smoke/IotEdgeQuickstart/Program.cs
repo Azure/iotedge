@@ -183,6 +183,9 @@ Defaults:
         [Option("--parent-edge-device", Description = "Optional input to specify parent edge device id for nested edge scenario")]
         public string ParentEdgeDevice { get; } = string.Empty;
 
+        [Option("--package-type", Description = "specifes the type of package files that will be used")]
+        public string PackageType { get; } = string.Empty;
+
         [Option("--overwrite-packages", Description = "Overwrite existing aziot packages with those specified in the bootstrapper")]
         public bool OverwritePackages { get; } = false;
 
@@ -233,8 +236,24 @@ Defaults:
                                 : Option.None<HttpUris>();
 
                             UriSocks socks = new UriSocks(this.ConnectManagementUri, this.ConnectWorkloadUri, this.ListenManagementUri, this.ListenWorkloadUri);
+                            ILinuxPackageInstall installMethod;
+                            if (!this.BypassEdgeInstallation)
+                            {
+                                if (!string.IsNullOrEmpty(this.PackageType) && this.PackageType.ToLower().Equals("rpm"))
+                                {
+                                    installMethod = new LinuxPackageInstallRPM(this.BootstrapperArchivePath);
+                                }
+                                else
+                                {
+                                    installMethod = new LinuxPackageInstallDep(this.BootstrapperArchivePath);
+                                }
+                            }
+                            else
+                            {
+                                installMethod = new LinuxPackageNonInstall();
+                            }
 
-                            bootstrapper = new IotedgedLinux(this.BootstrapperArchivePath, credentials, uris, socks, proxy, upstreamProtocolOption, !this.BypassEdgeInstallation, this.OverwritePackages);
+                            bootstrapper = new IotedgedLinux(credentials, uris, socks, proxy, upstreamProtocolOption, this.OverwritePackages, installMethod);
                         }
 
                         break;
