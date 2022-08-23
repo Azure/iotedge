@@ -11,6 +11,15 @@ use crate::error::ImageCleanupError;
 
 const TOTAL_MINS_IN_DAY: u64 = 1440;
 
+/// <summary>
+/// This method is the main controller loop for image garbage collection.
+/// [Note: It delegates the actual image deletion to remove_unused_images()]
+/// - If GC is not enabled, it will simply return a future that never completes.
+/// - If GC is enabled, it will sleep till the first occurrence of the
+///   'cleanup time' that has been specified by the user.
+///   After waking up, it'll try to get the bootstrap image ID [if it doesn't
+///   already have it from a previous run], and then calls remove_unused_images()
+///   Finally, it puts itself back to sleep till it's time for the next run.
 pub async fn image_garbage_collect(
     edge_agent_bootstrap: String,
     settings: ImagePruneSettings,

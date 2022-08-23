@@ -20,6 +20,10 @@ struct ImagePruneInner {
     settings: ImagePruneSettings,
 }
 
+/// <summary>
+/// The methods associated with this struct are at the heart of the image garbage collection
+/// feature. As such, this struct does not hold any user data, but simply holds information
+/// needed to collect/process state that (eventually) enables unused image garbage collection.
 #[derive(Debug, Clone)]
 pub struct ImagePruneData {
     inner: Arc<Mutex<ImagePruneInner>>,
@@ -46,9 +50,10 @@ impl ImagePruneData {
         })
     }
 
+    /// <summary>
     /// This method takes the `image_id` and adds (if the image is new) OR updates the last-used timestamp associated
     /// with this `image_id`. This state is maintained for use during image garbage collection.
-    /// This method is (currently) called whenever a new image is pulled, a container is created, or when a conatiner is removed.
+    /// This method is (currently) called whenever a new image is pulled, a container is created, or when a container is removed.
     pub fn record_image_use_timestamp(&self, image_id: &str) -> Result<(), Error> {
         let guard = self
             .inner
@@ -92,9 +97,11 @@ impl ImagePruneData {
         Ok(())
     }
 
+    /// <summary>
     /// This method is called during image garbage collection. It returns a map of images that
     /// will be deleted by the image garbage collector.
-    /// The `in_use_image_ids` is a set of image IDs currently being used on the device.
+    /// The `in_use_image_ids` is a set of image IDs currently being used on the device [and
+    /// contains image_ids that may or may not have been deployed by IoTEdge].
     pub fn prune_images_from_file(
         &self,
         in_use_image_ids: HashSet<String>,
@@ -223,11 +230,12 @@ fn write_images_with_timestamp(
 }
 
 // This method separates out the images to be deleted from the images not to be deleted,
-// and return those as a tuple.
+// and returns those as a tuple: (images to be deleted, images to be written back to file)
 // It takes as input all the images present on the device (that we know about through an
-// iotedge deployment) and the images currently in-use, along with the minimum "age" for
-//  which the images can stay unused. Any images older than this minimum age are marked
-//  for deletion.
+// iotedge deployment) and the images currently in-use (which may or may not have been
+// deployed using iotedge), along with the minimum "age" for which the images can stay
+// unused. Any (unused) images (except the bootstrap edge agent image) older than this
+// minimum age are marked for deletion.
 #[allow(clippy::type_complexity)]
 fn process_state(
     mut iotedge_images_map: HashMap<String, Duration>,
