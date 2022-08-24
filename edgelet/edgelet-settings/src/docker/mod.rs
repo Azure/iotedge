@@ -126,10 +126,16 @@ impl crate::RuntimeSettings for Settings {
     fn additional_info(&self) -> &std::collections::BTreeMap<String, String> {
         self.base.additional_info()
     }
+
+    fn image_garbage_collection(&self) -> &crate::base::image::ImagePruneSettings {
+        self.base.image_garbage_collection()
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use super::Settings;
     use crate::docker::network;
     use crate::RuntimeSettings;
@@ -150,6 +156,7 @@ mod tests {
     static GOOD_SETTINGS_CASE_SENSITIVE: &str = "test-files/case_sensitive.toml";
     static GOOD_SETTINGS_CONTENT_TRUST: &str = "test-files/sample_settings_content_trust.toml";
     static GOOD_SETTINGS_NETWORK: &str = "test-files/sample_settings.network.toml";
+    static GOOD_SETTINGS_IMAGE_GC: &str = "test-files/sample_settings_image_gc.toml";
 
     #[test]
     fn err_no_file() {
@@ -287,6 +294,47 @@ mod tests {
             labels.get("net.azure-devices.edge.env"),
             Some(&"{}".to_string())
         );
+    }
+
+    #[test]
+    fn image_garbage_collection() {
+        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+
+        std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS_IMAGE_GC);
+        std::env::set_var("AZIOT_EDGED_CONFIG_DIR", CONFIG_DIR);
+
+        let settings = Settings::new().unwrap();
+        let image_prune_settings = settings.image_garbage_collection();
+        assert!(image_prune_settings.is_enabled());
+        assert_eq!(
+            image_prune_settings.image_age_cleanup_threshold(),
+            Duration::from_secs(1440 * 60 * 3 * 7)
+        );
+        assert_eq!(
+            image_prune_settings.cleanup_recurrence(),
+            Duration::from_secs(1440 * 60 * 3)
+        );
+        assert_eq!(image_prune_settings.cleanup_time(), 600);
+    }
+
+    #[test]
+    fn image_garbage_collection_defaults() {
+        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+
+        std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS);
+        std::env::set_var("AZIOT_EDGED_CONFIG_DIR", CONFIG_DIR);
+
+        let image_gc_settings = Settings::new().unwrap().image_garbage_collection().clone();
+        assert!(image_gc_settings.is_enabled());
+        assert_eq!(
+            image_gc_settings.image_age_cleanup_threshold(),
+            Duration::from_secs(60 * 60 * 24 * 7)
+        );
+        assert_eq!(
+            image_gc_settings.cleanup_recurrence(),
+            Duration::from_secs(60 * 60 * 24)
+        );
+        assert_eq!(image_gc_settings.cleanup_time(), 0);
     }
 
     #[test]

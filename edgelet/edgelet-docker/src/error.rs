@@ -1,5 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::{io, num::ParseIntError, time::SystemTimeError};
+
 use edgelet_core::{ModuleOperation, RegistryOperation, RuntimeOperation};
 
 #[derive(Debug, thiserror::Error)]
@@ -24,4 +26,25 @@ pub enum Error {
 
     #[error("runtime operation error: {0}")]
     RuntimeOperation(RuntimeOperation),
+
+    #[error("file operation error: {0}")]
+    FileOperation(String),
+
+    #[error("failed to calculate current time epoch: {0}")]
+    GetCurrentTimeEpoch(SystemTimeError),
+
+    #[error("attempted to get image hash but was nonexistent.")]
+    GetImageId(),
+
+    #[error("failed to lock for module image garbage collection: {0}")]
+    LockError(String),
+
+    #[error("failed to parse int: {0}")]
+    ParseIntError(ParseIntError),
+
+    #[error("failed to create file: {0}")]
+    CreateFile(io::Error),
+
+    #[error("failed to create filepath: {0}")]
+    FilepathCreationError(String),
 }
