@@ -172,7 +172,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             string expected = string.Join('\n', Enumerable.Range(0, count).Concat(Enumerable.Range(0, count))) + "\n";
             LogResponse response = JsonConvert.DeserializeObject<LogResponse[]>(result.GetPayloadAsJson()).Single();
-            Assert.AreEqual(expected, response.Payload);
+            Assert.That(response.Payload.StartsWith(expected));
         }
 
         [Test]
