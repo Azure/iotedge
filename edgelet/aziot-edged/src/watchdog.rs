@@ -256,7 +256,7 @@ fn agent_env(
 
     env.insert(
         "IOTEDGE_APIVERSION".to_string(),
-        format!("{}", edgelet_http::ApiVersion::V2021_12_07),
+        edgelet_http::ApiVersion::V2022_08_03.to_string(),
     );
 
     env.insert("IOTEDGE_AUTHSCHEME".to_string(), "sasToken".to_string());

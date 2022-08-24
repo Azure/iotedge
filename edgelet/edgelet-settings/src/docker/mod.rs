@@ -87,6 +87,10 @@ impl crate::RuntimeSettings for Settings {
         self.base.auto_reprovisioning_mode()
     }
 
+    fn iotedge_max_requests(&self) -> &crate::IotedgeMaxRequests {
+        self.base.iotedge_max_requests()
+    }
+
     fn homedir(&self) -> &std::path::Path {
         self.base.homedir()
     }

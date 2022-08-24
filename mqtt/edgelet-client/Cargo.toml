@@ -7,26 +7,26 @@ edition = "2018"
 [dependencies]
 async-trait = "0.1"
 base64 = "0.13"
-bytes = "1.0"
+bytes = "1"
 chrono = "0.4"
 http = "0.2"
 hyper = { version = "0.14", features = ["client", "http1", "tcp"] }
 futures-util = "0.3"
 openssl = "0.10"
-serde = { version = "1.0", features = ["derive", "rc"] }
-serde_json = "1.0"
+serde = { version = "1", features = ["derive", "rc"] }
+serde_json = "1"
 percent-encoding = "2"
-thiserror = "1.0"
+thiserror = "1"
 tokio = { version = "1", features = ["net"] }
 tower-service = "0.3"
-url = "2.2"
+url = "2"
 
 [target.'cfg(unix)'.dependencies]
 hyperlocal = "0.8"
 
 [dev-dependencies]
-lazy_static = "1.4"
+lazy_static = "1"
 matches = "0.1"
-mockito = "0.30"
-test-case = "1.1"
+mockito = "0.31"
+test-case = "2"
 tokio = { version = "1", features = ["macros"] }

@@ -206,6 +206,10 @@ install-rpm8: install
 	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/enterprise-linux/aziot-edged.workload.socket  $(DESTDIR)$(unitdir)/aziot-edged.workload.socket
 	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/enterprise-linux/aziot-edged.mgmt.socket  $(DESTDIR)$(unitdir)/aziot-edged.mgmt.socket
 
+install-mariner: install
+	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/mariner/aziot-edged.service $(DESTDIR)$(unitdir)/aziot-edged.service
+	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/mariner/aziot-edged.workload.socket  $(DESTDIR)$(unitdir)/aziot-edged.workload.socket
+	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/mariner/aziot-edged.mgmt.socket  $(DESTDIR)$(unitdir)/aziot-edged.mgmt.socket
 
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/aziot-edged

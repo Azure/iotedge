@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.CommandFactories
 {
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Commands;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands;
 
     // CommandFactory that will issue ExecutionPrerequisiteException on a
@@ -16,9 +17,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.CommandFactories
             this.commandFactory = commandFactory;
         }
 
-        public Task<ICommand> UpdateEdgeAgentAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
+        public async Task<ICommand> UpdateEdgeAgentAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
         {
-            return this.commandFactory.UpdateEdgeAgentAsync(module, runtimeInfo);
+            ICommand prepareUpdate = await this.commandFactory.PrepareUpdateAsync(module.Module, runtimeInfo);
+            ICommand updateEdgeAgent = await this.commandFactory.UpdateEdgeAgentAsync(module, runtimeInfo);
+            return new GroupCommand(new ExecutionPrerequisiteCommand(prepareUpdate), updateEdgeAgent);
         }
 
         public Task<ICommand> CreateAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
@@ -29,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.CommandFactories
         public async Task<ICommand> PrepareUpdateAsync(IModule module, IRuntimeInfo runtimeInfo)
         {
             ICommand prepareUpdate = await this.commandFactory.PrepareUpdateAsync(module, runtimeInfo);
-            return new ExcecutionPrerequisiteCommand(prepareUpdate);
+            return new ExecutionPrerequisiteCommand(prepareUpdate);
         }
 
         public Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo)

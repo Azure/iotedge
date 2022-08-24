@@ -30,7 +30,7 @@ function usage() {
     echo "--postfix             Options: amd64, armhf, arm64."
     echo "--build-number        Build number for which to tag image."
     echo "--arch                Options: amd64, arm32v7, arm64v8."
-    echo "--source-map          Path to the JSON file that maps Dockerfile image sources to their replacements. Assumes the tool 'dockersource' is in the PATH"
+    echo "--source-map          Path to the JSON file that maps Dockerfile image sources to their replacements. Assumes the tool 'gnarly' is in the PATH"
     echo " -h, --help           Print this help and exit."
     exit 1
 }
@@ -79,8 +79,8 @@ function process_args() {
         print_help_and_exit
     fi
 
-    if [[ -n "$SOURCE_MAP" ]] && ! command -v dockersource > /dev/null; then
-        echo "--source-map specified, but required tool 'dockersource' not found in PATH"
+    if [[ -n "$SOURCE_MAP" ]] && ! command -v gnarly > /dev/null; then
+        echo "--source-map specified, but required tool 'gnarly' not found in PATH"
         print_help_and_exit
     fi
 }
@@ -100,7 +100,7 @@ cd $BUILD_REPOSITORY_LOCALPATH/edge-util/docker/linux/$ARCH
 
 build_context=
 if [[ -n "$SOURCE_MAP" ]]; then
-    build_context=$(dockersource --mod-config $SOURCE_MAP ./Dockerfile)
+    build_context=$(gnarly --mod-config $SOURCE_MAP ./Dockerfile)
 fi
 
 docker buildx create --use --bootstrap

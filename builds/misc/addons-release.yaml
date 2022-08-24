@@ -8,7 +8,7 @@ stages:
 ################################################################################
 - stage: BuildExecutables
 ################################################################################
-  displayName: Build Excecutables
+  displayName: Build Executables
   pool:
     name: $(pool.linux.name)
     demands:
@@ -99,7 +99,6 @@ stages:
         name: API Proxy
         imageName: azureiotedge-api-proxy
         project: api-proxy-module
-        buildx_flag: false
         version: $(buildVersion)
         bin_dir: '$(Build.BinariesDirectory)'      
 

@@ -105,6 +105,7 @@ async fn run() -> Result<(), EdgedError> {
         tasks.clone(),
         create_socket_channel_snd,
         watchdog_tx.clone(),
+        settings.iotedge_max_requests().workload,
     )
     .await?;
 
@@ -137,6 +138,7 @@ async fn run() -> Result<(), EdgedError> {
         runtime.clone(),
         watchdog_tx.clone(),
         tasks.clone(),
+        settings.iotedge_max_requests().management,
     )
     .await?;
 

@@ -15,8 +15,7 @@ resources:
     type: github
     endpoint: azure-iot-edge-iotedge1-github
     name: azure/iot-identity-service
-    ref: release/1.2
-    # TODO: Once release/1.3 is fork for IIS repo, we will need to update his parameter.
+    ref: release/1.4
 
 stages:
 ################################################################################

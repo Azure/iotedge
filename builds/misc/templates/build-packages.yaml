@@ -164,7 +164,9 @@ stages:
               arch: amd64
               os: mariner
               os_version: 2
-              mariner_release: 2.0-stable
+              # mariner_release: 2.0-stable
+              # WARN: 2.0-stable is broken - https://github.com/microsoft/CBL-Mariner/issues/3483
+              mariner_release: 2.0.20220713-2.0
               target.iotedged: builds/mariner2/out/RPMS
               target.logs: builds/mariner2/build/logs/pkggen/rpmbuilding/
         steps:
@@ -236,6 +238,7 @@ stages:
       ################################################################################
         displayName: Mariner_Linux on ARM64
         condition: or(eq(variables['build.linux.mariner'], ''), eq(variables['build.linux.mariner'], true))
+        timeoutInMinutes: 90
         pool:
           name: $(pool.linux.arm.name)
           demands:
@@ -253,7 +256,9 @@ stages:
               arch: aarch64
               os: mariner
               os_version: 2
-              mariner_release: 2.0-stable
+              # mariner_release: 2.0-stable
+              # WARN: 2.0-stable is broken - https://github.com/microsoft/CBL-Mariner/issues/3483
+              mariner_release: 2.0.20220713-2.0
               target.iotedged: builds/mariner2/out/RPMS
               target.logs: builds/mariner2/build/logs/pkggen/rpmbuilding/
 
@@ -301,7 +306,7 @@ stages:
           # build iot-identity-service here since they cannot build native aarch64 packages
           - bash: |
               set -ex
-              git clone --recurse-submodules https://github.com/Azure/iot-identity-service.git -b release/1.2
+              git clone --recurse-submodules https://github.com/Azure/iot-identity-service.git
               pushd iot-identity-service
               packageVersion=$(git tag | grep 1.3.[0-9]*$ | sort --version-sort -r | head -1)
               sudo docker run --rm \
@@ -314,7 +319,7 @@ stages:
                 "ubuntu:18.04" \
                 '/src/ci/package.sh'
               popd
-              sudo cp iot-identity-service/packages/mariner$(os_version)/$(arch)/*.rpm .
+              sudo cp iot-identity-service/packages/mariner$(os_version)/$(arch)/aziot-identity-service-$packageVersion-1.cm$(os_version).$(arch).rpm .
               sudo rm -rf iot-identity-service
           
           - bash: |

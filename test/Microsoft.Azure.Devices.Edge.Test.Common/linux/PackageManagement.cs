@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     "rhel" => new[]
                     {
                         "set -e",
-                        $"sudo rpm --nodeps -i {string.Join(' ', packages)}",
+                        $"sudo dnf -y install {string.Join(' ', packages)}",
                         "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
                         "pathToOverride=$(dirname ${pathToSystemdConfig#?})/aziot-edged.service.d",
                         "sudo mkdir $pathToOverride",

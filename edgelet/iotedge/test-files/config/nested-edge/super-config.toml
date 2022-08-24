@@ -21,6 +21,8 @@ value = "YXppb3QtaWRlbnRpdHktc2VydmljZXxhemlvdC1pZGU="
 
 [preloaded_certs]
 
+[tpm]
+
 [agent]
 name = "edgeAgent"
 type = "docker"
@@ -34,6 +36,16 @@ image = "mcr.microsoft.com/azureiotedge-agent:1.0"
 [agent.config.auth]
 
 [agent.env]
+
+[iotedge_max_requests]
+management = 20
+workload = 30
+
+[aziot_max_requests]
+keyd = 20
+certd = 30
+identityd = 40
+tpmd = 50
 
 [connect]
 workload_uri = "unix:///var/run/iotedge/workload.sock"
