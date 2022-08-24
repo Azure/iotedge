@@ -3,15 +3,8 @@ pr: none
 
 resources:
   pipelines:
-  - pipeline: images
-    source: 'Azure-IoT-Edge-Core Build Images'
-    branch: 'main'
-    trigger:
-      branches:
-      - main
-      - release/*
-  - pipeline: packages
-    source: 'Azure-IoT-Edge-Core Edgelet Packages'
+  - pipeline: ci-build
+    source: 'Azure.iotedge (1)'
     branch: 'main'
     trigger:
       branches:
