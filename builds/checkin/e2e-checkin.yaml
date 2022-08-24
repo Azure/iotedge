@@ -16,12 +16,6 @@ pr:
 variables:
   DisableDockerDetector: true
 
-resources:
-  pipelines:
-  - pipeline: ci-build
-    source: 'Azure.iotedge (1)'
-    branch: 'main'
-
 stages:
   
   - template: ../misc/templates/build-images.yaml
