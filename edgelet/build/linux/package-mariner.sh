@@ -11,12 +11,12 @@ export TZ=UTC
 
 # need to use preview repo for the next 2 weeks untill mariner 2.0 gets moved to prod
 case "${MARINER_RELEASE}" in
-    '1.0-stable')
+    '1.0'*)
         UsePreview=n
         MarinerIdentity=mariner1
         PackageExtension="cm1"
         ;;
-    '2.0-stable')
+    '2.0'*)
         UsePreview=n
         MarinerIdentity=mariner2
         PackageExtension="cm2"

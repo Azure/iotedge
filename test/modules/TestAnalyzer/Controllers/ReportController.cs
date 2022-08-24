@@ -25,7 +25,7 @@ namespace TestAnalyzer.Controllers
             return new ContentResult { Content = deviceAnalysis.ToString() };
         }
 
-        // GET api/report (exposed for backwards compatibility for snitcher which will eventually be deprecated)
+        // GET api/report
         [HttpGet]
         public async Task<ContentResult> GetMessagesAsync()
         {
