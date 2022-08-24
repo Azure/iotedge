@@ -170,7 +170,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             Assert.AreEqual((int)HttpStatusCode.OK, result.Status);
 
-            string expected = string.Join('\n', Enumerable.Range(0, count).Concat(Enumerable.Range(0, count))) + "\n";
+            // The log _should_ contain two runs of 0-9, but occasionally on slower systems the number logger module
+            // won't make it all the way through the second run. So we'll assert that the logs contain the first run of
+            // 0-9, and at least "0" from the second run. That's enough to demonstrate a restart.
+            string expected = string.Join('\n', Enumerable.Range(0, count).Concat(Enumerable.Range(0, 1))) + "\n";
             LogResponse response = JsonConvert.DeserializeObject<LogResponse[]>(result.GetPayloadAsJson()).Single();
             Assert.That(response.Payload.StartsWith(expected));
         }
