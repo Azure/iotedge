@@ -14,9 +14,8 @@ use url::Url;
 use docker::apis::{Configuration, DockerApi, DockerApiClient};
 use docker::models::{ContainerCreateBody, HostConfig, InlineResponse2001, Ipam, NetworkConfig};
 use edgelet_core::{
-    DiskInfo, LogOptions, MakeModuleRuntime, Module, ModuleAction, ModuleRegistry, ModuleRuntime,
-    ModuleRuntimeState, RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo,
-    SystemResources, UrlExt,
+    DiskInfo, LogOptions, Module, ModuleAction, ModuleRegistry, ModuleRuntime, ModuleRuntimeState,
+    RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
 };
 use edgelet_settings::{
     DockerConfig, Ipam as CoreIpam, MobyNetwork, ModuleSpec, RuntimeSettings, Settings,
@@ -26,6 +25,7 @@ use http_common::Connector;
 
 use crate::error::Error;
 use crate::module::{runtime_state, DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
+use crate::{ImagePruneData, MakeModuleRuntime};
 
 type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
@@ -41,6 +41,7 @@ pub struct DockerModuleRuntime<C> {
     create_socket_channel: UnboundedSender<ModuleAction>,
     allow_elevated_docker_permissions: bool,
     additional_info: BTreeMap<String, String>,
+    image_use_data: ImagePruneData,
 }
 
 fn merge_env(cur_env: Option<&[String]>, new_env: &BTreeMap<String, String>) -> Vec<String> {
@@ -113,6 +114,28 @@ where
             })?;
 
         log::info!("Successfully pulled image {}", image);
+
+        // Now, get the image_id of the image we just pulled for image garbage collection in future
+        match self.list_images().await {
+            Ok(image_name_to_id) => {
+                if image_name_to_id.is_empty() {
+                    log::error!("No docker images present on device: {} was just pulled, but not found on device", image);
+                } else {
+                    let image_id = match image_name_to_id.get(config.image()) {
+                        Some(imageid) => imageid,
+                        None => {
+                            log::warn!("{} was not added to image garbage collection list and may will not be garbage collected", image);
+                            ""
+                        }
+                    };
+                    if !image_id.is_empty() {
+                        self.image_use_data.record_image_use_timestamp(image_id)?;
+                    }
+                }
+            }
+            Err(e) => log::error!("Could not get list of docker images: {}", e),
+        };
+
         Ok(())
     }
 
@@ -124,7 +147,7 @@ where
         })?;
 
         self.client
-            .image_delete(name, false, false)
+            .image_delete(name, true, false)
             .await
             .context(Error::Docker)
             .map_err(|e| {
@@ -149,6 +172,7 @@ impl MakeModuleRuntime for DockerModuleRuntime<Connector> {
     async fn make_runtime(
         settings: &Settings,
         create_socket_channel: UnboundedSender<ModuleAction>,
+        image_use_data: ImagePruneData,
     ) -> anyhow::Result<Self::ModuleRuntime> {
         log::info!("Initializing module runtime...");
 
@@ -166,6 +190,7 @@ impl MakeModuleRuntime for DockerModuleRuntime<Connector> {
             create_socket_channel,
             allow_elevated_docker_permissions: settings.allow_elevated_docker_permissions(),
             additional_info: settings.additional_info().clone(),
+            image_use_data,
         };
 
         Ok(runtime)
@@ -339,6 +364,18 @@ where
                 Error::RuntimeOperation(RuntimeOperation::CreateModule(module.name().to_string()))
             })?;
 
+        // Now, get the image id of the image associated with the module we started
+        let module_with_details = self.get(module.name()).await?;
+
+        // update image use timestamp for image garbage collection job later
+        self.image_use_data.record_image_use_timestamp(
+            module_with_details
+                .0
+                .config()
+                .image_hash()
+                .ok_or(Error::GetImageId())?,
+        )?;
+
         Ok(())
     }
 
@@ -487,6 +524,14 @@ where
     }
 
     async fn remove(&self, id: &str) -> anyhow::Result<()> {
+        // get the image id of the image associated with the module we want to delete
+        let module_with_details = self.get(id).await?;
+        let image_id = module_with_details
+            .0
+            .config()
+            .image_hash()
+            .ok_or(Error::GetImageId())?;
+
         log::info!("Removing module {}...", id);
 
         ensure_not_empty(id).with_context(|| {
@@ -507,6 +552,9 @@ where
             .with_context(|| {
                 Error::RuntimeOperation(RuntimeOperation::RemoveModule(id.to_owned()))
             })?;
+
+        // update image use timestamp for image garbage collection job later
+        self.image_use_data.record_image_use_timestamp(image_id)?;
 
         // Remove the socket to avoid having socket files polluting the home folder.
         self.create_socket_channel
@@ -687,6 +735,29 @@ where
                         err
                     );
                 }
+            }
+        }
+
+        Ok(result)
+    }
+
+    async fn list_images(&self) -> anyhow::Result<HashMap<String, String>> {
+        let images = self
+            .client
+            .images_list(false, "", false)
+            .await
+            .context(Error::Docker)
+            .map_err(|e| {
+                log::warn!("{:?}", e);
+                e
+            })
+            .context(Error::RuntimeOperation(RuntimeOperation::ListImages))?;
+
+        let mut result: HashMap<String, String> = HashMap::new();
+        for image in images {
+            // an individual image id may be associated with multiple image names
+            for name in image.repo_tags() {
+                result.insert(name.clone(), image.id().clone());
             }
         }
 

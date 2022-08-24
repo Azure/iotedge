@@ -114,12 +114,14 @@ dependencies = [
  "aziot-identity-common",
  "aziot-identity-common-http",
  "base64",
+ "chrono",
  "clap",
  "edgelet-core",
  "edgelet-docker",
  "edgelet-http",
  "edgelet-http-mgmt",
  "edgelet-http-workload",
+ "edgelet-image-cleanup",
  "edgelet-settings",
  "futures-util",
  "http-common",
@@ -605,6 +607,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "base64",
+ "chrono",
  "docker",
  "edgelet-core",
  "edgelet-settings",
@@ -617,6 +620,7 @@ dependencies = [
  "nix",
  "serde",
  "serde_json",
+ "serial_test",
  "sysinfo",
  "thiserror",
  "tokio",
@@ -714,14 +718,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "edgelet-image-cleanup"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "edgelet-core",
+ "edgelet-docker",
+ "edgelet-settings",
+ "http-common",
+ "log",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "edgelet-settings"
 version = "0.1.0"
 dependencies = [
  "aziot-certd-config",
  "cert-renewal",
+ "chrono",
  "config-common",
  "docker",
  "http-common",
+ "humantime-serde",
  "lazy_static",
  "serde",
  "serde_json",
@@ -1067,6 +1088,16 @@ name = "humantime"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
+
+[[package]]
+name = "humantime-serde"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57a3db5ea5923d99402c94e9feb261dc5ee9b4efa158b0315f788cf549cc200c"
+dependencies = [
+ "humantime",
+ "serde",
+]
 
 [[package]]
 name = "hyper"
@@ -1685,6 +1716,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustversion"
+version = "1.0.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97477e48b4cf8603ad5f7aaf897467cf42ab4218a38ef76fb14c2d6773a6d6a8"
+
+[[package]]
 name = "ryu"
 version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1752,6 +1789,32 @@ dependencies = [
  "darling",
  "proc-macro2",
  "quote",
+ "syn",
+]
+
+[[package]]
+name = "serial_test"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7eec42e7232e5ca56aa59d63af3c7f991fe71ee6a3ddd2d3480834cf3902b007"
+dependencies = [
+ "futures",
+ "lazy_static",
+ "log",
+ "parking_lot",
+ "serial_test_derive",
+]
+
+[[package]]
+name = "serial_test_derive"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f1b95bb2f4f624565e8fe8140c789af7e2082c0e0561b5a82a1b678baa9703dc"
+dependencies = [
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "rustversion",
  "syn",
 ]
 
