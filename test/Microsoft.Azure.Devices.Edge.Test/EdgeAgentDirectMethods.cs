@@ -167,12 +167,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
             // check it restarted
             var logsRequest = new ModuleLogsRequest("1.0", new List<LogRequestItem> { new LogRequestItem(moduleName, new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.None<int>(), Option.None<bool>(), Option.None<string>())) }, LogsContentEncoding.None, LogsContentType.Text);
             result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetModuleLogs", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(logsRequest)), token);
-
             Assert.AreEqual((int)HttpStatusCode.OK, result.Status);
 
-            // The log _should_ contain two runs of 0-9, but occasionally on slower systems the number logger module
-            // won't make it all the way through the second run. So we'll assert that the logs contain the first run of
-            // 0-9, and at least "0" from the second run. That's enough to demonstrate a restart.
+            // The log _should_ contain two runs of 0-9, but on slower systems the restart request occasionally times
+            // out and Edge Agent internally retries, resulting in two restarts of the number logger module. The
+            // resulting logs might contain three sequences of numbers instead of two. To handle the variance we'll
+            // look for minimal evidence of a restart (i.e. one full sequence followed by at least one number from the
+            // next sequence) rather than expected exactly two sequences.
             string expected = string.Join('\n', Enumerable.Range(0, count).Concat(Enumerable.Range(0, 1))) + "\n";
             LogResponse response = JsonConvert.DeserializeObject<LogResponse[]>(result.GetPayloadAsJson()).Single();
             Assert.That(response.Payload.StartsWith(expected));
