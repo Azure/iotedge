@@ -173,7 +173,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             // out and Edge Agent internally retries, resulting in two restarts of the number logger module. The
             // resulting logs might contain three sequences of numbers instead of two. To handle the variance we'll
             // look for minimal evidence of a restart (i.e. one full sequence followed by at least one number from the
-            // next sequence) rather than expected exactly two sequences.
+            // next sequence) rather than expecting exactly two sequences.
             string expected = string.Join('\n', Enumerable.Range(0, count).Concat(Enumerable.Range(0, 1))) + "\n";
             LogResponse response = JsonConvert.DeserializeObject<LogResponse[]>(result.GetPayloadAsJson()).Single();
             Assert.That(response.Payload.StartsWith(expected));
