@@ -8,7 +8,7 @@ variables:
 resources:
   pipelines:
   - pipeline: ci-build
-    source: 'Azure.iotedge (1)'
+    source: 'Azure-IoT-Edge-Core CI Build'
     branch: 'main'
     trigger:
       branches:
