@@ -1,6 +1,5 @@
 # Prefix build number with "e2e" to ensure images pushed to ACR by this
-# pipeline don't conflict with images pushed by the 'Azure-IoT-Edge-Core Build
-# Images' pipeline.
+# pipeline don't conflict with images pushed by the CI build pipeline.
 name: e2e.$(Date:yyyyMMdd).$(Rev:r)
 
 trigger: none
