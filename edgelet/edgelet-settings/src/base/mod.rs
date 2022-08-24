@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 pub mod aziot;
+pub mod image;
 pub mod module;
 pub mod uri;
 pub mod watchdog;
@@ -37,6 +38,8 @@ pub trait RuntimeSettings {
     fn endpoints(&self) -> &aziot::Endpoints;
 
     fn additional_info(&self) -> &std::collections::BTreeMap<String, String>;
+
+    fn image_garbage_collection(&self) -> &image::ImagePruneSettings;
 }
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Deserialize, serde::Serialize)]
@@ -124,6 +127,9 @@ pub struct Settings<ModuleConfig> {
     /// Additional system information
     #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
     pub additional_info: std::collections::BTreeMap<String, String>,
+
+    #[serde(default, skip_serializing_if = "image::ImagePruneSettings::is_default")]
+    pub image_garbage_collection: image::ImagePruneSettings,
 }
 
 pub(crate) fn default_allow_elevated_docker_permissions() -> bool {
@@ -203,5 +209,9 @@ impl<T: Clone> RuntimeSettings for Settings<T> {
 
     fn additional_info(&self) -> &std::collections::BTreeMap<String, String> {
         &self.additional_info
+    }
+
+    fn image_garbage_collection(&self) -> &image::ImagePruneSettings {
+        &self.image_garbage_collection
     }
 }
