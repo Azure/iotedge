@@ -148,7 +148,7 @@ jobs:
       displayName: Publish logs
       inputs:
         PathtoPublish: $(Build.ArtifactStagingDirectory)/compat
-        ArtifactName: compatibility-logs-amd64
+        ArtifactName: compatibility-logs-arm32
       condition: always()
     - bash: |
           sudo rm -rf $(Build.ArtifactStagingDirectory)/compat || true
