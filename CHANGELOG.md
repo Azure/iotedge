@@ -1,21 +1,16 @@
 # 1.4.0 (2022-08-26)
 
 ## Edge Agent
-* Revert Mariner 2.0 to latest working version  ( [f11a09a53](https://github.com/Azure/iotedge/commit/f11a09a5346cdd65883e805f6f96226a6e50d0ee) )
-* Edge Agent: Support feature flag `ModuleUpdateMode`  ( [303b3fdcc](https://github.com/Azure/iotedge/commit/303b3fdcc065c5f6e2e8087e4f92baaafb03b85a) )
+* Support feature flag `ModuleUpdateMode`  ( [303b3fdcc](https://github.com/Azure/iotedge/commit/303b3fdcc065c5f6e2e8087e4f92baaafb03b85a) )
 * Update NewtonSoft to 13.0.1  ( [84e883779](https://github.com/Azure/iotedge/commit/84e8837797e84a8e2ae198e42ecffb1c7b7ae546) )
-* Edge Agent: Remove docker mode  ( [40824ed28](https://github.com/Azure/iotedge/commit/40824ed28ee6c51eb96c9459513694ae7fc1c018) )
+* Remove docker mode  ( [40824ed28](https://github.com/Azure/iotedge/commit/40824ed28ee6c51eb96c9459513694ae7fc1c018) )
 
 ## aziot-edge
 * Trim leading '$' from server cert SANs  ( [9a6f39bcd](https://github.com/Azure/iotedge/commit/9a6f39bcdba50d4fdea91d3c30e777f8c2a83b9d) )
 * Run `cargo update` everywhere  ( [96566c1d3](https://github.com/Azure/iotedge/commit/96566c1d33ce062f9273bd6d58db5cb9974e8660) )
 * Include tpmd configuration section from IIS  ( [0a65c31a7](https://github.com/Azure/iotedge/commit/0a65c31a70b480ba85563834d296e60313a9e0a2) )
-* Revert Mariner 2.0 to latest working version  ( [f11a09a53](https://github.com/Azure/iotedge/commit/f11a09a5346cdd65883e805f6f96226a6e50d0ee) )
-* Update version to 1.4.0  ( [1b3f818c2](https://github.com/Azure/iotedge/commit/1b3f818c2eecd08d9442eee98f1b57f5502f166b) )
 * Support DPS custom allocation payloads  ( [b428ac9f4](https://github.com/Azure/iotedge/commit/b428ac9f438373bf8f29d92fe739261ad9eadff1) )
 * Socket Activation for Mariner Package Builds  ( [6ac5577fd](https://github.com/Azure/iotedge/commit/6ac5577fd8ba65ae15715e72933fe5eec66619b1) )
-* Remove unused scripts/Dockerfiles from edgelet/build/linux  ( [37588960c](https://github.com/Azure/iotedge/commit/37588960c326359608f775c28241d42d83e27f7c) )
-* Mariner Build Added to Main Branch  ( [c64c4083d](https://github.com/Azure/iotedge/commit/c64c4083d7dc1b46bf74daef8f0a309e7ccd2ffa) )
 * Upgrade to latest Rust version  ( [9a5ebddcf](https://github.com/Azure/iotedge/commit/9a5ebddcf0a4114e973d24ab8e4ea28e31e6efb1) )
 * Update the PMC publication to support RHEL8  ( [98e873693](https://github.com/Azure/iotedge/commit/98e8736935419507b90db7903c4682fc191b063b) )
 * Correct container runtime status code propagation  ( [fe3137061](https://github.com/Azure/iotedge/commit/fe31370610753ed39d07b3720ea993c1413ad8fd) )
