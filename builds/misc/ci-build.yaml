@@ -3,7 +3,7 @@ trigger:
   branches:
     include:
       - main
-      - release/1.*
+      - release/*
 pr: none
 
 variables:
