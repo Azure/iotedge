@@ -36,23 +36,23 @@ tokio = { version = "1", features = ["macros", "process"] }
 toml = "0.5"
 url = "2"
 
-aziot-certd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identityd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-keyd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-keys-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-tpmd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziotctl-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-cert-renewal = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-config-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-certd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.4" }
+aziot-identity-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.4" }
+aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.4" }
+aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.4" }
+aziot-identityd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.4" }
+aziot-keyd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.4" }
+aziot-keys-common = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.4" }
+aziot-tpmd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.4" }
+aziotctl-common = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.4" }
+cert-renewal = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.4" }
+config-common = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.4" }
 docker = { path = "../docker-rs" }
 edgelet-core = { path = "../edgelet-core" }
 edgelet-http = { path = "../edgelet-http" }
 edgelet-settings = { path = "../edgelet-settings", features = ["settings-docker"] }
 edgelet-utils = { path = "../edgelet-utils" }
-http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.4" }
 support-bundle = { path = "../support-bundle" }
 
 [dev-dependencies]

@@ -11,11 +11,11 @@ serde = { version = "1", features = ["derive"] }
 humantime-serde = "1.0"
 url = { version = "2", features = ["serde"] }
 
-aziot-certd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-cert-renewal = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-config-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main", optional = true }
+aziot-certd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.4" }
+cert-renewal = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.4" }
+config-common = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.4", optional = true }
 docker = { path = "../docker-rs", optional = true }
-http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.4" }
 
 [dev-dependencies]
 lazy_static = "1"

@@ -25,9 +25,9 @@ edgelet-http-workload = { path = "../edgelet-http-workload" }
 edgelet-image-cleanup = { path = "../edgelet-image-cleanup" }
 edgelet-settings = { path = "../edgelet-settings", features = ["settings-docker"] }
 
-aziot-identity-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-identity-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.4" }
+aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.4" }
+aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.4" }
 
-http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-logger = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.4" }
+logger = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.4" }
