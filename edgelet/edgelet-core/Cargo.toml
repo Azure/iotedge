@@ -21,5 +21,5 @@ thiserror = "1"
 tokio = { version = "1", features = ["sync"] }
 url = "2"
 
-aziotctl-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziotctl-common = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.4" }
 edgelet-settings = { path = "../edgelet-settings" }
