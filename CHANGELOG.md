@@ -9,6 +9,10 @@
 * Remove docker mode  ( [40824ed28](https://github.com/Azure/iotedge/commit/40824ed28ee6c51eb96c9459513694ae7fc1c018) )
 
 
+## Edge Hub
+* Fix user creation for edgeAgent and edgeHub  ( [388ec1a34](https://github.com/Azure/iotedge/commit/388ec1a341cf18fce3379c6750e62591963c8624) )
+
+
 ## aziot-edge
 * Run `cargo update` everywhere  ( [82d1c12c6](https://github.com/Azure/iotedge/commit/82d1c12c6f283997f80ea02e5b9f9b20a9c3a355) )
 * Image garbage collection for iotedge  ( [f48335d68](https://github.com/Azure/iotedge/commit/f48335d684f7c80723d3801b45ec4704188104b0) )
