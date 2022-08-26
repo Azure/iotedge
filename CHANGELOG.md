@@ -1,5 +1,21 @@
 # 1.4.0 (2022-08-26)
 
+## What's new in 1.4?
+
+The 1.4 version is the latest long-term support (LTS) version of IoT Edge. It will be serviced with fixes for regressions and critical security issues through November 12, 2024. In addition to long-term servicing, it includes the following improvements.
+* Automatic image cleanup of unused Docker images
+* Ability to pass a custom json payload to DPS on provisioning
+* Option to download all modules in a deployment before (re)starting any
+* Use of the TCG TPM2 Software Stack which enables TPM hierarchy authorization values, specifying the TPM index at which to persist the DPS authentication key, and accommodating more TPM configurations (doc)
+
+**With this release, the 1.3.x is no longer serviced with bug fixes and security patches.**
+
+## Upgrade notes
+
+When upgrading to 1.4 you should be aware of the following changes:
+* Automatic cleanup of unused Docker images is on by default
+* If upgrading from 1.0 or 1.1 then refer to the notes on updating IoT Edge to the latest release.
+
 ## Edge Agent
 * Fix bug where Edge Agent is updated without backing image  ( [72e5d648c](https://github.com/Azure/iotedge/commit/72e5d648cc25c05d64dfd52010b7178af772445f) )
 * Fix user creation for edgeAgent and edgeHub  ( [388ec1a34](https://github.com/Azure/iotedge/commit/388ec1a341cf18fce3379c6750e62591963c8624) )
