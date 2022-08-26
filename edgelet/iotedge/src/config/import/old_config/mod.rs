@@ -192,7 +192,7 @@ agent:
   type: 'docker'
   env: {}
   config:
-    image: 'mcr.microsoft.com/azureiotedge-agent:1.0'
+    image: 'mcr.microsoft.com/azureiotedge-agent:1.4'
     auth: {}
 
 hostname: 'localhost'
