@@ -14,7 +14,7 @@ The 1.4 version is the latest long-term support (LTS) version of IoT Edge. It wi
 
 When upgrading to 1.4 you should be aware of the following changes:
 * Automatic cleanup of unused Docker images is on by default
-* If upgrading from 1.0 or 1.1 then refer to the notes on updating IoT Edge to the latest release.
+* If upgrading from 1.0 or 1.1 then refer to the notes on updating IoT Edge to the latest release
 
 ## Edge Agent
 * Fix bug where Edge Agent is updated without backing image  ( [72e5d648c](https://github.com/Azure/iotedge/commit/72e5d648cc25c05d64dfd52010b7178af772445f) )
