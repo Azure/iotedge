@@ -26,11 +26,8 @@ variables:
 
 resources:
   pipelines:
-  - pipeline: images
-    source: 'Azure-IoT-Edge-Core Build Images'
-    branch: 'main'
-  - pipeline: packages
-    source: 'Azure-IoT-Edge-Core Edgelet Packages'
+  - pipeline: ci-build
+    source: 'Azure-IoT-Edge-Core CI Build'
     branch: 'main'
 
 stages:
