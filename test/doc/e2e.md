@@ -24,8 +24,8 @@ The end-to-end tests take several parameters, which they expect to find in a fil
 |------|----------|-------------|
 | `caCertScriptPath` | * | Path to the folder containing `certGen.sh` (Linux) or `ca-certs.ps1` (Windows). Required when running the test 'TransparentGateway', ignored otherwise. |
 | `dpsIdScope` | * | The [ID Scope](https://docs.microsoft.com/azure/iot-dps/concepts-device#id-scope) assigned to a Device Provisioning Service. Required when running any DPS tests, ignored otherwise. |
-| `edgeAgentImage` || Docker image to pull/use for Edge Agent. If not given, the default value `mcr.microsoft.com/azureiotedge-agent:1.0` is used. This setting only applies to any configurations deployed by the tests. Note also that the default value is ALWAYS used in config.toml to start IoT Edge; this setting only applies to any configurations deployed by the tests. |
-| `edgeHubImage` || Docker image to pull/use for Edge Hub. If not given, `mcr.microsoft.com/azureiotedge-hub:1.0` is used. |
+| `edgeAgentImage` || Docker image to pull/use for Edge Agent. If not given, the default value `mcr.microsoft.com/azureiotedge-agent:1.4` is used. This setting only applies to any configurations deployed by the tests. Note also that the default value is ALWAYS used in config.toml to start IoT Edge; this setting only applies to any configurations deployed by the tests. |
+| `edgeHubImage` || Docker image to pull/use for Edge Hub. If not given, `mcr.microsoft.com/azureiotedge-hub:1.4` is used. |
 | `edgeHubSchemaVersion` || The schema version used for EdgeHub. |
 | `installerPath` || Path to the Windows installer script `IotEdgeSecurityDaemon.ps1`. This parameter is ignored on Linux, and optional on Windows. If not given on Windows, the default script will be downloaded from https://aka.ms/iotedge-win to a temporary location. |
 | `loadGenImage` | * | LoadGen image to be used. Required when running PriorityQueue tests, ignored otherwise.|
