@@ -10,4 +10,5 @@ variables:
   DisableDockerDetector: true
 
 stages:
+  - template: templates/build-images.yaml
   - template: templates/build-packages.yaml

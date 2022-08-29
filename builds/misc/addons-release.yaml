@@ -19,7 +19,7 @@ stages:
   - template: templates/build-api-proxy.yaml
 
 # TODO: Consider removing this consolidate stage, which is here mostly for
-# consistency with images.yaml and images-release.yaml.
+# consistency with build-images.yaml and images-release.yaml.
 ################################################################################
 - stage: ConsolidateAndPubishArtifacts
 ################################################################################
