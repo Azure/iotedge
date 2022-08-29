@@ -9,7 +9,7 @@ get-latest-version-apt()
   apt-cache madison $1 | awk -F '|' '{gsub(/ /,"",$2); print $2}' | sort --version-sort -r -u | sed -n ${2:-1}p
 }
 
-get-latest-image-publication-run()
+get-latest-image-publication-buildId()
 {
   # Look through "Azure-IoT-Edge-Core Images Publish" pipeline for the latest successful image publication run given the github branch
   # $1 - branch
@@ -172,7 +172,7 @@ check-pmc-image-tags-availability()
   pipelineDisplayName=$2
   echo "Checking images published for $branchName ($pipelineDisplayName)"
 
-  buildId=$(get-latest-image-publication-run "$branchName")
+  buildId=$(get-latest-image-publication-buildId "$branchName")
   echo "BuildId: $buildId"
 
   logs=$(get-build-logs-from-task "$buildId" "$pipelineDisplayName")
