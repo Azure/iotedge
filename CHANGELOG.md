@@ -2,13 +2,13 @@
 
 ## What's new in 1.4?
 
-The 1.4 version is the latest long-term support (LTS) version of IoT Edge. It will be serviced with fixes for regressions and critical security issues through November 12, 2024. In addition to long-term servicing, it includes the following improvements.
-* Automatic image cleanup of unused Docker images
-* Ability to pass a custom json payload to DPS on provisioning
-* Option to download all modules in a deployment before (re)starting any
-* Use of the TCG TPM2 Software Stack which enables TPM hierarchy authorization values, specifying the TPM index at which to persist the DPS authentication key, and accommodating more TPM configurations (doc)
+The 1.4 version is the latest long-term support (LTS) version of IoT Edge. It will be serviced with fixes for regressions and critical security issues through November 12, 2024 ([product lifecycle](https://docs.microsoft.com/lifecycle/products/azure-iot-edge)). In addition to long-term servicing, it includes the following improvements.
+* Automatic cleanup of unused Docker images ([doc](https://docs.microsoft.com/azure/iot-edge/production-checklist?view=iotedge-1.4#configure-image-garbage-collection))
+* Ability to pass a custom json payload to DPS on provisioning ([doc](https://docs.microsoft.com/azure/iot-dps/how-to-send-additional-data#iot-edge-support))
+* Option to download all modules in a deployment before (re)starting any ([doc](https://docs.microsoft.com/azure/iot-edge/production-checklist?view=iotedge-1.4#configure-how-updates-to-modules-are-applied))
+* Use of the TCG TPM2 Software Stack which enables TPM hierarchy authorization values, specifying the TPM index at which to persist the DPS authentication key, and accommodating more TPM configurations ([doc](https://github.com/Azure/iotedge/blob/897aed8c5573e8cad4b602e5a1298bdc64cd28b4/edgelet/contrib/config/linux/template.toml#L262-L288))
 
-**With this release, the 1.3.x is no longer serviced with bug fixes and security patches.**
+**With this release, the 1.3.x release is no longer serviced with bug fixes and security patches.**
 
 ## Upgrade notes
 
