@@ -28,7 +28,7 @@ resources:
   pipelines:
   - pipeline: ci-build
     source: 'Azure-IoT-Edge-Core CI Build'
-    branch: 'main'
+    branch: 'release/1.4'
 
 stages:
 - stage: LockAgents
