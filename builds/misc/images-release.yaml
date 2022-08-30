@@ -1,5 +1,9 @@
 name: $(version)
 
+variables:
+  DisableDockerDetector: true
+
+
 stages:
 ################################################################################
   - stage: BuildExecutables
