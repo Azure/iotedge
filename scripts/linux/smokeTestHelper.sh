@@ -57,6 +57,7 @@ get-image-sha-from-devops-logs()
   # /public/azureiotedge-agent:1.1.15-windows-amd64  sha256:a192aa2b9e203493ff69bb8dd5b0c7807664ff30f129bde4feb1988cac178929
 
   # $1 - logs from DevOps image publication task
+  logs=$1
   moduleName=$(echo "$logs" | grep " image: " | head -1 | awk '{print substr($3, 4, length($3)-4)}')
   moduleSha=$(echo "$logs" | grep "Digest: " | awk '{print $3}')
   echo "$moduleName  $moduleSha" 
