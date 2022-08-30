@@ -9,6 +9,7 @@ pub enum ApiVersion {
     V2019_11_05,
     V2020_07_07,
     V2021_12_07,
+    V2022_08_03,
 }
 
 impl std::fmt::Display for ApiVersion {
@@ -20,6 +21,7 @@ impl std::fmt::Display for ApiVersion {
             ApiVersion::V2019_11_05 => "2019-11-05",
             ApiVersion::V2020_07_07 => "2020-07-07",
             ApiVersion::V2021_12_07 => "2021-12-07",
+            ApiVersion::V2022_08_03 => "2022-08-03",
         })
     }
 }
@@ -35,6 +37,7 @@ impl std::str::FromStr for ApiVersion {
             "2019-11-05" => Ok(ApiVersion::V2019_11_05),
             "2020-07-07" => Ok(ApiVersion::V2020_07_07),
             "2021-12-07" => Ok(ApiVersion::V2021_12_07),
+            "2022-08-03" => Ok(ApiVersion::V2022_08_03),
             _ => Err(()),
         }
     }
@@ -71,6 +74,10 @@ mod tests {
         assert_eq!(
             ApiVersion::V2021_12_07,
             ApiVersion::from_str("2021-12-07").unwrap()
+        );
+        assert_eq!(
+            ApiVersion::V2022_08_03,
+            ApiVersion::from_str("2022-08-03").unwrap()
         );
 
         assert!(ApiVersion::from_str("1900-01-01").is_err());

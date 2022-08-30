@@ -89,6 +89,13 @@ pub trait DockerApi {
         platform: &'a str,
     ) -> BoxFutureResult<'a, ()>;
 
+    fn images_list<'a>(
+        &'a self,
+        all: bool,
+        filters: &'a str,
+        digests: bool,
+    ) -> BoxFutureResult<'a, Vec<models::ImageSummary>>;
+
     fn image_delete<'a>(
         &'a self,
         name: &'a str,
@@ -270,6 +277,12 @@ where
         image_delete : delete "/images/{name}" -> Vec<models::ImageDeleteResponseItem> ;
         path : [ name: &'a str ] ;
         query : [ "force" = (force: bool), "noprune" = (no_prune: bool)] ;
+        ok : [OK]
+    }
+
+    api_call! {
+        images_list : get "/images/json" -> Vec<models::ImageSummary> ;
+        query : [ "all" = (all: bool), "filters" = (filters: &'a str), "digests" = (digests: bool)] ;
         ok : [OK]
     }
 
@@ -485,6 +498,31 @@ mod tests {
                 message: r#"{"code":"NOT U16","foo":"bar"}"#.to_owned()
             }
         );
+    }
+
+    #[tokio::test]
+    async fn images_list_null_repo_tags() {
+        let payload = format!(
+            "[{}]",
+            serde_json::to_string(&serde_json::json!(
+            {
+                "Containers": -1,
+                "Created": 1654129518,
+                "Id": "sha256:f9a33e4c293fec36a69475f48c2f3fb9dc4db9970befb7296ce52551254c42df",
+                "Labels": null,
+                "ParentId": "",
+                "RepoDigests": [
+                  "mcr.microsoft.com/azureiotedge-agent@sha256:7bdfb97647005b697259434bffcd1584ea2610210109012608029f7c7ab0fdcd"
+                ],
+                "RepoTags": null,
+                "SharedSize": -1,
+                "Size": 180383211,
+                "VirtualSize": 180383211
+              }))
+            .unwrap()
+        );
+        let client = DockerApiClient::new(JsonConnector::ok(&payload));
+        assert!(client.images_list(false, "", false).await.is_ok());
     }
 
     #[tokio::test]
