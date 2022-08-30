@@ -35,6 +35,7 @@ steps:
 - pwsh: |
     $context = @{
       logFile = Join-Path '$(binDir)' 'testoutput.log';
+      caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates';
     }
     $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
   displayName: Create test arguments file (context.json)
