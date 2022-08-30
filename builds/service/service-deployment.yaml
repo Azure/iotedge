@@ -26,8 +26,8 @@ steps:
     azureSubscription: $(az.subscription)
     keyVaultName: $(az.keyVault)
     secretsFilter: >-
-      IotHubConnStr2,
-      EventHubConnStr2
+      TestIotHubConnectionString,
+      TestEventHubCompatibleEndpoint
 
 - pwsh: |
     $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
@@ -61,9 +61,9 @@ steps:
   displayName: Run tests
   env:
     EH_ARG: $(connstr.eventHub)
-    EH_KV: $(EventHubConnStr2)
+    EH_KV: $(TestEventHubCompatibleEndpoint)
     IH_ARG: $(connstr.iotHub)
-    IH_KV: $(IotHubConnStr2)
+    IH_KV: $(TestIotHubConnectionString)
 
 - task: PublishTestResults@2
   displayName: Publish test results
