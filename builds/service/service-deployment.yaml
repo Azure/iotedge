@@ -18,7 +18,7 @@ pool:
 
 steps:
 - checkout: self
-  fetchDepth: 100
+  fetchDepth: 1
 
 - task: AzureKeyVault@1
   displayName: Get secrets
