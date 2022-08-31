@@ -13,7 +13,7 @@
     <!-- We will need to keep this reference to DotNetty.Common until the next release of Microsoft.Azure.Devices.Client includes this dependency -->
     <PackageReference Include="DotNetty.Common" Version="0.7.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="5.0.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="System.Linq.Async" Version="4.1.1" />
   </ItemGroup>
 

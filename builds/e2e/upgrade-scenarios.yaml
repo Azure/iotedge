@@ -15,9 +15,9 @@ resources:
     trigger:
       branches:
       - release/1.1
-  - pipeline: images_main
+  - pipeline: images_release_1_3
     source: 'Azure-IoT-Edge-Core Build Images'
-    branch: 'main'
+    branch: 'release/1.3'
   - pipeline: images_release_1_2
     source: 'Azure-IoT-Edge-Core Build Images'
     branch: 'release/1.2'    
@@ -48,12 +48,12 @@ jobs:
       matrix:
         1.1_to_1.3_no_edge_daemon:
           edgeDaemonVersion: "release/1.1"
-          bootstrapAgentVersion: "main"
-          runtimeModulesVersion: "main"
+          bootstrapAgentVersion: "release/1.3"
+          runtimeModulesVersion: "release/1.3"
         1.1_to_1.3_no_runtime_modules:
           edgeDaemonVersion: "release/1.1"
           bootstrapAgentVersion: "release/1.1"
-          runtimeModulesVersion: "main"
+          runtimeModulesVersion: "release/1.3"
         1.1_to_1.2_no_edge_daemon:
           edgeDaemonVersion: "release/1.1"
           bootstrapAgentVersion: "release/1.2"
@@ -64,28 +64,28 @@ jobs:
           runtimeModulesVersion: "release/1.2"
         1.1.0_to_1.3_no_edge_daemon:
           edgeDaemonVersion: "1.1.0"
-          bootstrapAgentVersion: "main"
-          runtimeModulesVersion: "main"
+          bootstrapAgentVersion: "release/1.3"
+          runtimeModulesVersion: "release/1.3"
         1.1.0_to_1.3_only_runtime_modules:
           edgeDaemonVersion: "1.1.0"
           bootstrapAgentVersion: "1.1.0"
-          runtimeModulesVersion: "main"
+          runtimeModulesVersion: "release/1.3"
         1.1.8_to_1.3_no_edge_daemon:
           edgeDaemonVersion: "1.1.8"
-          bootstrapAgentVersion: "main"
-          runtimeModulesVersion: "main"
+          bootstrapAgentVersion: "release/1.3"
+          runtimeModulesVersion: "release/1.3"
         1.1.8_to_1.3_only_runtime_modules:
           edgeDaemonVersion: "1.1.8"
           bootstrapAgentVersion: "1.1.8"
-          runtimeModulesVersion: "main"
+          runtimeModulesVersion: "release/1.3"
         1.1.13_to_1.3_no_edge_daemon:
           edgeDaemonVersion: "1.1.13"
-          bootstrapAgentVersion: "main"
-          runtimeModulesVersion: "main"
+          bootstrapAgentVersion: "release/1.3"
+          runtimeModulesVersion: "release/1.3"
         1.1.13_to_1.3_only_runtime_modules:
           edgeDaemonVersion: "1.1.13"
           bootstrapAgentVersion: "1.1.13"
-          runtimeModulesVersion: "main"
+          runtimeModulesVersion: "release/1.3"
 
     timeoutInMinutes: 90
 
@@ -125,18 +125,18 @@ jobs:
       displayName: Update context.json w/ release/1.1 bootstrap image
 
     - task: DownloadBuildArtifacts@0
-      displayName: Download Main Images
+      displayName: Download Release/1.3 Images
       inputs:
         buildType: specific
-        project: $(resources.pipeline.images_main.projectID)
-        pipeline: $(resources.pipeline.images_main.pipelineName)
+        project: $(resources.pipeline.images_release_1_3.projectID)
+        pipeline: $(resources.pipeline.images_release_1_3.pipelineName)
         buildVersionToDownload: specific
-        buildId: $(resources.pipeline.images_main.runID)
+        buildId: $(resources.pipeline.images_release_1_3.runID)
         downloadType: single
         artifactName: $(az.pipeline.images.artifacts)
         itemPattern: $(az.pipeline.images.artifacts)/artifactInfo.txt
 
-    # If $runtimeModulesVersion or $bootstrapAgentVersion is set to 'main', retrieve
+    # If $runtimeModulesVersion or $bootstrapAgentVersion is set to 'release/1.3', retrieve
     # image ID from artifactInfo.txt and update context.json with it.
     - bash: |
         artifactInfoStr=`cat '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'`
@@ -147,16 +147,16 @@ jobs:
         cd $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net*
         echo "Original context.json:"        
         less context.json
-        if [ $(runtimeModulesVersion) = "main" ]; then
+        if [ $(runtimeModulesVersion) = "release/1.3" ]; then
           sed -i 's/"edgeAgentImage.*/"edgeAgentImage": "edgebuilds.azurecr.io\/microsoft\/azureiotedge-agent:'${imageId}'",/' context.json
           sed -i 's/"edgeHubImage.*/"edgeHubImage": "edgebuilds.azurecr.io\/microsoft\/azureiotedge-hub:'${imageId}'",/' context.json
         fi
-        if [ $(bootstrapAgentVersion) = "main" ]; then
+        if [ $(bootstrapAgentVersion) = "release/1.3" ]; then
           sed -i 's/"edgeAgentBootstrapImage.*/"edgeAgentBootstrapImage": "edgebuilds.azurecr.io\/microsoft\/azureiotedge-agent:'${imageId}'",/' context.json
         fi
         echo "Updated context.json:"        
         less context.json
-      displayName: Update context.json w/ Main images 
+      displayName: Update context.json w/ Release/1.3 images 
 
     - task: DownloadBuildArtifacts@0
       displayName: Download Release/1.2 Images

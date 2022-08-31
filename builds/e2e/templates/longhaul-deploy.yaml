@@ -13,10 +13,6 @@ parameters:
   container.registry.password: ''
   iotHub.connectionString: ''
   eventHub.connectionString: ''
-  snitch.build.number: ''
-  snitch.alert.url: ''
-  snitch.storage.account: ''
-  snitch.storage.masterKey: ''
   loadGen.message.frequency: ''
   longHaul.desiredModulesToRestartCSV: ''
   longHaul.restartIntervalInMins: ''
@@ -75,10 +71,6 @@ steps:
           -containerRegistryPassword "${{ parameters['container.registry.password'] }}" \
           -iotHubConnectionString "${{ parameters['iotHub.connectionString'] }}" \
           -eventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" \
-          -snitchBuildNumber "${{ parameters['snitch.build.number'] }}" \
-          -snitchStorageAccount "${{ parameters['snitch.storage.account'] }}" \
-          -snitchStorageMasterKey "${{ parameters['snitch.storage.masterKey'] }}" \
-          -snitchAlertUrl "${{ parameters['snitch.alert.url'] }}" \
           -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" \
           -eventHubConsumerGroupId "${{ parameters['analyzer.consumerGroupId'] }}" \
           -desiredModulesToRestartCSV "${{ parameters['longHaul.desiredModulesToRestartCSV'] }}" \

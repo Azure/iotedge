@@ -1,0 +1,44 @@
+Submodule edgelet/hsm-sys/azure-iot-hsm-c/deps/c-shared contains modified content
+diff --git a/edgelet/hsm-sys/azure-iot-hsm-c/deps/c-shared/configs/azure_iot_build_rules.cmake b/edgelet/hsm-sys/azure-iot-hsm-c/deps/c-shared/configs/azure_iot_build_rules.cmake
+index be3e14fe..77556ab5 100644
+--- a/edgelet/hsm-sys/azure-iot-hsm-c/deps/c-shared/configs/azure_iot_build_rules.cmake
++++ b/edgelet/hsm-sys/azure-iot-hsm-c/deps/c-shared/configs/azure_iot_build_rules.cmake
+@@ -71,8 +71,8 @@ if(MSVC)
+       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
+       set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /W4")
+ elseif(UNIX) #LINUX OR APPLE
+-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror")
++    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wno-array-bounds")
++    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wno-array-bounds")
+     if(NOT (IN_OPENWRT OR APPLE))
+         set (CMAKE_C_FLAGS "-D_POSIX_C_SOURCE=200112L ${CMAKE_C_FLAGS}")
+     endif()
+diff --git a/edgelet/hsm-sys/azure-iot-hsm-c/deps/c-shared/src/hmac.c b/edgelet/hsm-sys/azure-iot-hsm-c/deps/c-shared/src/hmac.c
+index 53f2411f..160af9d2 100644
+--- a/edgelet/hsm-sys/azure-iot-hsm-c/deps/c-shared/src/hmac.c
++++ b/edgelet/hsm-sys/azure-iot-hsm-c/deps/c-shared/src/hmac.c
+@@ -208,7 +208,7 @@ int hmacFinalBits(HMACContext *ctx,
+ *   sha Error Code.
+ *
+ */
+-int hmacResult(HMACContext *ctx, uint8_t *digest)
++int hmacResult(HMACContext *ctx, uint8_t digest[USHAMaxHashSize])
+ {
+     if (!ctx) return shaNull;
+ 
+Submodule edgelet/hsm-sys/azure-iot-hsm-c/deps/utpm contains modified content
+Submodule deps/c-utility contains modified content
+diff --git a/edgelet/hsm-sys/azure-iot-hsm-c/deps/utpm/deps/c-utility/src/hmac.c b/edgelet/hsm-sys/azure-iot-hsm-c/deps/utpm/deps/c-utility/src/hmac.c
+index 53f2411f..160af9d2 100644
+--- a/edgelet/hsm-sys/azure-iot-hsm-c/deps/utpm/deps/c-utility/src/hmac.c
++++ b/edgelet/hsm-sys/azure-iot-hsm-c/deps/utpm/deps/c-utility/src/hmac.c
+@@ -208,7 +208,7 @@ int hmacFinalBits(HMACContext *ctx,
+ *   sha Error Code.
+ *
+ */
+-int hmacResult(HMACContext *ctx, uint8_t *digest)
++int hmacResult(HMACContext *ctx, uint8_t digest[USHAMaxHashSize])
+ {
+     if (!ctx) return shaNull;
+ 
