@@ -610,7 +610,7 @@ jobs:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
         - run-long-haul-eflow -equals true
-        - mariner-version -equals 2.0
+        - mariner-version -equals 1.0
         - mariner -equals true
     variables:
       edgelet.artifact.name: 'iotedged-mariner1-amd64'
