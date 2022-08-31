@@ -600,19 +600,20 @@ jobs:
           metricsCollector.hostPlatform: 'iotuap_amd64_moby'
 
 ################################################################################
-  - job: EFLOW_amd64
+  - job:  Mariner_1_amd64
 ################################################################################
-    displayName: EFLOW AMD64
+    displayName: Mariner 1.0 AMD64
     condition: eq(variables['run.EFLOW.amd64'], 'true')
     pool:
       name: $(pool.name)
       demands:
-        - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
         - run-long-haul-eflow -equals true
+        - mariner-version -equals 2.0
+        - mariner -equals true
     variables:
-      edgelet.artifact.name: 'iotedged-mariner-amd64'
+      edgelet.artifact.name: 'iotedged-mariner1-amd64'
     steps:
       - checkout: none
       - task: AzureKeyVault@1
@@ -679,7 +680,7 @@ jobs:
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           test.runtimeLogLevel: '$(test.runtimeLogLevel)'
-          analyzer.consumerGroupId: 'longhaul_eflow_amd64'
+          analyzer.consumerGroupId: 'longhaul_mariner_amd64'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
           twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
@@ -689,4 +690,98 @@ jobs:
           metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
-          metricsCollector.hostPlatform: 'EFLOW_amd64'
+          metricsCollector.hostPlatform: 'Mariner_2_amd64'
+
+################################################################################
+  - job: Mariner_2_amd64
+################################################################################
+    displayName: Mariner 2.0 AMD64
+    condition: eq(variables['run.EFLOW.amd64'], 'true')
+    pool:
+      name: $(pool.name)
+      demands:
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+        - run-long-haul-eflow -equals true
+        - mariner-version -equals 2.0
+        - mariner -equals true
+    variables:
+      edgelet.artifact.name: 'iotedged-mariner2-amd64'
+    steps:
+      - checkout: none
+      - task: AzureKeyVault@1
+        displayName: 'Azure Key Vault: EdgeBuildkv'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: 'edgebuildkv'
+          SecretsFilter: >-
+            edgebuilds-azurecr-io-username,
+            edgebuilds-azurecr-io-pwd,
+            kvLogAnalyticWorkspaceId,
+            kvLogAnalyticSharedKey
+      - task: AzureKeyVault@1
+        displayName: 'Azure Key Vault: $(azure.keyVault)'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: $(azure.keyVault)
+          SecretsFilter: >- 
+            IotHub-ConnStr,
+            IotHub-EventHubConnStr
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Edgelet Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(edgelet.package.build)
+          branchName: $(edgelet.package.branchName)
+          buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
+          artifactName: $(edgelet.artifact.name)
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Images Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(images.build)
+          branchName: $(images.branchName)
+          buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
+          artifactName: $(images.artifact.name.linux)
+          itemPattern: |
+            $(images.artifact.name.linux)/IotEdgeQuickstart.linux-x64.tar.gz
+            $(images.artifact.name.linux)/e2e_deployment_files/long_haul_deployment.template.json
+            $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
+            $(images.artifact.name.linux)/artifactInfo.txt
+      # Deploy long haul
+      - template: templates/longhaul-deploy.yaml
+        parameters:
+          release.label: 'lh$(agent.group)'
+          test.buildNumber: '$(Build.BuildNumber)'
+          test.buildId: '$(Build.BuildId)'
+          test.startDelay: '$(test.startDelay.amd)'
+          build.source.branch: '$(Build.SourceBranchName)'
+          edgelet.source.branch: '$(edgelet.package.branchName)'
+          images.source.branch: '$(images.branchName)'
+          edgelet.artifact.name: '$(edgelet.artifact.name)'
+          images.artifact.name: '$(images.artifact.name.linux)'
+          container.registry: '$(container.registry)'
+          container.registry.username: '$(edgebuilds-azurecr-io-username)'
+          container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
+          iotHub.connectionString: '$(IotHub-ConnStr)'
+          eventHub.connectionString: '$(IotHub-EventHubConnStr)'
+          loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
+          longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
+          longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
+          test.runtimeLogLevel: '$(test.runtimeLogLevel)'
+          analyzer.consumerGroupId: 'longhaul_mariner_amd64'
+          logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
+          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
+          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
+          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
+          twinTester.edgeHubRestartFailureTolerance: '$(twinTester.edgeHubRestartFailureTolerance)'
+          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
+          metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
+          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
+          metricsCollector.hostPlatform: 'Mariner_2_amd64'
+
