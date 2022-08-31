@@ -86,7 +86,12 @@ function get_iotedged_artifact_folder() {
     local path
     if [ "$image_architecture_label" = 'amd64' ]; then
         if [ "$is_mariner" = "true" ]; then
-            path="$E2E_TEST_DIR/artifacts/iotedged-mariner-amd64"
+            source /etc/os-release
+            case "$VERSION_ID" in
+                '1.0' ) path="$E2E_TEST_DIR/artifacts/iotedged-mariner1-amd64";;
+                '2.0' ) path="$E2E_TEST_DIR/artifacts/iotedged-mariner2-amd64";;
+                *) print_error "Unsupported Mariner Version: $VERSION_ID"; exit 1;;
+            esac
         else
             path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu18.04-amd64"
         fi
