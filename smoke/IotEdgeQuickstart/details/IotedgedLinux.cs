@@ -249,8 +249,8 @@ namespace IotEdgeQuickstart.Details
             }
 
             doc.ReplaceOrAdd("agent.env.RuntimeLogLevel", runtimeLogLevel.ToString());
-            string[] releaseCheck = await Process.RunAsync("bash", "-c \"[ -f /etc/os-subrelease ] && cat /etc/os-subrelease | grep eflow || echo 'file not found'\"");
-            bool isEflow = releaseCheck.Contains("ID=eflow");
+            string[] releaseCheck = await Process.RunAsync("bash", "-c \"[ -f /etc/os-release ] && cat /etc/os-release | grep mariner || echo 'file not found'\"");
+            bool isMariner = releaseCheck.Contains("ID=mariner");
 
             if (this.httpUris.HasValue)
             {
@@ -260,7 +260,7 @@ namespace IotEdgeQuickstart.Details
                 doc.ReplaceOrAdd("listen.management_uri", uris.ListenManagement);
                 doc.ReplaceOrAdd("listen.workload_uri", uris.ListenWorkload);
             }
-            else if (isEflow)
+            else if (isMariner)
             {
                 doc.ReplaceOrAdd("connect.management_uri", "unix:///var/lib/iotedge/mgmt.sock");
                 doc.ReplaceOrAdd("connect.workload_uri", "unix:///var/lib/iotedge/workload.sock");
