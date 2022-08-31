@@ -9,6 +9,61 @@ get-latest-version-apt()
   apt-cache madison $1 | awk -F '|' '{gsub(/ /,"",$2); print $2}' | sort --version-sort -r -u | sed -n ${2:-1}p
 }
 
+get-latest-image-publication-buildId()
+{
+  # Look through "Azure-IoT-Edge-Core Images Publish" pipeline for the latest successful image publication run given the github branch
+  # $1 - branch
+  # Note PipelineID = 223957 is  "Azure-IoT-Edge-Core Images Publish"
+  [[ -z "$DEVOPS_PAT" ]] && { echo "\$DEVOPS_PAT variable is required to access Azure DevOps"; exit 1; }
+
+  pipelineRuns=$(curl -s -u ":$DEVOPS_PAT" --request GET "https://dev.azure.com/msazure/One/_apis/pipelines/223957/runs?api-version=6.0")
+  OLD_IFS=$IFS
+  IFS=' ' buildIds=( $(echo $pipelineRuns | jq '."value"[] | select(.result == "succeeded").id' | tr '\n' ' ') )
+  IFS=$OLD_IFS
+  for buildId in "${buildIds[@]}"
+  do
+    result=$(curl -s -u ":$DEVOPS_PAT" --request GET "https://dev.azure.com/msazure/One/_apis/build/builds/$buildId?api-version=6.0" | jq "select(.sourceBranch == \"refs/heads/$1\")")
+    [[ -z "$result" ]] || { echo $buildId; return 0; }
+  done
+
+  echo "Cannot find an associate build for branch ($1) from buildIds: ${buildIds[@]}"
+  exit -1;
+}
+
+get-build-logs-from-task()
+{
+  # Get pipeline build logs for a given Task name for a given buildId
+  # $1 - buildId
+  # $2 - task display name
+  [[ -z "$DEVOPS_PAT" ]] && { echo "\$DEVOPS_PAT variable is required to access Azure DevOps"; exit 1; }
+
+  buildId=$1
+  taskDisplayName=$2
+
+  logId=$(curl -s -u ":$DEVOPS_PAT" --request GET "https://dev.azure.com/msazure/One/_apis/build/builds/$buildId/timeline?api-version=6.0" | jq ".records[] | select(.name == \"$taskDisplayName\").log.id")
+
+  [[ -z "$logId" ]] && { echo "Failed to get log id for task ($taskDisplayName) with buildId ($buildId)"; exit 1; }
+  curl -s -u ":$DEVOPS_PAT" --request GET "https://dev.azure.com/msazure/One/_apis/build/builds/$buildId/logs/$logId?api-version=6.0"
+}
+
+get-image-sha-from-devops-logs()
+{
+  # Parse DevOps build logs to get container and its sha
+  # example of output: 
+  # /public/azureiotedge-agent:1.1.15  sha256:e203b6f3f9a3edff8a98a19894a9b1ca295bfd80e5412fdff5a7bc037bd04dcf
+  # /public/azureiotedge-agent:1.1.15-linux-amd64  sha256:3a8ef9d5f1ccf57dc6ebdc413e1312cec805ee340470b7c0808e715683eed5c9
+  # /public/azureiotedge-agent:1.1.15-linux-arm64v8  sha256:c75323754fc45d74f7ec3458876bfbc046e4e73fb800cc301a7bc6698d1856e4
+  # /public/azureiotedge-agent:1.1.15-linux-arm32v7  sha256:1fe533ae64e73141154afcfe1b1244d765a61cc2cdfd5c0a8fa9303fe60a5951
+  # /public/azureiotedge-agent:1.1.15-windows-amd64  sha256:a192aa2b9e203493ff69bb8dd5b0c7807664ff30f129bde4feb1988cac178929
+
+  # $1 - logs from DevOps image publication task
+  logs=$1
+  moduleName=$(echo "$logs" | grep " image: " | head -1 | awk '{print substr($3, 4, length($3)-4)}')
+  moduleSha=$(echo "$logs" | grep "Digest: " | awk '{print $3}')
+  echo "$moduleName  $moduleSha" 
+  echo "$logs" | grep " is digest sha256:" | awk '{print substr($5, 6, length($5)-7)"  "substr($8, 1, length($8)-1)}'
+}
+
 check-matching-version()
 {
   # Compare if ($2) is a substring of ($1)
@@ -90,6 +145,76 @@ check-github-pmc-artifacts-similarity()
   fi
 }
 
+check-pmc-images-availability()
+{
+  # Check docker images availability in the PMC against all image tags.
+  #
+  # $1 - Github branch name
+
+  sourceBranchName=$1
+  taskDisplayNames=("Publish Edge Agent Manifest" "Publish Edge Hub Manifest" "Publish Temperature Sensor Manifest" "Publish Diagnostic Module Manifest")
+  for taskDisplayName in "${taskDisplayNames[@]}"
+  do
+    # Amalgam of test cases to test docker images in mcr
+    echo $'\n\n================================================\n\n'
+    check-pmc-image-tags-availability "$sourceBranchName" "$taskDisplayName"
+  done
+}
+
+check-pmc-image-tags-availability()
+{
+  # Check if the images pulled using docker image name from MCR resolves the to the same image SHA 
+  # which "Azure-IoT-Edge-Core Images Publish" pipeline claimed to publish to the MCR. 
+  #
+  # $1 - branch name
+  # $2 - task display name (use to reference the image module)
+  
+  branchName=$1
+  pipelineDisplayName=$2
+  echo "Checking images published for $branchName ($pipelineDisplayName)"
+
+  buildId=$(get-latest-image-publication-buildId "$branchName")
+  echo "BuildId: $buildId"
+
+  logs=$(get-build-logs-from-task "$buildId" "$pipelineDisplayName")
+
+  imageHashMap=$(get-image-sha-from-devops-logs "$logs")
+  echo "Checking the following images publication:"
+  echo "$imageHashMap"
+  echo ""
+
+  OLD_IFS=$IFS; 
+  IFS=' '
+  nameList=($(echo "$imageHashMap" | awk '{sub(/.*azureiotedge/, "azureiotedge", $1); print $1}' | tr '\n' ' '))
+  shaList=($(echo "$imageHashMap" | awk '{print $2}' | tr '\n' ' '))
+  pmcImages=($(prepare-docker-image-names "$imageHashMap" | tr '\n' ' '))
+  
+  IFS=''
+  pullResults=()
+  for image in "${pmcImages[@]}"
+  do
+    pullResults+=($(docker pull $image))
+  done
+
+  IFS=$OLD_IFS
+  isFailed=false
+  for i in $(seq 0 $((${#nameList[@]} - 1 )) );
+  do
+    echo "${pullResults[$i]}" | grep -q "${nameList[$i]}" \
+      && { echo "[PASS] ${nameList[$i]} is available."; } \
+      || { echo "[FAIL] The image name:tag ( ${nameList[$i]} ) is missing."; isFailed=true; }
+    echo "${pullResults[$i]}" | grep -q "${shaList[$i]}" \
+      && { echo "[PASS] ${shaList[$i]} is available."; } \
+      || { echo "[FAIL] The sha256 ( ${shaList[$i]} ) is missing."; isFailed=true; }
+  done
+
+  if $isFailed
+  then 
+    echo "##vso[task.logissue type=error]The sha256 is missing."
+    exit 1;
+  fi
+}
+
 download-artifact-from-pmc-apt()
 {
   # Download artifact for a package named ($1) using uri acquired by `apt` to a location ($2).
@@ -100,6 +225,7 @@ download-artifact-from-pmc-apt()
   # $2 - target output directory
 
   pkgName=${1%=*}
+  sudo apt --fix-broken install 
   uri=$(apt-get install --reinstall --print-uris -qq $1 | cut -d"'" -f2 | grep "/$pkgName/")
   [[ -z "$uri" ]] && { echo "[FAIL] Package ($1) cannot be found in a known linux repository"; exit 1;}
   artifactName=${uri##*/}
@@ -108,6 +234,27 @@ download-artifact-from-pmc-apt()
   cmd="wget -q $uri -O $targetArtifactPath"
   echo "Running: $cmd"
   $cmd
+}
+
+prepare-docker-image-names()
+{
+  # The function does the following: 
+  # 1. Parse the result from get-image-sha-from-devops-logs()'s image hashmap to get list of image names
+  # 2. Set the docker images namespace to be "mcr.microsoft.com"
+  # 3. Return list of docker to be pulled from MCR
+  #
+  # $1 - String result from get-image-sha-from-devops-logs()
+  imageHashMap=$1
+
+  OLD_IFS=$IFS
+  IFS=' ' images=( $(echo "$imageHashMap" | awk '{print $1}' | tr '\n' ' ') )
+  IFS=$OLD_IFS
+
+  pmcImages=()
+  for image in "${images[@]}"
+  do
+    echo "mcr.microsoft.com/${image##*/}"
+  done
 }
 
 wait-for-dpkg-lock()
@@ -139,9 +286,10 @@ setup-focal-source-apt()
     sudo sed -i 's/bionic/focal/g' $file
   done
 
-  sudo sed -i 's/bionic/focal/g' /etc/apt/sources.list && \
-  sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list && \
-  wget https://packages.microsoft.com/config/ubuntu/20.04/prod.list  -O /etc/apt/sources.list.d/microsoft-prod.list && \
+  sudo sed -i 's/bionic/focal/g' /etc/apt/sources.list
+  sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list
+  sudo wget -c https://packages.microsoft.com/config/ubuntu/20.04/prod.list -O /etc/apt/sources.list.d/microsoft-prod.list
+  sudo apt --fix-broken install && \
   sudo apt update -y && \
   sudo DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" dist-upgrade && \
   sudo apt update -y && \
@@ -217,4 +365,13 @@ test-released-artifact()
   fi
 
   check-github-pmc-artifacts-similarity "$currentArtifact" "$artifactPath" "$pkgName"
+}
+
+test-released-images()
+{
+  # Amalgam of test cases to test docker images availablity on MCR.
+  # $1 - Source Branch Name i.e. "release/1.3"
+  sourceBranchName=$1
+
+  check-pmc-images-availability "$sourceBranchName"
 }
