@@ -16,6 +16,12 @@ pr:
 variables:
   DisableDockerDetector: true
 
+resources:
+  pipelines:
+  - pipeline: ci-build
+    source: 'Azure-IoT-Edge-Core CI Build'
+    branch: 'main'
+
 stages:
   
   - template: ../misc/templates/build-images.yaml
