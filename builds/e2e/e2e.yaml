@@ -303,9 +303,9 @@ jobs:
 
 # Disabling until EFLOW agent hardware issues are resolved
 ################################################################################
-  - job: Mariner-1.0_amd64
+  - job: Mariner_1.0_amd64
 ################################################################################
-    displayName: EFLOW amd64
+    displayName: Mariner 1.0 amd64
     condition: eq(variables['run.linux.eflow'], 'true')
 
     pool:
@@ -331,9 +331,9 @@ jobs:
     - template: templates/e2e-run.yaml
 
 ################################################################################
-  - job: Mariner-2.0_amd64
+  - job: Mariner_2.0_amd64
 ################################################################################
-    displayName: EFLOW amd64
+    displayName: Mariner 2.0 amd64
     condition: eq(variables['run.linux.eflow'], 'true')
 
     pool:
