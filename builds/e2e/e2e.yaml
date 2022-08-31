@@ -303,7 +303,7 @@ jobs:
 
 # Disabling until EFLOW agent hardware issues are resolved
 ################################################################################
-  - job: EFLOW_amd64
+  - job: Mariner-1.0_amd64
 ################################################################################
     displayName: EFLOW amd64
     condition: eq(variables['run.linux.eflow'], 'true')
@@ -319,7 +319,35 @@ jobs:
     variables:
       os: linux
       arch: amd64
-      artifactName: iotedged-mariner-amd64
+      artifactName: iotedged-mariner1-amd64
+      NUGET_HTTP_CACHE_PATH: /var/tmp/NuGet/v3-cache
+      NUGET_PACKAGES: /var/tmp/NuGet/packages
+      NUGET_PLUGINS_CACHE_PATH: /var/tmp/NuGet/plugins-cache
+
+    steps:
+    - template: templates/e2e-clean-directory.yaml
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-clear-docker-cached-images.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################
+  - job: Mariner-2.0_amd64
+################################################################################
+    displayName: EFLOW amd64
+    condition: eq(variables['run.linux.eflow'], 'true')
+
+    pool:
+      name: $(pool.custom.name)
+      demands:
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+        - run-new-e2e-tests -equals true
+        - eflow -equals true
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-mariner2-amd64
       NUGET_HTTP_CACHE_PATH: /var/tmp/NuGet/v3-cache
       NUGET_PACKAGES: /var/tmp/NuGet/packages
       NUGET_PLUGINS_CACHE_PATH: /var/tmp/NuGet/plugins-cache
