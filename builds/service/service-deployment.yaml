@@ -4,21 +4,23 @@ pr: none
 trigger: none
 schedules:
 - cron: '0 3 * * *'
-  displayName: Nightly run 1.1 LTS
+  displayName: Nightly run 1.4 LTS
   branches:
     include:
-    - release/1.1
+    - release/1.4
   always: true
 
 variables:
   DisableDockerDetector: true
 
 pool:
-  vmImage: ubuntu-18.04
+  name: $(pool.linux.name)
+  demands:
+  - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
 
 steps:
 - checkout: self
-  fetchDepth: 100
+  fetchDepth: 1
 
 - task: AzureKeyVault@1
   displayName: Get secrets
@@ -26,8 +28,22 @@ steps:
     azureSubscription: $(az.subscription)
     keyVaultName: $(az.keyVault)
     secretsFilter: >-
-      IotHubConnStr2,
-      EventHubConnStr2
+      TestIotHubConnectionString,
+      TestEventHubCompatibleEndpoint,
+      TestRootCaCertificate,
+      TestRootCaKey,
+      TestRootCaPassword
+
+- pwsh: |
+    $certsDir = '$(System.ArtifactsDirectory)/certs'
+    New-Item "$certsDir" -ItemType Directory -Force | Out-Null
+    $env:ROOT_CERT | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.cert.pem"
+    $env:ROOT_KEY | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.key.pem"
+    Write-Output "##vso[task.setvariable variable=certsDir]$certsDir"
+  displayName: Install CA keys
+  env:
+    ROOT_CERT: $(TestRootCaCertificate)
+    ROOT_KEY: $(TestRootCaKey)
 
 - pwsh: |
     $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
@@ -40,6 +56,9 @@ steps:
 - pwsh: |
     $context = @{
       logFile = Join-Path '$(binDir)' 'testoutput.log';
+      caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates';
+      rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
+      rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
     }
     $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
   displayName: Create test arguments file (context.json)
@@ -61,9 +80,10 @@ steps:
   displayName: Run tests
   env:
     EH_ARG: $(connstr.eventHub)
-    EH_KV: $(EventHubConnStr2)
+    EH_KV: $(TestEventHubCompatibleEndpoint)
     IH_ARG: $(connstr.iotHub)
-    IH_KV: $(IotHubConnStr2)
+    IH_KV: $(TestIotHubConnectionString)
+    E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
 
 - task: PublishTestResults@2
   displayName: Publish test results
