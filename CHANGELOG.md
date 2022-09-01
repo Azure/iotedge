@@ -1,3 +1,25 @@
+# 1.1.16 (2022-08-31)
+## Edge Agent
+### Bug Fixes
+* Update SharpZipLib and Newtonsoft.Json to patch security vulnerability [1b483e4](https://github.com/Azure/iotedge/commit/1b483e4f114593b9cb40be65598c83bea6811444)
+* Update base image to include .NET security fixes from [.NET Core 3.1.28 - August 9, 2022](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1.28/3.1.28.md)
+
+## Edge Hub
+### Bug Fixes
+* Update SharpZipLib and Newtonsoft.Json to patch security vulnerability [1b483e4](https://github.com/Azure/iotedge/commit/1b483e4f114593b9cb40be65598c83bea6811444)
+* Update base image to include .NET security fixes from [.NET Core 3.1.28 - August 9, 2022](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1.28/3.1.28.md)
+
+## Diagnostics Module
+### Bug Fixes
+* Update SharpZipLib and Newtonsoft.Json to patch security vulnerability [1b483e4](https://github.com/Azure/iotedge/commit/1b483e4f114593b9cb40be65598c83bea6811444)
+* Update base image to include .NET security fixes from [.NET Core 3.1.28 - August 9, 2022](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1.28/3.1.28.md)
+
+## Simulated Temperature Sensor
+### Bug Fixes
+* Update SharpZipLib and Newtonsoft.Json to patch security vulnerability [1b483e4](https://github.com/Azure/iotedge/commit/1b483e4f114593b9cb40be65598c83bea6811444)
+* Update base image to include .NET security fixes from [.NET Core 3.1.28 - August 9, 2022](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1.28/3.1.28.md)
+
+
 # 1.1.15 (2022-07-12)
 ## Edge Agent
 ### Bug Fixes
