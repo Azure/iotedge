@@ -292,9 +292,9 @@ stages:
   ################################################################################
       displayName: Ubuntu 20.04 with arm64v8
       pool:
-        name: $(pool.custom.name)
+        name: $(pool.linux.arm.name)
         demands:
-          - agent-group -equals rpi3-e2e-aarch64
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-arm64-docker
 
       variables:
         os: linux
