@@ -188,7 +188,7 @@ stages:
           azureSubscription: $(az.subscription)
           keyVaultName: $(kv.name)
           secretsFilter: >-
-            DevOpsAccessToken
+            IotEdge1-PAT-msazure
       - task: Bash@3
         displayName: Setup Test Agent
         condition: true
@@ -294,7 +294,7 @@ stages:
         displayName: Released Images Smoke Tests
         condition: true
         env:
-          DEVOPS_PAT: "$(DevOpsAccessToken)"
+          DEVOPS_PAT: "$(IotEdge1-PAT-msazure)"
         inputs:
           targetType: 'inline'
           script: |
