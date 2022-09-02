@@ -51,6 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                 try
                 {
                     moduleClientWrapper = await ModuleClientWrapper.BuildModuleClientWrapperAsync(Settings.Current.TransportType);
+                    PeriodicTask periodicIothubConnect = new PeriodicTask(moduleClientWrapper.RecreateClientAsync, Settings.Current.IotHubConnectFrequency, TimeSpan.FromMinutes(1), LoggerUtil.Writer, "Reconnect to IoT Hub", true);
                 }
                 catch (Exception e)
                 {
@@ -65,8 +66,6 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                         LoggerUtil.Writer.LogWarning(msg);
                     }
                 }
-
-                PeriodicTask periodicIothubConnect = new PeriodicTask(moduleClientWrapper.RecreateClientAsync, Settings.Current.IotHubConnectFrequency, TimeSpan.FromMinutes(1), LoggerUtil.Writer, "Reconnect to IoT Hub", true);
 
                 MetricsScraper scraper = new MetricsScraper(Settings.Current.Endpoints);
                 IMetricsPublisher publisher;
