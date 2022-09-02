@@ -478,108 +478,95 @@ stages:
           keyVaultName: $(kv.name)
           secretsFilter: >-
             IotEdge1-PAT-msazure
-      - task: Bash@3
+
+      - bash: |
+          # Source the scripts & Update version files
+          sudo chmod +x $(Build.SourcesDirectory)/iotedge/scripts/linux/smokeTestHelper.sh
+          source $(Build.SourcesDirectory)/iotedge/scripts/linux/smokeTestHelper.sh
+
+          wait-for-dpkg-lock 120
+
+          if ! command -v jq &> /dev/null
+          then
+              sudo apt-get install jq -y
+          fi
         displayName: Setup Test Agent
         name: SetupTestAgent
-        inputs:
-          targetType: 'inline'
-          script: |
-            # Source the scripts & Update version files
-            sudo chmod +x $(Build.SourcesDirectory)/iotedge/scripts/linux/smokeTestHelper.sh
-            source $(Build.SourcesDirectory)/iotedge/scripts/linux/smokeTestHelper.sh
 
-            wait-for-dpkg-lock 120
+      - bash: |
+          # Fetch versions to be used for each component
+          edgeletVersion=$(cat $(Build.SourcesDirectory)/azure-iotedge/latest-aziot-edge.json | jq ".\"aziot-edge\"" | tr -d '"')
+          iisVersion=$(cat cat $(Build.SourcesDirectory)/azure-iotedge/latest-aziot-identity-service.json | jq ".\"aziot-identity-service\"" | tr -d '"')
 
-            if ! command -v jq &> /dev/null
-            then
-                sudo apt-get install jq -y
-            fi
-
-      - task: Bash@3
-        displayName: Get Parameters From Azure-iotedge
-        name: GitHubParameters
-        inputs:
-          targetType: 'inline'
-          script: |
-            # Fetch versions to be used for each component
-            edgeletVersion=$(cat $(Build.SourcesDirectory)/azure-iotedge/latest-aziot-edge.json | jq ".\"aziot-edge\"" | tr -d '"')
-            iisVersion=$(cat cat $(Build.SourcesDirectory)/azure-iotedge/latest-aziot-identity-service.json | jq ".\"aziot-identity-service\"" | tr -d '"')
-
-            echo "##vso[task.setvariable variable=edgeletVersion;isOutput=true]$edgeletVersion"
-            echo "##vso[task.setvariable variable=iisVersion;isOutput=true]$iisVersion"
+          echo "##vso[task.setvariable variable=edgeletVersion;isOutput=true]$edgeletVersion"
+          echo "##vso[task.setvariable variable=iisVersion;isOutput=true]$iisVersion"
         env:
           GITHUB_PAT: "$(GitHubAccessToken)"
-      - task: Bash@3
+        displayName: Get Parameters From Azure-iotedge
+        name: GitHubParameters
+
+      - bash: |
+          edgeletVersion=$(GitHubParameters.edgeletVersion)
+          iisVersion=$(GitHubParameters.iisVersion)
+
+          wget https://github.com/Azure/azure-iotedge/releases/download/$edgeletVersion/aziot-edge_$edgeletVersion-1_$(os)_$(arch).$(ext) -O $(System.ArtifactsDirectory)/aziot-edge_$edgeletVersion-1_$(os)_$(arch)_github.$(ext)
+          wget https://github.com/Azure/azure-iotedge/releases/download/$edgeletVersion/aziot-identity-service_$iisVersion-1_$(os)_$(arch).$(ext) -O $(System.ArtifactsDirectory)/aziot-identity-service_$iisVersion-1_$(os)_$(arch)_github.$(ext)
         displayName: Download Edgelet GitHub
-        inputs:
-          targetType: 'inline'
-          script: |
-            edgeletVersion=$(GitHubParameters.edgeletVersion)
-            iisVersion=$(GitHubParameters.iisVersion)
 
-            wget https://github.com/Azure/azure-iotedge/releases/download/$edgeletVersion/aziot-edge_$edgeletVersion-1_$(os)_$(arch).$(ext) -O $(System.ArtifactsDirectory)/aziot-edge_$edgeletVersion-1_$(os)_$(arch)_github.$(ext)
-            wget https://github.com/Azure/azure-iotedge/releases/download/$edgeletVersion/aziot-identity-service_$iisVersion-1_$(os)_$(arch).$(ext) -O $(System.ArtifactsDirectory)/aziot-identity-service_$iisVersion-1_$(os)_$(arch)_github.$(ext)
+      - bash: |
+          # Source the scripts & Update version files
+          sudo chmod +x $(Build.SourcesDirectory)/iotedge/scripts/linux/smokeTestHelper.sh
+          source $(Build.SourcesDirectory)/iotedge/scripts/linux/smokeTestHelper.sh
 
-      - task: Bash@3
-        displayName: Released Artifacts Smoke Tests
-        inputs:
-          targetType: 'inline'
-          script: |
-            # Source the scripts & Update version files
-            sudo chmod +x $(Build.SourcesDirectory)/iotedge/scripts/linux/smokeTestHelper.sh
-            source $(Build.SourcesDirectory)/iotedge/scripts/linux/smokeTestHelper.sh
-
-            if [[ "$(os)" == "ubuntu"* ]]; then
-            # Ubuntu
-              if [[ "$(os)" == *"20.04" ]]; then
-                setup-focal-source-apt
-                setup-config-apt "https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb"
-              elif [[ "$(os)" == *"18.04" ]]; then
-                setup-config-apt "https://packages.microsoft.com/config/ubuntu/18.04/multiarch/packages-microsoft-prod.deb"
-              else
-                echo "Unsupported OS: $(os)"
-                exit 1;
-              fi
-            elif [[ "$(os)" == "debian11" ]]; then
-              setup-config-apt "https://packages.microsoft.com/config/debian/11/packages-microsoft-prod.deb"
+          if [[ "$(os)" == "ubuntu"* ]]; then
+          # Ubuntu
+            if [[ "$(os)" == *"20.04" ]]; then
+              setup-focal-source-apt
+              setup-config-apt "https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb"
+            elif [[ "$(os)" == *"18.04" ]]; then
+              setup-config-apt "https://packages.microsoft.com/config/ubuntu/18.04/multiarch/packages-microsoft-prod.deb"
             else
               echo "Unsupported OS: $(os)"
               exit 1;
             fi
+          elif [[ "$(os)" == "debian11" ]]; then
+            setup-config-apt "https://packages.microsoft.com/config/debian/11/packages-microsoft-prod.deb"
+          else
+            echo "Unsupported OS: $(os)"
+            exit 1;
+          fi
 
-            echo $'\n\n================================================\n\n'
-            echo "Aziot-edge"
-            test-released-metadata "aziot-edge" "$(GitHubParameters.edgeletVersion)"
+          echo $'\n\n================================================\n\n'
+          echo "Aziot-edge"
+          test-released-metadata "aziot-edge" "$(GitHubParameters.edgeletVersion)"
 
-            test-released-artifact \
-              "aziot-edge" \
-              "$(GitHubParameters.edgeletVersion)" \
-              "$(System.ArtifactsDirectory)" \
-              "$(GitHubParameters.edgeletVersion)-1_$(os)_$(arch)_github.$(ext)" \
-              "$(edgelet.maxPercentAllowed)" \
-              "$(IsCheckPreviousPkg)"
+          test-released-artifact \
+            "aziot-edge" \
+            "$(GitHubParameters.edgeletVersion)" \
+            "$(System.ArtifactsDirectory)" \
+            "$(GitHubParameters.edgeletVersion)-1_$(os)_$(arch)_github.$(ext)" \
+            "$(edgelet.maxPercentAllowed)" \
+            "$(IsCheckPreviousPkg)"
 
-            echo $'\n\n================================================\n\n'
-            echo "Aziot-identity-service"
-            test-released-metadata "aziot-identity-service" "$(GitHubParameters.iisVersion)"
+          echo $'\n\n================================================\n\n'
+          echo "Aziot-identity-service"
+          test-released-metadata "aziot-identity-service" "$(GitHubParameters.iisVersion)"
 
-            test-released-artifact \
-              "aziot-identity-service" \
-              "$(GitHubParameters.iisVersion)" \
-              "$(System.ArtifactsDirectory)" \
-              "$(GitHubParameters.iisVersion)-1_$(os)_$(arch)_github.$(ext)" \
-              "$(edgelet.maxPercentAllowed)" \
-              "$(IsCheckPreviousPkg)"
+          test-released-artifact \
+            "aziot-identity-service" \
+            "$(GitHubParameters.iisVersion)" \
+            "$(System.ArtifactsDirectory)" \
+            "$(GitHubParameters.iisVersion)-1_$(os)_$(arch)_github.$(ext)" \
+            "$(edgelet.maxPercentAllowed)" \
+            "$(IsCheckPreviousPkg)"
+        displayName: Released Artifacts Smoke Tests
 
-      - task: Bash@3
+      - bash: |
+          # Source the scripts & Update version files
+          sudo chmod +x $(Build.SourcesDirectory)/iotedge/scripts/linux/smokeTestHelper.sh
+          source $(Build.SourcesDirectory)/iotedge/scripts/linux/smokeTestHelper.sh
+
+          test-released-images "$(Build.SourceBranchName)"
         displayName: Released Images Smoke Tests
         env:
           DEVOPS_PAT: "$(IotEdge1-PAT-msazure)"
-        inputs:
-          targetType: 'inline'
-          script: |
-            # Source the scripts & Update version files
-            sudo chmod +x $(Build.SourcesDirectory)/iotedge/scripts/linux/smokeTestHelper.sh
-            source $(Build.SourcesDirectory)/iotedge/scripts/linux/smokeTestHelper.sh
-
-            test-released-images "$(Build.SourceBranchName)"
