@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                 }
                 catch (Exception e)
                 {
-                    String msg = String.Format("Error connecting to EdgeHub. Is EdgeHub up and running with settings for clients connecting over {0}? Exception: {1}", Settings.Current.TransportType, e);
+                    String msg = String.Format("Error connecting to Edge Hub. Is Edge Hub up and running with settings for clients connecting over {0}? Exception: {1}", Settings.Current.TransportType, e);
                     if (Settings.Current.UploadTarget == UploadTarget.IotMessage)
                     {
                         LoggerUtil.Writer.LogError(msg);

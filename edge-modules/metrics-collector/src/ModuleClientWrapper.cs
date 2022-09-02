@@ -94,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             moduleClient.ProductInfo = Constants.ProductInfo;
             await moduleClient.OpenAsync();
 
-            LoggerUtil.Writer.LogInformation($"Successfully initialized module client of transport type [{transportType}]");
+            LoggerUtil.Writer.LogInformation($"Successfully initialized module client using transport type [{transportType}]");
 
             return moduleClient;
         }
