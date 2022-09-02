@@ -592,5 +592,4 @@ stages:
             sudo chmod +x $(Build.SourcesDirectory)/iotedge/scripts/linux/smokeTestHelper.sh
             source $(Build.SourcesDirectory)/iotedge/scripts/linux/smokeTestHelper.sh
 
-            #test-released-images "$(Build.SourceBranchName)"
-            test-released-images "release/1.4"
+            test-released-images "$(Build.SourceBranchName)"
