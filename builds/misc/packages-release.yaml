@@ -470,7 +470,6 @@ stages:
 
       steps:
       - checkout: azure-iotedge
-        submodules: recursive
       - checkout: self
       - task: AzureKeyVault@1
         displayName: Get secrets
@@ -481,7 +480,6 @@ stages:
             IotEdge1-PAT-msazure
       - task: Bash@3
         displayName: Setup Test Agent
-        condition: true
         name: SetupTestAgent
         inputs:
           targetType: 'inline'
@@ -499,12 +497,11 @@ stages:
 
       - task: Bash@3
         displayName: Get Parameters From Azure-iotedge
-        condition: true
         name: GitHubParameters
         inputs:
           targetType: 'inline'
           script: |
-            # Source the scripts and get versions
+            # Fetch versions to be used for each component
             edgeletVersion=$(cat $(Build.SourcesDirectory)/azure-iotedge/latest-aziot-edge.json | jq ".\"aziot-edge\"" | tr -d '"')
             iisVersion=$(cat cat $(Build.SourcesDirectory)/azure-iotedge/latest-aziot-identity-service.json | jq ".\"aziot-identity-service\"" | tr -d '"')
 
@@ -514,7 +511,6 @@ stages:
           GITHUB_PAT: "$(GitHubAccessToken)"
       - task: Bash@3
         displayName: Download Edgelet GitHub
-        condition: true
         inputs:
           targetType: 'inline'
           script: |
@@ -526,7 +522,6 @@ stages:
 
       - task: Bash@3
         displayName: Released Artifacts Smoke Tests
-        condition: true
         inputs:
           targetType: 'inline'
           script: |
@@ -546,11 +541,7 @@ stages:
                 exit 1;
               fi
             elif [[ "$(os)" == "debian11" ]]; then
-              # Debian
-              echo "Setup source artifact repository"
-              curl https://packages.microsoft.com/config/debian/11/packages-microsoft-prod.deb > ./packages-microsoft-prod.deb
-              sudo apt install ./packages-microsoft-prod.deb
-              sudo apt-get update
+              setup-config-apt "https://packages.microsoft.com/config/debian/11/packages-microsoft-prod.deb"
             else
               echo "Unsupported OS: $(os)"
               exit 1;
@@ -582,7 +573,6 @@ stages:
 
       - task: Bash@3
         displayName: Released Images Smoke Tests
-        condition: true
         env:
           DEVOPS_PAT: "$(IotEdge1-PAT-msazure)"
         inputs:
