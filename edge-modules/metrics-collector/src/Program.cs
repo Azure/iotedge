@@ -51,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             ModuleClientWrapper moduleClientWrapper = null;
             try
             {
-                moduleClientWrapper = await ModuleClientWrapper.BuildModuleClientWrapperAsync(transportSettings);
+                moduleClientWrapper = await ModuleClientWrapper.BuildModuleClientWrapperAsync(Settings.Current.TransportType);
 
                 PeriodicTask periodicIothubConnect = new PeriodicTask(moduleClientWrapper.RecreateClientAsync, Settings.Current.IotHubConnectFrequency, TimeSpan.FromMinutes(1), LoggerUtil.Writer, "Reconnect to IoT Hub", true);
 
