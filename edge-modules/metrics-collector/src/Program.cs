@@ -48,7 +48,23 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             ModuleClientWrapper moduleClientWrapper = null;
             try
             {
-                moduleClientWrapper = await ModuleClientWrapper.BuildModuleClientWrapperAsync(Settings.Current.TransportType);
+                try
+                {
+                    moduleClientWrapper = await ModuleClientWrapper.BuildModuleClientWrapperAsync(Settings.Current.TransportType);
+                }
+                catch (Exception e)
+                {
+                    String msg = String.Format("Error connecting to EdgeHub. Is EdgeHub up and running with settings for clients connecting over {0}?. Exception: {1}", Settings.Current.TransportType, e);
+                    if (Settings.Current.UploadTarget == UploadTarget.IotMessage)
+                    {
+                        LoggerUtil.Writer.LogError(msg);
+                        throw;
+                    }
+                    else
+                    {
+                        LoggerUtil.Writer.LogWarning(msg);
+                    }
+                }
 
                 PeriodicTask periodicIothubConnect = new PeriodicTask(moduleClientWrapper.RecreateClientAsync, Settings.Current.IotHubConnectFrequency, TimeSpan.FromMinutes(1), LoggerUtil.Writer, "Reconnect to IoT Hub", true);
 
