@@ -312,11 +312,9 @@ stages:
                   echo "iotedge repo path: $IOTEDGE_REPO_PATH"
                   echo "iot-identity-service repo path: $IIS_REPO_PATH"
 
-                  sudo chmod +x $(Build.SourcesDirectory)/iotedge/scripts/linux/publishReleasePackages.sh 
                   $(Build.SourcesDirectory)/iotedge/scripts/linux/publishReleasePackages.sh -p ubuntu20.04 -w $(Build.SourcesDirectory)/iotedge -d $(Build.SourcesDirectory)/iotedge -v "$BASE_VERSION" -s "github.com" -b  $(Build.SourceBranch) --skip-upload true
 
                   # Source the scripts & Update version files
-                  sudo chmod +x $(Build.SourcesDirectory)/iotedge/scripts/linux/github/updateLatestVersion.sh
                   source $(Build.SourcesDirectory)/iotedge/scripts/linux/github/updateLatestVersion.sh
                   update_latest_version_json
 
@@ -481,7 +479,6 @@ stages:
 
       - bash: |
           # Source the scripts & Update version files
-          sudo chmod +x $(Build.SourcesDirectory)/iotedge/scripts/linux/smokeTestHelper.sh
           source $(Build.SourcesDirectory)/iotedge/scripts/linux/smokeTestHelper.sh
 
           wait-for-dpkg-lock 120
@@ -515,7 +512,6 @@ stages:
 
       - bash: |
           # Source the scripts & Update version files
-          sudo chmod +x $(Build.SourcesDirectory)/iotedge/scripts/linux/smokeTestHelper.sh
           source $(Build.SourcesDirectory)/iotedge/scripts/linux/smokeTestHelper.sh
 
           if [[ "$(os)" == "ubuntu"* ]]; then
@@ -563,7 +559,6 @@ stages:
 
       - bash: |
           # Source the scripts & Update version files
-          sudo chmod +x $(Build.SourcesDirectory)/iotedge/scripts/linux/smokeTestHelper.sh
           source $(Build.SourcesDirectory)/iotedge/scripts/linux/smokeTestHelper.sh
 
           test-released-images "$(Build.SourceBranchName)"
