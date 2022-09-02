@@ -45,9 +45,6 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 #endif
 
             LoggerUtil.Writer.LogInformation($"Metrics collector initialized with the following settings:\r\n{Settings.Information}");
-            var transportSetting = new AmqpTransportSettings(TransportType.Amqp_Tcp_Only);
-
-            ITransportSettings[] transportSettings = { transportSetting };
             ModuleClientWrapper moduleClientWrapper = null;
             try
             {
