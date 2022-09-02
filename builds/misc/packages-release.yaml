@@ -182,6 +182,13 @@ stages:
       - checkout: azure-iotedge
         submodules: recursive
       - checkout: self
+      - task: AzureKeyVault@1
+        displayName: Get secrets
+        inputs:
+          azureSubscription: $(az.subscription)
+          keyVaultName: $(kv.name)
+          secretsFilter: >-
+            DevOpsAccessToken
       - task: Bash@3
         displayName: Setup Test Agent
         condition: true
