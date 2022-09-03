@@ -45,15 +45,27 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 #endif
 
             LoggerUtil.Writer.LogInformation($"Metrics collector initialized with the following settings:\r\n{Settings.Information}");
-            var transportSetting = new AmqpTransportSettings(TransportType.Amqp_Tcp_Only);
-
-            ITransportSettings[] transportSettings = { transportSetting };
             ModuleClientWrapper moduleClientWrapper = null;
             try
             {
-                moduleClientWrapper = await ModuleClientWrapper.BuildModuleClientWrapperAsync(transportSettings);
-
-                PeriodicTask periodicIothubConnect = new PeriodicTask(moduleClientWrapper.RecreateClientAsync, Settings.Current.IotHubConnectFrequency, TimeSpan.FromMinutes(1), LoggerUtil.Writer, "Reconnect to IoT Hub", true);
+                try
+                {
+                    moduleClientWrapper = await ModuleClientWrapper.BuildModuleClientWrapperAsync(Settings.Current.TransportType);
+                    PeriodicTask periodicIothubConnect = new PeriodicTask(moduleClientWrapper.RecreateClientAsync, Settings.Current.IotHubConnectFrequency, TimeSpan.FromMinutes(1), LoggerUtil.Writer, "Reconnect to IoT Hub", true);
+                }
+                catch (Exception e)
+                {
+                    String msg = String.Format("Error connecting to Edge Hub. Is Edge Hub up and running with settings for clients connecting over {0}? Exception: {1}", Settings.Current.TransportType, e);
+                    if (Settings.Current.UploadTarget == UploadTarget.IotMessage)
+                    {
+                        LoggerUtil.Writer.LogError(msg);
+                        throw;
+                    }
+                    else
+                    {
+                        LoggerUtil.Writer.LogWarning(msg);
+                    }
+                }
 
                 MetricsScraper scraper = new MetricsScraper(Settings.Current.Endpoints);
                 IMetricsPublisher publisher;
