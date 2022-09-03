@@ -35,25 +35,14 @@ jobs:
     demands:
     - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
   steps:
-  - task: Bash@3
+  - script: scripts/linux/installPrereqs.sh
     displayName: Install Prerequisites
-    inputs:
-      filePath: scripts/linux/installPrereqs.sh
-  - task: Bash@3
+  - script: scripts/linux/buildBranch.sh -c '$(configuration)'
     displayName: Build
-    inputs:
-      filePath: scripts/linux/buildBranch.sh
-      arguments: -c "$(configuration)"
-  - task: Bash@3
+  - script: scripts/linux/runTests.sh '--filter Category=Unit&Category!=GetLogsTests'
     displayName: Test
-    inputs:
-      filePath: scripts/linux/runTests.sh
-      arguments: '"--filter Category=Unit&Category!=GetLogsTests"'
-  - task: Bash@3
+  - script: scripts/linux/runTests.sh '--filter Category=GetLogsTests'
     displayName: Run GetLogsTests Tests
-    inputs:
-      filePath: scripts/linux/runTests.sh
-      arguments: '"--filter Category=GetLogsTests"'
   - task: PublishTestResults@2
     displayName: Publish Test Results
     inputs:
