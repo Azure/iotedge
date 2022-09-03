@@ -69,6 +69,8 @@ Optional config items:
     - Configurable azure domain which is used to construct the log analytics upload address.
     - ex: `azure.com.cn`
     - Defaults to `azure.com`
+- `TransportType`
+    - The transport used to connect to IoT Hub when `UploadTarget` is `IotMessage`. Valid values are `Amqp_Tcp_Only`, `Amqp_WebSocket_Only`, `Mqtt_Tcp_Only`, and `Mqtt_WebSocket_Only`. `Amqp` and `Mqtt` are also valid, and are aliases for `Amqp_Tcp_Only` and `Mqtt_Tcp_Only`, respectively. Default is `Amqp_Tcp_Only`.
 
 
 ## Upload Target:
