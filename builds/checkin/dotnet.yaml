@@ -103,6 +103,7 @@ jobs:
         -targetdir:$(Build.SourcesDirectory) \
         -reporttypes:"Cobertura"
     displayName: 'Generate coverage report'
+    condition: succeededOrFailed()
   - task: PublishCodeCoverageResults@1
     displayName: 'Publish coverage report'
     inputs:
