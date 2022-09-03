@@ -82,8 +82,6 @@ jobs:
     condition: succeededOrFailed()
   - script: |
       dotnet tool install -g dotnet-reportgenerator-globaltool
-    displayName: Install coverage report generator
-  - script: |
       reportgenerator \
         -reports:$(Agent.TempDirectory)/**/coverage.cobertura.xml \
         -targetdir:$(Build.SourcesDirectory) \
