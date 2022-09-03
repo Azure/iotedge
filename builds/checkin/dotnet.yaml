@@ -96,6 +96,18 @@ jobs:
       publishTestResults: true
       noCache: true
     condition: succeededOrFailed()
+  - script: |
+      dotnet tool install -g dotnet-reportgenerator-globaltool
+      reportgenerator \
+        -reports:$(Agent.TempDirectory)/**/coverage.cobertura.xml \
+        -targetdir:$(Build.SourcesDirectory) \
+        -reporttypes:"Cobertura"
+    displayName: 'Generate coverage report'
+  - task: PublishCodeCoverageResults@1
+    displayName: 'Publish coverage report'
+    inputs:
+      codeCoverageTool: Cobertura
+      summaryFileLocation: '$(Build.SourcesDirectory)/Cobertura.xml'
   # - task: BuildQualityChecks@8
   #   displayName: 'Check build quality'
   #   inputs:
