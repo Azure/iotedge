@@ -74,6 +74,12 @@ jobs:
     demands:
     - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
   steps:
+  - task: UseDotNet@2
+    displayName: 'Use .NET 6'
+    inputs:
+      packageType: sdk
+      version: 6.0
+      installationPath: $(Agent.ToolsDirectory)/dotnet
   - task: DotNetCoreCLI@2
     displayName: Run unit tests with code coverage
     inputs:
