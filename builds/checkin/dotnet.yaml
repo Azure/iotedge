@@ -78,6 +78,7 @@ jobs:
         --logger trx \
         --results-directory '$(Agent.TempDirectory)' \
         --filter 'Category=GetLogsTests' \
+        --collect 'xplat code coverage' \
         --settings CodeCoverage.runsettings
     displayName: Run GetLogsTests unit tests with code coverage
     condition: succeededOrFailed()
