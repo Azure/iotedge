@@ -70,6 +70,7 @@ jobs:
         --logger trx \
         --results-directory '$(Agent.TempDirectory)' \
         --filter 'Category=Unit&Category!=GetLogsTests' \
+        --collect 'xplat code coverage' \
         --settings CodeCoverage.runsettings
     displayName: Run unit tests with code coverage
   - script: |
