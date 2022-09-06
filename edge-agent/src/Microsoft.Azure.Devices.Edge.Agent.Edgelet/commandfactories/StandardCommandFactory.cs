@@ -27,9 +27,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.CommandFactories
             this.nullCommandFactory = NullCommandFactory.Instance;
         }
 
-        public Task<ICommand> UpdateEdgeAgentAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
+        public async Task<ICommand> UpdateEdgeAgentAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
         {
-            return this.commandFactory.UpdateEdgeAgentAsync(module, runtimeInfo);
+            ICommand prepareUpdate = await this.commandFactory.PrepareUpdateAsync(module.Module, runtimeInfo);
+            ICommand updateEdgeAgent = await this.commandFactory.UpdateEdgeAgentAsync(module, runtimeInfo);
+            return new GroupCommand(prepareUpdate, updateEdgeAgent);
         }
 
         public async Task<ICommand> CreateAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)

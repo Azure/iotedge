@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 pub mod aziot;
+pub mod image;
 pub mod module;
 pub mod uri;
 pub mod watchdog;
@@ -24,6 +25,8 @@ pub trait RuntimeSettings {
 
     fn allow_elevated_docker_permissions(&self) -> bool;
 
+    fn iotedge_max_requests(&self) -> &IotedgeMaxRequests;
+
     fn agent(&self) -> &module::Settings<Self::ModuleConfig>;
     fn agent_mut(&mut self) -> &mut module::Settings<Self::ModuleConfig>;
 
@@ -35,6 +38,8 @@ pub trait RuntimeSettings {
     fn endpoints(&self) -> &aziot::Endpoints;
 
     fn additional_info(&self) -> &std::collections::BTreeMap<String, String>;
+
+    fn image_garbage_collection(&self) -> &image::ImagePruneSettings;
 }
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Deserialize, serde::Serialize)]
@@ -59,6 +64,29 @@ impl EdgeCa {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
+pub struct IotedgeMaxRequests {
+    pub management: usize,
+    pub workload: usize,
+}
+
+impl Default for IotedgeMaxRequests {
+    fn default() -> IotedgeMaxRequests {
+        IotedgeMaxRequests {
+            // Allow 50 concurrent requests on the management socket, as that is the
+            // maximum number of modules allowed by IoT Hub.
+            management: 50,
+            workload: http_common::Incoming::default_max_requests(),
+        }
+    }
+}
+
+impl IotedgeMaxRequests {
+    pub fn is_default(&self) -> bool {
+        self == &IotedgeMaxRequests::default()
+    }
+}
+
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct Settings<ModuleConfig> {
     pub hostname: String,
@@ -75,6 +103,9 @@ pub struct Settings<ModuleConfig> {
 
     #[serde(default = "default_allow_elevated_docker_permissions")]
     pub allow_elevated_docker_permissions: bool,
+
+    #[serde(default, skip_serializing_if = "IotedgeMaxRequests::is_default")]
+    pub iotedge_max_requests: IotedgeMaxRequests,
 
     #[serde(default, skip_serializing_if = "EdgeCa::is_default")]
     pub edge_ca: EdgeCa,
@@ -96,6 +127,9 @@ pub struct Settings<ModuleConfig> {
     /// Additional system information
     #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
     pub additional_info: std::collections::BTreeMap<String, String>,
+
+    #[serde(default, skip_serializing_if = "image::ImagePruneSettings::is_default")]
+    pub image_garbage_collection: image::ImagePruneSettings,
 }
 
 pub(crate) fn default_allow_elevated_docker_permissions() -> bool {
@@ -137,6 +171,9 @@ impl<T: Clone> RuntimeSettings for Settings<T> {
     fn auto_reprovisioning_mode(&self) -> aziot::AutoReprovisioningMode {
         self.auto_reprovisioning_mode
     }
+    fn iotedge_max_requests(&self) -> &IotedgeMaxRequests {
+        &self.iotedge_max_requests
+    }
 
     fn homedir(&self) -> &std::path::Path {
         &self.homedir
@@ -172,5 +209,9 @@ impl<T: Clone> RuntimeSettings for Settings<T> {
 
     fn additional_info(&self) -> &std::collections::BTreeMap<String, String> {
         &self.additional_info
+    }
+
+    fn image_garbage_collection(&self) -> &image::ImagePruneSettings {
+        &self.image_garbage_collection
     }
 }
