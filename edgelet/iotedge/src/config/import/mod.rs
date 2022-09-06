@@ -14,6 +14,7 @@ mod old_config;
 
 use std::path::{Path, PathBuf};
 
+use edgelet_settings::base::image::ImagePruneSettings;
 use edgelet_utils::YamlFileSource;
 
 use aziotctl_common::config as common_config;
@@ -371,6 +372,8 @@ fn execute_inner(
 
         additional_info: None,
 
+        iotedge_max_requests: Default::default(),
+
         aziot: common_config::super_config::Config {
             hostname: Some(hostname),
             parent_hostname,
@@ -382,6 +385,8 @@ fn execute_inner(
             cloud_timeout_sec: aziot_identityd_config::Settings::default_cloud_timeout(),
 
             cloud_retries: aziot_identityd_config::Settings::default_cloud_retries(),
+
+            aziot_max_requests: Default::default(),
 
             aziot_keys: Default::default(),
 
@@ -595,6 +600,7 @@ fn execute_inner(
                     .transpose()?,
             }
         },
+        image_garbage_collection: ImagePruneSettings::default(),
     };
 
     let config =
