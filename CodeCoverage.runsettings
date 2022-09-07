@@ -5,14 +5,15 @@
       <DataCollector friendlyName="XPlat Code Coverage">
         <Configuration>
           <IncludeTestAssembly>false</IncludeTestAssembly>
+          <Include>
+            [Microsoft.Azure.Devices.Edge.*]*,
+            [Microsoft.Azure.Devices.Routing.Core]*,
+            [Microsoft.Azure.WebJobs.Extensions.EdgeHub]*,
+          </Include>
           <Exclude>
-            [es6numberserializer]*,
-            [jsoncanonicalizer]*,
             [Microsoft.Azure.Devices.Edge.*.Test]*,
+            [Microsoft.Azure.Devices.Edge.*.Test.Common]*,
             [Microsoft.Azure.Devices.Edge.ModuleUtil]*,
-            [Microsoft.Azure.Devices.Edge.Test.Common]*,
-            [Microsoft.Azure.Devices.Edge.Util.Test.Common]*,
-            [TestResultCoordinator]*
           </Exclude>
         </Configuration>
       </DataCollector>
