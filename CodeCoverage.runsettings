@@ -8,12 +8,10 @@
           <Exclude>
             [es6numberserializer]*,
             [jsoncanonicalizer]*,
-            [Microsoft.Azure.Devices.Edge.Agent.Core.Test]*,
-            [Microsoft.Azure.Devices.Edge.Hub.Core.Test]*,
+            [Microsoft.Azure.Devices.Edge.*.Test]*,
             [Microsoft.Azure.Devices.Edge.ModuleUtil]*,
-            [Microsoft.Azure.Devices.Edge.Storage.Test]*,
             [Microsoft.Azure.Devices.Edge.Test.Common]*,
-            [Microsoft.Azure.Devices.Edge.Util.Test.?*]*,
+            [Microsoft.Azure.Devices.Edge.Util.Test.Common]*,
             [TestResultCoordinator]*
           </Exclude>
         </Configuration>
