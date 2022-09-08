@@ -11,8 +11,8 @@
             [Microsoft.Azure.WebJobs.Extensions.EdgeHub]*,
           </Include>
           <Exclude>
-            [Microsoft.Azure.Devices.Edge.*.Test]*,
-            [Microsoft.Azure.Devices.Edge.*.Test.Common]*,
+            [Microsoft.Azure.Devices.Edge.*Test]*,
+            [Microsoft.Azure.Devices.Edge.*Test.Common]*,
             [Microsoft.Azure.Devices.Edge.ModuleUtil]*,
           </Exclude>
         </Configuration>
