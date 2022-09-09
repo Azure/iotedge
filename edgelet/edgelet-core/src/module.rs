@@ -9,11 +9,9 @@ use anyhow::Context;
 use chrono::prelude::*;
 use nix::sys::utsname::UtsName;
 use serde::{Deserialize, Serialize};
-use tokio::sync::mpsc::UnboundedSender;
 
 use aziotctl_common::host_info::{DmiInfo, OsInfo};
 use edgelet_settings::module::Settings as ModuleSpec;
-use edgelet_settings::RuntimeSettings;
 
 use crate::error::Error;
 
@@ -467,18 +465,6 @@ pub trait ProvisioningResult {
 }
 
 #[async_trait::async_trait]
-pub trait MakeModuleRuntime {
-    type Config: Clone + Send;
-    type Settings: RuntimeSettings<ModuleConfig = Self::Config>;
-    type ModuleRuntime: ModuleRuntime<Config = Self::Config>;
-
-    async fn make_runtime(
-        settings: &Self::Settings,
-        create_socket_channel: UnboundedSender<ModuleAction>,
-    ) -> anyhow::Result<Self::ModuleRuntime>;
-}
-
-#[async_trait::async_trait]
 pub trait ModuleRuntime {
     type Config: Clone + Send + serde::Serialize;
     type Module: Module<Config = Self::Config> + Send;
@@ -494,6 +480,7 @@ pub trait ModuleRuntime {
     async fn system_resources(&self) -> anyhow::Result<SystemResources>;
     async fn list(&self) -> anyhow::Result<Vec<Self::Module>>;
     async fn list_with_details(&self) -> anyhow::Result<Vec<(Self::Module, ModuleRuntimeState)>>;
+    async fn list_images(&self) -> anyhow::Result<std::collections::HashMap<String, String>>;
     async fn logs(&self, id: &str, options: &LogOptions) -> anyhow::Result<hyper::Body>;
     async fn remove_all(&self) -> anyhow::Result<()>;
     async fn stop_all(&self, wait_before_kill: Option<Duration>) -> anyhow::Result<()>;
@@ -548,6 +535,7 @@ pub enum RuntimeOperation {
     GetModuleLogs(String),
     GetSupportBundle,
     Init,
+    ListImages,
     ListModules,
     RemoveModule(String),
     RestartModule(String),
@@ -569,6 +557,7 @@ impl fmt::Display for RuntimeOperation {
             RuntimeOperation::GetSupportBundle => write!(f, "get support bundle"),
             RuntimeOperation::Init => write!(f, "initialize module runtime"),
             RuntimeOperation::ListModules => write!(f, "list modules"),
+            RuntimeOperation::ListImages => write!(f, "list images"),
             RuntimeOperation::RemoveModule(name) => write!(f, "remove module {:?}", name),
             RuntimeOperation::RestartModule(name) => write!(f, "restart module {:?}", name),
             RuntimeOperation::StartModule(name) => write!(f, "start module {:?}", name),

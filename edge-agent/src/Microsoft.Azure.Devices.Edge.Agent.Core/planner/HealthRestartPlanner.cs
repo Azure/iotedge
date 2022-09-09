@@ -109,7 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planner
                 plan.AddRange(commands);
             }
 
-            // If we need to premept the constructured plan with image pull
+            // If we need to premept the constructed plan with image pull
             // commands, do so here.
             plan = upfrontImagePullPlan.Concat(plan).ToList();
 
