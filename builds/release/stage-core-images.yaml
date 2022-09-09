@@ -358,7 +358,7 @@ stages:
 
 # This stage builds Rocks DB and adds the files to staging directory
 ################################################################################
-  - template: templates/build-rocksdb.yaml
+  - template: ../misc/templates/build-rocksdb.yaml
 ################################################################################
 
 # This stage consolidates .NET binaries, Rocksdb binaries and the SBOM into a
@@ -423,7 +423,7 @@ stages:
     jobs:
     - job: BuildImageEdgeHub
       steps:
-      - template: templates/image-linux.yaml
+      - template: ../misc/templates/image-linux.yaml
         parameters:
           imageName: azureiotedge-hub
           name: "Edge Hub"
@@ -433,7 +433,7 @@ stages:
           use_rocksdb: true
     - job: BuildImageEdgeAgent
       steps:
-      - template: templates/image-linux.yaml
+      - template: ../misc/templates/image-linux.yaml
         parameters:
           imageName: azureiotedge-agent
           name: "Edge Agent"
@@ -443,7 +443,7 @@ stages:
           use_rocksdb: true
     - job: BuildImageTemperatureSensor
       steps:
-      - template: templates/image-linux.yaml
+      - template: ../misc/templates/image-linux.yaml
         parameters:
           imageName: azureiotedge-simulated-temperature-sensor
           name: "Temperature Sensor"
@@ -452,7 +452,7 @@ stages:
           bin_dir: '$(Build.BinariesDirectory)'
     - job: BuildImageDiagnostics
       steps:
-      - template: templates/image-linux.yaml
+      - template: ../misc/templates/image-linux.yaml
         parameters:
           imageName: azureiotedge-diagnostics
           name: "Diagnostics Module"
@@ -462,7 +462,7 @@ stages:
     # for E2E tests
     - job: BuildImageMetricsValidator
       steps:
-      - template: templates/image-linux.yaml
+      - template: ../misc/templates/image-linux.yaml
         parameters:
           name: Metrics Validator
           imageName: azureiotedge-metrics-validator
@@ -470,7 +470,7 @@ stages:
           bin_dir: '$(Build.BinariesDirectory)'
     - job: BuildImageDirectMethodSender
       steps:
-      - template: templates/image-linux.yaml
+      - template: ../misc/templates/image-linux.yaml
         parameters:
           name: Direct Method Sender
           imageName: azureiotedge-direct-method-sender
@@ -478,7 +478,7 @@ stages:
           bin_dir: '$(Build.BinariesDirectory)'
     - job: BuildImageDirectMethodReceiver
       steps:
-      - template: templates/image-linux.yaml
+      - template: ../misc/templates/image-linux.yaml
         parameters:
           name: Direct Method Receiver
           imageName: azureiotedge-direct-method-receiver
@@ -486,7 +486,7 @@ stages:
           bin_dir: '$(Build.BinariesDirectory)'
     - job: BuildImageNumberLogger
       steps:
-      - template: templates/image-linux.yaml
+      - template: ../misc/templates/image-linux.yaml
         parameters:
           name: Number Logger
           imageName: azureiotedge-number-logger
@@ -494,7 +494,7 @@ stages:
           bin_dir: '$(Build.BinariesDirectory)'
     - job: BuildImageTemperatureFilter
       steps:
-      - template: templates/image-linux.yaml
+      - template: ../misc/templates/image-linux.yaml
         parameters:
           name: Temperature Filter
           imageName: azureiotedge-temperature-filter
@@ -502,7 +502,7 @@ stages:
           bin_dir: '$(Build.BinariesDirectory)'
     - job: BuildImageLoadGen
       steps:
-      - template: templates/image-linux.yaml
+      - template: ../misc/templates/image-linux.yaml
         parameters:
           name: Load Gen
           imageName: azureiotedge-load-gen
@@ -510,7 +510,7 @@ stages:
           bin_dir: '$(Build.BinariesDirectory)'
     - job: BuildImageTestResultCoordinator
       steps:
-      - template: templates/image-linux.yaml
+      - template: ../misc/templates/image-linux.yaml
         parameters:
           name: TestResultCoordinator
           imageName: azureiotedge-test-result-coordinator
@@ -519,7 +519,7 @@ stages:
           use_rocksdb: true
     - job: BuildImageRelayer
       steps:
-      - template: templates/image-linux.yaml
+      - template: ../misc/templates/image-linux.yaml
         parameters:
           name: Relayer
           imageName: azureiotedge-relayer
@@ -528,7 +528,7 @@ stages:
     # Functions Sample - Not supported on linux arm64
     - job: BuildImageFunctionsSample
       steps:
-      - template: templates/image-linux.yaml
+      - template: ../misc/templates/image-linux.yaml
         parameters:
           name: Functions Sample
           imageName: azureiotedge-functions-filter
