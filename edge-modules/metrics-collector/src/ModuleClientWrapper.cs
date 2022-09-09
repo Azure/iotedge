@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 
         static async Task<ModuleClient> InitializeModuleClientAsync()
         {
-            TransportType transportType = TransportType.Amqp;
+            TransportType transportType = TransportType.Amqp_Tcp_Only;
             LoggerUtil.Writer.LogInformation($"Trying to initialize module client using transport type [{transportType}]");
 
             ITransportSettings[] settings = new ITransportSettings[] { new AmqpTransportSettings(transportType) };
