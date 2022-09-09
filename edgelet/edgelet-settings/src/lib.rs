@@ -12,8 +12,8 @@
 pub mod base;
 
 pub use base::module::Settings as ModuleSpec;
-pub use base::RuntimeSettings;
 pub use base::{aziot, module, uri, watchdog};
+pub use base::{IotedgeMaxRequests, RuntimeSettings};
 
 #[cfg(feature = "settings-docker")]
 pub mod docker;

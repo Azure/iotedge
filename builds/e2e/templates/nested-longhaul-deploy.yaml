@@ -40,8 +40,8 @@ steps:
     fetchDepth: 100
     submodules: recursive
   - pwsh: |
-      $imageBuildId = $(resources.pipeline.images.runID)
-      $packageBuildId = $(resources.pipeline.packages.runID)
+      $imageBuildId = $(resources.pipeline.ci-build.runID)
+      $packageBuildId = $(resources.pipeline.ci-build.runID)
 
       if ('$(az.pipeline.images.buildId)')
       {
@@ -65,8 +65,8 @@ steps:
     displayName: 'Download Edgelet Artifacts'
     inputs:
       buildType: specific
-      project: $(resources.pipeline.packages.projectID)
-      pipeline: $(resources.pipeline.packages.pipelineName)
+      project: $(resources.pipeline.ci-build.projectID)
+      pipeline: $(resources.pipeline.ci-build.pipelineName)
       buildVersionToDownload: specific
       buildId: $(packageBuildId)
       downloadPath: '$(Build.StagingDirectory)'
@@ -76,8 +76,8 @@ steps:
     displayName: 'Download Images Artifacts'
     inputs:
       buildType: specific
-      project: $(resources.pipeline.images.projectID)
-      pipeline: $(resources.pipeline.images.pipelineName)
+      project: $(resources.pipeline.ci-build.projectID)
+      pipeline: $(resources.pipeline.ci-build.pipelineName)
       buildVersionToDownload: specific
       buildId: $(imageBuildId)
       downloadPath: '$(Build.StagingDirectory)'
