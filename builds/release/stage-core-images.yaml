@@ -1,9 +1,64 @@
 name: $(version)
 
+resources:
+  pipelines:
+    pipeline: detect-image-updates
+    #source: 'Azure-IoT-Edge Detect Image Updates'
+    source: 'Azure.iotedge'
+    # trigger:
+    #   branches:
+    #     include:
+    #     - release/*
+    #     exclude:
+    #     - release/1.1
+    #     - release/1.2
+    #     - release/1.3
+    trigger: true
+
 variables:
   DisableDockerDetector: true
 
 stages:
+################################################################################
+  - stage: GetImageList
+################################################################################
+    displayName: Get list of images to update
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+    dependsOn: []
+    jobs:
+    - job: Debugging
+      steps:
+      - script: |
+          echo 'build reason: $(Build.Reason)'
+          echo 'resource triggering category: $(Resource.TriggeringCategory)'
+          echo 'resources triggering category: $(Resources.TriggeringCategory)'
+          echo 'resource triggering alias: $(Resource.TriggeringAlias)'
+          echo 'resources triggering alias: $(Resources.TriggeringAlias)'
+    - job: GetListFromTriggeringPipeline
+      displayName: Get list from triggering pipeline
+      condition: and(
+        eq(variables['Build.Reason'],'ResourceTrigger'),
+        eq(variables['Resource.TriggeringCategory'],'pipeline'),
+        eq(variables['Resources.TriggeringAlias'],'detect-image-updates')
+      )
+      steps:
+      - download: detect-image-updates
+        displayName: Download artifact from triggering pipeline
+      - script: |
+          cat $(Pipeline.Workspace)/detect-image-updates/image-updates/updates.json | jq '.'
+        displayName: Process image list from artifact
+    - job: GetList
+      displayName: Build all images (manual trigger)
+      condition: ne(variables['Build.Reason'],'ResourceTrigger')
+      steps:
+      - script: echo 'Build it all!!'
+    - job: Exit
+      steps:
+      - script: exit 1
+
 ################################################################################
   - stage: BuildExecutables
 ################################################################################
@@ -12,7 +67,7 @@ stages:
       name: $(pool.linux.name)
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
-    dependsOn: []
+    dependsOn: GetImageList
     jobs:
     - job: BuildDotnetComponents
       displayName: Build Dotnet Components
@@ -315,7 +370,9 @@ stages:
       name: $(pool.linux.name)
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
-    dependsOn: [BuildExecutables, BuildRocksDB]
+    dependsOn:
+    - BuildExecutables
+    - BuildRocksDB
     jobs:
     - job: ConsolidateAndPublishArtifacts
       steps:
