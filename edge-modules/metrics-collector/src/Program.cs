@@ -50,12 +50,12 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             {
                 try
                 {
-                    moduleClientWrapper = await ModuleClientWrapper.BuildModuleClientWrapperAsync(Settings.Current.TransportType);
+                    moduleClientWrapper = await ModuleClientWrapper.BuildModuleClientWrapperAsync();
                     PeriodicTask periodicIothubConnect = new PeriodicTask(moduleClientWrapper.RecreateClientAsync, Settings.Current.IotHubConnectFrequency, TimeSpan.FromMinutes(1), LoggerUtil.Writer, "Reconnect to IoT Hub", true);
                 }
                 catch (Exception e)
                 {
-                    String msg = String.Format("Error connecting to Edge Hub. Is Edge Hub up and running with settings for clients connecting over {0}? Exception: {1}", Settings.Current.TransportType, e);
+                    String msg = String.Format("Error connecting to Edge Hub. This is only a fatal error if trying to upload to IoT Hub. For Azure Monitor upload, this connection is only used for Microsoft internal diagnostics. Exception: {1}", e);
                     if (Settings.Current.UploadTarget == UploadTarget.IotMessage)
                     {
                         LoggerUtil.Writer.LogError(msg);
