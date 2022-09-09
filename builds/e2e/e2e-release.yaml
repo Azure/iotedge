@@ -1,9 +1,6 @@
 parameters:
   dependency: []
 
-variables:
-  DisableDockerDetector: true
-
 stages:
 ################################################################################
   - stage: RunE2ETest
