@@ -55,15 +55,10 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                 }
                 catch (Exception e)
                 {
-                    String msg = String.Format("Error connecting to Edge Hub. This is only a fatal error if trying to upload to IoT Hub. For Azure Monitor upload, this connection is only used for Microsoft internal diagnostics. Exception: {0}", e);
                     if (Settings.Current.UploadTarget == UploadTarget.IotMessage)
                     {
-                        LoggerUtil.Writer.LogError(msg);
+                        LoggerUtil.Writer.LogError("Error connecting to EdgeHub. Exception: {0}", e);
                         throw;
-                    }
-                    else
-                    {
-                        LoggerUtil.Writer.LogWarning(msg);
                     }
                 }
 
