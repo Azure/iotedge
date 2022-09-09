@@ -31,6 +31,7 @@ stages:
     jobs:
     - job: Debugging
       steps:
+      - checkout: none
       - script: |
           echo 'build reason: $(Build.Reason)'
           echo 'resource triggering category: $(Resource.TriggeringCategory)'
@@ -42,10 +43,11 @@ stages:
       condition: |
         and(
           eq(variables['Build.Reason'],'ResourceTrigger'),
-          eq(variables['Resource.TriggeringCategory'],'pipeline'),
+          eq(variables['Resources.TriggeringCategory'],'pipeline'),
           eq(variables['Resources.TriggeringAlias'],'detect-image-updates')
         )
       steps:
+      - checkout: none
       - download: detect-image-updates
         displayName: Download artifact from triggering pipeline
       - script: |
@@ -55,9 +57,11 @@ stages:
       displayName: Build all images (manual trigger)
       condition: ne(variables['Build.Reason'],'ResourceTrigger')
       steps:
+      - checkout: none
       - script: echo 'Build it all!!'
     - job: Exit
       steps:
+      - checkout: none
       - script: exit 1
 
 ################################################################################
