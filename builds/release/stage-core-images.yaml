@@ -39,11 +39,12 @@ stages:
           echo 'resources triggering alias: $(Resources.TriggeringAlias)'
     - job: GetListFromTriggeringPipeline
       displayName: Get list from triggering pipeline
-      condition: and(
-        eq(variables['Build.Reason'],'ResourceTrigger'),
-        eq(variables['Resource.TriggeringCategory'],'pipeline'),
-        eq(variables['Resources.TriggeringAlias'],'detect-image-updates')
-      )
+      condition: |
+        and(
+          eq(variables['Build.Reason'],'ResourceTrigger'),
+          eq(variables['Resource.TriggeringCategory'],'pipeline'),
+          eq(variables['Resources.TriggeringAlias'],'detect-image-updates')
+        )
       steps:
       - download: detect-image-updates
         displayName: Download artifact from triggering pipeline
