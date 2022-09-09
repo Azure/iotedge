@@ -1,6 +1,7 @@
 name: $(version)
 
 pr: none
+trigger: none
 
 resources:
   pipelines:
