@@ -359,6 +359,8 @@ stages:
 # This stage builds Rocks DB and adds the files to staging directory
 ################################################################################
   - template: ../misc/templates/build-rocksdb.yaml
+    parameters:
+      dependency: GetImageList
 ################################################################################
 
 # This stage consolidates .NET binaries, Rocksdb binaries and the SBOM into a
