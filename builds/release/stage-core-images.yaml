@@ -57,6 +57,7 @@ stages:
       dependsOn:
       - GetListFromTriggeringPipeline
       - GetList
+      condition: always()
       steps:
       - checkout: none
       - script: exit 1
