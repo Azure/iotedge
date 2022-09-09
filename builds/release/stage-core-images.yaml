@@ -3,8 +3,9 @@ name: $(version)
 resources:
   pipelines:
   - pipeline: detect-image-updates
-    #source: 'Azure-IoT-Edge Detect Image Updates'
     source: 'Azure.iotedge'
+    trigger: true
+    # source: 'Azure-IoT-Edge Detect Image Updates'
     # trigger:
     #   branches:
     #     include:
@@ -13,7 +14,6 @@ resources:
     #     - release/1.1
     #     - release/1.2
     #     - release/1.3
-    trigger: true
 
 variables:
   DisableDockerDetector: true
