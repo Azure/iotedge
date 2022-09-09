@@ -2,7 +2,7 @@ name: $(version)
 
 resources:
   pipelines:
-    pipeline: detect-image-updates
+  - pipeline: detect-image-updates
     #source: 'Azure-IoT-Edge Detect Image Updates'
     source: 'Azure.iotedge'
     # trigger:
