@@ -41,7 +41,10 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                     client.Dispose();
                 });
                 this.inner = await InitializeModuleClientAsync();
-                LoggerUtil.Writer.LogInformation("Closed and re-established connection to IoT Hub");
+                this.inner.ForEach((client) =>
+                {
+                    LoggerUtil.Writer.LogInformation("Closed and re-established connection to IoT Hub");
+                });
             }
             catch (Exception e)
             {
