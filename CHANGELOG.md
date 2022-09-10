@@ -1,3 +1,7 @@
+#1.4.1 (2022-09-09)
+## aziot-edge
+* Bump iot-identity-service to fix regression in TPM authentication key index ( [fd90024](https://github.com/Azure/iotedge/commit/fd9002452871fc0601798e74499c5f3acbd09574) )
+
 # 1.4.0 (2022-08-26)
 
 ## Edge Agent
