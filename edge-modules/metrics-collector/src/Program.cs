@@ -48,19 +48,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             ModuleClientWrapper moduleClientWrapper = null;
             try
             {
-                try
-                {
-                    moduleClientWrapper = await ModuleClientWrapper.BuildModuleClientWrapperAsync();
-                    PeriodicTask periodicIothubConnect = new PeriodicTask(moduleClientWrapper.RecreateClientAsync, Settings.Current.IotHubConnectFrequency, TimeSpan.FromMinutes(1), LoggerUtil.Writer, "Reconnect to IoT Hub", true);
-                }
-                catch (Exception e)
-                {
-                    if (Settings.Current.UploadTarget == UploadTarget.IotMessage)
-                    {
-                        LoggerUtil.Writer.LogError("Error connecting to EdgeHub. Exception: {0}", e);
-                        throw;
-                    }
-                }
+                moduleClientWrapper = await ModuleClientWrapper.BuildModuleClientWrapperAsync(Settings.Current.UploadTarget, cts);
+                PeriodicTask periodicIothubConnect = new PeriodicTask(moduleClientWrapper.RecreateClientAsync, Settings.Current.IotHubConnectFrequency, TimeSpan.FromMinutes(1), LoggerUtil.Writer, "Reconnect to IoT Hub", true);
 
                 MetricsScraper scraper = new MetricsScraper(Settings.Current.Endpoints);
                 IMetricsPublisher publisher;

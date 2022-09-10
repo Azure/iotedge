@@ -49,7 +49,6 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.IotHubMetricsUpload
 
                 await this.ModuleClientWrapper.SendMessage("metricOutput", metricsMessage);
 
-                LoggerUtil.Writer.LogInformation("Successfully sent metrics via IoT message");
                 return true;
             }
             catch (Exception e)
