@@ -90,7 +90,7 @@ steps:
     # filter up-to-date images out of the list
     remove_json=$(printf '%s\n' "${remove[@]}" | jq -R '.' | jq -s '.')
     images_json=$(echo $images_json | jq --argjson remove "$remove_json" '
-      [ .[] | { product, version, images: .images - $remove } | select(.images | length != 0) ]
+      [ .[] | { product, version, images: (.images - $remove) } | select(.images | length != 0) ]
     ')
 
     if [ $(echo "$images_json" | jq '. | length != 0') == 'true' ]
