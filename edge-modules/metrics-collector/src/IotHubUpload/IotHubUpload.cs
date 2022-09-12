@@ -13,13 +13,14 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.IotHubMetricsUpload
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using Microsoft.Azure.Devices.Edge.Util;
+    using ModuleClientWrapper;
 
     public class IotHubMetricsUpload : IMetricsPublisher
     {
         const string IdentifierPropertyName = "id";
-        readonly ModuleClientWrapper ModuleClientWrapper;
+        readonly IModuleClientWrapper ModuleClientWrapper;
 
-        public IotHubMetricsUpload(ModuleClientWrapper moduleClientWrapper)
+        public IotHubMetricsUpload(IModuleClientWrapper moduleClientWrapper)
         {
             this.ModuleClientWrapper = Preconditions.CheckNotNull(moduleClientWrapper, nameof(moduleClientWrapper));
         }
@@ -47,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.IotHubMetricsUpload
                 Message metricsMessage = new Message(metricsData);
                 metricsMessage.Properties[IdentifierPropertyName] = Constants.IoTUploadMessageIdentifier;
 
-                await this.ModuleClientWrapper.SendMessage("metricOutput", metricsMessage);
+                await this.ModuleClientWrapper.SendMessageAsync("metricOutput", metricsMessage);
 
                 return true;
             }
