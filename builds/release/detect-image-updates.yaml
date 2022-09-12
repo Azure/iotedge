@@ -40,7 +40,7 @@ steps:
     ')
 
     # now create a complete list of published images for each product in this branch
-    images_json=$(echo $product_versions | jq --arg registry "$REGISTRY" '
+    images_json=$(echo "$product_versions" | jq --arg registry "$REGISTRY" '
       def images: select(has("type")) | select(.type == "dockerImage") | { name, version };
       def platforms: select(.name == "dockerImage") | .platforms[] | .os as $os | .arch[] | { os: $os, arch: . };
       [
@@ -56,7 +56,7 @@ steps:
 
     # use build metadata present in each published image to determine if it is out of date
     remove=( )
-    images=( $(echo $images_json | jq -r '[ .[].images ] | flatten | join("\n")') )
+    images=( $(echo "$images_json" | jq -r '[ .[].images ] | flatten | join("\n")') )
     for image in ${images[@]}
     do
       echo "image: $image"
@@ -89,13 +89,13 @@ steps:
 
     # filter up-to-date images out of the list
     remove_json=$(printf '%s\n' "${remove[@]}" | jq -R '.' | jq -s '.')
-    images_json=$(echo $images_json | jq --argjson remove "$remove_json" '
+    images_json=$(echo "$images_json" | jq --argjson remove "$remove_json" '
       [ .[] | { product, version, images: (.images - $remove) } | select(.images | length != 0) ]
     ')
 
     if [ $(echo "$images_json" | jq '. | length != 0') == 'true' ]
     then
-      echo 'Found images that need to be updated:"
+      echo 'Found images that need to be updated:'
       echo "$images_json" | jq '.'
     else
       echo 'All images are up to date. Nothing to do...'
