@@ -25,6 +25,8 @@ steps:
     # transform product-versions.json into a list of images that correspond to this branch
 
     # first, gather the list of products for this branch
+    # TODO: convert from hard-coded 'release/1.4' in jq logic below to getting the branch name
+    # TODO: from the build pipeline.
     products_json=$(cat product-versions.json | jq '
       .sources[] | select(.repo == "Azure/iotedge" and .branch == "release/1.4") | .products
     ')
