@@ -12,7 +12,6 @@ resources:
 variables:
   NugetSecurityAnalysisWarningLevel: warn
   DisableDockerDetector: true
-  registry: mcr.microsoft.com
 
 pool:
   name: $(pool.linux.name)
@@ -23,25 +22,38 @@ steps:
 - checkout: azure-iotedge
 
 - script: |
-    needs_update=( )
+    # transform product-versions.json into a list of images that correspond to this branch
 
-    # transform product-versions.json into a list of images, but group by channel/product so we
-    # can figure out which release pipeline to launch for the various images
+    # first, gather the list of products for this branch
+    products_json=$(cat product-versions.json | jq '
+      .sources[] | select(.repo == "Azure/iotedge" and .branch == "release/1.4") | .products
+    ')
 
-    images_json=$(cat product-versions.json | jq '
+    # next, gather the details for the selected products
+    product_versions=$(cat product-versions.json | jq --argjson products_json "$products_json" '
+      def equals($o): .channel == $o.channel and .id == $o.id and (.version | startswith($o.version));
+      [ .channels[] | .name as $channel | .products[] | select(
+        { $channel, id, version } | equals($products_json[])
+      ) ]
+    ')
+
+    # now create a complete list of published images for each product in this branch
+    images_json=$(echo $product_versions | jq --arg registry "$REGISTRY" '
       def images: select(has("type")) | select(.type == "dockerImage") | { name, version };
       def platforms: select(.name == "dockerImage") | .platforms[] | .os as $os | .arch[] | { os: $os, arch: . };
       [
-        .channels[] | .name as $channel | .products[] | .id as $product |
+        .[] | .id as $product | .version as $version |
         {
-          $channel, $product, images: [
+          $product, $version, images: [
             .componentTypes as $types | .components[] | images + ($types[] | platforms) |
-              @text "$(registry)/\(.name):\(.version)-\(.os)-\(.arch)"
+              @text "\($registry)/\(.name):\(.version)-\(.os)-\(.arch)"
           ]
         }
-      ]
+      ] | unique
     ')
 
+    # use build metadata present in each published image to determine if it is out of date
+    remove=( )
     images=( $(echo $images_json | jq -r '[ .[].images ] | flatten | join("\n")') )
     for image in ${images[@]}
     do
@@ -57,6 +69,7 @@ steps:
       if [ "$base_image" == 'null' ]
       then
         echo "'$image' does not contain Docker BuildInfo metadata. Skipping..."
+        remove+=( "$image" )
         continue
       fi
 
@@ -67,29 +80,29 @@ steps:
       if [ "$current_digest" != 'null' ] && [ "$current_digest" != "$latest_digest" ]
       then
         echo "  ## NEEDS UPDATE ##"
-        needs_update+=( "$image" )
+      else
+        remove+=( "$image" )
       fi
     done
 
-    # now group the images in $needs_update by channel/product
-
-    needs_update_json=$(printf '%s\n' "${needs_update[@]}" | jq -R '.' | jq -s '.')
-    needs_update_json=$(echo "$images_json" | jq --argjson needs_update "$needs_update_json" '
-      def find(s): index(s) as $i | if $i != null then .[$i] else null end;
-      [
-        .[] |
-        {
-          channel, product, images: [
-            .images | find($needs_update[] | .) | select(. != null)
-          ]
-        } | select(.images | length != 0)
-      ]
+    # filter up-to-date images out of the list
+    remove_json=$(printf '%s\n' "${remove[@]}" | jq -R '.' | jq -s '.')
+    images_json=$(echo $images_json | jq --argjson remove "$remove_json" '
+      [ .[] | { product, version, images: .images - $remove } | select(.images | length != 0) ]
     ')
 
-    echo "Found ${#needs_update[@]} images that need to be updated:"
-    echo "$needs_update_json"
-    echo "$needs_update_json" > $(Build.ArtifactStagingDirectory)/updates.json
+    if [ $(echo "$images_json" | jq '. | length != 0') == 'true' ]
+    then
+      echo 'Found images that need to be updated:"
+      echo "$images_json" | jq '.'
+    else
+      echo 'All images are up to date. Nothing to do...'
+    fi
+
+    echo "$images_json" > $(Build.ArtifactStagingDirectory)/updates.json
   displayName: Detect base image updates
+  env:
+    REGISTRY: 'mcr.microsoft.com'
 
 - task: PublishBuildArtifacts@1
   displayName: Save list of images to update
