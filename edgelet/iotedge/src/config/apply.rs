@@ -26,28 +26,39 @@ pub async fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>
     // Otherwise, if this is a debug build, fall back to using the current user.
     // Otherwise, tell the user to re-run as root.
     // When run in a snap expect the four users to be prefixed with `snap_`.
+
     let (aziotks_user, aziotcs_user, aziotid_user, aziottpm_user, iotedge_user) =
         if nix::unistd::Uid::current().is_root() {
             if std::env::var("SNAP").is_ok() {
                 println!("Running in SNAP confinement");
                 let aziotks_user = nix::unistd::User::from_name("snap_aziotks")
-                    .map_err(|err| format!("could not query snap_aziotks user information: {}", err))?
+                    .map_err(|err| {
+                        format!("could not query snap_aziotks user information: {}", err)
+                    })?
                     .ok_or("could not query aziotks user information")?;
 
                 let aziotcs_user = nix::unistd::User::from_name("snap_aziotcs")
-                    .map_err(|err| format!("could not query snap_aziotcs user information: {}", err))?
+                    .map_err(|err| {
+                        format!("could not query snap_aziotcs user information: {}", err)
+                    })?
                     .ok_or("could not query aziotcs user information")?;
 
                 let aziotid_user = nix::unistd::User::from_name("snap_aziotid")
-                    .map_err(|err| format!("could not query snap_aziotid user information: {}", err))?
+                    .map_err(|err| {
+                        format!("could not query snap_aziotid user information: {}", err)
+                    })?
                     .ok_or("could not query aziotid user information")?;
 
                 let aziottpm_user = nix::unistd::User::from_name("snap_aziottpm")
-                    .map_err(|err| format!("could not query snap_aziottpm user information: {}", err))?
+                    .map_err(|err| {
+                        format!("could not query snap_aziottpm user information: {}", err)
+                    })?
                     .ok_or("could not query aziottpm user information")?;
 
                 let iotedge_user = nix::unistd::User::from_name("snap_iotedge")
-                    .map_err(|err| format!("could not query snap_iotedge user information: {}", err))?
+                    .map_err(|err| {
+                        format!("could not query snap_iotedge user information: {}", err)
+                    })?
                     .ok_or("could not query iotedge user information")?;
 
                 (
