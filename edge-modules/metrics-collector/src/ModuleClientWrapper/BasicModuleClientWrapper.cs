@@ -28,9 +28,10 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.ModuleClientWrapper
         public async Task RecreateClientAsync()
         {
 
+            await this.moduleClientLock.WaitAsync();
+
             try
             {
-                await this.moduleClientLock.WaitAsync();
                 this.inner.Dispose();
                 this.inner = await InitializeModuleClientAsync();
                 LoggerUtil.Writer.LogInformation("Closed and re-established connection to IoT Hub");
@@ -46,9 +47,10 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.ModuleClientWrapper
 
         public async Task SendMessageAsync(string outputName, Message message)
         {
+            await this.moduleClientLock.WaitAsync();
+
             try
             {
-                await this.moduleClientLock.WaitAsync();
                 await this.inner.SendEventAsync(outputName, message);
                 LoggerUtil.Writer.LogInformation("Successfully sent metrics via IoT message");
             }
