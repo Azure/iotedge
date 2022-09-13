@@ -23,7 +23,7 @@ variables:
 
 stages:
 ################################################################################
-  - stage: GetImageList
+  - stage: UpdatesDetected
 ################################################################################
     displayName: Get list of images to update
     pool:
@@ -32,7 +32,7 @@ stages:
         - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
     dependsOn: []
     jobs:
-    - job: MatchProduct
+    - job: PrepareRelease
       displayName: Match product from triggering pipeline
       condition: |
         and(
@@ -43,7 +43,7 @@ stages:
       steps:
       - checkout: none
       - download: detect-image-updates
-        displayName: Download artifact from triggering pipeline
+        displayName: Download image-list from triggering pipeline
       - script: |
           # TODO: replace hard-coded '1.4' in jq logic with branch from pipeline
           continue=$(cat $(Pipeline.Workspace)/detect-image-updates/image-updates/updates.json | jq '
@@ -54,8 +54,8 @@ stages:
             ] | length != 0
           ')
           echo "##vso[task.setvariable variable=continue;isOutput=true]$continue"
-        name: UpdatesDetected
-        displayName: Process image list from artifact
+        name: FilterCoreImages
+        displayName: Filter image list for core images
 
 ################################################################################
   - stage: BuildExecutables
@@ -65,8 +65,8 @@ stages:
       name: $(pool.linux.name)
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
-    dependsOn: GetImageList
-    condition: eq(dependencies.GetImageList.outputs['MatchProduct.UpdatesDetected.continue'], 'true')
+    dependsOn: UpdatesDetected
+    condition: eq(dependencies.UpdatesDetected.outputs['PrepareRelease.FilterCoreImages.continue'], 'true')
     jobs:
     - job: BuildDotnetComponents
       displayName: Build Dotnet Components
@@ -358,8 +358,8 @@ stages:
 ################################################################################
   - template: ../misc/templates/build-rocksdb.yaml
     parameters:
-      dependency: GetImageList
-      condition: eq(dependencies.GetImageList.outputs['MatchProduct.UpdatesDetected.continue'], 'true')
+      dependency: UpdatesDetected
+      condition: eq(dependencies.UpdatesDetected.outputs['PrepareRelease.FilterCoreImages.continue'], 'true')
 ################################################################################
 
 # This stage consolidates .NET binaries, Rocksdb binaries and the SBOM into a
