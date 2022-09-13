@@ -1,8 +1,7 @@
-# 1.1.0 (2022-09-02)
-### Features
-* Add support for configurable transport type [b39d6c5](https://github.com/azure/iotedge/commit/b39d6c5c295cb81a9150141ace9a9909bc2b3686)
+# 1.1.0 (2022-09-09)
 
 ### Bug Fixes
+* Fix bug where failing connection to Edge Hub blocks independent AzureMonitor upload path [b39d6c5](https://github.com/azure/iotedge/commit/b39d6c5c295cb81a9150141ace9a9909bc2b3686)
 * Update SharpZipLib and Newtonsoft.Json to patch security vulnerability [1b483e4](https://github.com/Azure/iotedge/commit/1b483e4f114593b9cb40be65598c83bea6811444)
 * Update base image to include .NET security fixes from [.NET Core 3.1.28 - August 9, 2022](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1.28/3.1.28.md)
 
