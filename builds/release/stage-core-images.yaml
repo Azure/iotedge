@@ -25,25 +25,25 @@ stages:
 ################################################################################
 - stage: UpdatesDetected
 ################################################################################
-  displayName: Get list of images to update
+  displayName: Trigger on base image updates
   pool:
     name: $(pool.linux.name)
     demands:
     - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
   dependsOn: []
+  condition: |
+    and(
+      eq(variables['Build.Reason'],'ResourceTrigger'),
+      eq(variables['Resources.TriggeringCategory'],'pipeline'),
+      eq(variables['Resources.TriggeringAlias'],'detect-image-updates')
+    )
   jobs:
   - job: PrepareRelease
-    displayName: Match product from triggering pipeline
-    condition: |
-      and(
-        eq(variables['Build.Reason'],'ResourceTrigger'),
-        eq(variables['Resources.TriggeringCategory'],'pipeline'),
-        eq(variables['Resources.TriggeringAlias'],'detect-image-updates')
-      )
+    displayName: Prepare for release
     steps:
     - checkout: none
     - download: detect-image-updates
-      displayName: Download image-list from triggering pipeline
+      displayName: Download image list from triggering pipeline
     - script: |
         # TODO: replace hard-coded '1.4' in jq logic with branch from pipeline
         continue=$(cat $(Pipeline.Workspace)/detect-image-updates/image-updates/updates.json | jq '
