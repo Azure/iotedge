@@ -41,7 +41,6 @@ stages:
   - job: PrepareRelease
     displayName: Prepare for release
     steps:
-    - checkout: none
     - download: detect-image-updates
       displayName: Download image list from triggering pipeline
     - script: |
@@ -56,8 +55,11 @@ stages:
         echo "##vso[task.setvariable variable=continue;isOutput=true]$continue"
       name: FilterCoreImages
       displayName: Filter image list for core images
+    - checkout: self
+      persistCredentials: true
     - script: |
-        echo '$(FilterCoreImages.continue)'
+        echo 'continue? $(FilterCoreImages.continue)'
+        git checkout $(git describe --tags --abbrev=0 origin/release/1.4)
       displayName: Create a release commit
 
 ################################################################################
