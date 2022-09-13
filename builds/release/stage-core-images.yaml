@@ -38,8 +38,8 @@ stages:
       eq(variables['Resources.TriggeringAlias'],'detect-image-updates')
     )
   jobs:
-  - job: PrepareRelease
-    displayName: Prepare for release
+  - job: FilterCoreImages
+    displayName: Filter image list for core images
     steps:
     - download: detect-image-updates
       displayName: Download image list from triggering pipeline
@@ -53,13 +53,24 @@ stages:
           ] | length != 0
         ')
         echo "##vso[task.setvariable variable=continue;isOutput=true]$continue"
-      name: FilterCoreImages
+      name: filter
       displayName: Filter image list for core images
+  - job: PrepareRelease
+    displayName: Prepare for release
+    condition: eq(dependencies.FilterCoreImages.outputs['filter.continue'], 'true')
+    steps:
     - checkout: self
       persistCredentials: true
     - script: |
-        echo 'continue? $(FilterCoreImages.continue)'
-        git checkout $(git describe --tags --abbrev=0 origin/release/1.4)
+        find .git/refs/
+        echo '##################'
+        prev=$(git describe --tags --abbrev=0 refs/remotes/origin/release/1.4)
+        echo "Found previous release version: $prev"
+        echo "##vso[task.setvariable variable=version;isOutput=true]$prev"
+      displayName: Get previous release version
+      name: previous
+    - script: |
+        git checkout $(previous.version)
       displayName: Create a release commit
 
 ################################################################################
@@ -71,7 +82,7 @@ stages:
     demands:
     - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
   dependsOn: UpdatesDetected
-  condition: eq(dependencies.UpdatesDetected.outputs['PrepareRelease.FilterCoreImages.continue'], 'true')
+  condition: eq(dependencies.UpdatesDetected.outputs['FilterCoreImages.filter.continue'], 'true')
   jobs:
   - job: BuildDotnetComponents
     displayName: Build Dotnet Components
@@ -364,7 +375,7 @@ stages:
 - template: ../misc/templates/build-rocksdb.yaml
   parameters:
     dependency: UpdatesDetected
-    condition: eq(dependencies.UpdatesDetected.outputs['PrepareRelease.FilterCoreImages.continue'], 'true')
+    condition: eq(dependencies.UpdatesDetected.outputs['FilterCoreImages.filter.continue'], 'true')
 ################################################################################
 
 # This stage consolidates .NET binaries, Rocksdb binaries and the SBOM into a
