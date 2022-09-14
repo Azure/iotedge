@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using Microsoft.Azure.Devices.Edge.Util;
+    using ModuleClientWrapper;
 
 
     using System.Diagnostics;
@@ -45,14 +46,10 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 #endif
 
             LoggerUtil.Writer.LogInformation($"Metrics collector initialized with the following settings:\r\n{Settings.Information}");
-            var transportSetting = new AmqpTransportSettings(TransportType.Amqp_Tcp_Only);
-
-            ITransportSettings[] transportSettings = { transportSetting };
-            ModuleClientWrapper moduleClientWrapper = null;
+            IModuleClientWrapper moduleClientWrapper = null;
             try
             {
-                moduleClientWrapper = await ModuleClientWrapper.BuildModuleClientWrapperAsync(transportSettings);
-
+                moduleClientWrapper = await BuildModuleClientWrapperAsync(Settings.Current.UploadTarget, cts);
                 PeriodicTask periodicIothubConnect = new PeriodicTask(moduleClientWrapper.RecreateClientAsync, Settings.Current.IotHubConnectFrequency, TimeSpan.FromMinutes(1), LoggerUtil.Writer, "Reconnect to IoT Hub", true);
 
                 MetricsScraper scraper = new MetricsScraper(Settings.Current.Endpoints);
@@ -80,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             }
             finally
             {
-                moduleClientWrapper?.Dispose();
+                ((IDisposable)moduleClientWrapper)?.Dispose();
             }
 
             completed.Set();
@@ -88,6 +85,18 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 
             LoggerUtil.Writer.LogInformation("MetricsCollector Main() finished.");
             return 0;
+        }
+
+        static async Task<IModuleClientWrapper> BuildModuleClientWrapperAsync(UploadTarget uploadTarget, CancellationTokenSource cts)
+        {
+            if (uploadTarget == UploadTarget.AzureMonitor)
+            {
+                return await AzureMonitorClientWrapper.BuildModuleClientWrapperAsync();
+            }
+            else
+            {
+                return await IotMessageModuleClientWrapper.BuildModuleClientWrapperAsync(cts);
+            }
         }
     }
 }

@@ -175,7 +175,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                 { nameof(this.BlockedMetrics), string.Join(",", this.BlockedMetrics.ToString()) },
                 { nameof(this.ResourceId), this.ResourceId ?? string.Empty },
                 { nameof(this.IotHubConnectFrequency), this.IotHubConnectFrequency.ToString() ?? string.Empty },
-                { nameof(this.AzureDomain), this.AzureDomain ?? string.Empty }
+                { nameof(this.AzureDomain), this.AzureDomain ?? string.Empty },
             };
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";

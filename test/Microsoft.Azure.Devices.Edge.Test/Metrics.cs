@@ -178,8 +178,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public static void AddTemporaryModule(this EdgeConfigBuilder builder)
         {
             const string Name = "stopMe";
-            const string Image = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
-            builder.AddModule(Name, Image).WithEnvironment(new[] { ("MessageCount", "0") });
+            string image = Context.Current.TempSensorImage.Expect(() => new InvalidOperationException("Missing Temp Sensor image"));
+            builder.AddModule(Name, image).WithEnvironment(new[] { ("MessageCount", "0") });
         }
 
         public static void AddMetricsValidatorConfig(this EdgeConfigBuilder builder, string image)

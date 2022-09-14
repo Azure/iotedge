@@ -1148,7 +1148,7 @@ checksum = "08173ba1e906efb6538785a8844dd496f5d34f0a2d88038e95195172fc667220"
 
 [[package]]
 name = "iotedge"
-version = "0.1.0"
+version = "1.1.15"
 dependencies = [
  "assert_matches",
  "atty",
@@ -1217,7 +1217,7 @@ dependencies = [
 
 [[package]]
 name = "iotedged"
-version = "0.1.0"
+version = "1.1.15"
 dependencies = [
  "base64 0.9.1",
  "chrono",
