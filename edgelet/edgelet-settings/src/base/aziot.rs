@@ -13,7 +13,7 @@ impl Default for AutoReprovisioningMode {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct Endpoints {
     aziot_certd_url: url::Url,
     aziot_keyd_url: url::Url,
