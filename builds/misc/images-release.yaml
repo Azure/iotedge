@@ -364,35 +364,35 @@ stages:
         - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
     dependsOn: ConsolidateAndPubishArtifacts
     jobs:
-    - job: BuildImageEdgeHub
-      steps:
-      - template: templates/image-linux.yaml
-        parameters:
-          imageName: azureiotedge-hub
-          name: "Edge Hub"
-          project: Microsoft.Azure.Devices.Edge.Hub.Service
-          version: $(version)
-          bin_dir: '$(Build.BinariesDirectory)'
-          use_rocksdb: true
-    - job: BuildImageEdgeAgent
-      steps:
-      - template: templates/image-linux.yaml
-        parameters:
-          imageName: azureiotedge-agent
-          name: "Edge Agent"
-          project: Microsoft.Azure.Devices.Edge.Agent.Service
-          version: $(version)
-          bin_dir: '$(Build.BinariesDirectory)'
-          use_rocksdb: true
-    - job: BuildImageTemperatureSensor
-      steps:
-      - template: templates/image-linux.yaml
-        parameters:
-          imageName: azureiotedge-simulated-temperature-sensor
-          name: "Temperature Sensor"
-          project: SimulatedTemperatureSensor
-          version: $(version)
-          bin_dir: '$(Build.BinariesDirectory)'
+    # - job: BuildImageEdgeHub
+    #   steps:
+    #   - template: templates/image-linux.yaml
+    #     parameters:
+    #       imageName: azureiotedge-hub
+    #       name: "Edge Hub"
+    #       project: Microsoft.Azure.Devices.Edge.Hub.Service
+    #       version: $(version)
+    #       bin_dir: '$(Build.BinariesDirectory)'
+    #       use_rocksdb: true
+    # - job: BuildImageEdgeAgent
+    #   steps:
+    #   - template: templates/image-linux.yaml
+    #     parameters:
+    #       imageName: azureiotedge-agent
+    #       name: "Edge Agent"
+    #       project: Microsoft.Azure.Devices.Edge.Agent.Service
+    #       version: $(version)
+    #       bin_dir: '$(Build.BinariesDirectory)'
+    #       use_rocksdb: true
+    # - job: BuildImageTemperatureSensor
+    #   steps:
+    #   - template: templates/image-linux.yaml
+    #     parameters:
+    #       imageName: azureiotedge-simulated-temperature-sensor
+    #       name: "Temperature Sensor"
+    #       project: SimulatedTemperatureSensor
+    #       version: $(version)
+    #       bin_dir: '$(Build.BinariesDirectory)'
     - job: BuildImageDiagnostics
       steps:
       - template: templates/image-linux.yaml
@@ -417,12 +417,12 @@ stages:
       displayName: Publish Manifest
       strategy:
         matrix:
-          EdgeAgent:
-            manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-agent/docker/manifest.yaml.template'
-          EdgeHub:
-            manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-hub/docker/manifest.yaml.template'
-          SimulatedTemperatureSensor:
-            manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template'
+          # EdgeAgent:
+          #   manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-agent/docker/manifest.yaml.template'
+          # EdgeHub:
+          #   manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-hub/docker/manifest.yaml.template'
+          # SimulatedTemperatureSensor:
+          #   manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template'
           Diagnostics:
             manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template'
       steps:
