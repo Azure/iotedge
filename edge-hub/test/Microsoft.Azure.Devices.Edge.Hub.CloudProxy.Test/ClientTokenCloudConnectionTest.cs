@@ -43,6 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
+                TimeSpan.FromSeconds(50),
                 DummyProductInfo,
                 Option.None<string>());
             Option<ICloudProxy> cloudProxy1 = cloudConnection.CloudProxy;
@@ -80,6 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
+                TimeSpan.FromSeconds(50),
                 DummyProductInfo,
                 Option.None<string>());
 
@@ -125,6 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
+                TimeSpan.FromSeconds(50),
                 DummyProductInfo,
                 Option.None<string>());
 
@@ -175,6 +178,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
+                TimeSpan.FromSeconds(50),
                 DummyProductInfo,
                 Option.None<string>());
 
@@ -244,6 +248,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
+                TimeSpan.FromSeconds(50),
                 DummyProductInfo,
                 Option.None<string>());
 
@@ -347,6 +352,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
+                TimeSpan.FromSeconds(50),
                 DummyProductInfo,
                 Option.None<string>());
 
@@ -442,6 +448,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
+                TimeSpan.FromSeconds(50),
                 false,
                 Option.None<IWebProxy>(),
                 metadataStore.Object,

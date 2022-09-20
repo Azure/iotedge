@@ -57,6 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly bool closeCloudConnectionOnDeviceDisconnect;
         readonly bool scopeAuthenticationOnly;
         readonly bool trackDeviceState;
+        readonly TimeSpan cloudConnectionHangingTimeout;
 
         public RoutingModule(
             string iotHubName,
@@ -76,6 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             TimeSpan cloudConnectionIdleTimeout,
             bool closeCloudConnectionOnIdleTimeout,
             TimeSpan operationTimeout,
+            TimeSpan cloudConnectionHangingTimeout,
             bool useServerHeartbeat,
             Option<TimeSpan> minTwinSyncPeriod,
             Option<TimeSpan> reportedPropertiesSyncFrequency,
@@ -120,6 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.closeCloudConnectionOnDeviceDisconnect = closeCloudConnectionOnDeviceDisconnect;
             this.scopeAuthenticationOnly = scopeAuthenticationOnly;
             this.trackDeviceState = trackDeviceState;
+            this.cloudConnectionHangingTimeout = cloudConnectionHangingTimeout;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -239,6 +242,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             this.cloudConnectionIdleTimeout,
                             this.closeCloudConnectionOnIdleTimeout,
                             this.operationTimeout,
+                            this.cloudConnectionHangingTimeout,
                             this.useServerHeartbeat,
                             proxy,
                             metadataStore,
