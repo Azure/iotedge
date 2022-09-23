@@ -69,23 +69,22 @@ stages:
       fetchDepth: 0
       persistCredentials: true
     - script: |
+        # find the previously shipped product version
         prev=$(git describe --tags --abbrev=0 --match '[0-9]*' refs/remotes/origin/release/1.4)
         echo "Found previous release version: $prev"
-        echo "##vso[task.setvariable variable=version;isOutput=true]$prev"
-      displayName: Get previous release version
-      name: previous
-    - script: |
+
         # determine new version
         IFS='.' read -a parts <<< "$prev"
         [ ${#parts[@]} -eq 3 ] || echo "Unexpected version format '$prev'" && exit 1
         next="${parts[0]}.${parts[1]}.$((${parts[2]} + 1))"
+        echo "Calculated next release version: $next"
 
         # configure git
         git config --global user.email "iotedge1@microsoft.com"
         git config --global user.name "IoT Edge Bot"
 
         # checkout code at previous release version
-        git checkout $(previous.version)
+        git checkout $prev
 
         # create changelog
         cat << EOF > CHANGELOG.new.md
