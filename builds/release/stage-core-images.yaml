@@ -91,16 +91,6 @@ stages:
         echo "Calculated next release version: $next"
 
         # create changelog
-        cat << EOF > CHANGELOG.new.md
-        # $next ($(date --iso-8601=date))
-
-        The following Docker images were updated because their base images changed:
-            azureiotedge-agent
-            azureiotedge-hub
-            azureiotedge-simulated-temperature-sensor
-            azureiotedge-diagnostics
-
-        EOF
       displayName: Create a release commit
 
 ################################################################################
