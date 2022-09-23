@@ -77,39 +77,6 @@ stages:
 
         # determine new version
         IFS='.' read -a parts <<< "$prev"
-        [ ${#parts[@]} -eq 3 ] || { echo "Unexpected version format '$prev'"; exit 1 }
-        next="${parts[0]}.${parts[1]}.$((${parts[2]} + 1))"
-        echo "Calculated next release version: $next"
-
-        # configure git
-        git config --global user.email "iotedge1@microsoft.com"
-        git config --global user.name "IoT Edge Bot"
-
-        # checkout code at previous release version
-        git checkout $prev
-
-        # create changelog
-        cat << EOF > CHANGELOG.new.md
-        # $next ($(date --iso-8601=date))
-
-        The following Docker images were updated because their base images changed:
-            azureiotedge-agent
-            azureiotedge-hub
-            azureiotedge-simulated-temperature-sensor
-            azureiotedge-diagnostics
-
-        EOF
-
-        cat CHANGELOG.md >> CHANGELOG.new.md
-        mv CHANGELOG.new.md CHANGELOG.md
-
-        # update versionInfo.json
-        cat versionInfo.json | jq --arg next "$next" '.version = $next' > versionInfo.json
-
-        git add CHANGELOG.md versionInfo.json
-        git commit -m "Prepare for release $next"
-
-        # TODO: git tag, git push
       displayName: Create a release commit
 
 ################################################################################
