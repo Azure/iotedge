@@ -121,7 +121,7 @@ stages:
     demands:
     - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
   dependsOn: UpdatesDetected
-  condition: eq(dependencies.UpdatesDetected.outputs['FilterCoreImages.filter.continue'], 'true')
+  condition: and(succeeded(), eq(dependencies.UpdatesDetected.outputs['FilterCoreImages.filter.continue'], 'true'))
   jobs:
   - job: BuildDotnetComponents
     displayName: Build Dotnet Components
@@ -414,7 +414,7 @@ stages:
 - template: ../misc/templates/build-rocksdb.yaml
   parameters:
     dependency: UpdatesDetected
-    condition: eq(dependencies.UpdatesDetected.outputs['FilterCoreImages.filter.continue'], 'true')
+    condition: and(succeeded(), eq(dependencies.UpdatesDetected.outputs['FilterCoreImages.filter.continue'], 'true'))
 ################################################################################
 
 # This stage consolidates .NET binaries, Rocksdb binaries and the SBOM into a
