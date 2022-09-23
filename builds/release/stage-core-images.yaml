@@ -99,15 +99,6 @@ stages:
             azureiotedge-diagnostics
 
         EOF
-
-        cat CHANGELOG.md >> CHANGELOG.new.md
-        mv CHANGELOG.new.md CHANGELOG.md
-
-        # update versionInfo.json
-        cat versionInfo.json | jq --arg next "$next" '.version = $next' > versionInfo.json
-
-        git add CHANGELOG.md versionInfo.json
-        git commit -m "Prepare for release $next"
       displayName: Create a release commit
 
 ################################################################################
