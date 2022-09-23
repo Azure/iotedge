@@ -71,7 +71,7 @@ stages:
     - script: |
         find .git/refs/
         echo '##################'
-        prev=$(git describe --tags --abbrev=0 refs/remotes/origin/release/1.4)
+        prev=$(git describe --tags --abbrev=0 --match '[0-9]*' refs/remotes/origin/release/1.4)
         echo "Found previous release version: $prev"
         echo "##vso[task.setvariable variable=version;isOutput=true]$prev"
       displayName: Get previous release version
