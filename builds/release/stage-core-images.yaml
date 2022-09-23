@@ -44,6 +44,9 @@ stages:
     - download: detect-image-updates
       displayName: Download image list from triggering pipeline
     - script: |
+        echo 'Updates:'
+        cat $(Pipeline.Workspace)/detect-image-updates/image-updates/updates.json
+
         # TODO: replace hard-coded '1.4' in jq logic with branch from pipeline
         continue=$(cat $(Pipeline.Workspace)/detect-image-updates/image-updates/updates.json | jq '
           [
@@ -52,11 +55,14 @@ stages:
             )
           ] | length != 0
         ')
+
+        echo "Continue with release? $continue"
         echo "##vso[task.setvariable variable=continue;isOutput=true]$continue"
       name: filter
       displayName: Filter image list for core images
   - job: PrepareRelease
     displayName: Prepare for release
+    dependsOn: FilterCoreImages
     condition: eq(dependencies.FilterCoreImages.outputs['filter.continue'], 'true')
     steps:
     - checkout: self
