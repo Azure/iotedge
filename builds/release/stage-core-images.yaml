@@ -69,6 +69,8 @@ stages:
       fetchDepth: 0
       persistCredentials: true
     - script: |
+        set -x
+
         # find the previously shipped product version
         prev=$(git describe --tags --abbrev=0 --match '[0-9]*' refs/remotes/origin/release/1.4)
         echo "Found previous release version: $prev"
