@@ -70,7 +70,7 @@ impl UrlExt for Url {
 
 pub const UNIX_SCHEME: &str = "unix";
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum WatchdogAction {
     EdgeCaRenewal,
     Reprovision,

@@ -118,7 +118,7 @@ impl<ModuleConfig> Settings<ModuleConfig> {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ImagePullPolicy {
     #[serde(rename = "on-create")]

@@ -111,6 +111,8 @@ mod hhmm_as_minutes {
         Ok((time.hour() * 60 + time.minute()).into())
     }
 
+    // NOTE: Reference required by serde
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     pub fn serialize<S>(cleanup_time: &u64, ser: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
