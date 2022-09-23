@@ -108,8 +108,6 @@ stages:
 
         git add CHANGELOG.md versionInfo.json
         git commit -m "Prepare for release $next"
-
-        # TODO: git tag, git push
       displayName: Create a release commit
 
 ################################################################################
