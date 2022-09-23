@@ -69,7 +69,6 @@ stages:
       fetchDepth: 0
       persistCredentials: true
     - script: |
-        #!/bin/bash
         set -x
 
         # find the previously shipped product version
