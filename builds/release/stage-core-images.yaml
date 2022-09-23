@@ -77,7 +77,7 @@ stages:
 
         # determine new version
         IFS='.' read -a parts <<< "$prev"
-        [ ${#parts[@]} -eq 3 ] || echo "Unexpected version format '$prev'" && exit 1
+        [ ${#parts[@]} -eq 3 ] || { echo "Unexpected version format '$prev'"; exit 1 }
         next="${parts[0]}.${parts[1]}.$((${parts[2]} + 1))"
         echo "Calculated next release version: $next"
 
