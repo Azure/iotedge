@@ -66,6 +66,7 @@ stages:
     condition: eq(dependencies.FilterCoreImages.outputs['filter.continue'], 'true')
     steps:
     - checkout: self
+      fetchDepth: 0
       persistCredentials: true
     - script: |
         find .git/refs/
