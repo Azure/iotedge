@@ -90,6 +90,27 @@ stages:
           echo "Unexpected version format '$prev'"
           exit 1
         fi
+
+        next="${parts[0]}.${parts[1]}.$((${parts[2]} + 1))"
+        echo "Calculated next release version: $next"
+
+        # create changelog
+        cat << EOF > CHANGELOG.new.md
+        # $next ($(date --iso-8601=date))
+        The following Docker images were updated because their base images changed:
+            azureiotedge-agent
+            azureiotedge-hub
+            azureiotedge-simulated-temperature-sensor
+            azureiotedge-diagnostics
+        EOF
+
+        cat CHANGELOG.md >> CHANGELOG.new.md
+        mv CHANGELOG.new.md CHANGELOG.md
+
+        # update versionInfo.json
+        cat versionInfo.json | jq --arg next "$next" '.version = $next' > versionInfo.json
+        git add CHANGELOG.md versionInfo.json
+        git commit -m "Prepare for release $next"
       displayName: Create a release commit
 
 ################################################################################
