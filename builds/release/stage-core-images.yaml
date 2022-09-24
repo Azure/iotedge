@@ -65,6 +65,13 @@ stages:
     dependsOn: FilterCoreImages
     condition: eq(dependencies.FilterCoreImages.outputs['filter.continue'], 'true')
     steps:
+    - task: AzureKeyVault@1
+      displayName: Get secrets
+      inputs:
+        azureSubscription: $(az.subscription)
+        keyVaultName: $(kv.name)
+        secretsFilter: >-
+          GitHubAccessToken
     - checkout: self
       fetchDepth: 0
       persistCredentials: true
@@ -94,7 +101,7 @@ stages:
         next="${parts[0]}.${parts[1]}.$((${parts[2]} + 1))"
         echo "Calculated next release version: $next"
 
-        # create changelog
+        # update changelog
         cat << EOF > CHANGELOG.new.md
         # $next ($(date --iso-8601=date))
         The following Docker images were updated because their base images changed:
@@ -110,8 +117,16 @@ stages:
         # update versionInfo.json
         cat versionInfo.json | jq --arg next "$next" '.version = $next' > versionInfo.json
         git add CHANGELOG.md versionInfo.json
+
+        # commit changes, tag, and push
         git commit -m "Prepare for release $next"
+        git tag "$next"
+        git config http.$(git config --get remote.origin.url).extraheader "AUTHORIZATION: basic $GITHUB_TOKEN"
+        git push origin HEAD
+        git push origin "$next"
       displayName: Create a release commit
+      env:
+        GITHUB_TOKEN: "$(GitHubAccessToken)"
 
 ################################################################################
 - stage: BuildExecutables
