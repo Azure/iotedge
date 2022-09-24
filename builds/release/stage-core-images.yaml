@@ -86,7 +86,10 @@ stages:
 
         # determine new version
         IFS='.' read -a parts <<< "$prev"
-        [ ${#parts[@]} -eq 3 ] || { echo "Unexpected version format '$prev'"; exit 1 }
+        if [ ${#parts[@]} -ne 3 ]; then
+          echo "Unexpected version format '$prev'"
+          exit 1
+        fi
       displayName: Create a release commit
 
 ################################################################################
