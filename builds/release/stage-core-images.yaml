@@ -71,7 +71,7 @@ stages:
         azureSubscription: $(az.subscription)
         keyVaultName: $(kv.name)
         secretsFilter: >-
-          GitHubAccessToken
+          TestGitHubAccessToken
     - checkout: self
       fetchDepth: 0
       persistCredentials: true
@@ -126,7 +126,7 @@ stages:
         git push origin "$next"
       displayName: Create a release commit
       env:
-        GITHUB_TOKEN: "$(GitHubAccessToken)"
+        GITHUB_TOKEN: "$(TestGitHubAccessToken)"
 
 ################################################################################
 - stage: BuildExecutables
