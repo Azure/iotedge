@@ -76,7 +76,8 @@ stages:
       fetchDepth: 0
       persistCredentials: true
     - script: |
-        set -x
+        #!/bin/bash
+        set -xeuo pipefail
 
         echo "Repo URI: $(Build.Repository.Uri)"
 
@@ -115,14 +116,15 @@ stages:
         git add CHANGELOG.md versionInfo.json
 
         # configure git
-        git config --global user.email "iotedge1@microsoft.com"
-        git config --global user.name "IoT Edge Bot"
+        git config user.email "iotedge1@microsoft.com"
+        git config user.name "IoT Edge Bot"
         git config http.$(git config --get remote.origin.url).extraheader "AUTHORIZATION: basic $GITHUB_TOKEN"
+        git config --list
 
         # commit changes, tag, and push
         git commit -m "Prepare for release $next"
         git tag "$next"
-        git push origin HEAD
+        git push -v origin HEAD
         git push origin "$next"
       displayName: Create a release commit
       env:
