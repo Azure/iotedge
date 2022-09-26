@@ -118,8 +118,10 @@ stages:
         # configure git
         git config user.email "iotedge1@microsoft.com"
         git config user.name "IoT Edge Bot"
-        git config http.$(git config --get remote.origin.url).extraheader "AUTHORIZATION: basic $GITHUB_TOKEN"
-        git config --list
+        origin_url=$(git config --get remote.origin.url)
+        origin_url="${origin_url/%.git}.git" # ensure URL ends with .git
+        git config remote.origin.url "$origin_url"
+        git config "http.${origin_url}.extraheader" "AUTHORIZATION: basic $GITHUB_TOKEN"
 
         # commit changes, tag, and push
         git commit -m "Prepare for release $next"
