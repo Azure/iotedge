@@ -71,7 +71,7 @@ stages:
         azureSubscription: $(az.subscription)
         keyVaultName: $(kv.name)
         secretsFilter: >-
-          TestGitHubAccessToken
+          TempGitHubAccessToken
     - checkout: self
       fetchDepth: 0
       persistCredentials: true
@@ -83,10 +83,6 @@ stages:
         # find the previously shipped product version
         prev=$(git describe --tags --abbrev=0 --match '[0-9]*' refs/remotes/origin/release/1.4)
         echo "Found previous release version: $prev"
-
-        # configure git
-        git config --global user.email "iotedge1@microsoft.com"
-        git config --global user.name "IoT Edge Bot"
 
         # checkout code at previous release version
         git checkout $prev
@@ -118,15 +114,19 @@ stages:
         cat versionInfo.json | jq --arg next "$next" '.version = $next' > versionInfo.json
         git add CHANGELOG.md versionInfo.json
 
+        # configure git
+        git config --global user.email "iotedge1@microsoft.com"
+        git config --global user.name "IoT Edge Bot"
+        git config http.$(git config --get remote.origin.url).extraheader "AUTHORIZATION: basic $GITHUB_TOKEN"
+
         # commit changes, tag, and push
         git commit -m "Prepare for release $next"
         git tag "$next"
-        git config http.$(git config --get remote.origin.url).extraheader "AUTHORIZATION: basic $GITHUB_TOKEN"
         git push origin HEAD
         git push origin "$next"
       displayName: Create a release commit
       env:
-        GITHUB_TOKEN: "$(TestGitHubAccessToken)"
+        GITHUB_TOKEN: "$(TempGitHubAccessToken)"
 
 ################################################################################
 - stage: BuildExecutables
