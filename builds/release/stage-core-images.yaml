@@ -105,6 +105,7 @@ stages:
             azureiotedge-hub
             azureiotedge-simulated-temperature-sensor
             azureiotedge-diagnostics
+
         EOF
 
         cat CHANGELOG.md >> CHANGELOG.new.md
