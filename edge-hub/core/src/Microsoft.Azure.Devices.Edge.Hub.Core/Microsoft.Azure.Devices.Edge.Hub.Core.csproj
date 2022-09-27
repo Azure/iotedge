@@ -20,6 +20,13 @@
     <PackageReference Include="JetBrains.Annotations" Version="2018.3.0" />
     <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.36.6" />
     <PackageReference Include="System.ValueTuple" Version="4.5.0" />
+    <!--
+      We have a transitive dependency on Dotnetty via Microsoft.Azure.Devices.Client. Use an
+      explicit reference here to override the version and fix a known OOM bug. See
+      https://github.com/Azure/DotNetty/pull/583. If ProtocolGateway updates its dependency,
+      we can remove this reference.
+    -->
+    <PackageReference Include="DotNetty.Common" Version="0.7.5" />
   </ItemGroup>
 
   <ItemGroup>
