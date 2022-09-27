@@ -110,13 +110,17 @@ stages:
         cat CHANGELOG.md >> CHANGELOG.new.md
         mv CHANGELOG.new.md CHANGELOG.md
 
+        echo '===== BEFORE ====='
+        cat versionInfo.json
+        echo '=================='
+
         # update versionInfo.json
         cat versionInfo.json | jq --arg next "$next" '.version = $next' > versionInfo.json
         git add CHANGELOG.md versionInfo.json
 
-        echo '===== DIFF ====='
-        git diff --cached
-        echo '================'
+        echo '===== AFTER ====='
+        cat versionInfo.json
+        echo '================='
 
         # configure git
         git config user.email "iotedge1@microsoft.com"
