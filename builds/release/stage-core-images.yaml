@@ -101,10 +101,10 @@ stages:
         cat << EOF > CHANGELOG.new.md
         # $next ($(date --iso-8601=date))
         The following Docker images were updated because their base images changed:
-            azureiotedge-agent
-            azureiotedge-hub
-            azureiotedge-simulated-temperature-sensor
-            azureiotedge-diagnostics
+        * azureiotedge-agent
+        * azureiotedge-hub
+        * azureiotedge-simulated-temperature-sensor
+        * azureiotedge-diagnostics
 
         EOF
 
