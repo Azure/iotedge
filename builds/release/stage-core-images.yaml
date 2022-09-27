@@ -96,6 +96,7 @@ stages:
         fi
 
         next="${parts[0]}.${parts[1]}.$((${parts[2]} + 1))"
+        tags="${parts[0]}.${parts[1]}"
         echo "Calculated next release version: $next"
 
         # update changelog
@@ -127,6 +128,9 @@ stages:
         git tag "$next"
         git push "$origin_url" HEAD:"update-$next" # push commit to temp branch 'update-n.n.n'
         git push "$origin_url" "$next" # push tag
+
+        echo "##vso[task.setvariable variable=version;isOutput=true]$next"
+        echo "##vso[task.setvariable variable=tags;isOutput=true]$tags"
       displayName: Create a release commit
       env:
         GITHUB_TOKEN: "$(TempGitHubAccessToken)"
