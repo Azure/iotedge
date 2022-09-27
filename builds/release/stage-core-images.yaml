@@ -77,7 +77,7 @@ stages:
       persistCredentials: true
     - script: |
         #!/bin/bash
-        set -xeuo pipefail
+        set -euo pipefail
 
         # find the previously shipped product version
         prev=$(git describe --tags --abbrev=0 --match '[0-9]*' refs/remotes/origin/release/1.4)
