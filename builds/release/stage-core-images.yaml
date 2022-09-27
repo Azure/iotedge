@@ -126,7 +126,7 @@ stages:
         # commit changes, tag, and push
         git commit -m "Prepare for release $next"
         git tag "$next"
-        git push "$origin_url" HEAD:"update-$next" # push commit to temp branch 'update-n.n.n'
+        git push "$origin_url" HEAD:"refs/heads/update-$next" # push commit to temp branch 'update-n.n.n'
         git push "$origin_url" "$next" # push tag
 
         echo "##vso[task.setvariable variable=version;isOutput=true]$next"
