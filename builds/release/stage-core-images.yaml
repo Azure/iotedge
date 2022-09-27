@@ -115,7 +115,7 @@ stages:
         echo '=================='
 
         # update versionInfo.json
-        cat versionInfo.json | jq --arg next "$next" '.version = $next' > versionInfo.json
+        echo "$(cat versionInfo.json | jq --arg next "$next" '.version = $next')" > versionInfo.json
         git add CHANGELOG.md versionInfo.json
 
         echo '===== AFTER ====='
