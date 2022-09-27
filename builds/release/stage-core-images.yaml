@@ -125,8 +125,8 @@ stages:
         # commit changes, tag, and push
         git commit -m "Prepare for release $next"
         git tag "$next"
-        git push "$origin_url" HEAD
-        git push "$origin_url" "$next"
+        git push "$origin_url" HEAD:"update-$next" # push commit to temp branch 'update-n.n.n'
+        git push "$origin_url" "$next" # push tag
       displayName: Create a release commit
       env:
         GITHUB_TOKEN: "$(TempGitHubAccessToken)"
