@@ -136,6 +136,9 @@ stages:
       displayName: Create a release commit
       env:
         GITHUB_TOKEN: "$(TempGitHubAccessToken)"
+    - script: |
+        exit 1
+      displayName: Always exit
 
 ################################################################################
 - stage: BuildExecutables
