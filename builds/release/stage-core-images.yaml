@@ -71,7 +71,7 @@ stages:
         azureSubscription: $(az.subscription)
         keyVaultName: $(kv.name)
         secretsFilter: >-
-          TempGitHubAccessToken
+          TestGitHubAccessToken
     - checkout: self
       fetchDepth: 0
       persistCredentials: true
@@ -132,7 +132,7 @@ stages:
         echo "##vso[task.setvariable variable=tags;isOutput=true]$tags"
       displayName: Create a release commit
       env:
-        GITHUB_TOKEN: "$(TempGitHubAccessToken)"
+        GITHUB_TOKEN: "$(TestGitHubAccessToken)"
     - script: |
         exit 1
       displayName: Always exit
