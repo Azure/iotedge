@@ -114,6 +114,10 @@ stages:
         cat versionInfo.json | jq --arg next "$next" '.version = $next' > versionInfo.json
         git add CHANGELOG.md versionInfo.json
 
+        echo '===== DIFF ====='
+        git diff --cached
+        echo '================'
+
         # configure git
         git config user.email "iotedge1@microsoft.com"
         git config user.name "IoT Edge Bot"
