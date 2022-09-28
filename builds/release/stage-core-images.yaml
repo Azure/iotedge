@@ -1,11 +1,3 @@
-parameters:
-- name: version
-  type: string
-  default: ''
-- name: diagnostics_version
-  type: string
-  default: ''
-
 name: $(version)
 
 pr: none
@@ -527,7 +519,7 @@ stages:
       version: $[ dependencies.UpdatesDetected.outputs['PrepareRelease.commit.version'] ]
       diagnostics_version: $[ dependencies.UpdatesDetected.outputs['PrepareRelease.commit.diagnostics_version'] ]
     ${{ else }}:
-      diagnostics_version: $(version)
+      diagnostics_version: $[ coalesce(variables.diagnostics_version, variables.version) ]
   jobs:
   - job: BuildImageEdgeHub
     steps:
@@ -652,6 +644,12 @@ stages:
     demands:
     - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
   dependsOn: BuildImages
+  variables:
+    ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
+      version: $[ dependencies.UpdatesDetected.outputs['PrepareRelease.commit.version'] ]
+      tags: $[ dependencies.UpdatesDetected.outputs['PrepareRelease.commit.tags'] ]
+    ${{ else }}:
+      diagnostics_version: $[ coalesce(variables.diagnostics_version, variables.version) ]
   jobs:
   - job: PublishManifest
     displayName: Publish Manifest
@@ -659,12 +657,16 @@ stages:
       matrix:
         EdgeAgent:
           manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-agent/docker/manifest.yaml.template'
+          version: $(version)
         EdgeHub:
           manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-hub/docker/manifest.yaml.template'
+          version: $(version)
         SimulatedTemperatureSensor:
           manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template'
+          version: $(version)
         Diagnostics:
           manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template'
+          version: $(diagnostics_version)
     steps:
     - task: Docker@2
       displayName: Docker login edgerelease
