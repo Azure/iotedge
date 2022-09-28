@@ -74,7 +74,6 @@ stages:
           TestGitHubAccessToken
     - checkout: self
       fetchDepth: 0
-      persistCredentials: true
     - script: |
         #!/bin/bash
         set -euo pipefail
@@ -161,6 +160,12 @@ stages:
         version: $[ dependencies.UpdatesDetected.outputs['PrepareRelease.commit.version'] ]
     steps:
     # Build
+    - checkout: self
+      fetchDepth: 0
+    - script: |
+        git checkout $(version)
+      displayName: Check out the new release commit
+      condition: eq(variables['Build.Reason'],'ResourceTrigger')
     - task: ShellScript@2
       displayName: "Build .NET artifacts"
       inputs:
@@ -471,6 +476,7 @@ stages:
   jobs:
   - job: ConsolidateAndPublishArtifacts
     steps:
+    - checkout: none
     - task: DownloadBuildArtifacts@0
       displayName: Download Artifacts
       inputs:
