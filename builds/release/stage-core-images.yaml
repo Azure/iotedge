@@ -173,6 +173,8 @@ stages:
         scriptPath: scripts/linux/buildBranch.sh
     - task: DotNetCoreCLI@2
       displayName: "Functions Binding nuget package"
+      env:
+        version: $(version)
       inputs:
         buildProperties: OutDir=$(Build.BinariesDirectory)/publish/Microsoft.Azure.WebJobs.Extensions.EdgeHub
         command: pack
