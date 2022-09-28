@@ -1,3 +1,11 @@
+parameters:
+- name: version
+  type: string
+  default: ''
+- name: diagnostics_version
+  type: string
+  default: ''
+
 name: $(version)
 
 pr: none
@@ -97,6 +105,9 @@ stages:
         tags="${parts[0]}.${parts[1]}"
         echo "Calculated next release version: $next"
 
+        # determine version of diagnostics image, which must match the edgelet version
+        diag_version=$(cat edgelet/version.txt)
+        
         # update changelog
         cat << EOF > CHANGELOG.new.md
         # $next ($(date --iso-8601=date))
@@ -104,7 +115,7 @@ stages:
         * azureiotedge-agent
         * azureiotedge-hub
         * azureiotedge-simulated-temperature-sensor
-        * azureiotedge-diagnostics
+        * azureiotedge-diagnostics (version $diag_version)
 
         EOF
 
@@ -129,8 +140,10 @@ stages:
         git push "$origin_url" "$next" # push tag
 
         echo "##vso[task.setvariable variable=version;isOutput=true]$next"
+        echo "##vso[task.setvariable variable=diagnostics_version;isOutput=true]$diag_version"
         echo "##vso[task.setvariable variable=tags;isOutput=true]$tags"
       displayName: Create a release commit
+      name: commit
       env:
         GITHUB_TOKEN: "$(TestGitHubAccessToken)"
     - script: |
@@ -154,6 +167,9 @@ stages:
   jobs:
   - job: BuildDotnetComponents
     displayName: Build Dotnet Components
+    variables:
+    ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
+      version: $[ dependencies.UpdatesDetected.outputs['PrepareRelease.commit.version'] ]
     steps:
     # Build
     - task: ShellScript@2
@@ -509,6 +525,12 @@ stages:
     demands:
     - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
   dependsOn: ConsolidateAndPubishArtifacts
+  variables:
+  ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
+    version: $[ dependencies.UpdatesDetected.outputs['PrepareRelease.commit.version'] ]
+    diagnostics_version: $[ dependencies.UpdatesDetected.outputs['PrepareRelease.commit.diagnostics_version'] ]
+  ${{ else }}:
+    diagnostics_version: $(version)
   jobs:
   - job: BuildImageEdgeHub
     steps:
@@ -546,7 +568,7 @@ stages:
         imageName: azureiotedge-diagnostics
         name: "Diagnostics Module"
         project: IotedgeDiagnosticsDotnet
-        version: $(version)
+        version: $(diagnostics_version)
         bin_dir: '$(Build.BinariesDirectory)'
   # for E2E tests
   - job: BuildImageMetricsValidator
