@@ -146,9 +146,6 @@ stages:
       name: commit
       env:
         GITHUB_TOKEN: "$(TestGitHubAccessToken)"
-    - script: |
-        exit 1
-      displayName: Always exit
 
 ################################################################################
 - stage: BuildExecutables
