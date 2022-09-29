@@ -152,12 +152,12 @@ stages:
       ne(variables['Build.Reason'],'ResourceTrigger'),
       and(succeeded(), eq(dependencies.UpdatesDetected.outputs['FilterCoreImages.filter.continue'], 'true'))
     )
+  variables:
+    ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
+      version: $[ dependencies.UpdatesDetected.outputs['PrepareRelease.commit.version'] ]
   jobs:
   - job: BuildDotnetComponents
     displayName: Build Dotnet Components
-    variables:
-      ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
-        version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.version'] ]
     steps:
     # Build
     - checkout: self
