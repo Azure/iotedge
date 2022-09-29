@@ -157,7 +157,7 @@ stages:
     displayName: Build Dotnet Components
     variables:
       ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
-        version: $[ dependencies.UpdatesDetected.outputs['PrepareRelease.commit.version'] ]
+        version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.version'] ]
     steps:
     # Build
     - checkout: self
