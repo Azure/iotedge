@@ -261,6 +261,12 @@ stages:
           inputs:
             command: login
             containerRegistry: iotedge-msinternal-mcr
+        - bash: |
+            az keyvault secret download -n "msint-spn-cert-pem" --vault-name "$(kv.name)" --file "$(System.ArtifactsDirectory)/msint-spn-cert.pem"
+            az login --service-principal --use-cert-sn-issuer --username $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId) -p "$(System.ArtifactsDirectory)/msint-spn-cert.pem"
+            az acr login -n msint
+            rm -f "$(System.ArtifactsDirectory)/msint-spn-cert.pem"
+          name: Login msinternal
         - task: AzureCLI@2
           displayName: Publish Packages
           inputs:
