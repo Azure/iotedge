@@ -38,21 +38,21 @@ jobs:
               clean: true
               fetchDepth: 100
 
-            # - bash: |
-            #     VERSION=$(cat $BUILD_SOURCESDIRECTORY/versionInfo.json | grep -oP '^\s*\"version\":\s*\"\K(?<version>\d*\.\d*\.\d*)')
+            - bash: |
+                VERSION=$(cat $BUILD_SOURCESDIRECTORY/versionInfo.json | grep -oP '^\s*\"version\":\s*\"\K(?<version>\d*\.\d*\.\d*)')
                 
-            #     if [[ "$(resources.pipeline.images.runName)" == "$VERSION" ]]; then
-            #       echo "Input image build has the same version as the targetting release tags."
-            #       echo "    Input Image Build Version: $(resources.pipeline.images.runName)"
-            #       echo "    Targeting Release Version: $VERSION"
-            #     else
-            #       echo "Input image build has a differnt version as the targetting release tags."
-            #       echo "Please make sure the input image resource is correctly selected."
-            #       echo "    Input Image Build Version: $(resources.pipeline.images.runName)"
-            #       echo "    Targeting Release Version: $VERSION"
-            #       exit 1;
-            #     fi
-            #   displayName: Verify Input Images Version
+                if [[ "$(resources.pipeline.images.runName)" == "$VERSION" ]]; then
+                  echo "Input image build has the same version as the targetting release tags."
+                  echo "    Input Image Build Version: $(resources.pipeline.images.runName)"
+                  echo "    Targeting Release Version: $VERSION"
+                else
+                  echo "Input image build has a differnt version as the targetting release tags."
+                  echo "Please make sure the input image resource is correctly selected."
+                  echo "    Input Image Build Version: $(resources.pipeline.images.runName)"
+                  echo "    Targeting Release Version: $VERSION"
+                  exit 1;
+                fi
+              displayName: Verify Input Images Version
 
 ################################################################################
   - deployment: publish_linux_images
@@ -85,59 +85,59 @@ jobs:
                 command: login
                 containerRegistry: $(to.registry.serviceConnection)
 
-            # - task: ShellScript@2
-            #   displayName: 'Publish Edge Agent - Linux amd64'
-            #   inputs:
-            #     scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
-            #     args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-linux-amd64 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-linux-amd64'
+            - task: ShellScript@2
+              displayName: 'Publish Edge Agent - Linux amd64'
+              inputs:
+                scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
+                args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-linux-amd64 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-linux-amd64'
 
-            # - task: ShellScript@2
-            #   displayName: 'Publish Edge Agent - Linux arm32v7'
-            #   inputs:
-            #     scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
-            #     args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-linux-arm32v7 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-linux-arm32v7'
+            - task: ShellScript@2
+              displayName: 'Publish Edge Agent - Linux arm32v7'
+              inputs:
+                scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
+                args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-linux-arm32v7 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-linux-arm32v7'
 
-            # - task: ShellScript@2
-            #   displayName: 'Publish Edge Agent - Linux arm64v8'
-            #   inputs:
-            #     scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
-            #     args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-linux-arm64v8 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-linux-arm64v8'
+            - task: ShellScript@2
+              displayName: 'Publish Edge Agent - Linux arm64v8'
+              inputs:
+                scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
+                args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-linux-arm64v8 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-linux-arm64v8'
 
-            # - task: ShellScript@2
-            #   displayName: 'Publish Edge Hub - Linux amd64'
-            #   inputs:
-            #     scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
-            #     args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-linux-amd64 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-linux-amd64'
+            - task: ShellScript@2
+              displayName: 'Publish Edge Hub - Linux amd64'
+              inputs:
+                scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
+                args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-linux-amd64 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-linux-amd64'
 
-            # - task: ShellScript@2
-            #   displayName: 'Publish Edge Hub - Linux arm32v7'
-            #   inputs:
-            #     scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
-            #     args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-linux-arm32v7 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-linux-arm32v7'
+            - task: ShellScript@2
+              displayName: 'Publish Edge Hub - Linux arm32v7'
+              inputs:
+                scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
+                args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-linux-arm32v7 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-linux-arm32v7'
 
-            # - task: ShellScript@2
-            #   displayName: 'Publish Edge Hub - Linux arm64v8'
-            #   inputs:
-            #     scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
-            #     args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-linux-arm64v8 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-linux-arm64v8'
+            - task: ShellScript@2
+              displayName: 'Publish Edge Hub - Linux arm64v8'
+              inputs:
+                scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
+                args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-linux-arm64v8 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-linux-arm64v8'
 
-            # - task: ShellScript@2
-            #   displayName: 'Publish Temperature Sensor - Linux amd64'
-            #   inputs:
-            #     scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
-            #     args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-amd64 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-amd64'
+            - task: ShellScript@2
+              displayName: 'Publish Temperature Sensor - Linux amd64'
+              inputs:
+                scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
+                args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-amd64 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-amd64'
 
-            # - task: ShellScript@2
-            #   displayName: 'Publish Temperature Sensor - Linux arm32v7'
-            #   inputs:
-            #     scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
-            #     args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-arm32v7 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-arm32v7'
+            - task: ShellScript@2
+              displayName: 'Publish Temperature Sensor - Linux arm32v7'
+              inputs:
+                scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
+                args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-arm32v7 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-arm32v7'
 
-            # - task: ShellScript@2
-            #   displayName: 'Publish Temperature Sensor - Linux arm64v8'
-            #   inputs:
-            #     scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
-            #     args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-arm64v8 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-arm64v8'
+            - task: ShellScript@2
+              displayName: 'Publish Temperature Sensor - Linux arm64v8'
+              inputs:
+                scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
+                args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-arm64v8 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-arm64v8'
 
             # We decided to list `azureiotedge-diagnostics` module in `/unlisted` namespace instead of `/public` namespace
             # so the DiscoveryPortal is not bloated with self-diagonos modules.
@@ -204,32 +204,32 @@ jobs:
                 echo "##vso[task.setvariable variable=tempSensor.tags;]$TEMP_SENSOR_TAGS_STR"
               displayName: Set Version and Tags
 
-            # - task: Bash@3
-            #   displayName: 'Publish Edge Agent Manifest'
-            #   inputs:
-            #     targetType: filePath
-            #     filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/buildManifest.sh'
-            #     arguments: '-r "$(to.registry.address)" -v "$(resources.pipeline.images.runName)" -t $(System.DefaultWorkingDirectory)/edge-agent/docker/manifest.yaml.template -n "$(to.registry.namespace)" --tags "$(tags)"'
-            #   env:
-            #     BUILD_REPOSITORY_LOCALPATH: $(System.DefaultWorkingDirectory)
+            - task: Bash@3
+              displayName: 'Publish Edge Agent Manifest'
+              inputs:
+                targetType: filePath
+                filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/buildManifest.sh'
+                arguments: '-r "$(to.registry.address)" -v "$(resources.pipeline.images.runName)" -t $(System.DefaultWorkingDirectory)/edge-agent/docker/manifest.yaml.template -n "$(to.registry.namespace)" --tags "$(tags)"'
+              env:
+                BUILD_REPOSITORY_LOCALPATH: $(System.DefaultWorkingDirectory)
 
-            # - task: Bash@3
-            #   displayName: 'Publish Edge Hub Manifest'
-            #   inputs:
-            #     targetType: filePath
-            #     filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/buildManifest.sh'
-            #     arguments: '-r "$(to.registry.address)" -v "$(resources.pipeline.images.runName)" -t $(System.DefaultWorkingDirectory)/edge-hub/docker/manifest.yaml.template -n "$(to.registry.namespace)" --tags "$(tags)"'
-            #   env:
-            #     BUILD_REPOSITORY_LOCALPATH: $(System.DefaultWorkingDirectory)
+            - task: Bash@3
+              displayName: 'Publish Edge Hub Manifest'
+              inputs:
+                targetType: filePath
+                filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/buildManifest.sh'
+                arguments: '-r "$(to.registry.address)" -v "$(resources.pipeline.images.runName)" -t $(System.DefaultWorkingDirectory)/edge-hub/docker/manifest.yaml.template -n "$(to.registry.namespace)" --tags "$(tags)"'
+              env:
+                BUILD_REPOSITORY_LOCALPATH: $(System.DefaultWorkingDirectory)
 
-            # - task: Bash@3
-            #   displayName: 'Publish Temperature Sensor Manifest'
-            #   inputs:
-            #     targetType: filePath
-            #     filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/buildManifest.sh'
-            #     arguments: '-r "$(to.registry.address)" -v "$(resources.pipeline.images.runName)" -t $(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template -n "$(to.registry.namespace)" --tags "$(tempSensor.tags)"'
-            #   env:
-            #     BUILD_REPOSITORY_LOCALPATH: $(System.DefaultWorkingDirectory)
+            - task: Bash@3
+              displayName: 'Publish Temperature Sensor Manifest'
+              inputs:
+                targetType: filePath
+                filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/buildManifest.sh'
+                arguments: '-r "$(to.registry.address)" -v "$(resources.pipeline.images.runName)" -t $(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template -n "$(to.registry.namespace)" --tags "$(tempSensor.tags)"'
+              env:
+                BUILD_REPOSITORY_LOCALPATH: $(System.DefaultWorkingDirectory)
 
             - task: Bash@3
               displayName: 'Publish Diagnostic Module Manifest'
