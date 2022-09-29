@@ -681,7 +681,7 @@ stages:
       inputs:
         command: login
         containerRegistry: iotedge-release-acr
-    - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(version) -t $(manifestFilePath) -n '$(namespace)' --tags "$(tags)"
+    - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -v '$(version)' -t '$(manifestFilePath)' -n '$(namespace)' --tags '$(tags)'
 
 ################################################################################
 - template: ../e2e/e2e-release.yaml
