@@ -150,14 +150,14 @@ stages:
   condition: |
     or(
       ne(variables['Build.Reason'],'ResourceTrigger'),
-      and(succeeded(), eq(stageDependencies.UpdatesDetected.FilterCoreImages.outputs['filter.continue'], 'true'))
+      and(succeeded(), eq(dependencies.UpdatesDetected.outputs['FilterCoreImages.filter.continue'], 'true'))
     )
   jobs:
   - job: BuildDotnetComponents
     displayName: Build Dotnet Components
     variables:
       ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
-        version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.version'] ]
+        version: $[ dependencies.UpdatesDetected.outputs['PrepareRelease.commit.version'] ]
     steps:
     # Build
     - checkout: self
@@ -458,7 +458,7 @@ stages:
     condition: |
       or(
         ne(variables['Build.Reason'],'ResourceTrigger'),
-        and(succeeded(), eq(stageDependencies.UpdatesDetected.FilterCoreImages.outputs['filter.continue'], 'true'))
+        and(succeeded(), eq(dependencies.UpdatesDetected.outputs['FilterCoreImages.filter.continue'], 'true'))
       )
 ################################################################################
 
@@ -524,8 +524,8 @@ stages:
   dependsOn: ConsolidateAndPubishArtifacts
   variables:
     ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
-      version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.version'] ]
-      diagnostics_version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.diagnostics_version'] ]
+      version: $[ dependencies.UpdatesDetected.outputs['PrepareRelease.commit.version'] ]
+      diagnostics_version: $[ dependencies.UpdatesDetected.outputs['PrepareRelease.commit.diagnostics_version'] ]
     ${{ else }}:
       diagnostics_version: $[ coalesce(variables.diagnostics_version, variables.version) ]
   jobs:
@@ -654,8 +654,8 @@ stages:
   dependsOn: BuildImages
   variables:
     ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
-      version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.version'] ]
-      tags: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.tags'] ]
+      version: $[ dependencies.UpdatesDetected.outputs['PrepareRelease.commit.version'] ]
+      tags: $[ dependencies.UpdatesDetected.outputs['PrepareRelease.commit.tags'] ]
     ${{ else }}:
       diagnostics_version: $[ coalesce(variables.diagnostics_version, variables.version) ]
   jobs:
