@@ -524,8 +524,8 @@ stages:
   dependsOn: ConsolidateAndPubishArtifacts
   variables:
     ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
-      version: $[ dependencies.UpdatesDetected.outputs['PrepareRelease.commit.version'] ]
-      diagnostics_version: $[ dependencies.UpdatesDetected.outputs['PrepareRelease.commit.diagnostics_version'] ]
+      version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.version'] ]
+      diagnostics_version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.diagnostics_version'] ]
     ${{ else }}:
       diagnostics_version: $[ coalesce(variables.diagnostics_version, variables.version) ]
   jobs:
@@ -654,8 +654,8 @@ stages:
   dependsOn: BuildImages
   variables:
     ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
-      version: $[ dependencies.UpdatesDetected.outputs['PrepareRelease.commit.version'] ]
-      tags: $[ dependencies.UpdatesDetected.outputs['PrepareRelease.commit.tags'] ]
+      version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.version'] ]
+      tags: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.tags'] ]
     ${{ else }}:
       diagnostics_version: $[ coalesce(variables.diagnostics_version, variables.version) ]
   jobs:
