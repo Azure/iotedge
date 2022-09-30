@@ -270,7 +270,6 @@ stages:
           env:
             MSINT_SPN_CERT_PEM: $(msint-spn-cert-pem)
         - bash: |
-            sudo chmod u+x "$(System.ArtifactsDirectory)/msint-spn-cert.pem"
             az login --service-principal --use-cert-sn-issuer --username "$(servicePrincipal.clientId.msint)" --tenant "$(servicePrincipal.tenantId.msint)" -p "$(System.ArtifactsDirectory)/msint-spn-cert.pem"
             az acr login -n msint
             rm -f "$(System.ArtifactsDirectory)/msint-spn-cert.pem"
