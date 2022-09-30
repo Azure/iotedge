@@ -671,10 +671,34 @@ stages:
       inputs:
         command: login
         containerRegistry: iotedge-release-acr
-    - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -v '$(version)' -t 'edge-agent/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
-    - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -v '$(version)' -t 'edge-hub/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
-    - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -v '$(version)' -t 'edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
-    - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -v '$(diagnostics_version)' -t 'edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
+    - script: |
+        scripts/linux/buildManifest.sh \
+          -r '$(registry.address)' \
+          -n '$(namespace)' \
+          -t 'edge-agent/docker/manifest.yaml.template' \
+          -v '$(version)' \
+          --tags '$(tags)'
+    - script: |
+        scripts/linux/buildManifest.sh \
+          -r '$(registry.address)' \
+          -n '$(namespace)' \
+          -t 'edge-hub/docker/manifest.yaml.template' \
+          -v '$(version)' \
+          --tags '$(tags)'
+    - script: |
+        scripts/linux/buildManifest.sh \
+          -r '$(registry.address)' \
+          -n '$(namespace)' \
+          -t 'edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template' \
+          -v '$(version)' \
+          --tags '$(tags)'
+    - script: |
+        scripts/linux/buildManifest.sh \
+          -r '$(registry.address)' \
+          -n '$(namespace)' \
+          -t 'edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template' \
+          -v '$(diagnostics_version)' \
+          --tags '$(tags)'
 
 ################################################################################
 - template: ../e2e/e2e-release.yaml
