@@ -521,7 +521,9 @@ stages:
     name: $(pool.linux.name)
     demands:
     - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
-  dependsOn: ConsolidateAndPubishArtifacts
+  dependsOn:
+  - UpdatesDetected
+  - ConsolidateAndPubishArtifacts
   variables:
     ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
       version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.version'] ]
@@ -651,7 +653,9 @@ stages:
     name: $(pool.linux.name)
     demands:
     - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
-  dependsOn: BuildImages
+  dependsOn:
+  - UpdatesDetected
+  - BuildImages
   variables:
     ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
       version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.version'] ]
