@@ -73,7 +73,7 @@ impl Network {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct Ipam {
     #[serde(rename = "config", skip_serializing_if = "Option::is_none")]
     pub config: Option<Vec<IpamConfig>>,
@@ -91,7 +91,7 @@ impl Ipam {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct IpamConfig {
     #[serde(rename = "gateway", skip_serializing_if = "Option::is_none")]
     pub gateway: Option<String>,

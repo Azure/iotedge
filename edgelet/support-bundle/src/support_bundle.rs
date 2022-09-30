@@ -125,7 +125,7 @@ where
     Ok(result)
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum OutputLocation {
     File(OsString),
     Memory,

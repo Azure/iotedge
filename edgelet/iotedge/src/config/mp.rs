@@ -47,6 +47,8 @@ To reconfigure IoT Edge, run:
 
         additional_info: None,
 
+        iotedge_max_requests: Default::default(),
+
         aziot: common_config::super_config::Config {
             hostname: None,
             parent_hostname: None,
@@ -67,6 +69,8 @@ To reconfigure IoT Edge, run:
             cloud_timeout_sec: aziot_identityd_config::Settings::default_cloud_timeout(),
 
             cloud_retries: aziot_identityd_config::Settings::default_cloud_retries(),
+
+            aziot_max_requests: Default::default(),
 
             aziot_keys: Default::default(),
 
@@ -91,6 +95,8 @@ To reconfigure IoT Edge, run:
         edge_ca: None,
 
         moby_runtime: Default::default(),
+
+        image_garbage_collection: Default::default(),
     };
     let config = toml::to_vec(&config)
         .map_err(|err| format!("could not serialize system config: {}", err))?;
