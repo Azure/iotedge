@@ -124,7 +124,7 @@ where
                     let image_id = match image_name_to_id.get(config.image()) {
                         Some(imageid) => imageid,
                         None => {
-                            log::warn!("{} was not added to image garbage collection list and may will not be garbage collected", image);
+                            log::warn!("Could not retrieve image id. {} was not added to image garbage collection list and will not be garbage collected", image);
                             ""
                         }
                     };
