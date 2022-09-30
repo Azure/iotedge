@@ -1180,11 +1180,23 @@ stages:
             source: 'current'
             path: $(System.ArtifactsDirectory)
             patterns: $(artifactName)/*.deb
-        - task: Docker@2
-          displayName: Docker login msinternal
+        - task: AzureKeyVault@1
+          displayName: 'Get Secret'
           inputs:
-            command: login
-            containerRegistry: iotedge-msinternal-mcr
+            azureSubscription: $(az.subscription)
+            KeyVaultName: $(kv.name.pkgRelease)
+            SecretsFilter: >-
+              msint-spn-cert-pem
+        - pwsh: |
+            $env:MSINT_SPN_CERT_PEM | Out-File -Encoding Utf8 "$(System.ArtifactsDirectory)/msint-spn-cert.pem"
+          displayName: Install msint cert
+          env:
+            MSINT_SPN_CERT_PEM: $(msint-spn-cert-pem)
+        - bash: |
+            az login --service-principal --use-cert-sn-issuer --username "$(servicePrincipal.clientId.msint)" --tenant "$(servicePrincipal.tenantId.msint)" -p "$(System.ArtifactsDirectory)/msint-spn-cert.pem"
+            az acr login -n msint
+            rm -f "$(System.ArtifactsDirectory)/msint-spn-cert.pem"
+          name: login_msinternal
         - task: AzureCLI@2
           displayName: Publish Packages
           inputs:
