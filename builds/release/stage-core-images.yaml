@@ -93,7 +93,7 @@ stages:
         fi
 
         next="${parts[0]}.${parts[1]}.$((${parts[2]} + 1))"
-        tags="${parts[0]}.${parts[1]}"
+        tags="['${parts[0]}.${parts[1]}']"
         echo "Calculated next release version: $next"
 
         # determine version of diagnostics image, which must match the edgelet version
