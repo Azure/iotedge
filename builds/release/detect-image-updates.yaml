@@ -22,10 +22,6 @@ steps:
 - checkout: azure-iotedge
 
 - script: |
-    env | sort
-  displayName: Dump vars
-
-- script: |
     # transform product-versions.json into a list of images that correspond to this branch
 
     # first, gather the list of products for this branch
