@@ -35,7 +35,7 @@ steps:
           product: .id, version, images: [
             platforms as $platforms | .components[] | select(is_image) | . as { $name, $version } | $platforms
               | @text "\($registry)/\($name):\($version)-\(.os)-\(.arch)"
-          ]
+          ] | sort
         }
       ] | unique
     ')
