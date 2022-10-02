@@ -146,8 +146,8 @@ stages:
     - task: PublishBuildArtifacts@1
       displayName: Save image versions
       inputs:
-        PathtoPublish: $(Build.ArtifactStagingDirectory)/*version.txt
-        ArtifactName: image-versions
+        pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        artifactName: image-versions
 
 ################################################################################
 - stage: BuildExecutables

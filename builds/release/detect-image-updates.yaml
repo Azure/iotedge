@@ -95,5 +95,5 @@ steps:
 - task: PublishBuildArtifacts@1
   displayName: Save list of images to update
   inputs:
-    PathtoPublish: $(Build.ArtifactStagingDirectory)/updates.json
-    ArtifactName: image-updates
+    pathtoPublish: '$(Build.ArtifactStagingDirectory)/updates.json'
+    artifactName: image-updates
