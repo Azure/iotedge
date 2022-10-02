@@ -22,33 +22,19 @@ steps:
 - checkout: azure-iotedge
 
 - script: |
-    # transform product-versions.json into a list of images that correspond to this branch
-
-    # first, gather the list of products for this branch
+    # transform product-versions.json into a list of images for each product in this branch
     # TODO: convert from hard-coded 'release/1.4' in jq logic below to getting the branch name
     # TODO: from the build pipeline.
-    products_json=$(cat product-versions.json | jq '
-      .sources[] | select(.repo == "Azure/iotedge" and .branch == "release/1.4") | .products
-    ')
-
-    # next, gather the details for the selected products
-    product_versions=$(cat product-versions.json | jq --argjson products_json "$products_json" '
-      def equals($o): .channel == $o.channel and .id == $o.id and (.version | startswith($o.version));
-      [ .channels[] | .name as $channel | .products[] | select(
-        { $channel, id, version } | equals($products_json[])
-      ) ]
-    ')
-
-    # now create a complete list of published images for each product in this branch
-    images_json=$(echo "$product_versions" | jq --arg registry "$REGISTRY" '
-      def images: select(has("type")) | select(.type == "dockerImage") | { name, version };
-      def platforms: select(.name == "dockerImage") | .platforms[] | .os as $os | .arch[] | { os: $os, arch: . };
+    images_json=$(cat product-versions.json | jq --arg registry "$REGISTRY" '
+      def is_image: has("type") and .type == "dockerImage";
+      def platforms: .componentTypes[] | select(.name == "dockerImage") | .platforms[] | { os, arch: .arch[] | . };
       [
-        .[] | .id as $product | .version as $version |
-        {
-          $product, $version, images: [
-            .componentTypes as $types | .components[] | images + ($types[] | platforms) |
-              @text "\($registry)/\(.name):\(.version)-\(.os)-\(.arch)"
+        .channels[] | .products[] | select(
+          .components | any(is_image and .repo == "Azure/iotedge" and .branch == "release/1.4")
+        ) | {
+          product: .id, version, images: [
+            platforms as $platforms | .components[] | select(is_image) | . as { $name, $version } | $platforms
+              | @text "\($registry)/\($name):\($version)-\(.os)-\(.arch)"
           ]
         }
       ] | unique
