@@ -132,6 +132,10 @@ stages:
         git push "$origin_url" HEAD:"refs/heads/update-$next" # push commit to temp branch 'update-n.n.n'
         git push "$origin_url" "$next" # push tag
 
+        # save versions to files that will be published as artifacts
+        echo "$next" > "$(Build.ArtifactStagingDirectory)/version.txt"
+        echo "diag_version" > "$(Build.ArtifactStagingDirectory)/diagnostics_version.txt"
+
         echo "##vso[task.setvariable variable=version;isOutput=true]$next"
         echo "##vso[task.setvariable variable=diagnostics_version;isOutput=true]$diag_version"
         echo "##vso[task.setvariable variable=tags;isOutput=true]$tags"
@@ -139,6 +143,11 @@ stages:
       name: commit
       env:
         GITHUB_TOKEN: "$(TestGitHubAccessToken)"
+    - task: PublishBuildArtifacts@1
+      displayName: Save image versions
+      inputs:
+        PathtoPublish: $(Build.ArtifactStagingDirectory)/*version.txt
+        ArtifactName: image-versions
 
 ################################################################################
 - stage: BuildExecutables
