@@ -57,12 +57,9 @@ stages:
 
 - stage: E
   dependsOn:
-  - A
   - D
   jobs:
   - job: e
-    variables:
-      continue: $[ stageDependencies.A.a.outputs['filter.continue'] ]
     steps:
     - script: |
         echo 'e: continue --> $(continue)'
