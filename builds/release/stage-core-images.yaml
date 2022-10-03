@@ -541,8 +541,6 @@ stages:
     ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
       version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.version'] ]
       diagnostics_version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.diagnostics_version'] ]
-    ${{ else }}:
-      diagnostics_version: $[ coalesce(variables.diagnostics_version, variables.version) ]
   jobs:
   - job: BuildImageEdgeHub
     steps:
@@ -675,8 +673,6 @@ stages:
       version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.version'] ]
       diagnostics_version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.diagnostics_version'] ]
       tags: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.tags'] ]
-    ${{ else }}:
-      diagnostics_version: $[ coalesce(variables.diagnostics_version, variables.version) ]
   jobs:
   - job: PublishManifest
     displayName: Publish Manifest
