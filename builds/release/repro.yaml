@@ -39,12 +39,7 @@ stages:
   dependsOn:
   - B
   - C
-  condition: |
-    and(
-      in(dependencies.A.result, 'Succeeded', 'SucceededWithIssues', 'Skipped'),
-      in(dependencies.B.result, 'Succeeded', 'SucceededWithIssues'),
-      in(dependencies.C.result, 'Succeeded', 'SucceededWithIssues')
-    )
+  condition: succeeded('B', 'C')
   jobs:
   - job: d
     steps:
