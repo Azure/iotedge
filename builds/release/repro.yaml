@@ -62,4 +62,4 @@ stages:
   - job: e
     steps:
     - script: |
-        echo 'e: continue --> $(continue)'
+        echo 'e'
