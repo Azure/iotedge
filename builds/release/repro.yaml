@@ -37,6 +37,7 @@ stages:
 
 - stage: D
   dependsOn:
+  - A
   - B
   - C
   jobs:
