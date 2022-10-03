@@ -19,16 +19,10 @@ stages:
     steps:
     - script: |
         echo 'a'
-        echo "##vso[task.setvariable variable=continue;isOutput=true]true"
-      name: filter
 
 - stage: B
   dependsOn: A
-  condition: |
-    or(
-      ne(variables['Build.Reason'],'ResourceTrigger'),
-      and(succeeded(), eq(dependencies.A.outputs['a.filter.continue'], 'true'))
-    )
+  condition: or(ne(variables['Build.Reason'],'ResourceTrigger'), succeeded())
   jobs:
   - job: b
     steps:
@@ -36,11 +30,7 @@ stages:
 
 - stage: C
   dependsOn: A
-  condition: |
-    or(
-      ne(variables['Build.Reason'],'ResourceTrigger'),
-      and(succeeded(), eq(dependencies.A.outputs['a.filter.continue'], 'true'))
-    )
+  condition: or(ne(variables['Build.Reason'],'ResourceTrigger'), succeeded())
   jobs:
   - job: c
     steps:
