@@ -63,7 +63,7 @@ stages:
   - job: PrepareRelease
     displayName: Prepare for release
     dependsOn: FilterCoreImages
-    condition: eq(dependencies.FilterCoreImages.outputs['filter.continue'], 'true')
+    condition: and(succeeded(), eq(dependencies.FilterCoreImages.outputs['filter.continue'], 'true'))
     steps:
     - task: AzureKeyVault@1
       displayName: Get secrets
@@ -176,7 +176,7 @@ stages:
     - script: |
         git checkout $(version)
       displayName: Check out the new release commit
-      condition: eq(variables['Build.Reason'],'ResourceTrigger')
+      condition: and(succeeded(), eq(variables['Build.Reason'],'ResourceTrigger'))
     - task: ShellScript@2
       displayName: "Build .NET artifacts"
       inputs:
@@ -525,7 +525,7 @@ stages:
         StoreAsTar: true
 
 ################################################################################
-- stage:  BuildImages
+- stage: BuildImages
 ################################################################################
   displayName: Build Images
   pool:
