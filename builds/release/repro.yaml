@@ -43,11 +43,3 @@ stages:
   - job: d
     steps:
     - script: echo 'd'
-
-- stage: E
-  dependsOn:
-  - D
-  jobs:
-  - job: e
-    steps:
-    - script: echo 'e'
