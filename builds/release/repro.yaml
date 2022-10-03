@@ -1,0 +1,62 @@
+pr: none
+trigger: none
+
+variables:
+  DisableDockerDetector: true
+
+stages:
+- stage: A
+  dependsOn: []
+  condition: eq(variables['Build.Reason'],'ResourceTrigger')
+  jobs:
+  - job: a
+    steps:
+    - script: |
+        echo 'a'
+        echo "##vso[task.setvariable variable=continue;isOutput=true]true"
+      name: filter
+
+- stage: B
+  dependsOn: A
+  condition: |
+    or(
+      ne(variables['Build.Reason'],'ResourceTrigger'),
+      and(succeeded(), eq(dependencies.A.outputs['a.filter.continue'], 'true'))
+    )
+  jobs:
+  - job: b
+    steps:
+    - script: echo 'b'
+
+- stage: C
+  dependsOn: A
+  condition: |
+    or(
+      ne(variables['Build.Reason'],'ResourceTrigger'),
+      and(succeeded(), eq(dependencies.A.outputs['a.filter.continue'], 'true'))
+    )
+  jobs:
+  - job: c
+    steps:
+    - script: echo 'c'
+
+- stage: D
+  dependsOn:
+  - B
+  - C
+  jobs:
+  - job: d
+    steps:
+    - script: echo 'd'
+
+- stage: E
+  dependsOn:
+  - A
+  - D
+  jobs:
+  - job: e
+    variables:
+      continue: $[ stageDependencies.A.a.outputs['filter.continue'] ]
+    steps:
+    - script: |
+        echo "e: continue --> $(continue)"
