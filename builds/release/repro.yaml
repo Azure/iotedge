@@ -40,11 +40,12 @@ stages:
   - A
   - B
   - C
-  condition: and(
-    in(dependencies.A.result, 'Succeeded', 'SucceededWithIssues', 'Skipped'),
-    in(dependencies.B.result, 'Succeeded', 'SucceededWithIssues'),
-    in(dependencies.C.result, 'Succeeded', 'SucceededWithIssues')
-  )
+  condition: |
+    and(
+      in(dependencies.A.result, 'Succeeded', 'SucceededWithIssues', 'Skipped'),
+      in(dependencies.B.result, 'Succeeded', 'SucceededWithIssues'),
+      in(dependencies.C.result, 'Succeeded', 'SucceededWithIssues')
+    )
   jobs:
   - job: d
     steps:
