@@ -37,7 +37,6 @@ stages:
 
 - stage: D
   dependsOn:
-  - A
   - B
   - C
   condition: |
