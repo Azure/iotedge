@@ -1,0 +1,8 @@
+trigger: none
+pr: none
+
+variables:
+  DisableDockerDetector: true
+
+steps:
+- script: echo 'upstream'

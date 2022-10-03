@@ -1,6 +1,12 @@
 pr: none
 trigger: none
 
+resources:
+  pipelines:
+  - pipeline: upstream
+    source: 'Upstream pipeline'
+    trigger: true
+
 variables:
   DisableDockerDetector: true
 
