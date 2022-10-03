@@ -17,8 +17,7 @@ stages:
   jobs:
   - job: a
     steps:
-    - script: |
-        echo 'a'
+    - script: echo 'a'
 
 - stage: B
   dependsOn: A
@@ -51,5 +50,4 @@ stages:
   jobs:
   - job: e
     steps:
-    - script: |
-        echo 'e'
+    - script: echo 'e'
