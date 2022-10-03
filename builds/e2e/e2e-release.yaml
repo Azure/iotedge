@@ -8,7 +8,7 @@ stages:
     dependsOn:
     - UpdatesDetected
     - PublishManifests
-    condition: in(dependencies.PublishManifests.result, 'Succeeded', 'SucceededWithIssues')
+    condition: succeeded('PublishManifests')
     variables:
       ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
         version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.version'] ]

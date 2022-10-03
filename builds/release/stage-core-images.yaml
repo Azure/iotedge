@@ -486,6 +486,7 @@ stages:
   dependsOn:
   - BuildExecutables
   - BuildRocksDB
+  condition: succeeded('BuildExecutables', 'BuildRocksDB')
   jobs:
   - job: ConsolidateAndPublishArtifacts
     steps:
@@ -535,6 +536,7 @@ stages:
   dependsOn:
   - UpdatesDetected
   - ConsolidateAndPubishArtifacts
+  condition: succeeded('ConsolidateAndPubishArtifacts')
   variables:
     ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
       version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.version'] ]
@@ -667,6 +669,7 @@ stages:
   dependsOn:
   - UpdatesDetected
   - BuildImages
+  condition: succeeded('BuildImages')
   variables:
     ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
       version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.version'] ]
