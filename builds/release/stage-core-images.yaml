@@ -166,15 +166,7 @@ stages:
   variables:
     ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
       version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.version'] ]
-    ${{ else }}:
-      diagnostics_version: $[coalesce(variables['diagnostics.version'], variables.version)]
   jobs:
-  - job: Debug
-    steps:
-    - script: |
-        echo "version = $(version)"
-        echo "diagnostics_version = $(diagnostics_version)"
-        exit 1
   - job: BuildDotnetComponents
     displayName: Build Dotnet Components
     steps:
@@ -549,6 +541,8 @@ stages:
     ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
       version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.version'] ]
       diagnostics_version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.diagnostics_version'] ]
+    ${{ else }}:
+      diagnostics_version: $[coalesce(variables['diagnostics.version'], variables.version)]
   jobs:
   - job: BuildImageEdgeHub
     steps:
@@ -681,6 +675,8 @@ stages:
       version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.version'] ]
       diagnostics_version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.diagnostics_version'] ]
       tags: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.tags'] ]
+    ${{ else }}:
+      diagnostics_version: $[coalesce(variables['diagnostics.version'], variables.version)]
   jobs:
   - job: PublishManifest
     displayName: Publish Manifest

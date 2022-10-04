@@ -13,6 +13,8 @@ stages:
       ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
         version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.version'] ]
         diagnostics_version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.diagnostics_version'] ]
+      ${{ else }}:
+        diagnostics_version: $[coalesce(variables['diagnostics.version'], variables.version)]
       # A 'minimal' pipeline only runs one end-to-end test (TempSensor). This is useful for platforms or
       # environments that are very similar to other platforms/environments in our matrix, Ubuntu 18.04
       # with the 'docker-ce' package vs. Ubuntu 18.04 with the 'iotedge-moby' package vs. the same
