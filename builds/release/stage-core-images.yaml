@@ -166,7 +166,14 @@ stages:
   variables:
     ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
       version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.version'] ]
+    diagnostics_version: $[coalesce(variables.diagnostics_version, variables.version, 'oops')]
   jobs:
+  - job: Debug
+    steps:
+    - script: |
+        echo "version = $(version)"
+        echo "diagnostics_version = $(diagnostics_version)"
+        exit 1
   - job: BuildDotnetComponents
     displayName: Build Dotnet Components
     steps:
@@ -541,15 +548,7 @@ stages:
     ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
       version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.version'] ]
       diagnostics_version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.diagnostics_version'] ]
-    ${{ else }}:
-      diagnostics_version: $[coalesce(variables.diagnostics_version, variables.version, 'oops')]
   jobs:
-  - job: Debug
-    steps:
-    - script: |
-        echo "version = $(version)"
-        echo "diagnostics_version = $(diagnostics_version)"
-        exit 1
   - job: BuildImageEdgeHub
     steps:
     - template: ../misc/templates/image-linux.yaml
