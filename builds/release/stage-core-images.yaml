@@ -166,7 +166,7 @@ stages:
   variables:
     ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
       version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.version'] ]
-    dv: $[variables.diagnostics_version]
+    dv: $[coalesce(variables.diagnostics_version, 'oops')]
   jobs:
   - job: Debug
     steps:
