@@ -167,14 +167,13 @@ stages:
     ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
       version: $[ stageDependencies.UpdatesDetected.PrepareRelease.outputs['commit.version'] ]
     ${{ else }}:
-      diagnostics_version: $[coalesce(variables.diagnostics_version, variables.version)]
+      diagnostics_version: $[coalesce(variables['diagnostics.version'], variables.version)]
   jobs:
   - job: Debug
     steps:
     - script: |
         echo "version = $(version)"
         echo "diagnostics_version = $(diagnostics_version)"
-        echo "dv = $(dv)"
         exit 1
   - job: BuildDotnetComponents
     displayName: Build Dotnet Components
