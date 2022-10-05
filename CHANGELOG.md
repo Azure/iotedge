@@ -1,3 +1,16 @@
+# 1.1.17 (2022-10-05)
+
+## Edge Hub
+### Bug Fixes
+* Add a configurable task that cancels hanging upstream calls [3756e99](https://github.com/Azure/iotedge/commit/3756e996005166ff5feac35dbfed75fd5dd8c5ab)
+
+## Base image updates
+The following Docker images were updated because their base images changed:
+   * azureiotedge-agent
+   * azureiotedge-hub
+   * azureiotedge-simulated-temperature-sensor
+   * azureiotedge-diagnostics
+
 # 1.1.16 (2022-08-31)
 ## Edge Agent
 ### Bug Fixes
