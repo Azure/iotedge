@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             var result = await this.IotHub.InvokeMethodAsync(
                 this.runtime.DeviceId,
                 ModuleName,
-                new CloudToDeviceMethod("ValidateMetrics", TimeSpan.FromSeconds(120), TimeSpan.FromSeconds(60)),
+                new CloudToDeviceMethod("ValidateMetrics", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(60)),
                 token);
             Assert.AreEqual(result.Status, (int)HttpStatusCode.OK);
 
