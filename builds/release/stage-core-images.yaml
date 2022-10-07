@@ -95,7 +95,7 @@ stages:
         fi
 
         next="${parts[0]}.${parts[1]}.$((${parts[2]} + 1))"
-        tags="['${parts[0]}.${parts[1]}']"
+        tags="[\"${parts[0]}.${parts[1]}\"]"
         echo "Calculated next release version: $next"
 
         # determine version of diagnostics image, which must match the edgelet version
@@ -135,6 +135,7 @@ stages:
         # save versions to files that will be published as artifacts
         echo "$next" > "$(Build.ArtifactStagingDirectory)/version.txt"
         echo "diag_version" > "$(Build.ArtifactStagingDirectory)/diagnostics_version.txt"
+        echo "$tags" > "$(Build.ArtifactStagingDirectory)/tags.txt"
 
         echo "##vso[task.setvariable variable=version;isOutput=true]$next"
         echo "##vso[task.setvariable variable=diagnostics_version;isOutput=true]$diag_version"
