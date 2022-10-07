@@ -1,0 +1,120 @@
+trigger: none
+pr: none
+
+variables:
+  DisableDockerDetector: true
+
+resources:
+  pipelines:
+  - pipeline: stage-core-images
+    source: 'Stage Core Images'
+    trigger: true
+
+jobs:
+################################################################################
+- job: publish_linux_images
+################################################################################
+  displayName: Publish Linux Images
+  pool:
+    name: $(pool.linux.name)
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+  steps:
+  - checkout: self
+    fetchDepth: 0
+  - download: stage-core-images
+    displayName: Download image versions from triggering pipeline
+  - script: |
+      version=$(cat $(Pipeline.Workspace)/stage-core-images/image-versions/version.txt)
+      diagnostics_version=$(cat $(Pipeline.Workspace)/stage-core-images/image-versions/diagnostics_version.txt)
+      tags=$(cat $(Pipeline.Workspace)/stage-core-images/image-versions/tags.txt)
+
+      echo "##vso[task.setvariable variable=version;isOutput=true]$version"
+      echo "##vso[task.setvariable variable=diagnostics_version;isOutput=true]$diagnostics_version"
+      echo "##vso[task.setvariable variable=tags;isOutput=true]$tags"
+    displayName: Get image versions
+    name: versions
+  - task: Docker@2
+    displayName: Docker login
+    inputs:
+      command: login
+      containerRegistry: iotedge-release-acr
+  - script: |
+      images=(
+        'public agent:$(version)' \
+        'public hub:$(version)' \
+        'public simulated-temperature-sensor:$(version)' \
+        'unlisted diagnostics:$(diagnostics_version)' \
+      )
+
+      for image in "${images[@]}"
+      do
+        segments=( $image )
+        for arch in 'amd64' 'arm32v7' 'arm64v8'
+        do
+          from="$(from.registry.address)/microsoft/azureiotedge-${segments[1]}-linux-$arch"
+          to="$(to.registry.address)/${segments[0]}/azureiotedge-${segments[1]}-linux-$arch"
+          echo "$from --> $to"
+          scripts/linux/moveImage.sh --from "$from" --to "$to"
+        done
+      done
+    displayName: Publish core images
+
+################################################################################
+- job: publish_manifest_images
+################################################################################
+  displayName: Publish Manifest Images
+  pool:
+    name: $(pool.linux.name)
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+  variables:
+    version: $[ dependencies.publish_linux_images.outputs['versions.version'] ]
+    diagnostics_version: $[ dependencies.publish_linux_images.outputs['versions.diagnostics_version'] ]
+    tags: $[ dependencies.publish_linux_images.outputs['versions.tags'] ]
+  steps:
+  - checkout: self
+    fetchDepth: 0
+
+  - task: Docker@2
+    displayName: Docker login
+    inputs:
+      command: login
+      containerRegistry: iotedge-release-acr
+
+  - script: |
+      scripts/linux/buildManifest.sh \
+        -r '$(to.registry.address)' \
+        -v '$(version)' \
+        -t 'edge-agent/docker/manifest.yaml.template' \
+        -n '$(to.registry.namespace)' \
+        --tags '$(tags)'
+    displayName: Publish Edge Agent manifest
+
+  - script: |
+      scripts/linux/buildManifest.sh \
+        -r '$(to.registry.address)' \
+        -v '$(version)' \
+        -t 'edge-hub/docker/manifest.yaml.template' \
+        -n '$(to.registry.namespace)' \
+        --tags '$(tags)'
+    displayName: Publish Edge Hub manifest
+
+  - script: |
+      tempsensor_tags=$(echo '$(tags)' | jq -c '. + ["latest"]')
+      scripts/linux/buildManifest.sh \
+        -r '$(to.registry.address)' \
+        -v '$(version)' \
+        -t 'edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template' \
+        -n '$(to.registry.namespace)' \
+        --tags "$tempsensor_tags"
+    displayName: Publish Temperature Sensor manifest
+
+  - script: |
+      scripts/linux/buildManifest.sh \
+        -r '$(to.registry.address)' \
+        -v '$(diagnostics_version)' \
+        -t 'edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template' \
+        -n '$(to.unlisted.registry.namespace)' \
+        --tags '$(tags)'
+    displayName: Publish Diagnostics manifest
