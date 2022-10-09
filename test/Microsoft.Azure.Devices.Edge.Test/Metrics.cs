@@ -20,6 +20,51 @@ namespace Microsoft.Azure.Devices.Edge.Test
     public class Metrics : SasManualProvisioningFixture
     {
         public const string ModuleName = "metricsValidator";
+        public const string CollectorModuleName = "metricsCollector";
+
+        [Test]
+        [Category("CentOsSafe")]
+        public async Task MetricsCollector()
+        {
+            CancellationToken token = this.TestToken;
+
+            string metricsCollectorImage = Context.Current.MetricsCollectorImage.Expect(() => new ArgumentException("metricsCollectorImage parameter is required for MetricsCollector test"));
+            string hubResourceId = Context.Current.HubResourceId.Expect(() => new ArgumentException("iotHubResourceId is required for MetricsCollector test"));
+
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
+                builder =>
+                {
+                    builder.AddModule(CollectorModuleName, metricsCollectorImage)
+                        .WithEnvironment(new[]
+                        {
+                            ("UploadTarget", "IotMessage"),
+                            ("ResourceID", hubResourceId),
+                            ("ScrapeFrequencyInSecs", "10"),
+                            ("CompressForUpload", "false")
+                        });
+                    builder.GetModule(ModuleName.EdgeHub)
+                        .WithDesiredProperties(new Dictionary<string, object>
+                        {
+                            ["routes"] = new
+                            {
+                                AzureIotEdgeMetricsCollectorToCloud = $"FROM /messages/modules/{CollectorModuleName}/* INTO $upstream"
+                            }
+                        });
+                },
+                token);
+
+            EdgeModule azureIotEdgeMetricsCollector = deployment.Modules[CollectorModuleName];
+
+            string output = await azureIotEdgeMetricsCollector.WaitForEventsReceivedAsync(DateTime.Now, token, "id");
+
+            JsonSerializerSettings settings = new JsonSerializerSettings();
+            settings.MissingMemberHandling = MissingMemberHandling.Error;
+
+            List<IoTHubMetric> iotHubMetrics = new List<IoTHubMetric>() { };
+            iotHubMetrics.AddRange(JsonConvert.DeserializeObject<IoTHubMetric[]>(output, settings));
+
+            Assert.True(iotHubMetrics.Count > 0);
+        }
 
         [Test]
         [Category("FlakyOnArm")]

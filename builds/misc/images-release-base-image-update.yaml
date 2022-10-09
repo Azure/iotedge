@@ -402,6 +402,14 @@ stages:
           version: $(version)
           bin_dir: '$(Build.BinariesDirectory)'
     # for E2E tests
+    - job: BuildImageMetricsCollector
+      steps:
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Metrics Collector
+          imageName: azureiotedge-metrics-collector
+          project: Microsoft.Azure.Devices.Edge.Azure.Monitor
+          bin_dir: '$(Build.BinariesDirectory)'
     - job: BuildImageMetricsValidator
       steps:
       - template: templates/image-linux.yaml
