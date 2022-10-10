@@ -35,8 +35,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="../docker*/**/*.*" CopyToPublishDirectory="Always" />
+    <Content Include="../docker*/**/*.*" CopyToPublishDirectory="Always">
       <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Content>
   </ItemGroup>
   
   <ItemGroup>
