@@ -40,7 +40,7 @@ pub struct EnvVar {
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(test, derive(Eq, PartialEq))]
 #[serde(rename_all = "camelCase")]
 pub struct ModuleStatus {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -53,7 +53,7 @@ pub struct ModuleStatus {
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(test, derive(Eq, PartialEq))]
 #[serde(rename_all = "camelCase")]
 pub struct ExitStatus {
     pub exit_time: String,
@@ -61,7 +61,7 @@ pub struct ExitStatus {
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(test, derive(Eq, PartialEq))]
 pub struct RuntimeStatus {
     pub status: String,
     #[serde(skip_serializing_if = "Option::is_none")]
