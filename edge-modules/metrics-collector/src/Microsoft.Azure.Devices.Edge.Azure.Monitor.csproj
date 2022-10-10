@@ -1,19 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\..\netcoreappVersion.props" />
+
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netcoreapp3.1|AnyCPU'">
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
     <Configurations>Debug;Release;CheckInBuild</Configurations>
     <HighEntropyVA>true</HighEntropyVA>
-    <TreatSpecificWarningsAsErrors />    
   </PropertyGroup>
-  
-  <ItemGroup>
-    <Content Include="../docker*/**/*.*" CopyToPublishDirectory="Always" />
-  </ItemGroup>
   
   <ItemGroup>
     <ProjectCapability Include="Microsoft.Azure.Devices.Azure.Monitor" />
@@ -21,10 +14,8 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.Devices.Client" Version="[1.28.0]" />
-
     <PackageReference Include="Serilog.Extensions.Logging" Version="2.0.2" />
     <PackageReference Include="Serilog.Sinks.Console" Version="3.1.1" />
-
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="5.0.0" />
@@ -32,14 +23,10 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="5.0.0" />
-
     <PackageReference Include="System.Runtime.Loader" Version="[4.3.0]" />
-
     <PackageReference Include="Portable.BouncyCastle" Version="1.8.6" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-
     <PackageReference Include="SharpZipLib" Version="1.3.3" />
-
     <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.13.1" />
   </ItemGroup>
 
@@ -47,6 +34,11 @@
     <ProjectReference Include="..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="../docker*/**/*.*" CopyToPublishDirectory="Always" />
+      <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
+  </ItemGroup>
+  
   <ItemGroup>
     <None Update="config/versionInfo.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
