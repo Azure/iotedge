@@ -339,8 +339,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                         if (this.CheckIfTwinSignatureIsValid(twin.Properties.Desired))
                         {
                             this.desiredProperties = Option.Some(twin.Properties.Desired);
-                            await this.UpdateDeploymentConfig(twin.Properties.Desired);
                             this.reportedProperties = Option.Some(twin.Properties.Reported);
+                            await this.UpdateDeploymentConfig(twin.Properties.Desired);
                             Events.TwinRefreshSuccess();
                         }
                     }
