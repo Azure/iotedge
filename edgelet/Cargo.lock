@@ -115,7 +115,7 @@ dependencies = [
  "aziot-identity-common-http",
  "base64",
  "chrono",
- "clap",
+ "clap 4.0.13",
  "edgelet-core",
  "edgelet-docker",
  "edgelet-http",
@@ -416,6 +416,29 @@ dependencies = [
  "textwrap",
  "unicode-width",
  "vec_map",
+]
+
+[[package]]
+name = "clap"
+version = "4.0.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "69d64e88428747154bd8bc378d178377ef4dace7a5735ca1f3855be72f2c2cb5"
+dependencies = [
+ "atty",
+ "bitflags",
+ "clap_lex",
+ "once_cell",
+ "strsim 0.10.0",
+ "termcolor",
+]
+
+[[package]]
+name = "clap_lex"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0d4198f73e42b4936b35b5bb248d81d2b595ecb170da0bac7655c54eedfa8da8"
+dependencies = [
+ "os_str_bytes",
 ]
 
 [[package]]
@@ -1230,7 +1253,7 @@ dependencies = [
  "cert-renewal",
  "chrono",
  "chrono-humanize",
- "clap",
+ "clap 2.34.0",
  "config",
  "config-common",
  "docker",
@@ -1538,6 +1561,12 @@ dependencies = [
  "openssl-sys",
  "openssl-sys2",
 ]
+
+[[package]]
+name = "os_str_bytes"
+version = "6.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9ff7415e9ae3fff1225851df9e0d9e4e5479f947619774677a63572e55e80eff"
 
 [[package]]
 name = "parking_lot"
