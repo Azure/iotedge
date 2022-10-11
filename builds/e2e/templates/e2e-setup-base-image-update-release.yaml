@@ -14,7 +14,6 @@ steps:
         TestDpsGroupKeySymmetric,
         TestEventHubCompatibleEndpoint,
         TestGitHubAccessToken,
-        TestPreviewEventHubCompatibleEndpoint,
         TestIotHubConnectionString,
         TestIotHubResourceId,
         TestRootCaCertificate,

@@ -1,33 +1,15 @@
 steps:
 - pwsh: |
-    $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
-
-    $filter = 'MetricsCollector'
-
-    if ($IsWindows)
-    {
-      # The windows installer script doesn't update the PATH in the current
-      # terminal session, so add `iotedge` and `docker` CLIs manually
-      $env:Path =
-        $env:Path,
-        $(Join-Path $env:ProgramFiles 'iotedge'),
-        $(Join-Path $env:ProgramFiles 'iotedge-moby') -join ';'
-      dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
-    }
-    else
-    {
-      sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
-    }
+    sudo --preserve-env dotnet test '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll' \
+      --no-build \
+      --logger 'trx' \
+      --filter 'MetricsCollector'
   displayName: Run tests
   env:
-    E2E_DPS_GROUP_KEY: $(TestDpsGroupKeySymmetric)
     E2E_EVENT_HUB_ENDPOINT: $(TestEventHubCompatibleEndpoint)
-    E2E_PREVIEW_EVENT_HUB_ENDPOINT: $(TestPreviewEventHubCompatibleEndpoint)
     E2E_IOT_HUB_CONNECTION_STRING: $(TestIotHubConnectionString)
-    E2E_PREVIEW_IOT_HUB_CONNECTION_STRING: $(TestPreviewIotHubConnectionString)
     E2E_REGISTRIES__0__PASSWORD: $(ReleaseContainerRegistryPassword)
     E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
-    E2E_BLOB_STORE_SAS: $(TestBlobStoreSas)
 
 - task: PublishTestResults@2
   displayName: Publish test results
