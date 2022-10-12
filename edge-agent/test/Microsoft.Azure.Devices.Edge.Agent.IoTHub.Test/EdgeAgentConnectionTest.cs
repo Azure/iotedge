@@ -204,18 +204,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 }
             };
 
-        static IEdgeAgentConnection CreateEdgeAgentConnection(IotHubConnectionStringBuilder iotHubConnectionStringBuilder, string edgeDeviceId, Device edgeDevice)
+        public static IEdgeAgentConnection CreateEdgeAgentConnection(IotHubConnectionStringBuilder iotHubConnectionStringBuilder, string edgeDeviceId, Device edgeDevice, ISdkModuleClientProvider sdkModuleClientProvider)
         {
             string edgeAgentConnectionString = $"HostName={iotHubConnectionStringBuilder.HostName};DeviceId={edgeDeviceId};ModuleId=$edgeAgent;SharedAccessKey={edgeDevice.Authentication.SymmetricKey.PrimaryKey}";
+            TimeSpan cloudConnectionHangingTimeout = TimeSpan.FromSeconds(60);
             IModuleClientProvider moduleClientProvider = new ModuleClientProvider(
                 edgeAgentConnectionString,
-                new SdkModuleClientProvider(),
+                sdkModuleClientProvider,
                 Option.None<UpstreamProtocol>(),
                 Option.None<IWebProxy>(),
                 Constants.IoTEdgeAgentProductInfoIdentifier,
                 false,
                 TimeSpan.FromDays(1),
-                false);
+                false,
+                cloudConnectionHangingTimeout);
 
             var moduleDeserializerTypes = new Dictionary<string, Type>
             {
@@ -275,7 +277,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
                 await SetAgentDesiredProperties(registryManager, edgeDeviceId);
 
-                var edgeAgentConnection = CreateEdgeAgentConnection(iotHubConnectionStringBuilder, edgeDeviceId, edgeDevice);
+                var edgeAgentConnection = CreateEdgeAgentConnection(iotHubConnectionStringBuilder, edgeDeviceId, edgeDevice, new SdkModuleClientProvider());
 
                 await Task.Delay(TimeSpan.FromSeconds(10));
 
@@ -363,7 +365,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 // Service takes about 5 mins to sync config to twin
                 await Task.Delay(TimeSpan.FromMinutes(7));
 
-                var edgeAgentConnection = CreateEdgeAgentConnection(iotHubConnectionStringBuilder, edgeDeviceId, edgeDevice);
+                var edgeAgentConnection = CreateEdgeAgentConnection(iotHubConnectionStringBuilder, edgeDeviceId, edgeDevice, new SdkModuleClientProvider());
 
                 await Task.Delay(TimeSpan.FromSeconds(20));
 
@@ -440,7 +442,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 // Service takes about 5 mins to sync config to twin
                 await Task.Delay(TimeSpan.FromMinutes(7));
 
-                var edgeAgentConnection = CreateEdgeAgentConnection(iotHubConnectionStringBuilder, edgeDeviceId, edgeDevice);
+                var edgeAgentConnection = CreateEdgeAgentConnection(iotHubConnectionStringBuilder, edgeDeviceId, edgeDevice, new SdkModuleClientProvider());
 
                 await Task.Delay(TimeSpan.FromSeconds(20));
 
@@ -1149,6 +1151,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         public async Task EdgeAgentConnectionStatusTest()
         {
             // Arrange
+            TimeSpan cloudConnectionHangingTimeout = TimeSpan.FromSeconds(60);
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
             RegistryManager registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
@@ -1177,7 +1180,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     Constants.IoTEdgeAgentProductInfoIdentifier,
                     false,
                     TimeSpan.FromDays(1),
-                    false);
+                    false,
+                    cloudConnectionHangingTimeout);
 
                 var moduleDeserializerTypes = new Dictionary<string, Type>
                 {
@@ -1248,6 +1252,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         public async Task EdgeAgentPingMethodTest()
         {
             // Arrange
+            TimeSpan cloudConnectionHangingTimeout = TimeSpan.FromSeconds(60);
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
             RegistryManager registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
@@ -1276,7 +1281,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     Constants.IoTEdgeAgentProductInfoIdentifier,
                     false,
                     TimeSpan.FromDays(1),
-                    false);
+                    false,
+                    cloudConnectionHangingTimeout);
 
                 var moduleDeserializerTypes = new Dictionary<string, Type>
                 {
@@ -1767,7 +1773,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             yield return new object[] { version_schema_mismatch, null };
         }
 
-        static async Task SetAgentDesiredProperties(RegistryManager rm, string deviceId)
+        internal static async Task SetAgentDesiredProperties(RegistryManager rm, string deviceId)
         {
             var dp = new
             {
@@ -1885,7 +1891,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
         static async Task DeleteConfigurationAsync(RegistryManager registryManager, string configurationId) => await registryManager.RemoveConfigurationAsync(configurationId);
 
-        static async Task UpdateAgentDesiredProperties(RegistryManager rm, string deviceId)
+        internal static async Task UpdateAgentDesiredProperties(RegistryManager rm, string deviceId)
         {
             var dp = new
             {
@@ -1993,7 +1999,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             await rm.ApplyConfigurationContentOnDeviceAsync(deviceId, cc);
         }
 
-        static void ValidateModules(DeploymentConfig deploymentConfig)
+        internal static void ValidateModules(DeploymentConfig deploymentConfig)
         {
             Assert.True(deploymentConfig.SystemModules.EdgeAgent.HasValue);
             Assert.True(deploymentConfig.SystemModules.EdgeHub.HasValue);
@@ -2014,7 +2020,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Assert.Equal("e6val", module1.Env["e6"].Value);
         }
 
-        static void ValidateRuntimeConfig(IRuntimeInfo deploymentConfigRuntime)
+        internal static void ValidateRuntimeConfig(IRuntimeInfo deploymentConfigRuntime)
         {
             var dockerRuntimeConfig = deploymentConfigRuntime as IRuntimeInfo<DockerRuntimeConfig>;
             Assert.NotNull(dockerRuntimeConfig);

@@ -26,12 +26,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         {
             // Arrange
             ITransportSettings receivedTransportSettings = null;
+            TimeSpan cloudConnectionHangingTimeout = TimeSpan.FromSeconds(60);
 
             var sdkModuleClient = new Mock<ISdkModuleClient>();
 
             var sdkModuleClientProvider = new Mock<ISdkModuleClientProvider>();
-            sdkModuleClientProvider.Setup(s => s.GetSdkModuleClient(It.IsAny<ITransportSettings>()))
-                .Callback<ITransportSettings>(t => receivedTransportSettings = t)
+            sdkModuleClientProvider.Setup(s => s.GetSdkModuleClient(It.IsAny<ITransportSettings>(), cloudConnectionHangingTimeout))
+                .Callback<ITransportSettings, TimeSpan>((t, cloudConnectionHangingTimeout) => receivedTransportSettings = t)
                 .ReturnsAsync(sdkModuleClient.Object);
 
             bool closeOnIdleTimeout = false;
@@ -46,12 +47,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 productInfo,
                 closeOnIdleTimeout,
                 idleTimeout,
-                false);
+                false,
+                cloudConnectionHangingTimeout);
             IModuleClient moduleClient = await moduleClientProvider.Create(handler);
 
             // Assert
             Assert.NotNull(moduleClient);
-            sdkModuleClientProvider.Verify(s => s.GetSdkModuleClient(It.IsAny<ITransportSettings>()), Times.Once);
+            sdkModuleClientProvider.Verify(s => s.GetSdkModuleClient(It.IsAny<ITransportSettings>(), cloudConnectionHangingTimeout), Times.Once);
 
             sdkModuleClient.Verify(s => s.SetProductInfo(productInfo), Times.Once);
 
@@ -93,12 +95,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         {
             // Arrange
             ITransportSettings receivedTransportSettings = null;
+            TimeSpan cloudConnectionHangingTimeout = TimeSpan.FromSeconds(60);
 
             var sdkModuleClient = new Mock<ISdkModuleClient>();
 
             var sdkModuleClientProvider = new Mock<ISdkModuleClientProvider>();
-            sdkModuleClientProvider.Setup(s => s.GetSdkModuleClient(It.IsAny<ITransportSettings>()))
-                .Callback<ITransportSettings>(t => receivedTransportSettings = t)
+            sdkModuleClientProvider.Setup(s => s.GetSdkModuleClient(It.IsAny<ITransportSettings>(), cloudConnectionHangingTimeout))
+                .Callback<ITransportSettings, TimeSpan>((t, cloudConnectionHangingTimeout) => receivedTransportSettings = t)
                 .ReturnsAsync(sdkModuleClient.Object);
 
             bool closeOnIdleTimeout = false;
@@ -113,7 +116,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 null,
                 closeOnIdleTimeout,
                 idleTimeout,
-                false));
+                false,
+                cloudConnectionHangingTimeout));
         }
 
         [Theory]
@@ -126,12 +130,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // Arrange
             string connectionString = "DummyConnectionString";
             ITransportSettings receivedTransportSettings = null;
+            TimeSpan cloudConnectionHangingTimeout = TimeSpan.FromSeconds(60);
 
             var sdkModuleClient = new Mock<ISdkModuleClient>();
 
             var sdkModuleClientProvider = new Mock<ISdkModuleClientProvider>();
-            sdkModuleClientProvider.Setup(s => s.GetSdkModuleClient(connectionString, It.IsAny<ITransportSettings>()))
-                .Callback<string, ITransportSettings>((c, t) => receivedTransportSettings = t)
+            sdkModuleClientProvider.Setup(s => s.GetSdkModuleClient(connectionString, It.IsAny<ITransportSettings>(), cloudConnectionHangingTimeout))
+                .Callback<string, ITransportSettings, TimeSpan>((c, t, cloudConnectionHangingTimeout) => receivedTransportSettings = t)
                 .Returns(sdkModuleClient.Object);
 
             bool closeOnIdleTimeout = false;
@@ -147,12 +152,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 productInfo,
                 closeOnIdleTimeout,
                 idleTimeout,
-                false);
+                false,
+                cloudConnectionHangingTimeout);
             IModuleClient moduleClient = await moduleClientProvider.Create(handler);
 
             // Assert
             Assert.NotNull(moduleClient);
-            sdkModuleClientProvider.Verify(s => s.GetSdkModuleClient(connectionString, It.IsAny<ITransportSettings>()), Times.Once);
+            sdkModuleClientProvider.Verify(s => s.GetSdkModuleClient(connectionString, It.IsAny<ITransportSettings>(), cloudConnectionHangingTimeout), Times.Once);
 
             sdkModuleClient.Verify(s => s.SetProductInfo(productInfo), Times.Once);
 

@@ -35,6 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly TimeSpan idleTimeout;
         readonly ISdkModuleClientProvider sdkModuleClientProvider;
         readonly bool useServerHeartbeat;
+        readonly TimeSpan cloudConnectionHangingTimeout;
 
         public ModuleClientProvider(
             string connectionString,
@@ -44,8 +45,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             string productInfo,
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout,
-            bool useServerHeartbeat)
-            : this(Option.Maybe(connectionString), sdkModuleClientProvider, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, useServerHeartbeat)
+            bool useServerHeartbeat,
+            TimeSpan cloudConnectionHangingTimeout)
+            : this(Option.Maybe(connectionString), sdkModuleClientProvider, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, useServerHeartbeat, cloudConnectionHangingTimeout)
         {
         }
 
@@ -56,8 +58,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             string productInfo,
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout,
-            bool useServerHeartbeat)
-            : this(Option.None<string>(), sdkModuleClientProvider, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, useServerHeartbeat)
+            bool useServerHeartbeat,
+            TimeSpan cloudConnectionHangingTimeout)
+            : this(Option.None<string>(), sdkModuleClientProvider, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, useServerHeartbeat, cloudConnectionHangingTimeout)
         {
         }
 
@@ -69,7 +72,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             string productInfo,
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout,
-            bool useServerHeartbeat)
+            bool useServerHeartbeat,
+            TimeSpan cloudConnectionHangingTimeout)
         {
             this.connectionString = connectionString;
             this.sdkModuleClientProvider = sdkModuleClientProvider;
@@ -79,6 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.closeOnIdleTimeout = closeOnIdleTimeout;
             this.idleTimeout = idleTimeout;
             this.useServerHeartbeat = useServerHeartbeat;
+            this.cloudConnectionHangingTimeout = cloudConnectionHangingTimeout;
         }
 
         public async Task<IModuleClient> Create(ConnectionStatusChangesHandler statusChangedHandler)
@@ -205,8 +210,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             Events.AttemptingConnectionWithTransport(settings.GetTransportType());
 
             ISdkModuleClient moduleClient = await this.connectionString
-                .Map(cs => Task.FromResult(this.sdkModuleClientProvider.GetSdkModuleClient(cs, settings)))
-                .GetOrElse(this.sdkModuleClientProvider.GetSdkModuleClient(settings));
+                .Map(cs => Task.FromResult(this.sdkModuleClientProvider.GetSdkModuleClient(cs, settings, this.cloudConnectionHangingTimeout)))
+                .GetOrElse(this.sdkModuleClientProvider.GetSdkModuleClient(settings, this.cloudConnectionHangingTimeout));
 
             moduleClient.SetProductInfo(this.productInfo);
 

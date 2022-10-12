@@ -12,16 +12,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient
     {
         readonly ModuleClient sdkModuleClient;
         readonly object getTwinTaskLock = new object();
+        readonly TimeSpan cloudConnectionHangingTimeout;
         Task<Twin> getTwinTask;
+        static Action sdkTimeoutAction = () => throw new EdgeAgentCloudSDKException("Operation timed out due to SDK hanging");
 
-        public WrappingSdkModuleClient(ModuleClient sdkModuleClient)
-            => this.sdkModuleClient = Preconditions.CheckNotNull(sdkModuleClient, nameof(sdkModuleClient));
+        public WrappingSdkModuleClient(ModuleClient sdkModuleClient, TimeSpan cloudConnectionHangingTimeout)
+        {
+            this.sdkModuleClient = Preconditions.CheckNotNull(sdkModuleClient, nameof(sdkModuleClient));
+            this.cloudConnectionHangingTimeout = cloudConnectionHangingTimeout;
+        }
 
         public Task OpenAsync()
         {
             try
             {
-                return this.sdkModuleClient.OpenAsync();
+                return this.sdkModuleClient.OpenAsync().TimeoutAfter(this.cloudConnectionHangingTimeout, sdkTimeoutAction);
             }
             catch (Exception)
             {

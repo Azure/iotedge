@@ -114,7 +114,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
             {
                 Assert.Equal("/path/to/homedir/mnt/edgeAgent.sock:/path/to/workload.sock", config.CreateOptions.HostConfig.Binds[0]);
                 Assert.Equal("/path/to/mgmt.sock:/path/to/mgmt.sock", config.CreateOptions.HostConfig.Binds[1]);
-            }else
+            }
+            else
             {
                 Assert.Equal("C:\\path\\to\\homedir\\mnt\\edgeAgent:C:\\path\\to\\workload", config.CreateOptions.HostConfig.Binds[0]);
                 Assert.Equal("C:\\path\\to\\mgmt:C:\\path\\to\\mgmt", config.CreateOptions.HostConfig.Binds[1]);

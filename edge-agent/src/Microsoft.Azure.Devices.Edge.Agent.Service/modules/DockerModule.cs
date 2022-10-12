@@ -37,6 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly TimeSpan idleTimeout;
         readonly bool useServerHeartbeat;
         readonly string backupConfigFilePath;
+        readonly TimeSpan cloudConnectionHangingTimeout;
 
         public DockerModule(
             string edgeDeviceConnectionString,
@@ -49,7 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout,
             bool useServerHeartbeat,
-            string backupConfigFilePath)
+            string backupConfigFilePath,
+            TimeSpan cloudConnectionHangingTimeout)
         {
             this.edgeDeviceConnectionString = Preconditions.CheckNonWhiteSpace(edgeDeviceConnectionString, nameof(edgeDeviceConnectionString));
             this.gatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
@@ -65,6 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.idleTimeout = idleTimeout;
             this.useServerHeartbeat = useServerHeartbeat;
             this.backupConfigFilePath = Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath));
+            this.cloudConnectionHangingTimeout = cloudConnectionHangingTimeout;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -81,7 +84,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         this.productInfo,
                         this.closeOnIdleTimeout,
                         this.idleTimeout,
-                        this.useServerHeartbeat))
+                        this.useServerHeartbeat,
+                        this.cloudConnectionHangingTimeout))
                 .As<IModuleClientProvider>()
                 .SingleInstance();
 
