@@ -10,7 +10,7 @@ stages:
 # This stage builds Rocks DB and adds the files to staging directory
 # It's only needed for building E2E test images and not needed for the Metrics Collector
 ################################################################################
-- template: templates/build-rocksdb.yaml
+- template: ../misc/templates/build-rocksdb.yaml
 ################################################################################
 
 - stage: BuildReleaseImages
@@ -123,7 +123,7 @@ stages:
             contents: '**'
             targetFolder: '$(Build.BinariesDirectory)/publish/librocksdb'
 
-        - template: templates/image-linux.yaml
+        - template: ../misc/templates/image-linux.yaml
           parameters:
             name: Metrics Collector (customer-facing)
             imageName: azureiotedge-metrics-collector
@@ -131,7 +131,7 @@ stages:
             version: $(version)
 
         # for E2E tests only
-        - template: templates/image-linux.yaml
+        - template: ../misc/templates/image-linux.yaml
           parameters:
             imageName: azureiotedge-agent
             name: "Edge Agent"
@@ -139,7 +139,7 @@ stages:
             version: $(version)
             buildx_flag: 'true'
             use_rocksdb: true
-        - template: templates/image-linux.yaml
+        - template: ../misc/templates/image-linux.yaml
           parameters:
             imageName: azureiotedge-hub
             name: "Edge Hub"
@@ -147,7 +147,7 @@ stages:
             version: $(version)
             buildx_flag: 'true'
             use_rocksdb: true
-        - template: templates/image-linux.yaml
+        - template: ../misc/templates/image-linux.yaml
           parameters:
             name: "Direct Method Sender"
             imageName: azureiotedge-direct-method-sender
