@@ -7,181 +7,236 @@ variables:
   Build.Configuration: release
 
 stages:
+################################################################################
+- stage: BuildImages
+################################################################################
+  dependsOn: BuildRocksDB
+
+  jobs:
+  - job: MetricsCollector_Linux
+    displayName: Metrics Collector Linux Build
+    timeoutInMinutes: 30
+    pool:
+      name: $(pool.linux.name)
+      demands:
+      - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
+    steps:
+    # If you need to test this job. Create a new Service Connection in the Project Settings (Azure DevOps)
+    # and update the pipeline variable.
+    - task: Docker@2
+      displayName: Docker login edgerelease
+      inputs:
+        command: login
+        containerRegistry: $(service-connection.registry.release)
+
+    - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
+      displayName: Build ($(Build.Configuration))
+
+    # The code sign task requires .NET Core 2.1.
+    # TODO: Investigate why we have to toggle primary installs on linux, when we didn't have to do this on windows (now removed).
+    - template: ../templates/force-dotnet21.yaml
+    # Code Sign
+    - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+      displayName: "Metrics Collector Code Sign"
+      inputs:
+        ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+        FolderPath: $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Azure.Monitor
+        Pattern: Microsoft.Azure.Devices.Edge.Azure.Monitor*.dll
+        SessionTimeout: 20
+        inlineOperation: |
+            [
+              {
+                  "keyCode": "CP-230012",
+                  "operationSetCode": "SigntoolSign",
+                  "parameters": [
+                  {
+                      "parameterName": "OpusName",
+                      "parameterValue": "Microsoft"
+                  },
+                  {
+                      "parameterName": "OpusInfo",
+                      "parameterValue": "http://www.microsoft.com"
+                  },
+                  {
+                      "parameterName": "Append",
+                      "parameterValue": "/as"
+                  },
+                  {
+                      "parameterName": "FileDigest",
+                      "parameterValue": "/fd \"SHA256\""
+                  },
+                  {
+                      "parameterName": "PageHash",
+                      "parameterValue": "/NPH"
+                  },
+                  {
+                      "parameterName": "TimeStamp",
+                      "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
+                  }
+                  ],
+                  "toolName": "sign",
+                  "toolVersion": "1.0"
+              },
+              {
+                  "keyCode": "CP-230012",
+                  "operationSetCode": "SigntoolVerify",
+                  "parameters": [
+                  {
+                      "parameterName": "VerifyAll",
+                      "parameterValue": "/all"
+                  }
+                  ],
+                  "toolName": "sign",
+                  "toolVersion": "1.0"
+              }
+            ]
+        signConfigType: inlineSignParams
+    # We're done with code signing, so remove dotnet version override
+    - template: ../templates/restore-default-dotnet.yaml
+
+    - bash: |
+        mkdir $(Build.ArtifactStagingDirectory)/publish-linux && \
+        mv $(Build.BinariesDirectory)/publish/{CACertificates,e2e_deployment_files,e2e_test_files,\
+        scripts,IotEdgeQuickstart*,LeafDevice*,*.nupkg} $(Build.ArtifactStagingDirectory)/publish-linux
+      displayName: Move/stage test file artifacts
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Artifacts to VSTS'
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)/publish-linux'
+        artifactName: 'publish-linux'
+
+    - task: PublishBuildArtifacts@1
+      displayName: Publish Dotnet Artifacts
+      inputs:
+        PathtoPublish: '$(Build.BinariesDirectory)/publish'
+        artifactName: 'dotnet_artifacts'
+        StoreAsTar: true
+
 # This stage builds Rocks DB and adds the files to staging directory
 # It's only needed for building E2E test images and not needed for the Metrics Collector
 ################################################################################
 - template: ../misc/templates/build-rocksdb.yaml
 ################################################################################
 
-- stage: BuildReleaseImages
-  dependsOn: BuildRocksDB
-
+# This stage consolidates .NET binaries, Rocksdb binaries and the SBOM into a
+# single artifact from which all Docker images can be built.
+################################################################################
+- stage: ConsolidateAndPubishArtifacts
+################################################################################
+  displayName: Consolidate And Publish Artifacts
+  pool:
+    name: $(pool.linux.name)
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+  dependsOn:
+  - BuildExecutables
+  - BuildRocksDB
   jobs:
-  ################################################################################
-    - job: MetricsCollector_Linux
-  ################################################################################
-      displayName: Metrics Collector Linux Build
-      timeoutInMinutes: 30
-      pool:
-        name: $(pool.linux.name)
-        demands:
-          - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
-      steps:
-        # If you need to test this job. Create a new Service Connection in the Project Settings (Azure DevOps)
-        # and update the pipeline variable.
-        - task: Docker@2
-          displayName: Docker login edgerelease
-          inputs:
-            command: login
-            containerRegistry: $(service-connection.registry.release)
+  - job: ConsolidateAndPublishArtifacts
+    steps:
+    - task: DownloadBuildArtifacts@0
+      displayName: Download Artifacts
+      inputs:
+        buildType: 'current'
+        downloadPath: '$(Build.ArtifactStagingDirectory)'
+        downloadType: specific
+        extractTars: true
 
-        - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
-          displayName: Build ($(Build.Configuration))
+    - task: CopyFiles@2
+      displayName: Copy/Stage dotnet artifacts
+      inputs:
+        sourceFolder: '$(Agent.TempDirectory)/extracted_tars/dotnet_artifacts'
+        contents: '**'
+        targetFolder: '$(Build.BinariesDirectory)/publish'
 
-        # The code sign task requires .NET Core 2.1.
-        # TODO: Investigate why we have to toggle primary installs on linux, when we didn't have to do this on windows (now removed).
-        - template: ../templates/force-dotnet21.yaml
-        # Code Sign
-        - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
-          displayName: "Metrics Collector Code Sign"
-          inputs:
-            ConnectedServiceName: "Azure IoT Edge Code Sign 2"
-            FolderPath: $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Azure.Monitor
-            Pattern: Microsoft.Azure.Devices.Edge.Azure.Monitor*.dll
-            SessionTimeout: 20
-            inlineOperation: |
-                [
-                  {
-                      "keyCode": "CP-230012",
-                      "operationSetCode": "SigntoolSign",
-                      "parameters": [
-                      {
-                          "parameterName": "OpusName",
-                          "parameterValue": "Microsoft"
-                      },
-                      {
-                          "parameterName": "OpusInfo",
-                          "parameterValue": "http://www.microsoft.com"
-                      },
-                      {
-                          "parameterName": "Append",
-                          "parameterValue": "/as"
-                      },
-                      {
-                          "parameterName": "FileDigest",
-                          "parameterValue": "/fd \"SHA256\""
-                      },
-                      {
-                          "parameterName": "PageHash",
-                          "parameterValue": "/NPH"
-                      },
-                      {
-                          "parameterName": "TimeStamp",
-                          "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
-                      }
-                      ],
-                      "toolName": "sign",
-                      "toolVersion": "1.0"
-                  },
-                  {
-                      "keyCode": "CP-230012",
-                      "operationSetCode": "SigntoolVerify",
-                      "parameters": [
-                      {
-                          "parameterName": "VerifyAll",
-                          "parameterValue": "/all"
-                      }
-                      ],
-                      "toolName": "sign",
-                      "toolVersion": "1.0"
-                  }
-                ]
-            signConfigType: inlineSignParams
-        # We're done with code signing, so remove dotnet version override
-        - template: ../templates/restore-default-dotnet.yaml
+    - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
+      displayName: 'SBOM Generation Task'
+      inputs:
+          BuildDropPath: '$(Build.BinariesDirectory)/publish'
 
-        - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
-          displayName: 'SBOM Generation Task'
-          inputs:
-              BuildDropPath: '$(Build.BinariesDirectory)/publish'
+    - task: CopyFiles@2
+      displayName: Copy rocksdb libs
+      inputs:
+        sourceFolder: '$(Build.ArtifactStagingDirectory)/librocksdb'
+        contents: '**'
+        targetFolder: '$(Build.BinariesDirectory)/publish/librocksdb'
 
-        - task: PublishBuildArtifacts@1
-          displayName: 'Publish Artifacts'
-          inputs:
-            PathtoPublish: '$(Build.BinariesDirectory)/publish'
-            ArtifactName: 'core-linux'
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Artifacts'
+      inputs:
+        pathToPublish: '$(Build.BinariesDirectory)/publish'
+        artifactName: 'consolidated_artifacts'
+        StoreAsTar: true
 
-        - task: DownloadPipelineArtifact@2
-          inputs:
-            artifact: 'librocksdb'
-            path: '$(Pipeline.Workspace)/librocksdb'
+################################################################################
+- stage:  BuildImages
+################################################################################
+  displayName: Build Images
+  pool:
+    name: $(pool.linux.name)
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+  dependsOn: ConsolidateAndPubishArtifacts
+  jobs:
+  - job: BuildImageMetricsCollector
+    steps:
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        name: Metrics Collector
+        imageName: azureiotedge-metrics-collector
+        project: Microsoft.Azure.Devices.Edge.Azure.Monitor
+        version: $(version)
+        bin_dir: '$(Build.BinariesDirectory)'
 
-        - task: CopyFiles@2
-          displayName: Copy rocksdb libs
-          inputs:
-            sourceFolder: '$(Pipeline.Workspace)/librocksdb'
-            contents: '**'
-            targetFolder: '$(Build.BinariesDirectory)/publish/librocksdb'
-
-        - template: ../misc/templates/image-linux.yaml
-          parameters:
-            name: Metrics Collector (customer-facing)
-            imageName: azureiotedge-metrics-collector
-            project: Microsoft.Azure.Devices.Edge.Azure.Monitor
-            version: $(version)
-
-        # for E2E tests only
-        - template: ../misc/templates/image-linux.yaml
-          parameters:
-            imageName: azureiotedge-agent
-            name: "Edge Agent"
-            project: Microsoft.Azure.Devices.Edge.Agent.Service
-            version: $(version)
-            buildx_flag: 'true'
-            use_rocksdb: true
-        - template: ../misc/templates/image-linux.yaml
-          parameters:
-            imageName: azureiotedge-hub
-            name: "Edge Hub"
-            project: Microsoft.Azure.Devices.Edge.Hub.Service
-            version: $(version)
-            buildx_flag: 'true'
-            use_rocksdb: true
-        - template: ../misc/templates/image-linux.yaml
-          parameters:
-            name: "Direct Method Sender"
-            imageName: azureiotedge-direct-method-sender
-            project: DirectMethodSender
-            bin_dir: '$(Build.BinariesDirectory)'
-            buildx_flag: 'true'
+    # for E2E tests only
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        imageName: azureiotedge-agent
+        name: Edge Agent
+        project: Microsoft.Azure.Devices.Edge.Agent.Service
+        bin_dir: '$(Build.BinariesDirectory)'
+        use_rocksdb: true
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        imageName: azureiotedge-hub
+        name: Edge Hub
+        project: Microsoft.Azure.Devices.Edge.Hub.Service
+        bin_dir: '$(Build.BinariesDirectory)'
+        use_rocksdb: true
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        name: "Direct Method Sender"
+        imageName: azureiotedge-direct-method-sender
+        project: DirectMethodSender
+        bin_dir: '$(Build.BinariesDirectory)'
 
 ################################################################################
 - stage: PublishManifests
 ################################################################################
-  displayName: Publish Manifest Images
-  dependsOn: BuildReleaseImages
+  displayName: Publish Manifests
   pool:
     name: $(pool.linux.name)
     demands:
-      - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
+    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
+  dependsOn: BuildImages
   jobs:
-    - job:
-      steps:
-      # If you need to test this job. Create a new Service Connection in the Project Settings (Azure DevOps)
-      # and update the pipeline variable.
-      - task: Docker@2
-        displayName: Docker login edgerelease
-        inputs:
-          command: login
-          containerRegistry: "$(service-connection.registry.release)"
-      - script: scripts/linux/buildManifest.sh -r "$(registry.address)" -v "$(version)" -t "$(System.DefaultWorkingDirectory)"/edge-modules/metrics-collector/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
-        displayName: 'Publish Metrics Collector Manifest'
+  - job: PublishManifest
+    displayName: Publish Manifest
+    steps:
+    - task: Docker@2
+      displayName: Docker login edgerelease
+      inputs:
+        command: login
+        containerRegistry: '$(service-connection.registry.release)'
+    - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-modules/metrics-collector/docker/manifest.yaml.template' -n '$(namespace)' --tags "$(tags)"
+      displayName: 'Publish Metrics Collector Manifest'
 
 ################################################################################
 - stage: RunE2ETest
 ################################################################################
   dependsOn: PublishManifests
-  condition: in(dependencies.PublishManifests.result, 'Succeeded', 'SucceededWithIssues')
+  condition: succeeded('PublishManifests')
   variables:
     # A 'minimal' pipeline only runs one end-to-end test (TempSensor). This is useful for platforms or
     # environments that are very similar to other platforms/environments in our matrix, Ubuntu 18.04
