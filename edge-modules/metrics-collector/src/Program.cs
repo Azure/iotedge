@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using Microsoft.Azure.Devices.Edge.Util;
+    using ModuleClientWrapper;
 
 
     using System.Diagnostics;
@@ -45,27 +46,11 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 #endif
 
             LoggerUtil.Writer.LogInformation($"Metrics collector initialized with the following settings:\r\n{Settings.Information}");
-            ModuleClientWrapper moduleClientWrapper = null;
+            IModuleClientWrapper moduleClientWrapper = null;
             try
             {
-                try
-                {
-                    moduleClientWrapper = await ModuleClientWrapper.BuildModuleClientWrapperAsync(Settings.Current.TransportType);
-                    PeriodicTask periodicIothubConnect = new PeriodicTask(moduleClientWrapper.RecreateClientAsync, Settings.Current.IotHubConnectFrequency, TimeSpan.FromMinutes(1), LoggerUtil.Writer, "Reconnect to IoT Hub", true);
-                }
-                catch (Exception e)
-                {
-                    String msg = String.Format("Error connecting to Edge Hub. Is Edge Hub up and running with settings for clients connecting over {0}? Exception: {1}", Settings.Current.TransportType, e);
-                    if (Settings.Current.UploadTarget == UploadTarget.IotMessage)
-                    {
-                        LoggerUtil.Writer.LogError(msg);
-                        throw;
-                    }
-                    else
-                    {
-                        LoggerUtil.Writer.LogWarning(msg);
-                    }
-                }
+                moduleClientWrapper = await BuildModuleClientWrapperAsync(Settings.Current.UploadTarget, cts);
+                PeriodicTask periodicIothubConnect = new PeriodicTask(moduleClientWrapper.RecreateClientAsync, Settings.Current.IotHubConnectFrequency, TimeSpan.FromMinutes(1), LoggerUtil.Writer, "Reconnect to IoT Hub", true);
 
                 MetricsScraper scraper = new MetricsScraper(Settings.Current.Endpoints);
                 IMetricsPublisher publisher;
@@ -92,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             }
             finally
             {
-                moduleClientWrapper?.Dispose();
+                ((IDisposable)moduleClientWrapper)?.Dispose();
             }
 
             completed.Set();
@@ -100,6 +85,18 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 
             LoggerUtil.Writer.LogInformation("MetricsCollector Main() finished.");
             return 0;
+        }
+
+        static async Task<IModuleClientWrapper> BuildModuleClientWrapperAsync(UploadTarget uploadTarget, CancellationTokenSource cts)
+        {
+            if (uploadTarget == UploadTarget.AzureMonitor)
+            {
+                return await AzureMonitorClientWrapper.BuildModuleClientWrapperAsync();
+            }
+            else
+            {
+                return await IotMessageModuleClientWrapper.BuildModuleClientWrapperAsync(cts);
+            }
         }
     }
 }

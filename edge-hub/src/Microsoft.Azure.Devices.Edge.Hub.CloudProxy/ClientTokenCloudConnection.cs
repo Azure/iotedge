@@ -36,6 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             TimeSpan idleTimeout,
             bool closeOnIdleTimeout,
             TimeSpan operationTimeout,
+            TimeSpan cloudConnectionHangingTimeout,
             string productInfo,
             Option<string> modelId)
             : base(
@@ -48,6 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 idleTimeout,
                 closeOnIdleTimeout,
                 operationTimeout,
+                cloudConnectionHangingTimeout,
                 productInfo,
                 modelId)
         {
@@ -65,6 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             TimeSpan idleTimeout,
             bool closeOnIdleTimeout,
             TimeSpan operationTimeout,
+            TimeSpan cloudConnectionHangingTimeout,
             string productInfo,
             Option<string> modelId)
         {
@@ -79,6 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 idleTimeout,
                 closeOnIdleTimeout,
                 operationTimeout,
+                cloudConnectionHangingTimeout,
                 productInfo,
                 modelId);
             ITokenProvider tokenProvider = new ClientTokenBasedTokenProvider(tokenCredentials, cloudConnection);

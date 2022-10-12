@@ -148,8 +148,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             TimeSpan cloudConnectionIdleTimeout = TimeSpan.FromSeconds(cloudConnectionIdleTimeoutSecs);
             bool closeCloudConnectionOnIdleTimeout = this.configuration.GetValue("CloseCloudConnectionOnIdleTimeout", true);
             int cloudOperationTimeoutSecs = this.configuration.GetValue("CloudOperationTimeoutSecs", 20);
+            int cloudConnectionHangingTimeoutSecs = this.configuration.GetValue("CloudConnectionHangingTimeoutSecs", 50);
             bool useServerHeartbeat = this.configuration.GetValue("UseServerHeartbeat", true);
             TimeSpan cloudOperationTimeout = TimeSpan.FromSeconds(cloudOperationTimeoutSecs);
+            TimeSpan cloudConnectionHangingTimeout = TimeSpan.FromSeconds(cloudConnectionHangingTimeoutSecs);
             Option<TimeSpan> minTwinSyncPeriod = this.GetConfigurationValueIfExists("MinTwinSyncPeriodSecs")
                 .Map(s => TimeSpan.FromSeconds(s));
             Option<TimeSpan> reportedPropertiesSyncFrequency = this.GetConfigurationValueIfExists("ReportedPropertiesSyncFrequencySecs")
@@ -184,6 +186,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     cloudConnectionIdleTimeout,
                     closeCloudConnectionOnIdleTimeout,
                     cloudOperationTimeout,
+                    cloudConnectionHangingTimeout,
                     useServerHeartbeat,
                     minTwinSyncPeriod,
                     reportedPropertiesSyncFrequency,

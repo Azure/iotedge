@@ -12,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Client;
 
     internal class Settings
     {
@@ -33,8 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             string resourceId,
             string version,
             TimeSpan iotHubConnectFrequency,
-            string azureDomain,
-            TransportType transportType)
+            string azureDomain)
         {
             this.UploadTarget = uploadTarget;
             this.ResourceId = Preconditions.CheckNonWhiteSpace(resourceId, nameof(resourceId));
@@ -72,8 +70,6 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             this.Version = version;
             this.IotHubConnectFrequency = iotHubConnectFrequency;
             this.AzureDomain = azureDomain;
-
-            this.TransportType = transportType;
         }
 
         private static Settings Create()
@@ -100,8 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                     configuration.GetValue<string>("ResourceID", ""),
                     configuration.GetValue<string>("version", ""),
                     configuration.GetValue<TimeSpan>("IotHubConnectFrequency", TimeSpan.FromDays(1)),
-                    configuration.GetValue<String>("AzureDomain", "azure.com"),
-                    configuration.GetValue("transportType", TransportType.Amqp_Tcp_Only)
+                    configuration.GetValue<String>("AzureDomain", "azure.com")
                     );
             }
             catch (ArgumentException e)
@@ -133,8 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                 regex.Replace(settings.ResourceId, "$1" + "XXX" + "$3" + "XXX" + "$5"),
                 settings.Version,
                 settings.IotHubConnectFrequency,
-                settings.AzureDomain,
-                settings.TransportType);
+                settings.AzureDomain);
         }
 
         public string LogAnalyticsWorkspaceId { get; }
@@ -165,8 +159,6 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 
         public string AzureDomain { get; }
 
-        public TransportType TransportType { get; }
-
         // Used to eliminate secrets when logging the settings
         public override string ToString()
         {
@@ -184,7 +176,6 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                 { nameof(this.ResourceId), this.ResourceId ?? string.Empty },
                 { nameof(this.IotHubConnectFrequency), this.IotHubConnectFrequency.ToString() ?? string.Empty },
                 { nameof(this.AzureDomain), this.AzureDomain ?? string.Empty },
-                { nameof(this.TransportType), this.TransportType.ToString() }
             };
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";

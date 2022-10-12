@@ -70,7 +70,6 @@ Optional config items:
     - ex: `azure.com.cn`
     - Defaults to `azure.com`
 
-
 ## Upload Target:
 
 Scrapped metrics can be uploaded directly to Log Analytics (requires outbound internet connectivity, see Adding the InsightsMetrics Table section), or metrics can be published as IoT messages (useful for local consumption).
