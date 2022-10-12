@@ -11,6 +11,19 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.Devices.ProtocolGateway.Core" Version="2.0.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="5.0.0" />
+    <!--
+      We have a transitive dependency on Dotnetty via Microsoft.Azure.Devices.ProtocolGateway.Core.
+      Use explicit references here to override the version and fix a known OOM bug. See
+      https://github.com/Azure/DotNetty/pull/583. If ProtocolGateway updates its dependency,
+      we can remove the Dotnetty references.
+    -->
+    <PackageReference Include="DotNetty.Buffers" Version="0.7.5" />
+    <PackageReference Include="DotNetty.Codecs" Version="0.7.5" />
+    <PackageReference Include="DotNetty.Codecs.Mqtt" Version="0.7.5" />
+    <PackageReference Include="DotNetty.Common" Version="0.7.5" />
+    <PackageReference Include="DotNetty.Handlers" Version="0.7.5" />
+    <PackageReference Include="DotNetty.Transport" Version="0.7.5" />
+
   </ItemGroup>
 
   <ItemGroup>
