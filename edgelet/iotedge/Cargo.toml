@@ -16,7 +16,7 @@ byte-unit = "4"
 bytes = "1"
 chrono = { version = "0.4.7", features = ["serde"] }
 chrono-humanize = "0.2"
-clap = "2.31"
+clap = { version = "4", features = ["cargo", "env", "string"] }
 config = { version = "0.13", default-features = false }
 erased-serde = "0.3.12"
 hex = "0.4"
