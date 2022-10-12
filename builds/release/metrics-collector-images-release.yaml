@@ -8,10 +8,8 @@ variables:
 
 stages:
 ################################################################################
-- stage: BuildImages
+- stage: BuildExecutables
 ################################################################################
-  dependsOn: BuildRocksDB
-
   jobs:
   - job: MetricsCollector_Linux
     displayName: Metrics Collector Linux Build
