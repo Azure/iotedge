@@ -8,8 +8,8 @@ use clap::{crate_description, crate_name, crate_version, Arg, Command};
 
 use log::info;
 
-use chrono::Utc;
 use chrono::DateTime;
+use chrono::Utc;
 use edgehub_proxy::error::Error;
 use edgehub_proxy::logging;
 use edgelet_client::workload;
@@ -147,14 +147,15 @@ async fn run() -> Result<(), Error> {
             .get_one::<String>("common-name")
             .ok_or(Error::MissingVal("COMMON_NAME"))?;
         let expiration = DateTime::parse_from_rfc3339(
-            args
-                .get_one::<String>("expiration")
-                .ok_or(Error::MissingVal("EXPIRATION"))?)?;
+            args.get_one::<String>("expiration")
+                .ok_or(Error::MissingVal("EXPIRATION"))?,
+        )?;
         let expiration_utc = expiration.with_timezone(&Utc);
         info!("Retrieving server certificate with common name \"{}\" and expiration \"{}\" from {}...", common_name, expiration, url);
 
-        let response =
-            client.create_server_cert(module, gen, common_name, expiration_utc).await?;
+        let response = client
+            .create_server_cert(module, gen, common_name, expiration_utc)
+            .await?;
 
         info!("Retrieved server certificate.");
 
