@@ -187,6 +187,8 @@ stages:
         bin_dir: '$(Build.BinariesDirectory)'
 
     # for E2E tests only
+  - job: BuildImageEdgeAgent
+    steps:
     - template: ../misc/templates/image-linux.yaml
       parameters:
         imageName: azureiotedge-agent
@@ -194,6 +196,9 @@ stages:
         project: Microsoft.Azure.Devices.Edge.Agent.Service
         bin_dir: '$(Build.BinariesDirectory)'
         use_rocksdb: true
+
+  - job: BuildImageEdgeHub
+    steps:
     - template: ../misc/templates/image-linux.yaml
       parameters:
         imageName: azureiotedge-hub
@@ -201,6 +206,9 @@ stages:
         project: Microsoft.Azure.Devices.Edge.Hub.Service
         bin_dir: '$(Build.BinariesDirectory)'
         use_rocksdb: true
+
+  - job: BuildImageDirectMethodSender
+    steps:
     - template: ../misc/templates/image-linux.yaml
       parameters:
         name: "Direct Method Sender"
