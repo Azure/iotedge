@@ -215,7 +215,7 @@ stages:
         displayName: Docker login edgerelease
         inputs:
           command: login
-          containerRegistry: iotedge-release-acr
+          containerRegistry: $(service-connection.registry.release)
       - template: ../e2e/../e2e/templates/e2e-clean-directory.yaml
       - template: ../e2e/templates/e2e-setup-base-image-update-release.yaml
       - template: ../e2e/templates/e2e-clear-docker-cached-images.yaml
@@ -302,7 +302,7 @@ stages:
         displayName: Docker login edgerelease
         inputs:
           command: login
-          containerRegistry: iotedge-release-acr
+          containerRegistry: $(service-connection.registry.release)
       - template: ../e2e/templates/e2e-clean-directory.yaml
       - template: ../e2e/templates/e2e-setup-base-image-update-release.yaml
       - template: ../e2e/templates/e2e-clear-docker-cached-images.yaml

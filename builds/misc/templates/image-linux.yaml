@@ -40,7 +40,7 @@ steps:
     displayName: Docker login edgerelease
     inputs:
       command: login
-      containerRegistry: iotedge-release-acr      
+      containerRegistry: $(service-connection.registry.release)
   - task: Bash@3
     displayName: Build Image - ${{ parameters.name }} - amd64
     inputs:
