@@ -31,7 +31,7 @@ jobs:
             displayName: Docker login edgerelease
             inputs:
               command: login
-              containerRegistry: $(service.connection)              
+              containerRegistry: $(service-connection.registry.release)              
         
           - task: Bash@3
             displayName: 'Publish Metrics Collector - Linux amd64'
@@ -78,7 +78,7 @@ jobs:
             displayName: Docker login edgerelease
             inputs:
               command: login
-              containerRegistry: $(service.connection)                
+              containerRegistry: $(service-connection.registry.release)                
 
           - task: Bash@3
             displayName: 'Publish Metrics Collector Manifest'
