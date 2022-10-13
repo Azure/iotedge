@@ -28,6 +28,7 @@ steps:
     Copy-Item "$(Build.SourcesDirectory)/TestResults" "$logDir/" -Recurse
     # The setup fixtures run outside the scope of any test, so their logs (*-[test|device]-*.log)
     # aren't included in the TRX. Copy them manually here.
+    Copy-Item '$(binDir)/context.json' "$logDir/"
     Copy-Item "$(binDir)/*-test-*.log" "$logDir/"
     Copy-Item "$(binDir)/*-device-*.log" "$logDir/"
     Copy-Item "$(binDir)/testoutput.log" "$logDir/"
