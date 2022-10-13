@@ -102,6 +102,7 @@ steps:
         logFile = Join-Path '$(binDir)' 'testoutput.log';
         verbose = '$(verbose)';
         getSupportBundle = 'true';
+        teardownTimeoutMinutes = 10;
       }
   
       if ('$(nestededge)' -eq 'true')
