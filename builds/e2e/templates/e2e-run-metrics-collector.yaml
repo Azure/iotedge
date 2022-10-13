@@ -35,7 +35,6 @@ steps:
     $artifactSuffix = '$(Build.BuildNumber)-$(System.PhaseName)' -replace '_','-'
     Write-Output "##vso[task.setvariable variable=artifactSuffix]$artifactSuffix"
   displayName: Collect Logs
-  name: TestLogs
   condition: always()
 
 - task: PublishBuildArtifacts@1
@@ -43,4 +42,3 @@ steps:
   inputs:
     PathtoPublish: $(Build.ArtifactStagingDirectory)/logs
     ArtifactName: logs-end-to-end-$(artifactSuffix)
-  condition: succeeded('TestLogs')
