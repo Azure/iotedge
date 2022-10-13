@@ -42,3 +42,4 @@ steps:
   inputs:
     PathtoPublish: $(Build.ArtifactStagingDirectory)/logs
     ArtifactName: logs-end-to-end-$(artifactSuffix)
+  condition: always()
