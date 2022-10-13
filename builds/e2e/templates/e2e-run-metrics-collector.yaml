@@ -1,5 +1,5 @@
 steps:
-- pwsh: |
+- script: |
     sudo --preserve-env dotnet test '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll' \
       --no-build \
       --logger 'trx' \
@@ -14,12 +14,12 @@ steps:
 - task: PublishTestResults@2
   displayName: Publish test results
   inputs:
-    testResultsFormat: vstest
+    testRunner: vstest
     testResultsFiles: '**/*.trx'
     searchFolder: $(Build.SourcesDirectory)/TestResults
     testRunTitle: End-to-end tests ($(Build.BuildNumber) $(System.JobDisplayName))
     buildPlatform: $(arch)
-  condition: always()
+  condition: succeededOrFailed()
 
 - pwsh: |
     $logDir = '$(Build.ArtifactStagingDirectory)/logs'
@@ -35,11 +35,11 @@ steps:
     $artifactSuffix = '$(Build.BuildNumber)-$(System.PhaseName)' -replace '_','-'
     Write-Output "##vso[task.setvariable variable=artifactSuffix]$artifactSuffix"
   displayName: Collect Logs
-  condition: always()
+  condition: succeededOrFailed()
 
 - task: PublishBuildArtifacts@1
   displayName: Publish logs
   inputs:
     PathtoPublish: $(Build.ArtifactStagingDirectory)/logs
-    ArtifactName: logs-end-to-end-$(Build.BuildNumber)-$(artifactSuffix)
-  condition: always()
+    ArtifactName: logs-end-to-end-$(artifactSuffix)
+  condition: succeededOrFailed()
