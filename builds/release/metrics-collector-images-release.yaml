@@ -251,7 +251,7 @@ stages:
     # installation, or in running a very basic test. We don't need to repeat the entire test suite.
     # The 'minimal' variable defaults to 'false'; we override it in specific jobs as needed.
     minimal: false
-    verbose: false
+    verbose: true
   jobs:
   ################################################################################
   - job: linux_arm32v7
