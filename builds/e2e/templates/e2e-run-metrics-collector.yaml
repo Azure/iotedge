@@ -33,6 +33,8 @@ steps:
     Copy-Item "$(binDir)/*-device-*.log" "$logDir/"
     Copy-Item "$(binDir)/testoutput.log" "$logDir/"
     Copy-Item "$(binDir)/supportbundle*" "$logDir/"
+    echo "Contents of '$logDir/':"
+    ls -al "$logDir/"
     $artifactSuffix = '$(Build.BuildNumber)-$(System.PhaseName)' -replace '_','-'
     Write-Output "##vso[task.setvariable variable=artifactSuffix]$artifactSuffix"
   displayName: Collect Logs
