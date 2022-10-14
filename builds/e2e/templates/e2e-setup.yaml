@@ -15,7 +15,6 @@ steps:
         TestEventHubCompatibleEndpoint,
         TestGitHubAccessToken,
         TestPreviewEventHubCompatibleEndpoint,
-        TestIotedgedPackageRootSigningCert,
         TestIotHubConnectionString,
         TestRootCaCertificate,
         TestRootCaKey,
@@ -65,10 +64,10 @@ steps:
     condition: eq(variables['check_use_artifacts.UsePipelineImageArtifacts'],'false')
     inputs:  
       buildType: specific
-      project: $(resources.pipeline.images.projectID)
-      pipeline: $(resources.pipeline.images.pipelineName)
+      project: $(resources.pipeline.ci-build.projectID)
+      pipeline: $(resources.pipeline.ci-build.pipelineName)
       buildVersionToDownload: specific
-      buildId: $(resources.pipeline.images.runID)
+      buildId: $(resources.pipeline.ci-build.runID)
       downloadType: single
       artifactName: $(az.pipeline.images.artifacts)
       allowPartiallySucceededBuilds: true
@@ -79,10 +78,10 @@ steps:
     condition: eq(variables['check_use_artifacts.UsePipelinePackageArtifacts'],'false')
     inputs:
       buildType: specific
-      project: $(resources.pipeline.packages.projectID)
-      pipeline: $(resources.pipeline.packages.pipelineName)
+      project: $(resources.pipeline.ci-build.projectID)
+      pipeline: $(resources.pipeline.ci-build.pipelineName)
       buildVersionToDownload: specific
-      buildId: $(resources.pipeline.packages.runID)
+      buildId: $(resources.pipeline.ci-build.runID)
       downloadType: single
       artifactName: $(artifactName)
       allowPartiallySucceededBuilds: true
