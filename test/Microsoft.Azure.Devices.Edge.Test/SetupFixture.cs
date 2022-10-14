@@ -148,6 +148,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         await device.MaybeDeleteIdentityAsync(token);
                     }
 
+                    // Dump config.toml before uninstalling
+                    Log.Information($"!!!!!!!!\n!!! config.toml:\n\n{File.ReadAllText("/etc/aziot/config.toml")}\n\n!!!!!!!!");
+
                     // Remove packages installed by this run.
                     await this.daemon.UninstallAsync(token);
 
