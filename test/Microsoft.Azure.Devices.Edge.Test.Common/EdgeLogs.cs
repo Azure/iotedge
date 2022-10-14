@@ -20,14 +20,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             // Save module logs
             try
             {
-                string[] output = await Process.RunAsync("iotedge", "list", token);
+                string[] output = await Process.RunAsync("iotedge", "list", /*token*/CancellationToken.None);
                 string[] modules = output.Select(ln => ln.Split(null as char[], StringSplitOptions.RemoveEmptyEntries).First()).Skip(1).ToArray();
 
                 foreach (string name in modules)
                 {
                     string moduleLog = $"{filePrefix}-{name}.log";
-                    output = await Process.RunAsync("iotedge", $"logs {name}", token, logVerbose: false);
-                    await File.WriteAllLinesAsync(moduleLog, output, token);
+                    output = await Process.RunAsync("iotedge", $"logs {name}", /*token*/CancellationToken.None, logVerbose: false);
+                    await File.WriteAllLinesAsync(moduleLog, output, /*token*/CancellationToken.None);
                     paths.Add(moduleLog);
                 }
             }
@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             // Save daemon logs
             try
             {
-                string daemonLog = await OsPlatform.Current.CollectDaemonLogsAsync(testStartTime, filePrefix, token);
+                string daemonLog = await OsPlatform.Current.CollectDaemonLogsAsync(testStartTime, filePrefix, /*token*/CancellationToken.None);
                 paths.Add(daemonLog);
             }
             catch (Exception e)

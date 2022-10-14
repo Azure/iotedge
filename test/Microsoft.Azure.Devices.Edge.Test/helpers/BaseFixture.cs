@@ -38,11 +38,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             await Profiler.Run(
                 async () =>
                 {
-                    this.cts.Dispose();
+                    // this.cts.Dispose();
                     if ((!Context.Current.ISA95Tag) && (TestContext.CurrentContext.Result.Outcome != ResultState.Ignored))
                     {
                         // using var cts = new CancellationTokenSource(Context.Current.TeardownTimeout);
                         await NUnitLogs.CollectAsync(this.testStartTime, /*cts.Token*/CancellationToken.None);
+                        Log.Information($"Collector support bundle? {Context.Current.GetSupportBundle}");
                         if (Context.Current.GetSupportBundle)
                         {
                             try
