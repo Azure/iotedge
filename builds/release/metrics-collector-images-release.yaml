@@ -111,7 +111,7 @@ jobs:
         -t '$(System.DefaultWorkingDirectory)/edge-modules/metrics-collector/docker/manifest.yaml.template' \
         -n '$(namespace)' \
         --tags "$(tags)"
-    displayName: 'Publish Metrics Collector Manifest'
+    displayName: 'Build Metrics Collector Manifest'
 
 ################################################################################
 - job: test
