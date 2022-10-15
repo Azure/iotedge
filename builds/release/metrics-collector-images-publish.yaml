@@ -4,7 +4,13 @@ pr: none
 variables:
   DisableDockerDetector: true
   NugetSecurityAnalysisWarningLevel: warn
-  
+
+resources:
+  pipelines:
+  - pipeline: stage-metrics-collector
+    source: 'Stage Metrics Collector Image'
+    trigger: true
+
 jobs:
 ################################################################################
 # - deployment: publish
