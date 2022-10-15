@@ -7,52 +7,53 @@ variables:
   
 jobs:
 ################################################################################
-- deployment: publish
+# - deployment: publish
+- job: publish
 ################################################################################
   displayName: Publish Metrics Collector
   pool:
     name: $(pool.linux.name)
     demands:
     - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby    
-  workspace:
-    clean: all
-  environment: 'Azure-IoT-Edge-Core Release Env'
-  strategy:
-    runOnce:
-      deploy:
-        steps:
-        - checkout: self
-          fetchDepth: 0
+  # workspace:
+  #   clean: all
+  # environment: 'Azure-IoT-Edge-Core Release Env'
+  # strategy:
+  #   runOnce:
+  #     deploy:
+  steps:
+  - checkout: self
+    fetchDepth: 0
 
-        - task: Docker@2
-          displayName: Docker login edgerelease
-          inputs:
-            command: login
-            containerRegistry: $(service-connection.registry.release)              
-      
-        - script: |
-            scripts/linux/moveImage.sh \
-              --from $(registry.address)/$(from.registry.namespace)/azureiotedge-metrics-collector:$(version)-linux-amd64 \
-              --to $(registry.address)/$(to.registry.namespace)/azureiotedge-metrics-collector:$(version)-linux-amd64
-          displayName: 'Publish Image - Linux amd64'
-    
-        - script: |
-            scripts/linux/moveImage.sh \
-              --from $(registry.address)/$(from.registry.namespace)/azureiotedge-metrics-collector:$(version)-linux-arm32v7 \
-              --to $(registry.address)/$(to.registry.namespace)/azureiotedge-metrics-collector:$(version)-linux-arm32v7
-          displayName: 'Publish Image - Linux arm32v7'
-    
-        - script: |
-            scripts/linux/moveImage.sh \
-              --from $(registry.address)/$(from.registry.namespace)/azureiotedge-metrics-collector:$(version)-linux-arm64v8 \
-              --to $(registry.address)/$(to.registry.namespace)/azureiotedge-metrics-collector:$(version)-linux-arm64v8
-          displayName: 'Publish Image - Linux arm64v8'
+  - task: Docker@2
+    displayName: Docker login edgerelease
+    inputs:
+      command: login
+      containerRegistry: $(service-connection.registry.release)              
 
-        - script: |
-            scripts/linux/buildManifest.sh \
-              -r $(registry.address) \
-              -v $(version) \
-              -t $(System.DefaultWorkingDirectory)/edge-modules/metrics-collector/docker/manifest.yaml.template \
-              -n $(to.registry.namespace) \
-              --tags "$(tags)"
-          displayName: 'Publish Manifest'
+  - script: |
+      scripts/linux/moveImage.sh \
+        --from $(registry.address)/$(from.registry.namespace)/azureiotedge-metrics-collector:$(version)-linux-amd64 \
+        --to $(registry.address)/$(to.registry.namespace)/azureiotedge-metrics-collector:$(version)-linux-amd64
+    displayName: 'Publish Image - Linux amd64'
+
+  - script: |
+      scripts/linux/moveImage.sh \
+        --from $(registry.address)/$(from.registry.namespace)/azureiotedge-metrics-collector:$(version)-linux-arm32v7 \
+        --to $(registry.address)/$(to.registry.namespace)/azureiotedge-metrics-collector:$(version)-linux-arm32v7
+    displayName: 'Publish Image - Linux arm32v7'
+
+  - script: |
+      scripts/linux/moveImage.sh \
+        --from $(registry.address)/$(from.registry.namespace)/azureiotedge-metrics-collector:$(version)-linux-arm64v8 \
+        --to $(registry.address)/$(to.registry.namespace)/azureiotedge-metrics-collector:$(version)-linux-arm64v8
+    displayName: 'Publish Image - Linux arm64v8'
+
+  - script: |
+      scripts/linux/buildManifest.sh \
+        -r $(registry.address) \
+        -v $(version) \
+        -t $(System.DefaultWorkingDirectory)/edge-modules/metrics-collector/docker/manifest.yaml.template \
+        -n $(to.registry.namespace) \
+        --tags "$(tags)"
+    displayName: 'Publish Manifest'
