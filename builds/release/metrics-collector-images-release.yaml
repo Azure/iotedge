@@ -17,7 +17,11 @@ jobs:
     demands:
     - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
   steps:
-  - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
+  - script: |
+      dotnet publish edge-modules/metrics-collector/src/Microsoft.Azure.Devices.Edge.Azure.Monitor.csproj \
+        -o '$(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Azure.Monitor' \
+        -c Release
+
     displayName: Build ($(Build.Configuration))
 
   # The code sign task requires .NET Core 2.1.
