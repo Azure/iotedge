@@ -113,6 +113,16 @@ jobs:
         -n '$(namespace)' \
         --tags "$(tags)"
     displayName: 'Build Manifest'
+  
+  - script: |
+      echo '$(version)' > $(Build.ArtifactStagingDirectory)/version.txt
+    displayName: Save version as artifact
+
+  - task: PublishBuildArtifacts@1
+    displayName: Publish version artifact
+    inputs:
+      pathtoPublish: '$(Build.ArtifactStagingDirectory)/version.txt'
+      artifactName: version
 
 ################################################################################
 - job: test

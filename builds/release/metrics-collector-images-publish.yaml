@@ -11,16 +11,40 @@ resources:
     source: 'Stage Metrics Collector Images'
     trigger: true
 
+pool:
+  name: $(pool.linux.name)
+  demands:
+  - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby    
+
 jobs:
+################################################################################
+- job: version_from_pipeline
+################################################################################
+  displayName: Get version from triggering pipeline
+  condition: |
+    and(
+      eq(variables['Build.Reason'],'ResourceTrigger'),
+      eq(variables['Resources.TriggeringCategory'],'pipeline'),
+      eq(variables['Resources.TriggeringAlias'],'stage-metrics-collector')
+    )            
+  steps:
+  - download: stage-metrics-collector
+  - script: |
+      version=$(cat '$(Pipeline.Workspace)/stage-metrics-collector/version/version.txt')
+      echo "##vso[task.setvariable variable=version;isOutput=true]$version"
+    displayName: Set version
+    name: set
+
 ################################################################################
 # - deployment: publish
 - job: publish
 ################################################################################
   displayName: Publish Metrics Collector
-  pool:
-    name: $(pool.linux.name)
-    demands:
-    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby    
+  variables:
+    ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
+      version: $[ dependencies.version_from_pipeline.outputs['set.version'] ]
+    ${{ else }}:
+      version: $[ variables.version ]
   # workspace:
   #   clean: all
   # environment: 'Azure-IoT-Edge-Core Release Env'
@@ -35,7 +59,7 @@ jobs:
     displayName: Docker login edgerelease
     inputs:
       command: login
-      containerRegistry: $(service-connection.registry.release)              
+      containerRegistry: $(service-connection.registry.release)
 
   - script: |
       scripts/linux/moveImage.sh \
