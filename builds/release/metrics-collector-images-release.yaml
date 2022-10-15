@@ -127,7 +127,6 @@ jobs:
     arch: arm32v7
 
   steps:
-  - template: ../e2e/templates/e2e-setup-metrics-collector.yaml
   - template: ../e2e/templates/e2e-run-metrics-collector.yaml
 
 ################################################################################
@@ -146,7 +145,6 @@ jobs:
     arch: arm64v8
 
   steps:
-  - template: ../e2e/templates/e2e-setup-metrics-collector.yaml
   - template: ../e2e/templates/e2e-run-metrics-collector.yaml
 
 ################################################################################
@@ -165,5 +163,4 @@ jobs:
     arch: amd64
 
   steps:
-  - template: ../e2e/templates/e2e-setup-metrics-collector.yaml
   - template: ../e2e/templates/e2e-run-metrics-collector.yaml
