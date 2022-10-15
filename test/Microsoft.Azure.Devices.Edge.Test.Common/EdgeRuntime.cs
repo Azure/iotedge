@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
+    using Serilog;
 
     public class EdgeRuntime
     {
@@ -73,6 +74,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 // Convert signed config to ConfigurationContent
                 edgeConfiguration.Config = JsonConvert.DeserializeObject<ConfigurationContent>(signedConfig);
             }
+
+            Log.Information($"Deploying configuration:\n\n{edgeConfiguration.ToString()}\n\n");
 
             await edgeConfiguration.DeployAsync(this.iotHub, token);
             EdgeModule[] modules = edgeConfiguration.ModuleNames
