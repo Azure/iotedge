@@ -127,25 +127,6 @@ jobs:
   - template: ../e2e/templates/e2e-run-metrics-collector.yaml
 
 ################################################################################
-- job: test_linux_amd64
-################################################################################
-  displayName: Test Linux amd64
-  dependsOn: build
-
-  pool:
-    name: $(pool.linux.name)
-    demands:
-    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
-
-  variables:
-    os: linux
-    arch: amd64
-
-  steps:
-  - template: ../e2e/templates/e2e-setup-metrics-collector.yaml
-  - template: ../e2e/templates/e2e-run-metrics-collector.yaml
-
-################################################################################
 - job: test_linux_arm64v8
 ################################################################################
   displayName: Test Linux arm64v8
@@ -159,6 +140,25 @@ jobs:
   variables:
     os: linux
     arch: arm64v8
+
+  steps:
+  - template: ../e2e/templates/e2e-setup-metrics-collector.yaml
+  - template: ../e2e/templates/e2e-run-metrics-collector.yaml
+
+################################################################################
+- job: test_linux_amd64
+################################################################################
+  displayName: Test Linux amd64
+  dependsOn: build
+
+  pool:
+    name: $(pool.linux.name)
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
+
+  variables:
+    os: linux
+    arch: amd64
 
   steps:
   - template: ../e2e/templates/e2e-setup-metrics-collector.yaml
