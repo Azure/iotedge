@@ -119,22 +119,23 @@ jobs:
   variables:
     os: linux
 
-  matrix:
-    arm32v7:
-      pool: $(pool.linux.arm.name)
-      # Since this pipeline is about testing the Metrics Collector Docker image for release
-      # and not our host components, we'll run the arm32v7 Docker image on an arm64v8 host
-      # OS, with arm64v8 host components, for speed and convenience.
-      agent: agent-aziotedge-ubuntu-20.04-arm64-docker
-      arch: arm32v7
-    arm64v8:
-      pool: $(pool.linux.arm.name)
-      agent: agent-aziotedge-ubuntu-20.04-arm64-docker
-      arch: arm64v8
-    amd64:
-      pool: $(pool.linux.name)
-      agent: agent-aziotedge-ubuntu-20.04-msmoby
-      arch: amd64
+  strategy:
+    matrix:
+      arm32v7:
+        pool: $(pool.linux.arm.name)
+        # Since this pipeline is about testing the Metrics Collector Docker image for release
+        # and not our host components, we'll run the arm32v7 Docker image on an arm64v8 host
+        # OS, with arm64v8 host components, for speed and convenience.
+        agent: agent-aziotedge-ubuntu-20.04-arm64-docker
+        arch: arm32v7
+      arm64v8:
+        pool: $(pool.linux.arm.name)
+        agent: agent-aziotedge-ubuntu-20.04-arm64-docker
+        arch: arm64v8
+      amd64:
+        pool: $(pool.linux.name)
+        agent: agent-aziotedge-ubuntu-20.04-msmoby
+        arch: amd64
 
   pool:
     name: $(pool)
