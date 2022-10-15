@@ -5,6 +5,7 @@ variables:
   DisableDockerDetector: true
   NugetSecurityAnalysisWarningLevel: warn
   Build.Configuration: release
+  verbose: true
 
 jobs:
 ################################################################################
@@ -108,9 +109,6 @@ jobs:
 ################################################################################
   displayName: Linux arm32v7
   dependsOn: build
-
-  variables:
-    verbose: true
 
   pool:
     name: $(pool.linux.arm.name)
