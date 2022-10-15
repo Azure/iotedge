@@ -112,7 +112,7 @@ jobs:
         -t 'edge-modules/metrics-collector/docker/manifest.yaml.template' \
         -n '$(namespace)' \
         --tags "$(tags)"
-    displayName: 'Build Metrics Collector Manifest'
+    displayName: 'Build Manifest'
 
 ################################################################################
 - job: test
