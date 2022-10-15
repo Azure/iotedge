@@ -105,9 +105,9 @@ jobs:
     displayName: 'Publish Metrics Collector Manifest'
 
 ################################################################################
-- job: linux_arm32v7
+- job: test_linux_arm32v7
 ################################################################################
-  displayName: Linux arm32v7
+  displayName: Test Linux arm32v7
   dependsOn: build
 
   pool:
@@ -127,28 +127,9 @@ jobs:
   - template: ../e2e/templates/e2e-run-metrics-collector.yaml
 
 ################################################################################
-- job: ubuntu_1804_msmoby
+- job: test_linux_amd64
 ################################################################################
-  displayName: Ubuntu 18.04 with iotedge-moby
-  dependsOn: build
-
-  pool:
-    name: $(pool.linux.name)
-    demands:
-    - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
-
-  variables:
-    os: linux
-    arch: amd64
-
-  steps:
-  - template: ../e2e/templates/e2e-setup-metrics-collector.yaml
-  - template: ../e2e/templates/e2e-run-metrics-collector.yaml
-
-################################################################################
-- job: ubuntu_2004_msmoby
-################################################################################
-  displayName: Ubuntu 20.04 with iotedge-moby
+  displayName: Test Linux amd64
   dependsOn: build
 
   pool:
@@ -165,9 +146,9 @@ jobs:
   - template: ../e2e/templates/e2e-run-metrics-collector.yaml
 
 ################################################################################
-- job: ubuntu_2004_arm64v8
+- job: test_linux_arm64v8
 ################################################################################
-  displayName: Ubuntu 20.04 with arm64v8
+  displayName: Test Linux arm64v8
   dependsOn: build
 
   pool:
