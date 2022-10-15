@@ -6,221 +6,181 @@ variables:
   NugetSecurityAnalysisWarningLevel: warn
   Build.Configuration: release
 
-stages:
+jobs:
 ################################################################################
-- stage: BuildExecutables
+- job: build
 ################################################################################
-  jobs:
-  - job: MetricsCollector_Linux
-    displayName: Metrics Collector Linux Build
-    pool:
-      name: $(pool.linux.name)
-      demands:
-      - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
-    steps:
-    - task: Docker@2
-      displayName: Docker login edgerelease
-      inputs:
-        command: login
-        containerRegistry: $(service-connection.registry.release)
-
-    - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
-      displayName: Build ($(Build.Configuration))
-
-    # The code sign task requires .NET Core 2.1.
-    # TODO: Investigate why we have to toggle primary installs on linux, when we didn't have to do this on windows (now removed).
-    - template: ../templates/force-dotnet21.yaml
-    # Code Sign
-    - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
-      displayName: "Metrics Collector Code Sign"
-      inputs:
-        ConnectedServiceName: "Azure IoT Edge Code Sign 2"
-        FolderPath: $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Azure.Monitor
-        Pattern: Microsoft.Azure.Devices.Edge.Azure.Monitor*.dll
-        SessionTimeout: 20
-        inlineOperation: |
-            [
-              {
-                  "keyCode": "CP-230012",
-                  "operationSetCode": "SigntoolSign",
-                  "parameters": [
-                  {
-                      "parameterName": "OpusName",
-                      "parameterValue": "Microsoft"
-                  },
-                  {
-                      "parameterName": "OpusInfo",
-                      "parameterValue": "http://www.microsoft.com"
-                  },
-                  {
-                      "parameterName": "Append",
-                      "parameterValue": "/as"
-                  },
-                  {
-                      "parameterName": "FileDigest",
-                      "parameterValue": "/fd \"SHA256\""
-                  },
-                  {
-                      "parameterName": "PageHash",
-                      "parameterValue": "/NPH"
-                  },
-                  {
-                      "parameterName": "TimeStamp",
-                      "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
-                  }
-                  ],
-                  "toolName": "sign",
-                  "toolVersion": "1.0"
-              },
-              {
-                  "keyCode": "CP-230012",
-                  "operationSetCode": "SigntoolVerify",
-                  "parameters": [
-                  {
-                      "parameterName": "VerifyAll",
-                      "parameterValue": "/all"
-                  }
-                  ],
-                  "toolName": "sign",
-                  "toolVersion": "1.0"
-              }
-            ]
-        signConfigType: inlineSignParams
-    # We're done with code signing, so remove dotnet version override
-    - template: ../templates/restore-default-dotnet.yaml
-
-    - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
-      displayName: 'SBOM Generation Task'
-      inputs:
-          BuildDropPath: '$(Build.BinariesDirectory)/publish'
-
-    - task: PublishBuildArtifacts@1
-      displayName: Publish Dotnet Artifacts
-      inputs:
-        PathtoPublish: '$(Build.BinariesDirectory)/publish'
-        artifactName: 'consolidated_artifacts'
-        StoreAsTar: true
-
-################################################################################
-- stage:  BuildImages
-################################################################################
-  displayName: Build Images
-  pool:
-    name: $(pool.linux.name)
-    demands:
-    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
-  jobs:
-  - job: BuildImageMetricsCollector
-    steps:
-    - template: ../misc/templates/image-linux.yaml
-      parameters:
-        name: Metrics Collector
-        imageName: azureiotedge-metrics-collector
-        project: Microsoft.Azure.Devices.Edge.Azure.Monitor
-        version: $(version)
-        bin_dir: '$(Build.BinariesDirectory)'
-
-################################################################################
-- stage: PublishManifests
-################################################################################
-  displayName: Publish Manifests
+  displayName: Build Metrics Collector
   pool:
     name: $(pool.linux.name)
     demands:
     - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
-  jobs:
-  - job: PublishManifest
-    displayName: Publish Manifest
-    steps:
-    - task: Docker@2
-      inputs:
-        command: login
-        containerRegistry: '$(service-connection.registry.release)'
-    - script: |
-        scripts/linux/buildManifest.sh \
-          -r '$(registry.address)' \
-          -v '$(version)' \
-          -t '$(System.DefaultWorkingDirectory)/edge-modules/metrics-collector/docker/manifest.yaml.template' \
-          -n '$(namespace)' \
-          --tags "$(tags)"
-      displayName: 'Publish Metrics Collector Manifest'
+  steps:
+  - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
+    displayName: Build ($(Build.Configuration))
+
+  # The code sign task requires .NET Core 2.1.
+  # TODO: Investigate why we have to toggle primary installs on linux, when we didn't have to do this on windows (now removed).
+  - template: ../templates/force-dotnet21.yaml
+  # Code Sign
+  - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+    displayName: "Metrics Collector Code Sign"
+    inputs:
+      ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+      FolderPath: $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Azure.Monitor
+      Pattern: Microsoft.Azure.Devices.Edge.Azure.Monitor*.dll
+      SessionTimeout: 20
+      inlineOperation: |
+          [
+            {
+                "keyCode": "CP-230012",
+                "operationSetCode": "SigntoolSign",
+                "parameters": [
+                {
+                    "parameterName": "OpusName",
+                    "parameterValue": "Microsoft"
+                },
+                {
+                    "parameterName": "OpusInfo",
+                    "parameterValue": "http://www.microsoft.com"
+                },
+                {
+                    "parameterName": "Append",
+                    "parameterValue": "/as"
+                },
+                {
+                    "parameterName": "FileDigest",
+                    "parameterValue": "/fd \"SHA256\""
+                },
+                {
+                    "parameterName": "PageHash",
+                    "parameterValue": "/NPH"
+                },
+                {
+                    "parameterName": "TimeStamp",
+                    "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
+                }
+                ],
+                "toolName": "sign",
+                "toolVersion": "1.0"
+            },
+            {
+                "keyCode": "CP-230012",
+                "operationSetCode": "SigntoolVerify",
+                "parameters": [
+                {
+                    "parameterName": "VerifyAll",
+                    "parameterValue": "/all"
+                }
+                ],
+                "toolName": "sign",
+                "toolVersion": "1.0"
+            }
+          ]
+      signConfigType: inlineSignParams
+  # We're done with code signing, so remove dotnet version override
+  - template: ../templates/restore-default-dotnet.yaml
+
+  - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
+    displayName: Generate SBOM
+    inputs:
+        BuildDropPath: '$(Build.BinariesDirectory)/publish'
+
+  - template: ../misc/templates/image-linux.yaml
+    parameters:
+      name: Metrics Collector
+      imageName: azureiotedge-metrics-collector
+      project: Microsoft.Azure.Devices.Edge.Azure.Monitor
+      version: $(version)
+      download_artifacts: false
+
+  - script: |
+      scripts/linux/buildManifest.sh \
+        -r '$(registry.address)' \
+        -v '$(version)' \
+        -t '$(System.DefaultWorkingDirectory)/edge-modules/metrics-collector/docker/manifest.yaml.template' \
+        -n '$(namespace)' \
+        --tags "$(tags)"
+    displayName: 'Publish Metrics Collector Manifest'
 
 ################################################################################
-- stage: RunE2ETest
+- job: linux_arm32v7
 ################################################################################
+  displayName: Linux arm32v7
+  dependsOn: build
+
   variables:
     verbose: true
-  jobs:
-  ################################################################################
-  - job: linux_arm32v7
-  ################################################################################
-    displayName: Linux arm32v7
 
-    pool:
-      name: $(pool.linux.arm.name)
-      demands:
-      # Since this pipeline is about testing the Metrics Collector Docker image for release
-      # and not our host components, we'll run the arm32v7 Docker image on an arm64v8 host
-      # OS, with arm64v8 host components, for speed and convenience.
-      - ImageOverride -equals agent-aziotedge-ubuntu-20.04-arm64-docker
+  pool:
+    name: $(pool.linux.arm.name)
+    demands:
+    # Since this pipeline is about testing the Metrics Collector Docker image for release
+    # and not our host components, we'll run the arm32v7 Docker image on an arm64v8 host
+    # OS, with arm64v8 host components, for speed and convenience.
+    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-arm64-docker
 
-    variables:
-      os: linux
-      arch: arm32v7
+  variables:
+    os: linux
+    arch: arm32v7
 
-    steps:
-    - template: ../e2e/templates/e2e-setup-metrics-collector.yaml
-    - template: ../e2e/templates/e2e-run-metrics-collector.yaml
+  steps:
+  - template: ../e2e/templates/e2e-setup-metrics-collector.yaml
+  - template: ../e2e/templates/e2e-run-metrics-collector.yaml
 
-  ################################################################################
-  - job: ubuntu_1804_msmoby
-  ################################################################################
-    displayName: Ubuntu 18.04 with iotedge-moby
+################################################################################
+- job: ubuntu_1804_msmoby
+################################################################################
+  displayName: Ubuntu 18.04 with iotedge-moby
+  dependsOn: build
 
-    pool:
-      name: $(pool.linux.name)
-      demands:
-      - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
+  pool:
+    name: $(pool.linux.name)
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
 
-    variables:
-      os: linux
-      arch: amd64
+  variables:
+    os: linux
+    arch: amd64
 
-    steps:
-    - template: ../e2e/templates/e2e-setup-metrics-collector.yaml
-    - template: ../e2e/templates/e2e-run-metrics-collector.yaml
+  steps:
+  - template: ../e2e/templates/e2e-setup-metrics-collector.yaml
+  - template: ../e2e/templates/e2e-run-metrics-collector.yaml
 
-  ################################################################################
-  - job: ubuntu_2004_msmoby
-  ################################################################################
-    displayName: Ubuntu 20.04 with iotedge-moby
+################################################################################
+- job: ubuntu_2004_msmoby
+################################################################################
+  displayName: Ubuntu 20.04 with iotedge-moby
+  dependsOn: build
 
-    pool:
-      name: $(pool.linux.name)
-      demands:
-      - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
+  pool:
+    name: $(pool.linux.name)
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
 
-    variables:
-      os: linux
-      arch: amd64
+  variables:
+    os: linux
+    arch: amd64
 
-    steps:
-    - template: ../e2e/templates/e2e-setup-metrics-collector.yaml
-    - template: ../e2e/templates/e2e-run-metrics-collector.yaml
+  steps:
+  - template: ../e2e/templates/e2e-setup-metrics-collector.yaml
+  - template: ../e2e/templates/e2e-run-metrics-collector.yaml
 
-  ################################################################################
-  - job: ubuntu_2004_arm64v8
-  ################################################################################
-    displayName: Ubuntu 20.04 with arm64v8
-    pool:
-      name: $(pool.linux.arm.name)
-      demands:
-      - ImageOverride -equals agent-aziotedge-ubuntu-20.04-arm64-docker
+################################################################################
+- job: ubuntu_2004_arm64v8
+################################################################################
+  displayName: Ubuntu 20.04 with arm64v8
+  dependsOn: build
 
-    variables:
-      os: linux
-      arch: arm64v8
+  pool:
+    name: $(pool.linux.arm.name)
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-arm64-docker
 
-    steps:
-    - template: ../e2e/templates/e2e-setup-metrics-collector.yaml
-    - template: ../e2e/templates/e2e-run-metrics-collector.yaml
+  variables:
+    os: linux
+    arch: arm64v8
+
+  steps:
+  - template: ../e2e/templates/e2e-setup-metrics-collector.yaml
+  - template: ../e2e/templates/e2e-run-metrics-collector.yaml

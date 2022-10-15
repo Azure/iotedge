@@ -4,11 +4,13 @@ parameters:
   namespace: 'microsoft'
   project: ''
   version: ''
-  bin_dir: ''
+  bin_dir: '$(Build.BinariesDirectory)'
   use_rocksdb: false
+  download_artifacts: true
 
 steps:
   - task: DownloadBuildArtifacts@0
+    condition: and(succeeded(), $(download_artifacts))
     inputs:
       buildType: 'current'
       downloadPath: '$(Build.ArtifactStagingDirectory)'
@@ -18,6 +20,7 @@ steps:
 
   - task: CopyFiles@2
     displayName: Copy Artifacts
+    condition: and(succeeded(), $(download_artifacts))
     inputs:
       sourceFolder: '$(Agent.TempDirectory)/extracted_tars/consolidated_artifacts'
       contents: '**'
