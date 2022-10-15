@@ -13,14 +13,11 @@ stages:
   jobs:
   - job: MetricsCollector_Linux
     displayName: Metrics Collector Linux Build
-    timeoutInMinutes: 30
     pool:
       name: $(pool.linux.name)
       demands:
       - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
     steps:
-    # If you need to test this job. Create a new Service Connection in the Project Settings (Azure DevOps)
-    # and update the pipeline variable.
     - task: Docker@2
       displayName: Docker login edgerelease
       inputs:
@@ -92,51 +89,15 @@ stages:
     # We're done with code signing, so remove dotnet version override
     - template: ../templates/restore-default-dotnet.yaml
 
-    - task: PublishBuildArtifacts@1
-      displayName: Publish Dotnet Artifacts
-      inputs:
-        PathtoPublish: '$(Build.BinariesDirectory)/publish'
-        artifactName: 'dotnet_artifacts'
-        StoreAsTar: true
-
-# This stage consolidates .NET binaries and the SBOM into a single artifact
-# from which all Docker images can be built.
-################################################################################
-- stage: ConsolidateAndPubishArtifacts
-################################################################################
-  displayName: Consolidate And Publish Artifacts
-  pool:
-    name: $(pool.linux.name)
-    demands:
-    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
-  dependsOn: BuildExecutables
-  jobs:
-  - job: ConsolidateAndPublishArtifacts
-    steps:
-    - task: DownloadBuildArtifacts@0
-      displayName: Download Artifacts
-      inputs:
-        buildType: 'current'
-        downloadPath: '$(Build.ArtifactStagingDirectory)'
-        downloadType: specific
-        extractTars: true
-
-    - task: CopyFiles@2
-      displayName: Copy/Stage dotnet artifacts
-      inputs:
-        sourceFolder: '$(Agent.TempDirectory)/extracted_tars/dotnet_artifacts'
-        contents: '**'
-        targetFolder: '$(Build.BinariesDirectory)/publish'
-
     - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
       displayName: 'SBOM Generation Task'
       inputs:
           BuildDropPath: '$(Build.BinariesDirectory)/publish'
 
     - task: PublishBuildArtifacts@1
-      displayName: 'Publish Artifacts'
+      displayName: Publish Dotnet Artifacts
       inputs:
-        pathToPublish: '$(Build.BinariesDirectory)/publish'
+        PathtoPublish: '$(Build.BinariesDirectory)/publish'
         artifactName: 'consolidated_artifacts'
         StoreAsTar: true
 
@@ -148,7 +109,6 @@ stages:
     name: $(pool.linux.name)
     demands:
     - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
-  dependsOn: ConsolidateAndPubishArtifacts
   jobs:
   - job: BuildImageMetricsCollector
     steps:
@@ -168,33 +128,27 @@ stages:
     name: $(pool.linux.name)
     demands:
     - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
-  dependsOn: BuildImages
   jobs:
   - job: PublishManifest
     displayName: Publish Manifest
     steps:
     - task: Docker@2
-      displayName: Docker login edgerelease
       inputs:
         command: login
         containerRegistry: '$(service-connection.registry.release)'
-    - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-modules/metrics-collector/docker/manifest.yaml.template' -n '$(namespace)' --tags "$(tags)"
+    - script: |
+        scripts/linux/buildManifest.sh \
+          -r '$(registry.address)' \
+          -v '$(version)' \
+          -t '$(System.DefaultWorkingDirectory)/edge-modules/metrics-collector/docker/manifest.yaml.template' \
+          -n '$(namespace)' \
+          --tags "$(tags)"
       displayName: 'Publish Metrics Collector Manifest'
 
 ################################################################################
 - stage: RunE2ETest
 ################################################################################
-  dependsOn: PublishManifests
-  condition: succeeded('PublishManifests')
   variables:
-    # A 'minimal' pipeline only runs one end-to-end test (TempSensor). This is useful for platforms or
-    # environments that are very similar to other platforms/environments in our matrix, Ubuntu 18.04
-    # with the 'docker-ce' package vs. Ubuntu 18.04 with the 'iotedge-moby' package vs. the same
-    # variations in Ubuntu 20.04. In these instances the platforms/environments are so similar that we
-    # don't reasonably expect to encounter differences--if we do, it would likely manifest during
-    # installation, or in running a very basic test. We don't need to repeat the entire test suite.
-    # The 'minimal' variable defaults to 'false'; we override it in specific jobs as needed.
-    minimal: false
     verbose: true
   jobs:
   ################################################################################
