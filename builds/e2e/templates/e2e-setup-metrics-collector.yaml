@@ -39,24 +39,24 @@ steps:
       https_proxy: $(Agent.ProxyUrl)
   
   - pwsh: |
-      $imagePrefix = '$(registry.address)/microsoft/azureiotedge'
       $caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates'
       $rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
       $rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
-      $versionInfo = "$(version)-$(os)-$(arch)"
       $runtimeVersion=$(cat versionInfo.json | grep -oP '^\s*\"version\":\s*\"\K\d+\.\d+')
-      $edgeAgentImage = "$imagePrefix-agent:$runtimeVersion";
-      $edgeHubImage = "$imagePrefix-hub:$runtimeVersion";
+      $edgeAgentImage = "mcr.microsoft.com/azureiotedge-agent:$runtimeVersion";
+      $edgeHubImage = "mcr.microsoft.com/azureiotedge-hub:$runtimeVersion";
+      $metricsCollectorImage = "$(registry.address)/microsoft/azureiotedge-metrics-collector:$(version)-$(os)-$(arch)"
 
-      echo "Edge agent image: $edgeAgentImage"
-      echo "Edge hub image: $edgeHubImage"
+      echo "Edge Agent image: $edgeAgentImage"
+      echo "Edge Hub image: $edgeHubImage"
+      echo "Metrics Collector image: $metricsCollectorImage"
   
       $context = @{
         nestededge = 'false';
         isa95Tag = 'false';
         edgeAgentImage = "$edgeAgentImage";
         edgeHubImage = "$edgeHubImage";
-        metricsCollectorImage = "$imagePrefix-metrics-collector:$versionInfo";
+        metricsCollectorImage = "$metricsCollectorImage";
         iotHubResourceId = "$env:IOT_HUB_RESOURCE_ID";
         registries = @(
           @{
