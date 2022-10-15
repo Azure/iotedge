@@ -29,8 +29,6 @@ steps:
     # The setup fixtures run outside the scope of any test, so their logs (*-[test|device]-*.log)
     # aren't included in the TRX. Copy them manually here.
     Copy-Item '$(binDir)/context.json' "$logDir/"
-    Copy-Item '/etc/aziot/config.toml' "$logDir/super.config.toml"
-    Copy-Item '/etc/aziot/edged/config.toml' "$logDir/edged.config.toml"
     Copy-Item "$(binDir)/*-test-*.log" "$logDir/"
     Copy-Item "$(binDir)/*-device-*.log" "$logDir/"
     Copy-Item "$(binDir)/testoutput.log" "$logDir/"

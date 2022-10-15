@@ -110,14 +110,8 @@ stages:
         artifactName: 'dotnet_artifacts'
         StoreAsTar: true
 
-# This stage builds Rocks DB and adds the files to staging directory
-# It's only needed for building E2E test images and not needed for the Metrics Collector
-################################################################################
-- template: ../misc/templates/build-rocksdb.yaml
-################################################################################
-
-# This stage consolidates .NET binaries, Rocksdb binaries and the SBOM into a
-# single artifact from which all Docker images can be built.
+# This stage consolidates .NET binaries and the SBOM into a single artifact
+# from which all Docker images can be built.
 ################################################################################
 - stage: ConsolidateAndPubishArtifacts
 ################################################################################
@@ -152,13 +146,6 @@ stages:
       inputs:
           BuildDropPath: '$(Build.BinariesDirectory)/publish'
 
-    - task: CopyFiles@2
-      displayName: Copy rocksdb libs
-      inputs:
-        sourceFolder: '$(Build.ArtifactStagingDirectory)/librocksdb'
-        contents: '**'
-        targetFolder: '$(Build.BinariesDirectory)/publish/librocksdb'
-
     - task: PublishBuildArtifacts@1
       displayName: 'Publish Artifacts'
       inputs:
@@ -184,36 +171,6 @@ stages:
         imageName: azureiotedge-metrics-collector
         project: Microsoft.Azure.Devices.Edge.Azure.Monitor
         version: $(version)
-        bin_dir: '$(Build.BinariesDirectory)'
-
-    # for E2E tests only
-  - job: BuildImageEdgeAgent
-    steps:
-    - template: ../misc/templates/image-linux.yaml
-      parameters:
-        imageName: azureiotedge-agent
-        name: Edge Agent
-        project: Microsoft.Azure.Devices.Edge.Agent.Service
-        bin_dir: '$(Build.BinariesDirectory)'
-        use_rocksdb: true
-
-  - job: BuildImageEdgeHub
-    steps:
-    - template: ../misc/templates/image-linux.yaml
-      parameters:
-        imageName: azureiotedge-hub
-        name: Edge Hub
-        project: Microsoft.Azure.Devices.Edge.Hub.Service
-        bin_dir: '$(Build.BinariesDirectory)'
-        use_rocksdb: true
-
-  - job: BuildImageDirectMethodSender
-    steps:
-    - template: ../misc/templates/image-linux.yaml
-      parameters:
-        name: "Direct Method Sender"
-        imageName: azureiotedge-direct-method-sender
-        project: DirectMethodSender
         bin_dir: '$(Build.BinariesDirectory)'
 
 ################################################################################
@@ -261,21 +218,17 @@ stages:
     pool:
       name: $(pool.linux.arm.name)
       demands:
+      # Since this pipeline is about testing the Metrics Collector Docker image for release
+      # and not our host components, we'll run the arm32v7 Docker image on an arm64v8 host
+      # OS, with arm64v8 host components, for speed and convenience.
       - ImageOverride -equals agent-aziotedge-ubuntu-20.04-arm64-docker
 
     variables:
       os: linux
       arch: arm32v7
-      # Since this pipeline is about testing the Metrics Collector Docker image for release
-      # and not our host components, we'll run the arm32v7 Docker image on an arm64v8 host
-      # OS, with arm64v8 host components, for speed and convenience.
-      artifactName: iotedged-ubuntu20.04-aarch64
-      identityServiceArtifactName: packages_ubuntu-20.04_aarch64
-      identityServicePackageFilter: aziot-identity-service_*_arm64.deb
-      builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
 
     steps:
-    - template: ../e2e/templates/e2e-setup-base-image-update-release.yaml
+    - template: ../e2e/templates/e2e-setup-metrics-collector.yaml
     - template: ../e2e/templates/e2e-run-metrics-collector.yaml
 
   ################################################################################
@@ -291,36 +244,9 @@ stages:
     variables:
       os: linux
       arch: amd64
-      artifactName: iotedged-ubuntu18.04-amd64
-      identityServiceArtifactName: packages_ubuntu-18.04_amd64
-      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
 
     steps:
-    - template: ../e2e/templates/e2e-setup-base-image-update-release.yaml
-    - template: ../e2e/templates/e2e-run-metrics-collector.yaml
-
-  ################################################################################
-  - job: ubuntu_1804_docker
-  ################################################################################
-    displayName: Ubuntu 18.04 with Docker (minimal)
-
-    pool:
-      name: $(pool.linux.name)
-      demands:
-      - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
-
-    variables:
-      os: linux
-      arch: amd64
-      artifactName: iotedged-ubuntu18.04-amd64
-      identityServiceArtifactName: packages_ubuntu-18.04_amd64
-      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
-      minimal: true
-
-    steps:
-    - template: ../e2e/templates/e2e-setup-base-image-update-release.yaml
+    - template: ../e2e/templates/e2e-setup-metrics-collector.yaml
     - template: ../e2e/templates/e2e-run-metrics-collector.yaml
 
   ################################################################################
@@ -336,13 +262,9 @@ stages:
     variables:
       os: linux
       arch: amd64
-      artifactName: iotedged-ubuntu20.04-amd64
-      identityServiceArtifactName: packages_ubuntu-20.04_amd64
-      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
 
     steps:
-    - template: ../e2e/templates/e2e-setup-base-image-update-release.yaml
+    - template: ../e2e/templates/e2e-setup-metrics-collector.yaml
     - template: ../e2e/templates/e2e-run-metrics-collector.yaml
 
   ################################################################################
@@ -357,34 +279,7 @@ stages:
     variables:
       os: linux
       arch: arm64v8
-      artifactName: iotedged-ubuntu20.04-aarch64
-      identityServiceArtifactName: packages_ubuntu-20.04_aarch64
-      identityServicePackageFilter: aziot-identity-service_*_arm64.deb
-      builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
 
     steps:
-    - template: ../e2e/templates/e2e-setup-base-image-update-release.yaml
-    - template: ../e2e/templates/e2e-run-metrics-collector.yaml
-
-  ################################################################################
-  - job: ubuntu_2004_docker
-  ################################################################################
-    displayName: Ubuntu 20.04 with Docker (minimal)
-
-    pool:
-      name: $(pool.linux.name)
-      demands:
-      - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
-
-    variables:
-      os: linux
-      arch: amd64
-      artifactName: iotedged-ubuntu20.04-amd64
-      identityServiceArtifactName: packages_ubuntu-20.04_amd64
-      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
-      minimal: true
-
-    steps:
-    - template: ../e2e/templates/e2e-setup-base-image-update-release.yaml
+    - template: ../e2e/templates/e2e-setup-metrics-collector.yaml
     - template: ../e2e/templates/e2e-run-metrics-collector.yaml
