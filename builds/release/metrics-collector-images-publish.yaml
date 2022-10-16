@@ -44,7 +44,8 @@ jobs:
     name: set
 
 ################################################################################
-- deployment: publish
+# - deployment: publish
+- job: publish
 ################################################################################
   displayName: Publish Metrics Collector
   dependsOn: version_from_pipeline
@@ -53,45 +54,45 @@ jobs:
     ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
       version: $[ dependencies.version_from_pipeline.outputs['set.version'] ]
       tags: $[ dependencies.version_from_pipeline.outputs['set.tags'] ]
-  workspace:
-    clean: all
-  environment: 'Azure-IoT-Edge-Core Release Env'
-  strategy:
-    runOnce:
-      deploy:
-        steps:
-        - checkout: self
-          fetchDepth: 0
+  # workspace:
+  #   clean: all
+  # environment: 'Azure-IoT-Edge-Core Release Env'
+  # strategy:
+  #   runOnce:
+  #     deploy:
+  steps:
+  - checkout: self
+    fetchDepth: 0
 
-        - task: Docker@2
-          displayName: Docker login
-          inputs:
-            command: login
-            containerRegistry: $(service-connection.registry.release)
+  - task: Docker@2
+    displayName: Docker login
+    inputs:
+      command: login
+      containerRegistry: $(service-connection.registry.release)
 
-        - script: |
-            scripts/linux/moveImage.sh \
-              --from $(registry.address)/microsoft/azureiotedge-metrics-collector:$(version)-linux-amd64 \
-              --to $(registry.address)/public/azureiotedge-metrics-collector:$(version)-linux-amd64
-          displayName: 'Publish Image - Linux amd64'
+  - script: |
+      scripts/linux/moveImage.sh \
+        --from $(registry.address)/microsoft/azureiotedge-metrics-collector:$(version)-linux-amd64 \
+        --to $(registry.address)/public/azureiotedge-metrics-collector:$(version)-linux-amd64
+    displayName: 'Publish Image - Linux amd64'
 
-        - script: |
-            scripts/linux/moveImage.sh \
-              --from $(registry.address)/microsoft/azureiotedge-metrics-collector:$(version)-linux-arm32v7 \
-              --to $(registry.address)/public/azureiotedge-metrics-collector:$(version)-linux-arm32v7
-          displayName: 'Publish Image - Linux arm32v7'
+  - script: |
+      scripts/linux/moveImage.sh \
+        --from $(registry.address)/microsoft/azureiotedge-metrics-collector:$(version)-linux-arm32v7 \
+        --to $(registry.address)/public/azureiotedge-metrics-collector:$(version)-linux-arm32v7
+    displayName: 'Publish Image - Linux arm32v7'
 
-        - script: |
-            scripts/linux/moveImage.sh \
-              --from $(registry.address)/microsoft/azureiotedge-metrics-collector:$(version)-linux-arm64v8 \
-              --to $(registry.address)/public/azureiotedge-metrics-collector:$(version)-linux-arm64v8
-          displayName: 'Publish Image - Linux arm64v8'
+  - script: |
+      scripts/linux/moveImage.sh \
+        --from $(registry.address)/microsoft/azureiotedge-metrics-collector:$(version)-linux-arm64v8 \
+        --to $(registry.address)/public/azureiotedge-metrics-collector:$(version)-linux-arm64v8
+    displayName: 'Publish Image - Linux arm64v8'
 
-        - script: |
-            scripts/linux/buildManifest.sh \
-              -r $(registry.address) \
-              -v $(version) \
-              -t $(System.DefaultWorkingDirectory)/edge-modules/metrics-collector/docker/manifest.yaml.template \
-              -n public \
-              --tags '$(tags)'
-          displayName: 'Publish Manifest'
+  - script: |
+      scripts/linux/buildManifest.sh \
+        -r $(registry.address) \
+        -v $(version) \
+        -t $(System.DefaultWorkingDirectory)/edge-modules/metrics-collector/docker/manifest.yaml.template \
+        -n public \
+        --tags '$(tags)'
+    displayName: 'Publish Manifest'
