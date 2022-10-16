@@ -66,20 +66,20 @@ jobs:
 
   - script: |
       scripts/linux/moveImage.sh \
-        --from $(registry.address)/$(from.registry.namespace)/azureiotedge-metrics-collector:$(version)-linux-amd64 \
-        --to $(registry.address)/$(to.registry.namespace)/azureiotedge-metrics-collector:$(version)-linux-amd64
+        --from $(registry.address)/microsoft/azureiotedge-metrics-collector:$(version)-linux-amd64 \
+        --to $(registry.address)/public/azureiotedge-metrics-collector:$(version)-linux-amd64
     displayName: 'Publish Image - Linux amd64'
 
   - script: |
       scripts/linux/moveImage.sh \
-        --from $(registry.address)/$(from.registry.namespace)/azureiotedge-metrics-collector:$(version)-linux-arm32v7 \
-        --to $(registry.address)/$(to.registry.namespace)/azureiotedge-metrics-collector:$(version)-linux-arm32v7
+        --from $(registry.address)/microsoft/azureiotedge-metrics-collector:$(version)-linux-arm32v7 \
+        --to $(registry.address)/public/azureiotedge-metrics-collector:$(version)-linux-arm32v7
     displayName: 'Publish Image - Linux arm32v7'
 
   - script: |
       scripts/linux/moveImage.sh \
-        --from $(registry.address)/$(from.registry.namespace)/azureiotedge-metrics-collector:$(version)-linux-arm64v8 \
-        --to $(registry.address)/$(to.registry.namespace)/azureiotedge-metrics-collector:$(version)-linux-arm64v8
+        --from $(registry.address)/microsoft/azureiotedge-metrics-collector:$(version)-linux-arm64v8 \
+        --to $(registry.address)/public/azureiotedge-metrics-collector:$(version)-linux-arm64v8
     displayName: 'Publish Image - Linux arm64v8'
 
   - script: |
@@ -87,6 +87,6 @@ jobs:
         -r $(registry.address) \
         -v $(version) \
         -t $(System.DefaultWorkingDirectory)/edge-modules/metrics-collector/docker/manifest.yaml.template \
-        -n $(to.registry.namespace) \
+        -n public \
         --tags "$(tags)"
     displayName: 'Publish Manifest'
