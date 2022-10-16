@@ -35,12 +35,12 @@ steps:
       targetFolder: '$(Build.BinariesDirectory)/publish/${{ parameters.project }}/librocksdb'          
 
   - task: Docker@2
-    displayName: Docker login edgebuilds
+    displayName: Docker login - CI
     inputs:
       command: login
       containerRegistry: iotedge-edgebuilds-acr
   - task: Docker@2
-    displayName: Docker login edgerelease
+    displayName: Docker login - Release
     inputs:
       command: login
       containerRegistry: $(service-connection.registry.release)
