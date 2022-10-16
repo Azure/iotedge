@@ -50,7 +50,7 @@ jobs:
 - job: publish
 ################################################################################
   displayName: Publish Metrics Collector
-  condition: $[ eq(convertToJson(dependencies),'{}') ]
+  condition: eq(convertToJson(dependencies),'{}')
   variables:
     deps_json: $[convertToJson(dependencies)]
     ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
