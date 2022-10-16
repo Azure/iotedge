@@ -43,6 +43,7 @@ jobs:
 ################################################################################
   displayName: Publish Metrics Collector
   dependsOn: version_from_pipeline
+  condition: or(ne(variables['Build.Reason'],'ResourceTrigger'),succeeded())
   variables:
     ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
       version: $[ dependencies.version_from_pipeline.outputs['set.version'] ]
