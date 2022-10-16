@@ -29,8 +29,10 @@ jobs:
     )            
   steps:
   - download: stage-metrics-collector
+    artifact: version
   - script: |
       version=$(cat '$(Pipeline.Workspace)/stage-metrics-collector/version/version.txt')
+      echo "Version from triggering pipeline is $version"
       echo "##vso[task.setvariable variable=version;isOutput=true]$version"
     displayName: Set version
     name: set
