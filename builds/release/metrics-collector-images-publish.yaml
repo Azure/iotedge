@@ -59,7 +59,7 @@ jobs:
     fetchDepth: 0
 
   - task: Docker@2
-    displayName: Docker login edgerelease
+    displayName: Docker login
     inputs:
       command: login
       containerRegistry: $(service-connection.registry.release)
