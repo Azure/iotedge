@@ -37,12 +37,21 @@ jobs:
     displayName: Set version
     name: set
 
+- job: set_a_var
+  displayName: Set a variable
+  steps:
+  - script: |
+      echo "##vso[task.setvariable variable=blah;isOutput=true]hello!"
+    displayName: Set a variable
+    name: set
+
 ################################################################################
 # - deployment: publish
 - job: publish
 ################################################################################
   displayName: Publish Metrics Collector
   variables:
+    deps_json: $[convertToJson(dependencies)]
     ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
       version: $[ dependencies.version_from_pipeline.outputs['set.version'] ]
     ${{ else }}:
@@ -54,6 +63,9 @@ jobs:
   #   runOnce:
   #     deploy:
   steps:
+  - script: |
+      echo '$(deps_json)' | jq -r '.'
+
   - checkout: self
     fetchDepth: 0
 
