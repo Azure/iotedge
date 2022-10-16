@@ -28,6 +28,7 @@ jobs:
       eq(variables['Resources.TriggeringAlias'],'stage-metrics-collector')
     )            
   steps:
+  - checkout: none
   - download: stage-metrics-collector
     artifact: version
   - script: |
