@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public static async Task CollectAsync(DateTime testStartTime, CancellationToken token)
         {
             string prefix = $"{DeviceId.Current.BaseId}-{TestContext.CurrentContext.Test.NormalizedName()}";
-            IEnumerable<string> paths = await EdgeLogs.CollectAsync(testStartTime, prefix, /*token*/CancellationToken.None);
+            IEnumerable<string> paths = await EdgeLogs.CollectAsync(testStartTime, prefix, token);
             foreach (string path in paths)
             {
                 TestContext.AddTestAttachment(path);
