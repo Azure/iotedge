@@ -109,9 +109,9 @@ jobs:
         -r '$(registry.address)' \
         -v '$(version)' \
         -t 'edge-modules/metrics-collector/docker/manifest.yaml.template' \
-        -n '$(namespace)' \
+        -n microsoft \
         --tags "$(tags)"
-    displayName: 'Build Manifest'
+    displayName: Build Manifest
   
   - script: |
       echo '$(version)' > $(Build.ArtifactStagingDirectory)/version.txt
