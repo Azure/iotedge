@@ -50,7 +50,9 @@ jobs:
 - job: publish
 ################################################################################
   displayName: Publish Metrics Collector
-  dependsOn: set_a_var
+  dependsOn:
+  - version_from_pipeline
+  - set_a_var
   condition: ne(convertToJson(dependencies),'{}')
   variables:
     deps_json: $[convertToJson(dependencies)]
