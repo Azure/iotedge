@@ -35,6 +35,11 @@ jobs:
       version=$(cat '$(Pipeline.Workspace)/stage-metrics-collector/version/version.txt')
       echo "Version from triggering pipeline is $version"
       echo "##vso[task.setvariable variable=version;isOutput=true]$version"
+
+      tags=$(cat '$(Pipeline.Workspace)/stage-metrics-collector/version/tags.txt')
+      tags=$(echo '$(tags)' | jq -c '. + ["latest"] | unique')
+      echo "Tags are $tags"
+      echo "##vso[task.setvariable variable=tags;isOutput=true]$tags"
     displayName: Set version
     name: set
 
@@ -47,6 +52,7 @@ jobs:
   variables:
     ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
       version: $[ dependencies.version_from_pipeline.outputs['set.version'] ]
+      tags: $[ dependencies.version_from_pipeline.outputs['set.tags'] ]
   workspace:
     clean: all
   environment: 'Azure-IoT-Edge-Core Release Env'
@@ -87,5 +93,5 @@ jobs:
               -v $(version) \
               -t $(System.DefaultWorkingDirectory)/edge-modules/metrics-collector/docker/manifest.yaml.template \
               -n public \
-              --tags "$(tags)"
+              --tags '$(tags)'
           displayName: 'Publish Manifest'

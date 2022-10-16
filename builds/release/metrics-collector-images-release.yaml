@@ -110,17 +110,18 @@ jobs:
         -v '$(version)' \
         -t 'edge-modules/metrics-collector/docker/manifest.yaml.template' \
         -n microsoft \
-        --tags "$(tags)"
+        --tags '$(tags)'
     displayName: Build Manifest
   
   - script: |
       echo '$(version)' > $(Build.ArtifactStagingDirectory)/version.txt
+      echo '$(tags)' > $(Build.ArtifactStagingDirectory)/tags.txt
     displayName: Save version as artifact
 
   - task: PublishBuildArtifacts@1
     displayName: Publish version artifact
     inputs:
-      pathtoPublish: '$(Build.ArtifactStagingDirectory)/version.txt'
+      pathtoPublish: '$(Build.ArtifactStagingDirectory)'
       artifactName: version
 
 ################################################################################
