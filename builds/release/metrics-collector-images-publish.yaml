@@ -47,8 +47,6 @@ jobs:
   variables:
     ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
       version: $[ dependencies.version_from_pipeline.outputs['set.version'] ]
-    ${{ else }}:
-      version: $[ variables.version ]
   # workspace:
   #   clean: all
   # environment: 'Azure-IoT-Edge-Core Release Env'
