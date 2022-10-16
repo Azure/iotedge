@@ -51,7 +51,7 @@ jobs:
 ################################################################################
   displayName: Publish Metrics Collector
   dependsOn: set_a_var
-  condition: eq(convertToJson(dependencies),'{}')
+  condition: ne(convertToJson(dependencies),'{}')
   variables:
     deps_json: $[convertToJson(dependencies)]
     ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
