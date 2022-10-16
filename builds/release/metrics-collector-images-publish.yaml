@@ -50,6 +50,7 @@ jobs:
 - job: publish
 ################################################################################
   displayName: Publish Metrics Collector
+  dependsOn: set_a_var
   condition: eq(convertToJson(dependencies),'{}')
   variables:
     deps_json: $[convertToJson(dependencies)]
