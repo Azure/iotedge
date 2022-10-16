@@ -105,7 +105,6 @@ jobs:
       download_artifacts: false
 
   - script: |
-      echo '>>> scripts/linux/buildManifest.sh -r $(registry.address) -v $(version) -t edge-modules/metrics-collector/docker/manifest.yaml.template -n $(namespace) --tags "$(tags)"'
       scripts/linux/buildManifest.sh \
         -r '$(registry.address)' \
         -v '$(version)' \
