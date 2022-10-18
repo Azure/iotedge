@@ -28,8 +28,8 @@ async fn run() -> Result<(), Error> {
     let matches = Command::new(crate_name!())
         .version(crate_version!())
         .about(crate_description!())
-        .arg_required_else_help(true)
         .subcommand_required(true)
+        .arg_required_else_help(true)
         .arg(
             Arg::new("host")
                 .help("Workload socket to connect to")

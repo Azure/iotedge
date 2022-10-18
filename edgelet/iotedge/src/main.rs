@@ -59,6 +59,7 @@ async fn run() -> anyhow::Result<()> {
         .version(edgelet_core::version_with_source_version())
         .about(crate_description!())
         .subcommand_required(true)
+        .arg_required_else_help(true)
         .arg(
             Arg::new("host")
                 .help("Daemon socket to connect to")
@@ -172,6 +173,7 @@ async fn run() -> anyhow::Result<()> {
             Command::new("config")
                 .about("Manage Azure IoT Edge system configuration.")
                 .subcommand_required(true)
+                .arg_required_else_help(true)
                 .subcommand(
                     Command::new("apply")
                     .about("Apply Azure IoT Edge system configuration values.")
@@ -303,6 +305,7 @@ async fn run() -> anyhow::Result<()> {
             Command::new("system")
                 .about("Manage system services for IoT Edge.")
                 .subcommand_required(true)
+                .arg_required_else_help(true)
                 .subcommand(
                     Command::new("logs")
                     .about("Provides a combined view of logs for IoT Edge system services. Precede arguments intended for journalctl with a double-hyphen -- . Example: iotedge system logs -- -f.")
