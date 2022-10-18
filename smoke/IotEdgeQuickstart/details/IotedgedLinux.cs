@@ -152,7 +152,7 @@ namespace IotEdgeQuickstart.Details
 
         public Task RemovePackage(string packageName)
         {
-            return Process.RunAsync(PackageManager, $"remove  {packageName}", TimeoutInterval);
+            return Process.RunAsync(PackageManager, $"remove  -y {packageName}", TimeoutInterval);
         }
     }
 
