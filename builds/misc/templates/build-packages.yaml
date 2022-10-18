@@ -27,211 +27,211 @@ stages:
             displayName: Check changes in edgelet sources
             name: check_files
 
-################################################################################
-  - stage: BuildPackages
-################################################################################
-    displayName: Build Packages
-    condition: |
-      or
-      (
-        eq(${{ parameters['E2EBuild'] }}, false),
-        eq(dependencies.CheckBuildPackages.outputs['check_source_change_edgelet.check_files.EDGELETCHANGES'], 'true')
-      )
-    pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
-    dependsOn: CheckBuildPackages
-    jobs:
-      - job: linux
-        displayName: Linux
-        pool:
-          name: $(pool.linux.name)
-          demands:
-            - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
-        strategy:
-          matrix:
-            Centos75-amd64:
-              arch: amd64
-              os: centos7
-              target.iotedged: edgelet/target/rpmbuild/RPMS/x86_64
-            RedHat8-amd64:
-              arch: amd64
-              os: redhat8
-              target.iotedged: edgelet/target/rpmbuild/RPMS/x86_64
+# ################################################################################
+#   - stage: BuildPackages
+# ################################################################################
+#     displayName: Build Packages
+#     condition: |
+#       or
+#       (
+#         eq(${{ parameters['E2EBuild'] }}, false),
+#         eq(dependencies.CheckBuildPackages.outputs['check_source_change_edgelet.check_files.EDGELETCHANGES'], 'true')
+#       )
+#     pool:
+#       name: $(pool.linux.name)
+#       demands:
+#         - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+#     dependsOn: CheckBuildPackages
+#     jobs:
+#       - job: linux
+#         displayName: Linux
+#         pool:
+#           name: $(pool.linux.name)
+#           demands:
+#             - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+#         strategy:
+#           matrix:
+#             Centos75-amd64:
+#               arch: amd64
+#               os: centos7
+#               target.iotedged: edgelet/target/rpmbuild/RPMS/x86_64
+#             RedHat8-amd64:
+#               arch: amd64
+#               os: redhat8
+#               target.iotedged: edgelet/target/rpmbuild/RPMS/x86_64
 
-            Debian10-amd64:
-              os: debian10
-              arch: amd64
-              target.iotedged: edgelet/target/release
-            Debian10-arm32v7:
-              os: debian10
-              arch: arm32v7
-              target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
-            Debian10-aarch64:
-              os: debian10
-              arch: aarch64
-              target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+#             Debian10-amd64:
+#               os: debian10
+#               arch: amd64
+#               target.iotedged: edgelet/target/release
+#             Debian10-arm32v7:
+#               os: debian10
+#               arch: arm32v7
+#               target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+#             Debian10-aarch64:
+#               os: debian10
+#               arch: aarch64
+#               target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
 
-            Debian11-amd64:
-              os: debian11
-              arch: amd64
-              target.iotedged: edgelet/target/release
-            Debian11-arm32v7:
-              os: debian11
-              arch: arm32v7
-              target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
-            Debian11-aarch64:
-              os: debian11
-              arch: aarch64
-              target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+#             Debian11-amd64:
+#               os: debian11
+#               arch: amd64
+#               target.iotedged: edgelet/target/release
+#             Debian11-arm32v7:
+#               os: debian11
+#               arch: arm32v7
+#               target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+#             Debian11-aarch64:
+#               os: debian11
+#               arch: aarch64
+#               target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
 
-            Ubuntu1804-amd64:
-              os: ubuntu18.04
-              arch: amd64
-              target.iotedged: edgelet/target/release
-            Ubuntu1804-arm32v7:
-              os: ubuntu18.04
-              arch: arm32v7
-              target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
-            Ubuntu1804-aarch64:
-              os: ubuntu18.04
-              arch: aarch64
-              target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
-            Ubuntu2004-amd64:
-              arch: amd64
-              os: ubuntu20.04
-              target.iotedged: edgelet/target/release
-            Ubuntu2004-arm32v7:
-              arch: arm32v7
-              os: ubuntu20.04
-              target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
-            Ubuntu2004-aarch64:
-              arch: aarch64
-              os: ubuntu20.04
-              target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
-        steps:
-          - bash: |
-              BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
-              VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"
-              echo "Version: $VERSION"
-              echo "##vso[task.setvariable variable=VERSION;]$VERSION"
+#             Ubuntu1804-amd64:
+#               os: ubuntu18.04
+#               arch: amd64
+#               target.iotedged: edgelet/target/release
+#             Ubuntu1804-arm32v7:
+#               os: ubuntu18.04
+#               arch: arm32v7
+#               target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+#             Ubuntu1804-aarch64:
+#               os: ubuntu18.04
+#               arch: aarch64
+#               target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+#             Ubuntu2004-amd64:
+#               arch: amd64
+#               os: ubuntu20.04
+#               target.iotedged: edgelet/target/release
+#             Ubuntu2004-arm32v7:
+#               arch: arm32v7
+#               os: ubuntu20.04
+#               target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+#             Ubuntu2004-aarch64:
+#               arch: aarch64
+#               os: ubuntu20.04
+#               target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+#         steps:
+#           - bash: |
+#               BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
+#               VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"
+#               echo "Version: $VERSION"
+#               echo "##vso[task.setvariable variable=VERSION;]$VERSION"
 
-              echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
-              echo "##vso[task.setvariable variable=PACKAGE_OS;]$(os)"
-            displayName: Set Version
-            condition: or(eq(${{ parameters['E2EBuild'] }}, false), eq(variables.arch,'amd64'))
-          - script: edgelet/build/linux/package.sh
-            displayName: Create aziot-edge packages
-            condition: or(eq(${{ parameters['E2EBuild'] }}, false), eq(variables.arch,'amd64'))
-          - task: CopyFiles@2
-            displayName: Copy aziot-edge Files to Artifact Staging
-            condition: or(eq(${{ parameters['E2EBuild'] }}, false), eq(variables.arch,'amd64'))
-            inputs:
-              SourceFolder: $(target.iotedged)
-              Contents: |
-                *.deb
-                *.rpm
-              TargetFolder: '$(build.artifactstagingdirectory)'
-          - task: PublishBuildArtifacts@1
-            displayName: Publish Artifacts
-            inputs:
-              PathtoPublish: '$(build.artifactstagingdirectory)'
-              ArtifactName: 'iotedged-$(os)-$(arch)'
-            condition: and(succeededOrFailed(), or(eq(${{ parameters['E2EBuild'] }}, false), eq(variables.arch,'amd64')))
+#               echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
+#               echo "##vso[task.setvariable variable=PACKAGE_OS;]$(os)"
+#             displayName: Set Version
+#             condition: or(eq(${{ parameters['E2EBuild'] }}, false), eq(variables.arch,'amd64'))
+#           - script: edgelet/build/linux/package.sh
+#             displayName: Create aziot-edge packages
+#             condition: or(eq(${{ parameters['E2EBuild'] }}, false), eq(variables.arch,'amd64'))
+#           - task: CopyFiles@2
+#             displayName: Copy aziot-edge Files to Artifact Staging
+#             condition: or(eq(${{ parameters['E2EBuild'] }}, false), eq(variables.arch,'amd64'))
+#             inputs:
+#               SourceFolder: $(target.iotedged)
+#               Contents: |
+#                 *.deb
+#                 *.rpm
+#               TargetFolder: '$(build.artifactstagingdirectory)'
+#           - task: PublishBuildArtifacts@1
+#             displayName: Publish Artifacts
+#             inputs:
+#               PathtoPublish: '$(build.artifactstagingdirectory)'
+#               ArtifactName: 'iotedged-$(os)-$(arch)'
+#             condition: and(succeededOrFailed(), or(eq(${{ parameters['E2EBuild'] }}, false), eq(variables.arch,'amd64')))
 
-      ################################################################################
-      - job: mariner_linux
-      ################################################################################
-        displayName: Mariner_Linux
-        condition: or(eq(variables['build.linux.mariner'], ''), eq(variables['build.linux.mariner'], true))
-        pool:
-          # We are using Linux image that lives in Windows pool. The Windows pool by default uses Standard_D4s_v3 SKU.
-          # EFLOW requires ~85GB to build the edgelet artifacts.
-          name: $(pool.windows.name)
-          demands:
-          - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker-large-disk
-        strategy:
-          matrix:
-            CBL-Mariner1.0-amd64:
-              arch: amd64
-              os: mariner
-              os_version: 1
-              mariner_release: 1.0-stable
-              target.iotedged: builds/mariner1/out/RPMS
-              target.logs: builds/mariner1/build/logs/pkggen/rpmbuilding/
-            CBL-Mariner2.0-amd64:
-              arch: amd64
-              os: mariner
-              os_version: 2
-              # mariner_release: 2.0-stable
-              # WARN: 2.0-stable is broken - https://github.com/microsoft/CBL-Mariner/issues/3483
-              mariner_release: 2.0.20220713-2.0
-              target.iotedged: builds/mariner2/out/RPMS
-              target.logs: builds/mariner2/build/logs/pkggen/rpmbuilding/
-        steps:
-          - bash: |
-              BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
-              VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"
-              echo "##vso[task.setvariable variable=VERSION;]$VERSION"
-              echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
-              echo "PACKAGE_OS=$(os)"
-              echo "##vso[task.setvariable variable=MARINER_RELEASE;]$(mariner_release)"
-              mariner_arch=$(arch)
-              if [ $mariner_arch == "amd64" ]; then
-                mariner_arch="x86_64"
-              fi
-              echo "##vso[task.setvariable variable=MARINER_ARCH;]$mariner_arch"
-            displayName: Set Version
-          - task: AzureKeyVault@1
-            displayName: 'Azure Key Vault: EdgeBuildkv'
-            inputs:
-              azureSubscription: $(az.subscription)
-              KeyVaultName: 'edgebuildkv'
-              SecretsFilter: >- 
-                IotEdge1-GitHub-PAT
-          - task: PowerShell@2
-            displayName: 'Download aziot-identity-service'
-            inputs:
-              filePath: scripts/local/test/DownloadIdentityService.ps1
-            env:
-              GITHUB_TOKEN: $(IotEdge1-GitHub-PAT)
-              ARTIFACT_NAME: 'packages_$(os)-$(os_version)_$(arch)'
-              PACKAGE_FILTER: 'aziot-identity-service-*.cm$(os_version).$(MARINER_ARCH).rpm'
-              DOWNLOAD_PATH: $(Build.SourcesDirectory)
-          - bash: |
-              docker run --rm \
-                -v "$(Build.SourcesDirectory):/src" \
-                -e "ARCH=$arch" \
-                -e "OS=$OS" \
-                -e "MARINER_RELEASE=$MARINER_RELEASE" \
-                -e "MARINER_ARCH=$MARINER_ARCH" \
-                -e "VERSION=$VERSION" \
-                --privileged \
-                "ubuntu:18.04" \
-                '/src/edgelet/build/linux/package-mariner.sh'
-          - task: CopyFiles@2
-            displayName: Copy iotedged build logs to artifact staging
-            inputs:
-              SourceFolder: $(target.logs)
-              Contents: |
-                **/*.rpm.log
-              TargetFolder: '$(build.artifactstagingdirectory)'
-            condition: succeededOrFailed()
-          - task: CopyFiles@2
-            displayName: Copy iotedged Files to Artifact Staging
-            inputs:
-              SourceFolder: $(target.iotedged)/$(mariner_arch)
-              Contents: |
-                aziot-edge-*.rpm
-              TargetFolder: '$(build.artifactstagingdirectory)'
-            condition: succeededOrFailed()
-          - task: PublishBuildArtifacts@1
-            displayName: Publish Artifacts
-            inputs:
-              PathtoPublish: '$(build.artifactstagingdirectory)'
-              ArtifactName: 'iotedged-$(os)$(os_version)-$(arch)'
-            condition: succeededOrFailed()
+#       ################################################################################
+#       - job: mariner_linux
+#       ################################################################################
+#         displayName: Mariner_Linux
+#         condition: or(eq(variables['build.linux.mariner'], ''), eq(variables['build.linux.mariner'], true))
+#         pool:
+#           # We are using Linux image that lives in Windows pool. The Windows pool by default uses Standard_D4s_v3 SKU.
+#           # EFLOW requires ~85GB to build the edgelet artifacts.
+#           name: $(pool.windows.name)
+#           demands:
+#           - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker-large-disk
+#         strategy:
+#           matrix:
+#             CBL-Mariner1.0-amd64:
+#               arch: amd64
+#               os: mariner
+#               os_version: 1
+#               mariner_release: 1.0-stable
+#               target.iotedged: builds/mariner1/out/RPMS
+#               target.logs: builds/mariner1/build/logs/pkggen/rpmbuilding/
+#             CBL-Mariner2.0-amd64:
+#               arch: amd64
+#               os: mariner
+#               os_version: 2
+#               # mariner_release: 2.0-stable
+#               # WARN: 2.0-stable is broken - https://github.com/microsoft/CBL-Mariner/issues/3483
+#               mariner_release: 2.0.20220713-2.0
+#               target.iotedged: builds/mariner2/out/RPMS
+#               target.logs: builds/mariner2/build/logs/pkggen/rpmbuilding/
+#         steps:
+#           - bash: |
+#               BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
+#               VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"
+#               echo "##vso[task.setvariable variable=VERSION;]$VERSION"
+#               echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
+#               echo "PACKAGE_OS=$(os)"
+#               echo "##vso[task.setvariable variable=MARINER_RELEASE;]$(mariner_release)"
+#               mariner_arch=$(arch)
+#               if [ $mariner_arch == "amd64" ]; then
+#                 mariner_arch="x86_64"
+#               fi
+#               echo "##vso[task.setvariable variable=MARINER_ARCH;]$mariner_arch"
+#             displayName: Set Version
+#           - task: AzureKeyVault@1
+#             displayName: 'Azure Key Vault: EdgeBuildkv'
+#             inputs:
+#               azureSubscription: $(az.subscription)
+#               KeyVaultName: 'edgebuildkv'
+#               SecretsFilter: >- 
+#                 IotEdge1-GitHub-PAT
+#           - task: PowerShell@2
+#             displayName: 'Download aziot-identity-service'
+#             inputs:
+#               filePath: scripts/local/test/DownloadIdentityService.ps1
+#             env:
+#               GITHUB_TOKEN: $(IotEdge1-GitHub-PAT)
+#               ARTIFACT_NAME: 'packages_$(os)-$(os_version)_$(arch)'
+#               PACKAGE_FILTER: 'aziot-identity-service-*.cm$(os_version).$(MARINER_ARCH).rpm'
+#               DOWNLOAD_PATH: $(Build.SourcesDirectory)
+#           - bash: |
+#               docker run --rm \
+#                 -v "$(Build.SourcesDirectory):/src" \
+#                 -e "ARCH=$arch" \
+#                 -e "OS=$OS" \
+#                 -e "MARINER_RELEASE=$MARINER_RELEASE" \
+#                 -e "MARINER_ARCH=$MARINER_ARCH" \
+#                 -e "VERSION=$VERSION" \
+#                 --privileged \
+#                 "ubuntu:18.04" \
+#                 '/src/edgelet/build/linux/package-mariner.sh'
+#           - task: CopyFiles@2
+#             displayName: Copy iotedged build logs to artifact staging
+#             inputs:
+#               SourceFolder: $(target.logs)
+#               Contents: |
+#                 **/*.rpm.log
+#               TargetFolder: '$(build.artifactstagingdirectory)'
+#             condition: succeededOrFailed()
+#           - task: CopyFiles@2
+#             displayName: Copy iotedged Files to Artifact Staging
+#             inputs:
+#               SourceFolder: $(target.iotedged)/$(mariner_arch)
+#               Contents: |
+#                 aziot-edge-*.rpm
+#               TargetFolder: '$(build.artifactstagingdirectory)'
+#             condition: succeededOrFailed()
+#           - task: PublishBuildArtifacts@1
+#             displayName: Publish Artifacts
+#             inputs:
+#               PathtoPublish: '$(build.artifactstagingdirectory)'
+#               ArtifactName: 'iotedged-$(os)$(os_version)-$(arch)'
+#             condition: succeededOrFailed()
 
       ################################################################################
       - job: mariner_linux_arm64
@@ -306,7 +306,7 @@ stages:
           # build iot-identity-service here since they cannot build native aarch64 packages
           - bash: |
               set -ex
-              git clone --recurse-submodules https://github.com/Azure/iot-identity-service.git
+              git clone --recurse-submodules https://github.com/josephknierman/iot-identity-service.git -b user/joknierm/change-mariner-toolkit
               pushd iot-identity-service
               packageVersion=$(git tag | grep 1.3.[0-9]*$ | sort --version-sort -r | head -1)
               sudo docker run --rm \
@@ -320,9 +320,22 @@ stages:
                 '/src/ci/package.sh'
               popd
               sudo cp iot-identity-service/packages/mariner$(os_version)/$(arch)/aziot-identity-service-$packageVersion-1.cm$(os_version).$(arch).rpm .
-              sudo rm -rf iot-identity-service
-          
+              
+
+          - task: CopyFiles@2
+            displayName: Copy iot-identity-service build logs to artifact staging
+            inputs:
+              SourceFolder: 'iot-identity-service/Mariner-Build/build/logs/pkggen/rpmbuilding/'
+              Contents: |
+                **/*.rpm.log
+              TargetFolder: '$(build.artifactstagingdirectory)'
+            condition: succeededOrFailed()
+
           - bash: |
+              sudo rm -rf iot-identity-service
+            displayName: remove iot-identity-service file
+
+          - bash:
               sudo docker run --rm \
                 -v "$(Build.SourcesDirectory):/src" \
                 -e "ARCH=$arch" \
