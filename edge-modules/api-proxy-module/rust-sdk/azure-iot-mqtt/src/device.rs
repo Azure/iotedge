@@ -298,7 +298,7 @@ impl futures_util::Stream for Client {
                         Ok(crate::twin_state::Response::NotReady) => (),
 
                         Err(err) => {
-                            log::warn!("Discarding message that could not be parsed: {}", err)
+                            log::warn!("Discarding message that could not be parsed: {}", err);
                         }
                     }
 
@@ -318,7 +318,7 @@ impl futures_util::Stream for Client {
                         Ok(crate::twin_state::Response::Continue) => continue_loop = true,
                         Ok(crate::twin_state::Response::NotReady) => (),
                         Err(err) => {
-                            log::warn!("Discarding message that could not be parsed: {}", err)
+                            log::warn!("Discarding message that could not be parsed: {}", err);
                         }
                     }
 

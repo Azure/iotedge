@@ -55,12 +55,12 @@ impl InternalTwinStateMessage {
                     "$rid" => {
                         request_id = Some(value.parse().map_err(|err| {
                             MessageParseError::ParseResponseRequestId(status.to_string(), err)
-                        })?)
+                        })?);
                     }
                     "$version" => {
                         version = Some(value.parse().map_err(|err| {
                             MessageParseError::ParseResponseVersion(status.to_string(), err)
-                        })?)
+                        })?);
                     }
                     _ => (),
                 }

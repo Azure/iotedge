@@ -109,7 +109,6 @@ dependencies = [
  "percent-encoding",
  "regex",
  "serde",
- "serde_derive",
  "serde_json",
  "sha2",
  "tokio",
