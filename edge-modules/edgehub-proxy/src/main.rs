@@ -2,6 +2,7 @@
 
 use std::ffi::OsString;
 use std::fs;
+use std::path::PathBuf;
 use std::process;
 
 use clap::{crate_description, crate_name, crate_version, Arg, Command};
@@ -97,7 +98,7 @@ async fn run() -> Result<(), Error> {
                         .required(false)
                         .long("crt")
                         .num_args(1)
-                        .value_parser(clap::value_parser!(OsString))
+                        .value_parser(clap::value_parser!(PathBuf))
                         .value_name("CRT_FILE"),
                 )
                 .arg(
@@ -106,7 +107,7 @@ async fn run() -> Result<(), Error> {
                         .required(false)
                         .long("key")
                         .num_args(1)
-                        .value_parser(clap::value_parser!(OsString))
+                        .value_parser(clap::value_parser!(PathBuf))
                         .value_name("KEY_FILE"),
                 )
                 .arg(
@@ -115,7 +116,7 @@ async fn run() -> Result<(), Error> {
                         .required(false)
                         .long("combined")
                         .num_args(1)
-                        .value_parser(clap::value_parser!(OsString))
+                        .value_parser(clap::value_parser!(PathBuf))
                         .value_name("COMBINED_FILE"),
                 ),
         )
@@ -159,17 +160,17 @@ async fn run() -> Result<(), Error> {
 
         info!("Retrieved server certificate.");
 
-        if let Some(crt_path) = args.get_one::<OsString>("crt-file") {
+        if let Some(crt_path) = args.get_one::<PathBuf>("crt-file") {
             fs::write(crt_path, response.certificate())?;
         }
 
-        if let Some(key_path) = args.get_one::<OsString>("key-file") {
+        if let Some(key_path) = args.get_one::<PathBuf>("key-file") {
             if let Some(bytes) = response.private_key().bytes() {
                 fs::write(key_path, bytes)?;
             }
         }
 
-        if let Some(combined_path) = args.get_one::<OsString>("combined-file") {
+        if let Some(combined_path) = args.get_one::<PathBuf>("combined-file") {
             if let Some(bytes) = response.private_key().bytes() {
                 fs::write(
                     combined_path,
