@@ -36,7 +36,7 @@ apt-get update -y
 apt-get install -y \
     cmake curl gcc g++ git jq make pkg-config \
     libclang1 libssl-dev llvm-dev \
-    cpio genisoimage golang-1.17-go qemu-utils pigz python-pip python3-distutils rpm tar wget
+    cpio genisoimage golang-1.17-go qemu-utils pigz python3-pip python3-distutils rpm tar wget
 
 rm -f /usr/bin/go
 ln -vs /usr/lib/go-1.17/bin/go /usr/bin/go
