@@ -7,7 +7,6 @@
 use std::ffi::OsString;
 use std::io;
 use std::process;
-use std::str::FromStr;
 
 use anyhow::Context;
 use clap::{crate_description, crate_name, Arg, Command};
@@ -211,6 +210,7 @@ async fn run() -> anyhow::Result<()> {
                         Arg::new("force")
                             .short('f')
                             .long("force")
+                            .num_args(0)
                             .help("Overwrite the new configuration file if it already exists")
                     )
                 )
@@ -325,9 +325,19 @@ async fn run() -> anyhow::Result<()> {
                     Command::new("set-log-level")
                     .about("Set the log level of aziot-edged and all of its dependencies.")
                     .arg(
+                        // NOTE: Possible value references:
+                        // - https://github.com/rust-lang/log/blob/d6707108c6959ac7b60cdb60a005795ece6d82d6/src/lib.rs#L411
+                        // - https://github.com/rust-lang/log/blob/d6707108c6959ac7b60cdb60a005795ece6d82d6/src/lib.rs#L473-L487
+                        // WARN: "off" is excluded from the `FromStr`
+                        // implementation on `log::Level`:
+                        // https://github.com/rust-lang/log/blob/d6707108c6959ac7b60cdb60a005795ece6d82d6/src/lib.rs#L481
+                        // NOTE: Help string is manually constructed to match
+                        // what would be generated for
+                        // `.value_parser([${ARRAY_OF_VALUES}..])`.
+
                         Arg::new("log_level")
-                        .help(r#"One of "trace", "debug", "info", "warn", or "error""#)
-                        .value_parser(["trace", "debug", "info", "warn",  "error"])
+                        .help(r#"[possible values: error, warn, info, debug, trace]"#)
+                        .value_parser(clap::value_parser!(log::Level))
                         .required(true),
                     )
                 )
@@ -545,11 +555,9 @@ async fn run() -> anyhow::Result<()> {
             ("stop", _) => System::system_stop(),
             ("status", _) => System::get_system_status(),
             ("set-log-level", args) => System::set_log_level(
-                log::Level::from_str(
-                    args.get_one::<String>("log_level")
-                        .expect("Value is required"),
-                )
-                .expect("Value is restricted to parsable fields"),
+                args.get_one::<log::Level>("log_level")
+                    .copied()
+                    .expect("Value is required"),
             ),
             ("reprovision", _) => System::reprovision().await,
             (command, _) => {
