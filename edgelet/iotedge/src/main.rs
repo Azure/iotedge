@@ -155,12 +155,14 @@ async fn run() -> anyhow::Result<()> {
                     Arg::new("verbose")
                         .long("verbose")
                         .value_name("VERBOSE")
+                        .num_args(0)
                         .help("Increases verbosity of output.")
                 )
                 .arg(
                     Arg::new("warnings-as-errors")
                         .long("warnings-as-errors")
                         .value_name("WARNINGS_AS_ERRORS")
+                        .num_args(0)
                         .help("Treats warnings as errors. Thus 'iotedge check' will exit with non-zero code if it encounters warnings.")
                 ),
         )
@@ -240,6 +242,7 @@ async fn run() -> anyhow::Result<()> {
                         Arg::new("force")
                             .short('f')
                             .long("force")
+                            .num_args(0)
                             .help("Overwrite the new configuration file if it already exists")
                     )
                 )
@@ -289,9 +292,10 @@ async fn run() -> anyhow::Result<()> {
                 )
                 .arg(
                     Arg::new("follow")
-                        .help("Follow output log")
                         .short('f')
-                        .long("follow"),
+                        .long("follow")
+                        .num_args(0)
+                        .help("Follow output log"),
                 ),
         )
         .subcommand(
@@ -376,9 +380,10 @@ async fn run() -> anyhow::Result<()> {
                 )
                 .arg(
                     Arg::new("include-edge-runtime-only")
-                        .help("Only include logs from Microsoft-owned Edge modules")
-                        .long("include-edge-runtime-only")
                         .short('e')
+                        .long("include-edge-runtime-only")
+                        .num_args(0)
+                        .help("Only include logs from Microsoft-owned Edge modules")
                 ).arg(
                     Arg::new("iothub-hostname")
                         .long("iothub-hostname")
@@ -387,9 +392,10 @@ async fn run() -> anyhow::Result<()> {
                         .num_args(1),
                 ).arg(
                     Arg::new("quiet")
-                        .help("Suppress status output")
-                        .long("quiet")
                         .short('q')
+                        .long("quiet")
+                        .num_args(0)
+                        .help("Suppress status output")
                 ),
         )
         .subcommand(Command::new("version").about("Show the version information"))
@@ -433,8 +439,8 @@ async fn run() -> anyhow::Result<()> {
                         _ => unreachable!(),
                     })
                     .expect("arg has a default value"),
-                args.contains_id("verbose"),
-                args.contains_id("warnings-as-errors"),
+                args.get_flag("verbose"),
+                args.get_flag("warnings-as-errors"),
                 aziot_bin.into(),
                 args.get_one::<String>("iothub-hostname").cloned(),
                 args.get_one::<String>("proxy-uri").cloned(),
@@ -469,7 +475,7 @@ async fn run() -> anyhow::Result<()> {
                         .expect("arg has a default value");
                     let new_config_file = std::path::Path::new(new_config_file);
 
-                    let force = args.contains_id("force");
+                    let force = args.get_flag("force");
 
                     let () =
                         iotedge::config::import::execute(old_config_file, new_config_file, force)
@@ -487,7 +493,7 @@ async fn run() -> anyhow::Result<()> {
                         .expect("arg has a default value");
                     let out_config_file = std::path::Path::new(out_config_file);
 
-                    let force = args.contains_id("force");
+                    let force = args.get_flag("force");
 
                     let () =
                         iotedge::config::mp::execute(connection_string, out_config_file, force)
@@ -512,7 +518,7 @@ async fn run() -> anyhow::Result<()> {
         }
         ("logs", args) => {
             let id = args.get_one::<String>("MODULE").unwrap().to_string();
-            let follow = args.contains_id("follow");
+            let follow = args.get_flag("follow");
             let tail = args
                 .get_one::<String>("tail")
                 .map(|s| s.parse())
@@ -588,8 +594,8 @@ async fn run() -> anyhow::Result<()> {
             {
                 options = options.with_until(until);
             }
-            let include_ms_only = args.contains_id("include-edge-runtime-only");
-            let verbose = !args.contains_id("quiet");
+            let include_ms_only = args.get_flag("include-edge-runtime-only");
+            let verbose = !args.get_flag("quiet");
             let iothub_hostname = args
                 .get_one::<String>("iothub-hostname")
                 .map(ToOwned::to_owned);
