@@ -6,6 +6,7 @@
 
 use std::ffi::OsString;
 use std::io;
+use std::path::PathBuf;
 use std::process;
 
 use anyhow::Context;
@@ -78,7 +79,7 @@ async fn run() -> anyhow::Result<()> {
                         .value_name("FILE")
                         .help("Sets the path of the container engine configuration file")
                         .num_args(1)
-                        .value_parser(clap::value_parser!(OsString))
+                        .value_parser(clap::value_parser!(PathBuf))
                         .default_value("/etc/docker/daemon.json"),
                 )
                 .arg(
@@ -116,7 +117,7 @@ async fn run() -> anyhow::Result<()> {
                         .value_name("PATH_TO_AZIOT_EDGED")
                         .help("Sets the path of the aziot-edged binary.")
                         .num_args(1)
-                        .value_parser(clap::value_parser!(OsString))
+                        .value_parser(clap::value_parser!(PathBuf))
                         .default_value("/usr/libexec/aziot/aziot-edged"),
                 )
                 .arg(
@@ -181,7 +182,7 @@ async fn run() -> anyhow::Result<()> {
                             .value_name("FILE")
                             .help("The path of the IoT Edge system configuration file")
                             .num_args(1)
-                            .value_parser(clap::value_parser!(OsString))
+                            .value_parser(clap::value_parser!(PathBuf))
                             .default_value("/etc/aziot/config.toml"),
                     )
                 )
@@ -195,7 +196,7 @@ async fn run() -> anyhow::Result<()> {
                             .value_name("FILE")
                             .help("The path of the pre-1.2 configuration file to import")
                             .num_args(1)
-                            .value_parser(clap::value_parser!(OsString))
+                            .value_parser(clap::value_parser!(PathBuf))
                             .default_value("/etc/iotedge/config.yaml"),
                     )
                     .arg(
@@ -205,7 +206,7 @@ async fn run() -> anyhow::Result<()> {
                             .value_name("FILE")
                             .help("The path of the Azure IoT Edge system configuration file to write to")
                             .num_args(1)
-                            .value_parser(clap::value_parser!(OsString))
+                            .value_parser(clap::value_parser!(PathBuf))
                             .default_value("/etc/aziot/config.toml"),
                     )
                     .arg(
@@ -235,7 +236,7 @@ async fn run() -> anyhow::Result<()> {
                             .value_name("FILE")
                             .help("The path of the Azure IoT Edge system configuration file to write to")
                             .num_args(1)
-                            .value_parser(clap::value_parser!(OsString))
+                            .value_parser(clap::value_parser!(PathBuf))
                             .default_value("/etc/aziot/config.toml"),
                     )
                     .arg(
@@ -359,7 +360,7 @@ async fn run() -> anyhow::Result<()> {
                         .long("output")
                         .short('o')
                         .num_args(1)
-                        .value_parser(clap::value_parser!(OsString))
+                        .value_parser(clap::value_parser!(PathBuf))
                         .value_name("FILENAME")
                         .default_value(&default_support_bundle_name),
                 )
@@ -415,7 +416,7 @@ async fn run() -> anyhow::Result<()> {
     {
         ("check", args) => {
             let mut check = Check::new(
-                args.get_one::<OsString>("container-engine-config-file")
+                args.get_one::<PathBuf>("container-engine-config-file")
                     .expect("arg has a default value")
                     .into(),
                 args.get_one::<String>("diagnostics-image-name")
@@ -429,7 +430,7 @@ async fn run() -> anyhow::Result<()> {
                 args.get_one::<String>("expected-aziot-edged-version")
                     .cloned(),
                 args.get_one::<String>("expected-aziot-version").cloned(),
-                args.get_one::<OsString>("aziot-edged")
+                args.get_one::<PathBuf>("aziot-edged")
                     .expect("arg has a default value")
                     .into(),
                 args.get_one::<String>("output")
@@ -455,9 +456,8 @@ async fn run() -> anyhow::Result<()> {
             {
                 ("apply", args) => {
                     let config_file = args
-                        .get_one::<OsString>("config-file")
+                        .get_one::<PathBuf>("config-file")
                         .expect("arg has a default value");
-                    let config_file = std::path::Path::new(config_file);
 
                     let () = iotedge::config::apply::execute(config_file)
                         .await
@@ -466,14 +466,12 @@ async fn run() -> anyhow::Result<()> {
                 }
                 ("import", args) => {
                     let old_config_file = args
-                        .get_one::<OsString>("config-file")
+                        .get_one::<PathBuf>("config-file")
                         .expect("arg has a default value");
-                    let old_config_file = std::path::Path::new(old_config_file);
 
                     let new_config_file = args
-                        .get_one::<OsString>("out-config-file")
+                        .get_one::<PathBuf>("out-config-file")
                         .expect("arg has a default value");
-                    let new_config_file = std::path::Path::new(new_config_file);
 
                     let force = args.get_flag("force");
 
@@ -489,9 +487,8 @@ async fn run() -> anyhow::Result<()> {
                         .clone();
 
                     let out_config_file = args
-                        .get_one::<OsString>("out-config-file")
+                        .get_one::<PathBuf>("out-config-file")
                         .expect("arg has a default value");
-                    let out_config_file = std::path::Path::new(out_config_file);
 
                     let force = args.get_flag("force");
 
@@ -574,7 +571,7 @@ async fn run() -> anyhow::Result<()> {
         .map_err(anyhow::Error::from),
         ("support-bundle", args) => {
             let location = args
-                .get_one::<OsString>("output")
+                .get_one::<PathBuf>("output")
                 .expect("arg has a default value");
             let since = args
                 .get_one::<String>("since")
@@ -599,7 +596,7 @@ async fn run() -> anyhow::Result<()> {
             let iothub_hostname = args
                 .get_one::<String>("iothub-hostname")
                 .map(ToOwned::to_owned);
-            let output_location = if location == "-" {
+            let output_location = if location == std::path::Path::new("-") {
                 OutputLocation::Memory
             } else {
                 OutputLocation::File(location.clone())
