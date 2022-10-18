@@ -14,8 +14,8 @@ steps:
         TestDpsGroupKeySymmetric,
         TestEventHubCompatibleEndpoint,
         TestGitHubAccessToken,
-        TestPreviewEventHubCompatibleEndpoint,
         TestIotHubConnectionString,
+        TestIotHubResourceId,
         TestRootCaCertificate,
         TestRootCaKey,
         TestRootCaPassword,
@@ -180,6 +180,8 @@ steps:
         relayerImage = "$imagePrefix-relayer:$imageTag";
         networkControllerImage = "$imagePrefix-network-controller:$imageTag";
         testResultCoordinatorImage = "$imagePrefix-test-result-coordinator:$imageTag";
+        metricsCollectorImage = "$imagePrefix-metrics-collector:$imageTag";
+        iotHubResourceId = "$env:IOT_HUB_RESOURCE_ID";
         metricsValidatorImage = "$imagePrefix-metrics-validator:$imageTag";
         numberLoggerImage = "$imagePrefix-number-logger:$imageTag";
         edgeAgentBootstrapImage = "$imagePrefix-agent-bootstrap-e2e-$(os)-$(arch)";
@@ -228,3 +230,5 @@ steps:
 
       $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
     displayName: Create test arguments file (context.json)
+    env:
+      IOT_HUB_RESOURCE_ID: $(TestIotHubResourceId)
