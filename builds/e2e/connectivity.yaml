@@ -1,9 +1,23 @@
 trigger: none
 pr: none
 
+# Following branches (main, release/1.4, release/1.1) all run weekly at different
+# days of the week.
 schedules:
 - cron: "0 0 * * 0"
-  displayName: Daily build release/1.1
+  displayName: Weekly run main
+  branches:
+    include:
+    - main
+  always: true
+- cron: "0 0 * * 1"
+  displayName: Weekly run release/1.4
+  branches:
+    include:
+    - release/1.4
+  always: true
+- cron: "0 0 * * 2"
+  displayName: Weekly run release/1.1
   branches:
     include:
     - release/1.1
