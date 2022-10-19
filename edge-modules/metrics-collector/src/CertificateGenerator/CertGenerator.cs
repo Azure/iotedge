@@ -170,7 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.Certificategenerator
 
             string url = "https://" + logAnalyticsWorkspaceId + logAnalyticsWorkspaceDomainPrefixOms + Settings.Current.AzureDomain + "/AgentService.svc/AgentTopologyRequest";
 
-            Console.WriteLine("OMS endpoint Url : {0}", url);
+            LoggerUtil.Writer.LogInformation("OMS endpoint Url : {0}", url);
 
             client.DefaultRequestHeaders.Add("x-ms-Date", date);
             client.DefaultRequestHeaders.Add("x-ms-version", "August, 2014");
@@ -182,16 +182,15 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.Certificategenerator
             HttpContent httpContent = new StringContent(xmlContent, Encoding.UTF8);
             httpContent.Headers.ContentType = new MediaTypeHeaderValue("application/xml");
 
-            Console.WriteLine("sent registration request");
+            LoggerUtil.Writer.LogInformation("sending registration request");
             Task<HttpResponseMessage> response = client.PostAsync(new Uri(url), httpContent);
-            Console.WriteLine("waiting response for registration request : {0}", response.Result.StatusCode);
+            LoggerUtil.Writer.LogInformation("waiting for response to registration request");
             response.Wait();
-            Console.WriteLine("registration request processed");
-            Console.WriteLine("Response result status code : {0}", response.Result.StatusCode);
+            LoggerUtil.Writer.LogInformation("registration request processed");
+            LoggerUtil.Writer.LogInformation("Response result status code : {0}", response.Result.StatusCode);
             HttpContent responseContent = response.Result.Content;
-            string result = responseContent.ReadAsStringAsync().Result;
-            Console.WriteLine("Return Result: " + result);
-            Console.WriteLine(response.Result);
+            string contentString = responseContent.ReadAsStringAsync().Result;
+            LoggerUtil.Writer.LogInformation("serialized response content: " + contentString);
             if (response.Result.StatusCode != HttpStatusCode.OK)
             {
                 DeleteCertificateAndKeyFile();
@@ -224,7 +223,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.Certificategenerator
                     {
                         // If this isn't a transient error or we shouldn't retry,
                         // rethrow the exception.
-                        Console.WriteLine("exception occurred : {0}", ex.Message);
+                        LoggerUtil.Writer.LogWarning("exception occurred : {0}", ex.Message);
                         throw;
                     }
                 }
@@ -251,7 +250,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.Certificategenerator
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Failed to set env variable (CI_AGENT_GUID)" + ex.Message);
+                LoggerUtil.Writer.LogError("Failed to set env variable (CI_AGENT_GUID)" + ex.Message);
             }
 
             try
@@ -263,7 +262,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.Certificategenerator
                     throw new Exception($"creating self-signed certificate failed for agentGuid : {agentGuid} and workspace: {logAnalyticsWorkspaceId}");
                 }
 
-                Console.WriteLine($"Successfully created self-signed certificate  for agentGuid : {agentGuid} and workspace: {logAnalyticsWorkspaceId}");
+                LoggerUtil.Writer.LogInformation($"Successfully created self-signed certificate  for agentGuid : {agentGuid} and workspace: {logAnalyticsWorkspaceId}");
 
                 RegisterWithOmsWithBasicRetryAsync(agentCert, agentGuid,
                     logAnalyticsWorkspaceId,
@@ -272,7 +271,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.Certificategenerator
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Registering agent with OMS failed (are the Log Analytics Workspace ID and Key correct?) : {0}", ex.Message);
+                LoggerUtil.Writer.LogError("Registering agent with OMS failed (are the Log Analytics Workspace ID and Key correct?) : {0}", ex.Message);
 
                 LoggerUtil.Writer.LogCritical(ex.ToString());
                 Environment.Exit(1);
