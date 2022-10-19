@@ -164,9 +164,7 @@ stages:
               arch: amd64
               os: mariner
               os_version: 2
-              # mariner_release: 2.0-stable
-              # WARN: 2.0-stable is broken - https://github.com/microsoft/CBL-Mariner/issues/3483
-              mariner_release: 2.0.20220713-2.0
+              mariner_release: 2.0-stable
               target.iotedged: builds/mariner2/out/RPMS
               target.logs: builds/mariner2/build/logs/pkggen/rpmbuilding/
         steps:
@@ -208,7 +206,7 @@ stages:
                 -e "MARINER_ARCH=$MARINER_ARCH" \
                 -e "VERSION=$VERSION" \
                 --privileged \
-                "ubuntu:18.04" \
+                "ubuntu:20.04" \
                 '/src/edgelet/build/linux/package-mariner.sh'
           - task: CopyFiles@2
             displayName: Copy iotedged build logs to artifact staging
@@ -242,7 +240,7 @@ stages:
         pool:
           name: $(pool.linux.arm.name)
           demands:
-          - ImageOverride -equals agent-aziotedge-ubuntu-18.04-arm64
+          - ImageOverride -equals agent-aziotedge-ubuntu-20.04-arm64
         strategy:
           matrix:
             CBL-Mariner1.0-aarch64:
@@ -256,9 +254,7 @@ stages:
               arch: aarch64
               os: mariner
               os_version: 2
-              # mariner_release: 2.0-stable
-              # WARN: 2.0-stable is broken - https://github.com/microsoft/CBL-Mariner/issues/3483
-              mariner_release: 2.0.20220713-2.0
+              mariner_release: 2.0-stable
               target.iotedged: builds/mariner2/out/RPMS
               target.logs: builds/mariner2/build/logs/pkggen/rpmbuilding/
 
@@ -316,7 +312,7 @@ stages:
                 -e "PACKAGE_VERSION=$packageVersion" \
                 -e "PACKAGE_RELEASE=1" \
                 --privileged \
-                "ubuntu:18.04" \
+                "ubuntu:20.04" \
                 '/src/ci/package.sh'
               popd
               sudo cp iot-identity-service/packages/mariner$(os_version)/$(arch)/aziot-identity-service-$packageVersion-1.cm$(os_version).$(arch).rpm .
@@ -331,7 +327,7 @@ stages:
                 -e "MARINER_ARCH=$MARINER_ARCH" \
                 -e "VERSION=$VERSION" \
                 --privileged \
-                "ubuntu:18.04" \
+                "ubuntu:20.04" \
                 '/src/edgelet/build/linux/package-mariner.sh'
           - task: CopyFiles@2
             displayName: Copy iotedged build logs to artifact staging

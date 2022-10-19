@@ -18,7 +18,53 @@ namespace Microsoft.Azure.Devices.Edge.Test
     [EndToEnd]
     public class Metrics : SasManualProvisioningFixture
     {
-        public const string ModuleName = "metricsValidator";
+        public const string ValidatorModuleName = "metricsValidator";
+        public const string CollectorModuleName = "metricsCollector";
+
+        [Test]
+        [Category("CentOsSafe")]
+        public async Task MetricsCollector()
+        {
+            CancellationToken token = this.TestToken;
+
+            string metricsCollectorImage = Context.Current.MetricsCollectorImage.Expect(() => new ArgumentException("metricsCollectorImage parameter is required for MetricsCollector test"));
+            string hubResourceId = Context.Current.HubResourceId.Expect(() => new ArgumentException("iotHubResourceId is required for MetricsCollector test"));
+
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
+                builder =>
+                {
+                    builder.AddModule(CollectorModuleName, metricsCollectorImage)
+                        .WithEnvironment(new[]
+                        {
+                            ("UploadTarget", "IotMessage"),
+                            ("ResourceID", hubResourceId),
+                            ("ScrapeFrequencyInSecs", "10"),
+                            ("CompressForUpload", "false")
+                        });
+                    builder.GetModule(ConfigModuleName.EdgeHub)
+                        .WithDesiredProperties(new Dictionary<string, object>
+                        {
+                            ["routes"] = new
+                            {
+                                AzureIotEdgeMetricsCollectorToCloud = $"FROM /messages/modules/{CollectorModuleName}/* INTO $upstream"
+                            }
+                        });
+                },
+                token,
+                Context.Current.NestedEdge);
+
+            EdgeModule azureIotEdgeMetricsCollector = deployment.Modules[CollectorModuleName];
+
+            string output = await azureIotEdgeMetricsCollector.WaitForEventsReceivedAsync(DateTime.Now, token, "id");
+
+            JsonSerializerSettings settings = new JsonSerializerSettings();
+            settings.MissingMemberHandling = MissingMemberHandling.Error;
+
+            List<IoTHubMetric> iotHubMetrics = new List<IoTHubMetric>() { };
+            iotHubMetrics.AddRange(JsonConvert.DeserializeObject<IoTHubMetric[]>(output, settings));
+
+            Assert.True(iotHubMetrics.Count > 0);
+        }
 
         [Test]
         [Category("FlakyOnArm")]
@@ -34,8 +80,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
             // So have a long response timeout but short connection timeout.
             var result = await this.IotHub.InvokeMethodAsync(
                 this.runtime.DeviceId,
-                ModuleName,
-                new CloudToDeviceMethod("ValidateMetrics", TimeSpan.FromSeconds(120), TimeSpan.FromSeconds(60)),
+                Metrics.ValidatorModuleName,
+                new CloudToDeviceMethod(
+                    "ValidateMetrics",
+                    TimeSpan.FromSeconds(120),
+                    TimeSpan.FromSeconds(60)),
                 token);
             Assert.AreEqual(result.Status, (int)HttpStatusCode.OK);
 
@@ -53,7 +102,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     {
                         builder.AddTemporaryModule();
                         builder.AddMetricsValidatorConfig(metricsValidatorImage);
-                    }, token,
+                    },
+                token,
                 Context.Current.NestedEdge);
 
             // Next remove the temporary image from the deployment
@@ -61,6 +111,18 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 builder => { builder.AddMetricsValidatorConfig(metricsValidatorImage); },
                 token,
                 Context.Current.NestedEdge);
+        }
+
+        class IoTHubMetric
+        {
+            [JsonProperty("TimeGeneratedUtc")]
+            public DateTime TimeGeneratedUtc { get; set; }
+            [JsonProperty("Name")]
+            public string Name { get; set; }
+            [JsonProperty("Value")]
+            public double Value { get; set; }
+            [JsonProperty("Labels")]
+            public IReadOnlyDictionary<string, string> Labels { get; set; }
         }
 
         // Presents a more focused view by serializing only failures
@@ -122,13 +184,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public static void AddTemporaryModule(this EdgeConfigBuilder builder)
         {
             const string Name = "stopMe";
-            const string Image = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
-            builder.AddModule(Name, Image).WithEnvironment(new[] { ("MessageCount", "0") });
+            string image = Context.Current.TempSensorImage.Expect(() => new InvalidOperationException("Missing Temp Sensor image"));
+            builder.AddModule(Name, image).WithEnvironment(new[] { ("MessageCount", "0") });
         }
 
         public static void AddMetricsValidatorConfig(this EdgeConfigBuilder builder, string image)
         {
-            builder.AddModule(Metrics.ModuleName, image);
+            builder.AddModule(Metrics.ValidatorModuleName, image);
 
             builder.GetModule(ConfigModuleName.EdgeHub)
                 .WithDesiredProperties(new Dictionary<string, object>
@@ -137,7 +199,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         "routes", new
                         {
                             All = "FROM /messages/* INTO $upstream",
-                            QueueLengthTest = $"FROM /messages/modules/{Metrics.ModuleName}/outputs/ToSelf INTO BrokeredEndpoint(\"/modules/{Metrics.ModuleName}/inputs/FromSelf\")"
+                            QueueLengthTest = $"FROM /messages/modules/{Metrics.ValidatorModuleName}/outputs/ToSelf INTO BrokeredEndpoint(\"/modules/{Metrics.ValidatorModuleName}/inputs/FromSelf\")"
                         }
                     }
                 });
