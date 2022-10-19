@@ -355,7 +355,6 @@ jobs:
       demands:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - mariner -equals true
         - mariner-version -equals 1.0
         - run-long-haul-eflow -equals true
     steps:
@@ -423,7 +422,6 @@ jobs:
       demands:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - mariner -equals true
         - mariner-version -equals 2.0
         - run-long-haul-eflow -equals true
     steps:
