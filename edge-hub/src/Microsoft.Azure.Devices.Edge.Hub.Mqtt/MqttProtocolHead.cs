@@ -110,13 +110,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 this.logger.LogInformation("Stopping MQTT protocol head");
 
                 await (this.serverChannel?.CloseAsync() ?? TaskEx.Done);
-                this.logger.LogInformation("server Channel closed MQTT with timeout");
-                await TaskEx.TimeoutAfter(this.eventLoopGroup?.ShutdownGracefullyAsync(), TimeSpan.FromSeconds(15));
-                this.logger.LogInformation("event Loop shutdown MQTT");
-                await (this.parentEventLoopGroup?.ShutdownGracefullyAsync(TimeSpan.FromMilliseconds(QuietPeriodInMS), TimeSpan.FromSeconds(TimeoutInSecs)) ?? TaskEx.Done);
-                this.logger.LogInformation("parent event Loop shutdown MQTT");
-                await (this.wsEventLoopGroup?.ShutdownGracefullyAsync(TimeSpan.FromMilliseconds(QuietPeriodInMS), TimeSpan.FromSeconds(TimeoutInSecs)) ?? TaskEx.Done);
-                this.logger.LogInformation("wsevent Loop shutdown MQTT");
+                try
+                {
+                    await TaskEx.TimeoutAfter(this.eventLoopGroup?.ShutdownGracefullyAsync(), TimeSpan.FromSeconds(15));
+                }
+                catch (TimeoutException ex)
+                {
+                    this.logger.LogError("Event loop failed to stop cleanly", ex);
+                }
+
+                try
+                {
+                    await TaskEx.TimeoutAfter(this.parentEventLoopGroup?.ShutdownGracefullyAsync(), TimeSpan.FromSeconds(15));
+                }
+                catch (TimeoutException ex)
+                {
+                    this.logger.LogError("Parent event loop failed to stop cleanly", ex);
+                }
+
+                try
+                {
+                    await TaskEx.TimeoutAfter(this.wsEventLoopGroup?.ShutdownGracefullyAsync(), TimeSpan.FromSeconds(15));
+                }
+                catch (TimeoutException ex)
+                {
+                    this.logger.LogError("wsEvent loop failed to stop cleanly", ex);
+                }
                 // TODO: gracefully shutdown the MultithreadEventLoopGroup in MqttWebSocketListener?
                 this.logger.LogInformation("Stopped MQTT protocol head");
             }
