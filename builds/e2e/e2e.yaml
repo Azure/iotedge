@@ -278,7 +278,6 @@ jobs:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
         - run-new-e2e-tests -equals true
-        - mariner -equals true
         - mariner-version -equals 1.0
 
     variables:
