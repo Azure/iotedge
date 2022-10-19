@@ -111,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
                 await (this.serverChannel?.CloseAsync() ?? TaskEx.Done);
                 this.logger.LogInformation("server Channel closed MQTT");
-                await (this.eventLoopGroup?.ShutdownGracefullyAsync(TimeSpan.FromMilliseconds(QuietPeriodInMS), TimeSpan.FromSeconds(TimeoutInSecs)) ?? TaskEx.Done);
+                await TaskEx.TimeoutAfter(this.eventLoopGroup?.ShutdownGracefullyAsync(), TimeSpan.FromSeconds(15));
                 this.logger.LogInformation("event Loop shutdown MQTT");
                 await (this.parentEventLoopGroup?.ShutdownGracefullyAsync(TimeSpan.FromMilliseconds(QuietPeriodInMS), TimeSpan.FromSeconds(TimeoutInSecs)) ?? TaskEx.Done);
                 this.logger.LogInformation("parent event Loop shutdown MQTT");
