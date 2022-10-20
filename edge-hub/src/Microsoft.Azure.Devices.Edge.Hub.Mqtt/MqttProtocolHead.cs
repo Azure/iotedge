@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         const int DefaultParentEventLoopCount = 1;
         const int DefaultMaxInboundMessageSize = 256 * 1024;
         const bool AutoRead = false;
-        const int TimeoutInSecs = 30;
+        static readonly TimeSpan TimeoutInSecs = TimeSpan.FromSeconds(30);
 
         readonly int defaultThreadCount = Environment.ProcessorCount * 2;
         readonly ILogger logger = Logger.Factory.CreateLogger<MqttProtocolHead>();
@@ -109,9 +109,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 this.logger.LogInformation("Stopping MQTT protocol head");
 
                 await (this.serverChannel?.CloseAsync() ?? TaskEx.Done);
-                await TaskEx.TimeoutAfter(this.eventLoopGroup?.ShutdownGracefullyAsync(), TimeSpan.FromSeconds(TimeoutInSecs));
-                await TaskEx.TimeoutAfter(this.parentEventLoopGroup?.ShutdownGracefullyAsync(), TimeSpan.FromSeconds(TimeoutInSecs));
-                await TaskEx.TimeoutAfter(this.wsEventLoopGroup?.ShutdownGracefullyAsync(), TimeSpan.FromSeconds(TimeoutInSecs));
+                await this.eventLoopGroup?.ShutdownGracefullyAsync().TimeoutAfter(TimeoutInSecs);
+                await this.parentEventLoopGroup?.ShutdownGracefullyAsync().TimeoutAfter(TimeoutInSecs);
+                await this.wsEventLoopGroup?.ShutdownGracefullyAsync().TimeoutAfter(TimeoutInSecs);
                 // TODO: gracefully shutdown the MultithreadEventLoopGroup in MqttWebSocketListener?
                 this.logger.LogInformation("Stopped MQTT protocol head");
             }
