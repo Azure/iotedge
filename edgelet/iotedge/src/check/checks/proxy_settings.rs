@@ -14,18 +14,16 @@ impl Checker for ProxySettings {
     }
 
     async fn execute(&mut self, check: &mut Check) -> CheckResult {
-        self.inner_execute(check)
-            .await
-            .unwrap_or_else(CheckResult::Failed)
+        Self::inner_execute(check)
     }
 }
 
 impl ProxySettings {
-    async fn inner_execute(&mut self, check: &mut Check) -> anyhow::Result<CheckResult> {
+    fn inner_execute(check: &mut Check) -> CheckResult {
         let settings = if let Some(settings) = &mut check.settings {
             settings
         } else {
-            return Ok(CheckResult::Skipped);
+            return CheckResult::Skipped;
         };
 
         // Pull the proxy address from the aziot-edged settings
@@ -55,16 +53,16 @@ impl ProxySettings {
             && edge_agent_proxy_uri.eq(&edge_daemon_proxy_uri)
             && edge_agent_proxy_uri.eq(&identity_daemon_proxy_uri)
         {
-            Ok(CheckResult::Ok)
+            CheckResult::Ok
         } else {
-            Ok(CheckResult::Warning(anyhow::anyhow!(
+            CheckResult::Warning(anyhow::anyhow!(
                     "The proxy setting for IoT Edge Agent {:?}, IoT Edge Daemon {:?}, IoT Identity Daemon {:?}, and Moby {:?} may need to be identical.",
                     edge_agent_proxy_uri,
                     edge_daemon_proxy_uri,
                     identity_daemon_proxy_uri,
                     moby_proxy_uri
                 )
-            ))
+            )
         }
     }
 }

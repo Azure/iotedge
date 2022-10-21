@@ -73,10 +73,10 @@ async fn main() -> Result<()> {
         .await
         .context("Fatal, could not shut down SDK")?;
 
-    cert_monitor_shutdown_handle.shutdown().await;
-    config_monitor_shutdown_handle.shutdown().await;
-    nginx_controller_shutdown_handle.shutdown().await;
-    token_server_shutdown_handle.shutdown().await;
+    cert_monitor_shutdown_handle.shutdown();
+    config_monitor_shutdown_handle.shutdown();
+    nginx_controller_shutdown_handle.shutdown();
+    token_server_shutdown_handle.shutdown();
 
     if let Err(e) = cert_monitor_handle.await {
         error!("error on finishing cert monitor: {}", e);
