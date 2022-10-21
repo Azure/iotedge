@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         const int DefaultParentEventLoopCount = 1;
         const int DefaultMaxInboundMessageSize = 256 * 1024;
         const bool AutoRead = false;
-        static readonly TimeSpan TimeoutInSecs = TimeSpan.FromSeconds(30);
+        static readonly TimeSpan TimeoutInSecs = TimeSpan.FromSeconds(20);
 
         readonly int defaultThreadCount = Environment.ProcessorCount * 2;
         readonly ILogger logger = Logger.Factory.CreateLogger<MqttProtocolHead>();
