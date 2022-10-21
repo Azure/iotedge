@@ -109,9 +109,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 this.logger.LogInformation("Stopping MQTT protocol head");
 
                 await (this.serverChannel?.CloseAsync() ?? TaskEx.Done);
-                await this.eventLoopGroup?.ShutdownGracefullyAsync().TimeoutAfter(TimeoutInSecs);
-                await this.parentEventLoopGroup?.ShutdownGracefullyAsync().TimeoutAfter(TimeoutInSecs);
-                await this.wsEventLoopGroup?.ShutdownGracefullyAsync().TimeoutAfter(TimeoutInSecs);
+                await TaskEx.TimeoutAfter(this.eventLoopGroup?.ShutdownGracefullyAsync(),TimeoutInSecs);
+                await TaskEx.TimeoutAfter(this.parentEventLoopGroup?.ShutdownGracefullyAsync(), TimeoutInSecs);
+                await TaskEx.TimeoutAfter(this.wsEventLoopGroup?.ShutdownGracefullyAsync(), TimeoutInSecs);
                 // TODO: gracefully shutdown the MultithreadEventLoopGroup in MqttWebSocketListener?
                 this.logger.LogInformation("Stopped MQTT protocol head");
             }
