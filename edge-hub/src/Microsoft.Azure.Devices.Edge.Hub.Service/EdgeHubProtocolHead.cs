@@ -42,7 +42,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 this.logger.LogError("Could not close all protocol heads gracefully", ex);
                 return Task.CompletedTask;
             }
-
         }
 
         public void Dispose()
