@@ -10,6 +10,7 @@ use std::path::PathBuf;
 use std::process;
 
 use anyhow::Context;
+use clap::builder::TypedValueParser;
 use clap::{crate_description, crate_name, Arg, Command};
 use url::Url;
 
@@ -339,13 +340,9 @@ async fn run() -> anyhow::Result<()> {
                         // WARN: "off" is excluded from the `FromStr`
                         // implementation on `log::Level`:
                         // https://github.com/rust-lang/log/blob/d6707108c6959ac7b60cdb60a005795ece6d82d6/src/lib.rs#L481
-                        // NOTE: Help string is manually constructed to match
-                        // what would be generated for
-                        // `.value_parser([${ARRAY_OF_VALUES}..])`.
-
                         Arg::new("log_level")
-                        .help(r#"[possible values: error, warn, info, debug, trace]"#)
-                        .value_parser(clap::value_parser!(log::Level))
+                        .value_parser(clap::builder::PossibleValuesParser::new(["error", "warn", "info", "debug", "trace"])
+                            .try_map(|s| s.parse::<log::Level>()))
                         .required(true),
                     )
                 )
