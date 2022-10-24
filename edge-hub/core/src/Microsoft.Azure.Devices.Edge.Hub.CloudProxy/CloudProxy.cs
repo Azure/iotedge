@@ -87,14 +87,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 // wrapping this.client.CloseAsync in a try/catch
                 try
                 {
+                    Events.ClosingBeforeClient(this);
                     await this.client.CloseAsync().TimeoutAfter(this.cloudConnectionHangingTimeout, sdkTimeoutAction);
+                    Events.ClosingAfterClient(this);
                 }
                 catch (Exception ex)
                 {
                     Events.ErrorClosingClient(this.clientId, ex);
                 }
 
+                Events.ClosingBeforeReceiver(this);
                 await (this.cloudReceiver?.CloseAsync() ?? Task.CompletedTask);
+                Events.ClosingBeforeReceiver(this);
                 await this.DisableTimerAsync();
                 Events.Closed(this);
                 return true;
@@ -665,6 +669,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             public static void Closing(CloudProxy cloudProxy)
             {
                 Log.LogInformation((int)EventIds.ClosingReceiver, Invariant($"Closing receiver in cloud proxy {cloudProxy.id} for {cloudProxy.clientId}"));
+            }
+
+            public static void ClosingBeforeClient(CloudProxy cloudProxy)
+            {
+                Log.LogInformation((int)EventIds.ClosingReceiver, Invariant($"Closing before client closing {cloudProxy.id} for {cloudProxy.clientId}"));
+            }
+
+            public static void ClosingBeforeClient(CloudProxy cloudProxy)
+            {
+                Log.LogInformation((int)EventIds.ClosingReceiver, Invariant($"Closing after client closing {cloudProxy.id} for {cloudProxy.clientId}"));
+            }
+
+
+            public static void ClosingBeforeReceiver(CloudProxy cloudProxy)
+            {
+                Log.LogInformation((int)EventIds.ClosingReceiver, Invariant($"Closing before receiver closing {cloudProxy.id} for {cloudProxy.clientId}"));
+            }
+
+             public static void ClosingAfterReceiver(CloudProxy cloudProxy)
+            {
+                Log.LogInformation((int)EventIds.ClosingReceiver, Invariant($"Closing before receiver closing {cloudProxy.id} for {cloudProxy.clientId}"));
             }
 
             public static void ErrorReceivingMessage(CloudProxy cloudProxy, Exception ex)
