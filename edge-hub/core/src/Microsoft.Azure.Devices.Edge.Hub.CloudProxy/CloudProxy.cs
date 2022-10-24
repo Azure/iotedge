@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 // wrapping this.client.CloseAsync in a try/catch
                 try
                 {
-                    await this.client.CloseAsync();
+                    await this.client.CloseAsync().TimeoutAfter(this.cloudConnectionHangingTimeout, sdkTimeoutAction);
                 }
                 catch (Exception ex)
                 {
