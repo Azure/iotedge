@@ -89,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 {
                     Events.ClosingBeforeClient(this);
                     await this.client.CloseAsync().TimeoutAfter(this.cloudConnectionHangingTimeout, sdkTimeoutAction);
-                    Events.ClosingAfterClient(this);
+                    Events.ClosingBAfterClient(this);
                 }
                 catch (Exception ex)
                 {
@@ -676,7 +676,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Log.LogInformation((int)EventIds.ClosingReceiver, Invariant($"Closing before client closing {cloudProxy.id} for {cloudProxy.clientId}"));
             }
 
-            public static void ClosingBeforeClient(CloudProxy cloudProxy)
+            public static void ClosingBAfterClient(CloudProxy cloudProxy)
             {
                 Log.LogInformation((int)EventIds.ClosingReceiver, Invariant($"Closing after client closing {cloudProxy.id} for {cloudProxy.clientId}"));
             }
