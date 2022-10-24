@@ -681,13 +681,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Log.LogInformation((int)EventIds.ClosingReceiver, Invariant($"Closing after client closing {cloudProxy.id} for {cloudProxy.clientId}"));
             }
 
-
             public static void ClosingBeforeReceiver(CloudProxy cloudProxy)
             {
                 Log.LogInformation((int)EventIds.ClosingReceiver, Invariant($"Closing before receiver closing {cloudProxy.id} for {cloudProxy.clientId}"));
             }
 
-             public static void ClosingAfterReceiver(CloudProxy cloudProxy)
+            public static void ClosingAfterReceiver(CloudProxy cloudProxy)
             {
                 Log.LogInformation((int)EventIds.ClosingReceiver, Invariant($"Closing before receiver closing {cloudProxy.id} for {cloudProxy.clientId}"));
             }
