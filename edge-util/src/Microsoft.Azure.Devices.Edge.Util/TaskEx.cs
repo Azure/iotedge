@@ -158,7 +158,9 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
                 Console.WriteLine("ANCAN timeout cts " + timeout.ToString());
                 cts.Cancel();
+                Console.WriteLine("ANCAN timeout after cts " + timeout.ToString());
                 await task;
+                Console.WriteLine("ANCAN timeout after await " + timeout.ToString());
             }
         }
 
