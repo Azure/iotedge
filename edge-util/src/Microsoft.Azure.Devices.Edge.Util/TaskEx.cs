@@ -141,11 +141,11 @@ namespace Microsoft.Azure.Devices.Edge.Util
             using (var cts = new CancellationTokenSource())
             {
                 Task timerTask = Task.Delay(timeout, cts.Token);
-                Console.WriteLine("ANCAN timeout before "+ timeout.ToString());
+                Console.WriteLine("ANCAN timeout before " + timeout.ToString());
                 Task completedTask = await Task.WhenAny(task, timerTask);
                 if (completedTask == timerTask)
                 {
-                    Console.WriteLine("ANCAN timeout after "+ timeout.ToString());
+                    Console.WriteLine("ANCAN timeout after " + timeout.ToString());
                     if (action == null)
                     {
                         defaultTimeoutAction();
@@ -156,7 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                     }
                 }
 
-                Console.WriteLine("ANCAN timeout cts "+ timeout.ToString());
+                Console.WriteLine("ANCAN timeout cts " + timeout.ToString());
                 cts.Cancel();
                 await task;
             }
