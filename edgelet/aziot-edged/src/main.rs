@@ -22,8 +22,8 @@ use crate::{error::Error as EdgedError, workload_manager::WorkloadManager};
 async fn main() {
     let version = edgelet_core::version_with_source_version();
 
-    clap::App::new(clap::crate_name!())
-        .version(version.as_str())
+    clap::Command::new(clap::crate_name!())
+        .version(&version)
         .author(clap::crate_authors!("\n"))
         .about(clap::crate_description!())
         .get_matches();
@@ -32,7 +32,7 @@ async fn main() {
         .expect("cannot fail to initialize global logger from the process entrypoint");
 
     log::info!("Starting Azure IoT Edge Daemon");
-    log::info!("Version - {}", edgelet_core::version_with_source_version());
+    log::info!("Version - {}", version);
 
     if let Err(err) = run().await {
         if err.exit_code() == EdgedError::reprovisioned().exit_code() {
