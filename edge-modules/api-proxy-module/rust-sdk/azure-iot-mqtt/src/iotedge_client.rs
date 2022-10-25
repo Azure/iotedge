@@ -323,12 +323,12 @@ impl tokio::io::AsyncWrite for Transport {
     }
 }
 
-#[derive(serde_derive::Deserialize)]
+#[derive(serde::Deserialize)]
 struct TrustBundleResponse {
     certificate: String,
 }
 
-#[derive(serde_derive::Serialize)]
+#[derive(serde::Serialize)]
 struct SignRequest<'a> {
     #[serde(rename = "keyId")]
     key_id: &'static str,
@@ -337,7 +337,7 @@ struct SignRequest<'a> {
     data: &'a str,
 }
 
-#[derive(serde_derive::Deserialize)]
+#[derive(serde::Deserialize)]
 struct SignResponse {
     digest: String,
 }

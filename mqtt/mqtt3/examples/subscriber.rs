@@ -2,53 +2,22 @@
 //
 //     cargo run --example subscriber -- --server 127.0.0.1:1883 --client-id 'example-subscriber' --topic-filter foo --qos 1
 
+use clap::Parser;
 use futures_util::StreamExt;
 
 mod common;
 
-#[derive(Debug, structopt::StructOpt)]
+#[derive(Debug, Parser)]
 struct Options {
-    #[structopt(help = "Address of the MQTT server.", long = "server")]
-    server: std::net::SocketAddr,
+    #[command(flatten)]
+    common: common::Options,
 
-    #[structopt(
-        help = "Client ID used to identify this application to the server. If not given, a server-generated ID will be used.",
-        long = "client-id"
-    )]
-    client_id: Option<String>,
-
-    #[structopt(
-        help = "Username used to authenticate with the server, if any.",
-        long = "username"
-    )]
-    username: Option<String>,
-
-    #[structopt(
-        help = "Password used to authenticate with the server, if any.",
-        long = "password"
-    )]
-    password: Option<String>,
-
-    #[structopt(
-		help = "Maximum back-off time between reconnections to the server, in seconds.",
-		long = "max-reconnect-back-off",
-		default_value = "30",
-		parse(try_from_str = common::duration_from_secs_str),
-	)]
-    max_reconnect_back_off: std::time::Duration,
-
-    #[structopt(
-		help = "Keep-alive time advertised to the server, in seconds.",
-		long = "keep-alive",
-		default_value = "5",
-		parse(try_from_str = common::duration_from_secs_str),
-	)]
-    keep_alive: std::time::Duration,
-
-    #[structopt(help = "The topic filter to subscribe to.", long = "topic-filter")]
+    /// The topic filter to subscribe to.
+    #[arg(long)]
     topic_filter: String,
 
-    #[structopt(help = "The QoS with which to subscribe to the topic.", long = "qos", parse(try_from_str = common::qos_from_str))]
+    /// The QoS with which to subscribe to the topic.
+    #[arg(long, value_parser = common::qos_from_str)]
     qos: mqtt3::proto::QoS,
 }
 
@@ -61,15 +30,18 @@ async fn main() {
     .init();
 
     let Options {
-        server,
-        client_id,
-        username,
-        password,
-        max_reconnect_back_off,
-        keep_alive,
+        common:
+            common::Options {
+                server,
+                client_id,
+                username,
+                password,
+                max_reconnect_back_off,
+                keep_alive,
+            },
         topic_filter,
         qos,
-    } = structopt::StructOpt::from_args();
+    } = Options::parse();
 
     let mut client = mqtt3::Client::new(
         client_id,
