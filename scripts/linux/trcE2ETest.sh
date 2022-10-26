@@ -55,6 +55,7 @@ function usage() {
     echo " -clientModuleTransportType               Value for contrained long haul specifying transport type for all client modules."
     echo " -trackingId                              Tracking id used to tag test events. Needed if running nested tests and test events are sent to TRC from L4 node. Otherwise generated."
     echo ' -cleanAll                                Do docker prune for containers, logs and volumes.'
+    echo ' -packageType                             Package type to be used [deb, rpm]'
     exit 1;
 }
 
@@ -90,9 +91,9 @@ function get_artifact_file() {
 
     local filter
     case "$fileType" in
-        'aziot_edge' ) filter='aziot-edge_*.deb';;
-        'aziot_is' ) filter='aziot-identity-service_*.deb';;
-        'quickstart' ) filter='core-linux/IotEdgeQuickstart.linux*.tar.gz';;
+        'aziot_edge' ) filter="aziot-edge*.$PACKAGE_TYPE";;
+        'aziot_is' ) filter="aziot-identity-service*.$PACKAGE_TYPE";;
+        'quickstart' ) filter="core-linux/IotEdgeQuickstart.linux*.tar.gz";;
         *) print_error "Unknown file type: $fileType"; exit 1;;
     esac
 
@@ -461,6 +462,9 @@ function process_args() {
         elif [ $saveNextArg -eq 48 ]; then
             TOPOLOGY="$arg"
             saveNextArg=0;
+        elif [ $saveNextArg -eq 49 ]; then
+            PACKAGE_TYPE="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -512,6 +516,7 @@ function process_args() {
                 '-clientModuleTransportType' ) saveNextArg=46;;
                 '-trackingId' ) saveNextArg=47;;
                 '-topology' ) saveNextArg=48;;
+                '-packageType' ) saveNextArg=49;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
 
@@ -812,6 +817,7 @@ function run_longhaul_test() {
             --device_ca_cert "$DEVICE_CA_CERT" \
             --device_ca_pk "$DEVICE_CA_PRIVATE_KEY" \
             --trusted_ca_certs "$TRUSTED_CA_CERTS" \
+            $PACKAGE_TYPE_ARG \
             $BYPASS_EDGE_INSTALLATION \
             --no-verify && ret=$? || ret=$?
     fi
@@ -914,6 +920,13 @@ NETWORK_CONTROLLER_FREQUENCIES=${NETWORK_CONTROLLER_FREQUENCIES:(null)}
 
 working_folder="$E2E_TEST_DIR/working"
 quickstart_working_folder="$working_folder/quickstart"
+
+if [ -z $PACKAGE_TYPE ]; then
+    echo 'Package type not specifed default to .deb'
+    PACKAGE_TYPE=deb
+fi
+
+PACKAGE_TYPE_ARG=--package-type="$PACKAGE_TYPE"
 
 if [ "$image_architecture_label" = 'amd64' ]; then
     optimize_for_performance=true
