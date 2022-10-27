@@ -88,7 +88,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 try
                 {
                     Events.ClosingBeforeClient(this);
-                    await TaskEx.TimeoutAfter(this.client.CloseAsync(), this.cloudConnectionHangingTimeout);
+                    TimeSpan timeout = TimeSpan.FromSeconds(5);
+                    await TaskEx.TimeoutAfter(this.client.CloseAsync(), timeout);
+                    Console.WriteLine("ANCAN cloudproxy after client close " + timeout.ToString());
                     // await t.TimeoutAfter(this.cloudConnectionHangingTimeout, sdkTimeoutAction);
                     Events.ClosingBAfterClient(this);
                 }
@@ -99,8 +101,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
                 Events.ClosingBeforeReceiver(this);
                 await (this.cloudReceiver?.CloseAsync() ?? Task.CompletedTask);
+                Console.WriteLine("ANCAN cloudproxy after cloud receiver close " + timeout.ToString());
                 Events.ClosingAfterReceiver(this);
                 await this.DisableTimerAsync();
+                Console.WriteLine("ANCAN cloudproxy after disable timer " + timeout.ToString());
                 Events.Closed(this);
                 return true;
             }

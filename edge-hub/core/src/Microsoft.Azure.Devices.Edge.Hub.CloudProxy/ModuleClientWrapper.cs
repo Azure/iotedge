@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             if (this.isActive.GetAndSet(false))
             {
-                this.underlyingModuleClient?.Dispose();
+                return this.underlyingModuleClient?.CloseAsync();
             }
 
             return Task.CompletedTask;
