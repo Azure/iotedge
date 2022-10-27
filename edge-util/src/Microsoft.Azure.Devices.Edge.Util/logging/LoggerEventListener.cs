@@ -17,6 +17,21 @@ namespace Microsoft.Azure.Devices.Edge.Util.Logging
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
         }
 
+        private static readonly string[] s_eventFilter = new string[] { "DotNetty-Default", "Microsoft-Azure-Devices", "Microsoft-Azure-Devices-Provisioning-Transport-Mqtt", "Azure-Core", "Azure-Identity" };
+
+        protected override void OnEventSourceCreated(EventSource eventSource)
+        {
+            if (s_eventFilter.Any(filter => eventSource.Name.StartsWith(filter, StringComparison.OrdinalIgnoreCase)))
+            {
+                base.OnEventSourceCreated(eventSource);
+                EnableEvents(
+                    eventSource,
+                    EventLevel.LogAlways,
+                     EventKeywords.All
+                );
+            }
+        }
+
         protected override void OnEventWritten(EventWrittenEventArgs eventData)
         {
             this.logger.Log(GetLogLevel(eventData.Level), eventData.EventId, eventData, null, (ev, ex) => Formatter(ev));
