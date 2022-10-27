@@ -101,10 +101,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
                 Events.ClosingBeforeReceiver(this);
                 await (this.cloudReceiver?.CloseAsync() ?? Task.CompletedTask);
-                Console.WriteLine("ANCAN cloudproxy after cloud receiver close " + timeout.ToString());
                 Events.ClosingAfterReceiver(this);
                 await this.DisableTimerAsync();
-                Console.WriteLine("ANCAN cloudproxy after disable timer " + timeout.ToString());
                 Events.Closed(this);
                 return true;
             }
