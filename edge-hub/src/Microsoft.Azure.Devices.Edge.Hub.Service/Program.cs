@@ -147,6 +147,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         static async Task<EdgeHubProtocolHead> GetEdgeHubProtocolHeadAsync(ILogger logger, IConfigurationRoot configuration, IContainer container, Hosting hosting)
         {
             var protocolHeads = new List<IProtocolHead>();
+            var protocolTimeout = configuration.GetValue("protocolTimeoutInSecs", 180);
             if (configuration.GetValue("mqttSettings:enabled", true))
             {
                 protocolHeads.Add(await container.Resolve<Task<MqttProtocolHead>>());
@@ -162,7 +163,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 protocolHeads.Add(new HttpProtocolHead(hosting.WebHost));
             }
 
-            return new EdgeHubProtocolHead(protocolHeads, logger);
+            
+            return new EdgeHubProtocolHead(protocolHeads, logger, protocolTimeout);
         }
 
         static async Task CloseDbStoreProviderAsync(IContainer container)

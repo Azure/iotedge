@@ -14,12 +14,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     {
         readonly IList<IProtocolHead> underlyingProtocolHeads;
         readonly ILogger logger;
-        static readonly TimeSpan TimeoutInSecs = TimeSpan.FromSeconds(180);
+        readonly TimeSpan TimeoutInSecs;
 
-        public EdgeHubProtocolHead(IList<IProtocolHead> underlyingProtocolHeads, ILogger logger)
+        public EdgeHubProtocolHead(IList<IProtocolHead> underlyingProtocolHeads, ILogger logger, int timeoutInSecs)
         {
             this.underlyingProtocolHeads = Preconditions.CheckNotNull(underlyingProtocolHeads, nameof(underlyingProtocolHeads));
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
+            this.TimeoutInSecs = TimeSpan.FromSeconds(timeoutInSecs);
         }
 
         public string Name => $"({string.Join(", ", this.underlyingProtocolHeads.Select(ph => ph.Name))})";
