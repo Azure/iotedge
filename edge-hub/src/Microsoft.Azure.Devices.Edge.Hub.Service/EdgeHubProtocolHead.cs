@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
@@ -13,11 +14,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     {
         readonly IList<IProtocolHead> underlyingProtocolHeads;
         readonly ILogger logger;
+        readonly TimeSpan timeout;
 
-        public EdgeHubProtocolHead(IList<IProtocolHead> underlyingProtocolHeads, ILogger logger)
+        public EdgeHubProtocolHead(IList<IProtocolHead> underlyingProtocolHeads, ILogger logger, int timeoutInSecs)
         {
             this.underlyingProtocolHeads = Preconditions.CheckNotNull(underlyingProtocolHeads, nameof(underlyingProtocolHeads));
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
+            this.timeout = TimeSpan.FromSeconds(timeoutInSecs);
         }
 
         public string Name => $"({string.Join(", ", this.underlyingProtocolHeads.Select(ph => ph.Name))})";
@@ -31,7 +34,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         public Task CloseAsync(CancellationToken token)
         {
             this.logger.LogInformation($"Closing protocol heads - {this.Name}");
-            return Task.WhenAll(this.underlyingProtocolHeads.Select(protocolHead => protocolHead.CloseAsync(token)));
+            try
+            {
+                return Task.WhenAll(this.underlyingProtocolHeads.Select(protocolHead => protocolHead.CloseAsync(token))).TimeoutAfter(this.timeout);
+            }
+            catch (TimeoutException ex)
+            {
+                this.logger.LogError("Could not close all protocol heads gracefully", ex);
+                return Task.CompletedTask;
+            }
         }
 
         public void Dispose()
