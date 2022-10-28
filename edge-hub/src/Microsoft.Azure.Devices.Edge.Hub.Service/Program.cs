@@ -163,7 +163,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 protocolHeads.Add(new HttpProtocolHead(hosting.WebHost));
             }
 
-            
             return new EdgeHubProtocolHead(protocolHeads, logger, protocolTimeout);
         }
 
