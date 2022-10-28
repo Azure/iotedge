@@ -14,13 +14,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     {
         readonly IList<IProtocolHead> underlyingProtocolHeads;
         readonly ILogger logger;
-        readonly TimeSpan TimeoutInSecs;
+        readonly TimeSpan timeout;
 
         public EdgeHubProtocolHead(IList<IProtocolHead> underlyingProtocolHeads, ILogger logger, int timeoutInSecs)
         {
             this.underlyingProtocolHeads = Preconditions.CheckNotNull(underlyingProtocolHeads, nameof(underlyingProtocolHeads));
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
-            this.TimeoutInSecs = TimeSpan.FromSeconds(timeoutInSecs);
+            this.timeout = TimeSpan.FromSeconds(timeoutInSecs);
         }
 
         public string Name => $"({string.Join(", ", this.underlyingProtocolHeads.Select(ph => ph.Name))})";
@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             this.logger.LogInformation($"Closing protocol heads - {this.Name}");
             try
             {
-                return Task.WhenAll(this.underlyingProtocolHeads.Select(protocolHead => protocolHead.CloseAsync(token))).TimeoutAfter(TimeoutInSecs);
+                return Task.WhenAll(this.underlyingProtocolHeads.Select(protocolHead => protocolHead.CloseAsync(token))).TimeoutAfter(this.timeout);
             }
             catch (TimeoutException ex)
             {
