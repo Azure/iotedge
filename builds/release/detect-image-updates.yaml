@@ -6,8 +6,7 @@ resources:
   - repository: product
     type: github
     endpoint: Azure/azure-iotedge
-    # TODO: Update 'name' to final repo (variables aren't supported in resources)
-    name: damonbarry/azure-iotedge
+    name: Azure/azure-iotedge
 
 variables:
   NugetSecurityAnalysisWarningLevel: warn
