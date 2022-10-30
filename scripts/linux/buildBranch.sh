@@ -22,7 +22,9 @@ SRC_E2E_TEST_FILES_DIR=$ROOT_FOLDER/e2e_test_files
 SRC_CERT_TOOLS_DIR=$ROOT_FOLDER/tools/CACertificates
 FUNCTIONS_SAMPLE_DIR=$ROOT_FOLDER/edge-modules/functions/samples
 VERSIONINFO_FILE_PATH=$BUILD_REPOSITORY_LOCALPATH/versionInfo.json
+
 DOTNET_RUNTIME=net6.0
+SKIP_QUICKSTART=0
 
 usage()
 {
@@ -260,7 +262,7 @@ publish_app "NumberLogger"
 publish_app "CloudToDeviceMessageTester"
 publish_app "EdgeHubTriggerCSharp"
 
-if [ $SKIP_QUICKSTART -ne 1 ]; then
+if [ "$SKIP_QUICKSTART" -ne 1 ]; then
     publish_quickstart linux-arm
     publish_quickstart linux-x64
     publish_quickstart linux-arm64
