@@ -34,7 +34,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub.Config
             var rule = context.AddBindingRule<EdgeHubTriggerAttribute>();
             rule.AddConverter<Message, string>(ConvertMessageToString);
             rule.AddConverter<Message, byte[]>(ConvertMessageToBytes);
-            rule.BindToTrigger<Message>(new EdgeHubTriggerBindingProvider(nameResolver));
+            rule.BindToTrigger<Message>(new EdgeHubTriggerBindingProvider(this.nameResolver));
 
             var rule2 = context.AddBindingRule<EdgeHubAttribute>();
             rule2.BindToCollector<Message>(typeof(EdgeHubCollectorBuilder));

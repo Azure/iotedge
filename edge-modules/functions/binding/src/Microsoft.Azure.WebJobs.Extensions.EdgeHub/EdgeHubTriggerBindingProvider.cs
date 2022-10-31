@@ -17,9 +17,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
     /// </summary>
     public class EdgeHubTriggerBindingProvider : ITriggerBindingProvider
     {
+        readonly INameResolver nameResolver;
         readonly ConcurrentDictionary<string, IList<EdgeHubMessageProcessor>> receivers = new ConcurrentDictionary<string, IList<EdgeHubMessageProcessor>>();
         ModuleClient moduleClient;
-        readonly INameResolver nameResolver;
 
         public EdgeHubTriggerBindingProvider(INameResolver nameResolver)
         {
@@ -40,8 +40,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
                 return null;
             }
 
-            var inputName = nameResolver?.ResolveWholeString(attribute.InputName) ?? attribute.InputName;
-            inputName = inputName.ToLowerInvariant();
+            var inputName = (this.nameResolver?.ResolveWholeString(attribute.InputName) ?? attribute.InputName).ToLowerInvariant();
 
             await this.TrySetEventDefaultHandlerAsync();
 
