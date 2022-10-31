@@ -15,8 +15,15 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub.Config
     /// Extension configuration provider used to register EdgeHub triggers and binders
     /// </summary>
     [Extension("EdgeHub")]
-    class EdgeHubExtensionConfigProvider : IExtensionConfigProvider
+    public class EdgeHubExtensionConfigProvider : IExtensionConfigProvider
     {
+        readonly INameResolver nameResolver;
+
+        public EdgeHubExtensionConfigProvider(INameResolver nameResolver)
+        {
+            this.nameResolver = nameResolver;
+        }
+
         public void Initialize(ExtensionConfigContext context)
         {
             if (context == null)
@@ -24,11 +31,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub.Config
                 throw new ArgumentNullException(nameof(context));
             }
 
-            var bindingProvider = new EdgeHubTriggerBindingProvider();
             var rule = context.AddBindingRule<EdgeHubTriggerAttribute>();
             rule.AddConverter<Message, string>(ConvertMessageToString);
             rule.AddConverter<Message, byte[]>(ConvertMessageToBytes);
-            rule.BindToTrigger<Message>(bindingProvider);
+            rule.BindToTrigger<Message>(new EdgeHubTriggerBindingProvider(nameResolver));
 
             var rule2 = context.AddBindingRule<EdgeHubAttribute>();
             rule2.BindToCollector<Message>(typeof(EdgeHubCollectorBuilder));
