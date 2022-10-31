@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
+    using Microsoft.Azure.Devices.Logging;
     using Microsoft.Extensions.Logging;
     using static System.FormattableString;
     using EdgeMetrics = Microsoft.Azure.Devices.Edge.Util.Metrics.Metrics;

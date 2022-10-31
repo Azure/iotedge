@@ -4,7 +4,8 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+    <TreatWarningsAsErrors>False</TreatWarningsAsErrors>
+    <NoWarn>NU1605</NoWarn>
     <Configurations>Debug;Release;CheckInBuild</Configurations>
     <HighEntropyVA>true</HighEntropyVA>
   </PropertyGroup>

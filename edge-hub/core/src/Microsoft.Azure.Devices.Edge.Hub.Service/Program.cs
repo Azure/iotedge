@@ -20,6 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
+    using Microsoft.Azure.Devices.Logging;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
@@ -28,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     {
         const int DefaultShutdownWaitPeriod = 60;
         const SslProtocols DefaultSslProtocols = SslProtocols.Tls12;
+        static ConsoleEventListener consoleEventListener;
 
         public static int Main()
         {
@@ -52,6 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
 
             ILogger logger = Logger.Factory.CreateLogger("EdgeHub");
+            Program.consoleEventListener = new ConsoleEventListener("Microsoft-Azure-Devices-Device-Client", logger);
 
             try
             {
