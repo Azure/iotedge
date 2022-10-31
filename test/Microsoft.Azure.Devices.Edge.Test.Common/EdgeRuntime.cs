@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             CancellationToken token,
             bool nestedEdge)
         {
-            (string, string)[] hubEnvVar = new (string, string)[] { ("RuntimeLogLevel", "debug"), ("SslProtocols", "tls1.2") };
+            (string, string)[] hubEnvVar = new (string, string)[] { ("RuntimeLogLevel", "debug"), ("SslProtocols", "tls1.2"), ("EnableRoutingLogging", "true") };
 
             if (nestedEdge == true)
             {
