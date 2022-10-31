@@ -88,6 +88,7 @@ steps:
   
   - task: PowerShell@2
     displayName: 'Download aziot-identity-service'
+    condition: not(contains(variables['artifactName'], 'mariner2-aarch64'))
     inputs:
       filePath: $(Build.SourcesDirectory)/scripts/local/test/DownloadIdentityService.ps1
       workingDirectory: $(Build.SourcesDirectory)

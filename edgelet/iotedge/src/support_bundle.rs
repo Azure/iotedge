@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::io::{copy, stdout};
-use std::path::PathBuf;
 
 use anyhow::Context;
 
@@ -58,10 +57,9 @@ where
 
         match output_location {
             OutputLocation::File(location) => {
-                let path = PathBuf::from(location);
                 println!(
                     "Created support bundle at {}",
-                    path.canonicalize().unwrap_or(path).display()
+                    location.canonicalize().unwrap_or(location).display()
                 );
 
                 Ok(())
