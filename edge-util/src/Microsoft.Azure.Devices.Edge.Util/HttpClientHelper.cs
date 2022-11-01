@@ -14,21 +14,33 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         public static HttpClient GetHttpClient(Uri serverUri)
         {
+            return GetHttpClient(serverUri, Option.None<TimeSpan>());
+        }
+
+        public static HttpClient GetHttpClient(Uri serverUri, TimeSpan timeout)
+        {
+            return GetHttpClient(serverUri, Option.Some(timeout));
+        }
+
+        static HttpClient GetHttpClient(Uri serverUri, Option<TimeSpan> timeout)
+        {
             HttpClient client;
 
             if (serverUri.Scheme.Equals(HttpScheme, StringComparison.OrdinalIgnoreCase) || serverUri.Scheme.Equals(HttpsScheme, StringComparison.OrdinalIgnoreCase))
             {
                 client = new HttpClient();
-                return client;
             }
-
-            if (serverUri.Scheme.Equals(UnixScheme, StringComparison.OrdinalIgnoreCase))
+            else if (serverUri.Scheme.Equals(UnixScheme, StringComparison.OrdinalIgnoreCase))
             {
                 client = new HttpClient(new HttpUdsMessageHandler(serverUri));
-                return client;
+            }
+            else
+            {
+                throw new InvalidOperationException("ProviderUri scheme is not supported");
             }
 
-            throw new InvalidOperationException("ProviderUri scheme is not supported");
+            timeout.Map(t => client.Timeout = t);
+            return client;
         }
 
         public static string GetBaseUrl(Uri serverUri)
