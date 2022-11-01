@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Util.Edged
 {
     using System;
+    using System.Net.Http;
     using System.Net.Sockets;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
@@ -40,6 +41,12 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
         protected string ModuleId { get; }
 
         protected string ModuleGenerationId { get; }
+
+        protected HttpClient GetHttpClient()
+        {
+            // add 1s to timeout so it doesn't call httpclient timeout before TimeoutAfter
+            return HttpClientHelper.GetHttpClient(this.WorkloadUri, this.operationTimeout + TimeSpan.FromSeconds(1));
+        }
 
         public abstract Task<ServerCertificateResponse> CreateServerCertificateAsync(string hostname, DateTime expiration);
 
