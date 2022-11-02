@@ -29,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             if (this.isActive.GetAndSet(false))
             {
+                this.underlyingModuleClient?.CloseAsync();
                 this.underlyingModuleClient?.Dispose();
             }
 
@@ -44,6 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public void Dispose()
         {
             this.isActive.Set(false);
+            this.underlyingModuleClient?.CloseAsync();
             this.underlyingModuleClient?.Dispose();
         }
 
@@ -58,6 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             catch (Exception)
             {
                 this.isActive.Set(false);
+                this.underlyingModuleClient?.CloseAsync();
                 this.underlyingModuleClient?.Dispose();
                 throw;
             }
