@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.True(registrations[MethodPostTopicPrefix]);
             Assert.NotNull(subs);
             Assert.Equal(1, subs.Count);
-            Assert.Equal(subs[0].TopicFilter, MethodPostTopicPrefix);
+            Assert.Equal(MethodPostTopicPrefix, subs[0].TopicFilter);
         }
 
         [Fact]
