@@ -55,8 +55,10 @@ impl ContainerEngineLogrotate {
             .context(MESSAGE)?;
         self.daemon_config = Some(daemon_config.clone());
 
-        if daemon_config.log_driver.is_none() {
-            return Ok(CheckResult::Warning(anyhow!(MESSAGE)));
+        match daemon_config.log_driver.as_deref() {
+            Some("journald") => return Ok(CheckResult::Ok),
+            None => return Ok(CheckResult::Warning(anyhow!(MESSAGE))),
+            _ => (),
         }
 
         if let Some(log_opts) = &daemon_config.log_opts {

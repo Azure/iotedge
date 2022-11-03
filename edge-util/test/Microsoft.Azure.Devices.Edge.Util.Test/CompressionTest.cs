@@ -183,7 +183,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             Assert.NotNull(decompressedBytes);
             Assert.Equal(decompressedBytes.Length, payload.Length);
             string decompressedPayload = Encoding.UTF8.GetString(decompressedBytes);
-            Assert.Equal(decompressedPayload, TestCompressionString);
+            Assert.Equal(TestCompressionString, decompressedPayload);
         }
     }
 }
