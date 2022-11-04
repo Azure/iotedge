@@ -121,12 +121,6 @@ stages:
       fetchDepth: 0
 
     - script: |
-        # Create a filter.continue task variable to match the PipelineTrigger job, but hard-code it
-        # to true so the pipeline will always run subsequent stages in the manual case.
-        echo "##vso[task.setvariable variable=continue;isOutput=true]true"
-      name: filter
-
-    - script: |
         #!/bin/bash
         set -euo pipefail
         
@@ -152,6 +146,26 @@ stages:
         echo "##vso[task.setvariable variable=tags;isOutput=true]$tags"
       displayName: Determine versions
       name: commit
+
+    - script: |
+        #!/bin/bash
+        set -euo pipefail
+
+        # If Edge Agent has already been published to mcr.microsoft.com at the given version, we'll
+        # assume there's a mistake (e.g., forgot to create and/or tag a new release commit) and
+        # abort the release.
+        image='mcr.microsoft.com/azureiotedge-agent:$(commit.version)'
+        docker buildx imagetools inspect "$image"
+        if [ $? -eq 0 ]; then
+          echo "Error: $image already exists but shouldn't"
+          continue=false
+        else
+          continue=true
+        fi
+
+        echo "##vso[task.setvariable variable=continue;isOutput=true]$continue"
+      displayName: Continue if the proposed version was not already released
+      name: filter
 
 ################################################################################
 - stage: BuildExecutables
