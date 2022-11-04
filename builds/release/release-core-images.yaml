@@ -25,6 +25,18 @@ stages:
   displayName: Prepare for release
   dependsOn: []
 
+  # The project repo must meet some prerequisites before the release pipeline can continue:
+  #  1. CHANGELOG.md and versionInfo.json must be updated
+  #  2. A release commit (usually including the changes in the previous step) must be pushed
+  #  3. The release commit must be tagged with the version
+  #
+  # This stage ensures the above requirements are fulfilled by running one of two mutually-exclusive
+  # jobs depending on how the run was triggered. If it was triggered automatically when the
+  # detect-image-updates pipeline completed, then the PipelineTrigger job runs and makes all
+  # necessary file updates, commits, and tags to prepare for the release. If the pipeline was
+  # triggered manually, then the ManualTrigger job runs. It assumes the prerequisites have already
+  # been met, and checks to ensure it has everything it needs to continue.
+
   pool:
     name: $(pool.linux.name)
     demands:
