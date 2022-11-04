@@ -215,11 +215,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             if (receivedMessage != null)
             {
                 string messageData = Encoding.ASCII.GetString(receivedMessage.GetBytes());
-                Assert.Equal(messageData, payload);
+                Assert.Equal(payload, messageData);
                 Assert.Equal(1, receivedMessage.Properties.Count);
                 KeyValuePair<string, string> prop = receivedMessage.Properties.Single();
-                Assert.Equal(prop.Key, MessagePropertyName);
-                Assert.Equal(prop.Value, p1Value);
+                Assert.Equal(MessagePropertyName, prop.Key);
+                Assert.Equal(p1Value, prop.Value);
 
                 await deviceClient.CompleteAsync(receivedMessage);
             }
