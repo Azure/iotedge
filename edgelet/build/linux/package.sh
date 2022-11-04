@@ -51,6 +51,24 @@ case "$PACKAGE_OS" in
         esac
         ;;
 
+    'redhat9')
+        # Converts debian versioning to rpm version
+        # deb 1.0.1~dev100 ~> rpm 1.0.1-0.1.dev100
+        RPM_VERSION="$(echo "$VERSION" | cut -d"~" -f1)"
+        RPM_TAG="$(echo "$VERSION" | cut -s -d"~" -f2)"
+        if [ -n "$RPM_TAG" ]; then
+            RPM_RELEASE="0.$REVISION.$RPM_TAG"
+        else
+            RPM_RELEASE="$REVISION"
+        fi
+
+        case "$PACKAGE_ARCH" in
+            'amd64')
+                DOCKER_IMAGE='redhat/ubi9:latest'
+                ;;
+        esac
+        ;;
+
     'debian10')
         DOCKER_IMAGE='debian:10-slim'
         ;;
@@ -108,6 +126,16 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
             dnf distro-sync -y &&
             dnf install -y \
                 curl git make rpm-build \
+                gcc gcc-c++ \
+                libcurl-devel libuuid-devel openssl-devel &&
+        '
+        ;;
+
+     redhat9.amd64)
+        SETUP_COMMAND=$'
+            dnf distro-sync -y &&
+            dnf install -y \
+                git make rpm-build \
                 gcc gcc-c++ \
                 libcurl-devel libuuid-devel openssl-devel &&
         '
@@ -275,7 +303,7 @@ case "$PACKAGE_OS" in
         MAKE_COMMAND="$MAKE_COMMAND && make rpm rpmbuilddir=/project/edgelet/target/rpmbuild 'TARGET=$MAKE_TARGET_DIR' 'VERSION=$VERSION' 'REVISION=$REVISION' 'CARGOFLAGS=--manifest-path ./Cargo.toml $CARGO_TARGET_FLAG' RPMBUILDFLAGS='-v -bb --clean --define \"_topdir /project/edgelet/target/rpmbuild\" $RPMBUILD_TARGET_FLAG'"
         ;;
 
-    redhat8)
+    redhat8|redhat9)
         case "$PACKAGE_ARCH" in
             amd64)
                 MAKE_TARGET_DIR='target/release'
