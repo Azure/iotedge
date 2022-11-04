@@ -1,22 +1,6 @@
 trigger: none
 pr: none
 
-# Test agents are shared, so schedules must be coordinated to avoid conflicts:
-# - main and release/1.4 run daily, but are offset from each other by 12 hours
-schedules:
-- cron: "0 0 * * *"
-  displayName: Daily run main
-  branches:
-    include:
-    - main
-  always: true
-- cron: "0 12 * * *"
-  displayName: Daily run release/1.4
-  branches:
-    include:
-    - release/1.4
-  always: true
-
 # Following branches (main, release/1.4) all run scheduled tests weekly. This
 # occurs at different days of the week across nested e2e and connectivity
 # pipelines.
