@@ -17,6 +17,23 @@ schedules:
     - release/1.4
   always: true
 
+# Following branches (main, release/1.4) all run scheduled tests weekly. This
+# occurs at different days of the week across nested e2e and connectivity
+# pipelines.
+schedules:
+- cron: "0 0 * * 3"
+  displayName: Weekly run main
+  branches:
+    include:
+    - main
+  always: true
+- cron: "0 0 * * 4"
+  displayName: Weekly run release/1.4
+  branches:
+    include:
+    - release/1.4
+  always: true
+
 variables:
   DisableDockerDetector: true
   # A 'minimal' pipeline only runs one end-to-end test (TempSensor). This is useful for platforms or

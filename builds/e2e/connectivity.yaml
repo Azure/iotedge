@@ -1,8 +1,9 @@
 trigger: none
 pr: none
 
-# Following branches (main, release/1.4, release/1.1) all run weekly at different
-# days of the week.
+# Following branches (main, release/1.4) all run scheduled tests weekly. This
+# occurs at different days of the week across nested e2e and connectivity
+# pipelines.
 schedules:
 - cron: "0 0 * * 0"
   displayName: Weekly run main
