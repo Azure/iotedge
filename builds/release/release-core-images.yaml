@@ -170,12 +170,12 @@ stages:
         docker buildx imagetools inspect "$image"
         if [ $? -eq 0 ]; then
           echo "Error: $image already exists but shouldn't"
-          continue=false
-        else
-          continue=true
+          exit 1
         fi
 
-        echo "##vso[task.setvariable variable=continue;isOutput=true]$continue"
+        # Create a filter.continue task variable to match the PipelineTrigger job, but hard-code it
+        # to true so the pipeline will always run subsequent stages in the manual case.
+        echo "##vso[task.setvariable variable=continue;isOutput=true]true"
       displayName: Continue if the proposed version was not already released
       name: filter
 
