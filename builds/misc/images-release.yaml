@@ -303,8 +303,12 @@ stages:
 
 # This stage builds Rocks DB and adds the files to staging directory
 ################################################################################
-  - template: templates/build-rocksdb.yaml
+  - stage: BuildRocksDb
 ################################################################################
+    displayName: Build RocksDB
+    dependsOn: []
+    jobs:
+      - template: templates/build-rocksdb.yaml
 
 # This stage consolidates .NET binaries, Rocksdb binaries and the SBOM into a
 # single artifact from which all Docker images can be built.
