@@ -1,3 +1,16 @@
+# 1.1.18 (2022-11-08)
+
+## Edge Hub
+### Bug Fixes
+* Update dotnetty and add timeouts to mitigate hanging calls [1e35757](https://github.com/Azure/iotedge/commit/1e3575713acbc9f82c887a69dad89d7e11d8111d)
+
+## Base image updates
+The following Docker images were updated because their base images changed:
+   * azureiotedge-agent
+   * azureiotedge-hub
+   * azureiotedge-simulated-temperature-sensor
+   * azureiotedge-diagnostics
+
 # 1.1.17 (2022-10-05)
 
 ## Edge Hub
