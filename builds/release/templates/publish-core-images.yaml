@@ -1,0 +1,178 @@
+parameters:
+  changelog: ''
+  tags: ''
+  version.core: ''
+  version.core.previous: ''
+  version.diagnostics: ''
+
+jobs:
+- job: publish_images
+  displayName: Publish Images
+
+  pool:
+    name: $(pool.linux.name)
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+
+  steps:
+  - checkout: self
+    fetchDepth: 0
+  - checkout: product
+    fetchDepth: 0
+
+  - task: Docker@2
+    displayName: Docker login
+    inputs:
+      command: login
+      containerRegistry: $(service-connection.registry.release)
+
+  - script: |
+      #!/bin/bash
+      set -euo pipefail
+
+      images=(
+        'public agent ${{ parameters['version.core'] }}' \
+        'public hub ${{ parameters['version.core'] }}' \
+        'public simulated-temperature-sensor ${{ parameters['version.core'] }}' \
+        'unlisted diagnostics ${{ parameters['version.diagnostics'] }}' \
+      )
+
+      for image_parts in "${images[@]}"
+      do
+        read ns mod ver <<< "$image_parts"
+        for arch in 'amd64' 'arm32v7' 'arm64v8'
+        do
+          from="$(registry.address)/microsoft/azureiotedge-$mod:$ver-linux-$arch"
+          to="$(registry.address)/$ns/azureiotedge-$mod:$ver-linux-$arch"
+          echo $"\n$from --> $to"
+          scripts/linux/moveImage.sh --from "$from" --to "$to"
+        done
+      done
+    displayName: Publish core images
+    workingDirectory: iotedge
+
+  - script: |
+      scripts/linux/buildManifest.sh \
+        -r '$(registry.address)' \
+        -v '${{ parameters['version.core'] }}' \
+        -t 'edge-agent/docker/manifest.yaml.template' \
+        -n public \
+        --tags '${{ parameters.tags }}'
+    displayName: Publish Edge Agent manifest
+    workingDirectory: iotedge
+
+  - script: |
+      scripts/linux/buildManifest.sh \
+        -r '$(registry.address)' \
+        -v '${{ parameters['version.core'] }}' \
+        -t 'edge-hub/docker/manifest.yaml.template' \
+        -n public \
+        --tags '${{ parameters.tags }}'
+    displayName: Publish Edge Hub manifest
+    workingDirectory: iotedge
+
+  - script: |
+      tempsensor_tags=$(echo '${{ parameters.tags }}' | jq -c '. + ["latest"]')
+      scripts/linux/buildManifest.sh \
+        -r '$(registry.address)' \
+        -v '${{ parameters['version.core'] }}' \
+        -t 'edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template' \
+        -n public \
+        --tags "$tempsensor_tags"
+    displayName: Publish Temperature Sensor manifest
+    workingDirectory: iotedge
+
+  - script: |
+      scripts/linux/buildManifest.sh \
+        -r '$(registry.address)' \
+        -v '${{ parameters['version.diagnostics'] }}' \
+        -t 'edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template' \
+        -n unlisted \
+        --tags '${{ parameters.tags }}'
+    displayName: Publish Diagnostics manifest
+    workingDirectory: iotedge
+
+  - task: AzureKeyVault@1
+    displayName: Get secrets
+    inputs:
+      azureSubscription: $(az.subscription)
+      keyVaultName: $(kv.name)
+      secretsFilter: TestGitHubAccessToken
+
+  - script: |
+      #!/bin/bash
+      set -euo pipefail
+
+      # update product-versions.json
+      echo "$(jq '
+        def product: .channels[] | .products[] | select(
+          .id=="aziot-edge" and .version=="${{ parameters['version.core.previous'] }}"
+        );
+        def core_components: product | .components[] | select(
+          .name=="azureiotedge-agent"
+            or .name=="azureiotedge-hub"
+            or .name=="azureiotedge-simulated-temperature-sensor"
+        );
+        def diagnostics_component: product | .components[] | select(
+          .name=="azureiotedge-diagnostics"
+        );
+        (core_components).version |= "${{ parameters['version.core'] }}"
+          | (diagnostics_component).version |= "${{ parameters['version.diagnostics'] }}"
+          | (product).version |= "${{ parameters['version.core'] }}"
+      ' product-versions.json )" > product-versions.json
+      git add product-versions.json
+
+      # configure git
+      git config user.email '$(service-account.email)'
+      git config user.name 'IoT Edge Bot'
+      origin_url="$(git config --get remote.origin.url)"
+      origin_url="${origin_url/#https:\/\//https:\/\/$GITHUB_TOKEN@}" # add token to URL
+
+      # commit changes, tag, and push
+      git commit -m 'Prepare for release ${{ parameters['version.core'] }}'
+      git tag '${{ parameters['version.core'] }}'
+      git push "$origin_url" "HEAD:$PRODUCT_REPO_BRANCH"
+      git push "$origin_url" '${{ parameters['version.core'] }}'
+    displayName: Create release commit in product repo
+    env:
+      GITHUB_TOKEN: $(TestGitHubAccessToken)
+      PRODUCT_REPO_BRANCH: main
+    workingDirectory: azure-iotedge
+
+  - script: |
+      #!/bin/bash
+      set -euo pipefail
+
+      # deserialize the changelog
+      printf -v CHANGELOG '${{ parameters.changelog }}'
+      # Remove 1st line (header) because GitHub Release page has its own header
+      CHANGELOG="$(echo "$CHANGELOG" | tail -n +2 -)"
+
+      . scripts/linux/release-tools.sh
+      create_github_release_page_in_product_repo
+
+      echo "##vso[task.setvariable variable=release_url]$RELEASE_URL"
+    displayName: Create GitHub release page in product repo
+    env:
+      CORE_VERSION: ${{ parameters['version.core'] }}
+      DIAG_VERSION: ${{ parameters['version.diagnostics'] }}
+      GITHUB_TOKEN: $(TestGitHubAccessToken)
+      BRANCH: main
+      REPO_NAME: $(repo.product.name)
+    workingDirectory: iotedge
+
+  - script: |
+      #!/bin/bash
+      set -euo pipefail
+
+      BRANCH="${BUILD_SOURCEBRANCH#refs/heads/}"
+
+      . scripts/linux/release-tools.sh
+      create_github_release_page_in_project_repo
+    displayName: Create GitHub release page in project repo
+    env:
+      CORE_VERSION: ${{ parameters['version.core'] }} 
+      GITHUB_TOKEN: $(TestGitHubAccessToken)
+      RELEASE_URL: $(release_url)
+      REPO_NAME: $(repo.project.name)
+    workingDirectory: iotedge
