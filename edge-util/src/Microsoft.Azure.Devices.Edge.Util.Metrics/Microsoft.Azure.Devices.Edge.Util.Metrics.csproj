@@ -22,8 +22,8 @@
     <!--
       prometheus-net.AspNetCore takes transitive dependencies on
       System.Test.Encodings.Web, Microsoft.AspNetCore.Http, and
-      Microsoft.AspNetCore.Server.Kestrel.Core. Use an explicit
-      reference here to override the version and fix a security vulnerability.
+      Microsoft.AspNetCore.Server.Kestrel.Core. Use an explicit reference here
+      to override the version and fix a security vulnerability.
       See https://github.com/dotnet/runtime/issues/49377#issuecomment-804930299.
     -->
     <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.1.34" />
