@@ -153,13 +153,6 @@ stages:
           - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker-large-disk
         strategy:
           matrix:
-            CBL-Mariner1.0-amd64:
-              arch: amd64
-              os: mariner
-              os_version: 1
-              mariner_release: 1.0-stable
-              target.iotedged: builds/mariner1/out/RPMS
-              target.logs: builds/mariner1/build/logs/pkggen/rpmbuilding/
             CBL-Mariner2.0-amd64:
               arch: amd64
               os: mariner
