@@ -125,7 +125,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 var protocolTimeout = configuration.GetValue("protocolTimeoutInSecs", 180);
                 TimeSpan protocolTimeoutinSecs = TimeSpan.FromMilliseconds(protocolTimeout);
 
-
                 double renewAfter = configuration.GetValue("ServerCertificateRenewAfterInMs", int.MaxValue);
                 renewAfter = renewAfter > int.MaxValue ? int.MaxValue : renewAfter;
                 TimeSpan maxRenewAfter = TimeSpan.FromMilliseconds(renewAfter);
