@@ -271,6 +271,7 @@ jobs:
   - job: mariner2_amd64
 ################################################################################
     displayName: Mariner 2.0 amd64
+    condition: eq(variables['run.EFLOW.amd64'], true)
     pool:
       name: $(pool.linux.name)
       demands:
@@ -291,6 +292,7 @@ jobs:
   - job: mariner2_arm64
 ################################################################################
     displayName: Mariner 2.0 arm64
+    condition: eq(variables['run.EFLOW.arm64'], true)
     pool:
       name: $(pool.linux.arm.name)
       demands:
