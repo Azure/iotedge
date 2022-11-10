@@ -1,3 +1,7 @@
+# 1.0.11 (2022-11-08)
+### Bug Fixes
+* Replace instances of Console.WriteLine with standard logging pattern [e33191b](https://github.com/Azure/iotedge/commit/e33191b775523bed32e30a34cc8f4bbb257dfe02)
+
 # 1.0.10 (2022-09-13)
 
 ### Bug Fixes
