@@ -13,6 +13,9 @@ pub enum Error {
     #[error("Invalid value for --tail parameter")]
     BadTailParameter,
 
+    #[error("Invalid value for --until parameter")]
+    BadUntilParameter,
+
     #[error("")]
     Diagnostics,
 
