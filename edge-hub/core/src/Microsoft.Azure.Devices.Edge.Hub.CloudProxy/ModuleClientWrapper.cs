@@ -25,14 +25,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public Task AbandonAsync(string messageId) => this.underlyingModuleClient.AbandonAsync(messageId);
 
-        public Task CloseAsync()
+        public async Task CloseAsync()
         {
             if (this.isActive.GetAndSet(false))
             {
+                // To avoid issue with Dispose it needs to call CloseAsync first
+                // SDK issue: https://github.com/Azure/azure-iot-sdk-csharp/issues/2920
+                await this.underlyingModuleClient?.CloseAsync();
                 this.underlyingModuleClient?.Dispose();
             }
-
-            return Task.CompletedTask;
         }
 
         public Task RejectAsync(string messageId) => throw new InvalidOperationException("Reject is not supported for modules.");
