@@ -1,8 +1,8 @@
 {
   "keyVault": {
     "baseUrl": "https://edgebuildkv.vault.azure.net/",
-    "clientId": "668cc883-59f1-4a11-9d4d-bdf18563d672",
-    "clientCertificateThumbprint": "bd76a78e183714a37a13f855ccd97e15c50f3894"
+    "clientId": "7fb2b37c-f188-4d52-9b3c-e4f4fef593b0",
+    "clientCertificateThumbprint": "4FEB0283DC08B8E0C6AA2E734541913802ED25B3"
   },
   "iotHubConnStrKey": "IotHubConnStr2",
   "device1ConnStrKey": "IotDevice1ConnStr2",
@@ -13,7 +13,7 @@
   "testSuite": [
     "test-config-x64.json"
   ],
-  "dockerHostUrl": "http://localhost:2375",
+  "dockerHostUrl": "unix://var/run/docker.sock",
   "GatewayHostname": "127.0.0.1",
   "GatewayDeviceId": "device1",
   "StressTest_MessagesCount_SingleSender": "10000",
