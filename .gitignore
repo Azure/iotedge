@@ -104,7 +104,6 @@ Commit: 5130d9a5060fcaed8f7458a8717b5573f5562774
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/
-[Rr]elease/
 [Rr]eleases/
 x86/
 bld/

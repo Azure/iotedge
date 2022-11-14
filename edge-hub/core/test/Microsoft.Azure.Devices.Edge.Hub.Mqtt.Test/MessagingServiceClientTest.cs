@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     using System.Diagnostics;
     using System.Linq;
     using System.Text;
-    using System.Threading;
     using System.Threading.Tasks;
     using DotNetty.Buffers;
     using Microsoft.Azure.Devices.Edge.Hub.Core;

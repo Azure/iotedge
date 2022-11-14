@@ -1,3 +1,25 @@
+# 1.4.2 (2022-10-04)
+
+## Edge Hub
+### Bug Fixes
+* Update dependency to fix OOM bug ( [906786c](https://github.com/Azure/iotedge/commit/906786c52526cca4e90aaaec0de7c389e890a387) )
+
+## aziot-edge
+### Bug Fixes
+* Fix confusing log message in image garbage collection ( [736116b](https://github.com/Azure/iotedge/commit/736116b7ac7145730363c7dd55e28e64489ac4ae) )
+
+## Base image updates
+The following Docker images were updated because their base images changed:
+   * azureiotedge-agent
+   * azureiotedge-hub
+   * azureiotedge-simulated-temperature-sensor
+   * azureiotedge-diagnostics
+
+# 1.4.1 (2022-09-09)
+
+## aziot-edge
+* Bump iot-identity-service to fix regression in TPM authentication key index ( [fd90024](https://github.com/Azure/iotedge/commit/fd9002452871fc0601798e74499c5f3acbd09574) )
+
 # 1.4.0 (2022-08-26)
 
 ## What's new in 1.4?
