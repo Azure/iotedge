@@ -28,30 +28,24 @@ impl ProxySettings {
 
         // Pull the proxy address from the aziot-edged settings
         // for Edge Agent's environment variables.
-        let edge_agent_proxy_uri = match settings.base.agent.env().get("https_proxy") {
-            Some(edge_agent_proxy_uri) => edge_agent_proxy_uri.clone(),
-            None => "".into(),
-        };
+        let edge_agent_proxy_uri = settings
+            .base
+            .agent
+            .env()
+            .get("https_proxy")
+            .cloned()
+            .unwrap_or_default();
 
         // Pull local service env variables for Moby, Identity Daemon and Edge Daemon
-        let moby_proxy_uri = match check.docker_proxy.clone() {
-            Some(moby_proxy_uri) => moby_proxy_uri,
-            None => "".into(),
-        };
+        let moby_proxy_uri = check.docker_proxy.clone().unwrap_or_default();
 
-        let edge_daemon_proxy_uri = match check.aziot_edge_proxy.clone() {
-            Some(edge_daemon_proxy_uri) => edge_daemon_proxy_uri,
-            None => "".into(),
-        };
+        let edge_daemon_proxy_uri = check.aziot_edge_proxy.clone().unwrap_or_default();
 
-        let identity_daemon_proxy_uri = match check.aziot_identity_proxy.clone() {
-            Some(identity_daemon_proxy_uri) => identity_daemon_proxy_uri,
-            None => "".into(),
-        };
+        let identity_daemon_proxy_uri = check.aziot_identity_proxy.clone().unwrap_or_default();
 
-        if edge_agent_proxy_uri.eq(&moby_proxy_uri)
-            && edge_agent_proxy_uri.eq(&edge_daemon_proxy_uri)
-            && edge_agent_proxy_uri.eq(&identity_daemon_proxy_uri)
+        if edge_agent_proxy_uri == moby_proxy_uri
+            && edge_agent_proxy_uri == edge_daemon_proxy_uri
+            && edge_agent_proxy_uri == identity_daemon_proxy_uri
         {
             CheckResult::Ok
         } else {

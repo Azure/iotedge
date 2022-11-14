@@ -609,7 +609,7 @@ mod tests {
 
     #[test]
     fn module_config_empty_name_fails() {
-        let name = "".to_string();
+        let name = String::new();
         ModuleSpec::new(
             name,
             "docker".to_string(),
