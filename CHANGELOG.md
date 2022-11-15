@@ -22,6 +22,22 @@ The following Docker images were updated because their base images changed:
 
 # 1.4.0 (2022-08-26)
 
+## What's new in 1.4?
+
+The 1.4 version is the latest long-term support (LTS) version of IoT Edge. It will be serviced with fixes for regressions and critical security issues through November 12, 2024 ([product lifecycle](https://docs.microsoft.com/lifecycle/products/azure-iot-edge)). In addition to long-term servicing, it includes the following improvements.
+* Automatic cleanup of unused Docker images ([doc](https://docs.microsoft.com/azure/iot-edge/production-checklist?view=iotedge-1.4#configure-image-garbage-collection))
+* Ability to pass a custom json payload to DPS on provisioning ([doc](https://docs.microsoft.com/azure/iot-dps/how-to-send-additional-data#iot-edge-support))
+* Option to download all modules in a deployment before (re)starting any ([doc](https://docs.microsoft.com/azure/iot-edge/production-checklist?view=iotedge-1.4#configure-how-updates-to-modules-are-applied))
+* Use of the TCG TPM2 Software Stack which enables TPM hierarchy authorization values, specifying the TPM index at which to persist the DPS authentication key, and accommodating more TPM configurations ([doc](https://github.com/Azure/iotedge/blob/897aed8c5573e8cad4b602e5a1298bdc64cd28b4/edgelet/contrib/config/linux/template.toml#L262-L288))
+
+**With this release, the 1.3.x release is no longer serviced with bug fixes and security patches.**
+
+## Upgrade notes
+
+When upgrading to 1.4 you should be aware of the following changes:
+* Automatic cleanup of unused Docker images is on by default
+* If upgrading from 1.0 or 1.1 then refer to the notes on [updating IoT Edge to the latest release](https://docs.microsoft.com/azure/iot-edge/how-to-update-iot-edge#special-case-update-from-10-or-11-to-latest-release)
+
 ## Edge Agent
 * Fix bug where Edge Agent is updated without backing image  ( [72e5d648c](https://github.com/Azure/iotedge/commit/72e5d648cc25c05d64dfd52010b7178af772445f) )
 * Fix user creation for edgeAgent and edgeHub  ( [388ec1a34](https://github.com/Azure/iotedge/commit/388ec1a341cf18fce3379c6750e62591963c8624) )
