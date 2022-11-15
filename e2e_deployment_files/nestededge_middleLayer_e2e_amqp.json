@@ -19,7 +19,7 @@
                         },
                         "env": {
                             "UpstreamProtocol": {
-                                "value": "amqp"
+                                "value": "mqtt"
                             }
                         }
                     },
@@ -38,6 +38,9 @@
                             },
                             "RuntimeLogLevel": {
                                 "value": "debug"
+                            },
+                            "UpstreamProtocol": {
+                                "value": "mqtt"
                             }
                         },
                         "status": "running",

@@ -26,7 +26,7 @@
             },
             "env": {
               "UpstreamProtocol": {
-                "value": "amqp"
+                "value": "mqtt"
               },
               "https_proxy": {
                 "value": "<proxyAddress>"
@@ -48,7 +48,10 @@
               },
               "https_proxy": {
                 "value": "<proxyAddress>"
-              }
+              },
+              "UpstreamProtocol": {
+                "value": "mqtt"
+            }
             },
             "status": "running",
             "restartPolicy": "always"
