@@ -29,10 +29,12 @@ stages:
 
 # This stage builds Rocks DB and adds the files to staging directory
 ################################################################################
-  - template: build-rocksdb.yaml
-    parameters:
-      dependency: [ CheckBuildImages ]
+  - stage: BuildRocksDb
 ################################################################################
+    displayName: Build RocksDB
+    dependsOn: CheckBuildImages
+    jobs:
+      - template: build-rocksdb.yaml
 
 ################################################################################
   - stage: BuildExecutables
