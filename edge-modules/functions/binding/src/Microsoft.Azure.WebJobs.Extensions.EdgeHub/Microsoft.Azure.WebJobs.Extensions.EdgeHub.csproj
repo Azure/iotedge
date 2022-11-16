@@ -28,13 +28,20 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="..\..\..\..\..\LICENSE" Pack="true" PackagePath=""/>
-    <None Include="images\icon.png" Pack="true" PackagePath=""/>
+    <None Include="..\..\..\..\..\LICENSE" Pack="true" PackagePath="" />
+    <None Include="images\icon.png" Pack="true" PackagePath="" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.28.2" />
     <PackageReference Include="Microsoft.Azure.WebJobs" Version="3.0.27" />
+    <!--
+        Newtonsoft.Json < 13.0.1 has a vulnerability due to insecure defaults.
+        Use an explicit reference to ensure the transitive dependency through
+        Microsoft.Azure.Devices.Client and Microsoft.Azure.WebJobs is a safe
+        version.
+    -->
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
   </ItemGroup>
 
   <ItemGroup>
