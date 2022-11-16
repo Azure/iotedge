@@ -82,7 +82,7 @@ fi
 
 # Create iotedge user
 if ! /usr/bin/getent passwd iotedge >/dev/null; then
-    %{_sbindir}/useradd -r -g %{iotedge_group} -c "iotedge user" -s /bin/nologin -d %{iotedge_home} %{iotedge_user}
+    %{_sbindir}/useradd -r -g %{iotedge_group} -c "iotedge user" -s /sbin/nologin -d %{iotedge_home} %{iotedge_user}
 fi
 
 # Add iotedge user to moby-engine group
@@ -97,12 +97,12 @@ fi
 
 # Create an edgeagentuser and add it to iotedge group
 if ! /usr/bin/getent passwd %{iotedge_agent_user} >/dev/null; then
-    %{_sbindir}/useradd -r -g %{iotedge_group} -c "edgeAgent user" -s /bin/nologin -u %{iotedge_agent_uid} %{iotedge_agent_user} || true
+    %{_sbindir}/useradd -r -g %{iotedge_group} -c "edgeAgent user" -s /sbin/nologin -u %{iotedge_agent_uid} %{iotedge_agent_user} || true
 fi
 
 # Create an edgehubuser
 if ! getent passwd edgehubuser >/dev/null; then
-    %{_sbindir}/useradd -r -c "edgeHub user" -s /bin/nologin -u %{iotedge_hub_uid} %{iotedge_hub_user} || true
+    %{_sbindir}/useradd -r -c "edgeHub user" -s /sbin/nologin -u %{iotedge_hub_uid} %{iotedge_hub_user} || true
 fi
 
 # Add iotedge user to aziot-identity-service groups
