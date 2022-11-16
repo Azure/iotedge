@@ -154,7 +154,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             var noneQueryValue = new QueryValue(null, QueryValueType.None);
 
             // Check Undefined to Undefined comparison always returns -1
-            Assert.Equal(QueryValue.Undefined.CompareTo(QueryValue.Undefined), -1);
+            Assert.Equal(-1, QueryValue.Undefined.CompareTo(QueryValue.Undefined));
 
             // Check any other None comparisons are reflexive.
             Assert.Equal(QueryValue.Undefined.CompareTo(noneQueryValue), -1 * noneQueryValue.CompareTo(QueryValue.Undefined));
