@@ -54,8 +54,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
 
         protected HttpClient GetHttpClient()
         {
-            // add 1s to timeout so it doesn't call httpclient timeout before TimeoutAfter
-            return HttpClientHelper.GetHttpClient(this.ManagementUri, this.operationTimeout + TimeSpan.FromSeconds(1));
+            // substract 100ms so that httpclient timeouts before TimeoutAfter
+            TimeSpan httpTimeout = this.operationTimeout - TimeSpan.FromMilliseconds(100);
+            return HttpClientHelper.GetHttpClient(this.ManagementUri, httpTimeout > TimeSpan.Zero ? httpTimeout : this.operationTimeout);
         }
 
         public abstract Task<Identity> CreateIdentityAsync(string name, string managedBy);
