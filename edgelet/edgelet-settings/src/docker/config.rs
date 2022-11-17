@@ -136,8 +136,7 @@ mod tests {
 
     #[test]
     fn empty_image_fails() {
-        DockerConfig::new("".to_string(), ContainerCreateBody::new(), None, None, true)
-            .unwrap_err();
+        DockerConfig::new(String::new(), ContainerCreateBody::new(), None, None, true).unwrap_err();
     }
 
     #[test]
