@@ -76,6 +76,7 @@ namespace TestResultCoordinator
 
                 foreach (JToken metadata in reportMetadatas.Children())
                 {
+                    logger.LogError($"token: {metadata.ToString()}");
                     TestReportType testReportType = GetEnumValueFromReportMetadata<TestReportType>(metadata, "TestReportType");
 
                     switch (testReportType)
