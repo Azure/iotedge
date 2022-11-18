@@ -3,7 +3,7 @@
 #[allow(clippy::module_name_repetitions)]
 pub async fn auth_agent(
     pid: libc::pid_t,
-    runtime: &std::sync::Arc<futures_util::lock::Mutex<impl edgelet_core::ModuleRuntime>>,
+    runtime: &std::sync::Arc<tokio::sync::Mutex<impl edgelet_core::ModuleRuntime>>,
 ) -> Result<(), http_common::server::Error> {
     auth_caller("edgeAgent", pid, runtime).await
 }
@@ -12,7 +12,7 @@ pub async fn auth_agent(
 pub async fn auth_caller(
     module_name: &str,
     pid: libc::pid_t,
-    runtime: &std::sync::Arc<futures_util::lock::Mutex<impl edgelet_core::ModuleRuntime>>,
+    runtime: &std::sync::Arc<tokio::sync::Mutex<impl edgelet_core::ModuleRuntime>>,
 ) -> Result<(), http_common::server::Error> {
     let module_name = module_name.trim_start_matches('$');
 
@@ -58,7 +58,7 @@ mod tests {
 
         // Runtime errors should cause auth to return 403 errors.
         let runtime = edgelet_test_utils::runtime::Runtime::default();
-        let runtime = std::sync::Arc::new(futures_util::lock::Mutex::new(runtime));
+        let runtime = std::sync::Arc::new(tokio::sync::Mutex::new(runtime));
 
         assert_is_forbidden(auth_caller("runtimeError", pid, &runtime).await);
     }
@@ -70,7 +70,7 @@ mod tests {
 
         // Auth fails when no matching module is found.
         let runtime = edgelet_test_utils::runtime::Runtime::default();
-        let runtime = std::sync::Arc::new(futures_util::lock::Mutex::new(runtime));
+        let runtime = std::sync::Arc::new(tokio::sync::Mutex::new(runtime));
 
         assert_is_forbidden(auth_agent(pid, &runtime).await);
         assert_is_forbidden(auth_caller("testModule", pid, &runtime).await);
@@ -86,7 +86,7 @@ mod tests {
             .module_auth
             .insert("testModule".to_string(), vec![1001]);
 
-        let runtime = std::sync::Arc::new(futures_util::lock::Mutex::new(runtime));
+        let runtime = std::sync::Arc::new(tokio::sync::Mutex::new(runtime));
 
         // auth_agent
         assert!(auth_agent(1000, &runtime).await.is_ok());

@@ -26,15 +26,15 @@ where
     // This connector is needed to contruct sync aziot_key_clients when using aziot_key_openssl_engine.
     key_connector: http_common::Connector,
 
-    key_client: std::sync::Arc<futures_util::lock::Mutex<KeyClient>>,
-    cert_client: std::sync::Arc<futures_util::lock::Mutex<CertClient>>,
-    identity_client: std::sync::Arc<futures_util::lock::Mutex<IdentityClient>>,
+    key_client: std::sync::Arc<tokio::sync::Mutex<KeyClient>>,
+    cert_client: std::sync::Arc<tokio::sync::Mutex<CertClient>>,
+    identity_client: std::sync::Arc<tokio::sync::Mutex<IdentityClient>>,
 
-    runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
+    runtime: std::sync::Arc<tokio::sync::Mutex<M>>,
     renewal_tx: tokio::sync::mpsc::UnboundedSender<edgelet_core::WatchdogAction>,
     renewal_engine: Option<
         std::sync::Arc<
-            futures_util::lock::Mutex<cert_renewal::RenewalEngine<edge_ca::EdgeCaRenewal>>,
+            tokio::sync::Mutex<cert_renewal::RenewalEngine<edge_ca::EdgeCaRenewal>>,
         >,
     >,
     config: WorkloadConfig,
@@ -59,7 +59,7 @@ where
             key_connector.clone(),
             1,
         );
-        let key_client = std::sync::Arc::new(futures_util::lock::Mutex::new(key_client));
+        let key_client = std::sync::Arc::new(tokio::sync::Mutex::new(key_client));
 
         let cert_connector = http_common::Connector::new(endpoints.aziot_certd_url())?;
         let cert_client = aziot_cert_client_async::Client::new(
@@ -67,7 +67,7 @@ where
             cert_connector,
             1,
         );
-        let cert_client = std::sync::Arc::new(futures_util::lock::Mutex::new(cert_client));
+        let cert_client = std::sync::Arc::new(tokio::sync::Mutex::new(cert_client));
 
         let identity_connector = http_common::Connector::new(endpoints.aziot_identityd_url())?;
         let identity_client = aziot_identity_client_async::Client::new(
@@ -75,9 +75,9 @@ where
             identity_connector,
             1,
         );
-        let identity_client = std::sync::Arc::new(futures_util::lock::Mutex::new(identity_client));
+        let identity_client = std::sync::Arc::new(tokio::sync::Mutex::new(identity_client));
 
-        let runtime = std::sync::Arc::new(futures_util::lock::Mutex::new(runtime));
+        let runtime = std::sync::Arc::new(tokio::sync::Mutex::new(runtime));
         let config = WorkloadConfig::new(settings, device_info);
 
         let renewal_engine = if config.edge_ca_auto_renew.is_some() {
@@ -192,15 +192,15 @@ where
         let key_connector = http_common::Connector::new(&key_connector).unwrap();
 
         let key_client = KeyClient::default();
-        let key_client = std::sync::Arc::new(futures_util::lock::Mutex::new(key_client));
+        let key_client = std::sync::Arc::new(tokio::sync::Mutex::new(key_client));
 
         let cert_client = CertClient::default();
-        let cert_client = std::sync::Arc::new(futures_util::lock::Mutex::new(cert_client));
+        let cert_client = std::sync::Arc::new(tokio::sync::Mutex::new(cert_client));
 
         let identity_client = IdentityClient::default();
-        let identity_client = std::sync::Arc::new(futures_util::lock::Mutex::new(identity_client));
+        let identity_client = std::sync::Arc::new(tokio::sync::Mutex::new(identity_client));
 
-        let runtime = std::sync::Arc::new(futures_util::lock::Mutex::new(runtime));
+        let runtime = std::sync::Arc::new(tokio::sync::Mutex::new(runtime));
 
         let config = WorkloadConfig {
             hub_name: "test-hub.test.net".to_string(),

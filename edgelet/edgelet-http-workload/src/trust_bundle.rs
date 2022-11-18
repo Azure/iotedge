@@ -10,7 +10,7 @@ pub(crate) struct Route<M>
 where
     M: edgelet_core::ModuleRuntime + Send + Sync,
 {
-    client: std::sync::Arc<futures_util::lock::Mutex<CertClient>>,
+    client: std::sync::Arc<tokio::sync::Mutex<CertClient>>,
     trust_bundle: String,
     optional: bool,
     _runtime: std::marker::PhantomData<M>,
@@ -150,7 +150,7 @@ mod tests {
             {
                 let mut client = route.client.lock().await;
                 client.certs =
-                    futures_util::lock::Mutex::new(std::cell::RefCell::new(certs.clone()));
+                    tokio::sync::Mutex::new(std::cell::RefCell::new(certs.clone()));
             }
 
             let response = route.get().await.unwrap();
