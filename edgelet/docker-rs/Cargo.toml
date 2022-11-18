@@ -11,10 +11,10 @@ hyper = { version = "0.14", features = ["client", "http1"] }
 serde = "1"
 serde_derive = "1"
 serde_json = "1"
-tokio = { version = "1", features = ["parking_lot", "time"] }
+tokio = { version = "1", features = ["time"] }
 url = "2"
 
 [dev-dependencies]
-tokio = { version = "1", features = ["parking_lot", "macros", "rt"] }
+tokio = { version = "1", features = ["macros", "rt"] }
 
 edgelet-test-utils = { path = "../edgelet-test-utils" }
