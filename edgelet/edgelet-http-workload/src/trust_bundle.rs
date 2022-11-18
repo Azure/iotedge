@@ -149,8 +149,7 @@ mod tests {
 
             {
                 let mut client = route.client.lock().await;
-                client.certs =
-                    tokio::sync::Mutex::new(std::cell::RefCell::new(certs.clone()));
+                client.certs = tokio::sync::Mutex::new(std::cell::RefCell::new(certs.clone()));
             }
 
             let response = route.get().await.unwrap();

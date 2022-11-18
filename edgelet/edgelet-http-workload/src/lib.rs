@@ -33,9 +33,7 @@ where
     runtime: std::sync::Arc<tokio::sync::Mutex<M>>,
     renewal_tx: tokio::sync::mpsc::UnboundedSender<edgelet_core::WatchdogAction>,
     renewal_engine: Option<
-        std::sync::Arc<
-            tokio::sync::Mutex<cert_renewal::RenewalEngine<edge_ca::EdgeCaRenewal>>,
-        >,
+        std::sync::Arc<tokio::sync::Mutex<cert_renewal::RenewalEngine<edge_ca::EdgeCaRenewal>>>,
     >,
     config: WorkloadConfig,
 }
