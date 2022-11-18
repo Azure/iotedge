@@ -12,7 +12,7 @@ http = "0.2"
 hyper = "0.14"
 nix = "0.24"
 serde = "1"
-tokio = { version = "1", features = ["parking_lot"] }
+tokio = "1"
 
 edgelet-core = { path = "../edgelet-core" }
 edgelet-settings = { path = "../edgelet-settings" }
