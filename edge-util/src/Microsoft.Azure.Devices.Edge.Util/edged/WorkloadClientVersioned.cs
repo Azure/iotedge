@@ -44,9 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
 
         protected HttpClient GetHttpClient()
         {
-            // substract 100ms so that httpclient timeouts before TimeoutAfter
-            TimeSpan httpTimeout = this.operationTimeout - TimeSpan.FromMilliseconds(100);
-            return HttpClientHelper.GetHttpClient(this.WorkloadUri, httpTimeout > TimeSpan.Zero ? httpTimeout : this.operationTimeout);
+            return HttpClientHelper.GetHttpClient(this.WorkloadUri, this.operationTimeout);
         }
 
         public abstract Task<ServerCertificateResponse> CreateServerCertificateAsync(string hostname, DateTime expiration);
@@ -69,8 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
                 T result = await ExecuteWithRetry(
                     func,
                     r => Events.RetryingOperation(operation, this.WorkloadUri.ToString(), r),
-                    this.transientErrorDetectionStrategy)
-                    .TimeoutAfter(this.operationTimeout);
+                    this.transientErrorDetectionStrategy);
                 Events.SuccessfullyExecutedOperation(operation, this.WorkloadUri.ToString());
                 return result;
             }

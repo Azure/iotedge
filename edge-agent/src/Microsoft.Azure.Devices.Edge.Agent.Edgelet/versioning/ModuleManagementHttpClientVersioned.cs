@@ -54,9 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
 
         protected HttpClient GetHttpClient()
         {
-            // substract 100ms so that httpclient timeouts before TimeoutAfter
-            TimeSpan httpTimeout = this.operationTimeout - TimeSpan.FromMilliseconds(100);
-            return HttpClientHelper.GetHttpClient(this.ManagementUri, httpTimeout > TimeSpan.Zero ? httpTimeout : this.operationTimeout);
+            return HttpClientHelper.GetHttpClient(this.ManagementUri, this.operationTimeout);
         }
 
         public abstract Task<Identity> CreateIdentityAsync(string name, string managedBy);
@@ -154,8 +152,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                 T result = await ExecuteWithRetry(
                     func,
                     (r) => Events.RetryingOperation(operation, this.ManagementUri.ToString(), r),
-                    this.transientErrorDetectionStrategy)
-                    .TimeoutAfter(this.operationTimeout);
+                    this.transientErrorDetectionStrategy);
                 Events.SuccessfullyExecutedOperation(operation, this.ManagementUri.ToString());
                 return result;
             }
