@@ -17,7 +17,19 @@ const TRUST_BUNDLE_USER_ALIAS: &str = "trust-bundle-user";
 
 const LABELS: &[&str] = &["net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent"];
 
+const USER_AZIOTKS: Option<&'static str> = option_env!("USER_AZIOTKS");
+const USER_AZIOTCS: Option<&'static str> = option_env!("USER_AZIOTCS");
+const USER_AZIOTID: Option<&'static str> = option_env!("USER_AZIOTID");
+const USER_AZIOTTPM: Option<&'static str> = option_env!("USER_AZIOTTPM");
+const USER_IOTEDGE: Option<&'static str> = option_env!("USER_IOTEDGE");
+
 pub async fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>> {
+    // unwrap_or is currently const: unstable so until that resolves itself do this at runtime
+    let aziotks_username: &'static str = USER_AZIOTKS.unwrap_or("aziotks");
+    let aziotcs_username: &'static str = USER_AZIOTCS.unwrap_or("aziotcs");
+    let aziotid_username: &'static str = USER_AZIOTID.unwrap_or("aziotid");
+    let aziottpm_username: &'static str = USER_AZIOTTPM.unwrap_or("aziottpm");
+    let iotedge_username: &'static str = USER_IOTEDGE.unwrap_or("iotedge");
     // In production, running as root is the easiest way to guarantee the tool has write access to every service's config file.
     // But it's convenient to not do this for the sake of development because the the development machine doesn't necessarily
     // have the package installed and the users created, and it's easier to have the config files owned by the current user anyway.
@@ -27,25 +39,65 @@ pub async fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>
     // Otherwise, tell the user to re-run as root.
     let (aziotks_user, aziotcs_user, aziotid_user, aziottpm_user, iotedge_user) =
         if nix::unistd::Uid::current().is_root() {
-            let aziotks_user = nix::unistd::User::from_name("aziotks")
-                .map_err(|err| format!("could not query aziotks user information: {}", err))?
-                .ok_or("could not query aziotks user information")?;
+            let aziotks_user = nix::unistd::User::from_name(aziotks_username)
+                .map_err(|err| {
+                    format!(
+                        "could not query {} user information: {}",
+                        aziotks_username, err
+                    )
+                })?
+                .ok_or(format!(
+                    "could not query {} user information",
+                    aziotks_username
+                ))?;
 
-            let aziotcs_user = nix::unistd::User::from_name("aziotcs")
-                .map_err(|err| format!("could not query aziotcs user information: {}", err))?
-                .ok_or("could not query aziotcs user information")?;
+            let aziotcs_user = nix::unistd::User::from_name(aziotcs_username)
+                .map_err(|err| {
+                    format!(
+                        "could not query {} user information: {}",
+                        aziotcs_username, err
+                    )
+                })?
+                .ok_or(format!(
+                    "could not query {} user information",
+                    aziotcs_username
+                ))?;
 
-            let aziotid_user = nix::unistd::User::from_name("aziotid")
-                .map_err(|err| format!("could not query aziotid user information: {}", err))?
-                .ok_or("could not query aziotid user information")?;
+            let aziotid_user = nix::unistd::User::from_name(aziotid_username)
+                .map_err(|err| {
+                    format!(
+                        "could not query {} user information: {}",
+                        aziotid_username, err
+                    )
+                })?
+                .ok_or(format!(
+                    "could not query {} user information",
+                    aziotid_username
+                ))?;
 
-            let aziottpm_user = nix::unistd::User::from_name("aziottpm")
-                .map_err(|err| format!("could not query aziottpm user information: {}", err))?
-                .ok_or("could not query aziottpm user information")?;
+            let aziottpm_user = nix::unistd::User::from_name(aziottpm_username)
+                .map_err(|err| {
+                    format!(
+                        "could not query {} user information: {}",
+                        aziottpm_username, err
+                    )
+                })?
+                .ok_or(format!(
+                    "could not query {} user information",
+                    aziottpm_username
+                ))?;
 
-            let iotedge_user = nix::unistd::User::from_name("iotedge")
-                .map_err(|err| format!("could not query iotedge user information: {}", err))?
-                .ok_or("could not query iotedge user information")?;
+            let iotedge_user = nix::unistd::User::from_name(iotedge_username)
+                .map_err(|err| {
+                    format!(
+                        "could not query {} user information: {}",
+                        iotedge_username, err
+                    )
+                })?
+                .ok_or(format!(
+                    "could not query {} user information",
+                    iotedge_username
+                ))?;
 
             (
                 aziotks_user,
