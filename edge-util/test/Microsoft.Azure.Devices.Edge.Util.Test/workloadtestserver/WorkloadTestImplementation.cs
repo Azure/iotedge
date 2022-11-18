@@ -38,8 +38,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common.WorkloadTestServer
 
         public Task<CertificateResponse> CreateIdentityCertificateAsync(string api_version, string name, IdentityCertificateRequest identityCertificateRequest) => throw new NotImplementedException();
 
-        public Task<CertificateResponse> CreateServerCertificateAsync(string api_version, string name, string genid, ServerCertificateRequest request)
+        public async Task<CertificateResponse> CreateServerCertificateAsync(string api_version, string name, string genid, ServerCertificateRequest request)
         {
+            if (name.Equals("slowtestcertificate"))
+            {
+                await Task.Delay(60000);
+            }
+
             var response = new CertificateResponse()
             {
                 Certificate = $"{CertificateHelper.CertificatePem}\n{CertificateHelper.CertificatePem}",
@@ -50,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common.WorkloadTestServer
                 }
             };
 
-            return Task.FromResult(response);
+            return response;
         }
 
         public Task<TrustBundleResponse> TrustBundleAsync(string api_version)
