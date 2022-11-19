@@ -713,7 +713,6 @@ dependencies = [
  "edgelet-docker",
  "edgelet-settings",
  "edgelet-test-utils",
- "futures-util",
  "http",
  "http-common",
  "libc",
