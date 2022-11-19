@@ -14,5 +14,4 @@ thiserror = "1"
 yaml-rust = "0.4"
 
 [dev_dependencies]
-tokio = { version = "1", features = ["rt", "macros"]}
 serde_derive = "1.0"
