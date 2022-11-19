@@ -23,6 +23,7 @@ SRC_CERT_TOOLS_DIR=$ROOT_FOLDER/tools/CACertificates
 FUNCTIONS_SAMPLE_DIR=$ROOT_FOLDER/edge-modules/functions/samples
 VERSIONINFO_FILE_PATH=$BUILD_REPOSITORY_LOCALPATH/versionInfo.json
 DOTNET_RUNTIME=net6.0
+SKIP_QUICKSTART=0
 
 usage()
 {
@@ -32,6 +33,7 @@ usage()
     echo " -c, --config         Product binary configuration: Debug [default] or Release"
     echo " --no-rocksdb-bin     Do not copy the RocksDB binaries into the project's output folders"
     echo " --dotnet_runtime     Set the dotnet_runtime version to build. (Default net6.0)"
+    echo " --skip-quickstart    Do not build the quickstart test tool or copy {e2e_deployment_files,e2e_test_files}"
     exit 1;
 }
 
@@ -58,6 +60,7 @@ process_args()
                 "-c" | "--config" ) save_next_arg=1;;
                 "--no-rocksdb-bin" ) MSBUILD_OPTIONS="-p:RocksDbAsPackage=false";;
                 "--dotnet_runtime" ) save_next_arg=2;;
+                "--skip-quickstart" ) SKIP_QUICKSTART=1;;
                 * ) usage;;
             esac
         fi
@@ -238,6 +241,10 @@ publish_app "Microsoft.Azure.Devices.Edge.Agent.Service"
 publish_app "Microsoft.Azure.Devices.Edge.Hub.Service"
 publish_app "SimulatedTemperatureSensor"
 publish_app "TemperatureFilter"
+publish_app "IotedgeDiagnosticsDotnet"
+publish_app "Microsoft.Azure.Devices.Edge.Azure.Monitor"
+publish_lib "Microsoft.Azure.WebJobs.Extensions.EdgeHub"
+
 publish_app "load-gen"
 publish_app "TestAnalyzer"
 publish_app "DirectMethodSender"
@@ -253,22 +260,22 @@ publish_app "EdgeHubRestartTester"
 publish_app "MetricsValidator"
 publish_app "NumberLogger"
 publish_app "CloudToDeviceMessageTester"
-publish_app "IotedgeDiagnosticsDotnet"
-publish_app "Microsoft.Azure.Devices.Edge.Azure.Monitor"
 
 publish_app "EdgeHubTriggerCSharp"
-publish_lib "Microsoft.Azure.WebJobs.Extensions.EdgeHub"
+
+if [ "$SKIP_QUICKSTART" -ne 1 ]; then
+    publish_quickstart linux-arm
+    publish_quickstart linux-x64
+    publish_quickstart linux-arm64
+    publish_leafdevice linux-arm
+    publish_leafdevice linux-x64
+    publish_leafdevice linux-arm64
+
+    publish_files $SRC_E2E_TEMPLATES_DIR $PUBLISH_FOLDER
+    publish_files $SRC_E2E_TEST_FILES_DIR $PUBLISH_FOLDER
+fi
 
 publish_files $SRC_SCRIPTS_DIR $PUBLISH_FOLDER
-publish_files $SRC_E2E_TEMPLATES_DIR $PUBLISH_FOLDER
-publish_files $SRC_E2E_TEST_FILES_DIR $PUBLISH_FOLDER
 publish_files $SRC_CERT_TOOLS_DIR $PUBLISH_FOLDER
-
-publish_quickstart linux-arm
-publish_quickstart linux-x64
-publish_quickstart linux-arm64
-publish_leafdevice linux-arm
-publish_leafdevice linux-x64
-publish_leafdevice linux-arm64
 
 exit $RES

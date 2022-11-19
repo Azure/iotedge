@@ -6,7 +6,7 @@ where
 {
     reprovision: tokio::sync::mpsc::UnboundedSender<edgelet_core::WatchdogAction>,
     pid: libc::pid_t,
-    runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
+    runtime: std::sync::Arc<tokio::sync::Mutex<M>>,
 }
 
 const PATH: &str = "/device/reprovision";

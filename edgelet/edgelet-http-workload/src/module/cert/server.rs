@@ -10,7 +10,7 @@ where
     gen_id: String,
     pid: libc::pid_t,
     api: super::CertApi,
-    runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
+    runtime: std::sync::Arc<tokio::sync::Mutex<M>>,
 }
 
 #[derive(Debug, serde::Deserialize)]

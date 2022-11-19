@@ -176,7 +176,7 @@ mod tests {
 
     #[test]
     fn moby_network_name() {
-        let moby_network_with_no_name = MobyNetwork::Name("".to_string());
+        let moby_network_with_no_name = MobyNetwork::Name(String::new());
 
         let moby_1 = "name-1";
         let moby_network_with_name = MobyNetwork::Name(moby_1.to_string());

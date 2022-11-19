@@ -131,7 +131,7 @@ impl AziotEdgedVersion {
             return Err(anyhow!(
                 "aziot-edged returned {}, stderr = {}",
                 output.status,
-                String::from_utf8_lossy(&*output.stderr),
+                String::from_utf8_lossy(&output.stderr),
             )
             .context("Could not spawn aziot-edged process"));
         }
