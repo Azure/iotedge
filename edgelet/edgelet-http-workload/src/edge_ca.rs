@@ -17,8 +17,8 @@ use test_common::client::KeyEngine;
 pub(crate) struct EdgeCaRenewal {
     rotate_key: bool,
     temp_cert: String,
-    cert_client: std::sync::Arc<futures_util::lock::Mutex<CertClient>>,
-    key_client: std::sync::Arc<futures_util::lock::Mutex<KeyClient>>,
+    cert_client: std::sync::Arc<tokio::sync::Mutex<CertClient>>,
+    key_client: std::sync::Arc<tokio::sync::Mutex<KeyClient>>,
     key_connector: http_common::Connector,
     renewal_tx: tokio::sync::mpsc::UnboundedSender<edgelet_core::WatchdogAction>,
 }
@@ -27,8 +27,8 @@ impl EdgeCaRenewal {
     pub fn new(
         rotate_key: bool,
         config: &crate::WorkloadConfig,
-        cert_client: std::sync::Arc<futures_util::lock::Mutex<CertClient>>,
-        key_client: std::sync::Arc<futures_util::lock::Mutex<KeyClient>>,
+        cert_client: std::sync::Arc<tokio::sync::Mutex<CertClient>>,
+        key_client: std::sync::Arc<tokio::sync::Mutex<KeyClient>>,
         key_connector: http_common::Connector,
         renewal_tx: tokio::sync::mpsc::UnboundedSender<edgelet_core::WatchdogAction>,
     ) -> Self {
@@ -321,10 +321,10 @@ mod tests {
         let config = crate::WorkloadConfig::new(&settings, &device_info);
 
         let cert_client = CertClient::default();
-        let cert_client = std::sync::Arc::new(futures_util::lock::Mutex::new(cert_client));
+        let cert_client = std::sync::Arc::new(tokio::sync::Mutex::new(cert_client));
 
         let key_client = KeyClient::default();
-        let key_client = std::sync::Arc::new(futures_util::lock::Mutex::new(key_client));
+        let key_client = std::sync::Arc::new(tokio::sync::Mutex::new(key_client));
 
         // Tests won't actually connect to keyd, so just put any URL in the key connector.
         let key_connector = url::Url::parse("unix:///tmp/test.sock").unwrap();

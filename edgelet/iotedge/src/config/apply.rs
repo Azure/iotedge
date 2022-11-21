@@ -205,7 +205,7 @@ async fn execute_inner(
         .map_err(|err| format!("{:?}", err))?;
 
     let old_identityd_path = Path::new("/etc/aziot/identityd/config.d/00-super.toml");
-    if let Ok(old_identity_config) = std::fs::read(&old_identityd_path) {
+    if let Ok(old_identity_config) = std::fs::read(old_identityd_path) {
         if let Ok(aziot_identityd_config::Settings { hostname, .. }) =
             toml::from_slice(&old_identity_config)
         {

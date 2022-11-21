@@ -37,8 +37,8 @@ pub(crate) enum SubjectAltName {
 }
 
 struct CertApi {
-    key_client: std::sync::Arc<futures_util::lock::Mutex<KeyClient>>,
-    cert_client: std::sync::Arc<futures_util::lock::Mutex<CertClient>>,
+    key_client: std::sync::Arc<tokio::sync::Mutex<KeyClient>>,
+    cert_client: std::sync::Arc<tokio::sync::Mutex<CertClient>>,
 
     edge_ca_cert: String,
     edge_ca_key: String,
@@ -46,8 +46,8 @@ struct CertApi {
 
 impl CertApi {
     pub fn new(
-        key_client: std::sync::Arc<futures_util::lock::Mutex<KeyClient>>,
-        cert_client: std::sync::Arc<futures_util::lock::Mutex<CertClient>>,
+        key_client: std::sync::Arc<tokio::sync::Mutex<KeyClient>>,
+        cert_client: std::sync::Arc<tokio::sync::Mutex<CertClient>>,
         config: &crate::WorkloadConfig,
     ) -> Self {
         CertApi {
@@ -216,10 +216,10 @@ fn key_to_pem(key: &openssl::pkey::PKey<openssl::pkey::Private>) -> String {
 mod tests {
     fn test_api() -> super::CertApi {
         let key_client = super::KeyClient::default();
-        let key_client = std::sync::Arc::new(futures_util::lock::Mutex::new(key_client));
+        let key_client = std::sync::Arc::new(tokio::sync::Mutex::new(key_client));
 
         let cert_client = super::CertClient::default();
-        let cert_client = std::sync::Arc::new(futures_util::lock::Mutex::new(cert_client));
+        let cert_client = std::sync::Arc::new(tokio::sync::Mutex::new(cert_client));
 
         super::CertApi {
             key_client,
