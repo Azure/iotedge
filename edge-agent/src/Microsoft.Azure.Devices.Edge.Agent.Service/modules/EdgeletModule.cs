@@ -49,6 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string backupConfigFilePath;
         readonly bool disableDeviceAnalyticsTelemetry;
         readonly ModuleUpdateMode moduleUpdateMode;
+        readonly TimeSpan edgeletTimeout;
 
         public EdgeletModule(
             string iotHubHostname,
@@ -66,7 +67,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             bool useServerHeartbeat,
             string backupConfigFilePath,
             bool disableDeviceAnalyticsTelemetry,
-            ModuleUpdateMode moduleUpdateMode)
+            ModuleUpdateMode moduleUpdateMode,
+            TimeSpan edgeletTimeout)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
@@ -84,6 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.backupConfigFilePath = Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath));
             this.disableDeviceAnalyticsTelemetry = disableDeviceAnalyticsTelemetry;
             this.moduleUpdateMode = moduleUpdateMode;
+            this.edgeletTimeout = edgeletTimeout;
         }
 
         protected override void Load(ContainerBuilder builder)
