@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2020_07_07
                 Expiration = expiration
             };
 
-            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.WorkloadUri))
+            using (HttpClient httpClient = this.GetHttpClient())
             {
                 var edgeletHttpClient = new HttpWorkloadClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.WorkloadUri) };
                 CertificateResponse result = await this.Execute(() => edgeletHttpClient.CreateServerCertificateAsync(this.Version.Name, this.ModuleId, this.ModuleGenerationId, request), "CreateServerCertificateAsync");
@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2020_07_07
 
         public override async Task<string> GetTrustBundleAsync()
         {
-            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.WorkloadUri))
+            using (HttpClient httpClient = this.GetHttpClient())
             {
                 var edgeletHttpClient = new HttpWorkloadClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.WorkloadUri) };
                 TrustBundleResponse result = await this.Execute(() => edgeletHttpClient.TrustBundleAsync(this.Version.Name), "TrustBundleAsync");
@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2020_07_07
 
         public override async Task<string> GetManifestTrustBundleAsync()
         {
-            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.WorkloadUri))
+            using (HttpClient httpClient = this.GetHttpClient())
             {
                 var edgeletHttpClient = new HttpWorkloadClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.WorkloadUri) };
                 ManifestTrustBundleResponse result = await this.Execute(() => edgeletHttpClient.ManifestTrustBundleAsync(this.Version.Name), "ManifestTrustBundleAsync");
@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2020_07_07
                 Plaintext = Encoding.UTF8.GetBytes(plainText),
                 InitializationVector = Encoding.UTF8.GetBytes(initializationVector)
             };
-            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.WorkloadUri))
+            using (HttpClient httpClient = this.GetHttpClient())
             {
                 var edgeletHttpClient = new HttpWorkloadClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.WorkloadUri) };
                 EncryptResponse result = await this.Execute(() => edgeletHttpClient.EncryptAsync(this.Version.Name, this.ModuleId, this.ModuleGenerationId, request), "Encrypt");
@@ -83,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2020_07_07
                 Ciphertext = Convert.FromBase64String(encryptedText),
                 InitializationVector = Encoding.UTF8.GetBytes(initializationVector)
             };
-            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.WorkloadUri))
+            using (HttpClient httpClient = this.GetHttpClient())
             {
                 var edgeletHttpClient = new HttpWorkloadClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.WorkloadUri) };
                 DecryptResponse result = await this.Execute(() => edgeletHttpClient.DecryptAsync(this.Version.Name, this.ModuleId, this.ModuleGenerationId, request), "Decrypt");
@@ -100,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2020_07_07
                 Data = Encoding.UTF8.GetBytes(data)
             };
 
-            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.WorkloadUri))
+            using (HttpClient httpClient = this.GetHttpClient())
             {
                 var edgeletHttpClient = new HttpWorkloadClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.WorkloadUri) };
                 SignResponse response = await this.Execute(() => edgeletHttpClient.SignAsync(this.Version.Name, this.ModuleId, this.ModuleGenerationId, signRequest), "SignAsync");

@@ -337,15 +337,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
 
         async Task ExecuteTimeoutTest_Version_Base(ModuleManagementHttpClientVersioned client)
         {
-            // Arrange
-            async Task<int> LongOperation()
-            {
-                await Task.Delay(TimeSpan.FromHours(1));
-                return 10;
-            }
-
             // Act
-            Task assertTask = Assert.ThrowsAsync<TimeoutException>(() => client.Execute<int>(LongOperation, "Dummy"));
+            Task assertTask = Assert.ThrowsAsync<OperationCanceledException>(() => client.UpdateIdentityAsync("slowtestidentity", "genid", "edge"));
             Task delayTask = Task.Delay(TimeSpan.FromSeconds(20));
 
             Task completedTask = await Task.WhenAny(assertTask, delayTask);
