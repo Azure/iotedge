@@ -3,13 +3,12 @@
 ## Edge Agent
 * Fix bug causing Edge Agent to delay sending reported properties to IoT Hub by 1 hour ( [e43cdc9](https://github.com/Azure/iotedge/commit/e43cdc91a7969d8029c679d2b169f0682bf65e18) )
 * Fix edgeagentuser's login shell ( [6274476](https://github.com/Azure/iotedge/commit/62744766ec321012365e746310a300853ced3c08) )
-* Increase client timeout for management and workload API to 5 minutes ( [7a379d3](https://github.com/Azure/iotedge/commit/7a379d3177f6af68364684db338e358d0a099150) )
+* Make client timeout configurable for management API ( [7a379d3](https://github.com/Azure/iotedge/commit/7a379d3177f6af68364684db338e358d0a099150), [8afaa3a](https://github.com/Azure/iotedge/commit/8afaa3a0d5c72ebe7b35dff21742ed5ed9843033) )
 
 ## Edge Hub
 * Call IoT Device SDK CloseAsync before Dispose ( [8787301](https://github.com/Azure/iotedge/commit/8787301b82e487e8f83bb4f616395e4cb62b9844) )
 * Upgrade DotNetty and set a timeout for shutdown calls to mitigate hangs ( [15e72bb](https://github.com/Azure/iotedge/commit/15e72bb852a62f09f1bbb7d2b060fbea86765bc0) )
 * Fix edgehubuser's login shell ( [6274476](https://github.com/Azure/iotedge/commit/62744766ec321012365e746310a300853ced3c08) )
-* Increase client timeout for management and workload API to 5 minutes ( [7a379d3](https://github.com/Azure/iotedge/commit/7a379d3177f6af68364684db338e358d0a099150) )
 
 ## aziot-edge
 * Make iotedge check respect journald as valid log rotation setting ( [3a39460](https://github.com/Azure/iotedge/commit/3a394606d79af99b82acf9708d0ad404bec8c9f8) )
