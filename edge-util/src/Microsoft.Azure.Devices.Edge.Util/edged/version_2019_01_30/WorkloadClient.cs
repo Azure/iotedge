@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2019_01_30
                 Expiration = expiration
             };
 
-            using (HttpClient httpClient = this.GetHttpClient())
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.WorkloadUri))
             {
                 var edgeletHttpClient = new HttpWorkloadClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.WorkloadUri) };
                 CertificateResponse result = await this.Execute(() => edgeletHttpClient.CreateServerCertificateAsync(this.Version.Name, this.ModuleId, this.ModuleGenerationId, request), "CreateServerCertificateAsync");
@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2019_01_30
 
         public override async Task<string> GetTrustBundleAsync()
         {
-            using (HttpClient httpClient = this.GetHttpClient())
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.WorkloadUri))
             {
                 var edgeletHttpClient = new HttpWorkloadClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.WorkloadUri) };
                 TrustBundleResponse result = await this.Execute(() => edgeletHttpClient.TrustBundleAsync(this.Version.Name), "TrustBundleAsync");
@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2019_01_30
                 Plaintext = Encoding.UTF8.GetBytes(plainText),
                 InitializationVector = Encoding.UTF8.GetBytes(initializationVector)
             };
-            using (HttpClient httpClient = this.GetHttpClient())
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.WorkloadUri))
             {
                 var edgeletHttpClient = new HttpWorkloadClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.WorkloadUri) };
                 EncryptResponse result = await this.Execute(() => edgeletHttpClient.EncryptAsync(this.Version.Name, this.ModuleId, this.ModuleGenerationId, request), "Encrypt");
@@ -75,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2019_01_30
                 Ciphertext = Convert.FromBase64String(encryptedText),
                 InitializationVector = Encoding.UTF8.GetBytes(initializationVector)
             };
-            using (HttpClient httpClient = this.GetHttpClient())
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.WorkloadUri))
             {
                 var edgeletHttpClient = new HttpWorkloadClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.WorkloadUri) };
                 DecryptResponse result = await this.Execute(() => edgeletHttpClient.DecryptAsync(this.Version.Name, this.ModuleId, this.ModuleGenerationId, request), "Decrypt");
@@ -92,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2019_01_30
                 Data = Encoding.UTF8.GetBytes(data)
             };
 
-            using (HttpClient httpClient = this.GetHttpClient())
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.WorkloadUri))
             {
                 var edgeletHttpClient = new HttpWorkloadClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.WorkloadUri) };
                 SignResponse response = await this.Execute(() => edgeletHttpClient.SignAsync(this.Version.Name, this.ModuleId, this.ModuleGenerationId, signRequest), "SignAsync");
