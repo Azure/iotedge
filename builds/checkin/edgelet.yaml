@@ -123,7 +123,7 @@ jobs:
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     variables:
-      coverage.goal: 44
+      coverage.goal: 30
     pool:
       vmImage: "ubuntu-18.04"
     steps:

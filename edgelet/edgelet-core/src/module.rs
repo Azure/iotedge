@@ -9,15 +9,13 @@ use anyhow::Context;
 use chrono::prelude::*;
 use nix::sys::utsname::UtsName;
 use serde::{Deserialize, Serialize};
-use tokio::sync::mpsc::UnboundedSender;
 
 use aziotctl_common::host_info::{DmiInfo, OsInfo};
 use edgelet_settings::module::Settings as ModuleSpec;
-use edgelet_settings::RuntimeSettings;
 
 use crate::error::Error;
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ModuleStatus {
     Unknown,
@@ -59,7 +57,7 @@ pub enum ModuleAction {
     Remove(String),
 }
 
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ModuleRuntimeState {
     status: ModuleStatus,
     exit_code: Option<i64>,
@@ -131,7 +129,7 @@ impl ModuleRuntimeState {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LogTail {
     All,
     Num(u64),
@@ -257,7 +255,7 @@ pub trait ModuleRegistry {
     async fn remove(&self, name: &str) -> anyhow::Result<()>;
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, Eq, PartialEq, Serialize)]
 pub struct SystemInfo {
     #[serde(rename = "osType")]
     pub kernel: String,
@@ -276,7 +274,9 @@ pub struct SystemInfo {
     pub operating_system_build: Option<String>,
 
     pub architecture: String,
-    pub cpus: usize,
+    pub cpus: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_memory: Option<u64>,
     pub virtualized: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -314,6 +314,7 @@ impl SystemInfo {
         remove_assign!(operating_system_build);
 
         remove_assign!(architecture);
+        remove_assign!(virtualized);
 
         remove_assign!(product_name);
         remove_assign!(system_vendor);
@@ -362,7 +363,8 @@ impl Default for SystemInfo {
             operating_system_build: os.build_id,
 
             architecture: os.arch.to_owned(),
-            cpus: num_cpus::get(),
+            cpus: u64::try_from(num_cpus::get()).expect("128-bit architectures unsupported"),
+            total_memory: None,
             virtualized: match crate::virtualization::is_virtualized_env() {
                 Ok(Some(true)) => "yes",
                 Ok(Some(false)) => "no",
@@ -387,7 +389,7 @@ impl Default for SystemInfo {
     }
 }
 
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ProvisioningInfo {
     /// IoT Edge provisioning type, examples: manual.device_connection_string, dps.x509
     pub r#type: String,
@@ -463,18 +465,6 @@ pub trait ProvisioningResult {
 }
 
 #[async_trait::async_trait]
-pub trait MakeModuleRuntime {
-    type Config: Clone + Send;
-    type Settings: RuntimeSettings<ModuleConfig = Self::Config>;
-    type ModuleRuntime: ModuleRuntime<Config = Self::Config>;
-
-    async fn make_runtime(
-        settings: &Self::Settings,
-        create_socket_channel: UnboundedSender<ModuleAction>,
-    ) -> anyhow::Result<Self::ModuleRuntime>;
-}
-
-#[async_trait::async_trait]
 pub trait ModuleRuntime {
     type Config: Clone + Send + serde::Serialize;
     type Module: Module<Config = Self::Config> + Send;
@@ -490,6 +480,7 @@ pub trait ModuleRuntime {
     async fn system_resources(&self) -> anyhow::Result<SystemResources>;
     async fn list(&self) -> anyhow::Result<Vec<Self::Module>>;
     async fn list_with_details(&self) -> anyhow::Result<Vec<(Self::Module, ModuleRuntimeState)>>;
+    async fn list_images(&self) -> anyhow::Result<std::collections::HashMap<String, String>>;
     async fn logs(&self, id: &str, options: &LogOptions) -> anyhow::Result<hyper::Body>;
     async fn remove_all(&self) -> anyhow::Result<()>;
     async fn stop_all(&self, wait_before_kill: Option<Duration>) -> anyhow::Result<()>;
@@ -537,13 +528,14 @@ impl fmt::Display for RegistryOperation {
 }
 
 // Useful for error contexts
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum RuntimeOperation {
     CreateModule(String),
     GetModule(String),
     GetModuleLogs(String),
     GetSupportBundle,
     Init,
+    ListImages,
     ListModules,
     RemoveModule(String),
     RestartModule(String),
@@ -565,6 +557,7 @@ impl fmt::Display for RuntimeOperation {
             RuntimeOperation::GetSupportBundle => write!(f, "get support bundle"),
             RuntimeOperation::Init => write!(f, "initialize module runtime"),
             RuntimeOperation::ListModules => write!(f, "list modules"),
+            RuntimeOperation::ListImages => write!(f, "list images"),
             RuntimeOperation::RemoveModule(name) => write!(f, "remove module {:?}", name),
             RuntimeOperation::RestartModule(name) => write!(f, "restart module {:?}", name),
             RuntimeOperation::StartModule(name) => write!(f, "start module {:?}", name),
@@ -616,7 +609,7 @@ mod tests {
 
     #[test]
     fn module_config_empty_name_fails() {
-        let name = "".to_string();
+        let name = String::new();
         ModuleSpec::new(
             name,
             "docker".to_string(),
@@ -680,6 +673,7 @@ mod tests {
 
             architecture: "ARCH".into(),
             cpus: 0,
+            total_memory: None,
             virtualized: "UNKNOWN".into(),
 
             product_name: None,
@@ -709,6 +703,7 @@ mod tests {
 
             architecture: "ARCH".into(),
             cpus: 0,
+            total_memory: None,
             virtualized: "UNKNOWN".into(),
 
             product_name: None,

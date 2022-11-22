@@ -184,6 +184,7 @@ async fn execute_inner(
         #[cfg(contenttrust)]
             manifest_trust_bundle_cert: _,
         additional_info,
+        iotedge_max_requests,
         aziot,
         agent,
         connect,
@@ -191,6 +192,7 @@ async fn execute_inner(
         watchdog,
         edge_ca,
         moby_runtime,
+        image_garbage_collection,
     } = toml::from_slice(&config).map_err(|err| format!("could not parse config file: {}", err))?;
 
     let aziotctl_common::config::apply::RunOutput {
@@ -203,7 +205,7 @@ async fn execute_inner(
         .map_err(|err| format!("{:?}", err))?;
 
     let old_identityd_path = Path::new("/etc/aziot/identityd/config.d/00-super.toml");
-    if let Ok(old_identity_config) = std::fs::read(&old_identityd_path) {
+    if let Ok(old_identity_config) = std::fs::read(old_identityd_path) {
         if let Ok(aziot_identityd_config::Settings { hostname, .. }) =
             toml::from_slice(&old_identity_config)
         {
@@ -509,6 +511,8 @@ async fn execute_inner(
 
             allow_elevated_docker_permissions: allow_elevated_docker_permissions.unwrap_or(true),
 
+            iotedge_max_requests,
+
             agent,
 
             connect,
@@ -517,6 +521,8 @@ async fn execute_inner(
             watchdog,
 
             endpoints: Default::default(),
+
+            image_garbage_collection,
         },
 
         moby_runtime: {

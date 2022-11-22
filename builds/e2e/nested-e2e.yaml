@@ -1,20 +1,21 @@
 trigger: none
 pr: none
 
-# Test agents are shared, so schedules must be coordinated to avoid conflicts:
-# - main and release/1.3 run daily, but are offset from each other by 12 hours
+# Following branches (main, release/1.4) all run scheduled tests weekly. This
+# occurs at different days of the week across nested e2e and connectivity
+# pipelines.
 schedules:
-- cron: "0 0 * * *"
-  displayName: Daily run main
+- cron: "0 0 * * 3"
+  displayName: Weekly run main
   branches:
     include:
     - main
   always: true
-- cron: "0 12 * * *"
-  displayName: Daily run release/1.3
+- cron: "0 0 * * 4"
+  displayName: Weekly run release/1.4
   branches:
     include:
-    - release/1.3
+    - release/1.4
   always: true
 
 variables:
@@ -31,11 +32,8 @@ variables:
 
 resources:
   pipelines:
-  - pipeline: images
-    source: 'Azure-IoT-Edge-Core Build Images'
-    branch: 'main'
-  - pipeline: packages
-    source: 'Azure-IoT-Edge-Core Edgelet Packages'
+  - pipeline: ci-build
+    source: 'Azure-IoT-Edge-Core CI Build'
     branch: 'main'
 
 stages:

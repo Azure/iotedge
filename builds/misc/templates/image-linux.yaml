@@ -4,12 +4,18 @@ parameters:
   namespace: 'microsoft'
   project: ''
   version: ''
-  buildx_flag: ''
-  bin_dir: ''
+  bin_dir: '$(Build.BinariesDirectory)'
   use_rocksdb: false
+  download_artifacts: true
+  manifestTemplate: ''
 
 steps:
+  - checkout: self
+    fetchDepth: 0
+
   - task: DownloadBuildArtifacts@0
+    displayName: Download artifacts
+    condition: and(succeeded(), ${{ parameters.download_artifacts }})
     inputs:
       buildType: 'current'
       downloadPath: '$(Build.ArtifactStagingDirectory)'
@@ -18,7 +24,8 @@ steps:
       extractTars: true
 
   - task: CopyFiles@2
-    displayName: Copy Artifacts
+    displayName: Copy artifacts
+    condition: and(succeeded(), ${{ parameters.download_artifacts }})
     inputs:
       sourceFolder: '$(Agent.TempDirectory)/extracted_tars/consolidated_artifacts'
       contents: '**'
@@ -33,29 +40,60 @@ steps:
       targetFolder: '$(Build.BinariesDirectory)/publish/${{ parameters.project }}/librocksdb'          
 
   - task: Docker@2
-    displayName: Docker login edgebuilds
+    displayName: Docker login - CI
     inputs:
       command: login
       containerRegistry: iotedge-edgebuilds-acr
+
   - task: Docker@2
-    displayName: Docker login edgerelease
+    displayName: Docker login - Release
     inputs:
       command: login
-      containerRegistry: iotedge-release-acr      
-  - task: Bash@3
+      containerRegistry: $(service-connection.registry.release)
+
+  - script: |
+      scripts/linux/buildImage.sh \
+        -r "$(registry.address)" \
+        -i "${{ parameters.imageName }}" \
+        -n "${{ parameters.namespace }}" \
+        -P "${{ parameters.project }}" \
+        -v "${{ parameters.version }}" \
+        --bin-dir "${{ parameters.bin_dir }}" \
+        --source-map /etc/iotedge-source-map.json
     displayName: Build Image - ${{ parameters.name }} - amd64
-    inputs:
-      filePath: scripts/linux/buildImage.sh
-      arguments: -r "$(registry.address)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }}" --bin-dir "${{ parameters.bin_dir }}" --source-map /etc/iotedge-source-map.json
-  - task: Bash@3
+
+  - script: |
+      scripts/linux/buildImage.sh \
+        -r "$(registry.address)" \
+        -i "${{ parameters.imageName }}" \
+        -n "${{ parameters.namespace }}" \
+        -P "${{ parameters.project }}" \
+        -v "${{ parameters.version }}" \
+        --target-arch armv7l \
+        --bin-dir "${{ parameters.bin_dir }}" \
+        --source-map /etc/iotedge-source-map.json
     displayName: Build Image - ${{ parameters.name }} - arm32
     condition: and(ne('${{ parameters.name }}', 'Functions Sample'), succeeded())
-    inputs:
-      filePath: scripts/linux/buildImage.sh
-      arguments: -r "$(registry.address)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }}" --target-arch armv7l --bin-dir "${{ parameters.bin_dir }}" --source-map /etc/iotedge-source-map.json
-  - task: Bash@3
+
+  - script: |
+      scripts/linux/buildImage.sh \
+        -r "$(registry.address)" \
+        -i "${{ parameters.imageName }}" \
+        -n "${{ parameters.namespace }}" \
+        -P "${{ parameters.project }}" \
+        -v "${{ parameters.version }}" \
+        --target-arch aarch64 \
+        --bin-dir "${{ parameters.bin_dir }}" \
+        --source-map /etc/iotedge-source-map.json
     displayName: Build Image - ${{ parameters.name }} - arm64 
     condition: and(ne('${{ parameters.name }}', 'Functions Sample'), succeeded())
-    inputs:
-      filePath: scripts/linux/buildImage.sh
-      arguments: -r "$(registry.address)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }}" --target-arch aarch64 --bin-dir "${{ parameters.bin_dir }}" --source-map /etc/iotedge-source-map.json
+
+  - script: |
+      scripts/linux/buildManifest.sh \
+        -r '$(registry.address)' \
+        -n microsoft \
+        -t 'edge-agent/docker/manifest.yaml.template' \
+        -v '$(version)' \
+        --tags '$(tags)'
+    displayName: Build Edge Agent Manifest
+    condition: and(ne('${{ parameters.manifestTemplate }}', ''), succeeded())

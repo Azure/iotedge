@@ -54,7 +54,7 @@ namespace DirectMethodSender
             ulong directMethodCount,
             CancellationToken none)
         {
-            MethodRequest request = new MethodRequest(methodName, Encoding.UTF8.GetBytes($"{{ \"Message\": \"Hello\", \"DirectMethodCount\": \"{directMethodCount.ToString()}\" }}"));
+            MethodRequest request = new MethodRequest(methodName, Encoding.UTF8.GetBytes($"{{ \"Message\": \"Hello\", \"DirectMethodCount\": \"{directMethodCount.ToString()}\" }}"), TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300));
             MethodResponse result = await this.moduleClient.InvokeMethodAsync(deviceId, targetModuleId, request);
             return result.Status;
         }

@@ -14,9 +14,8 @@ use url::Url;
 use docker::apis::{Configuration, DockerApi, DockerApiClient};
 use docker::models::{ContainerCreateBody, HostConfig, InlineResponse2001, Ipam, NetworkConfig};
 use edgelet_core::{
-    DiskInfo, LogOptions, MakeModuleRuntime, Module, ModuleAction, ModuleRegistry, ModuleRuntime,
-    ModuleRuntimeState, RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo,
-    SystemResources, UrlExt,
+    DiskInfo, LogOptions, Module, ModuleAction, ModuleRegistry, ModuleRuntime, ModuleRuntimeState,
+    RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
 };
 use edgelet_settings::{
     DockerConfig, Ipam as CoreIpam, MobyNetwork, ModuleSpec, RuntimeSettings, Settings,
@@ -26,6 +25,7 @@ use http_common::Connector;
 
 use crate::error::Error;
 use crate::module::{runtime_state, DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
+use crate::{ImagePruneData, MakeModuleRuntime};
 
 type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
@@ -41,6 +41,7 @@ pub struct DockerModuleRuntime<C> {
     create_socket_channel: UnboundedSender<ModuleAction>,
     allow_elevated_docker_permissions: bool,
     additional_info: BTreeMap<String, String>,
+    image_use_data: ImagePruneData,
 }
 
 fn merge_env(cur_env: Option<&[String]>, new_env: &BTreeMap<String, String>) -> Vec<String> {
@@ -113,6 +114,21 @@ where
             })?;
 
         log::info!("Successfully pulled image {}", image);
+
+        // Now, get the image_id of the image we just pulled for image garbage collection in future
+        match self.list_images().await {
+            Ok(image_name_to_id) => {
+                if image_name_to_id.is_empty() {
+                    log::error!("No docker images present on device: {} was just pulled, but not found on device", image);
+                } else if let Some(image_id) = image_name_to_id.get(config.image()) {
+                    self.image_use_data.record_image_use_timestamp(image_id)?;
+                } else {
+                    log::warn!("Could not retrieve image id. {} was not added to image garbage collection list and will not be garbage collected", image);
+                }
+            }
+            Err(e) => log::error!("Could not get list of docker images: {}", e),
+        };
+
         Ok(())
     }
 
@@ -124,7 +140,7 @@ where
         })?;
 
         self.client
-            .image_delete(name, false, false)
+            .image_delete(name, true, false)
             .await
             .context(Error::Docker)
             .map_err(|e| {
@@ -149,6 +165,7 @@ impl MakeModuleRuntime for DockerModuleRuntime<Connector> {
     async fn make_runtime(
         settings: &Settings,
         create_socket_channel: UnboundedSender<ModuleAction>,
+        image_use_data: ImagePruneData,
     ) -> anyhow::Result<Self::ModuleRuntime> {
         log::info!("Initializing module runtime...");
 
@@ -166,6 +183,7 @@ impl MakeModuleRuntime for DockerModuleRuntime<Connector> {
             create_socket_channel,
             allow_elevated_docker_permissions: settings.allow_elevated_docker_permissions(),
             additional_info: settings.additional_info().clone(),
+            image_use_data,
         };
 
         Ok(runtime)
@@ -339,6 +357,18 @@ where
                 Error::RuntimeOperation(RuntimeOperation::CreateModule(module.name().to_string()))
             })?;
 
+        // Now, get the image id of the image associated with the module we started
+        let module_with_details = self.get(module.name()).await?;
+
+        // update image use timestamp for image garbage collection job later
+        self.image_use_data.record_image_use_timestamp(
+            module_with_details
+                .0
+                .config()
+                .image_hash()
+                .ok_or(Error::GetImageId())?,
+        )?;
+
         Ok(())
     }
 
@@ -487,6 +517,14 @@ where
     }
 
     async fn remove(&self, id: &str) -> anyhow::Result<()> {
+        // get the image id of the image associated with the module we want to delete
+        let module_with_details = self.get(id).await?;
+        let image_id = module_with_details
+            .0
+            .config()
+            .image_hash()
+            .ok_or(Error::GetImageId())?;
+
         log::info!("Removing module {}...", id);
 
         ensure_not_empty(id).with_context(|| {
@@ -508,6 +546,9 @@ where
                 Error::RuntimeOperation(RuntimeOperation::RemoveModule(id.to_owned()))
             })?;
 
+        // update image use timestamp for image garbage collection job later
+        self.image_use_data.record_image_use_timestamp(image_id)?;
+
         // Remove the socket to avoid having socket files polluting the home folder.
         self.create_socket_channel
             .send(ModuleAction::Remove(id.to_string()))
@@ -525,6 +566,12 @@ where
     async fn system_info(&self) -> anyhow::Result<CoreSystemInfo> {
         log::info!("Querying system info...");
 
+        let total_memory = {
+            let mut system_resources = self.system_resources.as_ref().lock().await;
+            system_resources.refresh_memory();
+            system_resources.total_memory() * 1024
+        };
+
         let mut system_info = CoreSystemInfo::default();
 
         let docker_info = self
@@ -534,6 +581,7 @@ where
             .context(Error::Docker)
             .context(Error::RuntimeOperation(RuntimeOperation::SystemInfo))?;
         system_info.server_version = docker_info.server_version().map(ToOwned::to_owned);
+        system_info.total_memory = Some(total_memory);
         system_info.merge_additional(self.additional_info.clone());
 
         log::info!("Successfully queried system info");
@@ -560,8 +608,8 @@ where
             .as_secs();
 
         let used_cpu = system_resources.global_cpu_info().cpu_usage();
-        let total_memory = system_resources.total_memory() * 1000;
-        let used_memory = system_resources.used_memory() * 1000;
+        let total_memory = system_resources.total_memory() * 1024;
+        let used_memory = system_resources.used_memory() * 1024;
 
         let disks = system_resources
             .disks()
@@ -680,6 +728,29 @@ where
                         err
                     );
                 }
+            }
+        }
+
+        Ok(result)
+    }
+
+    async fn list_images(&self) -> anyhow::Result<HashMap<String, String>> {
+        let images = self
+            .client
+            .images_list(false, "", false)
+            .await
+            .context(Error::Docker)
+            .map_err(|e| {
+                log::warn!("{:?}", e);
+                e
+            })
+            .context(Error::RuntimeOperation(RuntimeOperation::ListImages))?;
+
+        let mut result: HashMap<String, String> = HashMap::new();
+        for image in images {
+            // an individual image id may be associated with multiple image names
+            for name in image.repo_tags() {
+                result.insert(name.clone(), image.id().clone());
             }
         }
 
@@ -847,14 +918,16 @@ fn drop_unsafe_privileges(
     // These capabilities are provided by default and can be used to gain root access:
     // https://labs.f-secure.com/blog/helping-root-out-of-the-container/
     // They must be explicitly enabled
-    let mut caps_to_drop = vec!["CAP_CHOWN".to_owned(), "CAP_SETUID".to_owned()];
+    let mut caps_to_drop = vec!["CHOWN".to_owned(), "SETUID".to_owned()];
 
     // The suggested `Option::map_or_else` requires cloning `caps_to_drop`.
     #[allow(clippy::option_if_let_else)]
     let host_config = if let Some(config) = create_options.host_config() {
         // Don't drop caps that the user added explicitly
         if let Some(cap_add) = config.cap_add() {
-            caps_to_drop.retain(|cap_drop| !cap_add.contains(cap_drop));
+            caps_to_drop.retain(|cap_drop| {
+                !(cap_add.contains(cap_drop) || cap_add.contains(&format!("CAP_{}", cap_drop)))
+            });
         }
         // Add customer specified cap_drops
         if let Some(cap_drop) = config.cap_drop() {
@@ -982,7 +1055,7 @@ mod tests {
         drop_unsafe_privileges(false, &mut create_options);
         assert_eq!(
             create_options.host_config().unwrap().cap_drop(),
-            Some(&vec!["CAP_CHOWN".to_owned(), "CAP_SETUID".to_owned()])
+            Some(&vec!["CHOWN".to_owned(), "SETUID".to_owned()])
         );
         // Doesn't drop caps if specified
         create_options
@@ -990,7 +1063,15 @@ mod tests {
         drop_unsafe_privileges(false, &mut create_options);
         assert_eq!(
             create_options.host_config().unwrap().cap_drop(),
-            Some(&vec!["CAP_SETUID".to_owned()])
+            Some(&vec!["SETUID".to_owned()])
+        );
+
+        // Doesn't drop caps if specified without CAP_
+        create_options.set_host_config(HostConfig::new().with_cap_add(vec!["CHOWN".to_owned()]));
+        drop_unsafe_privileges(false, &mut create_options);
+        assert_eq!(
+            create_options.host_config().unwrap().cap_drop(),
+            Some(&vec!["SETUID".to_owned()])
         );
     }
 }

@@ -12,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
     using Newtonsoft.Json;
     using NUnit.Framework;
 
@@ -167,12 +166,16 @@ namespace Microsoft.Azure.Devices.Edge.Test
             // check it restarted
             var logsRequest = new ModuleLogsRequest("1.0", new List<LogRequestItem> { new LogRequestItem(moduleName, new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.None<int>(), Option.None<bool>(), Option.None<string>())) }, LogsContentEncoding.None, LogsContentType.Text);
             result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetModuleLogs", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(logsRequest)), token);
-
             Assert.AreEqual((int)HttpStatusCode.OK, result.Status);
 
-            string expected = string.Join('\n', Enumerable.Range(0, count).Concat(Enumerable.Range(0, count))) + "\n";
+            // The log _should_ contain two runs of 0-9, but on slower systems the restart request occasionally times
+            // out and Edge Agent internally retries, resulting in two restarts of the number logger module. The
+            // resulting logs might contain three sequences of numbers instead of two. To handle the variance we'll
+            // look for minimal evidence of a restart (i.e. one full sequence followed by at least one number from the
+            // next sequence) rather than expecting exactly two sequences.
+            string expected = string.Join('\n', Enumerable.Range(0, count).Concat(Enumerable.Range(0, 1))) + "\n";
             LogResponse response = JsonConvert.DeserializeObject<LogResponse[]>(result.GetPayloadAsJson()).Single();
-            Assert.AreEqual(expected, response.Payload);
+            Assert.That(response.Payload.StartsWith(expected));
         }
 
         [Test]

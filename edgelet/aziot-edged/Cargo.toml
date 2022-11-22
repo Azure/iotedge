@@ -7,13 +7,14 @@ edition = "2021"
 
 [dependencies]
 base64 = "0.13"
-clap = "2.33"
+chrono = "0.4"
+clap = { version = "4", features = ["cargo", "string"] }
 futures-util = "0.3"
 log = "0.4"
 serde_json = "1"
 sha2 = "0.10"
 serde = "1"
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "sync", "time"] }
+tokio = { version = "1", features = ["macros", "parking_lot", "rt-multi-thread", "signal", "sync", "time"] }
 url = "2"
 
 edgelet-core = { path = "../edgelet-core" }
@@ -21,6 +22,7 @@ edgelet-docker = { path = "../edgelet-docker" }
 edgelet-http = { path = "../edgelet-http" }
 edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
 edgelet-http-workload = { path = "../edgelet-http-workload" }
+edgelet-image-cleanup = { path = "../edgelet-image-cleanup" }
 edgelet-settings = { path = "../edgelet-settings", features = ["settings-docker"] }
 
 aziot-identity-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }

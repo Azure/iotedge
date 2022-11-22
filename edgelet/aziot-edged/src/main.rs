@@ -11,7 +11,9 @@ mod workload_manager;
 
 use std::sync::atomic;
 
-use edgelet_core::{module::ModuleAction, MakeModuleRuntime, ModuleRuntime};
+use edgelet_core::{module::ModuleAction, ModuleRuntime, WatchdogAction};
+use edgelet_docker::{ImagePruneData, MakeModuleRuntime};
+use edgelet_image_cleanup::image_gc;
 use edgelet_settings::RuntimeSettings;
 
 use crate::{error::Error as EdgedError, workload_manager::WorkloadManager};
@@ -20,8 +22,8 @@ use crate::{error::Error as EdgedError, workload_manager::WorkloadManager};
 async fn main() {
     let version = edgelet_core::version_with_source_version();
 
-    clap::App::new(clap::crate_name!())
-        .version(version.as_str())
+    clap::Command::new(clap::crate_name!())
+        .version(&version)
         .author(clap::crate_authors!("\n"))
         .about(clap::crate_description!())
         .get_matches();
@@ -30,7 +32,7 @@ async fn main() {
         .expect("cannot fail to initialize global logger from the process entrypoint");
 
     log::info!("Starting Azure IoT Edge Daemon");
-    log::info!("Version - {}", edgelet_core::version_with_source_version());
+    log::info!("Version - {}", version);
 
     if let Err(err) = run().await {
         if err.exit_code() == EdgedError::reprovisioned().exit_code() {
@@ -70,6 +72,17 @@ async fn run() -> Result<(), EdgedError> {
         )
     })?;
 
+    let gc_dir = std::path::Path::new(&settings.homedir()).join("gc");
+    std::fs::create_dir_all(&gc_dir).map_err(|err| {
+        EdgedError::from_err(
+            format!(
+                "Failed to create gc directory {}",
+                gc_dir.as_path().display()
+            ),
+            err,
+        )
+    })?;
+
     let identity_client = provision::identity_client(&settings)?;
 
     let device_info = provision::get_device_info(
@@ -82,9 +95,15 @@ async fn run() -> Result<(), EdgedError> {
     let (create_socket_channel_snd, create_socket_channel_rcv) =
         tokio::sync::mpsc::unbounded_channel::<ModuleAction>();
 
+    let gc_settings = settings.image_garbage_collection().clone();
+
+    let image_use_data = ImagePruneData::new(&gc_dir, gc_settings.clone())
+        .map_err(|err| EdgedError::from_err("Failed to set up image garbage collection", err))?;
+
     let runtime = edgelet_docker::DockerModuleRuntime::make_runtime(
         &settings,
         create_socket_channel_snd.clone(),
+        image_use_data.clone(),
     )
     .await
     .map_err(|err| EdgedError::from_err("Failed to initialize module runtime", err))?;
@@ -105,6 +124,7 @@ async fn run() -> Result<(), EdgedError> {
         tasks.clone(),
         create_socket_channel_snd,
         watchdog_tx.clone(),
+        settings.iotedge_max_requests().workload,
     )
     .await?;
 
@@ -137,6 +157,7 @@ async fn run() -> Result<(), EdgedError> {
         runtime.clone(),
         watchdog_tx.clone(),
         tasks.clone(),
+        settings.iotedge_max_requests().management,
     )
     .await?;
 
@@ -145,15 +166,35 @@ async fn run() -> Result<(), EdgedError> {
     // Set signal handlers for SIGTERM and SIGINT.
     set_signal_handlers(watchdog_tx);
 
-    // Run aziot-edged until the shutdown signal is received. This also runs the watchdog periodically.
-    let shutdown_reason = watchdog::run_until_shutdown(
-        settings,
+    let shutdown_reason: WatchdogAction;
+
+    let watchdog = watchdog::run_until_shutdown(
+        settings.clone(),
         &device_info,
-        runtime,
+        runtime.clone(),
         &identity_client,
         watchdog_rx,
-    )
-    .await?;
+    );
+
+    let edge_agent_bootstrap: String = settings.agent().config().image().to_string();
+    let image_gc = image_gc::image_garbage_collect(
+        edge_agent_bootstrap,
+        gc_settings.clone(),
+        &runtime,
+        image_use_data,
+    );
+
+    tokio::select! {
+        watchdog_finished = watchdog => {
+            log::info!("watchdog finished");
+            shutdown_reason = watchdog_finished?;
+        },
+        image_gc_finished = image_gc => {
+            let err_msg = "image garbage collection stopped unexpectedly";
+            image_gc_finished.map_err(|e| EdgedError::from_err(err_msg, e))?;
+            return Err(EdgedError::new(err_msg));
+        }
+    };
 
     log::info!("Stopping management API...");
     management_shutdown
@@ -165,7 +206,6 @@ async fn run() -> Result<(), EdgedError> {
         .send(())
         .expect("workload API shutdown receiver was dropped");
 
-    // Wait up to 10 seconds for all server tasks to exit.
     let shutdown_timeout = std::time::Duration::from_secs(10);
     let poll_period = std::time::Duration::from_millis(100);
     let mut wait_time = std::time::Duration::from_millis(0);

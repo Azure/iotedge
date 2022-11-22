@@ -29,10 +29,12 @@ stages:
 
 # This stage builds Rocks DB and adds the files to staging directory
 ################################################################################
-  - template: build-rocksdb.yaml
-    parameters:
-      dependency: [ CheckBuildImages ]
+  - stage: BuildRocksDb
 ################################################################################
+    displayName: Build RocksDB
+    dependsOn: CheckBuildImages
+    jobs:
+      - template: build-rocksdb.yaml
 
 ################################################################################
   - stage: BuildExecutables
@@ -159,7 +161,6 @@ stages:
             imageName: azureiotedge-agent
             project: Microsoft.Azure.Devices.Edge.Agent.Service
             bin_dir: '$(Build.BinariesDirectory)'
-            buildx_flag: 'true'
             use_rocksdb: true
 
     - job: BuildImageEdgeHub
@@ -170,7 +171,6 @@ stages:
           imageName: azureiotedge-hub
           project: Microsoft.Azure.Devices.Edge.Hub.Service
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
           use_rocksdb: true
 
     - job: BuildImageTemperatureSensor
@@ -181,7 +181,6 @@ stages:
           imageName: azureiotedge-simulated-temperature-sensor
           project: SimulatedTemperatureSensor
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
 
     - job: BuildImageDiagnostics
       steps:
@@ -191,7 +190,6 @@ stages:
           imageName: azureiotedge-diagnostics
           project: IotedgeDiagnosticsDotnet
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
 
     - job: BuildImageTemperatureFilter
       steps:
@@ -201,7 +199,6 @@ stages:
           imageName: azureiotedge-temperature-filter
           project: TemperatureFilter
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
 
     - job: BuildImageLoadGen
       steps:
@@ -211,7 +208,6 @@ stages:
           imageName: azureiotedge-load-gen
           project: load-gen
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
     - job: BuildImageTestAnalyzer
       steps:
       - template: image-linux.yaml
@@ -221,7 +217,6 @@ stages:
           project: TestAnalyzer
           bin_dir: '$(Build.BinariesDirectory)'
           use_rocksdb: true
-          buildx_flag: 'true'
 
       # Functions Sample - Not supported on linux arm64
     - job: BuildImageFunctionsSample
@@ -241,7 +236,6 @@ stages:
           imageName: azureiotedge-direct-method-sender
           project: DirectMethodSender
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
 
     - job: BuildImageDirectMethodReceiver
       steps:
@@ -251,7 +245,6 @@ stages:
           imageName: azureiotedge-direct-method-receiver
           project: DirectMethodReceiver
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
 
     - job: BuildImageMetricsValidator
       steps:
@@ -261,7 +254,6 @@ stages:
           imageName: azureiotedge-metrics-validator
           project: MetricsValidator
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
 
     - job: BuildImageNumberLogger
       steps:
@@ -271,7 +263,6 @@ stages:
           imageName: azureiotedge-number-logger
           project: NumberLogger
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
 
     - job: BuildImageModuleRestarter
       steps:
@@ -281,7 +272,6 @@ stages:
           imageName: azureiotedge-module-restarter
           project: ModuleRestarter
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
 
     - job: BuildImageTwinTester
       steps:
@@ -291,7 +281,6 @@ stages:
           imageName: azureiotedge-twin-tester
           project: TwinTester
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
           use_rocksdb: true
     - job: BuildImageRelayer
       steps:
@@ -301,7 +290,6 @@ stages:
           imageName: azureiotedge-relayer
           project: Relayer
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
 
     - job: BuildImageNetworkController
       steps:
@@ -311,7 +299,6 @@ stages:
           imageName: azureiotedge-network-controller
           project: NetworkController
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
           use_rocksdb: true
 
     - job: BuildImageTestResultCoordinator
@@ -322,7 +309,6 @@ stages:
           imageName: azureiotedge-test-result-coordinator
           project: TestResultCoordinator
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
           use_rocksdb: true
 
     - job: BuildImageTestMetricsCollector
@@ -333,7 +319,6 @@ stages:
           imageName: azureiotedge-test-metrics-collector
           project: TestMetricsCollector
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
 
 
     - job: BuildImageDeploymentTester
@@ -344,7 +329,6 @@ stages:
           imageName: azureiotedge-deployment-tester
           project: DeploymentTester
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
 
 
     - job: BuildImageEdgeHubRestartTester
@@ -355,7 +339,6 @@ stages:
           imageName: azureiotedge-edgehub-restart-tester
           project: EdgeHubRestartTester
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
 
     - job: BuildImageCloudToDeviceMessageTester
       steps:
@@ -365,7 +348,15 @@ stages:
           imageName: azureiotedge-c2dmessage-tester
           project: CloudToDeviceMessageTester
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
+
+    - job: BuildImageMetricsCollector
+      steps:
+      - template: image-linux.yaml
+        parameters:
+          name: Metrics Collector
+          imageName: azureiotedge-metrics-collector
+          project: Microsoft.Azure.Devices.Edge.Azure.Monitor
+          bin_dir: '$(Build.BinariesDirectory)'
 
     - job: BuildImageApiProxy
       steps:
@@ -377,7 +368,6 @@ stages:
           name: API Proxy
           imageName: azureiotedge-api-proxy
           project: api-proxy-module
-          buildx_flag: false
           bin_dir: '$(Build.BinariesDirectory)'
 
 ################################################################################
@@ -404,6 +394,8 @@ stages:
             manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template'
           Diagnostics:
             manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template'
+          MetricsCollector:
+            manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/metrics-collector/docker/manifest.yaml.template'
           ApiProxy:
             manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/api-proxy-module/docker/manifest.yaml.template'
       steps:

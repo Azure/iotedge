@@ -3,6 +3,7 @@
 
 hostname = "my-device"
 homedir = "/var/lib/aziot/identityd"
+max_requests = 40
 
 [provisioning]
 local_gateway_hostname = "my-upstream-device"

@@ -627,7 +627,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                     .GetProperty("AuthenticationChain", BindingFlags.NonPublic | BindingFlags.Instance)
                     .GetValue(transportSettings);
 
-                Assert.Equal(authChain, expectedAuthChain);
+                Assert.Equal(expectedAuthChain, authChain);
 
                 switch (expectedTransportSettings)
                 {

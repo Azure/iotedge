@@ -5,13 +5,14 @@ use edgelet_settings::uri::Listen;
 
 use crate::error::Error as EdgedError;
 
-const SOCKET_DEFAULT_PERMISSION: u32 = 0o666;
+const WORKLOAD_SOCKET_PERMISSION: u32 = 0o666;
 
 pub(crate) struct WorkloadManager<M>
 where
     M: edgelet_core::ModuleRuntime + Clone + Send + Sync + 'static,
     M::Config: serde::Serialize,
 {
+    max_requests: usize,
     shutdown_senders: HashMap<String, tokio::sync::oneshot::Sender<()>>,
     legacy_workload_uri: url::Url,
     legacy_workload_systemd_socket_name: String,
@@ -31,6 +32,7 @@ where
         tasks: std::sync::Arc<std::sync::atomic::AtomicUsize>,
         create_socket_channel_snd: tokio::sync::mpsc::UnboundedSender<ModuleAction>,
         renewal_tx: tokio::sync::mpsc::UnboundedSender<edgelet_core::WatchdogAction>,
+        max_requests: usize,
     ) -> Result<(WorkloadManager<M>, tokio::sync::oneshot::Sender<()>), EdgedError> {
         let shutdown_senders: HashMap<String, tokio::sync::oneshot::Sender<()>> = HashMap::new();
         let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
@@ -48,6 +50,7 @@ where
         let home_dir = settings.homedir().to_path_buf();
 
         let workload_manager = WorkloadManager {
+            max_requests,
             shutdown_senders,
             legacy_workload_uri,
             legacy_workload_systemd_socket_name,
@@ -81,7 +84,7 @@ where
             .map_err(|err| EdgedError::from_err("Invalid workload API URL", err))?;
 
         let mut incoming = connector
-            .incoming(SOCKET_DEFAULT_PERMISSION, socket_name)
+            .incoming(WORKLOAD_SOCKET_PERMISSION, self.max_requests, socket_name)
             .await
             .map_err(|err| EdgedError::from_err("Failed to listen on workload socket", err))?;
 

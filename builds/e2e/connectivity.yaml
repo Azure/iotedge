@@ -1,23 +1,23 @@
 trigger: none
 pr: none
 
-# Test agents are shared, so schedules must be coordinated to avoid conflicts:
-# - main and release/1.3 run daily except Sundays, but are offset from each other by 12 hours
-# - release/1.1 runs on Sundays
+# Following branches (main, release/1.4) all run scheduled tests weekly. This
+# occurs at different days of the week across nested e2e and connectivity
+# pipelines.
 schedules:
-- cron: "0 0 * * 1,2,3,4,5,6"
-  displayName: Daily run main
+- cron: "0 0 * * 0"
+  displayName: Weekly run main
   branches:
     include:
     - main
   always: true
-- cron: "0 12 * * 1,2,3,4,5,6"
-  displayName: Daily run release/1.3
+- cron: "0 0 * * 1"
+  displayName: Weekly run release/1.4
   branches:
     include:
-    - release/1.3
+    - release/1.4
   always: true
-- cron: "0 0 * * 0"
+- cron: "0 0 * * 2"
   displayName: Weekly run release/1.1
   branches:
     include:
@@ -30,11 +30,8 @@ variables:
 
 resources:
   pipelines:
-  - pipeline: images
-    source: 'Azure-IoT-Edge-Core Build Images'
-    branch: 'main'
-  - pipeline: packages
-    source: 'Azure-IoT-Edge-Core Edgelet Packages'
+  - pipeline: ci-build
+    source: 'Azure-IoT-Edge-Core CI Build'
     branch: 'main'
 
 jobs:
@@ -148,11 +145,11 @@ jobs:
         displayName: 'Download Edgelet Artifacts'
         inputs:
           buildType: specific
-          project: $(resources.pipeline.packages.projectID)
-          pipeline: $(resources.pipeline.packages.pipelineName)
-          branchName: $(resources.pipeline.packages.sourceBranch)
+          project: $(resources.pipeline.ci-build.projectID)
+          pipeline: $(resources.pipeline.ci-build.pipelineName)
+          branchName: $(resources.pipeline.ci-build.sourceBranch)
           buildVersionToDownload: specific
-          buildId: $(resources.pipeline.packages.runID)
+          buildId: $(resources.pipeline.ci-build.runID)
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
           allowPartiallySucceededBuilds: true
@@ -161,11 +158,11 @@ jobs:
         displayName: 'Download Images Artifacts'
         inputs:
           buildType: specific
-          project: $(resources.pipeline.images.projectID)
-          pipeline: $(resources.pipeline.images.pipelineName)
-          branchName: $(resources.pipeline.images.sourceBranch)
+          project: $(resources.pipeline.ci-build.projectID)
+          pipeline: $(resources.pipeline.ci-build.pipelineName)
+          branchName: $(resources.pipeline.ci-build.sourceBranch)
           buildVersionToDownload: specific
-          buildId: $(resources.pipeline.images.runID)
+          buildId: $(resources.pipeline.ci-build.runID)
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.linux)
           allowPartiallySucceededBuilds: true

@@ -16,14 +16,14 @@ byte-unit = "4"
 bytes = "1"
 chrono = { version = "0.4.7", features = ["serde"] }
 chrono-humanize = "0.2"
-clap = "2.31"
+clap = { version = "4", features = ["cargo", "env", "string"] }
 config = { version = "0.13", default-features = false }
 erased-serde = "0.3.12"
 hex = "0.4"
 hyper = "0.14"
 lazy_static = "1"
 libc = "0.2"
-log = "0.4"
+log = { version = "0.4", features = ["std"] }
 nix = "0.24"
 regex = "1"
 serde = { version = "1", features = ["derive"] }
@@ -32,7 +32,7 @@ sysinfo = "0.25"
 tabwriter = "1"
 termcolor = "1"
 thiserror = "1"
-tokio = { version = "1", features = ["macros", "process"] }
+tokio = { version = "1", features = ["macros", "parking_lot", "process", "rt", "sync"] }
 toml = "0.5"
 url = "2"
 

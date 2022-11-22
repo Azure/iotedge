@@ -1,5 +1,9 @@
 name: $(version)
 
+variables:
+  DisableDockerDetector: true
+
+
 stages:
 ################################################################################
   - stage: BuildExecutables
@@ -299,8 +303,12 @@ stages:
 
 # This stage builds Rocks DB and adds the files to staging directory
 ################################################################################
-  - template: templates/build-rocksdb.yaml
+  - stage: BuildRocksDb
 ################################################################################
+    displayName: Build RocksDB
+    dependsOn: []
+    jobs:
+      - template: templates/build-rocksdb.yaml
 
 # This stage consolidates .NET binaries, Rocksdb binaries and the SBOM into a
 # single artifact from which all Docker images can be built.
@@ -369,7 +377,6 @@ stages:
           project: Microsoft.Azure.Devices.Edge.Hub.Service
           version: $(version)
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
           use_rocksdb: true
     - job: BuildImageEdgeAgent
       steps:
@@ -380,7 +387,6 @@ stages:
           project: Microsoft.Azure.Devices.Edge.Agent.Service
           version: $(version)
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
           use_rocksdb: true
     - job: BuildImageTemperatureSensor
       steps:
@@ -391,7 +397,6 @@ stages:
           project: SimulatedTemperatureSensor
           version: $(version)
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
     - job: BuildImageDiagnostics
       steps:
       - template: templates/image-linux.yaml
@@ -401,7 +406,6 @@ stages:
           project: IotedgeDiagnosticsDotnet
           version: $(version)
           bin_dir: '$(Build.BinariesDirectory)'
-          buildx_flag: 'true'
 
 ################################################################################
   - stage: PublishManifests

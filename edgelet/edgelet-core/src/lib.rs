@@ -19,9 +19,9 @@ mod virtualization;
 
 pub use error::Error;
 pub use module::{
-    DiskInfo, LogOptions, LogTail, MakeModuleRuntime, Module, ModuleAction, ModuleOperation,
-    ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleStatus,
-    ProvisioningInfo, RegistryOperation, RuntimeOperation, SystemInfo, SystemResources,
+    DiskInfo, LogOptions, LogTail, Module, ModuleAction, ModuleOperation, ModuleRegistry,
+    ModuleRuntime, ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleStatus, ProvisioningInfo,
+    RegistryOperation, RuntimeOperation, SystemInfo, SystemResources,
 };
 pub use parse_since::parse_since;
 
@@ -70,7 +70,7 @@ impl UrlExt for Url {
 
 pub const UNIX_SCHEME: &str = "unix";
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum WatchdogAction {
     EdgeCaRenewal,
     Reprovision,
