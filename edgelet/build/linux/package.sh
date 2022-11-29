@@ -129,7 +129,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
                 libcurl4-openssl-dev libssl-dev uuid-dev &&
         '
         ;;
-    
+
     debian*.arm32v7)
         SETUP_COMMAND=$'
             export DEBIAN_FRONTEND=noninteractive
@@ -240,14 +240,14 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         SETUP_COMMAND=$"
             export DEBIAN_FRONTEND=noninteractive
             export TZ=UTC
-            sources="$(cat /etc/apt/sources.list | grep -E \'^[^#]\')" &&
+            sources=\"\$(cat /etc/apt/sources.list | grep -E '^[^#]')\" &&
             # Update existing repos to be specifically for amd64
-            echo "\$sources" | sed -e \'s/^deb /deb [arch=amd64] /g\' > /etc/apt/sources.list &&
+            echo \"\$sources\" | sed -e 's/^deb /deb [arch=amd64] /g' > /etc/apt/sources.list &&
             # Add arm64 repos
-            echo "\$sources" |
-                sed -e \'s/^deb /deb [arch=arm64] /g\' \
-                    -e \'s| http://archive.ubuntu.com/ubuntu/ | http://ports.ubuntu.com/ubuntu-ports/ |g\' \
-                    -e \'s| http://security.ubuntu.com/ubuntu/ | http://ports.ubuntu.com/ubuntu-ports/ |g\' \
+            echo \"\$sources\" |
+                sed -e 's/^deb /deb [arch=arm64] /g' \
+                    -e 's| http://archive.ubuntu.com/ubuntu/ | http://ports.ubuntu.com/ubuntu-ports/ |g' \
+                    -e 's| http://security.ubuntu.com/ubuntu/ | http://ports.ubuntu.com/ubuntu-ports/ |g' \
                     >> /etc/apt/sources.list &&
 
             dpkg --add-architecture arm64 &&
@@ -255,8 +255,8 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
             apt-get upgrade -y &&
             apt-get install -y --no-install-recommends $base_packages $extra_packages &&
             mkdir -p ~/.cargo &&
-            echo \'[target.aarch64-unknown-linux-gnu]\' > ~/.cargo/config &&
-            echo \'linker = "$linker"\' >> ~/.cargo/config &&
+            echo '[target.aarch64-unknown-linux-gnu]' > ~/.cargo/config &&
+            echo 'linker = \"$linker\"' >> ~/.cargo/config &&
             export AARCH64_UNKNOWN_LINUX_GNU_OPENSSL_LIB_DIR=/usr/lib/$linker &&
             export AARCH64_UNKNOWN_LINUX_GNU_OPENSSL_INCLUDE_DIR=/usr/include &&
         "
