@@ -66,6 +66,10 @@ case "$PACKAGE_OS" in
     'ubuntu20.04')
         DOCKER_IMAGE='ubuntu:20.04'
         ;;
+    
+    'ubuntu22.04')
+        DOCKER_IMAGE='ubuntu:22.04'
+        ;;
 esac
 
 if [ -z "$DOCKER_IMAGE" ]; then
@@ -168,7 +172,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         '
         ;;
 
-    ubuntu18.04.amd64|ubuntu20.04.amd64)
+    ubuntu18.04.amd64|ubuntu20.04.amd64|ubuntu22.04.amd64)
         SETUP_COMMAND=$'
             export DEBIAN_FRONTEND=noninteractive
             export TZ=UTC
@@ -212,7 +216,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         '
         ;;
 
-    ubuntu18.04.aarch64|ubuntu20.04.aarch64)
+    ubuntu18.04.aarch64|ubuntu20.04.aarch64|ubuntu22.04.aarch64)
         SETUP_COMMAND=$'
             export DEBIAN_FRONTEND=noninteractive
             export TZ=UTC
