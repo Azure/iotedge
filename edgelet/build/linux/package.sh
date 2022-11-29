@@ -66,7 +66,7 @@ case "$PACKAGE_OS" in
     'ubuntu20.04')
         DOCKER_IMAGE='ubuntu:20.04'
         ;;
-    
+
     'ubuntu22.04')
         DOCKER_IMAGE='ubuntu:22.04'
         ;;
