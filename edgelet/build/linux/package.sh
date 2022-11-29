@@ -173,16 +173,23 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         ;;
 
     ubuntu18.04.amd64|ubuntu20.04.amd64|ubuntu22.04.amd64)
-        SETUP_COMMAND=$'
+        base_packages='build-essential ca-certificates curl debhelper file git make g++ pkg-config \
+            libssl-dev uuid-dev'
+        case "$PACKAGE_OS" in
+            ubuntu18.04|ubuntu20.04)
+                extra_packages='binutils dh-systemd gcc libcurl4-openssl-dev'
+                ;;
+            *)
+                extra_packages=''
+                ;;
+        esac
+        SETUP_COMMAND=$"
             export DEBIAN_FRONTEND=noninteractive
             export TZ=UTC
             apt-get update &&
             apt-get upgrade -y &&
-            apt-get install -y --no-install-recommends \
-                binutils build-essential ca-certificates curl debhelper dh-systemd file git make \
-                gcc g++ pkg-config \
-                libcurl4-openssl-dev libssl-dev uuid-dev &&
-        '
+            apt-get install -y --no-install-recommends $base_packages $extra_packages &&
+        "
         ;;
 
     ubuntu18.04.arm32v7|ubuntu20.04.arm32v7)
@@ -217,14 +224,27 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         ;;
 
     ubuntu18.04.aarch64|ubuntu20.04.aarch64|ubuntu22.04.aarch64)
-        SETUP_COMMAND=$'
+        base_packages='build-essential ca-certificates curl debhelper file git make g++ \
+            g++-aarch64-linux-gnu libssl-dev:arm64 uuid-dev:arm64'
+        case "$PACKAGE_OS" in
+            ubuntu18.04|ubuntu20.04)
+                extra_packages='binutils dh-systemd gcc gcc-aarch64-linux-gnu \
+                    libcurl4-openssl-dev:arm64'
+                linker='aarch64-linux-gnu-gnu'
+                ;;
+            *)
+                extra_packages=''
+                linker='aarch64-linux-gnu-g++'
+                ;;
+        esac
+        SETUP_COMMAND=$"
             export DEBIAN_FRONTEND=noninteractive
             export TZ=UTC
             sources="$(cat /etc/apt/sources.list | grep -E \'^[^#]\')" &&
             # Update existing repos to be specifically for amd64
-            echo "$sources" | sed -e \'s/^deb /deb [arch=amd64] /g\' > /etc/apt/sources.list &&
+            echo "\$sources" | sed -e \'s/^deb /deb [arch=amd64] /g\' > /etc/apt/sources.list &&
             # Add arm64 repos
-            echo "$sources" |
+            echo "\$sources" |
                 sed -e \'s/^deb /deb [arch=arm64] /g\' \
                     -e \'s| http://archive.ubuntu.com/ubuntu/ | http://ports.ubuntu.com/ubuntu-ports/ |g\' \
                     -e \'s| http://security.ubuntu.com/ubuntu/ | http://ports.ubuntu.com/ubuntu-ports/ |g\' \
@@ -233,18 +253,13 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
             dpkg --add-architecture arm64 &&
             apt-get update &&
             apt-get upgrade -y &&
-            apt-get install -y --no-install-recommends \
-                binutils build-essential ca-certificates curl debhelper dh-systemd file git make \
-                gcc g++ \
-                gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
-                libcurl4-openssl-dev:arm64 libssl-dev:arm64 uuid-dev:arm64 &&
-
+            apt-get install -y --no-install-recommends $base_packages $extra_packages &&
             mkdir -p ~/.cargo &&
             echo \'[target.aarch64-unknown-linux-gnu]\' > ~/.cargo/config &&
-            echo \'linker = "aarch64-linux-gnu-gcc"\' >> ~/.cargo/config &&
-            export AARCH64_UNKNOWN_LINUX_GNU_OPENSSL_LIB_DIR=/usr/lib/aarch64-linux-gnu &&
+            echo \'linker = "$linker"\' >> ~/.cargo/config &&
+            export AARCH64_UNKNOWN_LINUX_GNU_OPENSSL_LIB_DIR=/usr/lib/$linker &&
             export AARCH64_UNKNOWN_LINUX_GNU_OPENSSL_INCLUDE_DIR=/usr/include &&
-        '
+        "
         ;;
 esac
 
