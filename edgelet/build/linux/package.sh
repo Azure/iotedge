@@ -173,14 +173,14 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         ;;
 
     ubuntu18.04.amd64|ubuntu20.04.amd64|ubuntu22.04.amd64)
-        base_packages='build-essential ca-certificates curl debhelper file git make g++ pkg-config \
-            libssl-dev uuid-dev'
+        packages='binutils build-essential ca-certificates curl debhelper file git make gcc g++ \
+            libcurl4-openssl-dev libssl-dev pkg-config uuid-dev'
         case "$PACKAGE_OS" in
             ubuntu18.04|ubuntu20.04)
-                extra_packages='binutils dh-systemd gcc libcurl4-openssl-dev'
+                transitional_packages='dh-systemd'
                 ;;
             *)
-                extra_packages=''
+                transitional_packages=''
                 ;;
         esac
         SETUP_COMMAND=$"
@@ -188,7 +188,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
             export TZ=UTC
             apt-get update &&
             apt-get upgrade -y &&
-            apt-get install -y --no-install-recommends $base_packages $extra_packages &&
+            apt-get install -y --no-install-recommends $packages $transitional_packages &&
         "
         ;;
 
@@ -224,16 +224,16 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         ;;
 
     ubuntu18.04.aarch64|ubuntu20.04.aarch64|ubuntu22.04.aarch64)
-        base_packages='build-essential ca-certificates curl debhelper file git make g++ \
-            g++-aarch64-linux-gnu libssl-dev:arm64 uuid-dev:arm64'
+        packages='binutils build-essential ca-certificates curl debhelper file git make gcc \
+            g++ gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libcurl4-openssl-dev:arm64 \
+            libssl-dev:arm64 uuid-dev:arm64'
         case "$PACKAGE_OS" in
             ubuntu18.04|ubuntu20.04)
-                extra_packages='binutils dh-systemd gcc gcc-aarch64-linux-gnu \
-                    libcurl4-openssl-dev:arm64'
+                transitional_packages='dh-systemd'
                 linker='aarch64-linux-gnu-gnu'
                 ;;
             *)
-                extra_packages=''
+                transitional_packages=''
                 linker='aarch64-linux-gnu-g++'
                 ;;
         esac
@@ -253,7 +253,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
             dpkg --add-architecture arm64 &&
             apt-get update &&
             apt-get upgrade -y &&
-            apt-get install -y --no-install-recommends $base_packages $extra_packages &&
+            apt-get install -y --no-install-recommends $packages $transitional_packages &&
             mkdir -p ~/.cargo &&
             echo '[target.aarch64-unknown-linux-gnu]' > ~/.cargo/config &&
             echo 'linker = \"$linker\"' >> ~/.cargo/config &&
