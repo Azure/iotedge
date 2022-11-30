@@ -230,11 +230,9 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         case "$PACKAGE_OS" in
             ubuntu18.04|ubuntu20.04)
                 transitional_packages='dh-systemd'
-                linker='aarch64-linux-gnu-gcc'
                 ;;
             *)
                 transitional_packages=''
-                linker='aarch64-linux-gnu-g++'
                 ;;
         esac
         SETUP_COMMAND=$"
@@ -256,8 +254,8 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
             apt-get install -y --no-install-recommends $packages $transitional_packages &&
             mkdir -p ~/.cargo &&
             echo '[target.aarch64-unknown-linux-gnu]' > ~/.cargo/config &&
-            echo 'linker = \"$linker\"' >> ~/.cargo/config &&
-            export AARCH64_UNKNOWN_LINUX_GNU_OPENSSL_LIB_DIR=/usr/lib/$linker &&
+            echo 'linker = \"aarch64-linux-gnu-gcc\"' >> ~/.cargo/config &&
+            export AARCH64_UNKNOWN_LINUX_GNU_OPENSSL_LIB_DIR=/usr/lib/aarch64-linux-gnu &&
             export AARCH64_UNKNOWN_LINUX_GNU_OPENSSL_INCLUDE_DIR=/usr/include &&
         "
         ;;
